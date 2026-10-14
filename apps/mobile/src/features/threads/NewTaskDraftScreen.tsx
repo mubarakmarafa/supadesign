@@ -80,7 +80,8 @@ import { resolveProviderOptionDescriptors } from "../../lib/providerOptions";
 import { SymbolView } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
 import { hasProviderUsageLimits, isUsageLimitsCommand } from "@supacode/shared/usageLimits";
-import { COMPOSER_LAYOUT_TRANSITION, ComposerSurface } from "./ThreadComposer";
+import { COMPOSER_LAYOUT_TRANSITION } from "../../components/composerLayoutTransition";
+import { ComposerSurface } from "./ThreadComposer";
 import { ComposerCommandPopover } from "./ComposerCommandPopover";
 import { useComposerCommandMenu } from "./use-composer-command-menu";
 import {
@@ -1804,7 +1805,7 @@ export function NewTaskDraftScreen(props: {
         </View>
 
         <Animated.View layout={COMPOSER_LAYOUT_TRANSITION} collapsable={false}>
-          <ComposerDictationToolbar showsDictation={isVoiceInputPresented}>
+          <ComposerDictationToolbar statusKind={voicePresentation.statusKind}>
             <ComposerToolbarRow
               paddingBottom={0}
               paddingHorizontal={0}

@@ -20,6 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { AppActivityIndicator } from "../../components/AppActivityIndicator";
+import { COMPOSER_LAYOUT_TRANSITION } from "../../components/composerLayoutTransition";
 import { GlassSurface } from "../../components/GlassSurface";
 import { AppText as Text } from "../../components/AppText";
 import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
@@ -41,11 +42,21 @@ const TOOLBAR_FLIP_TIMING = {
   easing: Easing.inOut(Easing.cubic),
   reduceMotion: ReduceMotion.System,
 } as const;
-const TOOLBAR_HALF_HEIGHT = 22;
+const TOOLBAR_HEIGHT = 44;
+const SESSION_CONTROL_HEIGHT = 56;
+const SESSION_CAPSULE_STYLE = {
+  borderRadius: SESSION_CONTROL_HEIGHT / 2,
+  height: SESSION_CONTROL_HEIGHT,
+} as const;
 const TOOLBAR_PERSPECTIVE = 600;
 
-/** Moves each face around the same horizontal axis, keeping their edges together. */
-function toolbarFlip(fromDegrees: number, toDegrees: number): EntryExitAnimationFunction {
+/** Rolls a face in or out around the horizontal axis at one of its edges. */
+function toolbarFlip(
+  fromDegrees: number,
+  toDegrees: number,
+  faceHeight: number,
+): EntryExitAnimationFunction {
+  const halfHeight = faceHeight / 2;
   return () => {
     "worklet";
     const fromRadians = (fromDegrees * Math.PI) / 180;
@@ -57,7 +68,7 @@ function toolbarFlip(fromDegrees: number, toDegrees: number): EntryExitAnimation
         opacity: fromDegrees === 0 ? 1 : 0,
         transform: [
           { perspective: TOOLBAR_PERSPECTIVE },
-          { translateY: -TOOLBAR_HALF_HEIGHT * fromSine },
+          { translateY: -halfHeight * fromSine },
           { rotateX: `${fromDegrees}deg` },
         ],
       },
@@ -66,7 +77,7 @@ function toolbarFlip(fromDegrees: number, toDegrees: number): EntryExitAnimation
         transform: [
           { perspective: TOOLBAR_PERSPECTIVE },
           {
-            translateY: withTiming(-TOOLBAR_HALF_HEIGHT * toSine, {
+            translateY: withTiming(-halfHeight * toSine, {
               ...TOOLBAR_FLIP_TIMING,
               easing: (time) => {
                 const angle =
@@ -82,10 +93,33 @@ function toolbarFlip(fromDegrees: number, toDegrees: number): EntryExitAnimation
   };
 }
 
-const DRAFT_TOOLBAR_ENTERING = toolbarFlip(90, 0);
-const DRAFT_TOOLBAR_EXITING = toolbarFlip(0, 90);
-const DICTATION_TOOLBAR_ENTERING = toolbarFlip(-90, 0);
-const DICTATION_TOOLBAR_EXITING = toolbarFlip(0, -90);
+function toolbarFace(key: "draft" | "dictation", height: number, hiddenDegrees: number) {
+  return {
+    key,
+    height,
+    entering: toolbarFlip(hiddenDegrees, 0, height),
+    exiting: toolbarFlip(0, hiddenDegrees, height),
+  };
+}
+
+const SESSION_TOOLBAR_FACE = toolbarFace("dictation", SESSION_CONTROL_HEIGHT, -90);
+const TOOLBAR_FACES = {
+  draft: toolbarFace("draft", TOOLBAR_HEIGHT, 90),
+  error: toolbarFace("dictation", TOOLBAR_HEIGHT, -90),
+  // Android snaps the composer to its shorter height, which would clip the
+  // taller session row mid-flip.
+  active: {
+    ...SESSION_TOOLBAR_FACE,
+    exiting: Platform.OS === "android" ? undefined : SESSION_TOOLBAR_FACE.exiting,
+  },
+};
+
+/** Height of the dictation toolbar row for a voice presentation's status. */
+export function composerDictationToolbarHeight(
+  statusKind: VoiceComposerPresentation["statusKind"],
+): number {
+  return TOOLBAR_FACES[statusKind ?? "draft"].height;
+}
 const WAVEFORM_BAR_HEIGHT = 16;
 const WAVEFORM_MIN_BAR_HEIGHT = 2;
 const WAVEFORM_BAR_SPACING = 5;
@@ -112,7 +146,7 @@ export function ComposerDictationDraftContent(props: {
     transform: compact
       ? [
           { perspective: TOOLBAR_PERSPECTIVE },
-          { translateY: -TOOLBAR_HALF_HEIGHT * Math.sin((rotation.value * Math.PI) / 2) },
+          { translateY: (-TOOLBAR_HEIGHT / 2) * Math.sin((rotation.value * Math.PI) / 2) },
           { rotateX: `${rotation.value * 90}deg` },
         ]
       : [],
@@ -133,26 +167,34 @@ export function ComposerDictationDraftContent(props: {
   );
 }
 
-/** Flips the entire row while keeping the outgoing controls intact until it leaves. */
+/**
+ * Flips the entire row while keeping the outgoing controls intact until it leaves.
+ * The row's clip resizes with the composer, so a taller outgoing face is not cut off.
+ */
 export function ComposerDictationToolbar(props: {
   readonly children: ReactNode;
-  readonly showsDictation: boolean;
+  readonly statusKind: VoiceComposerPresentation["statusKind"];
   readonly visible?: boolean;
 }) {
+  const face = TOOLBAR_FACES[props.statusKind ?? "draft"];
   return (
-    <View className="relative h-[44px] overflow-hidden">
+    <Animated.View
+      className="relative overflow-hidden"
+      layout={COMPOSER_LAYOUT_TRANSITION}
+      style={{ height: face.height }}
+    >
       {props.visible !== false ? (
         <Animated.View
-          key={props.showsDictation ? "dictation" : "draft"}
+          key={face.key}
           className="absolute inset-0"
-          entering={props.showsDictation ? DICTATION_TOOLBAR_ENTERING : DRAFT_TOOLBAR_ENTERING}
-          exiting={props.showsDictation ? DICTATION_TOOLBAR_EXITING : DRAFT_TOOLBAR_EXITING}
+          entering={face.entering}
+          exiting={face.exiting}
           style={{ backfaceVisibility: "hidden" }}
         >
           {props.children}
         </Animated.View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -266,26 +308,26 @@ export function DictationElapsedTime(props: {
   );
 }
 
-function VoiceActionButton(props: {
+function SessionCapsuleButton(props: {
   readonly accessibilityLabel: string;
   readonly disabled?: boolean;
   readonly icon: AppSymbolName;
   readonly loading?: boolean;
   readonly onPress: () => void;
-  readonly variant?: "plain" | "secondary" | "primary";
+  readonly variant: "secondary" | "primary";
 }) {
-  const variant = props.variant ?? "plain";
+  const isPrimary = props.variant === "primary";
   const content = props.loading ? (
     <AppActivityIndicator
       size="small"
-      colorClassName={variant === "primary" ? "accent-screen" : "accent-icon-muted"}
+      colorClassName={isPrimary ? "accent-screen" : "accent-icon-muted"}
     />
   ) : (
     <SymbolView
       name={props.icon}
-      size={20}
+      size={22}
       weight="semibold"
-      tintColorClassName={variant === "primary" ? "accent-screen" : "accent-icon"}
+      tintColorClassName={isPrimary ? "accent-screen" : "accent-icon"}
       type="monochrome"
     />
   );
@@ -296,23 +338,19 @@ function VoiceActionButton(props: {
       accessibilityRole="button"
       accessibilityState={{ busy: props.loading, disabled: props.disabled }}
       className={cn(
-        "h-11 items-center justify-center active:opacity-70",
-        variant === "plain" ? "w-11 shrink-0" : "min-w-0 flex-1 rounded-full",
-        variant === "primary" && "bg-foreground",
+        "min-w-0 flex-1 items-center justify-center active:opacity-70",
+        isPrimary && "bg-foreground",
       )}
       disabled={props.disabled}
       onPress={props.onPress}
-      style={{ opacity: props.disabled && !props.loading ? 0.4 : 1 }}
+      style={[SESSION_CAPSULE_STYLE, { opacity: props.disabled && !props.loading ? 0.4 : 1 }]}
     >
-      {variant === "secondary" ? (
-        <GlassSurface
-          className="h-11 w-full items-center justify-center"
-          style={{ borderRadius: 22 }}
-        >
+      {isPrimary ? (
+        content
+      ) : (
+        <GlassSurface className="w-full items-center justify-center" style={SESSION_CAPSULE_STYLE}>
           {content}
         </GlassSurface>
-      ) : (
-        content
       )}
     </Pressable>
   );
@@ -339,7 +377,10 @@ export function ComposerDictationStatus(props: {
   if (!props.presentation.statusLabel) return null;
   const isError = props.presentation.statusKind === "error";
   return (
-    <View className="relative h-11 min-w-0 flex-[1.4] justify-center">
+    <View
+      className="relative min-w-0 flex-[1.4] justify-center"
+      style={{ height: composerDictationToolbarHeight(props.presentation.statusKind) }}
+    >
       {isError ? (
         <View className="min-w-0 flex-row items-center gap-1.5 px-2">
           <Text className="min-w-0 flex-1 text-sm text-danger-foreground" numberOfLines={2}>
@@ -365,15 +406,14 @@ export function ComposerDictationStatus(props: {
           accessible
           accessibilityLabel={props.presentation.statusLabel}
           accessibilityLiveRegion={props.phase === "recording" ? "none" : "polite"}
-          className="h-11"
-          style={{ borderRadius: 22 }}
+          style={SESSION_CAPSULE_STYLE}
         >
           <Animated.View
-            className="absolute inset-0 min-w-0 flex-row items-center gap-2 px-3"
+            className="absolute inset-0 min-w-0 flex-row items-center gap-2.5 px-4"
             style={waveformStyle}
           >
             <DictationElapsedTime
-              className="text-xl font-semibold text-foreground"
+              className="text-2xl font-semibold text-foreground"
               seconds={props.elapsedSeconds}
             />
             <VoiceWaveform audioLevels={props.audioLevels} />
@@ -397,7 +437,7 @@ export function ComposerDictationLeadingAction(props: {
   const action = props.presentation.leadingAction;
   if (!action) return null;
   return (
-    <VoiceActionButton
+    <SessionCapsuleButton
       accessibilityLabel={action === "stop" ? "Stop dictation and review" : "Cancel dictation"}
       icon={action === "stop" ? "stop.fill" : "xmark"}
       onPress={action === "stop" ? props.onStop : props.onCancel}
@@ -419,7 +459,7 @@ export function ComposerDictationPrimaryAction(props: {
   if (props.presentation.trailingAction === "confirm") {
     const confirmationLabel = props.submitsMessage ? "Transcribe and send" : "Finish dictation";
     return (
-      <VoiceActionButton
+      <SessionCapsuleButton
         accessibilityLabel={
           props.presentation.confirmationEnabled
             ? confirmationLabel
@@ -447,10 +487,12 @@ export function ComposerDictationStartAction(props: {
   if (!props.isAvailable) return null;
   const openSettings = props.state.phase === "error" && props.state.errorAction === "settings";
   return (
-    <VoiceActionButton
+    <Pressable
       accessibilityLabel={openSettings ? "Open microphone settings" : "Start dictation"}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: props.disabled }}
+      className="shrink-0 items-center justify-center active:opacity-70"
       disabled={props.disabled}
-      icon="mic"
       onPress={
         openSettings
           ? () => {
@@ -459,6 +501,15 @@ export function ComposerDictationStartAction(props: {
             }
           : props.onStart
       }
-    />
+      style={{ height: TOOLBAR_HEIGHT, opacity: props.disabled ? 0.4 : 1, width: TOOLBAR_HEIGHT }}
+    >
+      <SymbolView
+        name="mic"
+        size={20}
+        weight="semibold"
+        tintColorClassName="accent-icon"
+        type="monochrome"
+      />
+    </Pressable>
   );
 }

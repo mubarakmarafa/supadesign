@@ -56,8 +56,8 @@ export function ScheduledTaskPromptField(props: {
         ) : null}
       </View>
       {showsDictation ? (
-        <ComposerDictationToolbar showsDictation>
-          <View className="h-11 flex-row items-center gap-2">
+        <ComposerDictationToolbar statusKind={presentation.statusKind}>
+          <View className="h-full flex-row items-center gap-2">
             <ComposerDictationLeadingAction
               presentation={presentation}
               onStop={voice.stop}

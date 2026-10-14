@@ -138,10 +138,12 @@ import {
   USER_INPUT_TOGGLE_DURATION_MS,
 } from "./pendingUserInputLayout";
 import {
-  COMPOSER_COLLAPSED_CHROME,
-  COMPOSER_EXPANDED_CHROME,
   COMPOSER_LAYOUT_TRANSITION,
   COMPOSER_TRANSITION_DURATION_MS,
+} from "../../components/composerLayoutTransition";
+import {
+  COMPOSER_COLLAPSED_CHROME,
+  COMPOSER_EXPANDED_CHROME,
   ThreadComposer,
 } from "./ThreadComposer";
 import { ComposerPopoverHost } from "./ComposerPopoverHost";

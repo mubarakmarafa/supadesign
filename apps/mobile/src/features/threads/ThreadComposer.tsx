@@ -45,12 +45,15 @@ import {
 import Animated, {
   FadeIn,
   FadeOut,
-  type LayoutAnimationFunction,
   ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import {
+  COMPOSER_LAYOUT_TRANSITION,
+  COMPOSER_TRANSITION_DURATION_MS,
+} from "../../components/composerLayoutTransition";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { themeColorWithAlpha } from "../../lib/mobileTheme";
 import { scopedThreadKey } from "../../lib/scopedEntities";
@@ -110,6 +113,7 @@ import {
   ComposerDictationStartAction,
   ComposerDictationStatus,
   ComposerDictationToolbar,
+  composerDictationToolbarHeight,
 } from "../voice-input/ComposerDictationControl";
 import { useVoiceInputController } from "../voice-input/useVoiceInputController";
 import { resolveVoiceComposerPresentation } from "../voice-input/voiceInputPresentation";
@@ -137,6 +141,8 @@ export const COMPOSER_COLLAPSED_CHROME = 60;
  * Used by the parent to compute the larger feed bottom inset when the composer is focused.
  */
 export const COMPOSER_EXPANDED_CHROME = 156;
+
+const COMPACT_SURFACE_INSET = 2;
 
 export interface ThreadComposerProps {
   readonly canOperateThread: boolean;
@@ -204,45 +210,6 @@ export interface ThreadComposerProps {
   /** Fires when the command popover opens or closes; hosts clear chrome it would overlap. */
   readonly onCommandMenuOpenChange?: (open: boolean) => void;
 }
-
-/**
- * The pill / card container — renders with Expo's native GlassView on supported
- * iOS 26+ devices, with a frosted blur fallback where supported.
- * Exported so NewTaskDraftScreen can render the same composer chrome.
- */
-// The bottom-anchored dock position and clipped surface height use the same
-// transition so the card grows upward without exposing its final-size content.
-// Android gets NO layout transition: the composer rides the keyboard via
-// KeyboardStickyView (frame-synced to the IME), and a time-based morph
-// running alongside that translate reads as jitter. Snapping the layout and
-// letting the keyboard-synced slide be the only motion looks native there.
-export const COMPOSER_TRANSITION_DURATION_MS = 220;
-// Side panes already animate the dock's width. Nested horizontal layout
-// transitions would leave the surface trailing its toolbar's new position.
-// Keep the vertical pill/card morph while horizontal layout follows the dock.
-const composerHeightTransition: LayoutAnimationFunction = (values) => {
-  "worklet";
-  const timing = {
-    duration: COMPOSER_TRANSITION_DURATION_MS,
-    reduceMotion: ReduceMotion.System,
-  };
-  return {
-    initialValues: {
-      originX: values.targetOriginX,
-      originY: values.currentOriginY,
-      width: values.targetWidth,
-      height: values.currentHeight,
-    },
-    animations: {
-      originX: values.targetOriginX,
-      originY: withTiming(values.targetOriginY, timing),
-      width: values.targetWidth,
-      height: withTiming(values.targetHeight, timing),
-    },
-  };
-};
-export const COMPOSER_LAYOUT_TRANSITION =
-  Platform.OS === "android" ? undefined : composerHeightTransition;
 
 const COMPOSER_ATTACHMENT_ENTERING =
   Platform.OS === "android"
@@ -319,6 +286,11 @@ function SendActionButton(props: {
   );
 }
 
+/**
+ * The pill / card container — renders with Expo's native GlassView on supported
+ * iOS 26+ devices, with a frosted blur fallback where supported.
+ * Exported so NewTaskDraftScreen can render the same composer chrome.
+ */
 export function ComposerSurface(props: {
   readonly children: ReactNode;
   readonly style: ViewStyle;
@@ -903,8 +875,11 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                   // Keep the numeric radius close to the expanded card so the
                   // shape morph stays bounded while rendering as a capsule.
                   borderRadius: 27,
+                  minHeight:
+                    composerDictationToolbarHeight(voicePresentation.statusKind) +
+                    COMPACT_SURFACE_INSET * 2,
                   overflow: "hidden" as const,
-                  paddingVertical: 2,
+                  paddingVertical: COMPACT_SURFACE_INSET,
                 }
           }
         >
@@ -1137,14 +1112,14 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                 ? undefined
                 : {
                     position: "absolute",
-                    bottom: 2,
+                    bottom: COMPACT_SURFACE_INSET,
                     left: 0,
                     right: 0,
                   }
             }
           >
             <ComposerDictationToolbar
-              showsDictation={isVoiceInputPresented}
+              statusKind={voicePresentation.statusKind}
               visible={isToolbarVisible}
             >
               <ComposerToolbarRow
