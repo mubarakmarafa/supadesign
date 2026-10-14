@@ -9,6 +9,7 @@ shellcheck = "0.11.0"
 
 [env]
 HK_CONFIG_DIR = "{{config_root}}/.hk-config"
+HK_PKL_BACKEND = false
 
 [tasks."hooks:install"]
 run = """
