@@ -512,6 +512,10 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
     ? 0
     : Math.max(insets.bottom, 12);
   const contentPresentationKind = props.contentPresentation.kind;
+  const clientCreation =
+    props.creationState?.kind === "preparing" && !props.creationState.serverOwned
+      ? props.creationState
+      : null;
   const realThreadSyncLabel = (() => {
     switch (props.threadSyncStatus) {
       case "empty":
@@ -1252,6 +1256,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
               worktreeSetup={props.worktreeSetup}
               setupWorkingStartedAt={props.setupWorkingStartedAt}
               queuedMessages={props.queuedMessages}
+              creatingThread={clientCreation !== null}
               dispatchingMessageId={props.dispatchingMessageId}
               // A native subagent has no composer to edit a pending message in;
               // Cancel on the edit banner would discard it.
@@ -1548,11 +1553,10 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                         // the draft: queueing them against a thread id the server may
                         // still reject would strand them in the outbox.
                         sendBlockedReason={
-                          props.creationState?.kind === "preparing" &&
-                          !props.creationState.serverOwned
+                          clientCreation
                             ? pendingThreadCreationLabel({
                                 connected: props.connectionStateLabel === "connected",
-                                preparingWorktree: props.creationState.preparingWorktree,
+                                preparingWorktree: clientCreation.preparingWorktree,
                               })
                             : null
                         }
