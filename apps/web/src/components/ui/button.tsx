@@ -109,6 +109,7 @@ const inlineButtonVariants = cva(
     variants: {
       tone: {
         default: "text-foreground",
+        link: "text-info-foreground",
         muted: "text-muted-foreground hover:text-foreground",
         destructive: "text-destructive/80 hover:text-destructive",
         /** Opens a menu from inside a sentence; the dotted underline marks it as a choice. */

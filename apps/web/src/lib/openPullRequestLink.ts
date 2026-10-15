@@ -8,6 +8,7 @@ import { parseChangeRequestUrl, type ChangeRequestLink } from "@supaterm/shared/
 import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
 
 import { useOpenLink } from "../browser/useOpenLink";
+import { isElectron } from "../env";
 import { stackedThreadToast, toastManager } from "../components/ui/toast";
 import { useRightPanelStore } from "../rightPanelStore";
 import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
@@ -256,10 +257,7 @@ export function useOpenPrLink(threadRef?: ScopedThreadRef) {
       const openInBrowser = shouldOpenPullRequestExternally(event);
       const isAnchor =
         event.currentTarget instanceof HTMLAnchorElement && event.currentTarget.href.length > 0;
-      // A real link already knows how to cmd/ctrl+click. Leave its default
-      // action alone so the browser (or Electron's window-open handler) opens
-      // the host. Buttons have no href, so they still go through openExternal.
-      if (openInBrowser && isAnchor) return false;
+      if (openInBrowser && isAnchor && !isElectron) return false;
 
       event.preventDefault();
       if (!openInBrowser && openChangeRequest(event, prUrl, targetThreadRef)) return true;
