@@ -173,6 +173,8 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   /** Server persists project boards (board on project.update) and
       thread.board.place. Absent on servers without project boards. */
   projectBoard: Schema.optionalKey(Schema.Boolean),
+  /** Server runs live environments for board cards (liveEnvironment.* RPCs). */
+  liveEnvironment: Schema.optionalKey(Schema.Boolean),
   /** Server understands thread.auto-settle.set (per-thread auto-settle off).
       Same version-skew contract as threadSettlement. */
   threadAutoSettleOptOut: Schema.optionalKey(Schema.Boolean),

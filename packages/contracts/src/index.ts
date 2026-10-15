@@ -47,6 +47,7 @@ export * from "./supatermProjectFile.ts";
 export * from "./editor.ts";
 export * from "./project.ts";
 export * from "./projectBoard.ts";
+export * from "./liveEnvironment.ts";
 export * from "./filesystem.ts";
 export * from "./agentSessions.ts";
 export * from "./assets.ts";
