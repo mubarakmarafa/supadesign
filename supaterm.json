@@ -14,7 +14,7 @@
       "name": "Clean Worktree",
       "command": "node scripts/clean-worktree.ts",
       "icon": "build",
-      "runOnSettle": true
+      "runOnDone": true
     },
     {
       "name": "Start Development",
