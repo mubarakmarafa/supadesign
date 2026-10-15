@@ -210,7 +210,7 @@ const config: ExpoConfig = {
   slug: "supacode",
   platforms: ["ios", "android"],
   scheme: variant.scheme,
-  version: "26.3.0",
+  version: "26.10.0",
   runtimeVersion: {
     // Development manifests resolve on every launch, so avoid fingerprint's
     // expensive native-project calculation there. Preview and production stay
