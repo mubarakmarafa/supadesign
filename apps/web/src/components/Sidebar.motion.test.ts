@@ -178,6 +178,23 @@ describe("sidebar list motion", () => {
     motion.dispose();
   });
 
+  it.each(["metaKey", "ctrlKey"])(
+    "animates list changes from %s shortcuts pressed inside the list",
+    (modifier) => {
+      const header = new TestRow("Working", 32);
+      const row = new TestRow("working", 48);
+      const settled = new TestRow("Settled", 32);
+      const { motion, layout, parent } = fixture([header, row, settled]);
+      motion.update(true);
+      parent.dispatchEvent(Object.assign(new Event("keydown"), { [modifier]: true }));
+      layout([header, settled]);
+      motion.update(true);
+      expect(row.clones).toHaveLength(1);
+      expectMove(settled, 49);
+      motion.dispose();
+    },
+  );
+
   it("moves a retained Active row into Settled with its displaced peers", () => {
     const pinnedHeader = new TestRow("Pinned", 0);
     const pinned = new TestRow("pin");

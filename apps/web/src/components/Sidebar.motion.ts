@@ -33,7 +33,8 @@ export function createSidebarListMotion(parent: HTMLUListElement) {
   // commit can glide every row from where dnd-kit left it into its slot.
   let released: Map<HTMLElement, number> | null = null;
   let keyboardMotionSuppressedUntil = 0;
-  const suppressKeyboardMotion = () => {
+  const suppressKeyboardMotion = (event: KeyboardEvent) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
     keyboardMotionSuppressedUntil = Date.now() + 300;
   };
   parent.addEventListener("keydown", suppressKeyboardMotion);
