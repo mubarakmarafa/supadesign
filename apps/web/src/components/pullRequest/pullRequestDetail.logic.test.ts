@@ -307,10 +307,11 @@ describe("pull request primary control", () => {
     ).toBe("merge");
   });
 
-  it("keeps armed and terminal states in the merge button slot", () => {
-    expect(resolvePullRequestPrimaryControl({ ...open, autoMergeEnabled: true })).toBe(
-      "auto-merge-armed",
-    );
+  it("offers no merge while auto-merge is armed", () => {
+    expect(resolvePullRequestPrimaryControl({ ...open, autoMergeEnabled: true })).toBeNull();
+  });
+
+  it("keeps terminal states in the merge button slot", () => {
     expect(resolvePullRequestPrimaryControl({ ...open, state: "merged" })).toBe("merged");
     expect(resolvePullRequestPrimaryControl({ ...open, state: "closed" })).toBe("closed");
   });
