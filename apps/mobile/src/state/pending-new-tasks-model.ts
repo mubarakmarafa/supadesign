@@ -39,7 +39,6 @@ export interface PendingDraftTask {
   readonly title: string;
   readonly createdAt: string;
   readonly draftKey: string;
-  readonly draft: ComposerDraft;
 }
 
 /**
@@ -73,16 +72,29 @@ export function pendingDraftTask(draftKey: string, draft: ComposerDraft): Pendin
     title: draftTitle(draft),
     createdAt: draft.project.createdAt,
     draftKey,
-    draft,
   };
 }
 
-export function buildPendingNewTasks(input: {
-  readonly queuedMessages: ReadonlyArray<QueuedThreadMessage>;
-  readonly drafts: Readonly<Record<string, ComposerDraft>>;
-}): ReadonlyArray<PendingNewTask> {
-  const tasks: PendingNewTask[] = [];
-  for (const message of input.queuedMessages) {
+function newestFirst(left: PendingNewTask, right: PendingNewTask): number {
+  return right.createdAt.localeCompare(left.createdAt) || left.key.localeCompare(right.key);
+}
+
+export function buildPendingDraftTasks(
+  drafts: Readonly<Record<string, ComposerDraft>>,
+): ReadonlyArray<PendingDraftTask> {
+  const tasks: PendingDraftTask[] = [];
+  for (const [draftKey, draft] of Object.entries(drafts)) {
+    const task = pendingDraftTask(draftKey, draft);
+    if (task) tasks.push(task);
+  }
+  return tasks.sort(newestFirst);
+}
+
+export function buildPendingQueuedTasks(
+  queuedMessages: ReadonlyArray<QueuedThreadMessage>,
+): ReadonlyArray<PendingQueuedTask> {
+  const tasks: PendingQueuedTask[] = [];
+  for (const message of queuedMessages) {
     if (!message.creation) {
       continue;
     }
@@ -100,19 +112,34 @@ export function buildPendingNewTasks(input: {
       creation: message.creation,
     });
   }
-  for (const [draftKey, draft] of Object.entries(input.drafts)) {
-    const task = pendingDraftTask(draftKey, draft);
-    if (task) tasks.push(task);
-  }
-  // Drafts are what the user is writing now, so they lead; within each kind,
-  // newest first.
-  tasks.sort((left, right) => {
-    if (left.kind !== right.kind) {
-      return left.kind === "draft" ? -1 : 1;
-    }
-    return right.createdAt.localeCompare(left.createdAt) || left.key.localeCompare(right.key);
-  });
-  return tasks;
+  return tasks.sort(newestFirst);
+}
+
+export function buildPendingNewTasks(input: {
+  readonly queuedMessages: ReadonlyArray<QueuedThreadMessage>;
+  readonly draftTasks: ReadonlyArray<PendingDraftTask>;
+}): ReadonlyArray<PendingNewTask> {
+  return [...input.draftTasks, ...buildPendingQueuedTasks(input.queuedMessages)];
+}
+
+export function samePendingDraftTasks(
+  left: ReadonlyArray<PendingDraftTask>,
+  right: ReadonlyArray<PendingDraftTask>,
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((task, index) => {
+      const other = right[index]!;
+      return (
+        task.key === other.key &&
+        task.title === other.title &&
+        task.branch === other.branch &&
+        task.environmentId === other.environmentId &&
+        task.projectId === other.projectId &&
+        task.createdAt === other.createdAt
+      );
+    })
+  );
 }
 
 export interface HeldNewTaskDraft {

@@ -327,7 +327,7 @@ function beginSwitch(environmentId = secondEnvironment!) {
 }
 
 function deletePendingTask() {
-  const task = buildPendingNewTasks({ queuedMessages: [pendingTask], drafts: {} })[0]!;
+  const task = buildPendingNewTasks({ queuedMessages: [pendingTask], draftTasks: [] })[0]!;
   pendingActions.confirmDeletePendingTask(task);
   const confirmation = vi.mocked(Alert.alert).mock.calls.at(-1)?.[2];
   const deleteAction = confirmation?.find((action) => action.text === "Delete");
@@ -344,7 +344,7 @@ describe("pending task editor dismissal", () => {
   });
 
   it("opens a queued creation's reserved thread from the list", () => {
-    const task = buildPendingNewTasks({ queuedMessages: [pendingTask], drafts: {} })[0]!;
+    const task = buildPendingNewTasks({ queuedMessages: [pendingTask], draftTasks: [] })[0]!;
     pendingActions.openPendingTask(task);
     expect(transport.navigate).toHaveBeenCalledWith("Thread", {
       environmentId: pendingTask.environmentId,

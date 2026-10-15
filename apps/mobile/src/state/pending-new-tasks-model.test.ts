@@ -3,7 +3,12 @@ import { CommandId, EnvironmentId, MessageId, ProjectId, ThreadId } from "@supat
 
 import type { QueuedThreadMessage } from "./thread-outbox-model";
 import type { ComposerDraft } from "./use-composer-drafts";
-import { applyHeldNewTaskDraft, buildPendingNewTasks } from "./pending-new-tasks-model";
+import {
+  applyHeldNewTaskDraft,
+  buildPendingDraftTasks,
+  buildPendingNewTasks,
+  samePendingDraftTasks,
+} from "./pending-new-tasks-model";
 
 const environmentId = EnvironmentId.make("env-1");
 const projectId = ProjectId.make("project-1");
@@ -43,12 +48,12 @@ describe("buildPendingNewTasks", () => {
   it("surfaces every new-task draft with content alongside queued creations", () => {
     const tasks = buildPendingNewTasks({
       queuedMessages: [queuedCreation("a", "2026-09-05T10:00:00.000Z")],
-      drafts: {
+      draftTasks: buildPendingDraftTasks({
         "new-task:draft-old": draft("first idea", "2026-09-05T09:00:00.000Z", {
           workspaceSelection: { mode: "worktree", branch: "main", worktreePath: null },
         }),
         "new-task:draft-new": draft("second idea", "2026-09-05T11:00:00.000Z"),
-      },
+      }),
     });
 
     expect(tasks.map((task) => [task.kind, task.title, task.branch])).toEqual([
@@ -68,7 +73,7 @@ describe("buildPendingNewTasks", () => {
   it("hides settings-only drafts, unstamped drafts, and drafts for other surfaces", () => {
     const tasks = buildPendingNewTasks({
       queuedMessages: [],
-      drafts: {
+      draftTasks: buildPendingDraftTasks({
         "new-task:settings-only": draft("", "2026-09-05T09:00:00.000Z", {
           modelSelection: { instanceId: "codex" as never, model: "gpt" },
         }),
@@ -76,7 +81,7 @@ describe("buildPendingNewTasks", () => {
         "new-task:unstamped": { text: "no project", attachments: [] },
         [`${environmentId}:thread-1`]: { text: "thread composer text", attachments: [] },
         "pending-task:message-1": { text: "editor copy of a queued task", attachments: [] },
-      },
+      }),
     });
 
     expect(tasks).toEqual([]);
@@ -95,11 +100,11 @@ describe("buildPendingNewTasks", () => {
     } as unknown as ComposerDraft["attachments"][number];
     const tasks = buildPendingNewTasks({
       queuedMessages: [],
-      drafts: {
+      draftTasks: buildPendingDraftTasks({
         "new-task:with-image": draft("", "2026-09-05T09:00:00.000Z", {
           attachments: [attachment],
         }),
-      },
+      }),
     });
 
     expect(tasks.map((task) => task.title)).toEqual(["1 attachment"]);
@@ -112,7 +117,7 @@ describe("buildPendingNewTasks", () => {
         { ...queuedCreation("follow-up", "2026-09-05T11:00:00.000Z"), creation: undefined },
         queuedCreation("new", "2026-09-05T10:00:00.000Z"),
       ],
-      drafts: {},
+      draftTasks: [],
     });
 
     expect(tasks.map((task) => task.title)).toEqual(["queued new", "queued old"]);
@@ -124,7 +129,10 @@ describe("applyHeldNewTaskDraft", () => {
   const tasks = (drafts: Record<string, ComposerDraft>) =>
     buildPendingNewTasks({
       queuedMessages: [],
-      drafts: { "new-task:other": draft("other idea", "2026-09-05T08:00:00.000Z"), ...drafts },
+      draftTasks: buildPendingDraftTasks({
+        "new-task:other": draft("other idea", "2026-09-05T08:00:00.000Z"),
+        ...drafts,
+      }),
     });
   const titles = (drafts: Record<string, ComposerDraft>) => tasks(drafts).map((task) => task.title);
   const held = { draftKey: "new-task:open", content: { text: "first words", attachments: [] } };
@@ -178,5 +186,65 @@ describe("applyHeldNewTaskDraft", () => {
     const drafts = { "new-task:open": draft("idea", "2026-09-05T09:00:00.000Z") };
 
     expect(applyHeldNewTaskDraft(drafts, null)).toBe(drafts);
+  });
+});
+
+describe("samePendingDraftTasks", () => {
+  const rows = (drafts: Record<string, ComposerDraft>) => buildPendingDraftTasks(drafts);
+
+  it("ignores keystrokes that leave every row unchanged", () => {
+    const longText =
+      "Plot the hourly tide forecast for every station along the coast with error bars";
+
+    expect(
+      samePendingDraftTasks(
+        rows({ "new-task:a": draft(longText, "2026-09-05T09:00:00.000Z") }),
+        rows({ "new-task:a": draft(`${longText} and more`, "2026-09-05T09:00:00.000Z") }),
+      ),
+    ).toBe(true);
+  });
+
+  it("notices a new title, branch, project, or row", () => {
+    const before = rows({ "new-task:a": draft("first idea", "2026-09-05T09:00:00.000Z") });
+
+    expect(
+      samePendingDraftTasks(
+        before,
+        rows({ "new-task:a": draft("second idea", "2026-09-05T09:00:00.000Z") }),
+      ),
+    ).toBe(false);
+    expect(
+      samePendingDraftTasks(
+        before,
+        rows({
+          "new-task:a": draft("first idea", "2026-09-05T09:00:00.000Z", {
+            workspaceSelection: { mode: "worktree", branch: "main", worktreePath: null },
+          }),
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      samePendingDraftTasks(
+        before,
+        rows({
+          "new-task:a": draft("first idea", "2026-09-05T09:00:00.000Z", {
+            project: {
+              environmentId,
+              projectId: ProjectId.make("project-2"),
+              createdAt: "2026-09-05T09:00:00.000Z",
+            },
+          }),
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      samePendingDraftTasks(
+        before,
+        rows({
+          "new-task:a": draft("first idea", "2026-09-05T09:00:00.000Z"),
+          "new-task:b": draft("another idea", "2026-09-05T10:00:00.000Z"),
+        }),
+      ),
+    ).toBe(false);
   });
 });

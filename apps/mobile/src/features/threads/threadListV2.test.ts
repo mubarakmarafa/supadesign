@@ -1248,7 +1248,6 @@ function makeDraftTask(id: string): PendingNewTask {
     title: id,
     createdAt: NOW,
     draftKey: `new-task:${id}`,
-    draft: { text: id, attachments: [] },
   };
 }
 

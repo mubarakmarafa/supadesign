@@ -4,8 +4,10 @@ import { useMemo } from "react";
 import { appAtomRegistry } from "./atom-registry";
 import {
   applyHeldNewTaskDraft,
+  buildPendingDraftTasks,
   buildPendingNewTasks,
   pendingDraftTask,
+  samePendingDraftTasks,
   type HeldNewTaskDraft,
   type PendingNewTask,
 } from "./pending-new-tasks-model";
@@ -41,16 +43,23 @@ export function holdNewTaskDraft(draftKey: string): () => void {
   };
 }
 
+const pendingDraftTasksAtom = Atom.make((get) =>
+  buildPendingDraftTasks(applyHeldNewTaskDraft(get(composerDraftsAtom), get(heldNewTaskDraftAtom))),
+).pipe(
+  Atom.withEquality(samePendingDraftTasks),
+  Atom.keepAlive,
+  Atom.withLabel("mobile:pending-draft-tasks"),
+);
+
 export function usePendingNewTasks(): ReadonlyArray<PendingNewTask> {
   const queuedMessagesByThreadKey = useThreadOutboxMessages();
-  const drafts = useAtomValue(composerDraftsAtom);
-  const heldDraft = useAtomValue(heldNewTaskDraftAtom);
+  const draftTasks = useAtomValue(pendingDraftTasksAtom);
   return useMemo(
     () =>
       buildPendingNewTasks({
         queuedMessages: flattenQueuedThreadMessages(queuedMessagesByThreadKey),
-        drafts: applyHeldNewTaskDraft(drafts, heldDraft),
+        draftTasks,
       }),
-    [queuedMessagesByThreadKey, drafts, heldDraft],
+    [queuedMessagesByThreadKey, draftTasks],
   );
 }
