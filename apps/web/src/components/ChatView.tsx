@@ -4389,8 +4389,6 @@ export default function ChatView(props: ChatViewProps) {
     showProjectPicker: showDraftProjectPicker,
     persistInActiveThreads: settings.persistComposerContextStrip,
     hasActiveProject: activeProject !== null && !showProviderSubagentBar,
-    isGitRepo,
-    showEnvironmentIndicator: showComposerEnvironmentIndicator,
   };
   const mountComposerContextStrip = shouldShowComposerContextStrip({
     ...composerContextStripInput,
@@ -8407,6 +8405,12 @@ export default function ChatView(props: ChatViewProps) {
         command === "composer.mode" ||
         command === "composer.workspace"
       ) {
+        if (
+          (command === "composer.host" || command === "composer.workspace") &&
+          !showDraftProjectPicker
+        ) {
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
         if (!event.repeat) composerRef.current?.openControl(command);
@@ -8429,6 +8433,7 @@ export default function ChatView(props: ChatViewProps) {
       }
 
       if (command === "composer.branch") {
+        if (!isGitRepo || !showDraftProjectPicker) return;
         event.preventDefault();
         event.stopPropagation();
         if (!event.repeat) branchToolbarRef.current?.openBranchPicker();
@@ -8556,6 +8561,8 @@ export default function ChatView(props: ChatViewProps) {
     hasMultipleEnvironments,
     logicalProjectEnvironments,
     onEnvironmentChange,
+    isGitRepo,
+    showDraftProjectPicker,
   ]);
 
   useEffect(() => {
@@ -10583,7 +10590,8 @@ export default function ChatView(props: ChatViewProps) {
       ref={branchToolbarRef}
       environmentId={activeThread.environmentId}
       threadId={activeThread.id}
-      showGitControls={isGitRepo}
+      showGitControls={isGitRepo && showDraftProjectPicker}
+      showEnvironmentIndicator={showComposerEnvironmentIndicator && showDraftProjectPicker}
       {...(routeKind === "draft" && draftId ? { draftId } : {})}
       onEnvModeChange={onEnvModeChange}
       startFromOrigin={startFromOrigin}
@@ -11068,12 +11076,7 @@ export default function ChatView(props: ChatViewProps) {
                                     supportsPullRequests ? activeProjectRepository : null
                                   }
                                   restingControlsHost={restingComposerControlsHost}
-                                  restingControlsHaveLeadingContext={
-                                    mountComposerContextStrip &&
-                                    (showDraftProjectPicker ||
-                                      isGitRepo ||
-                                      showComposerEnvironmentIndicator)
-                                  }
+                                  restingControlsHaveLeadingContext={showDraftProjectPicker}
                                   onRestingControlsVisibilityChange={
                                     setRestingComposerControlsVisible
                                   }

@@ -551,9 +551,10 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["long lines code blocks tables diffs file previews"],
   },
   {
-    id: "composer-context",
-    title: "Composer context",
+    id: "usage-limits",
+    title: "Usage limits",
     to: "/settings/appearance",
+    searchTerms: ["composer context strip quota rate limits session weekly remaining"],
   },
   {
     id: "keybindings",

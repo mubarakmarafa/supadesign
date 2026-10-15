@@ -62,7 +62,7 @@ beforeEach(() => {
 
 describe("restoring V2 settings", () => {
   it.each([
-    ["persistComposerContextStrip", "Composer context"],
+    ["persistComposerContextStrip", "Usage limits"],
     ["autoResumeLimitedThreads", "Auto-resume limited threads"],
     ["snoozeLimitedThreads", "Snooze limited threads"],
   ] as const)("restores %s when it is the only changed setting", async (key, label) => {

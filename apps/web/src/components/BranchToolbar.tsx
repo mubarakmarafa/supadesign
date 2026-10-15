@@ -24,7 +24,6 @@ import {
   resolveBranchToolbarValue,
   resolvePreviousWorktreeLabel,
   resolvePreviousWorktreeSeed,
-  shouldShowEnvironmentIndicator,
 } from "./BranchToolbar.logic";
 import {
   BranchToolbarBranchSelector,
@@ -69,6 +68,7 @@ interface BranchToolbarProps {
   onEnvironmentChange?: (environmentId: EnvironmentId) => void;
   composerControlsHostRef?: (element: HTMLDivElement | null) => void;
   contextStripVisible?: boolean;
+  showEnvironmentIndicator?: boolean;
   /**
    * Leads the composer strip, ahead of the branch and host controls. A draft
    * without a project yet still gets a strip holding just this control.
@@ -300,6 +300,7 @@ export const BranchToolbar = memo(function BranchToolbar({
   onEnvironmentChange,
   composerControlsHostRef,
   contextStripVisible = true,
+  showEnvironmentIndicator = false,
   projectPicker,
   contextStripPlacement = "bottom",
   usageMeter,
@@ -405,12 +406,6 @@ export const BranchToolbar = memo(function BranchToolbar({
   const showEnvironmentPicker = Boolean(
     availableEnvironments && availableEnvironments.length > 1 && onEnvironmentChange,
   );
-  const activeEnvironmentOption =
-    availableEnvironments?.find((env) => env.environmentId === environmentId) ?? null;
-  const showEnvironmentIndicator = shouldShowEnvironmentIndicator({
-    activeEnvironment: activeEnvironmentOption,
-    canPickEnvironment: showEnvironmentPicker,
-  });
   const [stripElement, setStripElement] = useState<HTMLDivElement | null>(null);
   const labelsOverflow = useLabelsOverflow(stripElement);
 

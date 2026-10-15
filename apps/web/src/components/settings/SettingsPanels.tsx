@@ -545,7 +545,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.wordWrap !== DEFAULT_UNIFIED_SETTINGS.wordWrap ? ["Word wrap"] : []),
       ...(settings.persistComposerContextStrip !==
       DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip
-        ? ["Composer context"]
+        ? ["Usage limits"]
         : []),
       ...getChangedTypographySettingLabels(settings),
       ...(settings.diffFilesCollapsed !== DEFAULT_UNIFIED_SETTINGS.diffFilesCollapsed
@@ -1224,13 +1224,13 @@ export function AppearanceSettingsPanel() {
         />
 
         <SettingsRow
-          {...searchableSetting("composer-context")}
-          description="Keep branch and worktree controls visible after a thread starts."
+          {...searchableSetting("usage-limits")}
+          description="Keep usage limits visible below the composer after a thread starts."
           resetAction={
             settings.persistComposerContextStrip !==
             DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip ? (
               <SettingResetButton
-                label="composer context"
+                label="usage limits"
                 onClick={() =>
                   updateSettings({
                     persistComposerContextStrip:
@@ -1246,7 +1246,7 @@ export function AppearanceSettingsPanel() {
               onCheckedChange={(checked) =>
                 updateSettings({ persistComposerContextStrip: Boolean(checked) })
               }
-              aria-label="Keep composer context visible in active threads"
+              aria-label="Keep usage limits visible in active threads"
             />
           }
         />

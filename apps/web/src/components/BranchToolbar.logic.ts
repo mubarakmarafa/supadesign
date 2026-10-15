@@ -69,16 +69,12 @@ export function shouldShowComposerContextStrip(input: {
   showProjectPicker: boolean;
   persistInActiveThreads: boolean;
   hasActiveProject: boolean;
-  isGitRepo: boolean;
-  showEnvironmentIndicator: boolean;
   /** A collapsed composer's controls currently fit in their measured strip host. */
   hostsRestingComposerControls: boolean;
 }): boolean {
   if (input.showProjectPicker) return true;
   return (
-    input.hasActiveProject &&
-    input.persistInActiveThreads &&
-    (input.isGitRepo || input.showEnvironmentIndicator || input.hostsRestingComposerControls)
+    input.hasActiveProject && input.persistInActiveThreads && input.hostsRestingComposerControls
   );
 }
 
