@@ -11,6 +11,12 @@
       "async": false
     },
     {
+      "name": "Clean Worktree",
+      "command": "node scripts/clean-worktree.ts",
+      "icon": "build",
+      "runOnSettle": true
+    },
+    {
       "name": "Start Development",
       "command": "vp run dev",
       "icon": "play"
