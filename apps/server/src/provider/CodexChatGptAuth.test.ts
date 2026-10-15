@@ -274,7 +274,14 @@ const makeHarnessFor = Effect.fnUntraced(function* (
     const store = yield* ProviderCredentialStore.make("codex-chatgpt", instanceId).pipe(
       Effect.provideService(ServerSecretStore.ServerSecretStore, secrets),
     );
-    yield* store.set(new TextEncoder().encode(JSON.stringify({ ...record, expiresAt: 0 })));
+    yield* store.set(
+      new TextEncoder().encode(
+        JSON.stringify({
+          activeClientId: record.clientId,
+          sessions: [{ ...record, expiresAt: 0 }],
+        }),
+      ),
+    );
   });
   return {
     auth,
@@ -537,27 +544,6 @@ it.effect("registers a fresh client when the original registration is no longer 
     }),
   ),
 );
-it.effect("reauthorizes a registration without persisting its original port", () =>
-  provision(
-    Effect.gen(function* () {
-      const bytes = new Map<string, Uint8Array>();
-      const h = yield* makeHarnessFor(instanceId, bytes);
-      yield* h.signIn;
-      yield* h.phase("succeeded");
-      yield* h.auth.revoke;
-      for (const [key, value] of bytes) {
-        const record = JSON.parse(new TextDecoder().decode(value));
-        if (record.profiles)
-          bytes.set(key, new TextEncoder().encode(JSON.stringify({ clientId: "oaiapp_test" })));
-      }
-      yield* h.signIn;
-      yield* h.phase("succeeded");
-      assert.strictEqual(h.authorizationRequests[1]!.searchParams.get("client_id"), "oaiapp_test");
-      assert.strictEqual(new URL(h.exchanges[1]!.get("redirect_uri")!).hostname, "127.0.0.1");
-    }),
-  ),
-);
-
 it.effect(
   "separate Codex accounts register independently and disconnect only their own tokens",
   () =>
@@ -1313,52 +1299,6 @@ it.effect("keeps distinct verified identities even when their email matches", ()
   ),
 );
 
-it.effect(
-  "migrates a legacy registration and retains its verified identity when credentials are cleared",
-  () =>
-    provision(
-      Effect.gen(function* () {
-        const bytes = new Map<string, Uint8Array>();
-        const first = yield* makeHarnessFor(instanceId, bytes);
-        yield* first.signIn;
-        yield* first.phase("succeeded");
-        const redirectUri = first.authorizationRequests[0]!.searchParams.get("redirect_uri");
-        for (const [key, value] of bytes) {
-          const saved = JSON.parse(new TextDecoder().decode(value));
-          if (saved.profiles)
-            bytes.set(
-              key,
-              new TextEncoder().encode(JSON.stringify({ clientId: "oaiapp_test", redirectUri })),
-            );
-        }
-        yield* first.auth.revoke;
-        assert.deepEqual(first.storedRecords(), [
-          {
-            profiles: [
-              {
-                clientId: "oaiapp_test",
-                connectionLabel: "Connection 1",
-                redirectUri,
-                subject: "user-test",
-                email: "hidden@example.test",
-              },
-            ],
-            lastClientId: "oaiapp_test",
-          },
-        ]);
-        const restarted = yield* makeHarnessFor(instanceId, bytes);
-        restarted.setIdentity("another-user", "another@example.test");
-        yield* restarted.signIn;
-        assert.include((yield* restarted.phase("failed")).message!, "different ChatGPT account");
-        assert.isTrue(Option.isNone(yield* restarted.auth.read));
-        assert.strictEqual(
-          restarted.authorizationRequests[0]!.searchParams.get("ext_agent_host_id"),
-          first.authorizationRequests[0]!.searchParams.get("ext_agent_host_id"),
-        );
-      }),
-    ),
-);
-
 it.effect("declined sharing on an older profile does not replace the active account", () =>
   provision(
     Effect.gen(function* () {
@@ -1591,62 +1531,6 @@ it.effect(
     ),
 );
 
-it.effect(
-  "old localhost registrations retain their profile while a new client gets its own identity",
-  () =>
-    provision(
-      Effect.gen(function* () {
-        const bytes = new Map<string, Uint8Array>();
-        const h = yield* makeHarnessFor(instanceId, bytes);
-        yield* h.signIn;
-        yield* h.phase("succeeded");
-        for (const [key, value] of bytes) {
-          const record = JSON.parse(new TextDecoder().decode(value));
-          if (record.profiles)
-            bytes.set(
-              key,
-              new TextEncoder().encode(
-                JSON.stringify({
-                  ...record,
-                  profiles: record.profiles.map((profile: { redirectUri: string }) => ({
-                    ...profile,
-                    redirectUri: profile.redirectUri.replace("127.0.0.1", "localhost"),
-                  })),
-                }),
-              ),
-            );
-        }
-        h.setCallbackClientId("oaiapp_migrated");
-        h.setIdentity("new-client-subject", "hidden@example.test");
-        yield* h.signIn;
-        yield* h.phase("succeeded");
-        assert.strictEqual(
-          h.authorizationRequests[1]!.searchParams.get("client_id"),
-          "dynamic_agent_client",
-        );
-        assert.strictEqual(
-          new URL(h.authorizationRequests[1]!.searchParams.get("redirect_uri")!).hostname,
-          "127.0.0.1",
-        );
-        assert.strictEqual(Option.getOrThrow(yield* h.auth.read).subject, "new-client-subject");
-        const profiles = (yield* h.phase("succeeded")).methods!;
-        assert.isTrue(profiles.some((profile) => profile.id === "chatgpt-profile:oaiapp_test"));
-        assert.isTrue(profiles.some((profile) => profile.id === "chatgpt-profile:oaiapp_migrated"));
-        yield* h.signIn;
-        yield* h.phase("succeeded");
-        assert.strictEqual(
-          h.authorizationRequests[2]!.searchParams.get("client_id"),
-          "oaiapp_migrated",
-        );
-        assert.strictEqual(
-          h.authorizationRequests[2]!.searchParams.get("login_hint"),
-          "hidden@example.test",
-        );
-        assert.isTrue(h.authorizationRequests[2]!.searchParams.has("id_token_hint"));
-      }),
-    ),
-);
-
 it.effect("keeps the active connection first when another profile declines sharing", () =>
   provision(
     Effect.gen(function* () {
@@ -1739,7 +1623,14 @@ it.effect("primary completes OAuth and destination imports and owns the refresh 
           }),
         ),
       );
-      yield* store.set(new TextEncoder().encode(JSON.stringify({ ...saved, expiresAt: 0 })));
+      yield* store.set(
+        new TextEncoder().encode(
+          JSON.stringify({
+            activeClientId: saved.clientId,
+            sessions: [{ ...saved, expiresAt: 0 }],
+          }),
+        ),
+      );
       yield* destination.auth.access;
       assert.strictEqual(
         h.exchanges.filter((entry) => entry.get("grant_type") === "authorization_code").length,

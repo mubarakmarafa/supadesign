@@ -514,13 +514,9 @@ it.layer(layerTest)("AntigravityDriver", (it) => {
           config.stateDir,
           instanceId,
         );
-        // Older builds unpacked inside the profile.
-        const legacyRoot = path.join(directories.profile, "antigravity-acp", "tmp");
-        for (const root of [directories.runtimeTemp, legacyRoot]) {
-          const orphan = path.join(root, "run-orphan", "_MEI123", "google3");
-          yield* fs.makeDirectory(orphan, { recursive: true });
-          yield* fs.writeFileString(path.join(orphan, "payload.bin"), "stale");
-        }
+        const orphan = path.join(directories.runtimeTemp, "run-orphan", "_MEI123", "google3");
+        yield* fs.makeDirectory(orphan, { recursive: true });
+        yield* fs.writeFileString(path.join(orphan, "payload.bin"), "stale");
         yield* AntigravityDriver.create({
           instanceId,
           displayName: "Sweep",
@@ -537,7 +533,6 @@ it.layer(layerTest)("AntigravityDriver", (it) => {
           ),
         );
         expect(yield* fs.exists(directories.runtimeTemp)).toBe(false);
-        expect(yield* fs.exists(legacyRoot)).toBe(false);
       }).pipe(Effect.scoped),
   );
 

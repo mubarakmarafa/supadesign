@@ -23,15 +23,15 @@ const TimeOfDay = TrimmedNonEmptyString.check(
 
 export const MIN_SCHEDULED_TASK_INTERVAL_MS = 60_000;
 
-const ScheduledTaskIntervalMs = Schema.Int.check(Schema.isGreaterThan(0)).annotate({
-  description: "Positive interval in milliseconds.",
-});
-
 const ScheduledTaskIntervalSchedule = Schema.Struct({
   type: Schema.Literal("interval").annotate({
     description: "Select interval scheduling.",
   }),
-  everyMs: ScheduledTaskIntervalMs,
+  everyMs: Schema.Int.check(Schema.isGreaterThanOrEqualTo(MIN_SCHEDULED_TASK_INTERVAL_MS)).annotate(
+    {
+      description: "Interval in milliseconds, with a minimum of 60000 (one minute).",
+    },
+  ),
 }).annotate({
   description: "Run repeatedly after a fixed number of milliseconds.",
 });
@@ -54,10 +54,6 @@ const ScheduledTaskFixedTimeSchedule = Schema.Struct({
   description: "Run at a fixed local wall-clock time on selected weekdays.",
 });
 
-/**
- * Read model for persisted schedules. Keep accepting legacy sub-minute rows so
- * users can list, disable, edit, or delete them after the write minimum changes.
- */
 export const ScheduledTaskSchedule = Schema.Union([
   ScheduledTaskIntervalSchedule,
   ScheduledTaskFixedTimeSchedule,
@@ -66,26 +62,6 @@ export const ScheduledTaskSchedule = Schema.Union([
     "Structured recurring schedule. Pass an object with type 'interval' or 'fixed_time'.",
 });
 export type ScheduledTaskSchedule = typeof ScheduledTaskSchedule.Type;
-
-/** Mutation model: newly created or updated interval schedules run at most once per minute. */
-export const ScheduledTaskUpsertSchedule = Schema.Union([
-  Schema.Struct({
-    type: Schema.Literal("interval").annotate({
-      description: "Select interval scheduling.",
-    }),
-    everyMs: ScheduledTaskIntervalMs.check(
-      Schema.isGreaterThanOrEqualTo(MIN_SCHEDULED_TASK_INTERVAL_MS),
-    ).annotate({
-      description: "Interval in milliseconds, with a minimum of 60000 (one minute).",
-    }),
-  }).annotate({
-    description: "Run repeatedly after a fixed number of milliseconds.",
-  }),
-  ScheduledTaskFixedTimeSchedule,
-]).annotate({
-  description: "Writable recurring schedule. Pass an object with type 'interval' or 'fixed_time'.",
-});
-export type ScheduledTaskUpsertSchedule = typeof ScheduledTaskUpsertSchedule.Type;
 
 export const ScheduledTaskRunStatus = Schema.Literals(["never", "running", "succeeded", "failed"]);
 export type ScheduledTaskRunStatus = typeof ScheduledTaskRunStatus.Type;
@@ -131,7 +107,7 @@ export const ScheduledTaskUpsertInput = Schema.Struct({
   title: TrimmedNonEmptyString,
   prompt: TrimmedNonEmptyString,
   enabled: Schema.Boolean,
-  schedule: ScheduledTaskUpsertSchedule,
+  schedule: ScheduledTaskSchedule,
   projectId: ProjectId,
   threadId: Schema.optional(Schema.NullOr(ThreadId)),
   workspaceStrategy: OrchestrationV2ThreadLaunchWorkspaceStrategy,

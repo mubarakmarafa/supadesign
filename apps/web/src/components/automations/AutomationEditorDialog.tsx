@@ -504,13 +504,6 @@ export function AutomationEditorDialog({
             </Field>
 
             <div className="space-y-3">
-              {task?.schedule.type === "interval" &&
-              task.schedule.everyMs < MIN_SCHEDULED_TASK_INTERVAL_MS ? (
-                <p className="text-sm text-muted-foreground" role="status">
-                  This automation uses a legacy interval below one minute. Saving updates it to at
-                  least one minute.
-                </p>
-              ) : null}
               <div className="flex items-center justify-between gap-2">
                 <Label>Schedule</Label>
                 <ToggleGroup

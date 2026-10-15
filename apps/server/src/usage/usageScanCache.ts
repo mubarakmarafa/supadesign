@@ -24,24 +24,15 @@ import * as Schema from "effect/Schema";
 
 import { GUARD_LENGTH, type TranscriptParsePosition } from "./usageTranscriptReader.ts";
 
-// v2: Codex fork-copy suppression changed what a file parses to, so v1
-// entries would keep serving double-counted records forever.
-// v3: entries carry the parse position and reducer state so a grown file
-// re-parses only its appended bytes instead of starting over.
-// v4: records carry Claude fast mode, which v3 rows never captured.
-// v5: Codex records carry their service tier. v4 rows store speed the same
-// way, so v4 entries still load; see `decodeScanCache` for v4 stateful entries.
+// Bump when what a transcript parses to changes; entries from another version are dropped.
 const USAGE_SCAN_CACHE_VERSION = 5 as const;
-const SPEED_COMPATIBLE_SINCE_VERSION = 4;
 
 /**
  * Each cache version writes its own file in the state directory. An older
  * server sharing that directory cannot read a newer cache and would replace
  * it, dropping saved usage for deleted transcripts. Separate files keep both.
- * A v5 server reads the legacy (v4) file once, when its own file is missing.
  */
 export const SCAN_CACHE_FILE_NAME = "usage-scan-cache-v5.json";
-export const LEGACY_SCAN_CACHE_FILE_NAME = "usage-scan-cache.json";
 
 /** Serialised as the index into this list. */
 const SPEEDS: readonly UsageSpeed[] = ["standard", "fast", "ultrafast"];
@@ -229,13 +220,7 @@ export function decodeScanCache(
 
   const root = document as Partial<SerializedCache>;
   const version = root.version;
-  if (
-    typeof version !== "number" ||
-    version < SPEED_COMPATIBLE_SINCE_VERSION ||
-    version > USAGE_SCAN_CACHE_VERSION
-  ) {
-    return cache;
-  }
+  if (version !== USAGE_SCAN_CACHE_VERSION) return cache;
   if (!isRecordArray(root.models) || !isRecordArray(root.sessions)) return cache;
   if (typeof root.files !== "object" || root.files === null) return cache;
 
@@ -337,14 +322,9 @@ export function decodeScanCache(
     ) {
       continue;
     }
-    // v4 records of stateful formats (Codex) predate service tiers, so they
-    // all priced as standard. Keep them, because the rollout may be gone, but
-    // make a live rollout re-parse whole: no file has size -1, and a zero
-    // position cannot resume.
-    const legacy = format.state !== undefined && version < USAGE_SCAN_CACHE_VERSION;
     // A corrupt state disqualifies the entry: resuming with it would attach
     // appended usage to the wrong model or replay fork-copied history.
-    if (!legacy && !isValidState.get(entry.p)?.(entry.cs)) continue;
+    if (!isValidState.get(entry.p)?.(entry.cs)) continue;
 
     const provider = entry.p;
     const records = decodeRecords(entry.r, provider);
@@ -352,19 +332,17 @@ export function decodeScanCache(
     if (records === null || tailRecords === null) continue;
 
     cache.set(path, {
-      size: legacy ? -1 : entry.s,
+      size: entry.s,
       mtimeMs: entry.m,
       provider,
       records,
       tailRecords,
-      position: legacy
-        ? { resumeOffset: 0, guardLength: 0, guardHash: 0, state: null }
-        : {
-            resumeOffset: entry.o,
-            guardLength: entry.gl,
-            guardHash: entry.gh,
-            state: entry.cs,
-          },
+      position: {
+        resumeOffset: entry.o,
+        guardLength: entry.gl,
+        guardHash: entry.gh,
+        state: entry.cs,
+      },
     });
   }
 
