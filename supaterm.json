@@ -9,6 +9,31 @@
       "icon": "configure",
       "runOnWorktreeCreate": true,
       "async": false
+    },
+    {
+      "name": "Start Development",
+      "command": "vp run dev",
+      "icon": "play"
+    },
+    {
+      "name": "Run Test Suite",
+      "command": "vp run test",
+      "icon": "test"
+    },
+    {
+      "name": "Lint",
+      "command": "vp run lint",
+      "icon": "lint"
+    },
+    {
+      "name": "Typecheck",
+      "command": "vp run typecheck",
+      "icon": "configure"
+    },
+    {
+      "name": "Build",
+      "command": "vp run build",
+      "icon": "build"
     }
   ]
 }
