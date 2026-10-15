@@ -30,12 +30,13 @@ import {
   serviceStateHasPendingUpdate,
   type ServiceState,
 } from "./serviceProtocol.ts";
+import { APP_ID, APP_SLUG } from "@supaterm/shared/appIdentity";
 
-const BOOT_SERVICE_NAME = "supaterm";
+const BOOT_SERVICE_NAME = APP_SLUG;
 const BOOT_SERVICE_UNIT_FILE = `${BOOT_SERVICE_NAME}.service`;
 // `.service` suffix keeps the label distinct from the desktop app's bundle id
 // (com.supaterm.desktop), so launchd and TCC records never collide.
-const BOOT_SERVICE_LAUNCHD_LABEL = "com.supaterm.desktop.service";
+const BOOT_SERVICE_LAUNCHD_LABEL = `${APP_ID}.service`;
 const BOOT_SERVICE_PLIST_FILE = `${BOOT_SERVICE_LAUNCHD_LABEL}.plist`;
 const BOOT_SERVICE_UNIT_ENV = "SUPATERM_BOOT_SERVICE_UNIT";
 /** File in the logs dir that receives the service's stdout and stderr. `supaterm triage` points agents at it. */

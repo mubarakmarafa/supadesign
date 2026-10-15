@@ -8,6 +8,7 @@ import * as Path from "effect/Path";
 
 import * as DesktopPreReadyFileSystem from "./DesktopPreReadyFileSystem.ts";
 import * as DesktopUserData from "./DesktopUserData.ts";
+import { APP_PRODUCT_NAME, APP_SLUG } from "@supaterm/shared/appIdentity";
 
 const resolveWindowsUserData = (appDataDirectory: string) =>
   DesktopUserData.resolveUserDataPath({
@@ -17,17 +18,17 @@ const resolveWindowsUserData = (appDataDirectory: string) =>
   }).pipe(Effect.provide(DesktopPreReadyFileSystem.layer));
 
 it.layer(NodeServices.layer)("DesktopPreReadyFileSystem", (it) => {
-  it.effect("migrates the legacy Windows profile state", () =>
+  it.effect("migrates the default Windows profile state", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-pre-ready-fs-" });
-      yield* fileSystem.makeDirectory(path.join(root, "Supaterm (Alpha)"));
-      yield* fileSystem.writeFileString(path.join(root, "Supaterm (Alpha)", "Local State"), "keys");
+      yield* fileSystem.makeDirectory(path.join(root, APP_PRODUCT_NAME));
+      yield* fileSystem.writeFileString(path.join(root, APP_PRODUCT_NAME, "Local State"), "keys");
 
       const userData = yield* resolveWindowsUserData(root);
 
-      assert.equal(userData, path.join(root, "supaterm-v2"));
+      assert.equal(userData, path.join(root, `${APP_SLUG}-v2`));
       assert.equal(yield* fileSystem.readFileString(path.join(userData, "Local State")), "keys");
     }),
   );

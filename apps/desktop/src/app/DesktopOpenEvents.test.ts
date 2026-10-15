@@ -5,6 +5,7 @@ import * as Scope from "effect/Scope";
 import * as Exit from "effect/Exit";
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import { make, type DesktopOpenEvent } from "./DesktopOpenEvents.ts";
+import { APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 
 it.effect("captures supported OS events synchronously and drains them in arrival order", () =>
   Effect.gen(function* () {
@@ -34,7 +35,7 @@ it.effect("captures supported OS events synchronously and drains them in arrival
       },
     };
     listeners.get("open-file")!(event, "/tmp/first.html");
-    listeners.get("open-url")!(event, "supaterm://new?prompt=hello");
+    listeners.get("open-url")!(event, `${APP_URL_SCHEME}://new?prompt=hello`);
     listeners.get("second-instance")!({}, ["supaterm", "https://example.com/last"]);
     listeners.get("open-url")!(event, "mailto:ignored@example.com");
     expect(prevented).toBe(2);
@@ -44,7 +45,7 @@ it.effect("captures supported OS events synchronously and drains them in arrival
       .pipe(Effect.provideService(Scope.Scope, scope));
     expect(received).toEqual([
       { type: "file", path: "/tmp/first.html" },
-      { type: "url", url: "supaterm://new?prompt=hello" },
+      { type: "url", url: `${APP_URL_SCHEME}://new?prompt=hello` },
       { type: "second-instance", argv: ["supaterm", "https://example.com/last"] },
     ]);
     listeners.get("open-url")!(event, "https://example.com/live");

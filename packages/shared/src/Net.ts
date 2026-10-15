@@ -6,7 +6,8 @@ import * as Layer from "effect/Layer";
 import * as Context from "effect/Context";
 import * as Predicate from "effect/Predicate";
 
-export const DEFAULT_SERVER_PORT = 7007;
+// Supadesign: offset from upstream's 7007 so both apps can run at once.
+export const DEFAULT_SERVER_PORT = 7107;
 
 export class NetError extends Data.TaggedError("NetError")<{
   readonly message: string;

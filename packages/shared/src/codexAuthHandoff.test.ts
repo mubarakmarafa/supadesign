@@ -7,6 +7,7 @@ import {
   readCodexAuthDelivery,
   readCodexAuthHandoff,
 } from "./codexAuthHandoff.ts";
+import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "./appIdentity.ts";
 
 const authorizationUrl = () => {
   const url = new URL("https://auth.openai.com/api/accounts/authorize");
@@ -31,6 +32,11 @@ const callbackUrl = `http://127.0.0.1:54213/auth/callback?state=${"a".repeat(43)
 
 describe("Codex desktop handoff", () => {
   it("keeps the hosted return route, account, and environment with the code in a fragment", () => {
+    expect(codexAuthHandoffUrl(input)).toMatch(new RegExp(`^${APP_URL_SCHEME}://auth/codex\\?`));
+    expect(codexAuthHandoffUrl(input, true)).toMatch(
+      new RegExp(`^${APP_DEV_URL_SCHEME}://auth/codex\\?`),
+    );
+    expect(readCodexAuthHandoff(codexAuthHandoffUrl(input, true), true)).toEqual(input);
     expect(readCodexAuthHandoff(codexAuthHandoffUrl(input), false)).toEqual(input);
     const delivery = codexAuthDeliveryUrl(input, callbackUrl);
     expect(new URL(delivery).search).toBe("");

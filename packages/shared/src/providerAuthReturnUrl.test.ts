@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
+import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "./appIdentity.ts";
 import { providerAuthReturnUrl } from "./providerAuthReturnUrl.ts";
 
 describe("provider auth return destinations", () => {
-  it.each(["supaterm", "supaterm-dev"])(
+  it.each([APP_URL_SCHEME, APP_DEV_URL_SCHEME])(
     "returns to %s Welcome and the selected settings instance",
     (scheme) => {
       expect(providerAuthReturnUrl(`${scheme}://app/welcome?code=secret#agents:machine-id`)).toBe(
@@ -14,11 +15,13 @@ describe("provider auth return destinations", () => {
     },
   );
   it.each([
-    "supaterm://attacker/welcome",
-    "supaterm://app:123/welcome",
-    "supaterm://app/auth/callback",
-    "supaterm://user@ app/welcome",
-    "supaterm://app/welcome/../evil",
+    `${APP_URL_SCHEME}://attacker/welcome`,
+    `${APP_URL_SCHEME}://app:123/welcome`,
+    `${APP_URL_SCHEME}://app/auth/callback`,
+    `${APP_URL_SCHEME}://user@ app/welcome`,
+    `${APP_URL_SCHEME}://app/welcome/../evil`,
+    "supaterm://app/welcome",
+    "supaterm-dev://app/welcome",
     "https://attacker.example/welcome",
     "file:///welcome",
     "javascript:alert(1)",

@@ -1,6 +1,7 @@
 import { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import { providerAuthReturnUrl } from "./providerAuthReturnUrl.ts";
+import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "./appIdentity.ts";
 
 export const CodexAuthHandoff = Schema.Struct({
   authorizationUrl: Schema.String.check(Schema.isMaxLength(16_384)),
@@ -85,7 +86,7 @@ export function codexCallbackUrl(value: string, redirectUri: string, state: stri
 }
 
 export function codexAuthHandoffUrl(input: CodexAuthHandoff, development = false) {
-  const url = new URL(`${development ? "supaterm-dev" : "supaterm"}://auth/codex`);
+  const url = new URL(`${development ? APP_DEV_URL_SCHEME : APP_URL_SCHEME}://auth/codex`);
   url.searchParams.set("request", encodeHandoff(input));
   return url.toString();
 }
@@ -95,7 +96,7 @@ export function readCodexAuthHandoff(value: string, development: boolean) {
     const url = new URL(value);
     if (
       value.length > 32_768 ||
-      url.protocol !== (development ? "supaterm-dev:" : "supaterm:") ||
+      url.protocol !== (development ? `${APP_DEV_URL_SCHEME}:` : `${APP_URL_SCHEME}:`) ||
       url.host !== "auth" ||
       url.pathname !== "/codex" ||
       url.username ||

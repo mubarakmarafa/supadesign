@@ -9,12 +9,18 @@ import * as PlatformError from "effect/PlatformError";
 
 import type * as Electron from "electron";
 
+import { APP_PRODUCT_NAME, APP_SLUG } from "@supaterm/shared/appIdentity";
+
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as DesktopAppIdentity from "./DesktopAppIdentity.ts";
 import * as DesktopAssets from "./DesktopAssets.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import * as DesktopUserData from "./DesktopUserData.ts";
+
+/** Profiles the official Supaterm app owns; this fork must never select them. */
+const OFFICIAL_PROFILE_PATTERN =
+  /\/(?:Supaterm(?: \((?:Alpha|Dev)\))?|supaterm-(?:v2|dev)|supa3-(?:v2|dev))$/;
 
 const defaultEnvironmentInput = {
   dirname: "/repo/apps/desktop/dist-electron",
@@ -41,7 +47,7 @@ interface ElectronAppCalls {
 const layerElectronApp = (calls: ElectronAppCalls) =>
   Layer.succeed(ElectronApp.ElectronApp, {
     metadata: Effect.die("unexpected metadata read"),
-    name: Effect.succeed("Supaterm"),
+    name: Effect.succeed(APP_PRODUCT_NAME),
     systemLocale: Effect.succeed("en-US"),
     environmentMachineIcons: Effect.succeed({}),
     whenReady: Effect.void,
@@ -131,11 +137,11 @@ const withIdentity = <A, E, R>(
         Layer.provideMerge(
           FileSystem.layerNoop({
             exists: (path) =>
-              !/Supaterm \((Alpha|Dev)\)/.test(path)
-                ? Effect.succeed(false)
-                : input.legacyPathProbeError
-                  ? Effect.fail(input.legacyPathProbeError)
-                  : Effect.succeed(input.legacyPathExists === true),
+              input.legacyPathProbeError
+                ? Effect.fail(input.legacyPathProbeError)
+                : Effect.succeed(
+                    input.legacyPathExists === true && OFFICIAL_PROFILE_PATTERN.test(path),
+                  ),
             readFileString: () =>
               Effect.succeed(input.packageJson ?? '{"supatermCommitHash":"abcdef1234567890"}'),
           }),
@@ -149,25 +155,25 @@ const withIdentity = <A, E, R>(
 };
 
 describe("DesktopAppIdentity", () => {
-  it.effect("isolates the V2 profile even when the legacy V1 profile exists", () =>
+  it.effect("isolates the V2 profile even when the official app's profiles exist", () =>
     withIdentity(
       Effect.gen(function* () {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         const userDataPath = yield* identity.resolveUserDataPath;
 
-        assert.equal(userDataPath, "/Users/alice/Library/Application Support/supaterm-v2");
+        assert.equal(userDataPath, `/Users/alice/Library/Application Support/${APP_SLUG}-v2`);
       }),
       { legacyPathExists: true },
     ),
   );
 
-  it.effect("keeps using the legacy development profile", () =>
+  it.effect("never reuses the official app's development profile", () =>
     withIdentity(
       Effect.gen(function* () {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         assert.equal(
           yield* identity.resolveUserDataPath,
-          "/Users/alice/Library/Application Support/Supaterm (Dev)",
+          `/Users/alice/Library/Application Support/${APP_SLUG}-dev`,
         );
       }),
       {
@@ -177,8 +183,8 @@ describe("DesktopAppIdentity", () => {
     ),
   );
 
-  it.effect("preserves failures while inspecting the legacy userData path", () => {
-    const legacyPath = "/Users/alice/Library/Application Support/Supaterm (Dev)";
+  it.effect("preserves failures while inspecting the userData path", () => {
+    const legacyPath = `/Users/alice/Library/Application Support/${APP_SLUG}-dev`;
     const cause = PlatformError.systemError({
       _tag: "PermissionDenied",
       module: "FileSystem",
@@ -219,8 +225,8 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         yield* identity.configure;
 
-        assert.deepEqual(calls.setName, ["Supaterm"]);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, "Supaterm");
+        assert.deepEqual(calls.setName, [APP_PRODUCT_NAME]);
+        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, APP_PRODUCT_NAME);
         assert.equal(calls.setAboutPanelOptions[0]?.applicationVersion, "1.2.3");
         assert.equal(calls.setAboutPanelOptions[0]?.version, "0123456789ab");
         // Packaged: the bundle's own icon stands, so a custom one the user
@@ -240,17 +246,22 @@ describe("DesktopAppIdentity", () => {
   });
 
   it.effect.each([
-    { stage: "Stable", runtimeName: "Supaterm", aboutName: "Supaterm", environment: {} },
+    {
+      stage: "Stable",
+      runtimeName: APP_PRODUCT_NAME,
+      aboutName: APP_PRODUCT_NAME,
+      environment: {},
+    },
     {
       stage: "Nightly",
-      runtimeName: "Supaterm Nightly",
-      aboutName: "Supaterm (Nightly)",
+      runtimeName: `${APP_PRODUCT_NAME} Nightly`,
+      aboutName: `${APP_PRODUCT_NAME} (Nightly)`,
       environment: { appVersion: "0.0.43-nightly.20260929.2428" },
     },
     {
       stage: "Dev",
-      runtimeName: "Supaterm Dev",
-      aboutName: "Supaterm (Dev)",
+      runtimeName: `${APP_PRODUCT_NAME} Dev`,
+      aboutName: `${APP_PRODUCT_NAME} (Dev)`,
       environment: { env: { VITE_DEV_SERVER_URL: "http://localhost:5173" } },
     },
   ])(

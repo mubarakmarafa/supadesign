@@ -8,6 +8,7 @@ import * as Layer from "effect/Layer";
 import type * as Scope from "effect/Scope";
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import { isWebLink, isWebPageFile } from "./DesktopWebLinks.ts";
+import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 
 export type DesktopOpenEvent =
   | { readonly type: "url"; readonly url: string }
@@ -38,7 +39,8 @@ export const make = (isDevelopment: boolean) =>
       return (
         promptLinkAppPath(url) !== null ||
         readCodexAuthHandoff(url, isDevelopment) !== undefined ||
-        destination?.startsWith(`${isDevelopment ? "supaterm-dev" : "supaterm"}://app/`) === true ||
+        destination?.startsWith(`${isDevelopment ? APP_DEV_URL_SCHEME : APP_URL_SCHEME}://app/`) ===
+          true ||
         (platform === "darwin" && isWebLink(url))
       );
     };

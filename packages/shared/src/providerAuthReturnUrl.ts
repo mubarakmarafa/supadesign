@@ -1,11 +1,13 @@
 import { isLoopbackHost } from "./preview.ts";
+import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "./appIdentity.ts";
 
 /** Only return to a local client or the hosted Supaterm client, never an arbitrary OAuth-supplied URL. */
 export function providerAuthReturnUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
   try {
     const url = new URL(value);
-    const desktop = ["supaterm:", "supaterm-dev:"].includes(url.protocol) && url.host === "app";
+    const desktop =
+      [`${APP_URL_SCHEME}:`, `${APP_DEV_URL_SCHEME}:`].includes(url.protocol) && url.host === "app";
     const web =
       ["http:", "https:"].includes(url.protocol) &&
       (isLoopbackHost(url.hostname) || url.origin === "https://app.supaterm.com");

@@ -5,10 +5,11 @@ import * as Option from "effect/Option";
 
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import { makeComponentLogger } from "./DesktopObservability.ts";
+import { APP_CLI_COMMAND } from "@supaterm/shared/appIdentity";
 
 const { logInfo, logWarning } = makeComponentLogger("desktop-cli-shim");
 
-export const MARKER = "Written by Supaterm: runs the desktop app's bundled supaterm CLI.";
+export const MARKER = "Written by Supadesign: runs the desktop app's bundled supaterm CLI.";
 
 const SERVER_ENTRY = "apps/server/dist/bin.mjs";
 
@@ -112,7 +113,7 @@ export const launcherPath = (environment: DesktopEnvironment.DesktopEnvironment[
   environment.path.join(
     environment.baseDir,
     "bin",
-    environment.platform === "win32" ? "supaterm.cmd" : "supaterm",
+    environment.platform === "win32" ? `${APP_CLI_COMMAND}.cmd` : APP_CLI_COMMAND,
   );
 
 export const install = Effect.gen(function* () {

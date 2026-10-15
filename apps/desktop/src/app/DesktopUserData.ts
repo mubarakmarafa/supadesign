@@ -3,6 +3,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as PlatformError from "effect/PlatformError";
 import * as Schema from "effect/Schema";
+import { APP_PRODUCT_NAME, APP_SLUG } from "@supaterm/shared/appIdentity";
 
 export class DesktopUserDataInitializationError extends Schema.TaggedError<DesktopUserDataInitializationError>()(
   "DesktopUserDataInitializationError",
@@ -40,9 +41,10 @@ export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPa
   }) {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
+    // Supadesign: never fall back to the official app's profiles.
     const names = input.isDevelopment
-      ? { current: "supaterm-dev", previous: "supa3-dev", legacy: "Supaterm (Dev)" }
-      : { current: "supaterm-v2", previous: "supa3-v2", legacy: "Supaterm (Alpha)" };
+      ? { current: `${APP_SLUG}-dev`, previous: `${APP_SLUG}-dev`, legacy: `${APP_SLUG}-dev` }
+      : { current: `${APP_SLUG}-v2`, previous: `${APP_SLUG}-v2`, legacy: `${APP_SLUG}-v2` };
     const destinationPath = path.join(input.appDataDirectory, names.current);
     const previousPath = path.join(input.appDataDirectory, names.previous);
     const legacyPath = path.join(input.appDataDirectory, names.legacy);
@@ -65,7 +67,7 @@ export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPa
     const legacyState = path.join(legacyPath, "Local State");
     const sourceState = (yield* inspect(legacyState))
       ? legacyState
-      : path.join(input.appDataDirectory, "Supaterm", "Local State");
+      : path.join(input.appDataDirectory, APP_PRODUCT_NAME, "Local State");
     if (!(yield* inspect(sourceState))) return destinationPath;
     // Windows safeStorage keys live here. Copy only these preferences, never locked databases.
     const state = yield* fs

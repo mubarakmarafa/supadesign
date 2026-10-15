@@ -13,6 +13,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as DesktopCliCommand from "./DesktopCliCommand.ts";
 import * as DesktopCliShim from "./DesktopCliShim.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
+import { APP_CLI_COMMAND, APP_HOME_DIRECTORY_NAME } from "@supaterm/shared/appIdentity";
 
 const environmentFor = (
   path: Path.Path,
@@ -36,7 +37,7 @@ const commandIn = (
   Effect.gen(function* () {
     const path = yield* Path.Path;
     const fs = yield* FileSystem.FileSystem;
-    const baseDir = input.baseDir ?? path.join(input.home, ".supaterm");
+    const baseDir = input.baseDir ?? path.join(input.home, APP_HOME_DIRECTORY_NAME);
     yield* fs.makeDirectory(path.join(baseDir, "userdata"), { recursive: true });
     const make = DesktopCliCommand.make.pipe(
       Effect.provideService(
@@ -99,7 +100,10 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
-      const environment = environmentFor(path, { home, baseDir: path.join(home, ".supaterm") });
+      const environment = environmentFor(path, {
+        home,
+        baseDir: path.join(home, APP_HOME_DIRECTORY_NAME),
+      });
       const launcher = DesktopCliShim.launcherPath(environment);
       const writes = yield* Ref.make(0);
       const written = yield* Deferred.make<void>();
@@ -126,7 +130,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       expect(installations.map(Option.getOrNull)).toEqual([launcher, launcher]);
       expect(yield* fs.readFileString(launcher)).toContain(DesktopCliShim.MARKER);
       expect((yield* fs.stat(launcher)).mode & 0o777).toBe(0o755);
-      expect(yield* fs.readDirectory(path.dirname(launcher))).toEqual(["supaterm"]);
+      expect(yield* fs.readDirectory(path.dirname(launcher))).toEqual([APP_CLI_COMMAND]);
     }).pipe(Effect.scoped),
   );
 
@@ -147,7 +151,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         expect(installed.onPath).toBe(true);
         if (platform === "linux") {
           expect(yield* fs.readLink(installed.installedPath!)).toBe(
-            path.join(home, ".supaterm", "bin", "supaterm"),
+            path.join(home, APP_HOME_DIRECTORY_NAME, "bin", APP_CLI_COMMAND),
           );
         } else {
           expect(registry.path).toBe(`C:\\Tools;${path.dirname(installed.installedPath!)}`);
@@ -177,7 +181,10 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         const path = yield* Path.Path;
         const home = yield* fs.makeTempDirectoryScoped();
         const directory = path.join(home, "other-cli");
-        const theirs = path.join(directory, platform === "win32" ? "supaterm.cmd" : "supaterm");
+        const theirs = path.join(
+          directory,
+          platform === "win32" ? `${APP_CLI_COMMAND}.cmd` : APP_CLI_COMMAND,
+        );
         yield* fs.makeDirectory(directory);
         yield* fs.writeFileString(theirs, "existing supaterm\n", { mode: 0o755 });
         process.env.PATH = directory;
@@ -188,7 +195,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         expect((yield* command.state).installedPath).toBeNull();
         expect((yield* command.state).shadowedBy?.toLowerCase()).toBe(theirs.toLowerCase());
         expect(yield* fs.readFileString(theirs)).toBe("existing supaterm\n");
-        expect(yield* fs.exists(path.join(home, ".supaterm", "bin"))).toBe(false);
+        expect(yield* fs.exists(path.join(home, APP_HOME_DIRECTORY_NAME, "bin"))).toBe(false);
         expect(registry).toMatchObject({ path: directory, writes: 0 });
       }).pipe(Effect.scoped),
   );
@@ -198,7 +205,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
-      const launcher = path.join(home, ".supaterm", "bin", "supaterm");
+      const launcher = path.join(home, APP_HOME_DIRECTORY_NAME, "bin", APP_CLI_COMMAND);
       yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
       yield* fs.writeFileString(launcher, "user-owned launcher\n");
       const command = yield* commandIn({ home });
@@ -215,19 +222,23 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
       const command = yield* commandIn({ home });
-      const link = path.join(home, ".local", "bin", "supaterm");
+      const link = path.join(home, ".local", "bin", APP_CLI_COMMAND);
 
       expect(yield* command.state).toEqual({ supported: true, installedPath: null, onPath: false });
 
       const installed = yield* command.install;
       expect(installed.installedPath).toBe(link);
-      expect(yield* fs.readLink(link)).toBe(path.join(home, ".supaterm", "bin", "supaterm"));
+      expect(yield* fs.readLink(link)).toBe(
+        path.join(home, APP_HOME_DIRECTORY_NAME, "bin", APP_CLI_COMMAND),
+      );
       expect((yield* command.install).installedPath).toBe(link);
 
       expect((yield* command.uninstall).installedPath).toBeNull();
       expect(yield* fs.exists(link)).toBe(false);
 
-      expect(yield* fs.exists(path.join(home, ".supaterm", "bin", "supaterm"))).toBe(true);
+      expect(
+        yield* fs.exists(path.join(home, APP_HOME_DIRECTORY_NAME, "bin", APP_CLI_COMMAND)),
+      ).toBe(true);
     }).pipe(Effect.scoped),
   );
 
@@ -237,18 +248,20 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
       const command = yield* commandIn({ home });
-      const theirs = path.join(home, ".local", "bin", "supaterm");
+      const theirs = path.join(home, ".local", "bin", APP_CLI_COMMAND);
       yield* fs.makeDirectory(path.dirname(theirs), { recursive: true });
       yield* fs.writeFileString(theirs, "npm's supaterm\n");
 
       yield* fs.makeDirectory(path.join(home, "bin"), { recursive: true });
-      yield* fs.symlink(path.join(home, "gone"), path.join(home, "bin", "supaterm"));
+      yield* fs.symlink(path.join(home, "gone"), path.join(home, "bin", APP_CLI_COMMAND));
 
       const error = yield* Effect.flip(command.install);
       expect(error.message).toContain("Another supaterm command is already installed");
       yield* command.uninstall;
       expect(yield* fs.readFileString(theirs)).toBe("npm's supaterm\n");
-      expect(yield* fs.readLink(path.join(home, "bin", "supaterm"))).toBe(path.join(home, "gone"));
+      expect(yield* fs.readLink(path.join(home, "bin", APP_CLI_COMMAND))).toBe(
+        path.join(home, "gone"),
+      );
     }).pipe(Effect.scoped),
   );
 
@@ -264,10 +277,12 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       expect((yield* after.state).installedPath).toBe(link);
 
       expect((yield* after.install).installedPath).toBe(link);
-      expect(yield* fs.readLink(link!)).toBe(path.join(home, "new-supaterm", "bin", "supaterm"));
+      expect(yield* fs.readLink(link!)).toBe(
+        path.join(home, "new-supaterm", "bin", APP_CLI_COMMAND),
+      );
       yield* after.uninstall;
-      expect(yield* fs.exists(path.join(home, ".local", "bin", "supaterm"))).toBe(false);
-      expect(yield* fs.exists(path.join(home, "bin", "supaterm"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, ".local", "bin", APP_CLI_COMMAND))).toBe(false);
+      expect(yield* fs.exists(path.join(home, "bin", APP_CLI_COMMAND))).toBe(false);
     }).pipe(Effect.scoped),
   );
 
@@ -280,11 +295,11 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const binary = path.join(home, "native-supaterm");
       yield* fs.writeFileString(binary, `${"\0".repeat(64 * 1024)}${DesktopCliShim.MARKER}`);
       yield* fs.makeDirectory(path.join(home, ".local", "bin"), { recursive: true });
-      yield* fs.symlink(binary, path.join(home, ".local", "bin", "supaterm"));
+      yield* fs.symlink(binary, path.join(home, ".local", "bin", APP_CLI_COMMAND));
       const command = yield* commandIn({ home });
       expect((yield* command.state).installedPath).toBeNull();
       yield* command.uninstall;
-      expect(yield* fs.readLink(path.join(home, ".local", "bin", "supaterm"))).toBe(binary);
+      expect(yield* fs.readLink(path.join(home, ".local", "bin", APP_CLI_COMMAND))).toBe(binary);
     }).pipe(Effect.scoped),
   );
 
@@ -295,22 +310,22 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const home = yield* fs.makeTempDirectoryScoped();
       const shadow = path.join(home, "shadow");
       yield* fs.makeDirectory(shadow);
-      yield* fs.writeFileString(path.join(shadow, "supaterm"), "#!/bin/sh\n", { mode: 0o755 });
+      yield* fs.writeFileString(path.join(shadow, APP_CLI_COMMAND), "#!/bin/sh\n", { mode: 0o755 });
       process.env.PATH = [shadow, path.join(home, ".local", "bin")].join(":");
 
       const command = yield* commandIn({ home });
-      const theirs = path.join(shadow, "supaterm");
+      const theirs = path.join(shadow, APP_CLI_COMMAND);
       expect((yield* command.state).shadowedBy).toBe(theirs);
 
       const error = yield* Effect.flip(command.install);
       expect(error.message).toContain(theirs);
-      expect(yield* fs.exists(path.join(home, ".local", "bin", "supaterm"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, ".local", "bin", APP_CLI_COMMAND))).toBe(false);
 
       yield* fs.remove(theirs);
       const installed = yield* command.install;
       expect(installed).toMatchObject({
         onPath: true,
-        installedPath: path.join(home, ".local", "bin", "supaterm"),
+        installedPath: path.join(home, ".local", "bin", APP_CLI_COMMAND),
       });
       expect(installed.shadowedBy).toBeUndefined();
     }).pipe(Effect.scoped),
@@ -325,7 +340,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         const home = yield* fs.makeTempDirectoryScoped();
         const shadow = path.join(home, "shadow");
         yield* fs.makeDirectory(shadow);
-        const candidate = path.join(shadow, "supaterm");
+        const candidate = path.join(shadow, APP_CLI_COMMAND);
         if (kind === "directory") yield* fs.makeDirectory(candidate);
         else yield* fs.writeFileString(candidate, "plain text", { mode: 0o644 });
         process.env.PATH = [shadow, path.join(home, ".local", "bin")].join(":");
@@ -333,7 +348,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         const installed = yield* command.install;
         expect(installed.onPath).toBe(true);
         expect(installed.shadowedBy).toBeUndefined();
-        expect(installed.installedPath).toBe(path.join(home, ".local", "bin", "supaterm"));
+        expect(installed.installedPath).toBe(path.join(home, ".local", "bin", APP_CLI_COMMAND));
       }).pipe(Effect.scoped),
   );
 
@@ -353,8 +368,12 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
 
       registry.failReads = false;
       const launcherDir = DesktopCliShim.launcherPath(
-        environmentFor(yield* Path.Path, { home, baseDir: `${home}/.supaterm`, platform: "win32" }),
-      ).replace(/[\\/]supaterm\.cmd$/, "");
+        environmentFor(yield* Path.Path, {
+          home,
+          baseDir: `${home}/${APP_HOME_DIRECTORY_NAME}`,
+          platform: "win32",
+        }),
+      ).replace(new RegExp(`[\\\\/]${APP_CLI_COMMAND}\\.cmd$`), "");
       yield* command.install;
       expect(registry.path).toBe(`${userPath};${launcherDir}`);
       yield* command.uninstall;
@@ -387,7 +406,11 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const home = yield* fs.makeTempDirectoryScoped();
       const launcherDir = path.dirname(
         DesktopCliShim.launcherPath(
-          environmentFor(path, { home, baseDir: path.join(home, ".supaterm"), platform: "win32" }),
+          environmentFor(path, {
+            home,
+            baseDir: path.join(home, APP_HOME_DIRECTORY_NAME),
+            platform: "win32",
+          }),
         ),
       );
       const userPath = `C:\\Tools;${launcherDir}`;
@@ -411,7 +434,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       });
       yield* command.installAutomatically;
       expect((yield* command.state).supported).toBe(false);
-      expect(yield* fs.exists(path.join(home, ".supaterm", "bin"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, APP_HOME_DIRECTORY_NAME, "bin"))).toBe(false);
     }).pipe(Effect.scoped),
   );
 });

@@ -4,6 +4,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { beforeEach, vi } from "vite-plus/test";
+import { APP_PRODUCT_NAME, APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 
 const {
   appendSwitchMock,
@@ -178,8 +179,8 @@ describe("DesktopPreReadyPlatform", () => {
         const identity = yield* Effect.promise(() => portalIdentity);
         assert.equal(identity.desktopName, "com.supaterm.desktop.desktop");
         assert.include(identity.desktopEntry ?? "", 'Exec="/Applications/current.AppImage" %U');
-        assert.include(identity.desktopEntry ?? "", "Name=Supaterm\n");
-        assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/supaterm;");
+        assert.include(identity.desktopEntry ?? "", `Name=${APP_PRODUCT_NAME}\n`);
+        assert.include(identity.desktopEntry ?? "", `MimeType=x-scheme-handler/${APP_URL_SCHEME};`);
         assert.include(
           identity.desktopEntry ?? "",
           "Icon=/xdg/icons/com.supaterm.desktop.desktop.png",
@@ -209,7 +210,7 @@ describe("DesktopPreReadyPlatform", () => {
     return Effect.gen(function* () {
       yield* DesktopPreReadyPlatform.make;
       const contents = writeFileSyncMock.mock.calls[0]?.[1];
-      assert.include(contents, "MimeType=x-scheme-handler/supaterm;");
+      assert.include(contents, `MimeType=x-scheme-handler/${APP_URL_SCHEME};`);
       assert.include(contents, "Icon=");
       assert.equal(setDesktopNameMock.mock.calls.length, 1);
     }).pipe(Effect.provideService(HostProcess.Platform, "linux"));

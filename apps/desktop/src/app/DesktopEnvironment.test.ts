@@ -7,6 +7,12 @@ import * as Option from "effect/Option";
 
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
+import {
+  APP_HOME_DIRECTORY_NAME,
+  APP_ID,
+  APP_PRODUCT_NAME,
+  APP_SLUG,
+} from "@supaterm/shared/appIdentity";
 
 const defaultInput = {
   dirname: "/repo/apps/desktop/dist-electron",
@@ -45,7 +51,7 @@ describe("resolveDesktopAppBranding", () => {
         isDevelopment: false,
         appVersion: "0.0.28",
       }),
-      { baseName: "Supaterm", stageLabel: null, displayName: "Supaterm" },
+      { baseName: APP_PRODUCT_NAME, stageLabel: null, displayName: APP_PRODUCT_NAME },
     );
   });
 
@@ -55,7 +61,11 @@ describe("resolveDesktopAppBranding", () => {
         isDevelopment: true,
         appVersion: "0.0.28",
       }),
-      { baseName: "Supaterm", stageLabel: "Dev", displayName: "Supaterm (Dev)" },
+      {
+        baseName: APP_PRODUCT_NAME,
+        stageLabel: "Dev",
+        displayName: `${APP_PRODUCT_NAME} (Dev)`,
+      },
     );
   });
 
@@ -65,7 +75,11 @@ describe("resolveDesktopAppBranding", () => {
         isDevelopment: false,
         appVersion: "0.0.28-nightly.20260616.12",
       }),
-      { baseName: "Supaterm", stageLabel: "Nightly", displayName: "Supaterm (Nightly)" },
+      {
+        baseName: APP_PRODUCT_NAME,
+        stageLabel: "Nightly",
+        displayName: `${APP_PRODUCT_NAME} (Nightly)`,
+      },
     );
   });
 });
@@ -108,8 +122,8 @@ describe("DesktopEnvironment", () => {
       assert.equal(environment.serverRoot, "/repo");
       assert.equal(environment.backendEntryPath, "/repo/apps/server/dist/bin.mjs");
       assert.equal(environment.backendCwd, "/repo");
-      assert.equal(environment.appUserModelId, "com.supaterm.desktop.dev");
-      assert.equal(environment.linuxWmClass, "supaterm-dev");
+      assert.equal(environment.appUserModelId, `${APP_ID}.dev`);
+      assert.equal(environment.linuxWmClass, `${APP_SLUG}-dev`);
       assert.equal(environment.linuxDesktopEntryName, "com.supaterm.desktop.Development.desktop");
       assert.deepEqual(
         Option.map(environment.devServerUrl, (url) => url.href),
@@ -197,8 +211,8 @@ describe("DesktopEnvironment", () => {
       );
       const production = yield* makeEnvironment();
 
-      assert.equal(development.stateDir, "/Users/alice/.supaterm/dev");
-      assert.equal(production.stateDir, "/Users/alice/.supaterm/userdata");
+      assert.equal(development.stateDir, `/Users/alice/${APP_HOME_DIRECTORY_NAME}/dev`);
+      assert.equal(production.stateDir, `/Users/alice/${APP_HOME_DIRECTORY_NAME}/userdata`);
     }),
   );
 

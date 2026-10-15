@@ -1,5 +1,6 @@
 // @effect-diagnostics nodeBuiltinImport:off globalFetchInEffect:off - verifies generated remote scripts using real shell and Node processes.
 import * as Effect from "effect/Effect";
+import { APP_HOME_DIRECTORY_NAME } from "@supaterm/shared/appIdentity";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 import { describe, expect, it } from "@effect/vitest";
 import * as NodeChildProcess from "node:child_process";
@@ -58,7 +59,7 @@ describe("remote helper lifecycle", () => {
         const bin = NodePath.join(home, "bin");
         await NodeFSP.mkdir(bin);
         await NodeFSP.writeFile(NodePath.join(bin, "adb"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-        const root = NodePath.join(home, ".supaterm/device");
+        const root = NodePath.join(home, APP_HOME_DIRECTORY_NAME, "device");
         const hubDir = NodePath.join(root, `tools/expo-device-hub@${DEVICE_HUB_VERSION}`);
         const agentDir = NodePath.join(root, `tools/agent-device@${AGENT_DEVICE_VERSION}`);
         const hub = NodePath.join(hubDir, "node_modules/expo-device-hub/dist/server/cli.mjs");

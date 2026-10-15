@@ -7,6 +7,7 @@ import {
   resolveEarlyLinuxPasswordStorePreference,
   resolveLinuxDisableFeaturesSwitch,
 } from "./DesktopEarlyElectronStartup.ts";
+import { APP_HOME_DIRECTORY_NAME, APP_SLUG } from "@supaterm/shared/appIdentity";
 
 describe("DesktopEarlyElectronStartup", () => {
   const joinPath = NodePath.posix.join;
@@ -83,13 +84,13 @@ describe("DesktopEarlyElectronStartup", () => {
 
     assert.deepEqual(options, {
       isDevelopment: true,
-      linuxWmClass: "supaterm-dev",
+      linuxWmClass: `${APP_SLUG}-dev`,
       linuxDesktopEntryName: "com.supaterm.desktop.Development.desktop",
       passwordStore: "gnome-libsecret",
     });
   });
 
-  it("keeps implicit development state under ~/.supaterm/dev when SUPATERM_HOME is unset", () => {
+  it(`keeps implicit development state under ~/${APP_HOME_DIRECTORY_NAME}/dev when SUPATERM_HOME is unset`, () => {
     const preference = resolveEarlyLinuxPasswordStorePreference({
       env: {
         VITE_DEV_SERVER_URL: "http://127.0.0.1:5173",
@@ -97,7 +98,7 @@ describe("DesktopEarlyElectronStartup", () => {
       homeDirectory: "/home/user",
       joinPath,
       readFileString: (path) => {
-        assert.equal(path, "/home/user/.supaterm/dev/desktop-settings.json");
+        assert.equal(path, `/home/user/${APP_HOME_DIRECTORY_NAME}/dev/desktop-settings.json`);
         return JSON.stringify({ linuxPasswordStore: "kwallet" });
       },
     });
@@ -114,7 +115,7 @@ describe("DesktopEarlyElectronStartup", () => {
       homeDirectory: "/home/user",
       joinPath,
       readFileString: (path) => {
-        assert.equal(path, "/home/user/.supaterm/dev/desktop-settings.json");
+        assert.equal(path, `/home/user/${APP_HOME_DIRECTORY_NAME}/dev/desktop-settings.json`);
         return JSON.stringify({ linuxPasswordStore: "gnome-libsecret" });
       },
     });
