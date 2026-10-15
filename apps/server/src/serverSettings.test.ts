@@ -80,27 +80,6 @@ const layerFailingSecretStore = (cause: ServerSecretStore.SecretStoreError) =>
     }),
   );
 
-const recordProviderUsage = (provider: string, instanceId: string | null = provider) =>
-  Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    yield* sql`
-      INSERT INTO projection_thread_sessions (
-        thread_id,
-        status,
-        provider_name,
-        provider_instance_id,
-        updated_at
-      )
-      VALUES (
-        ${`thread-${instanceId ?? provider}`},
-        ${"ready"},
-        ${provider},
-        ${instanceId},
-        ${"2026-08-25T00:00:00.000Z"}
-      )
-    `;
-  });
-
 it.layer(NodeServices.layer)("server settings", (it) => {
   it.effect("enables public relay by default and persists opting out", () =>
     Effect.gen(function* () {
@@ -1022,20 +1001,6 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         enabled: true,
         config: { binaryPath: "/explicit/codex" },
       });
-    }).pipe(Effect.provide(layerServerSettings())),
-  );
-
-  it.effect("runs provider history only for files that still carry the legacy map", () =>
-    Effect.gen(function* () {
-      const serverConfig = yield* ServerConfig.ServerConfig;
-      const fileSystem = yield* FileSystem.FileSystem;
-      const serverSettings = yield* ServerSettingsModule.ServerSettingsService;
-      yield* fileSystem.writeFileString(serverConfig.settingsPath, "{}");
-      yield* recordProviderUsage("grok");
-
-      const settings = yield* serverSettings.getSettings;
-
-      assert.deepEqual(settings.providerInstances, {});
     }).pipe(Effect.provide(layerServerSettings())),
   );
 

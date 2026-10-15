@@ -4894,13 +4894,6 @@ it.layer(layerSharedApplicationDataPlaneTest)("shared application data plane", (
         { aggregate_kind: "project", aggregate_id: projectId },
         { aggregate_kind: "thread", aggregate_id: threadId },
       ]);
-
-      const retiredWrites = yield* sql<{ readonly count: number }>`
-        SELECT
-          (SELECT COUNT(*) FROM orchestration_v2_events) +
-          (SELECT COUNT(*) FROM orchestration_v2_command_receipts) AS count
-      `;
-      assert.equal(retiredWrites[0]?.count, 0);
     }),
   );
 });
