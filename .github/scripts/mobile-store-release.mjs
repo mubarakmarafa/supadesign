@@ -121,6 +121,23 @@ if (process.argv[1] && NodeURL.pathToFileURL(process.argv[1]).href === import.me
       if (build.platform === requestedPlatform)
         candidates.push({ build, attempt: Number(match[2]) });
     }
+    if (candidates.length === 0) {
+      const manifestPath = NodePath.join(root, "manifest.json");
+      try {
+        const build = JSON.parse(await NodeFSP.readFile(manifestPath, "utf8"));
+        if (build.platform === requestedPlatform) {
+          const attempts = JSON.parse(process.env.MOBILE_BINARY_ARTIFACTS)
+            .map((name) =>
+              name.match(new RegExp(`^mobile-store-build-${requestedPlatform}-(\\d+)$`)),
+            )
+            .filter(Boolean)
+            .map((match) => Number(match[1]));
+          candidates.push({ build, attempt: Math.max(...attempts, 1) });
+        }
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
     const builds = selectReviewBuilds(
       candidates,
       process.env.MOBILE_SOURCE_SHA,
