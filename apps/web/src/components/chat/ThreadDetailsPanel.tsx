@@ -56,7 +56,6 @@ export interface ThreadDetailsPanelProps extends Pick<
   /** The thread's env mode as ChatView resolves it. */
   envMode: EnvMode;
   activeThreadBranchOverride?: string | null;
-  onActiveThreadBranchOverrideChange?: (branch: string | null) => void;
   startFromOrigin: boolean;
   onStartFromOriginChange: (startFromOrigin: boolean) => void;
   onCheckoutPullRequestRequest?: (reference: string) => void;
@@ -103,9 +102,6 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
     envMode: props.envMode,
     ...(props.activeThreadBranchOverride !== undefined
       ? { activeThreadBranchOverride: props.activeThreadBranchOverride }
-      : {}),
-    ...(props.onActiveThreadBranchOverrideChange
-      ? { onActiveThreadBranchOverrideChange: props.onActiveThreadBranchOverrideChange }
       : {}),
     envLocked: props.envLocked,
     forceNewWorktree: props.forceNewWorktree ?? false,
