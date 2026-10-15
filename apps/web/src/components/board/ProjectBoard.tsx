@@ -71,6 +71,8 @@ import { primaryServerKeybindingsAtom } from "../../state/server";
 import { useEnvironmentScope } from "../../state/session";
 import { threadEnvironment } from "../../state/threads";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
+import { useAtomCommand } from "../../state/use-atom-command";
+import { liveEnvironment } from "../../state/liveEnvironment";
 import { isSidebarSubagentThread } from "../Sidebar.logic";
 import { SidebarPointerSensor } from "../Sidebar.pointer";
 import { Button } from "../ui/button";
@@ -103,6 +105,7 @@ import {
 } from "./boardLogic";
 import { useOpenThreadFromBoard } from "./boardNavigation";
 import { readBoardView, useBoardViewField, useBoardViewStore } from "./boardViewStore";
+import { useProjectLiveEnvironments } from "./liveEnvironmentState";
 
 const route = getRouteApi("/_chat/board/$environmentId/$projectId");
 
@@ -263,6 +266,8 @@ function ProjectBoardView({
   const openThreadFromBoard = useOpenThreadFromBoard();
   const { archiveThread, unarchiveThread } = useThreadActions();
   const placeOnBoard = useOrchestrationCommand(threadEnvironment.placeOnBoard);
+  const liveEnvironments = useProjectLiveEnvironments(projectRef).byThreadId;
+  const stopLiveEnvironment = useAtomCommand(liveEnvironment.stop, { reportFailure: false });
   const updateProject = useOrchestrationCommand(projectEnvironment.update);
 
   // ── Board layout, with the last edit shown until the server echoes it ──
@@ -495,9 +500,23 @@ function ProjectBoardView({
       setPendingMove((current) =>
         current?.cardId === cardId ? { ...current, settled: true } : current,
       );
+      // Leaving the live preview column ends the card's environment without a warm period.
+      if (
+        fromColumnId === board.liveColumnId &&
+        toColumnId !== fromColumnId &&
+        liveEnvironments.has(thread.id)
+      ) {
+        void stopLiveEnvironment({
+          environmentId: projectRef.environmentId,
+          input: { threadId: thread.id },
+        });
+      }
     },
     [
       archiveThread,
+      board.liveColumnId,
+      liveEnvironments,
+      stopLiveEnvironment,
       board.doneColumnId,
       canOperate,
       orderKeyById,
@@ -892,6 +911,7 @@ function ProjectBoardView({
               cardCountLabel={
                 isDone ? (archiveCountKnown ? String(doneCount) : "") : String(cards.length)
               }
+              liveEnvironments={liveEnvironments}
               tabbableCardId={tabbableCardId}
               canEdit={canOperate}
               canDrag={canOperate && !moveInFlight}

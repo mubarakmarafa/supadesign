@@ -1,5 +1,9 @@
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
-import type { BoardColumnId, ProjectBoardColumn } from "@supaterm/contracts";
+import type {
+  BoardColumnId,
+  LiveEnvironmentSnapshot,
+  ProjectBoardColumn,
+} from "@supaterm/contracts";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ArchiveIcon, EllipsisIcon, InboxIcon, MonitorPlayIcon } from "lucide-react";
@@ -84,6 +88,7 @@ export const BoardColumn = memo(function BoardColumn({
   flags,
   cards,
   cardCountLabel,
+  liveEnvironments,
   tabbableCardId,
   canEdit,
   canDrag,
@@ -101,6 +106,7 @@ export const BoardColumn = memo(function BoardColumn({
   /** Visible cards, top to bottom. */
   cards: ReadonlyArray<EnvironmentThreadShell>;
   cardCountLabel: string;
+  liveEnvironments: ReadonlyMap<string, LiveEnvironmentSnapshot>;
   tabbableCardId: string | null;
   canEdit: boolean;
   canDrag: boolean;
@@ -192,6 +198,7 @@ export const BoardColumn = memo(function BoardColumn({
             <BoardCard
               key={thread.id}
               thread={thread}
+              live={liveEnvironments.get(thread.id)}
               tabbable={thread.id === tabbableCardId}
               canDrag={canDrag}
               handlers={handlers}

@@ -124,3 +124,21 @@ export function liveCard<T extends BoardThread>(
   const column = resolved.find((entry) => entry.column.id === liveColumnId);
   return column?.cards.find((card) => card.thread.archivedAt === null)?.thread ?? null;
 }
+
+/**
+ * The card a project wants live. On the board it is the live column's top
+ * card; in an opened thread it is that thread when it sits in the live
+ * column. Undefined means the open thread is elsewhere, so whatever is live
+ * stays live.
+ */
+export function desiredLiveCardId<T extends BoardThread>(
+  board: ProjectBoard | null,
+  resolved: ReadonlyArray<ResolvedBoardColumn<T>>,
+  openedThreadId: string | null,
+): string | null | undefined {
+  if (openedThreadId === null) return liveCard(board, resolved)?.id ?? null;
+  const liveColumnId = (board ?? DEFAULT_PROJECT_BOARD).liveColumnId;
+  const column = resolved.find((entry) => entry.column.id === liveColumnId);
+  const opened = column?.cards.find((card) => card.thread.id === openedThreadId);
+  return opened !== undefined && opened.thread.archivedAt === null ? openedThreadId : undefined;
+}

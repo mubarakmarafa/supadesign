@@ -164,9 +164,11 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
 
     const listFor = (projectId: ProjectId): LiveEnvironmentList => ({
       projectId,
-      environments: [...entries.values()]
+      environments: entries
+        .values()
         .filter((entry) => entry.projectId === projectId)
-        .map(snapshot),
+        .map(snapshot)
+        .toArray(),
     });
 
     const publish = (projectId: ProjectId) =>
@@ -466,9 +468,11 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
 
     const list: LiveEnvironmentService["Service"]["list"] = (projectId) =>
       Effect.sync(() =>
-        [...entries.values()]
+        entries
+          .values()
           .filter((entry) => projectId === undefined || entry.projectId === projectId)
-          .map(snapshot),
+          .map(snapshot)
+          .toArray(),
       );
 
     const subscribe: LiveEnvironmentService["Service"]["subscribe"] = (projectId, listener) =>

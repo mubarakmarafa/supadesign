@@ -45,3 +45,30 @@ column is the inbox or done. Double-click a column's name to rename it, and use
 Deleting a column moves its cards to the column on its left, or to the right for
 the first column. The done column can't be deleted, and the inbox must move to
 another column first.
+
+## Live preview
+
+One column can be the live preview column, marked **Live**; set it from a
+column's **…** menu. Supadesign runs a dev server for one card in that column at
+a time, so you can try the work without leaving your laptop running a server for
+every task:
+
+- On the board, the column's top card is live. Drag a card to the top to test it.
+- Opening a card from the column makes that card live while you are in it.
+
+A live card shows a link to its local dev server; the opened thread shows the
+same link in its header. The card runs the thread's own worktree when it has
+one, otherwise a worktree checked out at its linked pull request, otherwise the
+project folder. A worktree created for a pull request first runs the project's
+setup script.
+
+When a card stops being live it stays **warm** for 10 minutes, so switching
+between cards doesn't restart their servers. **Stop now** ends it early. Moving
+a card out of the column, or to done, stops it right away and removes a worktree
+created for it unless it has changes.
+
+The first time a project goes live, the card asks for the command that starts
+its dev server, suggested from the project's files. It is saved as the project's
+**Dev server** action, which you can change in the project's action settings. If
+the server fails to start, the card shows why and its last output, with
+**Retry**.
