@@ -1,3 +1,4 @@
+// @effect-diagnostics nodeBuiltinImport:off - runs as a plain Node project script.
 import * as NodeChildProcess from "node:child_process";
 
 const preservedPaths = [
