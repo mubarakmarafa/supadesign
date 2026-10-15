@@ -4,7 +4,7 @@ export type DesktopUpdateButtonAction = "download" | "install" | "none";
 
 export type DesktopUpdateIndicator = "available" | "downloading" | "downloaded";
 
-const DESKTOP_RELEASE_HISTORY_URL = "https://github.com/supabitapp/supacode-next/releases";
+const DESKTOP_RELEASE_HISTORY_URL = "https://github.com/supabitapp/supaterm/releases";
 const DESKTOP_RELEASE_TAG_URL = `${DESKTOP_RELEASE_HISTORY_URL}/tag`;
 
 /**

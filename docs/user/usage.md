@@ -105,9 +105,9 @@ closes when you dismiss it or send your next message. It uses the same snapshot 
 anything. The command is offered only for providers that appear under **Usage → Limits**.
 
 On wider windows, the composer shows how much of the current model's session, weekly, and monthly
-limits is left, taking the busiest window of each length, when **Composer context** is enabled in
-Settings → Appearance. It reads the same snapshot and hides with the context strip while the
-composer is collapsed.
+limits is left, taking the busiest window of each length. After a thread starts, the meter stays
+below the composer only when **Usage limits** is enabled in Settings → Appearance. It reads the same
+snapshot and hides while the composer is collapsed.
 
 OpenCode Go reports its session, weekly, and monthly allowance when OpenCode runs locally in
 the environment. Supaterm cannot report limits for external OpenCode servers because their credentials

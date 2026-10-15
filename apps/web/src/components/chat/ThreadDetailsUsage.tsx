@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { formatContextWindowPercentage, formatContextWindowTokens } from "~/lib/contextWindow";
 import { cn } from "~/lib/utils";
-import { formatContextWindowCost } from "./ContextWindow.logic";
+import { formatContextWindowCost, usageFillColor } from "./ContextWindow.logic";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 import { ContextWindowDetails } from "./ContextWindowDetails";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
@@ -25,6 +25,7 @@ export function ThreadDetailsUsage({
   if (!usage && !children) return null;
 
   const percentage = formatContextWindowPercentage(usage?.usedPercentage ?? null);
+  const usedPercentage = Math.max(0, Math.min(100, usage?.usedPercentage ?? 0));
   const cost = usage?.cost ? formatContextWindowCost(usage.cost) : null;
 
   return (
@@ -52,11 +53,27 @@ export function ThreadDetailsUsage({
                   <dt className="min-w-0 flex-1 truncate">Context used</dt>
                   <dd
                     className={cn(
-                      "m-0 min-w-10 shrink-0 text-right font-normal text-muted-foreground tabular-nums pointer-coarse:min-w-11",
+                      "m-0 flex shrink-0 items-center gap-2 font-normal text-muted-foreground tabular-nums",
                       (usage.usedPercentage ?? 0) > 90 && "text-error",
                     )}
                   >
-                    {percentage ?? `${formatContextWindowTokens(usage.usedTokens)} tokens`}
+                    {percentage !== null ? (
+                      <span
+                        aria-hidden
+                        className="h-1 w-8 overflow-hidden rounded-full bg-muted-foreground/24"
+                      >
+                        <span
+                          className="block h-full rounded-full"
+                          style={{
+                            translate: `${usedPercentage - 100}% 0`,
+                            backgroundColor: usageFillColor(usedPercentage),
+                          }}
+                        />
+                      </span>
+                    ) : null}
+                    <span className="min-w-10 text-right pointer-coarse:min-w-11">
+                      {percentage ?? `${formatContextWindowTokens(usage.usedTokens)} tokens`}
+                    </span>
                   </dd>
                 </div>
               }

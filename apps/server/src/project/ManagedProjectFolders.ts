@@ -208,7 +208,7 @@ function namedProjectReadme(name: string): string {
     "",
     `# ${name}`,
     "",
-    "Created in [supaterm](https://github.com/supabitapp/supacode-next).",
+    "Created in [supaterm](https://github.com/supabitapp/supaterm).",
     "",
   ].join("\n");
 }

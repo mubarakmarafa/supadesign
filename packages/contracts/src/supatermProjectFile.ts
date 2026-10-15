@@ -109,7 +109,7 @@ export const SupatermProjectFile = Schema.Struct({
 }).annotate({
   title: "Supaterm project file",
   description:
-    "Checked-in project configuration for Supaterm (supaterm.json at the repository root). See https://github.com/supabitapp/supacode-next for documentation.",
+    "Checked-in project configuration for Supaterm (supaterm.json at the repository root). See https://github.com/supabitapp/supaterm for documentation.",
 });
 export type SupatermProjectFile = typeof SupatermProjectFile.Type;
 

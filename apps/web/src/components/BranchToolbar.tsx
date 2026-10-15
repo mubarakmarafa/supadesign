@@ -24,7 +24,6 @@ import {
   resolveBranchToolbarValue,
   resolvePreviousWorktreeLabel,
   resolvePreviousWorktreeSeed,
-  shouldShowEnvironmentIndicator,
 } from "./BranchToolbar.logic";
 import {
   BranchToolbarBranchSelector,
@@ -57,7 +56,6 @@ interface BranchToolbarProps {
   /** The thread's env mode as ChatView resolves it. */
   envMode: EnvMode;
   activeThreadBranchOverride?: string | null;
-  onActiveThreadBranchOverrideChange?: (branch: string | null) => void;
   startFromOrigin: boolean;
   onStartFromOriginChange: (startFromOrigin: boolean) => void;
   autoEnvironmentLabel?: string | undefined;
@@ -69,6 +67,7 @@ interface BranchToolbarProps {
   onEnvironmentChange?: (environmentId: EnvironmentId) => void;
   composerControlsHostRef?: (element: HTMLDivElement | null) => void;
   contextStripVisible?: boolean;
+  showEnvironmentIndicator?: boolean;
   /**
    * Leads the composer strip, ahead of the branch and host controls. A draft
    * without a project yet still gets a strip holding just this control.
@@ -288,7 +287,6 @@ export const BranchToolbar = memo(function BranchToolbar({
   onEnvModeChange,
   envMode,
   activeThreadBranchOverride,
-  onActiveThreadBranchOverrideChange,
   startFromOrigin,
   onStartFromOriginChange,
   autoEnvironmentLabel,
@@ -300,6 +298,7 @@ export const BranchToolbar = memo(function BranchToolbar({
   onEnvironmentChange,
   composerControlsHostRef,
   contextStripVisible = true,
+  showEnvironmentIndicator = false,
   projectPicker,
   contextStripPlacement = "bottom",
   usageMeter,
@@ -325,7 +324,7 @@ export const BranchToolbar = memo(function BranchToolbar({
     ? null
     : (serverThread?.worktreePath ?? draftThread?.worktreePath ?? null);
   const effectiveEnvMode = forceNewWorktree ? "worktree" : envMode;
-  const envModeLocked = envLocked || (serverThread !== null && activeWorktreePath !== null);
+  const envModeLocked = envLocked || serverThread !== null;
   const workspaceCwd = activeWorktreePath ?? activeProject?.workspaceRoot ?? null;
   const workspaceStatus = useEnvironmentQuery(
     layout === "panel" &&
@@ -348,11 +347,7 @@ export const BranchToolbar = memo(function BranchToolbar({
     currentGitBranch: workspaceStatus.data?.refName ?? null,
   });
 
-  // "Previous worktree" hops a draft into the most recently active worktree
-  // of this project — the "keep going where I just was" follow-up flow. Only
-  // drafts can hop; started server threads have their workspace pinned.
-  const canUsePreviousWorktree =
-    draftThread !== null && serverThread === null && !envModeLocked && !forceNewWorktree;
+  const canUsePreviousWorktree = draftThread !== null && !envModeLocked && !forceNewWorktree;
   const projectRefsForWorktreeLookup = useMemo(
     () => (canUsePreviousWorktree && activeProjectRef ? [activeProjectRef] : []),
     [canUsePreviousWorktree, activeProjectRef],
@@ -405,12 +400,6 @@ export const BranchToolbar = memo(function BranchToolbar({
   const showEnvironmentPicker = Boolean(
     availableEnvironments && availableEnvironments.length > 1 && onEnvironmentChange,
   );
-  const activeEnvironmentOption =
-    availableEnvironments?.find((env) => env.environmentId === environmentId) ?? null;
-  const showEnvironmentIndicator = shouldShowEnvironmentIndicator({
-    activeEnvironment: activeEnvironmentOption,
-    canPickEnvironment: showEnvironmentPicker,
-  });
   const [stripElement, setStripElement] = useState<HTMLDivElement | null>(null);
   const labelsOverflow = useLabelsOverflow(stripElement);
 
@@ -449,7 +438,6 @@ export const BranchToolbar = memo(function BranchToolbar({
             envLocked={envLocked}
             effectiveEnvModeOverride={effectiveEnvMode}
             {...(activeThreadBranchOverride !== undefined ? { activeThreadBranchOverride } : {})}
-            {...(onActiveThreadBranchOverrideChange ? { onActiveThreadBranchOverrideChange } : {})}
             startFromOrigin={startFromOrigin}
             onStartFromOriginChange={onStartFromOriginChange}
             {...(onCheckoutPullRequestRequest ? { onCheckoutPullRequestRequest } : {})}
@@ -495,7 +483,6 @@ export const BranchToolbar = memo(function BranchToolbar({
           envLocked={envLocked}
           effectiveEnvModeOverride={effectiveEnvMode}
           {...(activeThreadBranchOverride !== undefined ? { activeThreadBranchOverride } : {})}
-          {...(onActiveThreadBranchOverrideChange ? { onActiveThreadBranchOverrideChange } : {})}
           startFromOrigin={startFromOrigin}
           onStartFromOriginChange={onStartFromOriginChange}
           {...(onCheckoutPullRequestRequest ? { onCheckoutPullRequestRequest } : {})}

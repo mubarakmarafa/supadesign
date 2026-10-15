@@ -24,9 +24,10 @@ of the selected theme.
 ## Composer context
 
 While you create a thread, the project, machine, branch, and worktree controls sit above the composer. They
-leave when the composer docks after you send the first message.
+leave when the composer docks after you send the first message. A started thread shows its machine
+and branch in the thread details card.
 
-Turn on **Composer context** to keep the branch and worktree controls below the composer after the
+Turn on **Usage limits** to keep the current model's usage limits below the composer after the
 thread starts. This preference applies to the web and desktop clients.
 
 ## Motion

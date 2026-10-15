@@ -11,7 +11,7 @@ launch Supaterm and configure providers afterwards.
 ## From source
 
 Use Node.js 24 and the Mise-managed project tools. Get the source from
-[supabitapp/supacode-next](https://github.com/supabitapp/supacode-next), install Mise using the
+[supabitapp/supaterm](https://github.com/supabitapp/supaterm), install Mise using the
 [development runbook](../operations/development.md#first-checkout),
 and run these commands from the repository root:
 
@@ -66,7 +66,7 @@ Run `supaterm --help` for the full reference.
 ## Desktop app
 
 Build the desktop client from this repository. Distribution artifacts belong to
-Supaterm's [GitHub Releases](https://github.com/supabitapp/supacode-next/releases).
+Supaterm's [GitHub Releases](https://github.com/supabitapp/supaterm/releases).
 
 ### The `supaterm` command
 

@@ -132,14 +132,15 @@ export function useThreadActionMenu(input: {
         const now = new Date();
         const isRegeneratingTitle = thread.titleRegeneration != null;
         const snoozePresets = resolveSnoozePresets(now, timestampFormat);
+        const isSnoozed = effectiveSnoozed(thread, { now: now.toISOString() });
         const items = buildThreadActionMenuItems({
           canOperate: readEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope),
           branch: thread.branch ?? null,
           projectFilter: null,
           isPinned: thread.pinnedAt != null,
-          isSettled: thread.settledOverride === "settled",
+          isSettled: !isSnoozed && thread.settledOverride === "settled",
           autoSettleEnabled: thread.autoSettleDisabledAt == null,
-          isSnoozed: effectiveSnoozed(thread, { now: now.toISOString() }),
+          isSnoozed,
           canSnoozeNow: canSnooze(thread, { now: now.toISOString() }),
           isRegeneratingTitle,
           isRunning: !threadRuntimeCanArchive(thread.runtime),

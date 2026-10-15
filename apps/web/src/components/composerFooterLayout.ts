@@ -93,8 +93,8 @@ export function resolveComposerTimelineInset(input: {
 type ComposerUsageMeterSlot = "row" | "context-strip";
 
 /**
- * Where the usage meter goes. It shares the context strip with the branch and worktree controls;
- * without that strip, both pieces stay hidden together.
+ * Where the usage meter goes. A new thread shows it in a row under the composer; a started
+ * thread shows it in the context strip, so it stays hidden whenever that strip is not mounted.
  */
 export function resolveComposerUsageMeterSlot(input: {
   hasUsageWindows: boolean;

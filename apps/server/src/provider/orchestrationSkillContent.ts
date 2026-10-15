@@ -158,5 +158,5 @@ ELECTRON_RUN_AS_NODE=1 "$SUPATERM_ACP_MCP_NODE" \${SUPATERM_ACP_MCP_ENTRYPOINT:+
 
 Call the other tools through the same launcher with their tool name and JSON arguments. If neither transport works, report that Supaterm orchestration is unavailable.
 
-The contract is defined by Supaterm's [tool definitions](https://github.com/supabitapp/supacode-next/blob/6331199f7/apps/server/src/mcp/toolkits/orchestrator/tools.ts), [schemas](https://github.com/supabitapp/supacode-next/blob/6331199f7/packages/contracts/src/orchestratorMcp.ts), and [provider instructions](https://github.com/supabitapp/supacode-next/blob/6331199f7/apps/server/src/provider/SupacodeOrchestrationInstructions.ts). Use the live tool schemas when they change.
+The contract is defined by Supaterm's [tool definitions](https://github.com/supabitapp/supaterm/blob/6331199f7/apps/server/src/mcp/toolkits/orchestrator/tools.ts), [schemas](https://github.com/supabitapp/supaterm/blob/6331199f7/packages/contracts/src/orchestratorMcp.ts), and [provider instructions](https://github.com/supabitapp/supaterm/blob/6331199f7/apps/server/src/provider/SupacodeOrchestrationInstructions.ts). Use the live tool schemas when they change.
 `;

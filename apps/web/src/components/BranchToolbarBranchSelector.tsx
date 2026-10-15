@@ -89,7 +89,6 @@ interface BranchToolbarBranchSelectorProps {
   envLocked: boolean;
   effectiveEnvModeOverride?: "local" | "worktree";
   activeThreadBranchOverride?: string | null;
-  onActiveThreadBranchOverrideChange?: (refName: string | null) => void;
   startFromOrigin: boolean;
   onStartFromOriginChange: (startFromOrigin: boolean) => void;
   onCheckoutPullRequestRequest?: (reference: string) => void;
@@ -111,7 +110,6 @@ export function BranchToolbarBranchSelector({
   envLocked,
   effectiveEnvModeOverride,
   activeThreadBranchOverride,
-  onActiveThreadBranchOverrideChange,
   startFromOrigin,
   onStartFromOriginChange,
   onCheckoutPullRequestRequest,
@@ -213,9 +211,6 @@ export function BranchToolbarBranchSelector({
             worktreePath,
           },
         });
-      }
-      if (hasServerThread) {
-        onActiveThreadBranchOverrideChange?.(branch);
         return;
       }
       if (!isDraftOnCurrentProject()) return;
@@ -238,7 +233,6 @@ export function BranchToolbarBranchSelector({
       activeWorktreePath,
       hasServerThread,
       isDraftOnCurrentProject,
-      onActiveThreadBranchOverrideChange,
       setDraftThreadContext,
       draftId,
       threadRef,

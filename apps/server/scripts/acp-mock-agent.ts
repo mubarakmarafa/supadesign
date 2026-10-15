@@ -1121,7 +1121,7 @@ const program = Effect.gen(function* () {
                 sources: [
                   { type: "url", url: "https://supaterm.com" },
                   { type: "url", url: "https://supaterm.com" },
-                  { type: "url", url: "https://github.com/supabitapp/supacode-next" },
+                  { type: "url", url: "https://github.com/supabitapp/supaterm" },
                 ],
               },
               id: "grok-web-search",

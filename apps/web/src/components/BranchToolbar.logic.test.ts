@@ -497,84 +497,38 @@ describe("shouldShowEnvironmentIndicator", () => {
 });
 
 describe("shouldShowComposerContextStrip", () => {
-  it.each([false, true])(
-    "honors the active-thread preference with resting controls %s",
-    (hostsRestingComposerControls) => {
-      const input = {
-        showProjectPicker: false,
-        hasActiveProject: true,
-        isGitRepo: true,
-        showEnvironmentIndicator: true,
-        hostsRestingComposerControls,
-      };
-      expect(shouldShowComposerContextStrip({ ...input, persistInActiveThreads: false })).toBe(
-        false,
-      );
-      expect(shouldShowComposerContextStrip({ ...input, persistInActiveThreads: true })).toBe(true);
-    },
-  );
-
   it("keeps the strip for a new draft's project picker without a project", () => {
     expect(
       shouldShowComposerContextStrip({
         showProjectPicker: true,
         persistInActiveThreads: false,
         hasActiveProject: false,
-        isGitRepo: false,
-        showEnvironmentIndicator: false,
         hostsRestingComposerControls: false,
       }),
     ).toBe(true);
   });
 
-  it("keeps the environment indicator visible for a non-Git thread", () => {
+  it("shows an active thread's strip only with the preference and something to host", () => {
+    const input = { showProjectPicker: false, hasActiveProject: true };
     expect(
       shouldShowComposerContextStrip({
-        showProjectPicker: false,
-        persistInActiveThreads: true,
-        hasActiveProject: true,
-        isGitRepo: false,
-        showEnvironmentIndicator: true,
-        hostsRestingComposerControls: false,
+        ...input,
+        persistInActiveThreads: false,
+        hostsRestingComposerControls: true,
       }),
-    ).toBe(true);
-  });
-
-  it("hides the strip when a non-Git thread has nothing to show", () => {
+    ).toBe(false);
     expect(
       shouldShowComposerContextStrip({
-        showProjectPicker: false,
+        ...input,
         persistInActiveThreads: true,
-        hasActiveProject: true,
-        isGitRepo: false,
-        showEnvironmentIndicator: false,
         hostsRestingComposerControls: false,
       }),
     ).toBe(false);
-  });
-
-  it("keeps the strip for visible resting composer controls in a non-Git thread", () => {
     expect(
       shouldShowComposerContextStrip({
-        showProjectPicker: false,
+        ...input,
         persistInActiveThreads: true,
-        hasActiveProject: true,
-        isGitRepo: false,
-        showEnvironmentIndicator: false,
         hostsRestingComposerControls: true,
-      }),
-    ).toBe(true);
-  });
-
-  it("shows Git controls without requiring an environment indicator", () => {
-    expect(
-      shouldShowComposerContextStrip({
-        showProjectPicker: false,
-        persistInActiveThreads: true,
-        hasActiveProject: true,
-        isGitRepo: true,
-        showEnvironmentIndicator: false,
-        hostsRestingComposerControls: false,
       }),
     ).toBe(true);
   });

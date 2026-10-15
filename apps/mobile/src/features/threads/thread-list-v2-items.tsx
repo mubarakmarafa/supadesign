@@ -42,7 +42,7 @@ import { useEnvironmentScope } from "../../state/session";
 import type { PendingNewTask } from "../../state/use-pending-new-tasks";
 import { useThreadPr } from "../../state/use-thread-pr";
 import { useSwipeRowDormant } from "../home/swipe-row-activation";
-import { ThreadSwipeable } from "../home/thread-swipe-actions";
+import { ThreadSwipeable, type ThreadSwipeAction } from "../home/thread-swipe-actions";
 import { buildThreadTitleRegenerationMenuItems } from "./thread-title-regeneration-menu";
 import {
   type ThreadListV2Status,
@@ -122,8 +122,10 @@ const DONE_STATUS_LABEL: StatusLabel = {
 
 // Menus keep lifecycle and title regeneration together. Archive keeps its
 // own surface (thread screen / settings) rather than crowding v2 rows.
+const SETTLE_MENU_ACTION: MenuAction = { id: "settle", title: "Settle", image: "checkmark" };
+
 const CARD_MENU_ACTIONS: MenuAction[] = [
-  { id: "settle", title: "Settle", image: "checkmark" },
+  SETTLE_MENU_ACTION,
   { id: "delete", title: "Delete", image: "trash", attributes: { destructive: true } },
 ];
 
@@ -855,7 +857,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   );
   const snoozableCardMenuActions = useMemo<MenuAction[]>(
     () => [
-      { id: "settle", title: "Settle", image: "checkmark" },
+      SETTLE_MENU_ACTION,
       {
         id: "snooze",
         title: "Snooze",
@@ -894,11 +896,12 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const snoozedMenuActions = useMemo<MenuAction[]>(
     () => [
       SNOOZED_MENU_ACTIONS[0]!,
+      ...(props.settlementSupported ? [SETTLE_MENU_ACTION] : []),
       ...titleMenuItems,
       ...autoSettleMenuItems,
       SNOOZED_MENU_ACTIONS[1]!,
     ],
-    [autoSettleMenuItems, titleMenuItems],
+    [autoSettleMenuItems, props.settlementSupported, titleMenuItems],
   );
   const legacyMenuActions = useMemo<MenuAction[]>(
     () => [
@@ -1001,7 +1004,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
     swipeActions.primary,
     thread.title,
   ]);
-  const secondaryAction = useMemo(
+  const secondaryAction = useMemo<ThreadSwipeAction | null>(
     () =>
       swipeActions.secondary === "snooze"
         ? {
@@ -1015,14 +1018,21 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
             },
             onPress: () => undefined,
           }
-        : null,
-    [handleMenuAction, snoozePresetActions, swipeActions.secondary, thread.title],
+        : swipeActions.secondary === "settle"
+          ? {
+              accessibilityLabel: `Settle ${thread.title}`,
+              icon: "checkmark" as const,
+              label: "Settle",
+              onPress: handleSettle,
+            }
+          : null,
+    [handleMenuAction, handleSettle, snoozePresetActions, swipeActions.secondary, thread.title],
   );
   const swipeAccessibilityHint = !canOperateThread
     ? "Opens the thread"
     : secondaryAction === null
       ? `Opens the thread. Swipe left to ${primaryAction.label.toLowerCase()}.`
-      : `Opens the thread. Swipe left for ${primaryAction.label.toLowerCase()} and snooze actions.`;
+      : `Opens the thread. Swipe left for ${primaryAction.label.toLowerCase()} and ${secondaryAction.label.toLowerCase()} actions.`;
 
   // Sidebar rows use navigation foregrounds on their active and idle surfaces.
   const cardContent = (
@@ -1380,7 +1390,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         containerStyle={rowAppearance.swipeContainerStyle}
         enableTrackpadSwipe
         // Full swipe commits the advertised lifecycle action (Settle /
-        // Un-settle), never the secondary snooze action.
+        // Un-settle / Wake), never the secondary action.
         fullSwipeAction="primary"
         fullSwipeWidth={props.fullSwipeWidth ?? windowWidth - 32}
         onDelete={handleDelete}

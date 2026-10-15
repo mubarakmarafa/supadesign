@@ -281,8 +281,8 @@ describe("searchSettings", () => {
       id: "word-wrap",
       to: "/settings/appearance",
     });
-    expect(searchSettings("composer context")[0]).toMatchObject({
-      id: "composer-context",
+    expect(searchSettings("usage limits")[0]).toMatchObject({
+      id: "usage-limits",
       to: "/settings/appearance",
     });
   });
