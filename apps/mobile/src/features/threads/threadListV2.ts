@@ -544,6 +544,7 @@ export function buildThreadListV2ListItems(input: {
     });
     result.push(...threadItems.slice(0, pinnedEnd));
   }
+  result.push(...draftItems);
   if (activeCount > 0 || pendingItems.length > 0) {
     result.push({
       type: "v2-active-header",
@@ -575,7 +576,6 @@ export function buildThreadListV2ListItems(input: {
     });
     result.push(...threadItems.slice(snoozedShelfHeaderIndex, snoozedEnd));
   }
-  result.push(...draftItems);
   if (doneShelfHeaderIndex !== null && doneCount > 0) {
     result.push({
       type: "v2-done-shelf",

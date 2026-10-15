@@ -27,7 +27,7 @@ import {
   holdEditingQueuedMessage,
   releaseDeletingQueuedMessage,
 } from "../../state/use-thread-outbox";
-import { buildPendingNewTasks } from "../../state/pending-new-tasks-model";
+import { buildPendingQueuedTasks } from "../../state/pending-new-tasks-model";
 import { usePendingTaskListActions } from "../home/usePendingTaskListActions";
 import { NewTaskFlowProvider, useNewTaskFlow } from "./new-task-flow-provider";
 
@@ -52,6 +52,10 @@ vi.mock("@react-navigation/native", () => ({
     goBack: transport.goBack,
     canGoBack: () => true,
   }),
+  useIsFocused: () => true,
+}));
+vi.mock("../layout/AdaptiveWorkspaceLayout", () => ({
+  useAdaptiveWorkspaceLayout: () => ({ panes: { primarySidebarVisible: false } }),
 }));
 vi.mock("../../state/shell", () => ({ environmentShell: {} }));
 vi.mock("../../state/entities", () => ({
@@ -323,7 +327,7 @@ function beginSwitch(environmentId = secondEnvironment!) {
 }
 
 function deletePendingTask() {
-  const task = buildPendingNewTasks({ queuedMessages: [pendingTask], drafts: {} })[0]!;
+  const task = buildPendingQueuedTasks([pendingTask])[0]!;
   pendingActions.confirmDeletePendingTask(task);
   const confirmation = vi.mocked(Alert.alert).mock.calls.at(-1)?.[2];
   const deleteAction = confirmation?.find((action) => action.text === "Delete");
@@ -340,7 +344,7 @@ describe("pending task editor dismissal", () => {
   });
 
   it("opens a queued creation's reserved thread from the list", () => {
-    const task = buildPendingNewTasks({ queuedMessages: [pendingTask], drafts: {} })[0]!;
+    const task = buildPendingQueuedTasks([pendingTask])[0]!;
     pendingActions.openPendingTask(task);
     expect(transport.navigate).toHaveBeenCalledWith("Thread", {
       environmentId: pendingTask.environmentId,
