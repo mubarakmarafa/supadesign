@@ -7,7 +7,7 @@ name: Supadesign release
 
 on:
   push:
-    branches: [main, ci/supadesign-release]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
