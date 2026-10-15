@@ -27,6 +27,6 @@
     <category>Development</category>
   </categories>
   <url type="homepage">https://supaterm.com</url>
-  <url type="bugtracker">https://github.com/supabitapp/supacode-next/issues</url>
-  <url type="vcs-browser">https://github.com/supabitapp/supacode-next</url>
+  <url type="bugtracker">https://github.com/supabitapp/supaterm/issues</url>
+  <url type="vcs-browser">https://github.com/supabitapp/supaterm</url>
 </component>

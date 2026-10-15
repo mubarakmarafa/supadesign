@@ -259,7 +259,7 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
       assert.equal(unsupported.exitCode, 1);
       assert.include(unsupported.stderr, "linux-x64");
       assert.include(unsupported.stderr, "win32-arm64");
-      assert.include(unsupported.stderr, "https://github.com/supabitapp/supacode-next/releases");
+      assert.include(unsupported.stderr, "https://github.com/supabitapp/supaterm/releases");
     }),
   );
 });

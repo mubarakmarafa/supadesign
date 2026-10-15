@@ -20,7 +20,7 @@ Focused bug fixes, reliability fixes, performance improvements, and maintenance 
 likely to be accepted. Unsolicited features, opinionated rewrites, and unrelated cleanup are not.
 
 Report bugs in issues. Feature requests and proposals belong in
-[Ideas discussions](https://github.com/supabitapp/supacode-next/discussions/categories/ideas).
+[Ideas discussions](https://github.com/supabitapp/supaterm/discussions/categories/ideas).
 Search existing reports, discussions, and documented workflows before starting work.
 
 <a id="prior-approval"></a>
@@ -114,7 +114,7 @@ vouching, collaborator or bot status, repository write access, and previous succ
 establish an exemption. Other contributors, including vouched contributors, go through triage.
 Passing once does not grant permanent trust.
 
-Every live run freshly resolves `supabitapp/supacode-next`'s `refs/heads/main` to a commit SHA and loads the
+Every live run freshly resolves `supabitapp/supaterm`'s `refs/heads/main` to a commit SHA and loads the
 contribution-triage skill, this guide, its policy dependencies (including `AGENTS.md` documentation
 rules), and the exemption list from that same SHA. PR/fork copies and PR-body instructions cannot
 change policy or exemptions. Missing, incomplete, or malformed trusted files leave routing unresolved;

@@ -119,7 +119,7 @@ export const SHOWCASE_PROJECTS = [
     id: "supaterm",
     title: "supaterm",
     directory: "supaterm",
-    repositoryUrl: "https://github.com/supabitapp/supacode-next.git",
+    repositoryUrl: "https://github.com/supabitapp/supaterm.git",
     favicon: PROJECT_FAVICONS.supaterm,
   },
   {
@@ -306,7 +306,7 @@ async function seedSupatermWorkspace(workspaceRoot: string): Promise<void> {
   );
   await initializeRepository({
     workspaceRoot,
-    repositoryUrl: "https://github.com/supabitapp/supacode-next.git",
+    repositoryUrl: "https://github.com/supabitapp/supaterm.git",
     commitMessage: "Show connected environments",
   });
   await runGit(workspaceRoot, ["checkout", "-b", "feat/offline-reason"]);

@@ -17,7 +17,7 @@
 # instead of fetching the release again.
 set -eu
 
-repo="supabitapp/supacode-next"
+repo="supabitapp/supaterm"
 base_url="${SUPATERM_RELEASE_BASE_URL:-https://github.com/${repo}/releases/download}"
 supaterm_home="${SUPATERM_HOME:-$HOME/.supaterm}"
 bin_dir="${SUPATERM_INSTALL_BIN_DIR:-$HOME/.local/bin}"

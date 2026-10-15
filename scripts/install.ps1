@@ -16,7 +16,7 @@
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$repo = "supabitapp/supacode-next"
+$repo = "supabitapp/supaterm"
 $baseUrl = if ($env:SUPATERM_RELEASE_BASE_URL) { $env:SUPATERM_RELEASE_BASE_URL.TrimEnd("/") } else { "https://github.com/$repo/releases/download" }
 $supatermHome = if ($env:SUPATERM_HOME) { $env:SUPATERM_HOME } else { Join-Path $HOME ".supaterm" }
 $binDir = if ($env:SUPATERM_INSTALL_BIN_DIR) { $env:SUPATERM_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }

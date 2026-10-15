@@ -1904,7 +1904,7 @@ describe("AcpAdapterV2", () => {
         patterns: ["supaterm code"],
         results: [
           { url: "https://supaterm.com" },
-          { url: "https://github.com/supabitapp/supacode-next" },
+          { url: "https://github.com/supabitapp/supaterm" },
         ],
       });
       assert.deepEqual(webItem("grok-web-fetch", "completed")?.results, [

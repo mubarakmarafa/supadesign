@@ -5,7 +5,7 @@ pkgver=0.0.34_nightly.20260814.1095
 pkgrel=1
 pkgdesc='Nightly desktop control surface for local coding agents'
 arch=('x86_64')
-url='https://github.com/supabitapp/supacode-next'
+url='https://github.com/supabitapp/supaterm'
 license=('MIT')
 depends=(
   'alsa-lib'
@@ -46,8 +46,8 @@ options=('!debug' '!strip')
 _upstream_version="${pkgver/_nightly./-nightly.}"
 _appimage="supaterm-${_upstream_version}-x86_64.AppImage"
 source=(
-  "$_appimage::https://github.com/supabitapp/supacode-next/releases/download/v${_upstream_version}/$_appimage"
-  "${pkgname}-${pkgver}-LICENSE::https://raw.githubusercontent.com/supabitapp/supacode-next/v${_upstream_version}/LICENSE"
+  "$_appimage::https://github.com/supabitapp/supaterm/releases/download/v${_upstream_version}/$_appimage"
+  "${pkgname}-${pkgver}-LICENSE::https://raw.githubusercontent.com/supabitapp/supaterm/v${_upstream_version}/LICENSE"
 )
 sha256sums=(
   'c4dea5bba9ed0b51b2f60f2d4a4867e61d62b57c50ea66f2792a73112e054566' # AppImage
