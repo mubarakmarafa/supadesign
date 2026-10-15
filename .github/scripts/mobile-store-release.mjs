@@ -10,7 +10,7 @@ export function validateStoreBuild(build) {
     !/^[a-f0-9]{40}$/.test(build.sha) ||
     !/^\d+\.\d+\.\d+$/.test(build.version) ||
     build.identifier !== "com.supaterm.mobile" ||
-    build.projectFullName !== "@supabitapp/supacode"
+    build.projectFullName !== "@supabitapp/supaterm"
   ) {
     throw new Error("Invalid production mobile build manifest.");
   }
@@ -100,7 +100,7 @@ if (process.argv[1] && NodeURL.pathToFileURL(process.argv[1]).href === import.me
       schema: 1,
       platform: process.env.MOBILE_PLATFORM,
       sha: process.env.MOBILE_SOURCE_SHA,
-      projectFullName: "@supabitapp/supacode",
+      projectFullName: "@supabitapp/supaterm",
       ...identity,
     });
     await NodeFSP.writeFile(process.env.MOBILE_BUILD_MANIFEST, JSON.stringify(build, null, 2));
