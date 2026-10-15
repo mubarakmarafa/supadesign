@@ -227,7 +227,6 @@ export function HomeRouteScreen() {
                   }),
               }),
               headerShown: Platform.OS !== "android",
-              scrollEdgeEffects: { top: "hidden", bottom: "hidden" },
             }}
           />
         )}

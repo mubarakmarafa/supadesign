@@ -164,8 +164,7 @@ export type SidebarListMarker =
   | "pinned-divider"
   | "working-header"
   | "snoozed-header"
-  | "done-header"
-  | "done-more";
+  | "done-header";
 
 export function sidebarMarkerId(marker: SidebarListMarker): string {
   return `${SIDEBAR_MARKER_PREFIX}${marker}`;
@@ -944,6 +943,20 @@ export function resolveSidebarV2TopStatus(input: {
 
 export function shouldShowSidebarV2Duration(status: SidebarThreadStatus): boolean {
   return status === "working" || status === "waiting";
+}
+
+/** First VALID timestamp wins: `a ?? b` falls through on null, but a present-
+    yet-malformed string must also fall through to the next candidate rather
+    than sink the row to the epoch. */
+export function firstValidTimestampMs(
+  ...candidates: ReadonlyArray<string | null | undefined>
+): number {
+  for (const candidate of candidates) {
+    if (candidate == null) continue;
+    const parsed = Date.parse(candidate);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return 0;
 }
 
 // The Working section folds and orders the inbox the same way on mobile.

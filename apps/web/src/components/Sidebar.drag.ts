@@ -1,6 +1,5 @@
 import { closestCenter, type CollisionDetection, type Modifier } from "@dnd-kit/core";
 import { verticalListSortingStrategy, type SortingStrategy } from "@dnd-kit/sortable";
-import { pageRecentThreads } from "@supaterm/client-runtime/state/thread-sort";
 import {
   resolveSidebarDropTarget,
   sidebarListItemId,
@@ -172,12 +171,13 @@ export function createSidebarSortingStrategy(input: {
     const doneOrder = (
       input.doneOrder.length > 0 ? input.doneOrder : groups.done.map((item) => item.key)
     ).filter((key) => key !== active.key || target.section === "done");
+    const visible = input.doneExpanded
+      ? doneOrder.slice(0, input.doneVisibleCount ?? doneOrder.length)
+      : [];
     const routeKey = input.routeThreadKey;
-    const visible = pageRecentThreads(
-      doneOrder,
-      input.doneExpanded ? (input.doneVisibleCount ?? doneOrder.length) : 0,
-      routeKey === null ? null : (key) => key === routeKey,
-    );
+    if (routeKey && doneOrder.includes(routeKey) && !visible.includes(routeKey)) {
+      visible.push(routeKey);
+    }
     groups.done = visible.map((key) => ({ kind: "thread", key, section: "done" }));
     const projected: SidebarListItem[] = [];
     const marker = (name: SidebarListMarker) => projected.push({ kind: "marker", marker: name });
@@ -206,9 +206,6 @@ export function createSidebarSortingStrategy(input: {
       projected.push(...groups.snoozed);
     }
     marker("done-header");
-    if (items.some((item) => item.kind === "marker" && item.marker === "done-more")) {
-      marker("done-more");
-    }
     section("done");
     const heights = projected.map((item) => {
       const index = indices.get(sidebarListItemId(item));

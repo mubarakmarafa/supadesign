@@ -539,11 +539,11 @@ describe("buildThreadListV2Items", () => {
       pinnedShelfExpanded: false,
     });
     expect(collapsedList.map((item) => item.type)).toEqual([
+      "v2-pinned-shelf",
       "v2-active-header",
       "v2-thread",
-      "v2-pinned-shelf",
     ]);
-    expect(collapsedList[2]).toMatchObject({ count: 2, expanded: false });
+    expect(collapsedList[0]).toMatchObject({ count: 2, expanded: false });
     const selected = buildThreadListV2Items({
       ...input,
       pinnedShelfExpanded: false,
@@ -577,7 +577,7 @@ describe("buildThreadListV2Items", () => {
         disabled: false,
       },
     ]);
-    const header = collapsedList[2]!;
+    const header = collapsedList[0]!;
     expect(threadListV2ListItemsAreEqual(header, { ...header })).toBe(true);
     if (header.type !== "v2-pinned-shelf") throw new Error("Expected Pinned header");
     expect(threadListV2ListItemsAreEqual(header, { ...header, expanded: true })).toBe(false);
@@ -717,8 +717,8 @@ describe("buildThreadListV2Items", () => {
 
     expect(layout.items.map((item) => item.thread.id)).toEqual([
       "active",
-      "later",
       "sooner",
+      "later",
       "done",
     ]);
     expect(layout.items.map((item) => item.snoozed)).toEqual([false, true, true, false]);
@@ -894,7 +894,7 @@ describe("buildThreadListV2Items", () => {
       now: NOW,
     });
 
-    expect(items.map((item) => item.thread.id)).toEqual(["older-created", "newer-created"]);
+    expect(items.map((item) => item.thread.id)).toEqual(["newer-created", "older-created"]);
   });
 
   it("sorts done threads by their persisted settlement timestamp", () => {
@@ -920,7 +920,7 @@ describe("buildThreadListV2Items", () => {
       now: NOW,
     });
 
-    expect(items.map((item) => item.thread.id)).toEqual(["done-older", "done-newer"]);
+    expect(items.map((item) => item.thread.id)).toEqual(["done-newer", "done-older"]);
   });
 
   it("keeps done threads in the tail and filters by search query", () => {
@@ -1049,7 +1049,30 @@ describe("buildThreadListV2Items done paging", () => {
 
     expect(layout.hiddenDoneCount).toBe(2);
     expect(layout.items.filter((item) => item.variant === "slim")).toHaveLength(2);
-    expect(layout.items.map((item) => item.thread.id)).toEqual(["active", "done-2", "done-3"]);
+    expect(layout.items.map((item) => item.thread.id)).toEqual(["active", "done-3", "done-2"]);
+  });
+
+  it("keeps the selected done thread visible past doneLimit", () => {
+    const threads = Array.from({ length: 4 }, (_, index) =>
+      makeThread({
+        id: ThreadId.make(`done-${index}`),
+        title: `Done ${index}`,
+        doneOverride: "done",
+        doneAt: `2026-06-01T0${index}:10:00.000Z`,
+      }),
+    );
+
+    const layout = buildThreadListV2Items({
+      threads,
+      environmentId: null,
+      searchQuery: "",
+      doneLimit: 2,
+      now: NOW,
+      selectedThreadKey: `${environmentId}:done-0`,
+    });
+
+    expect(layout.items.map((item) => item.thread.id)).toEqual(["done-3", "done-2", "done-0"]);
+    expect(layout.hiddenDoneCount).toBe(1);
   });
 });
 
@@ -1098,34 +1121,34 @@ describe("buildThreadListV2Items done sort reuse", () => {
   const newer = makeDone("newer", "2026-06-01T03:00:00.000Z");
   const middle = makeDone("middle", "2026-06-01T02:00:00.000Z");
 
-  it("keeps newer done rows at the bottom regardless of input order", () => {
+  it("orders done rows newest first regardless of input order", () => {
     expect(doneOrder([older, newer, middle])).toEqual([
-      `${environmentId}:older`,
-      `${environmentId}:middle`,
       `${environmentId}:newer`,
+      `${environmentId}:middle`,
+      `${environmentId}:older`,
     ]);
     expect(doneOrder([middle, older, newer])).toEqual([
-      `${environmentId}:older`,
-      `${environmentId}:middle`,
       `${environmentId}:newer`,
+      `${environmentId}:middle`,
+      `${environmentId}:older`,
     ]);
   });
 
   it("re-sorts when a done row is replaced, added, or removed", () => {
-    expect(doneOrder([older, newer])).toEqual([`${environmentId}:older`, `${environmentId}:newer`]);
+    expect(doneOrder([older, newer])).toEqual([`${environmentId}:newer`, `${environmentId}:older`]);
     const markedDoneAgainOlder = makeDone("older", "2026-06-01T04:00:00.000Z");
     expect(doneOrder([markedDoneAgainOlder, newer])).toEqual([
-      `${environmentId}:newer`,
       `${environmentId}:older`,
+      `${environmentId}:newer`,
     ]);
     expect(doneOrder([markedDoneAgainOlder, newer, middle])).toEqual([
-      `${environmentId}:middle`,
-      `${environmentId}:newer`,
       `${environmentId}:older`,
+      `${environmentId}:newer`,
+      `${environmentId}:middle`,
     ]);
     expect(doneOrder([newer, middle])).toEqual([
-      `${environmentId}:middle`,
       `${environmentId}:newer`,
+      `${environmentId}:middle`,
     ]);
   });
 
@@ -1156,8 +1179,7 @@ describe("buildThreadListV2Items done sort reuse", () => {
       order = doneOrder([updated, ...done]);
     });
 
-    expect(order).toEqual(done.map((thread) => `${environmentId}:${thread.id}`));
-
+    expect(order).toEqual(done.toReversed().map((thread) => `${environmentId}:${thread.id}`));
     expect(baseline - reused).toBeGreaterThanOrEqual(done.length);
   });
 
@@ -1172,12 +1194,12 @@ describe("buildThreadListV2Items done sort reuse", () => {
 
     for (let round = 0; round < 2; round += 1) {
       expect(doneOrder(threads, environmentId)).toEqual([
-        `${environmentId}:older`,
         `${environmentId}:newer`,
+        `${environmentId}:older`,
       ]);
       expect(doneOrder(threads, otherEnvironmentId)).toEqual([
-        `${otherEnvironmentId}:remote-older`,
         `${otherEnvironmentId}:remote-newer`,
+        `${otherEnvironmentId}:remote-older`,
       ]);
     }
   });
@@ -1280,19 +1302,19 @@ describe("buildThreadListV2ListItems", () => {
     };
     const items = buildThreadListV2ListItems(input);
     expect(items.map((item) => item.type)).toEqual([
-      "v2-done-shelf",
-      "v2-show-more",
-      "v2-thread",
-      "v2-snoozed-shelf",
-      "v2-thread",
-      "v2-working-shelf",
+      "v2-pinned-shelf",
       "v2-thread",
       "v2-active-header",
       "v2-thread",
-      "v2-pinned-shelf",
+      "v2-working-shelf",
       "v2-thread",
+      "v2-snoozed-shelf",
+      "v2-thread",
+      "v2-done-shelf",
+      "v2-thread",
+      "v2-show-more",
     ]);
-    expect(items[1]).toEqual({ type: "v2-show-more", key: "v2-show-more", hiddenCount: 1 });
+    expect(items.at(-1)).toEqual({ type: "v2-show-more", key: "v2-show-more", hiddenCount: 1 });
     expect(
       buildThreadListV2ListItems({ ...input, doneShelfExpanded: false }).some(
         (item) => item.type === "v2-show-more",
@@ -1315,7 +1337,7 @@ describe("buildThreadListV2ListItems", () => {
     now: NOW,
   });
 
-  it("keeps queued tasks in Active below Done", () => {
+  it("splices queued tasks between the active block and the done tail", () => {
     const items = buildThreadListV2ListItems({
       items: layout.items,
       pendingTasks: [makePendingTask("queued-1"), makePendingTask("queued-2")],
@@ -1331,7 +1353,7 @@ describe("buildThreadListV2ListItems", () => {
             ? item.item.thread.id
             : item.type,
       ),
-    ).toEqual(["v2-done-shelf", "done", "v2-active-header", "active", "queued-1", "queued-2"]);
+    ).toEqual(["v2-active-header", "active", "queued-1", "queued-2", "v2-done-shelf", "done"]);
     // Only the leading queued row labels the section, exactly like Done.
     expect(
       items.filter((item) => item.type === "v2-pending" && item.showPendingDivider),
@@ -1353,7 +1375,7 @@ describe("buildThreadListV2ListItems", () => {
     expect(items.map((item) => item.type)).toEqual(["v2-active-header", "v2-thread", "v2-pending"]);
   });
 
-  it("keeps drafts below Active and queued tasks", () => {
+  it("puts Drafts just above Done while queued tasks stay in Active", () => {
     const items = buildThreadListV2ListItems({
       items: layout.items,
       doneCount: layout.doneCount,
@@ -1375,14 +1397,14 @@ describe("buildThreadListV2ListItems", () => {
             : item.type,
       ),
     ).toEqual([
-      "v2-done-shelf",
-      "done",
       "v2-active-header",
       "active",
       "queued-1",
       "queued-2",
       "draft-1",
       "draft-2",
+      "v2-done-shelf",
+      "done",
     ]);
     expect(
       items
@@ -1396,7 +1418,7 @@ describe("buildThreadListV2ListItems", () => {
     ]);
   });
 
-  it("places Done before Active when nothing is queued", () => {
+  it("places Done below Active when nothing is queued", () => {
     const items = buildThreadListV2ListItems({
       items: layout.items,
       pendingTasks: [],
@@ -1405,14 +1427,14 @@ describe("buildThreadListV2ListItems", () => {
     });
 
     expect(items.map((item) => item.key)).toEqual([
-      "v2-done-shelf",
-      `v2-thread:${environmentId}:done`,
       "v2-active-header",
       `v2-thread:${environmentId}:active`,
+      "v2-done-shelf",
+      `v2-thread:${environmentId}:done`,
     ]);
   });
 
-  it("places queued tasks below the collapsed snoozed shelf", () => {
+  it("places queued tasks before a collapsed snoozed shelf", () => {
     const snoozedLayout = buildThreadListV2Items({
       threads: [
         makeThread({ id: ThreadId.make("active"), title: "active" }),
@@ -1444,15 +1466,15 @@ describe("buildThreadListV2ListItems", () => {
     });
 
     expect(items.map((item) => item.type)).toEqual([
-      "v2-done-shelf",
-      "v2-thread",
-      "v2-snoozed-shelf",
       "v2-active-header",
       "v2-thread",
       "v2-pending",
+      "v2-snoozed-shelf",
+      "v2-done-shelf",
+      "v2-thread",
     ]);
-    expect(threadJumpTarget(items, "thread.jump.1")?.id).toBe("done");
-    expect(threadJumpTarget(items, "thread.jump.2")?.id).toBe("active");
+    expect(threadJumpTarget(items, "thread.jump.1")?.id).toBe("active");
+    expect(threadJumpTarget(items, "thread.jump.2")?.id).toBe("done");
     expect(threadJumpTarget(items, "thread.jump.3")).toBeNull();
   });
 });
@@ -1508,9 +1530,9 @@ describe("buildThreadListV2ListItems empty Active block", () => {
 
   it("renders only the shelves when no threads need attention", () => {
     expect(listTypes([working, snoozed, done])).toEqual([
-      "v2-done-shelf",
-      "v2-snoozed-shelf",
       "v2-working-shelf",
+      "v2-snoozed-shelf",
+      "v2-done-shelf",
     ]);
     expect(listTypes([snoozed])).toEqual(["v2-snoozed-shelf"]);
   });
@@ -1518,20 +1540,20 @@ describe("buildThreadListV2ListItems empty Active block", () => {
   it("keeps active rows, pins, queued tasks, and drafts alongside the shelves", () => {
     const active = makeThread({ id: ThreadId.make("active"), title: "active" });
 
-    expect(listTypes([active, done])).toEqual(["v2-done-shelf", "v2-active-header", "v2-thread"]);
-    expect(listTypes([pinned, done])).toEqual(["v2-done-shelf", "v2-pinned-shelf", "v2-thread"]);
+    expect(listTypes([active, done])).toEqual(["v2-active-header", "v2-thread", "v2-done-shelf"]);
+    expect(listTypes([pinned, done])).toEqual(["v2-pinned-shelf", "v2-thread", "v2-done-shelf"]);
     expect(listTypes([pinned, done], { pinnedShelfExpanded: false })).toEqual([
-      "v2-done-shelf",
       "v2-pinned-shelf",
+      "v2-done-shelf",
     ]);
     expect(listTypes([done], { pendingTasks: [makePendingTask("queued")] })).toEqual([
-      "v2-done-shelf",
       "v2-active-header",
       "v2-pending",
+      "v2-done-shelf",
     ]);
     expect(listTypes([done], { pendingTasks: [makeDraftTask("draft")] })).toEqual([
-      "v2-done-shelf",
       "v2-pending",
+      "v2-done-shelf",
     ]);
   });
 
@@ -2340,8 +2362,8 @@ describe("thread list v2 minute tick invalidation", () => {
       // shelf row ("2h" unchanged, Wake only), the shelf headers, and the
       // queued row — survives the tick untouched.
       expect(invalidated).toEqual([
-        `v2-thread:${environmentId}:tick-done`,
         `v2-thread:${environmentId}:tick-ready`,
+        `v2-thread:${environmentId}:tick-done`,
       ]);
     } finally {
       vi.useRealTimers();
@@ -2589,9 +2611,9 @@ describe("Working section", () => {
     const layout = build();
     expect(ids(layout)).toEqual([
       "pinned-working",
-      "finished-early",
-      "asks-approval",
       "finished-late",
+      "asks-approval",
+      "finished-early",
     ]);
     expect(layout.workingCount).toBe(1);
     expect(layout.workingShelfHeaderIndex).toBe(4);
@@ -2610,10 +2632,10 @@ describe("Working section", () => {
       inboxReturnAt: (thread) =>
         thread.id === "finished-early" ? Date.parse("2026-06-01T04:00:00.000Z") : undefined,
     });
-    expect(ids(layout).slice(1)).toEqual(["asks-approval", "finished-late", "finished-early"]);
+    expect(ids(layout).slice(1)).toEqual(["finished-early", "finished-late", "asks-approval"]);
   });
 
-  it("places Working below Snoozed and above Active", () => {
+  it("places Working below Active and above Snoozed", () => {
     const layout = buildThreadListV2Items({
       threads: [
         makeThread({ id: ThreadId.make("active"), title: "active" }),
@@ -2659,16 +2681,16 @@ describe("Working section", () => {
             : item.type,
       ),
     ).toEqual([
-      "v2-done-shelf",
-      "done",
-      "v2-snoozed-shelf",
-      "snoozed",
-      "v2-working-shelf",
-      "working",
       "v2-active-header",
       "active",
       "queued",
+      "v2-working-shelf",
+      "working",
+      "v2-snoozed-shelf",
+      "snoozed",
       "draft",
+      "v2-done-shelf",
+      "done",
     ]);
   });
 });

@@ -41,10 +41,8 @@ import {
 } from "@supaterm/client-runtime/state/thread-snooze";
 import { createInboxReturnTracker } from "@supaterm/client-runtime/state/thread-inbox";
 import {
-  pageRecentThreads,
   resolveDoneThreadTimestamp,
   sortDoneThreads,
-  sortSnoozedThreadsByWake,
 } from "@supaterm/client-runtime/state/thread-sort";
 import {
   resolveThreadProviderStack,
@@ -202,6 +200,7 @@ import {
   deleteSelectedThreadEntries,
   filterSidebarProjectScopeItems,
   formatWorkingDurationLabel,
+  firstValidTimestampMs,
   hasUnseenCompletion,
   isSidebarNestedLinkClick,
   isSidebarThreadWorking,
@@ -2723,8 +2722,14 @@ export default function Sidebar() {
             }),
       draggableThreadKeys: draggable,
       activeThreads: sortInboxThreadsByReturn(active, inboxReturns.returnedAt),
+      // Newest send first; finishing and waking again do not move a row.
       workingThreads: sortWorkingThreadsBySend(working),
-      snoozedThreads: sortSnoozedThreadsByWake(snoozed),
+      // Soonest wake first: "what comes back next" is the shelf's question.
+      snoozedThreads: snoozed.toSorted(
+        (left, right) =>
+          firstValidTimestampMs(left.snoozedUntil ?? null) -
+          firstValidTimestampMs(right.snoozedUntil ?? null),
+      ),
       doneThreads: sortDoneThreads(done),
       snoozeNow: preciseNow,
     };
@@ -2738,9 +2743,14 @@ export default function Sidebar() {
     threads,
   ]);
 
+  // Arm a timeout for the earliest upcoming wake so the shelf empties the
+  // moment a snooze expires instead of on the next minute tick. Sorted
+  // soonest-first, so entry 0 is the boundary.
   useEffect(() => {
-    const nextWake = snoozedThreads.at(-1)?.snoozedUntil;
-    const nextWakeAtMs = nextWake == null ? Number.NaN : Date.parse(nextWake);
+    const nextWakeAtMs =
+      snoozedThreads.length > 0 && snoozedThreads[0]?.snoozedUntil != null
+        ? Date.parse(snoozedThreads[0].snoozedUntil)
+        : Number.NaN;
     if (Number.isNaN(nextWakeAtMs)) return;
     // setTimeout delays are signed 32-bit: anything larger overflows and
     // fires immediately, turning a far-future wake (event-condition snoozes
@@ -2762,18 +2772,23 @@ export default function Sidebar() {
     setLastDoneResetKey(doneResetKey);
     setDoneVisibleCount(DONE_TAIL_INITIAL_COUNT);
   }
-  const visibleDoneThreads = useMemo(
-    () =>
-      pageRecentThreads(
-        doneThreads,
-        doneVisibleCount,
-        routeThreadKey === null
-          ? null
-          : (thread) =>
-              scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === routeThreadKey,
-      ),
-    [routeThreadKey, doneThreads, doneVisibleCount],
-  );
+  const visibleDoneThreads = useMemo(() => {
+    if (doneThreads.length <= doneVisibleCount) return doneThreads;
+    const visible = doneThreads.slice(0, doneVisibleCount);
+    // The open thread must never hide under "Show more": navigating into a
+    // deep done thread (search, deep link) pulls its row into the visible
+    // tail so the highlight and the reopen affordance stay reachable.
+    if (routeThreadKey !== null) {
+      const routeThread = doneThreads
+        .slice(doneVisibleCount)
+        .find(
+          (thread) =>
+            scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)) === routeThreadKey,
+        );
+      if (routeThread !== undefined) visible.push(routeThread);
+    }
+    return visible;
+  }, [routeThreadKey, doneThreads, doneVisibleCount]);
   const hiddenDoneCount = doneThreads.length - visibleDoneThreads.length;
   const showMoreDone = useCallback(
     () => setDoneVisibleCount((count) => count + DONE_TAIL_PAGE_COUNT),
@@ -3552,21 +3567,16 @@ export default function Sidebar() {
       items.push(...rowsOf(visibleSnoozedThreads, "snoozed"));
     }
     items.push({ kind: "marker", marker: "done-header" });
-    if (doneShelfExpanded && hiddenDoneCount > 0) {
-      items.push({ kind: "marker", marker: "done-more" });
-    }
     const doneRows = rowsOf(renderedDoneThreads, "done");
     items.push({ kind: "marker", marker: "done-placeholder" });
     items.push(...doneRows);
     return items;
   }, [
     activeThreads,
-    hiddenDoneCount,
     pinnedThreads.length,
     visiblePinnedThreads,
     renderedDoneThreads,
     doneThreads.length,
-    doneShelfExpanded,
     snoozedThreads.length,
     visibleSnoozedThreads,
     visibleWorkingThreads,
@@ -5135,20 +5145,6 @@ export default function Sidebar() {
                             />,
                           );
                           break;
-                        case "done-more":
-                          items.push(
-                            <SortableSidebarMarker key="done-more" marker="done-more">
-                              <button
-                                type="button"
-                                onClick={showMoreDone}
-                                className="flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 text-left text-sm text-sidebar-muted-foreground/55 hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
-                              >
-                                <PlusIcon aria-hidden className="size-4 shrink-0" />
-                                Show {Math.min(hiddenDoneCount, DONE_TAIL_PAGE_COUNT)} more
-                              </button>
-                            </SortableSidebarMarker>,
-                          );
-                          break;
                         case "done-placeholder":
                           items.push(
                             <SidebarSectionPlaceholder
@@ -5171,6 +5167,18 @@ export default function Sidebar() {
                     }
                     return items;
                   })()}
+                  {doneShelfExpanded && hiddenDoneCount > 0 ? (
+                    <li className="list-none">
+                      <button
+                        type="button"
+                        onClick={showMoreDone}
+                        className="flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 text-left text-sm text-sidebar-muted-foreground/55 hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
+                      >
+                        <PlusIcon aria-hidden className="size-4 shrink-0" />
+                        Show {Math.min(hiddenDoneCount, DONE_TAIL_PAGE_COUNT)} more
+                      </button>
+                    </li>
+                  ) : null}
                 </ul>
               </SortableContext>
             </DndContext>

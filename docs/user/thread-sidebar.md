@@ -107,9 +107,9 @@ On web and desktop, the list also animates section changes made with thread acti
 preference. While dragging, rows follow the insertion gap without replaying a second transition
 after the drop.
 
-The active list is ordered by when each thread last came back to you, with the most recent return
-at the bottom, so you cannot drag or move threads within it. The done shelf uses completion
-time, with the most recently done threads at the bottom. **Show more** reveals older history above them.
+The active list is ordered by when each thread last came back to you, so you cannot drag or move
+threads within it. The done shelf lists the most recently finished threads first, and **Show
+more** reveals older history below them.
 
 If dragging is unavailable for one environment, update the Supaterm server running in that
 environment. Pinned reordering requires server support. Threads from older servers keep their
@@ -127,9 +127,9 @@ open.
 ### Working threads
 
 Threads that are working or monitoring fold into a collapsed **Working** section. A thread
-returns to the bottom of the active list when it finishes, fails, or needs an approval or answer.
-The Working section places the thread you last sent work to at the bottom. Pinned threads stay
-in the pinned section.
+returns to the top of the active list when it finishes, fails, or needs an approval or answer.
+The Working section lists the thread you last sent work to first. Pinned threads stay in the
+pinned section.
 
 ## Mark finished work as done
 

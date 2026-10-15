@@ -15,18 +15,8 @@ import {
 } from "@supaterm/client-runtime/state/thread-search";
 import { type EnvironmentId, type SidebarProjectGroupingMode } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
-import { HeaderHeightContext } from "@react-navigation/elements";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import {
-  use,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentProps,
-} from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { use, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import {
   Platform,
   ScrollView,
@@ -39,7 +29,6 @@ import {
 import { ScrollViewMarker } from "react-native-screens";
 import { GestureDetector, useNativeGesture } from "react-native-gesture-handler";
 import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
-import { useKeyboardState } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { cn } from "../../lib/cn";
@@ -293,19 +282,11 @@ export function HomeScreen(props: HomeScreenProps) {
   // Let trackpad scrolling coexist with each row's horizontal swipe gesture.
   const homeScrollGesture = useNativeGesture();
   const insets = useSafeAreaInsets();
-  const navigationHeaderHeight = useContext(HeaderHeightContext) ?? insets.top + 44;
-  const navigation = useNavigation();
-  // Sample focus on keyboard events so returning from a sheet cannot claim its still-dismissing keyboard.
-  const searchKeyboardVisible = useKeyboardState(
-    (state) => state.isVisible && navigation.isFocused(),
-  );
   const { fabClearance } = useAndroidControlSizing();
   const screenMetrics = useNativeLayoutMetrics();
   const contentSideInsets = usesNativeWorkspaceColumns
     ? (columnMetrics ?? screenMetrics)?.safeArea
     : undefined;
-  const listTopInset =
-    Platform.OS === "ios" && NATIVE_LIQUID_GLASS_SUPPORTED ? navigationHeaderHeight : 0;
   // UIKit's column safe area already includes its bottom toolbar.
   const iosBottomClearance = Math.max(
     columnMetrics?.safeArea.bottom ?? insets.bottom,
@@ -666,7 +647,7 @@ export function HomeScreen(props: HomeScreenProps) {
     items: threadListV2Items,
     doneLimit: doneVisibleCount,
     scope: doneResetKey,
-    searching: hasSearchQuery || searchKeyboardVisible,
+    searching: hasSearchQuery,
     scrolling: !swipeEnabled,
     ready: shelfPreferencesLoaded && !props.catalogState.isLoadingConnections,
   });
@@ -1018,7 +999,6 @@ export function HomeScreen(props: HomeScreenProps) {
             ? "flex-1 overflow-hidden rounded-t-[28px] bg-screen"
             : cn("flex-1", contentBackground)
         }
-        style={{ marginTop: listTopInset }}
       >
         {/* Shared with the iPad sidebar: cells are reused across data
             rebuilds and `itemsAreEqual` keeps a minute tick (or an unrelated
@@ -1043,21 +1023,8 @@ export function HomeScreen(props: HomeScreenProps) {
               itemLayoutAnimation={listMotion.layout}
               extraData={v2ExtraData}
               ListHeaderComponent={v2ListHeader}
-              ListEmptyComponent={
-                v2ListEmpty && (
-                  // The list's flex-end empty layout ignores the iOS start inset.
-                  <View
-                    className="w-full"
-                    style={{ marginBottom: Platform.OS === "ios" ? insets.top : 0 }}
-                  >
-                    {v2ListEmpty}
-                  </View>
-                )
-              }
+              ListEmptyComponent={v2ListEmpty}
               style={{ flex: 1 }}
-              sharedValues={listMotion.sharedValues}
-              itemsContainerStyle={listMotion.alignmentStyle}
-              alignItemsAtEnd
               automaticallyAdjustsScrollIndicatorInsets={Platform.OS === "ios"}
               contentInsetAdjustmentBehavior="never"
               contentInset={Platform.OS === "ios" ? { top: insets.top } : undefined}
