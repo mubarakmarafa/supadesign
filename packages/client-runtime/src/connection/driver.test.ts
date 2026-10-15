@@ -95,18 +95,13 @@ describe("direct route connection attempts", () => {
   );
 
   it.effect.each([lan, tailnet])(
-    "uses a preferred direct route without probing or opening relay: %#",
+    "prefers a direct route over a relay that also answers: %#",
     (direct) =>
       Effect.gen(function* () {
-        const checked: ConnectionRoute[] = [];
         const attempted: ConnectionRoute[] = [];
         const result = yield* connectOverRoutes(
           { ...direct, enabled: true, alternateRoutes: [relay] },
-          (route) =>
-            Effect.sync(() => {
-              checked.push(route);
-              return "answered" as const;
-            }),
+          () => Effect.succeed("answered"),
           (route) =>
             Effect.sync(() => {
               attempted.push(route);
@@ -114,7 +109,6 @@ describe("direct route connection attempts", () => {
             }),
         );
         expect(result.prepared.target).toEqual(direct.target);
-        expect(checked).toEqual([direct]);
         expect(attempted).toEqual([direct]);
       }),
   );
@@ -129,7 +123,7 @@ describe("direct route connection attempts", () => {
         (route) => {
           if (route.target === lan.target)
             return Deferred.succeed(checked, undefined).pipe(Effect.as("answered" as const));
-          if (route === tailnet) return Effect.never;
+          if (route.target === tailnet.target || route.target === relay.target) return Effect.never;
           return Effect.sleep(500).pipe(Effect.as("answered" as const));
         },
         (route) =>
@@ -146,13 +140,16 @@ describe("direct route connection attempts", () => {
     }),
   );
 
-  it.effect("opens relay after the short direct check deadline", () =>
+  it.effect("connects through relay without waiting for the direct check deadline", () =>
     Effect.gen(function* () {
       const checking = yield* Deferred.make<void>();
       const attempted: ConnectionRoute[] = [];
       const fiber = yield* connectOverRoutes(
-        { ...lan, enabled: true, alternateRoutes: [relay] },
-        () => Deferred.succeed(checking, undefined).pipe(Effect.andThen(Effect.never)),
+        { ...lan, enabled: true, alternateRoutes: [tailnet, relay] },
+        (route) =>
+          route.target === relay.target
+            ? Effect.succeed("answered")
+            : Deferred.succeed(checking, undefined).pipe(Effect.andThen(Effect.never)),
         (route) =>
           Effect.sync(() => {
             attempted.push(route);
@@ -160,11 +157,43 @@ describe("direct route connection attempts", () => {
           }),
       ).pipe(Effect.forkChild);
       yield* Deferred.await(checking);
-      yield* TestClock.adjust(ROUTE_CHECK_TIMEOUT_MS - 1);
-      expect(attempted).toEqual([]);
-      yield* TestClock.adjust(1);
-      expect((yield* Fiber.join(fiber)).prepared.target).toEqual(relay.target);
+      yield* TestClock.adjust(ROUTE_CHECK_TIMEOUT_MS / 2);
       expect(attempted).toEqual([relay]);
+      expect((yield* Fiber.join(fiber)).prepared.target).toEqual(relay.target);
+    }),
+  );
+  it.effect("releases a relay checked during selection when a direct route wins", () =>
+    Effect.gen(function* () {
+      const checking = yield* Deferred.make<void>();
+      const lifecycle: string[] = [];
+      const fiber = yield* connectOverRoutes(
+        { ...tailnet, enabled: true, alternateRoutes: [relay] },
+        (route) =>
+          route.target === relay.target
+            ? Effect.acquireRelease(
+                Effect.sync(() => {
+                  lifecycle.push("opened relay");
+                  return "answered" as const;
+                }),
+                () =>
+                  Effect.sync(() => {
+                    lifecycle.push("closed relay");
+                  }),
+              )
+            : Deferred.succeed(checking, undefined).pipe(
+                Effect.andThen(Effect.sleep(100)),
+                Effect.as("answered" as const),
+              ),
+        (route) =>
+          Effect.sync(() => {
+            lifecycle.push("connected");
+            return lease(route);
+          }),
+      ).pipe(Effect.forkChild);
+      yield* Deferred.await(checking);
+      yield* TestClock.adjust(100);
+      expect((yield* Fiber.join(fiber)).prepared.target).toEqual(tailnet.target);
+      expect(lifecycle).toEqual(["opened relay", "connected", "closed relay"]);
     }),
   );
 
@@ -173,7 +202,7 @@ describe("direct route connection attempts", () => {
       const attempted: ConnectionRoute[] = [];
       const result = yield* connectOverRoutes(
         { ...lan, enabled: true, alternateRoutes: [tailnet, relay] },
-        () => Effect.succeed("silent"),
+        (route) => Effect.succeed(route.target === relay.target ? "answered" : "silent"),
         (route) =>
           Effect.sync(() => {
             attempted.push(route);
@@ -184,13 +213,44 @@ describe("direct route connection attempts", () => {
       expect(attempted).toEqual([relay]);
     }),
   );
+  it.effect("reports the relay's reason over a route that never answered", () =>
+    Effect.gen(function* () {
+      const checking = yield* Deferred.make<void>();
+      const attempted: ConnectionRoute[] = [];
+      const fiber = yield* connectOverRoutes(
+        { ...lan, enabled: true, alternateRoutes: [relay] },
+        (route) =>
+          route.target === relay.target
+            ? Effect.succeed("silent")
+            : Deferred.succeed(checking, undefined).pipe(
+                Effect.andThen(Effect.sleep(ROUTE_CHECK_TIMEOUT_MS + 500)),
+                Effect.as("silent" as const),
+              ),
+        (route) =>
+          Effect.gen(function* () {
+            attempted.push(route);
+            return yield* route.target === relay.target
+              ? new ConnectionTransientError({
+                  reason: "endpoint-unavailable",
+                  detail: "Host offline",
+                })
+              : new ConnectionTransientError({ reason: "timeout", detail: "LAN did not respond" });
+          }),
+      ).pipe(Effect.forkChild);
+      yield* Deferred.await(checking);
+      yield* TestClock.adjust(ROUTE_CHECK_TIMEOUT_MS + 500);
+      const result = yield* Fiber.join(fiber).pipe(Effect.result);
+      expect(result).toMatchObject({ _tag: "Failure", failure: { detail: "Host offline" } });
+      expect(attempted.map((route) => route.target)).toEqual([lan.target, relay.target]);
+    }),
+  );
 
   it.effect("still tries a silent direct route when relay fails", () =>
     Effect.gen(function* () {
       const attempted: ConnectionRoute[] = [];
       const result = yield* connectOverRoutes(
         { ...lan, enabled: true, alternateRoutes: [relay] },
-        () => Effect.succeed("silent"),
+        (route) => Effect.succeed(route.target === relay.target ? "answered" : "silent"),
         (route) =>
           Effect.gen(function* () {
             attempted.push(route);

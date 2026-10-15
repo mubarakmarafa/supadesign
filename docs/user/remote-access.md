@@ -124,8 +124,8 @@ through another saved route to learn the change.
 
 Routes are tried in your saved preference order. Relay is last by default;
 moving it higher makes it take priority over the routes below it.
-Supaterm checks higher-priority direct addresses before opening a relay connection,
-so a reachable preferred LAN or Tailscale route avoids relay traffic.
+Supaterm checks every route at once, including relay, and prefers the
+highest-priority route that answers.
 Supaterm checks for a preferred route when your network changes, when you return
 to the app, and periodically while using a fallback.
 A browser opened over HTTPS needs HTTPS routes; it cannot connect to plain HTTP

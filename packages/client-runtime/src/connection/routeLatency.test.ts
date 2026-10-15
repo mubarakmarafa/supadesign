@@ -230,16 +230,23 @@ it.effect.each([undefined, "wss://custom.example.test/relay"])(
     Effect.gen(function* () {
       const origins: string[] = [];
       const relayUrls: Array<string | undefined> = [];
+      let closedLeases = 0;
       const route = relayRoute(relayUrl);
       const gateway = RelayGateway.of({
         available: true,
-        lease: () => {
-          throw new Error("Unexpected pairing lease");
-        },
-        resolve: async (address, url) => {
+        lease: (address, url) => {
           expect(address).toBe(relayEndpoint);
           relayUrls.push(url);
-          return "http://127.0.0.1:49000/";
+          return {
+            prepare: async () => "http://127.0.0.1:49000/",
+            retain: () => {},
+            close: async () => {
+              closedLeases++;
+            },
+          };
+        },
+        resolve: () => {
+          throw new Error("Unexpected retained relay");
         },
         release: async () => {},
         fetch: globalThis.fetch,
@@ -264,6 +271,7 @@ it.effect.each([undefined, "wss://custom.example.test/relay"])(
       expect(origins).toEqual(
         Array(2).fill("http://127.0.0.1:49000/.well-known/supaterm/environment"),
       );
+      expect(closedLeases).toBe(2);
     }),
 );
 
@@ -284,9 +292,7 @@ it.effect.each(["latency", "route"] as const)(
       const fiber = yield* probe.pipe(
         Effect.provideService(RelayGateway, {
           available: true,
-          lease: () => {
-            throw new Error("Unexpected pairing lease");
-          },
+          lease: () => ({ prepare: resolve, retain: () => {}, close: async () => {} }),
           resolve,
           release: async () => {},
           fetch: globalThis.fetch,
