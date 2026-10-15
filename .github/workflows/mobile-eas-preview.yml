@@ -164,7 +164,7 @@ jobs:
           script: |
             const platform = process.env.MOBILE_PLATFORM;
             const marker = `### Mobile preview: ${platform}`;
-            const body = `${marker}\n\n[Install the development build](${process.env.MOBILE_BUILD_URL}), then open the PR update from the [update page](https://expo.dev/accounts/supabitapp/projects/supacode/updates/${process.env.MOBILE_UPDATE_GROUP}).\n\nBuilt on Depot for ${process.env.PR_HEAD_SHA}. New commits generate previews automatically for trusted authors.`;
+            const body = `${marker}\n\n[Install the development build](${process.env.MOBILE_BUILD_URL}), then open the PR update from the [update page](https://expo.dev/accounts/supabitapp/projects/supaterm/updates/${process.env.MOBILE_UPDATE_GROUP}).\n\nBuilt on Depot for ${process.env.PR_HEAD_SHA}. New commits generate previews automatically for trusted authors.`;
             const comments = await github.paginate(github.rest.issues.listComments, {
               ...context.repo, issue_number: context.issue.number, per_page: 100,
             });

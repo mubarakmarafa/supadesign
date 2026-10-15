@@ -207,10 +207,10 @@ const sharingPlugin: NonNullable<ExpoConfig["plugins"]>[number] = [
 
 const config: ExpoConfig = {
   name: variant.appName,
-  slug: "supacode",
+  slug: "supaterm",
   platforms: ["ios", "android"],
   scheme: variant.scheme,
-  version: "26.10.0",
+  version: "26.10.1",
   runtimeVersion: {
     // Development manifests resolve on every launch, so avoid fingerprint's
     // expensive native-project calculation there. Preview and production stay
@@ -222,7 +222,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   updates: {
     enabled: repoEnv.SUPATERM_MOBILE_UPDATES_ENABLED !== "0",
-    url: "https://u.expo.dev/43107a7e-1d06-490b-bfc6-be228b285ee2",
+    url: "https://u.expo.dev/c96e633c-2940-4aab-a40a-44777a9600c6",
     checkAutomatically: "ON_LOAD",
     fallbackToCacheTimeout: 0,
   },
@@ -428,7 +428,7 @@ const config: ExpoConfig = {
     appVariant: APP_VARIANT,
     iosPersonalTeamBuild: isIosPersonalTeamBuild,
     eas: {
-      projectId: "43107a7e-1d06-490b-bfc6-be228b285ee2",
+      projectId: "c96e633c-2940-4aab-a40a-44777a9600c6",
     },
   },
   owner: "supabitapp",

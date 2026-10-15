@@ -14,7 +14,7 @@ const ios = {
   version: "26.0.10",
   buildNumber: "10",
   identifier: "com.supaterm.mobile",
-  projectFullName: "@supabitapp/supacode",
+  projectFullName: "@supabitapp/supaterm",
 };
 const android = { ...ios, platform: "android", versionCode: 25 };
 
