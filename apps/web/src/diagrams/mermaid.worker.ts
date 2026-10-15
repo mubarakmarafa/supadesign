@@ -1,4 +1,4 @@
-import { renderMermaidAscii } from "@supacode/mermaid-ascii";
+import { renderMermaidAscii } from "@supaterm/mermaid-ascii";
 
 self.addEventListener("message", (event: MessageEvent<{ source: string }>) => {
   try {

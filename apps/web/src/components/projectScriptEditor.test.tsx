@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { act, StrictMode, type ReactNode } from "react";

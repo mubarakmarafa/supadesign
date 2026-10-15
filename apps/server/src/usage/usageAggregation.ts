@@ -18,9 +18,9 @@ import type {
   UsageDay,
   UsageResolution,
   UsageTokenTotals,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
-import { EMPTY_TOTALS, type UsageRecord } from "@supacode/provider-core/server/usage";
+import { EMPTY_TOTALS, type UsageRecord } from "@supaterm/provider-core/server/usage";
 import { cacheSavingsUsd, priceUsage, type RateTable } from "./usagePricing.ts";
 
 /**

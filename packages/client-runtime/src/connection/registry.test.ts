@@ -5,7 +5,7 @@ import {
   DEFAULT_SERVER_SETTINGS,
   type ServerConfig,
   type OrchestrationV2ShellSnapshot,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";
@@ -1760,7 +1760,7 @@ it.effect(
           policy: "loopback-browser",
           bootstrapMethods: ["one-time-token"],
           sessionMethods: ["bearer-access-token"],
-          sessionCookieName: "supacode_session",
+          sessionCookieName: "supaterm_session",
         },
         cwd: "/tmp",
         keybindingsConfigPath: "/tmp/keybindings.json",
@@ -1793,7 +1793,7 @@ it.effect(
             Queue.offer(writes, { routes, profiles }).pipe(Effect.asVoid),
         },
       );
-      const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+      const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
       yield* Effect.gen(function* () {
         const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
         yield* registry.start;

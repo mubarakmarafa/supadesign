@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { PullRequestActivity, PullRequestReviewThread } from "@supacode/contracts";
+import type { PullRequestActivity, PullRequestReviewThread } from "@supaterm/contracts";
 
 import { settledReviewSummary } from "./pullRequestReviewGuideInput.ts";
 

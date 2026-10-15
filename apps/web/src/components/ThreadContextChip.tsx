@@ -1,4 +1,4 @@
-import type { ThreadContextRecord } from "@supacode/contracts";
+import type { ThreadContextRecord } from "@supaterm/contracts";
 import { Link } from "@tanstack/react-router";
 import { MessagesSquareIcon } from "lucide-react";
 

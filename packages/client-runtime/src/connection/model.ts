@@ -1,4 +1,4 @@
-import { type ClientConnectionMethod, EnvironmentId } from "@supacode/contracts";
+import { type ClientConnectionMethod, EnvironmentId } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 const ConnectionTargetBase = {

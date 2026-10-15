@@ -2,7 +2,7 @@
 import * as NodeModule from "node:module";
 import * as NodePath from "node:path";
 import * as NodeVM from "node:vm";
-import { PI_SUPACODE_MCP_EXTENSION_SOURCE } from "./mcpExtensionSource.ts";
+import { PI_SUPATERM_MCP_EXTENSION_SOURCE } from "./mcpExtensionSource.ts";
 
 interface RegisteredTool {
   readonly name: string;
@@ -47,7 +47,7 @@ export async function loadMcpBridge(
   const tools: RegisteredTool[] = [];
   const requests: Array<{ readonly method: string; readonly params?: unknown }> = [];
   let activeTools = ["read"];
-  let bridgeSourcePath = "/fixture/pi-supacode-extension.ts";
+  let bridgeSourcePath = "/fixture/pi-supaterm-extension.ts";
   const transports: Array<{
     readonly url: string;
     readonly authorization: string;
@@ -73,18 +73,18 @@ export async function loadMcpBridge(
     outputSchema: { type: "object", properties: { count: { type: "number" } } },
   }));
   const source = NodeModule.stripTypeScriptTypes(
-    PI_SUPACODE_MCP_EXTENSION_SOURCE.replace(/^import .*;$/gm, "").replace(
+    PI_SUPATERM_MCP_EXTENSION_SOURCE.replace(/^import .*;$/gm, "").replace(
       "export default async function",
       "async function",
     ),
   );
-  await NodeVM.runInNewContext(`${source}\nsupacodeMcpExtension(pi)`, {
+  await NodeVM.runInNewContext(`${source}\nsupatermMcpExtension(pi)`, {
     process: {
       env: {
-        SUPACODE_MCP_URL: "http://fixture.invalid/mcp",
-        SUPACODE_MCP_BEARER_TOKEN: "fixture-token",
-        SUPACODE_PI_MCP_EXTENSION_PATH: "/fixture/pi-supacode-extension.ts",
-        SUPACODE_PI_RUNTIME_MODE: options.runtimeMode,
+        SUPATERM_MCP_URL: "http://fixture.invalid/mcp",
+        SUPATERM_MCP_BEARER_TOKEN: "fixture-token",
+        SUPATERM_PI_MCP_EXTENSION_PATH: "/fixture/pi-supaterm-extension.ts",
+        SUPATERM_PI_RUNTIME_MODE: options.runtimeMode,
       },
     },
     AbortSignal,

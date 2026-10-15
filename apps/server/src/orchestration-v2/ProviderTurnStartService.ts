@@ -1,5 +1,5 @@
-import { modelSelectionsEqual } from "@supacode/shared/model";
-import { projectComposerContextForProvider } from "@supacode/shared/composerContextReferences";
+import { modelSelectionsEqual } from "@supaterm/shared/model";
+import { projectComposerContextForProvider } from "@supaterm/shared/composerContextReferences";
 import {
   CommandId,
   latestProviderTurnForAttempt,
@@ -11,7 +11,7 @@ import {
   type OrchestrationV2TurnItem,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
@@ -35,13 +35,13 @@ import {
   contextUsageForHandoff,
   historicalMessage,
   latestNativeContextUsage,
-} from "@supacode/provider-core/server/handoffBudget";
+} from "@supaterm/provider-core/server/handoffBudget";
 import { deliverContextHandoffs } from "./ContextHandoffDelivery.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ProviderSessionManager from "./ProviderSessionManager.ts";
-import { makeProviderFailure } from "@supacode/provider-core/server/failure";
+import { makeProviderFailure } from "@supaterm/provider-core/server/failure";
 import * as RunExecutionService from "./RunExecutionService.ts";
 import * as RuntimePolicy from "./RuntimePolicy.ts";
 import {
@@ -80,7 +80,7 @@ export interface ProviderTurnStartServiceV2Shape {
 export class ProviderTurnStartServiceV2 extends Context.Service<
   ProviderTurnStartServiceV2,
   ProviderTurnStartServiceV2Shape
->()("supacode/orchestration-v2/ProviderTurnStartService/ProviderTurnStartServiceV2") {}
+>()("supaterm/orchestration-v2/ProviderTurnStartService/ProviderTurnStartServiceV2") {}
 
 export const layer: Layer.Layer<
   ProviderTurnStartServiceV2,

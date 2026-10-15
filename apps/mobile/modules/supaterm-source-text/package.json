@@ -1,0 +1,36 @@
+{
+  "name": "@supaterm/mobile-source-text",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "ios",
+    "src",
+    "index.ts",
+    "LICENSE",
+    "UPSTREAM.md",
+    "SupatermSourceText.podspec",
+    "react-native.config.js"
+  ],
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "react-native": "./index.ts",
+  "peerDependencies": {
+    "@types/react": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "codegenConfig": {
+    "name": "SupatermSourceTextSpec",
+    "type": "components",
+    "jsSrcsDir": "src",
+    "ios": {
+      "componentProvider": {
+        "SupatermSourceText": "SupatermSourceText",
+        "SupatermSourceTextRun": "SupatermSourceTextRun"
+      }
+    },
+    "outputDir": {
+      "ios": "ios/generated"
+    }
+  }
+}

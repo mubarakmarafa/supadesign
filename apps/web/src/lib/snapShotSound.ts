@@ -1,4 +1,4 @@
-import type { SnapShotSound } from "@supacode/contracts";
+import type { SnapShotSound } from "@supaterm/contracts";
 
 import snapShotClickUrl from "../assets/snap-shot-click.mp3?url";
 import snapShotWhooshUrl from "../assets/snap-shot-whoosh.mp3?url";

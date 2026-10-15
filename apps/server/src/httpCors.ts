@@ -1,4 +1,4 @@
-import { ORCHESTRATION_PROTOCOL_HEADER } from "@supacode/contracts";
+import { ORCHESTRATION_PROTOCOL_HEADER } from "@supaterm/contracts";
 
 export const browserApiCorsAllowedMethods = ["GET", "POST", "OPTIONS"] as const;
 export const browserApiCorsAllowedHeaders = [
@@ -11,4 +11,4 @@ export const browserApiCorsAllowedHeaders = [
 ] as const;
 
 /** Origins of the Electron renderer, packaged and dev. */
-export const DESKTOP_RENDERER_ORIGINS = ["supacode://app", "supacode-dev://app"] as const;
+export const DESKTOP_RENDERER_ORIGINS = ["supaterm://app", "supaterm-dev://app"] as const;

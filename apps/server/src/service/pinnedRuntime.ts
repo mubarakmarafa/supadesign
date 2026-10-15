@@ -16,23 +16,23 @@ import {
   cliArchiveTarCommand,
   cliReleaseDownloadBaseUrl,
   parseChecksums,
-} from "@supacode/shared/cliRelease";
+} from "@supaterm/shared/cliRelease";
 
 import * as ProcessRunner from "../processRunner.ts";
 
 /**
- * A pinned runtime is an exact Supacode release archive unpacked into
+ * A pinned runtime is an exact Supaterm release archive unpacked into
  * <baseDir>/runtime/versions/<version>: the self-contained executable, the
  * web client, and the native packages beside it. The boot service points its
  * unit or launch agent at the executable, and server self-update installs the
  * target version here before switching over. The runtime never depends on a
- * Node or npm on the machine; the only npm involvement in Supacode is the `supacode`
- * package for people who prefer `npx supacode` or `npm install -g supacode`, and even a
+ * Node or npm on the machine; the only npm involvement in Supaterm is the `supaterm`
+ * package for people who prefer `npx supaterm` or `npm install -g supaterm`, and even a
  * CLI installed that way pins an archive when it sets up the service.
  */
 const PINNED_RUNTIME_DIR = "runtime";
 const PINNED_RUNTIME_INSTALL_TIMEOUT = Duration.minutes(10);
-const PINNED_RUNTIME_ARCHIVE_FILE = "supacode-runtime-archive";
+const PINNED_RUNTIME_ARCHIVE_FILE = "supaterm-runtime-archive";
 // Boot-service setup and remote update can construct separate layers. Serialize
 // the complete install transaction across every caller in this process.
 const pinnedRuntimeInstallLock = Semaphore.makeUnsafe(1);
@@ -65,7 +65,7 @@ export function pinnedRuntimePaths(
   const versionDir = path.join(pinnedRuntimeVersionsDir(path, baseDir), version);
   return {
     versionDir,
-    entryPath: path.join(versionDir, platform === "win32" ? "supacode.exe" : "supacode"),
+    entryPath: path.join(versionDir, platform === "win32" ? "supaterm.exe" : "supaterm"),
     sentinelPath: path.join(versionDir, ".install-complete"),
   };
 }
@@ -104,7 +104,7 @@ export type PinnedRuntimeProgress =
   | { readonly stage: "verify" | "extract" | "validate" | "cached" };
 
 /**
- * Installs the Supacode release archive for `version` into the pinned runtime
+ * Installs the Supaterm release archive for `version` into the pinned runtime
  * directory unless a complete install is already there, and returns its
  * paths. The sentinel is written only after extraction and validation
  * succeed; checking the entry file alone is not enough, since tar writes the
@@ -189,7 +189,7 @@ const installFromArchive = Effect.fn("cloud.pinned_runtime.install_archive")(fun
   const platformKey = cliArchivePlatformKey(input.platform, input.arch);
   if (platformKey === undefined) {
     return yield* new PinnedRuntimeInstallError({
-      step: `selecting a Supacode release archive for ${input.platform}-${input.arch}`,
+      step: `selecting a Supaterm release archive for ${input.platform}-${input.arch}`,
     });
   }
   const httpClient = input.httpClient;
@@ -202,31 +202,31 @@ const installFromArchive = Effect.fn("cloud.pinned_runtime.install_archive")(fun
       yield* fetchReleaseAsset(
         httpClient,
         `${baseUrl}/${CLI_RELEASE_CHECKSUMS_FILE}`,
-        "downloading the Supacode release checksums",
+        "downloading the Supaterm release checksums",
       ),
     ),
   );
   const expected = checksums.get(fileName);
   if (expected === undefined) {
     return yield* new PinnedRuntimeInstallError({
-      step: `finding ${fileName} in the Supacode release checksums`,
+      step: `finding ${fileName} in the Supaterm release checksums`,
     });
   }
   const archive = yield* fetchReleaseAsset(
     httpClient,
     `${baseUrl}/${fileName}`,
-    "downloading the Supacode release archive",
+    "downloading the Supaterm release archive",
     input.onProgress,
   );
   input.onProgress?.({ stage: "verify" });
   const digest = yield* Effect.tryPromise({
     try: () => crypto.subtle.digest("SHA-256", archive),
     catch: (cause) =>
-      new PinnedRuntimeInstallError({ step: "verifying the Supacode release archive", cause }),
+      new PinnedRuntimeInstallError({ step: "verifying the Supaterm release archive", cause }),
   });
   if (Hex.encode(new Uint8Array(digest)) !== expected) {
     return yield* new PinnedRuntimeInstallError({
-      step: "verifying the Supacode release archive checksum",
+      step: "verifying the Supaterm release archive checksum",
     });
   }
 
@@ -236,13 +236,13 @@ const installFromArchive = Effect.fn("cloud.pinned_runtime.install_archive")(fun
     .pipe(
       Effect.mapError(
         (cause) =>
-          new PinnedRuntimeInstallError({ step: "writing the Supacode release archive", cause }),
+          new PinnedRuntimeInstallError({ step: "writing the Supaterm release archive", cause }),
       ),
     );
   input.onProgress?.({ stage: "extract" });
-  const extractStep = "extracting the Supacode release archive";
+  const extractStep = "extracting the Supaterm release archive";
   // The archive wraps everything in one directory named after its stem;
-  // strip it so the executable lands at <versionDir>/supacode.
+  // strip it so the executable lands at <versionDir>/supaterm.
   yield* input.runner
     .run({
       command: cliArchiveTarCommand(input.platform, process.env),

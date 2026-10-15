@@ -1,7 +1,7 @@
 import Animated from "react-native-reanimated";
 import { PR_ROW_LAYOUT } from "./pullRequestAnimations";
 import { useNavigation } from "@react-navigation/native";
-import type { PullRequestDetail } from "@supacode/contracts";
+import type { PullRequestDetail } from "@supaterm/contracts";
 import type { ReactNode } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -65,8 +65,8 @@ export function PullRequestCardRow(props: {
         <Text
           className={
             props.destructive
-              ? "text-sm font-supacode-medium text-danger-foreground"
-              : "text-sm font-supacode-medium"
+              ? "text-sm font-supaterm-medium text-danger-foreground"
+              : "text-sm font-supaterm-medium"
           }
         >
           {props.title}

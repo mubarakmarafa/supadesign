@@ -1,4 +1,4 @@
-import { getPairingTokenFromUrl, readHostedPairingRequest } from "@supacode/shared/remote";
+import { getPairingTokenFromUrl, readHostedPairingRequest } from "@supaterm/shared/remote";
 
 export interface RemotePairingForm {
   readonly host: string;

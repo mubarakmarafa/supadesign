@@ -14,14 +14,14 @@ describe("schemaYaml helpers", () => {
     const decodeConfig = Schema.decodeUnknownSync(fromYaml(ProjectConfig));
 
     expect(
-      decodeConfig(`name: supacode
+      decodeConfig(`name: supaterm
 enabled: true
 tags:
   - codex
   - effect
 `),
     ).toEqual({
-      name: "supacode",
+      name: "supaterm",
       enabled: true,
       tags: ["codex", "effect"],
     });
@@ -32,11 +32,11 @@ tags:
 
     expect(
       encodeConfig({
-        name: "supacode",
+        name: "supaterm",
         enabled: true,
         tags: ["codex"],
       }),
-    ).toBe(`name: supacode
+    ).toBe(`name: supaterm
 enabled: true
 tags:
   - codex

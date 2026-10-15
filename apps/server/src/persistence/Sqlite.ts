@@ -3,7 +3,7 @@ import * as Layer from "effect/Layer";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as SqlClient from "effect/sql/SqlClient";
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 
 import { runMigrations } from "./Migrations.ts";
 import { initializeV2Database } from "./initializeV2Database.ts";
@@ -37,7 +37,7 @@ export const layerFromPath = Effect.fn("makeSqlitePersistenceLive")(function* (d
       filename: dbPath,
       spanAttributes: {
         "db.name": path.basename(dbPath),
-        "service.name": "supacode-server",
+        "service.name": "supaterm-server",
       },
     }),
   );

@@ -38,9 +38,9 @@ import {
   type PullRequestStack,
   type RepositoryIdentity,
   type ThreadPullRequestKey,
-} from "@supacode/contracts";
-import type { ReviewGuideStackLayer } from "@supacode/provider-core/server/textGeneration";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+} from "@supaterm/contracts";
+import type { ReviewGuideStackLayer } from "@supaterm/provider-core/server/textGeneration";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 
 import * as ServerConfig from "../config.ts";
 import * as PullRequestReviewGuides from "../persistence/PullRequestReviewGuides.ts";
@@ -77,7 +77,7 @@ export class PullRequestReviewGuideService extends Context.Service<
       PullRequestService.PullRequestError
     >;
   }
->()("supacode/pullRequest/PullRequestReviewGuideService") {}
+>()("supaterm/pullRequest/PullRequestReviewGuideService") {}
 
 const keyString = (key: ThreadPullRequestKey) => `${key.host}/${key.repository}#${key.number}`;
 
@@ -210,7 +210,7 @@ const make = Effect.gen(function* () {
       );
     // Fetched into a ref of this run's own: FETCH_HEAD is shared by every fetch in the
     // workspace, so a concurrent run could otherwise measure this change from its base.
-    const baseRef = `refs/supacode/review-guide/${runId}/base`;
+    const baseRef = `refs/supaterm/review-guide/${runId}/base`;
     yield* fetch([`+refs/heads/${detail.baseBranch}:${baseRef}`]);
     yield* Effect.addFinalizer(() =>
       git

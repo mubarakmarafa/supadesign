@@ -1,5 +1,5 @@
 import { NavigationContext } from "@react-navigation/native";
-import { createInlineConfirm } from "@supacode/client-runtime/inline-confirm";
+import { createInlineConfirm } from "@supaterm/client-runtime/inline-confirm";
 import * as Haptics from "expo-haptics";
 import { useContext, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, AppState, type GestureResponderEvent } from "react-native";

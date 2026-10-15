@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { appAtomRegistry } from "../../state/atom-registry";

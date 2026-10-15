@@ -4,9 +4,9 @@ import {
   composerDraftHasUserContent,
   draftThreadHasOpenPreview,
 } from "~/composerDraftStore";
-import { resolveEnvironmentMachineKind, type ScopedProjectRef } from "@supacode/contracts";
-import { scopedProjectKey, scopeProjectRef } from "@supacode/client-runtime/environment";
-import { isScratchProject } from "@supacode/client-runtime/state/projects";
+import { resolveEnvironmentMachineKind, type ScopedProjectRef } from "@supaterm/contracts";
+import { scopedProjectKey, scopeProjectRef } from "@supaterm/client-runtime/environment";
+import { isScratchProject } from "@supaterm/client-runtime/state/projects";
 import { ChevronDownIcon, FolderIcon, FolderPlusIcon, MessageSquareDashedIcon } from "lucide-react";
 import { useAtomValue } from "@effect/atom-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -48,8 +48,8 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { Kbd } from "../ui/kbd";
 import { ComposerControl } from "./ComposerControl";
 import { useComposerMenuProps } from "./composerEventScope";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
-import { normalizeSearchQuery, scoreQueryMatch } from "@supacode/shared/searchRanking";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
+import { normalizeSearchQuery, scoreQueryMatch } from "@supaterm/shared/searchRanking";
 
 // Menu value for "No project"; real entries are keyed by logical project key.
 const NO_PROJECT_VALUE = "no-project";

@@ -6,13 +6,13 @@ import { CollapsibleSectionHeader, SectionHeaderStatus } from "../ui/collapsible
 import { Collapsible, CollapsiblePanel } from "../ui/collapsible";
 import { SubagentTooltipContent } from "./SubagentTooltipContent";
 import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
-import { scopedThreadKey, scopeThreadRef } from "@supacode/client-runtime/environment";
+import { scopedThreadKey, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   deriveWorkflowGroups,
   projectedSubagentsToRuntime,
   type RuntimeSubagent,
-} from "@supacode/client-runtime/state/subagentRuntime";
-import { formatSubagentDisplayTitle } from "@supacode/client-runtime/state/subagent-display";
+} from "@supaterm/client-runtime/state/subagentRuntime";
+import { formatSubagentDisplayTitle } from "@supaterm/client-runtime/state/subagent-display";
 import {
   deriveThreadRelationshipGraph,
   immediateThreadRelationships,
@@ -22,11 +22,11 @@ import {
   resolveMergeBackTargetThreadId,
   type ThreadRelationshipEdge,
   type ThreadRelationshipWalkRow,
-} from "@supacode/client-runtime/state/thread-relationships";
+} from "@supaterm/client-runtime/state/thread-relationships";
 import {
   canDetachThreadProviderSession,
   resolveLatestMergeBackRun,
-} from "@supacode/client-runtime/state/thread-workflows";
+} from "@supaterm/client-runtime/state/thread-workflows";
 import {
   AuthOrchestrationOperateScope,
   NodeId,
@@ -34,7 +34,7 @@ import {
   type OrchestrationV2Subagent,
   type OrchestrationV2ThreadShell,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { groupBy } from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import { useNavigate } from "@tanstack/react-router";

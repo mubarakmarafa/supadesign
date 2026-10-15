@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { sessionHasLegacyPermissions, type EnvironmentId } from "@supacode/contracts";
+import { sessionHasLegacyPermissions, type EnvironmentId } from "@supaterm/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import * as Schema from "effect/Schema";
 import { useEffect } from "react";
@@ -29,7 +29,7 @@ function EnvironmentPermissionNotice({
     )
       return;
     if (shown.has(environmentId)) return;
-    const key = `supacode:permission-update:v1:${environmentId}`;
+    const key = `supaterm:permission-update:v1:${environmentId}`;
     try {
       if (getLocalStorageItem(key, Schema.Boolean)) return;
     } catch {

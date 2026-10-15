@@ -1,4 +1,4 @@
-import { createEnvironmentCatalogAtoms } from "@supacode/client-runtime/state/connections";
+import { createEnvironmentCatalogAtoms } from "@supaterm/client-runtime/state/connections";
 
 import { connectionAtomRuntime } from "./runtime";
 

@@ -1,22 +1,22 @@
 import { StackActions, useNavigation } from "@react-navigation/native";
-import { availableScratchWorkspaceRoot } from "@supacode/client-runtime/operations/projects";
+import { availableScratchWorkspaceRoot } from "@supaterm/client-runtime/operations/projects";
 import {
   findPromptLinkProject,
   findPromptLinkPullRequestThread,
   resolvePromptLinkModelSelection,
-} from "@supacode/client-runtime/prompt-links";
+} from "@supaterm/client-runtime/prompt-links";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId } from "@supaterm/contracts";
 import {
   parseNewThreadLink,
   type LinkedPrompt,
   type PromptLinkPullRequest,
   type PromptLinkRepository,
-} from "@supacode/shared/promptLinks";
+} from "@supaterm/shared/promptLinks";
 import { useEffect, useEffectEvent, useRef } from "react";
 import { Alert } from "react-native";
 
@@ -54,7 +54,7 @@ type LinkedDraftRequest = {
 };
 
 /**
- * Opens a `supacode://new?…` link. The link lands on the New Task picker with its query as route
+ * Opens a `supaterm://new?…` link. The link lands on the New Task picker with its query as route
  * params; this resolves it to a project, a thread, or a choice, then fills a draft. Nothing is
  * ever sent: the user reads the prompt and presses Send. Used by `NewTaskRouteScreen`.
  */

@@ -6,12 +6,12 @@
  * server is actually bound to are listed: a loopback-only server lists none,
  * because its loopback address means a different machine to every client.
  */
-import type { ServerDirectEndpoint } from "@supacode/contracts";
+import type { ServerDirectEndpoint } from "@supaterm/contracts";
 import {
   buildTailscaleHttpsBaseUrl,
   probeTailscaleHttpsEndpoint,
   readTailscaleStatus,
-} from "@supacode/tailscale";
+} from "@supaterm/tailscale";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -22,7 +22,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as NodeNet from "node:net";
 import * as NodeOS from "node:os";
 
-import { isPrivateNetworkHost, isTailnetHost } from "@supacode/shared/hostClassification";
+import { isPrivateNetworkHost, isTailnetHost } from "@supaterm/shared/hostClassification";
 
 import * as ServerConfig from "../config.ts";
 import { formatHostForUrl, isLoopbackHost, isWildcardHost } from "../startupAccess.ts";
@@ -41,7 +41,7 @@ export class DirectEndpoints extends Context.Service<
   {
     readonly resolve: () => Effect.Effect<ReadonlyArray<ServerDirectEndpoint>>;
   }
->()("supacode/environment/DirectEndpoints") {}
+>()("supaterm/environment/DirectEndpoints") {}
 
 const isAdvertisableAddress = (address: string): boolean =>
   NodeNet.isIPv4(address) &&

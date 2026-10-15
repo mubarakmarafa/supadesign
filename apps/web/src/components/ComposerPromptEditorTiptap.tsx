@@ -1,4 +1,4 @@
-import { formatProviderSkillDisplayName } from "@supacode/shared/inlineSkills";
+import { formatProviderSkillDisplayName } from "@supaterm/shared/inlineSkills";
 import { Extension, InputRule, Node, wrappingInputRule, type JSONContent } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -17,15 +17,15 @@ import type {
   AssistantCitation,
   ComposerContextClipboardFragment,
   ServerProviderSkill,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   serializeAssistantCitation,
   withAssistantCitationComment,
-} from "@supacode/shared/assistantCitations";
+} from "@supaterm/shared/assistantCitations";
 import {
   COMPOSER_CONTEXT_CLIPBOARD_MIME,
   encodeComposerContextClipboardHtml,
-} from "@supacode/shared/composerContextClipboard";
+} from "@supaterm/shared/composerContextClipboard";
 import {
   createContext,
   use,

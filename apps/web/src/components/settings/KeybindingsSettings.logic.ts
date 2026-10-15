@@ -5,11 +5,11 @@ import {
   type KeybindingWhenNode,
   type ResolvedKeybindingRule,
   type ResolvedKeybindingsConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   DEFAULT_RESOLVED_KEYBINDINGS,
   parseKeybindingWhenExpression,
-} from "@supacode/shared/keybindings";
+} from "@supaterm/shared/keybindings";
 
 import { shortcutKeyFromEvent } from "../../keybindings";
 import { isMacPlatform } from "../../lib/utils";

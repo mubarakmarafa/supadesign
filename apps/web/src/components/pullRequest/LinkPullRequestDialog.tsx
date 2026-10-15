@@ -1,5 +1,5 @@
-import { pullRequestHostOf, type ScopedThreadRef } from "@supacode/contracts";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+import { pullRequestHostOf, type ScopedThreadRef } from "@supaterm/contracts";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import { useAtomValue } from "@effect/atom-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

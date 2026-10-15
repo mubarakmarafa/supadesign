@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { EnvironmentId, type PersistedSavedEnvironmentRecord } from "@supacode/contracts";
+import { EnvironmentId, type PersistedSavedEnvironmentRecord } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Base64 from "effect/encoding/Base64";
 import * as FileSystem from "effect/FileSystem";
@@ -119,7 +119,7 @@ function layer(
     runningUnderArm64Translation: false,
   }).pipe(
     Layer.provide(
-      Layer.mergeAll(NodeServices.layer, DesktopConfig.layerTest({ SUPACODE_HOME: baseDir })),
+      Layer.mergeAll(NodeServices.layer, DesktopConfig.layerTest({ SUPATERM_HOME: baseDir })),
     ),
   );
 
@@ -149,7 +149,7 @@ const withSavedEnvironments = <A, E, R>(
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const baseDir = yield* fileSystem.makeTempDirectoryScoped({
-      prefix: "supacode-desktop-saved-environments-test-",
+      prefix: "supaterm-desktop-saved-environments-test-",
     });
     return yield* effect.pipe(Effect.provide(layer(baseDir, options)));
   }).pipe(Effect.provide(NodeServices.layer), Effect.scoped);
@@ -337,7 +337,7 @@ describe("DesktopSavedEnvironments", () => {
       const path = yield* Path.Path;
       const baseFileSystem = yield* FileSystem.FileSystem;
       const baseDir = yield* baseFileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-desktop-saved-environments-test-",
+        prefix: "supaterm-desktop-saved-environments-test-",
       });
       const registryPath = path.join(baseDir, "userdata", "saved-environments.json");
       const permissionError = PlatformError.systemError({

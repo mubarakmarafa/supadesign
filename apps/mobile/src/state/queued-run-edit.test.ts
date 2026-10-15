@@ -6,7 +6,7 @@ import {
   RunId,
   type ChatAttachment,
   type OrchestrationMessageContext,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { composerDraftEnvironmentId } from "../lib/composerAttachmentUploadQueue";
 import { isQueuedEditDraftKey, queuedEditDraftKey } from "./queued-edit-draft-key";

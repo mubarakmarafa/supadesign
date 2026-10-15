@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as PlatformError from "effect/PlatformError";
-import { ProjectId } from "@supacode/contracts";
+import { ProjectId } from "@supaterm/contracts";
 
 import * as ServerConfig from "../config.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
@@ -71,10 +71,10 @@ describe("ReviewService", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const workspaceRoot = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-review-workspace-",
+        prefix: "supaterm-review-workspace-",
       });
-      const outsideRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-outside-" });
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-base-" });
+      const outsideRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-outside-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-base-" });
       const detectCalls: Array<{ readonly cwd: string }> = [];
 
       const error = yield* Effect.gen(function* () {
@@ -96,10 +96,10 @@ describe("ReviewService", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const workspaceRoot = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-review-workspace-",
+        prefix: "supaterm-review-workspace-",
       });
-      const outsideRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-outside-" });
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-base-" });
+      const outsideRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-outside-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-base-" });
       const detectCalls: Array<{ readonly cwd: string }> = [];
 
       const error = yield* Effect.gen(function* () {
@@ -131,13 +131,13 @@ describe("ReviewService", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const workspaceRoot = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-review-workspace-",
+        prefix: "supaterm-review-workspace-",
       });
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-base-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-base-" });
       const previous = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-review-old-worktrees-",
+        prefix: "supaterm-review-old-worktrees-",
       });
-      const outsideRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-outside-" });
+      const outsideRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-outside-" });
 
       const result = yield* Effect.gen(function* () {
         const review = yield* ReviewService.ReviewService;
@@ -170,11 +170,11 @@ describe("ReviewService", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const workspaceRoot = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-review-workspace-",
+        prefix: "supaterm-review-workspace-",
       });
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-base-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-base-" });
       // Stands in for a project on another drive than the server's home cwd.
-      const projectRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-project-" });
+      const projectRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-project-" });
       const projectChild = `${projectRoot}/packages/app`;
       yield* fs.makeDirectory(projectChild, { recursive: true });
       const sibling = `${projectRoot}-sibling`;
@@ -204,9 +204,9 @@ describe("ReviewService", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const workspaceRoot = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-review-workspace-",
+        prefix: "supaterm-review-workspace-",
       });
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-base-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-base-" });
       const detectCalls: Array<{ readonly cwd: string }> = [];
 
       const result = yield* Effect.gen(function* () {
@@ -224,9 +224,9 @@ describe("ReviewService", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const workspaceRoot = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-review-workspace-",
+        prefix: "supaterm-review-workspace-",
       });
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-review-base-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-base-" });
       const invalidCwd = `${workspaceRoot}\0invalid`;
       const detectCalls: Array<{ readonly cwd: string }> = [];
 

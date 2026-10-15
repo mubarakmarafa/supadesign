@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { it as effectIt } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { CommandAvailability, WindowsShellEnvironment } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { CommandAvailability, WindowsShellEnvironment } from "@supaterm/shared/shell";
 import * as Effect from "effect/Effect";
 // @effect-diagnostics-next-line nodeBuiltinImport:off -- Observe the existing synchronous shell probe without launching the user's login shell.
 import * as NodeChildProcess from "node:child_process";
@@ -80,7 +80,7 @@ effectIt.effect("hydrates PATH when the desktop handoff is absent", () =>
       vi
         .spyOn(NodeChildProcess, "execFileSync")
         .mockReturnValue(
-          "__SUPACODE_ENV_PATH_START__\n/opt/tools/bin\n__SUPACODE_ENV_PATH_END__\n",
+          "__SUPATERM_ENV_PATH_START__\n/opt/tools/bin\n__SUPATERM_ENV_PATH_END__\n",
         ),
     ),
     (probe) =>

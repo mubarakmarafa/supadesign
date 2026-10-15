@@ -1,4 +1,4 @@
-import { AuthPreviewOperateScope, type BrowserProfile } from "@supacode/contracts";
+import { AuthPreviewOperateScope, type BrowserProfile } from "@supaterm/contracts";
 import { useEffect } from "react";
 
 import { useClientSettings, useClientSettingsHydrated } from "~/hooks/useSettings";

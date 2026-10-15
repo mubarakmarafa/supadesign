@@ -1,12 +1,12 @@
-import { withAgentDeviceEnvironment } from "@supacode/provider-core/server/mcpSession";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import { AntigravitySettings, ProviderDriverKind, ProviderSetupError } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveSelfInvocation } from "@supacode/shared/nodeRuntime";
+import { withAgentDeviceEnvironment } from "@supaterm/provider-core/server/mcpSession";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import { AntigravitySettings, ProviderDriverKind, ProviderSetupError } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveSelfInvocation } from "@supaterm/shared/nodeRuntime";
 import {
   NodeRuntimeUnavailableError,
   nodeRuntimeUnavailableMessage,
-} from "@supacode/shared/nodeRuntime";
+} from "@supaterm/shared/nodeRuntime";
 import * as Crypto from "effect/Crypto";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -20,7 +20,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import { HttpClient } from "effect/http";
 import type { AcpError } from "effect-acp/errors";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import {
   isAntigravityTextGenerationAvailable,
   makeAntigravityTextGeneration,
@@ -42,28 +42,28 @@ import {
   makeAntigravityAcpRuntime,
   type AntigravityAcpRuntimeInput,
 } from "../acp/AntigravityAcpSupport.ts";
-import type * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import type { ServerProviderDraft } from "@supacode/provider-core/server/snapshotProbe";
+import type * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import type { ServerProviderDraft } from "@supaterm/provider-core/server/snapshotProbe";
 import {
   removeAntigravityRuntimeTempDirs,
   removeAntigravitySessionFiles,
 } from "../acp/AntigravitySessionFiles.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import { makeAntigravityAdapterV2 } from "../../orchestration-v2/Adapters/AntigravityAdapterV2.ts";
-import { makeAcpNativeLoggerFactory } from "@supacode/provider-acp/server/nativeLogging";
+import { makeAcpNativeLoggerFactory } from "@supaterm/provider-acp/server/nativeLogging";
 import { ProviderDriverError } from "../Errors.ts";
 import { makeAntigravityProvider } from "../AntigravityProvider.ts";
 import { makeAntigravityUsageProbe } from "../antigravityUsageLimits.ts";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as ModelCatalog from "@supacode/provider-core/server/ModelCatalog";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as ModelCatalog from "@supaterm/provider-core/server/ModelCatalog";
 import {
   defaultProviderContinuationIdentity,
   type ProviderDriver,
   type ProviderInstance,
-} from "@supacode/provider-core/server/driver";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
-import { withInstanceIdentity } from "@supacode/provider-core/server/instanceIdentity";
+} from "@supaterm/provider-core/server/driver";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
+import { withInstanceIdentity } from "@supaterm/provider-core/server/instanceIdentity";
 import { discoverAntigravitySkills, resolveAntigravityUserHome } from "./AntigravitySkills.ts";
 
 const DRIVER = ProviderDriverKind.make("antigravity");
@@ -273,7 +273,7 @@ export const AntigravityDriver: ProviderDriver<
         input: Pick<AntigravityAcpRuntimeInput, "onAuthorizationUrl">,
       ) {
         const cwd = yield* fileSystem
-          .makeTempDirectoryScoped({ prefix: "supacode-antigravity-setup-" })
+          .makeTempDirectoryScoped({ prefix: "supaterm-antigravity-setup-" })
           .pipe(
             Effect.mapError(
               () =>
@@ -297,7 +297,7 @@ export const AntigravityDriver: ProviderDriver<
         );
         const runtime = yield* makeRuntime({
           cwd,
-          clientInfo: { name: "supacode-provider-setup", version: "0.0.0" },
+          clientInfo: { name: "supaterm-provider-setup", version: "0.0.0" },
           mcpServers: [],
           ...(input.onAuthorizationUrl ? { onAuthorizationUrl: input.onAuthorizationUrl } : {}),
         });
@@ -450,7 +450,7 @@ export const AntigravityDriver: ProviderDriver<
         makeRuntime: (cwd) =>
           makeRuntime({
             cwd,
-            clientInfo: { name: "supacode-text", version: "0.0.0" },
+            clientInfo: { name: "supaterm-text", version: "0.0.0" },
             mcpServers: [],
           }),
       });

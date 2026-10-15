@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/provider-opencode",
+  "name": "@supaterm/provider-opencode",
   "private": true,
   "type": "module",
   "exports": {
@@ -53,15 +53,15 @@
     "@opencode/client": "2.0.23",
     "@opencode/protocol": "2.0.23",
     "@opencode/schema": "2.0.23",
-    "@supacode/contracts": "workspace:*",
-    "@supacode/provider-core": "workspace:*",
-    "@supacode/shared": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/provider-core": "workspace:*",
+    "@supaterm/shared": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {
     "@effect/platform-node": "catalog:",
     "@effect/vitest": "catalog:",
-    "@supacode/provider-testing": "workspace:*",
+    "@supaterm/provider-testing": "workspace:*",
     "@types/node": "catalog:",
     "vite-plus": "catalog:"
   }

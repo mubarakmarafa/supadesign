@@ -85,7 +85,7 @@ function layerEnvironmentFor(baseDir: string, env: Record<string, string | undef
     Layer.provide(
       Layer.mergeAll(
         NodeServices.layer,
-        DesktopConfig.layerTest({ SUPACODE_HOME: baseDir, ...env }),
+        DesktopConfig.layerTest({ SUPATERM_HOME: baseDir, ...env }),
       ),
     ),
   );
@@ -98,7 +98,7 @@ function layer(input: {
   readonly spawnerLayer?: Layer.Layer<ChildProcessSpawner.ChildProcessSpawner>;
   readonly desktopSettingsLayer?: Layer.Layer<DesktopAppSettings.DesktopAppSettings>;
 }) {
-  const env = { SUPACODE_HOME: input.baseDir, ...input.env };
+  const env = { SUPATERM_HOME: input.baseDir, ...input.env };
   const layerEnvironment = layerEnvironmentFor(input.baseDir, env);
   const layerNetwork = Layer.succeed(DesktopNetworkInterfaces.DesktopNetworkInterfaces, {
     read: Effect.succeed(input.networkInterfaces ?? emptyNetworkInterfaces),
@@ -133,7 +133,7 @@ const withHarness = <A, E, R>(
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const baseDir = yield* fileSystem.makeTempDirectoryScoped({
-      prefix: "supacode-desktop-server-exposure-test-",
+      prefix: "supaterm-desktop-server-exposure-test-",
     });
     return yield* effect.pipe(
       Effect.provide(
@@ -441,8 +441,8 @@ describe("DesktopServerExposure", () => {
         );
       }),
       {
-        SUPACODE_DESKTOP_LAN_HOST: "100.90.1.2",
-        SUPACODE_DESKTOP_HTTPS_ENDPOINTS: "https://public.example.test",
+        SUPATERM_DESKTOP_LAN_HOST: "100.90.1.2",
+        SUPATERM_DESKTOP_HTTPS_ENDPOINTS: "https://public.example.test",
       },
     ),
   );
@@ -541,7 +541,7 @@ describe("DesktopServerExposure", () => {
         ]);
       }),
       {
-        SUPACODE_DESKTOP_HTTPS_ENDPOINTS:
+        SUPATERM_DESKTOP_HTTPS_ENDPOINTS:
           "https://desktop.example.ts.net,http://desktop.example.test:3773,not-a-url",
       },
     ),

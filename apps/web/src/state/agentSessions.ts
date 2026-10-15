@@ -1,8 +1,8 @@
-import { WS_METHODS } from "@supacode/contracts";
+import { WS_METHODS } from "@supaterm/contracts";
 import {
   createEnvironmentRpcCommand,
   createEnvironmentRpcQueryAtomFamily,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 

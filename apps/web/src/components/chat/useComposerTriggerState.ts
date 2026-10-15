@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 
-import type { ComposerTrigger } from "@supacode/shared/composerTrigger";
+import type { ComposerTrigger } from "@supaterm/shared/composerTrigger";
 
 /** Keep a dismissed suggestion closed until the caret leaves its token. */
 export function useComposerTriggerState(initialTrigger: () => ComposerTrigger | null) {

@@ -14,10 +14,10 @@
       (() => {
         const LIGHT_BACKGROUND = "oklch(1 0 0)";
         const DARK_BACKGROUND = "oklch(0.235659 0.007789 274.606)";
-        const CUSTOM_THEMES_STORAGE_KEY = "supacode:themes:v1";
-        const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "supacode:theme-follow-system";
-        const THEME_APPEARANCE_MODE_STORAGE_KEY = "supacode:theme-appearance-mode";
-        const THEME_HALVES_STORAGE_KEY = "supacode:theme-halves:v1";
+        const CUSTOM_THEMES_STORAGE_KEY = "supaterm:themes:v1";
+        const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "supaterm:theme-follow-system";
+        const THEME_APPEARANCE_MODE_STORAGE_KEY = "supaterm:theme-appearance-mode";
+        const THEME_HALVES_STORAGE_KEY = "supaterm:theme-halves:v1";
         const SPLASH_COLORS = {
           light: {
             background: LIGHT_BACKGROUND,
@@ -51,7 +51,7 @@
         // Keep this small boot-time copy in sync with the built-in palettes so
         // the selected theme is visible before the app has mounted.
         const BUILT_IN_THEME_PALETTES = {
-          "supacode-chat": {
+          "supaterm-chat": {
             light: {
               background: "oklch(0.982446 0.010114 325.653)",
               foreground: "oklch(0.325698 0.116116 325.037)",
@@ -143,7 +143,7 @@
           },
         };
         // Keep the built-in mode list in sync with the runtime so the selected
-        // Supacode Chat palette is visible before React has mounted.
+        // Supaterm Chat palette is visible before React has mounted.
         const BUILT_IN_THEME_MODES = Object.fromEntries(
           Object.entries(BUILT_IN_THEME_PALETTES).map(([id, palettes]) => [
             id,
@@ -228,7 +228,7 @@
         };
 
         try {
-          const storedTheme = window.localStorage.getItem("supacode:theme");
+          const storedTheme = window.localStorage.getItem("supaterm:theme");
           const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
           const themeId = storedTheme ?? "";
           const builtInModes = BUILT_IN_THEME_MODES[themeId] ?? null;
@@ -473,13 +473,13 @@
         cursor: pointer;
       }
     </style>
-    <title>Supacode</title>
+    <title>Supaterm</title>
   </head>
   <body>
     <div id="root">
       <div id="boot-shell">
-        <div id="boot-shell-card" aria-label="Supacode splash screen">
-          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="Supacode" />
+        <div id="boot-shell-card" aria-label="Supaterm splash screen">
+          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="Supaterm" />
         </div>
       </div>
     </div>

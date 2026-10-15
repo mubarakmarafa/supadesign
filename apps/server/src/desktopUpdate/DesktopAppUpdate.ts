@@ -4,7 +4,7 @@ import {
   type DesktopUpdateStatusReport,
   type ServerSelfUpdateProgressStage,
   type ServerSelfUpdateResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Duration from "effect/Duration";
@@ -60,7 +60,7 @@ export class DesktopAppUpdate extends Context.Service<
       onHandoffAccepted?: () => Effect.Effect<void>,
     ) => Effect.Effect<never, ServerSelfUpdateError>;
   }
->()("supacode/desktopUpdate/DesktopAppUpdate") {}
+>()("supaterm/desktopUpdate/DesktopAppUpdate") {}
 
 export const make = Effect.fn("desktopUpdate.desktopAppUpdate.make")(function* () {
   const config = yield* ServerConfig.ServerConfig;
@@ -150,7 +150,7 @@ export const make = Effect.fn("desktopUpdate.desktopAppUpdate.make")(function* (
     function* (reportProgress) {
       if (!available) {
         return yield* failWith(
-          "This server was not started by the Supacode desktop app, so it cannot drive a desktop update.",
+          "This server was not started by the Supaterm desktop app, so it cannot drive a desktop update.",
         );
       }
       if (yield* Ref.getAndSet(inFlight, true)) {
@@ -171,7 +171,7 @@ export const make = Effect.fn("desktopUpdate.desktopAppUpdate.make")(function* (
             .requestDesktopUpdate(requestId)
             .pipe(
               Effect.mapError((error) =>
-                failWith("Could not reach the Supacode desktop app on this machine.", error),
+                failWith("Could not reach the Supaterm desktop app on this machine.", error),
               ),
             );
           return yield* consumeReports(requestId, changes, reportProgress).pipe(
@@ -204,7 +204,7 @@ export const make = Effect.fn("desktopUpdate.desktopAppUpdate.make")(function* (
         yield* Effect.uninterruptible(
           receiver.commitDesktopUpdate(requestId).pipe(
             Effect.mapError((error) =>
-              failWith("Could not reach the Supacode desktop app.", error),
+              failWith("Could not reach the Supaterm desktop app.", error),
             ),
             Effect.tap(() => onHandoffAccepted()),
           ),

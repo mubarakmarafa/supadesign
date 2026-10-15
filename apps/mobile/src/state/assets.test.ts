@@ -4,7 +4,7 @@ import {
   EnvironmentId,
   ThreadId,
   type AuthSessionState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
@@ -39,8 +39,8 @@ vi.mock("./query", () => ({
 }));
 vi.mock("./projectClones", () => ({ environmentProjectCloneListAtom: () => null }));
 vi.mock("../connection/runtime", () => ({ connectionAtomRuntime: {} }));
-vi.mock("@supacode/client-runtime/state/assets", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@supacode/client-runtime/state/assets")>()),
+vi.mock("@supaterm/client-runtime/state/assets", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@supaterm/client-runtime/state/assets")>()),
   createAssetEnvironmentAtoms: () => ({ createUrl: state.assetQuery }),
 }));
 vi.mock("./use-atom-query-runner", () => ({ useAtomQueryRunner: () => state.mint }));

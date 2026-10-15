@@ -1,18 +1,18 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Schema from "effect/Schema";
 import * as Result from "effect/Result";
-import { SourceControlProviderError } from "@supacode/contracts";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+import { SourceControlProviderError } from "@supaterm/contracts";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 import * as ForgejoCli from "./ForgejoCli.ts";
-import * as SourceControlProvider from "@supacode/source-control-core/server/SourceControlProvider";
+import * as SourceControlProvider from "@supaterm/source-control-core/server/SourceControlProvider";
 import {
   providerAuth,
   probeSourceControlProvider,
   type SourceControlCliDiscoverySpec,
   type SourceControlManagedCliDiscoverySpec,
-} from "@supacode/source-control-core/server/discovery";
+} from "@supaterm/source-control-core/server/discovery";
 import { ForgejoPullRequestSchema, toForgejoChangeRequest } from "./forgejoPullRequests.ts";
 
 const isForgejoCliError = Schema.is(ForgejoCli.ForgejoCliError);

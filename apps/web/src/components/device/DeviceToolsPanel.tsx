@@ -1,5 +1,5 @@
-import type { DeviceHubAccess } from "@supacode/client-runtime/state/deviceHubAccess";
-import type { DevicePermission, DeviceSummary, DeviceTextSize } from "@supacode/contracts";
+import type { DeviceHubAccess } from "@supaterm/client-runtime/state/deviceHubAccess";
+import type { DevicePermission, DeviceSummary, DeviceTextSize } from "@supaterm/contracts";
 import { ChevronDown, X } from "lucide-react";
 import { useEffect, useState } from "react";
 

@@ -1,5 +1,5 @@
-import type { ThreadPullRequestLink } from "@supacode/contracts";
-import { resolveThreadPullRequestChains } from "@supacode/shared/threadPullRequests";
+import type { ThreadPullRequestLink } from "@supaterm/contracts";
+import { resolveThreadPullRequestChains } from "@supaterm/shared/threadPullRequests";
 import { describe, expect, it } from "vite-plus/test";
 
 import { pullRequestListLines } from "./pullRequestListLines";

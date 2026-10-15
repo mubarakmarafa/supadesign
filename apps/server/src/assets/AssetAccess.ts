@@ -1,4 +1,4 @@
-import type { AssetResource } from "@supacode/contracts";
+import type { AssetResource } from "@supaterm/contracts";
 import {
   AssetAttachmentNotFoundError,
   AssetGitHubMediaUrlValidationError,
@@ -16,7 +16,7 @@ import {
   ThreadId,
   ToolActivityNativeAppReference,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   audioMimeTypeFromExtension,
   hostPreviewMimeTypeFromExtension,
@@ -24,19 +24,19 @@ import {
   isWorkspacePreviewEntryPath,
   WORKSPACE_BROWSER_PREVIEW_EXTENSIONS,
   WORKSPACE_IMAGE_PREVIEW_EXTENSIONS,
-} from "@supacode/shared/filePreview";
+} from "@supaterm/shared/filePreview";
 import {
   IMAGE_DIMENSIONS_HEADER_BYTES,
   readImageDimensions,
   type ImageDimensions,
-} from "@supacode/shared/imageDimensions";
-import { githubMediaFetchUrl, githubMediaFileName } from "@supacode/shared/githubMedia";
-import { MCP_APP_MAX_HTML_BYTES } from "@supacode/shared/mcpApp";
+} from "@supaterm/shared/imageDimensions";
+import { githubMediaFetchUrl, githubMediaFileName } from "@supaterm/shared/githubMedia";
+import { MCP_APP_MAX_HTML_BYTES } from "@supaterm/shared/mcpApp";
 import {
   isProjectFaviconPath,
   PROJECT_FAVICON_FALLBACK_MARKER,
-} from "@supacode/shared/projectFavicon";
-import { MAX_TOOL_OUTPUT_IMAGE_BASE64_LENGTH, toolOutputImages } from "@supacode/shared/toolOutput";
+} from "@supaterm/shared/projectFavicon";
+import { MAX_TOOL_OUTPUT_IMAGE_BASE64_LENGTH, toolOutputImages } from "@supaterm/shared/toolOutput";
 import * as Clock from "effect/Clock";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -58,13 +58,13 @@ import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import { parseAttachmentFileExtension, resolveAttachmentPathById } from "../attachmentStore.ts";
 import * as ServerConfig from "../config.ts";
 import * as Orchestrator from "../orchestration-v2/Orchestrator.ts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import * as ProjectFaviconResolver from "../project/ProjectFaviconResolver.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 import * as NativeAppIconResolver from "./NativeAppIconResolver.ts";
 import { extractIcnsPng } from "./icns.ts";
 import { openMediaFile, readMediaFileHeader, type OpenMediaFile } from "./MediaFile.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 export const ASSET_ROUTE_PREFIX = "/api/assets";
 

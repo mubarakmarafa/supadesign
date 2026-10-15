@@ -2,8 +2,8 @@ import {
   resolveDeviceModelId,
   type DeviceAccessorySource,
   type DeviceModelSource,
-} from "@supacode/client-runtime/device/model";
-import type { DevicePlatform } from "@supacode/contracts";
+} from "@supaterm/client-runtime/device/model";
+import type { DevicePlatform } from "@supaterm/contracts";
 import iphoneDuo from "./models/iphone-duo.glb?url";
 import iphone18Pro from "./models/iphone-18-pro.glb?url";
 import iphone18ProMax from "./models/iphone-18-pro-max.glb?url";

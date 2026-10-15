@@ -1,4 +1,4 @@
-import type { SnapShotSource } from "@supacode/contracts";
+import type { SnapShotSource } from "@supaterm/contracts";
 import { ImageIcon, TextIcon } from "lucide-react";
 import { Suspense } from "react";
 

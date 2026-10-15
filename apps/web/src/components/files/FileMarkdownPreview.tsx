@@ -1,7 +1,7 @@
-import type { ScopedThreadRef } from "@supacode/contracts";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 
 import ChatMarkdown from "~/components/ChatMarkdown";
-import { resolvePathLinkTarget } from "@supacode/shared/fileLinks";
+import { resolvePathLinkTarget } from "@supaterm/shared/fileLinks";
 
 export function FileMarkdownPreview(props: {
   readonly cwd: string;

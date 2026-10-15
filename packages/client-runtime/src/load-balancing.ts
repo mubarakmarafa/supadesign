@@ -1,4 +1,4 @@
-import type { HostResourcesSnapshot } from "@supacode/contracts";
+import type { HostResourcesSnapshot } from "@supaterm/contracts";
 
 /** Callers supply only connected machines hosting the project and selected provider. */
 export function chooseLoadBalancedEnvironment(

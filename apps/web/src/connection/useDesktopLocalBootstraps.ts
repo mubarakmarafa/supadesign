@@ -1,4 +1,4 @@
-import type { DesktopEnvironmentBootstrap } from "@supacode/contracts";
+import type { DesktopEnvironmentBootstrap } from "@supaterm/contracts";
 import { useEffect, useState } from "react";
 
 import { readDesktopSecondaryBootstraps } from "./desktopLocal";

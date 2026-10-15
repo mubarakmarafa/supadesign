@@ -3,10 +3,10 @@
  *
  * @module usageTestFormats
  */
-import type { UsageProviderKind } from "@supacode/contracts";
-import type { TranscriptUsageFormat } from "@supacode/provider-core/server/usage";
-import { piUsageFormat } from "@supacode/provider-pi/server/usage";
-import { grokUsageFormat } from "@supacode/provider-grok/server/usage";
+import type { UsageProviderKind } from "@supaterm/contracts";
+import type { TranscriptUsageFormat } from "@supaterm/provider-core/server/usage";
+import { piUsageFormat } from "@supaterm/provider-pi/server/usage";
+import { grokUsageFormat } from "@supaterm/provider-grok/server/usage";
 
 import { claudeUsageFormat } from "../provider/Drivers/claudeUsage.ts";
 import { codexUsageFormat } from "../provider/Drivers/codexUsage.ts";

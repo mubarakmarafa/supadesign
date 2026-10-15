@@ -1,4 +1,4 @@
-import type { GitRunStackedActionInput, GitRunStackedActionResult } from "@supacode/contracts";
+import type { GitRunStackedActionInput, GitRunStackedActionResult } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 import * as OrchestratorV2 from "../orchestration-v2/Orchestrator.ts";

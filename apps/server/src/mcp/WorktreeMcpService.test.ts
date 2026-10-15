@@ -9,7 +9,7 @@ import {
   ProviderInstanceId,
   ThreadId,
   WorktreeMcpHandoffInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -388,7 +388,7 @@ const runStatus = (harness: ReturnType<typeof makeHarness>) =>
     return yield* service.status(harness.scope);
   }).pipe(Effect.provide(harness.layer));
 
-describe("supacode_worktree_handoff", () => {
+describe("supaterm_worktree_handoff", () => {
   it.effect("creates a worktree from the current branch and re-points the thread", () => {
     const harness = makeHarness();
     return Effect.gen(function* () {
@@ -974,7 +974,7 @@ describe("supacode_worktree_handoff", () => {
   });
 });
 
-describe("supacode_worktree_status", () => {
+describe("supaterm_worktree_status", () => {
   it.effect("reports an unattached thread", () => {
     const harness = makeHarness({ newWorktreesStartFromOrigin: true });
     return Effect.gen(function* () {

@@ -1,4 +1,4 @@
-import type { ProviderAuthResponse } from "@supacode/contracts";
+import type { ProviderAuthResponse } from "@supaterm/contracts";
 import { useEffect, useRef, useState } from "react";
 import { GhosttyTerminalSurface } from "../../terminal/ghostty/surface";
 import { ensureLocalApi } from "../../localApi";

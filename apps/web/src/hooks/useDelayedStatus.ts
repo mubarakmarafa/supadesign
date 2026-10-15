@@ -1,4 +1,4 @@
-import { createDelayedStatus, type ShownStatus } from "@supacode/client-runtime/delayed-status";
+import { createDelayedStatus, type ShownStatus } from "@supaterm/client-runtime/delayed-status";
 import { useEffect, useState } from "react";
 
 /**

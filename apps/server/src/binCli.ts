@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { CliError, Command } from "effect/cli";
 
-import * as NetService from "@supacode/shared/Net";
+import * as NetService from "@supaterm/shared/Net";
 import packageJson from "../package.json" with { type: "json" };
 import { acpMcpBridgeCommand, acpMcpCallCommand } from "./cli/acpMcpBridge.ts";
 import { authCommand } from "./cli/auth.ts";
@@ -30,14 +30,14 @@ import { triageCommand } from "./cli/triage.ts";
 const layerCliRuntime = Layer.mergeAll(NodeServices.layer, NetService.layer);
 
 export const makeCli = () =>
-  Command.make("supacode", { ...sharedServerCommandFlags }).pipe(
-    Command.withDescription("Run the Supacode server."),
+  Command.make("supaterm", { ...sharedServerCommandFlags }).pipe(
+    Command.withDescription("Run the Supaterm server."),
     Command.withHandler(runDefaultServerCommand),
     Command.withSubcommands([
       Command.make("help").pipe(
         Command.withDescription("Show command help."),
         Command.withHandler(() =>
-          Effect.fail(new CliError.ShowHelp({ commandPath: ["supacode"], errors: [] })),
+          Effect.fail(new CliError.ShowHelp({ commandPath: ["supaterm"], errors: [] })),
         ),
       ),
       acpMcpBridgeCommand,

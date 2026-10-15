@@ -1,5 +1,5 @@
-import { AuthSettingsWriteScope, type EnvironmentId } from "@supacode/contracts";
-import type { SourceControlClientDefinition } from "@supacode/client-runtime/source-control-clients";
+import { AuthSettingsWriteScope, type EnvironmentId } from "@supaterm/contracts";
+import type { SourceControlClientDefinition } from "@supaterm/client-runtime/source-control-clients";
 import { useState } from "react";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";

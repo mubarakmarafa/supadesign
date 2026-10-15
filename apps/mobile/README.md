@@ -1,7 +1,7 @@
-# Supacode Mobile
+# Supaterm Mobile
 
 > [!WARNING]
-> Supacode Mobile is currently in development and is not distributed yet. If you want to try it out, you can build it from source.
+> Supaterm Mobile is currently in development and is not distributed yet. If you want to try it out, you can build it from source.
 
 ## Quickstart
 
@@ -10,9 +10,9 @@
 
 This app has three variants:
 
-- `development`: Expo dev client, installable side-by-side as `Supacode Dev`
-- `preview`: persistent internal preview build, installable side-by-side as `Supacode Preview`
-- `production`: store/release build as `Supacode`
+- `development`: Expo dev client, installable side-by-side as `Supaterm Dev`
+- `preview`: persistent internal preview build, installable side-by-side as `Supaterm Preview`
+- `production`: store/release build as `Supaterm`
 
 Run commands from `apps/mobile`.
 
@@ -70,8 +70,8 @@ reduced-capability local build. Personal Team builds omit the widget and share e
 without this opt-in are unchanged.
 
 ```bash
-SUPACODE_IOS_PERSONAL_TEAM=1 \
-SUPACODE_IOS_PERSONAL_TEAM_BUNDLE_ID=com.example.supacode.dev \
+SUPATERM_IOS_PERSONAL_TEAM=1 \
+SUPATERM_IOS_PERSONAL_TEAM_BUNDLE_ID=com.example.supaterm.dev \
 vp run ios:dev
 ```
 
@@ -84,8 +84,8 @@ vp run ios:release
 The Personal Team equivalent also needs a unique bundle identifier:
 
 ```bash
-SUPACODE_IOS_PERSONAL_TEAM=1 \
-SUPACODE_IOS_PERSONAL_TEAM_BUNDLE_ID=com.example.supacode \
+SUPATERM_IOS_PERSONAL_TEAM=1 \
+SUPATERM_IOS_PERSONAL_TEAM_BUNDLE_ID=com.example.supaterm \
 vp run ios:release
 ```
 
@@ -124,7 +124,7 @@ Preview and production variants use Expo fingerprinting so OTA updates only reac
 
 The development variant uses `appVersion` to avoid recalculating the native fingerprint for each Metro launch manifest. `MOBILE_VERSION_POLICY` can override either default. If you distribute a custom Release build with the development identity and publish OTA updates to it, set `MOBILE_VERSION_POLICY=fingerprint` for both its build and updates. Changing the runtime policy requires a native rebuild for OTA matching; an existing dev client can still load local Metro bundles.
 
-Set `SUPACODE_MOBILE_UPDATES_ENABLED=0` before prebuild and bundling a private binary to disable the
+Set `SUPATERM_MOBILE_UPDATES_ENABLED=0` before prebuild and bundling a private binary to disable the
 repository's configured Expo OTA update source.
 
 Create a PR preview dev-client build manually:

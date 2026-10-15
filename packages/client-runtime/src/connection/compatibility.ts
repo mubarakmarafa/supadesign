@@ -2,7 +2,7 @@ import {
   ORCHESTRATION_PROTOCOL_QUERY_PARAM,
   ORCHESTRATION_PROTOCOL_VERSION,
   type ExecutionEnvironmentDescriptor,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { ConnectionBlockedError } from "./model.ts";
 
@@ -21,7 +21,7 @@ export function orchestrationProtocolCompatibilityError(
       })
     : new ConnectionBlockedError({
         reason: "unsupported",
-        detail: `This client requires a newer server. Update Supacode on ${descriptor.label} to connect.`,
+        detail: `This client requires a newer server. Update Supaterm on ${descriptor.label} to connect.`,
         ...(canSelfUpdate(descriptor) ? { serverUpdateRequired: true } : {}),
       });
 }

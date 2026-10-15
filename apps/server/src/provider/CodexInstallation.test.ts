@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as ModelManifest from "./ModelManifest.ts";
 import { expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Crypto from "effect/Crypto";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -35,7 +35,7 @@ const makeHarness = Effect.fn("test.makeCodexInstallation")(function* (
 ) {
   const fs = yield* FileSystem.FileSystem;
   const baseDir =
-    input.baseDir ?? (yield* fs.makeTempDirectoryScoped({ prefix: "supacodex-install-test-" }));
+    input.baseDir ?? (yield* fs.makeTempDirectoryScoped({ prefix: "supatermx-install-test-" }));
   const localDirectory = `${baseDir}/local`;
   const localBinaryPath = `${localDirectory}/codex`;
   const probeLog = `${baseDir}/local-probes.txt`;
@@ -183,7 +183,7 @@ it.effect("rechecks a cached local executable when the shared manifest policy ch
       compatibility: [
         {
           driver: "codex",
-          supacodeRange: ">=0.0.42",
+          supatermRange: ">=0.0.42",
           ranges: [
             { range: ">=0.156.1", status: "supported" },
             { range: "<0.156.1", status: "broken" },

@@ -1,7 +1,7 @@
-import { connectionAddressLabel } from "@supacode/client-runtime/connection";
+import { connectionAddressLabel } from "@supaterm/client-runtime/connection";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackHeaderItem } from "@react-navigation/native-stack";
-import { resolveEnvironmentMachineKind } from "@supacode/contracts";
+import { resolveEnvironmentMachineKind } from "@supaterm/contracts";
 import { Platform, Pressable } from "react-native";
 
 import { ControlPillMenu } from "../../../components/ControlPill";

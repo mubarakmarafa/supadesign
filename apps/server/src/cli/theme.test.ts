@@ -5,7 +5,7 @@ import * as NodePath from "node:path";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as ConfigProvider from "effect/ConfigProvider";
-import * as NetService from "@supacode/shared/Net";
+import * as NetService from "@supaterm/shared/Net";
 import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -13,8 +13,8 @@ import * as TestConsole from "effect/testing/TestConsole";
 import { Command } from "effect/cli";
 
 import { cli } from "../binCli.ts";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 // These force a failure with chmod, which Windows ignores for directories and
 // cannot use to make a file unreadable, so the failure never happens there.
@@ -25,7 +25,7 @@ const runCli = (args: ReadonlyArray<string>) =>
     Effect.provide(Layer.mergeAll(NodeServices.layer, NetService.layer, TestConsole.layer)),
   );
 
-const makeBaseDir = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-theme-cli-"));
+const makeBaseDir = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-theme-cli-"));
 
 const settingsPathFor = (baseDir: string) => NodePath.join(baseDir, "userdata", "settings.json");
 
@@ -47,7 +47,7 @@ const writeSettings = (baseDir: string, settings: Record<string, unknown>) => {
   NodeFS.writeFileSync(settingsPathFor(baseDir), `${JSON.stringify(settings, null, 2)}\n`);
 };
 
-describe("supacode theme", () => {
+describe("supaterm theme", () => {
   it.effect("writes a default theme when no settings file exists yet", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
@@ -113,7 +113,7 @@ describe("supacode theme", () => {
   it.effect("publishes a theme file under an explicit id", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
-      const themeFile = NodePath.join(baseDir, "supacode.json");
+      const themeFile = NodePath.join(baseDir, "supaterm.json");
       NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
 
       yield* runCli(["theme", "set", "--id", "nightfall", themeFile, "--base-dir", baseDir]);
@@ -343,12 +343,12 @@ describe("supacode theme", () => {
     }),
   );
 
-  it.effect("honors SUPACODE_HOME like the rest of the CLI", () =>
+  it.effect("honors SUPATERM_HOME like the rest of the CLI", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
       yield* runCli(["theme", "set", "ocean"]).pipe(
         Effect.provide(
-          ConfigProvider.layer(ConfigProvider.fromEnv({ env: { SUPACODE_HOME: baseDir } })),
+          ConfigProvider.layer(ConfigProvider.fromEnv({ env: { SUPATERM_HOME: baseDir } })),
         ),
       );
       assert.equal(readSettings(baseDir).defaultTheme, "ocean");
@@ -422,7 +422,7 @@ describe("supacode theme", () => {
   it.effect("rejects the mobile default theme id", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
-      const failure = yield* runCli(["theme", "set", "supacode", "--base-dir", baseDir]).pipe(
+      const failure = yield* runCli(["theme", "set", "supaterm", "--base-dir", baseDir]).pipe(
         Effect.flip,
       );
       assert.include(String(failure), "No theme named");

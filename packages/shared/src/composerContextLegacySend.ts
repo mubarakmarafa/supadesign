@@ -1,4 +1,4 @@
-import type { ComposerContextRecord, ElementContextDetails } from "@supacode/contracts";
+import type { ComposerContextRecord, ElementContextDetails } from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 
 import { collectComposerContextReferences } from "./composerContextReferences.ts";

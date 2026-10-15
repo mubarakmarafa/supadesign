@@ -5,7 +5,7 @@ import type {
   MessageId,
   OrchestrationV2ThreadProjection,
   RunId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 export interface ThreadCheckpointSummary {

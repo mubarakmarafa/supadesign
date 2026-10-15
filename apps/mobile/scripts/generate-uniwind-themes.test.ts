@@ -21,14 +21,14 @@ describe("generate mobile Uniwind themes", () => {
 
     expect(
       staleOutputs,
-      "Run `vp run --filter @supacode/mobile generate` and commit the generated outputs.",
+      "Run `vp run --filter @supaterm/mobile generate` and commit the generated outputs.",
     ).toEqual([]);
   });
 
   it("registers every custom palette for both appearances", () => {
     expect(customThemeNames).toEqual([
-      "supacode-chat-light",
-      "supacode-chat-dark",
+      "supaterm-chat-light",
+      "supaterm-chat-dark",
       "grove-light",
       "grove-dark",
       "ocean-light",

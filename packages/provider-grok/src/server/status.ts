@@ -5,10 +5,10 @@ import {
   type ServerProviderAuth,
   type ServerProviderModel,
   type ServerProviderSlashCommand,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { GrokSettings } from "../settings.ts";
 import type * as EffectAcpSchema from "effect-acp/compat";
-import { causeErrorTag } from "@supacode/shared/observability";
+import { causeErrorTag } from "@supaterm/shared/observability";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -19,10 +19,10 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
-import { createModelCapabilities } from "@supacode/shared/model";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import { createModelCapabilities } from "@supaterm/shared/model";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
 import {
   AUTH_PROBE_TIMEOUT_MS,
   buildServerProvider,
@@ -32,11 +32,11 @@ import {
   providerModelsFromSettings,
   spawnAndCollect,
   type ServerProviderDraft,
-} from "@supacode/provider-core/server/snapshotProbe";
+} from "@supaterm/provider-core/server/snapshotProbe";
 import {
   enrichProviderSnapshotWithVersionAdvisory,
   type ProviderMaintenanceCapabilities,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 import {
   GROK_DEFAULT_MODEL_SLUG,
   GROK_SUPPORTED_RUNTIME_MODES,
@@ -44,7 +44,7 @@ import {
   makeGrokAcpRuntime,
   resolveGrokAcpBaseModelId,
 } from "./acpSupport.ts";
-import { sessionModelStateFromInitialize } from "@supacode/provider-acp/server/runtimeModel";
+import { sessionModelStateFromInitialize } from "@supaterm/provider-acp/server/runtimeModel";
 import { discoverGrokSkills } from "./skills.ts";
 
 const GROK_PRESENTATION = {
@@ -89,7 +89,7 @@ export function buildInitialGrokProviderSnapshot(
           version: null,
           status: "warning",
           auth: { status: "unknown" },
-          message: "Grok is disabled in Supacode settings.",
+          message: "Grok is disabled in Supaterm settings.",
         },
       });
     }
@@ -333,7 +333,7 @@ export function grokSlashCommandsFromInitialize(
     if (Option.isNone(decoded)) continue;
     const command = decoded.value;
     const name = command.name.trim();
-    // Permission changes must go through Supacode so the client and provider agree.
+    // Permission changes must go through Supaterm so the client and provider agree.
     if (!name || name.toLowerCase() === "always-approve") continue;
     // Grok advertises /context, but its ACP handler completes without emitting output.
     if (name.toLowerCase() === "context") continue;
@@ -361,7 +361,7 @@ const discoverGrokMetadataViaAcpInitialize = (
       grokSettings,
       environment,
       cwd: process.cwd(),
-      clientInfo: { name: "supacode-provider-probe", version: "0.0.0" },
+      clientInfo: { name: "supaterm-provider-probe", version: "0.0.0" },
     });
     const initialized = yield* acp.initialize();
     return {
@@ -393,7 +393,7 @@ export const checkGrokProviderStatus = Effect.fn("checkGrokProviderStatus")(func
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Grok is disabled in Supacode settings.",
+        message: "Grok is disabled in Supaterm settings.",
       },
     });
   }

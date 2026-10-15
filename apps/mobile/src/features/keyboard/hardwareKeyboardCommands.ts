@@ -1,4 +1,4 @@
-import { EnvironmentId, ThreadId, type ThreadJumpKeybindingCommand } from "@supacode/contracts";
+import { EnvironmentId, ThreadId, type ThreadJumpKeybindingCommand } from "@supaterm/contracts";
 import { useEffect } from "react";
 
 export type HardwareKeyboardCommand =

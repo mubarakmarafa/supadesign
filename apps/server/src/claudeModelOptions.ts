@@ -1,10 +1,10 @@
-import type { ModelSelection } from "@supacode/contracts";
+import type { ModelSelection } from "@supaterm/contracts";
 import {
   getModelSelectionBooleanOptionValue,
   getModelSelectionStringOptionValue,
   getProviderOptionDescriptors,
   resolvePromptInjectedEffort,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 
 import {
   BUNDLED_CLAUDE_MODEL_CATALOG,

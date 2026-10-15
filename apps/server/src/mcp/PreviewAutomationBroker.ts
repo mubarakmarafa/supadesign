@@ -26,7 +26,7 @@ import {
   type PreviewAutomationHostFocus,
   type PreviewAutomationResponse,
   type PreviewAutomationStreamEvent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import type * as Cause from "effect/Cause";
 import * as Crypto from "effect/Crypto";
@@ -80,7 +80,7 @@ export class PreviewAutomationBroker extends Context.Service<
       request: PreviewAutomationInvokeInput,
     ) => Effect.Effect<A, PreviewAutomationError>;
   }
->()("supacode/mcp/PreviewAutomationBroker") {}
+>()("supaterm/mcp/PreviewAutomationBroker") {}
 
 interface ClientConnection {
   readonly clientId: string;

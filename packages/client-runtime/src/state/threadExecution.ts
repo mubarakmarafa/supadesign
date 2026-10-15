@@ -3,7 +3,7 @@ import {
   latestUnheldRun,
   threadErrorSummary,
   usageLimitRunPresentedAsLatest,
-} from "@supacode/shared/orchestrationV2ThreadError";
+} from "@supaterm/shared/orchestrationV2ThreadError";
 import {
   isOrchestrationV2WorkActive,
   isProviderNativeSubagentThread,
@@ -16,16 +16,16 @@ import {
   type OrchestrationV2ThreadProjection,
   orchestrationV2RunWorkStartedAt,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   backgroundWorkHoldsCompletion,
   derivePendingBackgroundWork,
-} from "@supacode/shared/orchestrationV2PendingBackgroundWork";
+} from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
 import {
   getProviderOptionCurrentLabel,
   getProviderOptionDescriptors,
-} from "@supacode/shared/model";
-import { formatDuration } from "@supacode/shared/orchestrationTiming";
+} from "@supaterm/shared/model";
+import { formatDuration } from "@supaterm/shared/orchestrationTiming";
 import * as DateTime from "effect/DateTime";
 
 import {

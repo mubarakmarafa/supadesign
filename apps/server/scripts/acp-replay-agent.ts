@@ -34,10 +34,10 @@ interface JsonRpcMessage {
   readonly headers?: ReadonlyArray<unknown>;
 }
 
-const encodedTranscript = process.env.SUPACODE_ACP_REPLAY_TRANSCRIPT;
-const transcriptPath = process.env.SUPACODE_ACP_REPLAY_TRANSCRIPT_PATH;
-const statusPath = process.env.SUPACODE_ACP_REPLAY_STATUS_PATH;
-const replayWorkspace = process.env.SUPACODE_ACP_REPLAY_WORKSPACE ?? process.cwd();
+const encodedTranscript = process.env.SUPATERM_ACP_REPLAY_TRANSCRIPT;
+const transcriptPath = process.env.SUPATERM_ACP_REPLAY_TRANSCRIPT_PATH;
+const statusPath = process.env.SUPATERM_ACP_REPLAY_STATUS_PATH;
+const replayWorkspace = process.env.SUPATERM_ACP_REPLAY_WORKSPACE ?? process.cwd();
 
 if ((encodedTranscript === undefined && transcriptPath === undefined) || statusPath === undefined) {
   process.stderr.write("ACP replay requires transcript and status environment variables.\n");

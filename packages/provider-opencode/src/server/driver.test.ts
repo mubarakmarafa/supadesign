@@ -5,9 +5,9 @@ import * as NodePath from "node:path";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import type { OpenCodeSettings } from "../settings.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
@@ -15,11 +15,11 @@ import * as TestClock from "effect/testing/TestClock";
 import * as HttpClient from "effect/http/HttpClient";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as ProviderMaintenance from "@supacode/provider-core/server/maintenanceResolver";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as ProviderMaintenance from "@supaterm/provider-core/server/maintenanceResolver";
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
 import {
   OPENCODE_2_RESPONSES,
@@ -27,7 +27,7 @@ import {
   replayOpenCodeServer,
 } from "./probeResponses.fixture.ts";
 import { OpenCodeDriver, openCodeUpdateFor } from "./driver.ts";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 
 const serverStarts: Array<string> = [];
 const reachedServer = (operation: string) =>
@@ -161,7 +161,7 @@ it.effect.skipIf(HostProcess.Platform.defaultValue() === "win32")(
   () =>
     Effect.gen(function* () {
       const root = NodeFS.realpathSync(
-        NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-opencode-update-")),
+        NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-opencode-update-")),
       );
       const v2Prefix = NodePath.join(root, "v2");
       const v1Prefix = NodePath.join(root, "v1");
@@ -248,7 +248,7 @@ it.layer(layerUpdate)("OpenCodeDriver updates", (it) => {
     () =>
       Effect.gen(function* () {
         const root = NodeFS.realpathSync(
-          NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-opencode-driver-update-")),
+          NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-opencode-driver-update-")),
         );
         const binaryPath = npmGlobalInstall(NodePath.join(root, "v1"), ["opencode-ai"], "opencode");
         const instance = yield* OpenCodeDriver.create({

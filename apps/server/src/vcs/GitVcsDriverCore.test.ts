@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off - realpathSync.native resolves Windows 8.3 short names, which the Effect realPath does not.
 import * as NodeFS from "node:fs";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { assert, it, describe } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -28,7 +28,7 @@ import {
   type ReviewDiffFileContentsInput,
   type ReviewDiffPreviewResult,
   type WorktreeSubmodules,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as ServerConfig from "../config.ts";
 import { gitCommandDuration } from "../observability/Metrics.ts";
 import {
@@ -43,7 +43,7 @@ const encodeGitCommandError = Schema.encodeEffect(Schema.fromJsonString(GitComma
 const decodeReviewDiffPreviewInput = Schema.decodeEffect(ReviewDiffPreviewInput);
 
 const layerServerConfig = ServerConfig.layerTest(process.cwd(), {
-  prefix: "supacode-git-vcs-driver-test-",
+  prefix: "supaterm-git-vcs-driver-test-",
 });
 const layerTest = GitVcsDriver.layer.pipe(
   Layer.provide(layerServerConfig),
@@ -2628,7 +2628,7 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
           "GIT_TERMINAL_PROMPT",
           "SSH_ASKPASS",
           "SSH_ASKPASS_REQUIRE",
-          "SUPACODE_TEST_SSH_ASKPASS_LOG",
+          "SUPATERM_TEST_SSH_ASKPASS_LOG",
         ] as const;
         const previousEnv = new Map(envKeys.map((key) => [key, process.env[key]]));
 
@@ -2643,7 +2643,7 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
           process.env.GIT_TERMINAL_PROMPT = "1";
           process.env.SSH_ASKPASS = "ssh-askpass";
           process.env.SSH_ASKPASS_REQUIRE = "force";
-          process.env.SUPACODE_TEST_SSH_ASKPASS_LOG = sshLogPath;
+          process.env.SUPATERM_TEST_SSH_ASKPASS_LOG = sshLogPath;
 
           yield* (yield* GitVcsDriver.GitVcsDriver).statusDetails(cwd);
 
@@ -3254,7 +3254,7 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
       }),
     );
 
-    it.effect("resolves the submodule mode from the option, then supacode.json", () =>
+    it.effect("resolves the submodule mode from the option, then supaterm.json", () =>
       Effect.gen(function* () {
         const fileSystem = yield* FileSystem.FileSystem;
         const pathService = yield* Path.Path;
@@ -3297,12 +3297,12 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
           branch: string,
           submodules: WorktreeSubmodules | null = null,
         ) {
-          yield* writeTextFile(cwd, "supacode.json", `{ "worktreeSubmodules": "${fileMode}" }`);
-          yield* git(cwd, ["add", "supacode.json"]);
+          yield* writeTextFile(cwd, "supaterm.json", `{ "worktreeSubmodules": "${fileMode}" }`);
+          yield* git(cwd, ["add", "supaterm.json"]);
           // Consecutive cases may reuse a file mode to test the option alone.
           yield* git(cwd, ["commit", "--allow-empty", "-m", `submodules: ${fileMode}`]);
           const worktreePath = pathService.join(worktreesDir, branch);
-          const disabled = yield* Ref.make<"settings" | "supacode.json" | false>(false);
+          const disabled = yield* Ref.make<"settings" | "supaterm.json" | false>(false);
           yield* driver.createWorktree(
             { cwd, path: worktreePath, refName: initialBranch, newRefName: branch },
             {
@@ -3341,7 +3341,7 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
           nested: false,
         });
         assert.deepEqual(yield* createWithMode("none", "none"), {
-          disabled: "supacode.json",
+          disabled: "supaterm.json",
           inner: false,
           nested: false,
         });
@@ -3946,7 +3946,7 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         const addedForFork = yield* driver.ensureRemote({
           cwd,
           preferredName: "octocat",
-          url: "git@github.com:octocat/supacode.git",
+          url: "git@github.com:octocat/supaterm.git",
         });
         assert.equal(addedForFork, "octocat");
         assert.equal(yield* git(cwd, ["remote"]), "octocat\norigin");
@@ -4090,7 +4090,7 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
           cwd,
           path: worktreePath,
           refName: resolvedBase.commitSha,
-          newRefName: "supacode/fetched-origin",
+          newRefName: "supaterm/fetched-origin",
           baseRefName: resolvedBase.remoteRefName,
         });
 
@@ -4098,12 +4098,12 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         assert.equal(
           yield* driver.readConfigValue(
             worktreePath,
-            "branch.supacode/fetched-origin.gh-merge-base",
+            "branch.supaterm/fetched-origin.gh-merge-base",
           ),
           initialBranch,
         );
         assert.equal(
-          yield* driver.readConfigValue(worktreePath, "branch.supacode/fetched-origin.remote"),
+          yield* driver.readConfigValue(worktreePath, "branch.supaterm/fetched-origin.remote"),
           null,
         );
         const status = yield* driver.statusDetails(worktreePath);

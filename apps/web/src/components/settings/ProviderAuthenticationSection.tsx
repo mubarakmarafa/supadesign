@@ -2,14 +2,14 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import type {
   EnvironmentId,
   ProviderAuthRespondInput,
   ProviderAuthResponse,
   ProviderInstanceId,
   ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { lazy, Suspense, useRef, useState } from "react";
 import { CopyIcon } from "lucide-react";
 

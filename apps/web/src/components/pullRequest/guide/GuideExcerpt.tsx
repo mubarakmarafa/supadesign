@@ -5,7 +5,7 @@ import type {
   SelectedLineRange,
 } from "@pierre/diffs";
 import { FileDiff } from "@pierre/diffs/react";
-import type { PullRequestReviewGuideExcerpt, PullRequestReviewPosition } from "@supacode/contracts";
+import type { PullRequestReviewGuideExcerpt, PullRequestReviewPosition } from "@supaterm/contracts";
 import { ArrowUpRightIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
@@ -36,7 +36,7 @@ import {
   excerptRows,
   fileDiffRows,
   rowsToPatch,
-} from "@supacode/client-runtime/review-guide-tour";
+} from "@supaterm/client-runtime/review-guide-tour";
 import { GuideNoteMarker } from "./GuideNotes";
 import { GuideProse } from "./GuideProse";
 

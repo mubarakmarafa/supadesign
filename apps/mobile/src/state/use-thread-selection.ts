@@ -8,15 +8,15 @@ import {
   type OrchestrationV2ThreadShell,
   type ScopedProjectRef,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   presentThreadShell,
   type EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/shell";
 import {
   deriveLatestThreadRun,
   deriveThreadRuntime,
-} from "@supacode/client-runtime/state/thread-execution";
+} from "@supaterm/client-runtime/state/thread-execution";
 import * as Option from "effect/Option";
 
 import { scopedThreadKey } from "../lib/scopedEntities";

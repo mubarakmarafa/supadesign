@@ -29,7 +29,7 @@ const buildService = (platform: NodeJS.Platform, isPackaged: boolean, metadata: 
     Effect.provide(FileSystem.layerNoop({ readFileString: () => Effect.succeed(metadata) })),
   );
 const metadata = JSON.stringify({
-  supacodeWebAuthn: { touchIdKeychainAccessGroup: "TEAMID1234.com.supaterm.supacode.webauthn" },
+  supatermWebAuthn: { touchIdKeychainAccessGroup: "TEAMID1234.com.supaterm.desktop.webauthn" },
 });
 
 beforeEach(() => vi.resetAllMocks());
@@ -59,7 +59,7 @@ it.effect.each(["single", "choose", "cancel", "error", "empty"] as const)(
       const service = yield* buildService("darwin", true, metadata);
       yield* service.configure;
       assert.deepEqual(configure.mock.calls[0], [
-        { touchID: { keychainAccessGroup: "TEAMID1234.com.supaterm.supacode.webauthn" } },
+        { touchID: { keychainAccessGroup: "TEAMID1234.com.supaterm.desktop.webauthn" } },
       ]);
       const on = vi.fn();
       const session = { on } as unknown as Session;

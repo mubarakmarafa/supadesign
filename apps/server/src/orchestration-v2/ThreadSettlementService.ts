@@ -1,13 +1,13 @@
-import { backgroundWorkHoldsCompletion } from "@supacode/shared/orchestrationV2PendingBackgroundWork";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
-import { visibleThreadPullRequests } from "@supacode/shared/threadPullRequests";
+import { backgroundWorkHoldsCompletion } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
+import { visibleThreadPullRequests } from "@supaterm/shared/threadPullRequests";
 import {
   CommandId,
   type ThreadId,
   type OrchestrationV2DomainEvent,
   type OrchestrationV2ThreadShell,
-} from "@supacode/contracts";
-import { makeDrainableWorker } from "@supacode/shared/DrainableWorker";
+} from "@supaterm/contracts";
+import { makeDrainableWorker } from "@supaterm/shared/DrainableWorker";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -245,9 +245,9 @@ export class ThreadSettlementServiceV2 extends Context.Service<
     readonly start: () => Effect.Effect<void, never, Scope.Scope>;
     readonly drain: Effect.Effect<void>;
   }
->()("supacode/orchestration-v2/ThreadSettlementService/ThreadSettlementServiceV2") {}
+>()("supaterm/orchestration-v2/ThreadSettlementService/ThreadSettlementServiceV2") {}
 
-function autoSettlementConfigured(settings: import("@supacode/contracts").ServerSettings): boolean {
+function autoSettlementConfigured(settings: import("@supaterm/contracts").ServerSettings): boolean {
   if (settings.sidebarAutoSettleOnMerge || settings.sidebarAutoSettleAfterDays !== null) {
     return true;
   }
@@ -261,7 +261,7 @@ function autoSettlementConfigured(settings: import("@supacode/contracts").Server
 /** Identity of every settlement input, so unrelated settings edits do not trigger a sweep. */
 /** @internal Exported for tests. */
 export function autoSettlementSettingsKey(
-  settings: import("@supacode/contracts").ServerSettings,
+  settings: import("@supaterm/contracts").ServerSettings,
 ): string {
   return JSON.stringify([
     settings.sidebarAutoSettleOnMerge,

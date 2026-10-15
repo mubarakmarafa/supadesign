@@ -1,4 +1,4 @@
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { create } from "zustand";
 import { DraftId, useComposerDraftStore } from "./composerDraftStore";
 import { releaseDraftAttachments } from "./lib/attachmentUploadQueue";

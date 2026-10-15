@@ -19,9 +19,9 @@ describe("electron development launcher", () => {
   it("uses captured values only as fallbacks for a live runner environment", () => {
     const environmentScript = makeDevelopmentEnvironmentScript({
       VITE_DEV_SERVER_URL: "http://127.0.0.1:8526",
-      SUPACODE_PORT: "16566",
-      SUPACODE_HOME: "/tmp/supacode",
-      SUPACODE_OTLP_PROTOCOL: "http/protobuf",
+      SUPATERM_PORT: "16566",
+      SUPATERM_HOME: "/tmp/supaterm",
+      SUPATERM_OTLP_PROTOCOL: "http/protobuf",
     });
 
     assert.include(
@@ -30,7 +30,7 @@ describe("electron development launcher", () => {
     );
     assert.include(
       environmentScript,
-      "if [ -z \"${SUPACODE_OTLP_PROTOCOL:-}\" ]; then export SUPACODE_OTLP_PROTOCOL='http/protobuf'; fi",
+      "if [ -z \"${SUPATERM_OTLP_PROTOCOL:-}\" ]; then export SUPATERM_OTLP_PROTOCOL='http/protobuf'; fi",
     );
     assert.notInclude(environmentScript, "\nexport VITE_DEV_SERVER_URL=");
   });
@@ -50,7 +50,7 @@ describe("electron development launcher", () => {
     assert.notInclude(script, "VITE_DEV_SERVER_URL");
     assert.include(
       script,
-      "exec '/repo/node_modules/electron/Electron' --supacode-dev-root='/repo/apps/desktop' '/repo/apps/desktop/dist-electron/main.cjs' \"$@\"",
+      "exec '/repo/node_modules/electron/Electron' --supaterm-dev-root='/repo/apps/desktop' '/repo/apps/desktop/dist-electron/main.cjs' \"$@\"",
     );
   });
 
@@ -76,18 +76,18 @@ describe("electron development launcher", () => {
 
   it("keeps the native Electron executable name inside the branded macOS bundle", () => {
     const paths = resolveMacLauncherPaths(
-      "/repo/apps/desktop/.electron-runtime/Supacode (Dev).app",
-      "Supacode (Dev)",
+      "/repo/apps/desktop/.electron-runtime/Supaterm (Dev).app",
+      "Supaterm (Dev)",
     );
 
-    assert.equal(paths.launcherExecutableName, "Supacode (Dev) Launcher");
+    assert.equal(paths.launcherExecutableName, "Supaterm (Dev) Launcher");
     assert.equal(
       paths.launcherBinaryPath,
-      "/repo/apps/desktop/.electron-runtime/Supacode (Dev).app/Contents/MacOS/Supacode (Dev) Launcher",
+      "/repo/apps/desktop/.electron-runtime/Supaterm (Dev).app/Contents/MacOS/Supaterm (Dev) Launcher",
     );
     assert.equal(
       paths.runtimeElectronBinaryPath,
-      "/repo/apps/desktop/.electron-runtime/Supacode (Dev).app/Contents/MacOS/Electron",
+      "/repo/apps/desktop/.electron-runtime/Supaterm (Dev).app/Contents/MacOS/Electron",
     );
 
     const script = makeDevelopmentLauncherScript({
@@ -98,37 +98,37 @@ describe("electron development launcher", () => {
     });
     assert.include(
       script,
-      "exec '/repo/apps/desktop/.electron-runtime/Supacode (Dev).app/Contents/MacOS/Electron'",
+      "exec '/repo/apps/desktop/.electron-runtime/Supaterm (Dev).app/Contents/MacOS/Electron'",
     );
     assert.notInclude(script, "node_modules/electron");
   });
 
   it("declares why the macOS app needs protected access", () => {
-    const values = resolveMacBundleInfoPlistStrings("Supacode (Dev) Launcher");
+    const values = resolveMacBundleInfoPlistStrings("Supaterm (Dev) Launcher");
 
     assert.equal(
       values.NSScreenCaptureUsageDescription,
-      "Supacode captures the active window when you use the snapshot shortcut.",
+      "Supaterm captures the active window when you use the snapshot shortcut.",
     );
     assert.equal(
       values.NSDocumentsFolderUsageDescription,
-      "Supacode reads project files you open in the desktop app.",
+      "Supaterm reads project files you open in the desktop app.",
     );
   });
 
   it("ad-hoc signs the complete development app bundle", () => {
-    assert.deepEqual(resolveMacCodeSignArguments("/runtime/Supacode (Dev).app"), [
+    assert.deepEqual(resolveMacCodeSignArguments("/runtime/Supaterm (Dev).app"), [
       "--force",
       "--deep",
       "--sign",
       "-",
       "--timestamp=none",
-      "/runtime/Supacode (Dev).app",
+      "/runtime/Supaterm (Dev).app",
     ]);
   });
 
   it("restores execute permissions on an unchanged launcher", () => {
-    const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-launcher-"));
+    const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-launcher-"));
     const launcherPath = NodePath.join(directory, "launcher");
     try {
       writeDevelopmentLauncherScript(launcherPath, "/runtime/Electron");

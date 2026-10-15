@@ -1,9 +1,9 @@
 import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
 import { useNavigation, type StaticScreenProps } from "@react-navigation/native";
 import type { MenuAction } from "@react-native-menu/menu";
-import { EnvironmentId } from "@supacode/contracts";
-import { formatAttachmentSize } from "@supacode/client-runtime/state/attachments";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+import { EnvironmentId } from "@supaterm/contracts";
+import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Platform, ScrollView, View } from "react-native";
 
@@ -115,7 +115,7 @@ function AttachmentDocumentBody(props: {
                               selectable
                               className={
                                 rowIndex === 0
-                                  ? "text-sm font-supacode-semibold text-foreground"
+                                  ? "text-sm font-supaterm-semibold text-foreground"
                                   : "text-sm text-foreground"
                               }
                             >

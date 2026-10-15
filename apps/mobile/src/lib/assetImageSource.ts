@@ -1,4 +1,4 @@
-import type { AssetResource, EnvironmentId } from "@supacode/contracts";
+import type { AssetResource, EnvironmentId } from "@supaterm/contracts";
 import type { ImageSource } from "expo-image";
 
 /**
@@ -14,7 +14,7 @@ export function assetImageSource(
   return resource._tag === "attachment"
     ? {
         uri,
-        cacheKey: `supacode-attachment:${JSON.stringify([environmentId, resource.attachmentId])}`,
+        cacheKey: `supaterm-attachment:${JSON.stringify([environmentId, resource.attachmentId])}`,
       }
     : { uri };
 }

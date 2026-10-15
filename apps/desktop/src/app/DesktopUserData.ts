@@ -31,7 +31,7 @@ export class DesktopUserDataInitializationError extends Schema.TaggedError<Deskt
   }
 }
 
-/** Select Electron's profile independently of the server's Supacode home. */
+/** Select Electron's profile independently of the server's Supaterm home. */
 export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPath")(
   function* (input: {
     readonly appDataDirectory: string;
@@ -41,8 +41,8 @@ export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPa
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const names = input.isDevelopment
-      ? { current: "supacode-dev", previous: "supa3-dev", legacy: "Supacode (Dev)" }
-      : { current: "supacode-v2", previous: "supa3-v2", legacy: "Supacode (Alpha)" };
+      ? { current: "supaterm-dev", previous: "supa3-dev", legacy: "Supaterm (Dev)" }
+      : { current: "supaterm-v2", previous: "supa3-v2", legacy: "Supaterm (Alpha)" };
     const destinationPath = path.join(input.appDataDirectory, names.current);
     const previousPath = path.join(input.appDataDirectory, names.previous);
     const legacyPath = path.join(input.appDataDirectory, names.legacy);
@@ -65,7 +65,7 @@ export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPa
     const legacyState = path.join(legacyPath, "Local State");
     const sourceState = (yield* inspect(legacyState))
       ? legacyState
-      : path.join(input.appDataDirectory, "Supacode", "Local State");
+      : path.join(input.appDataDirectory, "Supaterm", "Local State");
     if (!(yield* inspect(sourceState))) return destinationPath;
     // Windows safeStorage keys live here. Copy only these preferences, never locked databases.
     const state = yield* fs

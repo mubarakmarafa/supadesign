@@ -25,7 +25,7 @@ export function SettingsProjectOverridesSection(props: {
             onPress={props.onClear}
             className="px-2 py-2 active:opacity-70"
           >
-            <Text className="text-sm font-supacode-medium text-primary-text">Use defaults</Text>
+            <Text className="text-sm font-supaterm-medium text-primary-text">Use defaults</Text>
           </Pressable>
         ) : null}
       </View>

@@ -8,7 +8,7 @@ import {
   ProviderInstanceId,
   ProjectId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { ThreadOutboxEntry } from "./threadOutboxDelivery";
 import { DraftId } from "../composerDraftStore";
 import type { OutboxTurn } from "./threadOutboxSchema";
@@ -104,12 +104,12 @@ vi.mock("../composerDraftStore", () => ({
 vi.mock("../lib/imageCompression", () => ({
   readFileAsDataUrl: async (file: File) => `data:${file.type};base64,${btoa(await file.text())}`,
 }));
-vi.mock("@supacode/client-runtime/state/runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@supacode/client-runtime/state/runtime")>()),
+vi.mock("@supaterm/client-runtime/state/runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@supaterm/client-runtime/state/runtime")>()),
   runAtomCommand: (...args: unknown[]) => harness.run(...args),
 }));
-vi.mock("@supacode/client-runtime/state/attachments", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@supacode/client-runtime/state/attachments")>()),
+vi.mock("@supaterm/client-runtime/state/attachments", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@supaterm/client-runtime/state/attachments")>()),
   verifyPersistedAttachmentUpload: (...args: unknown[]) => harness.verify(...args),
 }));
 vi.mock("./threadOutboxStorage", () => ({

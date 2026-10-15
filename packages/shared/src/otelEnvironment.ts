@@ -3,8 +3,8 @@
  * shared by the server and the desktop main process so both agree on what
  * turns export off and where it goes.
  *
- * `SUPACODE_OTEL_SDK_DISABLED` is read first, so a machine that sets
- * `OTEL_SDK_DISABLED` for everything else can still opt Supacode back in.
+ * `SUPATERM_OTEL_SDK_DISABLED` is read first, so a machine that sets
+ * `OTEL_SDK_DISABLED` for everything else can still opt Supaterm back in.
  *
  * @module otelEnvironment
  */
@@ -18,7 +18,7 @@ import * as SchemaTransformation from "effect/SchemaTransformation";
 
 import { OtlpHeadersFromString, OtlpProtocol, type SignalExport } from "./observability.ts";
 
-/** The signals Supacode exports, spelled as the variable names spell them. */
+/** The signals Supaterm exports, spelled as the variable names spell them. */
 type OtlpSignalName = "TRACES" | "METRICS" | "LOGS";
 
 /**
@@ -100,8 +100,8 @@ const flag = (
   );
 
 // `Config.Boolean`'s literals, which effect does not export on their own.
-const SUPACODE_TRUE = ["true", "yes", "on", "1", "y"];
-const SUPACODE_FALSE = ["false", "no", "off", "0", "n"];
+const SUPATERM_TRUE = ["true", "yes", "on", "1", "y"];
+const SUPATERM_FALSE = ["false", "no", "off", "0", "n"];
 
 const RESOURCE_ATTRIBUTES = "OTEL_RESOURCE_ATTRIBUTES";
 
@@ -192,7 +192,7 @@ const isExporter = (entry: string): entry is Exporter => EXPORTERS.has(entry);
 
 /**
  * `OTEL_<SIGNAL>_EXPORTER`, a case-insensitive list whose default is `otlp`.
- * Entries Supacode has no exporter for are named in a warning and dropped, and
+ * Entries Supaterm has no exporter for are named in a warning and dropped, and
  * a list left with nothing to honor reads as unset, as the specification asks
  * of any enum value an implementation does not recognize.
  */
@@ -211,7 +211,7 @@ const exporter = (name: string): Config.Config<Setting<Exporter>> =>
         ? { value }
         : {
             value,
-            warning: `${name} names ${ignored.join(", ")}, which Supacode does not export to, so ${ignored.length === 1 ? "it was" : "they were"} ignored`,
+            warning: `${name} names ${ignored.join(", ")}, which Supaterm does not export to, so ${ignored.length === 1 ? "it was" : "they were"} ignored`,
           };
     }),
   );
@@ -293,11 +293,11 @@ const endpointSignal = (name: OtlpSignalName, own: Settings, generic: Settings):
 };
 
 export const load: Effect.Effect<OtelEnvironment> = Config.all({
-  supacode: flag(
-    "SUPACODE_OTEL_SDK_DISABLED",
-    SUPACODE_TRUE,
-    SUPACODE_FALSE,
-    (value) => `SUPACODE_OTEL_SDK_DISABLED=${value} is not a yes or a no and was ignored`,
+  supaterm: flag(
+    "SUPATERM_OTEL_SDK_DISABLED",
+    SUPATERM_TRUE,
+    SUPATERM_FALSE,
+    (value) => `SUPATERM_OTEL_SDK_DISABLED=${value} is not a yes or a no and was ignored`,
   ),
   // The specification: a boolean it defines is true "only by the
   // case-insensitive string `true`", implementations "MUST NOT" accept other
@@ -307,7 +307,7 @@ export const load: Effect.Effect<OtelEnvironment> = Config.all({
     ["true"],
     ["false"],
     (value) =>
-      `OTEL_SDK_DISABLED=${value} was read as false; the OpenTelemetry specification recognizes only the string true, so use OTEL_SDK_DISABLED=true or SUPACODE_OTEL_SDK_DISABLED to say it any other way`,
+      `OTEL_SDK_DISABLED=${value} was read as false; the OpenTelemetry specification recognizes only the string true, so use OTEL_SDK_DISABLED=true or SUPATERM_OTEL_SDK_DISABLED to say it any other way`,
   ),
   resource: resourceAttributes,
   generic: settings("OTEL_EXPORTER_OTLP_"),
@@ -320,8 +320,8 @@ export const load: Effect.Effect<OtelEnvironment> = Config.all({
     logs: exporter("OTEL_LOGS_EXPORTER"),
   }),
 }).pipe(
-  Effect.map(({ supacode, spec, resource, generic, exporters, ...own }) => {
-    const disabled = supacode.value ?? spec.value ?? false;
+  Effect.map(({ supaterm, spec, resource, generic, exporters, ...own }) => {
+    const disabled = supaterm.value ?? spec.value ?? false;
     // The kill switch wins outright, so the signals say nothing once it is set.
     const signals = disabled
       ? undefined
@@ -335,16 +335,16 @@ export const load: Effect.Effect<OtelEnvironment> = Config.all({
       signals === undefined ? [] : Object.values(signals).flatMap((resolved) => resolved.used),
     );
     const warnings = [
-      supacode.warning,
+      supaterm.warning,
       spec.warning,
       resource.warning,
       ...Array.from(used, (setting) => setting.warning),
     ].filter((warning) => warning !== undefined);
     if (disabled) {
       warnings.push(
-        supacode.value
-          ? "SUPACODE_OTEL_SDK_DISABLED is set, so no telemetry is exported, whatever configured it"
-          : "OTEL_SDK_DISABLED is set, so no telemetry is exported, whatever configured it; set SUPACODE_OTEL_SDK_DISABLED=false to export anyway",
+        supaterm.value
+          ? "SUPATERM_OTEL_SDK_DISABLED is set, so no telemetry is exported, whatever configured it"
+          : "OTEL_SDK_DISABLED is set, so no telemetry is exported, whatever configured it; set SUPATERM_OTEL_SDK_DISABLED=false to export anyway",
       );
     }
     return {
@@ -368,33 +368,33 @@ export interface SignalEndpoint {
 }
 
 /**
- * Where one signal exports and how. `SUPACODE_OTLP_*_URL` wins outright with
- * Supacode's own export, then an OTEL endpoint with its own headers and
- * protocol, since `SUPACODE_OTLP_HEADERS` was written for a different
- * collector, then the first of `fallbackUrls` with Supacode's own export.
+ * Where one signal exports and how. `SUPATERM_OTLP_*_URL` wins outright with
+ * Supaterm's own export, then an OTEL endpoint with its own headers and
+ * protocol, since `SUPATERM_OTLP_HEADERS` was written for a different
+ * collector, then the first of `fallbackUrls` with Supaterm's own export.
  */
 export const resolveSignalEndpoint = (
   otel: OtelEnvironment,
   signal: SignalName,
-  supacode: { readonly url: string | undefined; readonly export: SignalExport },
+  supaterm: { readonly url: string | undefined; readonly export: SignalExport },
   ...fallbackUrls: ReadonlyArray<string | undefined>
 ): SignalEndpoint | undefined => {
   if (otel.disabled) {
     return undefined;
   }
-  const supacodeUrl = blankAsUnset(supacode.url);
-  if (supacodeUrl !== undefined) {
-    return { url: supacodeUrl, export: supacode.export };
+  const supatermUrl = blankAsUnset(supaterm.url);
+  if (supatermUrl !== undefined) {
+    return { url: supatermUrl, export: supaterm.export };
   }
   return OtelSignal.$match(otel[signal], {
     Export: ({ url, protocol, headers }): SignalEndpoint => ({
       url,
-      export: { protocol, headers, exportIntervalMs: supacode.export.exportIntervalMs },
+      export: { protocol, headers, exportIntervalMs: supaterm.export.exportIntervalMs },
     }),
     Off: () => undefined,
     Unset: () => {
       const url = fallbackUrls.map(blankAsUnset).find((candidate) => candidate !== undefined);
-      return url === undefined ? undefined : { url, export: supacode.export };
+      return url === undefined ? undefined : { url, export: supaterm.export };
     },
   });
 };

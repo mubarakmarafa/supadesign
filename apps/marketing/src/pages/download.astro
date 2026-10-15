@@ -15,7 +15,7 @@ const imageProps = {
 } satisfies Partial<ComponentProps<typeof Image>>;
 ---
 
-<Layout title="Download — Supacode" description="Download Supacode for macOS, Windows, or Linux.">
+<Layout title="Download — Supaterm" description="Download Supaterm for macOS, Windows, or Linux.">
   <div class="download-page" id="download-page" data-channel="stable">
     <!-- The sky lives behind the header and fades to the page. It only shows on the nightly channel. -->
     <header class="download-head">
@@ -25,7 +25,7 @@ const imageProps = {
           <Image class="head-icon--stable" src={iconStable} width={64} height={64} loading="eager" {...imageProps} />
           <Image class="head-icon--nightly" src={iconNightly} width={64} height={64} loading="eager" {...imageProps} />
         </span>
-        <h1 class="heading">Download Supacode</h1>
+        <h1 class="heading">Download Supaterm</h1>
       </div>
       <div class="channel-toggle" role="tablist" aria-label="Release channel" data-rise style="--d:90ms">
         <span class="channel-thumb" aria-hidden="true"></span>
@@ -122,13 +122,13 @@ const imageProps = {
           <svg class="platform-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7l5 5-5 5M12 17h7"/></svg>
           <h2 class="platform-name">Terminal</h2>
         </div>
-        <code class="cli-line cli-line--stable">curl -fsSL https://next.supacode.sh/install.sh | sh</code>
-        <code class="cli-line cli-line--stable">irm https://next.supacode.sh/install.ps1 | iex</code>
-        <code class="cli-line cli-line--nightly">curl -fsSL https://next.supacode.sh/install.sh | SUPACODE_CHANNEL=nightly sh</code>
-        <code class="cli-line cli-line--nightly">$env:SUPACODE_CHANNEL="nightly"; irm https://next.supacode.sh/install.ps1 | iex</code>
+        <code class="cli-line cli-line--stable">curl -fsSL https://supaterm.com/install.sh | sh</code>
+        <code class="cli-line cli-line--stable">irm https://supaterm.com/install.ps1 | iex</code>
+        <code class="cli-line cli-line--nightly">curl -fsSL https://supaterm.com/install.sh | SUPATERM_CHANNEL=nightly sh</code>
+        <code class="cli-line cli-line--nightly">$env:SUPATERM_CHANNEL="nightly"; irm https://supaterm.com/install.ps1 | iex</code>
         <p class="cli-note">Or try it once without installing:</p>
-        <code class="cli-line cli-line--stable">npx supacode@latest</code>
-        <code class="cli-line cli-line--nightly">npx supacode@nightly</code>
+        <code class="cli-line cli-line--stable">npx supaterm@latest</code>
+        <code class="cli-line cli-line--nightly">npx supaterm@nightly</code>
       </section>
     </div>
 

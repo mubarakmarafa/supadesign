@@ -40,7 +40,7 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 const appLinking = {
-  prefixes: [Linking.createURL("/"), "supacode://", "supacode-dev://", "supacode-preview://"],
+  prefixes: [Linking.createURL("/"), "supaterm://", "supaterm-dev://", "supaterm-preview://"],
   // Keep the compact thread list available beneath a directly opened thread.
   config: { initialRouteName: "Home" },
   filter: shouldHandleAppLink,

@@ -1,7 +1,7 @@
 import {
   canonicalRepositoryKey,
   sourceControlRepositorySelector,
-} from "@supacode/shared/sourceControl";
+} from "@supaterm/shared/sourceControl";
 import {
   CommandId,
   type OrchestrationProjectShell,
@@ -9,8 +9,8 @@ import {
   type OrchestrationV2ThreadShell,
   type ThreadId,
   type ThreadLinkedPullRequest,
-} from "@supacode/contracts";
-import { makeDrainableWorker } from "@supacode/shared/DrainableWorker";
+} from "@supaterm/contracts";
+import { makeDrainableWorker } from "@supaterm/shared/DrainableWorker";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -34,7 +34,7 @@ class ThreadPullRequestServiceV2 extends Context.Service<
     readonly start: () => Effect.Effect<void, never, Scope.Scope>;
     readonly drain: Effect.Effect<void>;
   }
->()("supacode/orchestration-v2/ThreadPullRequestService/ThreadPullRequestServiceV2") {}
+>()("supaterm/orchestration-v2/ThreadPullRequestService/ThreadPullRequestServiceV2") {}
 
 function samePullRequest(
   left: ThreadLinkedPullRequest | null | undefined,

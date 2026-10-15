@@ -1,5 +1,5 @@
-import type { DeviceHubAccess } from "@supacode/client-runtime/state/deviceHubAccess";
-import { withDeviceHubQuery } from "@supacode/client-runtime/state/deviceHubAccess";
+import type { DeviceHubAccess } from "@supaterm/client-runtime/state/deviceHubAccess";
+import { withDeviceHubQuery } from "@supaterm/client-runtime/state/deviceHubAccess";
 
 export type AndroidFoldPosture = "closed" | "opened";
 

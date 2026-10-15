@@ -4,13 +4,13 @@ import type {
   ProviderAuthRespondInput,
   ProviderAuthState,
   ProviderSetupError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type * as Effect from "effect/Effect";
 import type * as Scope from "effect/Scope";
 import type * as Stream from "effect/Stream";
 
 export interface ProviderAuthController {
-  readonly credentialBinding?: { readonly owner: "provider" | "supacode"; readonly key: string };
+  readonly credentialBinding?: { readonly owner: "provider" | "supaterm"; readonly key: string };
   readonly reconnectProfile?: (
     methodId: string,
   ) => Effect.Effect<ChatGptReconnectProfile | null, ProviderSetupError>;

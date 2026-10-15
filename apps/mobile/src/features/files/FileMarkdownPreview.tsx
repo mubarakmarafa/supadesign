@@ -1,6 +1,6 @@
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { resolveMobileMarkdownMediaSource } from "../../lib/markdownMediaSource";
-import { getBrowseDirectoryPath } from "@supacode/client-runtime/state/projects";
+import { getBrowseDirectoryPath } from "@supaterm/client-runtime/state/projects";
 import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 

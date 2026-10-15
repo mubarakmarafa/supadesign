@@ -9,9 +9,9 @@ import type {
   PullRequestReaction,
   PullRequestReactionContent,
   PullRequestReviewThread,
-} from "@supacode/contracts";
-import type { ProviderChangeRequest } from "@supacode/source-control-core/server/PullRequestProvider";
-import { dedupeChecks } from "@supacode/source-control-core/server/pullRequestChecks";
+} from "@supaterm/contracts";
+import type { ProviderChangeRequest } from "@supaterm/source-control-core/server/PullRequestProvider";
+import { dedupeChecks } from "@supaterm/source-control-core/server/pullRequestChecks";
 
 export const ForgejoUser = Schema.Struct({
   login: Schema.String,

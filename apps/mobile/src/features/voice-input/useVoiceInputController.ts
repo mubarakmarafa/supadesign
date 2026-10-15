@@ -5,7 +5,7 @@ import { Keyboard } from "react-native";
 import {
   voiceInputBlocksSubmission,
   type VoiceInputState,
-} from "@supacode/client-runtime/voice-input";
+} from "@supaterm/client-runtime/voice-input";
 
 import type { ComposerEditorSelection } from "../../components/ComposerEditor";
 import { useGlobalVoiceInput } from "./VoiceInputProvider";

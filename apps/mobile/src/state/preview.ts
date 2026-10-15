@@ -1,18 +1,18 @@
 import { useAtomValue } from "@effect/atom-react";
-import { parseScopedThreadKey, scopedThreadKey } from "@supacode/client-runtime/environment";
-import { PREVIEW_STREAM_BASE_PATH } from "@supacode/client-runtime/preview/server-browser-stream";
-import { createPreviewEnvironmentAtoms } from "@supacode/client-runtime/state/preview";
+import { parseScopedThreadKey, scopedThreadKey } from "@supaterm/client-runtime/environment";
+import { PREVIEW_STREAM_BASE_PATH } from "@supaterm/client-runtime/preview/server-browser-stream";
+import { createPreviewEnvironmentAtoms } from "@supaterm/client-runtime/state/preview";
 import {
   type DeviceHubAccess,
   resolveDeviceHubAccess,
-} from "@supacode/client-runtime/state/deviceHubAccess";
+} from "@supaterm/client-runtime/state/deviceHubAccess";
 import type {
   EnvironmentId,
   PreviewEvent,
   PreviewListResult,
   PreviewSessionSnapshot,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";

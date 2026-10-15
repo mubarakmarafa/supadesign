@@ -12,8 +12,8 @@ import {
 /**
  * Inline context records: the typed payload behind every composer chip.
  * A message's `text` carries position through canonical reference links
- * (`[label](supacode-context://v1/<kind>/<contextId>)`, see
- * `@supacode/shared/composerContextReferences`); these records carry the payload,
+ * (`[label](supaterm-context://v1/<kind>/<contextId>)`, see
+ * `@supaterm/shared/composerContextReferences`); these records carry the payload,
  * keyed by `contextId`. Bytes never live here: image and file records bind to a
  * `ChatAttachment` by id.
  */
@@ -223,7 +223,7 @@ export type SkillContextRecord = typeof SkillContextRecord.Type;
 
 /**
  * Another thread on the same server, attached so the agent can read its history through
- * `supacode_thread_read`. Only identity travels; the title is a display snapshot.
+ * `supaterm_thread_read`. Only identity travels; the title is a display snapshot.
  */
 export const ThreadContextRecord = Schema.Struct({
   ...recordBase,

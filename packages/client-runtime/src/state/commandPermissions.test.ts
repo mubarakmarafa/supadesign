@@ -18,7 +18,7 @@ import {
   WS_METHODS,
   ORCHESTRATION_V2_WS_METHODS,
   type AuthSessionState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";

@@ -2,12 +2,12 @@ import {
   legacyThreadPullRequestKey,
   normalizeThreadPullRequestKey,
   threadPullRequestKeysEqual,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 import {
   PullRequestLinkedThreadsResult,
   PullRequestOperationError,
   type ThreadPullRequestKey,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/sql/SqlClient";

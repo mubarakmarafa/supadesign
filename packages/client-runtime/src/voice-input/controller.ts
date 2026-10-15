@@ -1,4 +1,4 @@
-import { replaceTextRange } from "@supacode/shared/composerTrigger";
+import { replaceTextRange } from "@supaterm/shared/composerTrigger";
 
 import type { PreparedVoiceTranscription, VoiceTranscriber } from "./transcription.ts";
 

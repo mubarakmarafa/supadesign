@@ -1,5 +1,5 @@
-import type { EnvironmentId } from "@supacode/contracts";
-import { buildProjectGroups } from "@supacode/client-runtime/state/project-grouping";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { buildProjectGroups } from "@supaterm/client-runtime/state/project-grouping";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 
 import { useEnvironments, type EnvironmentPresentation } from "../../state/environments";

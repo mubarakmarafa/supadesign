@@ -1,12 +1,12 @@
-import type { ProjectId, ScopedThreadRef, ThreadPullRequestLink } from "@supacode/contracts";
+import type { ProjectId, ScopedThreadRef, ThreadPullRequestLink } from "@supaterm/contracts";
 import {
   sourceControlClients,
   UNKNOWN_SOURCE_CONTROL_CLIENT,
-} from "@supacode/client-runtime/source-control-clients";
+} from "@supaterm/client-runtime/source-control-clients";
 import {
   resolveThreadPullRequestChains,
   visibleThreadPullRequests,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 import {
   ArrowUpRightIcon,
   EyeIcon,

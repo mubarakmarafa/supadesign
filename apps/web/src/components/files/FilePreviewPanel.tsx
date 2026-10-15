@@ -5,14 +5,14 @@ import {
   type EnvironmentId,
   type ResolvedKeybindingsConfig,
   type ScopedThreadRef,
-} from "@supacode/contracts";
-import { filePreviewDelimiter } from "@supacode/shared/delimitedPreview";
-import { AuthFilesystemWriteScope } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { filePreviewDelimiter } from "@supaterm/shared/delimitedPreview";
+import { AuthFilesystemWriteScope } from "@supaterm/contracts";
 import {
   isWorkspaceAudioPreviewPath,
   isWorkspaceImagePreviewPath,
   isWorkspaceVideoPreviewPath,
-} from "@supacode/shared/filePreview";
+} from "@supaterm/shared/filePreview";
 import {
   DEFAULT_TOKENIZE_MAX_LENGTH,
   VirtualizedFile,
@@ -35,8 +35,8 @@ import { useFilesystemReadAccess } from "~/state/filesystem";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import { mediaFileReference } from "@supacode/client-runtime/media-reference";
+} from "@supaterm/client-runtime/state/runtime";
+import { mediaFileReference } from "@supaterm/client-runtime/media-reference";
 import { FolderTree, Globe2, WrapTextIcon } from "lucide-react";
 import { Code2, Eye, Table2 } from "lucide";
 import * as Schema from "effect/Schema";
@@ -57,8 +57,8 @@ import { resolveDiffThemeName } from "~/lib/diffRendering";
 import { PREFERRED_HIGHLIGHTER } from "~/lib/syntaxHighlighting";
 import { cn } from "~/lib/utils";
 import type { ChatFileAttachment } from "~/types";
-import { isAbsolutePath } from "@supacode/shared/path";
-import { resolvePathLinkTarget } from "@supacode/shared/fileLinks";
+import { isAbsolutePath } from "@supaterm/shared/path";
+import { resolvePathLinkTarget } from "@supaterm/shared/fileLinks";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";
 import { type DraftId, useComposerDraftStore } from "~/composerDraftStore";
@@ -134,10 +134,10 @@ interface FilePreviewPanelProps {
   workspaceMutationId: string | null;
 }
 
-const FILE_EXPLORER_STORAGE_KEY = "supacode.fileExplorerOpen";
-const RENDER_MARKDOWN_STORAGE_KEY = "supacode.renderMarkdown";
-const RENDER_BROWSER_FILE_STORAGE_KEY = "supacode.renderBrowserFile";
-const RENDER_TABLE_STORAGE_KEY = "supacode.renderTable";
+const FILE_EXPLORER_STORAGE_KEY = "supaterm.fileExplorerOpen";
+const RENDER_MARKDOWN_STORAGE_KEY = "supaterm.renderMarkdown";
+const RENDER_BROWSER_FILE_STORAGE_KEY = "supaterm.renderBrowserFile";
+const RENDER_TABLE_STORAGE_KEY = "supaterm.renderTable";
 // Shared by the read-only and annotated surfaces, so it is generic over annotation metadata.
 type FilePostRender = <LAnnotation>(
   fileContainer: HTMLElement,
@@ -192,7 +192,7 @@ function WorkspaceImagePreview(props: {
   }
 
   return assetUrl._tag === "Success" && imageUrl !== null ? (
-    // oxlint-disable-next-line supacode/require-centered-scroll-gutter -- The image is capped at max-h-full max-w-full, so this never scrolls.
+    // oxlint-disable-next-line supaterm/require-centered-scroll-gutter -- The image is capped at max-h-full max-w-full, so this never scrolls.
     <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
       <MediaActions source={actionsSource}>
         <img

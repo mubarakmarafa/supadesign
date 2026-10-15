@@ -7,8 +7,8 @@ import {
   type ProviderInstanceId,
   type ServerProvider,
   type ServerProviderModel,
-} from "@supacode/contracts";
-import { createModelCapabilities, resolveSelectableModel } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { createModelCapabilities, resolveSelectableModel } from "@supaterm/shared/model";
 
 const EMPTY_CAPABILITIES: ModelCapabilities = createModelCapabilities({
   optionDescriptors: [],

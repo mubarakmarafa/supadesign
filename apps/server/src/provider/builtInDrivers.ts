@@ -23,19 +23,19 @@
 import {
   AcpRegistryDriver,
   type AcpRegistryDriverEnv,
-} from "@supacode/provider-acp-registry/server";
+} from "@supaterm/provider-acp-registry/server";
 import { AntigravityDriver, type AntigravityDriverEnv } from "./Drivers/AntigravityDriver.ts";
 import { ClaudeDriver, type ClaudeDriverEnv } from "./Drivers/ClaudeDriver.ts";
 import { CodexDriver, type CodexDriverEnv } from "./Drivers/CodexDriver.ts";
-import { CursorDriver, type CursorDriverEnv } from "@supacode/provider-cursor/server";
-import { GrokDriver, type GrokDriverEnv } from "@supacode/provider-grok/server";
-import { OpenCodeDriver, type OpenCodeDriverEnv } from "@supacode/provider-opencode/server";
-import { MuseDriver, type MuseDriverEnv } from "@supacode/provider-muse/server";
-import { PiDriver, type PiDriverEnv } from "@supacode/provider-pi/server";
+import { CursorDriver, type CursorDriverEnv } from "@supaterm/provider-cursor/server";
+import { GrokDriver, type GrokDriverEnv } from "@supaterm/provider-grok/server";
+import { OpenCodeDriver, type OpenCodeDriverEnv } from "@supaterm/provider-opencode/server";
+import { MuseDriver, type MuseDriverEnv } from "@supaterm/provider-muse/server";
+import { PiDriver, type PiDriverEnv } from "@supaterm/provider-pi/server";
 import type {
   AnyProviderDriver,
   ProviderUsageReaderEnv,
-} from "@supacode/provider-core/server/driver";
+} from "@supaterm/provider-core/server/driver";
 
 /**
  * Union of infrastructure services required to construct any built-in

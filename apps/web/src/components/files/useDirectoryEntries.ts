@@ -1,5 +1,5 @@
-import type { EnvironmentId, ProjectEntry } from "@supacode/contracts";
-import { executeAtomQuery } from "@supacode/client-runtime/state/runtime";
+import type { EnvironmentId, ProjectEntry } from "@supaterm/contracts";
+import { executeAtomQuery } from "@supaterm/client-runtime/state/runtime";
 import * as Cause from "effect/Cause";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

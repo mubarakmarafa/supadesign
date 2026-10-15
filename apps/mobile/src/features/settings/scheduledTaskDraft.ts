@@ -5,13 +5,13 @@ import type {
   RuntimeMode,
   ScheduledTask,
   ScheduledTaskUpsertSchedule,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
-import { DEFAULT_SERVER_SETTINGS } from "@supacode/contracts";
+import { DEFAULT_SERVER_SETTINGS } from "@supaterm/contracts";
 import {
   resolveProjectSettings,
   type LegacyProjectSettingsFields,
-} from "@supacode/shared/projectSettings";
+} from "@supaterm/shared/projectSettings";
 import {
   buildModelOptions,
   resolveDefaultableModelSelection,

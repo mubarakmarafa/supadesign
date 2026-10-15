@@ -1,9 +1,9 @@
-import { AuthSettingsWriteScope, type EnvironmentId } from "@supacode/contracts";
+import { AuthSettingsWriteScope, type EnvironmentId } from "@supaterm/contracts";
 import { ExternalLinkIcon } from "lucide-react";
 import { useState } from "react";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
-import { readGitHubSettings } from "@supacode/client-runtime/source-control-clients";
+import { readGitHubSettings } from "@supaterm/client-runtime/source-control-clients";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button, InlineButton } from "../ui/button";

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 
-import { VoiceInputController } from "@supacode/client-runtime/voice-input";
+import { VoiceInputController } from "@supaterm/client-runtime/voice-input";
 
 import { createLazyVoiceRecorder, type VoiceRecordingInput } from "./lazyVoiceRecorder";
 

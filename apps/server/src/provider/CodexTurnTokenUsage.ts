@@ -1,4 +1,4 @@
-import type { TurnTokenUsage } from "@supacode/contracts";
+import type { TurnTokenUsage } from "@supaterm/contracts";
 import type * as EffectCodexSchema from "effect-codex-app-server/schema";
 
 type CodexCumulativeTokenUsage = {

@@ -5,7 +5,7 @@ import {
   ProjectId,
   type RepositoryIdentity,
   type ThreadPullRequestLink,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

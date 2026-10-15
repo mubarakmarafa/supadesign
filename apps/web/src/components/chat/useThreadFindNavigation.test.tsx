@@ -262,7 +262,7 @@ describe("find result navigation", () => {
     );
     expect(scrollToIndex).not.toHaveBeenCalled();
     expect(scrollToOffset).not.toHaveBeenCalled();
-    const highlight = CSS.highlights.get("supacode-thread-find-active");
+    const highlight = CSS.highlights.get("supaterm-thread-find-active");
     const ranges = [...(highlight as unknown as Set<Range>)];
     expect(ranges).toHaveLength(1);
     expect(ranges[0]?.startOffset).toBe(9);
@@ -281,7 +281,7 @@ describe("find result navigation", () => {
     expect(scrollToOffset).toHaveBeenCalledExactlyOnceWith({ offset: 504, animated: false });
     expect(scrollToIndex).not.toHaveBeenCalled();
     expect(
-      Array.from(CSS.highlights.get("supacode-thread-find-active") ?? [], (range) =>
+      Array.from(CSS.highlights.get("supaterm-thread-find-active") ?? [], (range) =>
         range.toString(),
       ),
     ).toEqual(["COD4"]);

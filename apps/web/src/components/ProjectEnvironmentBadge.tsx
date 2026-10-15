@@ -1,4 +1,4 @@
-import type { EnvironmentId, EnvironmentMachineKind } from "@supacode/contracts";
+import type { EnvironmentId, EnvironmentMachineKind } from "@supaterm/contracts";
 
 import type { SidebarProjectSnapshot } from "~/sidebarProjectGrouping";
 import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";

@@ -1,5 +1,5 @@
-import { AuthOrchestrationOperateScope, EnvironmentId, type EditorId } from "@supacode/contracts";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { AuthOrchestrationOperateScope, EnvironmentId, type EditorId } from "@supaterm/contracts";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { AsyncResult } from "effect/reactivity";
 import { cloneElement, useState, type ReactElement, type ReactNode } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";

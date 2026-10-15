@@ -1,5 +1,5 @@
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import { EnvironmentId, ProjectId } from "@supacode/contracts";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import { EnvironmentId, ProjectId } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 vi.mock("@react-navigation/native", () => ({}));
@@ -11,7 +11,7 @@ import { resolveStartNewTaskTarget } from "./use-start-new-task";
 const project = {
   environmentId: EnvironmentId.make("environment-1"),
   id: ProjectId.make("project-1"),
-  title: "supacode",
+  title: "supaterm",
 } as EnvironmentProject;
 const stickyProject = { environmentId: project.environmentId, projectId: project.id };
 
@@ -21,7 +21,7 @@ describe("resolveStartNewTaskTarget", () => {
       resolveStartNewTaskTarget({ topRouteName: "Home", stickyProject, projects: [project] }),
     ).toEqual({
       screen: "NewTaskDraft",
-      params: { environmentId: "environment-1", projectId: "project-1", title: "supacode" },
+      params: { environmentId: "environment-1", projectId: "project-1", title: "supaterm" },
     });
   });
 

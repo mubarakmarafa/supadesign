@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as DateTime from "effect/DateTime";
@@ -9,27 +9,27 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import { ChildProcessSpawner } from "effect/process";
 import * as TestClock from "effect/testing/TestClock";
-import { VcsProcessSpawnError, VcsRepositoryDetectionError } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { VcsProcessSpawnError, VcsRepositoryDetectionError } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import * as ServerSettings from "../serverSettings.ts";
 import * as ServerConfig from "../config.ts";
 import type * as VcsDriver from "../vcs/VcsDriver.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
 import * as VcsProcess from "../vcs/VcsProcess.ts";
-import * as AzureDevOpsCli from "@supacode/source-control-azure-devops/server/AzureDevOpsCli";
-import * as AzureDevOpsPullRequestCli from "@supacode/source-control-azure-devops/server/AzureDevOpsPullRequestCli";
-import * as BitbucketApi from "@supacode/source-control-bitbucket/server/BitbucketApi";
-import * as BitbucketPullRequestApi from "@supacode/source-control-bitbucket/server/BitbucketPullRequestApi";
+import * as AzureDevOpsCli from "@supaterm/source-control-azure-devops/server/AzureDevOpsCli";
+import * as AzureDevOpsPullRequestCli from "@supaterm/source-control-azure-devops/server/AzureDevOpsPullRequestCli";
+import * as BitbucketApi from "@supaterm/source-control-bitbucket/server/BitbucketApi";
+import * as BitbucketPullRequestApi from "@supaterm/source-control-bitbucket/server/BitbucketPullRequestApi";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
-import * as GitHubApi from "@supacode/source-control-github/server/GitHubApi";
-import * as GitHubPullRequestApi from "@supacode/source-control-github/server/GitHubPullRequestApi";
-import * as GitHubCredentials from "@supacode/source-control-github/server/GitHubCredentials";
-import * as GitLabCli from "@supacode/source-control-gitlab/server/GitLabCli";
-import * as GitLabPullRequestCli from "@supacode/source-control-gitlab/server/GitLabPullRequestCli";
-import * as ForgejoCli from "@supacode/source-control-forgejo/server/ForgejoCli";
-import * as GitCafeApi from "@supacode/source-control-gitcafe/server/GitCafeApi";
-import * as GitCafeCredentials from "@supacode/source-control-gitcafe/server/GitCafeCredentials";
+import * as GitHubApi from "@supaterm/source-control-github/server/GitHubApi";
+import * as GitHubPullRequestApi from "@supaterm/source-control-github/server/GitHubPullRequestApi";
+import * as GitHubCredentials from "@supaterm/source-control-github/server/GitHubCredentials";
+import * as GitLabCli from "@supaterm/source-control-gitlab/server/GitLabCli";
+import * as GitLabPullRequestCli from "@supaterm/source-control-gitlab/server/GitLabPullRequestCli";
+import * as ForgejoCli from "@supaterm/source-control-forgejo/server/ForgejoCli";
+import * as GitCafeApi from "@supaterm/source-control-gitcafe/server/GitCafeApi";
+import * as GitCafeCredentials from "@supaterm/source-control-gitcafe/server/GitCafeCredentials";
 import * as SourceControlProviderRegistry from "./SourceControlProviderRegistry.ts";
 import * as ServerSourceControlHost from "./ServerSourceControlHost.ts";
 
@@ -158,7 +158,7 @@ function makeRegistry(input: {
           cliEnv: () => Effect.succeed({}),
         }),
         ServerConfig.layerTest(process.cwd(), {
-          prefix: "supacode-source-control-registry-test-",
+          prefix: "supaterm-source-control-registry-test-",
         }).pipe(Layer.provide(NodeServices.layer)),
       ).pipe(
         Layer.provideMerge(

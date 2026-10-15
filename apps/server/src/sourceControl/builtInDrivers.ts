@@ -2,29 +2,29 @@
  * The source control drivers this build ships with. Both registries, repository operations and
  * pull requests, iterate this list; a host with no driver here shows up as unsupported.
  *
- * Adding a host means writing its `@supacode/source-control-<host>` package, adding its driver
+ * Adding a host means writing its `@supaterm/source-control-<host>` package, adding its driver
  * here, and providing its services' layers in `layer` below.
  *
  * @module sourceControl/builtInDrivers
  */
-import * as AzureDevOpsCli from "@supacode/source-control-azure-devops/server/AzureDevOpsCli";
-import * as AzureDevOpsPullRequestCli from "@supacode/source-control-azure-devops/server/AzureDevOpsPullRequestCli";
-import * as AzureDevOpsDriver from "@supacode/source-control-azure-devops/server/driver";
-import * as BitbucketApi from "@supacode/source-control-bitbucket/server/BitbucketApi";
-import * as BitbucketPullRequestApi from "@supacode/source-control-bitbucket/server/BitbucketPullRequestApi";
-import * as BitbucketDriver from "@supacode/source-control-bitbucket/server/driver";
-import * as ForgejoCli from "@supacode/source-control-forgejo/server/ForgejoCli";
-import * as ForgejoDriver from "@supacode/source-control-forgejo/server/driver";
-import * as GitCafeApi from "@supacode/source-control-gitcafe/server/GitCafeApi";
-import * as GitCafeCredentials from "@supacode/source-control-gitcafe/server/GitCafeCredentials";
-import * as GitCafeDriver from "@supacode/source-control-gitcafe/server/driver";
-import * as GitHubApi from "@supacode/source-control-github/server/GitHubApi";
-import * as GitHubPullRequestApi from "@supacode/source-control-github/server/GitHubPullRequestApi";
-import * as GitHubDriver from "@supacode/source-control-github/server/driver";
-import * as GitLabCli from "@supacode/source-control-gitlab/server/GitLabCli";
-import * as GitLabPullRequestCli from "@supacode/source-control-gitlab/server/GitLabPullRequestCli";
-import * as GitLabDriver from "@supacode/source-control-gitlab/server/driver";
-import type { SourceControlDriver } from "@supacode/source-control-core/server/driver";
+import * as AzureDevOpsCli from "@supaterm/source-control-azure-devops/server/AzureDevOpsCli";
+import * as AzureDevOpsPullRequestCli from "@supaterm/source-control-azure-devops/server/AzureDevOpsPullRequestCli";
+import * as AzureDevOpsDriver from "@supaterm/source-control-azure-devops/server/driver";
+import * as BitbucketApi from "@supaterm/source-control-bitbucket/server/BitbucketApi";
+import * as BitbucketPullRequestApi from "@supaterm/source-control-bitbucket/server/BitbucketPullRequestApi";
+import * as BitbucketDriver from "@supaterm/source-control-bitbucket/server/driver";
+import * as ForgejoCli from "@supaterm/source-control-forgejo/server/ForgejoCli";
+import * as ForgejoDriver from "@supaterm/source-control-forgejo/server/driver";
+import * as GitCafeApi from "@supaterm/source-control-gitcafe/server/GitCafeApi";
+import * as GitCafeCredentials from "@supaterm/source-control-gitcafe/server/GitCafeCredentials";
+import * as GitCafeDriver from "@supaterm/source-control-gitcafe/server/driver";
+import * as GitHubApi from "@supaterm/source-control-github/server/GitHubApi";
+import * as GitHubPullRequestApi from "@supaterm/source-control-github/server/GitHubPullRequestApi";
+import * as GitHubDriver from "@supaterm/source-control-github/server/driver";
+import * as GitLabCli from "@supaterm/source-control-gitlab/server/GitLabCli";
+import * as GitLabPullRequestCli from "@supaterm/source-control-gitlab/server/GitLabPullRequestCli";
+import * as GitLabDriver from "@supaterm/source-control-gitlab/server/driver";
+import type { SourceControlDriver } from "@supaterm/source-control-core/server/driver";
 import * as Layer from "effect/Layer";
 
 import * as ServerSourceControlHost from "./ServerSourceControlHost.ts";

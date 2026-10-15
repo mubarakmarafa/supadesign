@@ -3,10 +3,10 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { ChildProcessSpawner } from "effect/process";
 
-import { VcsProcessExitError } from "@supacode/contracts";
+import { VcsProcessExitError } from "@supaterm/contracts";
 
-import type * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import * as TestSourceControlHost from "@supacode/source-control-testing/TestSourceControlHost";
+import type * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import * as TestSourceControlHost from "@supaterm/source-control-testing/TestSourceControlHost";
 import * as GitLabCli from "./GitLabCli.ts";
 
 const mockedRun = vi.fn<SourceControlHost.SourceControlHost["Service"]["process"]["run"]>();
@@ -45,7 +45,7 @@ layer("GitLabCli.layer", (it) => {
               source_project_id: 101,
               target_project_id: 100,
               source_project: {
-                path_with_namespace: "octocat/supacode",
+                path_with_namespace: "octocat/supaterm",
               },
             }),
           ),
@@ -70,7 +70,7 @@ layer("GitLabCli.layer", (it) => {
         closedAt: "2026-08-23T10:00:00Z",
         mergedAt: null,
         isCrossRepository: true,
-        headRepositoryNameWithOwner: "octocat/supacode",
+        headRepositoryNameWithOwner: "octocat/supaterm",
         headRepositoryOwnerLogin: "octocat",
       });
       expect(mockedRun).toHaveBeenCalledWith(
@@ -157,10 +157,10 @@ layer("GitLabCli.layer", (it) => {
         Effect.succeed(
           processOutput(
             JSON.stringify({
-              path_with_namespace: "octocat/supacode",
-              web_url: "https://gitlab.com/octocat/supacode",
-              http_url_to_repo: "https://gitlab.com/octocat/supacode.git",
-              ssh_url_to_repo: "git@gitlab.com:octocat/supacode.git",
+              path_with_namespace: "octocat/supaterm",
+              web_url: "https://gitlab.com/octocat/supaterm",
+              http_url_to_repo: "https://gitlab.com/octocat/supaterm.git",
+              ssh_url_to_repo: "git@gitlab.com:octocat/supaterm.git",
             }),
           ),
         ),
@@ -170,14 +170,14 @@ layer("GitLabCli.layer", (it) => {
         const glab = yield* GitLabCli.GitLabCli;
         return yield* glab.getRepositoryCloneUrls({
           cwd: "/repo",
-          repository: "octocat/supacode",
+          repository: "octocat/supaterm",
         });
       });
 
       assert.deepStrictEqual(result, {
-        nameWithOwner: "octocat/supacode",
-        url: "https://gitlab.com/octocat/supacode",
-        sshUrl: "git@gitlab.com:octocat/supacode.git",
+        nameWithOwner: "octocat/supaterm",
+        url: "https://gitlab.com/octocat/supaterm",
+        sshUrl: "git@gitlab.com:octocat/supaterm.git",
       });
     }),
   );
@@ -192,7 +192,7 @@ layer("GitLabCli.layer", (it) => {
         baseBranch: "main",
         headSelector: "owner:feature/provider",
         title: "Provider MR",
-        bodyFile: "/tmp/supacode-mr-body.md",
+        bodyFile: "/tmp/supaterm-mr-body.md",
       });
 
       expect(mockedRun).toHaveBeenCalledWith(
@@ -211,7 +211,7 @@ layer("GitLabCli.layer", (it) => {
             "--raw-field",
             "title=Provider MR",
             "--field",
-            "description=@/tmp/supacode-mr-body.md",
+            "description=@/tmp/supaterm-mr-body.md",
           ],
         }),
       );
@@ -227,10 +227,10 @@ layer("GitLabCli.layer", (it) => {
           Effect.succeed(
             processOutput(
               JSON.stringify({
-                path_with_namespace: "octocat/supacode",
-                web_url: "https://gitlab.com/octocat/supacode",
-                http_url_to_repo: "https://gitlab.com/octocat/supacode.git",
-                ssh_url_to_repo: "git@gitlab.com:octocat/supacode.git",
+                path_with_namespace: "octocat/supaterm",
+                web_url: "https://gitlab.com/octocat/supaterm",
+                http_url_to_repo: "https://gitlab.com/octocat/supaterm.git",
+                ssh_url_to_repo: "git@gitlab.com:octocat/supaterm.git",
               }),
             ),
           ),
@@ -239,14 +239,14 @@ layer("GitLabCli.layer", (it) => {
       const glab = yield* GitLabCli.GitLabCli;
       const result = yield* glab.createRepository({
         cwd: "/repo",
-        repository: "octocat/supacode",
+        repository: "octocat/supaterm",
         visibility: "public",
       });
 
       assert.deepStrictEqual(result, {
-        nameWithOwner: "octocat/supacode",
-        url: "https://gitlab.com/octocat/supacode",
-        sshUrl: "git@gitlab.com:octocat/supacode.git",
+        nameWithOwner: "octocat/supaterm",
+        url: "https://gitlab.com/octocat/supaterm",
+        sshUrl: "git@gitlab.com:octocat/supaterm.git",
       });
       expect(mockedRun).toHaveBeenNthCalledWith(
         1,
@@ -267,9 +267,9 @@ layer("GitLabCli.layer", (it) => {
             "POST",
             "projects",
             "--raw-field",
-            "path=supacode",
+            "path=supaterm",
             "--raw-field",
-            "name=supacode",
+            "name=supaterm",
             "--raw-field",
             "visibility=public",
             "--raw-field",

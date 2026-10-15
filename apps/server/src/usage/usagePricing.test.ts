@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 
-import { cursorRateModel } from "@supacode/provider-cursor/server/accountUsage";
-import type { UsageSpeed } from "@supacode/provider-core/server/usage";
+import { cursorRateModel } from "@supaterm/provider-cursor/server/accountUsage";
+import type { UsageSpeed } from "@supaterm/provider-core/server/usage";
 import {
   cacheSavingsUsd,
   createOverrideRateTable,

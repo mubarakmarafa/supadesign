@@ -6,27 +6,27 @@ import {
   ProviderReplayEntry,
   type ProviderReplayEntry as ProviderReplayEntryType,
   type ProviderReplayTranscript,
-} from "@supacode/contracts";
-import { MuseSettings } from "@supacode/provider-muse/settings";
+} from "@supaterm/contracts";
+import { MuseSettings } from "@supaterm/provider-muse/settings";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import {
   museInitializeParams,
   museServeArgs,
   museWorkspaceRoot,
   type MuseSdkHost,
   type MuseSdkHostOptions,
-} from "@supacode/provider-muse/testing";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+} from "@supaterm/provider-muse/testing";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProviderAdapterRegistry from "../ProviderAdapterRegistry.ts";
-import * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+import * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import type { OrchestratorV2ProviderReplayHarness } from "../testkit/ProviderReplayHarness.ts";
-import { materializeReplayTranscriptWorkspace } from "@supacode/provider-testing/replayTranscript";
-import { makeMuseAdapterV2 } from "@supacode/provider-muse/server";
+import { materializeReplayTranscriptWorkspace } from "@supaterm/provider-testing/replayTranscript";
+import { makeMuseAdapterV2 } from "@supaterm/provider-muse/server";
 
 export const MUSE_PROVIDER_KIND = "muse";
 export const MUSE_MSP_REPLAY_PROTOCOL = "muse.msp-jsonl";

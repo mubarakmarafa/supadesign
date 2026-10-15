@@ -1,4 +1,4 @@
-import type { PullRequestReviewGuideNote } from "@supacode/contracts";
+import type { PullRequestReviewGuideNote } from "@supaterm/contracts";
 
 import { cn } from "~/lib/utils";
 

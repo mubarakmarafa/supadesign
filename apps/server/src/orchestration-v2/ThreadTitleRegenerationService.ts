@@ -1,11 +1,11 @@
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import {
   CommandId,
   type ChatAttachment,
   type MessageId,
   type ServerSettingsError,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -19,8 +19,8 @@ import type { OrchestratorV2Error } from "./Orchestrator.ts";
 import * as ProjectStore from "./ProjectStore.ts";
 import * as ThreadManagementService from "./ThreadManagementService.ts";
 
-import { formatThreadTitleContext } from "@supacode/provider-core/server/threadTitleContext";
-export { formatThreadTitleContext } from "@supacode/provider-core/server/threadTitleContext";
+import { formatThreadTitleContext } from "@supaterm/provider-core/server/threadTitleContext";
+export { formatThreadTitleContext } from "@supaterm/provider-core/server/threadTitleContext";
 
 export class ThreadTitleRegenerationService extends Context.Service<
   ThreadTitleRegenerationService,
@@ -41,7 +41,7 @@ export class ThreadTitleRegenerationService extends Context.Service<
       | ThreadManagementService.ThreadManagementProviderInstanceDisabledError
     >;
   }
->()("supacode/orchestration-v2/ThreadTitleRegenerationService") {}
+>()("supaterm/orchestration-v2/ThreadTitleRegenerationService") {}
 
 const make = Effect.gen(function* () {
   const threads = yield* ThreadManagementService.ThreadManagementService;

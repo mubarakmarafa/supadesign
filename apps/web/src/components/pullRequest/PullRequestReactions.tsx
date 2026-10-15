@@ -4,7 +4,7 @@ import type {
   PullRequestReaction,
   PullRequestReactionContent,
   PullRequestRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { SmilePlusIcon } from "lucide-react";
 import { useState } from "react";
 

@@ -6,7 +6,7 @@ import {
   ProviderDriverKind,
   type ServerSettings,
   DEFAULT_SERVER_SETTINGS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

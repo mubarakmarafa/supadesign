@@ -1,9 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { PendingThreadRequests } from "@supacode/client-runtime/state/thread-requests";
-import { deriveReportedModelSelection } from "@supacode/client-runtime/state/thread-execution";
-import type { ThreadTurnSubagents } from "@supacode/client-runtime/state/thread-subagents";
-import type { EnvironmentThread } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentId, OrchestrationV2ThreadProjection, ThreadId } from "@supacode/contracts";
+import type { PendingThreadRequests } from "@supaterm/client-runtime/state/thread-requests";
+import { deriveReportedModelSelection } from "@supaterm/client-runtime/state/thread-execution";
+import type { ThreadTurnSubagents } from "@supaterm/client-runtime/state/thread-subagents";
+import type { EnvironmentThread } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId, OrchestrationV2ThreadProjection, ThreadId } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import { environmentThreadDetails, useEnvironmentThread } from "./threads";

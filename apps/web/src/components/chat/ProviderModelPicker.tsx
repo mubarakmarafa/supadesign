@@ -4,7 +4,7 @@ import {
   type EnvironmentId,
   type ProviderDriverKind,
   type ResolvedKeybindingsConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { memo, useEffect, useMemo, useState } from "react";
 import { Badge } from "../ui/badge";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";

@@ -22,7 +22,7 @@ import {
   type ProviderOptionSelection,
   type RuntimeMode,
   type ScopedProjectRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 import { useEffect } from "react";
@@ -36,9 +36,9 @@ import {
   formatComposerContextReference,
   sanitizeComposerContextLabel,
   replaceComposerContextReferences,
-} from "@supacode/shared/composerContextReferences";
-import { imageMimeType } from "@supacode/shared/image";
-import { videoMimeType } from "@supacode/shared/video";
+} from "@supaterm/shared/composerContextReferences";
+import { imageMimeType } from "@supaterm/shared/image";
+import { videoMimeType } from "@supaterm/shared/video";
 import { DraftComposerAttachmentSchema } from "../lib/composer-image-schema";
 import {
   composerAttachmentFileReferenceKey,

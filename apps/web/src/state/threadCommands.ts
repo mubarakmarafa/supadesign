@@ -1,4 +1,4 @@
-import { createThreadEnvironmentAtoms } from "@supacode/client-runtime/state/threads";
+import { createThreadEnvironmentAtoms } from "@supaterm/client-runtime/state/threads";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 import { environmentSnapshotAtom } from "./shell";

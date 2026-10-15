@@ -8,13 +8,13 @@ import {
   type RuntimeMode,
   type ProviderInteractionMode,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { redirect } from "@tanstack/react-router";
 
 import {
   resolveProjectSettings,
   type LegacyProjectSettingsFields,
-} from "@supacode/shared/projectSettings";
+} from "@supaterm/shared/projectSettings";
 import type { ProviderInstanceEntry } from "../../providerInstances";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import {

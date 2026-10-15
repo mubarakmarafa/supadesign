@@ -1,4 +1,4 @@
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import type { InteractionUpdate, RunResult } from "@cursor/sdk";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import {
@@ -7,7 +7,7 @@ import {
   ThreadId,
   type ModelSelection,
   type ProviderReplayTranscript,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -15,20 +15,20 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import { ProviderAdapterDriverCreateError } from "@supacode/provider-core/server/adapterDriver";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import { ProviderAdapterDriverCreateError } from "@supaterm/provider-core/server/adapterDriver";
 import * as ProviderAdapterRegistry from "../ProviderAdapterRegistry.ts";
 import type { OrchestratorV2ProviderReplayHarness } from "../testkit/ProviderReplayHarness.ts";
-import { CursorAdapterV2Driver } from "@supacode/provider-cursor/server";
-import * as CursorAgentSdk from "@supacode/provider-cursor/server/CursorAgentSdk";
+import { CursorAdapterV2Driver } from "@supaterm/provider-cursor/server";
+import * as CursorAgentSdk from "@supaterm/provider-cursor/server/CursorAgentSdk";
 import {
   CURSOR_DEFAULT_INSTANCE_ID,
   CURSOR_DRIVER_KIND,
   cursorSdkModelSelection,
   makeCursorAgentOptions,
-} from "@supacode/provider-cursor/testing";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+} from "@supaterm/provider-cursor/testing";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import type { RuntimePolicyV2Override } from "../RuntimePolicy.ts";
 
 const CursorAgentSdkReplayTranscript = Schema.Struct({
@@ -522,7 +522,7 @@ export function layer(
     HostProcess.Environment,
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const home = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-cursor-replay-home-" });
+      const home = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-cursor-replay-home-" });
       return { HOME: home };
     }).pipe(Effect.orDie),
   ).pipe(Layer.provide(NodeServices.layer));

@@ -14,7 +14,7 @@ runs:
     - shell: bash
       run: |
         mise exec -- pnpm config set virtualStoreType project --location project
-        mise exec -- vp install --filter=@supacode/mobile...
+        mise exec -- vp install --filter=@supaterm/mobile...
     - shell: bash
       run: mise exec -- pnpm --version
     - uses: expo/expo-github-action@v8

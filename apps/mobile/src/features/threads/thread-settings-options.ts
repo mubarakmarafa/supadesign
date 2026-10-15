@@ -1,4 +1,4 @@
-import type { ProviderOptionDescriptor, RuntimeMode } from "@supacode/contracts";
+import type { ProviderOptionDescriptor, RuntimeMode } from "@supaterm/contracts";
 
 /**
  * Desktop-oriented effort keywords that don't belong in the phone picker.

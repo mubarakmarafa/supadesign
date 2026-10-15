@@ -1,12 +1,12 @@
-# Install Supacode
+# Install Supaterm
 
-Supacode runs coding agents on your computer and lets you control them from its
+Supaterm runs coding agents on your computer and lets you control them from its
 desktop, web, or mobile app. Set up the machine where the agents will work first.
 
 ## Requirements
 
 You need an installed, authenticated provider before starting a thread. You can
-launch Supacode and configure providers afterwards.
+launch Supaterm and configure providers afterwards.
 
 ## From source
 
@@ -28,12 +28,12 @@ See [development](../operations/development.md) for desktop and mobile builds.
 On Windows, in PowerShell, install the packaged command line with:
 
 ```powershell
-irm https://next.supacode.sh/install.ps1 | iex
+irm https://supaterm.com/install.ps1 | iex
 ```
 
-This installs the `supacode` binary to `~/.local/bin`. If your shell reports
+This installs the `supaterm` binary to `~/.local/bin`. If your shell reports
 `command not found` afterwards, add that directory to `PATH`. Set
-`SUPACODE_CHANNEL=nightly` to install the nightly train, or `SUPACODE_VERSION` to pin an exact
+`SUPATERM_CHANNEL=nightly` to install the nightly train, or `SUPATERM_VERSION` to pin an exact
 version.
 
 ### Intel Macs
@@ -50,40 +50,40 @@ mise exec -- vp run dev
 
 ## Command line
 
-If you have a packaged `supacode` executable installed, these commands are available:
+If you have a packaged `supaterm` executable installed, these commands are available:
 
 | Task                                             | Command                                                         |
 | ------------------------------------------------ | --------------------------------------------------------------- |
-| Start the server and open the web app            | `supacode`                                                      |
-| Start the server without a browser               | `supacode serve`                                                |
-| Keep it running in the background (macOS, Linux) | `supacode service install` ([details](./background-service.md)) |
-| Move to the newest release                       | `supacode update`                                               |
-| Remove it again                                  | `supacode uninstall`                                            |
-| List supported server settings                   | `supacode settings list`                                        |
+| Start the server and open the web app            | `supaterm`                                                      |
+| Start the server without a browser               | `supaterm serve`                                                |
+| Keep it running in the background (macOS, Linux) | `supaterm service install` ([details](./background-service.md)) |
+| Move to the newest release                       | `supaterm update`                                               |
+| Remove it again                                  | `supaterm uninstall`                                            |
+| List supported server settings                   | `supaterm settings list`                                        |
 
-Run `supacode --help` for the full reference.
+Run `supaterm --help` for the full reference.
 
 ## Desktop app
 
 Build the desktop client from this repository. Distribution artifacts belong to
-Supacode's [GitHub Releases](https://github.com/supabitapp/supacode-next/releases).
+Supaterm's [GitHub Releases](https://github.com/supabitapp/supacode-next/releases).
 
-### The `supacode` command
+### The `supaterm` command
 
-The desktop app installs its bundled `supacode` command on startup when possible.
-It preserves an existing `supacode` command from a separate installation. On macOS
+The desktop app installs its bundled `supaterm` command on startup when possible.
+It preserves an existing `supaterm` command from a separate installation. On macOS
 and Linux it creates a link in a writable command folder; on Windows it adds the
 app's command folder to your `PATH`. Open a new terminal afterwards. If the command
-folder is not on your `PATH`, add it to run `supacode` by name.
+folder is not on your `PATH`, add it to run `supaterm` by name.
 
-**Settings → General → About → supacode command** lets you retry installation or
+**Settings → General → About → supaterm command** lets you retry installation or
 remove the command. **Remove** also disables automatic installation until you
 choose **Install** again. The bundled command follows desktop app updates.
 
 ### Windows Subsystem for Linux
 
 Choose a WSL distro in **Settings → Connections** to run agents and projects
-there. Install the provider CLIs inside that distro. Supacode installs its own
+there. Install the provider CLIs inside that distro. Supaterm installs its own
 server runtime there automatically; the first launch after an app update can
 take longer.
 
@@ -92,11 +92,11 @@ take longer.
 With the desktop app already running on the same machine:
 
 ```bash
-supacode app
+supaterm app
 ```
 
 This opens a new thread for the current directory, adding the project if needed.
-Pass a path, such as `supacode app ../my-project`, to open another directory. It requires
+Pass a path, such as `supaterm app ../my-project`, to open another directory. It requires
 the desktop app, so a standalone server or an SSH session is not enough. If the
 command cannot reach the app, start or update the desktop app and try again.
 
@@ -126,17 +126,17 @@ computer.
 | Cursor      | Install [Cursor CLI](https://cursor.com/cli), then run `agent login`.                                                                                     |
 | Grok Build  | Install [Grok Build CLI](https://x.ai/cli), then run `grok login`.                                                                                        |
 | OpenCode    | Install [OpenCode](https://opencode.ai), then run `opencode auth login`.                                                                                  |
-| Antigravity | Install and sign in with Google from Supacode's provider settings.                                                                                        |
+| Antigravity | Install and sign in with Google from Supaterm's provider settings.                                                                                        |
 | Pi          | Install [Pi](./providers-pi.md#set-up-pi) with Node.js 22.19 or newer, then run `pi` and `/login`.                                                        |
 | Muse Code   | Install [Muse Code](https://dev.meta.ai/docs/muse-code) on the server, run `muse login`, then enable it in Settings → Providers.                          |
 
-Provider CLIs must be on the server's `PATH`. If Supacode cannot find one, set its
+Provider CLIs must be on the server's `PATH`. If Supaterm cannot find one, set its
 **Binary path** in provider settings, especially when using a version manager.
 Cursor's executable is `cursor-agent`, although its login command is
 `agent login`. Codex connected through ChatGPT and Antigravity can use their
 managed runtimes without a `PATH` entry.
 
-Supacode warns when a provider version has known compatibility problems with your
+Supaterm warns when a provider version has known compatibility problems with your
 release. Check **Settings → Providers** on that environment for the recommended
 version or range. When its package manager supports installing a specific version,
 you can install the recommendation there. Otherwise use the provider's installer
@@ -145,14 +145,14 @@ on the environment's machine. An unlisted version is unverified.
 When a provider CLI is behind its latest release, its provider card shows the
 available version. **Update now** runs the installer that owns the CLI
 (Homebrew, or a global npm, pnpm, Yarn, Bun, Volta, or Vite+ install), or the
-CLI's own update command when Supacode cannot tell. Update a CLI installed with
-mise through mise. Cursor and Antigravity update with Supacode. Homebrew installs
+CLI's own update command when Supaterm cannot tell. Update a CLI installed with
+mise through mise. Cursor and Antigravity update with Supaterm. Homebrew installs
 compare against the version Homebrew offers, which can trail the npm release by
 a few hours.
 
 Add another provider instance for a separate account or configuration. Each
 instance can have its own environment variables, such as API keys or a custom
-base URL. Mark secret values as sensitive; after saving, Supacode does not display
+base URL. Mark secret values as sensitive; after saving, Supaterm does not display
 their original values.
 
 For provider-specific setup and accounts, see [Codex](./providers-codex.md),
@@ -166,4 +166,4 @@ For provider-specific setup and accounts, see [Codex](./providers-codex.md),
 - [Permission modes](./permission-modes.md): choose when agents ask before acting.
 - [Remote access](./remote-access.md): connect from another device.
 - [Running in the background](./background-service.md): keep a Linux or macOS host available.
-- [Updating Supacode](./updating.md): update the app and connected servers.
+- [Updating Supaterm](./updating.md): update the app and connected servers.

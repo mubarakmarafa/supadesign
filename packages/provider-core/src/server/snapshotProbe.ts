@@ -11,15 +11,15 @@ import type {
   ServerProviderUpdateRequiredModel,
   ServerProviderState,
   ServerProviderUsageLimits,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as PlatformError from "effect/PlatformError";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
-import { readCustomModelEntries } from "@supacode/shared/model";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { readCustomModelEntries } from "@supaterm/shared/model";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { createProviderVersionAdvisory } from "./maintenanceResolver.ts";
 import { collectUint8StreamText } from "./collectStreamText.ts";
 

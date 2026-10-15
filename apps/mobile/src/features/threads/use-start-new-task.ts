@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import type { ScopedProjectRef } from "@supacode/contracts";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import type { ScopedProjectRef } from "@supaterm/contracts";
 import { useCallback, useEffect } from "react";
 
 import { appAtomRegistry } from "../../state/atom-registry";

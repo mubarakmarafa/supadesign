@@ -4,7 +4,7 @@ import {
   PROJECT_PICKER_JUMP_KEYBINDING_COMMANDS,
   type KeybindingCommand,
   type ResolvedKeybindingsConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useEffect, useEffectEvent, useMemo } from "react";
 
 import { isCommandPaletteOpen } from "~/commandPaletteBus";

@@ -4,7 +4,7 @@ import type {
   DesktopPreviewColorScheme,
   PreviewViewportSetting,
   ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useShallow } from "zustand/react/shallow";
 import { useCallback, useEffect, useRef, useState } from "react";
 

@@ -2,8 +2,8 @@ import {
   AuthOrchestrationOperateScope,
   type EditorId,
   type EnvironmentId,
-} from "@supacode/contracts";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 
 import { useOpenInPreferredEditor } from "../editorPreferences";
 import { useEnvironmentScope } from "../state/session";

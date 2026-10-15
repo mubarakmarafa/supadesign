@@ -1,9 +1,9 @@
-import { decodeComposerContextFragment } from "@supacode/shared/composerContextClipboard";
+import { decodeComposerContextFragment } from "@supaterm/shared/composerContextClipboard";
 import {
   collectComposerContextReferences,
   formatComposerContextHref,
   formatComposerContextReference,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 import { markdownWithAuthoredWindowsPaths, markdownWithHtml } from "../lib/markdownDocument";
 import { markdownMermaidMedia } from "../lib/markdownMermaidMedia";
 import { NativeMermaidBlock } from "./NativeMermaidBlock";
@@ -239,9 +239,9 @@ export function MobileEnrichedMarkdownText(props: SelectableMarkdownTextProps) {
     return {
       linkTextByUrl,
       htmlAttributes: {
-        "data-supacode-context-fragment": encodeURIComponent(props.contextClipboardFragment!),
+        "data-supaterm-context-fragment": encodeURIComponent(props.contextClipboardFragment!),
       },
-      mimeTypes: { "app.supacode.context-fragment": props.contextClipboardFragment! },
+      mimeTypes: { "app.supaterm.context-fragment": props.contextClipboardFragment! },
     };
   }, [props.contextClipboardFragment, props.markdown]);
   const markdownStyle = useMemo(

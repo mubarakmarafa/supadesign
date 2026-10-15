@@ -1,4 +1,4 @@
-import { parseNewThreadLink } from "@supacode/shared/promptLinks";
+import { parseNewThreadLink } from "@supaterm/shared/promptLinks";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

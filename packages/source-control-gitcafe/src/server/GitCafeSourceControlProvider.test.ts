@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 /**
  * Pins `./GitCafeSourceControlProvider.ts`, which pass 2 creates:
  *
@@ -12,7 +12,7 @@ import { SourceControlProviderKind } from "@supacode/contracts";
  * Uses `./GitCafeApi.ts` and `./GitCafeCredentials.ts` as pinned in the sibling tests.
  */
 import { assert, describe, it } from "@effect/vitest";
-import { GitCommandError } from "@supacode/contracts";
+import { GitCommandError } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
@@ -22,8 +22,8 @@ import * as TestClock from "effect/testing/TestClock";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { ChildProcessSpawner } from "effect/process";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import * as TestSourceControlHost from "@supacode/source-control-testing/TestSourceControlHost";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import * as TestSourceControlHost from "@supaterm/source-control-testing/TestSourceControlHost";
 
 import * as GitCafeApi from "./GitCafeApi.ts";
 import * as GitCafeCredentials from "./GitCafeCredentials.ts";

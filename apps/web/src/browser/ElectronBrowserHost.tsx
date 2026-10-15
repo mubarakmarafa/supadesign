@@ -1,7 +1,7 @@
 "use client";
 
-import { parseScopedThreadKey } from "@supacode/client-runtime/environment";
-import { AuthPreviewOperateScope, FILL_PREVIEW_VIEWPORT } from "@supacode/contracts";
+import { parseScopedThreadKey } from "@supaterm/client-runtime/environment";
+import { AuthPreviewOperateScope, FILL_PREVIEW_VIEWPORT } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { type ComponentProps, useEffect, useMemo, useRef, useState } from "react";
 

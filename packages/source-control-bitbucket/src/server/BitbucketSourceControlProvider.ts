@@ -1,12 +1,12 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import { SourceControlProviderError, type ChangeRequest } from "@supacode/contracts";
+import { SourceControlProviderError, type ChangeRequest } from "@supaterm/contracts";
 
 import * as BitbucketApi from "./BitbucketApi.ts";
 import type { NormalizedBitbucketPullRequestRecord } from "./bitbucketPullRequests.ts";
-import * as SourceControlProvider from "@supacode/source-control-core/server/SourceControlProvider";
-import type { SourceControlApiDiscoverySpec } from "@supacode/source-control-core/server/discovery";
+import * as SourceControlProvider from "@supaterm/source-control-core/server/SourceControlProvider";
+import type { SourceControlApiDiscoverySpec } from "@supaterm/source-control-core/server/discovery";
 
 function toChangeRequest(summary: NormalizedBitbucketPullRequestRecord): ChangeRequest {
   return {

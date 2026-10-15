@@ -1,4 +1,4 @@
-import type { ContextMenuItem } from "@supacode/contracts";
+import type { ContextMenuItem } from "@supaterm/contracts";
 
 export type ExternalLinkContextMenuAction =
   | "open-in-preview"

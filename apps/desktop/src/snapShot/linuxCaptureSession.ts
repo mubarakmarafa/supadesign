@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off -- Reads portal-owned screenshot files at the native boundary.
 import * as NodeFSP from "node:fs/promises";
 import * as NodeURL from "node:url";
-import type { SnapShotKeyChord } from "@supacode/contracts";
+import type { SnapShotKeyChord } from "@supaterm/contracts";
 import { nativeImage } from "electron";
 
 // Linux helpers that need no D-Bus. Keep this module free of dbus-next so the main

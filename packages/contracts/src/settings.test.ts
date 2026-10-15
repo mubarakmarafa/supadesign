@@ -1035,10 +1035,10 @@ it("validates remote device hosts and rejects ambiguous host ids", () => {
 });
 
 describe("branch naming settings", () => {
-  it("defaults existing settings to the Supacode static prefix", () => {
+  it("defaults existing settings to the Supaterm static prefix", () => {
     expect(decodeServerSettings({})).toMatchObject({
       branchNamingMode: "static",
-      branchNamePrefix: "supacode",
+      branchNamePrefix: "supaterm",
       branchNamePrefixFromRepository: false,
       branchNameInstructions: "",
     });

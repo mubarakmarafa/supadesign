@@ -1,5 +1,5 @@
 import { assert } from "@effect/vitest";
-import type { ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderReplayTranscript } from "@supaterm/contracts";
 
 import type { OrchestratorV2ScenarioResult } from "../../OrchestratorScenario.ts";
 import {
@@ -14,7 +14,7 @@ import {
 
 /**
  * The server stops mid-command and its event stream ends with no execution
- * end. Supacode reconnects to the restarted server, finds the session idle with no
+ * end. Supaterm reconnects to the restarted server, finds the session idle with no
  * outcome, backfills the shell call the history shows cancelled, and ends the
  * turn as interrupted. The next turn runs on the same session.
  */

@@ -7,9 +7,9 @@ import type {
   ServerConfig,
   SourceControlDiscoveryResult,
   SourceControlRepositoryInfo,
-} from "@supacode/contracts";
-import { SourceControlProviderKind } from "@supacode/contracts";
-import { newProjectFolderName } from "@supacode/shared/path";
+} from "@supaterm/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import { newProjectFolderName } from "@supaterm/shared/path";
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Order from "effect/Order";

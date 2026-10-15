@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { EnvironmentId, ThreadId, type ThreadPullRequestLink } from "@supacode/contracts";
+import { EnvironmentId, ThreadId, type ThreadPullRequestLink } from "@supaterm/contracts";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";

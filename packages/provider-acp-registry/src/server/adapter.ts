@@ -8,10 +8,10 @@ import {
   extractCopilotSubagentUpdate,
   makeCopilotSubagentRouting,
 } from "./copilotAcp.ts";
-import { defaultInstanceIdForDriver, ProviderDriverKind } from "@supacode/contracts";
+import { defaultInstanceIdForDriver, ProviderDriverKind } from "@supaterm/contracts";
 import { AcpRegistrySettings } from "../settings.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveSelfInvocation, type SelfInvocation } from "@supacode/shared/nodeRuntime";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveSelfInvocation, type SelfInvocation } from "@supaterm/shared/nodeRuntime";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -23,8 +23,8 @@ import type * as Scope from "effect/Scope";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as EffectAcpErrors from "effect-acp/errors";
 
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import {
   normalizeAcpRegistryCommands,
   normalizeAcpRegistryLiveConfiguration,
@@ -32,24 +32,24 @@ import {
 } from "./probe.ts";
 import * as AcpRegistrySupport from "./AcpRegistrySupport.ts";
 import * as AcpRegistryRuntimeCoordinator from "./AcpRegistryRuntimeCoordinator.ts";
-import * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import { makeAcpNativeLoggerFactory } from "@supacode/provider-acp/server/nativeLogging";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import { makeProviderFailure } from "@supacode/provider-core/server/failure";
+import * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import { makeAcpNativeLoggerFactory } from "@supaterm/provider-acp/server/nativeLogging";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import { makeProviderFailure } from "@supaterm/provider-core/server/failure";
 import {
   ProviderAdapterDriverCreateError,
   type ProviderAdapterDriver,
   type ProviderAdapterDriverCreateInput,
-} from "@supacode/provider-core/server/adapterDriver";
+} from "@supaterm/provider-core/server/adapterDriver";
 import {
   AcpProviderCapabilitiesV2,
   makeAcpAdapterV2,
   type AcpAdapterV2ExtensionContext,
   type AcpAdapterV2Flavor,
   type AcpAdapterV2RuntimeInput,
-} from "@supacode/provider-acp/server/adapter";
+} from "@supaterm/provider-acp/server/adapter";
 
 export const ACP_REGISTRY_PROVIDER = ProviderDriverKind.make("acpRegistry");
 export const ACP_REGISTRY_DEFAULT_INSTANCE_ID = defaultInstanceIdForDriver(ACP_REGISTRY_PROVIDER);

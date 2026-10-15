@@ -8,8 +8,8 @@ import { OtlpExporter, OtlpSerialization, OtlpTracer } from "effect/observabilit
 import {
   settleAsyncResult,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import { safeErrorLogAttributes } from "@supacode/client-runtime/errors";
+} from "@supaterm/client-runtime/state/runtime";
+import { safeErrorLogAttributes } from "@supaterm/client-runtime/errors";
 import { resolvePrimaryEnvironmentHttpUrl } from "../environments/primary";
 import * as ClientTracer from "./clientTracer";
 import * as PrimaryEnvironmentHttpLayer from "../environments/primary/httpLayer";
@@ -18,10 +18,10 @@ import { APP_VERSION } from "~/branding";
 
 const DEFAULT_EXPORT_INTERVAL_MS = 1_000;
 const CLIENT_TRACING_RESOURCE = {
-  serviceName: "supacode-web",
+  serviceName: "supaterm-web",
   attributes: {
-    "service.namespace": "supacode",
-    "service.runtime": "supacode-web",
+    "service.namespace": "supaterm",
+    "service.runtime": "supaterm-web",
     "service.mode": isElectron ? "electron" : "browser",
     "service.version": APP_VERSION,
   },

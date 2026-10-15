@@ -1,4 +1,4 @@
-import type { ThreadCheckpointSummary } from "@supacode/client-runtime/state/thread-checkpoints";
+import type { ThreadCheckpointSummary } from "@supaterm/client-runtime/state/thread-checkpoints";
 import {
   AuthFilesystemReadScope,
   CheckpointRef,
@@ -7,7 +7,7 @@ import {
   ThreadId,
   RunId,
   type AuthSessionState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 
 const state = vi.hoisted(() => ({
@@ -18,7 +18,7 @@ const state = vi.hoisted(() => ({
   checkpoints: [] as ReadonlyArray<ThreadCheckpointSummary>,
 }));
 
-vi.mock("@supacode/client-runtime/state/thread-checkpoints", () => ({
+vi.mock("@supaterm/client-runtime/state/thread-checkpoints", () => ({
   deriveThreadCheckpointSummaries: () => state.checkpoints,
 }));
 vi.mock("react", () => ({
@@ -75,7 +75,7 @@ beforeEach(() => {
     {
       runId: RunId.make("turn-1"),
       checkpointTurnCount: 1,
-      checkpointRef: CheckpointRef.make("refs/supacode/checkpoints/thread/1"),
+      checkpointRef: CheckpointRef.make("refs/supaterm/checkpoints/thread/1"),
       status: "ready",
       files: [],
       assistantMessageId: MessageId.make("message-1"),

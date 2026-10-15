@@ -1,5 +1,5 @@
-import type { ThreadId } from "@supacode/contracts";
-import { formatComposerContextReference } from "@supacode/shared/composerContextReferences";
+import type { ThreadId } from "@supaterm/contracts";
+import { formatComposerContextReference } from "@supaterm/shared/composerContextReferences";
 import { toKindScopedComposerContextId } from "./composerContextReferences";
 
 export interface TerminalContextSelection {

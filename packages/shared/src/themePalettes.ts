@@ -1,5 +1,5 @@
 export const BUILT_IN_THEME_IDS = [
-  "supacode-chat",
+  "supaterm-chat",
   "grove",
   "ocean",
   "ember",
@@ -7,8 +7,8 @@ export const BUILT_IN_THEME_IDS = [
   "zenbones",
 ] as const;
 
-/** The standard Supacode palette, kept separate from the optional built-in theme library. */
-export const MOBILE_DEFAULT_THEME_ID = "supacode";
+/** The standard Supaterm palette, kept separate from the optional built-in theme library. */
+export const MOBILE_DEFAULT_THEME_ID = "supaterm";
 
 /**
  * Every palette the mobile app can render. Declared here so host-side tooling
@@ -128,8 +128,8 @@ export type ThemeDefinition = Readonly<{
   managed?: boolean;
 }>;
 
-/** The standard Supacode palette, Graphite in both appearances. */
-export const SUPACODE_LIGHT_THEME_COLORS: ThemeColors = {
+/** The standard Supaterm palette, Graphite in both appearances. */
+export const SUPATERM_LIGHT_THEME_COLORS: ThemeColors = {
   searchMatchBackground: "oklch(0.910441 0.108498 88.529)",
   searchMatchForeground: "oklch(0.216164 0.028283 77.423)",
   searchMatchActiveBackground: "oklch(0.774202 0.151946 74.331)",
@@ -193,7 +193,7 @@ export const SUPACODE_LIGHT_THEME_COLORS: ThemeColors = {
   terminalScrollbarHover: "oklch(0.786771 0.008492 278.6)",
 };
 
-export const SUPACODE_DARK_THEME_COLORS: ThemeColors = {
+export const SUPATERM_DARK_THEME_COLORS: ThemeColors = {
   searchMatchBackground: "oklch(0.549168 0.09987 84.95)",
   searchMatchForeground: "oklch(0.970151 0 0)",
   searchMatchActiveBackground: "oklch(0.774202 0.151946 74.331)",
@@ -257,9 +257,9 @@ export const SUPACODE_DARK_THEME_COLORS: ThemeColors = {
   terminalScrollbarHover: "oklch(0.418014 0.015129 275.764)",
 };
 
-export const SUPACODE_CHAT_THEME: ThemeDefinition = {
-  id: "supacode-chat",
-  label: "Supacode Chat",
+export const SUPATERM_CHAT_THEME: ThemeDefinition = {
+  id: "supaterm-chat",
+  label: "Supaterm Chat",
   appearance: "light",
   colors: {
     canvas: "oklch(0.982446 0.010114 325.653)",
@@ -1068,7 +1068,7 @@ const ZENBONES_THEME: ThemeDefinition = {
 };
 
 export const BUILT_IN_THEMES: ReadonlyArray<ThemeDefinition> = [
-  SUPACODE_CHAT_THEME,
+  SUPATERM_CHAT_THEME,
   GROVE_THEME,
   OCEAN_THEME,
   EMBER_THEME,

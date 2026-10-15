@@ -1,5 +1,5 @@
-import { makeMcpAppRequests } from "@supacode/client-runtime/mcp-apps/requests";
-import type { EnvironmentId, ThreadId, TurnItemId } from "@supacode/contracts";
+import { makeMcpAppRequests } from "@supaterm/client-runtime/mcp-apps/requests";
+import type { EnvironmentId, ThreadId, TurnItemId } from "@supaterm/contracts";
 import {
   makeMcpAppHost,
   McpAppHostRefusal,
@@ -8,7 +8,7 @@ import {
   type McpAppDisplayMode,
   type McpAppHost,
   type McpAppHostContext,
-} from "@supacode/client-runtime/mcp-apps";
+} from "@supaterm/client-runtime/mcp-apps";
 import {
   clampMcpAppHeight,
   MCP_APP_DEFAULT_HEIGHT,
@@ -16,7 +16,7 @@ import {
   mcpAppAllowAttribute,
   mcpAppFileName,
   type McpAppReference,
-} from "@supacode/shared/mcpApp";
+} from "@supaterm/shared/mcpApp";
 import { Minimize2Icon } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -245,7 +245,7 @@ export function McpAppFrame(props: {
         platform: isElectron ? "desktop" : "web",
         locale: navigator.language,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        userAgent: `supacode/${APP_VERSION}`,
+        userAgent: `supaterm/${APP_VERSION}`,
         deviceCapabilities: {
           touch: window.matchMedia("(pointer: coarse)").matches,
           hover: window.matchMedia("(hover: hover)").matches,
@@ -262,7 +262,7 @@ export function McpAppFrame(props: {
       const approved = await requestConfirmDialog(message);
 
       if (approved === undefined) {
-        throw new McpAppHostRefusal("Supacode could not ask for approval here.");
+        throw new McpAppHostRefusal("Supaterm could not ask for approval here.");
       }
       return approved;
     };

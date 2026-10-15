@@ -12,7 +12,7 @@ import {
   readHtmlRenderLinkRequest,
   readHtmlRenderReference,
 } from "./htmlRender.ts";
-import { SUPACODE_DARK_THEME_COLORS, SUPACODE_LIGHT_THEME_COLORS } from "./themePalettes.ts";
+import { SUPATERM_DARK_THEME_COLORS, SUPATERM_LIGHT_THEME_COLORS } from "./themePalettes.ts";
 import { htmlRenderFromToolItem } from "./toolOutput.ts";
 
 const reference = { attachmentId: "thread-abc-123.html", title: "Chart", height: 420 };
@@ -22,7 +22,7 @@ describe("injectHtmlRenderBootstrap", () => {
     const html =
       "<!doctype html><html><head><style>:root{--background:red}</style></head><body>x</body></html>";
     const injected = injectHtmlRenderBootstrap(html);
-    const themeAt = injected.indexOf('<style id="supacode-theme">');
+    const themeAt = injected.indexOf('<style id="supaterm-theme">');
     expect(themeAt).toBeGreaterThan(injected.indexOf("<head>"));
     expect(themeAt).toBeLessThan(injected.indexOf(":root{--background:red}"));
     expect(injected).toContain('<meta charset="utf-8">');
@@ -45,7 +45,7 @@ describe("injectHtmlRenderBootstrap", () => {
       const fragment = `<${tag}><head><meta name="viewport"></head></${tag}>`;
       const injected = injectHtmlRenderBootstrap(fragment);
       expect(injected.startsWith("<!doctype html><head>")).toBe(true);
-      expect(injected.indexOf('<style id="supacode-theme">')).toBeLessThan(
+      expect(injected.indexOf('<style id="supaterm-theme">')).toBeLessThan(
         injected.indexOf(`<${tag}>`),
       );
       expect(injected).toContain('<meta name="viewport" content="width=device-width');
@@ -59,7 +59,7 @@ describe("injectHtmlRenderBootstrap", () => {
   ])("keeps the bootstrap outside inert template content: %s", (fragment) => {
     const injected = injectHtmlRenderBootstrap(fragment);
     expect(injected.startsWith("<!doctype html><head>")).toBe(true);
-    expect(injected.indexOf('<style id="supacode-theme">')).toBeLessThan(
+    expect(injected.indexOf('<style id="supaterm-theme">')).toBeLessThan(
       injected.indexOf("<template>"),
     );
     expect(injected).toContain('<meta name="viewport" content="width=device-width');
@@ -71,7 +71,7 @@ describe("injectHtmlRenderBootstrap", () => {
       '<!-- copy <head> and <meta name="viewport"> here --><html><head>' +
       "<script>const tag = '<meta name=\"viewport\">';</script></head><body>x</body></html>";
     const injected = injectHtmlRenderBootstrap(html);
-    expect(injected.indexOf('<style id="supacode-theme">')).toBeGreaterThan(
+    expect(injected.indexOf('<style id="supaterm-theme">')).toBeGreaterThan(
       injected.indexOf("<html><head>"),
     );
     expect(injected).toContain('<meta name="viewport" content="width=device-width');
@@ -100,7 +100,7 @@ describe("readHtmlRenderLinkRequest", () => {
       }),
     ).toBeUndefined();
     expect(
-      readHtmlRenderLinkRequest({ type: "supacode-html-render-link", url: "https://example.com" }),
+      readHtmlRenderLinkRequest({ type: "supaterm-html-render-link", url: "https://example.com" }),
     ).toBeUndefined();
   });
 });
@@ -123,7 +123,7 @@ describe("readHtmlRenderContentHeight", () => {
 
 describe("htmlRenderThemeMessage", () => {
   it("is an MCP Apps host-context-changed notification carrying the theme variables", () => {
-    const theme = htmlRenderTheme(SUPACODE_DARK_THEME_COLORS, "dark");
+    const theme = htmlRenderTheme(SUPATERM_DARK_THEME_COLORS, "dark");
     expect(htmlRenderThemeMessage(theme)).toEqual({
       jsonrpc: "2.0",
       method: "ui/notifications/host-context-changed",
@@ -134,17 +134,17 @@ describe("htmlRenderThemeMessage", () => {
 
 describe("htmlRenderTheme", () => {
   it("exposes the brand accent as --accent and keeps the fragment decodable", () => {
-    const theme = htmlRenderTheme(SUPACODE_LIGHT_THEME_COLORS, "light");
-    expect(theme.variables["--accent"]).toBe(SUPACODE_LIGHT_THEME_COLORS.accent);
-    expect(theme.variables["--chart-1"]).toBe(SUPACODE_LIGHT_THEME_COLORS.accent);
+    const theme = htmlRenderTheme(SUPATERM_LIGHT_THEME_COLORS, "light");
+    expect(theme.variables["--accent"]).toBe(SUPATERM_LIGHT_THEME_COLORS.accent);
+    expect(theme.variables["--chart-1"]).toBe(SUPATERM_LIGHT_THEME_COLORS.accent);
     expect(theme.variables["--chart-6"]).toBeDefined();
     const fragment = htmlRenderThemeFragment(theme);
-    expect(JSON.parse(decodeURIComponent(fragment.slice("#supacode-theme=".length)))).toEqual(
+    expect(JSON.parse(decodeURIComponent(fragment.slice("#supaterm-theme=".length)))).toEqual(
       theme,
     );
     expect(fragment).not.toContain("&");
-    expect(htmlRenderTheme(SUPACODE_DARK_THEME_COLORS, "dark").variables["--background"]).toBe(
-      SUPACODE_DARK_THEME_COLORS.canvas,
+    expect(htmlRenderTheme(SUPATERM_DARK_THEME_COLORS, "dark").variables["--background"]).toBe(
+      SUPATERM_DARK_THEME_COLORS.canvas,
     );
   });
 });
@@ -163,9 +163,9 @@ describe("htmlRenderFromToolItem", () => {
 
   it("reads the reference from each provider's result envelope", () => {
     for (const [toolName, output] of [
-      ["mcp__supacode__html_render", [{ type: "text", text: JSON.stringify(result) }]],
-      ["supacode.html_render", { structuredContent: result, content: [] }],
-      ["supacode-thread_1_html_render", JSON.stringify(result)],
+      ["mcp__supaterm__html_render", [{ type: "text", text: JSON.stringify(result) }]],
+      ["supaterm.html_render", { structuredContent: result, content: [] }],
+      ["supaterm-thread_1_html_render", JSON.stringify(result)],
       ["html_render", result],
     ] as const) {
       expect(htmlRenderFromToolItem({ toolName, output })).toEqual(reference);
@@ -174,7 +174,7 @@ describe("htmlRenderFromToolItem", () => {
 
   it("ignores other tools and failed calls", () => {
     expect(
-      htmlRenderFromToolItem({ toolName: "mcp__supacode__html_preview", output: result }),
+      htmlRenderFromToolItem({ toolName: "mcp__supaterm__html_preview", output: result }),
     ).toBe(undefined);
     expect(htmlRenderFromToolItem({ toolName: "mcp__other__html_render", output: result })).toBe(
       undefined,

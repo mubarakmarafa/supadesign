@@ -12,13 +12,13 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import type { EnvironmentId, ScheduledTask } from "@supacode/contracts";
-import { AuthOrchestrationOperateScope } from "@supacode/contracts";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
+import type { EnvironmentId, ScheduledTask } from "@supaterm/contracts";
+import { AuthOrchestrationOperateScope } from "@supaterm/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 import { useInlineConfirm } from "../../hooks/useInlineConfirm";
 import { useThreadShell } from "../../state/entities";

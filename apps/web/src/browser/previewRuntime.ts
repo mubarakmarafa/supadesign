@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId, PreviewRuntime, PreviewSessionSnapshot } from "@supacode/contracts";
+import type { EnvironmentId, PreviewRuntime, PreviewSessionSnapshot } from "@supaterm/contracts";
 
 import { isElectron } from "~/env";
 import { isPreviewSupportedInRuntime } from "~/previewStateStore";

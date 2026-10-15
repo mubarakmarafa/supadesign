@@ -1,5 +1,5 @@
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supacode/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supaterm/contracts";
 import { useMemo } from "react";
 
 /**

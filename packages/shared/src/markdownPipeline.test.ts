@@ -12,7 +12,7 @@ it("preserves in-app thread links through the shared Markdown sanitizer", () => 
     .use(CHAT_MARKDOWN_REHYPE_PLUGINS);
   const tree = processor.runSync(
     processor.parse(
-      '[Open thread](supacode-thread://v1/environment/thread)\n\n<a href="javascript:alert(1)">Unsafe</a>',
+      '[Open thread](supaterm-thread://v1/environment/thread)\n\n<a href="javascript:alert(1)">Unsafe</a>',
     ),
   );
   expect(tree.children[0]).toMatchObject({
@@ -20,7 +20,7 @@ it("preserves in-app thread links through the shared Markdown sanitizer", () => 
     children: [
       {
         tagName: "a",
-        properties: { href: "supacode-thread://v1/environment/thread" },
+        properties: { href: "supaterm-thread://v1/environment/thread" },
         children: [{ type: "text", value: "Open thread" }],
       },
     ],

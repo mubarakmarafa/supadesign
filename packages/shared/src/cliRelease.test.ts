@@ -14,9 +14,9 @@ import {
 describe("cliRelease", () => {
   it("names archives by version and platform, zip only on Windows", () => {
     expect(cliArchiveFileName("1.2.3-preview.20260911.4", "linux-x64")).toBe(
-      "supacode-1.2.3-preview.20260911.4-linux-x64.tar.gz",
+      "supaterm-1.2.3-preview.20260911.4-linux-x64.tar.gz",
     );
-    expect(cliArchiveFileName("1.2.3", "win32-x64")).toBe("supacode-1.2.3-win32-x64.zip");
+    expect(cliArchiveFileName("1.2.3", "win32-x64")).toBe("supaterm-1.2.3-win32-x64.zip");
   });
 
   it("only maps platforms and architectures that have a release archive", () => {
@@ -35,22 +35,22 @@ describe("cliRelease", () => {
     expect(cliReleaseDownloadBaseUrl("1.2.3")).toBe(
       "https://github.com/supabitapp/supacode-next/releases/download/v1.2.3",
     );
-    expect(cliReleaseDownloadBaseUrl("1.2.3", "https://mirror.example/supacode/")).toBe(
-      "https://mirror.example/supacode/v1.2.3",
+    expect(cliReleaseDownloadBaseUrl("1.2.3", "https://mirror.example/supaterm/")).toBe(
+      "https://mirror.example/supaterm/v1.2.3",
     );
   });
 
   it("parses sha256sum output including binary-mode markers", () => {
     const checksums = parseChecksums(
       [
-        `${"a".repeat(64)}  supacode-1.2.3-linux-x64.tar.gz`,
-        `${"B".repeat(64)} *supacode-1.2.3-win32-x64.zip`,
+        `${"a".repeat(64)}  supaterm-1.2.3-linux-x64.tar.gz`,
+        `${"B".repeat(64)} *supaterm-1.2.3-win32-x64.zip`,
         "not a checksum line",
         "",
       ].join("\n"),
     );
-    expect(checksums.get("supacode-1.2.3-linux-x64.tar.gz")).toBe("a".repeat(64));
-    expect(checksums.get("supacode-1.2.3-win32-x64.zip")).toBe("b".repeat(64));
+    expect(checksums.get("supaterm-1.2.3-linux-x64.tar.gz")).toBe("a".repeat(64));
+    expect(checksums.get("supaterm-1.2.3-win32-x64.zip")).toBe("b".repeat(64));
     expect(checksums.size).toBe(2);
   });
 

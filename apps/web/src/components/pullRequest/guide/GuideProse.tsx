@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { createContext, useContext } from "react";
 
 import { cn } from "~/lib/utils";

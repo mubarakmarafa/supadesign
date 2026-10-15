@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Data from "effect/Data";
@@ -11,10 +11,10 @@ import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 import { HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
 
-import { collectUint8StreamText } from "@supacode/provider-core/server/collectStreamText";
+import { collectUint8StreamText } from "@supaterm/provider-core/server/collectStreamText";
 import * as GitHubCredentials from "./GitHubCredentials.ts";
 import * as GitHubQuota from "./GitHubQuota.ts";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 
 const DEFAULT_TIMEOUT = Duration.seconds(30);
 const DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
@@ -31,7 +31,7 @@ export const PinnedGitHubCredential = Context.Reference<{
   readonly host: string;
   readonly token: Redacted.Redacted<string>;
   readonly credentialFingerprint: string;
-} | null>("@supacode/source-control-github/server/GitHubApi/PinnedGitHubCredential", {
+} | null>("@supaterm/source-control-github/server/GitHubApi/PinnedGitHubCredential", {
   defaultValue: () => null,
 });
 
@@ -155,7 +155,7 @@ export class GitHubApi extends Context.Service<
       GitHubApiError
     >;
   }
->()("@supacode/source-control-github/server/GitHubApi") {}
+>()("@supaterm/source-control-github/server/GitHubApi") {}
 
 function normalizeHost(host: string): string {
   return host.trim().toLowerCase();
@@ -412,7 +412,7 @@ export const make = Effect.gen(function* () {
               HttpClientRequest.bearerToken(Redacted.value(token)),
               HttpClientRequest.setHeaders({
                 "x-github-api-version": API_VERSION,
-                "user-agent": "supacode",
+                "user-agent": "supaterm",
               }),
             ),
           )

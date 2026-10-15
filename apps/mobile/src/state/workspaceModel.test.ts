@@ -1,9 +1,9 @@
-import type { EnvironmentShellSummary } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentShellSummary } from "@supaterm/client-runtime/state/shell";
 import {
   BearerConnectionProfile,
   BearerConnectionTarget,
-} from "@supacode/client-runtime/connection";
-import { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/connection";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Option from "effect/Option";
 

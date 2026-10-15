@@ -1,7 +1,7 @@
 import {
   threadPullRequestKeysEqual,
   threadPullRequestsOf,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 import {
   ChatAttachment,
   OrchestrationMessageContext,
@@ -20,8 +20,8 @@ import {
   ThreadLinkedPullRequest,
   ThreadPullRequestLink,
   TurnItemId,
-} from "@supacode/contracts";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
+} from "@supaterm/contracts";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -31,7 +31,7 @@ import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/sql/SqlClient";
 
 import * as EventSink from "../EventSink.ts";
-import { randomUuidV4 } from "@supacode/provider-core/server/randomUuid";
+import { randomUuidV4 } from "@supaterm/provider-core/server/randomUuid";
 
 const IMPORT_EVENT_PREFIX = "migration:v1";
 const TRANSCRIPT_EVENT_BATCH_SIZE = 100;
@@ -117,7 +117,7 @@ export interface LegacyV1ThreadImporterShape {
 export class LegacyV1ThreadImporter extends Context.Service<
   LegacyV1ThreadImporter,
   LegacyV1ThreadImporterShape
->()("supacode/orchestration-v2/legacy/LegacyV1ThreadImporter") {}
+>()("supaterm/orchestration-v2/legacy/LegacyV1ThreadImporter") {}
 
 const decodeModelSelection = Schema.decodeUnknownOption(ModelSelection);
 const decodeAttachments = Schema.decodeUnknownOption(Schema.Array(ChatAttachment));

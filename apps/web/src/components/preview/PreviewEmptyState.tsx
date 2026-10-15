@@ -1,4 +1,4 @@
-import type { EnvironmentId, ScopedThreadRef } from "@supacode/contracts";
+import type { EnvironmentId, ScopedThreadRef } from "@supaterm/contracts";
 import { Globe, History, RadioTower } from "lucide-react";
 
 import type { BrowserHistoryEntry } from "~/browserHistoryStore";

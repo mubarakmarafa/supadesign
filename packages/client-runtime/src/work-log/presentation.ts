@@ -8,26 +8,26 @@ import {
   type OrchestrationV2TurnItem,
   type OrchestrationV2ProjectedTurnItem,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
-  resolveSupacodeMcpToolDefinition,
-  type SupacodeMcpToolDefinition,
-  type SupacodeMcpToolSummaryAction,
-} from "@supacode/shared/supacodeMcpToolPresentation";
-import { classifyMarkdownImageSource } from "@supacode/client-runtime/markdown-images";
-import { resolveMediaSource } from "@supacode/client-runtime/media-source";
-import { parseChangeRequestUrl } from "@supacode/shared/changeRequestUrl";
-import { isWorkspaceImagePreviewPath } from "@supacode/shared/filePreview";
-import { formatTokens } from "@supacode/shared/usageFormat";
-import { classifyToolActivity } from "@supacode/shared/toolActivity";
+  resolveSupatermMcpToolDefinition,
+  type SupatermMcpToolDefinition,
+  type SupatermMcpToolSummaryAction,
+} from "@supaterm/shared/supatermMcpToolPresentation";
+import { classifyMarkdownImageSource } from "@supaterm/client-runtime/markdown-images";
+import { resolveMediaSource } from "@supaterm/client-runtime/media-source";
+import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
+import { isWorkspaceImagePreviewPath } from "@supaterm/shared/filePreview";
+import { formatTokens } from "@supaterm/shared/usageFormat";
+import { classifyToolActivity } from "@supaterm/shared/toolActivity";
 import { turnItemOutputImages } from "./itemDetail.ts";
-import { toolOutputIndicatesFailure } from "@supacode/shared/toolOutput";
+import { toolOutputIndicatesFailure } from "@supaterm/shared/toolOutput";
 
 import {
-  summarizeSupacodeToolCalls,
-  supacodeToolResultIndicatesFailure,
-  type SupacodeToolSummaryCall,
-} from "@supacode/client-runtime/supacodeToolSummary";
+  summarizeSupatermToolCalls,
+  supatermToolResultIndicatesFailure,
+  type SupatermToolSummaryCall,
+} from "@supaterm/client-runtime/supatermToolSummary";
 
 export type WorkLogToolLifecycleStatus = RuntimeItemStatus | "stopped" | "idle";
 
@@ -65,7 +65,7 @@ export function contextCompactionLabel(
 }
 
 export interface WorkLogPresentationEntry {
-  readonly questionAnswer?: import("@supacode/contracts").UserInputAttachmentAnswerPayload;
+  readonly questionAnswer?: import("@supaterm/contracts").UserInputAttachmentAnswerPayload;
   readonly id: string;
   readonly createdAt: string;
   readonly label: string;
@@ -127,7 +127,7 @@ function workEntryToolName(
     return `${data.server}.${data.tool}`;
   }
   if (typeof data?.toolName === "string") return data.toolName;
-  return resolveSupacodeMcpToolDefinition(entry.toolTitle) ? entry.toolTitle : entry.label;
+  return resolveSupatermMcpToolDefinition(entry.toolTitle) ? entry.toolTitle : entry.label;
 }
 
 function workEntryToolOutput(
@@ -140,8 +140,8 @@ function workEntryToolOutput(
     : (data?.output ?? data?.result ?? data?.rawOutput ?? data?.content);
 }
 
-function resolveSupacodeMcpToolPresentation(
-  definition: SupacodeMcpToolDefinition | null,
+function resolveSupatermMcpToolPresentation(
+  definition: SupatermMcpToolDefinition | null,
   status: string | undefined,
   data?: unknown,
 ) {
@@ -205,11 +205,11 @@ export function resolveWorkEntryToolPresentation(
   >,
   fallbackStatus?: "inProgress" | "completed",
 ) {
-  const definition = resolveSupacodeMcpToolDefinition(workEntryToolName(entry));
+  const definition = resolveSupatermMcpToolDefinition(workEntryToolName(entry));
   const status = entry.toolLifecycleStatus ?? fallbackStatus;
-  return resolveSupacodeMcpToolPresentation(
+  return resolveSupatermMcpToolPresentation(
     definition,
-    definition && supacodeToolResultIndicatesFailure(workEntryToolOutput(entry))
+    definition && supatermToolResultIndicatesFailure(workEntryToolOutput(entry))
       ? "failed"
       : status,
     entry.toolData,
@@ -377,8 +377,8 @@ function workEntryIndicatesToolFailureFromOutput(
   }
   if (!workLogEntryIsToolLike(entry)) return false;
   if (
-    resolveSupacodeMcpToolDefinition(workEntryToolName(entry)) &&
-    supacodeToolResultIndicatesFailure(workEntryToolOutput(entry))
+    resolveSupatermMcpToolDefinition(workEntryToolName(entry)) &&
+    supatermToolResultIndicatesFailure(workEntryToolOutput(entry))
   ) {
     return true;
   }
@@ -614,7 +614,7 @@ function toolGroupActionLabel(action: ToolGroupAction, count: number): string {
   }
 }
 
-function supacodeToolSummaryCall(entry: WorkLogPresentationEntry): SupacodeToolSummaryCall {
+function supatermToolSummaryCall(entry: WorkLogPresentationEntry): SupatermToolSummaryCall {
   const item = entry.structuredPayload;
   const data =
     entry.toolData !== null && typeof entry.toolData === "object"
@@ -637,7 +637,7 @@ function supacodeToolSummaryCall(entry: WorkLogPresentationEntry): SupacodeToolS
   };
 }
 
-function summaryActionPriority(action: ToolGroupAction | SupacodeMcpToolSummaryAction): number {
+function summaryActionPriority(action: ToolGroupAction | SupatermMcpToolSummaryAction): number {
   switch (action) {
     case "command":
     case "edit":
@@ -693,33 +693,33 @@ export function summarizeToolGroup(entries: ReadonlyArray<WorkLogPresentationEnt
   }
   entries = toolEntries;
   const groups = new Map<
-    ToolGroupAction | SupacodeMcpToolSummaryAction,
+    ToolGroupAction | SupatermMcpToolSummaryAction,
     {
       action: ToolGroupAction;
-      supacodeAction: SupacodeMcpToolSummaryAction | null;
+      supatermAction: SupatermMcpToolSummaryAction | null;
       entries: WorkLogPresentationEntry[];
     }
   >();
   const sources = new Map<string, ToolActivitySource>();
   for (const entry of entries) {
-    const supacodeAction =
-      resolveSupacodeMcpToolDefinition(workEntryToolName(entry))?.summaryAction ?? null;
-    if (entry.toolSource && supacodeAction === null) {
+    const supatermAction =
+      resolveSupatermMcpToolDefinition(workEntryToolName(entry))?.summaryAction ?? null;
+    if (entry.toolSource && supatermAction === null) {
       sources.set(entry.toolSource.key, entry.toolSource);
       continue;
     }
     const action = toolGroupAction(entry);
-    const key = supacodeAction ?? action;
+    const key = supatermAction ?? action;
     const group = groups.get(key);
     if (group) group.entries.push(entry);
-    else groups.set(key, { action, supacodeAction, entries: [entry] });
+    else groups.set(key, { action, supatermAction, entries: [entry] });
   }
   const summaries = [...groups].map(([action, group], index) => ({
     index,
     count: group.entries.length,
     priority: summaryActionPriority(action),
-    ...(group.supacodeAction
-      ? summarizeSupacodeToolCalls(group.supacodeAction, group.entries.map(supacodeToolSummaryCall))
+    ...(group.supatermAction
+      ? summarizeSupatermToolCalls(group.supatermAction, group.entries.map(supatermToolSummaryCall))
       : {
           label: toolGroupActionLabel(
             group.action,
@@ -750,7 +750,7 @@ export function summarizeToolGroup(entries: ReadonlyArray<WorkLogPresentationEnt
   const sourcedCount = entries.filter(
     (entry) =>
       entry.toolSource !== undefined &&
-      resolveSupacodeMcpToolDefinition(workEntryToolName(entry)) === null,
+      resolveSupatermMcpToolDefinition(workEntryToolName(entry)) === null,
   ).length;
   const remainingCount =
     entries.length - sourcedCount - selected.reduce((count, group) => count + group.count, 0);

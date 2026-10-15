@@ -102,7 +102,7 @@ export function getMobileTerminalTheme(
   scheme: TerminalAppearanceScheme,
 ): TerminalTheme {
   const base = getPierreTerminalTheme(scheme);
-  const paletteId = themeId === "material-you" ? "supacode" : themeId;
+  const paletteId = themeId === "material-you" ? "supaterm" : themeId;
   const palette = getMobileThemeColors(paletteId, scheme);
   const colors = getMobileThemeVariables(paletteId, scheme);
   const background = themeColorToNativeColor(palette.terminalBackground);

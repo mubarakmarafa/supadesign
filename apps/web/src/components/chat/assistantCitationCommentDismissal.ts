@@ -1,4 +1,4 @@
-import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH } from "@supacode/contracts";
+import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH } from "@supaterm/contracts";
 
 export type AssistantCitationCommentDismissal =
   | { kind: "commit"; comment: string }

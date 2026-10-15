@@ -1,5 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import { executeAtomQuery } from "@supacode/client-runtime/state/runtime";
+import { executeAtomQuery } from "@supaterm/client-runtime/state/runtime";
 import { type AsyncResult, type Atom } from "effect/reactivity";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 

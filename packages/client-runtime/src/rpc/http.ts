@@ -7,8 +7,8 @@ import {
   type EnvironmentRequestInvalidError,
   type EnvironmentResourceNotFoundError,
   type EnvironmentScopeRequiredError,
-} from "@supacode/contracts";
-import { RELAY_ERROR_HEADER, RelayTunnelFailure } from "@supacode/shared/relay/protocol";
+} from "@supaterm/contracts";
+import { RELAY_ERROR_HEADER, RelayTunnelFailure } from "@supaterm/shared/relay/protocol";
 
 import * as Data from "effect/Data";
 import * as Duration from "effect/Duration";

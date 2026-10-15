@@ -27,12 +27,12 @@ import {
   FILL_PREVIEW_VIEWPORT,
   PreviewSessionLookupError,
   type PreviewSessionSnapshot,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isPreviewUrlNormalizationError,
   newPreviewTabId,
   normalizePreviewUrl,
-} from "@supacode/shared/preview";
+} from "@supaterm/shared/preview";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -43,7 +43,7 @@ import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import * as ServerConfig from "../config.ts";
 import * as SynchronizedRef from "effect/SynchronizedRef";
-import { PreviewControlRequiredError } from "@supacode/contracts";
+import { PreviewControlRequiredError } from "@supaterm/contracts";
 
 export class PreviewManager extends Context.Service<
   PreviewManager,
@@ -87,7 +87,7 @@ export class PreviewManager extends Context.Service<
     readonly events: Stream.Stream<PreviewEvent>;
     readonly subscribeEvents: Effect.Effect<PubSub.Subscription<PreviewEvent>, never, Scope.Scope>;
   }
->()("supacode/preview/Manager/PreviewManager") {}
+>()("supaterm/preview/Manager/PreviewManager") {}
 
 interface PreviewSessionState {
   readonly threadId: string;

@@ -1,4 +1,4 @@
-import type { ThreadTitleMessage } from "@supacode/provider-core/server/threadTitleContext";
+import type { ThreadTitleMessage } from "@supaterm/provider-core/server/threadTitleContext";
 
 // Public PR subjects and existing title scenarios. Repeated text adds context pressure.
 export const threadTitleEvaluationCases = [
@@ -94,10 +94,10 @@ export const threadTitleEvaluationCases = [
   {
     id: "research",
     source: "Maintainer title generation request",
-    request: "How can we improve title generation in Supacode?",
+    request: "How can we improve title generation in Supaterm?",
     previousTitle: "Research title gen improvements",
     messages: [
-      { role: "user", text: "How can we improve title gen further in Supacode?" },
+      { role: "user", text: "How can we improve title gen further in Supaterm?" },
       {
         role: "assistant",
         text: "Prioritize user messages, refine vague titles once, and resolve PR subjects.",

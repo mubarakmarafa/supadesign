@@ -1,10 +1,10 @@
-import type { TerminalSessionState } from "@supacode/client-runtime/state/terminal";
+import type { TerminalSessionState } from "@supaterm/client-runtime/state/terminal";
 import {
   AuthTerminalOperateScope,
   type EnvironmentId,
   type TerminalResizeInput,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useEffect } from "react";
 
 import type { TerminalGridSize } from "./terminalUiState";

@@ -1,4 +1,4 @@
-import { EnvironmentId, type VcsRef } from "@supacode/contracts";
+import { EnvironmentId, type VcsRef } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import {
   dedupeRemoteBranchesWithLocalMatches,
@@ -32,20 +32,20 @@ describe("resolvePreviousWorktreeSeed", () => {
       resolvePreviousWorktreeSeed({
         threads: [
           {
-            branch: "supacode/older",
-            worktreePath: "/repo/.supacode/worktrees/older",
+            branch: "supaterm/older",
+            worktreePath: "/repo/.supaterm/worktrees/older",
             updatedAt: "2026-07-20T00:00:00.000Z",
           },
           {
-            branch: "supacode/newer",
-            worktreePath: "/repo/.supacode/worktrees/newer",
+            branch: "supaterm/newer",
+            worktreePath: "/repo/.supaterm/worktrees/newer",
             updatedAt: "2026-07-22T00:00:00.000Z",
           },
           { branch: "main", worktreePath: null, updatedAt: "2026-07-23T00:00:00.000Z" },
         ],
         currentWorktreePath: null,
       }),
-    ).toEqual({ branch: "supacode/newer", worktreePath: "/repo/.supacode/worktrees/newer" });
+    ).toEqual({ branch: "supaterm/newer", worktreePath: "/repo/.supaterm/worktrees/newer" });
   });
 
   it("skips the worktree the composer already points at", () => {
@@ -53,12 +53,12 @@ describe("resolvePreviousWorktreeSeed", () => {
       resolvePreviousWorktreeSeed({
         threads: [
           {
-            branch: "supacode/current",
-            worktreePath: "/repo/.supacode/worktrees/current",
+            branch: "supaterm/current",
+            worktreePath: "/repo/.supaterm/worktrees/current",
             updatedAt: "2026-07-22T00:00:00.000Z",
           },
         ],
-        currentWorktreePath: "/repo/.supacode/worktrees/current",
+        currentWorktreePath: "/repo/.supaterm/worktrees/current",
       }),
     ).toBeNull();
   });
@@ -77,34 +77,34 @@ describe("resolvePreviousWorktreeSeed", () => {
       resolvePreviousWorktreeSeed({
         threads: [
           {
-            branch: "supacode/archived",
-            worktreePath: "/repo/.supacode/worktrees/archived",
+            branch: "supaterm/archived",
+            worktreePath: "/repo/.supaterm/worktrees/archived",
             updatedAt: "2026-07-23T00:00:00.000Z",
             archivedAt: "2026-07-23T01:00:00.000Z",
           },
           {
-            branch: "supacode/garbage-timestamp",
-            worktreePath: "/repo/.supacode/worktrees/garbage",
+            branch: "supaterm/garbage-timestamp",
+            worktreePath: "/repo/.supaterm/worktrees/garbage",
             updatedAt: "not-a-date",
           },
           {
-            branch: "supacode/live",
-            worktreePath: "/repo/.supacode/worktrees/live",
+            branch: "supaterm/live",
+            worktreePath: "/repo/.supaterm/worktrees/live",
             updatedAt: "2026-07-21T00:00:00.000Z",
             archivedAt: null,
           },
         ],
         currentWorktreePath: null,
       }),
-    ).toEqual({ branch: "supacode/live", worktreePath: "/repo/.supacode/worktrees/live" });
+    ).toEqual({ branch: "supaterm/live", worktreePath: "/repo/.supaterm/worktrees/live" });
   });
 });
 
 describe("resolvePreviousWorktreeLabel", () => {
   it("includes the branch when known", () => {
     expect(
-      resolvePreviousWorktreeLabel({ branch: "supacode/fix-thing", worktreePath: "/wt" }),
-    ).toBe("Previous worktree (supacode/fix-thing)");
+      resolvePreviousWorktreeLabel({ branch: "supaterm/fix-thing", worktreePath: "/wt" }),
+    ).toBe("Previous worktree (supaterm/fix-thing)");
     expect(resolvePreviousWorktreeLabel({ branch: null, worktreePath: "/wt" })).toBe(
       "Previous worktree",
     );
@@ -116,7 +116,7 @@ describe("resolveDraftEnvModeAfterBranchChange", () => {
     expect(
       resolveDraftEnvModeAfterBranchChange({
         nextWorktreePath: null,
-        currentWorktreePath: "/repo/.supacode/worktrees/feature-a",
+        currentWorktreePath: "/repo/.supaterm/worktrees/feature-a",
         effectiveEnvMode: "worktree",
       }),
     ).toBe("local");
@@ -135,7 +135,7 @@ describe("resolveDraftEnvModeAfterBranchChange", () => {
   it("uses worktree mode when selecting a ref already attached to a worktree", () => {
     expect(
       resolveDraftEnvModeAfterBranchChange({
-        nextWorktreePath: "/repo/.supacode/worktrees/feature-a",
+        nextWorktreePath: "/repo/.supaterm/worktrees/feature-a",
         currentWorktreePath: null,
         effectiveEnvMode: "local",
       }),
@@ -404,7 +404,7 @@ describe("resolveLocalCheckoutBranchMismatch", () => {
     expect(
       resolveLocalCheckoutBranchMismatch({
         effectiveEnvMode: "worktree",
-        activeWorktreePath: "/repo/.supacode/worktrees/feature-thread",
+        activeWorktreePath: "/repo/.supaterm/worktrees/feature-thread",
         activeThreadBranch: "feature/thread",
         currentGitBranch: "feature/current",
       }),
@@ -584,7 +584,7 @@ describe("resolveEffectiveEnvMode", () => {
   it("treats draft threads already attached to a worktree as current-checkout mode", () => {
     expect(
       resolveEffectiveEnvMode({
-        activeWorktreePath: "/repo/.supacode/worktrees/feature-a",
+        activeWorktreePath: "/repo/.supaterm/worktrees/feature-a",
         hasServerThread: false,
         draftThreadEnvMode: "worktree",
       }),
@@ -633,7 +633,7 @@ describe("resolveCurrentWorkspaceLabel", () => {
   });
 
   it("describes the active checkout as a worktree when one is attached", () => {
-    expect(resolveCurrentWorkspaceLabel("/repo/.supacode/worktrees/feature-a")).toBe(
+    expect(resolveCurrentWorkspaceLabel("/repo/.supaterm/worktrees/feature-a")).toBe(
       "Current worktree",
     );
   });
@@ -645,7 +645,7 @@ describe("resolveLockedWorkspaceLabel", () => {
   });
 
   it("uses a shorter label for an attached worktree", () => {
-    expect(resolveLockedWorkspaceLabel("/repo/.supacode/worktrees/feature-a", "worktree")).toBe(
+    expect(resolveLockedWorkspaceLabel("/repo/.supaterm/worktrees/feature-a", "worktree")).toBe(
       "Worktree",
     );
   });
@@ -783,15 +783,15 @@ describe("resolveBranchSelectionTarget", () => {
     expect(
       resolveBranchSelectionTarget({
         activeProjectCwd: "/repo",
-        activeWorktreePath: "/repo/.supacode/worktrees/feature-a",
+        activeWorktreePath: "/repo/.supaterm/worktrees/feature-a",
         refName: {
           isDefault: false,
-          worktreePath: "/repo/.supacode/worktrees/feature-b",
+          worktreePath: "/repo/.supaterm/worktrees/feature-b",
         },
       }),
     ).toEqual({
-      checkoutCwd: "/repo/.supacode/worktrees/feature-b",
-      nextWorktreePath: "/repo/.supacode/worktrees/feature-b",
+      checkoutCwd: "/repo/.supaterm/worktrees/feature-b",
+      nextWorktreePath: "/repo/.supaterm/worktrees/feature-b",
       reuseExistingWorktree: true,
     });
   });
@@ -800,7 +800,7 @@ describe("resolveBranchSelectionTarget", () => {
     expect(
       resolveBranchSelectionTarget({
         activeProjectCwd: "/repo",
-        activeWorktreePath: "/repo/.supacode/worktrees/feature-a",
+        activeWorktreePath: "/repo/.supaterm/worktrees/feature-a",
         refName: {
           isDefault: true,
           worktreePath: "/repo",
@@ -817,7 +817,7 @@ describe("resolveBranchSelectionTarget", () => {
     expect(
       resolveBranchSelectionTarget({
         activeProjectCwd: "/repo",
-        activeWorktreePath: "/repo/.supacode/worktrees/feature-a",
+        activeWorktreePath: "/repo/.supaterm/worktrees/feature-a",
         refName: {
           isDefault: true,
           worktreePath: null,
@@ -834,15 +834,15 @@ describe("resolveBranchSelectionTarget", () => {
     expect(
       resolveBranchSelectionTarget({
         activeProjectCwd: "/repo",
-        activeWorktreePath: "/repo/.supacode/worktrees/feature-a",
+        activeWorktreePath: "/repo/.supaterm/worktrees/feature-a",
         refName: {
           isDefault: false,
           worktreePath: null,
         },
       }),
     ).toEqual({
-      checkoutCwd: "/repo/.supacode/worktrees/feature-a",
-      nextWorktreePath: "/repo/.supacode/worktrees/feature-a",
+      checkoutCwd: "/repo/.supaterm/worktrees/feature-a",
+      nextWorktreePath: "/repo/.supaterm/worktrees/feature-a",
       reuseExistingWorktree: false,
     });
   });

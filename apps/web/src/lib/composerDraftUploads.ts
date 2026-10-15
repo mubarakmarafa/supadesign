@@ -1,5 +1,5 @@
-import type { ScopedProjectRef, ScopedThreadRef } from "@supacode/contracts";
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
+import type { ScopedProjectRef, ScopedThreadRef } from "@supaterm/contracts";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
 
 import { type DraftId, useComposerDraftStore } from "../composerDraftStore";
 import { releaseDraftAttachments } from "./attachmentUploadQueue";

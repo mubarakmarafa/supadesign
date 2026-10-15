@@ -3,7 +3,7 @@
  *
  * @module source-control-forgejo/client/definition
  */
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import {
   type ChangeRequestProjectIdentity,
   defineSourceControlClient,
@@ -11,7 +11,7 @@ import {
   isChangeRequestInProjectRepository,
   isChangeRequestOnProjectHost,
   isChangeRequestPath,
-} from "@supacode/source-control-core/client/definition";
+} from "@supaterm/source-control-core/client/definition";
 
 const CHECKOUT_COMMAND = /^tea\s+(?:pr|pulls)\s+checkout\s+(.+)$/i;
 const CHANGE_REQUEST_REFERENCE =

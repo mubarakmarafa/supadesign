@@ -1,4 +1,4 @@
-import type { ChatAttachment } from "@supacode/contracts";
+import type { ChatAttachment } from "@supaterm/contracts";
 import {
   composerDraftHasUserContent,
   useComposerDraftStore,

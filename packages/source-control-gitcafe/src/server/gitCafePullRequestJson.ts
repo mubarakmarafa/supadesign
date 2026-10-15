@@ -4,7 +4,7 @@
  *
  * @module source-control-gitcafe/server/gitCafePullRequestJson
  */
-import { quoteGitPatchPath } from "@supacode/shared/gitPatchPath";
+import { quoteGitPatchPath } from "@supaterm/shared/gitPatchPath";
 import * as DateTime from "effect/DateTime";
 import * as Schema from "effect/Schema";
 import {
@@ -19,13 +19,13 @@ import {
   type PullRequestReactionContent,
   type PullRequestReviewThread,
   type PullRequestViewerPermissions,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type {
   ProviderChangeRequest,
   ProviderChangeRequestActivity,
   ProviderChangeRequestStack,
   ProviderDiffSlice,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 
 const Actor = Schema.Union([
   Schema.Struct({

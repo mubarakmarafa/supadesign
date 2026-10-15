@@ -1,55 +1,55 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--supacode-font-sans);
-  --font-mono: var(--supacode-font-mono);
-  --color-background: var(--supacode-background);
-  --color-foreground: var(--supacode-foreground);
-  --color-popover: var(--supacode-popover);
-  --color-popover-foreground: var(--supacode-popover-foreground);
-  --color-primary: var(--supacode-primary);
-  --color-primary-foreground: var(--supacode-primary-foreground);
-  --color-muted: var(--supacode-muted);
-  --color-muted-foreground: var(--supacode-muted-foreground);
-  --color-accent: var(--supacode-accent);
-  --color-accent-foreground: var(--supacode-accent-foreground);
-  --color-border: var(--supacode-border);
-  --color-input: var(--supacode-input);
-  --color-ring: var(--supacode-ring);
-  --radius-sm: calc(var(--supacode-radius) - 4px);
-  --radius-md: calc(var(--supacode-radius) - 2px);
-  --radius-lg: var(--supacode-radius);
-  --radius-xl: calc(var(--supacode-radius) + 4px);
-  --radius-2xl: calc(var(--supacode-radius) + 8px);
+  --font-sans: var(--supaterm-font-sans);
+  --font-mono: var(--supaterm-font-mono);
+  --color-background: var(--supaterm-background);
+  --color-foreground: var(--supaterm-foreground);
+  --color-popover: var(--supaterm-popover);
+  --color-popover-foreground: var(--supaterm-popover-foreground);
+  --color-primary: var(--supaterm-primary);
+  --color-primary-foreground: var(--supaterm-primary-foreground);
+  --color-muted: var(--supaterm-muted);
+  --color-muted-foreground: var(--supaterm-muted-foreground);
+  --color-accent: var(--supaterm-accent);
+  --color-accent-foreground: var(--supaterm-accent-foreground);
+  --color-border: var(--supaterm-border);
+  --color-input: var(--supaterm-input);
+  --color-ring: var(--supaterm-ring);
+  --radius-sm: calc(var(--supaterm-radius) - 4px);
+  --radius-md: calc(var(--supaterm-radius) - 2px);
+  --radius-lg: var(--supaterm-radius);
+  --radius-xl: calc(var(--supaterm-radius) + 4px);
+  --radius-2xl: calc(var(--supaterm-radius) + 8px);
 }
 
 :host {
-  --supacode-font-sans:
+  --supaterm-font-sans:
     "DM Sans Variable", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
     sans-serif;
-  --supacode-font-mono:
+  --supaterm-font-mono:
     "SF Mono", "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", Menlo, monospace;
-  --supacode-radius: 0.625rem;
-  --supacode-background: white;
-  --supacode-foreground: oklch(0.269 0 0);
-  --supacode-popover: white;
-  --supacode-popover-foreground: oklch(0.269 0 0);
-  --supacode-primary: oklch(0.488 0.217 264);
-  --supacode-primary-foreground: white;
-  --supacode-muted: rgb(0 0 0 / 4%);
-  --supacode-muted-foreground: oklch(0.556 0 0);
-  --supacode-accent: rgb(0 0 0 / 4%);
-  --supacode-accent-foreground: oklch(0.269 0 0);
-  --supacode-border: rgb(0 0 0 / 8%);
-  --supacode-input: rgb(0 0 0 / 10%);
-  --supacode-ring: oklch(0.488 0.217 264);
-  color: var(--supacode-foreground);
-  font-family: var(--supacode-font-sans);
+  --supaterm-radius: 0.625rem;
+  --supaterm-background: white;
+  --supaterm-foreground: oklch(0.269 0 0);
+  --supaterm-popover: white;
+  --supaterm-popover-foreground: oklch(0.269 0 0);
+  --supaterm-primary: oklch(0.488 0.217 264);
+  --supaterm-primary-foreground: white;
+  --supaterm-muted: rgb(0 0 0 / 4%);
+  --supaterm-muted-foreground: oklch(0.556 0 0);
+  --supaterm-accent: rgb(0 0 0 / 4%);
+  --supaterm-accent-foreground: oklch(0.269 0 0);
+  --supaterm-border: rgb(0 0 0 / 8%);
+  --supaterm-input: rgb(0 0 0 / 10%);
+  --supaterm-ring: oklch(0.488 0.217 264);
+  color: var(--supaterm-foreground);
+  font-family: var(--supaterm-font-sans);
 }
 
 * {
   box-sizing: border-box;
-  border-color: var(--supacode-border);
+  border-color: var(--supaterm-border);
 }
 
 button,
@@ -63,6 +63,6 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--supacode-ring) 72%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--supaterm-ring) 72%, transparent);
   outline-offset: -2px;
 }

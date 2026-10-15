@@ -3,7 +3,7 @@ import type {
   OrchestrationV2ShellSnapshot,
   OrchestrationV2ThreadShell,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import { Atom } from "effect/reactivity";
 

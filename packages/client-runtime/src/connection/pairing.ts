@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Option from "effect/Option";

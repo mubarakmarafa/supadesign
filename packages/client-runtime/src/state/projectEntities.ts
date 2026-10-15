@@ -5,7 +5,7 @@ import type {
   ProjectId,
   ScopedProjectRef,
   ServerConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import type { EnvironmentProject } from "./models.ts";

@@ -2,7 +2,7 @@ import {
   type ClientConnectionMethod,
   EnvironmentId,
   type ExecutionEnvironmentDescriptor,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { resolveRemoteWebSocketConnectionUrl } from "./remote.ts";
 import { environmentMismatchError, mapRemoteEnvironmentError } from "../connection/errors.ts";
 import type { ConnectionAttemptError, PreparedHttpAuthorization } from "../connection/model.ts";
@@ -34,7 +34,7 @@ export class RemoteEnvironmentAuthorization extends Context.Service<
       readonly connectionMethod: ClientConnectionMethod;
     }) => Effect.Effect<AuthorizedRemoteEnvironment, ConnectionAttemptError>;
   }
->()("@supacode/client-runtime/authorization/service/RemoteEnvironmentAuthorization") {}
+>()("@supaterm/client-runtime/authorization/service/RemoteEnvironmentAuthorization") {}
 
 const BEARER_DESCRIPTOR_CACHE_TTL_MS = 10_000;
 

@@ -101,7 +101,7 @@ export const layerWith = (
         if (delayMaxMs === undefined) return;
         const { utilization, usage, rssBytes } = readings;
         // Root, as the stall has no caller to attach to. Warn level keeps it when
-        // SUPACODE_TRACE_MIN_LEVEL is raised to cut trace noise.
+        // SUPATERM_TRACE_MIN_LEVEL is raised to cut trace noise.
         yield* Effect.logWarning(`event loop stalled for ${delayMaxMs} ms`).pipe(
           Effect.withSpan("server.eventLoop.stall", {
             root: true,

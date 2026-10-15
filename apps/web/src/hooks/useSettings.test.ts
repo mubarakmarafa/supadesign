@@ -2,8 +2,8 @@ import {
   DEFAULT_SERVER_SETTINGS,
   ProviderDriverKind,
   ProviderInstanceId,
-} from "@supacode/contracts";
-import { DEFAULT_CLIENT_SETTINGS, type ClientSettings } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import { DEFAULT_CLIENT_SETTINGS, type ClientSettings } from "@supaterm/contracts/settings";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const persistenceMocks = vi.hoisted(() => ({
@@ -26,7 +26,7 @@ import {
   prepareModelPreferencesPatch,
   resolveEnvironmentIdentificationMode,
 } from "./useSettings";
-import { applyServerSettingsPatch } from "@supacode/shared/serverSettings";
+import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
 
 beforeEach(() => {
   persistenceMocks.getClientSettings.mockReset().mockResolvedValue(null);

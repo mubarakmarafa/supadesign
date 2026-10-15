@@ -1,4 +1,4 @@
-import { relayHttpBaseUrl, relayPublicKey } from "@supacode/shared/relay/protocol";
+import { relayHttpBaseUrl, relayPublicKey } from "@supaterm/shared/relay/protocol";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -17,7 +17,7 @@ export class RelayIdentity extends Context.Service<
       ServerSecretStore.SecretStoreError
     >;
   }
->()("supacode/relay/RelayIdentity") {}
+>()("supaterm/relay/RelayIdentity") {}
 
 const make = Effect.gen(function* () {
   const secrets = yield* ServerSecretStore.ServerSecretStore;

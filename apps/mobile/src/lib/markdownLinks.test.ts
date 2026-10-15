@@ -15,7 +15,7 @@ describe("resolveMarkdownLinkIcon", () => {
 
 describe("resolveMarkdownLinkPresentation", () => {
   it("keeps thread-link hrefs for in-app navigation", () => {
-    const href = "supacode-thread://v1/thread-1";
+    const href = "supaterm-thread://v1/thread-1";
     expect(resolveMarkdownLinkPresentation(href)).toEqual({ kind: "link", href });
   });
 

@@ -1,4 +1,4 @@
-import type { PullRequestReviewPosition, PullRequestReviewThread } from "@supacode/contracts";
+import type { PullRequestReviewPosition, PullRequestReviewThread } from "@supaterm/contracts";
 import type { NativeReviewDiffRow } from "../diffs/nativeReviewDiffSurface";
 import type { NativeReviewDiffData } from "../review/nativeReviewDiffAdapter";
 import type { PendingReviewComment } from "./pullRequestReviewDrafts";

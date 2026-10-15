@@ -15,7 +15,7 @@ vi.mock("node:os", async (importOriginal) => {
     ...actual,
     networkInterfaces: () => ({
       ...actual.networkInterfaces(),
-      "supacode-test": [
+      "supaterm-test": [
         {
           address: OWN_PUBLIC_IPV4,
           netmask: "255.255.255.0",

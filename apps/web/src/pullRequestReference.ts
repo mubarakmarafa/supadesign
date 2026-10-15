@@ -1,4 +1,4 @@
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 
 const PULL_REQUEST_NUMBER_PATTERN = /^#?(\d+)$/;
 

@@ -8,12 +8,12 @@ import {
   type ProjectScript,
   ThreadId,
   type VcsStatusResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   type GitActionRequestInput,
   requiresDefaultBranchConfirmation,
   resolveQuickAction,
-} from "@supacode/client-runtime/state/vcs";
+} from "@supaterm/client-runtime/state/vcs";
 import { useNavigation } from "@react-navigation/native";
 import { NativeHeaderToolbar } from "../../native/StackHeader";
 import { useCallback, useMemo } from "react";
@@ -25,7 +25,7 @@ import {
   projectScriptMenuIcon,
   type TerminalMenuSession,
 } from "../terminal/terminalMenu";
-import { projectScriptMenuLabel } from "@supacode/shared/projectScripts";
+import { projectScriptMenuLabel } from "@supaterm/shared/projectScripts";
 
 function truncateMiddle(value: string, maxLength: number): string {
   if (value.length <= maxLength) {

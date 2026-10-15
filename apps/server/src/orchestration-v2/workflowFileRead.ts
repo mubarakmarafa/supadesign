@@ -17,9 +17,9 @@ import * as NodeFS from "node:fs";
 import * as NodeFSP from "node:fs/promises";
 import * as NodePath from "node:path";
 
-import { OrchestrationWorkflowFileError } from "@supacode/contracts";
+import { OrchestrationWorkflowFileError } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 function workflowFilesRoot(home: string, configDir?: string): string {
   return NodePath.join(configDir?.trim() || NodePath.join(home, ".claude"), "projects");

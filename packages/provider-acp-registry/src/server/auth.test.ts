@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { ProviderInstanceId, type ProviderAuthState } from "@supacode/contracts";
+import { ProviderInstanceId, type ProviderAuthState } from "@supaterm/contracts";
 import { AcpRegistrySettings } from "../settings.ts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -10,10 +10,10 @@ import * as Stream from "effect/Stream";
 import type * as AcpSchema from "effect-acp/compat";
 import { AcpRequestError } from "effect-acp/errors";
 
-import * as PtyAdapter from "@supacode/shared/PtyAdapter";
+import * as PtyAdapter from "@supaterm/shared/PtyAdapter";
 import { makeAcpRegistryAuth } from "./auth.ts";
 import * as AcpRegistrySupport from "./AcpRegistrySupport.ts";
-import type * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
+import type * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
 
 const decodeSettings = Schema.decodeSync(AcpRegistrySettings);
 const instanceId = ProviderInstanceId.make("acp-auth-test");

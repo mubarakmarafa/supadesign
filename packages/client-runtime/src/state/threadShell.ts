@@ -6,8 +6,8 @@ import type {
   ScopedProjectRef,
   ScopedThreadRef,
   ThreadId,
-} from "@supacode/contracts";
-import { isProviderNativeSubagentThread } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { isProviderNativeSubagentThread } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import type { EnvironmentThreadShell } from "./models.ts";

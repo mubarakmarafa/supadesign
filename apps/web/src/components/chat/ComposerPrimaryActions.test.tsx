@@ -1,4 +1,4 @@
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { createElement, type ComponentProps, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";

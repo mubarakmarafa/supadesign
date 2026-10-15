@@ -6,7 +6,7 @@ import { DesktopUpdateStateSchema } from "./ipc.ts";
 
 export const RESOURCE_MONITOR_PROTOCOL_VERSION = 3 as const;
 
-/** Whole-host capacity, independent of Supacode's process diagnostics. */
+/** Whole-host capacity, independent of Supaterm's process diagnostics. */
 export const HostResourcesSnapshot = Schema.Struct({
   sampledAt: NonNegativeInt,
   cpuUtilization: Schema.NullOr(Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
@@ -34,7 +34,7 @@ export const ResourceTelemetryProcessCategory = Schema.Literals([
   "electron-gpu",
   "electron-utility",
   "resource-monitor",
-  "unknown-supacode",
+  "unknown-supaterm",
 ]);
 export type ResourceTelemetryProcessCategory = typeof ResourceTelemetryProcessCategory.Type;
 
@@ -411,7 +411,7 @@ export const ResourceTelemetryGroups = Schema.Struct({
   backend: ResourceTelemetryAggregate,
   electron: ResourceTelemetryAggregate,
   monitor: ResourceTelemetryAggregate,
-  allSupacode: ResourceTelemetryAggregate,
+  allSupaterm: ResourceTelemetryAggregate,
 });
 export type ResourceTelemetryGroups = typeof ResourceTelemetryGroups.Type;
 

@@ -1,10 +1,10 @@
 # Terminal history
 
 Each terminal keeps up to 5,000 lines and 8 MiB of scrollback on its environment
-server. Supacode removes the oldest output when either limit is reached. A long
+server. Supaterm removes the oldest output when either limit is reached. A long
 line can be shortened at the start. New terminal output is not truncated.
 
-These limits apply when you reconnect and when Supacode restores saved terminal
+These limits apply when you reconnect and when Supaterm restores saved terminal
 history. A client can show less scrollback than the server keeps.
 
 On web and desktop, use Shift+PageUp and Shift+PageDown to read scrollback

@@ -10,13 +10,13 @@ import type {
   EnvironmentId,
   PullRequestRef,
   PullRequestReviewerCandidate,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { CheckIcon, UserPlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useEnvironmentQuery } from "~/state/query";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 
 import { toastManager } from "../ui/toast";
 import { PullRequestCandidatePicker } from "./PullRequestCandidatePicker";

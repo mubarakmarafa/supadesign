@@ -1,13 +1,13 @@
 "use client";
 
-import { threadPullRequestLinkMode } from "@supacode/client-runtime/thread-pull-request-compatibility";
-import { visibleThreadPullRequests } from "@supacode/shared/threadPullRequests";
+import { threadPullRequestLinkMode } from "@supaterm/client-runtime/thread-pull-request-compatibility";
+import { visibleThreadPullRequests } from "@supaterm/shared/threadPullRequests";
 
 import {
   scopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@supacode/client-runtime/environment";
+} from "@supaterm/client-runtime/environment";
 import {
   canCreateProjectInEnvironment,
   getCloneDestinationBrowsePath,
@@ -27,23 +27,23 @@ import {
   sortAddProjectProviderSources,
   type AddProjectRemoteSource,
   type AddProjectRemoteSourceReadiness,
-} from "@supacode/client-runtime/operations/projects";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
-import { connectionStatusText } from "@supacode/client-runtime/connection";
-import { threadSearchMatchKey } from "@supacode/client-runtime/state/thread-search";
-import { resolveThreadForkSource } from "@supacode/client-runtime/state/thread-workflows";
-import { resolveThreadReferenceCopyTarget } from "@supacode/shared/threadReference";
+} from "@supaterm/client-runtime/operations/projects";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
+import { connectionStatusText } from "@supaterm/client-runtime/connection";
+import { threadSearchMatchKey } from "@supaterm/client-runtime/state/thread-search";
+import { resolveThreadForkSource } from "@supaterm/client-runtime/state/thread-workflows";
+import { resolveThreadReferenceCopyTarget } from "@supaterm/shared/threadReference";
 import {
   canPreloadBrowsePath,
   createBrowseNavigationCoordinator,
   filterFilesystemBrowseEntries,
   getFilesystemBrowsePath,
-} from "@supacode/client-runtime/state/filesystem";
+} from "@supaterm/client-runtime/state/filesystem";
 import {
   isAtomCommandInterrupted,
   settlePromise,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
@@ -58,7 +58,7 @@ import {
   type SourceControlRepositoryInfo,
   PRIMARY_LOCAL_ENVIRONMENT_ID,
   resolveEnvironmentMachineKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
@@ -117,7 +117,7 @@ import { useClientSettings } from "../hooks/useSettings";
 import { useTheme } from "../hooks/useTheme";
 import { useCustomThemes } from "../hooks/useCustomThemes";
 import { useEnvironmentThemeDefinitions } from "../hooks/useEnvironmentTheme";
-import { BUILT_IN_THEMES } from "@supacode/shared/themePalettes";
+import { BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
 import { getThemeDefinition } from "../themePalette";
 import {
   STANDARD_THEME_CARDS,
@@ -138,7 +138,7 @@ import { useAtomQueryRunner } from "../state/use-atom-query-runner";
 import { useScratchProject } from "../hooks/useScratchProject";
 import { useSendFeedback } from "../hooks/useSendFeedback";
 import { useNewProject } from "../hooks/useNewProject";
-import { isScratchProject } from "@supacode/client-runtime/state/projects";
+import { isScratchProject } from "@supaterm/client-runtime/state/projects";
 import { useEnvironments, usePrimaryEnvironmentId } from "../state/environments";
 import {
   useProjects,
@@ -2412,7 +2412,7 @@ function OpenCommandPaletteDialog(props: {
         "grouping",
         "checkout",
         "remove",
-        "supacode.json",
+        "supaterm.json",
       ],
       title: "Project settings",
       description: contextualProjectGroup.displayName,

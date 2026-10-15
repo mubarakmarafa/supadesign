@@ -1,8 +1,8 @@
-import { parseRelayAddress } from "@supacode/shared/relay/protocol";
+import { parseRelayAddress } from "@supaterm/shared/relay/protocol";
 import type {
   AuthClientPresentationMetadata,
   ExecutionEnvironmentDescriptor,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -66,7 +66,7 @@ export class ConnectionResolver extends Context.Service<
       ConnectionAttemptError
     >;
   }
->()("@supacode/client-runtime/connection/resolver/ConnectionResolver") {}
+>()("@supaterm/client-runtime/connection/resolver/ConnectionResolver") {}
 
 const isBearerProfile = Schema.is(BearerConnectionProfile);
 const isSshProfile = Schema.is(SshConnectionProfile);

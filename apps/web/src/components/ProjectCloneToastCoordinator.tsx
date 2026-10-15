@@ -1,17 +1,17 @@
 import { useParams } from "@tanstack/react-router";
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   projectCloneDisplayName,
   projectCloneProgressSummary,
   type EnvironmentId,
   type ProjectCloneSnapshot,
   type ProjectId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useCallback, useEffect, useRef } from "react";
 
 import { useNewThreadHandler } from "../hooks/useHandleNewThread";

@@ -120,7 +120,7 @@ const NOTICE_TEXT_EXTENSIONS = new Set([
   ".txt",
   ".unlicense",
 ]);
-const FIRST_PARTY_PACKAGE_PREFIX = "@supacode/";
+const FIRST_PARTY_PACKAGE_PREFIX = "@supaterm/";
 
 function isNoticeTextFile(fileName: string): boolean {
   return (
@@ -984,7 +984,7 @@ function serializeManifest(manifest: ThirdPartyLicenseManifest): string {
 
 export function thirdPartyLicensesPlugin(options: ThirdPartyLicensesPluginOptions): Plugin {
   return {
-    name: "supacode:third-party-licenses",
+    name: "supaterm:third-party-licenses",
     configureServer(server) {
       let manifestPromise: Promise<ThirdPartyLicenseManifest> | null = null;
       server.middlewares.use((request, response, next) => {

@@ -1,4 +1,4 @@
-import { EnvironmentId, type ExecutionEnvironmentDescriptor } from "@supacode/contracts";
+import { EnvironmentId, type ExecutionEnvironmentDescriptor } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -122,8 +122,8 @@ describe("environmentBootstrap", () => {
     await installDescriptorApi();
 
     await expect(resolveInitialPrimaryEnvironmentDescriptor()).resolves.toEqual(BASE_ENVIRONMENT);
-    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supacode/environment")).toBe(
-      "https://remote.example.com/.well-known/supacode/environment",
+    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supaterm/environment")).toBe(
+      "https://remote.example.com/.well-known/supaterm/environment",
     );
   });
 
@@ -132,8 +132,8 @@ describe("environmentBootstrap", () => {
     await installDescriptorApi();
 
     await expect(resolveInitialPrimaryEnvironmentDescriptor()).resolves.toEqual(BASE_ENVIRONMENT);
-    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supacode/environment")).toBe(
-      "https://remote.example.com/.well-known/supacode/environment",
+    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supaterm/environment")).toBe(
+      "https://remote.example.com/.well-known/supaterm/environment",
     );
     expect(getPrimaryKnownEnvironment()?.target).toEqual({
       httpBaseUrl: "https://remote.example.com/",
@@ -146,8 +146,8 @@ describe("environmentBootstrap", () => {
     await installDescriptorApi();
 
     await expect(resolveInitialPrimaryEnvironmentDescriptor()).resolves.toEqual(BASE_ENVIRONMENT);
-    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supacode/environment")).toBe(
-      "https://remote.example.com/.well-known/supacode/environment",
+    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supaterm/environment")).toBe(
+      "https://remote.example.com/.well-known/supaterm/environment",
     );
     expect(getPrimaryKnownEnvironment()?.target).toEqual({
       httpBaseUrl: "https://remote.example.com/",
@@ -178,8 +178,8 @@ describe("environmentBootstrap", () => {
     await installDescriptorApi();
 
     await expect(resolveInitialPrimaryEnvironmentDescriptor()).resolves.toEqual(BASE_ENVIRONMENT);
-    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supacode/environment")).toBe(
-      "http://localhost:5735/.well-known/supacode/environment",
+    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supaterm/environment")).toBe(
+      "http://localhost:5735/.well-known/supaterm/environment",
     );
   });
 
@@ -205,8 +205,8 @@ describe("environmentBootstrap", () => {
     await installDescriptorApi();
 
     await expect(resolveInitialPrimaryEnvironmentDescriptor()).resolves.toEqual(BASE_ENVIRONMENT);
-    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supacode/environment")).toBe(
-      "http://127.0.0.1:5733/.well-known/supacode/environment",
+    expect(resolvePrimaryEnvironmentHttpUrl("/.well-known/supaterm/environment")).toBe(
+      "http://127.0.0.1:5733/.well-known/supaterm/environment",
     );
   });
 
@@ -259,7 +259,7 @@ describe("environmentBootstrap", () => {
 
   it("has no primary target when the desktop local environment is disabled", () => {
     vi.stubGlobal("window", {
-      location: new URL("supacode://app/"),
+      location: new URL("supaterm://app/"),
       desktopBridge: {
         getLocalEnvironmentEnabled: () => false,
         getLocalEnvironmentBootstraps: () => [],
@@ -275,7 +275,7 @@ describe("environmentBootstrap", () => {
 
   it("preserves an unsupported window-origin protocol", () => {
     vi.stubGlobal("window", {
-      location: { origin: "file:///tmp/supacode/" },
+      location: { origin: "file:///tmp/supaterm/" },
       history: { replaceState: vi.fn() },
     });
 

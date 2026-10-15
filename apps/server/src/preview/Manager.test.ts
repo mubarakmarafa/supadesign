@@ -1,8 +1,8 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { it } from "@effect/vitest";
-import { type PreviewEvent, ThreadId } from "@supacode/contracts";
-import { PreviewUrlNormalizationError } from "@supacode/shared/preview";
+import { type PreviewEvent, ThreadId } from "@supaterm/contracts";
+import { PreviewUrlNormalizationError } from "@supaterm/shared/preview";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as PubSub from "effect/PubSub";
@@ -42,7 +42,7 @@ const collectEvents = Effect.gen(function* () {
 
 const layer = PreviewManager.layer.pipe(
   Layer.provideMerge(
-    ServerConfig.layerTest(process.cwd(), { prefix: "supacode-preview-manager-" }),
+    ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-preview-manager-" }),
   ),
   Layer.provideMerge(NodeCrypto.layer),
   Layer.provide(NodeServices.layer),

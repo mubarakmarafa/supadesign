@@ -4,7 +4,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as PlatformError from "effect/PlatformError";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { vi } from "vite-plus/test";
 
 import * as ProcessRunner from "../processRunner.ts";
@@ -90,7 +90,7 @@ describe("machineKindFromDmi", () => {
       machineKindFromDmi({
         chassisType: "1",
         sysVendor: "Amazon EC2",
-        productName: "supacode.large",
+        productName: "supaterm.large",
       }),
     ).toBe("cloud");
   });

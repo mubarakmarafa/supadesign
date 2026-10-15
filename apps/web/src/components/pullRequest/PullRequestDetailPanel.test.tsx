@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import {
   EnvironmentId,
   ProjectId,
@@ -6,8 +6,8 @@ import {
   type ScopedThreadRef,
   type PullRequestDetailView,
   type ThreadPullRequestLink,
-} from "@supacode/contracts";
-import { DEFAULT_CLIENT_SETTINGS } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import { DEFAULT_CLIENT_SETTINGS } from "@supaterm/contracts/settings";
 import { act, type ReactNode, type ReactElement, type ComponentProps } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

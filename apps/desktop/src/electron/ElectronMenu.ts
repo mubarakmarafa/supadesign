@@ -1,5 +1,5 @@
-import type { ContextMenuItem } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { ContextMenuItem } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -58,7 +58,7 @@ export class ElectronMenu extends Context.Service<
     ) => Effect.Effect<Option.Option<string>>;
     readonly popupTemplate: (input: ElectronMenuTemplateInput) => Effect.Effect<void>;
   }
->()("@supacode/desktop/electron/ElectronMenu") {}
+>()("@supaterm/desktop/electron/ElectronMenu") {}
 
 function normalizeContextMenuItems(source: readonly ContextMenuItem[]): ContextMenuItem[] {
   const normalizedItems: ContextMenuItem[] = [];

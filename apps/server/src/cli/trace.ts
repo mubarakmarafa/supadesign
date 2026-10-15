@@ -1,9 +1,9 @@
 /**
- * `supacode trace summary` - per-span counts, rates, and latency percentiles from
+ * `supaterm trace summary` - per-span counts, rates, and latency percentiles from
  * the local server trace file and its rotated backups. It reads the files
  * directly, so it works while the server is stalled or stopped.
  */
-import { PositiveInt } from "@supacode/contracts";
+import { PositiveInt } from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
@@ -182,9 +182,9 @@ const traceSummaryCommand = Command.make("summary", {
   Command.withHandler(
     Effect.fn("cli.trace.summary")(function* (flags) {
       const fs = yield* FileSystem.FileSystem;
-      // SUPACODE_TRACE_FILE, else the userdata trace file for --base-dir or
-      // SUPACODE_HOME. Implicit dev runs write elsewhere; set SUPACODE_TRACE_FILE.
-      const envHome = yield* Config.String("SUPACODE_HOME").pipe(Config.option);
+      // SUPATERM_TRACE_FILE, else the userdata trace file for --base-dir or
+      // SUPATERM_HOME. Implicit dev runs write elsewhere; set SUPATERM_TRACE_FILE.
+      const envHome = yield* Config.String("SUPATERM_HOME").pipe(Config.option);
       const baseDir = yield* resolveBaseDir(
         Option.getOrUndefined(Option.orElse(flags.baseDir, () => envHome)),
       );

@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as NodeAssert from "node:assert/strict";
 import { describe, expect, it } from "vite-plus/test";
 

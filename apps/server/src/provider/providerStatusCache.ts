@@ -2,14 +2,14 @@ import {
   type ProviderInstanceId,
   type ServerProvider,
   ServerProvider as ServerProviderSchema,
-} from "@supacode/contracts";
-import { causeErrorTag } from "@supacode/shared/observability";
+} from "@supaterm/contracts";
+import { causeErrorTag } from "@supaterm/shared/observability";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
 
 const decodeProviderStatusCache = Schema.decodeUnknownEffect(
   Schema.fromJsonString(ServerProviderSchema),

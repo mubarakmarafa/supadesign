@@ -1,11 +1,11 @@
 import { HOSTED_APP_CHANNEL } from "~/branding";
 import { isElectron } from "~/env";
 import { isMacPlatform, isWindowsPlatform, normalizeSearchText } from "~/lib/utils";
-import { STATIC_KEYBINDING_COMMANDS, type KeybindingCommand } from "@supacode/contracts";
-import type { EnvironmentId } from "@supacode/contracts";
-import type { EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
-import { DEFAULT_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { STATIC_KEYBINDING_COMMANDS, type KeybindingCommand } from "@supaterm/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
+import { DEFAULT_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { commandLabel } from "./KeybindingsSettings.logic";
 import {
   validateSettingsScopeSearch,
@@ -251,7 +251,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Submodules",
     to: "/settings/general",
     scope: "project-defaults",
-    searchTerms: ["git submodule init recursive top-level none worktree supacode.json"],
+    searchTerms: ["git submodule init recursive top-level none worktree supaterm.json"],
   },
   {
     id: "start-from-origin",
@@ -442,7 +442,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "cli-command",
-    title: "supacode command",
+    title: "supaterm command",
     to: "/settings/general",
     searchTerms: ["cli terminal shell path install command line"],
     desktopOnly: true,
@@ -638,7 +638,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Orchestration skills",
     to: "/settings/integrations",
     searchTerms: [
-      "supacode commitee committee advisor install uninstall native skills agents delegation",
+      "supaterm commitee committee advisor install uninstall native skills agents delegation",
     ],
   },
   {
@@ -847,7 +847,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "project-actions",
     title: "Actions",
     to: "/settings/projects",
-    searchTerms: ["commands scripts setup run dev server checkout worktree supacode.json import"],
+    searchTerms: ["commands scripts setup run dev server checkout worktree supaterm.json import"],
   },
   {
     id: "environment-icon",

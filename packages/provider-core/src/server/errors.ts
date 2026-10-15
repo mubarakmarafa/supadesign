@@ -1,4 +1,4 @@
-import { ProviderDriverKind, ProviderInstanceId } from "@supacode/contracts";
+import { ProviderDriverKind, ProviderInstanceId } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 export class ProviderDriverError extends Schema.TaggedError<ProviderDriverError>()(

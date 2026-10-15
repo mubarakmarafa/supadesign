@@ -6,7 +6,7 @@ import {
   type ProjectMutation,
   type ProjectSnapshot,
   ProjectId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Console from "effect/Console";
 import * as Crypto from "effect/Crypto";
 import * as Duration from "effect/Duration";
@@ -32,7 +32,7 @@ import * as ProjectFaviconResolver from "../project/ProjectFaviconResolver.ts";
 import * as RepositoryIdentityResolver from "../project/RepositoryIdentityResolver.ts";
 import * as ProjectService from "../project/ProjectService.ts";
 import { projectMutationOperation } from "../project/ProjectMutation.ts";
-import * as SupacodeProjectFileLoader from "../project/SupacodeProjectFileLoader.ts";
+import * as SupatermProjectFileLoader from "../project/SupatermProjectFileLoader.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import {
   clearPersistedServerRuntimeState,
@@ -204,7 +204,7 @@ const layerProjectCliRuntime = RuntimeLayer.layerProjectService.pipe(
   Layer.provideMerge(
     ProjectFaviconResolver.layer.pipe(
       Layer.provide(WorkspacePaths.layer),
-      Layer.provide(SupacodeProjectFileLoader.layer),
+      Layer.provide(SupatermProjectFileLoader.layer),
     ),
   ),
   Layer.provideMerge(WorkspacePaths.layer),
@@ -220,7 +220,7 @@ const withProjectCliSessionToken = <A, E, R>(
   Effect.acquireUseRelease(
     environmentAuth.issueSession({
       scopes: AuthAdministrativeScopes,
-      label: "supacode project cli",
+      label: "supaterm project cli",
     }),
     (issued) => run(issued.token),
     (issued) => environmentAuth.revokeSession(issued.sessionId).pipe(Effect.ignore({ log: true })),

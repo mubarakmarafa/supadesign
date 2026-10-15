@@ -1,1 +1,1 @@
-export { sanitizeThreadErrorMessage } from "@supacode/client-runtime/errors";
+export { sanitizeThreadErrorMessage } from "@supaterm/client-runtime/errors";

@@ -23,7 +23,7 @@ import {
   RunId,
   RuntimeRequestId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
 import * as Fiber from "effect/Fiber";
@@ -32,15 +32,15 @@ import * as Layer from "effect/Layer";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 
-import { toolOutputImages } from "@supacode/shared/toolOutput";
+import { toolOutputImages } from "@supaterm/shared/toolOutput";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as EventSink from "./EventSink.ts";
 import * as EventStore from "./EventStore.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ProviderEventIngestor from "./ProviderEventIngestor.ts";
 import * as ThreadCommandExecutor from "./ThreadCommandExecutor.ts";
-import { makeProviderFailure } from "@supacode/provider-core/server/failure";
+import { makeProviderFailure } from "@supaterm/provider-core/server/failure";
 import {
   makeProviderEventRoutingState,
   type ProviderEventRouteIdentity,
@@ -464,7 +464,7 @@ layer("ProviderEventIngestorV2", (it) => {
                     parentCheckpointId: null,
                     ordinalWithinScope: input.ordinal,
                     appRunOrdinal: input.ordinal,
-                    ref: CheckpointRef.make(`refs/supacode/checkpoints/rewound/${input.ordinal}`),
+                    ref: CheckpointRef.make(`refs/supaterm/checkpoints/rewound/${input.ordinal}`),
                     status: "ready" as const,
                     files: [],
                     capturedAt: now,
@@ -542,7 +542,7 @@ layer("ProviderEventIngestorV2", (it) => {
             createdAt: now,
             updatedAt: now,
           },
-          retainedNativeTurnIds: ["turn-started-outside-supacode", "kept-turn"],
+          retainedNativeTurnIds: ["turn-started-outside-supaterm", "kept-turn"],
         },
       });
 
@@ -1469,7 +1469,7 @@ layer("ProviderEventIngestorV2", (it) => {
       const screenshot = toolItem(
         "turn-item:screenshot",
         2,
-        "mcp__supacode-code__device_screenshot",
+        "mcp__supaterm-code__device_screenshot",
         {
           content: [
             {

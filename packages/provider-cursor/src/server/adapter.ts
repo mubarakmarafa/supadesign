@@ -8,8 +8,8 @@ import type {
   SettingSource,
   ToolCall,
 } from "@cursor/sdk";
-import { formatReadToolLabel, formatSearchToolLabel } from "@supacode/shared/toolActivity";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { formatReadToolLabel, formatSearchToolLabel } from "@supaterm/shared/toolActivity";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   isOrchestrationV2WorkActive,
   defaultInstanceIdForDriver,
@@ -28,7 +28,7 @@ import {
   type OrchestrationV2TurnItem,
   type ProviderInstanceId,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { CursorSettings } from "../settings.ts";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
@@ -41,10 +41,10 @@ import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import { mcpToolPresentation } from "@supacode/provider-core/server/mcpToolPresentation";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as McpProviderSession from "@supacode/provider-core/server/mcpSession";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import { mcpToolPresentation } from "@supaterm/provider-core/server/mcpToolPresentation";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as McpProviderSession from "@supaterm/provider-core/server/mcpSession";
 import { CursorTransportFailure } from "./transportFailure.ts";
 import { cursorSdkModelSelection } from "./sdkModel.ts";
 import {
@@ -52,27 +52,27 @@ import {
   hasCursorSkillMention,
   rewriteCursorSkillMentions,
 } from "./skills.ts";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
-import { supacodeOrchestrationPromptForFirstRun } from "@supacode/provider-core/server/orchestrationInstructions";
-import { buildRuntimeInstructions } from "@supacode/provider-core/server/runtimeInstructions";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import { makeProviderFailure } from "@supacode/provider-core/server/failure";
-import { turnScopedSelectionTransition } from "@supacode/provider-core/server/selectionTransition";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
+import { supatermOrchestrationPromptForFirstRun } from "@supaterm/provider-core/server/orchestrationInstructions";
+import { buildRuntimeInstructions } from "@supaterm/provider-core/server/runtimeInstructions";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import { makeProviderFailure } from "@supaterm/provider-core/server/failure";
+import { turnScopedSelectionTransition } from "@supaterm/provider-core/server/selectionTransition";
 import {
   isProviderNativeImageAttachment,
   providerMessageTextWithAttachmentPaths,
-} from "@supacode/provider-core/server/attachmentPrompt";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+} from "@supaterm/provider-core/server/attachmentPrompt";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import {
   ProviderAdapterDriverCreateError,
   type ProviderAdapterDriver,
   type ProviderAdapterDriverCreateInput,
-} from "@supacode/provider-core/server/adapterDriver";
+} from "@supaterm/provider-core/server/adapterDriver";
 import {
   makeSubagentChildThread,
   makeSubagentConversationArtifacts,
   subagentThreadTitle,
-} from "@supacode/provider-core/server/subagentProjection";
+} from "@supaterm/provider-core/server/subagentProjection";
 import * as CursorAgentSdk from "./CursorAgentSdk.ts";
 export { cursorSdkModelSelection } from "./sdkModel.ts";
 
@@ -208,7 +208,7 @@ export function cursorMcpServers(
     return undefined;
   }
   return {
-    supacode: {
+    supaterm: {
       type: "http",
       url: session.endpoint,
       headers: {
@@ -292,7 +292,7 @@ function nativeThreadId(providerThread: OrchestrationV2ProviderThread): string {
  * plugins. The SDK loads none of them when `settingSources` is omitted.
  * Sandbox policy files are read either way, and hooks can only deny or ask
  * (which local SDK runs reject), so these layers do not loosen the sandbox or
- * approval mode Supacode sets.
+ * approval mode Supaterm sets.
  */
 const CURSOR_AGENT_SETTING_SOURCES = [
   "project",
@@ -313,7 +313,7 @@ export function makeCursorAgentOptions(input: {
   const mcpServers = cursorMcpServers(input.mcpSession);
   return {
     model: cursorSdkModelSelection(input.modelSelection),
-    name: `supacode ${input.threadId}`,
+    name: `supaterm ${input.threadId}`,
     mode: input.runtimePolicy.interactionMode === "plan" ? "plan" : "agent",
     ...(input.apiKey === undefined ? {} : { apiKey: input.apiKey }),
     local: {
@@ -2130,7 +2130,7 @@ export const makeCursorAdapterV2 = Effect.fn("makeCursorAdapterV2")(function* (
                 .map((skill) => skill.name),
             );
           }
-          const userText = supacodeOrchestrationPromptForFirstRun({
+          const userText = supatermOrchestrationPromptForFirstRun({
             prompt: providerMessageTextWithAttachmentPaths({
               text:
                 cursorSkillNames === undefined
@@ -2140,7 +2140,7 @@ export const makeCursorAdapterV2 = Effect.fn("makeCursorAdapterV2")(function* (
               resolveAttachmentPath: host.resolveAttachmentPath,
             }),
             runOrdinal: turnInput.runOrdinal,
-            hasSupacodeMcp: mcpServers !== undefined,
+            hasSupatermMcp: mcpServers !== undefined,
           });
           const images = yield* Effect.forEach(
             turnInput.message.attachments.filter(isProviderNativeImageAttachment),

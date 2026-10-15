@@ -1,5 +1,5 @@
-import type { EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
-import { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { resolveAddProjectEnvironment } from "./AddProjectScreen.logic";

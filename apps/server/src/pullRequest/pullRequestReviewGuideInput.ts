@@ -1,5 +1,5 @@
-import type { PullRequestActivity, PullRequestDetail } from "@supacode/contracts";
-import type { ReviewGuideGenerationInput } from "@supacode/provider-core/server/textGeneration";
+import type { PullRequestActivity, PullRequestDetail } from "@supaterm/contracts";
+import type { ReviewGuideGenerationInput } from "@supaterm/provider-core/server/textGeneration";
 
 /** Longest a settled remark is quoted. The guide needs what was raised, not the argument. */
 const SETTLED_REMARK_CHARS = 200;

@@ -4,8 +4,8 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerProvider,
-} from "@supacode/contracts";
-import { createModelCapabilities } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { createModelCapabilities } from "@supaterm/shared/model";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -105,10 +105,10 @@ function layerProviderHost(input: {
     ProviderHost.ProviderHost.of({
       paths: {
         cwd: process.cwd(),
-        baseDir: "/supacode",
-        stateDir: "/supacode/userdata",
-        providerStatusCacheDir: "/supacode/caches",
-        attachmentsDir: "/supacode/userdata/attachments",
+        baseDir: "/supaterm",
+        stateDir: "/supaterm/userdata",
+        providerStatusCacheDir: "/supaterm/caches",
+        attachmentsDir: "/supaterm/userdata/attachments",
       },
       settings: input.settings ?? {
         get: Effect.succeed(DEFAULT_SERVER_SETTINGS),

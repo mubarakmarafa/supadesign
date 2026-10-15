@@ -12,7 +12,7 @@
  *
  * @module provider/Drivers/OpenCodeDriver
  */
-import { ProviderDriverKind } from "@supacode/contracts";
+import { ProviderDriverKind } from "@supaterm/contracts";
 import { OpenCodeSettings } from "../settings.ts";
 import * as Crypto from "effect/Crypto";
 import * as Deferred from "effect/Deferred";
@@ -27,13 +27,13 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
 import * as OpenCode2TextGeneration from "./v2/textGeneration.ts";
 import { makeOpenCodeTextGeneration } from "./textGeneration.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import * as OpenCodeAdapterV2 from "./adapter.ts";
 import * as OpenCode2AdapterV2 from "./v2/adapter.ts";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
-import type { ProviderTextGeneration } from "@supacode/provider-core/server/textGeneration";
-import { ProviderDriverError } from "@supacode/provider-core/server/errors";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
+import type { ProviderTextGeneration } from "@supaterm/provider-core/server/textGeneration";
+import { ProviderDriverError } from "@supaterm/provider-core/server/errors";
 import { openCodeUsageReader, type OpenCodeUsageReaderEnv } from "./usage.ts";
 import { readOpenCodeGoUsageLimits } from "./usageLimits.ts";
 import { loadOpenCode2Catalog } from "./openCode2Catalog.ts";
@@ -47,7 +47,7 @@ import {
   openCodeSkillsToServerProviderSkills,
   openCodeCommandsToServerProviderSlashCommands,
 } from "./status.ts";
-import { makeManagedServerProvider } from "@supacode/provider-core/server/managedProvider";
+import { makeManagedServerProvider } from "@supaterm/provider-core/server/managedProvider";
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
 import {
   makeOpenCodeRuntimeProbe,
@@ -61,9 +61,9 @@ import {
   defaultProviderContinuationIdentity,
   type ProviderDriver,
   type ProviderInstance,
-} from "@supacode/provider-core/server/driver";
-import { withInstanceIdentity } from "@supacode/provider-core/server/instanceIdentity";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
+} from "@supaterm/provider-core/server/driver";
+import { withInstanceIdentity } from "@supaterm/provider-core/server/instanceIdentity";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
 import {
   enrichProviderSnapshotWithVersionAdvisory,
   makeCachedProviderMaintenanceResolution,
@@ -71,13 +71,13 @@ import {
   makePackageManagedProviderMaintenanceResolver,
   normalizeCommandPath,
   resolveProviderMaintenanceCapabilitiesEffect,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 import {
   haveProviderSnapshotSettingsChanged,
   makeProviderSnapshotSettingsSource,
   type ProviderSnapshotSettings,
-} from "@supacode/provider-core/server/snapshotSettings";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/provider-core/server/snapshotSettings";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 const decodeOpenCodeSettings = Schema.decodeSync(OpenCodeSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("opencode");
@@ -92,7 +92,7 @@ function isOpenCodeNativeCommandPath(commandPath: string): boolean {
 
 /**
  * OpenCode 1.x ships as `opencode-ai` and 2.x as `@opencode/cli`. An install is
- * only ever updated within its own package: Supacode never moves a 1.x install onto
+ * only ever updated within its own package: Supaterm never moves a 1.x install onto
  * 2.x or back, since 2.x converts the shared database in place.
  */
 export const openCodeUpdateFor = (generation: ProbedOpenCode["generation"]) =>

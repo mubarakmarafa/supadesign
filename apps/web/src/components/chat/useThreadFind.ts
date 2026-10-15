@@ -1,10 +1,10 @@
-import type { InlineSkill } from "@supacode/shared/inlineSkills";
+import type { InlineSkill } from "@supaterm/shared/inlineSkills";
 import type {
   OrchestrationV2ThreadProjection,
   OrchestrationV2SearchThreadResult,
   ScopedThreadRef,
-} from "@supacode/contracts";
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
+} from "@supaterm/contracts";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { orchestrationEnvironment } from "~/state/orchestration";
 import { useEnvironmentQuery } from "~/state/query";

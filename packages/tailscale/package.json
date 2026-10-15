@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/tailscale",
+  "name": "@supaterm/tailscale",
   "private": true,
   "type": "module",
   "exports": {
@@ -13,7 +13,7 @@
     "test": "vp test run --config ../../vite.config.ts --dir ."
   },
   "dependencies": {
-    "@supacode/shared": "workspace:*",
+    "@supaterm/shared": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

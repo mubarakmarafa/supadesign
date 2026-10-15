@@ -26,7 +26,7 @@ import {
   type VcsStatusLocalResult,
   type VcsStatusRemoteResult,
   type VcsStatusResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as GitManager from "./GitManager.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
@@ -125,7 +125,7 @@ export class GitWorkflowService extends Context.Service<
       readonly newBranch: string;
     }) => Effect.Effect<{ readonly branch: string }, GitManagerServiceError>;
   }
->()("supacode/git/GitWorkflowService") {}
+>()("supaterm/git/GitWorkflowService") {}
 
 function nonRepositoryLocalStatus(): VcsStatusLocalResult {
   return {

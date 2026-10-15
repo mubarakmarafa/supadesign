@@ -1,10 +1,10 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import type {
   PullRequestCapabilities,
   PullRequestReaction,
   PullRequestViewerPermissions,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as GitLabPullRequestCli from "./GitLabPullRequestCli.ts";
 import {
@@ -13,7 +13,7 @@ import {
   type ProviderChangeRequestActivity,
   type ProviderChangeRequestDetail,
   type PullRequestProviderApi,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 import { definition } from "../client/definition.ts";
 
 const CAPABILITIES: PullRequestCapabilities = {

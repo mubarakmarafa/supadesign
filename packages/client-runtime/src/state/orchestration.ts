@@ -1,4 +1,4 @@
-import { ORCHESTRATION_V2_WS_METHODS } from "@supacode/contracts";
+import { ORCHESTRATION_V2_WS_METHODS } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import {

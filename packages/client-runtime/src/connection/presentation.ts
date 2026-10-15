@@ -1,5 +1,5 @@
-import type { ServerConfig } from "@supacode/contracts";
-import { relayName } from "@supacode/shared/relay/name";
+import type { ServerConfig } from "@supaterm/contracts";
+import { relayName } from "@supaterm/shared/relay/name";
 import * as Option from "effect/Option";
 
 import type { ConnectionCatalogEntry } from "./catalog.ts";

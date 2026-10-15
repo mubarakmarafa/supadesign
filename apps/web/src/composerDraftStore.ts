@@ -24,7 +24,7 @@ import {
   type ScopedThreadRef,
   ThreadId,
   SnapShotSource,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   parseScopedProjectKey,
   parseScopedThreadKey,
@@ -32,12 +32,12 @@ import {
   scopeProjectRef,
   scopedThreadKey,
   scopeThreadRef,
-} from "@supacode/client-runtime/environment";
+} from "@supaterm/client-runtime/environment";
 import * as Schema from "effect/Schema";
 import * as Equal from "effect/Equal";
 import * as Effect from "effect/Effect";
 import { DeepMutable } from "effect/Types";
-import { createModelSelection, normalizeModelSlug } from "@supacode/shared/model";
+import { createModelSelection, normalizeModelSlug } from "@supaterm/shared/model";
 import { useMemo } from "react";
 import { readThreadPreviewState } from "./previewStateStore";
 import { getLocalStorageItem } from "./hooks/useLocalStorage";
@@ -77,8 +77,8 @@ import { persist, type PersistStorage, type StorageValue } from "zustand/middlew
 import { useShallow } from "zustand/react/shallow";
 import { createDeferredStorage, createMemoryStorage } from "./lib/storage";
 import { getDefaultServerModel } from "./providerModels";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
-import { UnifiedSettings } from "@supacode/contracts/settings";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
+import { UnifiedSettings } from "@supaterm/contracts/settings";
 import { ReviewCommentContextSchema, type ReviewCommentContext } from "./reviewCommentContext";
 const isRuntimeMode = Schema.is(RuntimeMode);
 const isProviderDriverKind = Schema.is(ProviderDriverKind);
@@ -88,7 +88,7 @@ const isSnapShotSource = Schema.is(SnapShotSource);
 const isPreviewAnnotationPayload = Schema.is(PreviewAnnotationPayloadSchema);
 const isElementContextDetails = Schema.is(ElementContextDetails);
 
-export const COMPOSER_DRAFT_STORAGE_KEY = "supacode:composer-drafts:v1";
+export const COMPOSER_DRAFT_STORAGE_KEY = "supaterm:composer-drafts:v1";
 const COMPOSER_DRAFT_STORAGE_VERSION = 9;
 const DraftThreadEnvModeSchema = Schema.Literals(["local", "worktree"]);
 export type DraftThreadEnvMode = typeof DraftThreadEnvModeSchema.Type;
@@ -2041,7 +2041,7 @@ function normalizePersistedDraftsByThreadId(
     // Older drafts used producer ids (including dots and colons) directly in links.
     // Rewrite only links backed by this draft, before appending any missing references.
     const migratedPrompt = promptCandidate.replace(
-      /!?\[([^\]\r\n]*)\]\(supacode-context:\/\/v1\/([a-z-]+)\/([^/()\r\n]+)\)/g,
+      /!?\[([^\]\r\n]*)\]\(supaterm-context:\/\/v1\/([a-z-]+)\/([^/()\r\n]+)\)/g,
       (source, label: string, kind: string, id: string) => {
         const contextId = contextIds.get(`${kind}/${id}`);
         return contextId ? formatInlineContextReference({ kind, contextId, label }) : source;

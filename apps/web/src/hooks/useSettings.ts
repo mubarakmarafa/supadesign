@@ -21,23 +21,23 @@ import {
   ServerSettings,
   type ServerSettingsPatch,
   sessionGrantsScope,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   type ClientSettingsPatch,
   type ClientSettings,
   DEFAULT_CLIENT_SETTINGS,
   type UnifiedSettings,
-} from "@supacode/contracts/settings";
-import { safeErrorLogAttributes } from "@supacode/client-runtime/errors";
+} from "@supaterm/contracts/settings";
+import { safeErrorLogAttributes } from "@supaterm/client-runtime/errors";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   filterSharedServerPatch,
   splitSharedServerPatch,
   supportsSharedSettingsSync,
-} from "@supacode/client-runtime/state/shared-settings";
+} from "@supaterm/client-runtime/state/shared-settings";
 import { ensureLocalApi } from "~/localApi";
 import {
   getThemeDefinition,
@@ -51,7 +51,7 @@ import {
   applyServerSettingsPatch,
   modelPreferencesMigrationPatch,
   resolveModelPreferences,
-} from "@supacode/shared/serverSettings";
+} from "@supaterm/shared/serverSettings";
 import * as Struct from "effect/Struct";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";

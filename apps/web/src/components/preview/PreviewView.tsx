@@ -1,11 +1,11 @@
 "use client";
 
-import { parseScopedThreadKey, scopedThreadKey } from "@supacode/client-runtime/environment";
-import { previewStreamDownloadUrl } from "@supacode/client-runtime/preview/server-browser-stream";
+import { parseScopedThreadKey, scopedThreadKey } from "@supaterm/client-runtime/environment";
+import { previewStreamDownloadUrl } from "@supaterm/client-runtime/preview/server-browser-stream";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   AuthOrchestrationOperateScope,
   DEFAULT_BROWSER_PROFILE_ID,
@@ -16,8 +16,8 @@ import {
   DEFAULT_PREVIEW_ZOOM_FACTOR,
   PREVIEW_ZOOM_LEVELS,
   type PreviewAdjustInput,
-} from "@supacode/contracts";
-import { normalizePreviewUrl, resolveAddressBarInput } from "@supacode/shared/preview";
+} from "@supaterm/contracts";
+import { normalizePreviewUrl, resolveAddressBarInput } from "@supaterm/shared/preview";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -1098,7 +1098,7 @@ export function PreviewView({
           ) : (
             <div className="flex h-full items-center justify-center p-8 text-center">
               <p className="max-w-sm text-sm text-muted-foreground">
-                This tab is open in the Supacode desktop app.
+                This tab is open in the Supaterm desktop app.
               </p>
             </div>
           )

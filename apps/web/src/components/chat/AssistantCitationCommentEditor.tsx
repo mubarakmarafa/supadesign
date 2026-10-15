@@ -1,4 +1,4 @@
-import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH, type AssistantCitation } from "@supacode/contracts";
+import { ASSISTANT_CITATION_MAX_COMMENT_LENGTH, type AssistantCitation } from "@supaterm/contracts";
 import { useState, type Ref } from "react";
 
 import { Button } from "../ui/button";

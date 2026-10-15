@@ -1,6 +1,6 @@
-import { AuthFilesystemReadScope, type EnvironmentId } from "@supacode/contracts";
-import { resolvePathLinkTarget, splitFilePathPosition } from "@supacode/shared/fileLinks";
-import { normalizeProjectPathForComparison, isAbsolutePath } from "@supacode/shared/path";
+import { AuthFilesystemReadScope, type EnvironmentId } from "@supaterm/contracts";
+import { resolvePathLinkTarget, splitFilePathPosition } from "@supaterm/shared/fileLinks";
+import { normalizeProjectPathForComparison, isAbsolutePath } from "@supaterm/shared/path";
 import { useContext } from "react";
 
 import { useEnvironmentScope } from "../state/session";

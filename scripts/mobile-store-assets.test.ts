@@ -20,7 +20,7 @@ const config: ShowcaseConfig = {
       platform: "android",
       avd: "Test_Tablet",
       appearance: "dark",
-      theme: "supacode",
+      theme: "supaterm",
       scenes: ["terminal", "thread"],
       storeAsset: {
         store: "google-play",
@@ -45,7 +45,7 @@ it("packages configured screenshot order and store slots with upload-safe brandi
   const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "mobile-store-assets-"));
   try {
     const screenshotRoot = NodePath.join(root, "screenshots");
-    const source = NodePath.join(screenshotRoot, "google-play/custom-tablet/dark/supacode");
+    const source = NodePath.join(screenshotRoot, "google-play/custom-tablet/dark/supaterm");
     await NodeFSP.mkdir(source, { recursive: true });
     const terminal = screenshot(80);
     const thread = screenshot(160);

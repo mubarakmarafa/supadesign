@@ -2,7 +2,7 @@ import {
   AuthDiagnosticsReadScope,
   sessionGrantsScope,
   type SessionGrantInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import type { EnvironmentConnectionPhase } from "../connection/presentation.ts";
 

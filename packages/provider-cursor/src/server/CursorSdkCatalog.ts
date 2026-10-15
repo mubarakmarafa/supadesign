@@ -35,7 +35,7 @@ export class CursorSdkCatalog extends Context.Service<
       apiKey: string,
     ) => Effect.Effect<CursorSdkCatalogSnapshot, CursorSdkCatalogError>;
   }
->()("@supacode/provider-cursor/server/CursorSdkCatalog") {}
+>()("@supaterm/provider-cursor/server/CursorSdkCatalog") {}
 
 function isAuthenticationFailure(cause: unknown): boolean {
   return (

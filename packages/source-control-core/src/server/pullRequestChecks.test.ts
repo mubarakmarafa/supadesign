@@ -1,4 +1,4 @@
-import type { PullRequestCheck, PullRequestCheckStatus } from "@supacode/contracts";
+import type { PullRequestCheck, PullRequestCheckStatus } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { dedupeChecks } from "./pullRequestChecks.ts";

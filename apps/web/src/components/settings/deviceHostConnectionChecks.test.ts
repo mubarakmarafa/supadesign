@@ -1,6 +1,6 @@
 import * as Option from "effect/Option";
 import { describe, expect, it } from "vite-plus/test";
-import { EnvironmentId, type DeviceHostSummary } from "@supacode/contracts";
+import { EnvironmentId, type DeviceHostSummary } from "@supaterm/contracts";
 import {
   checkDeviceHostConnections,
   parseDeviceHostDraft,

@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect";
 import {
   ORCHESTRATION_PROTOCOL_HEADER,
   ORCHESTRATION_PROTOCOL_VERSION_TEXT,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { FetchHttpClient } from "effect/http";
 
 import type { PreparedConnection, PreparedHttpAuthorization } from "../connection/model.ts";

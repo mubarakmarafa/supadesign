@@ -20,7 +20,7 @@ import {
   type OrchestrationV2ThreadLaunchInput,
   type OrchestrationV2ThreadProjection,
   type ProjectMutation,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -768,7 +768,7 @@ describe("V2 environment commands", () => {
       parentCheckpointId: null,
       ordinalWithinScope: input.ordinalWithinScope,
       appRunOrdinal: input.appRunOrdinal,
-      ref: CheckpointRef.make(`refs/supacode/${input.id}`),
+      ref: CheckpointRef.make(`refs/supaterm/${input.id}`),
       status: input.status,
       files: [],
       capturedAt: v2Now,

@@ -2,7 +2,7 @@
  * Usage reporting contract.
  *
  * Each environment scans native session files and databases, including work
- * driven outside Supacode. Source status describes gaps in local coverage.
+ * driven outside Supaterm. Source status describes gaps in local coverage.
  *
  * Environments return pre-aggregated `(day, hourStart?, provider, model, sourcePath?)`
  * buckets. Raw transcript records never cross the wire.

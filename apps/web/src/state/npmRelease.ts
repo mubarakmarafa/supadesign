@@ -4,7 +4,7 @@ import { FetchHttpClient, HttpClient, HttpClientResponse } from "effect/http";
 import { AsyncResult, Atom } from "effect/reactivity";
 
 /**
- * Whether `supacode@<version>` is published on npm. A 404 is false; network and
+ * Whether `supaterm@<version>` is published on npm. A 404 is false; network and
  * registry errors stay unknown. Both re-check every few minutes, so a release
  * that lands later shows up without a reload.
  */
@@ -12,7 +12,7 @@ export const npmReleasePublishedAtom = Atom.family((version: string) =>
   Atom.make(
     Effect.gen(function* () {
       const response = yield* HttpClient.get(
-        `https://registry.npmjs.org/supacode/${encodeURIComponent(version)}`,
+        `https://registry.npmjs.org/supaterm/${encodeURIComponent(version)}`,
       );
       if (response.status === 404) return false;
       const body = yield* HttpClientResponse.filterStatusOk(response).pipe(

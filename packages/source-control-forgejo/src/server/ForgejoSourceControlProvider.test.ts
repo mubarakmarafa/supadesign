@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -9,9 +9,9 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import { VcsProcessSpawnError } from "@supacode/contracts";
-import { firstNonEmptyLine } from "@supacode/source-control-core/server/discovery";
-import * as TestSourceControlHost from "@supacode/source-control-testing/TestSourceControlHost";
+import { VcsProcessSpawnError } from "@supaterm/contracts";
+import { firstNonEmptyLine } from "@supaterm/source-control-core/server/discovery";
+import * as TestSourceControlHost from "@supaterm/source-control-testing/TestSourceControlHost";
 
 import * as ForgejoCli from "./ForgejoCli.ts";
 import * as ForgejoPullRequestProvider from "./ForgejoPullRequestProvider.ts";

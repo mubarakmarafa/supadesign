@@ -1,5 +1,5 @@
-import type { ResponseStreamingMode } from "@supacode/contracts";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type { ResponseStreamingMode } from "@supaterm/contracts";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 // An opening fence may sit at any indentation, since fences inside list
 // items are indented past the marker. A closing fence may be indented at most

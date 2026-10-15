@@ -13,7 +13,7 @@ import {
   type ReviewDiffPreviewError,
   type ReviewDiffPreviewInput,
   type ReviewDiffPreviewResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as ServerConfig from "../config.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
@@ -21,7 +21,7 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import { isFilesystemRoot, managedWorktreesDirectories } from "../worktreesDirectory.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 export class ReviewService extends Context.Service<
   ReviewService,
@@ -33,7 +33,7 @@ export class ReviewService extends Context.Service<
       input: ReviewDiffFileContentsInput,
     ) => Effect.Effect<ReviewDiffFileContentsResult, ReviewDiffPreviewError>;
   }
->()("supacode/review/ReviewService") {}
+>()("supaterm/review/ReviewService") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {

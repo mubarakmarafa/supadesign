@@ -4,7 +4,7 @@ import type {
   OrchestrationV2TurnItem,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 /**
  * Match the V1 conversation windows. Item/byte budgets only apply to histories

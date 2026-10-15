@@ -1,4 +1,4 @@
-import { DesktopHostTelemetryMessage } from "@supacode/contracts";
+import { DesktopHostTelemetryMessage } from "@supaterm/contracts";
 import { assert, describe, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
@@ -25,7 +25,7 @@ function layerElectronApp(
 ) {
   return Layer.succeed(ElectronApp.ElectronApp, {
     metadata: Effect.die("unexpected metadata read"),
-    name: Effect.succeed("Supacode"),
+    name: Effect.succeed("Supaterm"),
     systemLocale: Effect.succeed("en-US"),
     environmentMachineIcons: Effect.succeed({}),
     whenReady: Effect.void,

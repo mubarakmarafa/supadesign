@@ -1,4 +1,4 @@
-import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supacode/contracts";
+import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Option from "effect/Option";
 
@@ -78,8 +78,8 @@ describe("connection presentation", () => {
         connectionId: relayTarget.connectionId,
         environmentId: TARGET.environmentId,
         label: TARGET.label,
-        httpBaseUrl: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`,
-        wsBaseUrl: `wss://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`,
+        httpBaseUrl: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
+        wsBaseUrl: `wss://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
       }),
     ),
   };

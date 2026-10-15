@@ -1,5 +1,5 @@
-import { ProjectId, ProviderDriverKind } from "@supacode/contracts";
-import type { OrchestrationV2TurnItemStatus } from "@supacode/contracts";
+import { ProjectId, ProviderDriverKind } from "@supaterm/contracts";
+import type { OrchestrationV2TurnItemStatus } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import {
   subagentGroupSummary,

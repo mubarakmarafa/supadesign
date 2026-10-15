@@ -1,4 +1,4 @@
-import { formatWorkingDurationLabel } from "@supacode/client-runtime/state/thread-timing";
+import { formatWorkingDurationLabel } from "@supaterm/client-runtime/state/thread-timing";
 import { memo, useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { AppText } from "../../components/AppText";

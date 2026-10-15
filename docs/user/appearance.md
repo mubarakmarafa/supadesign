@@ -37,7 +37,7 @@ without replaying transitions.
 
 ## Custom themes
 
-On web and desktop, choose **Create theme** to adjust a palette, or import a Supacode or VS Code
+On web and desktop, choose **Create theme** to adjust a palette, or import a Supaterm or VS Code
 theme. The theme editor's color picker lets you select an area of the app to find the color to
 change. Export your theme as JSON to share it.
 
@@ -48,27 +48,27 @@ main local environment. Remote browsers and additional connections do not use th
 
 Select a published theme in **Settings → Appearance** to follow its palette as the server updates
 it. **Duplicate** makes an independent copy you can edit. A saved custom theme with the same ID
-takes precedence. If the server stops publishing the selected theme, Supacode falls back to its
+takes precedence. If the server stops publishing the selected theme, Supaterm falls back to its
 standard theme.
 
 Run this on the server to set a default and switch connected clients to it:
 
 ```bash
-supacode theme set nightfall
+supaterm theme set nightfall
 ```
 
 Clients that are offline apply it when they reconnect. Each client applies the setting once;
-choosing another theme afterward sticks until the next `supacode theme set`. Run the command again to
+choosing another theme afterward sticks until the next `supaterm theme set`. Run the command again to
 reapply it, even if the name is unchanged.
 
-`supacode theme clear` removes the default without changing anyone's current theme. `supacode theme show` lists
+`supaterm theme clear` removes the default without changing anyone's current theme. `supaterm theme show` lists
 the default and published themes.
 
 ### Publish a theme
 
-Save a theme exported from Supacode into `~/.supacode/userdata/themes/` on the server, or the `themes`
+Save a theme exported from Supaterm into `~/.supaterm/userdata/themes/` on the server, or the `themes`
 directory under your custom state directory. The filename supplies the theme ID: `nightfall.json`
-can be selected with `supacode theme set nightfall`. Keep the filename stable when updating its colors.
+can be selected with `supaterm theme set nightfall`. Keep the filename stable when updating its colors.
 Do not use `system`, `light`, `dark`, or a built-in theme's ID.
 
 For an integration that generates a palette, this shorter format also works:
@@ -86,7 +86,7 @@ For an integration that generates a palette, this shorter format also works:
 }
 ```
 
-Set `appearance` to `light` or `dark` and supply hex colors for `canvas` and `accent`. Supacode
+Set `appearance` to `light` or `dark` and supply hex colors for `canvas` and `accent`. Supaterm
 generates the rest. The optional `colors` overrides use the names in the theme editor's advanced
 view.
 

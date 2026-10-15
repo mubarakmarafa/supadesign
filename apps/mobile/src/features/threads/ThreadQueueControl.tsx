@@ -1,6 +1,6 @@
 import { type StaticScreenProps, useNavigation } from "@react-navigation/native";
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId, RunId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, RunId, ThreadId } from "@supaterm/contracts";
 import * as Haptics from "expo-haptics";
 import { type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated, Platform, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
@@ -204,7 +204,7 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
           <View className="flex-row items-center gap-2">
             <Text
               accessibilityRole="header"
-              className="shrink text-lg font-supacode-bold text-foreground"
+              className="shrink text-lg font-supaterm-bold text-foreground"
             >
               Queued
             </Text>
@@ -229,7 +229,7 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
       </View>
       {queuedRuns.length === 0 ? (
         <View className="gap-2 py-6">
-          <Text className="text-center text-base font-supacode-medium text-foreground">
+          <Text className="text-center text-base font-supaterm-medium text-foreground">
             Your queue is empty
           </Text>
           <Text className="text-center text-sm text-foreground-muted">
@@ -491,7 +491,7 @@ function QueueRowSwipeable(props: {
             style={{ width: QUEUE_ACTION_WIDTH }}
           >
             <SymbolView name="trash" size={16} tintColorClassName="accent-danger-foreground" />
-            <Text className="pt-1 text-2xs font-supacode-medium text-danger-foreground">
+            <Text className="pt-1 text-2xs font-supaterm-medium text-danger-foreground">
               Remove
             </Text>
           </Pressable>
@@ -523,8 +523,8 @@ function QueueSteerButton(props: { readonly canSteer: boolean; readonly onPress:
       <Text
         className={
           props.canSteer
-            ? "pt-1 text-2xs font-supacode-medium text-primary-text"
-            : "pt-1 text-2xs font-supacode-medium text-foreground-muted"
+            ? "pt-1 text-2xs font-supaterm-medium text-primary-text"
+            : "pt-1 text-2xs font-supaterm-medium text-foreground-muted"
         }
       >
         Steer

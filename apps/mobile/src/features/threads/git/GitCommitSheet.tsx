@@ -1,7 +1,7 @@
 import { useNavigation, type StaticScreenProps } from "@react-navigation/native";
 import { useCallback, useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
-import { formatDiffCount } from "@supacode/client-runtime/diff-count";
+import { formatDiffCount } from "@supaterm/client-runtime/diff-count";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AndroidSheetHeader } from "../../../components/AndroidScreenHeader";
@@ -121,7 +121,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
           <View className="gap-3 bg-card p-4 android:rounded-[20px] ios:rounded-[22px] ios:border ios:border-border">
             <View className="android:gap-1 ios:flex-row ios:items-center ios:justify-between ios:gap-3">
               <Text className="text-foreground-muted text-sm font-medium">Branch</Text>
-              <Text className="text-foreground text-base android:font-supacode-medium ios:font-supacode-bold">
+              <Text className="text-foreground text-base android:font-supaterm-medium ios:font-supaterm-bold">
                 {gitStatus.data?.refName ?? "(detached HEAD)"}
               </Text>
             </View>
@@ -135,7 +135,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
           <View className="gap-3 bg-card p-4 android:rounded-[20px] ios:rounded-[22px] ios:border ios:border-border">
             <View className="flex-row items-center justify-between gap-3">
               <View className="gap-1">
-                <Text className="text-foreground text-base android:font-supacode-medium ios:font-supacode-bold">
+                <Text className="text-foreground text-base android:font-supaterm-medium ios:font-supaterm-bold">
                   Files
                 </Text>
                 <Text className="text-foreground-muted text-xs leading-normal">
@@ -149,7 +149,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
                     className="rounded-full px-3 android:min-h-12 android:justify-center android:active:bg-subtle ios:bg-subtle ios:py-2"
                     onPress={() => setExcludedFiles(new Set())}
                   >
-                    <Text className="android:text-primary-text android:text-sm android:font-supacode-medium ios:text-foreground ios:text-2xs ios:font-supacode-bold ios:uppercase">
+                    <Text className="android:text-primary-text android:text-sm android:font-supaterm-medium ios:text-foreground ios:text-2xs ios:font-supaterm-bold ios:uppercase">
                       Reset
                     </Text>
                   </Pressable>
@@ -158,7 +158,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
                   className="rounded-full px-3 android:min-h-12 android:justify-center android:active:bg-subtle ios:bg-subtle ios:py-2"
                   onPress={() => setIsEditingFiles((current) => !current)}
                 >
-                  <Text className="android:text-primary-text android:text-sm android:font-supacode-medium ios:text-foreground ios:text-2xs ios:font-supacode-bold ios:uppercase">
+                  <Text className="android:text-primary-text android:text-sm android:font-supaterm-medium ios:text-foreground ios:text-2xs ios:font-supaterm-bold ios:uppercase">
                     {isEditingFiles ? "Done" : "Edit"}
                   </Text>
                 </Pressable>
@@ -176,10 +176,10 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
                     <Text className="text-foreground flex-1 text-sm font-medium" numberOfLines={1}>
                       {file.path}
                     </Text>
-                    <Text className="text-xs font-supacode-bold text-adaptive-emerald-700-300">
+                    <Text className="text-xs font-supaterm-bold text-adaptive-emerald-700-300">
                       +{formatDiffCount(file.insertions)}
                     </Text>
-                    <Text className="text-xs font-supacode-bold text-adaptive-rose-700-300">
+                    <Text className="text-xs font-supaterm-bold text-adaptive-rose-700-300">
                       -{formatDiffCount(file.deletions)}
                     </Text>
                   </View>
@@ -244,7 +244,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
                         <View className="flex-1 gap-1">
                           <Text
                             selectable
-                            className={`text-sm font-supacode-bold ${included ? "text-foreground" : "text-foreground-muted"}`}
+                            className={`text-sm font-supaterm-bold ${included ? "text-foreground" : "text-foreground-muted"}`}
                           >
                             {file.path}
                           </Text>
@@ -255,10 +255,10 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
                           ) : null}
                         </View>
                         <View className="items-end gap-1">
-                          <Text className="text-xs font-supacode-bold text-adaptive-emerald-700-300">
+                          <Text className="text-xs font-supaterm-bold text-adaptive-emerald-700-300">
                             +{formatDiffCount(file.insertions)}
                           </Text>
-                          <Text className="text-xs font-supacode-bold text-adaptive-rose-700-300">
+                          <Text className="text-xs font-supaterm-bold text-adaptive-rose-700-300">
                             -{formatDiffCount(file.deletions)}
                           </Text>
                         </View>
@@ -271,7 +271,7 @@ export function GitCommitSheet(_props: GitCommitSheetProps) {
           </View>
 
           <View className="android:gap-3 android:rounded-[20px] android:bg-card android:p-4 ios:gap-2">
-            <Text className="text-foreground android:text-base android:font-supacode-medium ios:text-sm ios:font-supacode-bold">
+            <Text className="text-foreground android:text-base android:font-supaterm-medium ios:text-sm ios:font-supaterm-bold">
               Commit message
             </Text>
             <TextInput

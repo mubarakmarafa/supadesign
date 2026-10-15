@@ -4,7 +4,7 @@ import {
   AuthEnvironmentBootstrapTokenType,
   AuthAccessTokenType,
   EnvironmentHttpApi,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { expect, it } from "@effect/vitest";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -40,7 +40,7 @@ const layerConfig = Layer.effect(
     } satisfies ServerConfig.ServerConfig["Service"];
   }),
 ).pipe(
-  Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "supacode-auth-http-test-" })),
+  Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-auth-http-test-" })),
 );
 
 const layerEnvironmentAuth = EnvironmentAuth.layer.pipe(
@@ -116,11 +116,11 @@ it.effect("sets the selected browser session cookies through the HTTP route", ()
           expect(await retiredScopeResponse.json()).toMatchObject({ reason: "invalid_scope" });
 
           const devCookies = devResponse.headers.getSetCookie();
-          const devCookie = devCookies.find((cookie) => cookie.startsWith("supacode_dev_session_"));
+          const devCookie = devCookies.find((cookie) => cookie.startsWith("supaterm_dev_session_"));
           expect(devCookie).toContain("HttpOnly");
           expect(devCookie).toContain(`=${DEV_TOKEN};`);
           expect(devCookies).toContainEqual(
-            expect.stringMatching(/^supacode_session_[^=]*=;.*Max-Age=0/),
+            expect.stringMatching(/^supaterm_session_[^=]*=;.*Max-Age=0/),
           );
           const devCookieHeader = devCookie?.split(";", 1)[0] ?? "";
           const environmentBSession = await environmentB.handler(
@@ -149,8 +149,8 @@ it.effect("sets the selected browser session cookies through the HTTP route", ()
           expect(restrictedResponse.status).toBe(200);
           const restrictedCookies = restrictedResponse.headers.getSetCookie();
           expect(restrictedCookies).toHaveLength(1);
-          expect(restrictedCookies[0]).toMatch(/^supacode_session_/);
-          expect(restrictedCookies[0]).not.toContain("supacode_dev_session_");
+          expect(restrictedCookies[0]).toMatch(/^supaterm_session_/);
+          expect(restrictedCookies[0]).not.toContain("supaterm_dev_session_");
         }),
       ([environmentA, environmentB]) =>
         Effect.promise(() => Promise.all([environmentA.dispose(), environmentB.dispose()])),

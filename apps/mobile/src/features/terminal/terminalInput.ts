@@ -1,4 +1,4 @@
-import type { ExecutionEnvironmentPlatformOs } from "@supacode/contracts";
+import type { ExecutionEnvironmentPlatformOs } from "@supaterm/contracts";
 
 export type PendingModifier = "ctrl" | "meta";
 export type HostPlatform = "mac" | "linux" | "windows" | "unknown";

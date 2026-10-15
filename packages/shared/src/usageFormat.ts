@@ -4,7 +4,7 @@
  *
  * @module usageFormat
  */
-import { UsageDay, type UsageResolution, type UsageSummaryInput } from "@supacode/contracts";
+import { UsageDay, type UsageResolution, type UsageSummaryInput } from "@supaterm/contracts";
 
 import type { UsageContractMismatch } from "./usageMerge.ts";
 

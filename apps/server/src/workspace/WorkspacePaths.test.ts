@@ -16,7 +16,7 @@ const layerTest = Layer.empty.pipe(
 const makeTempDir = Effect.fn("makeTempDir")(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
   return yield* fileSystem.makeTempDirectoryScoped({
-    prefix: "supacode-project-paths-",
+    prefix: "supaterm-project-paths-",
   });
 });
 

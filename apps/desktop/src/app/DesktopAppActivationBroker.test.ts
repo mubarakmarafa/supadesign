@@ -1,4 +1,4 @@
-import { ProjectId, ThreadId, type DesktopAppActivationRequest } from "@supacode/contracts";
+import { ProjectId, ThreadId, type DesktopAppActivationRequest } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import { DesktopAppActivationBroker } from "./DesktopAppActivationBroker.ts";

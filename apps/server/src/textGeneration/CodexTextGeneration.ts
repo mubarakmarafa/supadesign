@@ -12,21 +12,21 @@ import {
   DEFAULT_TEXT_GENERATION_REASONING_EFFORT,
   type ServerProviderModel,
   TextGenerationError,
-} from "@supacode/contracts";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+} from "@supaterm/contracts";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 
 import { resolveAttachmentPath } from "../attachmentStore.ts";
 import * as ServerConfig from "../config.ts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import { codexExecLaunchArgs, resolveCodexLaunchArgs } from "../provider/codexLaunchArgs.ts";
-import * as TextGenerationOperations from "@supacode/provider-core/server/textGenerationOperations";
+import * as TextGenerationOperations from "@supaterm/provider-core/server/textGenerationOperations";
 import {
   normalizeCliError,
   toJsonSchemaObject,
-} from "@supacode/provider-core/server/textGenerationUtils";
-import { codexModelFamily, getModelSelectionStringOptionValue } from "@supacode/shared/model";
+} from "@supaterm/provider-core/server/textGenerationUtils";
+import { codexModelFamily, getModelSelectionStringOptionValue } from "@supaterm/shared/model";
 import { getCodexServiceTierOptionValue } from "../codexModelOptions.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const CODEX_TIMEOUT_MS = 180_000;
 const CODEX_MCP_LIST_TIMEOUT_MS = 10_000;
@@ -64,7 +64,7 @@ export const makeCodexTextGeneration = Effect.fn("makeCodexTextGeneration")(func
   getModels: Effect.Effect<ReadonlyArray<ServerProviderModel>> = Effect.succeed([]),
   resolveRuntime?: Effect.Effect<
     import("../provider/CodexManagedRuntime.ts").CodexEffectiveRuntime,
-    import("@supacode/contracts").ProviderSetupError,
+    import("@supaterm/contracts").ProviderSetupError,
     Scope.Scope
   >,
 ) {
@@ -105,7 +105,7 @@ export const makeCodexTextGeneration = Effect.fn("makeCodexTextGeneration")(func
   ): Effect.Effect<string, TextGenerationError> =>
     fileSystem
       .makeTempFile({
-        prefix: `supacode-${prefix}-${process.pid}-`,
+        prefix: `supaterm-${prefix}-${process.pid}-`,
       })
       .pipe(
         Effect.tap((filePath) =>

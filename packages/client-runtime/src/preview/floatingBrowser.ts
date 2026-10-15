@@ -1,4 +1,4 @@
-import type { PreviewNavStatus } from "@supacode/contracts";
+import type { PreviewNavStatus } from "@supaterm/contracts";
 
 /** Reveal a page after it loads, retaining it through subsequent navigations. */
 export function shouldShowFloatingBrowser(

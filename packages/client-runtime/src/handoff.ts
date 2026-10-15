@@ -2,7 +2,7 @@ import type {
   OrchestrationV2Run,
   OrchestrationV2TurnItem,
   ProviderInstanceId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 /**
  * The subset of a projection run that handoff rows read. Kept minimal so the

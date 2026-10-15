@@ -15,10 +15,10 @@ import * as Schema from "effect/Schema";
 import {
   DesktopBackendBootstrap,
   type DesktopBackendBootstrap as DesktopBackendBootstrapValue,
-} from "@supacode/contracts";
-import * as NetService from "@supacode/shared/Net";
-import { DEFAULT_SIGNAL_EXPORT } from "@supacode/shared/observability";
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
+} from "@supaterm/contracts";
+import * as NetService from "@supaterm/shared/Net";
+import { DEFAULT_SIGNAL_EXPORT } from "@supaterm/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { deriveServerPaths } from "../config.ts";
 import { resolveServerConfig } from "./config.ts";
@@ -50,7 +50,7 @@ const makeDesktopBootstrap = (
   mode: "desktop",
   noBrowser: true,
   port: 4888,
-  supacodeHome: "/tmp/supacode-bootstrap-home",
+  supatermHome: "/tmp/supaterm-bootstrap-home",
   host: "127.0.0.1",
   desktopBootstrapToken: "desktop-bootstrap-token",
   tailscaleServeEnabled: false,
@@ -78,7 +78,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   const openBootstrapFd = Effect.fn(function* (payload: DesktopBackendBootstrapValue) {
     const fs = yield* FileSystem.FileSystem;
     const filePath = yield* fs.makeTempFileScoped({
-      prefix: "supacode-bootstrap-",
+      prefix: "supaterm-bootstrap-",
       suffix: ".ndjson",
     });
     const encoded = yield* encodeDesktopBootstrap(payload);
@@ -148,7 +148,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("enables a trimmed reusable auth token only for web dev mode", () =>
     Effect.gen(function* () {
       const baseDir = yield* FileSystem.FileSystem.pipe(
-        Effect.flatMap((fs) => fs.makeTempDirectoryScoped({ prefix: "supacode-cli-dev-auth-" })),
+        Effect.flatMap((fs) => fs.makeTempDirectoryScoped({ prefix: "supaterm-cli-dev-auth-" })),
       );
       const flags = {
         mode: Option.some("web" as const),
@@ -167,7 +167,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
       const layerConfig = ConfigProvider.layer(
         ConfigProvider.fromEnv({
           env: {
-            SUPACODE_DEV_AUTH_TOKEN: "  reusable-dev-auth-token-that-is-long-enough  ",
+            SUPATERM_DEV_AUTH_TOKEN: "  reusable-dev-auth-token-that-is-long-enough  ",
           },
         }),
       );
@@ -193,7 +193,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
       const secret = "short-secret";
       const baseDir = yield* FileSystem.FileSystem.pipe(
         Effect.flatMap((fs) =>
-          fs.makeTempDirectoryScoped({ prefix: "supacode-cli-dev-auth-invalid-" }),
+          fs.makeTempDirectoryScoped({ prefix: "supaterm-cli-dev-auth-invalid-" }),
         ),
       );
       const flags = {
@@ -211,7 +211,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
         tailscaleServePort: Option.none<number>(),
       };
       const layerConfig = ConfigProvider.layer(
-        ConfigProvider.fromEnv({ env: { SUPACODE_DEV_AUTH_TOKEN: secret } }),
+        ConfigProvider.fromEnv({ env: { SUPATERM_DEV_AUTH_TOKEN: secret } }),
       );
       const error = yield* resolveServerConfig(flags, Option.none()).pipe(
         Effect.provide(Layer.mergeAll(layerConfig, NetService.layer)),
@@ -237,7 +237,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("falls back to effect/config values when flags are omitted", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-env-base");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-env-base");
       const derivedPaths = yield* deriveExplicitServerPaths(
         baseDir,
         new URL("http://127.0.0.1:5173"),
@@ -264,17 +264,17 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
                 env: {
-                  SUPACODE_LOG_LEVEL: "Warn",
-                  SUPACODE_MODE: "desktop",
-                  SUPACODE_PORT: "4001",
-                  SUPACODE_HOST: "0.0.0.0",
-                  SUPACODE_HOME: baseDir,
+                  SUPATERM_LOG_LEVEL: "Warn",
+                  SUPATERM_MODE: "desktop",
+                  SUPATERM_PORT: "4001",
+                  SUPATERM_HOST: "0.0.0.0",
+                  SUPATERM_HOME: baseDir,
                   VITE_DEV_SERVER_URL: "http://127.0.0.1:5173",
-                  SUPACODE_DEV_ALLOWED_ORIGINS:
+                  SUPATERM_DEV_ALLOWED_ORIGINS:
                     "https://host.example.ts.net, https://phone.example.ts.net ",
-                  SUPACODE_NO_BROWSER: "true",
-                  SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "false",
-                  SUPACODE_LOG_WS_EVENTS: "true",
+                  SUPATERM_NO_BROWSER: "true",
+                  SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "false",
+                  SUPATERM_LOG_WS_EVENTS: "true",
                 },
               }),
             ),
@@ -310,7 +310,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("uses CLI flags when provided", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-flags-base");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-flags-base");
       const derivedPaths = yield* deriveExplicitServerPaths(
         baseDir,
         new URL("http://127.0.0.1:4173"),
@@ -337,15 +337,15 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
                 env: {
-                  SUPACODE_LOG_LEVEL: "Warn",
-                  SUPACODE_MODE: "desktop",
-                  SUPACODE_PORT: "4001",
-                  SUPACODE_HOST: "0.0.0.0",
-                  SUPACODE_HOME: join(NodeOS.tmpdir(), "ignored-base"),
+                  SUPATERM_LOG_LEVEL: "Warn",
+                  SUPATERM_MODE: "desktop",
+                  SUPATERM_PORT: "4001",
+                  SUPATERM_HOST: "0.0.0.0",
+                  SUPATERM_HOME: join(NodeOS.tmpdir(), "ignored-base"),
                   VITE_DEV_SERVER_URL: "http://127.0.0.1:5173",
-                  SUPACODE_NO_BROWSER: "false",
-                  SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "false",
-                  SUPACODE_LOG_WS_EVENTS: "false",
+                  SUPATERM_NO_BROWSER: "false",
+                  SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "false",
+                  SUPATERM_LOG_WS_EVENTS: "false",
                 },
               }),
             ),
@@ -380,7 +380,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("preserves explicit false CLI boolean flags over env and bootstrap values", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-false-flags");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-false-flags");
       const fd = yield* openBootstrapFd(
         makeDesktopBootstrap({
           noBrowser: true,
@@ -415,10 +415,10 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
                 env: {
-                  SUPACODE_BOOTSTRAP_FD: String(fd),
-                  SUPACODE_NO_BROWSER: "true",
-                  SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "true",
-                  SUPACODE_LOG_WS_EVENTS: "true",
+                  SUPATERM_BOOTSTRAP_FD: String(fd),
+                  SUPATERM_NO_BROWSER: "true",
+                  SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "true",
+                  SUPATERM_LOG_WS_EVENTS: "true",
                 },
               }),
             ),
@@ -454,12 +454,12 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
       const { join, resolve } = yield* Path.Path;
       // The resolver absolutises the configured home, so the expectation must
       // carry the host's drive on Windows.
-      const baseDir = resolve("/tmp/supacode-bootstrap-home");
+      const baseDir = resolve("/tmp/supaterm-bootstrap-home");
       const fd = yield* openBootstrapFd(
         makeDesktopBootstrap({
           port: 4888,
           host: "127.0.0.2",
-          supacodeHome: "/tmp/supacode-bootstrap-home",
+          supatermHome: "/tmp/supaterm-bootstrap-home",
           noBrowser: true,
           desktopBootstrapToken: "desktop-token",
           desktopTelemetryFd: 4,
@@ -495,7 +495,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
                 env: {
-                  SUPACODE_BOOTSTRAP_FD: String(fd),
+                  SUPATERM_BOOTSTRAP_FD: String(fd),
                 },
               }),
             ),
@@ -539,7 +539,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const baseDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-cli-config-shell-env-",
+        prefix: "supaterm-cli-config-shell-env-",
       });
       const resolveWith = Effect.fn(function* (overrides: Partial<DesktopBackendBootstrapValue>) {
         const fd = yield* openBootstrapFd(makeDesktopBootstrap(overrides));
@@ -571,7 +571,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-cli-config-dirs-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-cli-config-dirs-" });
       const customCwd = path.join(baseDir, "nested", "project");
 
       const resolved = yield* resolveServerConfig(
@@ -618,12 +618,12 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("applies flag then env precedence over bootstrap envelope values", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-env-wins");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-env-wins");
       const fd = yield* openBootstrapFd(
         makeDesktopBootstrap({
           port: 4888,
           host: "127.0.0.2",
-          supacodeHome: "/tmp/supacode-bootstrap-home",
+          supatermHome: "/tmp/supaterm-bootstrap-home",
           noBrowser: false,
           desktopBootstrapToken: "desktop-token",
           tailscaleServeEnabled: false,
@@ -657,12 +657,12 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
                 env: {
-                  SUPACODE_MODE: "web",
-                  SUPACODE_BOOTSTRAP_FD: String(fd),
-                  SUPACODE_HOME: baseDir,
-                  SUPACODE_NO_BROWSER: "true",
-                  SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "true",
-                  SUPACODE_LOG_WS_EVENTS: "true",
+                  SUPATERM_MODE: "web",
+                  SUPATERM_BOOTSTRAP_FD: String(fd),
+                  SUPATERM_HOME: baseDir,
+                  SUPATERM_NO_BROWSER: "true",
+                  SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "true",
+                  SUPATERM_LOG_WS_EVENTS: "true",
                 },
               }),
             ),
@@ -698,7 +698,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const baseDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-cli-config-settings-",
+        prefix: "supaterm-cli-config-settings-",
       });
       const derivedPaths = yield* deriveExplicitServerPaths(baseDir, undefined);
       yield* fs.makeDirectory(path.dirname(derivedPaths.settingsPath), { recursive: true });
@@ -771,7 +771,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const baseDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-cli-config-otel-off-",
+        prefix: "supaterm-cli-config-otel-off-",
       });
       const derivedPaths = yield* deriveExplicitServerPaths(baseDir, undefined);
       yield* fs.makeDirectory(path.dirname(derivedPaths.settingsPath), { recursive: true });
@@ -820,13 +820,13 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   );
 
   it.effect(
-    "lets SUPACODE_OTEL_SDK_DISABLED=false override an ambient OTEL_SDK_DISABLED=true",
+    "lets SUPATERM_OTEL_SDK_DISABLED=false override an ambient OTEL_SDK_DISABLED=true",
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const baseDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-cli-config-otel-on-",
+          prefix: "supaterm-cli-config-otel-on-",
         });
         const derivedPaths = yield* deriveExplicitServerPaths(baseDir, undefined);
         yield* fs.makeDirectory(path.dirname(derivedPaths.settingsPath), { recursive: true });
@@ -860,7 +860,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             Layer.mergeAll(
               ConfigProvider.layer(
                 ConfigProvider.fromEnv({
-                  env: { SUPACODE_OTEL_SDK_DISABLED: "false", OTEL_SDK_DISABLED: "true" },
+                  env: { SUPATERM_OTEL_SDK_DISABLED: "false", OTEL_SDK_DISABLED: "true" },
                 }),
               ),
               NetService.layer,
@@ -876,7 +876,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("forces noBrowser and disables auto-bootstrap for headless startup presentation", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-headless-base");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-headless-base");
       const derivedPaths = yield* deriveExplicitServerPaths(baseDir, undefined);
 
       const resolved = yield* resolveServerConfig(
@@ -904,8 +904,8 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
                 env: {
-                  SUPACODE_NO_BROWSER: "false",
-                  SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "true",
+                  SUPATERM_NO_BROWSER: "false",
+                  SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "true",
                 },
               }),
             ),
@@ -939,7 +939,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("decodes percent-encoded OTLP headers from env", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-otlp-headers-base");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-otlp-headers-base");
 
       const resolved = yield* resolveServerConfig(
         {
@@ -963,7 +963,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
                 env: {
-                  SUPACODE_OTLP_HEADERS: "authorization=Basic%20abc%3D%3D,x-tenant=supacode",
+                  SUPATERM_OTLP_HEADERS: "authorization=Basic%20abc%3D%3D,x-tenant=supaterm",
                 },
               }),
             ),
@@ -974,7 +974,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
 
       expect(resolved.otlpTracesExport.headers).toEqual({
         authorization: "Basic abc==",
-        "x-tenant": "supacode",
+        "x-tenant": "supaterm",
       });
     }),
   );
@@ -982,7 +982,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("keeps whitespace-separated pairs and literal equals signs in OTLP headers", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-otlp-headers-loose-base");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-otlp-headers-loose-base");
 
       const resolved = yield* resolveServerConfig(
         {
@@ -1006,8 +1006,8 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
                 env: {
-                  SUPACODE_OTLP_HEADERS: "authorization=Bearer abc==, x-tenant=supacode",
-                  SUPACODE_OTLP_TRACES_URL: "http://collector.internal:4318",
+                  SUPATERM_OTLP_HEADERS: "authorization=Bearer abc==, x-tenant=supaterm",
+                  SUPATERM_OTLP_TRACES_URL: "http://collector.internal:4318",
                 },
               }),
             ),
@@ -1018,7 +1018,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
 
       expect(resolved.otlpTracesExport.headers).toEqual({
         authorization: "Bearer abc==",
-        "x-tenant": "supacode",
+        "x-tenant": "supaterm",
       });
       expect(resolved.otlpTracesUrl).toBe("http://collector.internal:4318");
     }),
@@ -1027,7 +1027,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("gives every signal the protocol named without one", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-otlp-protocol-base");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-otlp-protocol-base");
 
       const resolved = yield* resolveServerConfig(
         {
@@ -1049,7 +1049,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
         Effect.provide(
           Layer.mergeAll(
             ConfigProvider.layer(
-              ConfigProvider.fromEnv({ env: { SUPACODE_OTLP_PROTOCOL: "http/protobuf" } }),
+              ConfigProvider.fromEnv({ env: { SUPATERM_OTLP_PROTOCOL: "http/protobuf" } }),
             ),
             NetService.layer,
           ),
@@ -1067,7 +1067,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   it.effect("reads the OTLP logs URL from env", () =>
     Effect.gen(function* () {
       const { join } = yield* Path.Path;
-      const baseDir = join(NodeOS.tmpdir(), "supacode-cli-config-otlp-logs-url-base");
+      const baseDir = join(NodeOS.tmpdir(), "supaterm-cli-config-otlp-logs-url-base");
 
       const resolved = yield* resolveServerConfig(
         {
@@ -1090,7 +1090,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
           Layer.mergeAll(
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
-                env: { SUPACODE_OTLP_LOGS_URL: "http://collector.internal:4318/v1/logs" },
+                env: { SUPATERM_OTLP_LOGS_URL: "http://collector.internal:4318/v1/logs" },
               }),
             ),
             NetService.layer,
@@ -1118,13 +1118,13 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
   });
 
   it.effect(
-    "resolves each signal's endpoint through SUPACODE_OTLP_*_URL, an OTEL endpoint, the bootstrap envelope, and persisted Settings, in that order",
+    "resolves each signal's endpoint through SUPATERM_OTLP_*_URL, an OTEL endpoint, the bootstrap envelope, and persisted Settings, in that order",
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const baseDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-cli-config-otel-precedence-",
+          prefix: "supaterm-cli-config-otel-precedence-",
         });
         const derivedPaths = yield* deriveExplicitServerPaths(baseDir, undefined);
         yield* fs.makeDirectory(path.dirname(derivedPaths.settingsPath), { recursive: true });
@@ -1155,8 +1155,8 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
               ConfigProvider.layer(
                 ConfigProvider.fromEnv({
                   env: {
-                    SUPACODE_OTLP_TRACES_URL: "http://supacode:4318/v1/traces",
-                    SUPACODE_OTLP_HEADERS: "x-key=secret",
+                    SUPATERM_OTLP_TRACES_URL: "http://supaterm:4318/v1/traces",
+                    SUPATERM_OTLP_HEADERS: "x-key=secret",
                     OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://otel-traces:4318/custom",
                     OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://otel-metrics:4318/custom",
                     OTEL_EXPORTER_OTLP_HEADERS: "x-key=otel",
@@ -1168,11 +1168,11 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
           ),
         );
 
-        // SUPACODE_OTLP_TRACES_URL wins over the OTEL variable for the same
-        // signal, and keeps Supacode's own headers since Supacode still owns it.
-        expect(resolved.otlpTracesUrl).toBe("http://supacode:4318/v1/traces");
+        // SUPATERM_OTLP_TRACES_URL wins over the OTEL variable for the same
+        // signal, and keeps Supaterm's own headers since Supaterm still owns it.
+        expect(resolved.otlpTracesUrl).toBe("http://supaterm:4318/v1/traces");
         expect(resolved.otlpTracesExport.headers).toEqual({ "x-key": "secret" });
-        // Metrics named no SUPACODE_OTLP_METRICS_URL, so the OTEL endpoint wins
+        // Metrics named no SUPATERM_OTLP_METRICS_URL, so the OTEL endpoint wins
         // over the bootstrap envelope and brings the OTEL headers and protocol.
         expect(resolved.otlpMetricsUrl).toBe("http://otel-metrics:4318/custom");
         expect(resolved.otlpMetricsExport).toEqual({
@@ -1180,7 +1180,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
           protocol: "http/protobuf",
           headers: { "x-key": "otel" },
         });
-        // Logs named no Supacode or OTEL endpoint and a blank bootstrap value, so
+        // Logs named no Supaterm or OTEL endpoint and a blank bootstrap value, so
         // Settings answers, and logs keep the shared headers since no OTEL
         // endpoint claimed them.
         expect(resolved.otlpLogsUrl).toBe("http://settings:4318/v1/logs");
@@ -1195,7 +1195,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const baseDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-cli-config-otel-off-",
+          prefix: "supaterm-cli-config-otel-off-",
         });
         const derivedPaths = yield* deriveExplicitServerPaths(baseDir, undefined);
         yield* fs.makeDirectory(path.dirname(derivedPaths.settingsPath), { recursive: true });
@@ -1222,7 +1222,7 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
               ConfigProvider.layer(
                 ConfigProvider.fromEnv({
                   env: {
-                    SUPACODE_OTLP_TRACES_URL: "http://supacode:4318/v1/traces",
+                    SUPATERM_OTLP_TRACES_URL: "http://supaterm:4318/v1/traces",
                     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel:4318",
                     OTEL_EXPORTER_OTLP_HEADERS: "x-key=%zz",
                   },
@@ -1233,10 +1233,10 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
           ),
         );
 
-        // SUPACODE_OTLP_TRACES_URL still wins outright.
-        expect(resolved.otlpTracesUrl).toBe("http://supacode:4318/v1/traces");
+        // SUPATERM_OTLP_TRACES_URL still wins outright.
+        expect(resolved.otlpTracesUrl).toBe("http://supaterm:4318/v1/traces");
         // The OTEL endpoint claimed metrics and logs, so neither the bootstrap
-        // envelope nor Settings receives them with Supacode's headers.
+        // envelope nor Settings receives them with Supaterm's headers.
         expect(resolved.otlpMetricsUrl).toBeUndefined();
         expect(resolved.otlpLogsUrl).toBeUndefined();
       }),

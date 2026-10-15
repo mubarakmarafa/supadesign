@@ -697,7 +697,7 @@ export interface DesktopPreviewRecordingInputEvent {
  * can attach.
  */
 export interface DesktopPreviewWebviewConfig {
-  /** `persist:supacode-preview` (or whatever the desktop chose). */
+  /** `persist:supaterm-preview` (or whatever the desktop chose). */
   partition: string;
   /**
    * Canonical `<webview webpreferences="...">` string. Encodes the security
@@ -1248,7 +1248,7 @@ export interface DesktopBridge {
     install: () => Promise<DesktopCliCommandState>;
     uninstall: () => Promise<DesktopCliCommandState>;
   };
-  /** Present when the desktop shell accepts `supacode app` activation requests. */
+  /** Present when the desktop shell accepts `supaterm app` activation requests. */
   appActivation?: {
     setReady: (ready: boolean) => Promise<void>;
     complete: (response: DesktopAppActivationResponse) => Promise<void>;
@@ -1262,7 +1262,7 @@ export interface DesktopBridge {
 }
 
 /** Renderer callback invoked by Electron with a fresh user gesture before display-media capture. */
-export const DESKTOP_PREVIEW_RECORDING_CAPTURE_TRIGGER = "__supacodeDesktopPreviewRecordingCapture";
+export const DESKTOP_PREVIEW_RECORDING_CAPTURE_TRIGGER = "__supatermDesktopPreviewRecordingCapture";
 
 export interface DesktopPreviewBridge {
   setForwardedShortcuts?: (shortcuts: ReadonlyArray<PreviewForwardedShortcut>) => Promise<void>;

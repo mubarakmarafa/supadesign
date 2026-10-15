@@ -1,5 +1,5 @@
 import { assert, it } from "@effect/vitest";
-import { CommandId, ProjectId, type Project } from "@supacode/contracts";
+import { CommandId, ProjectId, type Project } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Ref from "effect/Ref";
 

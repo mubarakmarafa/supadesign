@@ -10,9 +10,9 @@ import {
   DEFAULT_SERVER_SETTINGS,
   type ServerSettings,
   type ServerSettingsPatch,
-} from "@supacode/contracts";
-import { applyServerSettingsPatch } from "@supacode/shared/serverSettings";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+} from "@supaterm/contracts";
+import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -29,7 +29,7 @@ export interface TestSourceControlHostOptions {
 export class TestSourceControlHostSettings extends Context.Service<
   TestSourceControlHostSettings,
   { readonly update: (patch: ServerSettingsPatch) => Effect.Effect<void> }
->()("@supacode/source-control-testing/TestSourceControlHost/TestSourceControlHostSettings") {}
+>()("@supaterm/source-control-testing/TestSourceControlHost/TestSourceControlHostSettings") {}
 
 type Git = SourceControlHost.SourceControlHost["Service"]["git"];
 

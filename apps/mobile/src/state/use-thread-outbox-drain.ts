@@ -4,9 +4,9 @@ import {
   threadRuntimeIsActive,
   type EnvironmentProject,
   type EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
-import type { AtomCommandResult } from "@supacode/client-runtime/state/runtime";
-import { deriveThreadTitleSeed } from "@supacode/client-runtime/operations";
+} from "@supaterm/client-runtime/state/shell";
+import type { AtomCommandResult } from "@supaterm/client-runtime/state/runtime";
+import { deriveThreadTitleSeed } from "@supaterm/client-runtime/operations";
 import {
   AuthOrchestrationOperateScope,
   CommandId,
@@ -14,8 +14,8 @@ import {
   DEFAULT_RUNTIME_MODE,
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
   type MessageId,
-} from "@supacode/contracts";
-import { buildTemporaryWorktreeBranchName } from "@supacode/shared/git";
+} from "@supaterm/contracts";
+import { buildTemporaryWorktreeBranchName } from "@supaterm/shared/git";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -92,7 +92,7 @@ import { useRemoteConnectionStatus } from "./use-remote-environment-registry";
 
 // Ordinary offline behavior (a socket dropping mid-request, a retryable
 // attachment upload failure) must not spam `console.warn` on every backoff
-// retry; it goes to the filterable `[supacode-thread-outbox]` debug log instead.
+// retry; it goes to the filterable `[supaterm-thread-outbox]` debug log instead.
 // Failures the server decided stay on `console.warn`.
 const threadOutboxDebug = createDebugLogger("thread-outbox");
 

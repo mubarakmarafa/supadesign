@@ -9,7 +9,7 @@ import {
   type ProviderInstanceId,
   type ServerProviderSkill,
   type ServerProviderSlashCommand,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { AcpRegistrySettings } from "../settings.ts";
 import * as Crypto from "effect/Crypto";
 import * as Deferred from "effect/Deferred";
@@ -23,12 +23,12 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import type * as EffectAcpErrors from "effect-acp/errors";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
-import * as PtyAdapter from "@supacode/shared/PtyAdapter";
+import * as PtyAdapter from "@supaterm/shared/PtyAdapter";
 import * as AcpRegistrySupport from "./AcpRegistrySupport.ts";
-import { parseSessionModeState } from "@supacode/provider-acp/server/runtimeModel";
-import { acpProviderOptionDescriptors } from "@supacode/provider-acp/server/sessionConfig";
+import { parseSessionModeState } from "@supaterm/provider-acp/server/runtimeModel";
+import { acpProviderOptionDescriptors } from "@supaterm/provider-acp/server/sessionConfig";
 import * as AcpRegistryRuntimeCoordinator from "./AcpRegistryRuntimeCoordinator.ts";
-import * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
+import * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
 
 const MAX_AUTH_METHODS = 32;
 const MAX_MODELS = 256;
@@ -200,7 +200,7 @@ const emptyAcpRegistryAvailableCommands = (): AcpRegistryAvailableCommands => ({
   skills: [],
 });
 
-/** Splits the latest ACP command advertisement into Supacode's `/` and `$` menus. */
+/** Splits the latest ACP command advertisement into Supaterm's `/` and `$` menus. */
 export function normalizeAcpRegistryCommands(
   commands: ReadonlyArray<EffectAcpSchema.AvailableCommand>,
 ): AcpRegistryAvailableCommands {
@@ -342,7 +342,7 @@ export const probeAcpRegistryConfiguration = Effect.fn("AcpRegistryProbe.probeCo
             fs: { readTextFile: false, writeTextFile: false },
             terminal: false,
           },
-          clientInfo: { name: "supacode-provider-test", version: "0.0.0" },
+          clientInfo: { name: "supaterm-provider-test", version: "0.0.0" },
           authenticateOnAuthRequired: false,
           onInitialized: (initializeResult) =>
             Ref.set(
@@ -475,7 +475,7 @@ const makeAcpRegistryManagementRuntime = Effect.fn("AcpRegistryProbe.makeManagem
           fs: { readTextFile: false, writeTextFile: false },
           terminal: false,
         },
-        clientInfo: { name: "supacode-session-manager", version: "0.0.0" },
+        clientInfo: { name: "supaterm-session-manager", version: "0.0.0" },
         authenticateOnAuthRequired: false,
         ...(input.settings.authMethodId ? { authMethodId: input.settings.authMethodId } : {}),
       }).pipe(

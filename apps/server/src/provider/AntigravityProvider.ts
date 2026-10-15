@@ -7,8 +7,8 @@ import {
   type ServerProviderModel,
   type ServerProviderSlashCommand,
   type ServerProviderUsageLimits,
-} from "@supacode/contracts";
-import { createModelCapabilities } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { createModelCapabilities } from "@supaterm/shared/model";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -19,18 +19,18 @@ import * as SubscriptionRef from "effect/SubscriptionRef";
 import type * as EffectAcpErrors from "effect-acp/errors";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
-import type * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import { makeManagedServerProvider } from "@supacode/provider-core/server/managedProvider";
+import type * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import { makeManagedServerProvider } from "@supaterm/provider-core/server/managedProvider";
 import {
   makeManualOnlyProviderMaintenanceCapabilities,
   type ProviderMaintenanceCapabilities,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 import {
   buildServerProvider,
   isCommandMissingCause,
   type ServerProviderDraft,
-} from "@supacode/provider-core/server/snapshotProbe";
-import { resolveUsageLimitsAfterProbe } from "@supacode/provider-core/server/usageLimits";
+} from "@supaterm/provider-core/server/snapshotProbe";
+import { resolveUsageLimitsAfterProbe } from "@supaterm/provider-core/server/usageLimits";
 
 const EMPTY_MODEL_CAPABILITIES = createModelCapabilities({ optionDescriptors: [] });
 const MAX_WORKSPACE_SNAPSHOTS = 32;
@@ -156,7 +156,7 @@ export const makeAntigravityProvider = Effect.fn("makeAntigravityProvider")(func
         auth: { status: "unknown", ...(options.auth ? { type: options.auth.type } : {}) },
         message: settings.enabled
           ? "Checking Antigravity availability."
-          : "Antigravity is disabled in Supacode settings.",
+          : "Antigravity is disabled in Supaterm settings.",
       },
     }),
     setup: { canAuthenticate: true, canInstall: true },

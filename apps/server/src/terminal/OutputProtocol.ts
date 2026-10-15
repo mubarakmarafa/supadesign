@@ -1,4 +1,4 @@
-import { WS_METHODS } from "@supacode/contracts";
+import { WS_METHODS } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import type { RpcServer } from "effect/rpc";
 

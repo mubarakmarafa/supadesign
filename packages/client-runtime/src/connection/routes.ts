@@ -3,7 +3,7 @@ import {
   isPrivateNetworkHost,
   isSharedAddressSpaceHost,
   isTailnetHost,
-} from "@supacode/shared/hostClassification";
+} from "@supaterm/shared/hostClassification";
 import {
   DEFAULT_PUBLIC_RELAY_URL,
   normalizeRelayServerUrl,
@@ -11,8 +11,8 @@ import {
   type EnvironmentId,
   type RelayConnectionInfo,
   type ServerConfig,
-} from "@supacode/contracts";
-import { canonicalRelayAddress } from "@supacode/shared/relay/protocol";
+} from "@supaterm/contracts";
+import { canonicalRelayAddress } from "@supaterm/shared/relay/protocol";
 import * as Equal from "effect/Equal";
 import * as Option from "effect/Option";
 

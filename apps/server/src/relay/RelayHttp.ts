@@ -1,4 +1,4 @@
-import { AuthAccessWriteScope, EnvironmentHttpApi } from "@supacode/contracts";
+import { AuthAccessWriteScope, EnvironmentHttpApi } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
 import { requireEnvironmentScope } from "../auth/http.ts";

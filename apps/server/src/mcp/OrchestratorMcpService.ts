@@ -53,8 +53,8 @@ import {
   type ScheduledTaskUpsertInput,
   type ServerProvider,
   ThreadId,
-} from "@supacode/contracts";
-import { runRanAfter } from "@supacode/shared/orchestrationV2ThreadError";
+} from "@supaterm/contracts";
+import { runRanAfter } from "@supaterm/shared/orchestrationV2ThreadError";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -71,7 +71,7 @@ import * as ProviderAdapterRegistry from "../orchestration-v2/ProviderAdapterReg
 import {
   subagentResultForRun,
   delegatedTaskProgress,
-} from "@supacode/provider-core/server/subagentProjection";
+} from "@supaterm/provider-core/server/subagentProjection";
 import {
   DispatchModeLimit,
   type DispatchModeRefusal,
@@ -175,7 +175,7 @@ export interface OrchestratorMcpServiceShape {
 export class OrchestratorMcpService extends Context.Service<
   OrchestratorMcpService,
   OrchestratorMcpServiceShape
->()("supacode/mcp/OrchestratorMcpService") {}
+>()("supaterm/mcp/OrchestratorMcpService") {}
 
 const isThreadManagementError = Schema.is(ThreadManagementService.ThreadManagementError);
 
@@ -1009,7 +1009,7 @@ const make = Effect.gen(function* () {
         : Effect.fail(
             failure(
               "target_required",
-              "Pass projectId: this MCP client is not running inside a Supacode thread.",
+              "Pass projectId: this MCP client is not running inside a Supaterm thread.",
             ),
           );
 
@@ -1555,7 +1555,7 @@ const make = Effect.gen(function* () {
           return yield* failure(
             "invalid_request",
             parent === undefined
-              ? "bindToCurrentThread needs an agent running inside a Supacode thread."
+              ? "bindToCurrentThread needs an agent running inside a Supaterm thread."
               : "bindToCurrentThread binds to this thread, which belongs to a different project.",
           );
         }
@@ -1627,7 +1627,7 @@ const make = Effect.gen(function* () {
           return yield* failure(
             "invalid_request",
             parent === undefined
-              ? "bindToCurrentThread needs an agent running inside a Supacode thread."
+              ? "bindToCurrentThread needs an agent running inside a Supaterm thread."
               : "bindToCurrentThread binds to this thread, which belongs to a different project.",
           );
         }

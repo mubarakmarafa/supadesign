@@ -1,6 +1,6 @@
 "use client";
 
-import type { PreviewViewportSetting, PreviewViewportSize } from "@supacode/contracts";
+import type { PreviewViewportSetting, PreviewViewportSize } from "@supaterm/contracts";
 import {
   useCallback,
   useEffect,

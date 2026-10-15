@@ -3,7 +3,7 @@ import {
   TurnItemId,
   type OrchestrationV2TurnItem,
   type OrchestrationV2ProjectedTurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
@@ -23,7 +23,7 @@ const screenshot = {
   ordinal: 1,
   status: "completed" as const,
   title: null,
-  toolName: "mcp__supacode__device_screenshot",
+  toolName: "mcp__supaterm__device_screenshot",
   input: { deviceId: "phone" },
   // What a detail read returns: the image's position without its bytes.
   output: {

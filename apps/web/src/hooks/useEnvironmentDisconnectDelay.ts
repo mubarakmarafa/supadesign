@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { useEffect, useState } from "react";
 
 /** Wait through brief outages before offering to switch off the active environment. */

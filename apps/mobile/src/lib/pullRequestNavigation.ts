@@ -1,4 +1,4 @@
-import { parseChangeRequestUrl } from "@supacode/shared/changeRequestUrl";
+import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 
 export function nativePullRequestDestination(
   url: string,

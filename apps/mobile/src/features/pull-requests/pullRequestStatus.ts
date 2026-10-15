@@ -3,7 +3,7 @@ import type {
   PullRequestCheck,
   PullRequestDetail,
   PullRequestListEntry,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { AppSymbolName } from "../../components/AppSymbol";
 
 const STATES = {

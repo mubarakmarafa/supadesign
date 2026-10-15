@@ -1,5 +1,5 @@
-import type { ResolvedKeybindingsConfig, ScopedThreadRef } from "@supacode/contracts";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import type { ResolvedKeybindingsConfig, ScopedThreadRef } from "@supaterm/contracts";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { act } from "react";

@@ -1,5 +1,5 @@
 import type { ModelOption, ProviderGroup } from "../../lib/modelOptions";
-import type { ProviderInstanceId, ProviderOptionSelection } from "@supacode/contracts";
+import type { ProviderInstanceId, ProviderOptionSelection } from "@supaterm/contracts";
 
 export function modelFavoriteKey(provider: ProviderInstanceId, model: string): string {
   return `${provider}:${model}`;

@@ -3,14 +3,14 @@ import type {
   EnvironmentProject,
   EnvironmentThread,
   EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/shell";
 import {
   EMPTY_THREAD_HISTORY_META,
   type EnvironmentThreadStatus,
   type ThreadHistoryMeta,
-} from "@supacode/client-runtime/state/threads";
-import type { ScopedProjectRef, ScopedThreadRef, ServerConfig } from "@supacode/contracts";
-import type { EnvironmentId, OrchestrationV2ProjectedTurnItem } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/threads";
+import type { ScopedProjectRef, ScopedThreadRef, ServerConfig } from "@supaterm/contracts";
+import type { EnvironmentId, OrchestrationV2ProjectedTurnItem } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { environmentProjects } from "./projects";

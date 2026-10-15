@@ -21,7 +21,7 @@ function windowIndex(nowMs: number): number {
 
 function deriveToken(secret: string, window: number): string {
   return NodeCrypto.createHmac("sha256", secret)
-    .update(`supacode-desktop-bootstrap:${window}`)
+    .update(`supaterm-desktop-bootstrap:${window}`)
     .digest("hex");
 }
 

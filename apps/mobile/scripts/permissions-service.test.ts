@@ -6,12 +6,12 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import { expect, it } from "vite-plus/test";
 
-// oxlint-disable-next-line supacode/no-global-process-runtime -- This test compiles against the host Foundation framework.
+// oxlint-disable-next-line supaterm/no-global-process-runtime -- This test compiles against the host Foundation framework.
 it.skipIf(NodeOS.platform() !== "darwin")(
   "registers and reads native permissions concurrently without corrupting the registry",
   () => {
     const directory = NodeFS.mkdtempSync(
-      NodePath.join(NodeOS.tmpdir(), "supacode-permissions-test-"),
+      NodePath.join(NodeOS.tmpdir(), "supaterm-permissions-test-"),
     );
     try {
       const require = NodeModule.createRequire(import.meta.url);

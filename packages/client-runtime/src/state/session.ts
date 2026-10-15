@@ -1,4 +1,4 @@
-import type { AuthSessionState, EnvironmentId, ServerConfig } from "@supacode/contracts";
+import type { AuthSessionState, EnvironmentId, ServerConfig } from "@supaterm/contracts";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";

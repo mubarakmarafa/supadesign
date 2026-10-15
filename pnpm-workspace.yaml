@@ -1,6 +1,6 @@
 packages:
   - apps/*
-  - oxlint-plugin-supacode
+  - oxlint-plugin-supaterm
   - packages/*
   - scripts
 

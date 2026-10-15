@@ -361,7 +361,7 @@ function normalizeContentBlock(content: AcpSchemaV2.ContentBlock): AcpSchema.Con
     case "resource":
       return content as AcpSchema.ContentBlock;
     default:
-      return { type: "_supacode_unknown", originalType: content.type, raw: content };
+      return { type: "_supaterm_unknown", originalType: content.type, raw: content };
   }
 }
 
@@ -374,7 +374,7 @@ function normalizeToolCallContent(content: AcpSchemaV2.ToolCallContent): AcpSche
     return content as Extract<AcpSchemaV2.ToolCallContent, { readonly type: "terminal" }>;
   }
   if (content.type !== "diff") {
-    return { type: "_supacode_unknown", originalType: content.type, raw: content };
+    return { type: "_supaterm_unknown", originalType: content.type, raw: content };
   }
 
   return content as Extract<AcpSchemaV2.ToolCallContent, { readonly type: "diff" }>;
@@ -568,7 +568,7 @@ function normalizeSessionUpdate(
       return {
         ...base,
         update: {
-          sessionUpdate: "_supacode_unknown",
+          sessionUpdate: "_supaterm_unknown",
           originalSessionUpdate: update.sessionUpdate,
           raw: update,
         },
@@ -738,7 +738,7 @@ function toV2InitializeRequest(
   const capabilities = request.clientCapabilities;
   return {
     protocolVersion: 2,
-    info: request.clientInfo ?? { name: "supacode", version: "unknown" },
+    info: request.clientInfo ?? { name: "supaterm", version: "unknown" },
     capabilities: {
       ...(capabilities?.auth?.terminal === true ? { auth: { terminal: {} } } : {}),
       ...(capabilities?.elicitation == null ? {} : { elicitation: capabilities.elicitation }),

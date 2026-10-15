@@ -217,7 +217,7 @@ export class EnvironmentSupervisor extends Context.Service<
     readonly disconnect: Effect.Effect<void>;
     readonly retryNow: Effect.Effect<void>;
   }
->()("@supacode/client-runtime/connection/supervisor/EnvironmentSupervisor") {}
+>()("@supaterm/client-runtime/connection/supervisor/EnvironmentSupervisor") {}
 
 export const make = Effect.fn("EnvironmentSupervisor.make")(function* (
   entry: ConnectionCatalogEntry,

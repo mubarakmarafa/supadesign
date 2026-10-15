@@ -8,7 +8,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Scope from "effect/Scope";
 import * as HttpClient from "effect/http/HttpClient";
-import { parseRelayAddress } from "@supacode/shared/relay/protocol";
+import { parseRelayAddress } from "@supaterm/shared/relay/protocol";
 
 import type { ConnectionCatalogEntry, ConnectionRoute } from "./catalog.ts";
 import type {
@@ -79,7 +79,7 @@ export class ConnectionDriver extends Context.Service<
       route: ConnectionRoute,
     ) => Effect.Effect<Option.Option<PreparedRoute>>;
   }
->()("@supacode/client-runtime/connection/driver/ConnectionDriver") {}
+>()("@supaterm/client-runtime/connection/driver/ConnectionDriver") {}
 
 export const connectOverRoutes = Effect.fn("ConnectionDriver.connectOverRoutes")(function* <R>(
   entry: ConnectionCatalogEntry,

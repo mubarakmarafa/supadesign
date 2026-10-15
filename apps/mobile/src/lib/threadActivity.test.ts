@@ -18,9 +18,9 @@ import {
   type OrchestrationV2RunAttempt,
   type OrchestrationV2ProjectedTurnItem,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
-import { resolveUserMessagePresentation } from "@supacode/client-runtime/user-message";
-import { summarizeToolGroup } from "@supacode/client-runtime/work-log/presentation";
+} from "@supaterm/contracts";
+import { resolveUserMessagePresentation } from "@supaterm/client-runtime/user-message";
+import { summarizeToolGroup } from "@supaterm/client-runtime/work-log/presentation";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
@@ -48,7 +48,7 @@ it("shows an image only from the latest tool on collapsed mobile groups", () => 
   const items: OrchestrationV2TurnItem[] = [2, 0].map((outputImageCount, position) => ({
     ...base(`image-tool-${position}`, "2026-06-20T00:00:03.000Z", position + 1),
     type: "dynamic_tool",
-    toolName: "mcp__supacode__device_screenshot",
+    toolName: "mcp__supaterm__device_screenshot",
     input: {},
     outputOmitted: true,
     outputImageCount,
@@ -87,7 +87,7 @@ it("clears the collapsed mobile image when a command follows a screenshot", () =
   const screenshot: OrchestrationV2TurnItem = {
     ...base("screenshot", "2026-06-20T00:00:02.000Z", 1),
     type: "dynamic_tool",
-    toolName: "mcp__supacode__device_screenshot",
+    toolName: "mcp__supaterm__device_screenshot",
     input: {},
     outputImageCount: 1,
   };
@@ -109,7 +109,7 @@ it.each([false, true])(
     const screenshot: OrchestrationV2TurnItem = {
       ...base("screenshot", "2026-06-20T00:00:02.000Z", 1),
       type: "dynamic_tool",
-      toolName: "mcp__supacode__device_screenshot",
+      toolName: "mcp__supaterm__device_screenshot",
       input: {},
       outputImageCount: 1,
     };
@@ -188,20 +188,20 @@ it("shows only the structured path in expanded mobile read details", () => {
   expect(withoutPath?.canExpand).toBe(false);
 });
 
-it("expands a Supacode notice to the prompt the agent got", () => {
+it("expands a Supaterm notice to the prompt the agent got", () => {
   const item = {
     ...base("restart-notice", "2026-06-20T00:00:03.000Z", 2),
     type: "notification",
     source: { kind: "system" },
     outcome: "updated",
-    summary: "Supacode restarted and resumed this turn",
+    summary: "Supaterm restarted and resumed this turn",
     detail: "Continue where you left off.",
   } as OrchestrationV2TurnItem;
   const [activity] = buildThreadFeed([projected(item, 0)]).flatMap((entry) =>
     entry.type === "activity-group" ? entry.activities : [],
   );
 
-  expect(activity?.summary).toBe("Supacode restarted and resumed this turn");
+  expect(activity?.summary).toBe("Supaterm restarted and resumed this turn");
   expect(activity?.canExpand).toBe(true);
   expect(activity?.getFullDetail()).toBe("Continue where you left off.");
 });
@@ -1535,11 +1535,11 @@ describe("buildThreadFeed", () => {
     expect(activity?.workEntry.viewedImagePath).toBe("/workspace/reference.png");
   });
 
-  it("pretty prints Supacode MCP dynamic tool activities and attaches the product logo", () => {
+  it("pretty prints Supaterm MCP dynamic tool activities and attaches the product logo", () => {
     const toolItem: OrchestrationV2TurnItem = {
-      ...base("item-supacode-tool", "2026-06-20T00:00:04.000Z", 3),
+      ...base("item-supaterm-tool", "2026-06-20T00:00:04.000Z", 3),
       type: "dynamic_tool",
-      toolName: "mcp__supacode__supacode_thread_read",
+      toolName: "mcp__supaterm__supaterm_thread_read",
       input: { threadId: "thread-child" },
       output: { messages: [] },
     };
@@ -1547,9 +1547,9 @@ describe("buildThreadFeed", () => {
     const feed = buildThreadFeed([projected(toolItem, 0)]);
     const activity = feed[0]?.type === "activity-group" ? feed[0].activities[0] : null;
 
-    expect(activity?.summary).toBe("Read a Supacode thread");
-    expect(activity?.logo).toBe("supacode");
-    expect(activity?.getCopyText().split("\n")[0]).toBe("Read a Supacode thread");
+    expect(activity?.summary).toBe("Read a Supaterm thread");
+    expect(activity?.logo).toBe("supaterm");
+    expect(activity?.getCopyText().split("\n")[0]).toBe("Read a Supaterm thread");
   });
 
   it.each(["cua_repl.js", "node_repl.js", "js"])(
@@ -1602,13 +1602,13 @@ describe("buildThreadFeed", () => {
     );
   });
 
-  it("uses canonical Supacode orchestration summaries in compact work groups", () => {
+  it("uses canonical Supaterm orchestration summaries in compact work groups", () => {
     const rows = [
       projected(command("2026-06-20T00:00:01.000Z"), 0),
       ...[
-        "mcp__supacode__supacode_thread_send",
-        "supacode.supacode_thread_send",
-        "supacode_thread_send",
+        "mcp__supaterm__supaterm_thread_send",
+        "supaterm.supaterm_thread_send",
+        "supaterm_thread_send",
       ].map((toolName, index) =>
         projected(
           {
@@ -1653,7 +1653,7 @@ describe("buildThreadFeed", () => {
         ...base("list", "2026-09-19T00:00:01.000Z", 1),
         type: "dynamic_tool",
         title: "Custom provider title",
-        toolName: "Supacode.supacode_project_list",
+        toolName: "Supaterm.supaterm_project_list",
         input: {},
         output: { projects: [] },
       },
@@ -1661,7 +1661,7 @@ describe("buildThreadFeed", () => {
         ...base("clone", "2026-09-19T00:00:02.000Z", 2),
         type: "dynamic_tool",
         title: "Custom provider title",
-        toolName: "mcp__supacode__supacode_project_clone",
+        toolName: "mcp__supaterm__supaterm_project_clone",
         input: {},
         output: { cwd: "/tmp/repo" },
       },
@@ -1669,7 +1669,7 @@ describe("buildThreadFeed", () => {
         ...base("failed-clone", "2026-09-19T00:00:03.000Z", 3),
         type: "dynamic_tool",
         title: "Custom provider title",
-        toolName: "supacode_project_clone",
+        toolName: "supaterm_project_clone",
         input: {},
         output: { isError: true },
       },
@@ -1681,7 +1681,7 @@ describe("buildThreadFeed", () => {
     expect(workEntryRowLabel(activities[0]!.workEntry)).toBe("Listed projects");
     expect(workEntryRowLabel(activities[1]!.workEntry)).toBe("Cloned a repository");
     expect(workEntryRowLabel(activities[2]!.workEntry)).toBe("Failed to clone a repository");
-    expect(activities.every((activity) => activity.logo === "supacode")).toBe(true);
+    expect(activities.every((activity) => activity.logo === "supaterm")).toBe(true);
     const presented = deriveThreadFeedPresentation(
       feed,
       { runId, status: "running", startedAt: null, completedAt: null },
@@ -1942,7 +1942,7 @@ describe("retained v2 feed presentation", () => {
             ...base("preview-click", "2026-06-20T00:00:02.000Z", 1),
             type: "dynamic_tool",
             status,
-            toolName: "mcp__supacode__preview_click",
+            toolName: "mcp__supaterm__preview_click",
             input: { element: "button" },
             output: null,
           },
@@ -1995,7 +1995,7 @@ describe("retained v2 feed presentation", () => {
           {
             ...base(id, "2026-06-20T00:00:02.000Z", index),
             type: "dynamic_tool",
-            toolName: "supacode.delegate_task",
+            toolName: "supaterm.delegate_task",
             input: { task: "Identical task" },
             output,
             ...overrides,
@@ -2706,7 +2706,7 @@ describe("html renders", () => {
   ): OrchestrationV2TurnItem => ({
     ...base("item-render", "2026-06-20T00:00:02.500Z", 2),
     type: "dynamic_tool",
-    toolName: "mcp__supacode__html_render",
+    toolName: "mcp__supaterm__html_render",
     input: { title: page.title },
     output: { htmlRender: page },
     ...overrides,
@@ -2780,7 +2780,7 @@ describe("MCP apps", () => {
     type: "dynamic_tool",
     toolName: "weather.get_weather",
     input: { city: "Oslo" },
-    output: { supacodeMcpApp: app, result: { content: [] } },
+    output: { supatermMcpApp: app, result: { content: [] } },
   });
   const feed = (status: OrchestrationV2TurnItem["status"]) =>
     buildThreadFeed([

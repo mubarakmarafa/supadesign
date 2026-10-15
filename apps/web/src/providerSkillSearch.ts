@@ -1,14 +1,14 @@
-import { formatProviderSkillDisplayName } from "@supacode/shared/inlineSkills";
-import type { ServerProviderSkill } from "@supacode/contracts";
+import { formatProviderSkillDisplayName } from "@supaterm/shared/inlineSkills";
+import type { ServerProviderSkill } from "@supaterm/contracts";
 import {
   dedupeProviderSkillsByName,
   isProviderSkillUserInvocable,
-} from "@supacode/client-runtime/providerSkills";
+} from "@supaterm/client-runtime/providerSkills";
 import {
   insertRankedSearchResult,
   normalizeSearchQuery,
   scoreQueryMatch,
-} from "@supacode/shared/searchRanking";
+} from "@supaterm/shared/searchRanking";
 
 export function scoreProviderSkill(skill: ServerProviderSkill, query: string): number | null {
   const normalizedName = skill.name.toLowerCase();

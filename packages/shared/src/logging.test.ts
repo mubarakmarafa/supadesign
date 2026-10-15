@@ -15,7 +15,7 @@ const windowsHost = HostProcess.Platform.defaultValue() === "win32";
 const tempDirectories: string[] = [];
 
 const makeTempDirectory = (): string => {
-  const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-logging-"));
+  const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-logging-"));
   tempDirectories.push(directory);
   return directory;
 };

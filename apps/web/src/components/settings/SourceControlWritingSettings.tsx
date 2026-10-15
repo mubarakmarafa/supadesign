@@ -4,14 +4,14 @@ import type {
   ProviderInstanceId,
   ServerSettings,
   SourceControlWritingStyleMode,
-} from "@supacode/contracts";
-import { DEFAULT_UNIFIED_SETTINGS } from "@supacode/contracts/settings";
-import { isProviderReviewGuideCapable } from "@supacode/contracts";
-import { createModelSelection } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { DEFAULT_UNIFIED_SETTINGS } from "@supaterm/contracts/settings";
+import { isProviderReviewGuideCapable } from "@supaterm/contracts";
+import { createModelSelection } from "@supaterm/shared/model";
 import {
   resolveReviewGuideModelSelection,
   resolveSourceControlWriterModelSelection,
-} from "@supacode/shared/serverSettings";
+} from "@supaterm/shared/serverSettings";
 
 import {
   useScopedSettings,

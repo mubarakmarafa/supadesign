@@ -1,4 +1,4 @@
-import { scopeThreadRef, scopedThreadKey } from "@supacode/client-runtime/environment";
+import { scopeThreadRef, scopedThreadKey } from "@supaterm/client-runtime/environment";
 import { useEffect } from "react";
 
 import { useThreadShells } from "../state/entities";

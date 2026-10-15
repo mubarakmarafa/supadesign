@@ -1,14 +1,14 @@
 import type { AtomRegistry } from "effect/reactivity";
 import * as Schema from "effect/Schema";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
-import { MessageId } from "@supacode/contracts";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
+import { MessageId } from "@supaterm/contracts";
 
 import {
   createThreadOutboxManager,
   ThreadOutboxManagerError,
   shouldRetryThreadOutboxDelivery,
   threadOutboxRetryDelayMs,
-} from "@supacode/client-runtime/thread-outbox";
+} from "@supaterm/client-runtime/thread-outbox";
 
 const isManagerError = Schema.is(ThreadOutboxManagerError);
 

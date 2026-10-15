@@ -7,8 +7,8 @@ import {
   type PreviewAdjustInput,
   type PreviewSessionSnapshot,
   type PreviewViewportSetting,
-} from "@supacode/contracts";
-import { PREVIEW_VIEWPORT_PRESETS } from "@supacode/shared/previewViewport";
+} from "@supaterm/contracts";
+import { PREVIEW_VIEWPORT_PRESETS } from "@supaterm/shared/previewViewport";
 import { Alert } from "react-native";
 
 import { ControlPill, ControlPillMenu } from "../../components/ControlPill";

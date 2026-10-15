@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
-import { ProviderDriverKind, ProviderInstanceId, type ServerProvider } from "@supacode/contracts";
+import { ProviderDriverKind, ProviderInstanceId, type ServerProvider } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as HttpClient from "effect/http/HttpClient";
@@ -13,8 +13,8 @@ import {
   latestMuseVersion,
   parseMuseVersion,
 } from "./maintenance.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import { makeManualOnlyProviderMaintenanceCapabilities } from "@supacode/provider-core/server/maintenanceResolver";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import { makeManualOnlyProviderMaintenanceCapabilities } from "@supaterm/provider-core/server/maintenanceResolver";
 
 const maintenanceCapabilities = {
   ...makeManualOnlyProviderMaintenanceCapabilities({

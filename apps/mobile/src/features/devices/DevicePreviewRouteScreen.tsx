@@ -2,9 +2,9 @@ import {
   deviceToolVersionLabels,
   deviceToolUpdateOwnership,
   deviceToolUpdatePolicy,
-} from "@supacode/client-runtime/state/device";
+} from "@supaterm/client-runtime/state/device";
 import { useIsFocused, useNavigation, type StaticScreenProps } from "@react-navigation/native";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as Haptics from "expo-haptics";
@@ -315,7 +315,7 @@ function DevicePreviewScreen({
               />
               <AppText
                 numberOfLines={1}
-                className="flex-1 text-center font-supacode-medium text-base"
+                className="flex-1 text-center font-supaterm-medium text-base"
               >
                 {preview?.name ?? "Devices"}
               </AppText>

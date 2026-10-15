@@ -1,4 +1,4 @@
-import { KeybindingCommand, KeybindingRule, KeybindingsConfig } from "@supacode/contracts";
+import { KeybindingCommand, KeybindingRule, KeybindingsConfig } from "@supaterm/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import { assertFailure } from "@effect/vitest/utils";
@@ -11,8 +11,8 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as ServerConfig from "./config.ts";
 import * as Keybindings from "./keybindings.ts";
-import { KeybindingsConfigError, MAX_KEYBINDINGS_COUNT } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { KeybindingsConfigError, MAX_KEYBINDINGS_COUNT } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const KeybindingsConfigJson = Schema.fromJsonString(KeybindingsConfig);
 const encodeKeybindingsConfigJson = Schema.encodeEffect(KeybindingsConfigJson);
@@ -28,7 +28,7 @@ const layerKeybindings = () => {
     Layer.provideMerge(
       Layer.fresh(
         ServerConfig.layerTest(process.cwd(), {
-          prefix: "supacode-keybindings-test-",
+          prefix: "supaterm-keybindings-test-",
         }),
       ),
     ),

@@ -10,7 +10,7 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { useCallback, useState, type ReactElement } from "react";
-import { BUILT_IN_THEMES } from "@supacode/shared/themePalettes";
+import { BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
 import { useEnvironmentThemeDefinitions } from "../../hooks/useEnvironmentTheme";
 import { useInlineConfirm } from "../../hooks/useInlineConfirm";
 import { readThemeHalvesRaw } from "../../hooks/useTheme";
@@ -705,7 +705,7 @@ export function ThemeLibrary({
 
   // Rings always show the effective owner of each appearance: an unpicked
   // half belongs to the default card (a null owner), so a fresh install
-  // shows Supacode selected instead of nothing.
+  // shows Supaterm selected instead of nothing.
   const pickedModesFor = (cardId: string | null): ThemeMode[] => {
     const rings: ThemeMode[] = [];
     if (lightOwner === cardId) rings.push("light");

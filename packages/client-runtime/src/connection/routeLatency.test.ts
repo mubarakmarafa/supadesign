@@ -1,4 +1,4 @@
-import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supacode/contracts";
+import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -194,7 +194,7 @@ describe("route latency", () => {
   );
 });
 
-const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
 function relayRoute(relayUrl?: string): ConnectionRoute {
   return {
     ...directRoute,
@@ -262,7 +262,7 @@ it.effect.each([undefined, "wss://custom.example.test/relay"])(
         relayUrl ?? DEFAULT_PUBLIC_RELAY_URL,
       ]);
       expect(origins).toEqual(
-        Array(2).fill("http://127.0.0.1:49000/.well-known/supacode/environment"),
+        Array(2).fill("http://127.0.0.1:49000/.well-known/supaterm/environment"),
       );
     }),
 );

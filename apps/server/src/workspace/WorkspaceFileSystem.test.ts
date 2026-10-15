@@ -14,8 +14,8 @@ import * as VcsProcess from "../vcs/VcsProcess.ts";
 import * as WorkspaceEntries from "./WorkspaceEntries.ts";
 import * as WorkspaceFileSystem from "./WorkspaceFileSystem.ts";
 import * as WorkspacePaths from "./WorkspacePaths.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 
 const layerProject = WorkspaceFileSystem.layer.pipe(
   Layer.provide(WorkspacePaths.layer),
@@ -29,7 +29,7 @@ const layerTest = Layer.empty.pipe(
   Layer.provideMerge(VcsDriverRegistry.layer.pipe(Layer.provide(VcsProcess.layer))),
   Layer.provide(
     ServerConfig.ServerConfig.layerTest(process.cwd(), {
-      prefix: "supacode-workspace-files-test-",
+      prefix: "supaterm-workspace-files-test-",
     }),
   ),
   Layer.provideMerge(NodeServices.layer),
@@ -38,7 +38,7 @@ const layerTest = Layer.empty.pipe(
 const makeTempDir = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
   return yield* fileSystem.makeTempDirectoryScoped({
-    prefix: "supacode-workspace-files-",
+    prefix: "supaterm-workspace-files-",
   });
 });
 

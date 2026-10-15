@@ -5,7 +5,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import {
   buildSshAskpassHelperDescriptor,
@@ -34,7 +34,7 @@ describe("ssh auth", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-ssh-askpass-test-" });
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-ssh-askpass-test-" });
       const env = yield* buildSshChildEnvironment({
         authSecret: "super-secret",
         interactiveAuth: true,
@@ -45,12 +45,12 @@ describe("ssh auth", () => {
       const askpassPath = path.join(directory, "ssh-askpass.sh");
       assert.equal(env.SSH_ASKPASS, askpassPath);
       assert.equal(env.SSH_ASKPASS_REQUIRE, "force");
-      assert.equal(env.SUPACODE_SSH_AUTH_SECRET, "super-secret");
-      assert.equal(env.DISPLAY, "supacode");
+      assert.equal(env.SUPATERM_SSH_AUTH_SECRET, "super-secret");
+      assert.equal(env.DISPLAY, "supaterm");
       assert.equal(yield* fs.exists(askpassPath), true);
       assert.include(
         yield* fs.readFileString(askpassPath),
-        'printf "%s\\n" "$SUPACODE_SSH_AUTH_SECRET"',
+        'printf "%s\\n" "$SUPATERM_SSH_AUTH_SECRET"',
       );
     }).pipe(
       Effect.provide(Layer.merge(NodeServices.layer, Layer.succeed(HostProcess.Platform, "linux"))),
@@ -61,14 +61,14 @@ describe("ssh auth", () => {
   it.effect("builds a windows askpass launcher pair", () =>
     Effect.gen(function* () {
       const descriptor = yield* buildSshAskpassHelperDescriptor({
-        directory: "C:\\temp\\supacode-ssh-askpass",
+        directory: "C:\\temp\\supaterm-ssh-askpass",
       }).pipe(
         Effect.provide(
           Layer.merge(NodeServices.layer, Layer.succeed(HostProcess.Platform, "win32")),
         ),
       );
 
-      assert.equal(descriptor.launcherPath, "C:\\temp\\supacode-ssh-askpass\\ssh-askpass.cmd");
+      assert.equal(descriptor.launcherPath, "C:\\temp\\supaterm-ssh-askpass\\ssh-askpass.cmd");
       assert.deepEqual(
         descriptor.files.map((file) => file.path.split("\\").at(-1)),
         ["ssh-askpass.cmd", "ssh-askpass.ps1"],

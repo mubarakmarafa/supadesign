@@ -1,5 +1,5 @@
 // @effect-diagnostics globalTimers:off - The bridge runs in the client, outside an Effect runtime.
-import { MCP_APP_PROTOCOL_VERSION, type McpAppReference } from "@supacode/shared/mcpApp";
+import { MCP_APP_PROTOCOL_VERSION, type McpAppReference } from "@supaterm/shared/mcpApp";
 import * as Base64 from "effect/encoding/Base64";
 import * as Predicate from "effect/Predicate";
 import * as Result from "effect/Result";
@@ -208,7 +208,7 @@ export function makeMcpAppHost(options: McpAppHostOptions): McpAppHost {
         respond(id, {
           protocolVersion:
             requested === MCP_APP_PROTOCOL_VERSION ? requested : MCP_APP_PROTOCOL_VERSION,
-          hostInfo: { name: "supacode", version: options.hostVersion },
+          hostInfo: { name: "supaterm", version: options.hostVersion },
           hostCapabilities: {
             openLinks: {},
             serverTools: {},
@@ -432,7 +432,7 @@ export function makeMcpAppHost(options: McpAppHostOptions): McpAppHost {
           finish();
           return;
         }
-        const id = `supacode-host-${nextHostRequestId++}`;
+        const id = `supaterm-host-${nextHostRequestId++}`;
         hostRequests.set(id, finish);
         timer = setTimeout(() => {
           hostRequests.delete(id);

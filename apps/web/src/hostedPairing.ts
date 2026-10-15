@@ -2,11 +2,11 @@ import { isRelayCompanion } from "./lib/relayCompanion";
 import {
   DEFAULT_HOSTED_APP_URL,
   readHostedPairingRequest as readSharedHostedPairingRequest,
-} from "@supacode/shared/remote";
+} from "@supaterm/shared/remote";
 import type {
   HostedPairingRequest as SharedHostedPairingRequest,
   PairingRouteHints,
-} from "@supacode/shared/remote";
+} from "@supaterm/shared/remote";
 
 import { setPairingTokenOnUrl } from "./pairingUrl";
 
@@ -93,7 +93,7 @@ export function buildHostedPairingUrl(
 export function buildHostedChannelSelectionUrl(input: {
   readonly channel: HostedAppChannel;
 }): string {
-  const url = new URL("/__supacode/channel", configuredHostedAppUrl());
+  const url = new URL("/__supaterm/channel", configuredHostedAppUrl());
   url.searchParams.set("channel", input.channel);
   return url.toString();
 }

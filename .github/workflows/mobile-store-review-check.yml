@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-mise
       - name: Install screenshot tooling
-        run: mise exec -- vp install --filter=@supacode/scripts...
+        run: mise exec -- vp install --filter=@supaterm/scripts...
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.8"

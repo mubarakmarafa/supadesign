@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { describe, expect, it } from "vite-plus/test";
 
-import { remarkGithubAlerts } from "@supacode/shared/markdownGithubAlerts";
+import { remarkGithubAlerts } from "@supaterm/shared/markdownGithubAlerts";
 
 function renderMarkdown(markdown: string): string {
   return renderToStaticMarkup(

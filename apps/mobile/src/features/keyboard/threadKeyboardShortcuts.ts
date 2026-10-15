@@ -1,5 +1,5 @@
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { THREAD_JUMP_KEYBINDING_COMMANDS } from "@supacode/contracts";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { THREAD_JUMP_KEYBINDING_COMMANDS } from "@supaterm/contracts";
 import { useCallback } from "react";
 
 import type { ThreadListV2ListItem } from "../threads/threadListV2";

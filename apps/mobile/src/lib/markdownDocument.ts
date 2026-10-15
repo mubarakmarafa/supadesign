@@ -2,7 +2,7 @@ import type { Root, RootContent } from "mdast";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
-export { markdownWithAuthoredWindowsPaths } from "@supacode/shared/markdownWindowsPaths";
+export { markdownWithAuthoredWindowsPaths } from "@supaterm/shared/markdownWindowsPaths";
 
 const parser = unified().use(remarkParse).use(remarkGfm);
 export type MarkdownNode = Root | RootContent;

@@ -2,9 +2,9 @@ import {
   RELAY_COMPANION_META_NAME,
   RELAY_COMPANION_REQUEST_LIMIT,
   canonicalRelayAddress,
-} from "@supacode/shared/relay/protocol";
-import { RelayCompanionReply } from "@supacode/contracts";
-import { after } from "@supacode/shared/relay/timer";
+} from "@supaterm/shared/relay/protocol";
+import { RelayCompanionReply } from "@supaterm/contracts";
+import { after } from "@supaterm/shared/relay/timer";
 import * as Schema from "effect/Schema";
 
 const decodeReply = Schema.decodeUnknownSync(Schema.fromJsonString(RelayCompanionReply));

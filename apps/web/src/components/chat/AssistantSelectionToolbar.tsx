@@ -3,7 +3,7 @@ import {
   MessageId,
   type AssistantCitation,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { QuoteIcon } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";

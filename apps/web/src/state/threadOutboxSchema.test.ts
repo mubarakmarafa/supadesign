@@ -1,4 +1,4 @@
-import { CommandId, EnvironmentId, MessageId, ThreadId } from "@supacode/contracts";
+import { CommandId, EnvironmentId, MessageId, ThreadId } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";
 

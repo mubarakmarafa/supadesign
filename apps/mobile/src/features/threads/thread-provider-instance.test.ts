@@ -1,11 +1,11 @@
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import {
   EnvironmentId,
   ProjectId,
   ProviderInstanceId,
   ThreadId,
   type ServerConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

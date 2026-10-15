@@ -5,8 +5,8 @@ import {
   AuthTokenExchangeGrantType,
   type ClientConnectionMethod,
   type AuthEnvironmentScope,
-} from "@supacode/contracts";
-import { encodeOAuthScope } from "@supacode/shared/oauthScope";
+} from "@supaterm/contracts";
+import { encodeOAuthScope } from "@supaterm/shared/oauthScope";
 import * as Effect from "effect/Effect";
 import { environmentEndpointUrl } from "../environment/endpoint.ts";
 import {

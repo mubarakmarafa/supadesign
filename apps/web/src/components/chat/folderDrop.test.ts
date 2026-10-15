@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { folderDropTarget, resolveDroppedFolderPath } from "./folderDrop";
 
 const environmentId = EnvironmentId.make("environment-1");

@@ -1,4 +1,4 @@
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import * as Schema from "effect/Schema";
 
 import {
@@ -26,13 +26,13 @@ import {
   type ThreadLinkedPullRequest,
   type ThreadPullRequestLink,
   type VcsRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   legacyThreadPullRequestKey,
   resolveThreadCurrentPullRequestLink,
   threadPullRequestKeysEqual,
   visibleThreadPullRequests,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 
 import { inferReviewCommentFenceLanguage, type ReviewCommentContext } from "~/reviewCommentContext";
 import { reviewCommentContextId } from "~/lib/composerContextRecords";
@@ -1369,8 +1369,8 @@ const pullRequestDetailSnapshotKey = (
   reference: PullRequestDetailSnapshotRef,
 ) =>
   reference.host
-    ? `supacode.pullRequests.detail:${JSON.stringify([environmentId, reference.projectId, reference.host.toLowerCase(), reference.repository.toLowerCase(), reference.number])}`
-    : `supacode.pullRequests.detail:${environmentId}:${reference.projectId}:${reference.repository}#${reference.number}`;
+    ? `supaterm.pullRequests.detail:${JSON.stringify([environmentId, reference.projectId, reference.host.toLowerCase(), reference.repository.toLowerCase(), reference.number])}`
+    : `supaterm.pullRequests.detail:${environmentId}:${reference.projectId}:${reference.repository}#${reference.number}`;
 
 const decodeDetailSnapshot = Schema.decodeUnknownOption(PullRequestDetail);
 

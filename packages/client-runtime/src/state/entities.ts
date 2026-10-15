@@ -4,7 +4,7 @@ import {
   ThreadId,
   type ScopedProjectRef,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 export class InvalidScopedProjectKeyError extends Schema.TaggedError<InvalidScopedProjectKeyError>()(

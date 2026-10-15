@@ -1,7 +1,7 @@
 import {
   COMPOSER_CONTEXT_REVIEW_DIFF_MAX_CHARS,
   COMPOSER_CONTEXT_REVIEW_TEXT_MAX_CHARS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type {
   ComposerContextId,
   ComposerContextRecord,
@@ -18,13 +18,13 @@ import type {
   TerminalContextRecord,
   ThreadContextRecord,
   ThreadId,
-} from "@supacode/contracts";
-import { upgradeLegacyContextMessage } from "@supacode/shared/composerContextLegacy";
-import { encodeComposerContextFragment } from "@supacode/shared/composerContextClipboard";
+} from "@supaterm/contracts";
+import { upgradeLegacyContextMessage } from "@supaterm/shared/composerContextLegacy";
+import { encodeComposerContextFragment } from "@supaterm/shared/composerContextClipboard";
 import {
   collectComposerContextReferences,
   sanitizeComposerContextLabel,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 
 import {
   type ComposerContextReference,

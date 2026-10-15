@@ -4,10 +4,10 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
-import type { ServerInstallation } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { isCommandAvailable } from "@supacode/shared/shell";
-import { resolveSelfInvocation } from "@supacode/shared/nodeRuntime";
+import type { ServerInstallation } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { isCommandAvailable } from "@supaterm/shared/shell";
+import { resolveSelfInvocation } from "@supaterm/shared/nodeRuntime";
 
 import packageJson from "../../package.json" with { type: "json" };
 
@@ -23,7 +23,7 @@ export type CliRunner = "npx" | "pnpm dlx" | "bunx";
  *   bunx     ~/.bun/install/cache/... or $TMPDIR/bunx-<uid>-<spec>/...
  *
  * Global installs and repo checkouts match none of these and return null.
- * Detection is best-effort; callers must fail closed to a plain `supacode` command.
+ * Detection is best-effort; callers must fail closed to a plain `supaterm` command.
  */
 function detectCliRunner(entryPath: string): CliRunner | null {
   const path = entryPath.replaceAll("\\", "/");
@@ -46,7 +46,7 @@ function detectCliRunner(entryPath: string): CliRunner | null {
 const InstallManifest = Schema.Struct({
   name: Schema.String,
   version: Schema.String,
-  bin: Schema.optionalKey(Schema.Struct({ supacode: Schema.String })),
+  bin: Schema.optionalKey(Schema.Struct({ supaterm: Schema.String })),
   optionalDependencies: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
 });
 const decodeInstallManifest = Schema.decodeUnknownEffect(Schema.fromJsonString(InstallManifest));
@@ -61,7 +61,7 @@ export const resolveServerInstallation = Effect.gen(function* () {
   const platform = yield* HostProcess.Platform;
   const entry = yield* fs.realPath(executable ? executablePath : (args[1] ?? ""));
   const match =
-    /^(.*)\/lib\/node_modules\/supacode\/(?:dist\/bin\.mjs|bin\/supacode\.js|node_modules\/@supabitapp\/supacode-[^/]+\/supacode)$/.exec(
+    /^(.*)\/lib\/node_modules\/supaterm\/(?:dist\/bin\.mjs|bin\/supaterm\.js|node_modules\/@supabitapp\/supaterm-[^/]+\/supaterm)$/.exec(
       entry,
     );
   if (!match) {
@@ -81,20 +81,20 @@ export const resolveServerInstallation = Effect.gen(function* () {
   )
     return null;
 
-  const packageRoot = path.join(prefix, "lib/node_modules/supacode");
+  const packageRoot = path.join(prefix, "lib/node_modules/supaterm");
   const manifest = yield* fs
     .readFileString(path.join(packageRoot, "package.json"))
     .pipe(Effect.flatMap(decodeInstallManifest));
-  if (manifest.name !== "supacode" || !manifest.bin) return null;
-  const bin = yield* fs.realPath(path.join(packageRoot, manifest.bin.supacode));
-  const globalBin = yield* fs.realPath(path.join(prefix, "bin/supacode"));
+  if (manifest.name !== "supaterm" || !manifest.bin) return null;
+  const bin = yield* fs.realPath(path.join(packageRoot, manifest.bin.supaterm));
+  const globalBin = yield* fs.realPath(path.join(prefix, "bin/supaterm"));
   if (globalBin !== bin) return null;
   if (executable) {
     const nativeManifest = yield* fs
       .readFileString(path.join(path.dirname(entry), "package.json"))
       .pipe(Effect.flatMap(decodeInstallManifest));
     if (
-      manifest.bin.supacode !== "./bin/supacode.js" ||
+      manifest.bin.supaterm !== "./bin/supaterm.js" ||
       manifest.optionalDependencies?.[nativeManifest.name] !== nativeManifest.version ||
       nativeManifest.version !== manifest.version
     )
@@ -106,20 +106,20 @@ export const resolveServerInstallation = Effect.gen(function* () {
 }).pipe(Effect.orElseSucceed(() => null));
 
 /**
- * The `supacode` package spec to suggest. The literal spec the user typed (e.g.
- * `supacode@nightly`) is resolved away before our process starts, so re-derive it
+ * The `supaterm` package spec to suggest. The literal spec the user typed (e.g.
+ * `supaterm@nightly`) is resolved away before our process starts, so re-derive it
  * from the running version: nightly builds re-suggest the nightly channel,
  * anything else suggests the bare package.
  */
 function suggestedPackageSpec(version: string): string {
   const channel = /^[^-+]+-(nightly|preview)\./.exec(version)?.[1];
-  return channel === undefined ? "supacode" : `supacode@${channel}`;
+  return channel === undefined ? "supaterm" : `supaterm@${channel}`;
 }
 
 /**
- * Render a `supacode <subcommand>` suggestion that matches how this process was
- * launched, so copy/pasting it actually works: `npx supacode triage` suggests
- * `npx supacode serve`, a global install suggests `supacode serve`, and a nightly build
+ * Render a `supaterm <subcommand>` suggestion that matches how this process was
+ * launched, so copy/pasting it actually works: `npx supaterm triage` suggests
+ * `npx supaterm serve`, a global install suggests `supaterm serve`, and a nightly build
  * keeps the `@nightly` tag.
  */
 export function formatCliCommand(input: {
@@ -129,7 +129,7 @@ export function formatCliCommand(input: {
 }): string {
   const runner = detectCliRunner(input.entryPath);
   if (runner === null) {
-    return `supacode ${input.subcommand}`;
+    return `supaterm ${input.subcommand}`;
   }
   return `${runner} ${suggestedPackageSpec(input.version)} ${input.subcommand}`;
 }
@@ -149,7 +149,7 @@ const shellWord = (value: string) =>
 
 const resolveInstallCommand = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const shim = (yield* HostProcess.Environment).SUPACODE_CLI_PATH?.trim();
+  const shim = (yield* HostProcess.Environment).SUPATERM_CLI_SHIM_PATH?.trim();
   if (shim && (yield* fs.exists(shim).pipe(Effect.orElseSucceed(() => false)))) {
     return Option.some(shellWord(shim));
   }
@@ -169,8 +169,8 @@ const resolveInstallCommand = Effect.gen(function* () {
 const resolveHostCliCommand = (subcommand: string) =>
   Effect.gen(function* () {
     const command = yield* resolveCliCommand(subcommand);
-    if (command !== `supacode ${subcommand}`) return { command, launcher: false };
-    if (yield* isCommandAvailable("supacode")) return { command, launcher: false };
+    if (command !== `supaterm ${subcommand}`) return { command, launcher: false };
+    if (yield* isCommandAvailable("supaterm")) return { command, launcher: false };
     const launcher = yield* resolveInstallCommand;
     return Option.isSome(launcher)
       ? { command: `${launcher.value} ${subcommand}`, launcher: true }

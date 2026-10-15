@@ -1,7 +1,7 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Semaphore from "effect/Semaphore";
-import type { PullRequestCapabilities, PullRequestViewerPermissions } from "@supacode/contracts";
+import type { PullRequestCapabilities, PullRequestViewerPermissions } from "@supaterm/contracts";
 
 import * as AzureDevOpsPullRequestCli from "./AzureDevOpsPullRequestCli.ts";
 import {
@@ -25,7 +25,7 @@ import {
   type ProviderChangeRequestSummary,
   type ProviderDiffSlice,
   type PullRequestProviderApi,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 import type {
   AzureDevOpsChangeEntry,
   AzureDevOpsItemContent,

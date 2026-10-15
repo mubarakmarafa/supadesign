@@ -25,7 +25,7 @@ import {
   connectionRouteLabel,
   connectionRoutes,
   isLearned,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import { GripVerticalIcon, LockIcon, PlusIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { useContext, useState } from "react";
 

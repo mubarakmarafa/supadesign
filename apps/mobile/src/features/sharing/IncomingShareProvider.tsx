@@ -1,7 +1,7 @@
 import { loadExpoFileSystem } from "../../lib/expoFileSystem";
 import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
-import { PROVIDER_SEND_TURN_MAX_FILE_BYTES } from "@supacode/contracts";
+import { PROVIDER_SEND_TURN_MAX_FILE_BYTES } from "@supaterm/contracts";
 import {
   clearSharedPayloads,
   getResolvedSharedPayloadsAsync,

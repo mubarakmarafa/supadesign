@@ -4,7 +4,7 @@ import {
   type AtomCommandOptions,
   type AtomCommandResult,
   runAtomCommand,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { useCallback, useContext } from "react";
 
 export function useAtomCommand<A, E, W>(

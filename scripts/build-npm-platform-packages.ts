@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 /**
  * Turns the per-platform CLI archives of one release into the npm packages
- * behind `npx supacode` / `npm i -g supacode`: one `@supabitapp/supacode-<platformKey>` package per
- * archive holding the archive's contents verbatim, plus the `supacode` launcher
+ * behind `npx supaterm` / `npm i -g supaterm`: one `@supabitapp/supaterm-<platformKey>` package per
+ * archive holding the archive's contents verbatim, plus the `supaterm` launcher
  * that lists them as optionalDependencies and execs the one npm installed.
  * The bytes a user gets from npm are therefore the release archive's, and
  * running them needs neither a Node runtime, npm, nor a native build.
  *
  * Output layout under `--output-dir`:
  *
- *   @supabitapp/supacode-<platformKey>/      archive contents flattened + package.json
- *   @supabitapp/supacode-<platformKey>.tgz   the same tree as an npm tarball
- *   supacode/                             launcher: package.json, bin/supacode.js, README.md
- *   supacode.tgz                          the launcher as an npm tarball
+ *   @supabitapp/supaterm-<platformKey>/      archive contents flattened + package.json
+ *   @supabitapp/supaterm-<platformKey>.tgz   the same tree as an npm tarball
+ *   supaterm/                             launcher: package.json, bin/supaterm.js, README.md
+ *   supaterm.tgz                          the launcher as an npm tarball
  *
  * The tarballs are what gets published. `npm publish <dir>` always drops
  * `node_modules/` (npm-packlist ignores it whatever `files` says, and
  * bundleDependencies needs an arborist tree these flattened installs are
  * not), whereas `npm publish <tarball>` uploads the bytes as given.
  */
-import { legacyCliLauncherScript } from "@supacode/shared/legacyCliLauncher";
+import { legacyCliLauncherScript } from "@supaterm/shared/legacyCliLauncher";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";
@@ -35,16 +35,16 @@ import {
   CLI_ARCHIVE_PLATFORM_KEYS,
   cliArchiveFileName,
   type CliArchivePlatformKey,
-} from "@supacode/shared/cliRelease";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { fromJsonStringPretty } from "@supacode/shared/schemaJson";
-import { isCommandAvailable } from "@supacode/shared/shell";
+} from "@supaterm/shared/cliRelease";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { fromJsonStringPretty } from "@supaterm/shared/schemaJson";
+import { isCommandAvailable } from "@supaterm/shared/shell";
 import serverPackageJson from "../apps/server/package.json" with { type: "json" };
 
 import { windowsSystemTar } from "./build-cli-archive.ts";
 
 export const NPM_PLATFORM_PACKAGE_SCOPE = "@supabitapp";
-export const NPM_LAUNCHER_PACKAGE_NAME = "supacode";
+export const NPM_LAUNCHER_PACKAGE_NAME = "supaterm";
 
 const encodePackageJson = Schema.encodeEffect(fromJsonStringPretty(Schema.Unknown));
 
@@ -85,7 +85,7 @@ export class NpmPackagesArchiveLayoutError extends Schema.TaggedError<NpmPackage
 }
 
 export function npmPlatformPackageName(platformKey: CliArchivePlatformKey): string {
-  return `${NPM_PLATFORM_PACKAGE_SCOPE}/supacode-${platformKey}`;
+  return `${NPM_PLATFORM_PACKAGE_SCOPE}/supaterm-${platformKey}`;
 }
 
 /**
@@ -107,12 +107,12 @@ export function npmPlatformPackageManifest(
   return {
     name: npmPlatformPackageName(platformKey),
     version,
-    description: `Supacode CLI executable for ${platformKey}`,
+    description: `Supaterm CLI executable for ${platformKey}`,
     license: serverPackageJson.license,
     repository: serverPackageJson.repository,
     os: [os],
     cpu: [cpu],
-    files: ["supacode", "supacode.exe", "client", "resource-monitor", "node_modules"],
+    files: ["supaterm", "supaterm.exe", "client", "resource-monitor", "node_modules"],
     preferUnplugged: true,
     dependencies: Object.fromEntries(bundleDependencies.map((name) => [name, bundled[name]])),
     bundleDependencies,
@@ -155,7 +155,7 @@ export function npmPlatformPackageReadme(platformKey: CliArchivePlatformKey): st
   return [
     `# ${npmPlatformPackageName(platformKey)}`,
     "",
-    `The Supacode CLI executable for ${platformKey}. Do not install this package directly:`,
+    `The Supaterm CLI executable for ${platformKey}. Do not install this package directly:`,
     `it is an optional dependency of \`${NPM_LAUNCHER_PACKAGE_NAME}\`, which picks the package for the`,
     "current platform and runs the executable inside it.",
     "",
@@ -168,7 +168,7 @@ export function npmPlatformPackageReadme(platformKey: CliArchivePlatformKey): st
   ].join("\n");
 }
 
-/** package.json for the `supacode` launcher. No engines: bin/supacode.js is trivial CJS. */
+/** package.json for the `supaterm` launcher. No engines: bin/supaterm.js is trivial CJS. */
 export function npmLauncherPackageManifest(
   version: string,
   platformKeys: ReadonlyArray<CliArchivePlatformKey>,
@@ -176,10 +176,10 @@ export function npmLauncherPackageManifest(
   return {
     name: NPM_LAUNCHER_PACKAGE_NAME,
     version,
-    description: "Supacode CLI. Installs the self-contained executable for this platform.",
+    description: "Supaterm CLI. Installs the self-contained executable for this platform.",
     license: serverPackageJson.license,
     repository: serverPackageJson.repository,
-    bin: { supacode: "./bin/supacode.js" },
+    bin: { supaterm: "./bin/supaterm.js" },
     files: ["bin", "dist"],
     optionalDependencies: Object.fromEntries(
       platformKeys.map((key) => [npmPlatformPackageName(key), version]),
@@ -188,7 +188,7 @@ export function npmLauncherPackageManifest(
 }
 
 /**
- * The launcher every `npx supacode` runs. Plain CommonJS with no dependencies so it
+ * The launcher every `npx supaterm` runs. Plain CommonJS with no dependencies so it
  * loads on any Node that npm itself runs on; the real work happens in the
  * single-executable it execs.
  */
@@ -203,13 +203,13 @@ const key = process.platform + "-" + process.arch;
 
 let packageDir;
 try {
-  packageDir = dirname(require.resolve("${NPM_PLATFORM_PACKAGE_SCOPE}/supacode-" + key + "/package.json"));
+  packageDir = dirname(require.resolve("${NPM_PLATFORM_PACKAGE_SCOPE}/supaterm-" + key + "/package.json"));
 } catch {
   process.stderr.write(
     [
-      "supacode: no Supacode CLI build is available for this platform (" + key + ").",
+      "supaterm: no Supaterm CLI build is available for this platform (" + key + ").",
       "Supported platforms: " + SUPPORTED.join(", ") + ".",
-      "If yours is listed, reinstall supacode so npm fetches its optional dependency.",
+      "If yours is listed, reinstall supaterm so npm fetches its optional dependency.",
       "The desktop app and release archives are at https://github.com/supabitapp/supacode-next/releases",
       "",
     ].join("\\n"),
@@ -217,10 +217,10 @@ try {
   process.exit(1);
 }
 
-const executable = join(packageDir, process.platform === "win32" ? "supacode.exe" : "supacode");
+const executable = join(packageDir, process.platform === "win32" ? "supaterm.exe" : "supaterm");
 const result = spawnSync(executable, process.argv.slice(2), { stdio: "inherit" });
 if (result.error) {
-  process.stderr.write("supacode: failed to start " + executable + ": " + result.error.message + "\\n");
+  process.stderr.write("supaterm: failed to start " + executable + ": " + result.error.message + "\\n");
   process.exit(1);
 }
 // A child killed by a signal has no status; report it the way a shell would.
@@ -332,7 +332,7 @@ const stagePlatformPackage = Effect.fn("stagePlatformPackage")(function* (input:
   const extractDir = path.join(scratch, "extract");
   yield* fs.makeDirectory(extractDir);
   const contentDir = yield* extractArchive(input.archive, extractDir);
-  const executableName = input.key.startsWith("win32") ? "supacode.exe" : "supacode";
+  const executableName = input.key.startsWith("win32") ? "supaterm.exe" : "supaterm";
   const executable = path.join(contentDir, executableName);
   if (!(yield* fs.exists(executable))) {
     return yield* new NpmPackagesArchiveLayoutError({
@@ -341,7 +341,7 @@ const stagePlatformPackage = Effect.fn("stagePlatformPackage")(function* (input:
     });
   }
   // The tarball carries the on-disk mode, so the bit must be set before packing.
-  if (executableName === "supacode") {
+  if (executableName === "supaterm") {
     yield* fs.chmod(executable, 0o755);
   }
   const bundled = yield* readBundledPackages(path.join(contentDir, "node_modules"));
@@ -365,7 +365,7 @@ const stagePlatformPackage = Effect.fn("stagePlatformPackage")(function* (input:
   return output;
 }, Effect.scoped);
 
-/** Writes the launcher package (package.json, bin/supacode.js, README) and its tarball. */
+/** Writes the launcher package (package.json, bin/supaterm.js, README) and its tarball. */
 const stageLauncherPackage = Effect.fn("stageLauncherPackage")(function* (input: {
   readonly outputDir: string;
   readonly version: string;
@@ -383,7 +383,7 @@ const stageLauncherPackage = Effect.fn("stageLauncherPackage")(function* (input:
     path.join(stageDir, "package.json"),
     `${yield* encodePackageJson(npmLauncherPackageManifest(input.version, input.platformKeys))}\n`,
   );
-  const launcherScript = path.join(stageDir, "bin/supacode.js");
+  const launcherScript = path.join(stageDir, "bin/supaterm.js");
   yield* fs.writeFileString(launcherScript, NPM_LAUNCHER_SCRIPT);
   yield* fs.chmod(launcherScript, 0o755);
   // Older service updaters and launchers run this exact path with Node.
@@ -462,7 +462,7 @@ const command = Command.make(
   {
     archivesDir: Flag.String("archives-dir").pipe(
       Flag.withDescription(
-        "Directory holding the release's supacode-<version>-<platform> archives.",
+        "Directory holding the release's supaterm-<version>-<platform> archives.",
       ),
     ),
     version: Flag.String("version").pipe(
@@ -479,7 +479,7 @@ const command = Command.make(
   buildNpmPlatformPackages,
 ).pipe(
   Command.withDescription(
-    "Build the supacode launcher and @supabitapp/supacode-<platform> npm packages from CLI release archives.",
+    "Build the supaterm launcher and @supabitapp/supaterm-<platform> npm packages from CLI release archives.",
   ),
 );
 

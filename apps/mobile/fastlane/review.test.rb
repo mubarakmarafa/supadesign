@@ -73,7 +73,7 @@ def rejects(message)
 end
 
 ENV.update({"MOBILE_VERSION" => "26.0.10", "MOBILE_BUILD_NUMBER" => "10", "MOBILE_VERSION_CODE" => "25",
-  "MOBILE_APPLICATION_ID" => "com.supaterm.supacode", "MOBILE_STORE_ASSETS" => "/tmp/test-assets",
+  "MOBILE_APPLICATION_ID" => "com.supaterm.mobile", "MOBILE_STORE_ASSETS" => "/tmp/test-assets",
   "APPLE_API_KEY_ID" => "test-key", "APPLE_API_ISSUER" => "test-issuer", "APPLE_API_KEY" => "test-key-content",
   "GOOGLE_PLAY_JSON_KEY_PATH" => "/tmp/test-key.json"})
 $store_build = OpenStruct.new(id: "exact-build", processing_state: "VALID", expired: false)

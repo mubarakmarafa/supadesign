@@ -1,4 +1,4 @@
-import { ApprovalRequestId, EnvironmentId } from "@supacode/contracts";
+import { ApprovalRequestId, EnvironmentId } from "@supaterm/contracts";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vite-plus/test";

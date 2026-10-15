@@ -4,8 +4,8 @@ import * as NodeCrypto from "node:crypto";
 import * as NodeHttp from "node:http";
 import * as NodeReadline from "node:readline";
 import WebSocket, { WebSocketServer } from "ws";
-import { relayHttpBaseUrl, relayPublicKey } from "@supacode/shared/relay/protocol";
-import { TunnelSocket, openLoopbackRelay } from "@supacode/shared/relay/tunnelNode";
+import { relayHttpBaseUrl, relayPublicKey } from "@supaterm/shared/relay/protocol";
+import { TunnelSocket, openLoopbackRelay } from "@supaterm/shared/relay/tunnelNode";
 import { startRelayTransport } from "../transport.ts";
 import { isRelayPath } from "../RelayIngress.ts";
 
@@ -65,7 +65,7 @@ async function startFixtureHost(relayUrl: string, secret = NodeCrypto.randomByte
       response.writeHead(404).end();
       return;
     }
-    if (url.pathname === "/.well-known/supacode/environment") {
+    if (url.pathname === "/.well-known/supaterm/environment") {
       response.setHeader("content-type", "application/json");
       response.end(JSON.stringify({ environmentId: "relay-interop-environment" }));
       return;

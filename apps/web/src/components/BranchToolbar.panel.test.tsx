@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { EnvironmentId, ProjectId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId, ThreadId } from "@supaterm/contracts";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vite-plus/test";

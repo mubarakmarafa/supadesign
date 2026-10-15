@@ -6,19 +6,19 @@ import * as Option from "effect/Option";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import { WEB_LINK_OPEN_CHANNEL } from "../ipc/channels.ts";
 
-/** An http(s) link the operating system handed to Supacode as the default browser. */
+/** An http(s) link the operating system handed to Supaterm as the default browser. */
 export const isWebLink = (value: string) => {
   if (!URL.canParse(value)) return false;
   const { protocol } = new URL(value);
   return protocol === "http:" || protocol === "https:";
 };
 
-/** An HTML file the operating system asked Supacode to open, as browsers are asked to. */
+/** An HTML file the operating system asked Supaterm to open, as browsers are asked to. */
 export const isWebPageFile = (path: string) => /\.x?html?$/i.test(path);
 
 /**
- * Web links and HTML files macOS opens with Supacode once it is the default
- * browser, plus `supacode://` prompt and thread links on every platform. Files
+ * Web links and HTML files macOS opens with Supaterm once it is the default
+ * browser, plus `supaterm://` prompt and thread links on every platform. Files
  * arrive as file:// URLs. They can
  * arrive before the app is ready (the link that launched it) or while the web
  * app reloads, so they wait until the renderer says it is listening.
@@ -31,7 +31,7 @@ export class DesktopWebLinks extends Context.Service<
     /** The renderer started or stopped listening; listening flushes queued links. */
     readonly setRendererReady: (ready: boolean) => Effect.Effect<void>;
   }
->()("@supacode/desktop/app/DesktopWebLinks") {}
+>()("@supaterm/desktop/app/DesktopWebLinks") {}
 
 const make = Effect.gen(function* () {
   const electronWindow = yield* ElectronWindow.ElectronWindow;

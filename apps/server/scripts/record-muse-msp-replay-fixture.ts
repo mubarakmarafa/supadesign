@@ -4,7 +4,7 @@ import * as NodeChildProcess from "node:child_process";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { createUuidV7Mint } from "@muse-code/sdk";
-import type { ProviderReplayEntry, ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderReplayEntry, ProviderReplayTranscript } from "@supaterm/contracts";
 import * as Console from "effect/Console";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -22,14 +22,14 @@ import {
   museRecordLabel,
   MuseOrchestratorReplayHarness,
 } from "../src/orchestration-v2/Adapters/MuseAdapterV2.testkit.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import {
   makeMuseEnvironment,
   museLaunch,
   museServeArgs,
   museWorkspaceRoot,
   parseMuseVersion,
-} from "@supacode/provider-muse/testing";
+} from "@supaterm/provider-muse/testing";
 import { provideDeterministicTestRuntime } from "../src/orchestration-v2/testkit/DeterministicRuntime.ts";
 import { ORCHESTRATOR_REPLAY_FIXTURES } from "../src/orchestration-v2/testkit/fixtures/index.ts";
 import { materializeFixtureInput } from "../src/orchestration-v2/testkit/fixtures/shared.ts";
@@ -37,7 +37,7 @@ import { runOrchestratorV2ProviderReplayScenario } from "../src/orchestration-v2
 import {
   checkpointWorkspace,
   makeCheckpointWorkspace,
-} from "@supacode/provider-testing/replayWorkspace";
+} from "@supaterm/provider-testing/replayWorkspace";
 
 const CLOCK_TICK = Duration.millis(20);
 
@@ -56,8 +56,8 @@ if (fixture === undefined || variant === undefined) {
   throw new Error(`Pass --scenario with a fixture that registers Muse: ${names.join(", ")}`);
 }
 
-const museBinary = process.env.SUPACODE_MUSE_BIN ?? "muse";
-// Started as Supacode starts it, so Windows needs no SUPACODE_MUSE_BIN for Muse's `muse.cmd` launcher.
+const museBinary = process.env.SUPATERM_MUSE_BIN ?? "muse";
+// Started as Supaterm starts it, so Windows needs no SUPATERM_MUSE_BIN for Muse's `muse.cmd` launcher.
 const museStart = Effect.runSync(museLaunch(museBinary));
 const home = process.env.HOME ?? "";
 

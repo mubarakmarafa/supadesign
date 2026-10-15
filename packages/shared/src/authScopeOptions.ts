@@ -14,7 +14,7 @@ import {
   AuthSourceControlWriteScope,
   AuthTerminalOperateScope,
   AuthTerminalReadScope,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export const AUTH_SCOPE_OPTIONS: ReadonlyArray<{
   readonly scope: AuthGrantScope;

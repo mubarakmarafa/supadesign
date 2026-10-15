@@ -2,8 +2,8 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
-import type { ProviderAuthResponse, ServerProvider } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import type { ProviderAuthResponse, ServerProvider } from "@supaterm/contracts";
 import { useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -70,7 +70,7 @@ export function SettingsProviderAccountsRouteScreen() {
                   ))}
                   {providers.length === 0 ? (
                     <View className="gap-1 p-4">
-                      <Text className="text-base font-supacode-medium text-foreground">
+                      <Text className="text-base font-supaterm-medium text-foreground">
                         No accounts to connect
                       </Text>
                       <Text className="text-sm text-foreground-muted">
@@ -200,7 +200,7 @@ function ProviderAccount({
   function field(name: string, label: string, secret: boolean) {
     return (
       <View className="gap-1.5">
-        <Text className="text-sm font-supacode-medium text-foreground">{label}</Text>
+        <Text className="text-sm font-supaterm-medium text-foreground">{label}</Text>
         <TextInput
           accessibilityLabel={label}
           className="min-h-11 rounded-lg border border-border-subtle px-3 py-2 text-base text-foreground"
@@ -237,7 +237,7 @@ function ProviderAccount({
           <View accessible={false} importantForAccessibility="no-hide-descendants">
             <ProviderIcon provider={provider.driver} iconUrl={provider.iconUrl} size={24} />
           </View>
-          <Text className="min-w-0 flex-1 text-base font-supacode-medium text-foreground">
+          <Text className="min-w-0 flex-1 text-base font-supaterm-medium text-foreground">
             {provider.displayName ?? provider.driver}
           </Text>
           {showSignIn ? (

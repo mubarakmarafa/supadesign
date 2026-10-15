@@ -40,15 +40,15 @@
 }
 
 /* ─── Custom utilities ──────────────────────────────────────────────── */
-@utility font-supacode-medium {
+@utility font-supaterm-medium {
   font-family: var(--font-medium);
 }
 
-@utility font-supacode-bold {
+@utility font-supaterm-bold {
   font-family: var(--font-bold);
 }
 
-@utility font-supacode-extrabold {
+@utility font-supaterm-extrabold {
   font-family: var(--font-bold);
   font-weight: 800;
 }

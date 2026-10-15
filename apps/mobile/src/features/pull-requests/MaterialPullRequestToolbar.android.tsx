@@ -69,7 +69,7 @@ export function MaterialPullRequestToolbar(props: { readonly onRequestVisibility
               brand={
                 <CompactBrandTitle
                   allowFontScaling={false}
-                  accessibilityLabel="Supacode, Pull requests"
+                  accessibilityLabel="Supaterm, Pull requests"
                 />
               }
               onPress={() =>

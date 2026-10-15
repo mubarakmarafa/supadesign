@@ -1,6 +1,6 @@
-import { remapComposerContextAttachments } from "@supacode/shared/composerContextReferences";
+import { remapComposerContextAttachments } from "@supaterm/shared/composerContextReferences";
 import { appendUserInputAttachmentPaths } from "../provider/userInputAttachments.ts";
-import type { ChatAttachment, OrchestrationV2Command } from "@supacode/contracts";
+import type { ChatAttachment, OrchestrationV2Command } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { resolveAttachmentPath } from "../attachmentStore.ts";
@@ -66,7 +66,7 @@ export const dispatchCommand = Effect.fn("ThreadMessageIntake.dispatchCommand")(
     // rollback boundary: any failure before dispatch removes every new copy.
     const claimedPaths: string[] = [];
     const prepared = yield* Effect.gen(function* () {
-      const attachmentsByQuestionId: import("@supacode/contracts").UserInputAttachments = {};
+      const attachmentsByQuestionId: import("@supaterm/contracts").UserInputAttachments = {};
       for (const [questionId, attachments] of Object.entries(incomingByQuestionId)) {
         const claimed = yield* AttachmentClaims.claimPendingAttachments({
           threadId: command.threadId,

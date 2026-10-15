@@ -4,7 +4,7 @@ import {
   type ExecutionEnvironmentPlatformOs,
   type ServerProvider,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import { AppState, Pressable, type PressableProps } from "react-native";
-import { userInputCountdown } from "@supacode/client-runtime/user-input-countdown";
+import { userInputCountdown } from "@supaterm/client-runtime/user-input-countdown";
 import { AppText as Text } from "../../components/AppText";
 import { cn } from "../../lib/cn";
 

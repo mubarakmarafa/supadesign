@@ -5,7 +5,7 @@ import {
   EMPTY_TERMINAL_BUFFER_STATE,
   INITIAL_TERMINAL_OUTPUT_CURSOR,
   nextTerminalAttachSeedState,
-} from "@supacode/client-runtime/state/terminal";
+} from "@supaterm/client-runtime/state/terminal";
 
 import {
   shouldClearTerminalSelectionAction,

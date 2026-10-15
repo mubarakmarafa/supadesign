@@ -10,7 +10,7 @@ import {
   type ContextMenuItem,
   type EditorId,
   type EnvironmentId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useCallback, useMemo } from "react";
 
 import { resolveDiffPathForWorkspace } from "./diffFileActions";
@@ -22,7 +22,7 @@ import { readLocalApi } from "./localApi";
 import { serverEnvironment } from "./state/server";
 import { shellEnvironment } from "./state/shell";
 import { useAtomCommand } from "./state/use-atom-command";
-import { resolvePathLinkTarget } from "@supacode/shared/fileLinks";
+import { resolvePathLinkTarget } from "@supaterm/shared/fileLinks";
 import { toastManager } from "./components/ui/toast";
 import { useAtomValue } from "@effect/atom-react";
 

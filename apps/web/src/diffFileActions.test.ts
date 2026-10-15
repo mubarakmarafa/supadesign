@@ -1,5 +1,5 @@
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { openDiffFilePrimaryAction, resolveDiffPathForWorkspace } from "./diffFileActions";

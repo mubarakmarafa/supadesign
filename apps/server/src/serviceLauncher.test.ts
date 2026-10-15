@@ -75,7 +75,7 @@ it("rejects contradictory service state", () => {
   );
 });
 
-// A pinned runtime is an executable at <versionDir>/supacode. The tests stand one up
+// A pinned runtime is an executable at <versionDir>/supaterm. The tests stand one up
 // as a Node shebang script so the launcher spawns it the way it spawns the
 // real single-executable, IPC channel included.
 const writeFakeRuntime = (
@@ -85,7 +85,7 @@ const writeFakeRuntime = (
   childSource: string,
 ) =>
   Effect.gen(function* () {
-    const entryPath = path.join(versionDir, "supacode");
+    const entryPath = path.join(versionDir, "supaterm");
     yield* fs.makeDirectory(versionDir, { recursive: true });
     yield* fs.writeFileString(entryPath, `#!${process.execPath}\n${childSource}`);
     yield* fs.chmod(entryPath, 0o755);
@@ -101,7 +101,7 @@ it.layer(NodeServices.layer)("service state persistence", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-service-launcher-test-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-service-launcher-test-" });
       const statePath = path.join(root, "runtime", "service-state.json");
       const state = {
         protocol: SERVICE_LAUNCHER_PROTOCOL,
@@ -113,12 +113,12 @@ it.layer(NodeServices.layer)("service state persistence", (it) => {
     }),
   );
 
-  it.effect("a fresh launcher clears a restart deferred by `supacode update`", () =>
+  it.effect("a fresh launcher clears a restart deferred by `supaterm update`", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-service-launcher-restart-",
+        prefix: "supaterm-service-launcher-restart-",
       });
       const statePath = path.join(root, "runtime", "service-state.json");
       const restartPending = path.join(root, "runtime", SERVICE_RESTART_PENDING_FILE);
@@ -163,7 +163,7 @@ it.layer(NodeServices.layer)("service state persistence", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-service-launcher-stop-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-service-launcher-stop-" });
       const statePath = path.join(root, "runtime", "service-state.json");
       yield* writeFakeRuntime(
         fs,
@@ -190,14 +190,14 @@ it.layer(NodeServices.layer)("service state persistence", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-service-launcher-flow-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-service-launcher-flow-" });
       const statePath = path.join(root, "runtime", "service-state.json");
       const databasePath = path.join(root, "userdata", "state.sqlite");
       yield* fs.makeDirectory(path.dirname(databasePath), { recursive: true });
       yield* fs.writeFileString(databasePath, "before trial");
       const encodedDatabasePath = JSON.stringify(databasePath);
       const childSource = `
-const context = JSON.parse(process.env.SUPACODE_SERVICE_LAUNCHER_CONTEXT);
+const context = JSON.parse(process.env.SUPATERM_SERVICE_LAUNCHER_CONTEXT);
 if (context.update?.status === "pending") {
   process.send({ type: "prepared", updateId: context.update.id });
   process.on("message", (message) => {
@@ -244,7 +244,7 @@ if (context.update?.status === "pending") {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-service-launcher-rollback-",
+        prefix: "supaterm-service-launcher-rollback-",
       });
       const statePath = path.join(root, "runtime", "service-state.json");
       const databasePath = path.join(root, "userdata", "state.sqlite");
@@ -252,7 +252,7 @@ if (context.update?.status === "pending") {
       yield* fs.writeFileString(databasePath, "before trial");
       const encodedDatabasePath = JSON.stringify(databasePath);
       const childSource = `
-const context = JSON.parse(process.env.SUPACODE_SERVICE_LAUNCHER_CONTEXT);
+const context = JSON.parse(process.env.SUPATERM_SERVICE_LAUNCHER_CONTEXT);
 if (context.update?.status === "pending") {
   process.send({ type: "prepared", updateId: "wrong-update" });
 } else if (context.update === undefined) {
@@ -299,7 +299,7 @@ if (context.update?.status === "pending") {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-service-launcher-db-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-service-launcher-db-" });
       const statePath = path.join(root, "runtime", "service-state.json");
       const databasePath = path.join(root, "userdata", "state.sqlite");
       const original = "database before migration";
@@ -308,7 +308,7 @@ if (context.update?.status === "pending") {
       const encodedDatabasePath = JSON.stringify(databasePath);
       const childSource = `
 import { writeFileSync } from "node:fs";
-const context = JSON.parse(process.env.SUPACODE_SERVICE_LAUNCHER_CONTEXT);
+const context = JSON.parse(process.env.SUPATERM_SERVICE_LAUNCHER_CONTEXT);
 if (context.update?.status === "pending") {
   writeFileSync(context.update.dbPath, "database after migration");
   writeFileSync(context.update.dbPath + "-wal", "trial wal");

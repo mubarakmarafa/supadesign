@@ -5,8 +5,8 @@ import {
   PREVIEW_VIEWPORT_MAX_DIMENSION,
   PREVIEW_VIEWPORT_MIN_DIMENSION,
   type PreviewViewportSetting,
-} from "@supacode/contracts";
-import { PREVIEW_VIEWPORT_PRESETS, resolvePreviewViewport } from "@supacode/shared/previewViewport";
+} from "@supaterm/contracts";
+import { PREVIEW_VIEWPORT_PRESETS, resolvePreviewViewport } from "@supaterm/shared/previewViewport";
 import { Link2, Unlink2, X } from "lucide-react";
 import { useState } from "react";
 

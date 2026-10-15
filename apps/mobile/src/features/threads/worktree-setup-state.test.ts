@@ -1,5 +1,5 @@
-import { ThreadId, type WorktreeSetupSnapshot } from "@supacode/contracts";
-import { resolveVisibleWorktreeSetup } from "@supacode/client-runtime/worktree-setup";
+import { ThreadId, type WorktreeSetupSnapshot } from "@supaterm/contracts";
+import { resolveVisibleWorktreeSetup } from "@supaterm/client-runtime/worktree-setup";
 import { describe, expect, it } from "vite-plus/test";
 import { resolveWorktreeSetupSnapshot } from "./worktree-setup-state";
 

@@ -4,7 +4,7 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import {
   parseTimestampMs,
   tokenCount,
@@ -12,8 +12,8 @@ import {
   type ProviderUsageReader,
   type TranscriptUsageFormat,
   type UsageRecord,
-} from "@supacode/provider-core/server/usage";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/provider-core/server/usage";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import type { PiSettings } from "../settings.ts";
 
 const PiScanState = Schema.Struct({ sessionId: Schema.mutableKey(Schema.String) });

@@ -4,10 +4,10 @@ import type {
   ProjectScript,
   ResolvedKeybindingsConfig,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import type { DraftId } from "../../composerDraftStore";
-import { useSupacodeProjectFileScripts } from "../../hooks/useSupacodeProjectFileScripts";
+import { useSupatermProjectFileScripts } from "../../hooks/useSupatermProjectFileScripts";
 import {
   shouldShowEnvironmentIndicator,
   type EnvMode,
@@ -76,7 +76,7 @@ export interface ThreadDetailsPanelProps extends Pick<
 }
 
 export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
-  const fileScripts = useSupacodeProjectFileScripts(
+  const fileScripts = useSupatermProjectFileScripts(
     props.environmentId,
     props.activeProjectScripts ? props.gitCwd : null,
   );

@@ -1,4 +1,4 @@
-import { quoteGitPatchPath } from "@supacode/shared/gitPatchPath";
+import { quoteGitPatchPath } from "@supaterm/shared/gitPatchPath";
 import { structuredPatch } from "diff";
 
 import type { AzureDevOpsChangeEntry } from "./azureDevOpsPullRequestJson.ts";

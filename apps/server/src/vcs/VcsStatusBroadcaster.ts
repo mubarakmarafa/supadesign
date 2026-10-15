@@ -20,10 +20,10 @@ import type {
   VcsStatusResult,
   VcsStatusStreamEvent,
   VcsStatusSubscriptionInput,
-} from "@supacode/contracts";
-import { mergeGitStatusParts } from "@supacode/shared/git";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+} from "@supaterm/contracts";
+import { mergeGitStatusParts } from "@supaterm/shared/git";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 
 import * as BackgroundPolicy from "../background/BackgroundPolicy.ts";
 import * as GitWorkflowService from "../git/GitWorkflowService.ts";
@@ -146,7 +146,7 @@ interface StreamStatusOptions {
 
 export class VcsAutoPullPolicy extends Context.Reference<{
   readonly isEnabled: (cwd: string) => Effect.Effect<boolean, never>;
-}>("supacode/vcs/VcsAutoPullPolicy", {
+}>("supaterm/vcs/VcsAutoPullPolicy", {
   defaultValue: () => ({ isEnabled: () => Effect.succeed(false) }),
 }) {}
 
@@ -206,7 +206,7 @@ export class VcsStatusBroadcaster extends Context.Service<
       options?: StreamStatusOptions,
     ) => Stream.Stream<VcsStatusStreamEvent, GitManagerServiceError>;
   }
->()("supacode/vcs/VcsStatusBroadcaster") {}
+>()("supaterm/vcs/VcsStatusBroadcaster") {}
 
 function fingerprintStatusPart(status: unknown): string {
   return JSON.stringify(status);

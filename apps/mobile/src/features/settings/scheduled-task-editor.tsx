@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import {
   createContext,
   use,

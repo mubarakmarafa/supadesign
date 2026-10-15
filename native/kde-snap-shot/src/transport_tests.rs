@@ -149,7 +149,7 @@ impl Fixture {
     pub(super) fn new() -> Self {
         // mktemp provides a private directory; no predictable paths or desktop bus env changes.
         let output = Command::new("mktemp")
-            .args(["-d", "/tmp/supacode-kde-bus-XXXXXX"])
+            .args(["-d", "/tmp/supaterm-kde-bus-XXXXXX"])
             .output()
             .unwrap();
         assert!(output.status.success());

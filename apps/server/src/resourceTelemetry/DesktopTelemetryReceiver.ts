@@ -10,8 +10,8 @@ import {
   DesktopTelemetryControlMessage,
   type DesktopUpdateStatusReport,
   type ResourceTelemetrySourceStatus,
-} from "@supacode/contracts";
-import { resolveServerBackgroundActivitySettings } from "@supacode/shared/backgroundActivitySettings";
+} from "@supaterm/contracts";
+import { resolveServerBackgroundActivitySettings } from "@supaterm/shared/backgroundActivitySettings";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -197,7 +197,7 @@ export class DesktopTelemetryReceiver extends Context.Service<
       Scope.Scope
     >;
   }
->()("supacode/resourceTelemetry/DesktopTelemetryReceiver") {}
+>()("supaterm/resourceTelemetry/DesktopTelemetryReceiver") {}
 
 const decodeMessage = Schema.decodeUnknownEffect(DesktopHostTelemetryMessage);
 const encodeControlMessage = Schema.encodeEffect(

@@ -1,5 +1,5 @@
-import type { EnvironmentId } from "@supacode/contracts";
-import { githubMediaFetchUrl } from "@supacode/shared/githubMedia";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { githubMediaFetchUrl } from "@supaterm/shared/githubMedia";
 import type { FilePreviewItem } from "../../components/FilePreviewModal.types";
 
 export interface PullRequestMediaLocation {

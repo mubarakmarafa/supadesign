@@ -2,7 +2,7 @@ import { canQueueComposerMessageAtom, readCanQueueComposerMessage } from "../sta
 import {
   pendingThreadCreationMessage,
   resolvePendingThreadCreation,
-} from "@supacode/client-runtime/pending-thread-creation";
+} from "@supaterm/client-runtime/pending-thread-creation";
 import {
   pendingThreadCreation as presentPendingThreadCreation,
   type WebPendingThreadCreation,
@@ -18,8 +18,8 @@ import {
   resolveWorktreeSetupProgress,
 } from "./ChatView.logic";
 import * as DateTime from "effect/DateTime";
-import { createUserInputAutoDismissPause } from "@supacode/client-runtime/user-input-auto-dismiss-pause";
-import { assistantCitationsToPlainText } from "@supacode/shared/assistantCitations";
+import { createUserInputAutoDismissPause } from "@supaterm/client-runtime/user-input-auto-dismiss-pause";
+import { assistantCitationsToPlainText } from "@supaterm/shared/assistantCitations";
 import { prepareQueuedEditAttachments, recoverQueuedMessageEdit } from "./chat/queuedMessageEdit";
 import {
   isPaintOnlyThreadTimeline,
@@ -33,23 +33,23 @@ import {
 } from "./ChatView.logic";
 import { useLoadBalancedEnvironment } from "../hooks/useLoadBalancedEnvironment";
 import { useScratchProject } from "../hooks/useScratchProject";
-import { isScratchProject } from "@supacode/client-runtime/state/projects";
-import { visibleThreadPullRequests } from "@supacode/shared/threadPullRequests";
+import { isScratchProject } from "@supaterm/client-runtime/state/projects";
+import { visibleThreadPullRequests } from "@supaterm/shared/threadPullRequests";
 import {
   latestExecutedRun,
   latestRootProviderFailure,
-} from "@supacode/shared/orchestrationV2ThreadError";
-import type { UsageLimitSourceSnapshots } from "@supacode/contracts";
+} from "@supaterm/shared/orchestrationV2ThreadError";
+import type { UsageLimitSourceSnapshots } from "@supaterm/contracts";
 import {
   collectProviderUsageLimits,
   hasProviderUsageLimits,
   headlineUsageWindows,
   isUsageLimitsCommand,
-} from "@supacode/shared/usageLimits";
+} from "@supaterm/shared/usageLimits";
 import { feedbackBannerItem } from "./chat/ComposerFeedback";
 import { usageLimitsBannerItem } from "./chat/ComposerUsageLimits";
 import { ComposerUsageMeter } from "./chat/ComposerUsageMeter";
-import { getTerminalLabel } from "@supacode/shared/terminalLabels";
+import { getTerminalLabel } from "@supaterm/shared/terminalLabels";
 import * as Schema from "effect/Schema";
 import {
   questionAttachmentDraftId,
@@ -95,11 +95,11 @@ import {
   RuntimeMode,
   TerminalOpenInput,
   type WorktreeSetupSnapshot,
-} from "@supacode/contracts";
-import { type EnvironmentConnectionPresentation } from "@supacode/client-runtime/connection";
+} from "@supaterm/contracts";
+import { type EnvironmentConnectionPresentation } from "@supaterm/client-runtime/connection";
 import { readPastedComposerContext } from "./composerInlineTokenPaste";
-import { isPasteAsTextShortcut } from "@supacode/client-runtime/text-paste";
-import { effectiveSnoozed, threadWokeAt } from "@supacode/client-runtime/state/thread-settled";
+import { isPasteAsTextShortcut } from "@supaterm/client-runtime/text-paste";
+import { effectiveSnoozed, threadWokeAt } from "@supaterm/client-runtime/state/thread-settled";
 import { useAcknowledgeThreadWoke, useThreadActions } from "../hooks/useThreadActions";
 import {
   deriveProviderSubagentStatus,
@@ -111,52 +111,52 @@ import {
   deriveThreadRuntime,
   presentPendingBackgroundWork,
   presentProviderGoal,
-} from "@supacode/client-runtime/state/thread-execution";
+} from "@supaterm/client-runtime/state/thread-execution";
 import {
   resolveThreadForkSource,
   threadSupportsProviderHandoff,
-} from "@supacode/client-runtime/state/thread-workflows";
+} from "@supaterm/client-runtime/state/thread-workflows";
 import {
   codexFeedbackMessage,
   parseCodexFeedbackCommand,
   shouldShowLoadEarlierControl,
   submitCodexFeedback,
   type CodexFeedbackSubmission,
-} from "@supacode/client-runtime/state/threads";
+} from "@supaterm/client-runtime/state/threads";
 import { resolveThreadLastVisitedAt } from "./Sidebar.logic";
-import { derivePendingThreadRequests } from "@supacode/client-runtime/state/thread-requests";
+import { derivePendingThreadRequests } from "@supaterm/client-runtime/state/thread-requests";
 import {
   parseScopedThreadKey,
   scopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@supacode/client-runtime/environment";
+} from "@supaterm/client-runtime/environment";
 import {
   applyClaudePromptEffortPrefix,
   createModelSelection,
   formatModelSlugName,
   resolvePromptInjectedEffort,
   resolveSelectableModel,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 import {
   projectScriptCwd,
   projectScriptRuntimeEnv,
   resolveProjectScripts,
-} from "@supacode/shared/projectScripts";
-import { CHAT_LIST_ANCHOR_OFFSET } from "@supacode/shared/chatList";
-import { derivePendingBackgroundWork } from "@supacode/shared/orchestrationV2PendingBackgroundWork";
+} from "@supaterm/shared/projectScripts";
+import { CHAT_LIST_ANCHOR_OFFSET } from "@supaterm/shared/chatList";
+import { derivePendingBackgroundWork } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
 import {
   latestUnheldRun,
   usageLimitRunPresentedAsLatest,
-} from "@supacode/shared/orchestrationV2ThreadError";
+} from "@supaterm/shared/orchestrationV2ThreadError";
 import {
   projectSettingsOverridesForWrite,
   resolveProjectSettings,
-} from "@supacode/shared/projectSettings";
-import { sourceControlRepositorySelector } from "@supacode/shared/sourceControl";
-import { truncate } from "@supacode/shared/String";
-import { resolveThreadReferenceCopyTarget } from "@supacode/shared/threadReference";
-import { nextTerminalId, resolveTerminalSessionLabel } from "@supacode/shared/terminalLabels";
+} from "@supaterm/shared/projectSettings";
+import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
+import { truncate } from "@supaterm/shared/String";
+import { resolveThreadReferenceCopyTarget } from "@supaterm/shared/threadReference";
+import { nextTerminalId, resolveTerminalSessionLabel } from "@supaterm/shared/terminalLabels";
 import { Debouncer } from "@tanstack/react-pacer";
 import { useAtomValue } from "@effect/atom-react";
 import { Atom } from "effect/reactivity";
@@ -184,7 +184,7 @@ import {
   mapAtomCommandResult,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { isElectron } from "../env";
@@ -224,7 +224,7 @@ import {
   togglePendingUserInputOptionSelection,
   type PendingUserInputDraftAnswer,
 } from "../pendingUserInput";
-import { seedUserInputDraftAnswers } from "@supacode/client-runtime/state/thread-requests";
+import { seedUserInputDraftAnswers } from "@supaterm/client-runtime/state/thread-requests";
 import { useUiStateStore } from "../uiStateStore";
 import { useWorkspaceMutationRefresh } from "../hooks/useWorkspaceMutationRefresh";
 import {
@@ -297,7 +297,7 @@ import {
   type WorkspaceFileDropHost,
 } from "./chat/workspaceFileDrop";
 import { isEditableFocused } from "../lib/editableFocus";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { resolveChatShortcutCommand, shortcutLabelForCommand } from "../keybindings";
 import ThreadTerminalDrawer from "./ThreadTerminalDrawer";
 import {
@@ -408,12 +408,12 @@ import {
 } from "../state/server";
 import { terminalEnvironment } from "../state/terminal";
 import { threadEnvironment } from "../state/threads";
-import { workspacePreparationRetryRunIds } from "@supacode/client-runtime/state/turn-item-presentation";
-import { resolveProviderSkillsForCwd } from "@supacode/client-runtime/providerSkills";
+import { workspacePreparationRetryRunIds } from "@supaterm/client-runtime/state/turn-item-presentation";
+import { resolveProviderSkillsForCwd } from "@supaterm/client-runtime/providerSkills";
 import { vcsEnvironment } from "../state/vcs";
 import { sourceControlEnvironment } from "../state/sourceControl";
 import { useProjectClone } from "../state/projectClones";
-import { projectCloneDisplayName, projectCloneProgressSummary } from "@supacode/contracts";
+import { projectCloneDisplayName, projectCloneProgressSummary } from "@supaterm/contracts";
 import { useEnvironments, usePrimaryEnvironment } from "../state/environments";
 import {
   resolveThreadDetailRef,
@@ -506,7 +506,7 @@ import {
 import { EASE_DRAWER, animationsSettled, prefersReducedMotion } from "../lib/motion";
 import { ScrollToEndPill } from "./chat/ScrollToEndPill";
 import { WorkspaceDropOverlay } from "./WorkspaceDropOverlay";
-import type { ComposerDispatchMode } from "@supacode/client-runtime/state/composer-dispatch";
+import type { ComposerDispatchMode } from "@supaterm/client-runtime/state/composer-dispatch";
 import {
   MAX_HIDDEN_MOUNTED_TERMINAL_THREADS,
   branchMismatchKey,
@@ -561,7 +561,7 @@ import {
 import { sanitizeThreadErrorMessage } from "~/rpc/transportError";
 import { RightPanelSheet } from "./RightPanelSheet";
 import { previewEnvironment } from "../state/preview";
-import { clampFileAttachmentUploadBytes } from "@supacode/client-runtime/state/attachments";
+import { clampFileAttachmentUploadBytes } from "@supaterm/client-runtime/state/attachments";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import {
   enqueueThreadOutboxTurns,
@@ -612,14 +612,14 @@ import {
   supportsServerUpdateThreadContinuation,
 } from "../versionSkew";
 import { useAssetUrls } from "../assets/assetUrls";
-import { ATTACHMENT_ONLY_BOOTSTRAP_PROMPT } from "@supacode/shared/composerContextReferences";
+import { ATTACHMENT_ONLY_BOOTSTRAP_PROMPT } from "@supaterm/shared/composerContextReferences";
 import { recallableComposerPrompt } from "./chat/composerPromptHistory";
 import { observeResize } from "~/lib/observeResize";
 
 const EMPTY_PROVIDERS: ServerProvider[] = [];
 const EMPTY_PROVIDER_MODELS: ServerProvider["models"] = [];
 const EMPTY_USAGE_LIMIT_SOURCES: UsageLimitSourceSnapshots = [];
-import type { CodexArtifactTemplate } from "@supacode/shared/codexArtifactTemplates";
+import type { CodexArtifactTemplate } from "@supaterm/shared/codexArtifactTemplates";
 
 const TIMELINE_SCROLL_CANCEL_SENTINEL = Object.freeze({});
 const EMPTY_FEEDBACK_SUBMISSIONS: ReadonlyArray<CodexFeedbackSubmission> = [];
@@ -1742,7 +1742,7 @@ export default function ChatView(props: ChatViewProps) {
     readonly messageId: MessageId;
     readonly originalText: string;
     readonly existingAttachments: ReadonlyArray<ContractChatAttachment>;
-    readonly context?: import("@supacode/contracts").OrchestrationMessageContext | undefined;
+    readonly context?: import("@supaterm/contracts").OrchestrationMessageContext | undefined;
   } | null>(null);
   const queuedEditDraftTargetFor = useCallback(
     (runId: RunId) => DraftId.make(`queued-edit:${scopedThreadKey(routeThreadRef)}:${runId}`),
@@ -3610,7 +3610,7 @@ export default function ChatView(props: ChatViewProps) {
         : null,
     [environmentId, usageLimitsPanel, usageLimitsReport],
   );
-  // Supacode owns /usage-limits only where Limits has data for the selected provider;
+  // Supaterm owns /usage-limits only where Limits has data for the selected provider;
   // elsewhere the name stays the provider's own and is sent through untouched.
   const usageLimitsOffered =
     activeProviderStatus !== null &&
@@ -4276,7 +4276,7 @@ export default function ChatView(props: ChatViewProps) {
   );
   const [resumeCompactionPermanentlyDismissed, setResumeCompactionPermanentlyDismissed] =
     useLocalStorage(
-      `supacode:resume-compaction-dismissed:${environmentId}:${activeProviderInstanceId ?? "claudeAgent"}`,
+      `supaterm:resume-compaction-dismissed:${environmentId}:${activeProviderInstanceId ?? "claudeAgent"}`,
       false,
       Schema.Boolean,
     );
@@ -9629,7 +9629,7 @@ export default function ChatView(props: ChatViewProps) {
       if (userInputResponsesInFlight.current.has(responseKey)) return;
       const attachmentsByQuestionId = new Map<
         string,
-        import("@supacode/contracts").UserInputAttachments[string]
+        import("@supaterm/contracts").UserInputAttachments[string]
       >();
       const providerAnswers = { ...answers };
       for (const question of pendingInput.questions) {
@@ -9657,7 +9657,7 @@ export default function ChatView(props: ChatViewProps) {
         }
         attachmentsByQuestionId.set(
           question.id,
-          uploaded as import("@supacode/contracts").UserInputAttachments[string],
+          uploaded as import("@supaterm/contracts").UserInputAttachments[string],
         );
       }
       userInputResponsesInFlight.current.add(responseKey);
@@ -10316,7 +10316,7 @@ export default function ChatView(props: ChatViewProps) {
     ) : renderedRightPanelSurface?.kind === "pull-request" && !supportsPullRequests ? (
       <PullRequestsUnavailableState
         title="Pull requests unavailable"
-        error="Update this environment's Supacode server to browse pull requests."
+        error="Update this environment's Supaterm server to browse pull requests."
       />
     ) : renderedRightPanelSurface?.kind === "pull-request" ? (
       // No onClose: the surface tab's own X owns closing here, and a second X in the header
@@ -11223,7 +11223,7 @@ export default function ChatView(props: ChatViewProps) {
         {rightPanelPresent && !shouldUsePlanSidebarSheet && activeThreadRef ? (
           <PreviewPanelInline
             open={rightPanelOpen}
-            widthStorageKey={`supacode:preview-panel-width:${activeThreadKey}`}
+            widthStorageKey={`supaterm:preview-panel-width:${activeThreadKey}`}
             onCollapse={closePreviewPanel}
           >
             <RightPanelTabs

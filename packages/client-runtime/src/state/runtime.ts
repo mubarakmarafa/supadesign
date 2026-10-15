@@ -6,7 +6,7 @@ import {
   type ClientGuardedRpcTag,
   EnvironmentId,
   type EnvironmentId as EnvironmentIdType,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";

@@ -1,12 +1,12 @@
 import {
   BearerConnectionTarget,
   PrimaryConnectionTarget,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import {
   type DesktopEnvironmentBootstrap,
   EnvironmentId,
   PRIMARY_LOCAL_ENVIRONMENT_ID,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

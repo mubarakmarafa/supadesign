@@ -1,4 +1,4 @@
-import type { TextGenerationPolicy } from "@supacode/provider-core/server/textGenerationPolicy";
+import type { TextGenerationPolicy } from "@supaterm/provider-core/server/textGenerationPolicy";
 
 export const conventionalCommitsTextGenerationPolicy: TextGenerationPolicy = {
   kind: "conventional_commits",

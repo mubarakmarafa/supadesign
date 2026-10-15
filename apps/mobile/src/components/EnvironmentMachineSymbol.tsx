@@ -1,4 +1,4 @@
-import type { EnvironmentMachineKind } from "@supacode/contracts";
+import type { EnvironmentMachineKind } from "@supaterm/contracts";
 import { SymbolView, type AppSymbolName } from "./AppSymbol";
 
 export const ENVIRONMENT_MACHINE_SYMBOLS = {

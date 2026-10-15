@@ -1,4 +1,4 @@
-import type { ResolvedKeybindingsConfig } from "@supacode/contracts";
+import type { ResolvedKeybindingsConfig } from "@supaterm/contracts";
 
 import { isTerminalCloseShortcut, type ShortcutEventLike } from "../keybindings";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/desktop",
+  "name": "@supaterm/desktop",
   "version": "26.1.3",
   "private": true,
   "type": "module",
@@ -15,11 +15,11 @@
     "@crowecawcaw/xa11y": "0.13.0",
     "@effect/platform-node": "catalog:",
     "@napi-rs/keyring": "^1.3.0",
-    "@supacode/client-runtime": "workspace:*",
-    "@supacode/contracts": "workspace:*",
-    "@supacode/shared": "workspace:*",
-    "@supacode/ssh": "workspace:*",
-    "@supacode/tailscale": "workspace:*",
+    "@supaterm/client-runtime": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/shared": "workspace:*",
+    "@supaterm/ssh": "workspace:*",
+    "@supaterm/tailscale": "workspace:*",
     "dbus-next": "0.10.2",
     "effect": "catalog:",
     "electron": "44.5.1",
@@ -37,5 +37,5 @@
     "tailwindcss": "^4.0.0",
     "vite-plus": "catalog:"
   },
-  "productName": "Supacode"
+  "productName": "Supaterm"
 }

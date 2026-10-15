@@ -1,4 +1,4 @@
-import { createTerminalEnvironmentAtoms } from "@supacode/client-runtime/state/terminal";
+import { createTerminalEnvironmentAtoms } from "@supaterm/client-runtime/state/terminal";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 

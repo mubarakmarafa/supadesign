@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 

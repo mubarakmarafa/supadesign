@@ -2,7 +2,7 @@ import {
   GitCommandError,
   OrchestrationV2AppThreadJson,
   OrchestrationV2ProviderSessionJson,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/sql/SqlClient";
 import type {
@@ -14,9 +14,9 @@ import type {
   WorktreeCleanupRules,
   StorageCleanupReport,
   StorageCleanupReportEntry,
-} from "@supacode/contracts";
-import { resolveWorktreeCleanup } from "@supacode/shared/projectSettings";
-import { makeDrainableWorker } from "@supacode/shared/DrainableWorker";
+} from "@supaterm/contracts";
+import { resolveWorktreeCleanup } from "@supaterm/shared/projectSettings";
+import { makeDrainableWorker } from "@supaterm/shared/DrainableWorker";
 import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";
 import * as Layer from "effect/Layer";
@@ -44,7 +44,7 @@ import * as TerminalManager from "./terminal/Manager.ts";
 import { isFilesystemRoot, managedWorktreesDirectories } from "./worktreesDirectory.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
 import { withWorkspaceLease } from "./workspace/workspaceLease.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const decodeCleanupThread = Schema.decodeUnknownEffect(
   Schema.fromJsonString(OrchestrationV2AppThreadJson),
@@ -157,7 +157,7 @@ export class StorageCleanup extends Context.Service<
     readonly reports: Stream.Stream<StorageCleanupReport | null>;
     readonly drain: Effect.Effect<void>;
   }
->()("supacode/storageCleanup") {}
+>()("supaterm/storageCleanup") {}
 
 const make = Effect.gen(function* () {
   const config = yield* ServerConfig.ServerConfig;

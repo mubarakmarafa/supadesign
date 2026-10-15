@@ -15,9 +15,9 @@ import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
  * Until the detail arrives — or where pull requests are not supported at all — the row renders
  * from the linked snapshot or branch summary, or just the link when status is unavailable.
  */
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentId, ProjectId, PullRequestRef } from "@supacode/contracts";
-import { sourceControlRepositorySelector } from "@supacode/shared/sourceControl";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId, ProjectId, PullRequestRef } from "@supaterm/contracts";
+import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
 import {
   ArrowUpRightIcon,
   EyeIcon,

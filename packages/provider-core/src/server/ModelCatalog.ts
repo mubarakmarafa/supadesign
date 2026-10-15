@@ -2,7 +2,7 @@ import type {
   ModelCapabilities,
   ProviderDriverKind,
   ServerProviderModel,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import type * as Effect from "effect/Effect";
 
@@ -39,7 +39,7 @@ export class ModelCatalog extends Context.Service<
 
     readonly refreshInBackground: Effect.Effect<void>;
   }
->()("@supacode/provider-core/server/ModelCatalog") {}
+>()("@supaterm/provider-core/server/ModelCatalog") {}
 
 export const catalogServerModel = (
   catalog: ProviderCatalog,

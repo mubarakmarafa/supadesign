@@ -1,6 +1,6 @@
 # Architecture
 
-Supacode keeps execution in the environment that owns the workspace. Web, desktop, and mobile
+Supaterm keeps execution in the environment that owns the workspace. Web, desktop, and mobile
 clients control it over authenticated RPC. A remote client must never substitute its own filesystem,
 provider credentials, or machine state for the environment's. The desktop app bundles a server,
 but its renderer follows the same boundary.
@@ -87,7 +87,7 @@ must reject that operation before changing the filesystem.
 Thread settlement is server-owned. The
 [settlement service](../../apps/server/src/orchestration-v2/ThreadSettlementService.ts) evaluates PR
 and inactivity settings without a connected client. Merge notifications invalidate cached PR state
-and trigger a check. A merge outside Supacode, such as an agent running `gh pr merge`, sends no
+and trigger a check. A merge outside Supaterm, such as an agent running `gh pr merge`, sends no
 notification, so the [PR sync reactor](../../apps/server/src/orchestration-v2/PullRequestSyncReactor.ts)
 re-reads a thread's open links when a run that ran a merge or close command ends. The guarded
 `thread.auto-settle` command rejects newer activity, explicit settlement overrides, and live or

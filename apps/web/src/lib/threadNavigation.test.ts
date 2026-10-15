@@ -1,5 +1,5 @@
-import { scopeThreadRef, scopedThreadKey } from "@supacode/client-runtime/environment";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { scopeThreadRef, scopedThreadKey } from "@supaterm/client-runtime/environment";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { Atom, AtomRegistry } from "effect/reactivity";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 

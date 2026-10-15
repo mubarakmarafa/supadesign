@@ -1,4 +1,4 @@
-import type { ServerProviderSkill } from "@supacode/contracts";
+import type { ServerProviderSkill } from "@supaterm/contracts";
 
 export type InlineSkill = Pick<ServerProviderSkill, "name" | "displayName">;
 

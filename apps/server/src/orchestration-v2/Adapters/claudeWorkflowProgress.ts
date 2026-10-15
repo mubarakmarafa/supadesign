@@ -7,7 +7,7 @@ import {
   type OrchestrationV2WorkflowAgent,
   type OrchestrationV2WorkflowPhase,
   type OrchestrationV2WorkflowRunHandles,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { field, text } from "../unknownField.ts";
 

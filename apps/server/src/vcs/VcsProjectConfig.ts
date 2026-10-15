@@ -6,8 +6,8 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
-import { VcsDriverKind, type VcsDriverKind as VcsDriverKindType } from "@supacode/contracts";
-import { fromLenientJson } from "@supacode/shared/schemaJson";
+import { VcsDriverKind, type VcsDriverKind as VcsDriverKindType } from "@supaterm/contracts";
+import { fromLenientJson } from "@supaterm/shared/schemaJson";
 
 const ProjectVcsConfig = Schema.Struct({
   vcs: Schema.optional(
@@ -48,7 +48,7 @@ export class VcsProjectConfig extends Context.Service<
       input: VcsProjectConfigResolveInput,
     ) => Effect.Effect<VcsDriverKindType | "auto">;
   }
->()("supacode/vcs/VcsProjectConfig") {}
+>()("supaterm/vcs/VcsProjectConfig") {}
 
 function configuredKind(config: ProjectVcsConfigFile): VcsDriverKindType | "auto" {
   return config.vcs?.kind ?? config.vcsKind ?? "auto";
@@ -72,7 +72,7 @@ export const make = Effect.gen(function* () {
   const findConfigPath = Effect.fn("VcsProjectConfig.findConfigPath")(function* (cwd: string) {
     let current = cwd;
     while (true) {
-      const candidate = path.join(current, ".supacode", "vcs.json");
+      const candidate = path.join(current, ".supaterm", "vcs.json");
       const exists = yield* fileSystem.exists(candidate).pipe(
         Effect.mapError(
           (cause) =>

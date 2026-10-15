@@ -6,7 +6,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   requiredScopesForServerSettingsPatch,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { createModelSelection } from "./model.ts";
 import {
@@ -190,7 +190,7 @@ describe("resolveProjectSettings", () => {
   });
 });
 
-describe("resolveProjectSettings with a supacode.json", () => {
+describe("resolveProjectSettings with a supaterm.json", () => {
   it("walks project override, environment value, file, then built-in for file-backed keys", () => {
     const file = { defaultThreadEnvMode: "worktree" as const };
     const fromOverride = resolveProjectSettings(
@@ -216,7 +216,7 @@ describe("resolveProjectSettings with a supacode.json", () => {
 
     const fromFile = resolveProjectSettings(DEFAULT_SERVER_SETTINGS, projectId, null, file);
     expect(fromFile.settings.defaultThreadEnvMode).toBe("worktree");
-    expect(fromFile.sources.defaultThreadEnvMode).toBe("supacode.json");
+    expect(fromFile.sources.defaultThreadEnvMode).toBe("supaterm.json");
 
     const builtIn = resolveProjectSettings(DEFAULT_SERVER_SETTINGS, projectId, null, null);
     expect(builtIn.settings.defaultThreadEnvMode).toBe("local");
@@ -233,7 +233,7 @@ describe("resolveProjectSettings with a supacode.json", () => {
       file,
     );
     expect(nullOverride.settings.defaultThreadEnvMode).toBe("worktree");
-    expect(nullOverride.sources.defaultThreadEnvMode).toBe("supacode.json");
+    expect(nullOverride.sources.defaultThreadEnvMode).toBe("supaterm.json");
     // A file that does not mention the key leaves the source alone too.
     expect(
       resolveProjectSettings(DEFAULT_SERVER_SETTINGS, projectId, null, {}).sources
@@ -251,7 +251,7 @@ describe("resolveProjectSettings with a supacode.json", () => {
       resolveProjectFileBackedSetting("worktreeSubmodules", null, {
         worktreeSubmodules: "top-level",
       }),
-    ).toEqual({ value: "top-level", source: "supacode.json" });
+    ).toEqual({ value: "top-level", source: "supaterm.json" });
     expect(resolveProjectFileBackedSetting("worktreeSubmodules", null, null)).toEqual({
       value: "recursive",
       source: "environment",
@@ -304,7 +304,7 @@ describe("resolveNewThreadEnvMode", () => {
     expect(resolveNewThreadEnvMode({ ...newProject, newProjectsRoot: undefined })).toBe("worktree");
   });
 
-  it("lets a project override, or a supacode.json the environment defers to, keep worktree mode", () => {
+  it("lets a project override, or a supaterm.json the environment defers to, keep worktree mode", () => {
     for (const projectSettings of [
       resolveProjectSettings(
         {

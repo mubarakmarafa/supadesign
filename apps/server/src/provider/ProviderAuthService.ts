@@ -7,7 +7,7 @@ import {
   type ProviderAuthState,
   type ProviderInstanceId,
   type ProviderSessionId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -17,9 +17,9 @@ import * as Semaphore from "effect/Semaphore";
 import * as ProviderSessionManager from "../orchestration-v2/ProviderSessionManager.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProviderInstanceRegistry from "./ProviderInstanceRegistry.ts";
-import type { ProviderAuthController } from "@supacode/provider-core/server/auth";
+import type { ProviderAuthController } from "@supaterm/provider-core/server/auth";
 
-export type { ProviderAuthController } from "@supacode/provider-core/server/auth";
+export type { ProviderAuthController } from "@supaterm/provider-core/server/auth";
 
 interface ProviderAuthTarget {
   readonly instanceId: ProviderInstanceId;
@@ -61,7 +61,7 @@ export class ProviderAuthService extends Context.Service<
       input: ProviderAuthTarget & { readonly text: string; readonly hasAttachments: boolean },
     ) => Effect.Effect<boolean, ProviderSetupError>;
   }
->()("supacode/provider/ProviderAuthService") {}
+>()("supaterm/provider/ProviderAuthService") {}
 
 export const makeProviderAuthService = Effect.gen(function* () {
   const registry = yield* ProviderInstanceRegistry.ProviderInstanceRegistry;
@@ -79,7 +79,7 @@ export const makeProviderAuthService = Effect.gen(function* () {
         instanceId,
         operation,
         detail: instance
-          ? "This provider does not support sign-in in Supacode."
+          ? "This provider does not support sign-in in Supaterm."
           : "This provider instance is no longer available.",
       });
     }

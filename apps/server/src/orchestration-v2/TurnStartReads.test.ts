@@ -11,7 +11,7 @@ import {
   TurnItemId,
   type OrchestrationV2AppThread,
   type OrchestrationV2Run,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

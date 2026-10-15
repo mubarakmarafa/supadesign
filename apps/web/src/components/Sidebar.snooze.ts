@@ -1,9 +1,9 @@
-import type { TimestampFormat } from "@supacode/contracts/settings";
+import type { TimestampFormat } from "@supaterm/contracts/settings";
 import {
   resolveSnoozePresets as resolveSharedSnoozePresets,
   snoozeWakeLabel,
   type SnoozePreset,
-} from "@supacode/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/thread-settled";
 
 import { formatShortTimestamp, parseTimestampDate } from "../timestampFormat";
 

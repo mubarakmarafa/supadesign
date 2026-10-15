@@ -14,9 +14,9 @@ import {
   type DirectoryRecord,
 } from "@electron/asar";
 
-import { fromYaml } from "@supacode/shared/schemaYaml";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import { fromYaml } from "@supaterm/shared/schemaYaml";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import rootPackageJson from "../package.json" with { type: "json" };
 import desktopPackageJson from "../apps/desktop/package.json" with { type: "json" };
 import gnomeCaptureBundle from "../apps/desktop/gnome-extension/bundle.json" with { type: "json" };
@@ -57,7 +57,7 @@ import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
-const DESKTOP_APP_ID = "com.supaterm.supacode";
+const DESKTOP_APP_ID = "com.supaterm.desktop";
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
 const BuildArch = Schema.Literals(["arm64", "x64", "universal"]);
@@ -130,7 +130,7 @@ export function resolveResourceMonitorRustTargets(
 }
 
 export function resourceMonitorExecutableName(platform: typeof BuildPlatform.Type): string {
-  return platform === "win" ? "supacode-resource-monitor.exe" : "supacode-resource-monitor";
+  return platform === "win" ? "supaterm-resource-monitor.exe" : "supaterm-resource-monitor";
 }
 
 const PLATFORM_CONFIG: Record<typeof BuildPlatform.Type, PlatformConfig> = {
@@ -877,8 +877,8 @@ interface StagePackageJson {
   readonly name: string;
   readonly version: string;
   readonly buildVersion: string;
-  readonly supacodeCommitHash: string;
-  readonly supacodeWebAuthn?: { readonly touchIdKeychainAccessGroup: string };
+  readonly supatermCommitHash: string;
+  readonly supatermWebAuthn?: { readonly touchIdKeychainAccessGroup: string };
   readonly private: true;
   readonly packageManager: string;
   readonly description: string;
@@ -902,7 +902,7 @@ export const DESKTOP_FILE_EXCLUSIONS = [
   "!**/node_modules/@cursor/sdk-*/**/*",
   "!apps/desktop/prod-resources/cursor-sdk",
   "!apps/desktop/prod-resources/cursor-sdk/**/*",
-  // Supacode always passes the user's installed Claude executable to the SDK,
+  // Supaterm always passes the user's installed Claude executable to the SDK,
   // so the SDK's optional platform packages (each a ~200MB bundled executable)
   // are dead weight. The trailing dash keeps the SDK's own JS package.
   "!**/node_modules/@anthropic-ai/claude-agent-sdk-*/**/*",
@@ -1022,7 +1022,7 @@ export const WSL_RUNTIME_ARCHIVE_HASH_EXTRA_RESOURCE = {
   to: WSL_RUNTIME_ARCHIVE_HASH_NAME,
 } as const;
 
-// The WSL runtime is the Linux CLI release archive (supacode-<version>-linux-<arch>
+// The WSL runtime is the Linux CLI release archive (supaterm-<version>-linux-<arch>
 // .tar.gz, built by scripts/build-cli-archive.ts) copied in verbatim, so WSL
 // runs the exact bytes a Linux user downloads. This one predicate decides both
 // whether the archive is staged and whether the packaging config ships it:
@@ -1258,23 +1258,23 @@ const AzureTrustedSigningOptionsConfig = Config.all({
 });
 
 const BuildEnvConfig = Config.all({
-  platform: Config.schema(BuildPlatform, "SUPACODE_DESKTOP_PLATFORM").pipe(Config.option),
-  target: Config.String("SUPACODE_DESKTOP_TARGET").pipe(Config.option),
-  arch: Config.schema(BuildArch, "SUPACODE_DESKTOP_ARCH").pipe(Config.option),
-  version: Config.String("SUPACODE_DESKTOP_VERSION").pipe(Config.option),
-  outputDir: Config.String("SUPACODE_DESKTOP_OUTPUT_DIR").pipe(Config.option),
-  skipBuild: Config.Boolean("SUPACODE_DESKTOP_SKIP_BUILD").pipe(Config.withDefault(false)),
-  keepStage: Config.Boolean("SUPACODE_DESKTOP_KEEP_STAGE").pipe(Config.withDefault(false)),
-  signed: Config.Boolean("SUPACODE_DESKTOP_SIGNED").pipe(Config.withDefault(false)),
-  verbose: Config.Boolean("SUPACODE_DESKTOP_VERBOSE").pipe(Config.withDefault(false)),
-  mockUpdates: Config.Boolean("SUPACODE_DESKTOP_MOCK_UPDATES").pipe(Config.withDefault(false)),
-  mockUpdateServerPort: Config.String("SUPACODE_DESKTOP_MOCK_UPDATE_SERVER_PORT").pipe(
+  platform: Config.schema(BuildPlatform, "SUPATERM_DESKTOP_PLATFORM").pipe(Config.option),
+  target: Config.String("SUPATERM_DESKTOP_TARGET").pipe(Config.option),
+  arch: Config.schema(BuildArch, "SUPATERM_DESKTOP_ARCH").pipe(Config.option),
+  version: Config.String("SUPATERM_DESKTOP_VERSION").pipe(Config.option),
+  outputDir: Config.String("SUPATERM_DESKTOP_OUTPUT_DIR").pipe(Config.option),
+  skipBuild: Config.Boolean("SUPATERM_DESKTOP_SKIP_BUILD").pipe(Config.withDefault(false)),
+  keepStage: Config.Boolean("SUPATERM_DESKTOP_KEEP_STAGE").pipe(Config.withDefault(false)),
+  signed: Config.Boolean("SUPATERM_DESKTOP_SIGNED").pipe(Config.withDefault(false)),
+  verbose: Config.Boolean("SUPATERM_DESKTOP_VERBOSE").pipe(Config.withDefault(false)),
+  mockUpdates: Config.Boolean("SUPATERM_DESKTOP_MOCK_UPDATES").pipe(Config.withDefault(false)),
+  mockUpdateServerPort: Config.String("SUPATERM_DESKTOP_MOCK_UPDATE_SERVER_PORT").pipe(
     Config.option,
   ),
-  // Path to the Linux CLI release archive (supacode-<version>-linux-x64.tar.gz) built
+  // Path to the Linux CLI release archive (supaterm-<version>-linux-x64.tar.gz) built
   // by the build_linux_cli CI job. The Windows build embeds it verbatim as the
   // WSL runtime.
-  wslRuntime: Config.String("SUPACODE_DESKTOP_WSL_RUNTIME").pipe(Config.option),
+  wslRuntime: Config.String("SUPATERM_DESKTOP_WSL_RUNTIME").pipe(Config.option),
 });
 
 const MockUpdateServerPortSchema = Schema.NumberFromString.check(
@@ -1440,10 +1440,10 @@ export const preflightLinuxDesktopBuild = Effect.fn("preflightLinuxDesktopBuild"
   arch: typeof BuildArch.Type = "x64",
 ) {
   const reuseResourceMonitor = yield* Config.Boolean(
-    "SUPACODE_DESKTOP_REUSE_RESOURCE_MONITOR",
+    "SUPATERM_DESKTOP_REUSE_RESOURCE_MONITOR",
   ).pipe(Config.withDefault(false));
   const reuseCaptureHelpers = yield* Config.Boolean(
-    "SUPACODE_DESKTOP_REUSE_LINUX_CAPTURE_HELPERS",
+    "SUPATERM_DESKTOP_REUSE_LINUX_CAPTURE_HELPERS",
   ).pipe(Config.withDefault(false));
   // Rust is only optional when every Linux Rust artifact comes from a cache.
   const needsRust = !reuseResourceMonitor || !reuseCaptureHelpers;
@@ -1482,7 +1482,7 @@ export const preflightMacDesktopBuild = Effect.fn("preflightMacDesktopBuild")(fu
 ) {
   const rustTargets = resolveResourceMonitorRustTargets("mac", arch);
   const reuseResourceMonitor = yield* Config.Boolean(
-    "SUPACODE_DESKTOP_REUSE_RESOURCE_MONITOR",
+    "SUPATERM_DESKTOP_REUSE_RESOURCE_MONITOR",
   ).pipe(Config.withDefault(false));
   const checks = yield* Effect.all(
     {
@@ -1539,7 +1539,7 @@ export const preflightWindowsDesktopBuild = Effect.fn("preflightWindowsDesktopBu
   function* (input: { readonly arch: typeof BuildArch.Type; readonly bundlesWslRuntime: boolean }) {
     const rustTarget = resolveResourceMonitorRustTargets("win", input.arch)[0]!;
     const reuseResourceMonitor = yield* Config.Boolean(
-      "SUPACODE_DESKTOP_REUSE_RESOURCE_MONITOR",
+      "SUPATERM_DESKTOP_REUSE_RESOURCE_MONITOR",
     ).pipe(Config.withDefault(false));
     const python = yield* resolvePythonForNodeGyp();
     const checks = yield* Effect.all(
@@ -1730,7 +1730,7 @@ const verifyPackagedBundleIsSelfContained = Effect.fn("verifyPackagedBundleIsSel
     const path = yield* Path.Path;
 
     const probeRoot = yield* fs.makeTempDirectoryScoped({
-      prefix: "supacode-bundle-selfcheck-",
+      prefix: "supaterm-bundle-selfcheck-",
     });
     const extractedApp = path.join(probeRoot, "extracted");
     const probeApp = path.join(probeRoot, "app");
@@ -1832,14 +1832,14 @@ export const stageLinuxCaptureHelper = Effect.fn("stageLinuxCaptureHelper")(func
   const [rustTarget] = resolveResourceMonitorRustTargets("linux", input.arch);
   // Release CI restores these binaries from a cache keyed on the crate sources and
   // skips the Rust toolchain on a hit, so the build must be skippable too.
-  const reuseHelpers = yield* Config.Boolean("SUPACODE_DESKTOP_REUSE_LINUX_CAPTURE_HELPERS").pipe(
+  const reuseHelpers = yield* Config.Boolean("SUPATERM_DESKTOP_REUSE_LINUX_CAPTURE_HELPERS").pipe(
     Config.withDefault(false),
   );
   const binaryPath = path.join(
     input.repoRoot,
     `native/${input.backend}-snap-shot/target`,
     rustTarget!,
-    `release/supacode-${input.backend}-snap-shot`,
+    `release/supaterm-${input.backend}-snap-shot`,
   );
   if (!reuseHelpers) {
     const spawnCommand = yield* resolveSpawnCommand("cargo", [
@@ -1871,7 +1871,7 @@ export const stageLinuxCaptureHelper = Effect.fn("stageLinuxCaptureHelper")(func
   }
   const destination = path.join(input.stageResourcesDir, `${input.backend}-capture`);
   yield* fs.makeDirectory(destination, { recursive: true });
-  const executable = path.join(destination, `supacode-${input.backend}-snap-shot`);
+  const executable = path.join(destination, `supaterm-${input.backend}-snap-shot`);
   yield* fs.copyFile(binaryPath, executable);
   yield* fs.chmod(executable, 0o755);
   if (input.backend === "hyprland") {
@@ -1896,7 +1896,7 @@ export const stageResourceMonitor = Effect.fn("stageResourceMonitor")(function* 
   const executableName = resourceMonitorExecutableName(input.platform);
   const rustTargets = resolveResourceMonitorRustTargets(input.platform, input.arch);
   const reuseResourceMonitor = yield* Config.Boolean(
-    "SUPACODE_DESKTOP_REUSE_RESOURCE_MONITOR",
+    "SUPATERM_DESKTOP_REUSE_RESOURCE_MONITOR",
   ).pipe(Config.withDefault(false));
   const builtBinaries: string[] = [];
 
@@ -1994,7 +1994,7 @@ export const stageBrowserSecret = Effect.fn("stageBrowserSecret")(function* (inp
         "--arch",
         input.arch === "arm64" ? "arm64" : "x64",
         "--output",
-        path.join(input.stageResourcesDir, "browser-secret", "supacode-browser-secret"),
+        path.join(input.stageResourcesDir, "browser-secret", "supaterm-browser-secret"),
       ],
       { cwd: input.repoRoot },
     ),
@@ -2051,7 +2051,7 @@ function stageMacIcons(stageResourcesDir: string, sourcePng: string, verbose: bo
     }
 
     const tmpRoot = yield* fs.makeTempDirectoryScoped({
-      prefix: "supacode-icon-build-",
+      prefix: "supaterm-icon-build-",
     });
 
     const iconPngPath = path.join(stageResourcesDir, "icon.png");
@@ -2236,7 +2236,7 @@ export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig"
   updateChannel: "latest" | "nightly",
 ) {
   const env = yield* Config.all({
-    updateRepository: Config.String("SUPACODE_DESKTOP_UPDATE_REPOSITORY").pipe(Config.option),
+    updateRepository: Config.String("SUPATERM_DESKTOP_UPDATE_REPOSITORY").pipe(Config.option),
     githubRepository: Config.String("GITHUB_REPOSITORY").pipe(Config.option),
   });
   const rawRepo = (
@@ -2312,8 +2312,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 
 export function resolveDesktopProductName(version: string): string {
   return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "Supacode (Nightly)"
-    : (desktopPackageJson.productName ?? "Supacode");
+    ? "Supaterm (Nightly)"
+    : (desktopPackageJson.productName ?? "Supaterm");
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2336,7 +2336,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     appId: DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
-    artifactName: "supacode-${version}-${arch}.${ext}",
+    artifactName: "supaterm-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
@@ -2387,9 +2387,9 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       category: "public.app-category.developer-tools",
       extendInfo: {
         NSLocalNetworkUsageDescription:
-          "Supacode connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
+          "Supaterm connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
         NSScreenCaptureUsageDescription:
-          "Supacode captures the active window when you use the window capture shortcut.",
+          "Supaterm captures the active window when you use the window capture shortcut.",
         CFBundleDocumentTypes: [
           {
             CFBundleTypeName: "Web page",
@@ -2401,8 +2401,8 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       },
       protocols: [
         {
-          name: "Supacode",
-          schemes: ["supacode", "supacode-dev"],
+          name: "Supaterm",
+          schemes: ["supaterm", "supaterm-dev"],
         },
         { name: "Web links", schemes: ["http", "https"], role: "Viewer" },
       ],
@@ -2451,33 +2451,33 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       // resources/package-type into the .deb only, so electron-updater updates
       // each install in its own format.
       target: target === "AppImage" ? [target, "deb"] : [target],
-      executableName: "supacode",
+      executableName: "supaterm",
       icon: "icons",
       category: "Development",
       synopsis: "Desktop GUI for coding agents",
       // Required by the .deb control file.
-      maintainer: "Supacode <hello@supacode.sh>",
+      maintainer: "Supaterm <hello@supaterm.com>",
       // electron-builder turns these into MimeType=x-scheme-handler/<scheme>;
       // in the .desktop entry (Exec already gets %U), so browsers can hand
-      // supacode:// OAuth callbacks to the app.
+      // supaterm:// OAuth callbacks to the app.
       protocols: [
         {
-          name: "Supacode",
-          schemes: ["supacode", "supacode-dev"],
+          name: "Supaterm",
+          schemes: ["supaterm", "supaterm-dev"],
         },
       ],
       desktop: {
         entry: {
-          StartupWMClass: "supacode",
+          StartupWMClass: "supaterm",
         },
       },
     };
     buildConfig.deb = {
       // FPM runs outside the staged app directory, so source paths must be absolute.
-      // AppStream consumers associate this metadata with our supacode.desktop entry.
+      // AppStream consumers associate this metadata with our supaterm.desktop entry.
       fpm: [
-        `${path.join(repoRoot, "apps/desktop/resources/linux/com.supaterm.supacode.metainfo.xml")}=/usr/share/metainfo/com.supaterm.supacode.metainfo.xml`,
-        `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/supacode/copyright`,
+        `${path.join(repoRoot, "apps/desktop/resources/linux/com.supaterm.desktop.metainfo.xml")}=/usr/share/metainfo/com.supaterm.desktop.metainfo.xml`,
+        `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/supaterm/copyright`,
       ],
       // Electron's runtime libraries. Debian 13 and Ubuntu 24.04 renamed some
       // for 64-bit time; the old name is the fallback for older releases.
@@ -2579,7 +2579,7 @@ export const stageWslRuntimeArchive = Effect.fn("stageWslRuntimeArchive")(functi
 // this module, so it cannot be imported here). WSL runs the same CPU arch as
 // the Windows host.
 export const wslRuntimeArchiveStem = (version: string, arch: typeof BuildArch.Type): string =>
-  `supacode-${version}-linux-${arch}`;
+  `supaterm-${version}-linux-${arch}`;
 
 export const parseWslRuntimeArchiveMembers = (listing: string): ReadonlyArray<string> =>
   listing
@@ -2673,7 +2673,7 @@ export const stageWindowsServerSidecar = Effect.fn("stageWindowsServerSidecar")(
     sidecarDependencies,
   );
   const sidecarPackageJson = {
-    name: "supacode-server",
+    name: "supaterm-server",
     version: input.appVersion,
     private: true,
     packageManager: rootPackageJson.packageManager,
@@ -2793,7 +2793,7 @@ export const verifyWindowsPrimaryFffNativeLoad = Effect.fn(
   if (hostPlatform !== "win32" || hostArchitecture !== input.targetArch) return;
 
   const probeRoot = yield* fs.makeTempDirectoryScoped({
-    prefix: "supacode-windows-primary-native-probe-",
+    prefix: "supaterm-windows-primary-native-probe-",
   });
   const fffEntryPath = path.join(input.asarPath, "node_modules/@ff-labs/fff-node/dist/index.js");
   const probeEnv = { ...process.env };
@@ -2856,7 +2856,7 @@ export const validateWindowsPackagedPayload = Effect.fn(
   readonly appExecutableName: string;
   readonly targetArch: typeof BuildArch.Type;
   // The version the embedded Linux CLI archive must carry; its top-level
-  // directory is named supacode-<version>-linux-<arch>.
+  // directory is named supaterm-<version>-linux-<arch>.
   readonly appVersion: string;
   readonly expectWslRuntime?: boolean;
   readonly fileLimit?: number;
@@ -2954,7 +2954,7 @@ export const validateWindowsPackagedPayload = Effect.fn(
     return yield* new WindowsPackagedPayloadValidationError({
       reason: "resource-monitor-missing",
       packagedAppDir,
-      missingFiles: ["resource-monitor/supacode-resource-monitor.exe"],
+      missingFiles: ["resource-monitor/supaterm-resource-monitor.exe"],
     });
   }
 
@@ -3022,7 +3022,7 @@ export const validateWindowsPackagedPayload = Effect.fn(
     }
     const members = parseWslRuntimeArchiveMembers(listing.stdout);
     // A release archive unpacks to one directory named after its stem; the
-    // desktop app's WSL install script relies on that layout to find `supacode`.
+    // desktop app's WSL install script relies on that layout to find `supaterm`.
     const stem = wslRuntimeArchiveStem(input.appVersion, input.targetArch);
     const topLevel = new Set(members.map((member) => member.split("/")[0]));
     if (topLevel.size !== 1 || !topLevel.has(stem)) {
@@ -3032,7 +3032,7 @@ export const validateWindowsPackagedPayload = Effect.fn(
         ),
       );
     }
-    const requiredMembers = [`${stem}/supacode`, `${stem}/client`, `${stem}/node_modules`];
+    const requiredMembers = [`${stem}/supaterm`, `${stem}/client`, `${stem}/node_modules`];
     const missingMembers = requiredMembers.filter((member) => !members.includes(member));
     // node-pty can load a source build or the prebuild for the WSL target.
     const ptyCandidates = [
@@ -3169,7 +3169,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   const commitHash = yield* resolveGitCommitHash(repoRoot);
   const mkdir = options.keepStage ? fs.makeTempDirectory : fs.makeTempDirectoryScoped;
   const stageRoot = yield* mkdir({
-    prefix: `supacode-desktop-${options.platform}-stage-`,
+    prefix: `supaterm-desktop-${options.platform}-stage-`,
   });
 
   const stageAppDir = path.join(stageRoot, "app");
@@ -3388,19 +3388,19 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       ? path.join(stageAppDir, WINDOWS_SERVER_RESOURCE_SOURCE_DIR, WINDOWS_SERVER_ASAR_RESOURCE)
       : undefined;
   const stagePackageJson: StagePackageJson = {
-    name: "supacode",
+    name: "supaterm",
     version: appVersion,
     buildVersion: appVersion,
-    supacodeCommitHash: commitHash,
-    ...(touchIdKeychainAccessGroup ? { supacodeWebAuthn: { touchIdKeychainAccessGroup } } : {}),
+    supatermCommitHash: commitHash,
+    ...(touchIdKeychainAccessGroup ? { supatermWebAuthn: { touchIdKeychainAccessGroup } } : {}),
     private: true,
     packageManager: rootPackageJson.packageManager,
     description:
-      "Supacode is an open-source desktop app for coding agents. Work with your existing agent subscriptions, review code changes, and run commands in your projects. Connect from desktop, web, or mobile to continue working remotely.",
+      "Supaterm is an open-source desktop app for coding agents. Work with your existing agent subscriptions, review code changes, and run commands in your projects. Connect from desktop, web, or mobile to continue working remotely.",
     license: "MIT",
     // Required by the .deb control file.
     homepage: "https://github.com/supabitapp/supacode-next",
-    author: "Supacode",
+    author: "Supaterm",
     main: "apps/desktop/dist-electron/boot.cjs",
     build: yield* createBuildConfig(
       options.platform,
@@ -3535,7 +3535,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   const builderArgs = [
     "exec",
     "--filter",
-    "@supacode/desktop",
+    "@supaterm/desktop",
     "--",
     "electron-builder",
     "--projectDir",
@@ -3553,7 +3553,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       shell: builderCommand.shell,
     }),
     {
-      label: `vp exec --filter @supacode/desktop -- electron-builder --projectDir ${stageAppDir} ${platformConfig.cliFlag} --${options.arch} --publish never`,
+      label: `vp exec --filter @supaterm/desktop -- electron-builder --projectDir ${stageAppDir} ${platformConfig.cliFlag} --${options.arch} --publish never`,
       verbose: options.verbose,
     },
   );
@@ -3622,68 +3622,68 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
 
 const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
   platform: Flag.Literals("platform", BuildPlatform.literals).pipe(
-    Flag.withDescription("Build platform (env: SUPACODE_DESKTOP_PLATFORM)."),
+    Flag.withDescription("Build platform (env: SUPATERM_DESKTOP_PLATFORM)."),
     Flag.optional,
   ),
   target: Flag.String("target").pipe(
     Flag.withDescription(
-      "Artifact target, for example dmg/AppImage/nsis (env: SUPACODE_DESKTOP_TARGET).",
+      "Artifact target, for example dmg/AppImage/nsis (env: SUPATERM_DESKTOP_TARGET).",
     ),
     Flag.optional,
   ),
   arch: Flag.Literals("arch", BuildArch.literals).pipe(
     Flag.withDescription(
-      "Build arch, for example arm64/x64/universal (env: SUPACODE_DESKTOP_ARCH).",
+      "Build arch, for example arm64/x64/universal (env: SUPATERM_DESKTOP_ARCH).",
     ),
     Flag.optional,
   ),
   buildVersion: Flag.String("build-version").pipe(
-    Flag.withDescription("Artifact version metadata (env: SUPACODE_DESKTOP_VERSION)."),
+    Flag.withDescription("Artifact version metadata (env: SUPATERM_DESKTOP_VERSION)."),
     Flag.optional,
   ),
   outputDir: Flag.String("output-dir").pipe(
-    Flag.withDescription("Output directory for artifacts (env: SUPACODE_DESKTOP_OUTPUT_DIR)."),
+    Flag.withDescription("Output directory for artifacts (env: SUPATERM_DESKTOP_OUTPUT_DIR)."),
     Flag.optional,
   ),
   skipBuild: Flag.Boolean("skip-build").pipe(
     Flag.withDescription(
-      "Skip `vp run build:desktop` and use existing dist artifacts (env: SUPACODE_DESKTOP_SKIP_BUILD).",
+      "Skip `vp run build:desktop` and use existing dist artifacts (env: SUPATERM_DESKTOP_SKIP_BUILD).",
     ),
     Flag.optional,
   ),
   keepStage: Flag.Boolean("keep-stage").pipe(
-    Flag.withDescription("Keep temporary staging files (env: SUPACODE_DESKTOP_KEEP_STAGE)."),
+    Flag.withDescription("Keep temporary staging files (env: SUPATERM_DESKTOP_KEEP_STAGE)."),
     Flag.optional,
   ),
   signed: Flag.Boolean("signed").pipe(
     Flag.withDescription(
-      "Enable signing/notarization discovery; Windows uses Azure Trusted Signing (env: SUPACODE_DESKTOP_SIGNED).",
+      "Enable signing/notarization discovery; Windows uses Azure Trusted Signing (env: SUPATERM_DESKTOP_SIGNED).",
     ),
     Flag.optional,
   ),
   verbose: Flag.Boolean("verbose").pipe(
-    Flag.withDescription("Stream subprocess stdout (env: SUPACODE_DESKTOP_VERBOSE)."),
+    Flag.withDescription("Stream subprocess stdout (env: SUPATERM_DESKTOP_VERBOSE)."),
     Flag.optional,
   ),
   mockUpdates: Flag.Boolean("mock-updates").pipe(
-    Flag.withDescription("Enable mock updates (env: SUPACODE_DESKTOP_MOCK_UPDATES)."),
+    Flag.withDescription("Enable mock updates (env: SUPATERM_DESKTOP_MOCK_UPDATES)."),
     Flag.optional,
   ),
   mockUpdateServerPort: Flag.Int("mock-update-server-port").pipe(
     Flag.withSchema(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 65535 }))),
     Flag.withDescription(
-      "Mock update server port (env: SUPACODE_DESKTOP_MOCK_UPDATE_SERVER_PORT).",
+      "Mock update server port (env: SUPATERM_DESKTOP_MOCK_UPDATE_SERVER_PORT).",
     ),
     Flag.optional,
   ),
   wslRuntime: Flag.String("wsl-runtime").pipe(
     Flag.withDescription(
-      "Path to the Linux CLI release archive (supacode-<version>-linux-x64.tar.gz) to embed as the WSL runtime of a Windows build (env: SUPACODE_DESKTOP_WSL_RUNTIME).",
+      "Path to the Linux CLI release archive (supaterm-<version>-linux-x64.tar.gz) to embed as the WSL runtime of a Windows build (env: SUPATERM_DESKTOP_WSL_RUNTIME).",
     ),
     Flag.optional,
   ),
 }).pipe(
-  Command.withDescription("Build a desktop artifact for Supacode."),
+  Command.withDescription("Build a desktop artifact for Supaterm."),
   Command.withHandler((input) => Effect.flatMap(resolveBuildOptions(input), buildDesktopArtifact)),
 );
 

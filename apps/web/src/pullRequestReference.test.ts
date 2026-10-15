@@ -11,8 +11,8 @@ describe("parsePullRequestReference", () => {
 
   it("accepts Azure DevOps pull request URLs", () => {
     expect(
-      parsePullRequestReference("https://dev.azure.com/acme/project/_git/supacode/pullrequest/42"),
-    ).toBe("https://dev.azure.com/acme/project/_git/supacode/pullrequest/42");
+      parsePullRequestReference("https://dev.azure.com/acme/project/_git/supaterm/pullrequest/42"),
+    ).toBe("https://dev.azure.com/acme/project/_git/supaterm/pullrequest/42");
   });
 
   it("accepts GitLab merge request URLs", () => {
@@ -24,9 +24,9 @@ describe("parsePullRequestReference", () => {
   it("accepts legacy Azure DevOps pull request URLs", () => {
     expect(
       parsePullRequestReference(
-        "https://acme.visualstudio.com/project/_git/supacode/pullrequest/42",
+        "https://acme.visualstudio.com/project/_git/supaterm/pullrequest/42",
       ),
-    ).toBe("https://acme.visualstudio.com/project/_git/supacode/pullrequest/42");
+    ).toBe("https://acme.visualstudio.com/project/_git/supaterm/pullrequest/42");
   });
 
   it("accepts raw numbers", () => {

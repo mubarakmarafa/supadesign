@@ -16,7 +16,7 @@ import { tailwindPlugins } from "../vite/tailwind";
 const execFile = NodeUtil.promisify(NodeChildProcess.execFile);
 
 it("initializes React refresh before a shared UI chunk runs in bundled dev", async () => {
-  const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-bootstrap-"));
+  const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-bootstrap-"));
   const output = NodePath.join(root, "output");
   let resolveBundle!: (files: Map<string, string>) => void;
   let rejectBundle!: (error: unknown) => void;
@@ -127,7 +127,7 @@ console.log("App started with React refresh ready.");`,
 });
 
 it("hot updates Tailwind classes when a source file changes in bundled dev", async () => {
-  const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-tailwind-"));
+  const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-tailwind-"));
   const events = new NodeEvents.EventEmitter();
   let server: Awaited<ReturnType<typeof createServer>> | undefined;
   let socket: WebSocket | undefined;

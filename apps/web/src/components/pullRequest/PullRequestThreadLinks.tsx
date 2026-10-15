@@ -1,13 +1,13 @@
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentId, PullRequestRef, ScopedThreadRef, ThreadId } from "@supacode/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentId, PullRequestRef, ScopedThreadRef, ThreadId } from "@supaterm/contracts";
 import { CheckIcon, MessageSquareIcon } from "lucide-react";
 import { useState } from "react";
-import { threadPullRequestLinkMode } from "@supacode/client-runtime/thread-pull-request-compatibility";
+import { threadPullRequestLinkMode } from "@supaterm/client-runtime/thread-pull-request-compatibility";
 import { usePullRequestLinking } from "~/hooks/usePullRequestLinking";
 
 import { parseChangeRequestUrl } from "~/lib/openPullRequestLink";
-import { normalizeThreadPullRequestKey } from "@supacode/shared/threadPullRequests";
+import { normalizeThreadPullRequestKey } from "@supaterm/shared/threadPullRequests";
 import { useProjects, useServerConfigs, useThreadShell, useThreadShells } from "~/state/entities";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useEnvironmentQuery } from "~/state/query";

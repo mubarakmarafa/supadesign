@@ -6,7 +6,7 @@ import {
   ProviderInteractionMode,
   RuntimeMode,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";

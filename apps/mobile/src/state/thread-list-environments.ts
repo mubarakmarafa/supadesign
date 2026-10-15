@@ -4,7 +4,7 @@ import {
   type EnvironmentMachineKind,
   type ServerConfig,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 export type ThreadListProvider = Pick<

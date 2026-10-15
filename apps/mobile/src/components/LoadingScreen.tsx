@@ -27,11 +27,11 @@ export function LoadingScreen(props: {
       <View className="flex-1 items-center justify-center gap-5 px-6">
         <BrandMark compact />
         {messagePlacement === "above-spinner" ? (
-          <Text className="font-supacode-bold text-lg text-foreground">{props.message}</Text>
+          <Text className="font-supaterm-bold text-lg text-foreground">{props.message}</Text>
         ) : null}
         <AppActivityIndicator size="large" />
         {messagePlacement === "below-spinner" ? (
-          <Text className="font-supacode-bold text-lg text-foreground">{props.message}</Text>
+          <Text className="font-supaterm-bold text-lg text-foreground">{props.message}</Text>
         ) : null}
       </View>
     </View>

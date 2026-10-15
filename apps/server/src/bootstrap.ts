@@ -9,8 +9,8 @@ import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
-import { decodeJsonResult } from "@supacode/shared/schemaJson";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { decodeJsonResult } from "@supaterm/shared/schemaJson";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 export class BootstrapFdStatError extends Schema.TaggedError<BootstrapFdStatError>()(
   "BootstrapFdStatError",

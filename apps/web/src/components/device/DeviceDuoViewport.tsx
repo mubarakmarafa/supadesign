@@ -1,14 +1,14 @@
 import { useEffect, useRef, type RefObject } from "react";
-import type { DuoViewer } from "@supacode/client-runtime/device/duo-viewer";
-import type { DeviceModelSource } from "@supacode/client-runtime/device/model";
-import { createPhoneInteraction } from "@supacode/client-runtime/device/phone-interaction";
-import { createCanvasFrameSink } from "@supacode/client-runtime/device/frame";
-import type { DeviceScreenSize, DeviceStreamClient } from "@supacode/client-runtime/device/stream";
-import { createDuoPinch } from "@supacode/client-runtime/device/duo-control";
+import type { DuoViewer } from "@supaterm/client-runtime/device/duo-viewer";
+import type { DeviceModelSource } from "@supaterm/client-runtime/device/model";
+import { createPhoneInteraction } from "@supaterm/client-runtime/device/phone-interaction";
+import { createCanvasFrameSink } from "@supaterm/client-runtime/device/frame";
+import type { DeviceScreenSize, DeviceStreamClient } from "@supaterm/client-runtime/device/stream";
+import { createDuoPinch } from "@supaterm/client-runtime/device/duo-control";
 import { bindPhoneTrackpad } from "./phoneTrackpad";
 import { observeResize } from "../../lib/observeResize";
 
-const loadDuoViewer = () => import("@supacode/client-runtime/device/duo-viewer");
+const loadDuoViewer = () => import("@supaterm/client-runtime/device/duo-viewer");
 
 /** Web shell for the framework-independent viewer. The decoded screen and input connection remain owned by DeviceStreamView. */
 export function DeviceDuoViewport(props: {

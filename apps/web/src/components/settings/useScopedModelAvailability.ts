@@ -1,4 +1,4 @@
-import type { ProviderInstanceId, ServerProvider, UnifiedSettings } from "@supacode/contracts";
+import type { ProviderInstanceId, ServerProvider, UnifiedSettings } from "@supaterm/contracts";
 import { useCallback } from "react";
 
 import { mergeEnvironmentSettings } from "../../hooks/useSettings";

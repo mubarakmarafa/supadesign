@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";

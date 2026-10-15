@@ -1,5 +1,5 @@
 import { Spinner } from "~/components/ui/spinner";
-import type { ServerUpdateState } from "@supacode/client-runtime/state/server";
+import type { ServerUpdateState } from "@supaterm/client-runtime/state/server";
 import { CircleAlertIcon, DownloadIcon } from "lucide-react";
 import { useId, useState } from "react";
 

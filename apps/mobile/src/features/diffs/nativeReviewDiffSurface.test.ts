@@ -41,7 +41,7 @@ describe("resolveNativeReviewDiffView", () => {
     expect(resolvedView).not.toBeNull();
     expect(resolvedView).not.toBe(nativeView);
     expect(resolveNativeReviewDiffView()).toBe(resolvedView);
-    expect(expoMocks.requireNativeView).toHaveBeenCalledWith("SupacodeReviewDiffSurface");
+    expect(expoMocks.requireNativeView).toHaveBeenCalledWith("SupatermReviewDiffSurface");
   });
 
   it("returns null when the view manager cannot be required", async () => {
@@ -59,7 +59,7 @@ describe("resolveNativeReviewDiffView", () => {
     expect(consoleError).toHaveBeenCalledWith(
       expect.objectContaining({
         _tag: "NativeViewResolutionError",
-        nativeModuleName: "SupacodeReviewDiffSurface",
+        nativeModuleName: "SupatermReviewDiffSurface",
         cause,
       }),
     );
@@ -73,18 +73,18 @@ describe("isPendingNativeViewRegistration", () => {
 
     expect(
       isPendingNativeViewRegistration(
-        new Error("Unable to find the 'SupacodeReviewDiffSurface' view for this native tag"),
+        new Error("Unable to find the 'SupatermReviewDiffSurface' view for this native tag"),
       ),
     ).toBe(true);
     expect(
       isPendingNativeViewRegistration(
-        new Error("Unable to find the 'SupacodeReviewDiffView' view for this native tag"),
+        new Error("Unable to find the 'SupatermReviewDiffView' view for this native tag"),
       ),
     ).toBe(false);
     expect(
       isPendingNativeViewRegistration(
         new Error(
-          "Unable to find the class expo.modules.supacodereviewdiff.SupacodeReviewDiffView view with tag 1150",
+          "Unable to find the class expo.modules.supatermreviewdiff.SupatermReviewDiffView view with tag 1150",
         ),
       ),
     ).toBe(true);

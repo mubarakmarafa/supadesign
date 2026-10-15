@@ -3,4 +3,4 @@ export {
   OPENCODE_PROVIDER,
   OPENCODE_SDK_PROTOCOL,
 } from "./server/adapter.ts";
-export { OPENCODE_2_STILL_STOPPING, supacodeMcpServerName } from "./server/v2/adapter.ts";
+export { OPENCODE_2_STILL_STOPPING, supatermMcpServerName } from "./server/v2/adapter.ts";

@@ -1,4 +1,4 @@
-import { createInlineConfirm } from "@supacode/client-runtime/inline-confirm";
+import { createInlineConfirm } from "@supaterm/client-runtime/inline-confirm";
 import { useEffect, useId, useState } from "react";
 
 const TARGET_ATTRIBUTE = "data-inline-confirm";

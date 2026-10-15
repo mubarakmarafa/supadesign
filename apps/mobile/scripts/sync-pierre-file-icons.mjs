@@ -14,11 +14,11 @@ const webIconSource = NodeFS.readFileSync(
   NodePath.join(repositoryRoot, "apps/web/src/pierre-icons.ts"),
   "utf8",
 );
-const customSprite = webIconSource.match(/const SUPACODE_FILE_ICON_SPRITE = `([\s\S]*?)`;/)?.[1];
+const customSprite = webIconSource.match(/const SUPATERM_FILE_ICON_SPRITE = `([\s\S]*?)`;/)?.[1];
 
 if (!customSprite) {
   throw new Error(
-    "Could not read the Supacode Pierre icon sprite from apps/web/src/pierre-icons.ts",
+    "Could not read the Supaterm Pierre icon sprite from apps/web/src/pierre-icons.ts",
   );
 }
 
@@ -80,9 +80,9 @@ const colors = {
 };
 
 const customIcons = {
-  agents: "supacode-file-icon-agents",
-  pnpm: "supacode-file-icon-pnpm",
-  video: "supacode-file-icon-video",
+  agents: "supaterm-file-icon-agents",
+  pnpm: "supaterm-file-icon-pnpm",
+  video: "supaterm-file-icon-video",
 };
 
 function symbolFromSprite(sprite, id) {

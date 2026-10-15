@@ -1,4 +1,4 @@
-import { COMPOSER_CONTEXT_KINDS } from "@supacode/contracts";
+import { COMPOSER_CONTEXT_KINDS } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

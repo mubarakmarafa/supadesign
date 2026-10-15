@@ -1,4 +1,4 @@
-import { ChatFileAttachment, ChatImageAttachment } from "@supacode/contracts";
+import { ChatFileAttachment, ChatImageAttachment } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";
 

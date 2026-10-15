@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
@@ -9,15 +9,15 @@ import {
   SourceControlProviderError,
   TrimmedNonEmptyString,
   type ChangeRequest,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   probeSourceControlProvider,
   providerAuth,
   type SourceControlCliDiscoverySpec,
   type SourceControlManagedCliDiscoverySpec,
-} from "@supacode/source-control-core/server/discovery";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import * as SourceControlProvider from "@supacode/source-control-core/server/SourceControlProvider";
+} from "@supaterm/source-control-core/server/discovery";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import * as SourceControlProvider from "@supaterm/source-control-core/server/SourceControlProvider";
 
 import * as GitCafeApi from "./GitCafeApi.ts";
 import * as GitCafeCredentials from "./GitCafeCredentials.ts";

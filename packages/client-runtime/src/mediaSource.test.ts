@@ -1,4 +1,4 @@
-import { ThreadId } from "@supacode/contracts";
+import { ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { resolveMediaSource } from "./mediaSource.ts";
@@ -41,7 +41,7 @@ describe("resolveMediaSource", () => {
       });
     });
 
-    it.each(["data:image/png;base64,AAAA", "blob:https://app.next.supacode.sh/id"])(
+    it.each(["data:image/png;base64,AAAA", "blob:https://app.supaterm.com/id"])(
       "loads %s directly",
       (href) => {
         expect(resolveMediaSource(href, { threadId, imageEmbed: true })).toMatchObject({
@@ -130,8 +130,8 @@ describe("resolveMediaSource", () => {
     );
   });
 
-  it("serves Supacode attachment files in place like any other host path", () => {
-    const path = `/home/demo/.supacode/userdata/attachments/${attachmentId}.mp4`;
+  it("serves Supaterm attachment files in place like any other host path", () => {
+    const path = `/home/demo/.supaterm/userdata/attachments/${attachmentId}.mp4`;
     expect(resolveMediaSource(path, { threadId, workspaceRoot: "/repo" })).toMatchObject({
       kind: "video",
       access: "environment",

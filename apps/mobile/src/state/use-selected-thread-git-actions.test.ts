@@ -1,4 +1,4 @@
-import { AuthOrchestrationOperateScope, AuthSourceControlWriteScope } from "@supacode/contracts";
+import { AuthOrchestrationOperateScope, AuthSourceControlWriteScope } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";

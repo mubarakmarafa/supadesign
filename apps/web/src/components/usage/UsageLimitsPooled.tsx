@@ -12,7 +12,7 @@ import {
   type LimitPoolMember,
   type LimitPoolWindow,
   remainingPercent,
-} from "@supacode/shared/usageLimits";
+} from "@supaterm/shared/usageLimits";
 import { AlertTriangleIcon, ExternalLinkIcon, TicketIcon } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 

@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { DEFAULT_SERVER_SETTINGS, ProviderInstanceId } from "@supacode/contracts";
+import { DEFAULT_SERVER_SETTINGS, ProviderInstanceId } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -14,10 +14,10 @@ import * as HttpClient from "effect/http/HttpClient";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import type { PiSettings } from "../settings.ts";
 import { PiDriver } from "./driver.ts";
 

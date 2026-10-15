@@ -1,4 +1,4 @@
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -369,7 +369,7 @@ export const probeTailscaleHttpsEndpoint = (input: {
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient;
     const response = yield* Effect.gen(function* () {
-      const url = new URL("/.well-known/supacode/environment", input.baseUrl);
+      const url = new URL("/.well-known/supaterm/environment", input.baseUrl);
       const request = HttpClientRequest.get(url.toString());
       return yield* client.execute(request);
     }).pipe(Effect.timeoutOption(input.timeout ?? TAILSCALE_PROBE_TIMEOUT));

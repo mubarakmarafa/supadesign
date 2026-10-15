@@ -1,4 +1,4 @@
-import { ApprovalRequestId, EnvironmentId, ThreadId } from "@supacode/contracts";
+import { ApprovalRequestId, EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   questionAttachmentDraftKey,

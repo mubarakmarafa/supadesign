@@ -66,7 +66,7 @@ export class CursorSdk extends Context.Service<
     readonly Agent: typeof Agent;
     readonly createAgentPlatform: typeof createAgentPlatform;
   }
->()("@supacode/provider-cursor/server/CursorSdk") {}
+>()("@supaterm/provider-cursor/server/CursorSdk") {}
 
 /** Provide once per process: a second guard would defer to the first and swallow real rejections. */
 export const layer = Layer.effect(

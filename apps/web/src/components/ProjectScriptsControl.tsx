@@ -3,15 +3,15 @@ import {
   AuthSettingsWriteScope,
   type EnvironmentId,
   type ProjectScript,
-  type SupacodeProjectFileScript,
-} from "@supacode/contracts";
+  type SupatermProjectFileScript,
+} from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import { projectScriptMenuLabel } from "@supacode/shared/projectScripts";
+} from "@supaterm/client-runtime/state/runtime";
+import { projectScriptMenuLabel } from "@supaterm/shared/projectScripts";
 import { ChevronDownIcon, DownloadIcon, PlusIcon, SettingsIcon, WrenchIcon } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -55,7 +55,7 @@ import {
 
 export type { NewProjectScriptInput, ProjectScriptActionResult };
 
-const NO_FILE_SCRIPTS: ReadonlyArray<SupacodeProjectFileScript> = [];
+const NO_FILE_SCRIPTS: ReadonlyArray<SupatermProjectFileScript> = [];
 
 interface ProjectScriptsControlProps {
   displayMode?: "toolbar" | "panel";
@@ -63,8 +63,8 @@ interface ProjectScriptsControlProps {
   onRequestMenuClose?: () => void;
   environmentId: EnvironmentId;
   scripts: ReadonlyArray<ProjectScript>;
-  /** Scripts declared in the project's checked-in supacode.json, offered for import. */
-  fileScripts?: ReadonlyArray<SupacodeProjectFileScript>;
+  /** Scripts declared in the project's checked-in supaterm.json, offered for import. */
+  fileScripts?: ReadonlyArray<SupatermProjectFileScript>;
   preferredScriptId?: string | null;
   onRunScript?: ((script: ProjectScript) => void) | undefined;
   onAddScript: (input: NewProjectScriptInput) => Promise<ProjectScriptActionResult>;
@@ -143,7 +143,7 @@ export default function ProjectScriptsControl({
     [onAddScript, onUpdateScript],
   );
 
-  const importFileScript = async (fileScript: SupacodeProjectFileScript) => {
+  const importFileScript = async (fileScript: SupatermProjectFileScript) => {
     const payload: NewProjectScriptInput = {
       name: fileScript.name,
       command: fileScript.command,
@@ -172,7 +172,7 @@ export default function ProjectScriptsControl({
     <>
       {scripts.length > 0 && <MenuSeparator />}
       <MenuGroup>
-        <MenuGroupLabel>From supacode.json</MenuGroupLabel>
+        <MenuGroupLabel>From supaterm.json</MenuGroupLabel>
         {importableScripts.map((fileScript) => (
           <MenuItem
             density={presentation === "menu" ? "touch" : "default"}
@@ -362,7 +362,7 @@ export default function ProjectScriptsControl({
           </Menu>
         </ActionGroup>
       ) : scripts.length > 0 || importableScripts.length > 0 ? (
-        // No one-click action (only a settle action, or only supacode.json imports),
+        // No one-click action (only a settle action, or only supaterm.json imports),
         // so the saved actions stay reachable through this menu.
         isPanel ? (
           <div

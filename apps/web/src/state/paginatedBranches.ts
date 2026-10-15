@@ -1,4 +1,4 @@
-import type { VcsListRefsResult } from "@supacode/contracts";
+import type { VcsListRefsResult } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";
 

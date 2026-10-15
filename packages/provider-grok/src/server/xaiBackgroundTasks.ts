@@ -4,7 +4,7 @@ import {
   type ProviderRuntimeTaskProgressEvent,
   type ProviderRuntimeTaskCompletedEvent,
   type TurnId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 type TaskEvent =
   | Pick<ProviderRuntimeTaskStartedEvent, "type" | "payload" | "turnId">

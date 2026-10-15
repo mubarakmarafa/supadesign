@@ -1,6 +1,6 @@
 /**
  * Browser import service - lists importable sources and writes their cookies
- * into a Supacode browser profile's Electron partition.
+ * into a Supaterm browser profile's Electron partition.
  *
  * @module BrowserImport
  */
@@ -9,8 +9,8 @@ import type {
   BrowserImportResult,
   BrowserImportSource,
   BrowserImportUnavailableReason,
-} from "@supacode/contracts";
-import { BrowserImportFailureReason } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { BrowserImportFailureReason } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import type { Session } from "electron";
 import * as Effect from "effect/Effect";
@@ -21,7 +21,7 @@ import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 import { ChildProcessSpawner } from "effect/process";
 
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import * as BrowserSession from "../BrowserSession.ts";
 import { ChromiumCookieReadError, readChromiumCookies } from "./ChromiumCookies.ts";
@@ -80,7 +80,7 @@ export class BrowserImport extends Context.Service<
       readonly namespace?: BrowserSession.BrowserSessionPartitionNamespace;
     }) => Effect.Effect<BrowserImportResult, BrowserImportFailedError>;
   }
->()("@supacode/desktop/preview/BrowserImport/BrowserImport") {}
+>()("@supaterm/desktop/preview/BrowserImport/BrowserImport") {}
 
 const unavailableReason = Effect.fn("BrowserImport.unavailableReason")(function* (
   definition: BrowserImportSourceDefinition,

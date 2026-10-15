@@ -1,4 +1,4 @@
-import { type ResolvedKeybindingsConfig } from "@supacode/contracts";
+import { type ResolvedKeybindingsConfig } from "@supaterm/contracts";
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
 import { ChevronRightIcon } from "lucide-react";
 import { type RefObject, useCallback, useState } from "react";

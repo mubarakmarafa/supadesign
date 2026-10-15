@@ -3,12 +3,12 @@ import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import * as NodeChildProcess from "node:child_process";
-import { OrchestrationWorkflowFileError } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { OrchestrationWorkflowFileError } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { it as effectIt } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { afterAll, assert, describe } from "vite-plus/test";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 import { readWorkflowScript } from "./workflowScriptQuery.ts";
 
 const root = NodePath.join(NodeOS.homedir(), ".claude", "projects", "__wf_script_test__");

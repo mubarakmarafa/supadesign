@@ -1,7 +1,7 @@
 import {
   createDeviceStreamClient,
   type DeviceScreenSize,
-} from "@supacode/client-runtime/device/stream";
+} from "@supaterm/client-runtime/device/stream";
 
 import type { DeviceStreamConfiguration } from "./device-stream-document";
 

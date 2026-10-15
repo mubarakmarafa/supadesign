@@ -4,8 +4,8 @@ import {
   issueRemoteWebSocketTicket,
   RemoteEnvironmentAuthUndeclaredStatusError,
   type RemoteEnvironmentAuthError,
-} from "@supacode/client-runtime/authorization";
-import { fetchRemoteEnvironmentDescriptor } from "@supacode/client-runtime/environment";
+} from "@supaterm/client-runtime/authorization";
+import { fetchRemoteEnvironmentDescriptor } from "@supaterm/client-runtime/environment";
 import {
   EnvironmentAuthInvalidError,
   DesktopDiscoveredSshHostSchema,
@@ -25,9 +25,9 @@ import {
   AuthAccessTokenResult,
   AuthSessionState,
   AuthWebSocketTicketResult,
-} from "@supacode/contracts";
-import { SshHttpBridgeError } from "@supacode/ssh/errors";
-import { resolveLoopbackSshHttpBaseUrl } from "@supacode/ssh/tunnel";
+} from "@supaterm/contracts";
+import { SshHttpBridgeError } from "@supaterm/ssh/errors";
+import { resolveLoopbackSshHttpBaseUrl } from "@supaterm/ssh/tunnel";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";

@@ -29,12 +29,12 @@ import {
   type KeybindingWhenNode,
   type ServerRemoveKeybindingInput,
   type ServerUpsertKeybindingInput,
-} from "@supacode/contracts";
-import { mergeWithDefaultKeybindings } from "@supacode/shared/keybindings";
+} from "@supaterm/contracts";
+import { mergeWithDefaultKeybindings } from "@supaterm/shared/keybindings";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 import { isElectron } from "../../env";
 import { useOpenInPreferredEditor } from "../../editorPreferences";
@@ -257,7 +257,7 @@ function UnknownWhenVariableWarning({
 
   return (
     <WarningTooltipIcon label={label} focusable={focusable} className="size-4.5">
-      Supacode does not recognize this condition yet. It can still be saved, but it may not match
+      Supaterm does not recognize this condition yet. It can still be saved, but it may not match
       unless the runtime provides it.
     </WarningTooltipIcon>
   );
@@ -1282,7 +1282,7 @@ function BrowserKeybindingNotice() {
 export function KeybindingsSettingsPanel() {
   // The representative environment supplies the displayed bindings; edits
   // fan out to every connected environment in the selection, so one
-  // shortcut change reaches each machine the user runs Supacode on.
+  // shortcut change reaches each machine the user runs Supaterm on.
   const { environment: primaryEnvironment, connectedEnvironments } = useSettingsScope();
   const canOpenKeybindingsFile = useEnvironmentScope(
     primaryEnvironment?.environmentId ?? null,

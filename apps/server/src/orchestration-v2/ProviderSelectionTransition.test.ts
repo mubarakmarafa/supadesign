@@ -4,10 +4,10 @@ import {
   type ModelSelection,
   type OrchestrationV2ProviderCapabilities,
   ProviderInstanceId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
-import { AcpProviderCapabilitiesV2 } from "@supacode/provider-acp/server/adapter";
-import { acpSelectionTransition } from "@supacode/provider-core/server/selectionTransition";
+import { AcpProviderCapabilitiesV2 } from "@supaterm/provider-acp/server/adapter";
+import { acpSelectionTransition } from "@supaterm/provider-core/server/selectionTransition";
 
 const selection = (model: string, effort = "medium"): ModelSelection => ({
   instanceId: ProviderInstanceId.make("acp_test"),

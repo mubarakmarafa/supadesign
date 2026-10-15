@@ -8,7 +8,7 @@ import {
   type ModelSelection,
   type ServerConfig,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   buildModelOptions,

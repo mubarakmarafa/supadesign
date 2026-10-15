@@ -8,8 +8,8 @@
  * this stays a pure fold over `runs` and `subagents`.
  */
 import * as DateTime from "effect/DateTime";
-import type { OrchestrationV2Subagent, OrchestrationV2ThreadProjection } from "@supacode/contracts";
-import { copySorted } from "@supacode/shared/Array";
+import type { OrchestrationV2Subagent, OrchestrationV2ThreadProjection } from "@supaterm/contracts";
+import { copySorted } from "@supaterm/shared/Array";
 
 import { isActiveSubagentStatus, isTerminalSubagentStatus } from "./subagentRuntime.ts";
 import { resolveActiveThreadRun } from "./threadWorkflows.ts";

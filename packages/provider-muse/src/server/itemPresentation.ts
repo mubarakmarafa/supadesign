@@ -1,4 +1,4 @@
-import type { OrchestrationV2TurnItem, OrchestrationV2TurnItemStatus } from "@supacode/contracts";
+import type { OrchestrationV2TurnItem, OrchestrationV2TurnItemStatus } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 

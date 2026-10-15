@@ -3,11 +3,11 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import * as Result from "effect/Result";
-import type { PullRequestReaction } from "@supacode/contracts";
+import type { PullRequestReaction } from "@supaterm/contracts";
 
 import { decodePullRequestDetailJson } from "./gitHubPullRequestJson.ts";
 import * as GitHubApi from "./GitHubApi.ts";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 import * as GitHubPullRequestApi from "./GitHubPullRequestApi.ts";
 import type { GitHubPullRequestCore } from "./gitHubPullRequestJson.ts";
 import { gitHubViewerPermissions, loginAvatarUrl, make } from "./GitHubPullRequestProvider.ts";

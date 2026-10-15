@@ -1,6 +1,6 @@
 import * as NodeModule from "node:module";
-import { EMPTY_TERMINAL_BUFFER_STATE } from "@supacode/client-runtime/state/terminal";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EMPTY_TERMINAL_BUFFER_STATE } from "@supaterm/client-runtime/state/terminal";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { act, createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
 

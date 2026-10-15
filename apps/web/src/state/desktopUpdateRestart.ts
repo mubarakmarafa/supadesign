@@ -1,4 +1,4 @@
-import type { DesktopBridge } from "@supacode/contracts";
+import type { DesktopBridge } from "@supaterm/contracts";
 import { flushSync } from "react-dom";
 import { createStore } from "zustand/vanilla";
 

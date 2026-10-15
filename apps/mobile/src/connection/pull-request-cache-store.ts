@@ -1,4 +1,4 @@
-import { EnvironmentQueryStore } from "@supacode/client-runtime/state/query-persistence";
+import { EnvironmentQueryStore } from "@supaterm/client-runtime/state/query-persistence";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 

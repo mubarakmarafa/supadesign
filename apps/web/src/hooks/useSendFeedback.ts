@@ -1,4 +1,4 @@
-import { buildFeedbackPrompt } from "@supacode/client-runtime/feedback-prompt";
+import { buildFeedbackPrompt } from "@supaterm/client-runtime/feedback-prompt";
 import { useParams } from "@tanstack/react-router";
 
 import { APP_VERSION } from "../branding";

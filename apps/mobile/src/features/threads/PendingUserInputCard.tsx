@@ -1,8 +1,8 @@
 import { RequestActionButton } from "./RequestActionButton";
 import { QuestionAttachments } from "./QuestionAttachments";
 import * as Haptics from "expo-haptics";
-import type { RuntimeRequestId } from "@supacode/contracts";
-import type { ThreadUserInputQuestion } from "@supacode/client-runtime/state/thread-requests";
+import type { RuntimeRequestId } from "@supaterm/contracts";
+import type { ThreadUserInputQuestion } from "@supaterm/client-runtime/state/thread-requests";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   AccessibilityInfo,
@@ -354,7 +354,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
           <>
             <View className="min-w-0 flex-1">
               <View className="flex-row items-center gap-2">
-                <Text className="font-supacode-bold text-2xs uppercase tracking-[1.1px] text-foreground-secondary">
+                <Text className="font-supaterm-bold text-2xs uppercase tracking-[1.1px] text-foreground-secondary">
                   User input needed
                 </Text>
                 <Text className="font-sans text-xs text-foreground-muted">
@@ -431,7 +431,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
               >
                 <Text
                   numberOfLines={1}
-                  className="shrink font-supacode-bold text-2xs uppercase tracking-[1.1px] text-foreground-secondary"
+                  className="shrink font-supaterm-bold text-2xs uppercase tracking-[1.1px] text-foreground-secondary"
                 >
                   {question?.header ?? FALLBACK_TITLE}
                 </Text>
@@ -478,7 +478,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
           ) : null}
           {question ? (
             <>
-              <Text className="font-supacode-medium text-base leading-snug text-foreground">
+              <Text className="font-supaterm-medium text-base leading-snug text-foreground">
                 {question.question}
               </Text>
               {question.multiSelect ? (
@@ -511,7 +511,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
                       <View className="min-w-0 flex-1 gap-0.5">
                         <Text
                           className={cn(
-                            "font-supacode-medium text-sm",
+                            "font-supaterm-medium text-sm",
                             selected ? "text-foreground" : "text-foreground-secondary",
                           )}
                         >
@@ -589,7 +589,7 @@ export function PendingUserInputCard(props: PendingUserInputCardProps) {
             void props.onDismiss();
           }}
         >
-          <Text className="font-supacode-bold text-sm text-foreground-muted">
+          <Text className="font-supaterm-bold text-sm text-foreground-muted">
             Dismiss without answering
           </Text>
         </Pressable>

@@ -5,17 +5,17 @@ import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
-// oxlint-disable-next-line supacode/no-global-process-runtime -- The native compiler targets the actual host; this script has no Effect runtime.
+// oxlint-disable-next-line supaterm/no-global-process-runtime -- The native compiler targets the actual host; this script has no Effect runtime.
 const hostArch = process.arch;
-// oxlint-disable-next-line supacode/no-global-process-runtime -- Native compilation only runs on the actual Linux host.
+// oxlint-disable-next-line supaterm/no-global-process-runtime -- Native compilation only runs on the actual Linux host.
 const hostPlatform = process.platform;
 
 describe.skipIf(hostPlatform !== "linux")("bundled libsecret helper", () => {
   let directory;
   let executable;
   beforeAll(() => {
-    directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-browser-secret-test-"));
-    executable = NodePath.join(directory, "supacode-browser-secret");
+    directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-browser-secret-test-"));
+    executable = NodePath.join(directory, "supaterm-browser-secret");
     const root = NodeURL.fileURLToPath(new URL("../../../native/browser-secret/", import.meta.url));
     const flags = NodeChildProcess.execFileSync(
       "pkg-config",
@@ -59,7 +59,7 @@ describe.skipIf(hostPlatform !== "linux")("bundled libsecret helper", () => {
       directory,
       "resources",
       "browser-secret",
-      "supacode-browser-secret",
+      "supaterm-browser-secret",
     );
     NodeChildProcess.execFileSync(process.execPath, [
       NodeURL.fileURLToPath(new URL("./build-browser-secret.mjs", import.meta.url)),

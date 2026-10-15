@@ -3,7 +3,7 @@ import * as NodeHttp from "node:http";
 import * as NodeZlib from "node:zlib";
 
 import * as NodeSocket from "@effect/platform-node/NodeSocket";
-import { WsRpcGroup } from "@supacode/contracts";
+import { WsRpcGroup } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";

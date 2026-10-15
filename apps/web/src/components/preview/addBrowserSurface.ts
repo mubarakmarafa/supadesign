@@ -1,8 +1,8 @@
 import {
   mapAtomCommandResult,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
-import type { ScopedThreadRef } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 
 import type { BrowserSettingsReadError, OpenPreviewMutation } from "~/browser/openFileInPreview";
 import { useRightPanelStore } from "~/rightPanelStore";

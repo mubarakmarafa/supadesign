@@ -8,7 +8,7 @@ import type * as Scope from "effect/Scope";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 
-import type { VcsDriverKind } from "@supacode/contracts";
+import type { VcsDriverKind } from "@supaterm/contracts";
 import * as VcsDriver from "../VcsDriver.ts";
 
 function normalizePathForComparison(value: string): string {
@@ -43,7 +43,7 @@ export interface VcsDriverContractSuiteInput<R, E> {
 
 export function runVcsDriverContractSuite<R, E>(input: VcsDriverContractSuiteInput<R, E>) {
   const makeTmpDir = (
-    prefix = `supacode-${input.kind}-vcs-contract-`,
+    prefix = `supaterm-${input.kind}-vcs-contract-`,
   ): Effect.Effect<string, PlatformError.PlatformError, FileSystem.FileSystem | Scope.Scope> =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;

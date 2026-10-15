@@ -1,10 +1,10 @@
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import { AuthOrchestrationOperateScope, type RunId, type ThreadId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import { AuthOrchestrationOperateScope, type RunId, type ThreadId } from "@supaterm/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 

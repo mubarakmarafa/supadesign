@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -20,7 +20,7 @@ describe("snapshotCookieDatabase", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const sourceDirectory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-cookie-source-",
+          prefix: "supaterm-cookie-source-",
         });
         const source = path.join(sourceDirectory, "Cookies");
         const snapshot = yield* Effect.gen(function* () {
@@ -47,11 +47,11 @@ describe("snapshotCookieDatabase", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const sourceDirectory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-cookie-invalid-source-",
+          prefix: "supaterm-cookie-invalid-source-",
         });
         const source = path.join(sourceDirectory, "Cookies");
         yield* fileSystem.writeFileString(source, "not a sqlite database");
-        const prefix = `supacode-cookie-failed-${process.pid}-`;
+        const prefix = `supaterm-cookie-failed-${process.pid}-`;
         const error = yield* snapshotCookieDatabase(source, prefix).pipe(
           Effect.scoped,
           Effect.flip,
@@ -69,7 +69,7 @@ describe("snapshotCookieDatabase", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const sourceDirectory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-cookie-cleanup-source-",
+          prefix: "supaterm-cookie-cleanup-source-",
         });
         const source = path.join(sourceDirectory, "Cookies");
         yield* Effect.gen(function* () {

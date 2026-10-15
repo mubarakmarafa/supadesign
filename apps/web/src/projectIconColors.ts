@@ -1,4 +1,4 @@
-import type { ProjectIconColor } from "@supacode/contracts";
+import type { ProjectIconColor } from "@supaterm/contracts";
 
 export const PROJECT_ICON_COLORS: ReadonlyArray<{
   readonly value: ProjectIconColor;

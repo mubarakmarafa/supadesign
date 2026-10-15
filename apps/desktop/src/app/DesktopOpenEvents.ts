@@ -1,7 +1,7 @@
-import { readCodexAuthHandoff } from "@supacode/shared/codexAuthHandoff";
-import { promptLinkAppPath } from "@supacode/shared/promptLinks";
-import { providerAuthReturnUrl } from "@supacode/shared/providerAuthReturnUrl";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { readCodexAuthHandoff } from "@supaterm/shared/codexAuthHandoff";
+import { promptLinkAppPath } from "@supaterm/shared/promptLinks";
+import { providerAuthReturnUrl } from "@supaterm/shared/providerAuthReturnUrl";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -21,7 +21,7 @@ export class DesktopOpenEvents extends Context.Service<
       listener: (event: DesktopOpenEvent) => void,
     ) => Effect.Effect<void, never, Scope.Scope>;
   }
->()("@supacode/desktop/app/DesktopOpenEvents") {}
+>()("@supaterm/desktop/app/DesktopOpenEvents") {}
 
 export const make = (isDevelopment: boolean) =>
   Effect.gen(function* () {
@@ -38,7 +38,7 @@ export const make = (isDevelopment: boolean) =>
       return (
         promptLinkAppPath(url) !== null ||
         readCodexAuthHandoff(url, isDevelopment) !== undefined ||
-        destination?.startsWith(`${isDevelopment ? "supacode-dev" : "supacode"}://app/`) === true ||
+        destination?.startsWith(`${isDevelopment ? "supaterm-dev" : "supaterm"}://app/`) === true ||
         (platform === "darwin" && isWebLink(url))
       );
     };

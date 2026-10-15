@@ -1,5 +1,5 @@
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   DraftId,

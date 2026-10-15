@@ -3,7 +3,7 @@ import * as NodeHttp from "node:http";
 import * as NodeCrypto from "node:crypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { EnvironmentId, ProviderInstanceId } from "@supacode/contracts";
+import { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -619,7 +619,7 @@ it.effect(
           "state",
         ]);
         assert.strictEqual(first.searchParams.get("client_id"), "dynamic_agent_client");
-        assert.strictEqual(first.searchParams.get("agent_name_hint"), "supacode");
+        assert.strictEqual(first.searchParams.get("agent_name_hint"), "supaterm");
         assert.strictEqual(first.searchParams.get("response_type"), "code");
         assert.strictEqual(
           first.searchParams.get("scope"),
@@ -1000,16 +1000,16 @@ it.effect("returns successful desktop sign-in to the original Welcome step", () 
   provision(
     Effect.gen(function* () {
       const h = yield* makeHarness;
-      h.setReturnUrl("supacode-dev://app/welcome#agents:test-environment");
+      h.setReturnUrl("supaterm-dev://app/welcome#agents:test-environment");
       yield* h.signIn;
       yield* h.phase("succeeded");
       assert.include(
         h.callbackResponses[0]!.body,
-        'content="1;url=supacode-dev://app/welcome#agents:test-environment"',
+        'content="1;url=supaterm-dev://app/welcome#agents:test-environment"',
       );
       assert.include(
         h.callbackResponses[0]!.body,
-        'href="supacode-dev://app/welcome#agents:test-environment"',
+        'href="supaterm-dev://app/welcome#agents:test-environment"',
       );
     }),
   ),

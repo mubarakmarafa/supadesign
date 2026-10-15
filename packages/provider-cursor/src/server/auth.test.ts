@@ -5,7 +5,7 @@ import {
   ProviderInstanceId,
   ProviderSetupError,
   type ProviderAuthState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";

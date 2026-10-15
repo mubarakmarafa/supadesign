@@ -1,14 +1,14 @@
 import { AppActivityIndicator } from "../../components/AppActivityIndicator";
 import { MaterialListRow } from "../../components/MaterialListRow";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import { shouldCheckoutNewTaskBranch } from "./new-task-context-presentation";
-import type { VcsRef } from "@supacode/client-runtime/state/vcs";
-import { AuthSourceControlWriteScope, resolveEnvironmentMachineKind } from "@supacode/contracts";
+import type { VcsRef } from "@supaterm/client-runtime/state/vcs";
+import { AuthSourceControlWriteScope, resolveEnvironmentMachineKind } from "@supaterm/contracts";
 import { LegendList } from "@legendapp/list/react-native";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -97,7 +97,7 @@ function SelectionRow(props: {
         (props.icon ?? null)
       )}
       <View className="min-w-0 flex-1 gap-0.5">
-        <Text className="text-base font-supacode-medium text-foreground" numberOfLines={1}>
+        <Text className="text-base font-supaterm-medium text-foreground" numberOfLines={1}>
           {props.title}
         </Text>
         {props.subtitle ? (
@@ -129,7 +129,7 @@ function ToggleRow(props: {
       <Text
         className={cn(
           "min-w-0 flex-1 text-base text-foreground",
-          Platform.OS !== "android" && "font-supacode-medium",
+          Platform.OS !== "android" && "font-supaterm-medium",
         )}
         numberOfLines={1}
       >
@@ -499,7 +499,7 @@ export function BranchPickerScreen(props: {
               className="rounded-full bg-card px-4 py-2 active:opacity-70"
               onPress={props.onRefresh}
             >
-              <Text className="text-sm font-supacode-medium text-foreground">Try again</Text>
+              <Text className="text-sm font-supaterm-medium text-foreground">Try again</Text>
             </Pressable>
           ) : null}
         </View>

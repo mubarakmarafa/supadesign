@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { CopyTextButton } from "../components/CopyTextButton";
-import { SourceText } from "@supacode/mobile-source-text";
+import { SourceText } from "@supaterm/mobile-source-text";
 import type { NativeMarkdownTextStyle } from "./SelectableMarkdownText.types";
 
 export function NativeMermaidBlock({

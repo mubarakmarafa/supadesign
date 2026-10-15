@@ -7,9 +7,9 @@ import * as Path from "effect/Path";
 import * as PlatformError from "effect/PlatformError";
 import * as Schema from "effect/Schema";
 
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
 import * as ServerConfig from "../config.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 /**
  * Codex writes `tokens` only for ChatGPT logins and omits the key for API-key,
@@ -259,7 +259,7 @@ const upsertAnonymousId = Effect.gen(function* () {
  * getTelemetryIdentifier - Users are "identified" by finding the first match of the following, then hashing the value.
  * 1. ~/.codex/auth.json tokens.account_id
  * 2. ~/.claude.json userID
- * 3. ~/.supacode/telemetry/anonymous-id
+ * 3. ~/.supaterm/telemetry/anonymous-id
  *
  * A missing file or an API-key-only Codex auth.json falls through quietly. Only
  * unreadable or malformed files warn.

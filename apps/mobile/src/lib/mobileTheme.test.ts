@@ -2,12 +2,12 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   BUILT_IN_THEME_IDS,
   BUILT_IN_THEMES,
-  SUPACODE_CHAT_THEME,
-  SUPACODE_LIGHT_THEME_COLORS,
-  SUPACODE_DARK_THEME_COLORS,
+  SUPATERM_CHAT_THEME,
+  SUPATERM_LIGHT_THEME_COLORS,
+  SUPATERM_DARK_THEME_COLORS,
   MOBILE_THEME_IDS,
   getThemeColorsForAppearance,
-} from "@supacode/shared/themePalettes";
+} from "@supaterm/shared/themePalettes";
 import {
   readDefaultMobileThemeVariables,
   readGeneratedMobileThemeVariables,
@@ -62,7 +62,7 @@ function compositeOver(overlay: string, background: string): string {
 
 describe("mobile themes", () => {
   it("declares every runtime theme variable in the static stylesheet", () => {
-    const generatedVariables = createMobileThemeVariables(SUPACODE_CHAT_THEME.colors, "light");
+    const generatedVariables = createMobileThemeVariables(SUPATERM_CHAT_THEME.colors, "light");
     expect(Object.keys(readDefaultMobileThemeVariables("light")).sort()).toEqual(
       Object.keys(generatedVariables).sort(),
     );
@@ -85,8 +85,8 @@ describe("mobile themes", () => {
       const colors = theme
         ? getThemeColorsForAppearance(theme, appearance)!
         : appearance === "dark"
-          ? SUPACODE_DARK_THEME_COLORS
-          : SUPACODE_LIGHT_THEME_COLORS;
+          ? SUPATERM_DARK_THEME_COLORS
+          : SUPATERM_LIGHT_THEME_COLORS;
       const variables =
         themeId === DEFAULT_MOBILE_THEME_ID
           ? readDefaultMobileThemeVariables(appearance)
@@ -226,13 +226,13 @@ describe("mobile themes", () => {
   it.each(["light", "dark"] as const)(
     "separates default settings groups from their %s background",
     (appearance) => {
-      const variables = getMobileThemeVariables("supacode", appearance);
+      const variables = getMobileThemeVariables("supaterm", appearance);
       expect(
         contrastRatio(variables["--color-grouped-card"], variables["--color-sheet-solid"]),
       ).toBeGreaterThanOrEqual(1.06);
       expect(variables["--color-grouped-card"]).not.toBe(variables["--color-card"]);
       for (const platform of ["ios", "android"]) {
-        const runtime = getMobileThemeRuntimeVariables("supacode", appearance, platform);
+        const runtime = getMobileThemeRuntimeVariables("supaterm", appearance, platform);
         const sidebar = flattenThemeColor(runtime["--color-drawer"], runtime["--color-screen"]);
         const chrome = flattenThemeColor(
           runtime[platform === "android" ? "--color-header" : "--color-drawer"],
@@ -255,8 +255,8 @@ describe("mobile themes", () => {
     },
   );
 
-  it("keeps Supacode Chat light grouped cards distinct from the sheet", () => {
-    const variables = getMobileThemeVariables("supacode-chat", "light");
+  it("keeps Supaterm Chat light grouped cards distinct from the sheet", () => {
+    const variables = getMobileThemeVariables("supaterm-chat", "light");
     const group = variables["--color-grouped-card"];
     expect(contrastRatio(group, variables["--color-sheet-solid"])).toBeGreaterThanOrEqual(1.1);
     for (const role of ["--color-foreground", "--color-foreground-muted"] as const) {
@@ -273,9 +273,9 @@ describe("mobile themes", () => {
       ).toBeGreaterThanOrEqual(4.5);
       expect(fill).toBe(
         variables[
-          themeId === "supacode-chat" && appearance === "dark"
+          themeId === "supaterm-chat" && appearance === "dark"
             ? "--color-primary-foreground"
-            : themeId === DEFAULT_MOBILE_THEME_ID || themeId === "supacode-chat"
+            : themeId === DEFAULT_MOBILE_THEME_ID || themeId === "supaterm-chat"
               ? "--color-foreground"
               : "--color-primary"
         ],
@@ -318,9 +318,9 @@ describe("mobile themes", () => {
   it.each(["light", "dark"] as const)(
     "preserves default %s message colors and separates fallback materials",
     (appearance) => {
-      const variables = getMobileThemeVariables("supacode", appearance);
+      const variables = getMobileThemeVariables("supaterm", appearance);
       const desktop =
-        appearance === "dark" ? SUPACODE_DARK_THEME_COLORS : SUPACODE_LIGHT_THEME_COLORS;
+        appearance === "dark" ? SUPATERM_DARK_THEME_COLORS : SUPATERM_LIGHT_THEME_COLORS;
       expect(variables["--color-user-bubble"]).toBe(
         themeColorToNativeColor(desktop.messageSurface),
       );
@@ -346,9 +346,9 @@ describe("mobile themes", () => {
 
   it("uses the same preview roles and standard artwork as desktop", () => {
     expect(getMobileThemePreviewColors(DEFAULT_MOBILE_THEME_ID, "light")).toEqual({
-      canvas: themeColorToNativeColor(SUPACODE_LIGHT_THEME_COLORS.canvas),
-      accent: themeColorToNativeColor(SUPACODE_LIGHT_THEME_COLORS.accent),
-      messageAction: themeColorToNativeColor(SUPACODE_LIGHT_THEME_COLORS.messageAction),
+      canvas: themeColorToNativeColor(SUPATERM_LIGHT_THEME_COLORS.canvas),
+      accent: themeColorToNativeColor(SUPATERM_LIGHT_THEME_COLORS.accent),
+      messageAction: themeColorToNativeColor(SUPATERM_LIGHT_THEME_COLORS.messageAction),
     });
     const desktopOcean = BUILT_IN_THEMES.find((theme) => theme.id === "ocean")!;
     expect(getMobileThemePreviewColors("ocean", "light")).toEqual({
@@ -382,11 +382,11 @@ describe("mobile themes", () => {
   });
 
   it("changes either theme without switching the active appearance", () => {
-    const themeIds = { light: "supacode-chat", dark: "grove" } as const;
+    const themeIds = { light: "supaterm-chat", dark: "grove" } as const;
     expect(createMobileThemeSelectionPatch(themeIds, "light", "dark", "ocean")).toEqual({
-      lightThemeId: "supacode-chat",
+      lightThemeId: "supaterm-chat",
       darkThemeId: "ocean",
-      themeId: "supacode-chat",
+      themeId: "supaterm-chat",
     });
     expect(createMobileThemeSelectionPatch(themeIds, "light", "light", "iris")).toEqual({
       lightThemeId: "iris",
@@ -415,15 +415,15 @@ describe("mobile themes", () => {
   });
 
   it("maps semantic palette roles onto every mobile color variable", () => {
-    const variables = createMobileThemeVariables(SUPACODE_CHAT_THEME.colors, "light");
+    const variables = createMobileThemeVariables(SUPATERM_CHAT_THEME.colors, "light");
     expect(variables["--color-sheet-solid"]).toBe(
-      themeColorToNativeColor(SUPACODE_CHAT_THEME.colors.chrome),
+      themeColorToNativeColor(SUPATERM_CHAT_THEME.colors.chrome),
     );
     expect(variables["--color-warning"]).toBe(
-      themeColorToNativeColor(SUPACODE_CHAT_THEME.colors.warningSurface),
+      themeColorToNativeColor(SUPATERM_CHAT_THEME.colors.warningSurface),
     );
     expect(variables["--color-warning-foreground"]).toBe(
-      themeColorToNativeColor(SUPACODE_CHAT_THEME.colors.warningForeground),
+      themeColorToNativeColor(SUPATERM_CHAT_THEME.colors.warningForeground),
     );
     expect(variables["--color-primary"]).not.toBe(variables["--color-screen"]);
     expect(variables["--color-primary-shadow"]).toBe("#000000");

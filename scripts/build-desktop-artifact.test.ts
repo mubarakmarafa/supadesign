@@ -85,8 +85,8 @@ import {
   wslRuntimeArchiveStem,
 } from "./build-desktop-artifact.ts";
 import { BRAND_ASSET_PATHS } from "./lib/brand-assets.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 
 // A minimal stand-in for the Linux CLI release archive: one top-level
 // directory named after the archive stem holding the executable, the web
@@ -102,7 +102,7 @@ const makeLinuxCliArchiveFixture = Effect.fn("test.makeLinuxCliArchiveFixture")(
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const contentRoot = path.join(input.root, "content");
   const members = [
-    `${input.stem}/supacode`,
+    `${input.stem}/supaterm`,
     `${input.stem}/client/index.html`,
     `${input.stem}/node_modules/node-pty/package.json`,
     `${input.stem}/node_modules/node-pty/build/Release/pty.node`,
@@ -175,7 +175,7 @@ const makeWindowsPayloadFixture = Effect.fn("test.makeWindowsPayloadFixture")(fu
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const tempDir = yield* fs.makeTempDirectoryScoped({
-    prefix: "supacode-windows-payload-test-",
+    prefix: "supaterm-windows-payload-test-",
   });
   const sourceDir = path.join(tempDir, "server-source");
   const serverEntryPath = path.join(sourceDir, "apps/server/dist/bin.mjs");
@@ -200,10 +200,10 @@ const makeWindowsPayloadFixture = Effect.fn("test.makeWindowsPayloadFixture")(fu
     );
   }
   yield* fs.writeFileString(
-    path.join(resourcesDir, "resource-monitor/supacode-resource-monitor.exe"),
+    path.join(resourcesDir, "resource-monitor/supaterm-resource-monitor.exe"),
     "monitor",
   );
-  const appExecutableName = "supacode.exe";
+  const appExecutableName = "supaterm.exe";
   yield* fs.writeFileString(path.join(packagedAppDir, appExecutableName), "electron");
   yield* fs.writeFileString(path.join(packagedAppDir, "chrome_crashpad_handler.exe"), "crashpad");
 
@@ -212,11 +212,11 @@ const makeWindowsPayloadFixture = Effect.fn("test.makeWindowsPayloadFixture")(fu
     const sourceArchivePath =
       input.wslRuntime === "loose-server-tree"
         ? // The old hand-rolled runtime: apps/server/dist + node_modules at the
-          // archive root, no single stem directory, no `supacode` executable.
+          // archive root, no single stem directory, no `supaterm` executable.
           yield* makeLinuxCliArchiveFixture({
             root: path.join(tempDir, "wsl-runtime"),
             stem: "apps",
-            omitMembers: ["apps/supacode", "apps/client/index.html"],
+            omitMembers: ["apps/supaterm", "apps/client/index.html"],
             extraMembers: ["apps/server/dist/bin.mjs", "node_modules/node-pty/package.json"],
           })
         : yield* makeLinuxCliArchiveFixture({
@@ -257,8 +257,8 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
   });
 
   it("switches desktop packaging product names to nightly for nightly builds", () => {
-    assert.equal(resolveDesktopProductName("0.0.17"), "Supacode");
-    assert.equal(resolveDesktopProductName("0.0.17-nightly.20260413.42"), "Supacode (Nightly)");
+    assert.equal(resolveDesktopProductName("0.0.17"), "Supaterm");
+    assert.equal(resolveDesktopProductName("0.0.17-nightly.20260413.42"), "Supaterm (Nightly)");
   });
 
   it("switches desktop packaging icons to the nightly artwork for nightly versions", () => {
@@ -287,7 +287,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           ConfigProvider.layer(
             ConfigProvider.fromEnv({
               env: {
-                SUPACODE_DESKTOP_UPDATE_REPOSITORY: "supabitapp/supacode-next",
+                SUPATERM_DESKTOP_UPDATE_REPOSITORY: "supabitapp/supacode-next",
               },
             }),
           ),
@@ -368,8 +368,8 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           "@crowecawcaw/xa11y": "0.13.0",
           "@effect/platform-node": "catalog:",
           "@napi-rs/keyring": "^1.3.0",
-          "@supacode/contracts": "workspace:*",
-          "@supacode/shared": "workspace:*",
+          "@supaterm/contracts": "workspace:*",
+          "@supaterm/shared": "workspace:*",
           "dbus-next": "0.10.2",
           effect: "catalog:",
           electron: "41.5.0",
@@ -620,7 +620,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         "**/*.map",
       ]);
       assert.deepStrictEqual(mac.dmg, {
-        title: "Supacode 1.2.3 Installer",
+        title: "Supaterm 1.2.3 Installer",
         background: "dmg/dmg-background-latest.png",
         window: { width: 640, height: 432 },
         contents: [
@@ -633,9 +633,9 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       // A Linux AppImage build also emits the .deb from the same run.
       assert.deepStrictEqual((linux.linux as Record<string, unknown>).target, ["AppImage", "deb"]);
       // Linux must register the renderer schemes so the generated .desktop
-      // entry advertises MimeType=x-scheme-handler/supacode; for OAuth deep links.
+      // entry advertises MimeType=x-scheme-handler/supaterm; for OAuth deep links.
       assert.deepStrictEqual((linux.linux as Record<string, unknown>).protocols, [
-        { name: "Supacode", schemes: ["supacode", "supacode-dev"] },
+        { name: "Supaterm", schemes: ["supaterm", "supaterm-dev"] },
       ]);
       assert.deepStrictEqual(linux.toolsets, { appimage: "1.0.3" });
       assert.notProperty(mac, "toolsets");
@@ -648,7 +648,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       assert.propertyVal(
         (mac.mac as Record<string, unknown>).extendInfo as Record<string, unknown>,
         "NSLocalNetworkUsageDescription",
-        "Supacode connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
+        "Supaterm connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
       );
       for (const config of [linux, win]) {
         assert.deepStrictEqual(config.electronLanguages, DESKTOP_ELECTRON_LANGUAGES);
@@ -746,7 +746,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-cursor-helpers-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-cursor-helpers-" });
         const nodeModules = path.join(root, "node_modules");
         const destination = path.join(root, "resources/node_modules/@cursor");
         const cursorDirectory = symlinksSupported
@@ -816,7 +816,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const tempDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-windows-architecture-test-",
+          prefix: "supaterm-windows-architecture-test-",
         });
         const sourceDir = path.join(tempDir, "server");
         const files = [
@@ -895,11 +895,11 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const repoRoot = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-resource-monitor-cache-test-",
+          prefix: "supaterm-resource-monitor-cache-test-",
         });
         const binaryPath = path.join(
           repoRoot,
-          "native/resource-monitor/target/x86_64-unknown-linux-gnu/release/supacode-resource-monitor",
+          "native/resource-monitor/target/x86_64-unknown-linux-gnu/release/supaterm-resource-monitor",
         );
         const stageResourcesDir = path.join(repoRoot, "stage");
         yield* fs.makeDirectory(path.dirname(binaryPath), { recursive: true });
@@ -915,7 +915,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           Effect.provide(
             ConfigProvider.layer(
               ConfigProvider.fromEnv({
-                env: { SUPACODE_DESKTOP_REUSE_RESOURCE_MONITOR: "true" },
+                env: { SUPATERM_DESKTOP_REUSE_RESOURCE_MONITOR: "true" },
               }),
             ),
           ),
@@ -923,7 +923,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
 
         assert.equal(
           yield* fs.readFileString(
-            path.join(stageResourcesDir, "resource-monitor/supacode-resource-monitor"),
+            path.join(stageResourcesDir, "resource-monitor/supaterm-resource-monitor"),
           ),
           "cached monitor",
         );
@@ -1012,7 +1012,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const tempDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-windows-preflight-",
+          prefix: "supaterm-windows-preflight-",
         });
         const pythonPath = path.join(tempDir, "python.exe");
         yield* fs.writeFileString(pythonPath, "python");
@@ -1056,7 +1056,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const tempDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-windows-preflight-",
+          prefix: "supaterm-windows-preflight-",
         });
         const pythonPath = path.join(tempDir, "python.exe");
         yield* fs.writeFileString(pythonPath, "python");
@@ -1081,7 +1081,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
                 ConfigProvider.fromEnv({
                   env: {
                     npm_config_python: pythonPath,
-                    SUPACODE_DESKTOP_REUSE_RESOURCE_MONITOR: "true",
+                    SUPATERM_DESKTOP_REUSE_RESOURCE_MONITOR: "true",
                   },
                 }),
               ),
@@ -1100,7 +1100,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const tempDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-python2-preflight-",
+          prefix: "supaterm-python2-preflight-",
         });
         const pythonPath = path.join(tempDir, "python");
         yield* fs.writeFileString(pythonPath, "python2");
@@ -1129,7 +1129,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
               spawner,
               ConfigProvider.layer(
                 ConfigProvider.fromEnv({
-                  env: { SUPACODE_DESKTOP_REUSE_RESOURCE_MONITOR: "true" },
+                  env: { SUPATERM_DESKTOP_REUSE_RESOURCE_MONITOR: "true" },
                 }),
               ),
             ),
@@ -1148,7 +1148,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const repoRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-kde-stage-test-" });
+        const repoRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-kde-stage-test-" });
         const protocols = path.join(repoRoot, "native/hyprland-snap-shot/protocols");
         yield* fs.makeDirectory(protocols, { recursive: true });
         yield* fs.writeFileString(path.join(protocols, "capture.xml"), "BSD protocol notice");
@@ -1161,7 +1161,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
               repoRoot,
               `native/${backend}-snap-shot/target`,
               target,
-              `release/supacode-${backend}-snap-shot`,
+              `release/supaterm-${backend}-snap-shot`,
             );
             const stageResourcesDir = path.join(repoRoot, "stage", backend, arch);
             const spawner = Layer.succeed(
@@ -1195,7 +1195,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
             }).pipe(Effect.provide(spawner));
             const installed = path.join(
               stageResourcesDir,
-              `${backend}-capture/supacode-${backend}-snap-shot`,
+              `${backend}-capture/supaterm-${backend}-snap-shot`,
             );
             assert.equal(yield* fs.readFileString(installed), `helper-${arch}`);
             assert.equal((yield* fs.stat(installed)).mode & 0o777, 0o755);
@@ -1212,7 +1212,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     ),
   );
 
-  // The fixture's supacode.exe is a text placeholder, not an executable. These
+  // The fixture's supaterm.exe is a text placeholder, not an executable. These
   // cases reach the native-load probe, so pin only that host-platform check to
   // Linux. Host-native paths and the real Windows tar/archive checks still run.
   it.effect("validates every ASAR-unpacked native in the packaged Windows payload", () =>
@@ -1516,7 +1516,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         "--arch",
         "x64",
         "--output",
-        path.join("/stage/resources", "browser-secret", "supacode-browser-secret"),
+        path.join("/stage/resources", "browser-secret", "supaterm-browser-secret"),
       ]);
     }).pipe(
       Effect.provide(
@@ -1693,7 +1693,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         yield* fs.writeFileString(nativePath, "native-binary");
         const resourceMonitorPath = path.join(
           fixture.packagedAppDir,
-          "resources/resource-monitor/supacode-resource-monitor.exe",
+          "resources/resource-monitor/supaterm-resource-monitor.exe",
         );
         yield* fs.remove(resourceMonitorPath);
         yield* fs.makeDirectory(resourceMonitorPath);
@@ -1707,7 +1707,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         assert.instanceOf(resourceMonitorError, WindowsPackagedPayloadValidationError);
         assert.equal(resourceMonitorError.reason, "resource-monitor-missing");
         assert.deepStrictEqual(resourceMonitorError.missingFiles, [
-          "resource-monitor/supacode-resource-monitor.exe",
+          "resource-monitor/supaterm-resource-monitor.exe",
         ]);
       }),
     ),
@@ -1737,7 +1737,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       Effect.gen(function* () {
         const fixture = yield* makeWindowsPayloadFixture({
           copyUnpackedNatives: true,
-          serverEntrySource: 'import "supacode-deliberately-missing-package";\n',
+          serverEntrySource: 'import "supaterm-deliberately-missing-package";\n',
         });
         const error = yield* validateWindowsPackagedPayload({
           stageDistDir: fixture.stageDistDir,
@@ -1747,7 +1747,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         }).pipe(Effect.flip);
 
         assert.instanceOf(error, BundleNotSelfContainedError);
-        assert.include(error.output, "supacode-deliberately-missing-package");
+        assert.include(error.output, "supaterm-deliberately-missing-package");
       }),
     ).pipe(Effect.provideService(HostProcess.Platform, "linux")),
   );
@@ -1798,7 +1798,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const stageResourcesDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-dmg-background-",
+          prefix: "supaterm-dmg-background-",
         });
         const dmgDir = path.join(stageResourcesDir, "dmg");
         yield* fs.makeDirectory(dmgDir, { recursive: true });
@@ -1849,7 +1849,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const stageResourcesDir = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-dmg-background-missing-",
+          prefix: "supaterm-dmg-background-missing-",
         });
 
         const error = yield* stageDesktopDmgBackground(stageResourcesDir, "latest", false).pipe(
@@ -1868,12 +1868,12 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       const config = yield* createBuildConfig("mac", "dmg", "1.2.3", true, false, undefined);
 
       const mac = config.mac as Record<string, unknown>;
-      assert.equal(config.appId, "com.supaterm.supacode");
+      assert.equal(config.appId, "com.supaterm.desktop");
       assert.notProperty(mac, "entitlements");
       assert.notProperty(mac, "provisioningProfile");
       assert.match(String(mac.sign), /[\\/]scripts[\\/]sign-macos\.ts$/);
       assert.deepStrictEqual(mac.protocols, [
-        { name: "Supacode", schemes: ["supacode", "supacode-dev"] },
+        { name: "Supaterm", schemes: ["supaterm", "supaterm-dev"] },
         { name: "Web links", schemes: ["http", "https"], role: "Viewer" },
       ]);
     }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} })))),
@@ -1930,8 +1930,8 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     assert.deepStrictEqual(resolveResourceMonitorRustTargets("win", "arm64"), [
       "aarch64-pc-windows-msvc",
     ]);
-    assert.equal(resourceMonitorExecutableName("mac"), "supacode-resource-monitor");
-    assert.equal(resourceMonitorExecutableName("win"), "supacode-resource-monitor.exe");
+    assert.equal(resourceMonitorExecutableName("mac"), "supaterm-resource-monitor");
+    assert.equal(resourceMonitorExecutableName("win"), "supaterm-resource-monitor.exe");
   });
 
   it("ships the Linux CLI release archive as the WSL runtime", () => {
@@ -1947,20 +1947,20 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     });
     // Both the staging and the packaging config hang off this one decision:
     // Windows only, and only when CI handed the build a Linux CLI archive.
-    const runtimeArchivePath = "/tmp/supacode-1.2.3-linux-x64.tar.gz";
+    const runtimeArchivePath = "/tmp/supaterm-1.2.3-linux-x64.tar.gz";
     assert.isTrue(bundlesWslRuntime({ platform: "win", runtimeArchivePath }));
     assert.isFalse(bundlesWslRuntime({ platform: "win", runtimeArchivePath: undefined }));
     assert.isFalse(bundlesWslRuntime({ platform: "linux", runtimeArchivePath }));
     assert.isFalse(bundlesWslRuntime({ platform: "mac", runtimeArchivePath }));
-    assert.equal(wslRuntimeArchiveStem("1.2.3", "x64"), "supacode-1.2.3-linux-x64");
+    assert.equal(wslRuntimeArchiveStem("1.2.3", "x64"), "supaterm-1.2.3-linux-x64");
   });
 
   it("parses Windows bsdtar member listings with CRLF line endings", () => {
     assert.deepStrictEqual(
       parseWslRuntimeArchiveMembers(
-        "./supacode-1.2.3-linux-x64/supacode\r\nsupacode-1.2.3-linux-x64/client/\r\n",
+        "./supaterm-1.2.3-linux-x64/supaterm\r\nsupaterm-1.2.3-linux-x64/client/\r\n",
       ),
-      ["supacode-1.2.3-linux-x64/supacode", "supacode-1.2.3-linux-x64/client"],
+      ["supaterm-1.2.3-linux-x64/supaterm", "supaterm-1.2.3-linux-x64/client"],
     );
   });
 
@@ -1969,10 +1969,10 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-wsl-runtime-stage-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-wsl-runtime-stage-" });
         const sourceArchivePath = yield* makeLinuxCliArchiveFixture({
           root,
-          stem: "supacode-1.2.3-linux-x64",
+          stem: "supaterm-1.2.3-linux-x64",
         });
         const stageAppDir = path.join(root, "app");
         const archivePath = path.join(stageAppDir, WSL_RUNTIME_ARCHIVE_EXTRA_RESOURCE.from);
@@ -1998,9 +1998,9 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-wsl-runtime-missing-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-wsl-runtime-missing-" });
         const error = yield* stageWslRuntimeArchive({
-          sourceArchivePath: path.join(root, "supacode-1.2.3-linux-x64.tar.gz"),
+          sourceArchivePath: path.join(root, "supaterm-1.2.3-linux-x64.tar.gz"),
           archivePath: path.join(root, WSL_RUNTIME_ARCHIVE_NAME),
           hashPath: path.join(root, WSL_RUNTIME_ARCHIVE_HASH_NAME),
         }).pipe(Effect.flip);
@@ -2166,11 +2166,11 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           ConfigProvider.layer(
             ConfigProvider.fromEnv({
               env: {
-                SUPACODE_DESKTOP_SKIP_BUILD: "true",
-                SUPACODE_DESKTOP_KEEP_STAGE: "true",
-                SUPACODE_DESKTOP_SIGNED: "true",
-                SUPACODE_DESKTOP_VERBOSE: "true",
-                SUPACODE_DESKTOP_MOCK_UPDATES: "true",
+                SUPATERM_DESKTOP_SKIP_BUILD: "true",
+                SUPATERM_DESKTOP_KEEP_STAGE: "true",
+                SUPATERM_DESKTOP_SIGNED: "true",
+                SUPATERM_DESKTOP_VERBOSE: "true",
+                SUPATERM_DESKTOP_MOCK_UPDATES: "true",
               },
             }),
           ),
@@ -2220,7 +2220,7 @@ it.effect.skipIf(!symlinksSupported)("rebases packaged links into the isolated t
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-copy-symlinks-" });
+    const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-copy-symlinks-" });
     const source = path.join(root, "source");
     const destination = path.join(root, "destination");
     const packageDir = path.join(source, "node_modules/.pnpm/example@1/node_modules/example");

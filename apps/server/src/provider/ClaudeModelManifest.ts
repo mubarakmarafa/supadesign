@@ -1,5 +1,5 @@
-import { TrimmedNonEmptyString } from "@supacode/contracts";
-import { compareSemverVersions, parseSemver } from "@supacode/shared/semver";
+import { TrimmedNonEmptyString } from "@supaterm/contracts";
+import { compareSemverVersions, parseSemver } from "@supaterm/shared/semver";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 

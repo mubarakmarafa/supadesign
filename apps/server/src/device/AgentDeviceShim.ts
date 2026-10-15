@@ -5,8 +5,8 @@
  * types `agent-device …` and gets the version the injected instructions were
  * written for, regardless of what is or is not globally installed.
  */
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveNodeExecutable } from "@supacode/shared/nodeRuntime";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveNodeExecutable } from "@supaterm/shared/nodeRuntime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";

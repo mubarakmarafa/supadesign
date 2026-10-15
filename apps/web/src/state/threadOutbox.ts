@@ -1,12 +1,12 @@
-import { resolveThreadOutboxDispatchStep } from "@supacode/client-runtime/thread-outbox";
+import { resolveThreadOutboxDispatchStep } from "@supaterm/client-runtime/thread-outbox";
 import { createBrowserThreadOutbox, type ThreadOutboxEntry } from "./threadOutboxDelivery";
-import { scopedThreadKey, scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { StartThreadTurnInput } from "@supacode/client-runtime/operations";
-import { runAtomCommand, squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { scopedThreadKey, scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { StartThreadTurnInput } from "@supaterm/client-runtime/operations";
+import { runAtomCommand, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import {
   runAttachmentUploadCycle,
   verifyPersistedAttachmentUpload,
-} from "@supacode/client-runtime/state/attachments";
+} from "@supaterm/client-runtime/state/attachments";
 import {
   CommandId,
   MessageId,
@@ -14,11 +14,11 @@ import {
   AttachmentCreateUploadUrlInput,
   type EnvironmentId,
   type ScopedThreadRef,
-} from "@supacode/contracts";
-import { remapComposerContextAttachments } from "@supacode/shared/composerContextReferences";
-import { serializeLegacyContextMessage } from "@supacode/shared/composerContextLegacySend";
-import { resolveDefaultWorktreeBaseBranch } from "@supacode/shared/git";
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
+} from "@supaterm/contracts";
+import { remapComposerContextAttachments } from "@supaterm/shared/composerContextReferences";
+import { serializeLegacyContextMessage } from "@supaterm/shared/composerContextLegacySend";
+import { resolveDefaultWorktreeBaseBranch } from "@supaterm/shared/git";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import * as Schema from "effect/Schema";
 import { useCallback, useSyncExternalStore } from "react";
 
@@ -50,7 +50,7 @@ const decodeTurn = Schema.decodeSync(OutboxTurn);
 export type PendingThreadTurn = ThreadOutboxEntry<OutboxTurn>;
 
 async function command<A, E, Input>(
-  operation: import("@supacode/client-runtime/state/runtime").AtomCommand<Input, A, E>,
+  operation: import("@supaterm/client-runtime/state/runtime").AtomCommand<Input, A, E>,
   input: Input,
 ) {
   const result = await runAtomCommand(appAtomRegistry, operation, input, { reportFailure: false });

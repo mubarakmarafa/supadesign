@@ -1,4 +1,4 @@
-import type { PreviewAnnotationPayload } from "@supacode/contracts";
+import type { PreviewAnnotationPayload } from "@supaterm/contracts";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { capturePreviewAnnotationScreenshot } from "./previewAnnotation";

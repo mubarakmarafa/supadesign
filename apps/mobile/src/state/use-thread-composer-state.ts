@@ -1,15 +1,15 @@
-import { AuthOrchestrationOperateScope } from "@supacode/contracts";
+import { AuthOrchestrationOperateScope } from "@supaterm/contracts";
 import { readEnvironmentScope } from "./session";
-import type { ComposerTextPaste } from "../native/SupacodeComposerEditor.types";
+import type { ComposerTextPaste } from "../native/SupatermComposerEditor.types";
 import { useAtomValue } from "@effect/atom-react";
-import { threadRuntimeIsActive } from "@supacode/client-runtime/state/shell";
+import { threadRuntimeIsActive } from "@supaterm/client-runtime/state/shell";
 import {
   deriveProviderSubagentStatus,
   deriveRunlessWorkStartedAt,
   deriveThreadActivityRun,
   deriveThreadRuntime,
   threadRuntimeHasInterruptibleRun,
-} from "@supacode/client-runtime/state/thread-execution";
+} from "@supaterm/client-runtime/state/thread-execution";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
 
@@ -23,17 +23,17 @@ import {
   type ModelSelection,
   type RuntimeMode,
   type ThreadId,
-} from "@supacode/contracts";
-import { safeErrorLogAttributes } from "@supacode/client-runtime/errors";
-import { clampFileAttachmentUploadBytes } from "@supacode/client-runtime/state/attachments";
-import { nextPastedTextFileName, pastedTextDisposition } from "@supacode/client-runtime/text-paste";
+} from "@supaterm/contracts";
+import { safeErrorLogAttributes } from "@supaterm/client-runtime/errors";
+import { clampFileAttachmentUploadBytes } from "@supaterm/client-runtime/state/attachments";
+import { nextPastedTextFileName, pastedTextDisposition } from "@supaterm/client-runtime/text-paste";
 import {
   parseCodexFeedbackCommand,
   submitCodexFeedback,
   type CodexFeedbackSubmission,
-} from "@supacode/client-runtime/state/threads";
-import { resolveThreadWorkingStartedAt } from "@supacode/client-runtime/state/models";
-import { upgradeLegacyContextMessage } from "@supacode/shared/composerContextLegacy";
+} from "@supaterm/client-runtime/state/threads";
+import { resolveThreadWorkingStartedAt } from "@supaterm/client-runtime/state/models";
+import { upgradeLegacyContextMessage } from "@supaterm/shared/composerContextLegacy";
 import { composerContextSendBlockReason, reidentifyComposerContext } from "../lib/composerContext";
 import { uuidv4 } from "../lib/uuid";
 
@@ -86,7 +86,7 @@ import {
 import {
   resolveComposerDispatchMode,
   type ActiveTurnComposerAction,
-} from "@supacode/client-runtime/state/composer-dispatch";
+} from "@supaterm/client-runtime/state/composer-dispatch";
 import { Atom } from "effect/reactivity";
 import { AsyncResult } from "effect/reactivity";
 import { prepareTurnAttachments } from "../lib/attachmentUpload";

@@ -3,7 +3,7 @@ import type {
   EnvironmentId,
   PullRequestRef,
   PullRequestStackMembership,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useState } from "react";
 import { usePullRequestStack } from "~/state/usePullRequestStack";
 import { Menu, MenuTrigger, MenuPopup, MenuGroup, MenuGroupLabel, MenuItem } from "../ui/menu";

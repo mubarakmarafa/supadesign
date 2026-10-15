@@ -2,7 +2,7 @@ import * as NodeFS from "node:fs";
 import * as NodeFSP from "node:fs/promises";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
-import { AuthOrchestrationOperateScope, AuthSourceControlWriteScope } from "@supacode/contracts";
+import { AuthOrchestrationOperateScope, AuthSourceControlWriteScope } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { isValidElement, type ReactNode } from "react";
@@ -168,7 +168,7 @@ function localProjectAction(environmentId = "environment") {
 describe("clone project permissions", () => {
   beforeEach(async () => {
     state.baseDirectory = await NodeFSP.mkdtemp(
-      NodePath.join(NodeOS.tmpdir(), "supacode-clone-permissions-"),
+      NodePath.join(NodeOS.tmpdir(), "supaterm-clone-permissions-"),
     );
     state.scopes = new Set([AuthSourceControlWriteScope]);
     state.otherScopes = new Set();

@@ -3,7 +3,7 @@ import {
   ProjectId,
   type PullRequestDiffResult,
   type PullRequestListEntry,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useAtomRefresh } from "@effect/atom-react";
 import { useCallback, useMemo, useState } from "react";
 

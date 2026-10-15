@@ -1,4 +1,4 @@
-import { RuntimeRequestId } from "@supacode/contracts";
+import { RuntimeRequestId } from "@supaterm/contracts";
 import { act, type ReactNode } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { expect, it, vi } from "vite-plus/test";

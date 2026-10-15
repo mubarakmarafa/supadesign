@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 export interface HomeListFilterMenuEnvironment {
   readonly environmentId: EnvironmentId;

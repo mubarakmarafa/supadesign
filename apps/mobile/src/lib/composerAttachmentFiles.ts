@@ -1,4 +1,4 @@
-export const COMPOSER_ATTACHMENT_DIRECTORY = "supacode-composer-attachments";
+export const COMPOSER_ATTACHMENT_DIRECTORY = "supaterm-composer-attachments";
 
 const UUID_PATTERN = "[a-f\\d]{8}-[a-f\\d]{4}-[a-f\\d]{4}-[a-f\\d]{4}-[a-f\\d]{12}";
 const GENERATED_FILE_NAME = new RegExp(`^${UUID_PATTERN}-`, "i");

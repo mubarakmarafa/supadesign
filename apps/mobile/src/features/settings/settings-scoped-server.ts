@@ -6,12 +6,12 @@ import {
   type ProjectScopedServerSettingKey,
   type ServerSettings,
   type ServerSettingsPatch,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   clearProjectSettingsOverrides,
   projectSettingsOverridesForWrite,
   resolveProjectSettings,
-} from "@supacode/shared/projectSettings";
+} from "@supaterm/shared/projectSettings";
 
 import type { SettingsTarget } from "./settings-environment-filter";
 

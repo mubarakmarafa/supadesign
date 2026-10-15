@@ -21,8 +21,8 @@ import {
   type OrchestrationV2DomainEvent,
   type OrchestrationV2ThreadProjection,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
-import { boundedSnapshotProjection } from "@supacode/shared/orchestrationV2BoundedSnapshot";
+} from "@supaterm/contracts";
+import { boundedSnapshotProjection } from "@supaterm/shared/orchestrationV2BoundedSnapshot";
 import * as NodeHttpPlatform from "@effect/platform-node/NodeHttpPlatform";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as DateTime from "effect/DateTime";

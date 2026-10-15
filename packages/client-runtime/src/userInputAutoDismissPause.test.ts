@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import { EnvironmentId, RuntimeRequestId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, RuntimeRequestId, ThreadId } from "@supaterm/contracts";
 import { createUserInputAutoDismissPause } from "./userInputAutoDismissPause.ts";
 
 const input = {

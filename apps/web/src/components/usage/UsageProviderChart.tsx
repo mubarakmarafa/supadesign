@@ -1,15 +1,15 @@
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
-import type { UsageProviderKind } from "@supacode/contracts";
+import type { UsageProviderKind } from "@supaterm/contracts";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import type { DailyTotals, HourlyTotals } from "@supacode/shared/usageMerge";
+import type { DailyTotals, HourlyTotals } from "@supaterm/shared/usageMerge";
 import {
   formatDayShort,
   formatHourShort,
   formatRelativeHourShort,
   formatTokens,
   formatUsd,
-} from "@supacode/shared/usageFormat";
+} from "@supaterm/shared/usageFormat";
 import { cn } from "~/lib/utils";
 import { PROVIDER_ORDER, PROVIDER_PRESENTATION } from "./usageProviders";
 import { observeResize } from "~/lib/observeResize";

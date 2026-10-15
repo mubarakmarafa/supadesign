@@ -1,4 +1,4 @@
-import type { PullRequestReviewGuideResult } from "@supacode/contracts";
+import type { PullRequestReviewGuideResult } from "@supaterm/contracts";
 
 /** Old failures must not follow a PR onto a different head. */
 export function reviewGuideState(data: PullRequestReviewGuideResult | null) {

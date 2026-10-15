@@ -1,4 +1,4 @@
-import type { VoiceInputState } from "@supacode/client-runtime/voice-input";
+import type { VoiceInputState } from "@supaterm/client-runtime/voice-input";
 
 export type VoiceComposerPresentation = {
   readonly leadingAction: "cancel" | "stop" | null;

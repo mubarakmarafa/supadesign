@@ -1,4 +1,4 @@
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import { assert, describe, it } from "@effect/vitest";
 import {
   ContextHandoffId,
@@ -12,7 +12,7 @@ import {
   OrchestrationV2ContextHandoff,
   type OrchestrationV2HistoricalMessage,
   type OrchestrationV2ProviderThread,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
@@ -23,7 +23,7 @@ import {
   historyResponseItems,
   selectHistory,
   historicalMessage,
-} from "@supacode/provider-core/server/handoffBudget";
+} from "@supaterm/provider-core/server/handoffBudget";
 import { projectContextHandoffForWire } from "./WireProjection.ts";
 import { deliverContextHandoffs } from "./ContextHandoffDelivery.ts";
 
@@ -84,7 +84,7 @@ const handoff: OrchestrationV2ContextHandoff = {
   summaryText: "",
   history: {
     messages,
-    coverage: "Historical context; retrieve thread:handoff with supacode_thread_read.",
+    coverage: "Historical context; retrieve thread:handoff with supaterm_thread_read.",
     omittedItems: 0,
   },
   createdByProviderInstanceId: null,
@@ -604,7 +604,7 @@ describe("handoff delivery", () => {
       assert.equal(result.context, "");
       assert.isDefined(captured);
       assert.include(captured.context, "detailed coverage references omitted");
-      assert.include(captured.context, "supacode_thread_read");
+      assert.include(captured.context, "supaterm_thread_read");
       assert.include(captured.context, threadId);
       assert.isAtMost(historyCost(captured.messages, captured.context), 2_500);
       assert.isAbove(captured.messages.length, 0);

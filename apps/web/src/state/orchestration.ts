@@ -1,4 +1,4 @@
-import { createOrchestrationEnvironmentAtoms } from "@supacode/client-runtime/state/orchestration";
+import { createOrchestrationEnvironmentAtoms } from "@supaterm/client-runtime/state/orchestration";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 

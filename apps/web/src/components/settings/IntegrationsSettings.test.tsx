@@ -2,7 +2,7 @@ import {
   DEFAULT_CLIENT_SETTINGS,
   DEFAULT_UNIFIED_SETTINGS,
   type DeviceServiceState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   createMemoryHistory,
   createRootRoute,

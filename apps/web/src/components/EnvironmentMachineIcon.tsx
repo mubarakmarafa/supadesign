@@ -1,4 +1,4 @@
-import type { EnvironmentMachineKind } from "@supacode/contracts";
+import type { EnvironmentMachineKind } from "@supaterm/contracts";
 import { CloudIcon, LaptopIcon, MonitorIcon, ServerIcon, type LucideProps } from "lucide-react";
 import { useId, type FunctionComponent, type SVGProps } from "react";
 import { LinuxIcon } from "./Icons";

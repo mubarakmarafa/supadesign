@@ -4,7 +4,7 @@ import * as Schema from "effect/Schema";
 import { OutboxTurn, StoredOutboxEntry, encodeStoredOutboxEntry } from "./threadOutboxSchema";
 import { randomUUID } from "../lib/utils";
 
-const DATABASE_NAME = "supacode-thread-outbox";
+const DATABASE_NAME = "supaterm-thread-outbox";
 const LEASE_MS = 60_000;
 const decode = Schema.decodeUnknownSync(StoredOutboxEntry);
 let database: Promise<IDBDatabase> | null = null;
@@ -40,7 +40,7 @@ function openDatabase() {
     });
     request.onblocked = () => {
       database = null;
-      reject(new Error("Close other Supacode tabs to open message storage."));
+      reject(new Error("Close other Supaterm tabs to open message storage."));
     };
   });
   return database;

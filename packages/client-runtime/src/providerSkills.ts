@@ -3,7 +3,7 @@ import {
   type ServerProvider,
   type ServerProviderSkill,
   type ServerProviderSlashCommand,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export type ProviderSkillSourceKind = "app" | "repo" | "project" | "personal" | "system" | "other";
 

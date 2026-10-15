@@ -128,7 +128,7 @@ function resolveSpawnExecutableWithNode(
 }
 
 export const SpawnExecutableResolution = Context.Reference<SpawnExecutableResolver>(
-  "@supacode/shared/shell/SpawnExecutableResolution",
+  "@supaterm/shared/shell/SpawnExecutableResolution",
   {
     defaultValue: () => resolveSpawnExecutableWithNode,
   },
@@ -219,11 +219,11 @@ export function mergePathEntries(
 }
 
 function envCaptureStart(name: string): string {
-  return `__SUPACODE_ENV_${name}_START__`;
+  return `__SUPATERM_ENV_${name}_START__`;
 }
 
 function envCaptureEnd(name: string): string {
-  return `__SUPACODE_ENV_${name}_END__`;
+  return `__SUPATERM_ENV_${name}_END__`;
 }
 
 function buildEnvironmentCaptureCommand(names: ReadonlyArray<string>): string {
@@ -315,14 +315,14 @@ export type WindowsShellEnvironmentReader = (
 ) => Partial<Record<string, string>>;
 
 export const WindowsShellEnvironment = Context.Reference<WindowsShellEnvironmentReader>(
-  "@supacode/shared/shell/WindowsShellEnvironment",
+  "@supaterm/shared/shell/WindowsShellEnvironment",
   {
     defaultValue: () => readEnvironmentFromWindowsShell,
   },
 );
 
 export const CommandAvailability = Context.Reference<CommandAvailabilityChecker>(
-  "@supacode/shared/shell/CommandAvailability",
+  "@supaterm/shared/shell/CommandAvailability",
   {
     defaultValue: () => isCommandAvailable,
   },
@@ -501,7 +501,7 @@ interface CommandResolutionCacheEntry {
 // so tests and embedders can provide an isolated instance; the default is a
 // single process-wide map shared by all consumers.
 export const CommandResolutionCache = Context.Reference<Map<string, CommandResolutionCacheEntry>>(
-  "@supacode/shared/shell/CommandResolutionCache",
+  "@supaterm/shared/shell/CommandResolutionCache",
   {
     defaultValue: () => new Map(),
   },
@@ -536,7 +536,7 @@ const listPathDirectory = Effect.fnUntraced(function* (
 
 const PathDirectoryListings = Context.Reference<
   Cache.Cache<string, PathDirectoryListing, never, FileSystem.FileSystem> | undefined
->("@supacode/shared/shell/PathDirectoryListings", { defaultValue: () => undefined });
+>("@supaterm/shared/shell/PathDirectoryListings", { defaultValue: () => undefined });
 
 /**
  * Run a batch of command lookups (e.g. editor discovery) that lists each PATH

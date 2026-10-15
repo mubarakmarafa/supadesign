@@ -1,4 +1,4 @@
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
@@ -11,7 +11,7 @@ import * as Path from "effect/Path";
 import { HttpClient } from "effect/http";
 import * as Schema from "effect/Schema";
 
-import { CLI_RELEASE_BASE_URL_ENV } from "@supacode/shared/cliRelease";
+import { CLI_RELEASE_BASE_URL_ENV } from "@supaterm/shared/cliRelease";
 
 import * as ProcessRunner from "../processRunner.ts";
 import {
@@ -31,14 +31,14 @@ import {
   type ServiceState,
 } from "./serviceProtocol.ts";
 
-const BOOT_SERVICE_NAME = "supacode";
+const BOOT_SERVICE_NAME = "supaterm";
 const BOOT_SERVICE_UNIT_FILE = `${BOOT_SERVICE_NAME}.service`;
 // `.service` suffix keeps the label distinct from the desktop app's bundle id
-// (com.supaterm.supacode), so launchd and TCC records never collide.
-const BOOT_SERVICE_LAUNCHD_LABEL = "com.supaterm.supacode.service";
+// (com.supaterm.desktop), so launchd and TCC records never collide.
+const BOOT_SERVICE_LAUNCHD_LABEL = "com.supaterm.desktop.service";
 const BOOT_SERVICE_PLIST_FILE = `${BOOT_SERVICE_LAUNCHD_LABEL}.plist`;
-const BOOT_SERVICE_UNIT_ENV = "SUPACODE_BOOT_SERVICE_UNIT";
-/** File in the logs dir that receives the service's stdout and stderr. `supacode triage` points agents at it. */
+const BOOT_SERVICE_UNIT_ENV = "SUPATERM_BOOT_SERVICE_UNIT";
+/** File in the logs dir that receives the service's stdout and stderr. `supaterm triage` points agents at it. */
 export const BOOT_SERVICE_LOG_FILE = "boot-service.log";
 
 /** systemd expands `%` specifiers, including in unquoted append-log paths. */
@@ -54,12 +54,12 @@ function quoteSystemdValue(value: string): string {
 }
 
 /**
- * Reads `SUPACODE_HOME` back out of a rendered unit or plist. Only values this
+ * Reads `SUPATERM_HOME` back out of a rendered unit or plist. Only values this
  * file writes are expected, so a quoted systemd value is unquoted and
  * unescaped the same way `quoteSystemdValue` produced it.
  */
 export function bootServiceBaseDirOf(contents: string): string | undefined {
-  const systemd = /^Environment=SUPACODE_HOME=(.*)$/m.exec(contents)?.[1];
+  const systemd = /^Environment=SUPATERM_HOME=(.*)$/m.exec(contents)?.[1];
   if (systemd !== undefined) {
     const raw = systemd.trim();
     const unquoted =
@@ -68,7 +68,7 @@ export function bootServiceBaseDirOf(contents: string): string | undefined {
         : raw;
     return unquoted.replaceAll("%%", "%");
   }
-  const plist = /<key>SUPACODE_HOME<\/key>\s*<string>([^<]*)<\/string>/.exec(contents)?.[1];
+  const plist = /<key>SUPATERM_HOME<\/key>\s*<string>([^<]*)<\/string>/.exec(contents)?.[1];
   if (plist !== undefined) {
     return plist.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
   }
@@ -93,20 +93,20 @@ export function renderBootServiceUnit(plan: BootServicePlan): string {
   // The user manager has no reliable network-online target; server networking retries itself.
   return [
     "[Unit]",
-    "Description=Supacode server",
+    "Description=Supaterm server",
     "StartLimitIntervalSec=300",
     "StartLimitBurst=5",
     "",
     "[Service]",
     "Type=simple",
     "WorkingDirectory=%h",
-    `Environment=SUPACODE_HOME=${quoteSystemdValue(plan.baseDir)}`,
+    `Environment=SUPATERM_HOME=${quoteSystemdValue(plan.baseDir)}`,
     `Environment=${BOOT_SERVICE_UNIT_ENV}=${BOOT_SERVICE_UNIT_FILE}`,
     `ExecStart=${plan.program.map(quoteSystemdValue).join(" ")}`,
     // Signal only the launcher first so it can stop its server child gracefully.
     // systemd still SIGKILLs the whole cgroup if graceful shutdown times out.
     "KillMode=mixed",
-    // Agents and terminals run in their own scopes in app-supacode-agents.slice
+    // Agents and terminals run in their own scopes in app-supaterm-agents.slice
     // (see process/agentScope.ts). Short helper commands still share this
     // cgroup, and with the systemd default of OOMPolicy=stop, the kernel
     // killing one of them stops the whole unit. Keep running and let
@@ -168,7 +168,7 @@ export function renderBootServicePlist(
     `  <dict>`,
     `    <key>PATH</key>`,
     `    <string>${escapeXmlText(options.environmentPath)}</string>`,
-    `    <key>SUPACODE_HOME</key>`,
+    `    <key>SUPATERM_HOME</key>`,
     `    <string>${escapeXmlText(plan.baseDir)}</string>`,
     `    <key>${BOOT_SERVICE_UNIT_ENV}</key>`,
     `    <string>${BOOT_SERVICE_PLIST_FILE}</string>`,
@@ -441,7 +441,7 @@ export class BootServiceInstallError extends Schema.TaggedError<BootServiceInsta
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return "Could not set up the Supacode background service.";
+    return "Could not set up the Supaterm background service.";
   }
 }
 
@@ -459,17 +459,17 @@ type BootServiceProblem = typeof BootServiceProblem.Type;
 export function formatBootServiceProblem(problem: BootServiceProblem): string {
   switch (problem) {
     case "user-manager-unavailable":
-      return "Cannot reach the systemd user manager. Run `systemctl --user status` in a login session for the service user. Install your distribution's systemd user-session support if it is missing; do not run Supacode with sudo.";
+      return "Cannot reach the systemd user manager. Run `systemctl --user status` in a login session for the service user. Install your distribution's systemd user-session support if it is missing; do not run Supaterm with sudo.";
     case "linger-unavailable":
       return 'Cannot check whether this user can run services after logout. Run `loginctl show-user "$(id -un)" --property=Linger` and check that systemd-logind is available.';
     case "linger-disabled":
-      return 'Lingering is disabled. Supacode will stop when your last login session ends and will not start at boot. Run `sudo loginctl enable-linger "$(id -un)"` on this machine, then retry the service command as your normal user.';
+      return 'Lingering is disabled. Supaterm will stop when your last login session ends and will not start at boot. Run `sudo loginctl enable-linger "$(id -un)"` on this machine, then retry the service command as your normal user.';
     case "service-disabled":
-      return "The service is not enabled to start automatically. Run `supacode service install` to repair it.";
+      return "The service is not enabled to start automatically. Run `supaterm service install` to repair it.";
     case "service-stopped":
-      return "The service is not running. Check the service log and `systemctl --user status supacode.service`, then run `supacode service install`.";
+      return "The service is not running. Check the service log and `systemctl --user status supaterm.service`, then run `supaterm service install`.";
     case "restart-pending":
-      return "A newer version is installed but the service is still running the previous one. Run `supacode service restart` to switch.";
+      return "A newer version is installed but the service is still running the previous one. Run `supaterm service restart` to switch.";
   }
 }
 
@@ -499,7 +499,7 @@ export class BootServiceDowngradeRefusedError extends Schema.TaggedError<BootSer
   },
 ) {
   override get message(): string {
-    return `Refusing to replace supacode@${this.installedVersion} with older supacode@${this.targetVersion}. Run the command again with --allow-downgrade to continue.`;
+    return `Refusing to replace supaterm@${this.installedVersion} with older supaterm@${this.targetVersion}. Run the command again with --allow-downgrade to continue.`;
   }
 }
 
@@ -517,9 +517,9 @@ export interface BootServiceStatus {
   readonly current: boolean;
   readonly installedVersion?: string;
   /**
-   * The Supacode home the installed unit serves. The unit name is fixed per user,
+   * The Supaterm home the installed unit serves. The unit name is fixed per user,
    * so a caller working against another base dir must not treat this service
-   * as its own; `supacode update --base-dir` learned that by restarting the live
+   * as its own; `supaterm update --base-dir` learned that by restarting the live
    * server of the machine it ran on.
    */
   readonly installedBaseDir?: string;
@@ -535,8 +535,8 @@ export class BootService extends Context.Service<
       readonly allowDowngrade?: boolean;
       /**
        * Write the unit for this version but leave the service on whatever it
-       * is running now. `supacode update` uses this when the user declines the
-       * restart, so a later `supacode service restart` lands on the new version.
+       * is running now. `supaterm update` uses this when the user declines the
+       * restart, so a later `supaterm service restart` lands on the new version.
        */
       readonly start?: boolean;
     }) => Effect.Effect<BootServicePlan, BootServiceError>;
@@ -550,7 +550,7 @@ export class BootService extends Context.Service<
     readonly uninstall: Effect.Effect<boolean, BootServiceError>;
     readonly status: Effect.Effect<BootServiceStatus, BootServiceError>;
   }
->()("supacode/service/bootService") {}
+>()("supaterm/service/bootService") {}
 
 export interface BootServiceHost {
   readonly execPath: string;
@@ -786,7 +786,7 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
             Effect.mapError(
               (cause) =>
                 new PinnedRuntimeInstallError({
-                  step: "verifying the pinned Supacode runtime",
+                  step: "verifying the pinned Supaterm runtime",
                   cause,
                 }),
             ),
@@ -796,7 +796,7 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
                 ? Effect.void
                 : Effect.fail(
                     new PinnedRuntimeInstallError({
-                      step: "verifying the pinned Supacode runtime",
+                      step: "verifying the pinned Supaterm runtime",
                       exitCode: Number(result.code),
                       stdoutLength: result.stdout.length,
                       stderrLength: result.stderr.length,

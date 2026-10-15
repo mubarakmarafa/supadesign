@@ -1,5 +1,5 @@
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { DesktopAppActivationRequest } from "@supacode/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { DesktopAppActivationRequest } from "@supaterm/contracts";
 import { useEffect, useEffectEvent, useRef } from "react";
 
 import { handleDesktopAppActivationRequest } from "../../desktopAppActivation";
@@ -63,7 +63,7 @@ export function DesktopAppActivationCoordinator() {
         });
         if (result._tag === "Failure") {
           const error = squashAtomCommandFailure(result);
-          throw error instanceof Error ? error : new Error("Supacode could not add the project.");
+          throw error instanceof Error ? error : new Error("Supaterm could not add the project.");
         }
         return projectId;
       },

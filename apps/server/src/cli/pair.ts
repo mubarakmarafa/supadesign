@@ -1,12 +1,12 @@
 /**
- * `supacode pair` - mint a pairing token for an already-running server and print it
+ * `supaterm pair` - mint a pairing token for an already-running server and print it
  * as a QR code, without restarting anything.
  *
  * Discovery reads the `server-runtime.json` a live server persists next to its
  * database, then confirms the process is actually answering by fetching its
  * public environment descriptor. Inside a linked git worktree the worktree's
- * own `.supacode` is checked first (matching dev-runner precedence); otherwise the
- * shared Supacode home. `--tailscale` publishes the server over Tailscale Serve
+ * own `.supaterm` is checked first (matching dev-runner precedence); otherwise the
+ * shared Supaterm home. `--tailscale` publishes the server over Tailscale Serve
  * HTTPS and pairs through the tailnet URL instead; `--relay` pairs through the
  * server's public relay address, which works for hosts no client manages directly.
  */
@@ -17,19 +17,19 @@ import {
   EnvironmentHttpApi,
   ExecutionEnvironmentDescriptor,
   PortSchema,
-} from "@supacode/contracts";
-import { resolveWorktreeSupacodeHome } from "@supacode/shared/devHome";
-import { buildPairingUrl } from "@supacode/shared/remote";
-import { relayName } from "@supacode/shared/relay/name";
+} from "@supaterm/contracts";
+import { resolveWorktreeSupatermHome } from "@supaterm/shared/devHome";
+import { buildPairingUrl } from "@supaterm/shared/remote";
+import { relayName } from "@supaterm/shared/relay/name";
 import * as NodeOS from "node:os";
-import { DEFAULT_SIGNAL_EXPORT } from "@supacode/shared/observability";
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
+import { DEFAULT_SIGNAL_EXPORT } from "@supaterm/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 import {
   buildTailscaleHttpsBaseUrl,
   DEFAULT_TAILSCALE_SERVE_PORT,
   ensureTailscaleServe,
   readTailscaleStatus,
-} from "@supacode/tailscale";
+} from "@supaterm/tailscale";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
 import * as DateTime from "effect/DateTime";
@@ -62,7 +62,7 @@ import {
 import { authScopesFlag } from "./authScopes.ts";
 import { baseDirFlag, DurationFromString } from "./config.ts";
 
-const WELL_KNOWN_ENVIRONMENT_PATH = "/.well-known/supacode/environment";
+const WELL_KNOWN_ENVIRONMENT_PATH = "/.well-known/supaterm/environment";
 const PAIR_PROBE_TIMEOUT = Duration.millis(2_500);
 // Tailscale provisions an HTTPS certificate on the first request to a fresh
 // serve mapping, which can take a few seconds.
@@ -83,9 +83,9 @@ export class NoRunningServerError extends Schema.TaggedError<NoRunningServerErro
 ) {
   override get message(): string {
     return [
-      "No running Supacode server found.",
+      "No running Supaterm server found.",
       ...this.checkedStatePaths.map((statePath) => `  checked ${statePath}`),
-      "Start one with `supacode serve`.",
+      "Start one with `supaterm serve`.",
     ].join("\n");
   }
 }
@@ -115,7 +115,7 @@ export class ServesOtherEnvironmentError extends Schema.TaggedError<ServesOtherE
   { servePort: Schema.Number },
 ) {
   override get message(): string {
-    return `Tailscale Serve on HTTPS port ${String(this.servePort)} already fronts a different Supacode server. Pass --tailscale-serve-port to publish this one on another port.`;
+    return `Tailscale Serve on HTTPS port ${String(this.servePort)} already fronts a different Supaterm server. Pass --tailscale-serve-port to publish this one on another port.`;
   }
 }
 
@@ -133,7 +133,7 @@ export class ServePortOccupiedError extends Schema.TaggedError<ServePortOccupied
   { servePort: Schema.Number },
 ) {
   override get message(): string {
-    return `HTTPS port ${String(this.servePort)} on the tailnet already serves something that is not a Supacode server. Pass --tailscale-serve-port to publish this one on another port.`;
+    return `HTTPS port ${String(this.servePort)} on the tailnet already serves something that is not a Supaterm server. Pass --tailscale-serve-port to publish this one on another port.`;
   }
 }
 
@@ -218,14 +218,14 @@ const formatPairOutput = (input: {
   ].join("\n");
 
 /**
- * Three outcomes, because they drive different decisions: a Supacode descriptor
+ * Three outcomes, because they drive different decisions: a Supaterm descriptor
  * (pair with it), nothing answering (safe to configure Tailscale Serve), or
- * something answering that is not a Supacode server (do NOT overwrite its mapping).
+ * something answering that is not a Supaterm server (do NOT overwrite its mapping).
  */
 type EnvironmentProbeResult =
   | { readonly _tag: "descriptor"; readonly descriptor: ExecutionEnvironmentDescriptor }
   | { readonly _tag: "unreachable" }
-  | { readonly _tag: "not-a-supacode-server" };
+  | { readonly _tag: "not-a-supaterm-server" };
 
 const probeEnvironmentDescriptor = (
   baseUrl: string,
@@ -240,7 +240,7 @@ const probeEnvironmentDescriptor = (
     );
     // Bad-gateway family means a proxy (Tailscale Serve) answered for a
     // backend that is gone — a stale mapping, not a live occupant. Treating
-    // it as unreachable lets `supacode pair --tailscale` repair its own mapping
+    // it as unreachable lets `supaterm pair --tailscale` repair its own mapping
     // after the server's port changed.
     if (response.status === 502 || response.status === 503 || response.status === 504) {
       return { _tag: "unreachable" } as const;
@@ -249,7 +249,7 @@ const probeEnvironmentDescriptor = (
     // some other service.
     const descriptor = yield* HttpClientResponse.filterStatusOk(response).pipe(
       Effect.flatMap(HttpClientResponse.schemaBodyJson(ExecutionEnvironmentDescriptor)),
-      Effect.mapError(() => ({ _tag: "not-a-supacode-server" }) as const),
+      Effect.mapError(() => ({ _tag: "not-a-supaterm-server" }) as const),
     );
     return { _tag: "descriptor", descriptor } as const;
   }).pipe(Effect.catch((outcome) => Effect.succeed(outcome)));
@@ -268,14 +268,14 @@ const discoverPairTarget = Effect.fn("pair.discoverPairTarget")(function* (
   if (explicitBaseDir !== undefined && explicitBaseDir.trim().length > 0) {
     bases.push(yield* resolveBaseDir(explicitBaseDir));
   } else {
-    // Same precedence as dev-runner: inside a linked worktree its own `.supacode`
-    // outranks the shared home, so `supacode pair` in a worktree pairs with the dev
+    // Same precedence as dev-runner: inside a linked worktree its own `.supaterm`
+    // outranks the shared home, so `supaterm pair` in a worktree pairs with the dev
     // server under test rather than the daily-driver install.
-    const worktreeHome = yield* resolveWorktreeSupacodeHome(process.cwd());
+    const worktreeHome = yield* resolveWorktreeSupatermHome(process.cwd());
     if (worktreeHome !== undefined) {
       bases.push(worktreeHome);
     }
-    const envHome = yield* Config.String("SUPACODE_HOME").pipe(Config.option);
+    const envHome = yield* Config.String("SUPATERM_HOME").pipe(Config.option);
     bases.push(yield* resolveBaseDir(Option.getOrUndefined(envHome)));
   }
 
@@ -400,7 +400,7 @@ const resolveTailscalePairingBase = Effect.fn("pair.resolveTailscalePairingBase"
     });
 
     // Only an unreachable port, or a mapping already fronting this exact
-    // environment, is safe to (re)configure. Any other responder — Supacode or not
+    // environment, is safe to (re)configure. Any other responder — Supaterm or not
     // — must not have its mapping silently replaced.
     const existing = yield* probeEnvironmentDescriptor(baseUrl);
     if (existing._tag === "descriptor") {
@@ -416,7 +416,7 @@ const resolveTailscalePairingBase = Effect.fn("pair.resolveTailscalePairingBase"
         return { baseUrl, notes };
       }
     }
-    if (existing._tag === "not-a-supacode-server") {
+    if (existing._tag === "not-a-supaterm-server") {
       return yield* new ServePortOccupiedError({ servePort: input.servePort });
     }
 
@@ -462,7 +462,7 @@ const mintPairingLink = Effect.fn("pair.mintPairingLink")(function* (input: {
     return yield* environmentAuth.createPairingLink({
       scopes: input.scopes,
       subject: "one-time-token",
-      label: Option.getOrElse(input.label, () => "supacode pair"),
+      label: Option.getOrElse(input.label, () => "supaterm pair"),
       ...(Option.isSome(input.ttl) ? { ttl: input.ttl.value } : {}),
     });
   }).pipe(
@@ -486,7 +486,7 @@ const prepareRelay = Effect.fn("pair.prepareRelay")(function* (
       auth.issueSession({
         scopes: [AuthAccessWriteScope],
         ttl: Duration.seconds(30),
-        label: "supacode pair relay preparation",
+        label: "supaterm pair relay preparation",
       }),
       (session) => client.relay.prepare({ headers: { authorization: `Bearer ${session.token}` } }),
       (session) => auth.revokeSession(session.sessionId).pipe(Effect.ignore),
@@ -539,7 +539,7 @@ export const pairCommand = Command.make("pair", {
   relay: relayFlag,
 }).pipe(
   Command.withDescription(
-    "Mint a pairing token for a running Supacode server and print it as a QR code.",
+    "Mint a pairing token for a running Supaterm server and print it as a QR code.",
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {

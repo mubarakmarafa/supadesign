@@ -1,11 +1,11 @@
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
-import { availableScratchWorkspaceRoot } from "@supacode/client-runtime/operations/projects";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
+import { availableScratchWorkspaceRoot } from "@supaterm/client-runtime/operations/projects";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { useCallback, useMemo } from "react";
 
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";

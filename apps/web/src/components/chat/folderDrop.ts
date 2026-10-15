@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 export function folderDropTarget(input: {
   localEnvironmentDisabled: boolean;

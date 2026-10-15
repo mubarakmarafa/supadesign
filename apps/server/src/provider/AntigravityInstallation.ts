@@ -1,8 +1,8 @@
 // @effect-diagnostics nodeBuiltinImport:off - Effect has no incremental digest or free-space query.
 import * as EffectNodeStream from "@effect/platform-node/NodeStream";
-import { ProviderDriverKind, type ProviderInstallState } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveNodeExecutable, nodeRuntimeUnavailableMessage } from "@supacode/shared/nodeRuntime";
+import { ProviderDriverKind, type ProviderInstallState } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveNodeExecutable, nodeRuntimeUnavailableMessage } from "@supaterm/shared/nodeRuntime";
 import * as Clock from "effect/Clock";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -102,7 +102,7 @@ interface AntigravityInstallationService {
 export class AntigravityInstallation extends Context.Service<
   AntigravityInstallation,
   AntigravityInstallationService
->()("supacode/provider/AntigravityInstallation") {
+>()("supaterm/provider/AntigravityInstallation") {
   static readonly layer = Layer.effect(
     AntigravityInstallation,
     Effect.gen(function* () {
@@ -350,7 +350,7 @@ export const makeAntigravityInstallation = Effect.fn("AntigravityInstallation.ma
     Effect.fn("AntigravityInstallation.validate")(
       function* (executable: AntigravityExecutable, expectedVersion: string) {
         const profileDirectory = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-antigravity-validate-",
+          prefix: "supaterm-antigravity-validate-",
         });
         const profile = yield* prepareAntigravityProfile({
           profileDirectory,
@@ -369,7 +369,7 @@ export const makeAntigravityInstallation = Effect.fn("AntigravityInstallation.ma
           }),
           cwd: profileDirectory,
           childProcessSpawner: spawner,
-          clientInfo: { name: "supacode", version: "0.0.0" },
+          clientInfo: { name: "supaterm", version: "0.0.0" },
         });
         const initialized = yield* runtime.initialize();
         if (

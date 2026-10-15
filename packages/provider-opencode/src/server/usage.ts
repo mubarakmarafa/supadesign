@@ -5,14 +5,14 @@
  * @module provider-opencode/server/usage
  */
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import {
   totalTokens,
   type ProviderUsageReader,
   type UsageRecord,
-} from "@supacode/provider-core/server/usage";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
+} from "@supaterm/provider-core/server/usage";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";

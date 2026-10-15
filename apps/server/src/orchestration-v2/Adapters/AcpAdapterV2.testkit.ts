@@ -2,7 +2,7 @@ import {
   ProviderDriverKind,
   ProviderReplayEntry,
   type ProviderReplayTranscript,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Crypto from "effect/Crypto";
 import * as FileSystem from "effect/FileSystem";
@@ -13,9 +13,9 @@ import * as Stream from "effect/Stream";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as EffectAcpErrors from "effect-acp/errors";
 
-import * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import type { ProviderReplayGate } from "@supacode/provider-testing/replayGate";
-import { ACP_PROTOCOL, type AcpAdapterV2RuntimeInput } from "@supacode/provider-acp/server/adapter";
+import * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import type { ProviderReplayGate } from "@supaterm/provider-testing/replayGate";
+import { ACP_PROTOCOL, type AcpAdapterV2RuntimeInput } from "@supaterm/provider-acp/server/adapter";
 
 export const AcpReplayTranscript = Schema.Struct({
   provider: ProviderDriverKind,
@@ -222,9 +222,9 @@ export function makeAcpReplayRuntime(input: {
             cwd: runtimeInput.cwd,
             env: {
               ...process.env,
-              SUPACODE_ACP_REPLAY_TRANSCRIPT_PATH: transcriptPath,
-              SUPACODE_ACP_REPLAY_STATUS_PATH: input.statusPath,
-              SUPACODE_ACP_REPLAY_WORKSPACE: runtimeInput.cwd,
+              SUPATERM_ACP_REPLAY_TRANSCRIPT_PATH: transcriptPath,
+              SUPATERM_ACP_REPLAY_STATUS_PATH: input.statusPath,
+              SUPATERM_ACP_REPLAY_WORKSPACE: runtimeInput.cwd,
             },
           },
           authMethodId: "replay",

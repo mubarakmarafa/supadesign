@@ -1,10 +1,10 @@
-import type { MediaActionId } from "@supacode/client-runtime/media-actions";
+import type { MediaActionId } from "@supaterm/client-runtime/media-actions";
 import {
   mediaReferenceFileName,
   type MediaReference,
-} from "@supacode/client-runtime/media-reference";
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/media-reference";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import {
   AuthFilesystemReadScope,
   type AssetResource,
@@ -12,7 +12,7 @@ import {
   type EnvironmentId,
   sessionGrantsScope,
   type SessionGrantInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";
 import { useCallback, useRef, useState, type ReactElement } from "react";

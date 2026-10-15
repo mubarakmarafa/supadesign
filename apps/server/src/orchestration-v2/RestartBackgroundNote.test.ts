@@ -5,7 +5,7 @@ import {
   RunAttemptId,
   RunId,
   type OrchestrationV2Run,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 import {

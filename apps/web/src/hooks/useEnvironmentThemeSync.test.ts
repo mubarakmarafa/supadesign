@@ -1,4 +1,4 @@
-import type { EnvironmentTheme } from "@supacode/contracts";
+import type { EnvironmentTheme } from "@supaterm/contracts";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 const NIGHTFALL_THEME = {
@@ -16,7 +16,7 @@ const LIGHT_THEME = {
 } as const satisfies EnvironmentTheme;
 
 async function setupThemeSync(mode: "dark" | "system" = "dark") {
-  const storage = new Map<string, string>([["supacode:theme", NIGHTFALL_THEME.id]]);
+  const storage = new Map<string, string>([["supaterm:theme", NIGHTFALL_THEME.id]]);
   const styles = new Map<string, string>();
   const classes = new Set<string>();
   const root = {

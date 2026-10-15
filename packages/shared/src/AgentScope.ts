@@ -46,7 +46,7 @@ export interface AgentScopeCommand {
   readonly args: ReadonlyArray<string>;
 }
 
-export const AgentScope = Context.Reference<AgentScopeShape>("@supacode/shared/AgentScope", {
+export const AgentScope = Context.Reference<AgentScopeShape>("@supaterm/shared/AgentScope", {
   defaultValue: () => ({
     wrap: ({ command, args }) => Effect.succeed({ command, args }),
     oomKilled: () => Effect.succeed(false),
@@ -59,7 +59,7 @@ export const AgentScope = Context.Reference<AgentScopeShape>("@supacode/shared/A
  * provider flavors and do not take a thread id, so the ACP adapter provides it.
  */
 export const AgentScopeThreadId = Context.Reference<string | undefined>(
-  "@supacode/shared/AgentScope/ThreadId",
+  "@supaterm/shared/AgentScope/ThreadId",
   { defaultValue: () => undefined },
 );
 
@@ -106,14 +106,14 @@ export function agentScopeCommand(input: {
 }): AgentScopeCommand {
   const { command, args, scope } = input;
   if (scope === undefined) {
-    return { command: "/bin/sh", args: ["-c", LAUNCH_SCRIPT, "supacode-agent", command, ...args] };
+    return { command: "/bin/sh", args: ["-c", LAUNCH_SCRIPT, "supaterm-agent", command, ...args] };
   }
   return {
     command: "/bin/sh",
     args: [
       "-c",
       SCOPED_LAUNCH_SCRIPT,
-      "supacode-agent",
+      "supaterm-agent",
       scope.runtimeDir,
       scope.systemdRun,
       "--user",

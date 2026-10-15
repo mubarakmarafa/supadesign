@@ -1,4 +1,4 @@
-import { getTerminalLabel } from "@supacode/shared/terminalLabels";
+import { getTerminalLabel } from "@supaterm/shared/terminalLabels";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { RightPanelSurface } from "../rightPanelStore";
 

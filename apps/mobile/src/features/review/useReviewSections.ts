@@ -1,4 +1,4 @@
-import { resolveFilesystemReadAccess } from "@supacode/client-runtime/state/filesystem";
+import { resolveFilesystemReadAccess } from "@supaterm/client-runtime/state/filesystem";
 import { environmentSession } from "../../state/session";
 import { useCallback, useEffect, useMemo } from "react";
 import * as DateTime from "effect/DateTime";
@@ -6,8 +6,8 @@ import * as DateTime from "effect/DateTime";
 import {
   deriveThreadCheckpointSummaries,
   type ThreadCheckpointSummary,
-} from "@supacode/client-runtime/state/thread-checkpoints";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/thread-checkpoints";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 
 import { useCheckpointDiff } from "../../state/queries";
 import { useEnvironmentQuery } from "../../state/query";

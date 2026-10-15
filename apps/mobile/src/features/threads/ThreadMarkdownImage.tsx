@@ -1,4 +1,4 @@
-import type { AssetResource, EnvironmentId } from "@supacode/contracts";
+import type { AssetResource, EnvironmentId } from "@supaterm/contracts";
 import { Image } from "expo-image";
 import { createContext, useContext, useEffect, useEffectEvent, useId, useState } from "react";
 import { fetch } from "expo/fetch";

@@ -3,26 +3,26 @@ import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import { findOwnedLauncher } from "./uninstall.ts";
 
-it.layer(NodeServices.layer)("supacode uninstall launcher", (it) => {
+it.layer(NodeServices.layer)("supaterm uninstall launcher", (it) => {
   it.effect("claims only a launcher that points into this home's runtime tree", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-uninstall-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-uninstall-" });
       const versionsDir = path.join(root, "runtime/versions");
-      const exe = path.join(versionsDir, "1.0.0/supacode");
-      const otherExe = path.join(root, "other/runtime/versions/1.0.0/supacode");
-      const copy = path.join(root, "copy/supacode");
+      const exe = path.join(versionsDir, "1.0.0/supaterm");
+      const otherExe = path.join(root, "other/runtime/versions/1.0.0/supaterm");
+      const copy = path.join(root, "copy/supaterm");
       for (const file of [exe, otherExe, copy]) {
         yield* fs.makeDirectory(path.dirname(file), { recursive: true });
         yield* fs.writeFileString(file, "");
       }
-      const ours = path.join(root, "bin/supacode");
-      const theirs = path.join(root, "other/bin/supacode");
+      const ours = path.join(root, "bin/supaterm");
+      const theirs = path.join(root, "other/bin/supaterm");
       yield* fs.makeDirectory(path.dirname(ours), { recursive: true });
       yield* fs.makeDirectory(path.dirname(theirs), { recursive: true });
       yield* fs.symlink(exe, ours);

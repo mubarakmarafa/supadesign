@@ -1,5 +1,5 @@
-import type { DesktopEnvironmentMachineIcons } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { DesktopEnvironmentMachineIcons } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -85,7 +85,7 @@ export class ElectronApp extends Context.Service<
       listener: (...args: Args) => void,
     ) => Effect.Effect<void, never, Scope.Scope>;
   }
->()("@supacode/desktop/electron/ElectronApp") {}
+>()("@supaterm/desktop/electron/ElectronApp") {}
 
 const addScopedAppListener = <Args extends ReadonlyArray<unknown>>(
   eventName: string,

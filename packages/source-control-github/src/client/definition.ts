@@ -11,7 +11,7 @@ import {
   SourceControlProviderKind,
   TrimmedNonEmptyString,
   TrimmedString,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import {
@@ -19,7 +19,7 @@ import {
   isChangeRequestInProjectRepository,
   isChangeRequestOnProjectHost,
   isChangeRequestPath,
-} from "@supacode/source-control-core/client/definition";
+} from "@supaterm/source-control-core/client/definition";
 
 const CHECKOUT_COMMAND = /^gh\s+pr\s+checkout\s+(.+)$/i;
 const CHANGE_REQUEST_REFERENCE =

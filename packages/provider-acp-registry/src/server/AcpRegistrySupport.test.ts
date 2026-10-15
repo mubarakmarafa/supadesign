@@ -4,10 +4,10 @@ import {
   DEFAULT_SERVER_SETTINGS,
   ProviderDriverKind,
   ProviderInstanceId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { AcpRegistrySettings } from "../settings.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { SpawnExecutableResolution } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { SpawnExecutableResolution } from "@supaterm/shared/shell";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -22,7 +22,7 @@ import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
 import * as AcpRegistrySupport from "./AcpRegistrySupport.ts";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 
 const registryUrl = "https://registry.test/registry.json";
 const archiveUrl = "https://registry.test/example-agent.bin";

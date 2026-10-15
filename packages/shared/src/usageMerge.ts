@@ -15,7 +15,7 @@ import {
   type UsageSourceFingerprint,
   type UsageSummary,
   type UsageTokenTotals,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export interface EnvironmentUsage {
   readonly environmentId: EnvironmentId;

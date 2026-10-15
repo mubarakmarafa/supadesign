@@ -1,5 +1,5 @@
 import { assert } from "@effect/vitest";
-import type { ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderReplayTranscript } from "@supaterm/contracts";
 
 import type { OrchestratorV2ScenarioResult } from "../../OrchestratorScenario.ts";
 import {
@@ -26,7 +26,7 @@ interface Frame {
 // Grok's Auto mode runs routine commands on its own classifier's say-so and
 // asks about the ones it holds, but only a client declaring a prompting type
 // gets asked; any other client gets a silent "Auto mode blocked this action".
-// Supacode must then leave that question to the user instead of answering it by
+// Supaterm must then leave that question to the user instead of answering it by
 // its own policy, which would approve it in Auto mode.
 export function assertGrokAutoBlockedCommandOutput(
   result: OrchestratorV2ScenarioResult,
@@ -44,7 +44,7 @@ export function assertGrokAutoBlockedCommandOutput(
   assert.deepEqual(
     frames.find(({ frame }) => frame.method === "initialize")?.frame.params?._meta,
     { clientType: "extension" },
-    "Supacode must tell Grok it can show permission prompts",
+    "Supaterm must tell Grok it can show permission prompts",
   );
 
   const commands = projection.turnItems.flatMap((item) =>

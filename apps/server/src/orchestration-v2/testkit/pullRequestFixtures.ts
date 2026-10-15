@@ -6,7 +6,7 @@ import type {
   ThreadId,
   ThreadLinkedPullRequest,
   ThreadPullRequestLink,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 /** The thread fields pull request tests set; timestamps are ISO strings. */

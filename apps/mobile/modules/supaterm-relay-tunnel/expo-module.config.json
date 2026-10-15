@@ -1,0 +1,10 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["SupatermRelayTunnelModule"],
+    "podspecPath": "SupatermRelayTunnel.podspec"
+  },
+  "android": {
+    "modules": ["expo.modules.supatermrelaytunnel.SupatermRelayTunnelModule"]
+  }
+}

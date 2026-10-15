@@ -1,4 +1,4 @@
-import { type ProviderSetupError, TextGenerationError } from "@supacode/contracts";
+import { type ProviderSetupError, TextGenerationError } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -13,8 +13,8 @@ import { type AcpError, AcpRequestError } from "effect-acp/errors";
 
 import { applyAntigravityAcpModelSelection } from "../provider/acp/AntigravityAcpSupport.ts";
 import { removeAntigravitySessionFiles } from "../provider/acp/AntigravitySessionFiles.ts";
-import type * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import * as TextGenerationOperations from "@supacode/provider-core/server/textGenerationOperations";
+import type * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import * as TextGenerationOperations from "@supaterm/provider-core/server/textGenerationOperations";
 
 const ANTIGRAVITY_TIMEOUT_MS = 180_000;
 const MAX_OUTPUT_CHARS = 128_000;
@@ -117,7 +117,7 @@ export const makeAntigravityTextGeneration = Effect.fn("makeAntigravityTextGener
           });
         }
 
-        const cwd = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-antigravity-text-" });
+        const cwd = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-antigravity-text-" });
         let sessionId: string | undefined;
         yield* Effect.addFinalizer(() =>
           removeAntigravitySessionFiles({

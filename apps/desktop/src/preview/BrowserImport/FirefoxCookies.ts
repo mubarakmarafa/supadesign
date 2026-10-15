@@ -9,7 +9,7 @@
  *
  * @module FirefoxCookies
  */
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/sql/SqlClient";

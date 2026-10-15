@@ -44,10 +44,10 @@ async function replayUntilFirstWrite(
       {
         env: {
           ...process.env,
-          SUPACODE_ACP_REPLAY_TRANSCRIPT: Buffer.from(
+          SUPATERM_ACP_REPLAY_TRANSCRIPT: Buffer.from(
             JSON.stringify({ scenario, entries }),
           ).toString("base64"),
-          SUPACODE_ACP_REPLAY_STATUS_PATH: statusPath,
+          SUPATERM_ACP_REPLAY_STATUS_PATH: statusPath,
         },
         stdio: ["pipe", "ignore", "ignore"],
       },

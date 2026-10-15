@@ -1,14 +1,14 @@
-import type { AssetResource, ThreadId } from "@supacode/contracts";
-import { mediaMimeType, mediaMimeTypeFromExtension } from "@supacode/shared/filePreview";
+import type { AssetResource, ThreadId } from "@supaterm/contracts";
+import { mediaMimeType, mediaMimeTypeFromExtension } from "@supaterm/shared/filePreview";
 
 import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
   type MarkdownImageSource,
 } from "./markdownImages.ts";
-import { fileBasename } from "@supacode/shared/path";
-import { splitFilePathPosition } from "@supacode/shared/fileLinks";
-import { splitMarkdownLinkSearchAndHash } from "@supacode/shared/markdownLinks";
+import { fileBasename } from "@supaterm/shared/path";
+import { splitFilePathPosition } from "@supaterm/shared/fileLinks";
+import { splitMarkdownLinkSearchAndHash } from "@supaterm/shared/markdownLinks";
 import {
   mediaFileReference,
   mediaReferenceFileName,

@@ -14,7 +14,7 @@ import {
   ThreadId,
   type OrchestrationV2Command,
   type OrchestrationV2ThreadProjection,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -24,7 +24,7 @@ import * as ThreadManagementService from "./ThreadManagementService.ts";
 import * as ProviderRuntimeRecovery from "./ProviderRuntimeRecoveryService.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as EventSink from "./EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as EffectWorker from "./EffectWorker.ts";
 import * as EffectOutbox from "./EffectOutbox.ts";
 
@@ -759,13 +759,13 @@ it.effect("tells a turn cut mid-way about the background work it lost", () =>
   }),
 );
 
-it.effect("shows a continuation as a Supacode notice whose detail is the prompt", () =>
+it.effect("shows a continuation as a Supaterm notice whose detail is the prompt", () =>
   Effect.gen(function* () {
     const [resumed] = yield* continuationDispatches(cutMidTurn());
     assert.deepEqual(resumed?.notification, {
       source: { kind: "system" },
       outcome: "updated",
-      summary: "Supacode restarted and resumed this turn",
+      summary: "Supaterm restarted and resumed this turn",
       detail: "Continue where you left off.",
     });
   }),

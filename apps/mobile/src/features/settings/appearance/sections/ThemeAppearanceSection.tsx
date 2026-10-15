@@ -4,7 +4,7 @@ import { Pressable, View } from "react-native";
 import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 import { ScopedTheme, ScopedVariables } from "uniwind";
 
-import { mixThemePreviewBase, THEME_PREVIEW_RENDER_SPECS } from "@supacode/shared/themePreview";
+import { mixThemePreviewBase, THEME_PREVIEW_RENDER_SPECS } from "@supaterm/shared/themePreview";
 
 import { SymbolView } from "../../../../components/AppSymbol";
 import { AppText as Text } from "../../../../components/AppText";
@@ -170,7 +170,7 @@ function ThemeCard(props: {
         {choice("dark", props.darkSelected)}
       </View>
       <Text
-        className="min-w-0 flex-1 px-1 text-lg font-supacode-medium"
+        className="min-w-0 flex-1 px-1 text-lg font-supaterm-medium"
         numberOfLines={1}
         pointerEvents="none"
       >
@@ -271,7 +271,7 @@ function ModeCard(props: {
       <Text
         className={
           props.selected
-            ? "text-center text-base font-supacode-bold text-foreground"
+            ? "text-center text-base font-supaterm-bold text-foreground"
             : "text-center text-base text-foreground-muted"
         }
       >
@@ -283,7 +283,7 @@ function ModeCard(props: {
 
 function SectionLabel({ children }: { readonly children: string }) {
   return (
-    <Text className="px-2 text-sm font-supacode-medium text-foreground-muted">{children}</Text>
+    <Text className="px-2 text-sm font-supaterm-medium text-foreground-muted">{children}</Text>
   );
 }
 

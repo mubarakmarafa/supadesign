@@ -9,7 +9,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import * as Queue from "effect/Queue";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
 import * as OpenCodeServerLedger from "./OpenCodeServerLedger.ts";
@@ -216,7 +216,7 @@ it.layer(layerTest)("OpenCodeRuntime inventory", (it) => {
       const hostEnvironment = yield* HostProcess.Environment;
       const executablePath = yield* HostProcess.ExecutablePath;
       const hostPlatform = yield* HostProcess.Platform;
-      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-opencode-inventory-" });
+      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-opencode-inventory-" });
       const isWindows = hostPlatform === "win32";
       const binaryPath = path.join(tempDir, isWindows ? "opencode.cmd" : "opencode");
       const scriptPath = path.join(tempDir, "opencode.mjs");
@@ -239,8 +239,8 @@ it.layer(layerTest)("OpenCodeRuntime inventory", (it) => {
         [
           ...(isWindows ? ["@echo off"] : ["#!/bin/sh"]),
           isWindows
-            ? '"%SUPACODE_TEST_NODE_BINARY%" "%SUPACODE_TEST_OPENCODE_SCRIPT%" %*'
-            : 'exec "$SUPACODE_TEST_NODE_BINARY" "$SUPACODE_TEST_OPENCODE_SCRIPT" "$@"',
+            ? '"%SUPATERM_TEST_NODE_BINARY%" "%SUPATERM_TEST_OPENCODE_SCRIPT%" %*'
+            : 'exec "$SUPATERM_TEST_NODE_BINARY" "$SUPATERM_TEST_OPENCODE_SCRIPT" "$@"',
           "",
         ].join("\n"),
       );
@@ -254,8 +254,8 @@ it.layer(layerTest)("OpenCodeRuntime inventory", (it) => {
         cwd: tempDir,
         environment: {
           ...hostEnvironment,
-          SUPACODE_TEST_NODE_BINARY: executablePath,
-          SUPACODE_TEST_OPENCODE_SCRIPT: scriptPath,
+          SUPATERM_TEST_NODE_BINARY: executablePath,
+          SUPATERM_TEST_OPENCODE_SCRIPT: scriptPath,
         },
       });
 

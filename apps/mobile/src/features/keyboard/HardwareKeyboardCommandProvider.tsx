@@ -1,8 +1,8 @@
 import { StackActions, useNavigation } from "@react-navigation/native";
-import { resolveThreadReferenceCopyTarget } from "@supacode/shared/threadReference";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { resolveThreadForkSource } from "@supacode/client-runtime/state/thread-workflows";
-import { AuthOrchestrationOperateScope, ThreadId } from "@supacode/contracts";
+import { resolveThreadReferenceCopyTarget } from "@supaterm/shared/threadReference";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { resolveThreadForkSource } from "@supaterm/client-runtime/state/thread-workflows";
+import { AuthOrchestrationOperateScope, ThreadId } from "@supaterm/contracts";
 import { Alert } from "react-native";
 import {
   createContext,
@@ -19,7 +19,7 @@ import {
 
 import { tryCopyTextWithHaptic } from "../../lib/copyTextWithHaptic";
 import { suppressKeyboardMotion } from "../../lib/motionInput";
-import { SupacodeKeyboardCommands } from "../../native/SupacodeKeyboardCommands";
+import { SupatermKeyboardCommands } from "../../native/SupatermKeyboardCommands";
 import { useThreadShell } from "../../state/entities";
 import { appAtomRegistry } from "../../state/atom-registry";
 import {
@@ -276,9 +276,9 @@ export function HardwareKeyboardCommandProvider({
 
   return (
     <CommandPaletteContext value={palette}>
-      <SupacodeKeyboardCommands enabledCommands={enabledCommands} onCommand={onCommand}>
+      <SupatermKeyboardCommands enabledCommands={enabledCommands} onCommand={onCommand}>
         {children}
-      </SupacodeKeyboardCommands>
+      </SupatermKeyboardCommands>
       <GitActionProgressOverlay progress={copyFeedback} onDismiss={dismissCopyFeedback} />
     </CommandPaletteContext>
   );

@@ -1,4 +1,4 @@
-import { MIN_SCHEDULED_TASK_INTERVAL_MS, type ScheduledTaskSchedule } from "@supacode/contracts";
+import { MIN_SCHEDULED_TASK_INTERVAL_MS, type ScheduledTaskSchedule } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 const MINUTE_MS = 60_000;

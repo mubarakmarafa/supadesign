@@ -7,13 +7,13 @@ import type {
   ServerAuthSessionMethod,
   AuthSessionId,
   AuthSessionState,
-} from "@supacode/contracts";
-import { EnvironmentHttpCommonError, PRIMARY_LOCAL_ENVIRONMENT_ID } from "@supacode/contracts";
-import type { EnvironmentHttpCommonError as EnvironmentHttpCommonErrorType } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { EnvironmentHttpCommonError, PRIMARY_LOCAL_ENVIRONMENT_ID } from "@supaterm/contracts";
+import type { EnvironmentHttpCommonError as EnvironmentHttpCommonErrorType } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { FetchHttpClient, HttpClientError } from "effect/http";
-import { readPairingEnvironmentId } from "@supacode/shared/remote";
+import { readPairingEnvironmentId } from "@supaterm/shared/remote";
 
 import {
   getPairingTokenFromUrl,

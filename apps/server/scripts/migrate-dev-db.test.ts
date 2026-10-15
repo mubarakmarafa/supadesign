@@ -6,7 +6,7 @@ import * as Path from "effect/Path";
 import * as SqlClient from "effect/sql/SqlClient";
 
 import { runMigrations } from "../src/persistence/Migrations.ts";
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 import { runMigrateDevDb } from "./migrate-dev-db.ts";
 
 const withDatabase = <A, E>(

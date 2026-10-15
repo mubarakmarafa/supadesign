@@ -1,4 +1,4 @@
-import { MessageId, type ProviderUploadFeedbackResult } from "@supacode/contracts";
+import { MessageId, type ProviderUploadFeedbackResult } from "@supaterm/contracts";
 
 import {
   isAtomCommandInterrupted,

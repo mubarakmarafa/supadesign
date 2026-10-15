@@ -6,7 +6,7 @@ import {
   ProviderInstanceId,
   type ServerProvider,
   type ServerProviderModel,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   deriveProviderModelsForDisplay,
@@ -132,7 +132,7 @@ describe("deriveProviderModelsForDisplay", () => {
     const instanceId = ProviderInstanceId.make("codex_work");
     const driver = ProviderDriverKind.make("codex");
     const message =
-      "Codex app-server provider probe failed: Cannot create Codex shadow home entry 'auth.json' because '/home/me/.codex-supacode/work/auth.json' already exists and is not a symlink.";
+      "Codex app-server provider probe failed: Cannot create Codex shadow home entry 'auth.json' because '/home/me/.codex-supaterm/work/auth.json' already exists and is not a symlink.";
     const liveProvider: ServerProvider = {
       instanceId,
       driver,

@@ -9,13 +9,13 @@ export const DesktopBackendBootstrap = Schema.Struct({
   // Omitted when the desktop launches the backend inside WSL, since the
   // Windows-side baseDir maps to /mnt/c/... and the Linux side should use its
   // own home directory instead.
-  supacodeHome: Schema.optional(Schema.String),
+  supatermHome: Schema.optional(Schema.String),
   host: Schema.String,
   desktopBootstrapToken: Schema.String,
   // Present when the desktop rotates the renderer's bootstrap token: the
   // backend derives the accepted tokens from this secret instead of trusting
   // `desktopBootstrapToken` for its whole run. See
-  // `@supacode/shared/desktopBootstrapToken`.
+  // `@supaterm/shared/desktopBootstrapToken`.
   desktopBootstrapSecret: Schema.optionalKey(Schema.String),
   // Set only when the desktop already merged the user's shell environment into
   // the environment it hands this backend. Absent means the backend hydrates

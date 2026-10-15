@@ -1,7 +1,7 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { isCommandAvailable, resolveSpawnCommand } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { isCommandAvailable, resolveSpawnCommand } from "@supaterm/shared/shell";
 import * as Console from "effect/Console";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -135,7 +135,7 @@ export const hashBundle = Effect.fn("hashBundle")(function* (root: string) {
 });
 type FileSystemError = import("effect/PlatformError").PlatformError;
 
-const bundleId = "com.supaterm.supacode.dev";
+const bundleId = "com.supaterm.mobile.dev";
 const roots = Effect.gen(function* () {
   const path = yield* Path.Path;
   const repo = yield* path.fromFileUrl(new URL("../", import.meta.url));
@@ -182,7 +182,7 @@ const command = Effect.fn("nativeClient.command")(function* (
         ...environment,
         APP_VARIANT: "development",
         MOBILE_VERSION_POLICY: "appVersion",
-        SUPACODE_IOS_PERSONAL_TEAM: "0",
+        SUPATERM_IOS_PERSONAL_TEAM: "0",
         CI: "1",
         EXPO_NO_GIT_STATUS: "1",
       },
@@ -205,12 +205,12 @@ const command = Effect.fn("nativeClient.command")(function* (
 const fingerprint = Effect.fn("nativeClient.fingerprint")(function* (platform: NativePlatform) {
   const output = yield* command(yield* HostProcess.ExecutablePath, [
     "--eval",
-    `require('expo/fingerprint').createFingerprintAsync(process.cwd(), { platforms: [process.argv[1]], silent: true }).then(fp => console.log('SUPACODE_NATIVE_FINGERPRINT=' + fp.hash)).catch(e => { console.error(e); process.exitCode = 1; });`,
+    `require('expo/fingerprint').createFingerprintAsync(process.cwd(), { platforms: [process.argv[1]], silent: true }).then(fp => console.log('SUPATERM_NATIVE_FINGERPRINT=' + fp.hash)).catch(e => { console.error(e); process.exitCode = 1; });`,
     platform,
   ]);
   const hash = output
     .split("\n")
-    .find((line) => line.startsWith("SUPACODE_NATIVE_FINGERPRINT="))
+    .find((line) => line.startsWith("SUPATERM_NATIVE_FINGERPRINT="))
     ?.split("=")[1];
   if (!hash || !/^[a-f0-9]{40,64}$/.test(hash))
     return yield* new NativeClientError({ message: "Expo did not return a native fingerprint." });
@@ -303,7 +303,7 @@ const main = Command.make(
       });
     const recordPath = path.join(
       home,
-      ".cache/supacode/native-clients",
+      ".cache/supaterm/native-clients",
       platform,
       `${yield* digest(device)}.json`,
     );
@@ -339,7 +339,7 @@ const main = Command.make(
           true,
         );
         if (platform === "ios") {
-          const output = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-native-client-" });
+          const output = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-native-client-" });
           const { mobile } = yield* roots;
           yield* command("pod", ["install"], true, path.join(mobile, "ios"));
           // Target this simulator only, without Expo's desktop activation or log streaming.
@@ -348,9 +348,9 @@ const main = Command.make(
             [
               "xcodebuild",
               "-workspace",
-              path.join(mobile, "ios/SupacodeDev.xcworkspace"),
+              path.join(mobile, "ios/SupatermDev.xcworkspace"),
               "-scheme",
-              "SupacodeDev",
+              "SupatermDev",
               "-configuration",
               "Debug",
               "-destination",
@@ -367,7 +367,7 @@ const main = Command.make(
               "simctl",
               "install",
               device,
-              path.join(output, "Build/Products/Debug-iphonesimulator/SupacodeDev.app"),
+              path.join(output, "Build/Products/Debug-iphonesimulator/SupatermDev.app"),
             ],
             true,
           );

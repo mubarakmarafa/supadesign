@@ -1,10 +1,10 @@
-import { createAttachmentEnvironmentAtoms } from "@supacode/client-runtime/state/attachments";
-import type { AtomCommand } from "@supacode/client-runtime/state/runtime";
+import { createAttachmentEnvironmentAtoms } from "@supaterm/client-runtime/state/attachments";
+import type { AtomCommand } from "@supaterm/client-runtime/state/runtime";
 import {
   AuthOrchestrationOperateScope,
   EnvironmentAuthorizationError,
   type EnvironmentId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 

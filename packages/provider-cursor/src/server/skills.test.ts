@@ -5,7 +5,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import type * as Scope from "effect/Scope";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 
 import {
   discoverCursorSkills,

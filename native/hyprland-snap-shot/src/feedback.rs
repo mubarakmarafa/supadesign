@@ -290,7 +290,7 @@ pub fn run(directory: &Path, mut options: Options) -> Result<()> {
             &qh,
             surface,
             Layer::Overlay,
-            Some("supacode-snap-shot"),
+            Some("supaterm-snap-shot"),
             Some(&output),
         );
         layer.set_anchor(Anchor::TOP | Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT);

@@ -8,9 +8,9 @@ import type {
   PullRequestMergeMethod,
   PullRequestMergeability,
   PullRequestState,
-} from "@supacode/contracts";
-import { TrimmedNonEmptyString } from "@supacode/contracts";
-import { decodeJsonResult } from "@supacode/shared/schemaJson";
+} from "@supaterm/contracts";
+import { TrimmedNonEmptyString } from "@supaterm/contracts";
+import { decodeJsonResult } from "@supaterm/shared/schemaJson";
 
 import { azureDevOpsPullRequestWebUrl } from "./azureDevOpsPullRequests.ts";
 

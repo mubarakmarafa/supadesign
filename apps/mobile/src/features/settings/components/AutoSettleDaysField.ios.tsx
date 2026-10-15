@@ -14,7 +14,7 @@ import {
 import {
   MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
   MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useState } from "react";
 
 import { useAppearancePreferences } from "../appearance/AppearancePreferencesProvider";

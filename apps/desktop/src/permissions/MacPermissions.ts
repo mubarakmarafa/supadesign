@@ -16,7 +16,7 @@ export class MacPermissions extends Context.Service<
       isGranted?: () => boolean | Promise<boolean>,
     ) => Effect.Effect<void>;
   }
->()("@supacode/desktop/permissions/MacPermissions") {}
+>()("@supaterm/desktop/permissions/MacPermissions") {}
 
 export const layer = Layer.effect(
   MacPermissions,

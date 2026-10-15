@@ -9,13 +9,13 @@ import * as EffectAcpSchemaV1 from "effect-acp/schema-v1";
 import {
   deriveToolActivityPresentation,
   mergeToolActivityData,
-} from "@supacode/shared/toolActivity";
-import { SUPACODE_MCP_TOOL_NAMES } from "@supacode/shared/supacodeMcpToolPresentation";
+} from "@supaterm/shared/toolActivity";
+import { SUPATERM_MCP_TOOL_NAMES } from "@supaterm/shared/supatermMcpToolPresentation";
 import type {
   OrchestrationV2ProviderThreadNativeMetadata,
   ThreadTokenUsageSnapshot,
   ToolLifecycleItemType,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -334,7 +334,7 @@ export function acpContentBlockDisplayText(
       const mimeType = boundedContentMetadata(content.mimeType, 256) || "unknown type";
       return `[ACP audio (${mimeType})]`;
     }
-    case "_supacode_unknown":
+    case "_supaterm_unknown":
       return `[Unsupported ACP content: ${boundedContentMetadata(content.originalType, 128) || "unknown"}]`;
   }
 }
@@ -368,9 +368,9 @@ function sanitizeAcpToolCallContent(
         };
       case "terminal":
         return { type: "terminal", terminalId: entry.terminalId };
-      case "_supacode_unknown":
+      case "_supaterm_unknown":
         return {
-          type: "_supacode_unknown",
+          type: "_supaterm_unknown",
           originalType: boundedContentMetadata(entry.originalType, 128) || "unknown",
           raw: null,
         };
@@ -1050,7 +1050,7 @@ export interface AcpMcpToolCallIdentity {
   readonly input?: Record<string, unknown>;
 }
 
-/** Matches an invocation of Supacode's `acp-mcp-call` bridge fallback CLI. */
+/** Matches an invocation of Supaterm's `acp-mcp-call` bridge fallback CLI. */
 const ACP_MCP_FALLBACK_CALL = /(?:^|[\s"'=])acp-mcp-call[\s"']+([A-Za-z0-9_.-]+)(?:\s+(.+?))?\s*$/u;
 
 function acpMcpFallbackInput(value: string | undefined): Record<string, unknown> | undefined {
@@ -1076,36 +1076,36 @@ function acpMcpFallbackInput(value: string | undefined): Record<string, unknown>
 /**
  * Agents flatten injected MCP tools into model-facing function names with no
  * shared convention (survey of the 2026-08 registry builds): Kilo and
- * opencode use `supacode_<tool>`, claude-acp, qwen, and Amp
- * `mcp__supacode__<tool>`, droid `supacode___<tool>`, Copilot `supacode-<tool>`,
- * cline appends `: <args json>`. Supacode always injects its server as
- * "supacode", and matches are additionally gated on the known Supacode tool
+ * opencode use `supaterm_<tool>`, claude-acp, qwen, and Amp
+ * `mcp__supaterm__<tool>`, droid `supaterm___<tool>`, Copilot `supaterm-<tool>`,
+ * cline appends `: <args json>`. Supaterm always injects its server as
+ * "supaterm", and matches are additionally gated on the known Supaterm tool
  * inventory, so the separator match can stay loose.
  */
-const SUPACODE_MCP_TITLE_CALL =
-  /^(?:mcp[-_]{1,2})?supacode[-_.:/ ]{1,3}(?<tool>[A-Za-z0-9][A-Za-z0-9_.-]*)(?::.*)?$/i;
+const SUPATERM_MCP_TITLE_CALL =
+  /^(?:mcp[-_]{1,2})?supaterm[-_.:/ ]{1,3}(?<tool>[A-Za-z0-9][A-Za-z0-9_.-]*)(?::.*)?$/i;
 
 /**
  * Gemini CLI titles injected MCP calls "<tool> (<server> MCP Server)" and
  * qwen-code appends ": <args json>" to the same template; Auggie namespaces
- * tool-first as "<tool>_supacode".
+ * tool-first as "<tool>_supaterm".
  */
-const SUPACODE_MCP_TITLE_SUFFIX_CALL =
-  /^(?<tool>[A-Za-z0-9][A-Za-z0-9_.-]*?)(?: \(supacode MCP Server\)(?::|$)|[-_.]supacode$)/i;
+const SUPATERM_MCP_TITLE_SUFFIX_CALL =
+  /^(?<tool>[A-Za-z0-9][A-Za-z0-9_.-]*?)(?: \(supaterm MCP Server\)(?::|$)|[-_.]supaterm$)/i;
 
 /**
  * glm-acp-agent and Kimi CLI register injected MCP tools under their bare
  * names; Kimi additionally appends ": <raw args json>". Safe only because the
- * match is gated on the known Supacode tool inventory.
+ * match is gated on the known Supaterm tool inventory.
  */
-const SUPACODE_MCP_BARE_TITLE_CALL = /^(?<tool>[A-Za-z0-9_]+)(?::\s|$)/;
+const SUPATERM_MCP_BARE_TITLE_CALL = /^(?<tool>[A-Za-z0-9_]+)(?::\s|$)/;
 
 /**
  * Best-effort recovery of MCP identity from a generic ACP tool call.
  *
  * ACP has no typed MCP tool-call item, so agents surface MCP calls in
  * agent-specific shapes: codex-acp tags execute calls with
- * `rawInput.server`/`rawInput.tool`, while agents on Supacode's terminal fallback
+ * `rawInput.server`/`rawInput.tool`, while agents on Supaterm's terminal fallback
  * run the `acp-mcp-call <tool>` CLI through their command or an embedded
  * client terminal. Recovered identity lets the projection render the same
  * branded MCP item that native providers produce.
@@ -1139,8 +1139,8 @@ export function extractMcpToolCallIdentity(
   // its toolName identifies the call even under future prefix formats.
   const metaServerId = typeof meta?.serverId === "string" ? meta.serverId.trim() : "";
   const metaToolName = typeof meta?.toolName === "string" ? meta.toolName.trim() : "";
-  if (/^supacode$/i.test(metaServerId) && metaToolName.length > 0) {
-    for (const knownTool of SUPACODE_MCP_TOOL_NAMES) {
+  if (/^supaterm$/i.test(metaServerId) && metaToolName.length > 0) {
+    for (const knownTool of SUPATERM_MCP_TOOL_NAMES) {
       const boundary = metaToolName.length - knownTool.length - 1;
       if (
         metaToolName === knownTool ||
@@ -1148,16 +1148,16 @@ export function extractMcpToolCallIdentity(
           boundary >= 0 &&
           !/[A-Za-z0-9]/.test(metaToolName.charAt(boundary)))
       ) {
-        return { server: "supacode", tool: knownTool };
+        return { server: "supaterm", tool: knownTool };
       }
     }
   }
   const gooseExtension =
     typeof gooseToolCall?.extensionName === "string" ? gooseToolCall.extensionName.trim() : "";
   const assertsForeignOrigin =
-    (metaServerId.length > 0 && !/^supacode$/i.test(metaServerId)) ||
-    (gooseExtension.length > 0 && !/^supacode$/i.test(gooseExtension));
-  // A foreign origin never brands as Supacode. qwen's serverId marks a real MCP
+    (metaServerId.length > 0 && !/^supaterm$/i.test(metaServerId)) ||
+    (gooseExtension.length > 0 && !/^supaterm$/i.test(gooseExtension));
+  // A foreign origin never brands as Supaterm. qwen's serverId marks a real MCP
   // server, but goose reports its built-in extensions (developer__shell,
   // edits) the same way as user MCP servers, so goose stays unclassified and
   // keeps its command and file-change projections.
@@ -1178,17 +1178,17 @@ export function extractMcpToolCallIdentity(
   for (const candidate of candidates) {
     const trimmed = candidate.trim();
     const qualified = /^mcp__(.+?)__(.+)$/i.exec(trimmed);
-    if (qualified?.[1] && qualified[2] && !/^supacode$/i.test(qualified[1]))
+    if (qualified?.[1] && qualified[2] && !/^supaterm$/i.test(qualified[1]))
       return { server: qualified[1], tool: qualified[2] };
     const candidateTool = [
-      SUPACODE_MCP_TITLE_CALL,
-      SUPACODE_MCP_TITLE_SUFFIX_CALL,
-      SUPACODE_MCP_BARE_TITLE_CALL,
+      SUPATERM_MCP_TITLE_CALL,
+      SUPATERM_MCP_TITLE_SUFFIX_CALL,
+      SUPATERM_MCP_BARE_TITLE_CALL,
     ]
       .map((pattern) => pattern.exec(trimmed)?.groups?.tool)
-      .find((tool) => tool !== undefined && SUPACODE_MCP_TOOL_NAMES.has(tool));
+      .find((tool) => tool !== undefined && SUPATERM_MCP_TOOL_NAMES.has(tool));
     if (candidateTool !== undefined) {
-      return { server: "supacode", tool: candidateTool };
+      return { server: "supaterm", tool: candidateTool };
     }
   }
   const commands = [
@@ -1200,10 +1200,10 @@ export function extractMcpToolCallIdentity(
   for (const command of commands) {
     const match = ACP_MCP_FALLBACK_CALL.exec(command);
     if (match?.[1] !== undefined) {
-      // The acp-mcp-call CLI exists only as Supacode's bridge fallback, so the
-      // server identity is Supacode's by construction.
+      // The acp-mcp-call CLI exists only as Supaterm's bridge fallback, so the
+      // server identity is Supaterm's by construction.
       const input = acpMcpFallbackInput(match[2]);
-      return { server: "supacode", tool: match[1], ...(input === undefined ? {} : { input }) };
+      return { server: "supaterm", tool: match[1], ...(input === undefined ? {} : { input }) };
     }
   }
   return undefined;
@@ -1353,7 +1353,7 @@ export function syntheticLoadSessionResponseFromInitialize(
   return {
     ...(modes ? { modes } : {}),
     _meta: {
-      supacodeSessionLoadReady: "replay_idle",
+      supatermSessionLoadReady: "replay_idle",
     },
   };
 }
@@ -1628,7 +1628,7 @@ export function parseSessionUpdateEvent(params: EffectAcpSchema.SessionNotificat
       });
       break;
     }
-    case "_supacode_unknown": {
+    case "_supaterm_unknown": {
       events.push({
         _tag: "UnknownUpdate",
         updateType: boundedContentMetadata(upd.originalSessionUpdate, 128) || "unknown",

@@ -2,7 +2,7 @@ import { PullRequestEntryRow } from "./PullRequestEntryRow";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import IconGitCommit from "@tabler/icons-react-native/IconGitCommit";
-import type { PullRequestActivity, PullRequestComment } from "@supacode/contracts";
+import type { PullRequestActivity, PullRequestComment } from "@supaterm/contracts";
 import { StackActions, type NavigationProp } from "@react-navigation/native";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -77,7 +77,7 @@ function TimelineComment({ comment }: { comment: PullRequestComment }) {
         <PullRequestAvatar actor={comment.author} size={22} />
         <View className="min-w-0 flex-1">
           <Text className="text-sm">
-            <Text className="font-supacode-medium">
+            <Text className="font-supaterm-medium">
               {comment.author?.login ?? "Unknown author"}
             </Text>
             <Text className="text-foreground-muted">
@@ -159,7 +159,7 @@ function TimelineComment({ comment }: { comment: PullRequestComment }) {
               }
               className="flex-row items-center justify-center gap-1 py-2 active:opacity-70"
             >
-              <Text className="text-xs font-supacode-medium text-foreground">
+              <Text className="text-xs font-supaterm-medium text-foreground">
                 {expanded ? "Show less" : "Show more"}
               </Text>
               <SymbolView
@@ -199,7 +199,7 @@ export function pullRequestTimelineRows(
           <View className="flex-row items-center gap-2">
             <PullRequestAvatar actor={thread.comments[0]?.author ?? null} size={22} />
             <Text className="flex-1 text-sm">
-              <Text className="font-supacode-medium">
+              <Text className="font-supaterm-medium">
                 {thread.comments[0]?.author?.login ?? "Unknown author"}
               </Text>
               <Text className="text-foreground-muted"> started a discussion</Text>

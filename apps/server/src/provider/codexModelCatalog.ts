@@ -1,11 +1,11 @@
-import type { ServerProviderUpdateRequiredModel } from "@supacode/contracts";
-import * as ModelCatalog from "@supacode/provider-core/server/ModelCatalog";
-import type { ServerProviderDraft } from "@supacode/provider-core/server/snapshotProbe";
-import { codexModelFamily } from "@supacode/shared/model";
-import { compareSemverVersions, parseSemver } from "@supacode/shared/semver";
+import type { ServerProviderUpdateRequiredModel } from "@supaterm/contracts";
+import * as ModelCatalog from "@supaterm/provider-core/server/ModelCatalog";
+import type { ServerProviderDraft } from "@supaterm/provider-core/server/snapshotProbe";
+import { codexModelFamily } from "@supaterm/shared/model";
+import { compareSemverVersions, parseSemver } from "@supaterm/shared/semver";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import { TrimmedNonEmptyString } from "@supacode/contracts";
+import { TrimmedNonEmptyString } from "@supaterm/contracts";
 
 const CODEX_MATCHING: ModelCatalog.CatalogMatching = { family: codexModelFamily };
 

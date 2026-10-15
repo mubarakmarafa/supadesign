@@ -2,7 +2,7 @@
 import {
   phoneWheelNavigation,
   type createPhoneInteraction,
-} from "@supacode/client-runtime/device/phone-interaction";
+} from "@supaterm/client-runtime/device/phone-interaction";
 
 /** Canvas-local, non-passive listeners consume browser zoom. Safari reports cumulative pinch scale instead of Ctrl-wheel. */
 export function bindPhoneTrackpad(

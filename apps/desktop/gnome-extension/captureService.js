@@ -1,7 +1,7 @@
 // This policy is independent of Shell so lifecycle and authorization can be tested without a desktop.
 export const CLIENT_NAMES = [
-  "com.supaterm.supacode.SnapShot",
-  "com.supaterm.supacode.Development.SnapShot",
+  "com.supaterm.desktop.SnapShot",
+  "com.supaterm.desktop.Development.SnapShot",
 ];
 
 export function isWaylandSession(meta) {
@@ -43,7 +43,7 @@ export class CaptureService {
           break;
         }
       }
-      if (!allowed) throw new Error("Only Supacode may request a snapshot.");
+      if (!allowed) throw new Error("Only Supaterm may request a snapshot.");
       const pid = options ? await this._getProcessId(sender) : undefined;
       this._checkSession();
       const snapshot = await this._takeSnapshot(options?.animate ?? false);

@@ -1,16 +1,16 @@
 # Release Checklist
 
-> For maintainers. Using Supacode? See [docs/user](../user/).
+> For maintainers. Using Supaterm? See [docs/user](../user/).
 
 This document covers the unified release workflow for stable and nightly desktop releases.
 
 ## Browser Touch ID passkeys
 
 Signed macOS builds enable the in-app browser's device-bound Touch ID passkeys only when a
-Developer ID provisioning profile grants `<TEAM_ID>.com.supaterm.supacode.webauthn` in
+Developer ID provisioning profile grants `<TEAM_ID>.com.supaterm.desktop.webauthn` in
 `keychain-access-groups`. Set the optional `MACOS_PROVISIONING_PROFILE` release secret to the
 base64-encoded profile. The release and macOS preview workflows share this setting. Local
-packaging accepts the profile path through `SUPACODE_MACOS_PROVISIONING_PROFILE`.
+packaging accepts the profile path through `SUPATERM_MACOS_PROVISIONING_PROFILE`.
 
 The packager logs whether Touch ID is enabled and records the authorized group in the signed
 package. Verify the installed app with `codesign -d --entitlements :- <app-path>` and create,
@@ -36,7 +36,7 @@ bumps require a new store binary under the existing OTA fingerprint policy.
   - push tag matching `v*.*.*` for a stable release of an explicit commit
   - scheduled nightly check (see [Nightly builds](#nightly-builds))
   - manual `workflow_dispatch` with `channel=nightly`
-  - manual `workflow_dispatch` with `channel=preview`, the maintainers' test train. It exercises the whole release flow (build, sign, notarize, smoke, publish) for a commit that end users must never receive, which is how an unmerged branch or a risky change gets a real release run before it lands. It builds the triggering commit with nightly's versioning under the `preview` prerelease identifier (`0.0.41-preview.<date>.<run>`) and publishes a GitHub prerelease plus the npm packages under the `preview` dist-tag. Preview runs only on manual dispatch, no default npm dist-tag points at it, its desktop builds carry no update feed, and no updater manifest (`latest*.yml`, `nightly*.yml`, blockmaps) is attached, so a stable or nightly install cannot be offered one. The only ways onto it are downloading the release by hand, `npx supacode@preview`, `SUPACODE_CHANNEL=preview` for the install scripts, or `supacode update --channel preview` from a terminal; each prints a warning, and the CLI asks for confirmation when the running build is not itself a preview. The release itself is named as a maintainer test build and its body is a warning rather than generated notes: a changelog of unmerged branch history is not a changelog, and nightly and stable notes are unaffected because each series resolves its previous tag within its own channel. The hosted web app and AUR are skipped. Keep it; it costs nothing when idle.
+  - manual `workflow_dispatch` with `channel=preview`, the maintainers' test train. It exercises the whole release flow (build, sign, notarize, smoke, publish) for a commit that end users must never receive, which is how an unmerged branch or a risky change gets a real release run before it lands. It builds the triggering commit with nightly's versioning under the `preview` prerelease identifier (`0.0.41-preview.<date>.<run>`) and publishes a GitHub prerelease plus the npm packages under the `preview` dist-tag. Preview runs only on manual dispatch, no default npm dist-tag points at it, its desktop builds carry no update feed, and no updater manifest (`latest*.yml`, `nightly*.yml`, blockmaps) is attached, so a stable or nightly install cannot be offered one. The only ways onto it are downloading the release by hand, `npx supaterm@preview`, `SUPATERM_CHANNEL=preview` for the install scripts, or `supaterm update --channel preview` from a terminal; each prints a warning, and the CLI asks for confirmation when the running build is not itself a preview. The release itself is named as a maintainer test build and its body is a warning rather than generated notes: a changelog of unmerged branch history is not a changelog, and nightly and stable notes are unaffected because each series resolves its previous tag within its own channel. The hosted web app and AUR are skipped. Keep it; it costs nothing when idle.
 - A manual stable release builds the commit of the latest published nightly, not `main` HEAD.
   Nightly is the release candidate: verify the nightly, then promote it. Merges to `main` keep
   landing while you verify and never leak into the stable build.
@@ -58,16 +58,16 @@ bumps require a new store binary under the existing OTA fingerprint policy.
   - Nightly runs are always GitHub prereleases and never marked latest.
   - Automatically generated release notes are pinned to the previous tag in the same channel, so stable compares to the previous stable tag and nightly compares to the previous nightly tag.
 - Includes Electron auto-update metadata (for example `latest*.yml`, `nightly*.yml`, and `*.blockmap`) in release assets.
-- Builds a self-contained CLI archive per platform (`supacode-<version>-<platform>-<arch>.tar.gz`, `.zip` on Windows) in the same job as that target's desktop artifact and attaches them to the GitHub Release with a `SHA256SUMS` file, on every channel, for five targets: macOS arm64, Linux x64 and arm64, Windows x64 and arm64. Every archive is built, signed, and smoke-tested on hardware of its own architecture. There is no macOS x64 archive: Node single-executables are unsupported on x64 macOS (the SEA docs list macOS as arm64 only) and the binary segfaults on start; the x64 desktop app is Electron and unaffected.
-  - The archive holds the server as a Node single-executable (`scripts/build-cli-archive.ts`), so unpacking it needs neither Node, npm, nor a compiler. It is the only form in which Supacode manages a runtime: the desktop's SSH environments, the boot service, `supacode update`, and the install scripts all download and verify this archive against `SHA256SUMS`. The npm packages exist for people who run `npx supacode` or `npm install -g supacode` themselves and carry the same archive contents; nothing in the product installs from npm. The `curl | sh` installers are `scripts/install.sh` and `scripts/install.ps1`; the marketing site copies them into its `public/` at build time (`apps/marketing/scripts/stage-install-scripts.mjs`) and serves them at `next.supacode.sh/install.sh` and `/install.ps1`.
+- Builds a self-contained CLI archive per platform (`supaterm-<version>-<platform>-<arch>.tar.gz`, `.zip` on Windows) in the same job as that target's desktop artifact and attaches them to the GitHub Release with a `SHA256SUMS` file, on every channel, for five targets: macOS arm64, Linux x64 and arm64, Windows x64 and arm64. Every archive is built, signed, and smoke-tested on hardware of its own architecture. There is no macOS x64 archive: Node single-executables are unsupported on x64 macOS (the SEA docs list macOS as arm64 only) and the binary segfaults on start; the x64 desktop app is Electron and unaffected.
+  - The archive holds the server as a Node single-executable (`scripts/build-cli-archive.ts`), so unpacking it needs neither Node, npm, nor a compiler. It is the only form in which Supaterm manages a runtime: the desktop's SSH environments, the boot service, `supaterm update`, and the install scripts all download and verify this archive against `SHA256SUMS`. The npm packages exist for people who run `npx supaterm` or `npm install -g supaterm` themselves and carry the same archive contents; nothing in the product installs from npm. The `curl | sh` installers are `scripts/install.sh` and `scripts/install.ps1`; the marketing site copies them into its `public/` at build time (`apps/marketing/scripts/stage-install-scripts.mjs`) and serves them at `supaterm.com/install.sh` and `/install.ps1`.
   - The executable is built with a Node that supports `--build-sea` (`VP_NODE_VERSION=26.8.2`, kept in step with `SEA_NODE_VERSION` in `apps/server/vite.config.ts`), while the repo stays on `engines.node`.
   - Release macOS archives are signed with the Developer ID certificate and notarized using the Apple credentials loaded through fnox. Windows executables use the same Azure Trusted Signing setup as the installer. Every native addon in the macOS archive is signed too, since the hardened runtime refuses unsigned libraries.
   - Each archive is extracted and executed on its build runner (`scripts/smoke-cli-archive.ts`) before it is uploaded.
-- Publishes the CLI to npm with OIDC trusted publishing from the same workflow file, as the same bytes the GitHub Release carries: `scripts/build-npm-platform-packages.ts` unpacks the five CLI archives into `@supabitapp/supacode-<platform>-<arch>` packages (each with `os`/`cpu` set so npm installs only the matching one) and generates the `supacode` launcher, whose `bin/supacode.js` lists them as `optionalDependencies` and execs the installed executable. `npx supacode` therefore needs Node only to run the launcher, never to run the server. `node apps/server/scripts/cli.ts publish` publishes the platform packages first and the launcher last, after a `--dry-run` pass over all of them so an auth or scope error fails before anything is live.
+- Publishes the CLI to npm with OIDC trusted publishing from the same workflow file, as the same bytes the GitHub Release carries: `scripts/build-npm-platform-packages.ts` unpacks the five CLI archives into `@supabitapp/supaterm-<platform>-<arch>` packages (each with `os`/`cpu` set so npm installs only the matching one) and generates the `supaterm` launcher, whose `bin/supaterm.js` lists them as `optionalDependencies` and execs the installed executable. `npx supaterm` therefore needs Node only to run the launcher, never to run the server. `node apps/server/scripts/cli.ts publish` publishes the platform packages first and the launcher last, after a `--dry-run` pass over all of them so an auth or scope error fails before anything is live.
   - stable releases publish npm dist-tag `latest`
   - nightly releases publish npm dist-tag `nightly`
   - preview releases publish npm dist-tag `preview`, which nothing resolves unless asked for by name
-  - one-time setup: the `supabitapp` npm organization must own the `@supabitapp` scope, and `supacode` and each `@supabitapp/supacode-<platform>-<arch>` package needs a trusted publisher registered for this workflow file (see below).
+  - one-time setup: the `supabitapp` npm organization must own the `@supabitapp` scope, and `supaterm` and each `@supabitapp/supaterm-<platform>-<arch>` package needs a trusted publisher registered for this workflow file (see below).
 - Builds the hosted web app for Cloudflare while the desktop jobs run, and makes it live only after a release is published:
   - stable releases are aliased to the `latest` hosted app channel
   - nightly releases are aliased to the `nightly` hosted app channel
@@ -148,11 +148,11 @@ independent from the shared Release App installation.
 
 Cloudflare Workers serves the marketing site and hosted web client. The agent server continues to run on users' machines. Hosting configuration lives in `apps/marketing/wrangler.json` and `apps/web/cloudflare/`.
 
-The release workflow builds static assets while desktop jobs run and uploads them as GitHub artifacts. Deployment starts only after the GitHub Release succeeds. Stable releases update `latest.app.next.supacode.sh`; nightly releases update `nightly.app.next.supacode.sh` and the marketing site at `next.supacode.sh`. Stable releases leave the marketing site unchanged because they can promote an older nightly commit.
+The release workflow builds static assets while desktop jobs run and uploads them as GitHub artifacts. Deployment starts only after the GitHub Release succeeds. Stable releases update `latest.app.supaterm.com`; nightly releases update `nightly.app.supaterm.com` and the marketing site at `supaterm.com`. Stable releases leave the marketing site unchanged because they can promote an older nightly commit.
 
-`app.next.supacode.sh` routes requests to the selected channel. Visiting `/__supacode/channel?channel=latest` or `/__supacode/channel?channel=nightly` saves the `supacode_web_channel` cookie and redirects to the app root. Builds receive the release version through `APP_VERSION` and the channel through `VITE_HOSTED_APP_CHANNEL`.
+`app.supaterm.com` routes requests to the selected channel. Visiting `/__supaterm/channel?channel=latest` or `/__supaterm/channel?channel=nightly` saves the `supaterm_web_channel` cookie and redirects to the app root. Builds receive the release version through `APP_VERSION` and the channel through `VITE_HOSTED_APP_CHANNEL`.
 
-The `cloudflare` fnox profile reads `CLOUDFLARE_API_TOKEN` from the `Supacode Next Cloudflare Hosting` item in the `Supacode Next CI` vault. The token needs Workers Scripts edit access in the configured account, plus Workers Routes edit and Zone read access for `supacode.sh`. Deployment jobs use the `release` GitHub environment. Wrangler manages the custom domains and their certificates.
+The `cloudflare` fnox profile reads `CLOUDFLARE_API_TOKEN` from the `Supacode Next Cloudflare Hosting` item in the `Supacode Next CI` vault. The token needs Workers Scripts edit access in the configured account, plus Workers Routes edit and Zone read access for `supaterm.com`. Deployment jobs use the `release` GitHub environment. Wrangler manages the custom domains and their certificates.
 
 Web previews deploy automatically for trusted authors when a PR opens, reopens, or receives new
 commits, including fork PRs. The trust policy is the same as for macOS previews: bots,
@@ -163,7 +163,7 @@ workflow consumes that optional label, and closing the PR deletes its deployment
 
 PR builds produce static assets without hosting credentials. A separate workflow from the default
 branch checks author trust again, validates the artifact, and deploys to
-`preview-<number>.next.supacode.sh`. The `web-preview` GitHub environment supplies
+`preview-<number>.supaterm.com`. The `web-preview` GitHub environment supplies
 `OP_SERVICE_ACCOUNT_TOKEN` only to that deployment job. Open the URL posted on the pull request
 and pair a reachable server under Settings → Connections.
 
@@ -183,13 +183,13 @@ and pair a reachable server under Settings → Connections.
   - `make_latest` is always `false`
 - Uses the next stable patch version as the nightly base. For example, `0.0.17` produces nightlies on `0.0.18-nightly.*`.
 - Publishes Electron auto-update metadata to the dedicated `nightly` updater channel, so desktop users can opt into that track independently from stable.
-- Publishes the CLI npm packages (`supacode` and `@supabitapp/supacode-<platform>-<arch>`) to the `nightly` npm dist-tag using the same nightly version.
+- Publishes the CLI npm packages (`supaterm` and `@supabitapp/supaterm-<platform>-<arch>`) to the `nightly` npm dist-tag using the same nightly version.
 - Does not commit version bumps back to `main`.
 
 ## Server self-update release invariant
 
 Connected servers update to the client's exact version, not to an npm dist-tag. Every released
-desktop or hosted client version must therefore have a matching `supacode@<version>` package available on
+desktop or hosted client version must therefore have a matching `supaterm@<version>` package available on
 npm before users can receive that client.
 
 The workflow enforces this ordering:
@@ -202,12 +202,12 @@ The workflow enforces this ordering:
 Preserve these dependencies when changing the release graph. Publishing a client first would leave
 the **Update server** action targeting a package version that does not exist yet.
 
-For a release smoke test, confirm `npm view supacode@<version> version` returns the expected version, then
+For a release smoke test, confirm `npm view supaterm@<version> version` returns the expected version, then
 connect the new client to a server on the previous version and verify that the update action
 reconnects to the matching server. When the release adds database migrations, verify that the
 remote update applies them and reconnects. A failed trial must restore the database snapshot and
 restart the previous server. If the installed launcher does not support the target protocol,
-verify that the update stops before restart and run `npx supacode@<version> service update` once on the
+verify that the update stops before restart and run `npx supaterm@<version> service update` once on the
 server machine. Also test the manual or desktop-managed guidance when those environments are
 available.
 
@@ -222,7 +222,7 @@ available.
   - The desktop UI shows a rocket update button when an update is available; click once to download, click again after download to restart/install.
 - Provider: GitHub Releases (`provider: github`) configured at build time.
 - Repository slug source:
-  - `SUPACODE_DESKTOP_UPDATE_REPOSITORY` (format `owner/repo`), if set.
+  - `SUPATERM_DESKTOP_UPDATE_REPOSITORY` (format `owner/repo`), if set.
   - otherwise `GITHUB_REPOSITORY` from GitHub Actions.
 - Required release assets for updater:
   - platform installers (`.exe`, `.dmg`, `.AppImage`, `.deb`, plus macOS `.zip` for Squirrel.Mac update payloads)
@@ -240,11 +240,11 @@ executables declared as unpacked by that archive must be present at the matching
 paths below `resources/server.asar.unpacked`. The Windows-native backend reads
 the archive in place through Electron. Packaged Windows builds also ship
 `resources/wsl-runtime.tar.gz` plus its SHA-256 sidecar: the Linux CLI archive
-(`supacode-<version>-linux-<arch>.tar.gz`, the same arch as the Windows host) built
+(`supaterm-<version>-linux-<arch>.tar.gz`, the same arch as the Windows host) built
 by the Linux desktop job and handed to the Windows desktop build as
 `--wsl-runtime`, copied in verbatim so WSL runs the exact bytes a Linux user
 downloads. WSL verifies and extracts that archive
-into `~/.supacode/wsl-runtime/sha256-<archive-digest>` inside the selected distro,
+into `~/.supaterm/wsl-runtime/sha256-<archive-digest>` inside the selected distro,
 then reuses it for later launches of the same update.
 
 Windows keeps JavaScript and package metadata inside `app.asar` and unpacks only
@@ -264,7 +264,7 @@ break:
 - A Windows build given `--wsl-runtime` omits the WSL archive or SHA-256
   sidecar, or the sidecar digest does not match the emitted archive.
 - The emitted WSL archive is not a Linux CLI release archive: it must unpack to
-  a single `supacode-<version>-linux-<arch>` directory holding `supacode`, `client/`, and
+  a single `supaterm-<version>-linux-<arch>` directory holding `supaterm`, `client/`, and
   `node_modules/` with the Linux node-pty binary, and must not carry a loose
   server bundle (`bin.mjs`).
 - The external Windows resource monitor is absent.
@@ -282,17 +282,17 @@ blockmaps, with a 60 MB maximum for a representative sidecar-to-sidecar update.
 
 The workflow runs `node scripts/build-npm-platform-packages.ts` on the downloaded CLI archives, then
 `node apps/server/scripts/cli.ts publish --packages-dir npm-packages`, which runs `npm publish` on
-each `@supabitapp/supacode-<platform>-<arch>.tgz` and finally on `supacode.tgz`, the launcher. The script publishes
+each `@supabitapp/supaterm-<platform>-<arch>.tgz` and finally on `supaterm.tgz`, the launcher. The script publishes
 tarballs it built itself rather than directories: `npm publish <dir>` strips `node_modules/` from the
 tarball no matter what `files` says, and the executable loads its native addons from there. Six
-packages are published per release: `supacode`, `@supabitapp/supacode-darwin-arm64`,
-`@supabitapp/supacode-linux-arm64`, `@supabitapp/supacode-linux-x64`, `@supabitapp/supacode-win32-arm64`,
-`@supabitapp/supacode-win32-x64`.
+packages are published per release: `supaterm`, `@supabitapp/supaterm-darwin-arm64`,
+`@supabitapp/supaterm-linux-arm64`, `@supabitapp/supaterm-linux-x64`, `@supabitapp/supaterm-win32-arm64`,
+`@supabitapp/supaterm-win32-x64`.
 
 Checklist:
 
-1. Confirm the publishing account owns `supacode` and can publish in the `@supabitapp` organization.
-2. For `supacode` and each `@supabitapp/supacode-<platform>-<arch>` package, configure a Trusted Publisher in the
+1. Confirm the publishing account owns `supaterm` and can publish in the `@supabitapp` organization.
+2. For `supaterm` and each `@supabitapp/supaterm-<platform>-<arch>` package, configure a Trusted Publisher in the
    npm package settings (a package that has never been published needs a first publish or a
    placeholder before the setting exists; the `--dry-run` step in `publish_cli` reports which
    names are still rejected):
@@ -310,9 +310,9 @@ Checklist:
 ## 1) Release validation and unsigned builds
 
 There is no dry-run tag path. Pushing any accepted non-nightly tag, including
-`v0.0.0-test.1`, classifies the run as the stable channel. It publishes `supacode` with npm dist-tag
-`latest`, creates a real GitHub Release, aliases the hosted app to `latest.app.next.supacode.sh` and
-`app.next.supacode.sh`, and can commit a version bump to `main` in the finalize job. Do not push a test tag
+`v0.0.0-test.1`, classifies the run as the stable channel. It publishes `supaterm` with npm dist-tag
+`latest`, creates a real GitHub Release, aliases the hosted app to `latest.app.supaterm.com` and
+`app.supaterm.com`, and can commit a version bump to `main` in the finalize job. Do not push a test tag
 to validate the workflow.
 
 The workflow has no non-publishing `workflow_dispatch` mode. Use normal CI or local quality gates to

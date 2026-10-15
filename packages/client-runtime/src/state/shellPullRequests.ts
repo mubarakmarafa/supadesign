@@ -2,7 +2,7 @@ import {
   OrchestrationV2ShellSnapshot,
   type ThreadId,
   ThreadPullRequestLink,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";

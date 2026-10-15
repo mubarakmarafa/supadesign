@@ -1,6 +1,6 @@
-import { AgentScope } from "@supacode/shared/AgentScope";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+import { AgentScope } from "@supaterm/shared/AgentScope";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import {
   ModelSelection,
   OrchestrationV2DomainEvent,
@@ -11,7 +11,7 @@ import {
   ProviderSessionId,
   ThreadId,
   type ProviderThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -34,13 +34,13 @@ import * as Stream from "effect/Stream";
 
 import { ProviderWorkspaceMissingError } from "../provider/Errors.ts";
 import * as ProjectService from "../project/ProjectService.ts";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
 import * as ServerSettings from "../serverSettings.ts";
 import * as McpSessionRegistry from "../mcp/McpSessionRegistry.ts";
 import * as EventSink from "./EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProviderEventIngestor from "./ProviderEventIngestor.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
 
@@ -190,7 +190,7 @@ export interface ProviderSessionManagerV2Shape {
 export class ProviderSessionManagerV2 extends Context.Service<
   ProviderSessionManagerV2,
   ProviderSessionManagerV2Shape
->()("supacode/orchestration-v2/ProviderSessionManager/ProviderSessionManagerV2") {}
+>()("supaterm/orchestration-v2/ProviderSessionManager/ProviderSessionManagerV2") {}
 
 interface LiveSessionEntry {
   readonly attachedThreadIds: ReadonlySet<ThreadId>;
@@ -246,7 +246,7 @@ export interface ProviderSessionManagerV2LayerOptions {
   readonly idleTimeoutMs?: number;
   /** Cap on how long idle release may be deferred for pending background work. */
   readonly maxIdlePinMs?: number;
-  /** Test replay harnesses can omit Supacode's MCP server from provider protocol fixtures. */
+  /** Test replay harnesses can omit Supaterm's MCP server from provider protocol fixtures. */
   readonly configureMcp?: boolean;
 }
 
@@ -1928,7 +1928,7 @@ export const layerWithOptions = (
                 Effect.gen(function* () {
                   // Some providers can block before a run subscriber exists
                   // (project trust, login, or session-switch hooks). Persist
-                  // their runless request artifacts directly so the normal Supacode
+                  // their runless request artifacts directly so the normal Supaterm
                   // request UI can answer them and unblock session setup.
                   const threadId = sessionScopedRuntimeRequestThreadId(event);
                   if (threadId !== undefined) {

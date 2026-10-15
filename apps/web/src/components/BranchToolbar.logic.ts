@@ -4,15 +4,15 @@ import type {
   VcsRef,
   ProjectId,
   WorktreeSubmodules,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
-import { sanitizeNewRefName } from "@supacode/shared/git";
+import { sanitizeNewRefName } from "@supaterm/shared/git";
 import { toSortableTimestamp } from "../lib/threadSort";
 export {
   dedupeRemoteBranchesWithLocalMatches,
   deriveLocalBranchNameFromRemoteRef,
   sanitizeNewRefName,
-} from "@supacode/shared/git";
+} from "@supaterm/shared/git";
 
 export interface EnvironmentOption {
   environmentId: EnvironmentId;

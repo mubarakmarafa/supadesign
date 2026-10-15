@@ -1,4 +1,4 @@
-import type { EnvironmentId, OrchestrationV2ShellSnapshot } from "@supacode/contracts";
+import type { EnvironmentId, OrchestrationV2ShellSnapshot } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 

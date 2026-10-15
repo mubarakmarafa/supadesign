@@ -14,14 +14,14 @@ import {
   ProviderInstanceId,
   ThreadId,
   type OrchestrationV2DomainEvent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as SqlClient from "effect/sql/SqlClient";
 import * as Stream from "effect/Stream";
 import { vi } from "vite-plus/test";
-import * as ThreadFindText from "@supacode/shared/threadFindText";
+import * as ThreadFindText from "@supaterm/shared/threadFindText";
 
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
@@ -522,22 +522,22 @@ describe("V2 thread find", () => {
   it.effect("searches displayed skill labels and invalidates parsed text when labels change", () =>
     Effect.gen(function* () {
       const projection = yield* setup;
-      yield* putItems([item("skill", 1, "Use $test-supacode-app now")]);
+      yield* putItems([item("skill", 1, "Use $test-supaterm-app now")]);
       const input = {
         threadId,
-        query: "Supacode App Testing",
-        skills: [{ name: "test-supacode-app", displayName: "Supacode App Testing" }],
+        query: "Supaterm App Testing",
+        skills: [{ name: "test-supaterm-app", displayName: "Supaterm App Testing" }],
       };
       assert.equal((yield* projection.searchThread(input)).totalMatches, 1);
       assert.equal((yield* projection.searchThread({ ...input, skills: [] })).totalMatches, 0);
 
       yield* putItems(
-        [item("skill-plan", 2, "# Verify\nUse $test-supacode-app now", "proposed_plan")],
+        [item("skill-plan", 2, "# Verify\nUse $test-supaterm-app now", "proposed_plan")],
         "plan",
       );
       assert.equal((yield* projection.searchThread(input)).totalMatches, 1);
       assert.equal(
-        (yield* projection.searchThread({ ...input, query: "$test-supacode-app" })).totalMatches,
+        (yield* projection.searchThread({ ...input, query: "$test-supaterm-app" })).totalMatches,
         1,
       );
 

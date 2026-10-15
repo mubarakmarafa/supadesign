@@ -1,4 +1,4 @@
-import { OrchestrationDispatchCommandError } from "@supacode/contracts";
+import { OrchestrationDispatchCommandError } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { wasBootstrapThreadDeleted, wasBootstrapThreadNotCreated } from "./orchestration.ts";

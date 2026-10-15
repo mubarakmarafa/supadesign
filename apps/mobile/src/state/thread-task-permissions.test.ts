@@ -1,6 +1,6 @@
-import { AuthOrchestrationOperateScope, RuntimeRequestId } from "@supacode/contracts";
+import { AuthOrchestrationOperateScope, RuntimeRequestId } from "@supaterm/contracts";
 import type { DraftComposerImageAttachment } from "../lib/composerImages";
-import type { PendingThreadRequests } from "@supacode/client-runtime/state/thread-requests";
+import type { PendingThreadRequests } from "@supaterm/client-runtime/state/thread-requests";
 import { AsyncResult, type Atom } from "effect/reactivity";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 

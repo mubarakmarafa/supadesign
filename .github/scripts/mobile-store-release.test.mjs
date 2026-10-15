@@ -13,7 +13,7 @@ const ios = {
   platform: "ios",
   version: "26.0.10",
   buildNumber: "10",
-  identifier: "com.supaterm.supacode",
+  identifier: "com.supaterm.mobile",
   projectFullName: "@supabitapp/supacode",
 };
 const android = { ...ios, platform: "android", versionCode: 25 };
@@ -21,7 +21,7 @@ const android = { ...ios, platform: "android", versionCode: 25 };
 NodeTest.test("reads the exact signed Android version and package", () => {
   NodeAssert.deepEqual(
     androidManifestIdentity(
-      '<manifest package="com.supaterm.supacode" android:versionCode="25" android:versionName="26.0.10"/>',
+      '<manifest package="com.supaterm.mobile" android:versionCode="25" android:versionName="26.0.10"/>',
     ),
     { identifier: ios.identifier, version: ios.version, versionCode: 25 },
   );
@@ -33,7 +33,7 @@ NodeTest.test("reads the exact signed Android version and package", () => {
 
 NodeTest.test("rejects development identifiers and invalid native build numbers", () => {
   NodeAssert.throws(
-    () => validateStoreBuild({ ...ios, identifier: "com.supaterm.supacode.dev" }),
+    () => validateStoreBuild({ ...ios, identifier: "com.supaterm.mobile.dev" }),
     /Invalid production/,
   );
   NodeAssert.throws(() => validateStoreBuild({ ...ios, buildNumber: "latest" }), /Invalid iOS/);

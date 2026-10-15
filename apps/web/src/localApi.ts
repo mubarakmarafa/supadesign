@@ -1,4 +1,4 @@
-import type { ConfirmDialogOptions, ContextMenuItem, LocalApi } from "@supacode/contracts";
+import type { ConfirmDialogOptions, ContextMenuItem, LocalApi } from "@supaterm/contracts";
 
 import { requestConfirmDialog } from "./confirmDialog";
 import { dismissContextMenu, showContextMenuFallback } from "./contextMenuFallback";

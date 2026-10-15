@@ -1,4 +1,4 @@
-import type { SshDeviceHostConfig } from "@supacode/contracts";
+import type { SshDeviceHostConfig } from "@supaterm/contracts";
 
 /** Apply one host change without replacing another environment's host list. */
 export function updateDeviceHosts(

@@ -4,16 +4,16 @@ import type {
   ServerProvider,
   ServerProviderUsageWindow,
   UsageProviderKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   elapsedShare,
   formatResetsIn,
   limitsNotice,
   paceOf,
   remainingPercent,
-} from "@supacode/shared/usageLimits";
+} from "@supaterm/shared/usageLimits";
 import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from "react";
-import { refreshUsageLimits } from "@supacode/client-runtime/state/usage";
+import { refreshUsageLimits } from "@supaterm/client-runtime/state/usage";
 import { Linking, Pressable, View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";
@@ -57,7 +57,7 @@ function WindowRow(props: {
     <View className="gap-1">
       <View className="flex-row items-baseline justify-between gap-3">
         <Text className="text-sm text-foreground">{window.label}</Text>
-        <Text className="text-sm font-supacode-medium tabular-nums text-foreground">
+        <Text className="text-sm font-supaterm-medium tabular-nums text-foreground">
           {remaining}% left
         </Text>
       </View>
@@ -148,7 +148,7 @@ export function AccountLimits(props: {
       <View className="flex-row items-center gap-2">
         <ProviderIcon provider={props.driver} size={16} />
         <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
-          <Text className="text-base font-supacode-medium text-foreground">{props.label}</Text>
+          <Text className="text-base font-supaterm-medium text-foreground">{props.label}</Text>
           {props.instanceLabel !== props.label ? (
             <AccountInstanceLabel key={props.instanceLabel} value={props.instanceLabel} />
           ) : null}
@@ -175,7 +175,7 @@ export function AccountLimits(props: {
           className="min-h-11 justify-center"
           onPress={() => void Linking.openURL(externalUsage.url).catch(() => undefined)}
         >
-          <Text className="text-sm font-supacode-medium text-primary">Manage usage</Text>
+          <Text className="text-sm font-supaterm-medium text-primary">Manage usage</Text>
         </Pressable>
       ) : null}
       {props.footer}

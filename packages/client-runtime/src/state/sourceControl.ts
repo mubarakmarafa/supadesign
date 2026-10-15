@@ -1,4 +1,4 @@
-import { WS_METHODS } from "@supacode/contracts";
+import { WS_METHODS } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import {

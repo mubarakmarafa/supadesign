@@ -1,12 +1,12 @@
-import { createAdvertisedEndpoint } from "@supacode/shared/advertisedEndpoint";
-import type { AdvertisedEndpoint, AdvertisedEndpointProvider } from "@supacode/contracts";
+import { createAdvertisedEndpoint } from "@supaterm/shared/advertisedEndpoint";
+import type { AdvertisedEndpoint, AdvertisedEndpointProvider } from "@supaterm/contracts";
 import {
   buildTailscaleHttpsBaseUrl,
   isTailscaleIpv4Address,
   parseTailscaleMagicDnsName,
   probeTailscaleHttpsEndpoint,
   readTailscaleStatus,
-} from "@supacode/tailscale";
+} from "@supaterm/tailscale";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as HttpClient from "effect/http/HttpClient";
@@ -14,7 +14,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
 import type { NetworkInterfaces } from "./DesktopNetworkInterfaces.ts";
 
-export { parseTailscaleMagicDnsName } from "@supacode/tailscale";
+export { parseTailscaleMagicDnsName } from "@supaterm/tailscale";
 
 const TAILSCALE_ENDPOINT_PROVIDER: AdvertisedEndpointProvider = {
   id: "tailscale",

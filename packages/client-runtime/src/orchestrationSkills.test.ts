@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { EnvironmentId, type OrchestrationSkillsStatus } from "@supacode/contracts";
+import { EnvironmentId, type OrchestrationSkillsStatus } from "@supaterm/contracts";
 import { runOrchestrationSkillsAction, orchestrationSkillsView } from "./orchestrationSkills.ts";
 
 const environments = ["local", "remote"].map((label) => ({
@@ -11,7 +11,7 @@ const installed: OrchestrationSkillsStatus = {
     {
       directory: "/skills",
       providers: ["Claude"],
-      skills: [{ name: "supacode-advisor", state: "installed", managed: true }],
+      skills: [{ name: "supaterm-advisor", state: "installed", managed: true }],
     },
   ],
   unsupportedProviders: [],
@@ -46,7 +46,7 @@ describe("orchestration skill scope", () => {
       targets: [
         {
           ...installed.targets[0]!,
-          skills: [{ name: "supacode-advisor", state: "conflict", managed: false }],
+          skills: [{ name: "supaterm-advisor", state: "conflict", managed: false }],
         },
       ],
     });

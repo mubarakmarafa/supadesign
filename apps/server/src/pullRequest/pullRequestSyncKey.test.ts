@@ -1,4 +1,4 @@
-import { ProjectId } from "@supacode/contracts";
+import { ProjectId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { pullRequestSyncKey } from "./pullRequestSyncKey.ts";

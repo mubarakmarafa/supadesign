@@ -1,5 +1,5 @@
-import { backgroundWorkHoldsCompletion } from "@supacode/shared/orchestrationV2PendingBackgroundWork";
-import { threadPullRequestsOf } from "@supacode/shared/threadPullRequests";
+import { backgroundWorkHoldsCompletion } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
+import { threadPullRequestsOf } from "@supaterm/shared/threadPullRequests";
 import type {
   ThreadLinkedPullRequest,
   EnvironmentId,
@@ -15,7 +15,7 @@ import type {
   ProviderInstanceId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 import { formatSubagentDisplayTitle } from "./subagentDisplay.ts";
@@ -127,14 +127,14 @@ export interface EnvironmentThreadShell {
   readonly unsettledAt: string | null;
   readonly snoozedUntil: string | null;
   readonly snoozedAt: string | null;
-  readonly limitRecovery?: import("@supacode/contracts").OrchestrationV2LimitRecovery | null;
+  readonly limitRecovery?: import("@supaterm/contracts").OrchestrationV2LimitRecovery | null;
   readonly pinnedAt: string | null;
   readonly autoSettleDisabledAt?: string | null;
   /** Slot in the user-arranged pinned order; null for keyless (legacy) pins. */
   readonly pinOrderKey: string | null;
   /** Slot in the user-arranged active order; null for keyless active threads. */
   readonly activeOrderKey: string | null;
-  readonly pullRequests: ReadonlyArray<import("@supacode/contracts").ThreadPullRequestLink>;
+  readonly pullRequests: ReadonlyArray<import("@supaterm/contracts").ThreadPullRequestLink>;
   readonly linkedPullRequest?: ThreadLinkedPullRequest | null;
   readonly branchPullRequest?: ThreadLinkedPullRequest | null;
   /**

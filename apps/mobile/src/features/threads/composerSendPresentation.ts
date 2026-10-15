@@ -1,7 +1,7 @@
 import {
   alternateComposerDispatchAction,
   type ActiveTurnComposerAction,
-} from "@supacode/client-runtime/state/composer-dispatch";
+} from "@supaterm/client-runtime/state/composer-dispatch";
 
 import type { FollowUpBehavior } from "../../lib/followUpBehavior";
 

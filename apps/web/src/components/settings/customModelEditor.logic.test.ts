@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { ProviderDriverKind, type ModelCapabilities } from "@supacode/contracts";
+import { ProviderDriverKind, type ModelCapabilities } from "@supaterm/contracts";
 
 import {
   DESCRIPTOR_PRESETS_BY_KIND,

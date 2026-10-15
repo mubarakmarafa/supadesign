@@ -1,5 +1,5 @@
-import { PROVIDER_DISPLAY_NAMES, type ServerProvider } from "@supacode/contracts";
-import { compareSemverVersions } from "@supacode/shared/semver";
+import { PROVIDER_DISPLAY_NAMES, type ServerProvider } from "@supaterm/contracts";
+import { compareSemverVersions } from "@supaterm/shared/semver";
 
 const RUNTIME_NAMES: Partial<Record<string, string>> = {
   claudeAgent: "Claude Code",

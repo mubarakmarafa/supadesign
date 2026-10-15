@@ -5,24 +5,24 @@
  * @module provider/Drivers/claudeUsage
  */
 
-import type { ClaudeSettings } from "@supacode/contracts";
+import type { ClaudeSettings } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import {
   parseTimestampMs,
   tokenCount,
   type ProviderUsageReader,
   type TranscriptUsageFormat,
   type UsageRecord,
-} from "@supacode/provider-core/server/usage";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/provider-core/server/usage";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 /**
  * Parses one line of a Claude Code transcript.
  *
- * Supacode writes one record per assistant *content block*, and every one of
+ * Supaterm writes one record per assistant *content block*, and every one of
  * those records repeats the same complete `usage` object for the parent
  * message. Summing them overcounts by roughly 2.4x on a real workload, so the
  * caller must drop repeats by `dedupeKey` and keep the first.

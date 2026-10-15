@@ -53,9 +53,9 @@ describe("rewriteMarkdownFileUriHref", () => {
   it("normalizes file uri hrefs for windows drive paths", () => {
     expect(
       rewriteMarkdownFileUriHref(
-        "file:///D:/Programme/supacode/apps/web/src/components/chat/OpenInPicker.tsx#L69",
+        "file:///D:/Programme/supaterm/apps/web/src/components/chat/OpenInPicker.tsx#L69",
       ),
-    ).toBe("D:/Programme/supacode/apps/web/src/components/chat/OpenInPicker.tsx#L69");
+    ).toBe("D:/Programme/supaterm/apps/web/src/components/chat/OpenInPicker.tsx#L69");
   });
 
   it("preserves file uri authorities as windows UNC paths", () => {
@@ -73,9 +73,9 @@ describe("rewriteMarkdownFileUriHref", () => {
   it("unwraps angle-bracketed file uri hrefs", () => {
     expect(
       rewriteMarkdownFileUriHref(
-        " <file:///D:/Programme/supacode/apps/web/src/markdown-links.ts> ",
+        " <file:///D:/Programme/supaterm/apps/web/src/markdown-links.ts> ",
       ),
-    ).toBe("D:/Programme/supacode/apps/web/src/markdown-links.ts");
+    ).toBe("D:/Programme/supaterm/apps/web/src/markdown-links.ts");
   });
 });
 
@@ -295,7 +295,7 @@ describe("directory paths with a trailing separator", () => {
 });
 
 it("routes the project-root code link to the workspace explorer", () => {
-  const cwd = "/Users/saphid/.supacode/worktrees/ov2-standalone-20260918";
+  const cwd = "/Users/saphid/.supaterm/worktrees/ov2-standalone-20260918";
   expect(resolveInlineCodeFileLinkMeta(cwd, cwd)).toMatchObject({
     workspaceRelativePath: ".",
     filePath: cwd,

@@ -5,7 +5,7 @@ import {
   type OrchestrationV2DomainEvent,
   ProviderThreadId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -20,10 +20,10 @@ import {
 } from "./CheckpointRestoreSafety.ts";
 import { CheckpointServiceV2 } from "./CheckpointService.ts";
 import { EventSinkV2 } from "./EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import { ProjectionStoreV2 } from "./ProjectionStore.ts";
 import * as ProjectStore from "./ProjectStore.ts";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import { ProviderSessionManagerV2 } from "./ProviderSessionManager.ts";
 import { RuntimePolicyV2 } from "./RuntimePolicy.ts";
 import * as ThreadCommandExecutor from "./ThreadCommandExecutor.ts";
@@ -78,7 +78,7 @@ export interface CheckpointRollbackServiceV2Shape {
 export class CheckpointRollbackServiceV2 extends Context.Service<
   CheckpointRollbackServiceV2,
   CheckpointRollbackServiceV2Shape
->()("supacode/orchestration-v2/CheckpointRollbackService/CheckpointRollbackServiceV2") {}
+>()("supaterm/orchestration-v2/CheckpointRollbackService/CheckpointRollbackServiceV2") {}
 
 export const layer: Layer.Layer<
   CheckpointRollbackServiceV2,

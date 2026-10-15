@@ -51,7 +51,7 @@ function fixture() {
   };
 }
 
-it("waits for a remapped Supacode window and its title before activating", () => {
+it("waits for a remapped Supaterm window and its title before activating", () => {
   const f = fixture();
   f.run();
   const other = { pid: 999, caption: "Draft", minimized: false, captionChanged: signal() };

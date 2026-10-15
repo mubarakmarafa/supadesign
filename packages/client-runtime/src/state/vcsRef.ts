@@ -1,4 +1,4 @@
-import type { EnvironmentId, VcsRef as ContractVcsRef } from "@supacode/contracts";
+import type { EnvironmentId, VcsRef as ContractVcsRef } from "@supaterm/contracts";
 
 export interface VcsRefTarget {
   readonly environmentId: EnvironmentId | null;

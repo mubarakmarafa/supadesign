@@ -7,8 +7,8 @@ import {
   PlayIcon,
   Minimize2Icon,
 } from "lucide-react";
-import type { ResolvedKeybindingsConfig } from "@supacode/contracts";
-import type { ClientSettings } from "@supacode/contracts/settings";
+import type { ResolvedKeybindingsConfig } from "@supaterm/contracts";
+import type { ClientSettings } from "@supaterm/contracts/settings";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
 import { useEnvironmentIdentificationMode } from "~/hooks/useSettings";
 import { formatContextWindowTokens } from "~/lib/contextWindow";
@@ -24,7 +24,7 @@ import {
   type ActiveTurnComposerAction,
   alternateComposerDispatchAction,
   resolveComposerDispatchMode,
-} from "@supacode/client-runtime/state/composer-dispatch";
+} from "@supaterm/client-runtime/state/composer-dispatch";
 
 interface PendingActionState {
   questionIndex: number;

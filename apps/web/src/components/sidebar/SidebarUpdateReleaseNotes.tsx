@@ -1,4 +1,4 @@
-import type { DesktopBridge, DesktopUpdateState } from "@supacode/contracts";
+import type { DesktopBridge, DesktopUpdateState } from "@supaterm/contracts";
 import { ExternalLinkIcon } from "lucide-react";
 
 import {

@@ -1,8 +1,8 @@
 import {
   formatProviderSubagentStatus,
   type ProviderSubagentStatus,
-} from "@supacode/client-runtime/state/thread-execution";
-import { isOrchestrationV2WorkActive } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/thread-execution";
+import { isOrchestrationV2WorkActive } from "@supaterm/contracts";
 import { View } from "react-native";
 
 import { AppText as Text } from "../../components/AppText";
@@ -49,7 +49,7 @@ export function ProviderSubagentBar(props: {
           ) : null}
           <Text
             numberOfLines={1}
-            className="min-w-0 shrink font-supacode-bold text-sm text-foreground"
+            className="min-w-0 shrink font-supaterm-bold text-sm text-foreground"
           >
             {props.modelLabel}
           </Text>

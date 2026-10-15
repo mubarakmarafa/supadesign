@@ -27,7 +27,7 @@ import {
   ServerSettings,
   ServerSettingsError,
   type ServerSettingsPatch,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cache from "effect/Cache";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -48,17 +48,17 @@ import * as Semaphore from "effect/Semaphore";
 import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import * as SqlClient from "effect/sql/SqlClient";
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
-import { resolveSymlinkTarget } from "@supacode/shared/symlink";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
+import { resolveSymlinkTarget } from "@supaterm/shared/symlink";
 import * as ServerConfig from "./config.ts";
-import { type DeepPartial, deepMerge } from "@supacode/shared/Struct";
-import { fromJsonStringPretty, fromLenientJson } from "@supacode/shared/schemaJson";
+import { type DeepPartial, deepMerge } from "@supaterm/shared/Struct";
+import { fromJsonStringPretty, fromLenientJson } from "@supaterm/shared/schemaJson";
 import {
   applyServerSettingsPatch,
   deriveLegacyProjectOverrides,
   fallbackTextGenerationModelSelection,
   isModelSelectionProviderEnabled,
-} from "@supacode/shared/serverSettings";
+} from "@supaterm/shared/serverSettings";
 import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
 import {
   readSecretFieldValues,
@@ -70,7 +70,7 @@ import { mapSettingsSecrets, SECRET_REDACTED, type SettingsSecret } from "./sett
 export {
   resolveReviewGuideModelSelection,
   resolveSourceControlWriterModelSelection,
-} from "@supacode/shared/serverSettings";
+} from "@supaterm/shared/serverSettings";
 
 const encodeServerSettings = Schema.encodeEffect(ServerSettings);
 const LegacySourceControlSettingsJson = Schema.Struct({
@@ -231,7 +231,7 @@ export class ServerSettingsService extends Context.Service<
      */
     readonly subscribeChanges: Effect.Effect<Stream.Stream<ServerSettings>, never, Scope.Scope>;
   }
->()("supacode/serverSettings/ServerSettingsService") {
+>()("supaterm/serverSettings/ServerSettingsService") {
   /** @deprecated Import and use `layerTest` from this module. */
   static readonly layerTest = (overrides: DeepPartial<ServerSettings> = {}) => layerTest(overrides);
 }

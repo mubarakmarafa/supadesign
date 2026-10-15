@@ -1,4 +1,4 @@
-import { EnvironmentId, MessageId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, MessageId, ThreadId } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import * as Effect from "effect/Effect";
 import { Atom, type AtomRegistry } from "effect/reactivity";

@@ -2,8 +2,8 @@ import {
   canonicalRepositoryKey,
   isSshRemoteUrl,
   sourceControlRepositorySelector,
-} from "@supacode/shared/sourceControl";
-import { normalizeGitRemoteUrl } from "@supacode/shared/git";
+} from "@supaterm/shared/sourceControl";
+import { normalizeGitRemoteUrl } from "@supaterm/shared/git";
 import * as Cache from "effect/Cache";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
@@ -74,23 +74,23 @@ import {
   type SourceControlProviderInfo,
   SourceControlProviderKind,
   type ThreadPullRequestKey,
-} from "@supacode/contracts";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
-import { detectSourceControlProviderFromRemoteUrl } from "@supacode/shared/sourceControl";
+} from "@supaterm/contracts";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
+import { detectSourceControlProviderFromRemoteUrl } from "@supaterm/shared/sourceControl";
 
 import * as ProjectService from "../project/ProjectService.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as PullRequestFilesViewed from "../persistence/PullRequestFilesViewed.ts";
 import * as RepositoryIdentityResolver from "../project/RepositoryIdentityResolver.ts";
 import * as SourceControlProviderRegistry from "../sourceControl/SourceControlProviderRegistry.ts";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 import {
   type ProviderChangeRequest,
   type ProviderListCursor,
   type ProviderChangeRequestWatchFingerprint,
   type PullRequestProviderApi,
   PullRequestProviderError,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 import * as PullRequestReadCache from "./PullRequestReadCache.ts";
 import * as PullRequestProviderRegistry from "./PullRequestProviderRegistry.ts";
 import * as ViewedFiles from "./pullRequestViewedFiles.ts";
@@ -199,7 +199,7 @@ export type PullRequestError = PullRequestUnavailableError | PullRequestOperatio
 const routingCredential = Context.Reference<{
   readonly credentialFingerprint: string;
   readonly viewer: string;
-} | null>("supacode/PullRequestService/routingCredential", { defaultValue: () => null });
+} | null>("supaterm/PullRequestService/routingCredential", { defaultValue: () => null });
 // Internal only: the client cannot choose its cache's credential namespace.
 const credentialNamespace = Symbol("pullRequestCredentialNamespace");
 type CredentialRef = PullRequestRef & { readonly [credentialNamespace]?: string };
@@ -325,7 +325,7 @@ export class PullRequestService extends Context.Service<
       options?: { readonly notifyReaders?: boolean },
     ) => Effect.Effect<void>;
   }
->()("supacode/pullRequest/PullRequestService") {}
+>()("supaterm/pullRequest/PullRequestService") {}
 
 /** What a verdict is called when refusing it, so the sentence reads as an action. */
 const VERDICT_LABELS: Record<PullRequestReviewVerdict, string> = {

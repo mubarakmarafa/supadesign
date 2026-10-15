@@ -8,22 +8,22 @@ import {
   ProviderThreadId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Base64Url from "effect/encoding/Base64Url";
 import * as Hex from "effect/encoding/Hex";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 
 import { isGitImport, parseTurnDiffFilesFromNumstat } from "../checkpointing/Diffs.ts";
 import * as CheckpointStore from "../checkpointing/CheckpointStore.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 
-const CHECKPOINT_REFS_PREFIX = "refs/supacode/orchestration-v2/checkpoints";
+const CHECKPOINT_REFS_PREFIX = "refs/supaterm/orchestration-v2/checkpoints";
 const ROOT_CHECKPOINT_SCOPE_NAME = "root";
 
 export class CheckpointRootScopePrepareError extends Schema.TaggedError<CheckpointRootScopePrepareError>()(
@@ -156,7 +156,7 @@ export interface CheckpointServiceV2Shape {
 export class CheckpointServiceV2 extends Context.Service<
   CheckpointServiceV2,
   CheckpointServiceV2Shape
->()("supacode/orchestration-v2/CheckpointService/CheckpointServiceV2") {}
+>()("supaterm/orchestration-v2/CheckpointService/CheckpointServiceV2") {}
 
 export const checkpointRefForScopeOrdinal = Effect.fn("checkpointRefForScopeOrdinal")(
   function* (input: { readonly scopeId: CheckpointScopeId; readonly ordinalWithinScope: number }) {

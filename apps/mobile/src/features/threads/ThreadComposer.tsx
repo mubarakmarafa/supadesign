@@ -1,9 +1,9 @@
-import type { ComposerTextPaste } from "../../native/SupacodeComposerEditor.types";
+import type { ComposerTextPaste } from "../../native/SupatermComposerEditor.types";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import { useAtomValue } from "@effect/atom-react";
-import { clampFileAttachmentUploadBytes } from "@supacode/client-runtime/state/attachments";
-import { pastedTextDisposition, replaceTextSelection } from "@supacode/client-runtime/text-paste";
+import { clampFileAttachmentUploadBytes } from "@supaterm/client-runtime/state/attachments";
+import { pastedTextDisposition, replaceTextSelection } from "@supaterm/client-runtime/text-paste";
 import {
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
   PROVIDER_SEND_TURN_MAX_INPUT_CHARS,
@@ -12,14 +12,14 @@ import {
   type MessageId,
   type ModelSelection,
   type RuntimeMode,
-  type ServerConfig as SupacodeServerConfig,
+  type ServerConfig as SupatermServerConfig,
   type UsageLimitsReport,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   collectProviderUsageLimits,
   hasProviderUsageLimits,
   isUsageLimitsCommand,
-} from "@supacode/shared/usageLimits";
+} from "@supaterm/shared/usageLimits";
 import { StackActions, useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { ReactNode } from "react";
 import {
@@ -67,7 +67,7 @@ import {
 import { appAtomRegistry } from "../../state/atom-registry";
 import type { ComposerDocumentAttachment } from "../../lib/composerContext";
 import { useProject, useThreadShells } from "../../state/entities";
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 
 import { AppText as Text } from "../../components/AppText";
 import { ComposerAttachmentButton } from "../../components/ComposerAttachmentButton";
@@ -96,7 +96,7 @@ import { resolveProviderOptionDescriptors } from "../../lib/providerOptions";
 import { ComposerSpeedToggle } from "../../components/ComposerSpeedToggle";
 import { ComposerModelControl } from "./ComposerModelControl";
 import { ControlPillMenu } from "../../components/ControlPill";
-import type { ActiveTurnComposerAction } from "@supacode/client-runtime/state/composer-dispatch";
+import type { ActiveTurnComposerAction } from "@supaterm/client-runtime/state/composer-dispatch";
 import type { FollowUpBehavior } from "../../lib/followUpBehavior";
 import {
   resolveComposerSendPresentation,
@@ -162,7 +162,7 @@ export interface ThreadComposerProps {
   readonly selectedThread: EnvironmentThreadShell;
   readonly reportedModelSelection?: ModelSelection | null;
   readonly hasCompactableConversation: boolean;
-  readonly serverConfig: SupacodeServerConfig | null;
+  readonly serverConfig: SupatermServerConfig | null;
   readonly queueCount: number;
   readonly activeThreadBusy: boolean;
   readonly canStopThread: boolean;
@@ -457,7 +457,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
     });
   };
   const { onSendMessage, onChangeDraftMessage, onShowUsageLimits } = props;
-  // Supacode owns /usage-limits only where Limits has data for the selected provider;
+  // Supaterm owns /usage-limits only where Limits has data for the selected provider;
   // elsewhere the name stays the provider's own and is sent through untouched.
   const usageLimitsOffered =
     selectedProviderStatus !== null &&
@@ -1091,7 +1091,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                 ))}
                 {stripAttachments.length > 3 ? (
                   <View className="size-[30px] items-center justify-center rounded-lg bg-subtle-strong">
-                    <Text className="text-foreground-muted text-2xs font-supacode-bold">
+                    <Text className="text-foreground-muted text-2xs font-supaterm-bold">
                       +{stripAttachments.length - 3}
                     </Text>
                   </View>

@@ -1,6 +1,6 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
-import type { PullRequestCapabilities, PullRequestViewerPermissions } from "@supacode/contracts";
+import type { PullRequestCapabilities, PullRequestViewerPermissions } from "@supaterm/contracts";
 
 import * as BitbucketPullRequestApi from "./BitbucketPullRequestApi.ts";
 import {
@@ -10,7 +10,7 @@ import {
   type ProviderChangeRequestActivity,
   type ProviderChangeRequestDetail,
   type PullRequestProviderApi,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 import type { BitbucketPullRequest } from "./bitbucketPullRequestJson.ts";
 import { definition } from "../client/definition.ts";
 

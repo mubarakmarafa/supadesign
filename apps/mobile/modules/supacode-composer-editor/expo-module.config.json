@@ -1,9 +1,0 @@
-{
-  "platforms": ["apple", "android"],
-  "apple": {
-    "modules": ["SupacodeComposerEditorModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.supacodecomposereditor.SupacodeComposerEditorModule"]
-  }
-}

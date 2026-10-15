@@ -1,8 +1,8 @@
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
-import { EnvironmentId, ThreadId, type SidebarProjectGroupingMode } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/shell";
+import { EnvironmentId, ThreadId, type SidebarProjectGroupingMode } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { useFocusEffect } from "@react-navigation/native";
 import {

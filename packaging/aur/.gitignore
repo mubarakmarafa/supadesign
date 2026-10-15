@@ -3,7 +3,7 @@ pkg/
 *.AppImage
 *.pkg.tar.zst
 .SRCINFO
-supacode-bin-*.png
-supacode-bin-*-LICENSE
-supacode-nightly-bin-*.png
-supacode-nightly-bin-*-LICENSE
+supaterm-bin-*.png
+supaterm-bin-*-LICENSE
+supaterm-nightly-bin-*.png
+supaterm-nightly-bin-*-LICENSE

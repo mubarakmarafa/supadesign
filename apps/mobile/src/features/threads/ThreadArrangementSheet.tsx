@@ -1,8 +1,8 @@
 import { appAtomRegistry } from "../../state/atom-registry";
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { effectiveSnoozed } from "@supacode/client-runtime/state/thread-settled";
-import { sortInboxThreadsByReturn } from "@supacode/client-runtime/state/thread-inbox";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { effectiveSnoozed } from "@supaterm/client-runtime/state/thread-settled";
+import { sortInboxThreadsByReturn } from "@supaterm/client-runtime/state/thread-inbox";
 import {
   type ReactNode,
   type RefObject,
@@ -400,7 +400,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
           style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
         >
           <View className="flex-row items-center justify-between gap-3 px-5 py-3">
-            <Text className="flex-1 text-xl font-supacode-semibold">Arrange threads</Text>
+            <Text className="flex-1 text-xl font-supaterm-semibold">Arrange threads</Text>
             <Pressable
               accessibilityRole="button"
               onPress={props.onClose}
@@ -529,7 +529,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
                             setExpanded((value) => ({ ...value, [section]: !value[section] }));
                         }}
                       >
-                        <Text className="text-sm font-supacode-semibold text-foreground-muted">
+                        <Text className="text-sm font-supaterm-semibold text-foreground-muted">
                           {item.section[0]!.toUpperCase() + item.section.slice(1)} (
                           {sections[item.section].length})
                         </Text>
@@ -547,7 +547,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
               >
                 <Text
                   numberOfLines={visiblePreview.destination?.section ? 1 : 2}
-                  className="text-base font-supacode-medium"
+                  className="text-base font-supaterm-medium"
                 >
                   {visiblePreview.thread.title}
                 </Text>

@@ -1,5 +1,5 @@
-import type { ProviderInstanceEnvironment } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { ProviderInstanceEnvironment } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 
 import { expandHomePath } from "./pathExpansion.ts";

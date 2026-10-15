@@ -1,10 +1,10 @@
 /**
  * Where development state lives, and how to keep it away from the shared
- * `~/.supacode` that a user's installed Supacode runs against.
+ * `~/.supaterm` that a user's installed Supaterm runs against.
  *
- * A linked git worktree gets its own (gitignored) `.supacode`: feature work in a
+ * A linked git worktree gets its own (gitignored) `.supaterm`: feature work in a
  * throwaway branch must not share a database with the real app, and an ambient
- * `SUPACODE_HOME` counts as an explicit base dir — flipping the state directory
+ * `SUPATERM_HOME` counts as an explicit base dir — flipping the state directory
  * from `<base>/dev` to `<base>/userdata`, the live production database.
  */
 
@@ -90,7 +90,7 @@ export const resolveGitWorktreePath = (
  * worktree. Deliberately does not require the directory to exist yet: falling
  * back because it is missing would send callers at the shared home.
  */
-export const resolveWorktreeSupacodeHome = (
+export const resolveWorktreeSupatermHome = (
   cwd: string,
 ): Effect.Effect<string | undefined, never, FileSystem.FileSystem | Path.Path> =>
   Effect.gen(function* () {
@@ -99,5 +99,5 @@ export const resolveWorktreeSupacodeHome = (
       return undefined;
     }
     const path = yield* Path.Path;
-    return path.join(worktreePath, ".supacode");
+    return path.join(worktreePath, ".supaterm");
   });

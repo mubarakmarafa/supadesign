@@ -1,16 +1,16 @@
-import type { EnvironmentId, SupacodeProjectFileScript, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, SupatermProjectFileScript, ThreadId } from "@supaterm/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PopoverCreateHandle } from "../ui/popover";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const testState = vi.hoisted(() => ({
-  useSupacodeProjectFileScripts: vi.fn(),
+  useSupatermProjectFileScripts: vi.fn(),
   projectScriptsControl: vi.fn(),
 }));
 
-vi.mock("../../hooks/useSupacodeProjectFileScripts", () => ({
-  useSupacodeProjectFileScripts: (...args: ReadonlyArray<unknown>) =>
-    testState.useSupacodeProjectFileScripts(...args),
+vi.mock("../../hooks/useSupatermProjectFileScripts", () => ({
+  useSupatermProjectFileScripts: (...args: ReadonlyArray<unknown>) =>
+    testState.useSupatermProjectFileScripts(...args),
 }));
 vi.mock("../BranchToolbar", () => ({
   BranchToolbar: () => null,
@@ -36,11 +36,11 @@ import { ThreadDetailsPanel, type ThreadDetailsPanelProps } from "./ThreadDetail
 
 describe("ThreadDetailsPanel", () => {
   beforeEach(() => {
-    testState.useSupacodeProjectFileScripts.mockReset();
+    testState.useSupatermProjectFileScripts.mockReset();
     testState.projectScriptsControl.mockReset();
   });
 
-  it("passes checked-in supacode.json scripts to the project scripts control", () => {
+  it("passes checked-in supaterm.json scripts to the project scripts control", () => {
     const environmentId = "environment:thread-details" as EnvironmentId;
     const gitCwd = "/tmp/thread-details-project";
     const fileScripts = [
@@ -49,8 +49,8 @@ describe("ThreadDetailsPanel", () => {
         command: "vp check",
         icon: "test",
       },
-    ] satisfies ReadonlyArray<SupacodeProjectFileScript>;
-    testState.useSupacodeProjectFileScripts.mockReturnValue(fileScripts);
+    ] satisfies ReadonlyArray<SupatermProjectFileScript>;
+    testState.useSupatermProjectFileScripts.mockReturnValue(fileScripts);
 
     const props: ThreadDetailsPanelProps = {
       anchor: { current: null },
@@ -82,7 +82,7 @@ describe("ThreadDetailsPanel", () => {
 
     renderToStaticMarkup(<ThreadDetailsPanel {...props} />);
 
-    expect(testState.useSupacodeProjectFileScripts).toHaveBeenCalledWith(environmentId, gitCwd);
+    expect(testState.useSupatermProjectFileScripts).toHaveBeenCalledWith(environmentId, gitCwd);
     expect(testState.projectScriptsControl).toHaveBeenCalledWith(
       expect.objectContaining({
         displayMode: "panel",

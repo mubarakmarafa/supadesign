@@ -50,7 +50,7 @@ jobs:
 
       - name: Ensure Electron runtime is installed
         if: inputs.package == '' || inputs.package == 'apps/desktop'
-        run: vp run --filter "@supacode/desktop" ensure:electron
+        run: vp run --filter "@supaterm/desktop" ensure:electron
 
       # `vp run ... test -- <files>` does not forward positional args to vitest,
       # so file-scoped runs call `vp test run` inside the package instead.
@@ -60,7 +60,7 @@ jobs:
           $package = '${{ inputs.package }}'
           $files = '${{ inputs.files }}'
           if ($package -eq '') {
-            vp run --parallel --concurrency-limit 4 --filter '!supacode' --filter '!@supacode/monorepo' test
+            vp run --parallel --concurrency-limit 4 --filter '!supaterm' --filter '!@supaterm/monorepo' test
           } elseif ($files -eq '') {
             vp run --filter "./$package" test
           } else {

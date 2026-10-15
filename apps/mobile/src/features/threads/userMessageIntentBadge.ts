@@ -1,4 +1,4 @@
-import type { OrchestrationV2UserMessageInputIntent } from "@supacode/contracts";
+import type { OrchestrationV2UserMessageInputIntent } from "@supaterm/contracts";
 
 export interface UserMessageIntentBadgePresentation {
   readonly label: string;

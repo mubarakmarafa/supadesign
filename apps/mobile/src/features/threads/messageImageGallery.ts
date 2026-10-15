@@ -1,5 +1,5 @@
-import type { ChatAttachment, EnvironmentId, ThreadId } from "@supacode/contracts";
-import { imageMimeType } from "@supacode/shared/image";
+import type { ChatAttachment, EnvironmentId, ThreadId } from "@supaterm/contracts";
+import { imageMimeType } from "@supaterm/shared/image";
 import type { FilePreviewItem } from "../../components/FilePreviewModal.types";
 import { markdownImageSources } from "../../lib/markdownImageSources";
 import { resolveMarkdownMediaPreview } from "../../lib/markdownMedia";

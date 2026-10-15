@@ -1,4 +1,4 @@
-import type { PullRequestDiffResult } from "@supacode/contracts";
+import type { PullRequestDiffResult } from "@supaterm/contracts";
 import { buildReviewParsedDiff, type ReviewParsedDiff } from "../review/reviewModel";
 
 export interface PullRequestDiffPage {

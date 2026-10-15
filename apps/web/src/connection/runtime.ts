@@ -1,10 +1,10 @@
-import { Connection } from "@supacode/client-runtime/connection";
-import { ShellSnapshotLoader } from "@supacode/client-runtime/state/shell";
+import { Connection } from "@supaterm/client-runtime/connection";
+import { ShellSnapshotLoader } from "@supaterm/client-runtime/state/shell";
 import {
   BoundedThreadSnapshotLoader,
   ThreadHistoryController,
-} from "@supacode/client-runtime/state/threads";
-import { PullRequestDiffLoader } from "@supacode/client-runtime/state/pull-requests";
+} from "@supaterm/client-runtime/state/threads";
+import { PullRequestDiffLoader } from "@supaterm/client-runtime/state/pull-requests";
 import * as Layer from "effect/Layer";
 import { Atom } from "effect/reactivity";
 

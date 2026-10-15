@@ -9,8 +9,8 @@ import * as Tracer from "effect/Tracer";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 
-import { DEFAULT_SIGNAL_EXPORT } from "@supacode/shared/observability";
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
+import { DEFAULT_SIGNAL_EXPORT } from "@supaterm/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 
 import * as ServerConfig from "./config.ts";
 import * as ServerLogger from "./serverLogger.ts";
@@ -43,7 +43,7 @@ const layerConfig = (overrides: Partial<ServerConfig.ServerConfig["Service"]>) =
     ServerConfig.ServerConfig,
     Effect.gen(function* () {
       const path = yield* Path.Path;
-      const baseDir = path.join(NodeOS.tmpdir(), "supacode-server-logger-test");
+      const baseDir = path.join(NodeOS.tmpdir(), "supaterm-server-logger-test");
       const derivedPaths = yield* ServerConfig.deriveServerPaths(baseDir, undefined);
       return ServerConfig.make({
         logLevel: "Info",
@@ -146,7 +146,7 @@ describe("ServerLoggerLive", () => {
       const [request] = requests;
       assert.strictEqual(request?.url, "https://collector.example.com/v1/logs");
       assert.include(request?.body ?? "", "server logger under test");
-      assert.include(request?.body ?? "", "supacode-server");
+      assert.include(request?.body ?? "", "supaterm-server");
       assert.include(request?.body ?? "", "service.runtime");
     }),
   );
@@ -171,9 +171,9 @@ describe("ServerLoggerLive", () => {
 
       assert.lengthOf(requests, 1);
       const body = requests[0]?.body ?? "";
-      assert.include(body, '"stringValue":"supacode-server"');
+      assert.include(body, '"stringValue":"supaterm-server"');
       assert.include(body, "deployment.environment.name");
-      assert.include(body, '"key":"service.namespace","value":{"stringValue":"supacode"}');
+      assert.include(body, '"key":"service.namespace","value":{"stringValue":"supaterm"}');
       assert.notInclude(body, "renamed");
     }),
   );

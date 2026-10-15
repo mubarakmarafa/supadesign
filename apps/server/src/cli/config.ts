@@ -1,12 +1,12 @@
-import * as NetService from "@supacode/shared/Net";
+import * as NetService from "@supaterm/shared/Net";
 import {
   OtlpHeadersFromString,
   OtlpProtocol,
   type SignalExport,
-} from "@supacode/shared/observability";
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
-import { parsePersistedServerObservabilitySettings } from "@supacode/shared/serverSettings";
-import { DesktopBackendBootstrap, PortSchema } from "@supacode/contracts";
+} from "@supaterm/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
+import { parsePersistedServerObservabilitySettings } from "@supaterm/shared/serverSettings";
+import { DesktopBackendBootstrap, PortSchema } from "@supaterm/contracts";
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -41,7 +41,7 @@ const hostFlag = Flag.String("host").pipe(
 );
 export const baseDirFlag = Flag.String("base-dir").pipe(
   Flag.withDescription(
-    "Explicit Supacode data directory; runtime state is stored under userdata (equivalent to SUPACODE_HOME).",
+    "Explicit Supaterm data directory; runtime state is stored under userdata (equivalent to SUPATERM_HOME).",
   ),
   Flag.optional,
 );
@@ -67,7 +67,7 @@ const autoBootstrapProjectFromCwdFlag = Flag.Boolean("auto-bootstrap-project-fro
 );
 const logWebSocketEventsFlag = Flag.Boolean("log-websocket-events").pipe(
   Flag.withDescription(
-    "Emit server-side logs for outbound WebSocket push traffic (equivalent to SUPACODE_LOG_WS_EVENTS).",
+    "Emit server-side logs for outbound WebSocket push traffic (equivalent to SUPATERM_LOG_WS_EVENTS).",
   ),
   Flag.withAlias("log-ws-events"),
   Flag.optional,
@@ -84,59 +84,59 @@ const tailscaleServePortFlag = Flag.Int("tailscale-serve-port").pipe(
   Flag.optional,
 );
 
-// Trace file location, shared by the server and `supacode trace summary`.
-export const traceFileConfig = Config.String("SUPACODE_TRACE_FILE").pipe(
+// Trace file location, shared by the server and `supaterm trace summary`.
+export const traceFileConfig = Config.String("SUPATERM_TRACE_FILE").pipe(
   Config.option,
   Config.map(Option.getOrUndefined),
 );
-export const traceMaxFilesConfig = Config.Int("SUPACODE_TRACE_MAX_FILES").pipe(
+export const traceMaxFilesConfig = Config.Int("SUPATERM_TRACE_MAX_FILES").pipe(
   Config.withDefault(10),
 );
 
 const EnvServerConfig = Config.all({
-  logLevel: Config.LogLevel("SUPACODE_LOG_LEVEL").pipe(Config.withDefault("Info")),
-  traceMinLevel: Config.LogLevel("SUPACODE_TRACE_MIN_LEVEL").pipe(Config.withDefault("Info")),
-  traceTimingEnabled: Config.Boolean("SUPACODE_TRACE_TIMING_ENABLED").pipe(
+  logLevel: Config.LogLevel("SUPATERM_LOG_LEVEL").pipe(Config.withDefault("Info")),
+  traceMinLevel: Config.LogLevel("SUPATERM_TRACE_MIN_LEVEL").pipe(Config.withDefault("Info")),
+  traceTimingEnabled: Config.Boolean("SUPATERM_TRACE_TIMING_ENABLED").pipe(
     Config.withDefault(true),
   ),
   traceFile: traceFileConfig,
-  traceMaxBytes: Config.Int("SUPACODE_TRACE_MAX_BYTES").pipe(Config.withDefault(10 * 1024 * 1024)),
+  traceMaxBytes: Config.Int("SUPATERM_TRACE_MAX_BYTES").pipe(Config.withDefault(10 * 1024 * 1024)),
   traceMaxFiles: traceMaxFilesConfig,
-  traceBatchWindowMs: Config.Int("SUPACODE_TRACE_BATCH_WINDOW_MS").pipe(Config.withDefault(1_000)),
-  otlpTracesUrl: Config.String("SUPACODE_OTLP_TRACES_URL").pipe(
+  traceBatchWindowMs: Config.Int("SUPATERM_TRACE_BATCH_WINDOW_MS").pipe(Config.withDefault(1_000)),
+  otlpTracesUrl: Config.String("SUPATERM_OTLP_TRACES_URL").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  otlpMetricsUrl: Config.String("SUPACODE_OTLP_METRICS_URL").pipe(
+  otlpMetricsUrl: Config.String("SUPATERM_OTLP_METRICS_URL").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  otlpLogsUrl: Config.String("SUPACODE_OTLP_LOGS_URL").pipe(
+  otlpLogsUrl: Config.String("SUPATERM_OTLP_LOGS_URL").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  otlpExportIntervalMs: Config.Int("SUPACODE_OTLP_EXPORT_INTERVAL_MS").pipe(
+  otlpExportIntervalMs: Config.Int("SUPATERM_OTLP_EXPORT_INTERVAL_MS").pipe(
     Config.withDefault(10_000),
   ),
-  otlpHeaders: Config.schema(OtlpHeadersFromString, "SUPACODE_OTLP_HEADERS").pipe(
+  otlpHeaders: Config.schema(OtlpHeadersFromString, "SUPATERM_OTLP_HEADERS").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  otlpProtocol: Config.schema(OtlpProtocol, "SUPACODE_OTLP_PROTOCOL").pipe(
+  otlpProtocol: Config.schema(OtlpProtocol, "SUPATERM_OTLP_PROTOCOL").pipe(
     Config.withDefault("http/json"),
   ),
-  mode: Config.schema(ServerConfig.RuntimeMode, "SUPACODE_MODE").pipe(
+  mode: Config.schema(ServerConfig.RuntimeMode, "SUPATERM_MODE").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  port: Config.Port("SUPACODE_PORT").pipe(Config.option, Config.map(Option.getOrUndefined)),
-  host: Config.String("SUPACODE_HOST").pipe(Config.option, Config.map(Option.getOrUndefined)),
-  supacodeHome: Config.String("SUPACODE_HOME").pipe(
+  port: Config.Port("SUPATERM_PORT").pipe(Config.option, Config.map(Option.getOrUndefined)),
+  host: Config.String("SUPATERM_HOST").pipe(Config.option, Config.map(Option.getOrUndefined)),
+  supatermHome: Config.String("SUPATERM_HOME").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
   devUrl: Config.URL("VITE_DEV_SERVER_URL").pipe(Config.option, Config.map(Option.getOrUndefined)),
-  devAllowedOrigins: Config.String("SUPACODE_DEV_ALLOWED_ORIGINS").pipe(
+  devAllowedOrigins: Config.String("SUPATERM_DEV_ALLOWED_ORIGINS").pipe(
     Config.withDefault(""),
     Config.map((value) =>
       value
@@ -145,33 +145,33 @@ const EnvServerConfig = Config.all({
         .filter((entry) => entry.length > 0),
     ),
   ),
-  noBrowser: Config.Boolean("SUPACODE_NO_BROWSER").pipe(
+  noBrowser: Config.Boolean("SUPATERM_NO_BROWSER").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  bootstrapFd: Config.Int("SUPACODE_BOOTSTRAP_FD").pipe(
+  bootstrapFd: Config.Int("SUPATERM_BOOTSTRAP_FD").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  autoBootstrapProjectFromCwd: Config.Boolean("SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD").pipe(
+  autoBootstrapProjectFromCwd: Config.Boolean("SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  logWebSocketEvents: Config.Boolean("SUPACODE_LOG_WS_EVENTS").pipe(
+  logWebSocketEvents: Config.Boolean("SUPATERM_LOG_WS_EVENTS").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  tailscaleServeEnabled: Config.Boolean("SUPACODE_TAILSCALE_SERVE").pipe(
+  tailscaleServeEnabled: Config.Boolean("SUPATERM_TAILSCALE_SERVE").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
-  tailscaleServePort: Config.Port("SUPACODE_TAILSCALE_SERVE_PORT").pipe(
+  tailscaleServePort: Config.Port("SUPATERM_TAILSCALE_SERVE_PORT").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
 });
 
-const DevAuthTokenConfig = Config.Redacted("SUPACODE_DEV_AUTH_TOKEN").pipe(
+const DevAuthTokenConfig = Config.Redacted("SUPATERM_DEV_AUTH_TOKEN").pipe(
   Config.map((token) => Redacted.make(Redacted.value(token).trim())),
   Config.mapEffect((token) =>
     Redacted.value(token).length === 0 || Redacted.value(token).length >= 32
@@ -180,7 +180,7 @@ const DevAuthTokenConfig = Config.Redacted("SUPACODE_DEV_AUTH_TOKEN").pipe(
           new Config.ConfigError(
             new Schema.SchemaError(
               new SchemaIssue.InvalidValue({
-                message: "SUPACODE_DEV_AUTH_TOKEN must contain at least 32 characters.",
+                message: "SUPATERM_DEV_AUTH_TOKEN must contain at least 32 characters.",
               }),
             ),
           ),
@@ -323,11 +323,11 @@ export const resolveServerConfig = (
       mode === "web" && devUrl !== undefined ? yield* DevAuthTokenConfig : undefined;
     const explicitBaseDir = resolveOptionPrecedence(
       normalizedFlags.baseDir,
-      Option.fromUndefinedOr(env.supacodeHome),
+      Option.fromUndefinedOr(env.supatermHome),
     ).pipe(Option.filter((value) => value.trim().length > 0));
     const baseDir = yield* resolveBaseDir(
       Option.getOrUndefined(
-        resolveOptionPrecedence(explicitBaseDir, Option.fromUndefinedOr(bootstrap?.supacodeHome)),
+        resolveOptionPrecedence(explicitBaseDir, Option.fromUndefinedOr(bootstrap?.supatermHome)),
       ),
     );
     const rawCwd = Option.getOrElse(normalizedFlags.cwd, () => process.cwd());
@@ -341,7 +341,7 @@ export const resolveServerConfig = (
       const runtime = yield* readPersistedServerRuntimeState(derivedPaths.serverRuntimeStatePath);
       if (Option.isSome(runtime) && runtime.value.pid > 0 && isProcessAlive(runtime.value.pid)) {
         return yield* new CliError.UserError({
-          cause: `A Supacode server is already running for ${baseDir} (pid ${runtime.value.pid}, ${runtime.value.origin}). Connect to that server, stop it before starting another, or use a different --base-dir.`,
+          cause: `A Supaterm server is already running for ${baseDir} (pid ${runtime.value.pid}, ${runtime.value.origin}). Connect to that server, stop it before starting another, or use a different --base-dir.`,
         });
       }
     }
@@ -416,7 +416,7 @@ export const resolveServerConfig = (
 
     const otel = yield* OtelEnvironment.load;
 
-    // Supacode's own OTLP variables name no signal, so the one answer they give
+    // Supaterm's own OTLP variables name no signal, so the one answer they give
     // is the answer for all three.
     const signalExport: SignalExport = {
       protocol: env.otlpProtocol,

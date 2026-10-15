@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
-import { ProviderInstanceId, ProviderSessionId, ThreadId } from "@supacode/contracts";
+import { ProviderInstanceId, ProviderSessionId, ThreadId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -10,15 +10,15 @@ import { vi } from "vite-plus/test";
 import * as HttpClient from "effect/http/HttpClient";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import { CursorDriver } from "./driver.ts";
 import * as CursorAgentSdk from "./CursorAgentSdk.ts";
 import * as CursorSdk from "./CursorSdk.ts";
 import * as CursorKeychain from "./CursorKeychain.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import { Cursor } from "./sdk.ts";
 
 const layerTest = TestProviderHost.layer({ runBackgroundWork: false }).pipe(
@@ -68,7 +68,7 @@ it.layer(layerTest)("CursorDriver", (it) => {
           return { apiKey: "instance-browser-key", apiKeyExpiresAtMs: 4_000_000_000_000 };
         });
         const me = vi.spyOn(Cursor, "me").mockResolvedValue({
-          apiKeyName: "supacode",
+          apiKeyName: "supaterm",
           createdAt: "2026-01-01T00:00:00.000Z",
           userEmail: "cursor@example.com",
         });

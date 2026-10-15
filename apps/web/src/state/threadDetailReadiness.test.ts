@@ -1,6 +1,6 @@
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
-import { EnvironmentId, ThreadId, type ScopedThreadRef } from "@supacode/contracts";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
+import { EnvironmentId, ThreadId, type ScopedThreadRef } from "@supaterm/contracts";
 import { Atom, AtomRegistry } from "effect/reactivity";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 

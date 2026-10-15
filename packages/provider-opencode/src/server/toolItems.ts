@@ -3,8 +3,8 @@
  * Both report a tool as a name, a JSON input, text output, and free-form
  * metadata; only how they deliver those differs.
  */
-import type { OrchestrationV2TurnItem } from "@supacode/contracts";
-import { formatReadToolLabel, formatSearchToolLabel } from "@supacode/shared/toolActivity";
+import type { OrchestrationV2TurnItem } from "@supaterm/contracts";
+import { formatReadToolLabel, formatSearchToolLabel } from "@supaterm/shared/toolActivity";
 
 // Search results stay on the timeline wire, so keep their text a preview.
 const SEARCH_PREVIEW_MAX_CHARS = 8_000;

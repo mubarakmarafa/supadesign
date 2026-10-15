@@ -5,7 +5,7 @@ import {
   type SDKMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ProviderInstanceId, type ProviderReplayEntry } from "@supacode/contracts";
+import { ProviderInstanceId, type ProviderReplayEntry } from "@supaterm/contracts";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -15,8 +15,8 @@ import {
   makeClaudeUserMessage,
   type ClaudeAgentSdkQueryOptions,
 } from "../src/orchestration-v2/Adapters/ClaudeAdapterV2.ts";
-import { randomUuidV4 } from "@supacode/provider-core/server/randomUuid";
-import { makeCheckpointWorkspace } from "@supacode/provider-testing/replayWorkspace";
+import { randomUuidV4 } from "@supaterm/provider-core/server/randomUuid";
+import { makeCheckpointWorkspace } from "@supaterm/provider-testing/replayWorkspace";
 
 const SCENARIO = "thread_fork_native_fork_local_rollback";
 const DEFAULT_OUTPUT = new URL(
@@ -27,7 +27,7 @@ const CLAUDE_PROVIDER = "claudeAgent" as const;
 const PROTOCOL = "claude-agent-sdk.query" as const;
 const MODEL_SELECTION = {
   instanceId: ProviderInstanceId.make(CLAUDE_PROVIDER),
-  model: process.env.SUPACODE_CLAUDE_REPLAY_MODEL ?? "claude-sonnet-4-6",
+  model: process.env.SUPATERM_CLAUDE_REPLAY_MODEL ?? "claude-sonnet-4-6",
 } as const;
 const SOURCE_PROMPT =
   "For this fork-local rollback fixture, respond with exactly: fork local source alpha";
@@ -213,7 +213,7 @@ function encodeTranscript(input: {
 
 const outputPath = readArgValue("--out") ?? DEFAULT_OUTPUT;
 const cwd =
-  process.env.SUPACODE_CLAUDE_REPLAY_CWD ??
+  process.env.SUPATERM_CLAUDE_REPLAY_CWD ??
   (await makeCheckpointWorkspace(`claude-agent-sdk-record-${SCENARIO}`));
 const cwdRealPath = await Effect.runPromise(
   Effect.gen(function* () {
@@ -227,7 +227,7 @@ const pathFragments = [
   [process.env.HOME ?? "", "/home/replay-user"],
 ] as const;
 const sessionId =
-  process.env.SUPACODE_CLAUDE_REPLAY_SESSION_ID ?? (await Effect.runPromise(randomUuidV4));
+  process.env.SUPATERM_CLAUDE_REPLAY_SESSION_ID ?? (await Effect.runPromise(randomUuidV4));
 const entries: Array<ProviderReplayEntry> = [];
 const metadata: Record<string, unknown> = {
   prompts: [SOURCE_PROMPT, FORK_FIRST_PROMPT, FORK_SECOND_PROMPT, FORK_AFTER_ROLLBACK_PROMPT],

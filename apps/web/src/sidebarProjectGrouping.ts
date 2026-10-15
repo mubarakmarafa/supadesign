@@ -1,11 +1,11 @@
-import { scopedProjectKey } from "@supacode/client-runtime/environment";
-import type { EnvironmentId, ScopedProjectRef } from "@supacode/contracts";
+import { scopedProjectKey } from "@supaterm/client-runtime/environment";
+import type { EnvironmentId, ScopedProjectRef } from "@supaterm/contracts";
 import {
   buildProjectGroups,
   derivePhysicalProjectKey,
   type ProjectGroupingSettings,
 } from "./logicalProject";
-import { resolveScratchProjectScopeKey } from "@supacode/client-runtime/state/project-grouping";
+import { resolveScratchProjectScopeKey } from "@supaterm/client-runtime/state/project-grouping";
 import type { Project } from "./types";
 
 export type EnvironmentPresence = "local-only" | "remote-only" | "mixed";

@@ -4,7 +4,7 @@ import * as NodeFSP from "node:fs/promises";
 import * as NodePath from "node:path";
 import { Message, sessionBus, type MessageBus, type MessageLike } from "dbus-next";
 import * as Schema from "effect/Schema";
-import type { DesktopCaptureExtensionState } from "@supacode/contracts";
+import type { DesktopCaptureExtensionState } from "@supaterm/contracts";
 
 import { GNOME_CAPTURE_FILES, GNOME_CAPTURE_UUID } from "./gnomeCaptureBundle.ts";
 export { isGnomeCaptureSession } from "./linuxCaptureSession.ts";
@@ -56,9 +56,9 @@ export async function installGnomeCaptureBundle({ bundle, dataHome }: SetupPaths
       await NodeFSP.readFile(NodePath.join(target, "metadata.json"), "utf8"),
     );
     if (installed.version > metadata.version)
-      throw new Error("A newer extension is installed. Update Supacode instead of replacing it.");
+      throw new Error("A newer extension is installed. Update Supaterm instead of replacing it.");
   }
-  const staged = await NodeFSP.mkdtemp(NodePath.join(parent, ".supacode-capture-install-"));
+  const staged = await NodeFSP.mkdtemp(NodePath.join(parent, ".supaterm-capture-install-"));
   let backup: string | undefined;
   try {
     for (const name of GNOME_CAPTURE_FILES) {
@@ -67,7 +67,7 @@ export async function installGnomeCaptureBundle({ bundle, dataHome }: SetupPaths
     }
     await NodeFSP.chmod(staged, 0o755);
     if (existing) {
-      const backupParent = NodePath.join(dataHome, "supacode", "extension-backups");
+      const backupParent = NodePath.join(dataHome, "supaterm", "extension-backups");
       await NodeFSP.mkdir(backupParent, { recursive: true });
       backup = NodePath.join(
         await NodeFSP.mkdtemp(NodePath.join(backupParent, "capture-")),
@@ -184,7 +184,7 @@ export class GnomeCaptureSetup {
         return {
           status: "restart-required",
           message:
-            "Installed. Save your work, sign out of GNOME and sign back in, then return here to enable the extension. Restarting Supacode alone is not enough.",
+            "Installed. Save your work, sign out of GNOME and sign back in, then return here to enable the extension. Restarting Supaterm alone is not enough.",
         };
       if ((installed?.version ?? info.version?.value ?? 0) < bundled.version)
         return {
@@ -196,12 +196,12 @@ export class GnomeCaptureSetup {
         return {
           status: "extensions-disabled",
           message:
-            "GNOME has disabled user extensions. Turn on Extensions in the GNOME Extensions app, then check again. Supacode will not enable your other extensions for you.",
+            "GNOME has disabled user extensions. Turn on Extensions in the GNOME Extensions app, then check again. Supaterm will not enable your other extensions for you.",
         };
       if (info.state?.value === 1)
         return {
           status: "enabled",
-          message: "The Supacode extension is running. Active-window snapshots are available.",
+          message: "The Supaterm extension is running. Active-window snapshots are available.",
         };
       if (info.state?.value === 3 || info.state?.value === 4)
         return {
@@ -213,7 +213,7 @@ export class GnomeCaptureSetup {
       return {
         status: "disabled",
         message:
-          "Enable the Supacode extension to allow active-window snapshots. You can disable it here at any time.",
+          "Enable the Supaterm extension to allow active-window snapshots. You can disable it here at any time.",
       };
     } catch (error) {
       return {

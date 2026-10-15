@@ -146,7 +146,7 @@ describe("ACP Registry icon cache", () => {
 
   it("renders only the validated blob object URL and keeps the fallback until load", async () => {
     const url = "https://cdn.agentclientprotocol.com/registry/v1/latest/kilo.svg";
-    const objectUrl = "blob:supacode/kilo-icon";
+    const objectUrl = "blob:supaterm/kilo-icon";
     Object.assign(URL, {
       createObjectURL: vi.fn(() => objectUrl),
       revokeObjectURL: vi.fn(),

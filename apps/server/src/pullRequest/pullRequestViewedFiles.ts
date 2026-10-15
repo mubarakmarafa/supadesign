@@ -13,13 +13,13 @@ import {
   type PullRequestFilesViewedResult,
   type PullRequestRef,
   type PullRequestSetFilesViewedInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import type * as PullRequestFilesViewed from "../persistence/PullRequestFilesViewed.ts";
 import type {
   ProviderFileRevisions,
   PullRequestProviderError,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 import type { PullRequestError, SupportedProject } from "./PullRequestService.ts";
 
 /**

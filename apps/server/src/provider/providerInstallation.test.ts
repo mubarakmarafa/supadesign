@@ -4,8 +4,8 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ProviderInstallState,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -15,7 +15,7 @@ import * as Stream from "effect/Stream";
 import * as ServerSettings from "../serverSettings.ts";
 import * as CodexInstallation from "./CodexInstallation.ts";
 import * as AntigravityInstallation from "./AntigravityInstallation.ts";
-import type { ProviderInstance } from "@supacode/provider-core/server/driver";
+import type { ProviderInstance } from "@supaterm/provider-core/server/driver";
 import { makeProviderInstallation } from "./providerInstallation.ts";
 import * as ProviderInstanceRegistry from "./ProviderInstanceRegistry.ts";
 import * as ProviderRegistry from "./ProviderRegistry.ts";
@@ -217,7 +217,7 @@ describe("provider installation routing", () => {
       const path = yield* Path.Path;
       const platform = yield* HostProcess.Platform;
       const directory = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-provider-install-route-",
+        prefix: "supaterm-provider-install-route-",
       });
       const binary = platform === "win32" ? "agy-test.exe" : "agy-test";
       const executable = path.join(directory, binary);
@@ -246,7 +246,7 @@ describe("provider installation routing", () => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const directory = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-provider-install-route-",
+        prefix: "supaterm-provider-install-route-",
       });
       const binaryPath = path.join(directory, "missing");
       const harness = yield* makeHarness({

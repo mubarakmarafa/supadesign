@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Migrator from "effect/sql/Migrator";

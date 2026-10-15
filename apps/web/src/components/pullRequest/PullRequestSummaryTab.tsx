@@ -1,4 +1,4 @@
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import { useAtomCommand } from "~/state/use-atom-command";
 import type {
   EnvironmentId,
@@ -7,7 +7,7 @@ import type {
   PullRequestRef,
   PullRequestReviewThread,
   ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   ArrowDownUpIcon,
   ChevronDownIcon,
@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import * as Schema from "effect/Schema";
 import { useRef, useState, type ReactNode } from "react";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useLocalStorage } from "~/hooks/useLocalStorage";
@@ -372,7 +372,7 @@ const COMMENT_PAGE = 10;
  * whether a reader wants bot reports and finished threads in front of them is a habit, not a
  * property of one change.
  */
-const COMMENT_FILTER_STORAGE_KEY = "supacode:pull-request-comment-filter:v1";
+const COMMENT_FILTER_STORAGE_KEY = "supaterm:pull-request-comment-filter:v1";
 const CommentFilterSchema = Schema.Struct({ bots: Schema.Boolean, resolved: Schema.Boolean });
 const DEFAULT_COMMENT_FILTER: typeof CommentFilterSchema.Type = { bots: false, resolved: false };
 

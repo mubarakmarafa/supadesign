@@ -3,17 +3,17 @@ import type {
   OrchestrationV2ProjectedTurnItem,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+} from "@supaterm/contracts";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import {
   toolCallLines,
   turnItemDetailRevision,
   turnItemNeedsDetailFetch,
   turnItemOutputImages,
   turnItemOutputText,
-} from "@supacode/client-runtime/work-log/item-detail";
-import { formatDiffCount } from "@supacode/client-runtime/diff-count";
-import { isJavaScriptReplTool } from "@supacode/shared/toolActivity";
+} from "@supaterm/client-runtime/work-log/item-detail";
+import { formatDiffCount } from "@supaterm/client-runtime/diff-count";
+import { isJavaScriptReplTool } from "@supaterm/shared/toolActivity";
 import { ExternalLinkIcon, GitBranchIcon } from "lucide-react";
 import { memo, Suspense, use, useMemo } from "react";
 

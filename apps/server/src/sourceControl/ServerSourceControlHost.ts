@@ -4,7 +4,7 @@
  *
  * @module sourceControl/ServerSourceControlHost
  */
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 

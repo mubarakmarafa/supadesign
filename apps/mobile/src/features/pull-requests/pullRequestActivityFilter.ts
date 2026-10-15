@@ -1,4 +1,4 @@
-import type { PullRequestActivity, PullRequestActor } from "@supacode/contracts";
+import type { PullRequestActivity, PullRequestActor } from "@supaterm/contracts";
 
 export interface ActivityFilter {
   readonly kind: "all" | "comments" | "commits";

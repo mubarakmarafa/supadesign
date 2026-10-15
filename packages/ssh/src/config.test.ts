@@ -14,7 +14,7 @@ import {
 function makeTempHomeDir() {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    return yield* fs.makeTempDirectoryScoped({ prefix: "supacode-ssh-test-" });
+    return yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-ssh-test-" });
   });
 }
 

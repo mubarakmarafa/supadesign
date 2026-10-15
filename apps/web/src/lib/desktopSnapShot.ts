@@ -1,6 +1,6 @@
-import type { DesktopBridge } from "@supacode/contracts";
+import type { DesktopBridge } from "@supaterm/contracts";
 
-const SNAP_SHOT_FOCUS_EVENT = "supacode:focus-composer";
+const SNAP_SHOT_FOCUS_EVENT = "supaterm:focus-composer";
 
 export function dispatchSnapShotComposerFocus(): void {
   if (typeof window === "undefined") return;

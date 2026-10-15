@@ -2,8 +2,8 @@ import {
   worktreeSetupStageLabel,
   type WorktreeSetupSnapshot,
   type WorktreeSetupStage,
-} from "@supacode/contracts";
-import { formatDuration } from "@supacode/shared/orchestrationTiming";
+} from "@supaterm/contracts";
+import { formatDuration } from "@supaterm/shared/orchestrationTiming";
 import {
   CheckIcon,
   CircleAlertIcon,

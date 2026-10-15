@@ -1,13 +1,13 @@
 import {
-  SUPACODE_DARK_THEME_COLORS,
-  SUPACODE_LIGHT_THEME_COLORS,
+  SUPATERM_DARK_THEME_COLORS,
+  SUPATERM_LIGHT_THEME_COLORS,
   type ThemeAppearance,
   type ThemeColors,
 } from "./themePalettes.ts";
 
 /**
  * Agent-authored HTML pages ("HTML renders") are self-contained documents an
- * agent publishes into a thread with Supacode's `html_render` MCP tool. The server
+ * agent publishes into a thread with Supaterm's `html_render` MCP tool. The server
  * stores each one as a thread attachment with a small bootstrap injected into
  * its head; clients show it in a sandboxed iframe (web, desktop) or WebView
  * (mobile) and hand it the active theme as CSS custom properties.
@@ -248,7 +248,7 @@ export function htmlRenderTheme(
 
 /** Agent-facing reference for the injected variables, used in tool descriptions. */
 export const HTML_RENDER_THEME_GUIDE = [
-  "Supacode injects its active theme as CSS custom properties on :root, and they follow the user's theme and light/dark mode live:",
+  "Supaterm injects its active theme as CSS custom properties on :root, and they follow the user's theme and light/dark mode live:",
   "--background (page background, identical to the thread around the frame), --foreground, --muted, --muted-foreground,",
   "--card, --card-foreground, --popover, --popover-foreground, --secondary, --secondary-foreground, --border, --input, --ring,",
   "--primary, --primary-foreground (solid buttons), --accent, --accent-foreground (brand accent), --accent-surface, --accent-surface-foreground,",
@@ -305,7 +305,7 @@ export function htmlRenderResult(id: string | number) {
   return { jsonrpc: "2.0", id, result: {} } as const;
 }
 
-const THEME_FRAGMENT_KEY = "supacode-theme";
+const THEME_FRAGMENT_KEY = "supaterm-theme";
 
 /** URL fragment that hands a render its theme before first paint. */
 export function htmlRenderThemeFragment(theme: HtmlRenderTheme): string {
@@ -345,11 +345,11 @@ function rootRule(theme: HtmlRenderTheme): string {
 // opens it as a new window, which the client sends to the browser. A framed
 // page also reports its content height, measured as the server measures it,
 // so its client can fit the frame to the page.
-const BOOTSTRAP_SCRIPT = `(function(){var s=document.getElementById("supacode-theme"),n=0;if(!s)return;var b=${JSON.stringify(BASE_CSS)};function a(t){if(!t||typeof t!=="object"||!t.variables||typeof t.variables!=="object")return;var c=":root{color-scheme:"+(t.appearance==="light"?"light":"dark")+";";for(var k in t.variables){if(/^--[a-z0-9-]+$/.test(k))c+=k+":"+String(t.variables[k]).replace(/[;{}<>]/g,"")+";";}s.textContent=c+"}"+b;}try{var m=/[#&]${THEME_FRAGMENT_KEY}=([^&]*)/.exec(location.hash);if(m){a(JSON.parse(decodeURIComponent(m[1])));history.replaceState(history.state,"",location.pathname+location.search);}}catch(e){}window.addEventListener("message",function(e){var d=e.data,p=d&&d.params;if(d&&d.jsonrpc==="2.0"&&d.method===${JSON.stringify(HOST_CONTEXT_CHANGED_METHOD)}&&p&&p.styles)a({appearance:p.theme,variables:p.styles.variables});});document.addEventListener("click",function(e){var l=e.isTrusted?e.composedPath().find(function(t){return t&&t.matches&&t.matches("a[href]");}):null,u;if(!l)return;try{u=new URL(l.getAttribute("href"),document.baseURI);}catch(x){return;}if(!/^https?:$/.test(u.protocol)||u.href.split("#")[0]===location.href.split("#")[0])return;if(window.parent!==window){e.preventDefault();window.parent.postMessage({jsonrpc:"2.0",id:"supacode-link-"+(++n),method:${JSON.stringify(OPEN_LINK_METHOD)},params:{url:u.href}},"*");}else{l.setAttribute("target","_blank");l.setAttribute("rel","noopener");}},true);if(window.parent!==window){var h,o,z=function(){var r=document.documentElement,v=Math.ceil(r.scrollHeight>r.clientHeight?r.scrollHeight:r.getBoundingClientRect().height);if(v===h)return;h=v;window.parent.postMessage({jsonrpc:"2.0",method:${JSON.stringify(SIZE_CHANGED_METHOD)},params:{height:v}},"*");};if(window.ResizeObserver){o=new ResizeObserver(z);o.observe(document.documentElement);}document.addEventListener("DOMContentLoaded",function(){if(o&&document.body)o.observe(document.body);z();});window.addEventListener("load",z);}})();`;
+const BOOTSTRAP_SCRIPT = `(function(){var s=document.getElementById("supaterm-theme"),n=0;if(!s)return;var b=${JSON.stringify(BASE_CSS)};function a(t){if(!t||typeof t!=="object"||!t.variables||typeof t.variables!=="object")return;var c=":root{color-scheme:"+(t.appearance==="light"?"light":"dark")+";";for(var k in t.variables){if(/^--[a-z0-9-]+$/.test(k))c+=k+":"+String(t.variables[k]).replace(/[;{}<>]/g,"")+";";}s.textContent=c+"}"+b;}try{var m=/[#&]${THEME_FRAGMENT_KEY}=([^&]*)/.exec(location.hash);if(m){a(JSON.parse(decodeURIComponent(m[1])));history.replaceState(history.state,"",location.pathname+location.search);}}catch(e){}window.addEventListener("message",function(e){var d=e.data,p=d&&d.params;if(d&&d.jsonrpc==="2.0"&&d.method===${JSON.stringify(HOST_CONTEXT_CHANGED_METHOD)}&&p&&p.styles)a({appearance:p.theme,variables:p.styles.variables});});document.addEventListener("click",function(e){var l=e.isTrusted?e.composedPath().find(function(t){return t&&t.matches&&t.matches("a[href]");}):null,u;if(!l)return;try{u=new URL(l.getAttribute("href"),document.baseURI);}catch(x){return;}if(!/^https?:$/.test(u.protocol)||u.href.split("#")[0]===location.href.split("#")[0])return;if(window.parent!==window){e.preventDefault();window.parent.postMessage({jsonrpc:"2.0",id:"supaterm-link-"+(++n),method:${JSON.stringify(OPEN_LINK_METHOD)},params:{url:u.href}},"*");}else{l.setAttribute("target","_blank");l.setAttribute("rel","noopener");}},true);if(window.parent!==window){var h,o,z=function(){var r=document.documentElement,v=Math.ceil(r.scrollHeight>r.clientHeight?r.scrollHeight:r.getBoundingClientRect().height);if(v===h)return;h=v;window.parent.postMessage({jsonrpc:"2.0",method:${JSON.stringify(SIZE_CHANGED_METHOD)},params:{height:v}},"*");};if(window.ResizeObserver){o=new ResizeObserver(z);o.observe(document.documentElement);}document.addEventListener("DOMContentLoaded",function(){if(o&&document.body)o.observe(document.body);z();});window.addEventListener("load",z);}})();`;
 
 function bootstrapMarkup(markup: string): string {
-  const dark = htmlRenderTheme(SUPACODE_DARK_THEME_COLORS, "dark");
-  const light = htmlRenderTheme(SUPACODE_LIGHT_THEME_COLORS, "light");
+  const dark = htmlRenderTheme(SUPATERM_DARK_THEME_COLORS, "dark");
+  const light = htmlRenderTheme(SUPATERM_LIGHT_THEME_COLORS, "light");
   // Without a client-provided theme (a direct download, the headless preview
   // without a fragment) the page follows the OS appearance.
   const defaultCss = `${rootRule(dark)}@media (prefers-color-scheme: light){${rootRule(light)}}${BASE_CSS}`;
@@ -358,7 +358,7 @@ function bootstrapMarkup(markup: string): string {
     /<meta\s[^>]*name\s*=\s*["']?viewport/i.test(markup)
       ? ""
       : '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    `<style id="supacode-theme">${defaultCss}</style>`,
+    `<style id="supaterm-theme">${defaultCss}</style>`,
     `<script>${BOOTSTRAP_SCRIPT}</script>`,
   ].join("");
 }

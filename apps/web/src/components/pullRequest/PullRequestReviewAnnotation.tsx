@@ -10,7 +10,7 @@ import type {
   PullRequestReviewThread,
   PullRequestThreadCommentsResult,
   PullRequestThreadComment,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { HammerIcon, MessageSquareIcon, Trash2Icon } from "lucide-react";
 import { Circle, CircleCheck } from "lucide";
 import { useRef, useState } from "react";

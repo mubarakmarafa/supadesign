@@ -1,8 +1,8 @@
-import type { AssistantCitation } from "@supacode/contracts";
+import type { AssistantCitation } from "@supaterm/contracts";
 import {
   formatAssistantCitationHref,
   parseAssistantCitationHref,
-} from "@supacode/shared/assistantCitations";
+} from "@supaterm/shared/assistantCitations";
 import * as Base64Url from "effect/encoding/Base64Url";
 import * as Result from "effect/Result";
 

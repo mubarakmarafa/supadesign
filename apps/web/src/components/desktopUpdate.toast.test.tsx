@@ -1,6 +1,6 @@
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { DesktopUpdateState } from "@supacode/contracts";
+import type { DesktopUpdateState } from "@supaterm/contracts";
 
 const testState = vi.hoisted(() => ({
   addToast: vi.fn(),

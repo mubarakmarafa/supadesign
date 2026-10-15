@@ -1,4 +1,4 @@
-import { AuthDiagnosticsReadScope, AuthOrchestrationReadScope } from "@supacode/contracts";
+import { AuthDiagnosticsReadScope, AuthOrchestrationReadScope } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { resolveUsageAccess } from "./usageAccess.ts";

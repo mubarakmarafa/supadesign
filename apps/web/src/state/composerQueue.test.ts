@@ -2,7 +2,7 @@ import {
   AuthOrchestrationOperateScope,
   EnvironmentId,
   type AuthSessionState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";

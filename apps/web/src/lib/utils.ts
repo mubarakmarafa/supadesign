@@ -1,5 +1,5 @@
-import { MessageId, ProjectId, ThreadId } from "@supacode/contracts";
-import { isMacPlatform } from "@supacode/shared/keybindings";
+import { MessageId, ProjectId, ThreadId } from "@supaterm/contracts";
+import { isMacPlatform } from "@supaterm/shared/keybindings";
 import { type CxOptions, cx } from "class-variance-authority";
 import * as Hex from "effect/encoding/Hex";
 import { extendTailwindMerge } from "tailwind-merge";

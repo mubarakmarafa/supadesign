@@ -5,7 +5,7 @@ import {
   type PreviewOpenInput,
   type PreviewSessionSnapshot,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -33,7 +33,7 @@ const snapshot: PreviewSessionSnapshot = {
   tabId: "tab-1",
   navStatus: {
     _tag: "Loading",
-    url: "https://next.supacode.sh/",
+    url: "https://supaterm.com/",
     title: "",
   },
   canGoBack: false,
@@ -80,19 +80,17 @@ describe("openPreviewSession", () => {
     await openPreviewSession({
       openPreview: ({ input }) => open(input),
       threadRef,
-      url: "next.supacode.sh",
+      url: "supaterm.com",
     });
 
     expect(open).toHaveBeenCalledWith({
       threadId: "thread-1",
-      url: "next.supacode.sh",
+      url: "supaterm.com",
       viewport: FILL_PREVIEW_VIEWPORT,
       profileId: DEFAULT_BROWSER_PROFILE_ID,
     });
     expect(readThreadPreviewState(threadRef).snapshot).toEqual(snapshot);
-    expect(readThreadPreviewState(threadRef).recentlySeenUrls).toEqual([
-      "https://next.supacode.sh/",
-    ]);
+    expect(readThreadPreviewState(threadRef).recentlySeenUrls).toEqual(["https://supaterm.com/"]);
   });
 
   it("returns failures without mutating preview state", async () => {
@@ -101,7 +99,7 @@ describe("openPreviewSession", () => {
     const result = await openPreviewSession({
       openPreview: async () => AsyncResult.failure(Cause.fail(failure)),
       threadRef,
-      url: "next.supacode.sh",
+      url: "supaterm.com",
     });
 
     expect(result._tag).toBe("Failure");
@@ -122,7 +120,7 @@ describe("openPreviewSession", () => {
         browserProfiles: [{ id: "work", name: "Work", kind: "persistent" }],
       });
       const openPreview = vi.fn(async () => AsyncResult.success(snapshot));
-      const input = { openPreview, threadRef, url: "https://next.supacode.sh/" };
+      const input = { openPreview, threadRef, url: "https://supaterm.com/" };
       const open = entryPoint === "session" ? openPreviewSession : openUrlInPreview;
 
       const result = await open(input);
@@ -159,7 +157,7 @@ describe("openUrlInPreview from a link", () => {
     await openUrlInPreview({
       openPreview,
       threadRef,
-      url: "https://supacode.chat/",
+      url: "https://supaterm.chat/",
       profileId: "work",
     });
 
@@ -172,7 +170,7 @@ describe("openUrlInPreview from a link", () => {
     await openUrlInPreview({
       openPreview: async () => AsyncResult.success(snapshot),
       threadRef,
-      url: "https://supacode.chat/",
+      url: "https://supaterm.chat/",
       background: true,
     });
 
@@ -193,7 +191,7 @@ describe("openUrlInPreview from a link", () => {
         return AsyncResult.success(snapshot);
       },
       threadRef,
-      url: "https://supacode.chat/",
+      url: "https://supaterm.chat/",
       background: true,
     });
 
@@ -211,7 +209,7 @@ describe("openUrlInPreview from a link", () => {
         return AsyncResult.success(snapshot);
       },
       threadRef,
-      url: "https://supacode.chat/",
+      url: "https://supaterm.chat/",
       background: true,
     });
 
@@ -224,7 +222,7 @@ describe("openUrlInPreview from a link", () => {
     await openUrlInPreview({
       openPreview: async () => AsyncResult.success(snapshot),
       threadRef,
-      url: "https://supacode.chat/",
+      url: "https://supaterm.chat/",
     });
 
     expect(readThreadPreviewState(threadRef).activeTabId).toBe("tab-1");

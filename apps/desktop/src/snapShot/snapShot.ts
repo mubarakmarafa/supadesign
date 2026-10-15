@@ -14,7 +14,7 @@ import {
   type SnapShotKeyChord,
   type SnapShotModifier,
   type SnapShotShortcut,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 interface AccessibilityTreeNode {
   readonly name?: string;
@@ -447,7 +447,7 @@ export function hideAndWaitForBlur(window: {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       window.removeListener("blur", onBlur);
-      reject(new Error("Timed out waiting for Supacode to lose focus."));
+      reject(new Error("Timed out waiting for Supaterm to lose focus."));
     }, WINDOW_BLUR_TIMEOUT_MS);
     const onBlur = () => {
       clearTimeout(timeout);

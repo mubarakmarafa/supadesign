@@ -1,5 +1,5 @@
 import { useIsFocused } from "@react-navigation/native";
-import { videoMimeType } from "@supacode/shared/video";
+import { videoMimeType } from "@supaterm/shared/video";
 import { useEffect, useState } from "react";
 import { Keyboard, Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -151,7 +151,7 @@ function OpenVideoPreviewModal(props: {
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
       >
         <View className="min-h-14 flex-row items-center gap-3 pl-4 pr-2">
-          <AppText className="flex-1 font-supacode-medium text-base text-white" numberOfLines={2}>
+          <AppText className="flex-1 font-supaterm-medium text-base text-white" numberOfLines={2}>
             {props.name}
           </AppText>
           <MediaActionsMenu media={mediaActions} inModal />
@@ -194,7 +194,7 @@ function OpenVideoPreviewModal(props: {
           onPress={mediaActions.share}
           className="mx-4 my-3 min-h-12 items-center justify-center rounded-xl bg-white/15 px-4"
         >
-          <AppText className="font-supacode-medium text-base text-white">
+          <AppText className="font-supaterm-medium text-base text-white">
             {mediaActions.sharing ? "Opening share sheet..." : "Save or share video"}
           </AppText>
         </Pressable>

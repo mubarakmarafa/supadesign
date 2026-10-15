@@ -1,12 +1,12 @@
 import * as Path from "effect/Path";
-import { ProviderDriverKind, TextGenerationError, type CodexSettings } from "@supacode/contracts";
+import { ProviderDriverKind, TextGenerationError, type CodexSettings } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Stream from "effect/Stream";
 import * as Option from "effect/Option";
 import { ChildProcessSpawner } from "effect/process";
 import { makeCodexTextGeneration } from "../../textGeneration/CodexTextGeneration.ts";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import { chatGptModels } from "../CodexChatGptModels.ts";
 import { makeCodexManagedRuntime } from "../CodexManagedRuntime.ts";
 import { ProviderDriverError } from "../Errors.ts";
@@ -16,14 +16,14 @@ import {
   makePendingCodexProvider,
   probeCodexSkillsForCwd,
 } from "../CodexProvider.ts";
-import { makeManagedServerProvider } from "@supacode/provider-core/server/managedProvider";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
+import { makeManagedServerProvider } from "@supaterm/provider-core/server/managedProvider";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
 import {
   type ProviderDriverCreateInput,
   type ProviderInstance,
-} from "@supacode/provider-core/server/driver";
+} from "@supaterm/provider-core/server/driver";
 import { codexContinuationIdentity } from "./CodexHomeLayout.ts";
-import { withInstanceIdentity } from "@supacode/provider-core/server/instanceIdentity";
+import { withInstanceIdentity } from "@supaterm/provider-core/server/instanceIdentity";
 import { HttpClient } from "effect/http";
 const DRIVER = ProviderDriverKind.make("codex");
 

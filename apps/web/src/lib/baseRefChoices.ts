@@ -1,4 +1,4 @@
-import type { VcsRef } from "@supacode/contracts";
+import type { VcsRef } from "@supaterm/contracts";
 
 export interface BaseRefChoice {
   readonly id: string;

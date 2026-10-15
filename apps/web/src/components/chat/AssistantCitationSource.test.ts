@@ -1,5 +1,5 @@
 import type { LegendListRef } from "@legendapp/list/react";
-import { EnvironmentId, MessageId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, MessageId, ThreadId } from "@supaterm/contracts";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import {
@@ -311,8 +311,8 @@ function createSource({ reducedMotion = false } = {}) {
     setSourceTop: (value: number) => {
       sourceTop = value;
     },
-    highlight: () => highlights.get("supacode-assistant-citation")?.values().next().value,
-    commentHighlight: () => highlights.get("supacode-assistant-citation-comment"),
+    highlight: () => highlights.get("supaterm-assistant-citation")?.values().next().value,
+    commentHighlight: () => highlights.get("supaterm-assistant-citation-comment"),
     cleanup: () => {
       for (const cleanup of cleanups) cleanup();
     },
@@ -529,9 +529,9 @@ describe("assistant citation source lifecycle", () => {
     source.flushFrame();
     await source.finishScroll();
     const replacement = new Set<TestRange>();
-    source.highlights.set("supacode-assistant-citation", replacement);
+    source.highlights.set("supaterm-assistant-citation", replacement);
     source.cleanup();
-    expect(source.highlights.get("supacode-assistant-citation")).toBe(replacement);
+    expect(source.highlights.get("supaterm-assistant-citation")).toBe(replacement);
   });
 
   it("preserves a user's replacement selection in the native-selection fallback", async () => {
@@ -581,7 +581,7 @@ describe("assistant citation comment source lifecycle", () => {
     const getSelection = vi.fn(() => selection);
     source.root.ownerDocument.getSelection = getSelection;
     const navigationHighlight = new Set([new TestRange(source.text, () => rect(20))]);
-    source.highlights.set("supacode-assistant-citation", navigationHighlight);
+    source.highlights.set("supaterm-assistant-citation", navigationHighlight);
     const comment = source.mountComment();
 
     expect(source.commentHighlight()?.size).toBe(1);
@@ -597,7 +597,7 @@ describe("assistant citation comment source lifecycle", () => {
     comment.cleanup();
     comment.cleanup();
     expect(source.commentHighlight()).toBeUndefined();
-    expect(source.highlights.get("supacode-assistant-citation")).toBe(navigationHighlight);
+    expect(source.highlights.get("supaterm-assistant-citation")).toBe(navigationHighlight);
     expect(selection.ranges).toEqual([selectedRange]);
     expect(comment.onUnavailable).not.toHaveBeenCalled();
     source.mutation(source.root);
@@ -715,7 +715,7 @@ describe("assistant citation comment source lifecycle", () => {
     const comment = source.mountComment();
     const original = source.commentHighlight();
     const replacement = new Set([new TestRange(source.text, () => rect(90))]);
-    source.highlights.set("supacode-assistant-citation-comment", replacement);
+    source.highlights.set("supaterm-assistant-citation-comment", replacement);
 
     comment.cleanup();
 

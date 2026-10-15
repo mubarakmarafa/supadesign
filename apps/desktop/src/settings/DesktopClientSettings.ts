@@ -1,6 +1,6 @@
-import { ClientSettingsSchema, type ClientSettings } from "@supacode/contracts";
-import { fromLenientJson } from "@supacode/shared/schemaJson";
-import { resolveSymlinkTarget } from "@supacode/shared/symlink";
+import { ClientSettingsSchema, type ClientSettings } from "@supaterm/contracts";
+import { fromLenientJson } from "@supaterm/shared/schemaJson";
+import { resolveSymlinkTarget } from "@supaterm/shared/symlink";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -70,7 +70,7 @@ export class DesktopClientSettings extends Context.Service<
       settings: ClientSettings,
     ) => Effect.Effect<void, DesktopClientSettingsWriteError>;
   }
->()("@supacode/desktop/settings/DesktopClientSettings") {}
+>()("@supaterm/desktop/settings/DesktopClientSettings") {}
 
 const readClientSettings = (
   fileSystem: FileSystem.FileSystem,

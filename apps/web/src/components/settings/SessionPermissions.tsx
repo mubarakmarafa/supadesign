@@ -1,5 +1,5 @@
-import { type EnvironmentId, sessionGrantsScope } from "@supacode/contracts";
-import { AUTH_SCOPE_OPTIONS } from "@supacode/shared/authScopeOptions";
+import { type EnvironmentId, sessionGrantsScope } from "@supaterm/contracts";
+import { AUTH_SCOPE_OPTIONS } from "@supaterm/shared/authScopeOptions";
 import { useEnvironmentSessionState } from "~/state/session";
 
 export function SessionPermissions({

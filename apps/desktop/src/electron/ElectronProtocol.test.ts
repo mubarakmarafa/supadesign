@@ -42,11 +42,11 @@ describe("ElectronProtocol", () => {
       });
       const protocol = yield* ElectronProtocol.ElectronProtocol;
       yield* protocol.registerDesktopProtocol({
-        scheme: "supacode",
+        scheme: "supaterm",
         assetDirectory: directory,
       });
       const request = (pathname: string, init?: RequestInit) =>
-        Effect.promise(() => handler!(new Request(`supacode://app${pathname}`, init)));
+        Effect.promise(() => handler!(new Request(`supaterm://app${pathname}`, init)));
 
       // SPA routes fall back to index.html, including ones containing dots.
       const page = yield* request("/settings/connections");
@@ -81,18 +81,18 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "supacode-dev",
+            scheme: "supaterm-dev",
             targetOrigin: new URL("http://127.0.0.1:3773/"),
           });
           assert.isDefined(handler);
 
           const response = yield* Effect.promise(() =>
             handler!(
-              new Request("supacode-dev://app/api/health?verbose=1", {
+              new Request("supaterm-dev://app/api/health?verbose=1", {
                 headers: {
                   accept: "application/json",
-                  origin: "supacode-dev://app",
-                  referer: "supacode-dev://app/",
+                  origin: "supaterm-dev://app",
+                  referer: "supaterm-dev://app/",
                   "sec-fetch-site": "same-origin",
                 },
               }),
@@ -109,18 +109,18 @@ describe("ElectronProtocol", () => {
           );
           assert.include(
             response.headers.get("content-security-policy") ?? "",
-            "img-src 'self' supacode-dev: blob: data: http: https:",
+            "img-src 'self' supaterm-dev: blob: data: http: https:",
           );
           assert.include(
             response.headers.get("content-security-policy") ?? "",
-            "font-src 'self' supacode-dev: data:",
+            "font-src 'self' supaterm-dev: data:",
           );
         }),
       );
 
       assert.deepEqual(
         handleMock.mock.calls.map((call) => call[0]),
-        ["supacode-dev"],
+        ["supaterm-dev"],
       );
       assert.equal(netFetchMock.mock.calls[0]?.[0], "http://127.0.0.1:3773/api/health?verbose=1");
       const forwardedHeaders = new Headers(netFetchMock.mock.calls[0]?.[1]?.headers);
@@ -128,7 +128,7 @@ describe("ElectronProtocol", () => {
       assert.isNull(forwardedHeaders.get("origin"));
       assert.isNull(forwardedHeaders.get("referer"));
       assert.isNull(forwardedHeaders.get("sec-fetch-site"));
-      assert.deepEqual(unhandleMock.mock.calls, [["supacode-dev"]]);
+      assert.deepEqual(unhandleMock.mock.calls, [["supaterm-dev"]]);
     }).pipe(Effect.provide(layerProtocol)),
   );
 
@@ -143,10 +143,10 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "supacode",
+            scheme: "supaterm",
             targetOrigin: new URL("http://127.0.0.1:3773/"),
           });
-          return yield* Effect.promise(() => handler!(new Request("supacode://other/")));
+          return yield* Effect.promise(() => handler!(new Request("supaterm://other/")));
         }),
       );
 
@@ -169,11 +169,11 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "supacode-dev",
+            scheme: "supaterm-dev",
             targetOrigin: new URL("http://127.0.0.1:5733/"),
           });
           const fiber = yield* Effect.forkChild(
-            Effect.promise(() => handler!(new Request("supacode-dev://app/"))),
+            Effect.promise(() => handler!(new Request("supaterm-dev://app/"))),
           );
           yield* TestClock.adjust("50 millis");
           return yield* Fiber.join(fiber);
@@ -201,12 +201,12 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "supacode-dev",
+            scheme: "supaterm-dev",
             targetOrigin: new URL("http://127.0.0.1:5733/"),
           });
           const fiber = yield* Effect.forkChild(
             Effect.promise(() =>
-              handler!(new Request("supacode-dev://app/")).then(
+              handler!(new Request("supaterm-dev://app/")).then(
                 () => null,
                 (error: unknown) => error,
               ),
@@ -238,15 +238,15 @@ describe("ElectronProtocol", () => {
       const protocol = yield* ElectronProtocol.ElectronProtocol;
       const error = yield* Effect.scoped(
         protocol.registerDesktopProtocol({
-          scheme: "supacode-dev",
+          scheme: "supaterm-dev",
           targetOrigin: new URL("http://127.0.0.1:3773/"),
         }),
       ).pipe(Effect.flip);
 
       assert.instanceOf(error, ElectronProtocol.ElectronProtocolRegistrationError);
-      assert.equal(error.scheme, "supacode-dev");
+      assert.equal(error.scheme, "supaterm-dev");
       assert.strictEqual(error.cause, cause);
-      assert.equal(error.message, 'Failed to register Electron protocol scheme "supacode-dev".');
+      assert.equal(error.message, 'Failed to register Electron protocol scheme "supaterm-dev".');
     }).pipe(Effect.provide(layerProtocol)),
   );
 
@@ -261,7 +261,7 @@ describe("ElectronProtocol", () => {
       const exit = yield* Effect.exit(
         Effect.scoped(
           protocol.registerDesktopProtocol({
-            scheme: "supacode",
+            scheme: "supaterm",
             targetOrigin: new URL("http://127.0.0.1:3773/"),
           }),
         ),
@@ -271,16 +271,16 @@ describe("ElectronProtocol", () => {
       if (exit._tag === "Failure") {
         const error = Cause.squash(exit.cause);
         assert.instanceOf(error, ElectronProtocol.ElectronProtocolUnregistrationError);
-        assert.equal(error.scheme, "supacode");
+        assert.equal(error.scheme, "supaterm");
         assert.strictEqual(error.cause, cause);
-        assert.equal(error.message, 'Failed to unregister Electron protocol scheme "supacode".');
+        assert.equal(error.message, 'Failed to unregister Electron protocol scheme "supaterm".');
       }
     }).pipe(Effect.provide(layerProtocol)),
   );
 
   it("keeps executable sources host-restricted while allowing runtime network resources", () => {
     const policy = ElectronProtocol.makeDesktopContentSecurityPolicy({
-      scheme: "supacode",
+      scheme: "supaterm",
       targetOrigin: new URL("http://127.0.0.1:3773/"),
     });
     const directives = Object.fromEntries(
@@ -301,14 +301,14 @@ describe("ElectronProtocol", () => {
     ]);
     assert.deepEqual(directives["img-src"], [
       "'self'",
-      "supacode:",
+      "supaterm:",
       "blob:",
       "data:",
       "http:",
       "https:",
     ]);
-    assert.deepEqual(directives["media-src"], ["'self'", "supacode:", "blob:", "http:", "https:"]);
+    assert.deepEqual(directives["media-src"], ["'self'", "supaterm:", "blob:", "http:", "https:"]);
     assert.deepEqual(directives["frame-src"], ["'self'", "blob:", "http:", "https:"]);
-    assert.deepEqual(directives["font-src"], ["'self'", "supacode:", "data:"]);
+    assert.deepEqual(directives["font-src"], ["'self'", "supaterm:", "data:"]);
   });
 });

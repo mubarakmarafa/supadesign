@@ -7,7 +7,7 @@ import type {
   ProjectId,
   ScopedProjectRef,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export interface DesktopAppActivationProject {
   readonly id: ProjectId;
@@ -85,7 +85,7 @@ export async function handleDesktopAppActivationRequest(
       return failure(
         request.requestId,
         "project-create-failed",
-        errorMessage(error, "Supacode could not add the project."),
+        errorMessage(error, "Supaterm could not add the project."),
       );
     }
   }
@@ -99,7 +99,7 @@ export async function handleDesktopAppActivationRequest(
       return failure(
         request.requestId,
         "thread-open-failed",
-        "Supacode could not open a new thread for the project.",
+        "Supaterm could not open a new thread for the project.",
       );
     }
     return {
@@ -113,7 +113,7 @@ export async function handleDesktopAppActivationRequest(
     return failure(
       request.requestId,
       "thread-open-failed",
-      errorMessage(error, "Supacode could not open a new thread for the project."),
+      errorMessage(error, "Supaterm could not open a new thread for the project."),
     );
   }
 }

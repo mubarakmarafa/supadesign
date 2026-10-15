@@ -1,4 +1,4 @@
-import type { ProviderUserInputAnswers, UserInputQuestion } from "@supacode/contracts";
+import type { ProviderUserInputAnswers, UserInputQuestion } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -8,8 +8,8 @@ import * as Schema from "effect/Schema";
 import * as EffectAcpErrors from "effect-acp/errors";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
-import type * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import type { AcpToolCallState } from "@supacode/provider-acp/server/runtimeModel";
+import type * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import type { AcpToolCallState } from "@supaterm/provider-acp/server/runtimeModel";
 
 const xAiStopReasonMissingMetaKey = "xAiStopReasonMissing";
 export const xAiRateLimitedErrorCode = -32003;
@@ -93,7 +93,7 @@ export function xAiPromptCompleteFromSessionUpdate(
 
 /**
  * Grok answers a finished background command in its own turn, tagging every
- * frame with a `task-completed-*` prompt id instead of the one Supacode sent.
+ * frame with a `task-completed-*` prompt id instead of the one Supaterm sent.
  */
 export function isXAiTaskCompletedWakeNotification(
   notification: EffectAcpSchema.SessionNotification,
@@ -1049,8 +1049,8 @@ export interface XAiExitPlanModeResponse {
 }
 
 /**
- * Client captured the plan for Supacode's proposed-plan card. Abandon the native
- * Grok plan-approval gate so the turn unblocks; the user implements via Supacode UI.
+ * Client captured the plan for Supaterm's proposed-plan card. Abandon the native
+ * Grok plan-approval gate so the turn unblocks; the user implements via Supaterm UI.
  */
 export function makeXAiExitPlanModeCapturedResponse(feedback?: string): XAiExitPlanModeResponse {
   return {
@@ -1151,7 +1151,7 @@ export function isGrokPlanMarkdownPath(
 
 /**
  * Extract plan markdown from a Grok write/edit tool call targeting plan.md.
- * Used so Supacode can show the plan while plan mode is still active (before exit).
+ * Used so Supaterm can show the plan while plan mode is still active (before exit).
  */
 export function extractGrokPlanMarkdownFromToolCallData(
   data: Record<string, unknown> | undefined,
@@ -1563,7 +1563,7 @@ const rememberCompletedXAiPromptId = (
  * - `x.ai/session/prompt_complete` (open-source fire-and-forget signal)
  * - `_x.ai/session/prompt_complete` (released-build alias)
  *
- * Pending entries are keyed by root sessionId + Supacode-injected promptId, so
+ * Pending entries are keyed by root sessionId + Supaterm-injected promptId, so
  * foreign/child sessions and `task-completed-*` ids do not settle the root turn.
  */
 export const makeXAiPromptCompletionRuntime = Effect.fn("makeXAiPromptCompletionRuntime")(
@@ -1579,7 +1579,7 @@ export const makeXAiPromptCompletionRuntime = Effect.fn("makeXAiPromptCompletion
     let nextPromptFallbackId = 0;
     const allocatePromptFallbackId = Effect.sync(() => {
       nextPromptFallbackId += 1;
-      return `supacode-xai-prompt-${nextPromptFallbackId}`;
+      return `supaterm-xai-prompt-${nextPromptFallbackId}`;
     });
     const pendingXAiPromptCompletionsRef = yield* Ref.make<
       ReadonlyArray<PendingXAiPromptCompletion>

@@ -1,8 +1,8 @@
-import type { ContextMenuItem } from "@supacode/contracts";
+import type { ContextMenuItem } from "@supaterm/contracts";
 import {
   type SourceControlClientDefinition,
   UNKNOWN_SOURCE_CONTROL_CLIENT,
-} from "@supacode/client-runtime/source-control-clients";
+} from "@supaterm/client-runtime/source-control-clients";
 
 import { writeTextToClipboard } from "~/hooks/useCopyToClipboard";
 import { readLocalApi } from "~/localApi";

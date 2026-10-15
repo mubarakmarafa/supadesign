@@ -5,7 +5,7 @@ import {
   EditorId,
   type EnvironmentId,
   type ResolvedKeybindingsConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { isOpenFavoriteEditorShortcut, shortcutLabelForCommand } from "../../keybindings";
 import { usePreferredEditor } from "../../editorPreferences";

@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Clock from "effect/Clock";
@@ -92,8 +92,8 @@ const RELAY_ROUTE: ConnectionRoute = {
       connectionId: "relay",
       environmentId: TARGET.environmentId,
       label: TARGET.label,
-      httpBaseUrl: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`,
-      wsBaseUrl: `wss://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`,
+      httpBaseUrl: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
+      wsBaseUrl: `wss://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
     }),
   ),
 };

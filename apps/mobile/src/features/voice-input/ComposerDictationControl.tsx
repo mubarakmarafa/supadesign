@@ -1,4 +1,4 @@
-import type { VoiceInputPhase, VoiceInputState } from "@supacode/client-runtime/voice-input";
+import type { VoiceInputPhase, VoiceInputState } from "@supaterm/client-runtime/voice-input";
 import { memo, useCallback, useLayoutEffect, useState, type ReactNode } from "react";
 import {
   Linking,

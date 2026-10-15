@@ -1,4 +1,4 @@
-import type { PreviewAnnotationPayload } from "@supacode/contracts";
+import type { PreviewAnnotationPayload } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { ComposerFileAttachment, ComposerImageAttachment } from "../../composerDraftStore";

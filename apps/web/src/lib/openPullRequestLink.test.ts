@@ -10,8 +10,8 @@ import {
   pullRequestCandidateUrlFromReferenceAutolink,
   shouldOpenPullRequestExternally,
 } from "./openPullRequestLink";
-import { ProjectId, type RepositoryIdentity } from "@supacode/contracts";
-import { normalizeGitRemoteUrl } from "@supacode/shared/git";
+import { ProjectId, type RepositoryIdentity } from "@supaterm/contracts";
+import { normalizeGitRemoteUrl } from "@supaterm/shared/git";
 
 function repositoryIdentity(
   provider: string,
@@ -248,10 +248,10 @@ describe("parseChangeRequestUrl", () => {
 
   it("reads a GitLab merge request, nested groups and all", () => {
     expect(
-      parseChangeRequestUrl("https://gitlab.com/supabitapp/platform/supacode/-/merge_requests/42"),
+      parseChangeRequestUrl("https://gitlab.com/supabitapp/platform/supaterm/-/merge_requests/42"),
     ).toEqual({
       host: "gitlab.com",
-      repository: "supabitapp/platform/supacode",
+      repository: "supabitapp/platform/supaterm",
       number: 42,
     });
   });
@@ -276,17 +276,17 @@ describe("parseChangeRequestUrl", () => {
 
   it("reads both Azure DevOps URL forms, keeping `_git` in the repository path", () => {
     expect(
-      parseChangeRequestUrl("https://dev.azure.com/acme/platform/_git/supacode/pullrequest/17"),
+      parseChangeRequestUrl("https://dev.azure.com/acme/platform/_git/supaterm/pullrequest/17"),
     ).toEqual({
       host: "dev.azure.com",
-      repository: "acme/platform/_git/supacode",
+      repository: "acme/platform/_git/supaterm",
       number: 17,
     });
     expect(
-      parseChangeRequestUrl("https://acme.visualstudio.com/platform/_git/supacode/pullrequest/17"),
+      parseChangeRequestUrl("https://acme.visualstudio.com/platform/_git/supaterm/pullrequest/17"),
     ).toEqual({
       host: "acme.visualstudio.com",
-      repository: "platform/_git/supacode",
+      repository: "platform/_git/supaterm",
       number: 17,
     });
   });
@@ -470,17 +470,17 @@ describe("findProjectForChangeRequest", () => {
     // two-segment owner/name form would look for `supabitapp/supacode-next` and find nothing.
     const projects = [
       project({
-        canonicalKey: "gitlab.com/supabitapp/platform/supacode",
+        canonicalKey: "gitlab.com/supabitapp/platform/supaterm",
         provider: "gitlab",
-        displayName: "supabitapp/platform/supacode",
+        displayName: "supabitapp/platform/supaterm",
         owner: "supabitapp",
-        name: "supacode",
+        name: "supaterm",
       }),
     ];
     expect(
       findProjectForChangeRequest(projects, {
         host: "gitlab.com",
-        repository: "supabitapp/platform/supacode",
+        repository: "supabitapp/platform/supaterm",
         number: 42,
       }),
     ).toBe(projects[0]);
@@ -492,7 +492,7 @@ describe("findProjectForChangeRequest", () => {
         canonicalKey: "github.com/supabitapp/supacode-next",
         provider: "github",
         owner: "supabitapp",
-        name: "supacode",
+        name: "supaterm",
       }),
     ];
     expect(
@@ -512,7 +512,7 @@ describe("findProjectForChangeRequest", () => {
     // Derived from the SSH remote the way the server derives it rather than written out, so the
     // day that normalization stops reaching the web spelling this fails here too.
     const canonicalKey = normalizeGitRemoteUrl(
-      "git@ssh.dev.azure.com:v3/SupabitApp/Platform/Supacode",
+      "git@ssh.dev.azure.com:v3/SupabitApp/Platform/Supaterm",
     );
     const projects = [
       project({
@@ -520,13 +520,13 @@ describe("findProjectForChangeRequest", () => {
         provider: "azure-devops",
         displayName: canonicalKey.split("/").slice(1).join("/"),
         owner: "supabitapp",
-        name: "supacode",
+        name: "supaterm",
       }),
     ];
     expect(
       findProjectForChangeRequest(projects, {
         host: "dev.azure.com",
-        repository: "supabitapp/platform/_git/supacode",
+        repository: "supabitapp/platform/_git/supaterm",
         number: 1,
       }),
     ).toBe(projects[0]);
@@ -538,7 +538,7 @@ describe("findProjectForChangeRequest", () => {
         canonicalKey: "github.com/supabitapp/supacode-next",
         provider: "github",
         owner: "supabitapp",
-        name: "supacode",
+        name: "supaterm",
       }),
     ];
     expect(

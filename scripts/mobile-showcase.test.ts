@@ -60,7 +60,7 @@ const config: ShowcaseConfig = {
       platform: "ios",
       simulator: "iPhone Test",
       appearance: "dark",
-      theme: "supacode",
+      theme: "supaterm",
       scenes: ["thread", "review"],
       storeAsset: appleSpec,
     },
@@ -69,7 +69,7 @@ const config: ShowcaseConfig = {
       platform: "android",
       avd: "Pixel_Test",
       appearance: "light",
-      theme: "supacode",
+      theme: "supaterm",
       scenes: ["thread", "terminal"],
       storeAsset: googleSpec,
     },
@@ -128,7 +128,7 @@ it("selects an explicit CI Android ABI without changing the local default", () =
   assert.equal(resolveShowcaseAndroidAbi("x86_64"), "x86_64");
   assert.throws(
     () => resolveShowcaseAndroidAbi("mips"),
-    /Unsupported SUPACODE_SHOWCASE_ANDROID_ABI/u,
+    /Unsupported SUPATERM_SHOWCASE_ANDROID_ABI/u,
   );
 });
 
@@ -175,11 +175,11 @@ it("expands both appearances into independent upload-ready directories", () => {
     [
       {
         appearance: "light",
-        directory: NodePath.join("/captures", "apple", "iphone-test", "light", "supacode"),
+        directory: NodePath.join("/captures", "apple", "iphone-test", "light", "supaterm"),
       },
       {
         appearance: "dark",
-        directory: NodePath.join("/captures", "apple", "iphone-test", "dark", "supacode"),
+        directory: NodePath.join("/captures", "apple", "iphone-test", "dark", "supaterm"),
       },
     ],
   );
@@ -272,7 +272,7 @@ it("enforces store screenshot count limits", () => {
 });
 
 it("defaults every device to the app's own palette", () => {
-  assert.equal(DEFAULT_SHOWCASE_THEME, "supacode");
+  assert.equal(DEFAULT_SHOWCASE_THEME, "supaterm");
   assert.equal(
     showcaseConfig.devices.every((device) => device.theme === DEFAULT_SHOWCASE_THEME),
     true,
@@ -315,7 +315,7 @@ it("selects a reachable LAN IPv4 address", () => {
 it("seeds a playful multi-environment project spectrum", () => {
   assert.deepStrictEqual(
     SHOWCASE_PROJECTS.map((project) => project.title),
-    ["supacode", "tidepool", "lattice"],
+    ["supaterm", "tidepool", "lattice"],
   );
   assert.deepStrictEqual(
     SHOWCASE_ENVIRONMENTS.map((environment) => environment.label),

@@ -1,10 +1,10 @@
 import { StackActions, useNavigation } from "@react-navigation/native";
-import { buildFeedbackPrompt } from "@supacode/client-runtime/feedback-prompt";
+import { buildFeedbackPrompt } from "@supaterm/client-runtime/feedback-prompt";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentId, ServerConfig } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentId, ServerConfig } from "@supaterm/contracts";
 import Constants from "expo-constants";
 import { useRef, useState } from "react";
 import { Alert, Platform } from "react-native";

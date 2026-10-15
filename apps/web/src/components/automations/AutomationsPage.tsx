@@ -1,8 +1,8 @@
 import { CircleAlertIcon, Clock3Icon, PlusIcon } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
-import type { EnvironmentId, ScheduledTask, ScheduledTaskId } from "@supacode/contracts";
-import { AuthOrchestrationOperateScope, resolveEnvironmentMachineKind } from "@supacode/contracts";
+import type { EnvironmentId, ScheduledTask, ScheduledTaskId } from "@supaterm/contracts";
+import { AuthOrchestrationOperateScope, resolveEnvironmentMachineKind } from "@supaterm/contracts";
 
 import { isElectron } from "../../env";
 import { useNowMinuteMs } from "../../hooks/useNowMinute";

@@ -2,8 +2,8 @@
 
 import { PlusIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { ProviderDriverKind, ServerProviderModel } from "@supacode/contracts";
-import type { CustomModelDefinition } from "@supacode/shared/model";
+import type { ProviderDriverKind, ServerProviderModel } from "@supaterm/contracts";
+import type { CustomModelDefinition } from "@supaterm/shared/model";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";

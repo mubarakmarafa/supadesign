@@ -1,4 +1,4 @@
-import { parseNewThreadLink } from "@supacode/shared/promptLinks";
+import { parseNewThreadLink } from "@supaterm/shared/promptLinks";
 import { createFileRoute, useLocation } from "@tanstack/react-router";
 import { useMemo } from "react";
 

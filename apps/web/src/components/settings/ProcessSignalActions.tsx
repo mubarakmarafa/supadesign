@@ -1,4 +1,4 @@
-import type { ServerProcessSignal } from "@supacode/contracts";
+import type { ServerProcessSignal } from "@supaterm/contracts";
 
 import { useInlineConfirm } from "../../hooks/useInlineConfirm";
 import { InlineConfirmIcon } from "../InlineConfirm";

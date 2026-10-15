@@ -1,6 +1,6 @@
-import { makeLocalFileTracer, makeTraceSink } from "@supacode/shared/observability";
-import * as SharedObservability from "@supacode/shared/observability";
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
+import { makeLocalFileTracer, makeTraceSink } from "@supaterm/shared/observability";
+import * as SharedObservability from "@supaterm/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as References from "effect/References";

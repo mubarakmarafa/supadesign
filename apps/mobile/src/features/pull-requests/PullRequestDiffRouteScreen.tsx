@@ -562,7 +562,7 @@ export function PullRequestFileRouteScreen({
             onPress={result.refresh}
             className="min-h-11 items-center justify-center py-2"
           >
-            <Text className="text-sm font-supacode-medium">Retry loading remaining files</Text>
+            <Text className="text-sm font-supaterm-medium">Retry loading remaining files</Text>
           </Pressable>
         ) : null}
         {parsed.kind === "files" && parsed.notice ? (

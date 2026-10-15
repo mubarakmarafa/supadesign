@@ -1,9 +1,9 @@
 import { Debouncer } from "@tanstack/react-pacer";
-import type { PullRequestMergeMethod } from "@supacode/contracts";
+import type { PullRequestMergeMethod } from "@supaterm/contracts";
 import { create } from "zustand";
 import { normalizeProjectPathForComparison } from "./lib/projectPaths";
 
-export const PERSISTED_STATE_KEY = "supacode:ui-state:v1";
+export const PERSISTED_STATE_KEY = "supaterm:ui-state:v1";
 // Version 1 stored card visibility, not folder expansion.
 const THREAD_CHANGED_FILES_EXPANSION_VERSION = 2;
 const LEGACY_PERSISTED_STATE_KEYS = [

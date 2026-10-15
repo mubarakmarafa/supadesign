@@ -36,8 +36,8 @@ async function removePreview({ accountId, name, token, request = fetch }) {
 async function main() {
   const prNumber = process.env.PR_NUMBER;
   if (!/^[1-9]\d*$/.test(prNumber ?? "")) throw new Error("Invalid PR number");
-  const origin = `https://preview-${prNumber}.next.supacode.sh`;
-  const name = `supacode-next-preview-${prNumber}`;
+  const origin = `https://preview-${prNumber}.supaterm.com`;
+  const name = `supaterm-web-preview-${prNumber}`;
   // Only trusted default-branch configuration is read. The artifact is stored
   // outside the checkout and supplies static files, never a Worker or build.
   const config = JSON.parse(fs.readFileSync("apps/web/cloudflare/latest.json", "utf8"));

@@ -15,7 +15,7 @@ it.layer(NodeServices.layer)("Linux browser secret path", (it) => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-browser-secret-path-",
+        prefix: "supaterm-browser-secret-path-",
       });
       const resourcesPath = path.join(root, "install", "resources");
       const native = path.join(
@@ -24,7 +24,7 @@ it.layer(NodeServices.layer)("Linux browser secret path", (it) => {
         "browser-secret",
         "build",
         "x64",
-        "supacode-browser-secret",
+        "supaterm-browser-secret",
       );
       const staged = path.join(
         root,
@@ -32,9 +32,9 @@ it.layer(NodeServices.layer)("Linux browser secret path", (it) => {
         "desktop",
         "prod-resources",
         "browser-secret",
-        "supacode-browser-secret",
+        "supaterm-browser-secret",
       );
-      const packaged = path.join(resourcesPath, "browser-secret", "supacode-browser-secret");
+      const packaged = path.join(resourcesPath, "browser-secret", "supaterm-browser-secret");
       for (const filename of [native, staged, packaged]) {
         yield* fileSystem.makeDirectory(path.dirname(filename), { recursive: true });
         yield* fileSystem.writeFileString(filename, "helper");

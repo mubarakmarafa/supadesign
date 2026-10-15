@@ -1,4 +1,4 @@
-import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supacode/contracts";
+import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Option from "effect/Option";
 
@@ -209,7 +209,7 @@ describe("connection routes", () => {
   });
 });
 
-const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
 const relayAdvertisement = { relayEndpoint, relayUrl: "wss://relay.example.test" };
 const active = route("http://192.168.1.20:4389/");
 const baseEntry = { ...active, enabled: true };
@@ -267,7 +267,7 @@ describe("relay route advertisements", () => {
 
   it("does not identify ordinary or malformed public addresses as encrypted relay", () => {
     const ordinary = route("https://remote.example.test");
-    const malformed = route("https://bad.relay.supacode.invalid");
+    const malformed = route("https://bad.relay.supaterm.invalid");
 
     expect(connectionRouteKind(ordinary)).toBe("public");
     expect(connectionRouteAddress(ordinary)).toBe("https://remote.example.test");
@@ -309,7 +309,7 @@ describe("relay route advertisements", () => {
   it.each([
     undefined,
     { relayEndpoint: "https://ordinary.example.test", relayUrl: "wss://relay.example.test" },
-    { relayEndpoint: "https://bad.relay.supacode.invalid", relayUrl: "wss://relay.example.test" },
+    { relayEndpoint: "https://bad.relay.supaterm.invalid", relayUrl: "wss://relay.example.test" },
     { relayEndpoint, relayUrl: "https://relay.example.test" },
   ])("preserves learned relay for unknown or malformed advertisements: %j", (advertisement) => {
     const routes = learnRelay()!;

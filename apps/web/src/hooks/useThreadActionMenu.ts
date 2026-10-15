@@ -1,17 +1,17 @@
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 import { requestCustomSnooze } from "../components/CustomSnoozeDialog";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
   settlePromise,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import { canSnooze, effectiveSnoozed } from "@supacode/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/runtime";
+import { canSnooze, effectiveSnoozed } from "@supaterm/client-runtime/state/thread-settled";
 import {
   AuthOrchestrationOperateScope,
   type ScopedThreadRef,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useRouter } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 
@@ -42,7 +42,7 @@ import {
   selectProjectGroupingSettings,
 } from "../logicalProject";
 import { buildPhysicalToLogicalProjectKeyMap } from "../sidebarProjectGrouping";
-import { threadRuntimeCanArchive } from "@supacode/client-runtime/state/models";
+import { threadRuntimeCanArchive } from "@supaterm/client-runtime/state/models";
 import { useCopyToClipboard } from "./useCopyToClipboard";
 import { useNewThreadHandler } from "./useHandleNewThread";
 import { useClientSettings } from "./useSettings";

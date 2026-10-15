@@ -6,7 +6,7 @@ export const MCP_APP_MIME_TYPE = "text/html;profile=mcp-app";
 export const MCP_APP_EXTENSION_ID = "io.modelcontextprotocol/ui";
 export const MCP_APP_RESOURCE_SCHEME = "ui://";
 
-export const MCP_APP_OUTPUT_KEY = "supacodeMcpApp";
+export const MCP_APP_OUTPUT_KEY = "supatermMcpApp";
 
 const MCP_APP_MIN_HEIGHT = 80;
 export const MCP_APP_DEFAULT_HEIGHT = 320;

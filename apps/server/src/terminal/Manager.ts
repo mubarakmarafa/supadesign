@@ -39,15 +39,15 @@ import {
   ClaudeSettings,
   CodexSettings,
   ProviderInstanceId,
-} from "@supacode/contracts";
-import { makeKeyedCoalescingWorker } from "@supacode/shared/KeyedCoalescingWorker";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
-import { AgentScope } from "@supacode/shared/AgentScope";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { mergePathEntries } from "@supacode/shared/shell";
+} from "@supaterm/contracts";
+import { makeKeyedCoalescingWorker } from "@supaterm/shared/KeyedCoalescingWorker";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
+import { AgentScope } from "@supaterm/shared/AgentScope";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { mergePathEntries } from "@supaterm/shared/shell";
 
-import { acpRegistryManagedBinaryDirectories } from "@supacode/provider-acp-registry/server";
-import { getTerminalLabel } from "@supacode/shared/terminalLabels";
+import { acpRegistryManagedBinaryDirectories } from "@supaterm/provider-acp-registry/server";
+import { getTerminalLabel } from "@supaterm/shared/terminalLabels";
 import * as DateTime from "effect/DateTime";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -64,7 +64,7 @@ import * as Scope from "effect/Scope";
 import * as SynchronizedRef from "effect/SynchronizedRef";
 
 import * as ServerConfig from "../config.ts";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
 import { resolveCodexHomeLayout } from "../provider/Drivers/CodexHomeLayout.ts";
 import { makeClaudeEnvironment } from "../provider/Drivers/ClaudeHome.ts";
 import { deriveProviderInstanceConfigMap } from "../provider/ProviderInstanceRegistryHydration.ts";
@@ -74,11 +74,11 @@ import {
   terminalRestartsTotal,
   terminalSessionsTotal,
 } from "../observability/Metrics.ts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import * as ProcessRunner from "../processRunner.ts";
 import * as PortScanner from "../preview/PortScanner.ts";
 import * as NativeTelemetryClient from "../resourceTelemetry/NativeTelemetryClient.ts";
-import * as PtyAdapter from "@supacode/shared/PtyAdapter";
+import * as PtyAdapter from "@supaterm/shared/PtyAdapter";
 
 export {
   TerminalCwdError,
@@ -238,7 +238,7 @@ export class TerminalManager extends Context.Service<
       listener: (event: TerminalMetadataStreamEvent) => Effect.Effect<void>,
     ) => Effect.Effect<() => void>;
   }
->()("supacode/terminal/Manager/TerminalManager") {}
+>()("supaterm/terminal/Manager/TerminalManager") {}
 
 interface TerminalSubprocessInspectResult {
   readonly hasRunningSubprocess: boolean;
@@ -1258,7 +1258,7 @@ function toSessionKey(threadId: string, terminalId: string): string {
 
 function shouldExcludeTerminalEnvKey(key: string): boolean {
   const normalizedKey = key.toUpperCase();
-  if (normalizedKey.startsWith("SUPACODE_")) {
+  if (normalizedKey.startsWith("SUPATERM_")) {
     return true;
   }
   if (normalizedKey.startsWith("VITE_")) {
@@ -1272,7 +1272,7 @@ function shouldExcludeTerminalEnvKey(key: string): boolean {
 // not inherit them.
 const APPIMAGE_RUNTIME_ENV_KEYS = ["APPIMAGE", "APPDIR", "ARGV0", "OWD"] as const;
 // Colon-separated search-path variables the AppImage runtime points at its
-// temporary mount (e.g. /tmp/.mount_Supacode-XXXX/usr/bin, the bundled glib schemas,
+// temporary mount (e.g. /tmp/.mount_Supaterm-XXXX/usr/bin, the bundled glib schemas,
 // and an $APPDIR/usr/share XDG data entry). Only the mount segments are
 // dropped; the user's real entries are preserved. When nothing but mount
 // segments remain the variable is removed entirely so consumers fall back to

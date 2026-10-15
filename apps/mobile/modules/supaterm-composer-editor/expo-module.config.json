@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["SupatermComposerEditorModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.supatermcomposereditor.SupatermComposerEditorModule"]
+  }
+}

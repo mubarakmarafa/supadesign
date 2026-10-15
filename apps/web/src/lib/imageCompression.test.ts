@@ -11,7 +11,7 @@ import {
   prepareImageForAttachment,
 } from "./imageCompression";
 
-import type { SnapShotSource } from "@supacode/contracts";
+import type { SnapShotSource } from "@supaterm/contracts";
 import { hydrateImagesFromPersisted } from "../composerDraftStore";
 import { resizeSnapShotSource } from "./snapShotSource";
 

@@ -1,4 +1,4 @@
-import type { EnvironmentId, ExecutionEnvironmentDescriptor } from "@supacode/contracts";
+import type { EnvironmentId, ExecutionEnvironmentDescriptor } from "@supaterm/contracts";
 
 export interface KnownEnvironmentConnectionTarget {
   readonly httpBaseUrl: string;

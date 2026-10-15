@@ -1,11 +1,11 @@
 import type { SdkCredentialStore } from "@cursor/sdk";
-import { ProviderSetupError, type ProviderInstanceId } from "@supacode/contracts";
+import { ProviderSetupError, type ProviderInstanceId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 
 const Credentials = Schema.fromJsonString(
   Schema.Struct({

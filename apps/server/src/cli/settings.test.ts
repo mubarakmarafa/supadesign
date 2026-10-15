@@ -4,7 +4,7 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as NetService from "@supacode/shared/Net";
+import * as NetService from "@supaterm/shared/Net";
 import { assert, describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -16,7 +16,7 @@ import { cli } from "../binCli.ts";
 
 const settingsPathFor = (baseDir: string) => NodePath.join(baseDir, "userdata", "settings.json");
 const makeBaseDir = () =>
-  NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-settings-cli-"));
+  NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-settings-cli-"));
 const runCli = (args: ReadonlyArray<string>) =>
   Command.runWith(cli, { version: "0.0.0" })(args).pipe(
     Effect.provide(Layer.mergeAll(NodeServices.layer, NetService.layer, TestConsole.layer)),
@@ -31,7 +31,7 @@ const captureStdout = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     );
   });
 
-describe("supacode settings", () => {
+describe("supaterm settings", () => {
   it.effect("sets relay state without dropping unknown settings", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
@@ -110,12 +110,12 @@ describe("supacode settings", () => {
     }),
   );
 
-  it.effect("honors SUPACODE_HOME before linked-worktree fallback", () =>
+  it.effect("honors SUPATERM_HOME before linked-worktree fallback", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
       yield* runCli(["settings", "set", "publicRelayEnabled", "false"]).pipe(
         Effect.provide(
-          ConfigProvider.layer(ConfigProvider.fromEnv({ env: { SUPACODE_HOME: baseDir } })),
+          ConfigProvider.layer(ConfigProvider.fromEnv({ env: { SUPATERM_HOME: baseDir } })),
         ),
       );
 

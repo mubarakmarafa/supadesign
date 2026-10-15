@@ -1,13 +1,13 @@
 // @effect-diagnostics nodeBuiltinImport:off - client-side loopback gateway adapts native TCP loaders.
 import * as NodeCrypto from "node:crypto";
-import { DEFAULT_PUBLIC_RELAY_URL } from "@supacode/contracts";
+import { DEFAULT_PUBLIC_RELAY_URL } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import type * as Scope from "effect/Scope";
-import { createLoopbackRelayPool } from "@supacode/shared/relay/loopbackPool";
-import { openLoopbackRelay } from "@supacode/shared/relay/tunnelNode";
+import { createLoopbackRelayPool } from "@supaterm/shared/relay/loopbackPool";
+import { openLoopbackRelay } from "@supaterm/shared/relay/tunnelNode";
 
 export class RelayCompanionError extends Schema.TaggedError<RelayCompanionError>()(
   "RelayCompanionError",
@@ -33,7 +33,7 @@ export class RelayCompanion extends Context.Service<
     readonly close: (address: string, owner: string) => Effect.Effect<void, RelayCompanionError>;
     readonly session: Effect.Effect<RelayCompanionSession, never, Scope.Scope>;
   }
->()("supacode/relay/RelayCompanion") {}
+>()("supaterm/relay/RelayCompanion") {}
 
 export function layer(defaultRelayUrl = DEFAULT_PUBLIC_RELAY_URL) {
   return Layer.effect(

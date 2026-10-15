@@ -59,7 +59,7 @@ describe("BrowserSession", () => {
       const browserSession = {
         clearCache: vi.fn(() => Promise.resolve()),
         clearStorageData: vi.fn(() => Promise.resolve()),
-        getUserAgent: vi.fn(() => "Mozilla/5.0 Electron/41.5.0 Supacode/0.0.27"),
+        getUserAgent: vi.fn(() => "Mozilla/5.0 Electron/41.5.0 Supaterm/0.0.27"),
         setPermissionRequestHandler: vi.fn(),
         setPermissionCheckHandler: vi.fn(),
         setUserAgent: vi.fn(),
@@ -77,7 +77,7 @@ describe("BrowserSession", () => {
       const first = yield* browserSessions.getSession("scope-a");
       const second = yield* browserSessions.getSession("scope-a");
 
-      assert.strictEqual(partition, "persist:supacode-preview-f051bb2c68cb7b2fe969");
+      assert.strictEqual(partition, "persist:supaterm-preview-f051bb2c68cb7b2fe969");
       assert.strictEqual(first, second);
       assert.strictEqual(fromPartition.mock.calls.length, 1);
     }).pipe(Effect.provide(layer)),
@@ -100,7 +100,7 @@ describe("BrowserSession", () => {
       // And a well-formed scope still lands on its historical partition.
       assert.strictEqual(
         yield* browserSessions.getPartition("scope-a"),
-        "persist:supacode-preview-f051bb2c68cb7b2fe969",
+        "persist:supaterm-preview-f051bb2c68cb7b2fe969",
       );
     }).pipe(Effect.provide(layer)),
   );
@@ -114,10 +114,10 @@ describe("BrowserSession", () => {
       const legacyDefault = yield* browserSessions.getPartition("a::b");
       const nondefaultProfile = yield* browserSessions.getPartition("a::b", true, "profile");
 
-      assert.strictEqual(legacyDefault, "persist:supacode-preview-78f0be89237d77f7a70e");
+      assert.strictEqual(legacyDefault, "persist:supaterm-preview-78f0be89237d77f7a70e");
       assert.strictEqual(
         nondefaultProfile,
-        "persist:supacode-preview-profile-78f0be89237d77f7a70e",
+        "persist:supaterm-preview-profile-78f0be89237d77f7a70e",
       );
       assert.notStrictEqual(nondefaultProfile, legacyDefault);
       assert.isTrue(browserSessions.isPartition(legacyDefault));
@@ -135,7 +135,7 @@ describe("BrowserSession", () => {
       // Electron's real UA shape: app token, then Chrome, then Electron, then
       // Safari — the token order and casing matter to any strip regex.
       const nativeUserAgent =
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Supacode(Alpha)/0.0.33 Chrome/146.0.7680.216 Electron/41.5.0 Safari/537.36";
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Supaterm(Alpha)/0.0.33 Chrome/146.0.7680.216 Electron/41.5.0 Safari/537.36";
       fromPartition.mockReset();
       fromPartition.mockImplementation((partition: string) => {
         let userAgent = nativeUserAgent;

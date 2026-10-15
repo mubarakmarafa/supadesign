@@ -19,7 +19,7 @@
  */
 import * as NodeCrypto from "node:crypto";
 
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import * as Effect from "effect/Effect";
 import * as Base64 from "effect/encoding/Base64";

@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Cache from "effect/Cache";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
@@ -8,17 +8,17 @@ import * as Layer from "effect/Layer";
 import {
   SourceControlProviderError,
   type SourceControlProviderDiscoveryItem,
-} from "@supacode/contracts";
-import { detectSourceControlProviderFromRemoteUrl } from "@supacode/shared/sourceControl";
+} from "@supaterm/contracts";
+import { detectSourceControlProviderFromRemoteUrl } from "@supaterm/shared/sourceControl";
 
 import * as BuiltInDrivers from "./builtInDrivers.ts";
-import * as SourceControlProvider from "@supacode/source-control-core/server/SourceControlProvider";
+import * as SourceControlProvider from "@supaterm/source-control-core/server/SourceControlProvider";
 import {
   probeSourceControlProvider,
   refineUnknownRemoteProvider,
   type SourceControlProviderDiscoverySpec,
-} from "@supacode/source-control-core/server/discovery";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+} from "@supaterm/source-control-core/server/discovery";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 
 import * as ServerConfig from "../config.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
@@ -60,7 +60,7 @@ export class SourceControlProviderRegistry extends Context.Service<
     >;
     readonly discover: Effect.Effect<ReadonlyArray<SourceControlProviderDiscoveryItem>>;
   }
->()("supacode/sourceControl/SourceControlProviderRegistry") {}
+>()("supaterm/sourceControl/SourceControlProviderRegistry") {}
 
 function unsupportedProvider(
   kind: SourceControlProviderKind,

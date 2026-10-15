@@ -21,8 +21,8 @@ import { describe, expect, it } from "vite-plus/test";
  *    all platforms, including dynamic imports, and may only shrink: when you
  *    remove one of these imports, lower the constant in the same PR.
  *
- * Runs in CI as part of the `Test` job (`vp run --filter '!supacode' test` picks up
- * the `@supacode/mobile` package test task).
+ * Runs in CI as part of the `Test` job (`vp run --filter '!supaterm' test` picks up
+ * the `@supaterm/mobile` package test task).
  */
 
 const SOURCE_ROOT = __dirname;

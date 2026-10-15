@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { MarkdownNode } from "../../lib/markdownDocument";
-import { splitPullRequestBody } from "@supacode/client-runtime/pull-request-markdown";
+import { splitPullRequestBody } from "@supaterm/client-runtime/pull-request-markdown";
 import { pullRequestDescriptionContent } from "./pullRequestDescriptionContent";
 
 describe("PR attachments", () => {

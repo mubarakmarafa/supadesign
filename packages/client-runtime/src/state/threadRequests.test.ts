@@ -5,7 +5,7 @@ import {
   ProviderDriverKind,
   TurnItemId,
   type OrchestrationV2ThreadProjection,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { v2Now, v2Projection } from "./orchestrationV2TestFixtures.ts";
 import {

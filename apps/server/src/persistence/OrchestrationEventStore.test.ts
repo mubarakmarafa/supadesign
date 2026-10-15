@@ -8,7 +8,7 @@ import {
   ThreadId,
   TurnItemId,
   type OrchestrationV2DomainEvent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";

@@ -29,7 +29,7 @@ export type AgentSessionScanInput = typeof AgentSessionScanInput.Type;
 
 /**
  * A directory that at least one agent CLI has run in, suitable for import as a
- * Supacode project. `alreadyImported` marks candidates that already have an
+ * Supaterm project. `alreadyImported` marks candidates that already have an
  * active project rooted at the same path.
  */
 /**

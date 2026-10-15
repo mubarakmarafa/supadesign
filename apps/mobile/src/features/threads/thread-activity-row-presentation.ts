@@ -3,7 +3,7 @@ import {
   type OrchestrationV2TurnItem,
   type ProviderDriverKind,
   type ProviderInstanceId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export function resolveThreadActivityMetadata(input: {
   readonly providerDriver: ProviderDriverKind | null;

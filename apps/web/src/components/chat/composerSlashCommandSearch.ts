@@ -2,7 +2,7 @@ import {
   insertRankedSearchResult,
   normalizeSearchQuery,
   scoreQueryMatch,
-} from "@supacode/shared/searchRanking";
+} from "@supaterm/shared/searchRanking";
 
 import type { ComposerCommandItem } from "./ComposerCommandMenu";
 import { scoreProviderSkill } from "../../providerSkillSearch";

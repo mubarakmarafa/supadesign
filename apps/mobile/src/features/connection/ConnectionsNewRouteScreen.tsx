@@ -8,7 +8,7 @@ import {
   useRoute,
   type StaticScreenProps,
 } from "@react-navigation/native";
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Linking, Pressable, StyleSheet, View } from "react-native";
@@ -248,7 +248,7 @@ export function ConnectionsNewRouteScreen({
           />
 
           <View collapsable={false} className="gap-2">
-            <Text className="px-4 text-sm font-supacode-medium text-foreground-muted">
+            <Text className="px-4 text-sm font-supaterm-medium text-foreground-muted">
               Or enter it
             </Text>
             <View
@@ -372,7 +372,7 @@ function PairingScanCard(props: {
               />
               <Text
                 className={cn(
-                  "font-supacode-medium text-sm",
+                  "font-supaterm-medium text-sm",
                   light ? "text-black/70" : "text-white/80",
                 )}
               >
@@ -382,7 +382,7 @@ function PairingScanCard(props: {
           )}
         </View>
         <Text className={cn("text-center text-sm", light ? "text-black/70" : "text-white/80")}>
-          Scan the code from supacode pair or desktop Connections settings
+          Scan the code from supaterm pair or desktop Connections settings
         </Text>
       </View>
     </Pressable>

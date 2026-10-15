@@ -6,7 +6,7 @@ import {
   ProviderInstanceId,
   ScheduledTaskId,
   type ScheduledTask,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 

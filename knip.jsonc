@@ -20,7 +20,7 @@
     },
     "scripts": {
       // Knip loads its preprocessor through a CLI option; native verification and
-      // worktree setup (from supacode.json) run directly.
+      // worktree setup (from supaterm.json) run directly.
       "entry": [
         "check-commit-message.ts",
         "knip-schemas.ts",
@@ -47,7 +47,7 @@
       // The Vite+ web build prerequisite.
       // Native and disk-loaded provider packages stay external to the bundle; the
       // CLI archive and desktop sidecar stage them from this manifest.
-      "ignoreDependencies": ["@effect/platform-node-shared", "@supacode/web", "@napi-rs/keyring"],
+      "ignoreDependencies": ["@effect/platform-node-shared", "@supaterm/web", "@napi-rs/keyring"],
     },
     "apps/desktop": {
       // Electron loads these bundles by filename rather than importing them.
@@ -89,18 +89,18 @@
         "scripts/generate-device-stream.mts",
         "src/features/devices/device-stream.browser.ts!",
         "src/features/browser/preview-stream.browser.ts!",
-        "modules/supacode-relay-tunnel/index.ts!",
-        "modules/supacode-relay-tunnel/android/jvm/fixtures/vectors.ts",
+        "modules/supaterm-relay-tunnel/index.ts!",
+        "modules/supaterm-relay-tunnel/android/jvm/fixtures/vectors.ts",
       ],
       // Fonts are configured as asset paths; Expo autolinks the native packages.
       "ignoreDependencies": [
-        "@supacode/mobile-relay-tunnel",
+        "@supaterm/mobile-relay-tunnel",
         "@expo-google-fonts/dm-sans",
-        "@supacode/mobile-review-diff-native",
-        "@supacode/mobile-terminal-native",
+        "@supaterm/mobile-review-diff-native",
+        "@supaterm/mobile-terminal-native",
       ],
     },
-    "apps/mobile/modules/supacode-source-text": {
+    "apps/mobile/modules/supaterm-source-text": {
       // React Native codegen discovers component specifications by filename.
       "entry": ["src/*NativeComponent.ts!"],
     },

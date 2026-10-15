@@ -31,14 +31,14 @@ export function SubscriptionUsage(props: SubscriptionUsageProps, environment: Wi
   const providers = props.providers ?? [
     {
       name: "Codex",
-      detail: "Open Supacode to connect",
+      detail: "Open Supaterm to connect",
       windows: [],
       expiresAt: 0,
       totalWindows: 0,
     },
     {
       name: "Claude",
-      detail: "Open Supacode to connect",
+      detail: "Open Supaterm to connect",
       windows: [],
       expiresAt: 0,
       totalWindows: 0,
@@ -72,7 +72,7 @@ export function SubscriptionUsage(props: SubscriptionUsageProps, environment: Wi
               </Text>
               {shown.length === 0 ? (
                 <Text color={muted} maxLines={1} style={{ fontSize: 11 }}>
-                  {stale ? "Open Supacode to refresh" : provider.detail}
+                  {stale ? "Open Supaterm to refresh" : provider.detail}
                 </Text>
               ) : null}
               {shown.map((window) => {
@@ -102,7 +102,7 @@ export function SubscriptionUsage(props: SubscriptionUsageProps, environment: Wi
               })}
               {hidden > 0 ? (
                 <Text color={muted} maxLines={1} style={{ fontSize: 10 }}>
-                  {`${hidden} more in Supacode`}
+                  {`${hidden} more in Supaterm`}
                 </Text>
               ) : null}
             </Column>
@@ -116,7 +116,7 @@ export function SubscriptionUsage(props: SubscriptionUsageProps, environment: Wi
         >
           {props.checkedAt
             ? `As of ${new Date(props.checkedAt).toLocaleString(undefined, { hour: "numeric", minute: "2-digit", month: "short", day: "numeric" })}`
-            : "Tap to connect in Supacode"}
+            : "Tap to connect in Supaterm"}
         </Text>
       </Column>
     </Button>

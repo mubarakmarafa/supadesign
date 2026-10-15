@@ -17,9 +17,9 @@ const layerEnvironment = DesktopEnvironment.layer({
   platform: "darwin",
   processArch: "arm64",
   appVersion: "1.2.3",
-  appPath: "/Applications/Supacode.app/Contents/Resources/app.asar",
+  appPath: "/Applications/Supaterm.app/Contents/Resources/app.asar",
   isPackaged: true,
-  resourcesPath: "/Applications/Supacode.app/Contents/Resources",
+  resourcesPath: "/Applications/Supaterm.app/Contents/Resources",
   runningUnderArm64Translation: false,
 }).pipe(
   Layer.provide(

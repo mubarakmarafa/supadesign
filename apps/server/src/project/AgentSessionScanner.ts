@@ -27,7 +27,7 @@ import {
   type AgentSessionProjectGit,
   type AgentSessionScanResult,
   type ProviderInstanceConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -43,14 +43,14 @@ import {
   normalizeGitRemoteUrl,
   parseGitHubRepositoryNameWithOwnerFromRemoteUrl,
   parseOriginUrlFromGitConfig,
-} from "@supacode/shared/git";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { normalizeProjectPathForComparison } from "@supacode/shared/path";
+} from "@supaterm/shared/git";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { normalizeProjectPathForComparison } from "@supaterm/shared/path";
 
 import * as ServerConfig from "../config.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import { resolveCodexHomeLayout } from "../provider/Drivers/CodexHomeLayout.ts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import * as ServerSettings from "../serverSettings.ts";
 import {
   createTranscriptJsonReader,
@@ -194,7 +194,7 @@ export class AgentSessionScanner extends Context.Service<
       completedSources?: ReadonlyArray<AgentSessionImportSource>,
     ) => Stream.Stream<AgentSessionRecentThread, AgentSessionScanError>;
   }
->()("supacode/project/AgentSessionScanner") {}
+>()("supaterm/project/AgentSessionScanner") {}
 
 type AgentSessionSource = AgentSessionProjectCandidate["sources"][number];
 
@@ -536,11 +536,11 @@ function shouldRetainDecodedRecord(
 }
 
 /**
- * Supacode runs its own agent sessions inside disposable worktrees. Their
+ * Supaterm runs its own agent sessions inside disposable worktrees. Their
  * transcripts look exactly like user sessions, but re-importing the app's own
  * sandboxes as projects is never right. Matches this server's configured
- * worktrees directory plus the conventional `.supacode/worktrees` layout, which
- * also catches sandboxes from other Supacode homes on the same machine. Separators
+ * worktrees directory plus the conventional `.supaterm/worktrees` layout, which
+ * also catches sandboxes from other Supaterm homes on the same machine. Separators
  * are normalized (and, on Windows, case folded) so the prefix match holds
  * there too. Callers check both the recorded spelling and its realpath so a
  * symlink into the worktrees directory cannot bypass the filter.
@@ -550,7 +550,7 @@ function normalizeForWorktreeMatch(value: string, caseFold: boolean): string {
   return caseFold ? normalized.toLowerCase() : normalized;
 }
 
-function isSupacodeManagedWorktree(
+function isSupatermManagedWorktree(
   candidatePath: string,
   worktreesDir: string,
   caseFold: boolean,
@@ -558,7 +558,7 @@ function isSupacodeManagedWorktree(
   const normalized = normalizeForWorktreeMatch(candidatePath, caseFold);
   return (
     normalized.startsWith(normalizeForWorktreeMatch(worktreesDir, caseFold)) ||
-    normalized.includes("/.supacode/worktrees/")
+    normalized.includes("/.supaterm/worktrees/")
   );
 }
 
@@ -660,7 +660,7 @@ export const make = Effect.gen(function* () {
     normalizeForWorktreeMatch(candidatePath, foldWorktreeCase).startsWith(
       normalizeForWorktreeMatch(baseDir, foldWorktreeCase),
     ) ||
-    isSupacodeManagedWorktree(candidatePath, worktreesDir, foldWorktreeCase);
+    isSupatermManagedWorktree(candidatePath, worktreesDir, foldWorktreeCase);
 
   const listDirectory = (directory: string) =>
     fileSystem.readDirectory(directory).pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));

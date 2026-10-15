@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/source-control-azure-devops",
+  "name": "@supaterm/source-control-azure-devops",
   "private": true,
   "type": "module",
   "exports": {
@@ -45,16 +45,16 @@
     "test": "vp test run --config ../../vite.config.ts --dir ."
   },
   "dependencies": {
-    "@supacode/contracts": "workspace:*",
-    "@supacode/shared": "workspace:*",
-    "@supacode/source-control-core": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/shared": "workspace:*",
+    "@supaterm/source-control-core": "workspace:*",
     "diff": "8.0.3",
     "effect": "catalog:"
   },
   "devDependencies": {
     "@effect/platform-node": "catalog:",
     "@effect/vitest": "catalog:",
-    "@supacode/source-control-testing": "workspace:*",
+    "@supaterm/source-control-testing": "workspace:*",
     "@types/node": "catalog:",
     "vite-plus": "catalog:"
   }

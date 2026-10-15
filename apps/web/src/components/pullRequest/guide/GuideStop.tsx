@@ -2,7 +2,7 @@ import type { FileDiffContentsLoader, FileDiffMetadata } from "@pierre/diffs";
 import type {
   PullRequestReviewGuideAttention,
   PullRequestReviewGuideStop,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   ArrowRightIcon,
   ChevronDownIcon,
@@ -28,7 +28,7 @@ import { GuideExcerpt, type ExcerptCommenting } from "./GuideExcerpt";
 import { GuideFileDiff } from "./GuideFileDiff";
 import { GuideNotes } from "./GuideNotes";
 import { GuideProse } from "./GuideProse";
-import { letterStopNotes } from "@supacode/client-runtime/review-guide-tour";
+import { letterStopNotes } from "@supaterm/client-runtime/review-guide-tour";
 
 const ATTENTION_LABELS = {
   tradeoff: "A tradeoff to weigh",

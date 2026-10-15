@@ -8,7 +8,7 @@ import {
   type GitActionProgressEvent,
   type GitRunStackedActionInput,
   type GitRunStackedActionResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";

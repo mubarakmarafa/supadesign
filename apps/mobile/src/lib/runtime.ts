@@ -2,10 +2,10 @@ import * as Layer from "effect/Layer";
 import * as ManagedRuntime from "effect/ManagedRuntime";
 import * as Socket from "effect/socket/Socket";
 
-import { RelayGateway } from "@supacode/client-runtime/relay";
+import { RelayGateway } from "@supaterm/client-runtime/relay";
 import * as MobileRelayGateway from "./relayGateway";
 import * as Effect from "effect/Effect";
-import { layerRemoteHttpClient } from "@supacode/client-runtime/rpc";
+import { layerRemoteHttpClient } from "@supaterm/client-runtime/rpc";
 
 import * as Persistence from "../persistence/layer";
 import { cryptoLayer } from "./crypto";

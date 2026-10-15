@@ -1,11 +1,11 @@
 // @effect-diagnostics nodeBuiltinImport:off - Integration test exercises HTTP redirect behavior.
 import * as NodeHttp from "node:http";
 import { describe, expect, it } from "@effect/vitest";
-import { ConnectionOnboarding } from "@supacode/client-runtime/connection";
-import { ClientCapabilities } from "@supacode/client-runtime/platform";
-import { layerRemoteHttpClient } from "@supacode/client-runtime/rpc";
-import { EnvironmentId, ORCHESTRATION_PROTOCOL_VERSION } from "@supacode/contracts";
-import { buildPairingUrl } from "@supacode/shared/remote";
+import { ConnectionOnboarding } from "@supaterm/client-runtime/connection";
+import { ClientCapabilities } from "@supaterm/client-runtime/platform";
+import { layerRemoteHttpClient } from "@supaterm/client-runtime/rpc";
+import { EnvironmentId, ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
+import { buildPairingUrl } from "@supaterm/shared/remote";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
@@ -60,7 +60,7 @@ describe("pairing redirects", () => {
         Effect.provide(
           Layer.mergeAll(
             Layer.succeed(ClientCapabilities.ClientPresentation, {
-              metadata: { label: "Supacode Test", deviceType: "desktop", os: "Test OS" },
+              metadata: { label: "Supaterm Test", deviceType: "desktop", os: "Test OS" },
             }),
             layerRemoteHttpClient(fetch),
           ),
@@ -68,7 +68,7 @@ describe("pairing redirects", () => {
         Effect.flip,
       );
       expect(error).toMatchObject({ _tag: "ConnectionTransientError" });
-      expect(requests).toEqual(["/.well-known/supacode/environment", "/oauth/token"]);
+      expect(requests).toEqual(["/.well-known/supaterm/environment", "/oauth/token"]);
     }),
   );
 });

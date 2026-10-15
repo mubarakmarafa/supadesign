@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
-import type { ServerProviderModel } from "@supacode/contracts";
-import type * as ModelCatalog from "@supacode/provider-core/server/ModelCatalog";
+import type { ServerProviderModel } from "@supaterm/contracts";
+import type * as ModelCatalog from "@supaterm/provider-core/server/ModelCatalog";
 
 import { applyCodexModelCatalog } from "./codexModelCatalog.ts";
 

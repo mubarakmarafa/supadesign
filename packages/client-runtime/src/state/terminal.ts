@@ -1,4 +1,4 @@
-import { type TerminalSummary, WS_METHODS } from "@supacode/contracts";
+import { type TerminalSummary, WS_METHODS } from "@supaterm/contracts";
 import * as Stream from "effect/Stream";
 import { Atom } from "effect/reactivity";
 

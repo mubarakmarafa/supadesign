@@ -4,7 +4,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
 import type * as ServerConfig from "./config.ts";
 import { formatHostForUrl, isWildcardHost } from "./startupAccess.ts";
 

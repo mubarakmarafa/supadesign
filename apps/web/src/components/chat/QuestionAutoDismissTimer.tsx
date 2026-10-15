@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import { userInputCountdown } from "@supacode/client-runtime/user-input-countdown";
+import { userInputCountdown } from "@supaterm/client-runtime/user-input-countdown";
 import { cn } from "~/lib/utils";
 
 function useUserInputCountdown(deadline: string) {

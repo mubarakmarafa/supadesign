@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 
 import { resolveLinkPullRequestInput } from "./LinkPullRequestDialog";
 

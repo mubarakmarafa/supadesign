@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { ThreadId } from "@supacode/contracts";
+import { ThreadId } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 import {

@@ -2,7 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import {
   BearerConnectionTarget,
   PrimaryConnectionTarget,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import {
   AuthTerminalOperateScope,
   DEFAULT_SERVER_SETTINGS,
@@ -17,8 +17,8 @@ import {
   type TerminalCloseInput,
   type TerminalOpenInput,
   type TerminalWriteInput,
-} from "@supacode/contracts";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+} from "@supaterm/contracts";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
@@ -50,7 +50,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("../../connection/runtime", () => ({ connectionAtomRuntime: undefined }));
-vi.mock("@supacode/client-runtime/state/session", () => ({
+vi.mock("@supaterm/client-runtime/state/session", () => ({
   createEnvironmentSessionAtoms: () => ({
     sessionStateAtom: (id: EnvironmentId) => state.sessions.get(id)!,
   }),
@@ -109,7 +109,7 @@ vi.mock("../../hooks/useCopyToClipboard", () => ({
   useCopyToClipboard: () => ({ copyToClipboard: vi.fn(), isCopied: false }),
 }));
 vi.mock("../../cloud/publicConfig", () => ({ hasCloudPublicConfig: () => false }));
-vi.mock("../clerk/useSupacodeConnectAuthPrompt", () => ({ useSupacodeConnectAuthPrompt: vi.fn() }));
+vi.mock("../clerk/useSupatermConnectAuthPrompt", () => ({ useSupatermConnectAuthPrompt: vi.fn() }));
 vi.mock("@clerk/react", () => ({ useAuth: vi.fn() }));
 vi.mock("../../env", () => ({ isElectron: false }));
 vi.mock("../../providerInstances", () => ({ resolveDefaultProviderModelSelection: vi.fn() }));
@@ -200,7 +200,7 @@ const session = (scopes: readonly AuthEnvironmentScope[]): AuthSessionState => (
     policy: "remote-reachable",
     bootstrapMethods: ["one-time-token"],
     sessionMethods: ["bearer-access-token"],
-    sessionCookieName: "supacode_session",
+    sessionCookieName: "supaterm_session",
   },
 });
 function setAccess(environmentId: EnvironmentId, allowed: boolean) {

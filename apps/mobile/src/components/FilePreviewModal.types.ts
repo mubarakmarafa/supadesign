@@ -1,4 +1,4 @@
-import type { AssetResource, EnvironmentId } from "@supacode/contracts";
+import type { AssetResource, EnvironmentId } from "@supaterm/contracts";
 
 import type { FileBackedComposerAttachment } from "../lib/composerImages";
 import type { MediaActionsSource } from "../lib/mediaActionsSource";

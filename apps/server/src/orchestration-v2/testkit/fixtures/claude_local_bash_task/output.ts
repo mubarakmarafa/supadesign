@@ -1,5 +1,5 @@
 import { assert } from "@effect/vitest";
-import type { ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderReplayTranscript } from "@supaterm/contracts";
 
 import type { OrchestratorV2ScenarioResult } from "../../OrchestratorScenario.ts";
 import {
@@ -53,6 +53,6 @@ export function assertClaudeLocalBashTaskOutput(
 
   const command = projection.turnItems.find((item) => item.type === "command_execution");
   assert.isDefined(command);
-  assert.include(JSON.stringify(command ?? null), "vp run --filter @supacode/web typecheck");
+  assert.include(JSON.stringify(command ?? null), "vp run --filter @supaterm/web typecheck");
   assert.include(JSON.stringify(command?.output ?? null), "tsgo --noEmit");
 }

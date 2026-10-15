@@ -22,26 +22,26 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import {
   GitCommandError,
   type GitCommandFailureReason,
-  SUPACODE_PROJECT_FILE_NAME,
+  SUPATERM_PROJECT_FILE_NAME,
   type ReviewDiffFileContentsInput,
   type ReviewDiffPreviewInput,
   type ReviewDiffFileStat,
   type ReviewDiffPreviewSource,
   type VcsRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   dedupeRemoteBranchesWithLocalMatches,
   normalizeGitRemoteUrl,
   parseGitRemoteFetchUrls,
   resolveAvailableGitBranchName,
-} from "@supacode/shared/git";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
-import { compactTraceAttributes } from "@supacode/shared/observability";
-import { decodeJsonResult } from "@supacode/shared/schemaJson";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
-import { parseSupacodeProjectFile } from "@supacode/shared/supacodeProjectFile";
-import { resolveProjectFileBackedSetting } from "@supacode/shared/projectSettings";
+} from "@supaterm/shared/git";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
+import { compactTraceAttributes } from "@supaterm/shared/observability";
+import { decodeJsonResult } from "@supaterm/shared/schemaJson";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
+import { parseSupatermProjectFile } from "@supaterm/shared/supatermProjectFile";
+import { resolveProjectFileBackedSetting } from "@supaterm/shared/projectSettings";
 import { gitCommandDuration, gitCommandsTotal, withMetrics } from "../observability/Metrics.ts";
 import * as GitVcsDriver from "./GitVcsDriver.ts";
 import { resolveWorktreesDirectory } from "../worktreesDirectory.ts";
@@ -655,7 +655,7 @@ const createTrace2Monitor = Effect.fnUntraced(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const traceFilePath = yield* fs.makeTempFileScoped({
-    prefix: `supacode-git-trace2-${process.pid}-`,
+    prefix: `supaterm-git-trace2-${process.pid}-`,
     suffix: ".json",
   });
   const hookStartByChildKey = new Map<string, { hookName: string; startedAtMs: number }>();
@@ -2205,7 +2205,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
           );
           const indexPath = path.resolve(cwd, indexValue.trim());
           const directory = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-commit-index-",
+            prefix: "supaterm-commit-index-",
           });
           const tempIndexPath = path.join(directory, "index");
           const env = { GIT_INDEX_FILE: tempIndexPath } satisfies NodeJS.ProcessEnv;
@@ -2617,7 +2617,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
       ? indexValue.trim()
       : path.resolve(cwd, indexValue.trim());
     const tempIndexPath = yield* fileSystem.makeTempFileScoped({
-      prefix: `supacode-review-index-${process.pid}-`,
+      prefix: `supaterm-review-index-${process.pid}-`,
     });
     const indexExists = yield* fileSystem.exists(indexPath);
     if (indexExists) {
@@ -3497,7 +3497,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
     // `.git/modules`, but a first-ever clone needs the network, and failing to
     // populate a submodule must not roll back the caller's thread. Repos with
     // hundreds of nested submodules opt out or stop at the top level; the
-    // caller resolves that from settings, or the checkout's supacode.json decides.
+    // caller resolves that from settings, or the checkout's supaterm.json decides.
     const hasSubmodules = yield* fileSystem
       .exists(path.join(worktreePath, ".gitmodules"))
       .pipe(Effect.orElseSucceed(() => false));
@@ -3509,13 +3509,13 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
           options?.submodules != null
             ? null
             : yield* fileSystem
-                .readFileString(path.join(worktreePath, SUPACODE_PROJECT_FILE_NAME))
+                .readFileString(path.join(worktreePath, SUPATERM_PROJECT_FILE_NAME))
                 .pipe(
                   Effect.flatMap((contents) => {
-                    const file = parseSupacodeProjectFile(contents);
+                    const file = parseSupatermProjectFile(contents);
                     return file === null
                       ? Effect.logWarning(
-                          "supacode.json is invalid; initializing submodules recursively",
+                          "supaterm.json is invalid; initializing submodules recursively",
                           {
                             worktreePath,
                           },
@@ -3527,7 +3527,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
         );
     if (hasSubmodules && submoduleMode.value === "none" && progress?.onSubmodulesDisabled) {
       yield* progress.onSubmodulesDisabled({
-        source: submoduleMode.source === "supacode.json" ? "supacode.json" : "settings",
+        source: submoduleMode.source === "supaterm.json" ? "supaterm.json" : "settings",
       });
     }
     if (submoduleMode.value !== "none") {
@@ -3672,7 +3672,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
         yield* executeGit(
           "GitVcsDriver.refreshCheckedOutBranch.keepPrevious",
           input.cwd,
-          ["update-ref", "refs/supacode/pre-refresh", headCommit],
+          ["update-ref", "refs/supaterm/pre-refresh", headCommit],
           { fallbackErrorDetail: "git failed to record the previous checkout commit" },
         );
       }

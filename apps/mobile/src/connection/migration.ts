@@ -3,13 +3,13 @@ import {
   BearerConnectionProfile,
   BearerConnectionRegistration,
   BearerConnectionTarget,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import {
   type ConnectionCatalogDocument,
   EMPTY_CONNECTION_CATALOG_DOCUMENT,
   registerConnectionInCatalog,
-} from "@supacode/client-runtime/platform";
-import { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/platform";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 

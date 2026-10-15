@@ -13,7 +13,7 @@ import {
   DesktopBrowserCommand,
   DesktopBrowserEvent,
   type DesktopBrowserCommand as DesktopBrowserCommandType,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -68,7 +68,7 @@ export class DesktopBrowserChannel extends Context.Service<
       pointer: { readonly phase: "move" | "click"; readonly x: number; readonly y: number },
     ) => Effect.Effect<void>;
   }
->()("supacode/preview/DesktopBrowserChannel") {}
+>()("supaterm/preview/DesktopBrowserChannel") {}
 
 const make = Effect.gen(function* () {
   const config = yield* ServerConfig.ServerConfig;

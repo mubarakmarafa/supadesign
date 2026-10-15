@@ -11,11 +11,11 @@ import * as PlatformError from "effect/PlatformError";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import { readSourceControlHostSettings } from "@supacode/source-control-core/client/definition";
-import type { ServerSettings } from "@supacode/contracts";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import { readSourceControlHostSettings } from "@supaterm/source-control-core/client/definition";
+import type { ServerSettings } from "@supaterm/contracts";
 
 import * as GitHubClient from "../client/definition.ts";
 
@@ -98,7 +98,7 @@ export class GitHubCredentials extends Context.Service<
     readonly invalidate: (host: string) => Effect.Effect<void>;
     readonly invalidateAll: Effect.Effect<void>;
   }
->()("@supacode/source-control-github/server/GitHubCredentials") {}
+>()("@supaterm/source-control-github/server/GitHubCredentials") {}
 
 function normalizeHost(host: string): string {
   return host.trim().toLowerCase();

@@ -16,8 +16,8 @@ import {
   type OrchestrationV2ExecutionNode,
   type OrchestrationV2RunAttempt,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
-import type { ThreadRuntimeSummary } from "@supacode/client-runtime/state/shell";
+} from "@supaterm/contracts";
+import type { ThreadRuntimeSummary } from "@supaterm/client-runtime/state/shell";
 import { deriveMessagesTimelineRows } from "./components/chat/MessagesTimeline.logic";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
@@ -1246,7 +1246,7 @@ describe("HTML renders in the timeline", () => {
     ...base("render", 2),
     status,
     type: "dynamic_tool",
-    toolName: "mcp__supacode__html_render",
+    toolName: "mcp__supaterm__html_render",
     input: { title: "Chart", height: 420 },
     ...(output === undefined ? {} : { output }),
   });
@@ -1326,7 +1326,7 @@ describe("HTML renders in the timeline", () => {
       tool: "get_weather",
       resourceUri: "ui://weather/dashboard",
     };
-    const call = renderCall("completed", { supacodeMcpApp: mcpApp, result: { content: [] } });
+    const call = renderCall("completed", { supatermMcpApp: mcpApp, result: { content: [] } });
     const entries = turn(
       call.type === "dynamic_tool" ? { ...call, toolName: "weather.get_weather" } : call,
     );

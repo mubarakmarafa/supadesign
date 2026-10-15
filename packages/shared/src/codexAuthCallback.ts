@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off globalTimers:off - Native loopback helper uses a bounded Node listener with AbortController cleanup.
 import * as Schema from "effect/Schema";
 import * as NodeHttp from "node:http";
-import { codexAuthorizationRequest, codexCallbackUrl } from "@supacode/shared/codexAuthHandoff";
+import { codexAuthorizationRequest, codexCallbackUrl } from "@supaterm/shared/codexAuthHandoff";
 
 export class CodexAuthCallbackError extends Schema.TaggedError<CodexAuthCallbackError>()(
   "CodexAuthCallbackError",
@@ -58,7 +58,7 @@ export async function receiveCodexAuthCallback(
         response
           .writeHead(200, { "content-type": "text/html; charset=utf-8" })
           .end(
-            '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Supacode</title><style>body{font-family:system-ui;display:grid;place-items:center;min-height:90vh;margin:0}main{max-width:360px;padding:32px}h1{font-size:24px}p{line-height:1.6;opacity:.7}</style></head><body><main><h1>Return to Supacode</h1><p>Your sign-in response has been received. Supacode is finishing the connection. You can close this tab.</p></main></body></html>',
+            '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Supaterm</title><style>body{font-family:system-ui;display:grid;place-items:center;min-height:90vh;margin:0}main{max-width:360px;padding:32px}h1{font-size:24px}p{line-height:1.6;opacity:.7}</style></head><body><main><h1>Return to Supaterm</h1><p>Your sign-in response has been received. Supaterm is finishing the connection. You can close this tab.</p></main></body></html>',
           );
       }
       callback.resolve(url);
@@ -79,7 +79,7 @@ export async function receiveCodexAuthCallback(
       server.once("error", () =>
         reject(
           new Error(
-            "The ChatGPT callback port is in use on this computer. Close the other sign-in and try again, or paste the redirect URL in Supacode.",
+            "The ChatGPT callback port is in use on this computer. Close the other sign-in and try again, or paste the redirect URL in Supaterm.",
           ),
         ),
       );

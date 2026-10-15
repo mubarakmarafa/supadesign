@@ -7,8 +7,8 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 
-import type { VcsDriverKind, VcsError, VcsRepositoryIdentity } from "@supacode/contracts";
-import { VcsUnsupportedOperationError } from "@supacode/contracts";
+import type { VcsDriverKind, VcsError, VcsRepositoryIdentity } from "@supaterm/contracts";
+import { VcsUnsupportedOperationError } from "@supaterm/contracts";
 import * as GitVcsDriver from "./GitVcsDriver.ts";
 import * as VcsProjectConfig from "./VcsProjectConfig.ts";
 import * as VcsDriver from "./VcsDriver.ts";
@@ -39,7 +39,7 @@ export class VcsDriverRegistry extends Context.Service<
     ) => Effect.Effect<VcsDriverHandle | null, VcsError>;
     readonly resolve: (input: VcsDriverResolveInput) => Effect.Effect<VcsDriverHandle, VcsError>;
   }
->()("supacode/vcs/VcsDriverRegistry") {}
+>()("supaterm/vcs/VcsDriverRegistry") {}
 
 function detectionCacheKey(input: {
   readonly cwd: string;

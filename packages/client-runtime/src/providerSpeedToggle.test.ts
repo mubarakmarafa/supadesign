@@ -1,4 +1,4 @@
-import type { ProviderOptionDescriptor } from "@supacode/contracts";
+import type { ProviderOptionDescriptor } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { getSpeedToggle, getSpeedToggleNextValue } from "./providerSpeedToggle.ts";

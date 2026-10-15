@@ -1,4 +1,4 @@
-import { MessageId, RunId } from "@supacode/contracts";
+import { MessageId, RunId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import {
   observeTimelineRun,

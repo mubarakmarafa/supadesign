@@ -1,4 +1,4 @@
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
@@ -44,15 +44,15 @@ const run = Effect.fn("test.run")(function* (
   return { stdout, stderr, exitCode };
 });
 
-/** A tar.gz laid out like build-cli-archive.ts writes, with a stub `supacode` that echoes its args. */
+/** A tar.gz laid out like build-cli-archive.ts writes, with a stub `supaterm` that echoes its args. */
 const makeFakeArchives = Effect.fn("test.makeFakeArchives")(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-npm-packages-test-" });
+  const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-npm-packages-test-" });
   const archivesDir = path.join(root, "archives");
   yield* fs.makeDirectory(archivesDir);
   for (const key of KEYS) {
-    const stem = `supacode-${VERSION}-${key}`;
+    const stem = `supaterm-${VERSION}-${key}`;
     const stage = path.join(root, "stage", key);
     const contentDir = path.join(stage, stem);
     for (const dir of [
@@ -73,10 +73,10 @@ const makeFakeArchives = Effect.fn("test.makeFakeArchives")(function* () {
     );
     yield* fs.writeFileString(path.join(contentDir, "client/index.html"), "<html></html>\n");
     yield* fs.writeFileString(
-      path.join(contentDir, "supacode"),
+      path.join(contentDir, "supaterm"),
       `#!/bin/sh\necho "stub ${key} $*"\nexit 7\n`,
     );
-    yield* fs.chmod(path.join(contentDir, "supacode"), 0o755);
+    yield* fs.chmod(path.join(contentDir, "supaterm"), 0o755);
     const exit = yield* run("tar", ["-czf", path.join(archivesDir, `${stem}.tar.gz`), stem], {
       cwd: stage,
     });
@@ -117,23 +117,23 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
       // Platform packages in CLI_ARCHIVE_PLATFORM_KEYS order, launcher last.
       assert.deepStrictEqual(
         outputs.map((output) => output.name),
-        ["@supabitapp/supacode-darwin-arm64", "@supabitapp/supacode-linux-x64", "supacode"],
+        ["@supabitapp/supaterm-darwin-arm64", "@supabitapp/supaterm-linux-x64", "supaterm"],
       );
       for (const output of outputs) {
         assert.isTrue(yield* fs.exists(output.tarball), output.tarball);
       }
 
-      const linuxDir = path.join(fixture.outputDir, "@supabitapp/supacode-linux-x64");
+      const linuxDir = path.join(fixture.outputDir, "@supabitapp/supaterm-linux-x64");
       const linuxManifest = yield* decodeManifest(
         yield* fs.readFileString(path.join(linuxDir, "package.json")),
       );
-      assert.equal(linuxManifest.name, "@supabitapp/supacode-linux-x64");
+      assert.equal(linuxManifest.name, "@supabitapp/supaterm-linux-x64");
       assert.equal(linuxManifest.version, VERSION);
       assert.deepStrictEqual(linuxManifest.os, ["linux"]);
       assert.deepStrictEqual(linuxManifest.cpu, ["x64"]);
       assert.deepStrictEqual(linuxManifest.files, [
-        "supacode",
-        "supacode.exe",
+        "supaterm",
+        "supaterm.exe",
         "client",
         "resource-monitor",
         "node_modules",
@@ -152,44 +152,44 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
       // A root README, or npm would display a bundled dependency's.
       assert.include(
         yield* fs.readFileString(path.join(linuxDir, "README.md")),
-        "# @supabitapp/supacode-linux-x64",
+        "# @supabitapp/supaterm-linux-x64",
       );
       assert.isTrue(yield* fs.exists(path.join(linuxDir, "node_modules/node-pty")));
-      assert.equal(Number((yield* fs.stat(path.join(linuxDir, "supacode"))).mode) & 0o111, 0o111);
+      assert.equal(Number((yield* fs.stat(path.join(linuxDir, "supaterm"))).mode) & 0o111, 0o111);
 
       const darwinManifest = yield* decodeManifest(
         yield* fs.readFileString(
-          path.join(fixture.outputDir, "@supabitapp/supacode-darwin-arm64/package.json"),
+          path.join(fixture.outputDir, "@supabitapp/supaterm-darwin-arm64/package.json"),
         ),
       );
       assert.deepStrictEqual(darwinManifest.os, ["darwin"]);
       assert.deepStrictEqual(darwinManifest.cpu, ["arm64"]);
 
-      const launcherDir = path.join(fixture.outputDir, "supacode");
+      const launcherDir = path.join(fixture.outputDir, "supaterm");
       const launcherManifest = yield* decodeManifest(
         yield* fs.readFileString(path.join(launcherDir, "package.json")),
       );
-      assert.equal(launcherManifest.name, "supacode");
+      assert.equal(launcherManifest.name, "supaterm");
       assert.equal(launcherManifest.version, VERSION);
-      assert.deepStrictEqual(launcherManifest.bin, { supacode: "./bin/supacode.js" });
+      assert.deepStrictEqual(launcherManifest.bin, { supaterm: "./bin/supaterm.js" });
       assert.deepStrictEqual(launcherManifest.files, ["bin", "dist"]);
       assert.deepStrictEqual(launcherManifest.optionalDependencies, {
-        "@supabitapp/supacode-darwin-arm64": VERSION,
-        "@supabitapp/supacode-linux-x64": VERSION,
+        "@supabitapp/supaterm-darwin-arm64": VERSION,
+        "@supabitapp/supaterm-linux-x64": VERSION,
       });
       assert.isUndefined(launcherManifest.engines);
-      assert.isTrue(yield* fs.exists(path.join(launcherDir, "bin/supacode.js")));
+      assert.isTrue(yield* fs.exists(path.join(launcherDir, "bin/supaterm.js")));
 
       // The scratch dirs must not be left behind next to the packages.
       const outputEntries = yield* fs.readDirectory(fixture.outputDir);
-      assert.deepStrictEqual(outputEntries.sort(), ["@supabitapp", "supacode", "supacode.tgz"]);
+      assert.deepStrictEqual(outputEntries.sort(), ["@supabitapp", "supaterm", "supaterm.tgz"]);
 
       // The tarball is what gets published: it must carry node_modules (which
       // `npm publish <dir>` would strip) under npm's `package/` root, with the
       // executable bit intact.
       const listing = yield* run(
         "tar",
-        ["-tzvf", path.join(fixture.outputDir, "@supabitapp/supacode-linux-x64.tgz")],
+        ["-tzvf", path.join(fixture.outputDir, "@supabitapp/supaterm-linux-x64.tgz")],
         { cwd: fixture.outputDir },
       );
       assert.equal(listing.exitCode, 0, listing.stderr);
@@ -197,7 +197,7 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
       assert.isTrue(lines.some((line) => line.endsWith(" package/node_modules/node-pty/")));
       assert.isTrue(lines.some((line) => line.endsWith(" package/package.json")));
       assert.isTrue(
-        lines.some((line) => /^-rwxr-xr-x .* package\/supacode$/.test(line)),
+        lines.some((line) => /^-rwxr-xr-x .* package\/supaterm$/.test(line)),
         listing.stdout,
       );
 
@@ -209,7 +209,7 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
       if (KEYS.some((key) => key === `${hostPlatform}-${hostArch}`)) {
         const passthrough = yield* run(
           process.execPath,
-          ["bin/supacode.js", "serve", "--port", "1234"],
+          ["bin/supaterm.js", "serve", "--port", "1234"],
           {
             cwd: launcherDir,
             env,
@@ -227,7 +227,7 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
         yield* fs.makeDirectory(installedLauncher);
         const unpack = yield* run(
           "tar",
-          ["-xf", path.join(fixture.outputDir, "supacode.tgz"), "-C", installedLauncher],
+          ["-xf", path.join(fixture.outputDir, "supaterm.tgz"), "-C", installedLauncher],
           {
             cwd: fixture.root,
           },
@@ -252,7 +252,7 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
         assert.equal(legacy.exitCode, 7);
       }
 
-      const unsupported = yield* run(process.execPath, ["bin/supacode.js", "--version"], {
+      const unsupported = yield* run(process.execPath, ["bin/supaterm.js", "--version"], {
         cwd: launcherDir,
         env: { ...env, NODE_PATH: path.join(fixture.root, "nowhere") },
       });

@@ -18,14 +18,14 @@ import {
   type EditorId,
   type FileManagerRevealKind,
   type LaunchEditorInput,
-} from "@supacode/contracts";
-import { resolveEditorCommand } from "@supacode/shared/editor";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import { resolveEditorCommand } from "@supaterm/shared/editor";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   isCommandAvailable,
   resolveSpawnCommand,
   withPathDirectoryListings,
-} from "@supacode/shared/shell";
+} from "@supaterm/shared/shell";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
@@ -55,7 +55,7 @@ export {
   ExternalLauncherUnknownEditorError,
   ExternalLauncherUnsupportedEditorError,
   ExternalLauncherUnsupportedTargetError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 export type { LaunchEditorInput };
 interface EditorLaunch {
   readonly editor: EditorId;
@@ -473,7 +473,7 @@ const resolveFileManagerRevealKind = Effect.fn("externalLauncher.resolveFileMana
 // Editor discovery walks PATH for every known editor and runs for every
 // client connect (the server config embeds the available editors). Memoize
 // the discovered set for a bounded window so repeat connects skip even the
-// per-command cache lookups in @supacode/shared/shell.
+// per-command cache lookups in @supaterm/shared/shell.
 //
 // The scan runs on its own fiber in the service scope, and every caller awaits
 // that one scan. Callers apply a timeout (`resolveAvailableEditorsForConfig`)
@@ -482,7 +482,7 @@ const resolveFileManagerRevealKind = Effect.fn("externalLauncher.resolveFileMana
 // long PATH) needs more than one connect to finish. A failed scan clears the
 // entry so the next caller starts over rather than replaying the failure.
 // Expiry uses the monotonic clock (Clock.monotonicTimeNanos), matching the
-// command-resolution cache in @supacode/shared/shell, so a backward wall-clock
+// command-resolution cache in @supaterm/shared/shell, so a backward wall-clock
 // adjustment cannot keep an expired entry alive.
 const EDITOR_DISCOVERY_CACHE_TTL_NANOS = 60_000_000_000n;
 
@@ -516,7 +516,7 @@ export class ExternalLauncher extends Context.Service<
      */
     readonly launchEditor: (input: LaunchEditorInput) => Effect.Effect<void, ExternalLauncherError>;
   }
->()("supacode/process/externalLauncher") {}
+>()("supaterm/process/externalLauncher") {}
 
 // ==============================
 // Implementations

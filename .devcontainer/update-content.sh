@@ -15,7 +15,7 @@ mise install --locked
 mise reshim
 CI=true mise exec -- vp i
 # Repairs electron's path.txt and exec bits after install, same as CI.
-mise exec -- vp run --filter @supacode/desktop ensure:electron
+mise exec -- vp run --filter @supaterm/desktop ensure:electron
 # Pre-warms Vite's dep optimizer (cache is keyed on the absolute path, which
 # is stable inside the container).
 mise exec -- node apps/web/scripts/warm-dep-cache.ts

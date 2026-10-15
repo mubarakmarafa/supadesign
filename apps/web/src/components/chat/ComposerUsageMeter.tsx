@@ -1,9 +1,9 @@
-import type { ServerProviderUsageWindow } from "@supacode/contracts";
+import type { ServerProviderUsageWindow } from "@supaterm/contracts";
 import {
   formatResetsIn,
   type headlineUsageWindows,
   remainingPercent,
-} from "@supacode/shared/usageLimits";
+} from "@supaterm/shared/usageLimits";
 import { memo } from "react";
 
 import { useNowMinuteMs } from "../../hooks/useNowMinute";

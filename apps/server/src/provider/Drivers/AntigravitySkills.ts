@@ -1,4 +1,4 @@
-import type { ServerProviderSkill } from "@supacode/contracts";
+import type { ServerProviderSkill } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -9,7 +9,7 @@ import { parse as parseYamlDocument } from "yaml";
 
 /**
  * The home directory the agent expands `~` against, matching Python's
- * `os.path.expanduser` in the launch environment Supacode hands the process:
+ * `os.path.expanduser` in the launch environment Supaterm hands the process:
  * `USERPROFILE`, then `HOMEDRIVE` + `HOMEPATH`, on Windows and `HOME`
  * elsewhere. Values are used verbatim; a path may contain spaces.
  */
@@ -32,7 +32,7 @@ export function resolveAntigravityUserHome(
  * The agent's two user-global skill directories under a Gemini home, in
  * native precedence order: `config/skills` is shared with the Antigravity IDE
  * and CLI, and `antigravity-cli/skills` is where the `agy` CLI installs
- * skills. The agent resolves both under `GEMINI_HOME`, which Supacode points at a
+ * skills. The agent resolves both under `GEMINI_HOME`, which Supaterm points at a
  * private profile, so the profile links these back to the user's `~/.gemini`.
  * `~/.agents/skills` is not read: the agent only treats `.agents/skills` as a
  * project directory.

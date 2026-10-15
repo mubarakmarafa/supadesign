@@ -2,11 +2,11 @@ import type {
   BrowserNavigationTarget,
   EnvironmentId,
   PreviewUrlResolution,
-} from "@supacode/contracts";
-import { isLoopbackHost, normalizePreviewUrl } from "@supacode/shared/preview";
-import { isLocalLoopbackHost, isPrivateNetworkHost } from "@supacode/shared/hostClassification";
+} from "@supaterm/contracts";
+import { isLoopbackHost, normalizePreviewUrl } from "@supaterm/shared/preview";
+import { isLocalLoopbackHost, isPrivateNetworkHost } from "@supaterm/shared/hostClassification";
 
-import type { ConnectionTarget } from "@supacode/client-runtime/connection";
+import type { ConnectionTarget } from "@supaterm/client-runtime/connection";
 
 import { isDesktopLocalConnectionTarget } from "~/connection/desktopLocal";
 import { isElectron } from "~/env";
@@ -19,7 +19,7 @@ export {
   isLocalLoopbackHost,
   isPrivateNetworkHost,
   isPublicFaviconHost,
-} from "@supacode/shared/hostClassification";
+} from "@supaterm/shared/hostClassification";
 
 export class RelayHostBrowserUnavailableError extends Error {
   constructor() {

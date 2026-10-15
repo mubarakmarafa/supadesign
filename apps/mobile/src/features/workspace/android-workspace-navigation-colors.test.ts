@@ -99,7 +99,7 @@ describe("Android workspace navigation colors", () => {
   );
 
   it("preserves an already visible tonal fill", () => {
-    const variables = getMobileThemeRuntimeVariables("supacode-chat", "light", "android");
+    const variables = getMobileThemeRuntimeVariables("supaterm-chat", "light", "android");
     const colors = androidWorkspaceNavigationColors(
       { ...variables, "--color-secondary": "#e091cf" },
       true,

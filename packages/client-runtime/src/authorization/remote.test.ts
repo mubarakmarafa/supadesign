@@ -5,7 +5,7 @@ import * as Fiber from "effect/Fiber";
 import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
 
-import { EnvironmentAuthInvalidError } from "@supacode/contracts";
+import { EnvironmentAuthInvalidError } from "@supaterm/contracts";
 import {
   appendClientConnectionParams,
   bootstrapRemoteBearerSession,
@@ -120,7 +120,7 @@ describe("remote environment authorization", () => {
         headers: {
           "content-type": "application/x-www-form-urlencoded",
         },
-        body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token=pairing-token&subject_token_type=urn%3Asupacode%3Aparams%3Aoauth%3Atoken-type%3Aenvironment-bootstrap&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token",
+        body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token=pairing-token&subject_token_type=urn%3Asupaterm%3Aparams%3Aoauth%3Atoken-type%3Aenvironment-bootstrap&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token",
       });
     }),
   );
@@ -144,7 +144,7 @@ describe("remote environment authorization", () => {
         httpBaseUrl: "https://remote.example.com/",
         credential: "pairing-token",
         clientMetadata: {
-          label: "Supacode Mobile",
+          label: "Supaterm Mobile",
           deviceType: "mobile",
           os: "iOS",
         },
@@ -153,7 +153,7 @@ describe("remote environment authorization", () => {
       expectFetchCall(fetch.calls, 1, {
         url: "https://remote.example.com/oauth/token",
         method: "POST",
-        body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token=pairing-token&subject_token_type=urn%3Asupacode%3Aparams%3Aoauth%3Atoken-type%3Aenvironment-bootstrap&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token&client_label=Supacode+Mobile&client_device_type=mobile&client_os=iOS",
+        body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token=pairing-token&subject_token_type=urn%3Asupaterm%3Aparams%3Aoauth%3Atoken-type%3Aenvironment-bootstrap&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token&client_label=Supaterm+Mobile&client_device_type=mobile&client_os=iOS",
       });
     }),
   );
@@ -178,7 +178,7 @@ describe("remote environment authorization", () => {
           httpBaseUrl: "https://remote.example.com/",
           credential: "pairing-token",
           clientMetadata: {
-            label: "Supacode Web",
+            label: "Supaterm Web",
             deviceType: "desktop",
             os,
           },
@@ -223,7 +223,7 @@ describe("remote environment authorization", () => {
       expectFetchCall(fetch.calls, 1, {
         url: "https://remote.example.com/oauth/token",
         method: "POST",
-        body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token=pairing-token&subject_token_type=urn%3Asupacode%3Aparams%3Aoauth%3Atoken-type%3Aenvironment-bootstrap&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token&scope=orchestration%3Aread",
+        body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange&subject_token=pairing-token&subject_token_type=urn%3Asupaterm%3Aparams%3Aoauth%3Atoken-type%3Aenvironment-bootstrap&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token&scope=orchestration%3Aread",
       });
     }),
   );
@@ -253,7 +253,7 @@ describe("remote environment authorization", () => {
               policy: "remote-reachable",
               bootstrapMethods: ["one-time-token"],
               sessionMethods: ["browser-session-cookie", "bearer-access-token"],
-              sessionCookieName: "supacode_session",
+              sessionCookieName: "supaterm_session",
             },
             scopes: [
               "orchestration:read",
@@ -301,7 +301,7 @@ describe("remote environment authorization", () => {
       });
 
       expectFetchCall(fetch.calls, 1, {
-        url: "https://remote.example.com/.well-known/supacode/environment",
+        url: "https://remote.example.com/.well-known/supaterm/environment",
         method: "GET",
       });
       expectFetchCall(fetch.calls, 2, {
@@ -335,7 +335,7 @@ describe("remote environment authorization", () => {
 
       expect(error).toBeInstanceOf(RemoteEnvironmentAuthTimeoutError);
       expect(error.message).toBe(
-        "Remote environment endpoint http://remote.example.com/.well-known/supacode/environment timed out after 25ms.",
+        "Remote environment endpoint http://remote.example.com/.well-known/supaterm/environment timed out after 25ms.",
       );
     }).pipe(Effect.provide(TestClock.layer())),
   );
@@ -343,7 +343,7 @@ describe("remote environment authorization", () => {
   it.effect("explains relay tunnel answers as transient connection failures", () =>
     Effect.gen(function* () {
       const relayAnswer = (code: string, status: number) =>
-        new Response(null, { status, headers: { "X-Supacode-Relay-Error": code } });
+        new Response(null, { status, headers: { "X-Supaterm-Relay-Error": code } });
       const fetch = recordedFetch(
         relayAnswer("host-offline", 503),
         relayAnswer("relay-timeout", 504),
@@ -360,7 +360,7 @@ describe("remote environment authorization", () => {
       expect(yield* fetchDescriptor).toMatchObject({
         _tag: "ConnectionTransientError",
         reason: "endpoint-unavailable",
-        detail: "The environment is offline. Make sure Supacode is running on that computer.",
+        detail: "The environment is offline. Make sure Supaterm is running on that computer.",
       });
       expect(yield* fetchDescriptor).toMatchObject({
         _tag: "ConnectionTransientError",
@@ -371,7 +371,7 @@ describe("remote environment authorization", () => {
         _tag: "ConnectionTransientError",
         reason: "remote-unavailable",
         detail:
-          "Remote environment endpoint http://127.0.0.1:41234/.well-known/supacode/environment returned undeclared status 503.",
+          "Remote environment endpoint http://127.0.0.1:41234/.well-known/supaterm/environment returned undeclared status 503.",
       });
     }),
   );

@@ -12,7 +12,7 @@ import {
   type OrchestrationV2ThreadProjection,
   OrchestrationV2TurnItem,
   OrchestrationV2TurnItemJson,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Schema from "effect/Schema";
@@ -23,7 +23,7 @@ import {
   projectDomainEventForWire,
 } from "./WireProjection.ts";
 import { threadShellFromProjection } from "./ProjectionStore.ts";
-import { MAX_TOOL_OUTPUT_IMAGES, toolOutputImages } from "@supacode/shared/toolOutput";
+import { MAX_TOOL_OUTPUT_IMAGES, toolOutputImages } from "@supaterm/shared/toolOutput";
 
 const decodeTurnItem = Schema.decodeUnknownSync(OrchestrationV2TurnItem);
 const encodeTurnItemJson = Schema.encodeSync(OrchestrationV2TurnItemJson);
@@ -300,7 +300,7 @@ describe("orchestration V2 wire projection", () => {
     const item = {
       ...base,
       type: "dynamic_tool" as const,
-      toolName: "mcp__supacode__device_screenshot",
+      toolName: "mcp__supaterm__device_screenshot",
       input: { deviceId: "phone" },
       output: {
         content: [{ type: "image", source: { type: "base64", media_type: "image/png", data } }],

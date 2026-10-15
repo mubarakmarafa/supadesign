@@ -1,6 +1,6 @@
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 
 const openPreviewSession = vi.fn();
 vi.mock("./openPreviewSession", () => ({ openPreviewSession }));

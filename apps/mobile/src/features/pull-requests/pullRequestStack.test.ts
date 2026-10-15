@@ -1,4 +1,4 @@
-import { ProjectId, type PullRequestStack, type ThreadPullRequestLink } from "@supacode/contracts";
+import { ProjectId, type PullRequestStack, type ThreadPullRequestLink } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import {
   pullRequestStackMerge,

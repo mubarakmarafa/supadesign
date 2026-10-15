@@ -1,4 +1,4 @@
-import type { EnvironmentId, ProjectId } from "@supacode/contracts";
+import type { EnvironmentId, ProjectId } from "@supaterm/contracts";
 
 import type { OpenPreviewMutation } from "./browser/openFileInPreview";
 import type { ClosedView, ClosedViewEntry } from "./closedViewStore";

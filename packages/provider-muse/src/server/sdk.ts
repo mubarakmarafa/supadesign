@@ -8,9 +8,9 @@ import {
   type ProcessExit,
   type SpawnedMspConnection,
 } from "@muse-code/sdk";
-import type { RuntimeMode } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { SpawnExecutableResolution } from "@supacode/shared/shell";
+import type { RuntimeMode } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { SpawnExecutableResolution } from "@supaterm/shared/shell";
 import * as Effect from "effect/Effect";
 
 export interface MuseSdkHost {
@@ -152,7 +152,7 @@ export function museServeArgs(
 
 export function museInitializeParams(readOnly = false) {
   return {
-    clientInfo: { name: "supacode", title: "Supacode", version: "1" },
+    clientInfo: { name: "supaterm", title: "Supaterm", version: "1" },
     capabilities: { requestedCapabilities: readOnly ? [] : ["sessionMcp"] },
   };
 }

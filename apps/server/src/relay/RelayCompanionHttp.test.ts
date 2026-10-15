@@ -4,7 +4,7 @@ import * as NodeHttp from "node:http";
 import * as NodeHttpPlatform from "@effect/platform-node/NodeHttpPlatform";
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { RELAY_COMPANION_REQUEST_LIMIT } from "@supacode/shared/relay/protocol";
+import { RELAY_COMPANION_REQUEST_LIMIT } from "@supaterm/shared/relay/protocol";
 import { expect, it } from "@effect/vitest";
 import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";
@@ -17,7 +17,7 @@ import { RelayCompanion, RelayCompanionError } from "./RelayCompanion.ts";
 import { layer } from "./RelayCompanionHttp.ts";
 
 const platform = NodeHttpPlatform.layer.pipe(Layer.provideMerge(NodeServices.layer));
-const identity = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid`;
+const identity = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid`;
 const address = `${identity}/`;
 const foreignHostStatus = (origin: string) =>
   new Promise<number>((resolve, reject) => {
@@ -66,7 +66,7 @@ it.effect("serves the standalone shell while rejecting foreign Hosts and escapin
     const response = yield* client.get("/settings/connections");
     expect(response.status).toBe(200);
     expect(response.headers["cache-control"]).toBe("no-store");
-    expect(yield* response.text).toContain('name="supacode-relay-companion"');
+    expect(yield* response.text).toContain('name="supaterm-relay-companion"');
     expect((yield* client.get("/app.js")).status).toBe(200);
     expect((yield* client.get("/escape")).status).toBe(404);
     const server = Context.get(services, HttpServer.HttpServer);
@@ -150,7 +150,7 @@ it.effect("answers failed opens and drops a tab that sends malformed control mes
     const fs = yield* FileSystem.FileSystem;
     const root = yield* fs.makeTempDirectoryScoped();
     const released = yield* Deferred.make<void>();
-    const failedIdentity = `https://${"55".repeat(16)}.${"66".repeat(16)}.relay.supacode.invalid`;
+    const failedIdentity = `https://${"55".repeat(16)}.${"66".repeat(16)}.relay.supaterm.invalid`;
     const service = Layer.mock(RelayCompanion, {
       session: Effect.gen(function* () {
         yield* Effect.addFinalizer(() => Deferred.succeed(released, undefined));

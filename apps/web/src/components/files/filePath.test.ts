@@ -4,8 +4,8 @@ import { fileBreadcrumbChildren, fileBreadcrumbParent, fileBreadcrumbs } from ".
 
 describe("fileBreadcrumbs", () => {
   it("builds project, directory, and file crumbs", () => {
-    expect(fileBreadcrumbs("supacode", "apps/web/src/main.tsx")).toEqual([
-      { label: "supacode", path: "", kind: "project" },
+    expect(fileBreadcrumbs("supaterm", "apps/web/src/main.tsx")).toEqual([
+      { label: "supaterm", path: "", kind: "project" },
       { label: "apps", path: "apps", kind: "directory" },
       { label: "web", path: "apps/web", kind: "directory" },
       { label: "src", path: "apps/web/src", kind: "directory" },
@@ -22,17 +22,17 @@ describe("fileBreadcrumbs", () => {
   });
 
   it("starts host paths outside the workspace at the filesystem root", () => {
-    expect(fileBreadcrumbs("supacode", "/tmp/supacode-cleanup/report.md")).toEqual([
+    expect(fileBreadcrumbs("supaterm", "/tmp/supaterm-cleanup/report.md")).toEqual([
       { label: "tmp", path: "/tmp", kind: "directory" },
-      { label: "supacode-cleanup", path: "/tmp/supacode-cleanup", kind: "directory" },
-      { label: "report.md", path: "/tmp/supacode-cleanup/report.md", kind: "file" },
+      { label: "supaterm-cleanup", path: "/tmp/supaterm-cleanup", kind: "directory" },
+      { label: "report.md", path: "/tmp/supaterm-cleanup/report.md", kind: "file" },
     ]);
-    expect(fileBreadcrumbs("supacode", "C:\\Temp\\report.md")).toEqual([
+    expect(fileBreadcrumbs("supaterm", "C:\\Temp\\report.md")).toEqual([
       { label: "C:", path: "C:", kind: "directory" },
       { label: "Temp", path: "C:\\Temp", kind: "directory" },
       { label: "report.md", path: "C:\\Temp\\report.md", kind: "file" },
     ]);
-    expect(fileBreadcrumbs("supacode", "\\\\server\\share\\report.md").map((c) => c.path)).toEqual([
+    expect(fileBreadcrumbs("supaterm", "\\\\server\\share\\report.md").map((c) => c.path)).toEqual([
       "\\\\server",
       "\\\\server\\share",
       "\\\\server\\share\\report.md",

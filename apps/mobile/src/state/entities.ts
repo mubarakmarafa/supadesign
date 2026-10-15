@@ -4,15 +4,15 @@ import { appAtomRegistry } from "./atom-registry";
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/shell";
 import type {
   EnvironmentId,
   ScopedProjectRef,
   ScopedThreadRef,
   ServerConfig,
   ThreadId,
-} from "@supacode/contracts";
-import { hasThreadLinks, relabelThreadLinks } from "@supacode/shared/threadLinks";
+} from "@supaterm/contracts";
+import { hasThreadLinks, relabelThreadLinks } from "@supaterm/shared/threadLinks";
 import { Atom } from "effect/reactivity";
 import { useMemo } from "react";
 

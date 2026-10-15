@@ -1,5 +1,5 @@
-import type { ProviderOptionDescriptor } from "@supacode/contracts";
-import { getProviderOptionCurrentValue } from "@supacode/shared/model";
+import type { ProviderOptionDescriptor } from "@supaterm/contracts";
+import { getProviderOptionCurrentValue } from "@supaterm/shared/model";
 
 const CODEX_STANDARD_SERVICE_TIER = "default";
 

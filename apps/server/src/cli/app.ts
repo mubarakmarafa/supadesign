@@ -8,9 +8,9 @@ import {
   DesktopAppActivationResponse,
   type DesktopAppActivationPlatform,
   type DesktopAppActivationRequest,
-} from "@supacode/contracts";
-import { resolveDesktopAppControlAddress } from "@supacode/shared/desktopAppControl";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import { resolveDesktopAppControlAddress } from "@supaterm/shared/desktopAppControl";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
 import * as Crypto from "effect/Crypto";
@@ -32,7 +32,7 @@ export class DesktopAppSshUnsupportedError extends Schema.TaggedError<DesktopApp
   {},
 ) {
   override get message(): string {
-    return "`supacode app` only controls a desktop app on the same machine. It cannot run over SSH.";
+    return "`supaterm app` only controls a desktop app on the same machine. It cannot run over SSH.";
   }
 }
 
@@ -41,7 +41,7 @@ export class DesktopAppPlatformUnsupportedError extends Schema.TaggedError<Deskt
   { platform: Schema.String },
 ) {
   override get message(): string {
-    return `\`supacode app\` is not supported on ${this.platform}.`;
+    return `\`supaterm app\` is not supported on ${this.platform}.`;
   }
 }
 
@@ -55,7 +55,7 @@ export class DesktopAppUnreachableError extends Schema.TaggedError<DesktopAppUnr
   },
 ) {
   override get message(): string {
-    return "Could not reach the Supacode desktop app. Start or update the desktop app on this machine, then run `supacode app` again. A running Supacode server is not enough.";
+    return "Could not reach the Supaterm desktop app. Start or update the desktop app on this machine, then run `supaterm app` again. A running Supaterm server is not enough.";
   }
 }
 
@@ -69,7 +69,7 @@ export class DesktopAppRequestFailedError extends Schema.TaggedError<DesktopAppR
   },
 ) {
   override get message(): string {
-    return `Supacode could not open ${this.workspaceRoot} (${this.code}).`;
+    return `Supaterm could not open ${this.workspaceRoot} (${this.code}).`;
   }
 }
 
@@ -174,7 +174,7 @@ function sendDesktopAppActivationRequest(input: {
 }
 
 const appEnvironment = Config.all({
-  supacodeHome: Config.String("SUPACODE_HOME").pipe(
+  supatermHome: Config.String("SUPATERM_HOME").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
@@ -196,9 +196,9 @@ const runAppCommand = Effect.fn("cli.app")(function* (flags: {
   }
 
   const path = yield* Path.Path;
-  const configuredBaseDir = Option.getOrUndefined(flags.baseDir) ?? environment.supacodeHome;
+  const configuredBaseDir = Option.getOrUndefined(flags.baseDir) ?? environment.supatermHome;
   const baseDir = yield* resolveBaseDir(configuredBaseDir);
-  const allowDevFallback = Option.isNone(flags.baseDir) && !environment.supacodeHome?.trim();
+  const allowDevFallback = Option.isNone(flags.baseDir) && !environment.supatermHome?.trim();
   const rawWorkspaceRoot =
     Option.getOrUndefined(flags.workspaceRoot) ?? (yield* HostProcess.WorkingDirectory);
   const workspaceRoot = path.resolve(yield* expandHomePath(rawWorkspaceRoot));
@@ -247,7 +247,7 @@ const runAppCommand = Effect.fn("cli.app")(function* (flags: {
     });
   }
 
-  yield* Console.log(`Opened ${workspaceRoot} in Supacode.`);
+  yield* Console.log(`Opened ${workspaceRoot} in Supaterm.`);
 });
 
 export const appCommand = Command.make("app", {
@@ -257,6 +257,6 @@ export const appCommand = Command.make("app", {
     Argument.optional,
   ),
 }).pipe(
-  Command.withDescription("Open a project in the running Supacode desktop app."),
+  Command.withDescription("Open a project in the running Supaterm desktop app."),
   Command.withHandler(runAppCommand),
 );

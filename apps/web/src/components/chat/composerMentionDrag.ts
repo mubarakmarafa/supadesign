@@ -1,11 +1,11 @@
-import { serializeComposerFileLink } from "@supacode/shared/composerTrigger";
+import { serializeComposerFileLink } from "@supaterm/shared/composerTrigger";
 
 /**
  * Drag payload type carrying a serialized composer mention. Set on drags that
  * start in the workspace file tree so the composer can tell them apart from
  * OS file drags and plain text selections.
  */
-export const COMPOSER_MENTION_DRAG_TYPE = "application/x-supacode-composer-mention";
+export const COMPOSER_MENTION_DRAG_TYPE = "application/x-supaterm-composer-mention";
 
 export function composerMentionFromTreePath(treePath: string): string | null {
   const relativePath = treePath.replace(/\/+$/, "");

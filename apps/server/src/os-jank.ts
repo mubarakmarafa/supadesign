@@ -1,12 +1,12 @@
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   listLoginShellCandidates,
   mergePathEntries,
   readPathFromLoginShell,
   readPathFromLaunchctl,
   resolveWindowsEnvironment,
-} from "@supacode/shared/shell";
-import { resolveDefaultSupacodeHome } from "@supacode/shared/supacodeHome";
+} from "@supaterm/shared/shell";
+import { resolveDefaultSupatermHome } from "@supaterm/shared/supatermHome";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -106,7 +106,7 @@ export const expandHomePath = Effect.fn(function* (input: string) {
 export const resolveBaseDir = Effect.fn(function* (raw: string | undefined) {
   const { join, resolve } = yield* Path.Path;
   if (!raw || raw.trim().length === 0) {
-    return resolveDefaultSupacodeHome(yield* HostProcess.HomeDirectory, join);
+    return resolveDefaultSupatermHome(yield* HostProcess.HomeDirectory, join);
   }
   return resolve(yield* expandHomePath(raw.trim()));
 });

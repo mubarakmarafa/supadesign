@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import { assertTrue } from "@effect/vitest/utils";
 import * as Effect from "effect/Effect";

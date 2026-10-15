@@ -5,8 +5,8 @@
  * API constrained to store actions/selectors.
  */
 
-import { parseScopedThreadKey, scopedThreadKey } from "@supacode/client-runtime/environment";
-import { type ScopedThreadRef } from "@supacode/contracts";
+import { parseScopedThreadKey, scopedThreadKey } from "@supaterm/client-runtime/environment";
+import { type ScopedThreadRef } from "@supaterm/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { resolveStorage } from "./lib/storage";
@@ -27,7 +27,7 @@ interface ThreadTerminalUiState {
 }
 
 // Keep the old storage key so existing drawer layout preferences migrate.
-const TERMINAL_UI_STATE_STORAGE_KEY = "supacode:terminal-state:v1";
+const TERMINAL_UI_STATE_STORAGE_KEY = "supaterm:terminal-state:v1";
 
 interface PersistedTerminalUiStateStoreState {
   terminalUiStateByThreadKey?: Record<string, ThreadTerminalUiState>;

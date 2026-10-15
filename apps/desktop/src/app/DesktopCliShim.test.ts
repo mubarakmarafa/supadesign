@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 const tempRoot = () => {
-  const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-cli-shim-"));
+  const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-cli-shim-"));
   directories.push(root);
   return root;
 };
@@ -27,8 +27,8 @@ const writeExecutable = (path: string, content: string) => {
 };
 
 const writeShim = (root: string, target: CliShimTarget) => {
-  const shim = NodePath.join(root, "bin", "supacode");
-  writeExecutable(shim, renderCliShim({ target, shimPath: shim, supacodeHome: `${root}/home` }));
+  const shim = NodePath.join(root, "bin", "supaterm");
+  writeExecutable(shim, renderCliShim({ target, shimPath: shim, supatermHome: `${root}/home` }));
   return shim;
 };
 
@@ -39,13 +39,13 @@ const run = (shim: string, args: ReadonlyArray<string>, env: NodeJS.ProcessEnv =
   });
 
 const REPORTER =
-  '#!/bin/sh\necho "node=$ELECTRON_RUN_AS_NODE cli=$SUPACODE_CLI_PATH home=$SUPACODE_HOME"\nprintf "%s\\n" "$@"\nexit 3\n';
+  '#!/bin/sh\necho "node=$ELECTRON_RUN_AS_NODE cli=$SUPATERM_CLI_SHIM_PATH home=$SUPATERM_HOME"\nprintf "%s\\n" "$@"\nexit 3\n';
 
 const fakeAppImage = (canMount = true) => {
   const root = tempRoot();
   const image = NodePath.join(root, "image");
-  writeExecutable(NodePath.join(image, "supacode"), REPORTER);
-  const appImage = NodePath.join(root, "Supacode.AppImage");
+  writeExecutable(NodePath.join(image, "supaterm"), REPORTER);
+  const appImage = NodePath.join(root, "Supaterm.AppImage");
   writeExecutable(
     appImage,
     [
@@ -59,7 +59,7 @@ const fakeAppImage = (canMount = true) => {
       "",
     ].join("\n"),
   );
-  const shim = writeShim(root, { kind: "appimage", appImage, executableName: "supacode" });
+  const shim = writeShim(root, { kind: "appimage", appImage, executableName: "supaterm" });
   return { root, image, appImage, shim };
 };
 
@@ -94,7 +94,7 @@ describe("renderCliShim", () => {
     );
   });
 
-  it("keeps the install's Supacode home under sudo, unless one is set", () => {
+  it("keeps the install's Supaterm home under sudo, unless one is set", () => {
     const root = tempRoot();
     writeExecutable(NodePath.join(root, "app"), REPORTER);
     const shim = writeShim(root, {
@@ -104,9 +104,9 @@ describe("renderCliShim", () => {
     });
 
     expect(run(shim, []).stdout).toContain(`home=${root}/home`);
-    expect(run(shim, [], { SUPACODE_HOME: "/elsewhere" }).stdout).toContain("home=/elsewhere");
+    expect(run(shim, [], { SUPATERM_HOME: "/elsewhere" }).stdout).toContain("home=/elsewhere");
 
-    const relative = NodeChildProcess.spawnSync("./bin/supacode", [], {
+    const relative = NodeChildProcess.spawnSync("./bin/supaterm", [], {
       cwd: root,
       encoding: "utf8",
     });
@@ -115,15 +115,15 @@ describe("renderCliShim", () => {
 
   it("runs an installed app's server directly", () => {
     const root = tempRoot();
-    const executable = NodePath.join(root, "opt", "Supacode", "supacode");
+    const executable = NodePath.join(root, "opt", "Supaterm", "supaterm");
     writeExecutable(executable, REPORTER);
     const shim = writeShim(root, {
       kind: "direct",
       executable,
-      entry: "/opt/Supacode's/app.asar/bin.mjs",
+      entry: "/opt/Supaterm's/app.asar/bin.mjs",
     });
     expect(run(shim, ["browser", "setup"]).stdout.split("\n").slice(1)).toEqual([
-      "/opt/Supacode's/app.asar/bin.mjs",
+      "/opt/Supaterm's/app.asar/bin.mjs",
       "browser",
       "setup",
       "",
@@ -134,7 +134,7 @@ describe("renderCliShim", () => {
     const root = tempRoot();
     const shim = writeShim(root, {
       kind: "direct",
-      executable: NodePath.join(root, "Gone.app/Contents/MacOS/Supacode"),
+      executable: NodePath.join(root, "Gone.app/Contents/MacOS/Supaterm"),
       entry: "/bin.mjs",
     });
     const result = run(shim, ["--version"]);
@@ -143,17 +143,17 @@ describe("renderCliShim", () => {
   });
 
   it("writes a Windows launcher that keeps cmd from reinterpreting paths", () => {
-    const executable = "C:\\Apps\\R&whoami&X 100%\\!CHANNEL!\\Supacode.exe";
+    const executable = "C:\\Apps\\R&whoami&X 100%\\!CHANNEL!\\Supaterm.exe";
     const script = renderCliShim({
       target: { kind: "windows", executable, entry: "C:\\Apps\\server.asar\\bin.mjs" },
-      shimPath: "C:\\Users\\José\\.supacode\\bin\\supacode.cmd",
-      supacodeHome: "C:\\Users\\José\\.supacode",
+      shimPath: "C:\\Users\\José\\.supaterm\\bin\\supaterm.cmd",
+      supatermHome: "C:\\Users\\José\\.supaterm",
     });
     const lines = script.split("\r\n");
     expect(lines).toContain("setlocal EnableExtensions DisableDelayedExpansion");
     expect(lines).toContain("chcp 65001 >nul");
     expect(lines).toContain(
-      'if exist "C:\\Apps\\R&whoami&X 100%%\\!CHANNEL!\\Supacode.exe" goto run',
+      'if exist "C:\\Apps\\R&whoami&X 100%%\\!CHANNEL!\\Supaterm.exe" goto run',
     );
 
     const bare = lines.filter(
@@ -161,7 +161,7 @@ describe("renderCliShim", () => {
     );
     expect(bare).toEqual([]);
     expect(lines).toContain(
-      'set "SUPACODE_CLI_PATH=C:\\Users\\José\\.supacode\\bin\\supacode.cmd"',
+      'set "SUPATERM_CLI_SHIM_PATH=C:\\Users\\José\\.supaterm\\bin\\supaterm.cmd"',
     );
   });
 
@@ -169,14 +169,14 @@ describe("renderCliShim", () => {
     const ascii = renderCliShim({
       target: {
         kind: "windows",
-        executable: "C:\\Supacode\\Supacode.exe",
-        entry: "C:\\Supacode\\bin.mjs",
+        executable: "C:\\Supaterm\\Supaterm.exe",
+        entry: "C:\\Supaterm\\bin.mjs",
       },
-      shimPath: "C:\\Users\\me\\.supacode\\bin\\supacode.cmd",
-      supacodeHome: "C:\\Users\\me\\.supacode",
+      shimPath: "C:\\Users\\me\\.supaterm\\bin\\supaterm.cmd",
+      supatermHome: "C:\\Users\\me\\.supaterm",
     });
 
     expect(ascii).not.toContain("chcp");
-    expect(ascii.split("\r\n")).toContain("exit /b %supacode_exit%");
+    expect(ascii.split("\r\n")).toContain("exit /b %supaterm_exit%");
   });
 });

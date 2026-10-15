@@ -11,12 +11,12 @@ Object.assign(process.env, repoEnv);
 const APP_VARIANT = resolveAppVariant(repoEnv.APP_VARIANT);
 // Metro can remove the other variants' image imports before collecting assets.
 process.env.EXPO_PUBLIC_APP_VARIANT = APP_VARIANT;
-const isIosPersonalTeamBuild = repoEnv.SUPACODE_IOS_PERSONAL_TEAM === "1";
+const isIosPersonalTeamBuild = repoEnv.SUPATERM_IOS_PERSONAL_TEAM === "1";
 const runtimeVersionPolicy =
   process.env.MOBILE_VERSION_POLICY ??
   (APP_VARIANT === "development" ? "appVersion" : "fingerprint");
 
-const personalTeamBundleIdentifier = repoEnv.SUPACODE_IOS_PERSONAL_TEAM_BUNDLE_ID?.trim();
+const personalTeamBundleIdentifier = repoEnv.SUPATERM_IOS_PERSONAL_TEAM_BUNDLE_ID?.trim();
 const IOS_BUNDLE_IDENTIFIER_PATTERN = /^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 
 const fromRepoRoot = (relativePath: string) => `../../${relativePath}`;
@@ -30,7 +30,7 @@ if (
     !IOS_BUNDLE_IDENTIFIER_PATTERN.test(personalTeamBundleIdentifier))
 ) {
   throw new Error(
-    "SUPACODE_IOS_PERSONAL_TEAM_BUNDLE_ID must be a reverse-DNS identifier such as com.example.supacode when SUPACODE_IOS_PERSONAL_TEAM=1.",
+    "SUPATERM_IOS_PERSONAL_TEAM_BUNDLE_ID must be a reverse-DNS identifier such as com.example.supaterm when SUPATERM_IOS_PERSONAL_TEAM=1.",
   );
 }
 
@@ -69,24 +69,24 @@ const RELEASE_ASSETS = {
 
 const VARIANT_CONFIG = {
   development: {
-    appName: "Supacode Dev",
-    scheme: "supacode-dev",
-    iosBundleIdentifier: "com.supaterm.supacode.dev",
-    androidPackage: "com.supaterm.supacode.dev",
+    appName: "Supaterm Dev",
+    scheme: "supaterm-dev",
+    iosBundleIdentifier: "com.supaterm.mobile.dev",
+    androidPackage: "com.supaterm.mobile.dev",
     assets: DEVELOPMENT_ASSETS,
   },
   preview: {
-    appName: "Supacode Preview",
-    scheme: "supacode-preview",
-    iosBundleIdentifier: "com.supaterm.supacode.preview",
-    androidPackage: "com.supaterm.supacode.preview",
+    appName: "Supaterm Preview",
+    scheme: "supaterm-preview",
+    iosBundleIdentifier: "com.supaterm.mobile.preview",
+    androidPackage: "com.supaterm.mobile.preview",
     assets: PREVIEW_ASSETS,
   },
   production: {
-    appName: "Supacode",
-    scheme: "supacode",
-    iosBundleIdentifier: "com.supaterm.supacode",
-    androidPackage: "com.supaterm.supacode",
+    appName: "Supaterm",
+    scheme: "supaterm",
+    iosBundleIdentifier: "com.supaterm.mobile",
+    androidPackage: "com.supaterm.mobile",
     assets: RELEASE_ASSETS,
   },
 } as const;
@@ -123,7 +123,7 @@ const widgetsPlugin: NonNullable<ExpoConfig["plugins"]>[number] = [
       {
         name: "SubscriptionUsage",
         displayName: "Subscription usage",
-        description: "Subscription quotas from your connected Supacode environments.",
+        description: "Subscription quotas from your connected Supaterm environments.",
         ios: {
           configuration: {
             title: "Subscription usage",
@@ -221,7 +221,7 @@ const config: ExpoConfig = {
   icon: variant.assets.appIcon,
   userInterfaceStyle: "automatic",
   updates: {
-    enabled: repoEnv.SUPACODE_MOBILE_UPDATES_ENABLED !== "0",
+    enabled: repoEnv.SUPATERM_MOBILE_UPDATES_ENABLED !== "0",
     url: "https://u.expo.dev/43107a7e-1d06-490b-bfc6-be228b285ee2",
     checkAutomatically: "ON_LOAD",
     fallbackToCacheTimeout: 0,
@@ -231,7 +231,7 @@ const config: ExpoConfig = {
     supportsTablet: true,
     // Multitasking-capable iPad apps cannot rotate programmatically, so the
     // showcase capture build requires full screen (see infoPlist below).
-    requireFullScreen: process.env.SUPACODE_SHOWCASE_CAPTURE_BUILD === "1",
+    requireFullScreen: process.env.SUPATERM_SHOWCASE_CAPTURE_BUILD === "1",
     bundleIdentifier: iosBundleIdentifier,
     // Pin code signing to SUPABIT COMPANY LIMITED so non-interactive `expo run:ios`
     // does not fall back to a personal team (which cannot sign app groups).
@@ -251,13 +251,13 @@ const config: ExpoConfig = {
         NSAllowsArbitraryLoads: true,
       },
       NSLocalNetworkUsageDescription:
-        "Allow Supacode to connect to Supacode servers on your local network or tailnet.",
-      NSPhotoLibraryAddUsageDescription: "Allow Supacode to save images to your photo library.",
+        "Allow Supaterm to connect to Supaterm servers on your local network or tailnet.",
+      NSPhotoLibraryAddUsageDescription: "Allow Supaterm to save images to your photo library.",
       // "Audio, AirPlay, and Picture in Picture": the browser screen's system
       // picture in picture needs it to start and to stay up outside the app.
       UIBackgroundModes: ["audio"],
       ITSAppUsesNonExemptEncryption: false,
-      ...(process.env.SUPACODE_SHOWCASE_CAPTURE_BUILD === "1"
+      ...(process.env.SUPATERM_SHOWCASE_CAPTURE_BUILD === "1"
         ? {
             EXDevMenuShowsAtLaunch: false,
             EXDevMenuIsOnboardingFinished: true,
@@ -269,7 +269,7 @@ const config: ExpoConfig = {
       // Simulator menu scripting needs), and iPadOS ignores programmatic
       // orientation requests for multitasking-capable apps — so the capture
       // build opts out of multitasking and declares landscape support.
-      ...(process.env.SUPACODE_SHOWCASE_CAPTURE_BUILD === "1"
+      ...(process.env.SUPATERM_SHOWCASE_CAPTURE_BUILD === "1"
         ? {
             "UISupportedInterfaceOrientations~ipad": [
               "UIInterfaceOrientationPortrait",
@@ -348,7 +348,7 @@ const config: ExpoConfig = {
     [
       "expo-audio",
       {
-        microphonePermission: "Allow Supacode to use your microphone for voice input.",
+        microphonePermission: "Allow Supaterm to use your microphone for voice input.",
         recordAudioAndroid: false,
         enableBackgroundPlayback: false,
         enableBackgroundRecording: false,
@@ -357,7 +357,7 @@ const config: ExpoConfig = {
     [
       "expo-camera",
       {
-        cameraPermission: "Allow Supacode to access your camera so you can scan pairing QR codes.",
+        cameraPermission: "Allow Supaterm to access your camera so you can scan pairing QR codes.",
         microphonePermission: false,
         barcodeScannerEnabled: true,
         recordAudioAndroid: false,

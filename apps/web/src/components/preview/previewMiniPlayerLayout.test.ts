@@ -1,4 +1,4 @@
-import { FILL_PREVIEW_VIEWPORT } from "@supacode/contracts";
+import { FILL_PREVIEW_VIEWPORT } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

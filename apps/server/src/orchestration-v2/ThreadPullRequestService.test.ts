@@ -6,7 +6,7 @@ import {
   type OrchestrationProjectShell,
   type OrchestrationV2DomainEvent,
   type OrchestrationV2ThreadShell,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";

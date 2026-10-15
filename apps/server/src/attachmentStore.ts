@@ -3,8 +3,8 @@ import * as NodeCrypto from "node:crypto";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 
-import type { ChatAttachment } from "@supacode/contracts";
-import { htmlRenderFromToolItem, mcpAppFromToolItem } from "@supacode/shared/toolOutput";
+import type { ChatAttachment } from "@supaterm/contracts";
+import { htmlRenderFromToolItem, mcpAppFromToolItem } from "@supaterm/shared/toolOutput";
 
 import {
   normalizeAttachmentRelativePath,

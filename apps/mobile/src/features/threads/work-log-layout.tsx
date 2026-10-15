@@ -64,8 +64,8 @@ export function WorkLogLabel({
       ellipsizeMode="tail"
       className={cn(
         "min-w-0 flex-1 text-sm text-foreground-muted",
-        tone === "danger" && "font-supacode-medium text-adaptive-rose-600-400",
-        tone === "warning" && "font-supacode-medium text-warning-foreground",
+        tone === "danger" && "font-supaterm-medium text-adaptive-rose-600-400",
+        tone === "warning" && "font-supaterm-medium text-warning-foreground",
       )}
     >
       {children}

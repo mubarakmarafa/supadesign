@@ -1,7 +1,7 @@
 import { createRelayCompanionControl, isRelayCompanion } from "./relayCompanion";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as RelayGateway from "@supacode/client-runtime/relay";
+import * as RelayGateway from "@supaterm/client-runtime/relay";
 
 export const layer = Layer.unwrap(
   Effect.gen(function* () {
@@ -21,7 +21,7 @@ export const layer = Layer.unwrap(
         }
         if (!isRelayCompanion())
           throw new Error(
-            "Run supacode relay-client locally to connect this browser through the relay.",
+            "Run supaterm relay-client locally to connect this browser through the relay.",
           );
         const prepare = async () => {
           const resolved = await companion.request("open", address, relayUrl);

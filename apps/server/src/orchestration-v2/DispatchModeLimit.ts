@@ -1,4 +1,4 @@
-import type { ProviderInteractionMode, RuntimeMode, ThreadId } from "@supacode/contracts";
+import type { ProviderInteractionMode, RuntimeMode, ThreadId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import type * as Ref from "effect/Ref";
 
@@ -28,7 +28,7 @@ export interface DispatchModeLimitValue extends DispatchModes {
 }
 
 export const DispatchModeLimit = Context.Reference<DispatchModeLimitValue | undefined>(
-  "supacode/orchestration-v2/DispatchModeLimit",
+  "supaterm/orchestration-v2/DispatchModeLimit",
   { defaultValue: () => undefined },
 );
 

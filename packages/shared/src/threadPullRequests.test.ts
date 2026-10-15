@@ -2,7 +2,7 @@ import {
   ProjectId,
   type ThreadPullRequestLink,
   type ThreadPullRequestSnapshot,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import {

@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { OrchestrationV2ThreadProjection, ScopedThreadRef } from "@supacode/contracts";
-import { resolveWorkspaceFilePath } from "@supacode/shared/path";
+import type { OrchestrationV2ThreadProjection, ScopedThreadRef } from "@supaterm/contracts";
+import { resolveWorkspaceFilePath } from "@supaterm/shared/path";
 import { Atom } from "effect/reactivity";
 import { createContext, useEffect, useRef, type ReactNode } from "react";
 

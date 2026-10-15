@@ -20,9 +20,9 @@ import type {
   ProjectReadFileResult,
   ProjectWriteFileInput,
   ProjectWriteFileResult,
-} from "@supacode/contracts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -140,7 +140,7 @@ export class WorkspaceFileSystem extends Context.Service<
       WorkspaceFileSystemError | WorkspacePaths.WorkspacePathOutsideRootError
     >;
   }
->()("supacode/workspace/WorkspaceFileSystem") {}
+>()("supaterm/workspace/WorkspaceFileSystem") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {

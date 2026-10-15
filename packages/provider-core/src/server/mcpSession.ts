@@ -1,4 +1,4 @@
-import type { EnvironmentId, ProviderInstanceId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ProviderInstanceId, ThreadId } from "@supaterm/contracts";
 
 export interface McpProviderSessionConfig {
   readonly environmentId: EnvironmentId;

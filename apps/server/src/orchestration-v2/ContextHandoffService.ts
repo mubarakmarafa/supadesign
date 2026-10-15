@@ -6,7 +6,7 @@ import {
   ProviderThreadId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -20,8 +20,8 @@ import {
   historicalMessage,
   renderHistory,
   selectHistory,
-} from "@supacode/provider-core/server/handoffBudget";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+} from "@supaterm/provider-core/server/handoffBudget";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 
 export class ContextHandoffPrepareError extends Schema.TaggedError<ContextHandoffPrepareError>()(
   "ContextHandoffPrepareError",
@@ -91,7 +91,7 @@ export interface ContextHandoffServiceV2Shape {
 export class ContextHandoffServiceV2 extends Context.Service<
   ContextHandoffServiceV2,
   ContextHandoffServiceV2Shape
->()("supacode/orchestration-v2/ContextHandoffService/ContextHandoffServiceV2") {}
+>()("supaterm/orchestration-v2/ContextHandoffService/ContextHandoffServiceV2") {}
 
 function compactText(text: string, maxLength = 240): string {
   const compacted = text.replace(/\s+/g, " ").trim();
@@ -153,7 +153,7 @@ function makeLegacyImportSummary(items: ReadonlyArray<OrchestrationV2TurnItem>):
     }
   });
   const header =
-    "Imported conversation history from the previous Supacode orchestrator. Use it as context; do not repeat it unless the user asks.";
+    "Imported conversation history from the previous Supaterm orchestrator. Use it as context; do not repeat it unless the user asks.";
   const maxChars = 32_000;
   const selected: Array<string> = [];
   let remaining = maxChars - header.length - 2;

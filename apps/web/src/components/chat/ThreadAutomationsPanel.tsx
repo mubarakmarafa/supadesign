@@ -8,11 +8,11 @@ import {
   type EnvironmentId,
   type ScheduledTask,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 import { cn } from "../../lib/utils";

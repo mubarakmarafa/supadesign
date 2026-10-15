@@ -1,4 +1,4 @@
-import type { PullRequestRef, PullRequestStack, ThreadPullRequestLink } from "@supacode/contracts";
+import type { PullRequestRef, PullRequestStack, ThreadPullRequestLink } from "@supaterm/contracts";
 
 /** A stack merge includes the unmerged layers up to the selected PR, in host order. */
 export function pullRequestStackMerge(stack: PullRequestStack, number: number) {

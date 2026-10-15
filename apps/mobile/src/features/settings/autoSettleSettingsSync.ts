@@ -1,4 +1,4 @@
-import type { EnvironmentId, ProjectId, ServerSettings } from "@supacode/contracts";
+import type { EnvironmentId, ProjectId, ServerSettings } from "@supaterm/contracts";
 
 export type AutoSettleSettings = Pick<
   ServerSettings,

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AuthEnvironmentMaintainScope } from "@supacode/contracts";
+import { AuthEnvironmentMaintainScope } from "@supaterm/contracts";
 
 import { isElectron } from "~/env";
 import { isLocalEnvironmentDisabled } from "~/localEnvironment";

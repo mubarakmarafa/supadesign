@@ -1,4 +1,4 @@
-import type { ChatAttachment, EnvironmentId } from "@supacode/contracts";
+import type { ChatAttachment, EnvironmentId } from "@supaterm/contracts";
 import { Image } from "expo-image";
 import { useRef } from "react";
 import { type AccessibilityActionEvent, Platform, Pressable, View } from "react-native";

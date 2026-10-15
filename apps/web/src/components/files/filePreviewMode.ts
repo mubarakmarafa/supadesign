@@ -1,5 +1,5 @@
-import type { AssetResource, ProjectReadFileError, ScopedThreadRef } from "@supacode/contracts";
-import { isAbsolutePath, workspaceRelativeFilePath } from "@supacode/shared/path";
+import type { AssetResource, ProjectReadFileError, ScopedThreadRef } from "@supaterm/contracts";
+import { isAbsolutePath, workspaceRelativeFilePath } from "@supaterm/shared/path";
 
 /** Resolve workspace links before choosing between the explorer and a file preview. */
 export function resolveFilePreviewPath(path: string | null, cwd: string): string | null {

@@ -7,7 +7,7 @@ describe("classifyMarkdownImageSource", () => {
     "https://example.com/image.png",
     "HTTP://example.com/image.png",
     "data:image/png;base64,AAAA",
-    "blob:https://app.next.supacode.sh/image-id",
+    "blob:https://app.supaterm.com/image-id",
     "//cdn.example.com/image.png",
   ])("keeps %s directly loadable", (uri) => {
     expect(classifyMarkdownImageSource(uri, "/workspace/project")).toEqual({

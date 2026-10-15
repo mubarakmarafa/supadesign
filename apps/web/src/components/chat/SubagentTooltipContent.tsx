@@ -6,12 +6,12 @@ import type {
   ProviderDriverKind,
   ProviderInstanceId,
   OrchestrationV2Subagent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   resolveSubagentMetadata,
   subagentDetailPreview,
-} from "@supacode/client-runtime/state/subagent-display";
-import { getModelSelectionStringOptionValue, resolveSelectableModel } from "@supacode/shared/model";
+} from "@supaterm/client-runtime/state/subagent-display";
+import { getModelSelectionStringOptionValue, resolveSelectableModel } from "@supaterm/shared/model";
 import { getTraitsSpeedDisplay, TraitsSpeedIcon } from "./TraitsSpeed";
 import type { ReactNode } from "react";
 import {

@@ -4,13 +4,13 @@ import {
   BearerConnectionTarget,
   SshConnectionProfile,
   SshConnectionTarget,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import {
   ConnectionCatalogDocument as RuntimeConnectionCatalogDocument,
   type ConnectionCatalogDocument as RuntimeConnectionCatalogDocumentType,
-} from "@supacode/client-runtime/platform";
-import type { PersistedSavedEnvironmentRecord } from "@supacode/contracts";
-import { fromLenientJson } from "@supacode/shared/schemaJson";
+} from "@supaterm/client-runtime/platform";
+import type { PersistedSavedEnvironmentRecord } from "@supaterm/contracts";
+import { fromLenientJson } from "@supaterm/shared/schemaJson";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -164,7 +164,7 @@ export class DesktopConnectionCatalogStore extends Context.Service<
     >;
     readonly clear: Effect.Effect<void>;
   }
->()("@supacode/desktop/app/DesktopConnectionCatalogStore") {}
+>()("@supaterm/desktop/app/DesktopConnectionCatalogStore") {}
 
 function decodeSecretBytes(
   catalogPath: string,

@@ -1,15 +1,15 @@
-import { PRIMARY_LOCAL_ENVIRONMENT_ID } from "@supacode/contracts";
+import { PRIMARY_LOCAL_ENVIRONMENT_ID } from "@supaterm/contracts";
 import {
   makeLocalFileTracer,
   makeTraceSink,
   type SignalExport,
-} from "@supacode/shared/observability";
-import * as SharedObservability from "@supacode/shared/observability";
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
+} from "@supaterm/shared/observability";
+import * as SharedObservability from "@supaterm/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 import {
   parsePersistedServerObservabilitySettings,
   type PersistedServerObservabilitySettings,
-} from "@supacode/shared/serverSettings";
+} from "@supaterm/shared/serverSettings";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -67,7 +67,7 @@ export class DesktopBackendOutputLogFactory extends Context.Service<
   {
     readonly forInstance: (id: string) => Effect.Effect<DesktopBackendOutputLogShape>;
   }
->()("@supacode/desktop/app/DesktopObservability/DesktopBackendOutputLogFactory") {}
+>()("@supaterm/desktop/app/DesktopObservability/DesktopBackendOutputLogFactory") {}
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -626,9 +626,9 @@ const layerTelemetry = Layer.unwrap(
     const environment = yield* DesktopEnvironment.DesktopEnvironment;
     const endpoints = yield* resolveOtlpEndpoints;
     const resource = {
-      serviceName: "supacode-desktop",
+      serviceName: "supaterm-desktop",
       attributes: {
-        "service.namespace": "supacode",
+        "service.namespace": "supaterm",
         "service.runtime": "desktop",
         "service.mode": environment.isDevelopment ? "development" : "packaged",
       },

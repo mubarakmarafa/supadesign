@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   BUILT_IN_THEMES,
-  SUPACODE_LIGHT_THEME_COLORS,
-  SUPACODE_DARK_THEME_COLORS,
-} from "@supacode/shared/themePalettes";
+  SUPATERM_LIGHT_THEME_COLORS,
+  SUPATERM_DARK_THEME_COLORS,
+} from "@supaterm/shared/themePalettes";
 
 import indexHtml from "../index.html?raw";
 import {
@@ -13,14 +13,14 @@ import {
   invalidateCustomThemes,
   isKnownThemePreference,
   resolveThemeAppearance,
-  SUPACODE_CHAT_THEME,
+  SUPATERM_CHAT_THEME,
   GROVE_THEME,
   THEME_APPEARANCE_MODE_STORAGE_KEY,
   THEME_FOLLOW_SYSTEM_STORAGE_KEY,
   toCanonicalThemeColor,
 } from "./themePalette";
 
-const THEME_STORAGE_KEY = "supacode:theme";
+const THEME_STORAGE_KEY = "supaterm:theme";
 // A custom theme that omits chrome falls back to the runtime default, so the
 // boot copy of that default stays derived from the real palette.
 const DEFAULT_DARK_CHROME = getDefaultThemeColors("dark").chrome;
@@ -158,14 +158,14 @@ describe("index.html boot script", () => {
   }> = [
     { name: "no stored preference on a dark OS", storage: {}, prefersDark: true },
     {
-      name: "Supacode Chat follows a dark OS",
-      storage: { [THEME_STORAGE_KEY]: "supacode-chat", [THEME_FOLLOW_SYSTEM_STORAGE_KEY]: "true" },
+      name: "Supaterm Chat follows a dark OS",
+      storage: { [THEME_STORAGE_KEY]: "supaterm-chat", [THEME_FOLLOW_SYSTEM_STORAGE_KEY]: "true" },
       prefersDark: true,
     },
     {
-      name: "an explicit global dark mode applies to Supacode Chat",
+      name: "an explicit global dark mode applies to Supaterm Chat",
       storage: {
-        [THEME_STORAGE_KEY]: "supacode-chat",
+        [THEME_STORAGE_KEY]: "supaterm-chat",
         [THEME_APPEARANCE_MODE_STORAGE_KEY]: "dark",
         [THEME_FOLLOW_SYSTEM_STORAGE_KEY]: "false",
       },
@@ -253,7 +253,7 @@ describe("index.html boot script", () => {
     "boots the standard %s palette without a saved selection",
     (appearance) => {
       const colors =
-        appearance === "dark" ? SUPACODE_DARK_THEME_COLORS : SUPACODE_LIGHT_THEME_COLORS;
+        appearance === "dark" ? SUPATERM_DARK_THEME_COLORS : SUPATERM_LIGHT_THEME_COLORS;
       const boot = runBootScript({ prefersDark: appearance === "dark" });
       expect(boot.backgroundColor).toBe(colors.chrome);
       expect(boot.metaContent).toBe(colors.chrome);
@@ -264,12 +264,12 @@ describe("index.html boot script", () => {
     "preserves saved Graphite selections and %s mixes",
     (appearance) => {
       const colors =
-        appearance === "dark" ? SUPACODE_DARK_THEME_COLORS : SUPACODE_LIGHT_THEME_COLORS;
+        appearance === "dark" ? SUPATERM_DARK_THEME_COLORS : SUPATERM_LIGHT_THEME_COLORS;
       for (const storage of [
         { [THEME_STORAGE_KEY]: "graphite" },
         {
           [THEME_STORAGE_KEY]: "grove",
-          "supacode:theme-halves:v1": JSON.stringify({ [appearance]: "graphite" }),
+          "supaterm:theme-halves:v1": JSON.stringify({ [appearance]: "graphite" }),
         },
       ]) {
         const preferences = { ...storage, [THEME_APPEARANCE_MODE_STORAGE_KEY]: appearance };
@@ -285,10 +285,10 @@ describe("index.html boot script", () => {
 
   it("marks built-in and custom themes on the document element", () => {
     const chat = runBootScript({
-      storage: { [THEME_STORAGE_KEY]: "supacode-chat", [THEME_FOLLOW_SYSTEM_STORAGE_KEY]: "true" },
+      storage: { [THEME_STORAGE_KEY]: "supaterm-chat", [THEME_FOLLOW_SYSTEM_STORAGE_KEY]: "true" },
       prefersDark: true,
     });
-    expect(chat.themeId).toBe("supacode-chat");
+    expect(chat.themeId).toBe("supaterm-chat");
     expect(chat.themeSelected).toBe("true");
     expect(chat.isDark).toBe(true);
 
@@ -394,9 +394,9 @@ describe("index.html boot script", () => {
 
   it("applies the matching half of an automatic mix to the splash", () => {
     const storage = {
-      [THEME_STORAGE_KEY]: "supacode-chat",
+      [THEME_STORAGE_KEY]: "supaterm-chat",
       [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
-      "supacode:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
+      "supaterm:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
     };
 
     const dark = runBootScript({ storage, prefersDark: true });
@@ -408,9 +408,9 @@ describe("index.html boot script", () => {
 
     const light = runBootScript({ storage, prefersDark: false });
     expect(light.isDark).toBe(false);
-    expect(light.themeId).toBe("supacode-chat");
+    expect(light.themeId).toBe("supaterm-chat");
     expect(light.bootVariables["--boot-background"]).toBe(
-      getThemeColorsForMode(SUPACODE_CHAT_THEME, "light")!.canvas,
+      getThemeColorsForMode(SUPATERM_CHAT_THEME, "light")!.canvas,
     );
   });
 
@@ -427,7 +427,7 @@ describe("index.html boot script", () => {
             colors: { canvas: "#f8fbff", text: "#10243d", accent: "#5b6cff" },
           },
         ]),
-        "supacode:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
+        "supaterm:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
       },
       prefersDark: true,
     });
@@ -440,7 +440,7 @@ describe("index.html boot script", () => {
       storage: {
         [THEME_STORAGE_KEY]: "gone-theme",
         [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
-        "supacode:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
+        "supaterm:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
       },
       prefersDark: true,
     });
@@ -455,13 +455,13 @@ describe("index.html boot script", () => {
   it("ignores a mix half that names an unknown theme", () => {
     const boot = runBootScript({
       storage: {
-        [THEME_STORAGE_KEY]: "supacode-chat",
+        [THEME_STORAGE_KEY]: "supaterm-chat",
         [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
-        "supacode:theme-halves:v1": JSON.stringify({ dark: "gone-theme" }),
+        "supaterm:theme-halves:v1": JSON.stringify({ dark: "gone-theme" }),
       },
       prefersDark: true,
     });
-    expect(boot.themeId).toBe("supacode-chat");
+    expect(boot.themeId).toBe("supaterm-chat");
     expect(boot.isDark).toBe(true);
   });
 
@@ -503,8 +503,8 @@ describe("index.html boot script", () => {
 
     expect(boot.themeId).toBeUndefined();
     expect(boot.themeSelected).toBeUndefined();
-    expect(boot.backgroundColor).toBe(SUPACODE_LIGHT_THEME_COLORS.chrome);
-    expect(boot.metaContent).toBe(SUPACODE_LIGHT_THEME_COLORS.chrome);
+    expect(boot.backgroundColor).toBe(SUPATERM_LIGHT_THEME_COLORS.chrome);
+    expect(boot.metaContent).toBe(SUPATERM_LIGHT_THEME_COLORS.chrome);
   });
 
   it("leaves unknown preferences unthemed so the runtime default applies", () => {

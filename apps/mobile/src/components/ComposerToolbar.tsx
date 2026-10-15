@@ -80,14 +80,14 @@ export function ComposerInlineControl(props: {
       ) : null}
       <Text
         className={cn(
-          "shrink text-sm font-supacode-medium",
+          "shrink text-sm font-supaterm-medium",
           props.emphasized || props.selected ? "text-foreground" : "text-foreground-muted",
         )}
         numberOfLines={1}
       >
         {props.label}
         {props.secondaryLabel ? (
-          <Text className="font-supacode-medium text-foreground-muted">
+          <Text className="font-supaterm-medium text-foreground-muted">
             {` ${props.secondaryLabel}`}
           </Text>
         ) : null}
@@ -368,7 +368,7 @@ export function ComposerToolbarButton(props: {
       {props.label ? (
         <Text
           className={cn(
-            "shrink text-center text-sm font-supacode-bold",
+            "shrink text-center text-sm font-supaterm-bold",
             variant === "primary"
               ? props.disabled
                 ? "text-foreground-muted"

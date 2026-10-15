@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -49,7 +49,7 @@ const layerHelper = (input: {
   readonly capture?: (command: CapturedCommand) => void;
 }) =>
   Layer.merge(
-    Layer.succeed(LinuxBrowserSecretPath, "/bundled/browser-secret/supacode-browser-secret"),
+    Layer.succeed(LinuxBrowserSecretPath, "/bundled/browser-secret/supaterm-browser-secret"),
     Layer.succeed(
       ChildProcessSpawner.ChildProcessSpawner,
       ChildProcessSpawner.make((command) =>
@@ -164,7 +164,7 @@ describe("Linux Chromium secrets", () => {
         linuxSecretApplication: "msedge",
       });
 
-      expect(captured?.command).toBe("/bundled/browser-secret/supacode-browser-secret");
+      expect(captured?.command).toBe("/bundled/browser-secret/supaterm-browser-secret");
       expect(captured?.args).toEqual(["msedge"]);
       expect(captured?.options.stdin).toBe("ignore");
       expect(keys.cbcV10).toHaveLength(16);

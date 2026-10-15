@@ -23,7 +23,7 @@ import type {
   SelectedFields,
   TranscriptUsageFormat,
   UsageRecord,
-} from "@supacode/provider-core/server/usage";
+} from "@supaterm/provider-core/server/usage";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 

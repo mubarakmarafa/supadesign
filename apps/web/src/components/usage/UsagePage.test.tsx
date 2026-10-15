@@ -1,5 +1,5 @@
-import { EnvironmentId, UsageDay, USAGE_CONTRACT_VERSION } from "@supacode/contracts";
-import { mergeUsage } from "@supacode/shared/usageMerge";
+import { EnvironmentId, UsageDay, USAGE_CONTRACT_VERSION } from "@supaterm/contracts";
+import { mergeUsage } from "@supaterm/shared/usageMerge";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

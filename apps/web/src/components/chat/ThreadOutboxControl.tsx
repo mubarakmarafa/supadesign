@@ -1,9 +1,9 @@
-import { scopeThreadRef, scopedThreadKey } from "@supacode/client-runtime/environment";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { scopeThreadRef, scopedThreadKey } from "@supaterm/client-runtime/environment";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { Clock3Icon, PencilIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 
 import { newThreadId } from "../../lib/utils";
 import {

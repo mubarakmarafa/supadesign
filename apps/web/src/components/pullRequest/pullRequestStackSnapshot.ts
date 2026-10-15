@@ -1,4 +1,4 @@
-import type { PullRequestRef, PullRequestStack, ThreadPullRequestLink } from "@supacode/contracts";
+import type { PullRequestRef, PullRequestStack, ThreadPullRequestLink } from "@supaterm/contracts";
 
 /** Saved native membership is enough for navigation, but never supplies action head SHAs. */
 export function savedPullRequestStack(

@@ -1,4 +1,4 @@
-import type { PickedElementPayload } from "@supacode/contracts";
+import type { PickedElementPayload } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { normalizeElementContextSelection } from "./elementContext";

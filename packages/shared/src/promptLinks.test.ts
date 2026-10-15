@@ -107,20 +107,20 @@ describe("link round trips", () => {
   });
 
   it("maps app scheme and hosted links to in-app paths, and nothing else", () => {
-    expect(promptLinkAppPath("supacode://new?prompt=hi")).toBe("/new?prompt=hi");
-    expect(promptLinkAppPath("supacode-dev://threads/env-1/thread-1")).toBe("/env-1/thread-1");
-    expect(promptLinkAppPath("https://app.next.supacode.sh/env-1/thread-1?prompt=go")).toBe(
+    expect(promptLinkAppPath("supaterm://new?prompt=hi")).toBe("/new?prompt=hi");
+    expect(promptLinkAppPath("supaterm-dev://threads/env-1/thread-1")).toBe("/env-1/thread-1");
+    expect(promptLinkAppPath("https://app.supaterm.com/env-1/thread-1?prompt=go")).toBe(
       "/env-1/thread-1?prompt=go",
     );
-    expect(promptLinkAppPath("https://app.next.supacode.sh/settings/general")).toBeNull();
+    expect(promptLinkAppPath("https://app.supaterm.com/settings/general")).toBeNull();
     expect(promptLinkAppPath("https://evil.test/new?prompt=hi")).toBeNull();
-    expect(promptLinkAppPath("supacode://app/index.html")).toBeNull();
+    expect(promptLinkAppPath("supaterm://app/index.html")).toBeNull();
   });
 
   it("hands an in-app path to the installed app", () => {
-    expect(promptLinkDeepLink("/new?prompt=hi")).toBe("supacode://new?prompt=hi");
+    expect(promptLinkDeepLink("/new?prompt=hi")).toBe("supaterm://new?prompt=hi");
     expect(promptLinkDeepLink("/env-1/thread-1?prompt=hi")).toBe(
-      "supacode://threads/env-1/thread-1?prompt=hi",
+      "supaterm://threads/env-1/thread-1?prompt=hi",
     );
   });
 });

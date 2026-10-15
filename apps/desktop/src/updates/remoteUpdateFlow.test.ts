@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import type { DesktopUpdateState } from "@supacode/contracts";
+import type { DesktopUpdateState } from "@supaterm/contracts";
 
 import {
   MAX_REMOTE_UPDATE_CHECKS,

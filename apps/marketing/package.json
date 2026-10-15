@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/marketing",
+  "name": "@supaterm/marketing",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@supacode/shared": "workspace:*",
+    "@supaterm/shared": "workspace:*",
     "astro": "^7.3.5",
     "sharp": "0.35.5"
   },

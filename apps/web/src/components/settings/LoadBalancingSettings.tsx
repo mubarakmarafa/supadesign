@@ -1,4 +1,4 @@
-import { resolveEnvironmentMachineKind } from "@supacode/contracts";
+import { resolveEnvironmentMachineKind } from "@supaterm/contracts";
 
 import {
   useClientSettings,

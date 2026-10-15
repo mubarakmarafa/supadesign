@@ -1,6 +1,6 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import { executeAtomQuery, squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentId, PullRequestDiffStat, PullRequestListInput } from "@supacode/contracts";
+import { executeAtomQuery, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentId, PullRequestDiffStat, PullRequestListInput } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";

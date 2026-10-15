@@ -2,13 +2,13 @@ import {
   AuthOrchestrationOperateScope,
   type EnvironmentId,
   type ThreadId,
-} from "@supacode/contracts";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+} from "@supaterm/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { ChevronDownIcon } from "lucide-react";
 import {
   memo,

@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -26,7 +26,7 @@ it.effect("maps Bitbucket PR summaries into provider-neutral change requests", (
           state: "open",
           updatedAt: Option.none(),
           isCrossRepository: true,
-          headRepositoryNameWithOwner: "fork/supacode",
+          headRepositoryNameWithOwner: "fork/supaterm",
           headRepositoryOwnerLogin: "fork",
         }),
     });
@@ -46,7 +46,7 @@ it.effect("maps Bitbucket PR summaries into provider-neutral change requests", (
       state: "open",
       updatedAt: Option.none(),
       isCrossRepository: true,
-      headRepositoryNameWithOwner: "fork/supacode",
+      headRepositoryNameWithOwner: "fork/supaterm",
       headRepositoryOwnerLogin: "fork",
     });
   }),

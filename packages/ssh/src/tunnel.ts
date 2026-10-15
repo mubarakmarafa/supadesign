@@ -1,16 +1,16 @@
 import type {
   DesktopSshEnvironmentBootstrap,
   DesktopSshEnvironmentTarget,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   describeReadinessCause,
   waitForHttpReady as waitForHttpReadyShared,
-} from "@supacode/shared/httpReadiness";
-import { cliReleaseDownloadBaseUrl } from "@supacode/shared/cliRelease";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
-import * as NetService from "@supacode/shared/Net";
-import { extractJsonObject, fromLenientJson } from "@supacode/shared/schemaJson";
-import { satisfiesSemverRange } from "@supacode/shared/semver";
+} from "@supaterm/shared/httpReadiness";
+import { cliReleaseDownloadBaseUrl } from "@supaterm/shared/cliRelease";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
+import * as NetService from "@supaterm/shared/Net";
+import { extractJsonObject, fromLenientJson } from "@supaterm/shared/schemaJson";
+import { satisfiesSemverRange } from "@supaterm/shared/semver";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -65,7 +65,7 @@ const REMOTE_ARCHIVE_LOCK_WAIT_SECONDS = 360;
 const REMOTE_ARCHIVE_LAUNCH_TIMEOUT_MS = 900_000;
 const REMOTE_REUSE_READY_TIMEOUT_MS = 2_000;
 
-export interface RemoteSupacodeRunnerOptions {
+export interface RemoteSupatermRunnerOptions {
   /**
    * Dev mode: run `node <path>` on the remote instead of a release archive.
    * The only mode that needs Node on the remote.
@@ -82,7 +82,7 @@ export interface RemoteSupacodeRunnerOptions {
 }
 
 export interface SshEnvironmentManagerOptions {
-  readonly resolveCliRunner?: Effect.Effect<RemoteSupacodeRunnerOptions>;
+  readonly resolveCliRunner?: Effect.Effect<RemoteSupatermRunnerOptions>;
 }
 
 interface SshTunnelEntry {
@@ -124,11 +124,11 @@ function sshTargetLogFields(target: DesktopSshEnvironmentTarget) {
   };
 }
 
-function isNodeScriptRunner(runner: RemoteSupacodeRunnerOptions | undefined): boolean {
+function isNodeScriptRunner(runner: RemoteSupatermRunnerOptions | undefined): boolean {
   return Boolean(runner?.nodeScriptPath?.trim());
 }
 
-function sshRunnerLogFields(runner: RemoteSupacodeRunnerOptions | undefined) {
+function sshRunnerLogFields(runner: RemoteSupatermRunnerOptions | undefined) {
   if (runner?.nodeScriptPath?.trim()) {
     return { runner: "node-script", nodeScriptPath: runner.nodeScriptPath.trim() };
   }
@@ -341,12 +341,12 @@ const REMOTE_NODE_ENV_SCRIPT = `prepend_path_if_dir() {
 }
 
 remote_node_satisfies_engine() {
-  SUPACODE_NODE_ENGINE_RANGE=@@SUPACODE_NODE_ENGINE_RANGE@@
-  if [ -z "$SUPACODE_NODE_ENGINE_RANGE" ]; then
+  SUPATERM_NODE_ENGINE_RANGE=@@SUPATERM_NODE_ENGINE_RANGE@@
+  if [ -z "$SUPATERM_NODE_ENGINE_RANGE" ]; then
     return 0
   fi
-  node - "$SUPACODE_NODE_ENGINE_RANGE" <<'NODE'
-@@SUPACODE_NODE_ENGINE_CHECK_SCRIPT@@
+  node - "$SUPATERM_NODE_ENGINE_RANGE" <<'NODE'
+@@SUPATERM_NODE_ENGINE_CHECK_SCRIPT@@
 NODE
 }
 
@@ -413,9 +413,9 @@ ensure_remote_node_path() {
   fi
 
   if ! command -v node >/dev/null 2>&1 && [ -d "$NVM_DIR/versions/node" ]; then
-    for SUPACODE_NODE_BIN in "$NVM_DIR"/versions/node/*/bin; do
-      if [ -x "$SUPACODE_NODE_BIN/node" ]; then
-        PATH="$SUPACODE_NODE_BIN:$PATH"
+    for SUPATERM_NODE_BIN in "$NVM_DIR"/versions/node/*/bin; do
+      if [ -x "$SUPATERM_NODE_BIN/node" ]; then
+        PATH="$SUPATERM_NODE_BIN:$PATH"
         export PATH
       fi
     done
@@ -427,9 +427,9 @@ ensure_remote_node_path() {
 
 const REMOTE_RUNNER_SCRIPT = `#!/bin/sh
 set -eu
-@@SUPACODE_NODE_ENV_SCRIPT@@
-SUPACODE_NODE_SCRIPT_PATH=@@SUPACODE_NODE_SCRIPT_PATH@@
-if [ -n "$SUPACODE_NODE_SCRIPT_PATH" ]; then
+@@SUPATERM_NODE_ENV_SCRIPT@@
+SUPATERM_NODE_SCRIPT_PATH=@@SUPATERM_NODE_SCRIPT_PATH@@
+if [ -n "$SUPATERM_NODE_SCRIPT_PATH" ]; then
   # Dev mode: a source checkout on the remote. This is the only path that
   # needs Node, so Node discovery runs here and nowhere else.
   ensure_remote_node_path || true
@@ -437,26 +437,26 @@ if [ -n "$SUPACODE_NODE_SCRIPT_PATH" ]; then
     printf 'Remote host is missing node on PATH. Install Node or configure a supported version manager for non-interactive shells.\\n' >&2
     exit 1
   fi
-  exec node "$SUPACODE_NODE_SCRIPT_PATH" "$@"
+  exec node "$SUPATERM_NODE_SCRIPT_PATH" "$@"
 fi
-SUPACODE_ARCHIVE_VERSION=@@SUPACODE_ARCHIVE_VERSION@@
-if [ -z "$SUPACODE_ARCHIVE_VERSION" ]; then
-  printf 'No Supacode release version was provided for the remote runtime.\\n' >&2
+SUPATERM_ARCHIVE_VERSION=@@SUPATERM_ARCHIVE_VERSION@@
+if [ -z "$SUPATERM_ARCHIVE_VERSION" ]; then
+  printf 'No Supaterm release version was provided for the remote runtime.\\n' >&2
   exit 1
 fi
 # Self-contained release archive: no Node, npm, or compiler on the remote.
-# Unpacked into the pinned-runtime layout so \`supacode service install\` reuses it.
-SUPACODE_RELEASE_BASE_URL=@@SUPACODE_RELEASE_BASE_URL@@
-SUPACODE_RUNTIME_DIR="$HOME/.supacode/runtime/versions/$SUPACODE_ARCHIVE_VERSION"
-supacode_runtime_ready() {
-  [ -x "$SUPACODE_RUNTIME_DIR/supacode" ] && [ "$(cat "$SUPACODE_RUNTIME_DIR/.install-complete" 2>/dev/null)" = "$SUPACODE_ARCHIVE_VERSION" ]
+# Unpacked into the pinned-runtime layout so \`supaterm service install\` reuses it.
+SUPATERM_RELEASE_BASE_URL=@@SUPATERM_RELEASE_BASE_URL@@
+SUPATERM_RUNTIME_DIR="$HOME/.supaterm/runtime/versions/$SUPATERM_ARCHIVE_VERSION"
+supaterm_runtime_ready() {
+  [ -x "$SUPATERM_RUNTIME_DIR/supaterm" ] && [ "$(cat "$SUPATERM_RUNTIME_DIR/.install-complete" 2>/dev/null)" = "$SUPATERM_ARCHIVE_VERSION" ]
 }
-if ! supacode_runtime_ready; then
-  mkdir -p "$HOME/.supacode/runtime/versions"
+if ! supaterm_runtime_ready; then
+  mkdir -p "$HOME/.supaterm/runtime/versions"
   # Concurrent launches (two clients, a retry racing a slow first run) must
   # not both install: mkdir is the atomic lock and the ready check repeats
   # under it.
-  SUPACODE_LOCK="$HOME/.supacode/runtime/versions/.$SUPACODE_ARCHIVE_VERSION.install.lock"
+  SUPATERM_LOCK="$HOME/.supaterm/runtime/versions/.$SUPATERM_ARCHIVE_VERSION.install.lock"
   # mkdir is the only portable atomic exclusive create (mv would silently
   # nest a candidate inside an existing lock). The owner publishes its pid
   # right after, so a lock with a live owner is never reclaimed however
@@ -464,101 +464,101 @@ if ! supacode_runtime_ready; then
   # once. A lock with no pid at all is a crash between mkdir and the pid
   # write; it is reclaimed after a short grace so a live owner has time to
   # publish.
-  SUPACODE_LOCK_WAITED=0
-  SUPACODE_LOCK_UNOWNED=0
-  while ! mkdir "$SUPACODE_LOCK" 2>/dev/null; do
-    SUPACODE_LOCK_OWNER="$(cat "$SUPACODE_LOCK/pid" 2>/dev/null || true)"
-    if [ -n "$SUPACODE_LOCK_OWNER" ]; then
-      SUPACODE_LOCK_UNOWNED=0
-      if ! kill -0 "$SUPACODE_LOCK_OWNER" 2>/dev/null; then
-        rm -rf "$SUPACODE_LOCK"
+  SUPATERM_LOCK_WAITED=0
+  SUPATERM_LOCK_UNOWNED=0
+  while ! mkdir "$SUPATERM_LOCK" 2>/dev/null; do
+    SUPATERM_LOCK_OWNER="$(cat "$SUPATERM_LOCK/pid" 2>/dev/null || true)"
+    if [ -n "$SUPATERM_LOCK_OWNER" ]; then
+      SUPATERM_LOCK_UNOWNED=0
+      if ! kill -0 "$SUPATERM_LOCK_OWNER" 2>/dev/null; then
+        rm -rf "$SUPATERM_LOCK"
         continue
       fi
     else
-      SUPACODE_LOCK_UNOWNED=$((SUPACODE_LOCK_UNOWNED + 1))
-      if [ "$SUPACODE_LOCK_UNOWNED" -ge 5 ]; then
-        rm -rf "$SUPACODE_LOCK"
+      SUPATERM_LOCK_UNOWNED=$((SUPATERM_LOCK_UNOWNED + 1))
+      if [ "$SUPATERM_LOCK_UNOWNED" -ge 5 ]; then
+        rm -rf "$SUPATERM_LOCK"
         continue
       fi
     fi
-    if [ "$SUPACODE_LOCK_WAITED" -ge @@SUPACODE_ARCHIVE_LOCK_WAIT_SECONDS@@ ]; then
-      printf 'Another Supacode %s installation has held %s for too long.\\n' "$SUPACODE_ARCHIVE_VERSION" "$SUPACODE_LOCK" >&2
+    if [ "$SUPATERM_LOCK_WAITED" -ge @@SUPATERM_ARCHIVE_LOCK_WAIT_SECONDS@@ ]; then
+      printf 'Another Supaterm %s installation has held %s for too long.\\n' "$SUPATERM_ARCHIVE_VERSION" "$SUPATERM_LOCK" >&2
       exit 1
     fi
     sleep 1
-    SUPACODE_LOCK_WAITED=$((SUPACODE_LOCK_WAITED + 1))
+    SUPATERM_LOCK_WAITED=$((SUPATERM_LOCK_WAITED + 1))
   done
-  printf '%s\\n' "$$" > "$SUPACODE_LOCK/pid.tmp" && mv "$SUPACODE_LOCK/pid.tmp" "$SUPACODE_LOCK/pid"
-  trap 'rm -rf "$SUPACODE_LOCK"' EXIT
+  printf '%s\\n' "$$" > "$SUPATERM_LOCK/pid.tmp" && mv "$SUPATERM_LOCK/pid.tmp" "$SUPATERM_LOCK/pid"
+  trap 'rm -rf "$SUPATERM_LOCK"' EXIT
 fi
-if ! supacode_runtime_ready; then
+if ! supaterm_runtime_ready; then
   case "$(uname -s)" in
-    Darwin) SUPACODE_PLATFORM="darwin" ;;
-    Linux) SUPACODE_PLATFORM="linux" ;;
-    *) printf 'Remote host %s has no Supacode release archive.\\n' "$(uname -s)" >&2; exit 1 ;;
+    Darwin) SUPATERM_PLATFORM="darwin" ;;
+    Linux) SUPATERM_PLATFORM="linux" ;;
+    *) printf 'Remote host %s has no Supaterm release archive.\\n' "$(uname -s)" >&2; exit 1 ;;
   esac
   case "$(uname -m)" in
-    arm64 | aarch64) SUPACODE_ARCH="arm64" ;;
-    x86_64 | amd64) SUPACODE_ARCH="x64" ;;
-    *) printf 'Remote host %s has no Supacode release archive.\\n' "$(uname -m)" >&2; exit 1 ;;
+    arm64 | aarch64) SUPATERM_ARCH="arm64" ;;
+    x86_64 | amd64) SUPATERM_ARCH="x64" ;;
+    *) printf 'Remote host %s has no Supaterm release archive.\\n' "$(uname -m)" >&2; exit 1 ;;
   esac
-  SUPACODE_ARCHIVE="supacode-$SUPACODE_ARCHIVE_VERSION-$SUPACODE_PLATFORM-$SUPACODE_ARCH.tar.gz"
-  SUPACODE_STAGING="$(mktemp -d "$HOME/.supacode/runtime/versions/.staging-XXXXXX")"
-  trap 'rm -rf "$SUPACODE_STAGING" "$SUPACODE_LOCK"' EXIT
-  supacode_fetch() {
+  SUPATERM_ARCHIVE="supaterm-$SUPATERM_ARCHIVE_VERSION-$SUPATERM_PLATFORM-$SUPATERM_ARCH.tar.gz"
+  SUPATERM_STAGING="$(mktemp -d "$HOME/.supaterm/runtime/versions/.staging-XXXXXX")"
+  trap 'rm -rf "$SUPATERM_STAGING" "$SUPATERM_LOCK"' EXIT
+  supaterm_fetch() {
     if command -v curl >/dev/null 2>&1; then curl -fsSL --connect-timeout 30 --max-time "$3" "$1" -o "$2"
     elif command -v wget >/dev/null 2>&1; then wget -q --timeout=30 --tries=1 "$1" -O "$2"
-    else printf 'Remote host needs curl or wget to download %s.\\n' "$SUPACODE_ARCHIVE" >&2; exit 1
+    else printf 'Remote host needs curl or wget to download %s.\\n' "$SUPATERM_ARCHIVE" >&2; exit 1
     fi
   }
-  supacode_fetch "$SUPACODE_RELEASE_BASE_URL/v$SUPACODE_ARCHIVE_VERSION/SHA256SUMS" "$SUPACODE_STAGING/SHA256SUMS" @@SUPACODE_ARCHIVE_CHECKSUMS_SECONDS@@
-  supacode_fetch "$SUPACODE_RELEASE_BASE_URL/v$SUPACODE_ARCHIVE_VERSION/$SUPACODE_ARCHIVE" "$SUPACODE_STAGING/$SUPACODE_ARCHIVE" @@SUPACODE_ARCHIVE_DOWNLOAD_SECONDS@@
-  SUPACODE_EXPECTED="$(grep " \\*\\{0,1\\}$SUPACODE_ARCHIVE$" "$SUPACODE_STAGING/SHA256SUMS" | cut -d' ' -f1)"
+  supaterm_fetch "$SUPATERM_RELEASE_BASE_URL/v$SUPATERM_ARCHIVE_VERSION/SHA256SUMS" "$SUPATERM_STAGING/SHA256SUMS" @@SUPATERM_ARCHIVE_CHECKSUMS_SECONDS@@
+  supaterm_fetch "$SUPATERM_RELEASE_BASE_URL/v$SUPATERM_ARCHIVE_VERSION/$SUPATERM_ARCHIVE" "$SUPATERM_STAGING/$SUPATERM_ARCHIVE" @@SUPATERM_ARCHIVE_DOWNLOAD_SECONDS@@
+  SUPATERM_EXPECTED="$(grep " \\*\\{0,1\\}$SUPATERM_ARCHIVE$" "$SUPATERM_STAGING/SHA256SUMS" | cut -d' ' -f1)"
   if command -v sha256sum >/dev/null 2>&1; then
-    SUPACODE_ACTUAL="$(sha256sum "$SUPACODE_STAGING/$SUPACODE_ARCHIVE" | cut -d' ' -f1)"
+    SUPATERM_ACTUAL="$(sha256sum "$SUPATERM_STAGING/$SUPATERM_ARCHIVE" | cut -d' ' -f1)"
   else
-    SUPACODE_ACTUAL="$(shasum -a 256 "$SUPACODE_STAGING/$SUPACODE_ARCHIVE" | cut -d' ' -f1)"
+    SUPATERM_ACTUAL="$(shasum -a 256 "$SUPATERM_STAGING/$SUPATERM_ARCHIVE" | cut -d' ' -f1)"
   fi
-  if [ -z "$SUPACODE_EXPECTED" ] || [ "$SUPACODE_ACTUAL" != "$SUPACODE_EXPECTED" ]; then
-    printf 'Checksum mismatch for %s.\\n' "$SUPACODE_ARCHIVE" >&2; exit 1
+  if [ -z "$SUPATERM_EXPECTED" ] || [ "$SUPATERM_ACTUAL" != "$SUPATERM_EXPECTED" ]; then
+    printf 'Checksum mismatch for %s.\\n' "$SUPATERM_ARCHIVE" >&2; exit 1
   fi
-  tar -xzf "$SUPACODE_STAGING/$SUPACODE_ARCHIVE" -C "$SUPACODE_STAGING" --strip-components=1
-  rm -f "$SUPACODE_STAGING/$SUPACODE_ARCHIVE" "$SUPACODE_STAGING/SHA256SUMS"
+  tar -xzf "$SUPATERM_STAGING/$SUPATERM_ARCHIVE" -C "$SUPATERM_STAGING" --strip-components=1
+  rm -f "$SUPATERM_STAGING/$SUPATERM_ARCHIVE" "$SUPATERM_STAGING/SHA256SUMS"
   # Prove the binary runs here (libc, arch) before marking it ready, or every
   # later launch would exec a broken install instead of retrying.
-  if ! "$SUPACODE_STAGING/supacode" --version >/dev/null 2>&1; then
-    printf 'The Supacode %s executable does not run on this host.\\n' "$SUPACODE_ARCHIVE_VERSION" >&2; exit 1
+  if ! "$SUPATERM_STAGING/supaterm" --version >/dev/null 2>&1; then
+    printf 'The Supaterm %s executable does not run on this host.\\n' "$SUPATERM_ARCHIVE_VERSION" >&2; exit 1
   fi
-  printf '%s\\n' "$SUPACODE_ARCHIVE_VERSION" > "$SUPACODE_STAGING/.install-complete"
-  rm -rf "$SUPACODE_RUNTIME_DIR"
-  mv "$SUPACODE_STAGING" "$SUPACODE_RUNTIME_DIR"
+  printf '%s\\n' "$SUPATERM_ARCHIVE_VERSION" > "$SUPATERM_STAGING/.install-complete"
+  rm -rf "$SUPATERM_RUNTIME_DIR"
+  mv "$SUPATERM_STAGING" "$SUPATERM_RUNTIME_DIR"
 fi
-if [ -n "\${SUPACODE_LOCK:-}" ]; then
-  rm -rf "$SUPACODE_LOCK"
+if [ -n "\${SUPATERM_LOCK:-}" ]; then
+  rm -rf "$SUPATERM_LOCK"
   trap - EXIT
 fi
-exec "$SUPACODE_RUNTIME_DIR/supacode" "$@"
+exec "$SUPATERM_RUNTIME_DIR/supaterm" "$@"
 `;
 
 const REMOTE_LAUNCH_SCRIPT = `set -eu
-@@SUPACODE_NODE_ENV_SCRIPT@@
+@@SUPATERM_NODE_ENV_SCRIPT@@
 STATE_KEY="$1"
-STATE_DIR="$HOME/.supacode/ssh-launch/$STATE_KEY"
-DEFAULT_SERVER_HOME="$HOME/.supacode"
+STATE_DIR="$HOME/.supaterm/ssh-launch/$STATE_KEY"
+DEFAULT_SERVER_HOME="$HOME/.supaterm"
 DEFAULT_RUNTIME_FILE="$DEFAULT_SERVER_HOME/userdata/server-runtime.json"
 PORT_FILE="$STATE_DIR/port"
 PID_FILE="$STATE_DIR/pid"
 MANAGED_FILE="$STATE_DIR/managed"
 LOG_FILE="$STATE_DIR/server.log"
-RUNNER_FILE="$STATE_DIR/run-supacode.sh"
-RUNNER_NEXT="$STATE_DIR/run-supacode.next.$$"
+RUNNER_FILE="$STATE_DIR/run-supaterm.sh"
+RUNNER_NEXT="$STATE_DIR/run-supaterm.next.$$"
 mkdir -p "$STATE_DIR"
 cleanup_runner_next() {
   rm -f "$RUNNER_NEXT"
 }
 trap cleanup_runner_next EXIT
 cat >"$RUNNER_NEXT" <<'SH'
-@@SUPACODE_RUNNER_SCRIPT@@
+@@SUPATERM_RUNNER_SCRIPT@@
 SH
 RUNNER_CHANGED=0
 if [ ! -f "$RUNNER_FILE" ] || ! cmp -s "$RUNNER_NEXT" "$RUNNER_FILE"; then
@@ -566,8 +566,8 @@ if [ ! -f "$RUNNER_FILE" ] || ! cmp -s "$RUNNER_NEXT" "$RUNNER_FILE"; then
 fi
 mv "$RUNNER_NEXT" "$RUNNER_FILE"
 chmod 700 "$RUNNER_FILE"
-SUPACODE_ARCHIVE_MODE=@@SUPACODE_ARCHIVE_MODE@@
-if [ "$SUPACODE_ARCHIVE_MODE" = "1" ]; then
+SUPATERM_ARCHIVE_MODE=@@SUPATERM_ARCHIVE_MODE@@
+if [ "$SUPATERM_ARCHIVE_MODE" = "1" ]; then
   # The archive ships the helpers below inside the executable; the remote
   # needs no Node at all. Resolving the runner once here also downloads the
   # archive before the port and readiness probes rely on it.
@@ -577,21 +577,21 @@ elif ! ensure_remote_node_path; then
   exit 1
 fi
 pick_port() {
-  if [ "$SUPACODE_ARCHIVE_MODE" = "1" ]; then
-    "$RUNNER_FILE" __ssh-helper pick-port "$PORT_FILE" "@@SUPACODE_DEFAULT_REMOTE_PORT@@" "@@SUPACODE_REMOTE_PORT_SCAN_WINDOW@@"
+  if [ "$SUPATERM_ARCHIVE_MODE" = "1" ]; then
+    "$RUNNER_FILE" __ssh-helper pick-port "$PORT_FILE" "@@SUPATERM_DEFAULT_REMOTE_PORT@@" "@@SUPATERM_REMOTE_PORT_SCAN_WINDOW@@"
     return
   fi
-  node - "$PORT_FILE" "@@SUPACODE_DEFAULT_REMOTE_PORT@@" "@@SUPACODE_REMOTE_PORT_SCAN_WINDOW@@" <<'NODE'
-@@SUPACODE_PICK_PORT_SCRIPT@@
+  node - "$PORT_FILE" "@@SUPATERM_DEFAULT_REMOTE_PORT@@" "@@SUPATERM_REMOTE_PORT_SCAN_WINDOW@@" <<'NODE'
+@@SUPATERM_PICK_PORT_SCRIPT@@
 NODE
 }
 wait_ready() {
-  if [ "$SUPACODE_ARCHIVE_MODE" = "1" ]; then
-    "$RUNNER_FILE" __ssh-helper wait-ready "$REMOTE_PORT" "$1" "@@SUPACODE_READY_PROBE_TIMEOUT_MS@@"
+  if [ "$SUPATERM_ARCHIVE_MODE" = "1" ]; then
+    "$RUNNER_FILE" __ssh-helper wait-ready "$REMOTE_PORT" "$1" "@@SUPATERM_READY_PROBE_TIMEOUT_MS@@"
     return
   fi
-  node - "$REMOTE_PORT" "$1" "@@SUPACODE_READY_PROBE_TIMEOUT_MS@@" <<'NODE'
-@@SUPACODE_WAIT_READY_SCRIPT@@
+  node - "$REMOTE_PORT" "$1" "@@SUPATERM_READY_PROBE_TIMEOUT_MS@@" <<'NODE'
+@@SUPATERM_WAIT_READY_SCRIPT@@
 NODE
 }
 wait_for_pid_exit() {
@@ -603,7 +603,7 @@ wait_for_pid_exit() {
   done
 }
 resolve_default_runtime_port() {
-  if [ "$SUPACODE_ARCHIVE_MODE" = "1" ]; then
+  if [ "$SUPATERM_ARCHIVE_MODE" = "1" ]; then
     "$RUNNER_FILE" __ssh-helper runtime-port "$DEFAULT_RUNTIME_FILE"
     return
   fi
@@ -640,7 +640,7 @@ if [ -n "$DEFAULT_RUNTIME_INFO" ]; then
 fi
 if [ -n "$DEFAULT_REMOTE_PORT" ]; then
   REMOTE_PORT="$DEFAULT_REMOTE_PORT"
-  if wait_ready "@@SUPACODE_REUSE_READY_TIMEOUT_MS@@"; then
+  if wait_ready "@@SUPATERM_REUSE_READY_TIMEOUT_MS@@"; then
     if [ "$REMOTE_MANAGED" = "managed" ]; then
       PID_TO_STOP="\${REMOTE_PID:-$DEFAULT_RUNTIME_PID}"
       if [ -n "$PID_TO_STOP" ] && kill -0 "$PID_TO_STOP" 2>/dev/null; then
@@ -666,7 +666,7 @@ if [ -n "$DEFAULT_REMOTE_PORT" ]; then
   fi
 fi
 if [ "$REMOTE_MANAGED" = "external" ]; then
-  if [ -z "$REMOTE_PORT" ] || ! wait_ready "@@SUPACODE_REUSE_READY_TIMEOUT_MS@@"; then
+  if [ -z "$REMOTE_PORT" ] || ! wait_ready "@@SUPATERM_REUSE_READY_TIMEOUT_MS@@"; then
     REMOTE_PID=""
     REMOTE_PORT=""
     REMOTE_MANAGED=""
@@ -678,7 +678,7 @@ elif [ -n "$REMOTE_PID" ] && [ -n "$REMOTE_PORT" ] && kill -0 "$REMOTE_PID" 2>/d
     REMOTE_PID=""
     REMOTE_PORT=""
     REMOTE_MANAGED=""
-  elif ! wait_ready "@@SUPACODE_REUSE_READY_TIMEOUT_MS@@"; then
+  elif ! wait_ready "@@SUPATERM_REUSE_READY_TIMEOUT_MS@@"; then
     kill "$REMOTE_PID" 2>/dev/null || true
     wait_for_pid_exit "$REMOTE_PID"
     REMOTE_PID=""
@@ -693,20 +693,20 @@ fi
 if [ -z "$REMOTE_PORT" ]; then
   REMOTE_PORT="$(pick_port)" || true
   if [ -z "$REMOTE_PORT" ]; then
-    if [ "$SUPACODE_ARCHIVE_MODE" = "1" ]; then
+    if [ "$SUPATERM_ARCHIVE_MODE" = "1" ]; then
       printf 'Failed to find an available port on the remote host.\\n' >&2
     else
       printf 'Failed to find an available port on the remote host. Ensure node is available on PATH.\\n' >&2
     fi
     exit 1
   fi
-  nohup env SUPACODE_NO_BROWSER=1 "$RUNNER_FILE" serve --host 127.0.0.1 --port "$REMOTE_PORT" --base-dir "$DEFAULT_SERVER_HOME" >>"$LOG_FILE" 2>&1 < /dev/null &
+  nohup env SUPATERM_NO_BROWSER=1 "$RUNNER_FILE" serve --host 127.0.0.1 --port "$REMOTE_PORT" --base-dir "$DEFAULT_SERVER_HOME" >>"$LOG_FILE" 2>&1 < /dev/null &
   REMOTE_PID="$!"
   printf '%s\\n' "$REMOTE_PID" >"$PID_FILE"
   printf '%s\\n' "$REMOTE_PORT" >"$PORT_FILE"
   printf 'managed\\n' >"$MANAGED_FILE"
-  if ! wait_ready "@@SUPACODE_READY_TIMEOUT_MS@@"; then
-    printf 'Remote Supacode server did not become ready on 127.0.0.1:%s.\\n' "$REMOTE_PORT" >&2
+  if ! wait_ready "@@SUPATERM_READY_TIMEOUT_MS@@"; then
+    printf 'Remote Supaterm server did not become ready on 127.0.0.1:%s.\\n' "$REMOTE_PORT" >&2
     if [ -s "$LOG_FILE" ]; then
       tail -n 80 "$LOG_FILE" >&2 2>/dev/null || true
     else
@@ -722,12 +722,12 @@ printf '{"remotePort":%s,"serverKind":"%s"}\\n' "$REMOTE_PORT" "\${REMOTE_MANAGE
 `;
 
 const REMOTE_PAIRING_SCRIPT = `set -eu
-STATE_DIR="$HOME/.supacode/ssh-launch/@@SUPACODE_STATE_KEY@@"
-DEFAULT_SERVER_HOME="$HOME/.supacode"
-RUNNER_FILE="$STATE_DIR/run-supacode.sh"
+STATE_DIR="$HOME/.supaterm/ssh-launch/@@SUPATERM_STATE_KEY@@"
+DEFAULT_SERVER_HOME="$HOME/.supaterm"
+RUNNER_FILE="$STATE_DIR/run-supaterm.sh"
 mkdir -p "$STATE_DIR"
 cat >"$RUNNER_FILE" <<'SH'
-@@SUPACODE_RUNNER_SCRIPT@@
+@@SUPATERM_RUNNER_SCRIPT@@
 SH
 chmod 700 "$RUNNER_FILE"
 PAIRING_BASE_DIR="$DEFAULT_SERVER_HOME"
@@ -735,7 +735,7 @@ PAIRING_BASE_DIR="$DEFAULT_SERVER_HOME"
 `;
 
 const REMOTE_STOP_SCRIPT = `set -eu
-STATE_DIR="$HOME/.supacode/ssh-launch/@@SUPACODE_STATE_KEY@@"
+STATE_DIR="$HOME/.supaterm/ssh-launch/@@SUPATERM_STATE_KEY@@"
 PID_FILE="$STATE_DIR/pid"
 PORT_FILE="$STATE_DIR/port"
 MANAGED_FILE="$STATE_DIR/managed"
@@ -749,7 +749,7 @@ if [ "$REMOTE_MANAGED" != "external" ] && [ -n "$REMOTE_PID" ] && kill -0 "$REMO
     sleep 0.1
   done
   if kill -0 "$REMOTE_PID" 2>/dev/null; then
-    printf 'Remote Supacode server with PID %s did not stop within 2 seconds. Its ownership files were kept.\\n' "$REMOTE_PID" >&2
+    printf 'Remote Supaterm server with PID %s did not stop within 2 seconds. Its ownership files were kept.\\n' "$REMOTE_PID" >&2
     exit 1
   fi
 fi
@@ -758,7 +758,7 @@ printf '{"stopped":true}\\n'
 `;
 
 const REMOTE_LOG_TAIL_SCRIPT = `set -eu
-STATE_DIR="$HOME/.supacode/ssh-launch/@@SUPACODE_STATE_KEY@@"
+STATE_DIR="$HOME/.supaterm/ssh-launch/@@SUPATERM_STATE_KEY@@"
 LOG_FILE="$STATE_DIR/server.log"
 if [ -f "$LOG_FILE" ]; then
   tail -n 80 "$LOG_FILE" 2>/dev/null || true
@@ -770,7 +770,7 @@ export class SshInvalidArchiveVersionError extends Schema.TaggedError<SshInvalid
   { archiveVersion: Schema.String },
 ) {
   override get message(): string {
-    return `'${this.archiveVersion}' is not an exact Supacode version and cannot name a runtime directory.`;
+    return `'${this.archiveVersion}' is not an exact Supaterm version and cannot name a runtime directory.`;
   }
 }
 
@@ -785,11 +785,11 @@ export class SshMissingRunnerError extends Schema.TaggedError<SshMissingRunnerEr
   {},
 ) {
   override get message(): string {
-    return "A remote Supacode runner needs an archive version or a node script path.";
+    return "A remote Supaterm runner needs an archive version or a node script path.";
   }
 }
 
-export function buildRemoteSupacodeRunnerScript(input?: RemoteSupacodeRunnerOptions): string {
+export function buildRemoteSupatermRunnerScript(input?: RemoteSupatermRunnerOptions): string {
   const nodeScriptPath = input?.nodeScriptPath?.trim() || "";
   const archiveVersion = input?.archiveVersion?.trim() || "";
   if (nodeScriptPath === "" && archiveVersion === "") {
@@ -805,60 +805,60 @@ export function buildRemoteSupacodeRunnerScript(input?: RemoteSupacodeRunnerOpti
   );
   return stripTrailingNewlines(
     applyScriptPlaceholders(REMOTE_RUNNER_SCRIPT, {
-      SUPACODE_NODE_SCRIPT_PATH: shellSingleQuote(nodeScriptPath),
-      SUPACODE_ARCHIVE_VERSION: shellSingleQuote(archiveVersion),
-      SUPACODE_RELEASE_BASE_URL: shellSingleQuote(releaseBaseUrl),
-      SUPACODE_ARCHIVE_LOCK_WAIT_SECONDS: String(REMOTE_ARCHIVE_LOCK_WAIT_SECONDS),
-      SUPACODE_ARCHIVE_DOWNLOAD_SECONDS: String(REMOTE_ARCHIVE_DOWNLOAD_SECONDS),
-      SUPACODE_ARCHIVE_CHECKSUMS_SECONDS: String(REMOTE_ARCHIVE_CHECKSUMS_SECONDS),
-      SUPACODE_NODE_ENV_SCRIPT: buildRemoteNodeEnvScript(input),
+      SUPATERM_NODE_SCRIPT_PATH: shellSingleQuote(nodeScriptPath),
+      SUPATERM_ARCHIVE_VERSION: shellSingleQuote(archiveVersion),
+      SUPATERM_RELEASE_BASE_URL: shellSingleQuote(releaseBaseUrl),
+      SUPATERM_ARCHIVE_LOCK_WAIT_SECONDS: String(REMOTE_ARCHIVE_LOCK_WAIT_SECONDS),
+      SUPATERM_ARCHIVE_DOWNLOAD_SECONDS: String(REMOTE_ARCHIVE_DOWNLOAD_SECONDS),
+      SUPATERM_ARCHIVE_CHECKSUMS_SECONDS: String(REMOTE_ARCHIVE_CHECKSUMS_SECONDS),
+      SUPATERM_NODE_ENV_SCRIPT: buildRemoteNodeEnvScript(input),
     }),
   );
 }
 
-export function buildRemoteNodeEnvScript(input?: RemoteSupacodeRunnerOptions): string {
+export function buildRemoteNodeEnvScript(input?: RemoteSupatermRunnerOptions): string {
   return stripTrailingNewlines(
     applyScriptPlaceholders(REMOTE_NODE_ENV_SCRIPT, {
-      SUPACODE_NODE_ENGINE_RANGE: shellSingleQuote(input?.nodeEngineRange?.trim() || ""),
-      SUPACODE_NODE_ENGINE_CHECK_SCRIPT: stripTrailingNewlines(buildRemoteNodeEngineCheckScript()),
+      SUPATERM_NODE_ENGINE_RANGE: shellSingleQuote(input?.nodeEngineRange?.trim() || ""),
+      SUPATERM_NODE_ENGINE_CHECK_SCRIPT: stripTrailingNewlines(buildRemoteNodeEngineCheckScript()),
     }),
   );
 }
 
-export function buildRemoteLaunchScript(input?: RemoteSupacodeRunnerOptions): string {
+export function buildRemoteLaunchScript(input?: RemoteSupatermRunnerOptions): string {
   return applyScriptPlaceholders(REMOTE_LAUNCH_SCRIPT, {
-    SUPACODE_ARCHIVE_MODE: isNodeScriptRunner(input) ? "0" : "1",
-    SUPACODE_NODE_ENV_SCRIPT: buildRemoteNodeEnvScript(input),
-    SUPACODE_RUNNER_SCRIPT: stripTrailingNewlines(buildRemoteSupacodeRunnerScript(input)),
-    SUPACODE_PICK_PORT_SCRIPT: stripTrailingNewlines(REMOTE_PICK_PORT_SCRIPT),
-    SUPACODE_WAIT_READY_SCRIPT: stripTrailingNewlines(REMOTE_WAIT_READY_SCRIPT),
-    SUPACODE_DEFAULT_REMOTE_PORT: String(DEFAULT_REMOTE_PORT),
-    SUPACODE_REMOTE_PORT_SCAN_WINDOW: String(REMOTE_PORT_SCAN_WINDOW),
-    SUPACODE_READY_TIMEOUT_MS: String(REMOTE_READY_TIMEOUT_MS),
-    SUPACODE_REUSE_READY_TIMEOUT_MS: String(REMOTE_REUSE_READY_TIMEOUT_MS),
-    SUPACODE_READY_PROBE_TIMEOUT_MS: String(SSH_READY_PROBE_TIMEOUT_MS),
+    SUPATERM_ARCHIVE_MODE: isNodeScriptRunner(input) ? "0" : "1",
+    SUPATERM_NODE_ENV_SCRIPT: buildRemoteNodeEnvScript(input),
+    SUPATERM_RUNNER_SCRIPT: stripTrailingNewlines(buildRemoteSupatermRunnerScript(input)),
+    SUPATERM_PICK_PORT_SCRIPT: stripTrailingNewlines(REMOTE_PICK_PORT_SCRIPT),
+    SUPATERM_WAIT_READY_SCRIPT: stripTrailingNewlines(REMOTE_WAIT_READY_SCRIPT),
+    SUPATERM_DEFAULT_REMOTE_PORT: String(DEFAULT_REMOTE_PORT),
+    SUPATERM_REMOTE_PORT_SCAN_WINDOW: String(REMOTE_PORT_SCAN_WINDOW),
+    SUPATERM_READY_TIMEOUT_MS: String(REMOTE_READY_TIMEOUT_MS),
+    SUPATERM_REUSE_READY_TIMEOUT_MS: String(REMOTE_REUSE_READY_TIMEOUT_MS),
+    SUPATERM_READY_PROBE_TIMEOUT_MS: String(SSH_READY_PROBE_TIMEOUT_MS),
   });
 }
 
 export function buildRemotePairingScript(
   stateKey: string,
-  input?: RemoteSupacodeRunnerOptions,
+  input?: RemoteSupatermRunnerOptions,
 ): string {
   return applyScriptPlaceholders(REMOTE_PAIRING_SCRIPT, {
-    SUPACODE_STATE_KEY: stateKey,
-    SUPACODE_RUNNER_SCRIPT: stripTrailingNewlines(buildRemoteSupacodeRunnerScript(input)),
+    SUPATERM_STATE_KEY: stateKey,
+    SUPATERM_RUNNER_SCRIPT: stripTrailingNewlines(buildRemoteSupatermRunnerScript(input)),
   });
 }
 
 export function buildRemoteStopScript(stateKey: string): string {
   return applyScriptPlaceholders(REMOTE_STOP_SCRIPT, {
-    SUPACODE_STATE_KEY: stateKey,
+    SUPATERM_STATE_KEY: stateKey,
   });
 }
 
 function buildRemoteLogTailScript(stateKey: string): string {
   return applyScriptPlaceholders(REMOTE_LOG_TAIL_SCRIPT, {
-    SUPACODE_STATE_KEY: stateKey,
+    SUPATERM_STATE_KEY: stateKey,
   });
 }
 
@@ -866,7 +866,7 @@ export const launchOrReuseRemoteServer = Effect.fn("ssh/tunnel.launchOrReuseRemo
   function* (
     target: DesktopSshEnvironmentTarget,
     input?: SshAuth.SshAuthOptions,
-    runner?: RemoteSupacodeRunnerOptions,
+    runner?: RemoteSupatermRunnerOptions,
   ): Effect.fn.Return<
     { readonly remotePort: number; readonly remoteServerKind: "external" | "managed" | null },
     SshCommandError | SshInvalidTargetError | SshLaunchError,
@@ -926,7 +926,7 @@ export const launchOrReuseRemoteServer = Effect.fn("ssh/tunnel.launchOrReuseRemo
 export const issueRemotePairingToken = Effect.fn("ssh/tunnel.issueRemotePairingToken")(function* (
   target: DesktopSshEnvironmentTarget,
   input?: SshAuth.SshAuthOptions,
-  runner?: RemoteSupacodeRunnerOptions,
+  runner?: RemoteSupatermRunnerOptions,
 ): Effect.fn.Return<
   {
     readonly credential: string;
@@ -1493,7 +1493,7 @@ const makeSshEnvironmentManager = Effect.fn("ssh/tunnel.SshEnvironmentManager.ma
   const createTunnelEntry = Effect.fn("ssh/tunnel.ensureTunnelEntry.create")(function* (input: {
     readonly key: string;
     readonly resolvedTarget: DesktopSshEnvironmentTarget;
-    readonly runner?: RemoteSupacodeRunnerOptions;
+    readonly runner?: RemoteSupatermRunnerOptions;
   }): Effect.fn.Return<SshTunnelEntry, SshEnvironmentEffectError, SshEnvironmentEffectContext> {
     yield* Effect.logDebug("ssh.environment.tunnel.create.start", {
       ...sshTargetLogFields(input.resolvedTarget),
@@ -1609,7 +1609,7 @@ const makeSshEnvironmentManager = Effect.fn("ssh/tunnel.SshEnvironmentManager.ma
   const ensureTunnelEntry = Effect.fn("ssh/tunnel.ensureTunnelEntry")(function* (
     key: string,
     resolvedTarget: DesktopSshEnvironmentTarget,
-    runner?: RemoteSupacodeRunnerOptions,
+    runner?: RemoteSupatermRunnerOptions,
   ): Effect.fn.Return<SshTunnelEntry, SshEnvironmentEffectError, SshEnvironmentEffectContext> {
     const entry = tunnels.get(key) ?? null;
 
@@ -1771,7 +1771,7 @@ const makeSshEnvironmentManager = Effect.fn("ssh/tunnel.SshEnvironmentManager.ma
 export class SshEnvironmentManager extends Context.Service<
   SshEnvironmentManager,
   SshEnvironmentManagerShape
->()("@supacode/ssh/tunnel/SshEnvironmentManager") {
+>()("@supaterm/ssh/tunnel/SshEnvironmentManager") {
   static readonly layer = (options: SshEnvironmentManagerOptions = {}) =>
     Layer.effect(SshEnvironmentManager, makeSshEnvironmentManager(options));
 }

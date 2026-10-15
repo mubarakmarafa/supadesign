@@ -1,5 +1,5 @@
 import { assert, it } from "@effect/vitest";
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 

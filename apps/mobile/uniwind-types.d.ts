@@ -3,7 +3,7 @@
 
 declare module 'uniwind' {
     export interface UniwindConfig {
-        themes: readonly ['light', 'dark', 'supacode-chat-light', 'supacode-chat-dark', 'grove-light', 'grove-dark', 'ocean-light', 'ocean-dark', 'ember-light', 'ember-dark', 'iris-light', 'iris-dark', 'zenbones-light', 'zenbones-dark']
+        themes: readonly ['light', 'dark', 'supaterm-chat-light', 'supaterm-chat-dark', 'grove-light', 'grove-dark', 'ocean-light', 'ocean-dark', 'ember-light', 'ember-dark', 'iris-light', 'iris-dark', 'zenbones-light', 'zenbones-dark']
     }
 }
 

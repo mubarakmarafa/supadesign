@@ -1,5 +1,5 @@
 import type { FileDiffMetadata } from "@pierre/diffs";
-import type { EnvironmentId, PullRequestRef } from "@supacode/contracts";
+import type { EnvironmentId, PullRequestRef } from "@supaterm/contracts";
 import { useState } from "react";
 
 import { getRenderablePatch, resolveFileDiffPath } from "~/lib/diffRendering";

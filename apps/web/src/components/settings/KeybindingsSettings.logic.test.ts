@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { ResolvedKeybindingsConfig } from "@supacode/contracts";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import type { ResolvedKeybindingsConfig } from "@supaterm/contracts";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 
 import {
   buildKeybindingRows,

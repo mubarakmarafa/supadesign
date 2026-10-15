@@ -1,8 +1,8 @@
-import { formatProviderSkillDisplayName } from "@supacode/shared/inlineSkills";
+import { formatProviderSkillDisplayName } from "@supaterm/shared/inlineSkills";
 import {
   resolveProviderSkillSourceKind,
   type ProviderSkillSourceKind,
-} from "@supacode/client-runtime/providerSkills";
+} from "@supaterm/client-runtime/providerSkills";
 import {
   type ProjectEntry,
   type ProviderDriverKind,
@@ -10,7 +10,7 @@ import {
   type ScopedThreadRef,
   type ServerProviderSkill,
   type ServerProviderSlashCommand,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   BlocksIcon,
   FolderIcon,
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { memo, useLayoutEffect, useRef } from "react";
 
-import type { ComposerSlashCommand, ComposerTriggerKind } from "@supacode/shared/composerTrigger";
+import type { ComposerSlashCommand, ComposerTriggerKind } from "@supaterm/shared/composerTrigger";
 import { cn } from "~/lib/utils";
 import { Badge } from "../ui/badge";
 import { Command, CommandGroup, CommandItem, CommandList } from "../ui/command";

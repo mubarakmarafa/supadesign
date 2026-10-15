@@ -1,7 +1,7 @@
 import { assert, it } from "@effect/vitest";
 
-import { ProviderInstanceId } from "@supacode/contracts";
-import { createModelSelection } from "@supacode/shared/model";
+import { ProviderInstanceId } from "@supaterm/contracts";
+import { createModelSelection } from "@supaterm/shared/model";
 
 import { getCodexServiceTierOptionValue } from "./codexModelOptions.ts";
 

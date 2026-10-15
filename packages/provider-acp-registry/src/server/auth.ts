@@ -2,7 +2,7 @@ import {
   ProviderSetupError,
   type ProviderAuthMethod,
   type ProviderInstanceId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { AcpRegistrySettings } from "../settings.ts";
 import * as Crypto from "effect/Crypto";
 import * as Deferred from "effect/Deferred";
@@ -15,12 +15,12 @@ import * as Scope from "effect/Scope";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import type * as AcpSchema from "effect-acp/compat";
 
-import * as PtyAdapter from "@supacode/shared/PtyAdapter";
-import * as ProviderAuthFlow from "@supacode/provider-core/server/providerAuthFlow";
+import * as PtyAdapter from "@supaterm/shared/PtyAdapter";
+import * as ProviderAuthFlow from "@supaterm/provider-core/server/providerAuthFlow";
 import { normalizeAcpRegistryAuthMethods, normalizeAcpRegistryWebUrl } from "./probe.ts";
 import * as AcpRegistrySupport from "./AcpRegistrySupport.ts";
 import * as AcpRegistryRuntimeCoordinator from "./AcpRegistryRuntimeCoordinator.ts";
-import * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
+import * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
 
 type Runtime = Pick<
   AcpSessionRuntime.AcpSessionRuntime["Service"],
@@ -71,7 +71,7 @@ export const makeAcpRegistryAuth = Effect.fn("makeAcpRegistryAuth")(function* (o
               fs: { readTextFile: false, writeTextFile: false },
               terminal: false,
             },
-            clientInfo: { name: "supacode-provider-auth", version: "0.0.0" },
+            clientInfo: { name: "supaterm-provider-auth", version: "0.0.0" },
           }).pipe(
             Layer.provide(
               Layer.mergeAll(

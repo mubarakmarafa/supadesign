@@ -1,5 +1,5 @@
 import { assert, expect, it } from "vite-plus/test";
-import { DEFAULT_CLIENT_SETTINGS, type DesktopSnapShotState } from "@supacode/contracts";
+import { DEFAULT_CLIENT_SETTINGS, type DesktopSnapShotState } from "@supaterm/contracts";
 
 import {
   createRecordingRequestTracker,
@@ -315,7 +315,7 @@ it("hides macOS setup only while permissions and the shortcut are all in place",
   const revoked = {
     ...ready,
     macPermissions: { screenRecording: true, accessibility: false },
-    message: "Allow Accessibility in System Settings, then restart Supacode.",
+    message: "Allow Accessibility in System Settings, then restart Supaterm.",
   };
   expect(snapShotSetupComplete(revoked, true)).toBe(false);
   expect(snapShotStatus(revoked, true)).toBe("Capture needs attention");

@@ -2,7 +2,7 @@
 import { act, useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { VoiceInputState } from "@supacode/client-runtime/voice-input";
+import type { VoiceInputState } from "@supaterm/client-runtime/voice-input";
 import { resetVoiceInputGlobalsForTests } from "../../../../../packages/client-runtime/src/voice-input/controller";
 
 import { VoiceInputSession } from "./voiceInputSession";

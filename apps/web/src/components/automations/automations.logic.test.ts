@@ -6,7 +6,7 @@ import {
   ProviderInstanceId,
   ScheduledTaskId,
   type ScheduledTask,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import type {
@@ -38,7 +38,7 @@ function member(id: string, environmentId: EnvironmentId): SidebarProjectGroupMe
   return {
     id: ProjectId.make(id),
     environmentId,
-    title: "supacode",
+    title: "supaterm",
     workspaceRoot: `/repos/${id}`,
     physicalProjectKey: `${environmentId}:/repos/${id}`,
     environmentLabel:
@@ -81,7 +81,7 @@ function group(
 // shares an ID with a laptop checkout in the selected group.
 const sameIdElsewhere = member("first", serverId);
 const groups = [
-  group("supacode", [first, second, third]),
+  group("supaterm", [first, second, third]),
   group("other", [other, sameIdElsewhere]),
 ];
 const tasks = [first, second, third, other, sameIdElsewhere].map((project, index) => ({
@@ -99,18 +99,18 @@ function matchingTaskIds(search: SettingsScopeSearch) {
 
 describe("automations scope", () => {
   it("matches every checkout of a grouped project across environments", () => {
-    expect(matchingTaskIds({ project: "supacode" })).toEqual(["task-0", "task-1", "task-2"]);
+    expect(matchingTaskIds({ project: "supaterm" })).toEqual(["task-0", "task-1", "task-2"]);
   });
 
   it("does not match an unrelated environment's project that shares an ID", () => {
-    const scope = resolveSettingsScope({ project: "supacode" }, groups, environments);
+    const scope = resolveSettingsScope({ project: "supaterm" }, groups, environments);
     expect(matchesAutomationScope(scope, laptopId, first.id)).toBe(true);
     expect(matchesAutomationScope(scope, serverId, sameIdElsewhere.id)).toBe(false);
   });
 
   it("narrows to one environment, alone or within a project", () => {
     expect(matchingTaskIds({ machine: serverId })).toEqual(["task-2", "task-3", "task-4"]);
-    expect(matchingTaskIds({ project: "supacode", machine: serverId })).toEqual(["task-2"]);
+    expect(matchingTaskIds({ project: "supaterm", machine: serverId })).toEqual(["task-2"]);
   });
 
   it("matches a stale duplicate record at a checkout's path, on that environment only", () => {
@@ -122,10 +122,10 @@ describe("automations scope", () => {
         { environmentId: laptopId, projectId: stale.id },
       ],
     };
-    const scope = resolveSettingsScope({ project: "supacode" }, [withStale], environments);
+    const scope = resolveSettingsScope({ project: "supaterm" }, [withStale], environments);
     expect(matchesAutomationScope(scope, laptopId, stale.id)).toBe(true);
     const serverScope = resolveSettingsScope(
-      { project: "supacode", machine: serverId },
+      { project: "supaterm", machine: serverId },
       [withStale],
       environments,
     );
@@ -328,14 +328,14 @@ describe("automations search", () => {
   it("keeps the scope separate from the one-shot task link", () => {
     expect(
       validateAutomationsSearch({
-        project: "supacode",
+        project: "supaterm",
         machine: "server",
         checkout: "ignored",
         environmentId: "laptop",
         taskId: "task-1",
       }),
     ).toEqual({
-      project: "supacode",
+      project: "supaterm",
       machine: "server",
       environmentId: laptopId,
       taskId: "task-1",

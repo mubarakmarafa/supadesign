@@ -1,5 +1,5 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
-import { EnvironmentId, ProjectId, type PullRequestDetailView } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import { EnvironmentId, ProjectId, type PullRequestDetailView } from "@supaterm/contracts";
 import { act, type ReactNode } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";

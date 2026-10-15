@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 import { act } from "react";

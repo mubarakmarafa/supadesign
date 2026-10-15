@@ -3,7 +3,7 @@ import {
   type RelayHostStatus,
   type RelayConnectionInfo,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { expect, it } from "@effect/vitest";
 import { beforeEach, vi } from "vite-plus/test";
 import * as Effect from "effect/Effect";

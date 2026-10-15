@@ -1,10 +1,10 @@
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import type { VcsRef } from "@supacode/client-runtime/state/vcs";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import type { VcsRef } from "@supaterm/client-runtime/state/vcs";
 import {
   type AtomCommandResult,
   mapAtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
-import type { VcsSwitchRefInput, VcsSwitchRefResult } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import type { VcsSwitchRefInput, VcsSwitchRefResult } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 

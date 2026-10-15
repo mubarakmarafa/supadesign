@@ -1,6 +1,6 @@
 import {
-  SUPACODE_LIGHT_THEME_COLORS,
-  SUPACODE_DARK_THEME_COLORS,
+  SUPATERM_LIGHT_THEME_COLORS,
+  SUPATERM_DARK_THEME_COLORS,
   type ThemeAppearance,
 } from "./themePalettes.ts";
 
@@ -10,18 +10,18 @@ export type ThemePreviewColors = Readonly<{
   messageAction: string;
 }>;
 
-/** The standard Supacode artwork is not a built-in theme, so its preview colors live here. */
+/** The standard Supaterm artwork is not a built-in theme, so its preview colors live here. */
 export const STANDARD_THEME_PREVIEW_COLORS: Readonly<Record<ThemeAppearance, ThemePreviewColors>> =
   {
     light: {
-      canvas: SUPACODE_LIGHT_THEME_COLORS.canvas,
-      accent: SUPACODE_LIGHT_THEME_COLORS.accent,
-      messageAction: SUPACODE_LIGHT_THEME_COLORS.messageAction,
+      canvas: SUPATERM_LIGHT_THEME_COLORS.canvas,
+      accent: SUPATERM_LIGHT_THEME_COLORS.accent,
+      messageAction: SUPATERM_LIGHT_THEME_COLORS.messageAction,
     },
     dark: {
-      canvas: SUPACODE_DARK_THEME_COLORS.canvas,
-      accent: SUPACODE_DARK_THEME_COLORS.accent,
-      messageAction: SUPACODE_DARK_THEME_COLORS.messageAction,
+      canvas: SUPATERM_DARK_THEME_COLORS.canvas,
+      accent: SUPATERM_DARK_THEME_COLORS.accent,
+      messageAction: SUPATERM_DARK_THEME_COLORS.messageAction,
     },
   };
 

@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -9,9 +9,9 @@ import * as Schema from "effect/Schema";
 import type { SavedRemoteConnection } from "../lib/connection";
 import * as MobileSecureStorage from "./mobile-secure-storage";
 
-const CONNECTIONS_KEY = "supacode.connections";
-const DEVICE_ID_KEY = "supacode.agent-awareness.device-id";
-const RECENT_THREAD_SHORTCUTS_KEY = "supacode.recent-thread-shortcuts";
+const CONNECTIONS_KEY = "supaterm.connections";
+const DEVICE_ID_KEY = "supaterm.agent-awareness.device-id";
+const RECENT_THREAD_SHORTCUTS_KEY = "supaterm.recent-thread-shortcuts";
 
 export class MobileStorageDecodeError extends Schema.TaggedError<MobileStorageDecodeError>()(
   "MobileStorageDecodeError",
@@ -86,7 +86,7 @@ export class MobileStorage extends Context.Service<
       MobileSecureStorage.MobileSecureStorageError | MobileStorageEncodeError
     >;
   }
->()("@supacode/mobile/persistence/MobileStorage") {}
+>()("@supaterm/mobile/persistence/MobileStorage") {}
 
 export const make = Effect.fn("MobileStorage.make")(function* () {
   const secureStorage = yield* MobileSecureStorage.MobileSecureStorage;

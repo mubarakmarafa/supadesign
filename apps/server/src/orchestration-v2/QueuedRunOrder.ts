@@ -1,4 +1,4 @@
-import type { OrchestrationV2Run, OrchestrationV2ThreadProjection } from "@supacode/contracts";
+import type { OrchestrationV2Run, OrchestrationV2ThreadProjection } from "@supaterm/contracts";
 
 export function isAutomaticCompletionRun(
   projection: Pick<OrchestrationV2ThreadProjection, "runs" | "messages">,

@@ -2,8 +2,8 @@ import {
   AuthOrchestrationOperateScope,
   EnvironmentAuthorizationError,
   EnvironmentId,
-} from "@supacode/contracts";
-import { runAttachmentUploadCycle } from "@supacode/client-runtime/state/attachments";
+} from "@supaterm/contracts";
+import { runAttachmentUploadCycle } from "@supaterm/client-runtime/state/attachments";
 import * as Cause from "effect/Cause";
 import { AsyncResult, AtomRegistry } from "effect/reactivity";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -18,8 +18,8 @@ vi.mock("./session", () => ({
   readEnvironmentScope: (environmentId: string, scope: string) =>
     scope === AuthOrchestrationOperateScope && state.grantedEnvironments.has(environmentId),
 }));
-vi.mock("@supacode/client-runtime/state/attachments", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@supacode/client-runtime/state/attachments")>()),
+vi.mock("@supaterm/client-runtime/state/attachments", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@supaterm/client-runtime/state/attachments")>()),
   createAttachmentEnvironmentAtoms: () => ({
     createUploadUrl: { label: "create", run: state.create },
     remove: { label: "remove", run: state.remove },

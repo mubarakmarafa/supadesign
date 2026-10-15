@@ -11,8 +11,8 @@ import {
   parseScopedThreadKey,
   scopedThreadKey,
   scopeThreadRef,
-} from "@supacode/client-runtime/environment";
-import { EnvironmentId, ThreadId, type ScopedThreadRef } from "@supacode/contracts";
+} from "@supaterm/client-runtime/environment";
+import { EnvironmentId, ThreadId, type ScopedThreadRef } from "@supaterm/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -87,7 +87,7 @@ export type RightPanelSurface =
   /** The thread's linked pull requests, one singleton tab beside any number of `pull-request` tabs. */
   | { id: "pull-requests"; kind: "pull-requests" };
 
-const RIGHT_PANEL_STORAGE_KEY = "supacode:right-panel-state:v2";
+const RIGHT_PANEL_STORAGE_KEY = "supaterm:right-panel-state:v2";
 // v9 removed the "plan" surface kind (plans render inline in the transcript).
 // v10 keys pull-request surfaces by reference instead of a singleton tab.
 // v11 stops persisting the pull-request list's shared panel, so a restart opens the page fresh.

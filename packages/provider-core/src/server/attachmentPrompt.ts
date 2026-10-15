@@ -5,7 +5,7 @@ import {
   PROVIDER_SEND_TURN_MAX_INPUT_CHARS,
   type SnapShotAccessibility,
   type SnapShotAccessibilityNode,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 const encodePromptJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));

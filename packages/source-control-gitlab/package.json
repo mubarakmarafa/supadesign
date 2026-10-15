@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/source-control-gitlab",
+  "name": "@supaterm/source-control-gitlab",
   "private": true,
   "type": "module",
   "exports": {
@@ -45,14 +45,14 @@
     "test": "vp test run --config ../../vite.config.ts --dir ."
   },
   "dependencies": {
-    "@supacode/contracts": "workspace:*",
-    "@supacode/shared": "workspace:*",
-    "@supacode/source-control-core": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/shared": "workspace:*",
+    "@supaterm/source-control-core": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",
-    "@supacode/source-control-testing": "workspace:*",
+    "@supaterm/source-control-testing": "workspace:*",
     "@types/node": "catalog:",
     "vite-plus": "catalog:"
   }

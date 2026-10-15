@@ -1,5 +1,5 @@
-import type { ProviderDriverKind, ProviderOptionDescriptor } from "@supacode/contracts";
-import { getProviderOptionCurrentValue } from "@supacode/shared/model";
+import type { ProviderDriverKind, ProviderOptionDescriptor } from "@supaterm/contracts";
+import { getProviderOptionCurrentValue } from "@supaterm/shared/model";
 import { ZapIcon } from "lucide-react";
 import { UltrafastIcon } from "../Icons";
 import { cn } from "~/lib/utils";

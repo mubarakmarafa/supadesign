@@ -1,7 +1,7 @@
 import * as Electron from "electron";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import * as ElectronApp from "../../electron/ElectronApp.ts";
 import * as DesktopIpc from "../DesktopIpc.ts";

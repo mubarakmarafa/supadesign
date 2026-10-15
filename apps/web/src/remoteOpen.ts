@@ -8,13 +8,13 @@
  * beats server-advertised names; among advertised names the tailnet MagicDNS
  * name beats mDNS `<hostname>.local` (server sends them in that order).
  */
-import type { ConnectionTarget } from "@supacode/client-runtime/connection";
+import type { ConnectionTarget } from "@supaterm/client-runtime/connection";
 import {
   REMOTE_CAPABLE_EDITOR_IDS,
   type EditorId,
   type EnvironmentId,
   type RemoteOpenTarget,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { useEffect, useMemo, useState } from "react";
@@ -193,7 +193,7 @@ export async function openRemoteEditorUrl(url: string): Promise<boolean> {
  * until the first remote open fires (we cannot observe SSH success from here,
  * so first click is the dismiss signal).
  */
-const REMOTE_OPEN_HINT_KEY = "supacode:remote-open-hint-seen";
+const REMOTE_OPEN_HINT_KEY = "supaterm:remote-open-hint-seen";
 
 export function useRemoteOpenHint(): readonly [seen: boolean, markSeen: () => void] {
   const [seen, setSeen] = useLocalStorage(REMOTE_OPEN_HINT_KEY, false, Schema.Boolean);

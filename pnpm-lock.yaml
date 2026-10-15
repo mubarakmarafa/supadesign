@@ -290,7 +290,7 @@ patchedDependencies:
   '@react-native-ai/apple@0.12.0': 2d09870c2848d185cb05b53ed823a46e12dba519324d8dd8e584e28731990f9d
   '@react-native-menu/menu@2.0.0': 66af5ff8c479c63dc356eb96c8721485960ff4303595eaa1783d9f5d8a807b26
   '@react-navigation/native-stack@7.17.6': f49971365dfafc8be30af2b7f836d90ffb4d19b90b400df40e09cfc5b53b40d2
-  dbus-next@0.10.2: 61120c7220152900d0c583a1d12fe33d15507aab21cf9d325e44031c37f06e0f
+  dbus-next@0.10.2: e0cbd739ca5bb2e8d8c359ca6be3a7f6c14479d49e175773c7e44c637ca780ec
   effect@4.0.2: ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688
   expo-audio@58.0.4: c20cb927d6848c53e7bf6ec14fe12f19daae9210165d2dbaf4e0f97ce31e8742
   expo-blur@58.0.3: d0311b0c0b05bd94393bd9a84653cb42503d5f3c8a19eb2627c34ace08bedf18
@@ -348,24 +348,24 @@ importers:
       '@napi-rs/keyring':
         specifier: ^1.3.0
         version: 1.3.0
-      '@supacode/client-runtime':
+      '@supaterm/client-runtime':
         specifier: workspace:*
         version: link:../../packages/client-runtime
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@supacode/ssh':
+      '@supaterm/ssh':
         specifier: workspace:*
         version: link:../../packages/ssh
-      '@supacode/tailscale':
+      '@supaterm/tailscale':
         specifier: workspace:*
         version: link:../../packages/tailscale
       dbus-next:
         specifier: 0.10.2
-        version: 0.10.2(patch_hash=61120c7220152900d0c583a1d12fe33d15507aab21cf9d325e44031c37f06e0f)
+        version: 0.10.2(patch_hash=e0cbd739ca5bb2e8d8c359ca6be3a7f6c14479d49e175773c7e44c637ca780ec)
       effect:
         specifier: 4.0.2
         version: 4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688)
@@ -409,7 +409,7 @@ importers:
 
   apps/marketing:
     dependencies:
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       astro:
@@ -476,49 +476,49 @@ importers:
       '@shikijs/themes':
         specifier: 4.2.0
         version: 4.2.0
-      '@supacode/client-runtime':
+      '@supaterm/client-runtime':
         specifier: workspace:*
         version: link:../../packages/client-runtime
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@supacode/mermaid-ascii':
+      '@supaterm/mermaid-ascii':
         specifier: workspace:*
         version: link:../../packages/mermaid-ascii
-      '@supacode/mobile-relay-tunnel':
-        specifier: file:./modules/supacode-relay-tunnel
-        version: file:apps/mobile/modules/supacode-relay-tunnel(expo@58.0.2)
-      '@supacode/mobile-review-diff-native':
-        specifier: file:./modules/supacode-review-diff
-        version: file:apps/mobile/modules/supacode-review-diff
-      '@supacode/mobile-source-text':
-        specifier: file:./modules/supacode-source-text
-        version: file:apps/mobile/modules/supacode-source-text(@types/react@19.3.0)(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0)
-      '@supacode/mobile-terminal-native':
-        specifier: file:./modules/supacode-terminal
-        version: file:apps/mobile/modules/supacode-terminal
-      '@supacode/provider-acp-registry':
+      '@supaterm/mobile-relay-tunnel':
+        specifier: file:./modules/supaterm-relay-tunnel
+        version: file:apps/mobile/modules/supaterm-relay-tunnel(expo@58.0.2)
+      '@supaterm/mobile-review-diff-native':
+        specifier: file:./modules/supaterm-review-diff
+        version: file:apps/mobile/modules/supaterm-review-diff
+      '@supaterm/mobile-source-text':
+        specifier: file:./modules/supaterm-source-text
+        version: file:apps/mobile/modules/supaterm-source-text(@types/react@19.3.0)(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0)
+      '@supaterm/mobile-terminal-native':
+        specifier: file:./modules/supaterm-terminal
+        version: file:apps/mobile/modules/supaterm-terminal
+      '@supaterm/provider-acp-registry':
         specifier: workspace:*
         version: link:../../packages/provider-acp-registry
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../../packages/provider-core
-      '@supacode/provider-cursor':
+      '@supaterm/provider-cursor':
         specifier: workspace:*
         version: link:../../packages/provider-cursor
-      '@supacode/provider-grok':
+      '@supaterm/provider-grok':
         specifier: workspace:*
         version: link:../../packages/provider-grok
-      '@supacode/provider-muse':
+      '@supaterm/provider-muse':
         specifier: workspace:*
         version: link:../../packages/provider-muse
-      '@supacode/provider-opencode':
+      '@supaterm/provider-opencode':
         specifier: workspace:*
         version: link:../../packages/provider-opencode
-      '@supacode/provider-pi':
+      '@supaterm/provider-pi':
         specifier: workspace:*
         version: link:../../packages/provider-pi
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@tabler/icons-react-native':
@@ -753,49 +753,49 @@ importers:
       '@opencode-ai/sdk':
         specifier: ^1.3.15
         version: 1.15.13
-      '@supacode/provider-acp':
+      '@supaterm/provider-acp':
         specifier: workspace:*
         version: link:../../packages/provider-acp
-      '@supacode/provider-acp-registry':
+      '@supaterm/provider-acp-registry':
         specifier: workspace:*
         version: link:../../packages/provider-acp-registry
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../../packages/provider-core
-      '@supacode/provider-cursor':
+      '@supaterm/provider-cursor':
         specifier: workspace:*
         version: link:../../packages/provider-cursor
-      '@supacode/provider-grok':
+      '@supaterm/provider-grok':
         specifier: workspace:*
         version: link:../../packages/provider-grok
-      '@supacode/provider-muse':
+      '@supaterm/provider-muse':
         specifier: workspace:*
         version: link:../../packages/provider-muse
-      '@supacode/provider-opencode':
+      '@supaterm/provider-opencode':
         specifier: workspace:*
         version: link:../../packages/provider-opencode
-      '@supacode/provider-pi':
+      '@supaterm/provider-pi':
         specifier: workspace:*
         version: link:../../packages/provider-pi
-      '@supacode/source-control-azure-devops':
+      '@supaterm/source-control-azure-devops':
         specifier: workspace:*
         version: link:../../packages/source-control-azure-devops
-      '@supacode/source-control-bitbucket':
+      '@supaterm/source-control-bitbucket':
         specifier: workspace:*
         version: link:../../packages/source-control-bitbucket
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../../packages/source-control-core
-      '@supacode/source-control-forgejo':
+      '@supaterm/source-control-forgejo':
         specifier: workspace:*
         version: link:../../packages/source-control-forgejo
-      '@supacode/source-control-gitcafe':
+      '@supaterm/source-control-gitcafe':
         specifier: workspace:*
         version: link:../../packages/source-control-gitcafe
-      '@supacode/source-control-github':
+      '@supaterm/source-control-github':
         specifier: workspace:*
         version: link:../../packages/source-control-github
-      '@supacode/source-control-gitlab':
+      '@supaterm/source-control-gitlab':
         specifier: workspace:*
         version: link:../../packages/source-control-gitlab
       '@types/proper-lockfile':
@@ -844,25 +844,25 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(supports-color@8.1.1)(zod@4.6.5)
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@supacode/provider-testing':
+      '@supaterm/provider-testing':
         specifier: workspace:*
         version: link:../../packages/provider-testing
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@supacode/source-control-testing':
+      '@supaterm/source-control-testing':
         specifier: workspace:*
         version: link:../../packages/source-control-testing
-      '@supacode/ssh':
+      '@supaterm/ssh':
         specifier: workspace:*
         version: link:../../packages/ssh
-      '@supacode/tailscale':
+      '@supaterm/tailscale':
         specifier: workspace:*
         version: link:../../packages/tailscale
-      '@supacode/web':
+      '@supaterm/web':
         specifier: workspace:*
         version: link:../web
       '@types/node':
@@ -913,37 +913,37 @@ importers:
       '@pierre/trees':
         specifier: 1.0.0-beta.6
         version: 1.0.0-beta.6(@pierre/theme@2.0.0)(@shikijs/themes@4.2.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(shiki@4.2.0)
-      '@supacode/client-runtime':
+      '@supaterm/client-runtime':
         specifier: workspace:*
         version: link:../../packages/client-runtime
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@supacode/mermaid-ascii':
+      '@supaterm/mermaid-ascii':
         specifier: workspace:*
         version: link:../../packages/mermaid-ascii
-      '@supacode/provider-acp-registry':
+      '@supaterm/provider-acp-registry':
         specifier: workspace:*
         version: link:../../packages/provider-acp-registry
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../../packages/provider-core
-      '@supacode/provider-cursor':
+      '@supaterm/provider-cursor':
         specifier: workspace:*
         version: link:../../packages/provider-cursor
-      '@supacode/provider-grok':
+      '@supaterm/provider-grok':
         specifier: workspace:*
         version: link:../../packages/provider-grok
-      '@supacode/provider-muse':
+      '@supaterm/provider-muse':
         specifier: workspace:*
         version: link:../../packages/provider-muse
-      '@supacode/provider-opencode':
+      '@supaterm/provider-opencode':
         specifier: workspace:*
         version: link:../../packages/provider-opencode
-      '@supacode/provider-pi':
+      '@supaterm/provider-pi':
         specifier: workspace:*
         version: link:../../packages/provider-pi
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@tanstack/react-pacer':
@@ -1110,7 +1110,7 @@ importers:
         specifier: 1.0.0
         version: 1.0.0(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
 
-  oxlint-plugin-supacode:
+  oxlint-plugin-supaterm:
     dependencies:
       '@effect/platform-node':
         specifier: 4.0.2
@@ -1134,34 +1134,34 @@ importers:
       '@pierre/diffs':
         specifier: 'catalog:'
         version: 1.5.2(patch_hash=298e94372dbd51846a4e26ece2ecc3e22eb1f94b0450b1f1a9c6fec127809be7)(@shikijs/themes@4.2.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/mermaid-ascii':
+      '@supaterm/mermaid-ascii':
         specifier: workspace:*
         version: link:../mermaid-ascii
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
-      '@supacode/source-control-azure-devops':
+      '@supaterm/source-control-azure-devops':
         specifier: workspace:*
         version: link:../source-control-azure-devops
-      '@supacode/source-control-bitbucket':
+      '@supaterm/source-control-bitbucket':
         specifier: workspace:*
         version: link:../source-control-bitbucket
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../source-control-core
-      '@supacode/source-control-forgejo':
+      '@supaterm/source-control-forgejo':
         specifier: workspace:*
         version: link:../source-control-forgejo
-      '@supacode/source-control-gitcafe':
+      '@supaterm/source-control-gitcafe':
         specifier: workspace:*
         version: link:../source-control-gitcafe
-      '@supacode/source-control-github':
+      '@supaterm/source-control-github':
         specifier: workspace:*
         version: link:../source-control-github
-      '@supacode/source-control-gitlab':
+      '@supaterm/source-control-gitlab':
         specifier: workspace:*
         version: link:../source-control-gitlab
       '@types/three':
@@ -1249,13 +1249,13 @@ importers:
 
   packages/provider-acp:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       diff:
@@ -1286,16 +1286,16 @@ importers:
       '@noble/hashes':
         specifier: 'catalog:'
         version: 1.8.0
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-acp':
+      '@supaterm/provider-acp':
         specifier: workspace:*
         version: link:../provider-acp
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1308,7 +1308,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/provider-testing':
+      '@supaterm/provider-testing':
         specifier: workspace:*
         version: link:../provider-testing
       '@types/node':
@@ -1323,10 +1323,10 @@ importers:
 
   packages/provider-core:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1354,13 +1354,13 @@ importers:
       '@napi-rs/keyring':
         specifier: ^1.3.0
         version: 1.3.0
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1376,7 +1376,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/provider-testing':
+      '@supaterm/provider-testing':
         specifier: workspace:*
         version: link:../provider-testing
       '@types/node':
@@ -1388,16 +1388,16 @@ importers:
 
   packages/provider-grok:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-acp':
+      '@supaterm/provider-acp':
         specifier: workspace:*
         version: link:../provider-acp
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1410,7 +1410,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/provider-testing':
+      '@supaterm/provider-testing':
         specifier: workspace:*
         version: link:../provider-testing
       '@types/node':
@@ -1428,13 +1428,13 @@ importers:
       '@muse-code/sdk':
         specifier: 1.4.6
         version: 1.4.6(@types/node@24.12.4)
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1447,7 +1447,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/provider-testing':
+      '@supaterm/provider-testing':
         specifier: workspace:*
         version: link:../provider-testing
       '@types/node':
@@ -1471,13 +1471,13 @@ importers:
       '@opencode/schema':
         specifier: 2.0.23
         version: 2.0.23(patch_hash=650f1b8602789407c010861284272dcb6bd6de01ec6a75bf3c0904a0e7596d59)
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1490,7 +1490,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/provider-testing':
+      '@supaterm/provider-testing':
         specifier: workspace:*
         version: link:../provider-testing
       '@types/node':
@@ -1502,13 +1502,13 @@ importers:
 
   packages/provider-pi:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1521,7 +1521,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/provider-testing':
+      '@supaterm/provider-testing':
         specifier: workspace:*
         version: link:../provider-testing
       '@types/node':
@@ -1536,13 +1536,13 @@ importers:
       '@effect/platform-node':
         specifier: 4.0.2
         version: 4.0.2(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(redis@6.2.1)(utf-8-validate@6.0.6)
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1570,7 +1570,7 @@ importers:
       '@noble/hashes':
         specifier: 'catalog:'
         version: 1.8.0
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
       effect:
@@ -1628,13 +1628,13 @@ importers:
 
   packages/source-control-azure-devops:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../source-control-core
       diff:
@@ -1650,7 +1650,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/source-control-testing':
+      '@supaterm/source-control-testing':
         specifier: workspace:*
         version: link:../source-control-testing
       '@types/node':
@@ -1662,16 +1662,16 @@ importers:
 
   packages/source-control-bitbucket:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../source-control-core
       effect:
@@ -1690,10 +1690,10 @@ importers:
 
   packages/source-control-core:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1712,16 +1712,16 @@ importers:
 
   packages/source-control-forgejo:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../source-control-core
       effect:
@@ -1731,7 +1731,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/source-control-testing':
+      '@supaterm/source-control-testing':
         specifier: workspace:*
         version: link:../source-control-testing
       '@types/node':
@@ -1743,16 +1743,16 @@ importers:
 
   packages/source-control-gitcafe:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../source-control-core
       effect:
@@ -1762,7 +1762,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/source-control-testing':
+      '@supaterm/source-control-testing':
         specifier: workspace:*
         version: link:../source-control-testing
       '@types/node':
@@ -1774,16 +1774,16 @@ importers:
 
   packages/source-control-github:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/provider-core':
+      '@supaterm/provider-core':
         specifier: workspace:*
         version: link:../provider-core
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../source-control-core
       effect:
@@ -1796,7 +1796,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/source-control-testing':
+      '@supaterm/source-control-testing':
         specifier: workspace:*
         version: link:../source-control-testing
       '@types/node':
@@ -1808,13 +1808,13 @@ importers:
 
   packages/source-control-gitlab:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../source-control-core
       effect:
@@ -1824,7 +1824,7 @@ importers:
       '@effect/vitest':
         specifier: 4.0.2
         version: 4.0.2(patch_hash=595b7d26fb635caba9c3d39fcb189bb78a000192f8d3b60ead7174b310d1ade9)(@types/jsdom@30.0.0)(@types/node@24.12.4)(@vitest/ui@5.0.1)(bufferutil@4.1.0)(effect@4.0.2(patch_hash=ec61ee307eaec3e17f757e0e6a16296ea4b7a8c3188df0c6ec5e66301fd78688))(esbuild@0.28.2)(jiti@2.7.0)(jsdom@30.1.0(@noble/hashes@1.8.0))(msw@2.12.11(@types/node@24.12.4)(typescript@7.0.2))(terser@5.48.0)(typescript@7.0.2)(unrun@0.2.39)(utf-8-validate@6.0.6)(yaml@2.9.0)
-      '@supacode/source-control-testing':
+      '@supaterm/source-control-testing':
         specifier: workspace:*
         version: link:../source-control-testing
       '@types/node':
@@ -1836,13 +1836,13 @@ importers:
 
   packages/source-control-testing:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
-      '@supacode/source-control-core':
+      '@supaterm/source-control-core':
         specifier: workspace:*
         version: link:../source-control-core
       effect:
@@ -1855,10 +1855,10 @@ importers:
 
   packages/ssh:
     dependencies:
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1880,7 +1880,7 @@ importers:
 
   packages/tailscale:
     dependencies:
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
@@ -1908,13 +1908,13 @@ importers:
       '@electron/osx-sign':
         specifier: 2.7.1
         version: 2.7.1
-      '@supacode/contracts':
+      '@supaterm/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
-      '@supacode/shared':
+      '@supaterm/shared':
         specifier: workspace:*
         version: link:../packages/shared
-      '@supacode/tailscale':
+      '@supaterm/tailscale':
         specifier: workspace:*
         version: link:../packages/tailscale
       '@types/plist':
@@ -5105,23 +5105,23 @@ packages:
   '@statsig/js-client@3.31.0':
     resolution: {integrity: sha512-LFa5E0LjT6sTfZv3sNGoyRLSZ1078+agdgOA+Vm1ecjG+KbSOfBLTW7hMwimrJ29slRwbYDzbtKaPJo/R37N2g==}
 
-  '@supacode/mobile-relay-tunnel@file:apps/mobile/modules/supacode-relay-tunnel':
-    resolution: {directory: apps/mobile/modules/supacode-relay-tunnel, type: directory}
+  '@supaterm/mobile-relay-tunnel@file:apps/mobile/modules/supaterm-relay-tunnel':
+    resolution: {directory: apps/mobile/modules/supaterm-relay-tunnel, type: directory}
     peerDependencies:
       expo: '*'
 
-  '@supacode/mobile-review-diff-native@file:apps/mobile/modules/supacode-review-diff':
-    resolution: {directory: apps/mobile/modules/supacode-review-diff, type: directory}
+  '@supaterm/mobile-review-diff-native@file:apps/mobile/modules/supaterm-review-diff':
+    resolution: {directory: apps/mobile/modules/supaterm-review-diff, type: directory}
 
-  '@supacode/mobile-source-text@file:apps/mobile/modules/supacode-source-text':
-    resolution: {directory: apps/mobile/modules/supacode-source-text, type: directory}
+  '@supaterm/mobile-source-text@file:apps/mobile/modules/supaterm-source-text':
+    resolution: {directory: apps/mobile/modules/supaterm-source-text, type: directory}
     peerDependencies:
       '@types/react': '*'
       react: '*'
       react-native: '*'
 
-  '@supacode/mobile-terminal-native@file:apps/mobile/modules/supacode-terminal':
-    resolution: {directory: apps/mobile/modules/supacode-terminal, type: directory}
+  '@supaterm/mobile-terminal-native@file:apps/mobile/modules/supaterm-terminal':
+    resolution: {directory: apps/mobile/modules/supaterm-terminal, type: directory}
 
   '@szmarczak/http-timer@4.0.6':
     resolution: {integrity: sha512-4BAffykYOgO+5nzBWYwE3W90sBgLJoUPRWWcL8wlyiM8IB8ipJz3UMJ9KXQd1RKQXpKp8Tutn80HZtWsu2u76w==}
@@ -14313,19 +14313,19 @@ snapshots:
     dependencies:
       '@statsig/client-core': 3.31.0
 
-  '@supacode/mobile-relay-tunnel@file:apps/mobile/modules/supacode-relay-tunnel(expo@58.0.2)':
+  '@supaterm/mobile-relay-tunnel@file:apps/mobile/modules/supaterm-relay-tunnel(expo@58.0.2)':
     dependencies:
       expo: 58.0.2(4bae3e0750b0c18855882f72f7726979)
 
-  '@supacode/mobile-review-diff-native@file:apps/mobile/modules/supacode-review-diff': {}
+  '@supaterm/mobile-review-diff-native@file:apps/mobile/modules/supaterm-review-diff': {}
 
-  '@supacode/mobile-source-text@file:apps/mobile/modules/supacode-source-text(@types/react@19.3.0)(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0)':
+  '@supaterm/mobile-source-text@file:apps/mobile/modules/supaterm-source-text(@types/react@19.3.0)(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(react@19.3.0)':
     dependencies:
       '@types/react': 19.3.0
       react: 19.3.0
       react-native: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(bufferutil@4.1.0)(supports-color@8.1.1)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.3.0)(supports-color@8.1.1)(utf-8-validate@6.0.6)
 
-  '@supacode/mobile-terminal-native@file:apps/mobile/modules/supacode-terminal': {}
+  '@supaterm/mobile-terminal-native@file:apps/mobile/modules/supaterm-terminal': {}
 
   '@szmarczak/http-timer@4.0.6':
     dependencies:
@@ -16525,7 +16525,7 @@ snapshots:
 
   date-fns@4.4.0: {}
 
-  dbus-next@0.10.2(patch_hash=61120c7220152900d0c583a1d12fe33d15507aab21cf9d325e44031c37f06e0f):
+  dbus-next@0.10.2(patch_hash=e0cbd739ca5bb2e8d8c359ca6be3a7f6c14479d49e175773c7e44c637ca780ec):
     dependencies:
       '@nornagon/put': 0.0.8
       event-stream: 3.3.4

@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   CommandId,
   EnvironmentId,
   MessageId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { useComposerDraftStore, type ComposerFileAttachment } from "../composerDraftStore";
 import { buildMessageContext, fileContextReference } from "../lib/composerContextRecords";

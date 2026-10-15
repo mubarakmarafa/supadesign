@@ -1,10 +1,10 @@
-import type { DeviceHubAccess } from "@supacode/client-runtime/state/deviceHubAccess";
+import type { DeviceHubAccess } from "@supaterm/client-runtime/state/deviceHubAccess";
 import type {
   DeviceActionInput,
   DeviceDetail,
   DeviceSummary,
   EnvironmentId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { deviceEnvironment } from "~/state/device";
 import { formatEnvironmentQueryError } from "~/state/query";

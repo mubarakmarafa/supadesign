@@ -6,7 +6,7 @@ import {
   LOCAL_DEVICE_HOST_ID,
   ThreadId,
   type DeviceServiceState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -19,7 +19,7 @@ import * as Stream from "effect/Stream";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import * as ServerSettings from "../serverSettings.ts";
 import * as DeviceHost from "./DeviceHost.ts";
-import { NodeRuntimeUnavailableError } from "@supacode/shared/nodeRuntime";
+import { NodeRuntimeUnavailableError } from "@supaterm/shared/nodeRuntime";
 
 import * as DeviceService from "./DeviceService.ts";
 

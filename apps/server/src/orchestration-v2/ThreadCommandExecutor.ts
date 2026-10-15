@@ -1,5 +1,5 @@
-import type { ThreadId } from "@supacode/contracts";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
+import type { ThreadId } from "@supaterm/contracts";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
 import * as Context from "effect/Context";
 import * as Layer from "effect/Layer";
 
@@ -7,6 +7,6 @@ import * as Layer from "effect/Layer";
 export class ThreadCommandExecutor extends Context.Service<
   ThreadCommandExecutor,
   KeyedLock.KeyedLock<ThreadId>
->()("supacode/orchestration-v2/ThreadCommandExecutor") {}
+>()("supaterm/orchestration-v2/ThreadCommandExecutor") {}
 
 export const layer = Layer.effect(ThreadCommandExecutor, KeyedLock.make<ThreadId>());

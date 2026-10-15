@@ -8,7 +8,7 @@ import type {
   ProviderInteractionMode,
   RuntimeMode,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 import { presentThreadShell } from "./state/shell.ts";

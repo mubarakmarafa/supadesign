@@ -1,11 +1,11 @@
-import { SUPACODE_ORCHESTRATION_INSTRUCTIONS } from "@supacode/provider-core/server/orchestrationInstructions";
+import { SUPATERM_ORCHESTRATION_INSTRUCTIONS } from "@supaterm/provider-core/server/orchestrationInstructions";
 
-export const PI_SUPACODE_MCP_EXTENSION_FILENAME = "pi-supacode-mcp-extension.ts";
+export const PI_SUPATERM_MCP_EXTENSION_FILENAME = "pi-supaterm-mcp-extension.ts";
 
-export const SUPACODE_MCP_URL_ENV = "SUPACODE_MCP_URL";
-export const SUPACODE_MCP_BEARER_ENV = "SUPACODE_MCP_BEARER_TOKEN";
-export const SUPACODE_PI_RUNTIME_MODE_ENV = "SUPACODE_PI_RUNTIME_MODE";
-export const SUPACODE_PI_MCP_EXTENSION_PATH_ENV = "SUPACODE_PI_MCP_EXTENSION_PATH";
+export const SUPATERM_MCP_URL_ENV = "SUPATERM_MCP_URL";
+export const SUPATERM_MCP_BEARER_ENV = "SUPATERM_MCP_BEARER_TOKEN";
+export const SUPATERM_PI_RUNTIME_MODE_ENV = "SUPATERM_PI_RUNTIME_MODE";
+export const SUPATERM_PI_MCP_EXTENSION_PATH_ENV = "SUPATERM_PI_MCP_EXTENSION_PATH";
 
 /**
  * Pi tools whose confirmations the bridge raises as file-change approvals.
@@ -13,17 +13,17 @@ export const SUPACODE_PI_MCP_EXTENSION_PATH_ENV = "SUPACODE_PI_MCP_EXTENSION_PAT
  */
 export const PI_FILE_CHANGE_TOOLS = ["edit", "write"] as const;
 
-export const PI_SUPACODE_MCP_EXTENSION_SOURCE = `\
+export const PI_SUPATERM_MCP_EXTENSION_SOURCE = `\
 import { stripFrontmatter, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as NodeFSP from "node:fs/promises";
 import * as NodePath from "node:path";
 import { Type } from "typebox";
 
-const URL_ENV = ${JSON.stringify(SUPACODE_MCP_URL_ENV)};
-const TOKEN_ENV = ${JSON.stringify(SUPACODE_MCP_BEARER_ENV)};
-const RUNTIME_MODE_ENV = ${JSON.stringify(SUPACODE_PI_RUNTIME_MODE_ENV)};
-const EXTENSION_PATH_ENV = ${JSON.stringify(SUPACODE_PI_MCP_EXTENSION_PATH_ENV)};
-const ORCHESTRATION_INSTRUCTIONS = ${JSON.stringify(SUPACODE_ORCHESTRATION_INSTRUCTIONS.trim())};
+const URL_ENV = ${JSON.stringify(SUPATERM_MCP_URL_ENV)};
+const TOKEN_ENV = ${JSON.stringify(SUPATERM_MCP_BEARER_ENV)};
+const RUNTIME_MODE_ENV = ${JSON.stringify(SUPATERM_PI_RUNTIME_MODE_ENV)};
+const EXTENSION_PATH_ENV = ${JSON.stringify(SUPATERM_PI_MCP_EXTENSION_PATH_ENV)};
+const ORCHESTRATION_INSTRUCTIONS = ${JSON.stringify(SUPATERM_ORCHESTRATION_INSTRUCTIONS.trim())};
 const PROTOCOL = "2025-06-18";
 const READ_ONLY_TOOLS = new Set(["read", "grep", "find", "ls"]);
 const FILE_CHANGE_TOOLS = new Set(${JSON.stringify(PI_FILE_CHANGE_TOOLS)});
@@ -210,7 +210,7 @@ function createMcpClient(endpoint: string, token: string) {
         {
           protocolVersion: PROTOCOL,
           capabilities: {},
-          clientInfo: { name: "supacode-pi-mcp", version: "1.0.0" },
+          clientInfo: { name: "supaterm-pi-mcp", version: "1.0.0" },
         },
         signal,
       );
@@ -236,7 +236,7 @@ function createMcpClient(endpoint: string, token: string) {
   };
 }
 
-export default async function supacodeMcpExtension(pi: ExtensionAPI) {
+export default async function supatermMcpExtension(pi: ExtensionAPI) {
   // Keep skill chips in the request. Pi expands only one leading /skill:
   // command, so use its own frontmatter loader for every selected chip here.
   pi.on("input", async (event, ctx) => {
@@ -290,7 +290,7 @@ export default async function supacodeMcpExtension(pi: ExtensionAPI) {
     if (changed) return replacement;
   });
 
-  // Pi deliberately leaves permission policy to extensions. Supacode's injected
+  // Pi deliberately leaves permission policy to extensions. Supaterm's injected
   // bridge uses Pi's public blocking tool hook so the shared runtime modes
   // keep their normal meaning without replacing or shadowing Pi's runtime.
   // Only Pi's own search is known to be read-only. An extension that replaces
@@ -304,7 +304,7 @@ export default async function supacodeMcpExtension(pi: ExtensionAPI) {
     const extensionPath = env(EXTENSION_PATH_ENV);
     if (extensionPath === undefined || !readOnlyMcpTools.has(name) || typeof pi.getAllTools !== "function") return false;
     // A user extension may own the same name. Only our registered HTTP bridge
-    // may inherit the canonical Supacode server's read-only annotation.
+    // may inherit the canonical Supaterm server's read-only annotation.
     return pi.getAllTools().some((tool) => tool.name === name &&
       typeof tool.sourceInfo?.path === "string" &&
       NodePath.resolve(tool.sourceInfo.path) === NodePath.resolve(extensionPath));
@@ -325,7 +325,7 @@ export default async function supacodeMcpExtension(pi: ExtensionAPI) {
       { signal: ctx.signal },
     );
     if (!approved) {
-      return { block: true, reason: \`\${event.toolName} was declined in Supacode.\` };
+      return { block: true, reason: \`\${event.toolName} was declined in Supaterm.\` };
     }
   });
 
@@ -334,7 +334,7 @@ export default async function supacodeMcpExtension(pi: ExtensionAPI) {
   if (endpoint === undefined || token === undefined) {
     pi.on("session_start", async (_event, ctx) => {
       ctx.ui.notify(
-        "Supacode MCP unavailable: SUPACODE_MCP_URL or SUPACODE_MCP_BEARER_TOKEN is missing.",
+        "Supaterm MCP unavailable: SUPATERM_MCP_URL or SUPATERM_MCP_BEARER_TOKEN is missing.",
         "warning",
       );
     });
@@ -354,7 +354,7 @@ export default async function supacodeMcpExtension(pi: ExtensionAPI) {
   const registerTools = () => {
     // Preserve public names for saved loadouts and tool selectors. Hidden
     // canonical names reserve ownership against Pi's configured MCP servers.
-    const prefixes = ["mcp__supacode__"];
+    const prefixes = ["mcp__supaterm__"];
     readOnlyMcpTools.clear();
     for (const tool of catalog) {
       const name = tool.name;
@@ -376,12 +376,12 @@ export default async function supacodeMcpExtension(pi: ExtensionAPI) {
             );
             const content = mcpModelContent(result);
             if (isMcpToolError(result) && !content.some((part) => part.type === "text" && part.text.length > 0)) {
-              content.push({ type: "text", text: "MCP tool supacode/" + name + " returned an error" });
+              content.push({ type: "text", text: "MCP tool supaterm/" + name + " returned an error" });
             }
             return {
               content,
               structuredContent: mcpScriptResult(result),
-              details: { server: "supacode", tool: name },
+              details: { server: "supaterm", tool: name },
               ...(isMcpToolError(result) ? { isError: true } : {}),
             };
           },
@@ -406,7 +406,7 @@ export default async function supacodeMcpExtension(pi: ExtensionAPI) {
   };
 
   // CLI extensions load before builtins, and Pi keeps the first registration
-  // of a tool name. Register now so the bridge owns the Supacode namespace even when
+  // of a tool name. Register now so the bridge owns the Supaterm namespace even when
   // mcp.json configures it; retry a failed connection at session_start.
   await ensureStarted().catch(() => undefined);
 
@@ -431,7 +431,7 @@ export default async function supacodeMcpExtension(pi: ExtensionAPI) {
       await ensureStarted();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      ctx.ui.notify(\`Supacode MCP unavailable: \${message}\`, "warning");
+      ctx.ui.notify(\`Supaterm MCP unavailable: \${message}\`, "warning");
     }
   });
 

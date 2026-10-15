@@ -85,6 +85,6 @@ no local state is deleted. On the next start the main process skips port selecti
 and the primary and WSL backends, and opens the window right away. The renderer sees this through
 `desktopBridge.getLocalEnvironmentEnabled()`: `readPrimaryEnvironmentTarget` returns null, so primary
 auth and platform-managed discovery are skipped and only saved environments (pairing, SSH) connect.
-This is possible because the desktop renderer is not served by the backend: the `supacode://` scheme
+This is possible because the desktop renderer is not served by the backend: the `supaterm://` scheme
 serves the bundled client from disk (Vite in development) and API traffic always goes to the
 environment's own URL.

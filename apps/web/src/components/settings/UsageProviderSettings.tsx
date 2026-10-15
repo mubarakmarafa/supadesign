@@ -1,4 +1,4 @@
-import type { EnvironmentId, UnifiedSettings } from "@supacode/contracts";
+import type { EnvironmentId, UnifiedSettings } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";

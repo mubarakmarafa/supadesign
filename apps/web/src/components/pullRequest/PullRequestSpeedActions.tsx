@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { PullRequestAction } from "@supacode/contracts";
+import type { PullRequestAction } from "@supaterm/contracts";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useUiStateStore } from "~/uiStateStore";
 import { Button } from "../ui/button";

@@ -8,9 +8,9 @@ import {
   type ProjectId,
   type ProviderInteractionMode,
   type RuntimeMode,
-} from "@supacode/contracts";
-import { deriveThreadTitleSeed } from "@supacode/client-runtime/operations";
-import { assistantCitationsToPlainText } from "@supacode/shared/assistantCitations";
+} from "@supaterm/contracts";
+import { deriveThreadTitleSeed } from "@supaterm/client-runtime/operations";
+import { assistantCitationsToPlainText } from "@supaterm/shared/assistantCitations";
 
 import type { UploadedMobileAttachment } from "./attachmentUpload";
 

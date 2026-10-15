@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -32,7 +32,7 @@ vi.mock("electron", () => ({
     setDesktopName: setDesktopNameMock,
     getVersion: () => "0.0.37",
     isPackaged: true,
-    getAppPath: () => "/tmp/.mount_Supacode/resources/app.asar",
+    getAppPath: () => "/tmp/.mount_Supaterm/resources/app.asar",
     on: vi.fn(),
     removeListener: vi.fn(),
     commandLine: {
@@ -150,17 +150,17 @@ describe("DesktopPreReadyPlatform", () => {
     vi.stubEnv("XDG_DATA_HOME", "/xdg");
     vi.stubEnv("APPIMAGE", "/Applications/current.AppImage");
     getSwitchValueMock.mockReturnValue("");
-    let desktopName = "supacode.desktop";
+    let desktopName = "supaterm.desktop";
     let desktopEntry = previousEntry;
     let iconInstalled = false;
     copyFileSyncMock.mockImplementation((_source: string, destination: string) => {
-      iconInstalled = destination === "/xdg/icons/com.supaterm.supacode.desktop.png";
+      iconInstalled = destination === "/xdg/icons/com.supaterm.desktop.desktop.png";
     });
     setDesktopNameMock.mockImplementation((name: string) => {
       desktopName = name;
     });
     writeFileSyncMock.mockImplementation((path: string, contents: string) => {
-      if (path === "/xdg/applications/com.supaterm.supacode.desktop") desktopEntry = contents;
+      if (path === "/xdg/applications/com.supaterm.desktop.desktop") desktopEntry = contents;
     });
 
     return Effect.scoped(
@@ -176,13 +176,13 @@ describe("DesktopPreReadyPlatform", () => {
           ),
         );
         const identity = yield* Effect.promise(() => portalIdentity);
-        assert.equal(identity.desktopName, "com.supaterm.supacode.desktop");
+        assert.equal(identity.desktopName, "com.supaterm.desktop.desktop");
         assert.include(identity.desktopEntry ?? "", 'Exec="/Applications/current.AppImage" %U');
-        assert.include(identity.desktopEntry ?? "", "Name=Supacode\n");
-        assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/supacode;");
+        assert.include(identity.desktopEntry ?? "", "Name=Supaterm\n");
+        assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/supaterm;");
         assert.include(
           identity.desktopEntry ?? "",
-          "Icon=/xdg/icons/com.supaterm.supacode.desktop.png",
+          "Icon=/xdg/icons/com.supaterm.desktop.desktop.png",
         );
         assert.isTrue(identity.iconInstalled);
       }),
@@ -209,7 +209,7 @@ describe("DesktopPreReadyPlatform", () => {
     return Effect.gen(function* () {
       yield* DesktopPreReadyPlatform.make;
       const contents = writeFileSyncMock.mock.calls[0]?.[1];
-      assert.include(contents, "MimeType=x-scheme-handler/supacode;");
+      assert.include(contents, "MimeType=x-scheme-handler/supaterm;");
       assert.include(contents, "Icon=");
       assert.equal(setDesktopNameMock.mock.calls.length, 1);
     }).pipe(Effect.provideService(HostProcess.Platform, "linux"));
@@ -220,7 +220,7 @@ describe("DesktopPreReadyPlatform", () => {
     () =>
       Effect.gen(function* () {
         class DeepLinkShaped extends Context.Service<DeepLinkShaped, { readonly ready: true }>()(
-          "@supacode/desktop/app/DesktopPreReadyPlatform.test/DeepLinkShaped",
+          "@supaterm/desktop/app/DesktopPreReadyPlatform.test/DeepLinkShaped",
         ) {}
 
         const events: Array<string> = [];

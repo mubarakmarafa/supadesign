@@ -1,6 +1,6 @@
 # Adding a provider
 
-A provider integration is judged by whether every Supacode feature behaves honestly on it, not by
+A provider integration is judged by whether every Supaterm feature behaves honestly on it, not by
 whether a turn runs. This page lists the decisions and evidence a new driver needs. The
 [provider constraints](./providers.md) and the
 [capability system](../orchestration-v2/provider-capability-system.md) explain why these rules exist.
@@ -28,13 +28,13 @@ capabilities, never the driver kind.
 - **Permission modes.** Offer only modes the provider enforces natively, through
   `supportedRuntimeModes` in the provider presentation ([Grok](../../packages/provider-grok/src/server/status.ts)
   and [Pi](../../packages/provider-pi/src/server/status.ts) are examples). Do not imitate a missing
-  mode by answering approvals in Supacode: Supacode's check is weaker than the agent's own enforcement. The
+  mode by answering approvals in Supaterm: Supaterm's check is weaker than the agent's own enforcement. The
   server runs an unoffered stored mode as Supervised
   ([`RuntimePolicy.ts`](../../apps/server/src/orchestration-v2/RuntimePolicy.ts)).
 - **Approval and question options.** Pass the provider's own option IDs through unchanged. Every
   request needs a way to decline that the provider honors.
 - **Interaction modes.** Hide the plan toggle (`showInteractionModeToggle: false`) unless the
-  provider's plan output becomes Supacode's proposed-plan card.
+  provider's plan output becomes Supaterm's proposed-plan card.
 
 ## Process, account, and setup boundaries
 
@@ -43,7 +43,7 @@ capabilities, never the driver kind.
   silently share an account or billing.
 - **Status checks.** Background status and model refreshes must not open a session that can start
   MCP servers, run hooks, or launch a login. Keep heavier probes behind an explicit refresh.
-- **Supacode MCP tools.** Inject the thread's MCP server so agents can use Supacode's tools, and make a turn
+- **Supaterm MCP tools.** Inject the thread's MCP server so agents can use Supaterm's tools, and make a turn
   survive when that server is unreachable.
 - **Updates.** Run an update only through the installer that provably owns the binary; otherwise
   leave it manual. See [`providerMaintenance.ts`](../../apps/server/src/provider/providerMaintenanceRunner.ts).
@@ -85,7 +85,7 @@ produce catches them.
   never saved. Find the provider's own turn-started signal, and test a Stop pressed right after
   sending.
 - **Work the provider starts on its own.** Background commands, subagents, workflows, and goals can
-  finish or start a turn after Supacode's turn settled. Offer a continuation through
+  finish or start a turn after Supaterm's turn settled. Offer a continuation through
   [`ProviderContinuationRequests`](../../packages/provider-core/src/server/ProviderContinuationRequests.ts)
   so the parent wakes, and report `hasPendingBackgroundWork` so the session is not released as
   idle. Dropping it, or killing the session, loses the result.
@@ -113,9 +113,9 @@ A provider lives in its own `packages/provider-<name>` package, with
   `./server` exports the `ProviderDriver` and its adapter driver. `./testing` exposes internals
   the server's replay testkits drive; testkits that need the orchestrator stay in the server.
   Settings live in `providerInstances`; new providers are off by default.
-- **Package boundaries.** Server code imports only `@supacode/provider-core/server/*`, contracts,
+- **Package boundaries.** Server code imports only `@supaterm/provider-core/server/*`, contracts,
   and shared. It reaches the server through `ProviderHost` (paths, settings, background demand,
-  attachments, stored credentials), never through `apps/server`. Tests use `@supacode/provider-testing`.
+  attachments, stored credentials), never through `apps/server`. Tests use `@supaterm/provider-testing`.
 - **Server registration:** the driver's entry in
   [`builtInDrivers.ts`](../../apps/server/src/provider/builtInDrivers.ts) and the adapter driver's in
   [`builtInProviderAdapterDrivers.ts`](../../apps/server/src/orchestration-v2/builtInProviderAdapterDrivers.ts).

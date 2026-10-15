@@ -1,4 +1,4 @@
-import { EDITORS, type EditorId } from "@supacode/contracts";
+import { EDITORS, type EditorId } from "@supaterm/contracts";
 
 import { getLocalFileManagerName } from "~/lib/utils";
 

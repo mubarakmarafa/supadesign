@@ -7,9 +7,9 @@ import {
   AssetPreviewTypeValidationError,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
-import { PROJECT_FAVICON_FALLBACK_MARKER } from "@supacode/shared/projectFavicon";
-import { MCP_APP_MAX_HTML_BYTES } from "@supacode/shared/mcpApp";
+} from "@supaterm/contracts";
+import { PROJECT_FAVICON_FALLBACK_MARKER } from "@supaterm/shared/projectFavicon";
+import { MCP_APP_MAX_HTML_BYTES } from "@supaterm/shared/mcpApp";
 import { describe, expect, it } from "@effect/vitest";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -28,16 +28,16 @@ import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../config.ts";
 import * as Orchestrator from "../orchestration-v2/Orchestrator.ts";
 import * as ProjectFaviconResolver from "../project/ProjectFaviconResolver.ts";
-import * as SupacodeProjectFileLoader from "../project/SupacodeProjectFileLoader.ts";
+import * as SupatermProjectFileLoader from "../project/SupatermProjectFileLoader.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 import { assetFileResponse } from "../http.ts";
 import { ASSET_ROUTE_PREFIX, issueAssetUrl, readMcpAppHtml, resolveAsset } from "./AssetAccess.ts";
 import * as NativeAppIconResolver from "./NativeAppIconResolver.ts";
 import { openMediaFile } from "./MediaFile.ts";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
-import * as GitHubCredentials from "@supacode/source-control-github/server/GitHubCredentials";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
+import * as GitHubCredentials from "@supaterm/source-control-github/server/GitHubCredentials";
 import { githubMediaResponse } from "./GitHubMediaFetch.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 vi.mock("node:fs/promises", async (importOriginal) => {
   const actual = await importOriginal<typeof NodeFSP>();
@@ -46,7 +46,7 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 
 const encodeAssetAccessErrorJson = Schema.encodeEffect(Schema.fromJsonString(AssetAccessError));
 const layerConfig = ServerConfig.ServerConfig.layerTest(process.cwd(), {
-  prefix: "supacode-asset-access-test-",
+  prefix: "supaterm-asset-access-test-",
 });
 // A PNG header is enough for the dimension read: signature, then IHDR width and height.
 const screenshotPng = new Uint8Array(24);
@@ -68,7 +68,7 @@ const screenshotItem = {
   ordinal: 1,
   status: "completed" as const,
   title: null,
-  toolName: "mcp__supacode__device_screenshot",
+  toolName: "mcp__supaterm__device_screenshot",
   input: { deviceId: "phone" },
   output: {
     content: [
@@ -116,7 +116,7 @@ const layerTest = Layer.mergeAll(
   WorkspacePaths.layer,
   ProjectFaviconResolver.layer.pipe(
     Layer.provide(WorkspacePaths.layer),
-    Layer.provide(SupacodeProjectFileLoader.layer),
+    Layer.provide(SupatermProjectFileLoader.layer),
   ),
   NativeAppIconResolver.layer.pipe(Layer.provide(layerConfig)),
   ServerSecretStore.layer.pipe(Layer.provide(layerConfig)),
@@ -129,7 +129,7 @@ describe("AssetAccess", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const directory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-mcp-html-",
+          prefix: "supaterm-mcp-html-",
         });
         const file = path.join(directory, "app.html");
         const limit = MCP_APP_MAX_HTML_BYTES + 128 * 1024;
@@ -146,7 +146,7 @@ describe("AssetAccess", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const directory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-mcp-html-",
+          prefix: "supaterm-mcp-html-",
         });
         const file = path.join(directory, "app.html");
         const limit = MCP_APP_MAX_HTML_BYTES + 128 * 1024;
@@ -162,7 +162,7 @@ describe("AssetAccess", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const directory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-mcp-html-",
+          prefix: "supaterm-mcp-html-",
         });
         const file = path.join(directory, "app.html");
         for (const html of ["", "<body>" + "☃".repeat(100_000) + "</body>"]) {
@@ -180,7 +180,7 @@ describe("AssetAccess", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const directory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-mcp-html-",
+          prefix: "supaterm-mcp-html-",
         });
         const error = yield* readMcpAppHtml(path.join(directory, "missing.html")).pipe(Effect.flip);
         expect(error._tag).toBe("PlatformError");
@@ -270,8 +270,8 @@ describe("AssetAccess", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-root-" });
-      const outside = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-outside-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-root-" });
+      const outside = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-outside-" });
       for (const [name, mimeType] of [
         ["screenshot.png", "image/png"],
         ["recording.mp4", "video/mp4"],
@@ -306,7 +306,7 @@ describe("AssetAccess", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-dimensions-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-dimensions-" });
       const png = Uint8Array.from([
         0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0,
         0x06, 0x40, 0, 0, 0x03, 0x84,
@@ -330,7 +330,7 @@ describe("AssetAccess", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-relative-" });
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-relative-" });
       const root = path.join(directory, "workspace");
       yield* fs.makeDirectory(root);
       for (const relativePath of ["screenshot.png", "../recording.mp4"]) {
@@ -404,7 +404,7 @@ describe("AssetAccess", () => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-validation-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-validation-" });
         for (const name of ["report.md", "secret.txt", "secret.%70ng", "secret.png#private.txt"]) {
           const filePath = path.join(root, name);
           yield* fs.writeFileString(filePath, "not media");
@@ -442,7 +442,7 @@ describe("AssetAccess", () => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-symlink-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-symlink-" });
         const filePath = path.join(root, "actual.svg");
         const aliasPath = path.join(root, "alias.png");
         const replacementPath = path.join(root, "other.svg");
@@ -474,7 +474,7 @@ describe("AssetAccess", () => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-open-file-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-open-file-" });
         const filePath = path.join(root, "recording.mp4");
         const savedPath = path.join(root, "saved.mp4");
         const secretPath = path.join(root, "secret.txt");
@@ -513,7 +513,7 @@ describe("AssetAccess", () => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-open-race-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-open-race-" });
         const filePath = path.join(root, "recording.mp4");
         const secretPath = path.join(root, "secret.txt");
         yield* fs.writeFileString(filePath, "video");
@@ -549,7 +549,7 @@ describe("AssetAccess", () => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-open-rejected-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-open-rejected-" });
         const filePath = path.join(root, "recording.mp4");
         const secretPath = path.join(root, "secret.txt");
         yield* fs.writeFileString(filePath, "video");
@@ -583,7 +583,7 @@ describe("AssetAccess", () => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-parent-race-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-parent-race-" });
         const publicDirectory = path.join(root, "public");
         const privateDirectory = path.join(root, "private");
         yield* fs.makeDirectory(publicDirectory);
@@ -639,7 +639,7 @@ describe("AssetAccess", () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-media-replacement-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-media-replacement-" });
       const filePath = path.join(root, "recording.mp4");
       yield* fs.writeFileString(filePath, "original");
       const input = {
@@ -690,7 +690,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-workspace-",
+        prefix: "supaterm-asset-workspace-",
       });
       const htmlPath = path.join(root, "report.html");
       const cssPath = path.join(root, "report.css");
@@ -731,10 +731,10 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-root-",
+        prefix: "supaterm-asset-root-",
       });
       const outside = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-outside-",
+        prefix: "supaterm-asset-outside-",
       });
       const htmlPath = path.join(outside, "report.html");
       yield* fileSystem.writeFileString(htmlPath, "<p>outside</p>");
@@ -765,7 +765,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-draft-",
+        prefix: "supaterm-asset-draft-",
       });
       const htmlPath = path.join(root, "report.html");
       const cssPath = path.join(root, "report.css");
@@ -799,10 +799,10 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-draft-root-",
+        prefix: "supaterm-asset-draft-root-",
       });
       const outside = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-draft-outside-",
+        prefix: "supaterm-asset-draft-outside-",
       });
       const clipPath = path.join(outside, "clip.mp4");
       yield* fileSystem.writeFileString(clipPath, "video");
@@ -830,7 +830,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-draft-fallback-",
+        prefix: "supaterm-asset-draft-fallback-",
       });
       const htmlPath = path.join(root, "report.html");
       yield* fileSystem.writeFileString(htmlPath, "<p>draft</p>");
@@ -855,7 +855,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-permission-root-",
+        prefix: "supaterm-asset-permission-root-",
       });
       const htmlPath = path.join(root, "report.html");
       yield* fileSystem.writeFileString(htmlPath, "<p>report</p>");
@@ -897,7 +897,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-image-workspace-",
+        prefix: "supaterm-asset-image-workspace-",
       });
       const assetsDirectory = path.join(root, "assets");
       const imagePath = path.join(assetsDirectory, "icon.png");
@@ -933,7 +933,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-preview-literal-",
+        prefix: "supaterm-preview-literal-",
       });
       const directory = path.join(root, "assets#archive");
       yield* fileSystem.makeDirectory(directory);
@@ -1186,7 +1186,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-",
+        prefix: "supaterm-asset-favicon-",
       });
       const faviconPath = path.join(root, "favicon.svg");
       const initialFavicon = "<svg>a</svg>";
@@ -1244,7 +1244,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-override-",
+        prefix: "supaterm-asset-favicon-override-",
       });
       yield* fileSystem.makeDirectory(path.join(root, "brand"));
       yield* fileSystem.writeFileString(path.join(root, "brand", "custom.svg"), "<svg />");
@@ -1265,10 +1265,10 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-workspace-",
+        prefix: "supaterm-asset-favicon-workspace-",
       });
       const pictures = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-pictures-",
+        prefix: "supaterm-asset-favicon-pictures-",
       });
       const externalPath = path.join(pictures, "custom.png");
       const siblingPath = path.join(pictures, "sibling.png");
@@ -1303,7 +1303,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-hint-",
+        prefix: "supaterm-asset-favicon-hint-",
       });
       yield* fileSystem.makeDirectory(path.join(root, "brand"));
       yield* fileSystem.writeFileString(path.join(root, "brand", "hint.svg"), "<svg>hint</svg>");
@@ -1324,7 +1324,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-automatic-",
+        prefix: "supaterm-asset-favicon-automatic-",
       });
       yield* fileSystem.makeDirectory(path.join(root, "brand"));
       yield* fileSystem.writeFileString(path.join(root, "brand", "saved.svg"), "<svg>saved</svg>");
@@ -1344,7 +1344,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-icns-",
+        prefix: "supaterm-asset-favicon-icns-",
       });
       const icns = new Uint8Array(8 + 8 + screenshotPng.length);
       icns.set(new TextEncoder().encode("icns"));
@@ -1376,7 +1376,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-type-",
+        prefix: "supaterm-asset-favicon-type-",
       });
       yield* fileSystem.writeFileString(path.join(root, "secret.txt"), "not an image");
 
@@ -1395,7 +1395,7 @@ describe("AssetAccess", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-expiry-",
+        prefix: "supaterm-asset-favicon-expiry-",
       });
       yield* fileSystem.writeFileString(path.join(root, "favicon.svg"), "<svg />");
 
@@ -1418,7 +1418,7 @@ describe("AssetAccess", () => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const root = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-asset-favicon-error-",
+        prefix: "supaterm-asset-favicon-error-",
       });
       const platformCause = PlatformError.systemError({
         _tag: "PermissionDenied",

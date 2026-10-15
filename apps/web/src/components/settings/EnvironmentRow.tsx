@@ -1,5 +1,5 @@
-import { connectionAddressLabel } from "@supacode/client-runtime/connection";
-import type { DesktopSshEnvironmentTarget, EnvironmentMachineKind } from "@supacode/contracts";
+import { connectionAddressLabel } from "@supaterm/client-runtime/connection";
+import type { DesktopSshEnvironmentTarget, EnvironmentMachineKind } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import type { ReactNode } from "react";
 

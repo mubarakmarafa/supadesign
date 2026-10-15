@@ -22,7 +22,7 @@ token-exchange vocabulary gives these grants a familiar meaning.
 
 ### MCP clients are a separate audience
 
-Agents Supacode did not launch sign in to `/mcp` through a narrow OAuth
+Agents Supaterm did not launch sign in to `/mcp` through a narrow OAuth
 authorization-code server ([McpOAuth](../../apps/server/src/auth/McpOAuth.ts)).
 It accepts loopback redirect URIs for agents on the user's machine and any
 HTTPS redirect for hosted agents (ChatGPT, bots). An HTTPS redirect means a
@@ -79,7 +79,7 @@ do not follow this replacement rule.
 
 ### Reusable dev credential
 
-Web development environments can accept one `SUPACODE_DEV_AUTH_TOKEN` across
+Web development environments can accept one `SUPATERM_DEV_AUTH_TOKEN` across
 worktrees and ports on one hostname. The token and startup URLs that contain it
 grant administrative access. Desktop and non-development servers ignore it. See
 the [development runbook](../operations/development.md#reusable-dev-credential)

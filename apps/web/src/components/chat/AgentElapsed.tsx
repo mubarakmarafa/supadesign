@@ -1,6 +1,6 @@
-import type { RuntimeSubagent } from "@supacode/client-runtime/state/subagentRuntime";
-import { isOrchestrationV2WorkActive } from "@supacode/contracts";
-import { deriveSubagentElapsedMs } from "@supacode/shared/orchestrationTiming";
+import type { RuntimeSubagent } from "@supaterm/client-runtime/state/subagentRuntime";
+import { isOrchestrationV2WorkActive } from "@supaterm/contracts";
+import { deriveSubagentElapsedMs } from "@supaterm/shared/orchestrationTiming";
 import { useEffect, useRef } from "react";
 
 function formatElapsedSeconds(totalSeconds: number): string {

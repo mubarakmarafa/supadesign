@@ -1,5 +1,5 @@
-import { runRanAfter } from "@supacode/shared/orchestrationV2ThreadError";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+import { runRanAfter } from "@supaterm/shared/orchestrationV2ThreadError";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import {
   CommandId,
   latestProviderTurnForAttempt,
@@ -7,7 +7,7 @@ import {
   type OrchestrationV2Run,
   type RunId,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import type { ProjectionRuntimeRecoveryState } from "./ProjectionStore.ts";
@@ -239,8 +239,8 @@ export const continueRestartedRun = Effect.fn("RestartContinuation.continueResta
           source: { kind: "system" },
           outcome: "updated",
           summary: note.settled
-            ? "Supacode restarted and stopped background work"
-            : "Supacode restarted and resumed this turn",
+            ? "Supaterm restarted and stopped background work"
+            : "Supaterm restarted and resumed this turn",
           detail: text,
         },
         attachments: [],

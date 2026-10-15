@@ -12,16 +12,16 @@ import { CustomSnoozeSheet } from "./CustomSnoozeSheet";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { threadArrangementOpenAtom } from "../../state/thread-order";
 import { useAtomValue } from "@effect/atom-react";
-import { isEnvironmentConnected } from "@supacode/client-runtime/connection";
+import { isEnvironmentConnected } from "@supaterm/client-runtime/connection";
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
-import type { EnvironmentThreadSearchMatch } from "@supacode/client-runtime/state/thread-search";
-import { AuthOrchestrationOperateScope, type EnvironmentMachineKind } from "@supacode/contracts";
-import { resolveThreadListDurationStartedAt } from "@supacode/client-runtime/state/thread-timing";
-import { canSnooze, resolveSnoozePresets } from "@supacode/client-runtime/state/thread-settled";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+} from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentThreadSearchMatch } from "@supaterm/client-runtime/state/thread-search";
+import { AuthOrchestrationOperateScope, type EnvironmentMachineKind } from "@supaterm/contracts";
+import { resolveThreadListDurationStartedAt } from "@supaterm/client-runtime/state/thread-timing";
+import { canSnooze, resolveSnoozePresets } from "@supaterm/client-runtime/state/thread-settled";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import type { MenuAction } from "@react-native-menu/menu";
 import { memo, useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
 import { Alert, Pressable, useWindowDimensions, View } from "react-native";
@@ -298,8 +298,8 @@ export const ThreadListV2ShowMoreRow = memo(function ThreadListV2ShowMoreRow(pro
       <Text
         className={
           props.pane === "sidebar"
-            ? "text-xs font-supacode-medium text-drawer-foreground-muted"
-            : "text-xs font-supacode-medium text-foreground-muted"
+            ? "text-xs font-supaterm-medium text-drawer-foreground-muted"
+            : "text-xs font-supaterm-medium text-foreground-muted"
         }
       >
         Show more ({props.hiddenCount} settled hidden)
@@ -378,7 +378,7 @@ export const ThreadListV2PendingRow = memo(function ThreadListV2PendingRow(props
         ) : null}
         <Text
           className={cn(
-            "flex-1 text-sm font-supacode-medium text-foreground-muted",
+            "flex-1 text-sm font-supaterm-medium text-foreground-muted",
             sidebarPane && "text-drawer-foreground-muted",
           )}
           numberOfLines={1}
@@ -411,7 +411,7 @@ export const ThreadListV2PendingRow = memo(function ThreadListV2PendingRow(props
           second line is usually a stray word or emoji rather than meaning. */}
       <Text
         className={cn(
-          "mt-1 text-base font-supacode-medium text-foreground",
+          "mt-1 text-base font-supaterm-medium text-foreground",
           sidebarPane && "text-drawer-foreground",
         )}
         numberOfLines={1}
@@ -1040,7 +1040,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         ) : null}
         <Text
           className={cn(
-            "flex-1 text-sm font-supacode-medium",
+            "flex-1 text-sm font-supaterm-medium",
             selected
               ? selectedThreadRowColors.mutedForegroundClassName
               : rowAppearance.mutedForegroundClassName,
@@ -1071,7 +1071,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
             />
             <ThreadListWorkingStatus
               className={cn(
-                "text-xs font-supacode-bold",
+                "text-xs font-supaterm-bold",
                 selected ? selectedThreadRowColors.foregroundClassName : statusLabel.className,
               )}
               label={statusLabel.label}
@@ -1095,7 +1095,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         className={cn(
           "mt-1 text-base",
 
-          !recede && "font-supacode-medium",
+          !recede && "font-supaterm-medium",
           selected
             ? selectedThreadRowColors.foregroundClassName
             : rowAppearance.foregroundClassName,

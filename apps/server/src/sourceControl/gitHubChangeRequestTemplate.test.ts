@@ -9,8 +9,8 @@ import * as Path from "effect/Path";
 import * as ServerConfig from "../config.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as VcsProcess from "../vcs/VcsProcess.ts";
-import * as GitHubChangeRequestTemplate from "@supacode/source-control-github/server/gitHubChangeRequestTemplate";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import * as GitHubChangeRequestTemplate from "@supaterm/source-control-github/server/gitHubChangeRequestTemplate";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 
 const SINGLE_TEMPLATE_PATHS = [
   ".github/pull_request_template.md",
@@ -30,7 +30,7 @@ const TEMPLATE_DIRECTORIES = [
 const layerPrTemplateDetectionTest = GitVcsDriver.layer.pipe(
   Layer.provide(
     ServerConfig.layerTest(process.cwd(), {
-      prefix: "supacode-pr-template-test-",
+      prefix: "supaterm-pr-template-test-",
     }),
   ),
   Layer.provideMerge(VcsProcess.layer),
@@ -53,7 +53,7 @@ const runWithTempDirectory = <A, E, R>(
   Effect.scoped(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const cwd = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-pr-template-" });
+      const cwd = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-pr-template-" });
       yield* runGit(cwd, ["init", "--initial-branch=main"]);
       yield* runGit(cwd, ["config", "user.email", "test@example.com"]);
       yield* runGit(cwd, ["config", "user.name", "Test User"]);
@@ -187,7 +187,7 @@ it.effect.skipIf(!symlinksSupported)(
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const outsideDirectory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-pr-template-outside-",
+          prefix: "supaterm-pr-template-outside-",
         });
         const outsideTemplate = path.join(outsideDirectory, "secret.md");
         yield* fileSystem.writeFileString(outsideTemplate, "LOCAL_SECRET_SENTINEL");
@@ -215,7 +215,7 @@ it.effect.skipIf(!symlinksSupported)(
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const outsideDirectory = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-pr-template-outside-",
+          prefix: "supaterm-pr-template-outside-",
         });
         const templatePath = yield* writeTemplate(
           cwd,

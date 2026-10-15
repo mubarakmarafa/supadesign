@@ -2,8 +2,8 @@ import {
   getSpeedToggle,
   getSpeedToggleNextValue,
   SPEED_TOGGLE_LABELS,
-} from "@supacode/client-runtime/provider-speed-toggle";
-import type { ProviderOptionDescriptor, ProviderOptionSelection } from "@supacode/contracts";
+} from "@supaterm/client-runtime/provider-speed-toggle";
+import type { ProviderOptionDescriptor, ProviderOptionSelection } from "@supaterm/contracts";
 import * as Haptics from "expo-haptics";
 import { Pressable } from "react-native";
 import Svg, { Path } from "react-native-svg";

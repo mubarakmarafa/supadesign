@@ -8,7 +8,7 @@ import {
   type WorktreeMcpHandoffResult,
   type WorktreeMcpSetupScriptStatus,
   type WorktreeMcpStatusResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -36,7 +36,7 @@ export class WorktreeMcpService extends Context.Service<
       scope: McpInvocationScope,
     ) => Effect.Effect<WorktreeMcpStatusResult, WorktreeMcpFailure>;
   }
->()("supacode/mcp/WorktreeMcpService") {}
+>()("supaterm/mcp/WorktreeMcpService") {}
 
 function failure(code: WorktreeMcpFailure["code"], message: string): WorktreeMcpFailure {
   return new WorktreeMcpFailure({ code, message });
@@ -76,7 +76,7 @@ const make = Effect.gen(function* () {
       ? Effect.fail(
           failure(
             "thread_credential_required",
-            "Worktree handoff and status act as the calling Supacode thread, so they need an agent running inside Supacode.",
+            "Worktree handoff and status act as the calling Supaterm thread, so they need an agent running inside Supaterm.",
           ),
         )
       : Effect.succeed(scope as McpThreadInvocationScope);

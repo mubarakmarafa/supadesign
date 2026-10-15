@@ -30,14 +30,14 @@ Patch rebuild guidance lives in the
 
 ## Native media presentations
 
-iOS delegates full-screen video to [AVKit](../../apps/mobile/modules/supacode-native-controls/ios/SupacodeNativeVideoPresentation.swift)
-and images and documents to [Quick Look](../../apps/mobile/modules/supacode-native-controls/ios/SupacodeNativeFilePresentation.swift).
+iOS delegates full-screen video to [AVKit](../../apps/mobile/modules/supaterm-native-controls/ios/SupatermNativeVideoPresentation.swift)
+and images and documents to [Quick Look](../../apps/mobile/modules/supaterm-native-controls/ios/SupatermNativeFilePresentation.swift).
 Each framework owns its controls and transition. A separate UIKit zoom transition
 prevents AVKit's native Close action from exiting full screen and interferes with
 Quick Look's interactive return to its thumbnail. The AVKit entry selector is
 guarded, with standard modal presentation as the fallback.
 
-[Thumbnail registration](../../apps/mobile/modules/supacode-native-controls/ios/SupacodeNativePresentation.swift)
+[Thumbnail registration](../../apps/mobile/modules/supaterm-native-controls/ios/SupatermNativePresentation.swift)
 holds weak view references for transition and share-sheet anchors. It does not own
 the preview; a source row can disappear while a native presentation is open.
 Identifiers must distinguish attachments that are visible at the same time.

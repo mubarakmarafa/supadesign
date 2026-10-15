@@ -3,15 +3,15 @@ import type {
   ProviderApprovalOption,
   ProviderUserInputAnswers,
   UserInputQuestion,
-} from "@supacode/contracts";
-import { isWorkspaceImagePreviewPath } from "@supacode/shared/filePreview";
+} from "@supaterm/contracts";
+import { isWorkspaceImagePreviewPath } from "@supaterm/shared/filePreview";
 import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";
 import type * as EffectAcpSchema from "effect-acp/compat";
 import * as AcpWireSchema from "effect-acp/schema-v1";
 
-import type { AcpToolCallState } from "@supacode/provider-acp/server/runtimeModel";
+import type { AcpToolCallState } from "@supaterm/provider-acp/server/runtimeModel";
 
 const TOOL_TEXT_LIMIT = 8_000;
 const TOOL_TEXT_TRUNCATED = "[Earlier output truncated]\n\n";

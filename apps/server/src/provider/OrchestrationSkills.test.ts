@@ -1,16 +1,16 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { ProviderDriverKind, ProviderInstanceId } from "@supacode/contracts";
+import { ProviderDriverKind, ProviderInstanceId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
-import type { ProviderInstance } from "@supacode/provider-core/server/driver";
+import type { ProviderInstance } from "@supaterm/provider-core/server/driver";
 import * as ProviderInstanceRegistry from "./ProviderInstanceRegistry.ts";
 import * as ProviderRegistry from "./ProviderRegistry.ts";
 import * as ServerConfig from "../config.ts";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 import * as OrchestrationSkills from "./OrchestrationSkills.ts";
 import {
   ORCHESTRATION_SKILLS,
@@ -21,7 +21,7 @@ import { discoverClaudeSkills } from "./Drivers/ClaudeSkills.ts";
 const fixture = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const home = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-native-skills-" });
+  const home = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-native-skills-" });
   const claudeHome = path.join(home, ".claude");
   const claude = path.join(claudeHome, "skills");
   const codex = path.join(home, ".codex", "skills");
@@ -109,7 +109,7 @@ it.layer(NodeServices.layer)("native orchestration skill installation", (it) => 
         const discovered = yield* discoverClaudeSkills({ homePath: test.claudeHome }, test.home);
         assert.deepEqual(
           discovered.map((skill) => skill.name),
-          ["supacode-advisor", "supacode-commitee"],
+          ["supaterm-advisor", "supaterm-commitee"],
         );
         for (const root of [test.claude, test.codex]) {
           for (const skill of ORCHESTRATION_SKILLS) {
@@ -136,7 +136,7 @@ it.layer(NodeServices.layer)("native orchestration skill installation", (it) => 
       Effect.gen(function* () {
         const test = yield* fixture;
         yield* test.service.install;
-        const link = test.path.join(test.claude, "supacode-advisor");
+        const link = test.path.join(test.claude, "supaterm-advisor");
         const target = yield* test.fs.readLink(link);
         const status = yield* test.service.uninstall;
         assert.isTrue(
@@ -194,14 +194,14 @@ it.layer(NodeServices.layer)("native orchestration skill installation", (it) => 
     Effect.gen(function* () {
       const test = yield* fixture;
       yield* test.service.install;
-      const link = test.path.join(test.claude, "supacode-advisor");
+      const link = test.path.join(test.claude, "supaterm-advisor");
       const source = yield* test.fs.readLink(link);
       yield* test.fs.remove(source, { recursive: true });
       const broken = (yield* test.service.status).targets[0]?.skills.find(
-        (skill) => skill.name === "supacode-advisor",
+        (skill) => skill.name === "supaterm-advisor",
       );
       assert.deepEqual(broken, {
-        name: "supacode-advisor",
+        name: "supaterm-advisor",
         state: "update-available",
         managed: true,
       });
@@ -246,11 +246,11 @@ it.layer(NodeServices.layer)("native orchestration skill installation", (it) => 
         yield* test.fs.makeDirectory(outside);
         yield* test.fs.writeFileString(test.path.join(outside, "SKILL.md"), "personal");
         yield* test.fs.makeDirectory(test.claude, { recursive: true });
-        const link = test.path.join(test.claude, "supacode-advisor");
+        const link = test.path.join(test.claude, "supaterm-advisor");
         yield* test.fs.symlink(outside, link);
         const status = yield* test.service.install;
         assert.equal(
-          status.targets[0]?.skills.find((skill) => skill.name === "supacode-advisor")?.state,
+          status.targets[0]?.skills.find((skill) => skill.name === "supaterm-advisor")?.state,
           "installed",
         );
         assert.notEqual(yield* test.fs.readLink(link), outside);

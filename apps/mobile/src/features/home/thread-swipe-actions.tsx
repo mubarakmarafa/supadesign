@@ -668,7 +668,7 @@ function SwipeActionButton(props: {
           labelStyle,
         ]}
       >
-        <Text className="text-3xs font-supacode-medium text-foreground-muted" numberOfLines={1}>
+        <Text className="text-3xs font-supaterm-medium text-foreground-muted" numberOfLines={1}>
           {props.label}
         </Text>
       </Animated.View>

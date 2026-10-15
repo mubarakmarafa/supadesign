@@ -3,8 +3,8 @@ import type {
   ProviderConsumeResetCreditInput,
   ProviderConsumeResetCreditOutcome,
   ServerProviderResetCredits,
-} from "@supacode/contracts";
-import { formatDuration } from "@supacode/shared/usageLimits";
+} from "@supaterm/contracts";
+import { formatDuration } from "@supaterm/shared/usageLimits";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -87,8 +87,8 @@ export function ResetCredits(props: {
           <Text
             className={
               dense
-                ? "text-xs font-supacode-medium text-foreground"
-                : "text-sm font-supacode-medium text-foreground"
+                ? "text-xs font-supaterm-medium text-foreground"
+                : "text-sm font-supaterm-medium text-foreground"
             }
           >
             {busy ? "Using…" : armed ? "Confirm reset" : "Use reset"}

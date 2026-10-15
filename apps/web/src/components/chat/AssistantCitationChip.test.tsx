@@ -3,7 +3,7 @@ import {
   EnvironmentId,
   MessageId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { act, useState, type ReactNode } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

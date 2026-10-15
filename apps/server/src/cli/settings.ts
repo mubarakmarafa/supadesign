@@ -7,9 +7,9 @@ import {
   ServerSettingsPatch,
   ThreadEnvMode,
   WorktreeSubmodules,
-} from "@supacode/contracts";
-import { resolveWorktreeSupacodeHome } from "@supacode/shared/devHome";
-import { fromJsonStringPretty } from "@supacode/shared/schemaJson";
+} from "@supaterm/contracts";
+import { resolveWorktreeSupatermHome } from "@supaterm/shared/devHome";
+import { fromJsonStringPretty } from "@supaterm/shared/schemaJson";
 import { isProcessAlive, readPersistedServerRuntimeState } from "../serverRuntimeState.ts";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
@@ -78,7 +78,7 @@ export class SettingsKeyUnknownError extends Schema.TaggedError<SettingsKeyUnkno
   { setting: Schema.String },
 ) {
   override get message(): string {
-    return `Unknown setting "${this.setting}". Run \`supacode settings list\` to see the supported settings.`;
+    return `Unknown setting "${this.setting}". Run \`supaterm settings list\` to see the supported settings.`;
   }
 }
 
@@ -93,12 +93,12 @@ export class SettingsValueSyntaxError extends Schema.TaggedError<SettingsValueSy
 
 const resolveSettingsPath = Effect.fnUntraced(function* (explicitBaseDir: Option.Option<string>) {
   const envHome = Option.filter(
-    yield* Config.String("SUPACODE_HOME").pipe(Config.option),
+    yield* Config.String("SUPATERM_HOME").pipe(Config.option),
     (value) => value.trim().length > 0,
   );
   const configuredBaseDir = Option.orElse(explicitBaseDir, () => envHome);
   const worktreeHome = Option.isNone(configuredBaseDir)
-    ? yield* resolveWorktreeSupacodeHome(process.cwd())
+    ? yield* resolveWorktreeSupatermHome(process.cwd())
     : undefined;
   const selectedBaseDir = Option.orElse(configuredBaseDir, () =>
     Option.fromUndefinedOr(worktreeHome),

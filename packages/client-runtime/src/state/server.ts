@@ -7,7 +7,7 @@ import {
   type ServerSelfUpdateProgressEvent,
   type ServerSelfUpdateResult,
   WS_METHODS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
 import * as Deferred from "effect/Deferred";
@@ -99,7 +99,7 @@ export class ServerUpdateResumeTimeoutError extends Schema.TaggedError<ServerUpd
   },
 ) {
   override get message(): string {
-    return `The server did not resume on supacode@${this.targetVersion}.`;
+    return `The server did not resume on supaterm@${this.targetVersion}.`;
   }
 }
 
@@ -110,7 +110,7 @@ export class ServerUpdateProgressIncompleteError extends Schema.TaggedError<Serv
   },
 ) {
   override get message(): string {
-    return `The supacode@${this.targetVersion} update ended before the server accepted the restart.`;
+    return `The supaterm@${this.targetVersion} update ended before the server accepted the restart.`;
   }
 }
 
@@ -123,7 +123,7 @@ export class ServerUpdateTerminalError extends Schema.TaggedError<ServerUpdateTe
   },
 ) {
   override get message(): string {
-    return this.reason ?? `The supacode@${this.targetVersion} update ${this.status}.`;
+    return this.reason ?? `The supaterm@${this.targetVersion} update ${this.status}.`;
   }
 }
 

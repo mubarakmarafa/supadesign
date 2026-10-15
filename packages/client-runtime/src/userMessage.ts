@@ -2,7 +2,7 @@ import {
   type OrchestrationV2Actor,
   type OrchestrationV2CreationSource,
   ScheduledTaskId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 const LEGACY_AUTOMATION_PREFIX = /^\[Triggered by schedule task: [^\r\n]+\]\r?\n\r?\n/;
 const LEGACY_AUTOMATION_MESSAGE_ID = /^scheduled-task-message:(.+):\d+:(?:scheduled|manual)$/;
@@ -21,7 +21,7 @@ export function resolveUserMessagePresentation(message: {
 }): {
   readonly text: string;
   /** Who sent a user-role message the user did not type. */
-  readonly attribution: "automation" | "agent" | "supacode" | null;
+  readonly attribution: "automation" | "agent" | "supaterm" | null;
   readonly scheduledTaskId: ScheduledTaskId | undefined;
 } {
   if (message.role !== "user") {
@@ -52,7 +52,7 @@ export function resolveUserMessagePresentation(message: {
       message.createdBy !== "agent"
         ? null
         : message.creationSource === "server"
-          ? "supacode"
+          ? "supaterm"
           : "agent",
     scheduledTaskId: undefined,
   };

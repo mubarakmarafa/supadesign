@@ -337,7 +337,7 @@ describe("observability", () => {
           const fileSystem = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-trace-sink-",
+            prefix: "supaterm-trace-sink-",
           });
           const tracePath = path.join(tempDir, "shared.trace.ndjson");
 
@@ -367,7 +367,7 @@ describe("observability", () => {
           const fileSystem = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-trace-sink-",
+            prefix: "supaterm-trace-sink-",
           });
           const tracePath = path.join(tempDir, "shared.trace.ndjson");
           const reported = yield* Ref.make<ReadonlyArray<TraceSinkFlushStats>>([]);
@@ -397,7 +397,7 @@ describe("observability", () => {
           const fileSystem = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-trace-sink-",
+            prefix: "supaterm-trace-sink-",
           });
           const tracePath = path.join(tempDir, "shared.trace.ndjson");
 
@@ -440,7 +440,7 @@ describe("observability", () => {
           const fileSystem = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-trace-sink-",
+            prefix: "supaterm-trace-sink-",
           });
           const tracePath = path.join(tempDir, "shared.trace.ndjson");
           const maxBytes = 1_024;
@@ -475,7 +475,7 @@ describe("observability", () => {
           const fileSystem = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-trace-sink-",
+            prefix: "supaterm-trace-sink-",
           });
           const tracePath = path.join(tempDir, "shared.trace.ndjson");
           const maxBytes = 1_024;
@@ -508,7 +508,7 @@ describe("observability", () => {
           const fileSystem = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-trace-sink-",
+            prefix: "supaterm-trace-sink-",
           });
           const tracePath = path.join(tempDir, "shared.trace.ndjson");
 
@@ -560,7 +560,7 @@ describe("observability", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-trace-sink-",
+          prefix: "supaterm-trace-sink-",
         });
         const tracePath = path.join(tempDir, "shared.trace.ndjson");
         // A directory at the trace path fails every append, like a full disk.
@@ -642,7 +642,7 @@ describe("observability", () => {
           const fileSystem = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-local-tracer-",
+            prefix: "supaterm-local-tracer-",
           });
           const tracePath = path.join(tempDir, "shared.trace.ndjson");
 
@@ -702,7 +702,7 @@ describe("observability", () => {
           const fileSystem = yield* FileSystem.FileSystem;
           const path = yield* Path.Path;
           const tempDir = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-local-tracer-",
+            prefix: "supaterm-local-tracer-",
           });
           const tracePath = path.join(tempDir, "shared.trace.ndjson");
 
@@ -731,13 +731,13 @@ describe("OtlpHeadersFromString", () => {
   it.each([
     {
       name: "decodes percent-encoded values",
-      input: "authorization=Basic%20abc%3D%3D,x-tenant=supacode",
-      expected: { authorization: "Basic abc==", "x-tenant": "supacode" },
+      input: "authorization=Basic%20abc%3D%3D,x-tenant=supaterm",
+      expected: { authorization: "Basic abc==", "x-tenant": "supaterm" },
     },
     {
       name: "ignores whitespace around separators",
-      input: "authorization=Basic%20abc%3D%3D, x-tenant = supacode ,",
-      expected: { authorization: "Basic abc==", "x-tenant": "supacode" },
+      input: "authorization=Basic%20abc%3D%3D, x-tenant = supaterm ,",
+      expected: { authorization: "Basic abc==", "x-tenant": "supaterm" },
     },
     {
       name: "keeps literal equals signs inside a value",

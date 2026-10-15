@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -93,7 +93,7 @@ export class GitHubRoutingPermissions extends Context.Reference<{
     permission: GitHubRoutingPermission,
   ) => Effect.Effect<void, ConnectionAttemptError>;
   readonly forget: (environmentId: EnvironmentId) => Effect.Effect<void, ConnectionAttemptError>;
-}>("@supacode/client-runtime/connection/GitHubRoutingPermissions", {
+}>("@supaterm/client-runtime/connection/GitHubRoutingPermissions", {
   defaultValue: () => ({
     get: () => Effect.succeed("off"),
     changes: Stream.succeed([]),

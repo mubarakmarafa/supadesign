@@ -4,8 +4,8 @@ import * as NodeChildProcess from "node:child_process";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ProviderInstanceId } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { ProviderInstanceId } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -18,7 +18,7 @@ import * as Ndjson from "effect/encoding/Ndjson";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as AcpErrors from "effect-acp/errors";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 
 import {
   ANTIGRAVITY_AUTH_BROWSER_MARKER,
@@ -51,10 +51,10 @@ const decodeJson = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown
 describe("Antigravity process environment", () => {
   const profile: AntigravityProfile = {
     platform: "linux",
-    geminiHome: "/supacode/userdata/providers/antigravity/profile",
-    acpDirectory: "/supacode/userdata/providers/antigravity/profile/antigravity-acp",
-    tokenPath: "/supacode/userdata/providers/antigravity/profile/antigravity-acp/acp_token.json",
-    tempDirectory: "/supacode/userdata/providers/antigravity/profile/antigravity-acp/tmp",
+    geminiHome: "/supaterm/userdata/providers/antigravity/profile",
+    acpDirectory: "/supaterm/userdata/providers/antigravity/profile/antigravity-acp",
+    tokenPath: "/supaterm/userdata/providers/antigravity/profile/antigravity-acp/acp_token.json",
+    tempDirectory: "/supaterm/userdata/providers/antigravity/profile/antigravity-acp/tmp",
     browserCommand: "managed-browser-helper",
   };
 
@@ -271,7 +271,7 @@ describe("Antigravity process environment", () => {
       const deepestMember =
         "google3\\cloud\\developer_experience\\antigravity_extensions\\acp_server\\_private__agy_acp_server_bin.lazy_imports_info.json";
       const directories = yield* resolveAntigravityInstanceDirectories(
-        "C:\\Users\\a-twenty-char-person\\.supacode\\userdata",
+        "C:\\Users\\a-twenty-char-person\\.supaterm\\userdata",
         ProviderInstanceId.make("antigravity"),
       );
       const extracted = (tempDirectory: string) =>
@@ -567,11 +567,11 @@ it.layer(NodeServices.layer)("Antigravity profile preparation", (it) => {
         profileDirectory: path.join(directory, "profile"),
         baseEnv: { PATH: path.dirname(process.execPath) },
       });
-      expect(profile.browserCommand).not.toContain("/packaged/supacode");
+      expect(profile.browserCommand).not.toContain("/packaged/supaterm");
       expect(yield* fs.exists(profile.acpDirectory)).toBe(true);
     }).pipe(
       Effect.provideService(HostProcess.IsExecutable, true),
-      Effect.provideService(HostProcess.ExecutablePath, "/packaged/supacode"),
+      Effect.provideService(HostProcess.ExecutablePath, "/packaged/supaterm"),
     ),
   );
 

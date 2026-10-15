@@ -1,20 +1,20 @@
 /**
  * Host setup the shared headless browser needs, and the one command that does
  * it. Every failure here names that command, so the server log, an agent's tool
- * error, and the viewer all offer the same fix: `sudo supacode browser setup`.
+ * error, and the viewer all offer the same fix: `sudo supaterm browser setup`.
  *
- * Supacode never turns Chrome's sandbox off by itself. A host that cannot give it one
+ * Supaterm never turns Chrome's sandbox off by itself. A host that cannot give it one
  * gets the command instead, and only the operator's explicit
- * `SUPACODE_SERVER_BROWSER_SANDBOX=0` launches without it.
+ * `SUPATERM_SERVER_BROWSER_SANDBOX=0` launches without it.
  */
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Schema from "effect/Schema";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-/** The subcommand that sets the host up; callers render it, with `sudo`, for how Supacode was launched. */
+/** The subcommand that sets the host up; callers render it, with `sudo`, for how Supaterm was launched. */
 export const SETUP_SUBCOMMAND = "browser setup";
 
 /** What Chrome prints before aborting when it cannot sandbox itself. */
@@ -22,25 +22,25 @@ export const NO_SANDBOX_SIGNATURE = "No usable sandbox";
 
 /** Whether an operator explicitly allowed Chrome to run without its sandbox. */
 export const sandboxDisabled = (env: Readonly<Record<string, string | undefined>>) =>
-  env.SUPACODE_SERVER_BROWSER_SANDBOX === "0";
+  env.SUPATERM_SERVER_BROWSER_SANDBOX === "0";
 
 /** Set on Ubuntu 23.10+: unprivileged user namespaces need an AppArmor profile. */
 const USERNS_RESTRICTION = "/proc/sys/kernel/apparmor_restrict_unprivileged_userns";
-export const APPARMOR_PROFILE_PATH = "/etc/apparmor.d/supacode-chrome-headless-shell";
+export const APPARMOR_PROFILE_PATH = "/etc/apparmor.d/supaterm-chrome-headless-shell";
 
 /**
- * Lets Supacode's headless browser, in any Supacode home and at any pinned version, create
+ * Lets Supaterm's headless browser, in any Supaterm home and at any pinned version, create
  * the user namespace Chrome's sandbox runs in. Modelled on the profile Ubuntu
  * ships for Google Chrome; `unconfined` adds nothing beyond `userns`.
  */
-export const APPARMOR_PROFILE = `# Written by \`supacode browser setup\`: lets Supacode's headless browser use Chrome's sandbox.
+export const APPARMOR_PROFILE = `# Written by \`supaterm browser setup\`: lets Supaterm's headless browser use Chrome's sandbox.
 abi <abi/4.0>,
 include <tunables/global>
 
-profile supacode-chrome-headless-shell /**/tools/chrome-headless-shell/*/*/chrome-headless-shell flags=(unconfined) {
+profile supaterm-chrome-headless-shell /**/tools/chrome-headless-shell/*/*/chrome-headless-shell flags=(unconfined) {
   userns,
 
-  include if exists <local/supacode-chrome-headless-shell>
+  include if exists <local/supaterm-chrome-headless-shell>
 }
 `;
 
@@ -74,7 +74,7 @@ export class PreviewBrowserSandboxError extends Schema.TaggedError<PreviewBrowse
   { setupCommand: Schema.String },
 ) {
   override get message(): string {
-    return `This host blocks the sandbox Supacode's browser runs in (AppArmor on Ubuntu 23.10+). Run \`${this.setupCommand}\` on the host once to allow it, then try again.`;
+    return `This host blocks the sandbox Supaterm's browser runs in (AppArmor on Ubuntu 23.10+). Run \`${this.setupCommand}\` on the host once to allow it, then try again.`;
   }
 }
 
@@ -83,7 +83,7 @@ export class PreviewBrowserLibrariesError extends Schema.TaggedError<PreviewBrow
   { setupCommand: Schema.String, libraries: Schema.Array(Schema.String) },
 ) {
   override get message(): string {
-    return `This host is missing libraries Supacode's browser needs (${this.libraries.join(", ")}). Run \`${this.setupCommand}\` on the host to install them, then try again.`;
+    return `This host is missing libraries Supaterm's browser needs (${this.libraries.join(", ")}). Run \`${this.setupCommand}\` on the host to install them, then try again.`;
   }
 }
 
@@ -132,7 +132,7 @@ export const missingLibraries = Effect.fn("PreviewBrowserHost.missingLibraries")
 
 /**
  * Whether Chrome's sandbox will be blocked here: the host restricts user
- * namespaces and Supacode's AppArmor profile is not installed. Readable without
+ * namespaces and Supaterm's AppArmor profile is not installed. Readable without
  * root, so the server checks it at startup.
  */
 export const sandboxBlocked = Effect.gen(function* () {

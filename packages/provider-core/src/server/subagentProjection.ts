@@ -17,11 +17,11 @@ import type {
   ProviderTurnId,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
-import { runRanAfter } from "@supacode/shared/orchestrationV2ThreadError";
+} from "@supaterm/contracts";
+import { runRanAfter } from "@supaterm/shared/orchestrationV2ThreadError";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
-import { isOrchestrationV2WorkActive } from "@supacode/contracts";
+import { isOrchestrationV2WorkActive } from "@supaterm/contracts";
 
 function trimmed(value: string | null | undefined): string | undefined {
   const result = value?.trim();

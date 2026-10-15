@@ -3,7 +3,7 @@ import {
   createLinkedPullRequestSummaryAtomFamily,
   createPullRequestEnvironmentAtoms,
   createPullRequestStackAtomFamily,
-} from "@supacode/client-runtime/state/pull-requests";
+} from "@supaterm/client-runtime/state/pull-requests";
 import type {
   EnvironmentId,
   PullRequestListInput,
@@ -11,7 +11,7 @@ import type {
   PullRequestListEntry,
   PullRequestRef,
   PullRequestSummary,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useCallback, useLayoutEffect, useMemo } from "react";

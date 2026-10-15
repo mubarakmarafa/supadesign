@@ -1,5 +1,5 @@
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
-import { EnvironmentId, ProjectId, ThreadId } from "@supacode/contracts";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
+import { EnvironmentId, ProjectId, ThreadId } from "@supaterm/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 vi.mock("~/state/entities", () => ({ useThreadShell: () => null }));

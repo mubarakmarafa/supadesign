@@ -43,14 +43,14 @@ config.resolver = {
       : config.resolver?.blockList
         ? [config.resolver.blockList]
         : []),
-    new RegExp(`${escapedWorkspaceRoot}[/\\\\]\\.supacode[/\\\\].*`),
+    new RegExp(`${escapedWorkspaceRoot}[/\\\\]\\.supaterm[/\\\\].*`),
   ],
   extraNodeModules: {
     ...config.resolver?.extraNodeModules,
-    "@supacode/mobile-third-party-licenses": generatedLicenseModuleRoot,
-    "@supacode/mobile-device-stream": generatedDeviceStreamRoot,
-    "@supacode/mobile-mermaid-worklet": generatedMermaidWorkletRoot,
-    "@supacode/mobile-preview-stream": generatedPreviewStreamRoot,
+    "@supaterm/mobile-third-party-licenses": generatedLicenseModuleRoot,
+    "@supaterm/mobile-device-stream": generatedDeviceStreamRoot,
+    "@supaterm/mobile-mermaid-worklet": generatedMermaidWorkletRoot,
+    "@supaterm/mobile-preview-stream": generatedPreviewStreamRoot,
     shiki: mobileShikiRoot,
     "@shikijs/core": resolveShikiDependencyRoot("@shikijs/core"),
     "@shikijs/engine-javascript": resolveShikiDependencyRoot("@shikijs/engine-javascript"),
@@ -83,7 +83,7 @@ async function generateMobileThirdPartyLicenses() {
     allowMissingGeneratedNotices:
       process.env.NODE_ENV !== "production" &&
       process.env.EAS_BUILD !== "true" &&
-      process.env.SUPACODE_LICENSES_STRICT !== "1",
+      process.env.SUPATERM_LICENSES_STRICT !== "1",
   });
 
   await Promise.all([

@@ -1,4 +1,4 @@
-import type { OrchestrationV2ThreadProjection, ScopedThreadRef } from "@supacode/contracts";
+import type { OrchestrationV2ThreadProjection, ScopedThreadRef } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 

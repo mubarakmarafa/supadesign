@@ -1,6 +1,6 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
-import type { VcsStatusResult } from "@supacode/contracts";
-import { WORKTREE_BRANCH_PREFIX } from "@supacode/shared/git";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import type { VcsStatusResult } from "@supaterm/contracts";
+import { WORKTREE_BRANCH_PREFIX } from "@supaterm/shared/git";
 import { assert, describe, it } from "vite-plus/test";
 import {
   buildGitActionProgressStages,

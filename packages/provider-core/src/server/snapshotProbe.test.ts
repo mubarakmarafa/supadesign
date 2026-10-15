@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
-import type { ModelCapabilities } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { createModelCapabilities } from "@supacode/shared/model";
+import type { ModelCapabilities } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { createModelCapabilities } from "@supaterm/shared/model";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as PlatformError from "effect/PlatformError";

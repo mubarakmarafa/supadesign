@@ -1,5 +1,5 @@
-import type { ToolActivityIcon, ToolActivitySource } from "@supacode/contracts";
-import { resolveSupacodeMcpToolDefinition } from "@supacode/shared/supacodeMcpToolPresentation";
+import type { ToolActivityIcon, ToolActivitySource } from "@supaterm/contracts";
+import { resolveSupatermMcpToolDefinition } from "@supaterm/shared/supatermMcpToolPresentation";
 
 export function normalizeMcpText(value: unknown, maxLength = 160): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -38,7 +38,7 @@ export function mcpToolPresentation(input: {
     typeof input.toolName === "string" ? /^mcp__(.+?)__(.+)$/i.exec(input.toolName) : null;
   const server = normalizeMcpText(input.serverName ?? qualified?.[1] ?? input.serverDisplayName);
   const tool = normalizeMcpText(qualified?.[2] ?? input.toolName);
-  if (server && tool && resolveSupacodeMcpToolDefinition(`${server}.${tool}`)) return {};
+  if (server && tool && resolveSupatermMcpToolDefinition(`${server}.${tool}`)) return {};
   const title =
     normalizeMcpText(input.title) ??
     (server && tool ? normalizeMcpText(tool.replace(/[_-]+/gu, " ")) : undefined);

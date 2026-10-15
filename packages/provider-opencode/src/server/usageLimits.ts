@@ -1,4 +1,4 @@
-import type { ServerProviderUsageWindow } from "@supacode/contracts";
+import type { ServerProviderUsageWindow } from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -15,8 +15,8 @@ import {
   clampPercent,
   makeUnavailableUsageLimits,
   makeUsageLimits,
-} from "@supacode/provider-core/server/usageLimits";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/provider-core/server/usageLimits";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const AuthFile = Schema.Struct({ "opencode-go": Schema.optionalKey(Schema.Unknown) });
 const ApiAuth = Schema.Struct({ type: Schema.Literal("api"), key: Schema.String });

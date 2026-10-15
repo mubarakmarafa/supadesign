@@ -1,7 +1,7 @@
 import { PermissionChecklist, PermissionContinueButton } from "../permissions/PermissionChecklist";
 import { usePermissionStatus } from "../permissions/usePermissionStatus";
-import type { BrowserImportSource } from "@supacode/contracts";
-import { BROWSER_IMPORT_FAILURE_COPY } from "@supacode/contracts";
+import type { BrowserImportSource } from "@supaterm/contracts";
+import { BROWSER_IMPORT_FAILURE_COPY } from "@supaterm/contracts";
 import { ArrowDownIcon, ArrowRightIcon, CheckIcon, HardDriveIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -285,9 +285,9 @@ function FullDiskAccessStep({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Let Supacode read {source.name}&rsquo;s cookies</DialogTitle>
+        <DialogTitle>Let Supaterm read {source.name}&rsquo;s cookies</DialogTitle>
         <DialogDescription>
-          To import cookies from {source.name}, Supacode needs Full Disk Access. Turn it on in
+          To import cookies from {source.name}, Supaterm needs Full Disk Access. Turn it on in
           System Settings, then come back to finish the import — you can revoke it again once the
           import is done.
         </DialogDescription>
@@ -319,8 +319,8 @@ function FullDiskAccessStep({
         {!permission.isReady(["fullDiskAccess"]) ? (
           <p className="mt-3 text-xs text-muted-foreground">
             {stillRequired
-              ? "Access is still required. Quit and reopen Supacode if you just allowed it, then retry the import."
-              : "If access doesn't update after you allow it, quit and reopen Supacode, then retry the import."}
+              ? "Access is still required. Quit and reopen Supaterm if you just allowed it, then retry the import."
+              : "If access doesn't update after you allow it, quit and reopen Supaterm, then retry the import."}
           </p>
         ) : null}
       </DialogPanel>

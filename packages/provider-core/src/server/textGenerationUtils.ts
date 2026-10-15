@@ -1,4 +1,4 @@
-import { TextGenerationError } from "@supacode/contracts";
+import { TextGenerationError } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 

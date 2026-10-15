@@ -1,13 +1,13 @@
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 import {
   getNewProjectRepository,
   type NewProjectPublishTarget,
-} from "@supacode/client-runtime/operations/projects";
+} from "@supaterm/client-runtime/operations/projects";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { useCallback } from "react";
 
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";
@@ -101,7 +101,7 @@ export function useNewProject() {
       }
 
       const { projectId, workspaceRoot, commitError } = result.value;
-      // The folder sits in Supacode's data directory, so always say where.
+      // The folder sits in Supaterm's data directory, so always say where.
       toastManager.add(
         stackedThreadToast(
           commitError === undefined

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { View } from "react-native";
 
-import type { DailyTotals } from "@supacode/shared/usageMerge";
+import type { DailyTotals } from "@supaterm/shared/usageMerge";
 
 import { buildChartDays, type UsageChartMetric } from "./usageChartData";
 import { useProviderColors } from "./usageProviders";

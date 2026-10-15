@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 
 import type { ConnectedEnvironmentSummary } from "../../state/remote-runtime-types";
@@ -32,11 +32,7 @@ it("presents showcase transports as remote endpoints", () => {
 
   assert.deepStrictEqual(
     environments.map(({ displayUrl }) => displayUrl),
-    [
-      "https://studio.tailb37e.ts.net/",
-      "http://192.168.1.40:3773/",
-      "https://vps.next.supacode.sh/",
-    ],
+    ["https://studio.tailb37e.ts.net/", "http://192.168.1.40:3773/", "https://vps.supaterm.com/"],
   );
 });
 

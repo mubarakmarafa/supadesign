@@ -1,4 +1,4 @@
-import { EnvironmentId, type PullRequestCheck } from "@supacode/contracts";
+import { EnvironmentId, type PullRequestCheck } from "@supaterm/contracts";
 import { act, cloneElement, type ReactElement, type ReactNode } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, expect, it, vi } from "vite-plus/test";

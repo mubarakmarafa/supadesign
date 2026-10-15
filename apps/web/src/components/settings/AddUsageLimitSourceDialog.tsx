@@ -1,4 +1,4 @@
-import { type EnvironmentId, UsageLimitSourceId } from "@supacode/contracts";
+import { type EnvironmentId, UsageLimitSourceId } from "@supaterm/contracts";
 import { useState } from "react";
 
 import { useUpdateEnvironmentSettings } from "../../hooks/useSettings";

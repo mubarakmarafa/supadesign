@@ -1,4 +1,4 @@
-import { ProviderInstanceId, TextGenerationError } from "@supacode/contracts";
+import { ProviderInstanceId, TextGenerationError } from "@supaterm/contracts";
 import { OpenCodeSettings } from "../settings.ts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { it } from "@effect/vitest";
@@ -7,14 +7,14 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
-import * as NetService from "@supacode/shared/Net";
+import * as NetService from "@supaterm/shared/Net";
 import { beforeEach, expect } from "vite-plus/test";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
 import * as OpenCodeServerOwner from "./OpenCodeServerOwner.ts";
 import * as OpenCodeTextGeneration from "./textGeneration.ts";
-import type { ProviderTextGeneration } from "@supacode/provider-core/server/textGeneration";
+import type { ProviderTextGeneration } from "@supaterm/provider-core/server/textGeneration";
 
 const runtimeMock = {
   state: {

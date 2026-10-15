@@ -1,4 +1,4 @@
-import type { ConfirmDialogOptions, ConfirmDialogVariant } from "@supacode/contracts";
+import type { ConfirmDialogOptions, ConfirmDialogVariant } from "@supaterm/contracts";
 
 export type ConfirmDialogState =
   | { readonly status: "idle" }

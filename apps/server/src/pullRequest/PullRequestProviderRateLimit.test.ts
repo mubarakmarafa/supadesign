@@ -1,15 +1,15 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 
-import * as AzureDevOpsCli from "@supacode/source-control-azure-devops/server/AzureDevOpsCli";
-import * as BitbucketApi from "@supacode/source-control-bitbucket/server/BitbucketApi";
-import * as GitHubApi from "@supacode/source-control-github/server/GitHubApi";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
-import * as GitLabCli from "@supacode/source-control-gitlab/server/GitLabCli";
-import { azureDevOpsProviderFailure } from "@supacode/source-control-azure-devops/server/AzureDevOpsPullRequestProvider";
-import { bitbucketProviderFailure } from "@supacode/source-control-bitbucket/server/BitbucketPullRequestProvider";
-import { gitHubProviderFailure } from "@supacode/source-control-github/server/GitHubPullRequestProvider";
-import { gitLabProviderFailure } from "@supacode/source-control-gitlab/server/GitLabPullRequestProvider";
+import * as AzureDevOpsCli from "@supaterm/source-control-azure-devops/server/AzureDevOpsCli";
+import * as BitbucketApi from "@supaterm/source-control-bitbucket/server/BitbucketApi";
+import * as GitHubApi from "@supaterm/source-control-github/server/GitHubApi";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
+import * as GitLabCli from "@supaterm/source-control-gitlab/server/GitLabCli";
+import { azureDevOpsProviderFailure } from "@supaterm/source-control-azure-devops/server/AzureDevOpsPullRequestProvider";
+import { bitbucketProviderFailure } from "@supaterm/source-control-bitbucket/server/BitbucketPullRequestProvider";
+import { gitHubProviderFailure } from "@supaterm/source-control-github/server/GitHubPullRequestProvider";
+import { gitLabProviderFailure } from "@supaterm/source-control-gitlab/server/GitLabPullRequestProvider";
 
 const cause = new Error("redacted provider failure");
 

@@ -1,6 +1,6 @@
 // @effect-diagnostics globalDate:off globalTimers:off -- Synchronous before-input-event handler; key events must be timed and the watchdog scheduled outside any Effect runtime.
 
-import type { QuitConfirmationMode, QuitShortcutHintEvent } from "@supacode/contracts";
+import type { QuitConfirmationMode, QuitShortcutHintEvent } from "@supaterm/contracts";
 
 // The quit accelerator is intercepted in before-input-event, which runs
 // before the native menu accelerator. Quitting from the application menu is

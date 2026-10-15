@@ -1,5 +1,5 @@
-import { ProviderDriverKind } from "@supacode/contracts";
-import { defineProviderClient } from "@supacode/provider-core/client";
+import { ProviderDriverKind } from "@supaterm/contracts";
+import { defineProviderClient } from "@supaterm/provider-core/client";
 
 import { GrokSettings } from "./settings.ts";
 

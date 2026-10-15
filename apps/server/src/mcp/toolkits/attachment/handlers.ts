@@ -3,7 +3,7 @@ import {
   type ChatAttachment,
   MessageId,
   OrchestratorMcpFailure,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
@@ -45,7 +45,7 @@ export const layer = McpToolAccess.toLayer(
   Effect.sync(() => {
     const uploadOwners = new Map<string, { readonly owner: string; readonly issuedAt: number }>();
     return {
-      supacode_attachment_prepare_upload: McpToolAccess.writes((input) =>
+      supaterm_attachment_prepare_upload: McpToolAccess.writes((input) =>
         Effect.gen(function* () {
           const result = yield* Upload.issueAttachmentUploadUrl(input.upload).pipe(
             Effect.mapError(unavailable),
@@ -58,7 +58,7 @@ export const layer = McpToolAccess.toLayer(
           return result;
         }),
       ),
-      supacode_attachment_discard: McpToolAccess.writes((input) =>
+      supaterm_attachment_discard: McpToolAccess.writes((input) =>
         Effect.gen(function* () {
           if (uploadOwners.get(input.attachmentId)?.owner !== (yield* uploadOwner)) {
             return yield* new OrchestratorMcpFailure({
@@ -71,7 +71,7 @@ export const layer = McpToolAccess.toLayer(
           return {};
         }),
       ),
-      supacode_thread_send_attachments: McpToolAccess.writesThreads(
+      supaterm_thread_send_attachments: McpToolAccess.writesThreads(
         (input) => [input.threadId],
         (input) =>
           Effect.gen(function* () {

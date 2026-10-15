@@ -7,16 +7,16 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   type CustomModelDefinition,
   createModelSelection,
   normalizeCustomModelSlug,
   readCustomModelEntries,
   resolveSelectableModel,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 import { getComposerProviderState } from "./components/chat/composerProviderState";
-import { UnifiedSettings } from "@supacode/contracts/settings";
+import { UnifiedSettings } from "@supaterm/contracts/settings";
 import * as Arr from "effect/Array";
 import * as Result from "effect/Result";
 import {

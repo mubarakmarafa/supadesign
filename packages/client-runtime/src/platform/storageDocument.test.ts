@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Schema from "effect/Schema";
 import * as Effect from "effect/Effect";
@@ -79,7 +79,7 @@ describe("ConnectionCatalogDocument", () => {
     const profile = new BearerConnectionProfile({
       ...BEARER_PROFILE,
       connectionId: target.connectionId,
-      httpBaseUrl: `https://${"a".repeat(32)}.${"b".repeat(32)}.relay.supacode.invalid/`,
+      httpBaseUrl: `https://${"a".repeat(32)}.${"b".repeat(32)}.relay.supaterm.invalid/`,
       relayUrl: "wss://relay-a.example",
       learned: true,
     });

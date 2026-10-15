@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as NodePath from "@effect/platform-node/NodePath";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -11,7 +11,7 @@ import * as LocalDeviceHost from "./LocalDeviceHost.ts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import { HttpClient } from "effect/http";
-import * as NetService from "@supacode/shared/Net";
+import * as NetService from "@supaterm/shared/Net";
 import * as ServerConfig from "../config.ts";
 import * as ProcessRunner from "../processRunner.ts";
 
@@ -184,7 +184,7 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-device-consent-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-device-consent-" });
       const host = yield* LocalDeviceHost.make().pipe(
         Effect.provide(Layer.mergeAll(ServerConfig.layerTest(baseDir, baseDir), NetService.layer)),
         Effect.provideService(HostProcess.Environment, { HOME: baseDir, PATH: "" }),

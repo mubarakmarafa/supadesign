@@ -1,5 +1,5 @@
-import type { MediaReference } from "@supacode/client-runtime/media-reference";
-import type { AssetResource, EnvironmentId, ThreadId } from "@supacode/contracts";
+import type { MediaReference } from "@supaterm/client-runtime/media-reference";
+import type { AssetResource, EnvironmentId, ThreadId } from "@supaterm/contracts";
 import type { FileBackedComposerAttachment } from "./composerImages";
 
 /** Authored source metadata is kept separate from temporary preview/download URLs. */

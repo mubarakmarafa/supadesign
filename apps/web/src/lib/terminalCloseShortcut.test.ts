@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { ResolvedKeybindingsConfig } from "@supacode/contracts";
+import type { ResolvedKeybindingsConfig } from "@supaterm/contracts";
 
 import {
   preventRepeatedTerminalCloseShortcut,

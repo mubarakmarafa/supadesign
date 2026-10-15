@@ -4,7 +4,7 @@ import { useStartNewTask } from "../threads/use-start-new-task";
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ProjectId } from "@supacode/contracts";
+import { ProjectId } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import {
   ActivityIndicator,
@@ -328,7 +328,7 @@ export function PullRequestsScreen(
               className="items-center gap-2 px-8 py-4"
             >
               <Text className="text-xs text-foreground-muted">{result.loadMoreError}</Text>
-              <Text className="text-sm font-supacode-medium text-link">Try again</Text>
+              <Text className="text-sm font-supaterm-medium text-link">Try again</Text>
             </Pressable>
           ) : undefined
         }

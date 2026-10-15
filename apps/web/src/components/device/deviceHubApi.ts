@@ -1,6 +1,6 @@
-import { withDeviceHubQuery } from "@supacode/client-runtime/state/deviceHubAccess";
-import type { DeviceHubAccess } from "@supacode/client-runtime/state/deviceHubAccess";
-import type { DevicePlatform } from "@supacode/contracts";
+import { withDeviceHubQuery } from "@supaterm/client-runtime/state/deviceHubAccess";
+import type { DeviceHubAccess } from "@supaterm/client-runtime/state/deviceHubAccess";
+import type { DevicePlatform } from "@supaterm/contracts";
 
 /**
  * Read-only hub endpoints the Tools drawer consumes directly: the accessibility

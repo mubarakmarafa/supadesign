@@ -1,5 +1,5 @@
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import { repositoryGroupingKeyOf, type EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import { repositoryGroupingKeyOf, type EnvironmentId } from "@supaterm/contracts";
 
 import { scopedProjectKey } from "../../lib/scopedEntities";
 import type { HomeProjectScope } from "../home/homeThreadList";

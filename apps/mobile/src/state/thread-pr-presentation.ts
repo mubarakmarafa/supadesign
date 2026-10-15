@@ -1,15 +1,15 @@
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import type {
   ExecutionEnvironmentCapabilities,
   ThreadPullRequestLink,
   VcsStatusResult,
-} from "@supacode/contracts";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+} from "@supaterm/contracts";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 
 import {
   resolveThreadCurrentPullRequestLink,
   resolveThreadPullRequestBadge,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 
 export type ThreadPr = NonNullable<VcsStatusResult["pr"]>;
 

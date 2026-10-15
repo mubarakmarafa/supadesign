@@ -5,7 +5,7 @@ import {
   branchNamingChoicePatch,
   type BranchNamingMode,
   type ServerSettingsPatch,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useRef } from "react";
 import { View } from "react-native";
 
@@ -64,7 +64,7 @@ export function BranchNamingSettings(props: {
       {choice === "static" ? (
         <View className="gap-2 px-4 py-3">
           <Text className="text-sm text-foreground-muted">
-            Use supacode or supacode/ for supacode/add-search. Leave empty for no prefix.
+            Use supaterm or supaterm/ for supaterm/add-search. Leave empty for no prefix.
           </Text>
           <AppTextInput
             key={props.prefix}

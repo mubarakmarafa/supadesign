@@ -55,7 +55,7 @@ export function SheetActionButton(props: {
       />
       <Text
         className={cn(
-          "text-xs font-supacode-bold tracking-[0.9px] uppercase",
+          "text-xs font-supaterm-bold tracking-[0.9px] uppercase",
           tone === "primary"
             ? "text-primary-foreground"
             : tone === "danger"
@@ -72,7 +72,7 @@ export function SheetActionButton(props: {
 export function MetaCard(props: { readonly label: string; readonly value: string }) {
   return (
     <View className="bg-card px-4 py-3 android:rounded-[20px] ios:rounded-[18px] ios:border ios:border-border">
-      <Text className="text-foreground-muted text-2xs font-supacode-bold tracking-[0.9px] uppercase">
+      <Text className="text-foreground-muted text-2xs font-supaterm-bold tracking-[0.9px] uppercase">
         {props.label}
       </Text>
       <Text selectable className="text-foreground text-sm font-medium" numberOfLines={1}>
@@ -104,7 +104,7 @@ export function SheetListRow(props: {
         />
       </View>
       <View className="flex-1 gap-0.5">
-        <Text className="text-foreground text-base android:font-supacode-medium ios:font-supacode-bold">
+        <Text className="text-foreground text-base android:font-supaterm-medium ios:font-supaterm-bold">
           {props.title}
         </Text>
         {props.subtitle ? (

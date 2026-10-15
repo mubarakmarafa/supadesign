@@ -1,10 +1,10 @@
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
-import type { DiscoveredLocalServer, ScopedThreadRef } from "@supacode/contracts";
+import type { DiscoveredLocalServer, ScopedThreadRef } from "@supaterm/contracts";
 import {
   mapAtomCommandResult,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 import {
   RelayHostBrowserUnavailableError,

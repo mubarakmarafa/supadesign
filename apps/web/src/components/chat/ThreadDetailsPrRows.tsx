@@ -1,10 +1,10 @@
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
-import type { EnvironmentId, ScopedThreadRef, ThreadPullRequestLink } from "@supacode/contracts";
+import type { EnvironmentId, ScopedThreadRef, ThreadPullRequestLink } from "@supaterm/contracts";
 import {
   resolveThreadPullRequestChains,
   threadPullRequestKeyOf,
   visibleThreadPullRequests,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 import { Minus, Plus } from "lucide";
 import { useState, type ComponentProps, type MouseEvent as ReactMouseEvent } from "react";
 

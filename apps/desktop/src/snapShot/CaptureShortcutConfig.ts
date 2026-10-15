@@ -10,7 +10,7 @@ import type {
   DesktopCaptureConfigApplied,
   DesktopCaptureConfigPreview,
   DesktopCaptureConfigRequest,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   captureConfigKeys,
   editCaptureConfig,
@@ -225,7 +225,7 @@ export class CaptureShortcutConfig {
     const { preview, files } = pending;
     const root = files[0]!;
     const directory = NodePath.dirname(root.resolvedPath);
-    const temporary = NodePath.join(directory, `.supacode-capture-${NodeCrypto.randomUUID()}.tmp`);
+    const temporary = NodePath.join(directory, `.supaterm-capture-${NodeCrypto.randomUUID()}.tmp`);
     let staged = false;
     try {
       const unchanged = async () => {
@@ -282,7 +282,7 @@ export class CaptureShortcutConfig {
         }
       }
       await unchanged();
-      const backupPath = `${root.resolvedPath}.supacode-capture-backup-${NodeCrypto.randomUUID()}`;
+      const backupPath = `${root.resolvedPath}.supaterm-capture-backup-${NodeCrypto.randomUUID()}`;
       await NodeFSP.writeFile(backupPath, root.bytes, { flag: "wx", mode: 0o600 });
       await NodeFSP.rename(temporary, root.resolvedPath);
       staged = false;

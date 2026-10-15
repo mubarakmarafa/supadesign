@@ -5,7 +5,7 @@ import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import { Radio as RadioPrimitive } from "@base-ui/react/radio";
 import { CheckIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import {
   type AcpRegistrySearchAgent,
   AuthProvidersManageScope,
@@ -14,7 +14,7 @@ import {
   type EnvironmentId,
   type ProviderInstanceConfig,
   type ProviderInstanceEnvironmentVariable,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   useEnvironmentSettings,
@@ -60,7 +60,7 @@ import { ProviderEnvironmentSection } from "./ProviderInstanceCard";
  * The full id is formed by prefixing the driver slug. For example, label "Work" on
  * driver "codex" becomes `codex_work`. Output is trimmed to 48 chars so the
  * final composed id stays under the 64-char slug cap enforced by
- * `ProviderInstanceId` in `@supacode/contracts`.
+ * `ProviderInstanceId` in `@supaterm/contracts`.
  */
 function slugifyLabel(value: string): string {
   return value

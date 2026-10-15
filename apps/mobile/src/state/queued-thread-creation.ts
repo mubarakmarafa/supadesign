@@ -1,5 +1,5 @@
-import type { AtomCommandResult } from "@supacode/client-runtime/state/runtime";
-import type { VcsListRefsInput, VcsListRefsResult } from "@supacode/contracts";
+import type { AtomCommandResult } from "@supaterm/client-runtime/state/runtime";
+import type { VcsListRefsInput, VcsListRefsResult } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 

@@ -9,7 +9,7 @@ import * as Schema from "effect/Schema";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 
 const PackageMetadata = Schema.Struct({
-  supacodeWebAuthn: Schema.optional(Schema.Struct({ touchIdKeychainAccessGroup: Schema.String })),
+  supatermWebAuthn: Schema.optional(Schema.Struct({ touchIdKeychainAccessGroup: Schema.String })),
 });
 const decodeMetadata = Schema.decodeEffect(Schema.fromJsonString(PackageMetadata));
 
@@ -19,7 +19,7 @@ export class PreviewPasskeys extends Context.Service<
     readonly configure: Effect.Effect<void>;
     readonly installSessionHandlers: (session: Session) => void;
   }
->()("@supacode/desktop/preview/Passkeys/PreviewPasskeys") {}
+>()("@supaterm/desktop/preview/Passkeys/PreviewPasskeys") {}
 
 const accountLabel = (account: Electron.WebAuthnAccount) =>
   account.displayName && account.name && account.displayName !== account.name
@@ -55,7 +55,7 @@ export const make = Effect.gen(function* () {
     environment.platform === "darwin" && environment.isPackaged
       ? yield* fs.readFileString(environment.path.join(environment.appRoot, "package.json")).pipe(
           Effect.flatMap(decodeMetadata),
-          Effect.map((metadata) => metadata.supacodeWebAuthn?.touchIdKeychainAccessGroup),
+          Effect.map((metadata) => metadata.supatermWebAuthn?.touchIdKeychainAccessGroup),
           Effect.orElseSucceed(() => undefined),
         )
       : undefined;

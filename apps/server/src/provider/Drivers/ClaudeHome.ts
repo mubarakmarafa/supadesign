@@ -1,10 +1,10 @@
-import type { ClaudeSettings } from "@supacode/contracts";
+import type { ClaudeSettings } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const quotePath = Schema.encodeSync(Schema.fromJsonString(Schema.String));
 

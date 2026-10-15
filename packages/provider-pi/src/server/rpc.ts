@@ -28,14 +28,14 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import {
   MAX_TOOL_OUTPUT_IMAGES,
   MAX_TOOL_OUTPUT_IMAGE_BASE64_LENGTH,
-} from "@supacode/shared/toolOutput";
+} from "@supaterm/shared/toolOutput";
 
-import { signalProcessGroup } from "@supacode/provider-core/server/processGroup";
+import { signalProcessGroup } from "@supaterm/provider-core/server/processGroup";
 
 export class PiRpcError extends Schema.TaggedError<PiRpcError>()("PiRpcError", {
   operation: Schema.String,
@@ -455,7 +455,7 @@ export const makePiRpcConnection = Effect.fnUntraced(function* (options: PiRpcSp
     timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
   ): Effect.Effect<unknown, PiRpcError | PiRpcTimeoutError> =>
     Effect.gen(function* () {
-      const id = `supacode-${nextRequestId++}`;
+      const id = `supaterm-${nextRequestId++}`;
       const deferred = yield* Deferred.make<unknown, PiRpcError>();
       pendingRequests.set(id, { deferred });
       yield* send({ ...record, id }).pipe(

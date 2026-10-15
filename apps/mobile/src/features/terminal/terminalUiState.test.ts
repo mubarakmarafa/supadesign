@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 
 import {
   cacheTerminalGridSize,

@@ -4,13 +4,13 @@ import {
   type AuthSessionState,
   type ExecutionEnvironmentCapabilities,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   cliReleaseChannelOf,
   cliReleaseIndexPageUrl,
   newestCliReleaseVersion,
-} from "@supacode/shared/cliRelease";
-import { compareSemverVersions } from "@supacode/shared/semver";
+} from "@supaterm/shared/cliRelease";
+import { compareSemverVersions } from "@supaterm/shared/semver";
 import * as Schema from "effect/Schema";
 
 export function canMaintainEnvironment(session: AuthSessionState | null, connected: boolean) {

@@ -5,8 +5,8 @@ import type {
   OrchestrationV2TurnItem,
   ThreadId,
   ThreadPullRequestLink,
-} from "@supacode/contracts";
-import { isOrchestrationV2WorkActive } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { isOrchestrationV2WorkActive } from "@supaterm/contracts";
 
 import { threadPullRequestKeyOf } from "./threadPullRequests.ts";
 

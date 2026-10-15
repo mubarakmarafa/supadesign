@@ -10,7 +10,7 @@ const key = JSON.stringify({
 const input = {
   token: "expo-token-fixture",
   projectFullName: "@supabitapp/supacode",
-  applicationIdentifier: "com.supaterm.supacode",
+  applicationIdentifier: "com.supaterm.mobile",
 };
 const credentials = (
   entries = [

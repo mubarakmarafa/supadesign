@@ -1,6 +1,6 @@
 import { useIsFocused } from "@react-navigation/native";
-import { shouldShowFloatingBrowser } from "@supacode/client-runtime/preview/floating-browser";
-import type { EnvironmentId, PreviewSessionSnapshot, ThreadId } from "@supacode/contracts";
+import { shouldShowFloatingBrowser } from "@supaterm/client-runtime/preview/floating-browser";
+import type { EnvironmentId, PreviewSessionSnapshot, ThreadId } from "@supaterm/contracts";
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Pressable, View } from "react-native";
 

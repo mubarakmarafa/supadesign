@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { readUsagePagePreferences, saveUsagePagePreferences } from "./usagePagePreferences";
 
-const key = "supacode:usage-page-preferences:v1";
+const key = "supaterm:usage-page-preferences:v1";
 let values: Map<string, string>;
 let storage: Pick<Storage, "getItem" | "setItem">;
 

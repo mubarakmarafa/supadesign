@@ -1,15 +1,15 @@
-import { proposedPlanTitle, stripDisplayedPlanMarkdown } from "@supacode/shared/proposedPlanText";
+import { proposedPlanTitle, stripDisplayedPlanMarkdown } from "@supaterm/shared/proposedPlanText";
 import { memo, useCallback, useState, useId } from "react";
 import { useFindRevealRef } from "./markdownFindContext";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   AuthFilesystemWriteScope,
   type EnvironmentId,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   buildCollapsedProposedPlanPreviewMarkdown,
   buildProposedPlanMarkdownFilename,

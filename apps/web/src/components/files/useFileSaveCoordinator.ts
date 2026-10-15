@@ -1,4 +1,4 @@
-import { AuthFilesystemWriteScope, type EnvironmentId } from "@supacode/contracts";
+import { AuthFilesystemWriteScope, type EnvironmentId } from "@supaterm/contracts";
 import { createRef, useEffect, useMemo } from "react";
 
 import { projectEnvironment } from "~/state/projects";

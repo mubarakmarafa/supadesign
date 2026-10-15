@@ -1,4 +1,4 @@
-import type { OrchestrationV2ProviderFailureClass } from "@supacode/contracts";
+import type { OrchestrationV2ProviderFailureClass } from "@supaterm/contracts";
 import { memo, useMemo } from "react";
 import { usePresence } from "~/hooks/usePresence";
 import { Alert, AlertAction, AlertDescription } from "../ui/alert";

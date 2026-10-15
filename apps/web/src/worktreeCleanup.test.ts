@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { DEFAULT_INTERACTION_MODE, DEFAULT_RUNTIME_MODE, type Thread } from "./types";
@@ -87,19 +87,19 @@ describe("getOrphanedWorktreePathForThread", () => {
 describe("formatWorktreePathForDisplay", () => {
   it("shows only the last path segment for unix-like paths", () => {
     const result = formatWorktreePathForDisplay(
-      "/Users/julius/.supacode/worktrees/supacode-mvp/supacode-4e609bb8",
+      "/Users/julius/.supaterm/worktrees/supaterm-mvp/supaterm-4e609bb8",
     );
-    expect(result).toBe("supacode-4e609bb8");
+    expect(result).toBe("supaterm-4e609bb8");
   });
 
   it("normalizes windows separators before selecting the final segment", () => {
     const result = formatWorktreePathForDisplay(
-      "C:\\Users\\julius\\.supacode\\worktrees\\supacode-mvp\\supacode-4e609bb8",
+      "C:\\Users\\julius\\.supaterm\\worktrees\\supaterm-mvp\\supaterm-4e609bb8",
     );
-    expect(result).toBe("supacode-4e609bb8");
+    expect(result).toBe("supaterm-4e609bb8");
   });
 
-  it("uses the final segment even when outside ~/.supacode/worktrees", () => {
+  it("uses the final segment even when outside ~/.supaterm/worktrees", () => {
     const result = formatWorktreePathForDisplay("/tmp/custom-worktrees/my-worktree");
     expect(result).toBe("my-worktree");
   });

@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
-import { ProviderInstanceId } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { ProviderInstanceId } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -9,13 +9,13 @@ import * as Path from "effect/Path";
 import * as HttpClient from "effect/http/HttpClient";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import { GrokDriver } from "./driver.ts";
 
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
 
 const layerTest = TestProviderHost.layer({ runBackgroundWork: false }).pipe(
   Layer.provideMerge(NodeServices.layer),
@@ -48,7 +48,7 @@ it.layer(layerTest)("GrokDriver", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-grok-driver-" });
+      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-grok-driver-" });
       const grokHome = path.join(tempDir, "Grok Home");
       const binaryPath = path.join(grokHome, "bin", "grok");
       yield* fs.makeDirectory(path.dirname(binaryPath), { recursive: true });
@@ -82,7 +82,7 @@ it.layer(layerTest)("GrokDriver", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-grok-missing-" });
+      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-grok-missing-" });
       const instance = yield* GrokDriver.create({
         instanceId: ProviderInstanceId.make("grok-missing"),
         displayName: "Grok test",

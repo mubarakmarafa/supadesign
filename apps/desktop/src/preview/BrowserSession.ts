@@ -11,14 +11,14 @@ import * as SynchronizedRef from "effect/SynchronizedRef";
 
 import * as ElectronDialog from "../electron/ElectronDialog.ts";
 
-const PREVIEW_PARTITION_PREFIX = "persist:supacode-preview-";
+const PREVIEW_PARTITION_PREFIX = "persist:supaterm-preview-";
 /**
  * Incognito partitions deliberately omit the `persist:` prefix, which is what
  * makes Chromium keep them in memory and discard them with the process. They
  * still carry the product prefix so `isPartition` can admit them — the
  * `will-attach-webview` gate rejects anything it does not recognise.
  */
-const PREVIEW_EPHEMERAL_PARTITION_PREFIX = "supacode-preview-ephemeral-";
+const PREVIEW_EPHEMERAL_PARTITION_PREFIX = "supaterm-preview-ephemeral-";
 const PROFILE_PARTITION_MARKER = "profile-";
 
 export type BrowserSessionPartitionNamespace = "profile";
@@ -154,7 +154,7 @@ export class BrowserSession extends Context.Service<
       partitions?: ReadonlyArray<string>,
     ) => Effect.Effect<void, BrowserSessionCacheClearError>;
   }
->()("@supacode/desktop/preview/BrowserSession") {}
+>()("@supaterm/desktop/preview/BrowserSession") {}
 
 /**
  * Restricts a clear to the given partitions. Omitting them keeps the historical

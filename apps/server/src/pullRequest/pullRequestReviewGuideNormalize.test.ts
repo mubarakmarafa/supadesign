@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { PullRequestReviewGuideStop } from "@supacode/contracts";
-import type { ReviewGuideGenerationResult } from "@supacode/provider-core/server/textGeneration";
+import type { PullRequestReviewGuideStop } from "@supaterm/contracts";
+import type { ReviewGuideGenerationResult } from "@supaterm/provider-core/server/textGeneration";
 
 import { normalizeReviewGuide, parseReviewGuideChange } from "./pullRequestReviewGuideNormalize.ts";
 

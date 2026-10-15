@@ -3,7 +3,7 @@ import {
   createThreadHistoryPrefetcher,
   THREAD_HISTORY_PREFETCH_VIEWPORTS,
   type ThreadHistoryControls,
-} from "@supacode/client-runtime/thread-history-prefetch";
+} from "@supaterm/client-runtime/thread-history-prefetch";
 import { useOpenPullRequest } from "../../native/useOpenPullRequest";
 import { ThreadMarkdownVideo, ThreadMediaVisibleContext } from "./ThreadMarkdownVideo";
 import { useMarkdownImageSource } from "../../native/useMarkdownImageSource";
@@ -19,9 +19,9 @@ import {
 import * as Haptics from "expo-haptics";
 import { KeyboardAwareLegendList } from "@legendapp/list/keyboard";
 import { useViewabilityAmount, type LegendListRef } from "@legendapp/list/react-native";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { resolveUserMessagePresentation } from "@supacode/client-runtime/user-message";
-import { canForkProjectedAssistantItem } from "@supacode/client-runtime/state/thread-workflows";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { resolveUserMessagePresentation } from "@supaterm/client-runtime/user-message";
+import { canForkProjectedAssistantItem } from "@supaterm/client-runtime/state/thread-workflows";
 import {
   type OrchestrationMessageContext,
   ThreadId,
@@ -32,42 +32,42 @@ import {
   type MessageId,
   type OrchestrationV2ProjectedTurnItem,
   type RunId,
-} from "@supacode/contracts";
-import { renderAssistantCitationsAsText } from "@supacode/shared/assistantCitations";
-import { encodeComposerContextFragment } from "@supacode/shared/composerContextClipboard";
-import { parseThreadLinkHref } from "@supacode/shared/threadLinks";
-import { PROMPT_LINK_MAX_PROMPT_LENGTH } from "@supacode/shared/promptLinks";
+} from "@supaterm/contracts";
+import { renderAssistantCitationsAsText } from "@supaterm/shared/assistantCitations";
+import { encodeComposerContextFragment } from "@supaterm/shared/composerContextClipboard";
+import { parseThreadLinkHref } from "@supaterm/shared/threadLinks";
+import { PROMPT_LINK_MAX_PROMPT_LENGTH } from "@supaterm/shared/promptLinks";
 import {
   parseComposerContextHref,
   collectComposerContextReferences,
   replaceComposerContextReferences,
   formatComposerContextReference,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 import { ComposerContextSheet } from "../../components/ComposerContextSheet";
 import { writeComposerContextClipboard } from "../../lib/composerContextClipboard";
 import {
   codexArtifactTemplatePresentationLabel,
   type CodexArtifactTemplate,
-} from "@supacode/shared/codexArtifactTemplates";
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
+} from "@supaterm/shared/codexArtifactTemplates";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 
-import { formatAttachmentSize } from "@supacode/client-runtime/state/attachments";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
-} from "@supacode/client-runtime/markdown-images";
-import { resolveViewedImageAsset } from "@supacode/client-runtime/work-log/presentation";
+} from "@supaterm/client-runtime/markdown-images";
+import { resolveViewedImageAsset } from "@supaterm/client-runtime/work-log/presentation";
 import {
   renderCodexFileCitationsAsMarkdown,
   splitCodexArtifactTemplateMarkdown,
-} from "@supacode/shared/codexMarkdownDirectives";
+} from "@supaterm/shared/codexMarkdownDirectives";
 import {
   CHAT_LIST_ANCHOR_OFFSET,
   resolveChatListAnchoredEndSpace,
-} from "@supacode/shared/chatList";
-import { imageMimeType } from "@supacode/shared/image";
-import { videoMimeType } from "@supacode/shared/video";
+} from "@supaterm/shared/chatList";
+import { imageMimeType } from "@supaterm/shared/image";
+import { videoMimeType } from "@supaterm/shared/video";
 import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
 import { HeaderHeightContext } from "@react-navigation/elements";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -206,7 +206,7 @@ import {
 } from "./thread-feed-item-size";
 import { ThreadFeedLoading } from "./thread-feed-loading";
 import { useThreadFeedLoading } from "./use-thread-feed-loading";
-import { htmlRenderFrameHeight } from "@supacode/shared/htmlRender";
+import { htmlRenderFrameHeight } from "@supaterm/shared/htmlRender";
 import { htmlRenderRowHeight, ThreadHtmlRender } from "./HtmlRenderWebView";
 import { ThreadMcpApp } from "./McpAppWebView";
 
@@ -702,7 +702,7 @@ function MessageAttachmentFile(props: {
             )}
           </View>
           <View className="min-w-0 flex-1 gap-1">
-            <Text className="font-supacode-medium text-sm text-foreground" numberOfLines={2}>
+            <Text className="font-supaterm-medium text-sm text-foreground" numberOfLines={2}>
               {attachment.name}
             </Text>
             <Text className="text-xs text-foreground-muted" numberOfLines={1}>
@@ -804,7 +804,7 @@ function ArtifactTemplateCard(props: {
         </View>
       </View>
       <View className="min-w-0 flex-1">
-        <Text className="font-supacode-bold text-sm text-foreground" numberOfLines={1}>
+        <Text className="font-supaterm-bold text-sm text-foreground" numberOfLines={1}>
           {props.template.displayName}
         </Text>
         <Text className="text-xs text-foreground-muted">
@@ -818,7 +818,7 @@ function ArtifactTemplateCard(props: {
           className="min-h-9 justify-center rounded-lg border border-border bg-subtle px-3 active:opacity-65"
           onPress={() => props.onUse?.(props.template)}
         >
-          <Text className="font-supacode-bold text-xs text-foreground">Use template</Text>
+          <Text className="font-supaterm-bold text-xs text-foreground">Use template</Text>
         </Pressable>
       ) : null}
     </View>
@@ -974,7 +974,7 @@ function AgentMessageAttribution(props: {
   const navigation = useNavigation();
   const senderThreadId = props.senderThreadId;
   const label = (
-    <Text className="mb-1 pr-1 font-supacode-medium text-2xs text-foreground-muted opacity-60">
+    <Text className="mb-1 pr-1 font-supaterm-medium text-2xs text-foreground-muted opacity-60">
       Sent by another agent
     </Text>
   );
@@ -1060,7 +1060,7 @@ function renderFeedEntry(
       >
         <Text
           key={props.workRowSizing.textSizeKey}
-          className="font-supacode-medium text-sm tabular-nums text-foreground-muted"
+          className="font-supaterm-medium text-sm tabular-nums text-foreground-muted"
         >
           {entry.label}
         </Text>
@@ -1202,12 +1202,12 @@ function renderFeedEntry(
           {...(enterAnimated ? { entering: FadeInUp.duration(220) } : {})}
         >
           {presentation.attribution === "automation" ? (
-            <Text className="mb-1 pr-1 font-supacode-medium text-2xs text-foreground-muted opacity-60">
+            <Text className="mb-1 pr-1 font-supaterm-medium text-2xs text-foreground-muted opacity-60">
               Sent by automation
             </Text>
-          ) : presentation.attribution === "supacode" ? (
-            <Text className="mb-1 pr-1 font-supacode-medium text-2xs text-foreground-muted opacity-60">
-              Sent by Supacode
+          ) : presentation.attribution === "supaterm" ? (
+            <Text className="mb-1 pr-1 font-supaterm-medium text-2xs text-foreground-muted opacity-60">
+              Sent by Supaterm
             </Text>
           ) : presentation.attribution === "agent" ? (
             <AgentMessageAttribution
@@ -1334,7 +1334,7 @@ function renderFeedEntry(
               >
                 <Text
                   className={cn(
-                    "font-supacode-medium text-2xs tracking-wide",
+                    "font-supaterm-medium text-2xs tracking-wide",
                     intentBadge.tone === "queued"
                       ? "text-adaptive-amber-700-300"
                       : "text-adaptive-sky-700-300",
@@ -1344,7 +1344,7 @@ function renderFeedEntry(
                 </Text>
               </View>
             ) : null}
-            <Text className="font-supacode-medium text-xs tabular-nums text-foreground-secondary">
+            <Text className="font-supaterm-medium text-xs tabular-nums text-foreground-secondary">
               {entry.pendingMessage && !entry.acknowledged ? "Pending" : timestampLabel}
             </Text>
             {props.onEditPendingMessage !== null &&
@@ -1461,7 +1461,7 @@ function renderFeedEntry(
                 sourceTitle={props.threadTitle}
               />
             ) : null}
-            <Text className="font-supacode-medium text-xs tabular-nums text-foreground-secondary">
+            <Text className="font-supaterm-medium text-xs tabular-nums text-foreground-secondary">
               {timestampLabel}
             </Text>
           </View>
@@ -1514,7 +1514,7 @@ function UserMessageContent(props: UserMessageContentProps) {
   const liveText = useLiveThreadLinkLabels(props.text, props.environmentId);
   const text = replaceComposerContextReferences(liveText, (ref) => {
     const available = props.context?.records.some((record) => record.contextId === ref.contextId);
-    return `[${ref.label}${available ? "" : " (unavailable)"}](supacode-context://v1/${ref.kind}/${ref.contextId})`;
+    return `[${ref.label}${available ? "" : " (unavailable)"}](supaterm-context://v1/${ref.kind}/${ref.contextId})`;
   });
   const onLinkPress = (href: string) => {
     const reference = parseComposerContextHref(href);
@@ -1697,7 +1697,7 @@ function ThreadFeedPlaceholder(props: {
       }}
     >
       <View className="max-w-[320px] items-center gap-2">
-        <Text className="text-center font-supacode-bold text-lg text-foreground">
+        <Text className="text-center font-supaterm-bold text-lg text-foreground">
           {props.title}
         </Text>
         <Text className="text-center text-sm leading-normal text-foreground-secondary">

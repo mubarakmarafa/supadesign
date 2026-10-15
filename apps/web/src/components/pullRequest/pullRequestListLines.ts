@@ -1,5 +1,5 @@
-import type { ThreadPullRequestLink } from "@supacode/contracts";
-import type { ThreadPullRequestChain } from "@supacode/shared/threadPullRequests";
+import type { ThreadPullRequestLink } from "@supaterm/contracts";
+import type { ThreadPullRequestChain } from "@supaterm/shared/threadPullRequests";
 
 /** One line of a thread's pull-request list: a link plus how deep it sits in its stack. */
 export interface PullRequestListLine {

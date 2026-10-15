@@ -1,4 +1,4 @@
-import type { DeviceHubAccess } from "@supacode/client-runtime/state/deviceHubAccess";
+import type { DeviceHubAccess } from "@supaterm/client-runtime/state/deviceHubAccess";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";

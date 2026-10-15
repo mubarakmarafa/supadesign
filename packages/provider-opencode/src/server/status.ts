@@ -3,7 +3,7 @@ import {
   type ServerProviderModel,
   type ServerProviderSkill,
   type ServerProviderSlashCommand,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { OpenCodeSettings } from "../settings.ts";
 import * as Cause from "effect/Cause";
 import * as Data from "effect/Data";
@@ -11,15 +11,15 @@ import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Schedule from "effect/Schedule";
 
-import { createModelCapabilities } from "@supacode/shared/model";
-import { compareSemverVersions } from "@supacode/shared/semver";
+import { createModelCapabilities } from "@supaterm/shared/model";
+import { compareSemverVersions } from "@supaterm/shared/semver";
 import {
   buildServerProvider,
   COMPACT_SLASH_COMMAND,
   nonEmptyTrimmed,
   providerModelsFromSettings,
   type ServerProviderDraft,
-} from "@supacode/provider-core/server/snapshotProbe";
+} from "@supaterm/provider-core/server/snapshotProbe";
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
 import type { ProbedOpenCode } from "./versionProbe.ts";
 import type { Agent, ProviderListResponse } from "@opencode-ai/sdk/v2";
@@ -357,8 +357,8 @@ export const makePendingOpenCodeProvider = (
           auth: { status: "unknown" },
           message:
             openCodeSettings.serverUrl.trim().length > 0
-              ? "OpenCode is disabled in Supacode settings. A server URL is configured."
-              : "OpenCode is disabled in Supacode settings.",
+              ? "OpenCode is disabled in Supaterm settings. A server URL is configured."
+              : "OpenCode is disabled in Supaterm settings.",
         },
       });
     }
@@ -658,8 +658,8 @@ export const checkOpenCodeProviderStatus = Effect.fn("checkOpenCodeProviderStatu
         status: "warning",
         auth: { status: "unknown" },
         message: isExternalServer
-          ? "OpenCode is disabled in Supacode settings. A server URL is configured."
-          : "OpenCode is disabled in Supacode settings.",
+          ? "OpenCode is disabled in Supaterm settings. A server URL is configured."
+          : "OpenCode is disabled in Supaterm settings.",
       },
     });
   }

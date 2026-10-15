@@ -47,7 +47,7 @@ runs:
             extension=apk
           fi
         fi
-        binary="$RUNNER_TEMP/supacode-$MOBILE_PLATFORM.$extension"
+        binary="$RUNNER_TEMP/supaterm-$MOBILE_PLATFORM.$extension"
         eas build --local --platform "$MOBILE_PLATFORM" --profile "$MOBILE_PROFILE" \
           --non-interactive --freeze-credentials --output "$binary"
         fingerprint=$(node ../../.github/scripts/mobile-build-fingerprint.cjs "$binary" "$MOBILE_PLATFORM")

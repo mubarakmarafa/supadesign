@@ -1,7 +1,7 @@
 "use client";
 
-import { FILL_PREVIEW_VIEWPORT, type ScopedThreadRef } from "@supacode/contracts";
-import { shouldShowFloatingBrowser } from "@supacode/client-runtime/preview/floating-browser";
+import { FILL_PREVIEW_VIEWPORT, type ScopedThreadRef } from "@supaterm/contracts";
+import { shouldShowFloatingBrowser } from "@supaterm/client-runtime/preview/floating-browser";
 import { PanelRightIcon, PictureInPicture2, XIcon } from "lucide-react";
 import {
   type PointerEvent as ReactPointerEvent,
@@ -48,8 +48,8 @@ import { useRightPanelStore } from "~/rightPanelStore";
 import { useDeviceState } from "~/state/device";
 
 import { DeviceStreamView } from "../device/DeviceStreamView";
-import type { DeviceScreenSize } from "@supacode/client-runtime/device/stream";
-import type { PreviewStreamViewport } from "@supacode/client-runtime/preview/server-browser-stream";
+import type { DeviceScreenSize } from "@supaterm/client-runtime/device/stream";
+import type { PreviewStreamViewport } from "@supaterm/client-runtime/preview/server-browser-stream";
 import { previewBridge } from "./previewBridge";
 import { showPreviewPopup } from "./showPreviewPopup";
 import {

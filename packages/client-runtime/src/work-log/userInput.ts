@@ -1,4 +1,4 @@
-import { type UserInputAttachmentAnswerPayload } from "@supacode/contracts";
+import { type UserInputAttachmentAnswerPayload } from "@supaterm/contracts";
 
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === "object" && !Array.isArray(value)

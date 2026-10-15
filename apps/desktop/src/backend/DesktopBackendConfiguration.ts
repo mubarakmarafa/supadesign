@@ -1,7 +1,7 @@
 import * as NodeOS from "node:os";
 
-import { parsePersistedServerObservabilitySettings } from "@supacode/shared/serverSettings";
-import { currentDesktopBootstrapToken } from "@supacode/shared/desktopBootstrapToken";
+import { parsePersistedServerObservabilitySettings } from "@supaterm/shared/serverSettings";
+import { currentDesktopBootstrapToken } from "@supaterm/shared/desktopBootstrapToken";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -69,7 +69,7 @@ export class DesktopBackendConfiguration extends Context.Service<
     // so the renderer never holds one long-lived admin credential.
     readonly currentBootstrapToken: Effect.Effect<string, PlatformError.PlatformError>;
   }
->()("@supacode/desktop/backend/DesktopBackendConfiguration") {}
+>()("@supaterm/desktop/backend/DesktopBackendConfiguration") {}
 
 interface BackendObservabilitySettings {
   readonly otlpTracesUrl: Option.Option<string>;
@@ -84,16 +84,16 @@ const emptyBackendObservabilitySettings: BackendObservabilitySettings = {
 };
 
 const DESKTOP_BACKEND_ENV_NAMES = [
-  "SUPACODE_PORT",
-  "SUPACODE_MODE",
-  "SUPACODE_NO_BROWSER",
-  "SUPACODE_HOST",
-  "SUPACODE_DESKTOP_WS_URL",
-  "SUPACODE_DESKTOP_LAN_ACCESS",
-  "SUPACODE_DESKTOP_LAN_HOST",
-  "SUPACODE_DESKTOP_HTTPS_ENDPOINTS",
-  "SUPACODE_TAILSCALE_SERVE",
-  "SUPACODE_TAILSCALE_SERVE_PORT",
+  "SUPATERM_PORT",
+  "SUPATERM_MODE",
+  "SUPATERM_NO_BROWSER",
+  "SUPATERM_HOST",
+  "SUPATERM_DESKTOP_WS_URL",
+  "SUPATERM_DESKTOP_LAN_ACCESS",
+  "SUPATERM_DESKTOP_LAN_HOST",
+  "SUPATERM_DESKTOP_HTTPS_ENDPOINTS",
+  "SUPATERM_TAILSCALE_SERVE",
+  "SUPATERM_TAILSCALE_SERVE_PORT",
 ] as const;
 
 // Env vars that the WSL backend needs but Windows process.env won't forward
@@ -102,18 +102,18 @@ const DESKTOP_BACKEND_ENV_NAMES = [
 const WSL_FORWARDED_ENV_NAMES = [
   "OPENAI_API_KEY",
   "ANTHROPIC_API_KEY",
-  "SUPACODE_TELEMETRY_ENABLED",
+  "SUPATERM_TELEMETRY_ENABLED",
   // Otherwise the WSL server keeps exporting to endpoints from the bootstrap.
-  "SUPACODE_OTEL_SDK_DISABLED",
+  "SUPATERM_OTEL_SDK_DISABLED",
   "OTEL_SDK_DISABLED",
-  "SUPACODE_OTLP_HEADERS",
-  "SUPACODE_OTLP_PROTOCOL",
+  "SUPATERM_OTLP_HEADERS",
+  "SUPATERM_OTLP_PROTOCOL",
   // Forwarded without a WSLENV flag, so the values arrive untranslated. The
-  // server prefers an OTEL endpoint over the bootstrap envelope, so the Supacode URLs
+  // server prefers an OTEL endpoint over the bootstrap envelope, so the Supaterm URLs
   // travel as variables to keep winning inside the distro as they do on Windows.
-  "SUPACODE_OTLP_TRACES_URL",
-  "SUPACODE_OTLP_METRICS_URL",
-  "SUPACODE_OTLP_LOGS_URL",
+  "SUPATERM_OTLP_TRACES_URL",
+  "SUPATERM_OTLP_METRICS_URL",
+  "SUPATERM_OTLP_LOGS_URL",
   "OTEL_EXPORTER_OTLP_ENDPOINT",
   "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
   "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT",
@@ -186,7 +186,7 @@ const logBackendObservabilitySettingsReadFailure = (
 };
 
 function resourceMonitorBinaryName(platform: NodeJS.Platform): string {
-  return platform === "win32" ? "supacode-resource-monitor.exe" : "supacode-resource-monitor";
+  return platform === "win32" ? "supaterm-resource-monitor.exe" : "supaterm-resource-monitor";
 }
 
 const resolveResourceMonitorPath = Effect.fn(
@@ -250,7 +250,7 @@ const readPersistedBackendObservabilitySettings = Effect.gen(function* () {
 });
 
 // The bootstrap carries the OTLP endpoints to every backend, including a WSL
-// child that lacks the variables. The Supacode URLs also travel as variables in
+// child that lacks the variables. The Supaterm URLs also travel as variables in
 // WSL_FORWARDED_ENV_NAMES so they outrank a forwarded OTEL endpoint. Env beats
 // the persisted settings file, matching the precedence resolveServerConfig and
 // DesktopObservability apply.
@@ -271,7 +271,7 @@ interface SharedBootstrapInput {
 }
 
 // What the launch runs inside the distro. The staged runtime is the release's
-// self-contained `supacode` executable (Node inside); the mounted server tree is a
+// self-contained `supaterm` executable (Node inside); the mounted server tree is a
 // script that needs the distro's own Node.
 type WslPreflightRuntime =
   | {
@@ -448,7 +448,7 @@ const runWslPreflight = Effect.fn("desktop.backendConfiguration.wslPreflight")(f
           _tag: "Ready",
           runningDistro,
           windowsEntryPath: environment.backendEntryPath,
-          runtime: { kind: "executable", entryPath: `${runtime.linuxAppRoot}/supacode` },
+          runtime: { kind: "executable", entryPath: `${runtime.linuxAppRoot}/supaterm` },
           resolvedPath: stagedProbe.resolvedPath,
           runtimeId: input.runtimeArchive.runtimeId,
         } as const;
@@ -563,7 +563,7 @@ const resolvePrimaryStartConfig = Effect.fn("desktop.backendConfiguration.resolv
       mode: "desktop" as const,
       noBrowser: true,
       port: backendExposure.port,
-      supacodeHome: environment.baseDir,
+      supatermHome: environment.baseDir,
       host: backendExposure.bindHost,
       desktopBootstrapToken: input.bootstrapToken,
       desktopBootstrapSecret: input.bootstrapSecret,
@@ -602,9 +602,9 @@ const resolvePrimaryStartConfig = Effect.fn("desktop.backendConfiguration.resolv
         ...backendChildEnvPatch(),
         ELECTRON_RUN_AS_NODE: "1",
 
-        SUPACODE_CLI_PATH: Option.getOrUndefined(input.cliPath),
+        SUPATERM_CLI_SHIM_PATH: Option.getOrUndefined(input.cliPath),
       },
-      // Primary wants process.env (PATH, dev-runner's SUPACODE_HOME, etc.).
+      // Primary wants process.env (PATH, dev-runner's SUPATERM_HOME, etc.).
       extendEnv: true,
       bootstrap,
       bootstrapDelivery: "fd3",
@@ -649,7 +649,7 @@ const resolveWslStartConfig = Effect.fn("desktop.backendConfiguration.resolveWsl
     mode: "desktop" as const,
     noBrowser: true,
     port: input.port,
-    // Omit supacodeHome so the Linux backend uses its own home dir instead of
+    // Omit supatermHome so the Linux backend uses its own home dir instead of
     // the Windows-side baseDir (which would be a /mnt/c path and share
     // the SQLite file with the primary).
     host: wslBindHost,
@@ -747,17 +747,17 @@ const resolveWslStartConfig = Effect.fn("desktop.backendConfiguration.resolveWsl
     }
   }
 
-  // Build an explicit copy of process.env minus SUPACODE_HOME (dev-runner
+  // Build an explicit copy of process.env minus SUPATERM_HOME (dev-runner
   // exports the Windows-side base dir for the primary; if it leaks into
-  // the WSL backend the Linux side ends up sharing C:\Users\...\.supacode via
+  // the WSL backend the Linux side ends up sharing C:\Users\...\.supaterm via
   // /mnt/c, which means both backends read/write the same database and
   // their env-ids collide).
-  const parentEnvWithoutSupacodeHome: Record<string, string | undefined> = {};
+  const parentEnvWithoutSupatermHome: Record<string, string | undefined> = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (key === "SUPACODE_HOME") continue;
-    parentEnvWithoutSupacodeHome[key] = value;
+    if (key === "SUPATERM_HOME") continue;
+    parentEnvWithoutSupatermHome[key] = value;
   }
-  const wslEnv = mergeWslEnv(parentEnvWithoutSupacodeHome.WSLENV, forwardedEnvNames);
+  const wslEnv = mergeWslEnv(parentEnvWithoutSupatermHome.WSLENV, forwardedEnvNames);
 
   const baseConfig = {
     executablePath: "wsl.exe",
@@ -765,12 +765,12 @@ const resolveWslStartConfig = Effect.fn("desktop.backendConfiguration.resolveWsl
       preflight._tag === "Ready" ? preflight.windowsEntryPath : environment.backendEntryPath,
     cwd: environment.backendCwd,
     env: {
-      ...parentEnvWithoutSupacodeHome,
+      ...parentEnvWithoutSupatermHome,
       ...backendChildEnvPatch(),
       ...forwardedEnv,
       ...(wslEnv !== undefined ? { WSLENV: wslEnv } : {}),
     },
-    // env is already a complete process.env minus SUPACODE_HOME; pass it
+    // env is already a complete process.env minus SUPATERM_HOME; pass it
     // verbatim instead of letting the spawner re-merge process.env on top.
     extendEnv: false,
     bootstrap,

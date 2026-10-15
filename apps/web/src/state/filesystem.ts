@@ -1,8 +1,8 @@
 import {
   createFilesystemEnvironmentAtoms,
   resolveFilesystemReadAccess,
-} from "@supacode/client-runtime/state/filesystem";
-import type { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/filesystem";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 import { useEnvironmentPresentation } from "./presentation";

@@ -9,7 +9,7 @@ import type {
   PullRequestInvolvement,
   PullRequestListState,
   PullRequestMergeMethod,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as AzureDevOpsCli from "./AzureDevOpsCli.ts";
 import {
@@ -26,7 +26,7 @@ import {
   type AzureDevOpsPullRequest,
   type AzureDevOpsRepositoryLocation,
 } from "./azureDevOpsPullRequestJson.ts";
-import type { ProviderListCursor } from "@supacode/source-control-core/server/PullRequestProvider";
+import type { ProviderListCursor } from "@supaterm/source-control-core/server/PullRequestProvider";
 
 /**
  * Names the read that produced unusable output, so a failure reports the call it came from
@@ -258,7 +258,7 @@ export class AzureDevOpsPullRequestCli extends Context.Service<
       readonly requested: boolean;
     }) => Effect.Effect<void, AzureDevOpsPullRequestCliError>;
   }
->()("@supacode/source-control-azure-devops/server/AzureDevOpsPullRequestCli") {}
+>()("@supaterm/source-control-azure-devops/server/AzureDevOpsPullRequestCli") {}
 
 function statusArgs(state: PullRequestListState): ReadonlyArray<string> {
   switch (state) {

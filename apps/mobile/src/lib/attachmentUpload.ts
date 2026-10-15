@@ -1,23 +1,23 @@
 import { loadExpoFileSystem } from "./expoFileSystem";
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import {
   clampFileAttachmentUploadBytes,
   fileAttachmentTooLargeMessage,
   isAssetAttachmentNotFoundFailure,
   runAttachmentUploadCycle,
   verifyPersistedAttachmentUpload,
-} from "@supacode/client-runtime/state/attachments";
-import { runAtomCommand, squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/attachments";
+import { runAtomCommand, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import type {
   ChatFileAttachment,
   ChatImageAttachment,
   EnvironmentId,
   UploadChatImageAttachment,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   AuthOrchestrationOperateScope,
   PROVIDER_SEND_TURN_SUPPORTED_IMAGE_MIME_TYPES,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 
 import { appAtomRegistry } from "../state/atom-registry";
@@ -32,7 +32,7 @@ import {
   type DraftComposerAttachment,
   type DraftComposerImageAttachment,
 } from "./composerImages";
-import { imageMimeType } from "@supacode/shared/image";
+import { imageMimeType } from "@supaterm/shared/image";
 import { uuidv4 } from "./uuid";
 
 /**
@@ -282,7 +282,7 @@ async function uploadFileBytes(
   }
   const file =
     fileUri === undefined
-      ? new File(Paths.cache, `supacode-upload-${uuidv4()}`)
+      ? new File(Paths.cache, `supaterm-upload-${uuidv4()}`)
       : new File(resolveOwnedComposerAttachmentFileUri(fileUri, Paths.document.uri) ?? fileUri);
   try {
     if (fileUri === undefined && inlineDataUrl !== undefined) {

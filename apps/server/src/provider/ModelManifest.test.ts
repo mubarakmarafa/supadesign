@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ProviderDriverKind } from "@supacode/contracts";
+import { ProviderDriverKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -483,7 +483,7 @@ it.effect("caches valid compatibility policies and keeps them after a malformed 
     compatibility: [
       {
         driver: "codex",
-        supacodeRange: ">=0.0.42",
+        supatermRange: ">=0.0.42",
         recommendedVersion: "2.0.0",
         ranges: [{ range: "=2.0.0", status: "supported" }],
       },

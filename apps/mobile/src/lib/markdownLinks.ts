@@ -1,12 +1,12 @@
-import { fileBasename } from "@supacode/shared/path";
-import { formatFilePathPosition } from "@supacode/shared/fileLinks";
+import { fileBasename } from "@supaterm/shared/path";
+import { formatFilePathPosition } from "@supaterm/shared/fileLinks";
 import {
   inlineCodeFilePathCandidate,
   normalizeMarkdownLinkDestination,
   parseMarkdownFileLink,
-} from "@supacode/shared/markdownLinks";
-import { parseThreadLinkHref } from "@supacode/shared/threadLinks";
-import { videoMimeType } from "@supacode/shared/video";
+} from "@supaterm/shared/markdownLinks";
+import { parseThreadLinkHref } from "@supaterm/shared/threadLinks";
+import { videoMimeType } from "@supaterm/shared/video";
 
 import type { MARKDOWN_FILE_ICON_SOURCES } from "./markdownFileIcons.generated";
 

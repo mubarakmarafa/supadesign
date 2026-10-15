@@ -1,4 +1,4 @@
-import { sourceControlRepositorySelector } from "@supacode/shared/sourceControl";
+import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
 import {
   type CommandId,
   pullRequestHostOf,
@@ -6,8 +6,8 @@ import {
   type OrchestrationProjectShell,
   type SourceControlProviderKind,
   type ThreadId,
-} from "@supacode/contracts";
-import { parseChangeRequestUrl } from "@supacode/shared/changeRequestUrl";
+} from "@supaterm/contracts";
+import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";

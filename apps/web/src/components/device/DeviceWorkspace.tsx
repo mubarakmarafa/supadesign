@@ -1,9 +1,9 @@
-import type { DeviceSummary, EnvironmentId } from "@supacode/contracts";
+import type { DeviceSummary, EnvironmentId } from "@supaterm/contracts";
 import { useEffect, useRef, useState } from "react";
 import {
   captureDeviceScreenshot,
   DeviceScreenshotError,
-} from "@supacode/client-runtime/device/screenshot";
+} from "@supaterm/client-runtime/device/screenshot";
 import { refreshDeviceHubAccess, useDeviceHubAccess } from "~/state/device";
 import { DeviceControlsRail } from "./DeviceControlsRail";
 import { DeviceStreamView, type DeviceStreamHandle } from "./DeviceStreamView";

@@ -9,11 +9,11 @@
 import * as Schema from "effect/Schema";
 import * as Effect from "effect/Effect";
 import { limitTitleMessage } from "./threadTitleContext.ts";
-import type { BranchNamingOptions, ChatAttachment } from "@supacode/contracts";
+import type { BranchNamingOptions, ChatAttachment } from "@supaterm/contracts";
 
 import { limitSection } from "./textGenerationUtils.ts";
 import type { ReviewGuideStackLayer } from "./textGeneration.ts";
-import type { TextGenerationPolicy } from "@supacode/provider-core/server/textGenerationPolicy";
+import type { TextGenerationPolicy } from "@supaterm/provider-core/server/textGenerationPolicy";
 
 const EARLIER_CONTENT_TRUNCATION_MARKER = "[Earlier content truncated]\n\n";
 
@@ -385,7 +385,7 @@ export interface ThreadTitlePromptInput {
 
 // Keep shared editorial rules in these two prompts in sync. Regeneration
 // intentionally adds guidance for thread history and the previous title.
-const INITIAL_THREAD_TITLE_PROMPT = `Generate a title that will help the user recognize this Supacode thread weeks later.
+const INITIAL_THREAD_TITLE_PROMPT = `Generate a title that will help the user recognize this Supaterm thread weeks later.
 Return JSON with keys title and needsRefinement.
 Set needsRefinement to true only if the subject is still unknown, such as an unresolved link, "fix this", or an unexplained attachment. Otherwise set it to false.
 
@@ -413,7 +413,7 @@ Editorial rules:
 - If a linked PR or issue cannot be read, fall back to the user's stated action plus its number, such as "Take Over PR 8588". This is the one case where a PR or issue number belongs in the title.`;
 
 function regenerateThreadTitlePrompt(previousTitle: string): string {
-  return `Regenerate the title for an existing Supacode thread so the user can recognize it weeks later.
+  return `Regenerate the title for an existing Supaterm thread so the user can recognize it weeks later.
 The previous title was ${JSON.stringify(previousTitle)}.
 Return JSON with keys title and needsRefinement. Set needsRefinement to false.
 

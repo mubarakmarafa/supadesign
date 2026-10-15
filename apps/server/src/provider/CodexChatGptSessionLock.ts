@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off - Credential leases coordinate Node server processes.
 import * as NodePath from "node:path";
 import { lock } from "proper-lockfile";
-import { ProviderSetupError, type ProviderInstanceId } from "@supacode/contracts";
+import { ProviderSetupError, type ProviderInstanceId } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 

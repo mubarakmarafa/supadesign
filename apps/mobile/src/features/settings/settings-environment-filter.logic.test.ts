@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { settingsTargetsForProject } from "./settings-environment-filter.logic";
 

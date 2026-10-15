@@ -3,7 +3,7 @@ import type { SharingOptions } from "expo-sharing";
 
 const NativeControls = requireNativeModule<{
   shareFileFromSource(uri: string, title: string, sourceIdentifier: string): Promise<void>;
-}>("SupacodeNativeControls");
+}>("SupatermNativeControls");
 
 export function shareFileFromSource(
   uri: string,

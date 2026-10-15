@@ -1,12 +1,12 @@
 import { useAtomValue } from "@effect/atom-react";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   EMPTY_V2_ITEM_SUPPORT,
   resolveV2ItemSupport,
   v2ItemSupportEqual,
   type V2ItemSupport,
-} from "@supacode/client-runtime/state/item-support";
-import type { EnvironmentId, ThreadId, TurnItemId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/item-support";
+import type { EnvironmentId, ThreadId, TurnItemId } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import { environmentThreadDetails } from "./threads";

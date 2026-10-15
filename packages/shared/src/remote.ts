@@ -3,11 +3,11 @@ import {
   DEFAULT_PUBLIC_RELAY_URL,
   EnvironmentId,
   normalizeRelayServerUrl,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { parseRelayAddress } from "./relay/protocol.ts";
 import { isLocalLoopbackHost, isPrivateNetworkHost, isTailnetHost } from "./hostClassification.ts";
 
-export const DEFAULT_HOSTED_APP_URL = "https://app.next.supacode.sh";
+export const DEFAULT_HOSTED_APP_URL = "https://app.supaterm.com";
 
 const PAIRING_TOKEN_PARAM = "token";
 const PAIRING_ENV_PARAM = "env";

@@ -78,7 +78,7 @@ export const removeLocalStorageItem = (key: string) => {
   }
 };
 
-const LOCAL_STORAGE_CHANGE_EVENT = "supacode:local_storage_change";
+const LOCAL_STORAGE_CHANGE_EVENT = "supaterm:local_storage_change";
 
 interface LocalStorageChangeDetail {
   key: string;

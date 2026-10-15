@@ -1,6 +1,6 @@
-import type { ArchivedSnapshotEntry } from "@supacode/client-runtime/state/threads";
-import type { OrchestrationProjectShell, OrchestrationV2ThreadShell } from "@supacode/contracts";
-import { EnvironmentId, ProjectId, ThreadId } from "@supacode/contracts";
+import type { ArchivedSnapshotEntry } from "@supaterm/client-runtime/state/threads";
+import type { OrchestrationProjectShell, OrchestrationV2ThreadShell } from "@supaterm/contracts";
+import { EnvironmentId, ProjectId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import * as DateTime from "effect/DateTime";
 
@@ -54,7 +54,7 @@ function makeSnapshot(
 
 describe("buildArchivedThreadGroups", () => {
   it("groups archived threads by project and sorts newest first", () => {
-    const project = makeProject({ id: ProjectId.make("project-1"), title: "supacode" });
+    const project = makeProject({ id: ProjectId.make("project-1"), title: "supaterm" });
     const older = makeThread({
       id: ThreadId.make("thread-older"),
       projectId: project.id,
@@ -80,7 +80,7 @@ describe("buildArchivedThreadGroups", () => {
 
   it("filters by environment and matches project, thread, and branch text", () => {
     const secondEnvironmentId = EnvironmentId.make("environment-2");
-    const firstProject = makeProject({ id: ProjectId.make("project-1"), title: "supacode" });
+    const firstProject = makeProject({ id: ProjectId.make("project-1"), title: "supaterm" });
     const secondProject = makeProject({ id: ProjectId.make("project-2"), title: "Website" });
     const firstThread = makeThread({
       branch: "fix/archive-screen",
@@ -115,7 +115,7 @@ describe("buildArchivedThreadGroups", () => {
   });
 
   it("ignores non-archived entries returned in a snapshot", () => {
-    const project = makeProject({ id: ProjectId.make("project-1"), title: "supacode" });
+    const project = makeProject({ id: ProjectId.make("project-1"), title: "supaterm" });
     const active = makeThread({
       archivedAt: null,
       id: ThreadId.make("thread-active"),

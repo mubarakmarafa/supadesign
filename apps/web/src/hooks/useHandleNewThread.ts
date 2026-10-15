@@ -3,8 +3,8 @@ import {
   scopedProjectKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@supacode/client-runtime/environment";
-import { DEFAULT_SERVER_SETTINGS, type ScopedProjectRef, type ThreadId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/environment";
+import { DEFAULT_SERVER_SETTINGS, type ScopedProjectRef, type ThreadId } from "@supaterm/contracts";
 import { useParams, useRouter } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import {
@@ -22,7 +22,7 @@ import {
   getProjectOrderKey,
   selectProjectGroupingSettings,
 } from "../logicalProject";
-import { resolveNewThreadEnvMode, resolveProjectSettings } from "@supacode/shared/projectSettings";
+import { resolveNewThreadEnvMode, resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import {
   readProjects,
   readThreadShell,
@@ -36,7 +36,7 @@ import {
   resolveNewThreadModelSelectionOverride,
   startNewThreadFromContext,
 } from "../lib/chatThreadActions";
-import { readSupacodeProjectFile } from "../lib/supacodeProjectFileDefaults";
+import { readSupatermProjectFile } from "../lib/supatermProjectFileDefaults";
 import { environmentServerConfigsAtom } from "../state/server";
 import { resolveThreadRouteTarget } from "../threadRoutes";
 import { legacyProjectCwdPreferenceKey, useUiStateStore } from "../uiStateStore";
@@ -145,14 +145,14 @@ export function useNewThreadHandler() {
             currentRouteTarget?.kind === "draft" ? currentRouteTarget.draftId : null,
           destinationDraftId,
         });
-      // The shared resolver owns the priority order. The supacode.json read is
+      // The shared resolver owns the priority order. The supaterm.json read is
       // skipped entirely when a higher-priority source decides, and its
       // query atom caches per project after the first call.
       const resolveDefaultEnvMode = async (): Promise<DraftThreadEnvMode> => {
         const consultProjectFile =
           project !== undefined && projectSettings.settings.defaultThreadEnvMode === null;
         const projectFile = consultProjectFile
-          ? await readSupacodeProjectFile(project.environmentId, project.workspaceRoot)
+          ? await readSupatermProjectFile(project.environmentId, project.workspaceRoot)
           : null;
         return resolveNewThreadEnvMode({
           projectSettings: resolveProjectSettings(

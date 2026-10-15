@@ -1,4 +1,4 @@
-import { AuthSessionId } from "@supacode/contracts";
+import { AuthSessionId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 

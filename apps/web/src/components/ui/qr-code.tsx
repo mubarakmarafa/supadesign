@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { QrCode } from "@supacode/shared/qrCode";
+import { QrCode } from "@supaterm/shared/qrCode";
 
 type QRCodeSvgProps = {
   value: string;

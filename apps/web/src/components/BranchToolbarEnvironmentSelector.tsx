@@ -1,7 +1,7 @@
 import { ThreadDetailsComboboxControl } from "./chat/ThreadDetailsControl";
 import { ComposerContextLabel } from "./ComposerContextLabel";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "./ui/tooltip";
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { ScaleIcon } from "lucide-react";
 import { useAtomValue } from "@effect/atom-react";
 import { memo, useMemo, useState } from "react";

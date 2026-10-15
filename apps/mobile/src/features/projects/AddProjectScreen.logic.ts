@@ -1,6 +1,6 @@
-import { canCreateProjectInEnvironment } from "@supacode/client-runtime/operations/projects";
-import type { EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
-import type { EnvironmentId } from "@supacode/contracts";
+import { canCreateProjectInEnvironment } from "@supaterm/client-runtime/operations/projects";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 export function resolveAddProjectEnvironment<
   T extends {

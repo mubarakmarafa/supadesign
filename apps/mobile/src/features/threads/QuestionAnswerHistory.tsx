@@ -2,10 +2,10 @@ import type {
   EnvironmentId,
   UserInputAttachmentAnswerPayload,
   UserInputAttachments,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Image } from "expo-image";
 import { Linking, Pressable, View } from "react-native";
-import { getQuestionAnswerText } from "@supacode/client-runtime/work-log/user-input";
+import { getQuestionAnswerText } from "@supaterm/client-runtime/work-log/user-input";
 import { AppText as Text } from "../../components/AppText";
 import { assetImageSource } from "../../lib/assetImageSource";
 import { useAssetUrl } from "../../state/assets";

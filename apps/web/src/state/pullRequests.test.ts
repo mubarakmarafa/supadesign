@@ -1,5 +1,5 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
-import { ProjectId, type PullRequestSummary } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import { ProjectId, type PullRequestSummary } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { newestPullRequestObservation, newestPullRequestSummary } from "./pullRequests";

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@supaterm/contracts";
 import type { Project, Thread } from "../types";
 import { makeThreadFixture } from "../test-fixtures";
 import {
@@ -76,24 +76,24 @@ describe("buildCommandPaletteProjectMetadata", () => {
       projects: [
         {
           environmentId: localEnvironmentId,
-          title: "supacode",
-          workspaceRoot: "/Users/theo/Projects/supacode",
+          title: "supaterm",
+          workspaceRoot: "/Users/theo/Projects/supaterm",
         },
         {
           environmentId: remoteEnvironmentId,
-          title: "supacode",
-          workspaceRoot: "/srv/supacode",
+          title: "supaterm",
+          workspaceRoot: "/srv/supaterm",
         },
       ],
       locationByEnvironmentId: locations,
     });
 
     expect(metadata.searchTerms).toEqual([
-      "supacode",
-      "/Users/theo/Projects/supacode",
+      "supaterm",
+      "/Users/theo/Projects/supaterm",
       "Local",
-      "supacode",
-      "/srv/supacode",
+      "supaterm",
+      "/srv/supaterm",
       "Build box",
     ]);
     expect(metadata.environmentLabels).toEqual(["Local", "Build box"]);
@@ -105,8 +105,8 @@ describe("buildCommandPaletteProjectMetadata", () => {
       projectSearchItems: [
         {
           kind: "action",
-          value: "project:supacode",
-          title: "supacode",
+          value: "project:supaterm",
+          title: "supaterm",
           searchTerms: metadata.searchTerms,
           icon: null,
           run: async () => undefined,
@@ -122,13 +122,13 @@ describe("buildCommandPaletteProjectMetadata", () => {
       projects: [
         {
           environmentId: remoteEnvironmentId,
-          title: "supacode",
-          workspaceRoot: "/srv/supacode",
+          title: "supaterm",
+          workspaceRoot: "/srv/supaterm",
         },
         {
           environmentId: remoteEnvironmentId,
-          title: "supacode worktree",
-          workspaceRoot: "/srv/supacode-feature",
+          title: "supaterm worktree",
+          workspaceRoot: "/srv/supaterm-feature",
         },
       ],
       locationByEnvironmentId: locations,
@@ -143,13 +143,13 @@ describe("buildCommandPaletteProjectMetadata", () => {
       projects: [
         {
           environmentId: remoteEnvironmentId,
-          title: "supacode",
-          workspaceRoot: "/srv/supacode",
+          title: "supaterm",
+          workspaceRoot: "/srv/supaterm",
         },
         {
           environmentId: secondRemoteEnvironmentId,
-          title: "supacode mirror",
-          workspaceRoot: "/srv/mirror/supacode",
+          title: "supaterm mirror",
+          workspaceRoot: "/srv/mirror/supaterm",
         },
       ],
       locationByEnvironmentId: new Map([
@@ -166,8 +166,8 @@ describe("buildCommandPaletteProjectMetadata", () => {
       projects: [
         {
           environmentId: remoteEnvironmentId,
-          title: "supacode",
-          workspaceRoot: "/srv/supacode",
+          title: "supaterm",
+          workspaceRoot: "/srv/supaterm",
         },
       ],
       locationByEnvironmentId: new Map(),
@@ -463,7 +463,7 @@ describe("buildThreadActionItems", () => {
     ];
     const items = buildThreadActionItems({
       threads,
-      projectTitleById: new Map([[PROJECT_ID, "supacode"]]),
+      projectTitleById: new Map([[PROJECT_ID, "supaterm"]]),
       sortOrder: "created_at",
       icon: null,
       getContentMatch: (thread) =>
@@ -612,7 +612,7 @@ describe("buildThreadActionItems", () => {
   it("keeps message excerpts searchable without replacing thread metadata", () => {
     const [item] = buildThreadActionItems({
       threads: [makeThread({ branch: "feat/search" })],
-      projectTitleById: new Map([[PROJECT_ID, "supacode"]]),
+      projectTitleById: new Map([[PROJECT_ID, "supaterm"]]),
       sortOrder: "updated_at",
       icon: null,
       getContentMatch: () => ({
@@ -629,7 +629,7 @@ describe("buildThreadActionItems", () => {
       snippet: "The relay reconnect is now bounded.",
       query: "reconnect",
     });
-    expect(item?.description).toBe("supacode · #feat/search");
+    expect(item?.description).toBe("supaterm · #feat/search");
   });
 
   it("surfaces threads when the query is their ID, without outranking title matches", () => {
@@ -645,7 +645,7 @@ describe("buildThreadActionItems", () => {
     });
     const items = buildThreadActionItems({
       threads: [idThread, titleThread],
-      projectTitleById: new Map([[PROJECT_ID, "supacode"]]),
+      projectTitleById: new Map([[PROJECT_ID, "supaterm"]]),
       sortOrder: "updated_at",
       icon: null,
       runThread: async (_thread) => undefined,
@@ -669,7 +669,7 @@ describe("buildThreadActionItems", () => {
   it("prefers renderDescription when provided", () => {
     const [item] = buildThreadActionItems({
       threads: [makeThread({ branch: "feat/search", worktreePath: "/tmp/wt" })],
-      projectTitleById: new Map([[PROJECT_ID, "supacode"]]),
+      projectTitleById: new Map([[PROJECT_ID, "supaterm"]]),
       sortOrder: "updated_at",
       icon: null,
       renderDescription: (thread, { projectTitle }) =>
@@ -677,7 +677,7 @@ describe("buildThreadActionItems", () => {
       runThread: async (_thread) => undefined,
     });
 
-    expect(item?.description).toBe("supacode:feat/search:wt");
+    expect(item?.description).toBe("supaterm:feat/search:wt");
   });
 
   it("filters archived threads out of thread search items", () => {

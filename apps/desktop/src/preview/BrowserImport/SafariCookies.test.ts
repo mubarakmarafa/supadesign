@@ -319,7 +319,7 @@ describe("readSafariCookies", () => {
   it.effect("adds the cookie path and parser cause to malformed jar failures", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-safari-" });
+      const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-safari-" });
       const jar = `${directory}/Cookies.binarycookies`;
       yield* fileSystem.writeFileString(jar, "not a cookie jar");
 
@@ -358,7 +358,7 @@ describe("readSafariCookies", () => {
   it.effect("reports an ordinary permission failure as a plain read failure", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-safari-" });
+      const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-safari-" });
       const jar = `${directory}/Cookies.binarycookies`;
       yield* fileSystem.writeFile(jar, new Uint8Array([0x63, 0x6f, 0x6f, 0x6b]));
       // A mode-bits refusal is EACCES: granting Full Disk Access cannot fix
@@ -374,7 +374,7 @@ describe("readSafariCookies", () => {
   it.effect("reports a missing jar as a plain read failure", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-safari-" });
+      const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-safari-" });
 
       const error = yield* readSafariCookies(`${directory}/absent.binarycookies`).pipe(Effect.flip);
 
@@ -409,7 +409,7 @@ describe("safariAccessDenied", () => {
   it.effect("does not read a readable jar, or any other failure, as denied", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-safari-" });
+      const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-safari-" });
       const jar = `${directory}/Cookies.binarycookies`;
       yield* fileSystem.writeFile(jar, new Uint8Array([0x63, 0x6f, 0x6f, 0x6b]));
       assert.isFalse(yield* safariAccessDenied(jar));
@@ -448,7 +448,7 @@ describe("safariAccessGranted", () => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const directory = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-safari-permission-",
+        prefix: "supaterm-safari-permission-",
       });
       const jar = `${directory}/Cookies.binarycookies`;
       assert.isFalse(yield* safariAccessGranted(jar));

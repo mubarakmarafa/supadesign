@@ -1,5 +1,5 @@
-import { assistantCitationsToPlainText } from "@supacode/shared/assistantCitations";
-import { truncate } from "@supacode/shared/String";
+import { assistantCitationsToPlainText } from "@supaterm/shared/assistantCitations";
+import { truncate } from "@supaterm/shared/String";
 
 export interface ThreadTitleSeedInput {
   readonly text: string;

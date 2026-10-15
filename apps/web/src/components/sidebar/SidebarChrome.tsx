@@ -9,7 +9,7 @@ import {
 import type { MouseEvent, ReactNode } from "react";
 import { memo, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { parseKeybindingShortcut } from "@supacode/shared/keybindings";
+import { parseKeybindingShortcut } from "@supaterm/shared/keybindings";
 
 import { APP_BASE_NAME, WEBSITE_URL } from "../../branding";
 import { isElectron } from "../../env";

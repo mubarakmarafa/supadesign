@@ -1,5 +1,5 @@
-import { createDiagramRenderer } from "@supacode/client-runtime/diagram-rendering";
-import renderMermaidWorklet from "@supacode/mobile-mermaid-worklet";
+import { createDiagramRenderer } from "@supaterm/client-runtime/diagram-rendering";
+import renderMermaidWorklet from "@supaterm/mobile-mermaid-worklet";
 import {
   createWorkletRuntime,
   runOnRuntimeAsync,

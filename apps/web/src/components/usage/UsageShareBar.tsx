@@ -1,4 +1,4 @@
-import { formatPercent } from "@supacode/shared/usageFormat";
+import { formatPercent } from "@supaterm/shared/usageFormat";
 import type { ReactNode } from "react";
 
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";

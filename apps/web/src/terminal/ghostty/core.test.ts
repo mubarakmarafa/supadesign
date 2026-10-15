@@ -7,7 +7,7 @@ import {
   readTerminalOutputUpdate,
   terminalOutputText,
   type TerminalBufferState,
-} from "@supacode/client-runtime/state/terminal";
+} from "@supaterm/client-runtime/state/terminal";
 
 import { writeTerminalOutputUpdate } from "../../components/ThreadTerminalDrawer";
 import { GHOSTTY_CELL_WIDE, GhosttyTerminalCore, ghosttyCellText } from "./core";
@@ -275,7 +275,7 @@ describe("GhosttyTerminalCore snapshots", () => {
       "\u0301界🙂",
       "\x1b[0",
       "m\r\n",
-      "\x1b]8;;https://next.supacode.sh\x1b",
+      "\x1b]8;;https://supaterm.com\x1b",
       "\\link",
       "\x1b]8;;\x1b",
       "\\\x1b[?1049h",

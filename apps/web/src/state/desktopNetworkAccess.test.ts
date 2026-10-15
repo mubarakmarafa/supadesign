@@ -1,4 +1,4 @@
-import type { AdvertisedEndpoint, DesktopServerExposureState } from "@supacode/contracts";
+import type { AdvertisedEndpoint, DesktopServerExposureState } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { AtomRegistry } from "effect/reactivity";

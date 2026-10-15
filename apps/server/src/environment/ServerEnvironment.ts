@@ -3,8 +3,8 @@ import {
   ORCHESTRATION_PROTOCOL_VERSION,
   PROVIDER_SEND_TURN_MAX_FILE_BYTES,
   type ExecutionEnvironmentDescriptor,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -44,14 +44,14 @@ export class ServerEnvironment extends Context.Service<
     readonly getEnvironmentId: Effect.Effect<EnvironmentId>;
     readonly getDescriptor: Effect.Effect<ExecutionEnvironmentDescriptor>;
   }
->()("supacode/environment/ServerEnvironment") {}
+>()("supaterm/environment/ServerEnvironment") {}
 
 export class ServerEnvironmentIdentity extends Context.Service<
   ServerEnvironmentIdentity,
   {
     readonly getEnvironmentId: Effect.Effect<EnvironmentId>;
   }
->()("supacode/environment/ServerEnvironment/ServerEnvironmentIdentity") {}
+>()("supaterm/environment/ServerEnvironment/ServerEnvironmentIdentity") {}
 
 function platformOs(platform: NodeJS.Platform): ExecutionEnvironmentDescriptor["platform"]["os"] {
   switch (platform) {

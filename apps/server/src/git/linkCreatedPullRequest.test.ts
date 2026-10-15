@@ -6,7 +6,7 @@ import {
   type GitRunStackedActionResult,
   type OrchestrationV2ServerCommand as OrchestrationCommand,
   type OrchestrationProjectShell,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

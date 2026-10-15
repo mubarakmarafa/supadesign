@@ -1,5 +1,5 @@
 import { useServerConfigs } from "./entities";
-import { CommandId } from "@supacode/contracts";
+import { CommandId } from "@supaterm/contracts";
 import { uuidv4 } from "../lib/uuid";
 import { Alert } from "react-native";
 import {
@@ -15,15 +15,15 @@ import {
 } from "./composer-attachment-uploads";
 import { useAtomValue } from "@effect/atom-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createUserInputAutoDismissPause } from "@supacode/client-runtime/user-input-auto-dismiss-pause";
+import { createUserInputAutoDismissPause } from "@supaterm/client-runtime/user-input-auto-dismiss-pause";
 
-import { type ProviderApprovalDecision, type RuntimeRequestId } from "@supacode/contracts";
+import { type ProviderApprovalDecision, type RuntimeRequestId } from "@supaterm/contracts";
 import {
   type PendingThreadRequests,
   type ThreadUserInputQuestion,
   seedUserInputDraftAnswers,
-} from "@supacode/client-runtime/state/thread-requests";
-import { AuthOrchestrationOperateScope } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/thread-requests";
+import { AuthOrchestrationOperateScope } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import { threadEnvironment } from "../state/threads";
@@ -339,7 +339,7 @@ export function useSelectedThreadRequests() {
     if (userInputResponsesInFlight.current.has(responseKey)) return;
     const attachmentsByQuestionId = new Map<
       string,
-      import("@supacode/contracts").UserInputAttachments[string]
+      import("@supaterm/contracts").UserInputAttachments[string]
     >();
     for (const question of activePendingUserInput.questions) {
       const key = questionAttachmentDraftKey(

@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentShellStatus } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentId, MessageId } from "@supacode/contracts";
+import type { EnvironmentShellStatus } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId, MessageId } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import { appAtomRegistry } from "./atom-registry";

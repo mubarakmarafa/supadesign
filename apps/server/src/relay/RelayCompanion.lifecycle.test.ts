@@ -9,11 +9,11 @@ import { beforeEach, vi } from "vite-plus/test";
 import * as RelayCompanion from "./RelayCompanion.ts";
 
 const { openLoopbackRelay } = vi.hoisted(() => ({
-  openLoopbackRelay: vi.fn<typeof import("@supacode/shared/relay/tunnelNode").openLoopbackRelay>(),
+  openLoopbackRelay: vi.fn<typeof import("@supaterm/shared/relay/tunnelNode").openLoopbackRelay>(),
 }));
-vi.mock("@supacode/shared/relay/tunnelNode", () => ({ openLoopbackRelay }));
+vi.mock("@supaterm/shared/relay/tunnelNode", () => ({ openLoopbackRelay }));
 
-const address = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+const address = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
 beforeEach(() => openLoopbackRelay.mockReset());
 
 it.effect("rejects preparation revoked by its owner and closes the late listener once", () =>
@@ -193,7 +193,7 @@ it.effect("disposal closes a pending listener and prevents later opens", () =>
 
 it.effect("a closed session releases every lease even when one listener fails to close", () =>
   Effect.gen(function* () {
-    const other = `https://${"33".repeat(16)}.${"44".repeat(16)}.relay.supacode.invalid/`;
+    const other = `https://${"33".repeat(16)}.${"44".repeat(16)}.relay.supaterm.invalid/`;
     const close = vi.fn(async () => {});
     const failedClose = vi.fn(async () => {
       throw new Error("Listener close failed");

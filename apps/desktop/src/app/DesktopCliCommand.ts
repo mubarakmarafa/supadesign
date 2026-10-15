@@ -1,7 +1,7 @@
 import * as Path from "effect/Path";
-import { CommandResolutionCache, resolveCommandPath } from "@supacode/shared/shell";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import type { DesktopCliCommandState } from "@supacode/contracts";
+import { CommandResolutionCache, resolveCommandPath } from "@supaterm/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import type { DesktopCliCommandState } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -37,16 +37,16 @@ const sameWindowsPath = (left: string, right: string) =>
 
 const WINDOWS_USER_PATH_SCRIPT = `
 $ErrorActionPreference = 'Stop'
-if ($env:SUPACODE_SET -eq '1') {
+if ($env:SUPATERM_SET -eq '1') {
   $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
   $kind = [Microsoft.Win32.RegistryValueKind]::ExpandString
   if ($key.GetValueNames() -contains 'Path' -and $key.GetValueKind('Path') -eq 'String') {
     $kind = [Microsoft.Win32.RegistryValueKind]::String
   }
-  $key.SetValue('Path', $env:SUPACODE_PATH, $kind)
-  Add-Type -Namespace Supacode -Name Env -MemberDefinition '[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern System.IntPtr SendMessageTimeout(System.IntPtr hWnd, uint Msg, System.UIntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out System.UIntPtr lpdwResult);'
+  $key.SetValue('Path', $env:SUPATERM_PATH, $kind)
+  Add-Type -Namespace Supaterm -Name Env -MemberDefinition '[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern System.IntPtr SendMessageTimeout(System.IntPtr hWnd, uint Msg, System.UIntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out System.UIntPtr lpdwResult);'
   $result = [System.UIntPtr]::Zero
-  [void][Supacode.Env]::SendMessageTimeout([System.IntPtr]0xffff, 0x1A, [System.UIntPtr]::Zero, 'Environment', 2, 5000, [ref]$result)
+  [void][Supaterm.Env]::SendMessageTimeout([System.IntPtr]0xffff, 0x1A, [System.UIntPtr]::Zero, 'Environment', 2, 5000, [ref]$result)
 } else {
   $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment')
   $value = if ($key) { $key.GetValue('Path', '', 'DoNotExpandEnvironmentNames') } else { '' }
@@ -62,7 +62,7 @@ export class DesktopCliCommand extends Context.Service<
     readonly installAutomatically: Effect.Effect<void>;
     readonly uninstall: Effect.Effect<DesktopCliCommandState, DesktopCliCommandError>;
   }
->()("@supacode/desktop/app/DesktopCliCommand") {}
+>()("@supaterm/desktop/app/DesktopCliCommand") {}
 
 export const make = Effect.gen(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
@@ -122,13 +122,13 @@ export const make = Effect.gen(function* () {
     Effect.mapError(() => fail("Could not read your PATH, so it was left unchanged.")),
   );
   const writeUserPath = (value: string) =>
-    powershell({ SUPACODE_SET: "1", SUPACODE_PATH: value }).pipe(
+    powershell({ SUPATERM_SET: "1", SUPATERM_PATH: value }).pipe(
       Effect.asVoid,
       Effect.mapError(() => fail("Could not update your PATH.")),
     );
 
   const firstOnPath = Effect.suspend(() =>
-    resolveCommandPath("supacode", { env: process.env }).pipe(
+    resolveCommandPath("supaterm", { env: process.env }).pipe(
       Effect.provideService(HostProcess.Platform, environment.platform),
       Effect.provideService(FileSystem.FileSystem, fs),
       Effect.provideService(Path.Path, path),
@@ -154,7 +154,7 @@ export const make = Effect.gen(function* () {
         : Option.none<string>();
     }
     for (const directory of unixCandidates(environment.homeDirectory, environment.platform)) {
-      const link = path.join(directory, "supacode");
+      const link = path.join(directory, "supaterm");
       if (yield* isOurLink(link)) return Option.some(link);
     }
     return Option.none<string>();
@@ -181,19 +181,19 @@ export const make = Effect.gen(function* () {
     Effect.provideService(FileSystem.FileSystem, fs),
     Effect.flatMap(
       Option.match({
-        onNone: () => Effect.fail(fail(`Could not set up the supacode launcher at ${launcher}.`)),
+        onNone: () => Effect.fail(fail(`Could not set up the supaterm launcher at ${launcher}.`)),
         onSome: () => Effect.void,
       }),
     ),
   );
 
   const install: DesktopCliCommand["Service"]["install"] = Effect.gen(function* () {
-    if (!environment.isPackaged) return yield* fail("The supacode command needs an installed app.");
+    if (!environment.isPackaged) return yield* fail("The supaterm command needs an installed app.");
     yield* ensureLauncher;
     const shadowedBy = yield* foreignFirstOnPath;
     if (Option.isSome(shadowedBy)) {
       return yield* fail(
-        `Another supacode at ${shadowedBy.value} runs first in a new terminal. Remove it, or run the launcher directly at ${launcher}.`,
+        `Another supaterm at ${shadowedBy.value} runs first in a new terminal. Remove it, or run the launcher directly at ${launcher}.`,
       );
     }
     if (windows) {
@@ -203,7 +203,7 @@ export const make = Effect.gen(function* () {
         yield* fs
           .writeFileString(ownedPathMarker, `${binDirectory}\n`)
           .pipe(
-            Effect.mapError(() => fail("Added supacode to your PATH but could not record it.")),
+            Effect.mapError(() => fail("Added supaterm to your PATH but could not record it.")),
           );
       }
       return yield* state;
@@ -225,7 +225,7 @@ export const make = Effect.gen(function* () {
       ...candidates.filter((candidate) => onPath.includes(candidate)),
       ...candidates.filter((candidate) => !onPath.includes(candidate)),
     ]) {
-      const link = path.join(directory, "supacode");
+      const link = path.join(directory, "supaterm");
       const created = (yield* exists(directory))
         ? yield* writableDirectory(directory)
         : yield* fs.makeDirectory(directory, { recursive: true }).pipe(
@@ -241,7 +241,7 @@ export const make = Effect.gen(function* () {
       if (linked) return yield* state;
     }
     return yield* fail(
-      `Another supacode command is already installed, or no folder on your PATH is writable. Run the launcher directly at ${launcher}.`,
+      `Another supaterm command is already installed, or no folder on your PATH is writable. Run the launcher directly at ${launcher}.`,
     );
   }).pipe(
     Effect.tap(() =>
@@ -249,7 +249,7 @@ export const make = Effect.gen(function* () {
         .remove(autoInstallDisabledMarker, { force: true })
         .pipe(
           Effect.mapError(() =>
-            fail("Installed supacode but could not enable automatic installation."),
+            fail("Installed supaterm but could not enable automatic installation."),
           ),
         ),
     ),
@@ -275,7 +275,7 @@ export const make = Effect.gen(function* () {
     if (!environment.isPackaged) return yield* state;
     yield* fs.makeDirectory(environment.stateDir, { recursive: true }).pipe(
       Effect.andThen(fs.writeFileString(autoInstallDisabledMarker, "")),
-      Effect.mapError(() => fail("Could not disable automatic supacode installation.")),
+      Effect.mapError(() => fail("Could not disable automatic supaterm installation.")),
     );
     if (windows) {
       if (yield* exists(ownedPathMarker)) {
@@ -292,7 +292,7 @@ export const make = Effect.gen(function* () {
       return yield* state;
     }
     for (const directory of unixCandidates(environment.homeDirectory, environment.platform)) {
-      const link = path.join(directory, "supacode");
+      const link = path.join(directory, "supaterm");
       if (yield* isOurLink(link)) {
         yield* fs.remove(link).pipe(Effect.mapError(() => fail(`Could not remove ${link}.`)));
       }

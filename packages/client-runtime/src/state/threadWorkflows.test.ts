@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { RunId, ThreadId, type OrchestrationV2ThreadProjection } from "@supacode/contracts";
+import { RunId, ThreadId, type OrchestrationV2ThreadProjection } from "@supaterm/contracts";
 
 import {
   canDetachThreadProviderSession,

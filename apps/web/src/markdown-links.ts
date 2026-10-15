@@ -1,11 +1,11 @@
-import { fileBasename, workspaceRelativeFilePath } from "@supacode/shared/path";
+import { fileBasename, workspaceRelativeFilePath } from "@supaterm/shared/path";
 import {
   inlineCodeFilePathCandidate,
   isRelativeFilePath,
   normalizeMarkdownLinkDestination,
   resolveMarkdownFileLinkTarget,
-} from "@supacode/shared/markdownLinks";
-import { parseFileUrlHref, splitFilePathPosition } from "@supacode/shared/fileLinks";
+} from "@supaterm/shared/markdownLinks";
+import { parseFileUrlHref, splitFilePathPosition } from "@supaterm/shared/fileLinks";
 
 import { formatWorkspaceRelativePath } from "./filePathDisplay";
 import { isTerminalLinkActivation } from "./terminal-links";

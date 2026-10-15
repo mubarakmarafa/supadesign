@@ -6,12 +6,12 @@ import {
   MessageId,
   ProviderDriverKind,
   type ProviderReplayTranscript,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 import { classifyClaudeNativeTool } from "../Adapters/ClaudeAdapterV2.ts";
 import { ClaudeOrchestratorReplayHarness } from "../Adapters/ClaudeAdapterV2.testkit.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as Orchestrator from "../Orchestrator.ts";
 import { userFacingDispatchErrorMessage } from "../UserFacingErrors.ts";
 import { provideDeterministicTestRuntime } from "./DeterministicRuntime.ts";
@@ -33,7 +33,7 @@ import {
   THREAD_MERGE_BACK_SIBLINGS_SOURCE_MARKER,
   THREAD_MERGE_BACK_SOURCE_MARKER,
 } from "./fixtures/shared.ts";
-import { readProviderReplayTranscript } from "@supacode/provider-testing/replayTranscript";
+import { readProviderReplayTranscript } from "@supaterm/provider-testing/replayTranscript";
 
 const readTranscript = Effect.fn("readClaudeReplayFixture")(function* (file: URL) {
   return yield* readProviderReplayTranscript(file);

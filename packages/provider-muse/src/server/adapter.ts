@@ -22,10 +22,10 @@ import {
   type RuntimeRequestId,
   type ServerProviderModel,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { MuseSettings } from "../settings.ts";
-import { AgentScope } from "@supacode/shared/AgentScope";
-import { getModelSelectionStringOptionValue } from "@supacode/shared/model";
+import { AgentScope } from "@supaterm/shared/AgentScope";
+import { getModelSelectionStringOptionValue } from "@supaterm/shared/model";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
@@ -38,10 +38,10 @@ import * as Semaphore from "effect/Semaphore";
 import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import * as McpProviderSession from "@supacode/provider-core/server/mcpSession";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import { buildRuntimeInstructions } from "@supacode/provider-core/server/runtimeInstructions";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import * as McpProviderSession from "@supaterm/provider-core/server/mcpSession";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import { buildRuntimeInstructions } from "@supaterm/provider-core/server/runtimeInstructions";
 import { museModelCapabilities, resolveMuseReasoningEffort } from "./modelCatalog.ts";
 import {
   MuseApproval,
@@ -68,25 +68,25 @@ import {
   type createMuseSdkHost,
   type MuseSdkHost,
 } from "./sdk.ts";
-import type * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import type * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import {
   providerMessageTextWithAttachmentPaths,
   isProviderNativeImageAttachment,
-} from "@supacode/provider-core/server/attachmentPrompt";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+} from "@supaterm/provider-core/server/attachmentPrompt";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import {
   backgroundWorkNotification,
   type BackgroundWorkReport,
-} from "@supacode/provider-core/server/notification";
-import type * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
-import { makeProviderFailure } from "@supacode/provider-core/server/failure";
+} from "@supaterm/provider-core/server/notification";
+import type * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
+import { makeProviderFailure } from "@supaterm/provider-core/server/failure";
 import {
   makeSubagentChildThread,
   makeSubagentConversationArtifacts,
   subagentThreadTitle,
-} from "@supacode/provider-core/server/subagentProjection";
-import { turnScopedSelectionTransition } from "@supacode/provider-core/server/selectionTransition";
+} from "@supaterm/provider-core/server/subagentProjection";
+import { turnScopedSelectionTransition } from "@supaterm/provider-core/server/selectionTransition";
 import { museItemStatus, museToolPresentation } from "./itemPresentation.ts";
 
 const MUSE_PROVIDER = ProviderDriverKind.make("muse");
@@ -962,7 +962,7 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
         const completedAt = yield* DateTime.now;
         for (const item of turn.items.values()) {
           // Workflows and subagents outlive a completed turn. A stopped or failed
-          // turn ends them in Supacode too, as the orchestrator stops following them.
+          // turn ends them in Supaterm too, as the orchestrator stops following them.
           if (
             (item.kind === "subagent" || item.kind === "workflow") &&
             item.status === "inProgress" &&
@@ -1759,7 +1759,7 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
           const config = mcpSession
             ? {
                 mcpServers: {
-                  supacode: {
+                  supaterm: {
                     transport: "streamableHttp",
                     mode: "optional",
                     url: mcpSession.endpoint,
@@ -2281,7 +2281,7 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
               driver: MUSE_PROVIDER,
               providerThreadId: args.providerThread.id,
               checkpointId: args.target.checkpointId,
-              cause: "Muse Code does not support conversation rollback in Supacode.",
+              cause: "Muse Code does not support conversation rollback in Supaterm.",
             }),
           ),
         forkThread: (args) =>
@@ -2289,7 +2289,7 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
             new ProviderAdapter.ProviderAdapterForkThreadError({
               driver: MUSE_PROVIDER,
               providerThreadId: args.sourceProviderThread.id,
-              cause: "Muse Code does not support native forks in Supacode.",
+              cause: "Muse Code does not support native forks in Supaterm.",
             }),
           ),
       };

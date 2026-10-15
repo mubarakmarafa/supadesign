@@ -1,9 +1,9 @@
-import { NodeId, ThreadId, TurnItemId, type OrchestrationV2TurnItem } from "@supacode/contracts";
+import { NodeId, ThreadId, TurnItemId, type OrchestrationV2TurnItem } from "@supaterm/contracts";
 import {
   MAX_TOOL_OUTPUT_IMAGE_BASE64_LENGTH,
   MAX_TOOL_OUTPUT_IMAGES,
   toolOutputImages,
-} from "@supacode/shared/toolOutput";
+} from "@supaterm/shared/toolOutput";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
@@ -109,7 +109,7 @@ describe("stripUnservedToolOutputImageBytes", () => {
     const mcpImage = { type: "image", data: PADDED_BASE64, mimeType: "image/jpeg" };
     const item = toolItem(
       { content: [{ type: "text", text: "captured" }, claudeImage, mcpImage] },
-      "mcp__supacode-code__device_screenshot",
+      "mcp__supaterm-code__device_screenshot",
     );
 
     const stripped = stripUnservedToolOutputImageBytes(item);

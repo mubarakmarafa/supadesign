@@ -8,7 +8,7 @@ import {
   type OrchestrationV2TurnItem,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -17,7 +17,7 @@ import * as Schema from "effect/Schema";
 
 import * as CheckpointService from "./CheckpointService.ts";
 import * as EventSink from "./EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProjectionStore from "./ProjectionStore.ts";
 
 export class CheckpointCaptureExecutionError extends Schema.TaggedError<CheckpointCaptureExecutionError>()(
@@ -43,7 +43,7 @@ export interface CheckpointCaptureServiceV2Shape {
 export class CheckpointCaptureServiceV2 extends Context.Service<
   CheckpointCaptureServiceV2,
   CheckpointCaptureServiceV2Shape
->()("supacode/orchestration-v2/CheckpointCaptureService/CheckpointCaptureServiceV2") {}
+>()("supaterm/orchestration-v2/CheckpointCaptureService/CheckpointCaptureServiceV2") {}
 
 export const layer: Layer.Layer<
   CheckpointCaptureServiceV2,

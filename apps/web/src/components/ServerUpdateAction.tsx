@@ -3,19 +3,19 @@ import {
   AuthEnvironmentMaintainScope,
   type AuthSessionState,
   sessionGrantsScope,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { AsyncResult } from "effect/reactivity";
 import { environmentSession } from "~/state/session";
 import type {
   EnvironmentId,
   ServerInstallation,
   ServerSelfUpdateCapability,
-} from "@supacode/contracts";
-import type { ServerUpdateStage, ServerUpdateState } from "@supacode/client-runtime/state/server";
+} from "@supaterm/contracts";
+import type { ServerUpdateStage, ServerUpdateState } from "@supaterm/client-runtime/state/server";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { CircleArrowUpIcon } from "lucide-react";
 import { type ComponentProps, useRef, useState } from "react";
 
@@ -98,7 +98,7 @@ export function useServerUpdate() {
           ? `Desktop app is current on its release feed at ${result.value.targetVersion}.`
           : selfUpdate === "desktop-managed"
             ? `Desktop app relaunched on ${result.value.targetVersion}.`
-            : `Reconnected on supacode@${result.value.targetVersion}.`,
+            : `Reconnected on supaterm@${result.value.targetVersion}.`,
       });
     } catch (error) {
       toastManager.add({
@@ -142,7 +142,7 @@ export function ServerUpdatesAction({
       if (desktopTargets.length > 0) {
         const confirmed =
           (await requestConfirmDialog(
-            `Update the Supacode desktop apps on ${desktopTargets.map((target) => target.serverLabel).join(", ")}? They will close and relaunch on those machines.`,
+            `Update the Supaterm desktop apps on ${desktopTargets.map((target) => target.serverLabel).join(", ")}? They will close and relaunch on those machines.`,
           )) ?? true;
         if (!confirmed) return;
       }
@@ -243,8 +243,8 @@ export function ServerUpdateAction({
           installation?.kind === "npm-global" ? "Update command copied" : "Relaunch command copied",
         description:
           installation?.kind === "npm-global"
-            ? `Run \`${command}\` on ${serverLabel}, then restart supacode with your usual options.`
-            : `Stop supacode on ${serverLabel}, then relaunch with \`${command}\` using the same subcommand and options. This does not update an installed supacode command.`,
+            ? `Run \`${command}\` on ${serverLabel}, then restart supaterm with your usual options.`
+            : `Stop supaterm on ${serverLabel}, then relaunch with \`${command}\` using the same subcommand and options. This does not update an installed supaterm command.`,
       });
     },
     onError: (error) => {
@@ -269,7 +269,7 @@ export function ServerUpdateAction({
       // remote machine installs without asking anyone there.
       const confirmed =
         (await requestConfirmDialog(
-          `Update the Supacode desktop app that runs the ${serverLabel}? It will close and relaunch on that machine.`,
+          `Update the Supaterm desktop app that runs the ${serverLabel}? It will close and relaunch on that machine.`,
         )) ?? true;
       if (!confirmed) {
         return;
@@ -379,7 +379,7 @@ export function OutdatedServerUpdateAction({
         title: `${serverLabel} updated`,
         description: result.value.upToDate
           ? `Already current on its release feed at ${result.value.targetVersion}.`
-          : `Reconnected on supacode@${result.value.targetVersion}.`,
+          : `Reconnected on supaterm@${result.value.targetVersion}.`,
       });
     } catch (error) {
       toastManager.add({

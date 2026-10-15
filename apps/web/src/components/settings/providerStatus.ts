@@ -2,7 +2,7 @@ import type {
   ServerProvider,
   ServerProviderVersionAdvisory,
   ServerProviderCompatibilityAdvisory,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 /**
  * Visual treatment for each server-reported provider status. Centralized so
@@ -44,7 +44,7 @@ export function getProviderSummary(provider: ServerProvider | undefined) {
     return {
       headline: "Disabled",
       detail:
-        provider.message ?? "This provider is installed but disabled for new sessions in Supacode.",
+        provider.message ?? "This provider is installed but disabled for new sessions in Supaterm.",
     };
   }
   if (!provider.installed) {

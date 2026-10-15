@@ -28,7 +28,7 @@
  *
  * @module provider/ProviderInstanceRegistryMutator
  */
-import type { ProviderInstanceConfigMap } from "@supacode/contracts";
+import type { ProviderInstanceConfigMap } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import type * as Effect from "effect/Effect";
 
@@ -49,4 +49,4 @@ export interface ProviderInstanceRegistryMutatorShape {
 export class ProviderInstanceRegistryMutator extends Context.Service<
   ProviderInstanceRegistryMutator,
   ProviderInstanceRegistryMutatorShape
->()("supacode/provider/ProviderInstanceRegistryMutator") {}
+>()("supaterm/provider/ProviderInstanceRegistryMutator") {}

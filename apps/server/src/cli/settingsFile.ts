@@ -1,5 +1,5 @@
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
-import { fromJsonStringPretty, fromLenientJson } from "@supacode/shared/schemaJson";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
+import { fromJsonStringPretty, fromLenientJson } from "@supaterm/shared/schemaJson";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -57,7 +57,7 @@ export const resolveSettingsPaths = Effect.fnUntraced(function* (
   development = false,
 ) {
   const envHome = Option.filter(
-    yield* Config.String("SUPACODE_HOME").pipe(Config.option),
+    yield* Config.String("SUPATERM_HOME").pipe(Config.option),
     (value) => value.trim().length > 0,
   );
   const configuredBaseDir = Option.orElse(explicitBaseDir, () => envHome);

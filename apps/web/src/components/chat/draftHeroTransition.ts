@@ -1,5 +1,5 @@
-export const DRAFT_HERO_TRANSITION_ANIMATION_ID = "supacode-draft-hero-transition";
-export const MOBILE_COMPOSER_VIEW_TRANSITION_NAME = "supacode-mobile-composer";
+export const DRAFT_HERO_TRANSITION_ANIMATION_ID = "supaterm-draft-hero-transition";
+export const MOBILE_COMPOSER_VIEW_TRANSITION_NAME = "supaterm-mobile-composer";
 const MOBILE_COMPOSER_TRANSITION_DURATION_PROPERTY = "--mobile-composer-transition-duration";
 
 type ComposerViewTransition = {

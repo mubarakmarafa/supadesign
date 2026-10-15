@@ -3,9 +3,9 @@ import {
   PREVIEW_URL_MAX_LENGTH,
   ThreadId,
   type DiscoveredLocalServer,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { isLoopbackHost, LSOF_LOCAL_HOST_TOKENS } from "@supacode/shared/preview";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { isLoopbackHost, LSOF_LOCAL_HOST_TOKENS } from "@supaterm/shared/preview";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -47,7 +47,7 @@ export class PortDiscovery extends Context.Service<
       readonly terminalId: string;
     }) => Effect.Effect<void>;
   }
->()("supacode/preview/PortScanner/PortDiscovery") {}
+>()("supaterm/preview/PortScanner/PortDiscovery") {}
 
 const POLL_INTERVAL = Duration.seconds(3);
 const LSOF_TIMEOUT_MS = 5_000;
@@ -191,7 +191,7 @@ const parseLsofOutput = (
       const key = `localhost:${portMatch}`;
       const terminal = pid === null ? null : (terminalByProcessId.get(pid) ?? null);
       const existing = seen.get(key);
-      // A port receives probes only when Supacode terminals own all of its listeners.
+      // A port receives probes only when Supaterm terminals own all of its listeners.
       if (existing) {
         if (terminal === null) seen.set(key, { ...existing, terminal: null });
         continue;

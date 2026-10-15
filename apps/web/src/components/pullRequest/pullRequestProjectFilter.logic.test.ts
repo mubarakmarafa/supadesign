@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { findScopedProject } from "./pullRequestList.logic";
@@ -19,7 +19,7 @@ function project(
   return {
     id: ProjectId.make(id),
     environmentId,
-    title: "supacode",
+    title: "supaterm",
     workspaceRoot: `/work/${id}`,
     repositoryIdentity: canonicalKey === null ? null : { canonicalKey },
     faviconPath: `${id}/favicon.png`,
@@ -38,8 +38,8 @@ describe("pull request project filter choices", () => {
     const choices = pullRequestFilterProjects(projects, labels);
 
     expect(choices.map(({ id, environmentId, title }) => ({ id, environmentId, title }))).toEqual([
-      { id: "main", environmentId: cups, title: "supacode · cups" },
-      { id: "main", environmentId: nucbox, title: "supacode · nucbox-1" },
+      { id: "main", environmentId: cups, title: "supaterm · cups" },
+      { id: "main", environmentId: nucbox, title: "supaterm · nucbox-1" },
     ]);
     expect(choices[1]?.workspaceRoot).toBe("/work/main");
     expect(choices[1]?.faviconPath).toBe("main/favicon.png");
@@ -52,7 +52,7 @@ describe("pull request project filter choices", () => {
     const choices = pullRequestFilterProjects(projects, labels, selected);
 
     expect(choices.filter((choice) => choice.environmentId === nucbox)).toEqual([
-      { ...projects[1], title: "supacode · nucbox-1" },
+      { ...projects[1], title: "supaterm · nucbox-1" },
     ]);
     expect(findScopedProject(choices, nucbox, "worktree")).toBeDefined();
     expect(findScopedProject(choices, nucbox, "main")).toBeUndefined();
@@ -70,20 +70,20 @@ describe("pull request project filter choices", () => {
     const main = project("main");
 
     expect(pullRequestFilterProjects([main, project("worktree")], labels)).toEqual([main]);
-    expect(main.title).toBe("supacode");
+    expect(main.title).toBe("supaterm");
   });
 
   it("distinguishes same-named repositories on one server by checkout path", () => {
     const projects = [
       project("upstream"),
-      project("fork", nucbox, "github.com/juliusmarminge/supacode"),
+      project("fork", nucbox, "github.com/juliusmarminge/supaterm"),
     ];
 
     const choices = pullRequestFilterProjects(projects, labels);
 
     expect(choices.map((choice) => choice.title)).toEqual([
-      "supacode · nucbox-1 · /work/fork",
-      "supacode · nucbox-1 · /work/upstream",
+      "supaterm · nucbox-1 · /work/fork",
+      "supaterm · nucbox-1 · /work/upstream",
     ]);
   });
 
@@ -106,8 +106,8 @@ describe("pull request project filter choices", () => {
     );
 
     expect(choices.map((choice) => choice.title)).toEqual([
-      "supacode · nucbox-1 · /work/first",
-      "supacode · nucbox-1 · /work/second",
+      "supaterm · nucbox-1 · /work/first",
+      "supaterm · nucbox-1 · /work/second",
     ]);
   });
 
@@ -122,8 +122,8 @@ describe("pull request project filter choices", () => {
     const choices = pullRequestFilterProjects([first, second], repeatedLabels);
 
     expect(choices.map((choice) => choice.title)).toEqual([
-      "supacode · nucbox-1 · /work/main · env-cups",
-      "supacode · nucbox-1 · /work/main · env-nucbox",
+      "supaterm · nucbox-1 · /work/main · env-cups",
+      "supaterm · nucbox-1 · /work/main · env-nucbox",
     ]);
   });
 
@@ -134,8 +134,8 @@ describe("pull request project filter choices", () => {
     );
 
     expect(choices.map((choice) => choice.title)).toEqual([
-      "supacode · env-cups",
-      "supacode · env-nucbox",
+      "supaterm · env-cups",
+      "supaterm · env-nucbox",
     ]);
   });
 
@@ -146,8 +146,8 @@ describe("pull request project filter choices", () => {
     const choices = pullRequestFilterProjects([first, second], labels);
 
     expect(choices.map((choice) => choice.title)).toEqual([
-      "supacode · nucbox-1 · /work/first · env-nucbox · first",
-      "supacode · nucbox-1 · /work/first · env-nucbox · second",
+      "supaterm · nucbox-1 · /work/first · env-nucbox · first",
+      "supaterm · nucbox-1 · /work/first · env-nucbox · second",
     ]);
   });
 

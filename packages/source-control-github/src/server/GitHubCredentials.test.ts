@@ -5,10 +5,10 @@ import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import { ChildProcessSpawner } from "effect/process";
 
-import { DEFAULT_SERVER_SETTINGS } from "@supacode/contracts";
-import type * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import { applyServerSettingsPatch } from "@supacode/shared/serverSettings";
-import * as TestSourceControlHost from "@supacode/source-control-testing/TestSourceControlHost";
+import { DEFAULT_SERVER_SETTINGS } from "@supaterm/contracts";
+import type * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
+import * as TestSourceControlHost from "@supaterm/source-control-testing/TestSourceControlHost";
 import * as GitHubCredentials from "./GitHubCredentials.ts";
 
 const TOKEN_VARIABLES = [

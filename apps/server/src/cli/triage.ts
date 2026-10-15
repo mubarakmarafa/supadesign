@@ -1,5 +1,5 @@
 /**
- * `supacode triage` - hand a misbehaving install to the user's own coding agent.
+ * `supaterm triage` - hand a misbehaving install to the user's own coding agent.
  *
  * The command is deliberately thin: it writes a `context.md` with machine facts
  * (version, paths, server liveness), then launches claude or codex
@@ -16,8 +16,8 @@ import * as NodeChildProcess from "node:child_process";
 import * as NodeOS from "node:os";
 import * as NodeReadlinePromises from "node:readline/promises";
 
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { isCommandAvailable, resolveSpawnCommand } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { isCommandAvailable, resolveSpawnCommand } from "@supaterm/shared/shell";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
 import * as DateTime from "effect/DateTime";
@@ -170,7 +170,7 @@ export const triageCommand = Command.make("triage", {
   print: printFlag,
 }).pipe(
   Command.withDescription(
-    "Investigate a Supacode problem on this machine with claude or codex, and help file a good issue.",
+    "Investigate a Supaterm problem on this machine with claude or codex, and help file a good issue.",
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
@@ -178,10 +178,10 @@ export const triageCommand = Command.make("triage", {
       const path = yield* Path.Path;
 
       // Triage is a user-facing feature: always the userdata state, never dev.
-      // --base-dir wins; SUPACODE_HOME is its documented env equivalent (same
-      // precedence as `supacode pair`).
+      // --base-dir wins; SUPATERM_HOME is its documented env equivalent (same
+      // precedence as `supaterm pair`).
       const explicitBaseDir = Option.getOrUndefined(flags.baseDir);
-      const envHome = yield* Config.String("SUPACODE_HOME").pipe(Config.option);
+      const envHome = yield* Config.String("SUPATERM_HOME").pipe(Config.option);
       const baseDir = yield* resolveBaseDir(explicitBaseDir ?? Option.getOrUndefined(envHome));
       const paths = yield* ServerConfig.deriveServerPaths(baseDir, undefined, {});
 
@@ -197,7 +197,7 @@ export const triageCommand = Command.make("triage", {
         os: `${yield* HostProcess.Platform} ${yield* HostProcess.Architecture} (${NodeOS.release()})`,
         nodeVersion: process.version,
         launchedAs: flags.print
-          ? `${cliCommand} --print, run by an agent; ask the user how they installed Supacode`
+          ? `${cliCommand} --print, run by an agent; ask the user how they installed Supaterm`
           : cliCommand,
         server: yield* describeServerProcess(paths.serverRuntimeStatePath),
         paths: {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import * as Option from "effect/Option";
-import type { SshDeviceHostConfig } from "@supacode/contracts";
+import type { SshDeviceHostConfig } from "@supaterm/contracts";
 import { CheckIcon, MonitorIcon, XIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";

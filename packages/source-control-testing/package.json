@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/source-control-testing",
+  "name": "@supaterm/source-control-testing",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,9 +12,9 @@
     "typecheck": "tsc-rs --noEmit"
   },
   "dependencies": {
-    "@supacode/contracts": "workspace:*",
-    "@supacode/shared": "workspace:*",
-    "@supacode/source-control-core": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/shared": "workspace:*",
+    "@supaterm/source-control-core": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

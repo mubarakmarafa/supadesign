@@ -1,5 +1,5 @@
-import { type EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
-import { EnvironmentId, ThreadId, type ServerConfig } from "@supacode/contracts";
+import { type EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
+import { EnvironmentId, ThreadId, type ServerConfig } from "@supaterm/contracts";
 
 export interface EnvironmentRuntimeState {
   readonly connectionState: EnvironmentConnectionPhase;

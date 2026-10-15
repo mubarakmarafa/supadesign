@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as Scope from "effect/Scope";
 import * as Exit from "effect/Exit";
@@ -34,8 +34,8 @@ it.effect("captures supported OS events synchronously and drains them in arrival
       },
     };
     listeners.get("open-file")!(event, "/tmp/first.html");
-    listeners.get("open-url")!(event, "supacode://new?prompt=hello");
-    listeners.get("second-instance")!({}, ["supacode", "https://example.com/last"]);
+    listeners.get("open-url")!(event, "supaterm://new?prompt=hello");
+    listeners.get("second-instance")!({}, ["supaterm", "https://example.com/last"]);
     listeners.get("open-url")!(event, "mailto:ignored@example.com");
     expect(prevented).toBe(2);
     const received: DesktopOpenEvent[] = [];
@@ -44,8 +44,8 @@ it.effect("captures supported OS events synchronously and drains them in arrival
       .pipe(Effect.provideService(Scope.Scope, scope));
     expect(received).toEqual([
       { type: "file", path: "/tmp/first.html" },
-      { type: "url", url: "supacode://new?prompt=hello" },
-      { type: "second-instance", argv: ["supacode", "https://example.com/last"] },
+      { type: "url", url: "supaterm://new?prompt=hello" },
+      { type: "second-instance", argv: ["supaterm", "https://example.com/last"] },
     ]);
     listeners.get("open-url")!(event, "https://example.com/live");
     expect(received.at(-1)).toEqual({ type: "url", url: "https://example.com/live" });

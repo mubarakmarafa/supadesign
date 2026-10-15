@@ -6,17 +6,17 @@
  * are discovered through a short-lived ephemeral RPC session
  * (`pi --mode rpc --no-session`), so everything the user configured in
  * `~/.pi/agent` — custom providers, models.json entries, extensions, skills —
- * shows up in Supacode without any hardcoded catalog.
+ * shows up in Supaterm without any hardcoded catalog.
  */
 import {
   type CustomModelSetting,
   type ServerProvider,
   type ServerProviderModel,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { PiSettings } from "../settings.ts";
-import { causeErrorTag } from "@supacode/shared/observability";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
-import { compareSemverVersions } from "@supacode/shared/semver";
+import { causeErrorTag } from "@supaterm/shared/observability";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
+import { compareSemverVersions } from "@supaterm/shared/semver";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Stream from "effect/Stream";
@@ -35,7 +35,7 @@ import {
   piRecordField as recordField,
   piRecordString as recordString,
 } from "./rpc.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
 import {
   buildServerProvider,
   isCommandMissingCause,
@@ -43,11 +43,11 @@ import {
   providerModelsFromSettings,
   spawnAndCollect,
   type ServerProviderDraft,
-} from "@supacode/provider-core/server/snapshotProbe";
+} from "@supaterm/provider-core/server/snapshotProbe";
 import {
   enrichProviderSnapshotWithVersionAdvisory,
   type ProviderMaintenanceCapabilities,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 import {
   EMPTY_PI_MODEL_CAPABILITIES,
   thinkingCapabilitiesForPiModel,
@@ -72,7 +72,7 @@ const VERSION_PROBE_TIMEOUT_MS = 4_000;
 const PI_RPC_DISCOVERY_TIMEOUT_MS = 15_000;
 /**
  * get_entries arrived in 0.80.3 and agent_settled landed in source at 0.80.4.
- * Version 0.80.5 was the first published package containing both hooks. Supacode
+ * Version 0.80.5 was the first published package containing both hooks. Supaterm
  * needs them for rollback boundaries and reliable turn terminalization.
  */
 export const MINIMUM_PI_VERSION = "0.80.5";
@@ -241,7 +241,7 @@ export function buildInitialPiProviderSnapshot(
           version: null,
           status: "warning",
           auth: { status: "unknown" },
-          message: "Pi is disabled in Supacode settings.",
+          message: "Pi is disabled in Supaterm settings.",
         },
       });
     }
@@ -280,7 +280,7 @@ export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Pi is disabled in Supacode settings.",
+        message: "Pi is disabled in Supaterm settings.",
       },
     });
   }
@@ -355,7 +355,7 @@ export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function
         version: null,
         status: "error",
         auth: { status: "unknown" },
-        message: `Supacode could not determine the Pi version. Pi ${MINIMUM_PI_VERSION} or newer is required.`,
+        message: `Supaterm could not determine the Pi version. Pi ${MINIMUM_PI_VERSION} or newer is required.`,
       },
     });
   }
@@ -414,7 +414,7 @@ export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function
         status: "ready",
         auth: { status: "unknown" },
         message:
-          "Pi is available, but Supacode could not refresh its models and commands. The live session will retry startup.",
+          "Pi is available, but Supaterm could not refresh its models and commands. The live session will retry startup.",
       },
     });
   }

@@ -4,8 +4,8 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
-import { serializeAssistantCitation } from "@supacode/shared/assistantCitations";
+} from "@supaterm/contracts";
+import { serializeAssistantCitation } from "@supaterm/shared/assistantCitations";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

@@ -3,7 +3,7 @@ import {
   UsageDay,
   USAGE_CONTRACT_VERSION,
   type UsageProviderKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { act, useLayoutEffect } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

@@ -1,5 +1,5 @@
 import { ChatGptUsageButton } from "../settings/ChatGptUsageButton";
-import { usesChatGptSharing } from "@supacode/shared/usageLimits";
+import { usesChatGptSharing } from "@supaterm/shared/usageLimits";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -7,18 +7,18 @@ import {
   USAGE_CONTRACT_VERSION,
   type EnvironmentId,
   type UsageProviderKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { CircleAlertIcon, ChevronDownIcon, InfoIcon, SlidersHorizontalIcon } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import {
   cursorKeychainAccessEnvironments,
   refreshUsageLimits,
-} from "@supacode/client-runtime/state/usage";
+} from "@supaterm/client-runtime/state/usage";
 import {
   updatingProvidersLabel,
   usageEnvironmentProgress,
   usageLoadingState,
-} from "@supacode/client-runtime/state/usage-progress";
+} from "@supaterm/client-runtime/state/usage-progress";
 
 import {
   isCompatibleUsageContractVersion,
@@ -26,7 +26,7 @@ import {
   type DailyTotals,
   type HourlyTotals,
   type MergedUsage,
-} from "@supacode/shared/usageMerge";
+} from "@supaterm/shared/usageMerge";
 
 import { isElectron } from "../../env";
 import { cn } from "../../lib/utils";
@@ -49,7 +49,7 @@ import {
   formatUsageContractMismatch,
   formatUsd,
   makeWindow,
-} from "@supacode/shared/usageFormat";
+} from "@supaterm/shared/usageFormat";
 import { Button, InlineButton } from "../ui/button";
 import { Kbd } from "../ui/kbd";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";

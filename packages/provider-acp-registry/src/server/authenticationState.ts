@@ -1,4 +1,4 @@
-import type { ProviderInstanceEnvironment, ProviderInstanceId } from "@supacode/contracts";
+import type { ProviderInstanceEnvironment, ProviderInstanceId } from "@supaterm/contracts";
 import type { AcpRegistrySettings } from "../settings.ts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -9,7 +9,7 @@ import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
 
 const decodeState = Schema.decodeUnknownEffect(
   Schema.fromJsonString(Schema.Struct({ binding: Schema.String, authenticated: Schema.Boolean })),

@@ -14,7 +14,7 @@ import {
   RuntimeRequestId,
   ThreadId,
   type OrchestrationV2DomainEvent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

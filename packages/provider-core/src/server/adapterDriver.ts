@@ -2,12 +2,12 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ProviderInstanceEnvironment,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import type * as Effect from "effect/Effect";
 import type * as Scope from "effect/Scope";
 
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 export class ProviderAdapterDriverCreateError extends Schema.TaggedError<ProviderAdapterDriverCreateError>()(
   "ProviderAdapterDriverCreateError",

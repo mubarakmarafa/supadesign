@@ -1,5 +1,5 @@
-import type { ProjectId } from "@supacode/contracts";
-import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@supacode/contracts/settings";
+import type { ProjectId } from "@supaterm/contracts";
+import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@supaterm/contracts/settings";
 import type { EnvironmentThreadShell } from "./models.ts";
 
 export interface ThreadSortInput {

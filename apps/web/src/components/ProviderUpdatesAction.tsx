@@ -1,4 +1,4 @@
-import { PROVIDER_DISPLAY_NAMES } from "@supacode/contracts";
+import { PROVIDER_DISPLAY_NAMES } from "@supaterm/contracts";
 import { useMemo, useRef, useState } from "react";
 
 import { useEnvironments } from "~/state/environments";

@@ -7,42 +7,42 @@ import { dual } from "effect/Function";
 
 import { compactMetricAttributes, outcomeFromExit } from "./Attributes.ts";
 
-export const rpcRequestsTotal = Metric.counter("supacode_rpc_requests_total", {
+export const rpcRequestsTotal = Metric.counter("supaterm_rpc_requests_total", {
   description: "Total RPC requests handled by the websocket RPC server.",
 });
 
-export const rpcRequestDuration = Metric.timer("supacode_rpc_request_duration", {
+export const rpcRequestDuration = Metric.timer("supaterm_rpc_request_duration", {
   description: "RPC request handling duration.",
 });
 
 export const orchestrationEffectClaimsTotal = Metric.counter(
-  "supacode_orchestration_effect_claims_total",
+  "supaterm_orchestration_effect_claims_total",
   {
     description: "Total completed orchestration effect outbox claim attempts by result.",
   },
 );
 
 export const orchestrationEffectQueueWait = Metric.timer(
-  "supacode_orchestration_effect_queue_wait",
+  "supaterm_orchestration_effect_queue_wait",
   {
     description:
       "Time from an orchestration effect's temporal availability until claim, including same-thread blocking.",
   },
 );
 
-export const gitCommandsTotal = Metric.counter("supacode_git_commands_total", {
+export const gitCommandsTotal = Metric.counter("supaterm_git_commands_total", {
   description: "Total git commands executed by the server runtime.",
 });
 
-export const gitCommandDuration = Metric.timer("supacode_git_command_duration", {
+export const gitCommandDuration = Metric.timer("supaterm_git_command_duration", {
   description: "Git command execution duration.",
 });
 
-export const terminalSessionsTotal = Metric.counter("supacode_terminal_sessions_total", {
+export const terminalSessionsTotal = Metric.counter("supaterm_terminal_sessions_total", {
   description: "Total terminal sessions started.",
 });
 
-export const terminalRestartsTotal = Metric.counter("supacode_terminal_restarts_total", {
+export const terminalRestartsTotal = Metric.counter("supaterm_terminal_restarts_total", {
   description: "Total terminal restart requests handled.",
 });
 

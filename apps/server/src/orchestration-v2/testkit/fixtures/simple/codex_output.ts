@@ -1,4 +1,4 @@
-import type { ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderReplayTranscript } from "@supaterm/contracts";
 
 import type { OrchestratorV2ScenarioResult } from "../../OrchestratorScenario.ts";
 import {

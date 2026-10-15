@@ -2,15 +2,15 @@ import type {
   StorageCleanupReport,
   StorageCleanupSettings,
   WorktreeCleanupRules,
-} from "@supacode/contracts";
-import { resolveWorktreeCleanup } from "@supacode/shared/projectSettings";
+} from "@supaterm/contracts";
+import { resolveWorktreeCleanup } from "@supaterm/shared/projectSettings";
 import { useMemo, useRef, useState } from "react";
 import { useAtomValue } from "@effect/atom-react";
 import { Atom } from "effect/reactivity";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { formatBytes } from "../../lib/formatBytes";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";

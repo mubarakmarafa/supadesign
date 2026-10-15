@@ -3,9 +3,9 @@ import type {
   ContextMenuItem as TreeContextMenuItem,
   ContextMenuOpenContext as TreeContextMenuOpenContext,
 } from "@pierre/trees";
-import type { EnvironmentId, ProjectEntry } from "@supacode/contracts";
+import type { EnvironmentId, ProjectEntry } from "@supaterm/contracts";
 import { FileTree, useFileTree, useFileTreeSearch, useFileTreeSelector } from "@pierre/trees/react";
-import { serializeComposerFileLink } from "@supacode/shared/composerTrigger";
+import { serializeComposerFileLink } from "@supaterm/shared/composerTrigger";
 import { ChevronsDownUp, ChevronsUpDown } from "lucide";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
@@ -20,7 +20,7 @@ import { useTheme } from "~/hooks/useTheme";
 import { useWorkspaceMutationRefresh } from "~/hooks/useWorkspaceMutationRefresh";
 import { useFileContextMenu, type FileContextMenuAction } from "~/fileContextMenu";
 import { readLocalApi } from "~/localApi";
-import { SUPACODE_PIERRE_ICONS } from "~/pierre-icons";
+import { SUPATERM_PIERRE_ICONS } from "~/pierre-icons";
 import { PIERRE_TREE_UNSAFE_CSS, pierreTreeStyle } from "~/pierre-tree-theme";
 
 import { createFileTreeDragMentionController } from "./fileTreeDragMention";
@@ -264,7 +264,7 @@ export default function FileBrowserPanel({
     fileTreeSearchMode: "hide-non-matches",
     flattenEmptyDirectories: true,
     initialExpansion: "closed",
-    icons: SUPACODE_PIERRE_ICONS,
+    icons: SUPATERM_PIERRE_ICONS,
     onSelectionChange: (selectedPaths) => {
       // The drag controller's selection cache must track every change,
       // including reveal-driven ones, or drags act on a stale selection.
@@ -288,7 +288,7 @@ export default function FileBrowserPanel({
       row.kind === "directory" &&
       row.isExpanded &&
       loadingDirectoriesRef.current.has(item.path.replace(/\/$/, ""))
-        ? { icon: "supacode-tree-icon-loading", title: "Loading…" }
+        ? { icon: "supaterm-tree-icon-loading", title: "Loading…" }
         : null,
     search: false,
     onSearchChange: (value) => setQuery(value ?? ""),

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { ThreadId, TurnItemId, type OrchestrationV2TurnItem } from "@supacode/contracts";
+import { ThreadId, TurnItemId, type OrchestrationV2TurnItem } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
-import { SUPACODE_MCP_TOOL_NAMES } from "@supacode/shared/supacodeMcpToolPresentation";
+import { SUPATERM_MCP_TOOL_NAMES } from "@supaterm/shared/supatermMcpToolPresentation";
 
 import {
   commandDetailRepeatsCommand,
@@ -311,23 +311,23 @@ describe("summarizeToolGroup", () => {
 });
 
 describe("resolveWorkEntryToolPresentation", () => {
-  it("presents and summarizes every Supacode tool using the same structured identity", () => {
-    for (const tool of SUPACODE_MCP_TOOL_NAMES) {
+  it("presents and summarizes every Supaterm tool using the same structured identity", () => {
+    for (const tool of SUPATERM_MCP_TOOL_NAMES) {
       const entry: WorkLogPresentationEntry = {
         id: tool,
         createdAt: "2026-09-19T00:00:00.000Z",
         tone: "tool",
         label: "Custom provider title",
-        toolData: { server: "supacode", tool },
+        toolData: { server: "supaterm", tool },
         toolLifecycleStatus: "completed",
         itemType: "dynamic_tool",
-        toolSource: { key: "supacode", name: "supacode", kind: "integration" },
+        toolSource: { key: "supaterm", name: "supaterm", kind: "integration" },
       };
       const presentation = resolveWorkEntryToolPresentation(entry);
       expect(presentation, tool).not.toBeNull();
       expect(presentation?.displayName, tool).not.toContain(tool);
       const summary = summarizeToolGroup([entry]);
-      expect(summary.summary, tool).not.toMatch(/Used (?:1 tool|Supacode integration)/);
+      expect(summary.summary, tool).not.toMatch(/Used (?:1 tool|Supaterm integration)/);
       expect(summary.hasFailure, tool).toBe(false);
       const failed = { ...entry, toolLifecycleStatus: "failed" as const };
       expect(resolveWorkEntryToolPresentation(failed)?.displayName, tool).toMatch(/^Failed to /);
@@ -339,28 +339,28 @@ describe("resolveWorkEntryToolPresentation", () => {
   });
 
   it.each([
-    ["supacode_project_list", "Listing projects", "Listed projects"],
-    ["supacode_project_clone", "Cloning a repository", "Cloned a repository"],
-    ["supacode_project_create", "Registering a project", "Registered a project"],
-    ["supacode_thread_launch", "Launching a project thread", "Launched a project thread"],
-    ["supacode_queue_edit", "Editing a queued message", "Edited a queued message"],
+    ["supaterm_project_list", "Listing projects", "Listed projects"],
+    ["supaterm_project_clone", "Cloning a repository", "Cloned a repository"],
+    ["supaterm_project_create", "Registering a project", "Registered a project"],
+    ["supaterm_thread_launch", "Launching a project thread", "Launched a project thread"],
+    ["supaterm_queue_edit", "Editing a queued message", "Edited a queued message"],
     [
-      "supacode_pending_request_respond",
+      "supaterm_pending_request_respond",
       "Answering pending questions",
       "Answered pending questions",
     ],
-    ["supacode_thread_configure", "Setting thread model", "Set thread model"],
-    ["supacode_thread_fork", "Forking this thread", "Requested a fork of this thread"],
-    ["supacode_thread_send_attachments", "Sending attachments", "Sent attachments"],
+    ["supaterm_thread_configure", "Setting thread model", "Set thread model"],
+    ["supaterm_thread_fork", "Forking this thread", "Requested a fork of this thread"],
+    ["supaterm_thread_send_attachments", "Sending attachments", "Sent attachments"],
     ["run_scheduled_task_now", "Running a scheduled task", "Requested a run of a scheduled task"],
-    ["supacode_workflow_stop", "Stopping a workflow", "Requested a stop for a workflow"],
+    ["supaterm_workflow_stop", "Stopping a workflow", "Requested a stop for a workflow"],
   ])("labels %s through its lifecycle", (tool, running, completed) => {
-    expect(resolveWorkEntryToolPresentation({ label: `Supacode.${tool}` })?.displayName).toBe(
+    expect(resolveWorkEntryToolPresentation({ label: `Supaterm.${tool}` })?.displayName).toBe(
       running,
     );
     expect(
       resolveWorkEntryToolPresentation({
-        label: `Supacode.${tool}`,
+        label: `Supaterm.${tool}`,
         toolLifecycleStatus: "completed",
       })?.displayName,
     ).toBe(completed);
@@ -375,8 +375,8 @@ describe("resolveWorkEntryToolPresentation", () => {
       itemType: "dynamic_tool",
       toolLifecycleStatus: "completed",
       toolData: {
-        server: "supacode",
-        tool: "supacode_workflow_stop",
+        server: "supaterm",
+        tool: "supaterm_workflow_stop",
         arguments: { threadId: "parent", subagentId: "workflow-1" },
         result: {},
       },
@@ -396,7 +396,7 @@ describe("resolveWorkEntryToolPresentation", () => {
           ...entry,
           toolData: {
             ...entry.toolData,
-            tool: "supacode_thread_interrupt",
+            tool: "supaterm_thread_interrupt",
             arguments: { threadId: "parent" },
           },
         },
@@ -416,20 +416,20 @@ describe("resolveWorkEntryToolPresentation", () => {
       itemType: "dynamic_tool",
       toolLifecycleStatus: "completed",
       toolData: {
-        server: "supacode",
-        tool: "supacode_project_clone",
+        server: "supaterm",
+        tool: "supaterm_project_clone",
         arguments: { url: "https://github.com/acme/repo" },
         result: { cwd: "/tmp/repo" },
       },
     };
-    const list = { ...entry, toolData: { server: "supacode", tool: "supacode_project_list" } };
+    const list = { ...entry, toolData: { server: "supaterm", tool: "supaterm_project_list" } };
     expect(summarizeToolGroup([list, entry])).toEqual({
       summary: "Listed projects 1 time and cloned 1 repository",
       hasFailure: false,
     });
     const failed = {
       ...entry,
-      toolData: { toolName: "Supacode.supacode_project_clone", rawOutput: { isError: true } },
+      toolData: { toolName: "Supaterm.supaterm_project_clone", rawOutput: { isError: true } },
     };
     expect(summarizeToolGroup([entry, failed])).toEqual({
       summary: "Cloned 1 repository",
@@ -437,14 +437,14 @@ describe("resolveWorkEntryToolPresentation", () => {
     });
   });
 
-  it("does not summarize a foreign structured identity as Supacode work", () => {
+  it("does not summarize a foreign structured identity as Supaterm work", () => {
     const entry: WorkLogPresentationEntry = {
       id: "foreign",
       createdAt: "2026-09-19T00:00:00.000Z",
       tone: "tool",
-      label: "supacode_project_clone",
+      label: "supaterm_project_clone",
       toolLifecycleStatus: "completed",
-      toolData: { server: "another-server", tool: "supacode_project_clone" },
+      toolData: { server: "another-server", tool: "supaterm_project_clone" },
     };
     expect(summarizeToolGroup([entry]).summary).toBe("Used 1 tool");
   });
@@ -454,7 +454,7 @@ describe("resolveWorkEntryToolPresentation", () => {
       id: "clone",
       createdAt: "2026-09-19T00:00:00.000Z",
       tone: "tool",
-      label: "Supacode.supacode_project_clone",
+      label: "Supaterm.supaterm_project_clone",
       toolLifecycleStatus: "inProgress",
       itemType: "dynamic_tool",
       toolData: { output: { isError: true } },
@@ -466,7 +466,7 @@ describe("resolveWorkEntryToolPresentation", () => {
     expect(workEntryIndicatesToolSuccess(entry)).toBe(false);
     const childFailure = {
       ...entry,
-      label: "Supacode.task_status",
+      label: "Supaterm.task_status",
       toolLifecycleStatus: "completed" as const,
       toolData: { output: { taskId: "child", status: "failed", summary: "command not found" } },
     };
@@ -474,12 +474,12 @@ describe("resolveWorkEntryToolPresentation", () => {
     expect(workEntryIndicatesToolSuccess(childFailure)).toBe(true);
   });
   it.each([
-    "mcp__supacode__preview_click",
-    "mcp__supacode__preview_click",
-    "mcp__supacode__preview_click",
-    "Supacode.preview_click",
-    "supacode · preview_click completed",
-    "supacode/preview_click",
+    "mcp__supaterm__preview_click",
+    "mcp__supaterm__preview_click",
+    "mcp__supaterm__preview_click",
+    "Supaterm.preview_click",
+    "supaterm · preview_click completed",
+    "supaterm/preview_click",
     "preview_click",
   ])("recognizes browser tool names across providers: %s", (label) => {
     expect(resolveWorkEntryToolPresentation({ label })).toEqual({
@@ -491,11 +491,11 @@ describe("resolveWorkEntryToolPresentation", () => {
   it("labels device tools with the device icon", () => {
     expect(
       resolveWorkEntryToolPresentation({
-        label: "mcp__supacode__device_open",
+        label: "mcp__supaterm__device_open",
         toolLifecycleStatus: "completed",
       }),
     ).toEqual({ displayName: "Opened a device in the Device panel", icon: "device" });
-    expect(resolveWorkEntryToolPresentation({ label: "supacode · device_screenshot" })).toEqual({
+    expect(resolveWorkEntryToolPresentation({ label: "supaterm · device_screenshot" })).toEqual({
       displayName: "Taking a screenshot of the device",
       icon: "device",
     });
@@ -506,7 +506,7 @@ describe("resolveWorkEntryToolPresentation", () => {
       resolveWorkEntryToolPresentation({
         label: "Tool call complete",
         toolTitle: "Inspect the current page",
-        toolData: { server: "supacode", tool: "preview_snapshot", result: { title: "Example" } },
+        toolData: { server: "supaterm", tool: "preview_snapshot", result: { title: "Example" } },
       }),
     ).toEqual({ displayName: "Taking a snapshot of the preview page", icon: "browser" });
   });
@@ -521,14 +521,14 @@ describe("resolveWorkEntryToolPresentation", () => {
   ] as const)("describes the tool's own %s state", (toolLifecycleStatus, displayName) => {
     expect(
       resolveWorkEntryToolPresentation({
-        label: "Supacode.preview_click",
+        label: "Supaterm.preview_click",
         toolLifecycleStatus: toolLifecycleStatus as WorkLogToolLifecycleStatus,
       }),
     ).toEqual({ displayName, icon: "browser" });
   });
 
   it("uses the summary's state only when the provider omitted a lifecycle status", () => {
-    const entry = { label: "Supacode.preview_click" };
+    const entry = { label: "Supaterm.preview_click" };
     expect(resolveWorkEntryToolPresentation(entry, "inProgress")?.displayName).toBe(
       "Clicking in the preview browser",
     );
@@ -562,15 +562,15 @@ describe("resolveWorkEntryToolPresentation", () => {
       "Stopping recording the preview browser",
       "Stopped recording the preview browser",
     ],
-    ["supacode_thread_read", "Reading a Supacode thread", "Read a Supacode thread"],
-    ["supacode_thread_send", "Sending to a Supacode thread", "Sent to a Supacode thread"],
+    ["supaterm_thread_read", "Reading a Supaterm thread", "Read a Supaterm thread"],
+    ["supaterm_thread_send", "Sending to a Supaterm thread", "Sent to a Supaterm thread"],
     [
-      "supacode_worktree_handoff",
+      "supaterm_worktree_handoff",
       "Handing off thread to a git worktree",
       "Handed off thread to a git worktree",
     ],
   ])("preserves verb forms and the rest of %s's label", (tool, running, completed) => {
-    const entry = { label: `supacode.${tool}` };
+    const entry = { label: `supaterm.${tool}` };
     expect(
       resolveWorkEntryToolPresentation({ ...entry, toolLifecycleStatus: "inProgress" })
         ?.displayName,
@@ -580,20 +580,20 @@ describe("resolveWorkEntryToolPresentation", () => {
     ).toBe(completed);
   });
 
-  it("keeps Supacode branding for non-browser tools and falls back to the original tool label", () => {
+  it("keeps Supaterm branding for non-browser tools and falls back to the original tool label", () => {
     expect(
       resolveWorkEntryToolPresentation({
-        label: "mcp__supacode__task_status",
+        label: "mcp__supaterm__task_status",
         toolTitle: "Check the child task",
       }),
-    ).toEqual({ displayName: "Getting delegated task status", icon: "supacode" });
+    ).toEqual({ displayName: "Getting delegated task status", icon: "supaterm" });
   });
 
   it("does not brand unknown tools or another server's matching tool name", () => {
     for (const label of [
       "mcp__github__preview_click",
-      "supacode.unknown_tool",
-      "supacode.toString",
+      "supaterm.unknown_tool",
+      "supaterm.toString",
       "Search files",
     ]) {
       expect(resolveWorkEntryToolPresentation({ label })).toBeNull();
@@ -614,7 +614,7 @@ describe("browser group summaries", () => {
     id: "browser",
     createdAt: "2026-09-01T00:00:00Z",
     label: "MCP tool call",
-    toolData: { server: "supacode", tool: "preview_click" },
+    toolData: { server: "supaterm", tool: "preview_click" },
     itemType: "dynamic_tool",
     toolLifecycleStatus: "completed",
     tone: "tool",
@@ -656,7 +656,7 @@ describe("browser group summaries", () => {
         commandEntry,
         {
           ...browserEntry,
-          toolData: { server: "supacode", tool: "task_status" },
+          toolData: { server: "supaterm", tool: "task_status" },
         },
       ]),
     ).toBe("Used browser 1 time, ran 1 command, and performed 1 other action");
@@ -668,7 +668,7 @@ describe("browser group summaries", () => {
         {
           ...browserEntry,
           command: "node inspect-page.js",
-          toolData: { toolName: "mcp__supacode__preview_evaluate" },
+          toolData: { toolName: "mcp__supaterm__preview_evaluate" },
         },
       ]),
     ).toBe("Used browser 1 time");
@@ -878,8 +878,8 @@ describe("toolGroupAction", () => {
 describe("resolveViewedImageAsset", () => {
   const threadId = ThreadId.make("thread-1");
 
-  it("serves Supacode attachment paths in place like any other host path", () => {
-    const path = "/Users/demo/.supacode/dev/attachments/11111111-1111-4111-8111-111111111111.png";
+  it("serves Supaterm attachment paths in place like any other host path", () => {
+    const path = "/Users/demo/.supaterm/dev/attachments/11111111-1111-4111-8111-111111111111.png";
     expect(resolveViewedImageAsset(path, { threadId, workspaceRoot: "/workspace" })).toEqual({
       resource: { _tag: "media-file", threadId, path },
       alt: "11111111-1111-4111-8111-111111111111.png",
@@ -908,10 +908,10 @@ describe("resolveViewedImageAsset", () => {
 
 describe("pull request tool presentation", () => {
   it.each([
-    "mcp__supacode__link_pull_request",
-    "mcp__supacode__link_pull_request",
-    "Supacode · link_pull_request",
-    "supacode/link_pull_request",
+    "mcp__supaterm__link_pull_request",
+    "mcp__supaterm__link_pull_request",
+    "Supaterm · link_pull_request",
+    "supaterm/link_pull_request",
     "link_pull_request",
   ])("recognizes the native linking tool: %s", (label) => {
     const entry: WorkLogPresentationEntry = {
@@ -941,7 +941,7 @@ describe("pull request tool presentation", () => {
         toolTitle: "Custom title",
         toolLifecycleStatus,
         toolData: {
-          server: "supacode",
+          server: "supaterm",
           tool: "link_pull_request",
           arguments: { url: "https://github.com/acme/web/pull/42" },
         },
@@ -955,7 +955,7 @@ describe("pull request tool presentation", () => {
         label: "MCP tool call",
         toolLifecycleStatus: "completed",
         toolData: {
-          toolName: "mcp__supacode__unlink_pull_request",
+          toolName: "mcp__supaterm__unlink_pull_request",
           rawInput: { repository: "acme/web", number: 42 },
         },
       }),
@@ -966,20 +966,20 @@ describe("pull request tool presentation", () => {
     const link: WorkLogPresentationEntry = {
       id: "link",
       createdAt: "2026-09-10T00:00:00.000Z",
-      label: "Supacode · link_pull_request",
+      label: "Supaterm · link_pull_request",
       tone: "tool",
       itemType: "dynamic_tool",
       toolLifecycleStatus: "completed",
-      toolSource: { key: "supacode", name: "supacode", kind: "integration" },
+      toolSource: { key: "supaterm", name: "supaterm", kind: "integration" },
     };
     const list: WorkLogPresentationEntry = {
       ...link,
-      label: "Supacode · list_thread_pull_requests",
+      label: "Supaterm · list_thread_pull_requests",
     };
     expect(summarizeToolGroup([link, link, list]).summary).toBe(
       "Linked 2 pull requests and checked linked pull requests",
     );
-    expect(summarizeToolGroup([{ ...link, label: "Supacode · unlink_pull_request" }]).summary).toBe(
+    expect(summarizeToolGroup([{ ...link, label: "Supaterm · unlink_pull_request" }]).summary).toBe(
       "Unlinked 1 pull request",
     );
     expect(toolGroupSummaryKind([link, link, list])).toBe("pull-request");
@@ -995,7 +995,7 @@ describe("device group summaries", () => {
     id: tool,
     createdAt: "2026-09-10T00:00:00.000Z",
     label: "MCP tool call",
-    toolData: { server: "supacode", tool },
+    toolData: { server: "supaterm", tool },
     itemType: "dynamic_tool",
     toolLifecycleStatus: "completed",
     tone: "tool",
@@ -1030,14 +1030,14 @@ describe("device group summaries", () => {
   it("recognizes Claude tool names and preserves screenshot previews", () => {
     const entry = {
       ...deviceEntry("device_screenshot"),
-      toolData: { toolName: "mcp__supacode__device_screenshot" },
+      toolData: { toolName: "mcp__supaterm__device_screenshot" },
       viewedImagePath: "/workspace/device.png",
     };
     expect(summarizeToolGroup([entry]).summary).toBe("Used device controls 1 time");
     expect(workEntryViewedImagePath(entry)).toBe("/workspace/device.png");
   });
 
-  it("does not classify another server's tools as Supacode device controls", () => {
+  it("does not classify another server's tools as Supaterm device controls", () => {
     expect(
       summarizeToolGroup([
         {

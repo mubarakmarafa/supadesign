@@ -1,5 +1,5 @@
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
-import type { DevicePlatform, ScopedThreadRef } from "@supacode/contracts";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
+import type { DevicePlatform, ScopedThreadRef } from "@supaterm/contracts";
 import { create } from "zustand";
 
 export interface PreviewMiniPlayerPosition {

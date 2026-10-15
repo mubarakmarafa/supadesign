@@ -1,4 +1,4 @@
-import { fromLenientJson } from "@supacode/shared/schemaJson";
+import { fromLenientJson } from "@supaterm/shared/schemaJson";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
@@ -32,7 +32,7 @@ export interface EarlyLinuxElectronOptions {
 }
 
 export const resolveLinuxDesktopEntryName = (isDevelopment: boolean): string =>
-  isDevelopment ? "com.supaterm.supacode.Development.desktop" : "com.supaterm.supacode.desktop";
+  isDevelopment ? "com.supaterm.desktop.Development.desktop" : "com.supaterm.desktop.desktop";
 
 const trimNonEmpty = (value: string | undefined): string | null => {
   const trimmed = value?.trim();
@@ -54,17 +54,17 @@ function resolveEarlyDesktopSettingsPath(input: {
   readonly homeDirectory: string;
   readonly joinPath: JoinPath;
 }): string {
-  const supacodeHome = Option.fromUndefinedOr(input.env.SUPACODE_HOME);
+  const supatermHome = Option.fromUndefinedOr(input.env.SUPATERM_HOME);
   const baseDir = resolveDesktopBaseDir({
     homeDirectory: input.homeDirectory,
     joinPath: input.joinPath,
-    supacodeHome,
+    supatermHome,
   });
   const stateDir = resolveDesktopStateDir({
     baseDir,
     isDevelopment: isDevelopmentEnvironment(input.env),
     joinPath: input.joinPath,
-    supacodeHome,
+    supatermHome,
   });
   return input.joinPath(stateDir, "desktop-settings.json");
 }
@@ -160,7 +160,7 @@ export function resolveEarlyLinuxElectronOptions(
   const isDevelopment = isDevelopmentEnvironment(input.env);
   return {
     isDevelopment,
-    linuxWmClass: isDevelopment ? "supacode-dev" : "supacode",
+    linuxWmClass: isDevelopment ? "supaterm-dev" : "supaterm",
     linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment),
     passwordStore: resolveLinuxPasswordStoreSwitch({
       preference,

@@ -44,7 +44,7 @@ describe("Material You system colors", () => {
   );
 
   it("overrides the selected theme without mutating its base variables", () => {
-    const base = getMobileThemeRuntimeVariables("supacode", "dark", "android");
+    const base = getMobileThemeRuntimeVariables("supaterm", "dark", "android");
     const snapshot = { ...base };
 
     const variables = materialYouPaletteToMobileThemeVariables(palette, "dark", base);
@@ -60,7 +60,7 @@ describe("Material You system colors", () => {
   });
 
   it("uses the Messages-style RCS tones for sent messages", () => {
-    const base = getMobileThemeRuntimeVariables("supacode", "dark", "android");
+    const base = getMobileThemeRuntimeVariables("supaterm", "dark", "android");
     const dark = materialYouPaletteToMobileThemeVariables(
       { ...palette, inversePrimary: "#A31D8DFF" },
       "dark",
@@ -69,7 +69,7 @@ describe("Material You system colors", () => {
     const light = materialYouPaletteToMobileThemeVariables(
       { ...palette, inversePrimary: "#A31D8DFF" },
       "light",
-      getMobileThemeRuntimeVariables("supacode", "light", "android"),
+      getMobileThemeRuntimeVariables("supaterm", "light", "android"),
     );
 
     expect(dark["--color-user-bubble"]).toBe("#850073FF");

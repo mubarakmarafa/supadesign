@@ -3,10 +3,10 @@ import {
   AuthOrchestrationOperateScope,
   AuthOrchestrationReadScope,
   EnvironmentHttpApi,
-} from "@supacode/contracts";
-import { isDevProxiedPath } from "@supacode/shared/devProxy";
-import { injectMcpAppCookieBootstrap, injectMcpAppThemeBootstrap } from "@supacode/shared/mcpApp";
-import { decodeOtlpTraceRecords } from "@supacode/shared/observability";
+} from "@supaterm/contracts";
+import { isDevProxiedPath } from "@supaterm/shared/devProxy";
+import { injectMcpAppCookieBootstrap, injectMcpAppThemeBootstrap } from "@supaterm/shared/mcpApp";
+import { decodeOtlpTraceRecords } from "@supaterm/shared/observability";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -262,7 +262,7 @@ export const layerBrowserApiCors = Layer.unwrap(
     // Dev uses credentialed requests from Vite or the Electron custom origin, so both must be
     // explicit. Packaged desktop omits credentials and uses Effect's default wildcard origin.
     //
-    // SUPACODE_DEV_ALLOWED_ORIGINS covers dev servers reached from a second
+    // SUPATERM_DEV_ALLOWED_ORIGINS covers dev servers reached from a second
     // origin — a tailnet name, a LAN IP, a phone. Browser dev normally proxies
     // through Vite and is same-origin (no preflight at all), so this is a
     // safety net for the desktop renderer and any direct-to-backend caller.

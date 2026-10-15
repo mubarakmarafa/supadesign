@@ -1,4 +1,4 @@
-import { FAVICON_CAPTURED_AT_MAX, FAVICON_DATA_URL_MAX_LENGTH } from "@supacode/contracts";
+import { FAVICON_CAPTURED_AT_MAX, FAVICON_DATA_URL_MAX_LENGTH } from "@supaterm/contracts";
 
 import { isLocalLoopbackHost, normalizeHostname } from "./browser/browserTargetResolver";
 

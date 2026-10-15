@@ -1,5 +1,5 @@
-import type { ServerSelfUpdateOutcome } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { ServerSelfUpdateOutcome } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -34,7 +34,7 @@ export class ServiceLauncherClientError extends Schema.TaggedError<ServiceLaunch
       case "decode-context":
         return "The service launcher supplied invalid startup context.";
       case "version-mismatch":
-        return "The service launcher started a different Supacode version.";
+        return "The service launcher started a different Supaterm version.";
       case "ipc-unavailable":
         return "The service launcher IPC channel is unavailable.";
       case "unmanaged":
@@ -78,7 +78,7 @@ interface ServiceLauncherProcess {
 }
 
 export const ServiceLauncherHostProcess = Context.Reference<ServiceLauncherProcess>(
-  "supacode/cloud/serviceLauncherHostProcess",
+  "supaterm/cloud/serviceLauncherHostProcess",
   {
     defaultValue: () => ({
       connected: process.connected && process.send !== undefined,
@@ -109,7 +109,7 @@ export class ServiceLauncherClient extends Context.Service<
       ServiceLauncherClientError
     >;
   }
->()("supacode/service/serviceLauncherClient") {}
+>()("supaterm/service/serviceLauncherClient") {}
 
 const resolveStartup = Effect.fn("cloud.service_launcher_client.resolve_startup")(
   function* (options?: { readonly currentVersion?: string }) {

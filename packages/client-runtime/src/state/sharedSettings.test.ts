@@ -4,7 +4,7 @@ import {
   ProjectId,
   ProviderDriverKind,
   ProviderInstanceId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 
 import {

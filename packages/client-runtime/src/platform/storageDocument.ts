@@ -1,4 +1,4 @@
-import { EnvironmentId, ForwardCompatibleArray } from "@supacode/contracts";
+import { EnvironmentId, ForwardCompatibleArray } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 

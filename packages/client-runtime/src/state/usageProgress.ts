@@ -1,4 +1,4 @@
-import type { UsageProviderKind, UsageSummary } from "@supacode/contracts";
+import type { UsageProviderKind, UsageSummary } from "@supaterm/contracts";
 
 interface UsageProgressEnvironment {
   readonly label: string;

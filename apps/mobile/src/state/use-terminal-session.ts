@@ -5,14 +5,14 @@ import {
   terminalOutputText,
   type KnownTerminalSession,
   type TerminalSessionState,
-} from "@supacode/client-runtime/state/terminal";
+} from "@supaterm/client-runtime/state/terminal";
 import {
   AuthTerminalReadScope,
   AuthTerminalOperateScope,
   ThreadId,
   type EnvironmentId,
   type TerminalAttachInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useMemo } from "react";
 
 import { useEnvironmentQuery } from "./query";

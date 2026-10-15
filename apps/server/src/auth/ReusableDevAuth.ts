@@ -1,6 +1,6 @@
 // @effect-diagnostics-next-line nodeBuiltinImport:off -- Effect's Crypto has no timingSafeEqual.
 import * as NodeCrypto from "node:crypto";
-import { AuthSessionId } from "@supacode/contracts";
+import { AuthSessionId } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Redacted from "effect/Redacted";
 
@@ -25,7 +25,7 @@ export function resolveReusableDevAuth(
   return {
     credential: Redacted.value(token),
     sessionId: AuthSessionId.make(`${REUSABLE_DEV_SESSION_PREFIX}${tokenId}`),
-    cookieName: `supacode_dev_session_${tokenId}`,
+    cookieName: `supaterm_dev_session_${tokenId}`,
     matches: (credential: string) =>
       NodeCrypto.timingSafeEqual(hash, NodeCrypto.createHash("sha256").update(credential).digest()),
   };

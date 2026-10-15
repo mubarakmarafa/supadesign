@@ -1,4 +1,4 @@
-import type { ProviderInstanceId } from "@supacode/contracts";
+import type { ProviderInstanceId } from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
 

@@ -25,7 +25,7 @@ const environmentFor = (
     homeDirectory: input.home,
     baseDir: input.baseDir,
     stateDir: path.join(input.baseDir, "userdata"),
-    serverRoot: "/opt/Supacode/resources/app.asar",
+    serverRoot: "/opt/Supaterm/resources/app.asar",
     appImagePath: Option.none(),
   } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]);
 
@@ -36,7 +36,7 @@ const commandIn = (
   Effect.gen(function* () {
     const path = yield* Path.Path;
     const fs = yield* FileSystem.FileSystem;
-    const baseDir = input.baseDir ?? path.join(input.home, ".supacode");
+    const baseDir = input.baseDir ?? path.join(input.home, ".supaterm");
     yield* fs.makeDirectory(path.join(baseDir, "userdata"), { recursive: true });
     const make = DesktopCliCommand.make.pipe(
       Effect.provideService(
@@ -59,8 +59,8 @@ const fakePowerShell = (initial: string) => {
       const env = options.env ?? {};
       let exitCode = 0;
       let stdout = "";
-      if (env.SUPACODE_SET === "1") {
-        registry.path = env.SUPACODE_PATH ?? "";
+      if (env.SUPATERM_SET === "1") {
+        registry.path = env.SUPATERM_PATH ?? "";
         registry.writes += 1;
       } else if (registry.failReads) {
         exitCode = 1;
@@ -99,7 +99,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
-      const environment = environmentFor(path, { home, baseDir: path.join(home, ".supacode") });
+      const environment = environmentFor(path, { home, baseDir: path.join(home, ".supaterm") });
       const launcher = DesktopCliShim.launcherPath(environment);
       const writes = yield* Ref.make(0);
       const written = yield* Deferred.make<void>();
@@ -126,7 +126,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       expect(installations.map(Option.getOrNull)).toEqual([launcher, launcher]);
       expect(yield* fs.readFileString(launcher)).toContain(DesktopCliShim.MARKER);
       expect((yield* fs.stat(launcher)).mode & 0o777).toBe(0o755);
-      expect(yield* fs.readDirectory(path.dirname(launcher))).toEqual(["supacode"]);
+      expect(yield* fs.readDirectory(path.dirname(launcher))).toEqual(["supaterm"]);
     }).pipe(Effect.scoped),
   );
 
@@ -147,7 +147,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         expect(installed.onPath).toBe(true);
         if (platform === "linux") {
           expect(yield* fs.readLink(installed.installedPath!)).toBe(
-            path.join(home, ".supacode", "bin", "supacode"),
+            path.join(home, ".supaterm", "bin", "supaterm"),
           );
         } else {
           expect(registry.path).toBe(`C:\\Tools;${path.dirname(installed.installedPath!)}`);
@@ -177,9 +177,9 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         const path = yield* Path.Path;
         const home = yield* fs.makeTempDirectoryScoped();
         const directory = path.join(home, "other-cli");
-        const theirs = path.join(directory, platform === "win32" ? "supacode.cmd" : "supacode");
+        const theirs = path.join(directory, platform === "win32" ? "supaterm.cmd" : "supaterm");
         yield* fs.makeDirectory(directory);
-        yield* fs.writeFileString(theirs, "existing supacode\n", { mode: 0o755 });
+        yield* fs.writeFileString(theirs, "existing supaterm\n", { mode: 0o755 });
         process.env.PATH = directory;
         const { registry, spawner } = fakePowerShell(directory);
         const command = yield* commandIn({ home, platform }, spawner);
@@ -187,8 +187,8 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         yield* command.installAutomatically;
         expect((yield* command.state).installedPath).toBeNull();
         expect((yield* command.state).shadowedBy?.toLowerCase()).toBe(theirs.toLowerCase());
-        expect(yield* fs.readFileString(theirs)).toBe("existing supacode\n");
-        expect(yield* fs.exists(path.join(home, ".supacode", "bin"))).toBe(false);
+        expect(yield* fs.readFileString(theirs)).toBe("existing supaterm\n");
+        expect(yield* fs.exists(path.join(home, ".supaterm", "bin"))).toBe(false);
         expect(registry).toMatchObject({ path: directory, writes: 0 });
       }).pipe(Effect.scoped),
   );
@@ -198,7 +198,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
-      const launcher = path.join(home, ".supacode", "bin", "supacode");
+      const launcher = path.join(home, ".supaterm", "bin", "supaterm");
       yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
       yield* fs.writeFileString(launcher, "user-owned launcher\n");
       const command = yield* commandIn({ home });
@@ -215,102 +215,102 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
       const command = yield* commandIn({ home });
-      const link = path.join(home, ".local", "bin", "supacode");
+      const link = path.join(home, ".local", "bin", "supaterm");
 
       expect(yield* command.state).toEqual({ supported: true, installedPath: null, onPath: false });
 
       const installed = yield* command.install;
       expect(installed.installedPath).toBe(link);
-      expect(yield* fs.readLink(link)).toBe(path.join(home, ".supacode", "bin", "supacode"));
+      expect(yield* fs.readLink(link)).toBe(path.join(home, ".supaterm", "bin", "supaterm"));
       expect((yield* command.install).installedPath).toBe(link);
 
       expect((yield* command.uninstall).installedPath).toBeNull();
       expect(yield* fs.exists(link)).toBe(false);
 
-      expect(yield* fs.exists(path.join(home, ".supacode", "bin", "supacode"))).toBe(true);
+      expect(yield* fs.exists(path.join(home, ".supaterm", "bin", "supaterm"))).toBe(true);
     }).pipe(Effect.scoped),
   );
 
-  it.effect("never replaces or removes a supacode it did not create", () =>
+  it.effect("never replaces or removes a supaterm it did not create", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
       const command = yield* commandIn({ home });
-      const theirs = path.join(home, ".local", "bin", "supacode");
+      const theirs = path.join(home, ".local", "bin", "supaterm");
       yield* fs.makeDirectory(path.dirname(theirs), { recursive: true });
-      yield* fs.writeFileString(theirs, "npm's supacode\n");
+      yield* fs.writeFileString(theirs, "npm's supaterm\n");
 
       yield* fs.makeDirectory(path.join(home, "bin"), { recursive: true });
-      yield* fs.symlink(path.join(home, "gone"), path.join(home, "bin", "supacode"));
+      yield* fs.symlink(path.join(home, "gone"), path.join(home, "bin", "supaterm"));
 
       const error = yield* Effect.flip(command.install);
-      expect(error.message).toContain("Another supacode command is already installed");
+      expect(error.message).toContain("Another supaterm command is already installed");
       yield* command.uninstall;
-      expect(yield* fs.readFileString(theirs)).toBe("npm's supacode\n");
-      expect(yield* fs.readLink(path.join(home, "bin", "supacode"))).toBe(path.join(home, "gone"));
+      expect(yield* fs.readFileString(theirs)).toBe("npm's supaterm\n");
+      expect(yield* fs.readLink(path.join(home, "bin", "supaterm"))).toBe(path.join(home, "gone"));
     }).pipe(Effect.scoped),
   );
 
-  it.effect("finds and removes a link left by a previous Supacode home", () =>
+  it.effect("finds and removes a link left by a previous Supaterm home", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
-      const before = yield* commandIn({ home, baseDir: path.join(home, "old-supacode") });
+      const before = yield* commandIn({ home, baseDir: path.join(home, "old-supaterm") });
       const link = (yield* before.install).installedPath;
 
-      const after = yield* commandIn({ home, baseDir: path.join(home, "new-supacode") });
+      const after = yield* commandIn({ home, baseDir: path.join(home, "new-supaterm") });
       expect((yield* after.state).installedPath).toBe(link);
 
       expect((yield* after.install).installedPath).toBe(link);
-      expect(yield* fs.readLink(link!)).toBe(path.join(home, "new-supacode", "bin", "supacode"));
+      expect(yield* fs.readLink(link!)).toBe(path.join(home, "new-supaterm", "bin", "supaterm"));
       yield* after.uninstall;
-      expect(yield* fs.exists(path.join(home, ".local", "bin", "supacode"))).toBe(false);
-      expect(yield* fs.exists(path.join(home, "bin", "supacode"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, ".local", "bin", "supaterm"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, "bin", "supaterm"))).toBe(false);
     }).pipe(Effect.scoped),
   );
 
-  it.effect("does not read a large binary another supacode links to", () =>
+  it.effect("does not read a large binary another supaterm links to", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
 
-      const binary = path.join(home, "native-supacode");
+      const binary = path.join(home, "native-supaterm");
       yield* fs.writeFileString(binary, `${"\0".repeat(64 * 1024)}${DesktopCliShim.MARKER}`);
       yield* fs.makeDirectory(path.join(home, ".local", "bin"), { recursive: true });
-      yield* fs.symlink(binary, path.join(home, ".local", "bin", "supacode"));
+      yield* fs.symlink(binary, path.join(home, ".local", "bin", "supaterm"));
       const command = yield* commandIn({ home });
       expect((yield* command.state).installedPath).toBeNull();
       yield* command.uninstall;
-      expect(yield* fs.readLink(path.join(home, ".local", "bin", "supacode"))).toBe(binary);
+      expect(yield* fs.readLink(path.join(home, ".local", "bin", "supaterm"))).toBe(binary);
     }).pipe(Effect.scoped),
   );
 
-  it.effect("refuses to install behind another supacode that runs first", () =>
+  it.effect("refuses to install behind another supaterm that runs first", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
       const shadow = path.join(home, "shadow");
       yield* fs.makeDirectory(shadow);
-      yield* fs.writeFileString(path.join(shadow, "supacode"), "#!/bin/sh\n", { mode: 0o755 });
+      yield* fs.writeFileString(path.join(shadow, "supaterm"), "#!/bin/sh\n", { mode: 0o755 });
       process.env.PATH = [shadow, path.join(home, ".local", "bin")].join(":");
 
       const command = yield* commandIn({ home });
-      const theirs = path.join(shadow, "supacode");
+      const theirs = path.join(shadow, "supaterm");
       expect((yield* command.state).shadowedBy).toBe(theirs);
 
       const error = yield* Effect.flip(command.install);
       expect(error.message).toContain(theirs);
-      expect(yield* fs.exists(path.join(home, ".local", "bin", "supacode"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, ".local", "bin", "supaterm"))).toBe(false);
 
       yield* fs.remove(theirs);
       const installed = yield* command.install;
       expect(installed).toMatchObject({
         onPath: true,
-        installedPath: path.join(home, ".local", "bin", "supacode"),
+        installedPath: path.join(home, ".local", "bin", "supaterm"),
       });
       expect(installed.shadowedBy).toBeUndefined();
     }).pipe(Effect.scoped),
@@ -325,7 +325,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         const home = yield* fs.makeTempDirectoryScoped();
         const shadow = path.join(home, "shadow");
         yield* fs.makeDirectory(shadow);
-        const candidate = path.join(shadow, "supacode");
+        const candidate = path.join(shadow, "supaterm");
         if (kind === "directory") yield* fs.makeDirectory(candidate);
         else yield* fs.writeFileString(candidate, "plain text", { mode: 0o644 });
         process.env.PATH = [shadow, path.join(home, ".local", "bin")].join(":");
@@ -333,7 +333,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         const installed = yield* command.install;
         expect(installed.onPath).toBe(true);
         expect(installed.shadowedBy).toBeUndefined();
-        expect(installed.installedPath).toBe(path.join(home, ".local", "bin", "supacode"));
+        expect(installed.installedPath).toBe(path.join(home, ".local", "bin", "supaterm"));
       }).pipe(Effect.scoped),
   );
 
@@ -353,8 +353,8 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
 
       registry.failReads = false;
       const launcherDir = DesktopCliShim.launcherPath(
-        environmentFor(yield* Path.Path, { home, baseDir: `${home}/.supacode`, platform: "win32" }),
-      ).replace(/[\\/]supacode\.cmd$/, "");
+        environmentFor(yield* Path.Path, { home, baseDir: `${home}/.supaterm`, platform: "win32" }),
+      ).replace(/[\\/]supaterm\.cmd$/, "");
       yield* command.install;
       expect(registry.path).toBe(`${userPath};${launcherDir}`);
       yield* command.uninstall;
@@ -387,7 +387,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const home = yield* fs.makeTempDirectoryScoped();
       const launcherDir = path.dirname(
         DesktopCliShim.launcherPath(
-          environmentFor(path, { home, baseDir: path.join(home, ".supacode"), platform: "win32" }),
+          environmentFor(path, { home, baseDir: path.join(home, ".supaterm"), platform: "win32" }),
         ),
       );
       const userPath = `C:\\Tools;${launcherDir}`;
@@ -411,7 +411,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       });
       yield* command.installAutomatically;
       expect((yield* command.state).supported).toBe(false);
-      expect(yield* fs.exists(path.join(home, ".supacode", "bin"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, ".supaterm", "bin"))).toBe(false);
     }).pipe(Effect.scoped),
   );
 });

@@ -4,7 +4,7 @@ import * as NodePath from "node:path";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
-import { ChatAttachmentId, type ChatAttachment } from "@supacode/contracts";
+import { ChatAttachmentId, type ChatAttachment } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -25,7 +25,7 @@ import {
 
 const layerTest = Layer.mergeAll(NodeServices.layer).pipe(
   Layer.provideMerge(
-    ServerConfig.layerTest(process.cwd(), { prefix: "supacode-attachment-claims-" }),
+    ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-attachment-claims-" }),
   ),
   Layer.provideMerge(NodeServices.layer),
 );

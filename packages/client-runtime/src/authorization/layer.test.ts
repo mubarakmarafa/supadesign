@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -57,7 +57,7 @@ function makeHarness(responses: ReadonlyArray<Response>) {
           ClientCapabilities.ClientPresentation,
           ClientCapabilities.ClientPresentation.of({
             metadata: {
-              label: "Supacode Test",
+              label: "Supaterm Test",
               deviceType: "mobile",
               os: "test",
             },
@@ -98,7 +98,7 @@ describe("RemoteEnvironmentAuthorization", () => {
       expect(failure).toMatchObject({ _tag: "ConnectionBlockedError", reason: "configuration" });
       expect(harness.fetch.calls).toHaveLength(3);
       const [url, init] = harness.fetch.calls[2]!;
-      expect(String(url)).toBe(`${lanUrl}/.well-known/supacode/environment`);
+      expect(String(url)).toBe(`${lanUrl}/.well-known/supaterm/environment`);
       expect(new Headers(init.headers).has("authorization")).toBe(false);
     }),
   );
@@ -128,7 +128,7 @@ describe("RemoteEnvironmentAuthorization", () => {
       expect(second.socketUrl).toContain("wsTicket=second-ticket");
       expect(
         harness.fetch.calls.filter(([url]) =>
-          String(url).endsWith("/.well-known/supacode/environment"),
+          String(url).endsWith("/.well-known/supaterm/environment"),
         ),
       ).toHaveLength(1);
       expect(
@@ -174,7 +174,7 @@ describe("RemoteEnvironmentAuthorization", () => {
       );
       expect(
         harness.fetch.calls.filter(([url]) =>
-          String(url).endsWith("/.well-known/supacode/environment"),
+          String(url).endsWith("/.well-known/supaterm/environment"),
         ),
       ).toHaveLength(2);
     }),

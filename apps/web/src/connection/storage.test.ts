@@ -2,9 +2,9 @@ import {
   BearerConnectionTarget,
   ConnectionTransientError,
   PrimaryConnectionTarget,
-} from "@supacode/client-runtime/connection";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
-import { ConnectionCatalogDocument, Persistence } from "@supacode/client-runtime/platform";
+} from "@supaterm/client-runtime/connection";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
+import { ConnectionCatalogDocument, Persistence } from "@supaterm/client-runtime/platform";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Deferred from "effect/Deferred";

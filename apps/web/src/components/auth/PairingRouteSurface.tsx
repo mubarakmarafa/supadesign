@@ -1,6 +1,6 @@
 import { Alert, AlertDescription } from "../ui/alert";
-import type { AuthSessionState } from "@supacode/contracts";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import type { AuthSessionState } from "@supaterm/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import React, { startTransition, useEffect, useRef, useState, useCallback } from "react";
 
 import { APP_DISPLAY_NAME } from "../../branding";

@@ -1,6 +1,6 @@
 "use client";
 
-import type { DesktopPreviewPointerEvent } from "@supacode/contracts";
+import type { DesktopPreviewPointerEvent } from "@supaterm/contracts";
 import { MousePointer2 } from "lucide-react";
 import { useEffect, useState } from "react";
 

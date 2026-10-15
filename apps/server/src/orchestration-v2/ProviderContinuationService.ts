@@ -1,10 +1,10 @@
-import { CommandId, type OrchestrationV2ThreadProjection } from "@supacode/contracts";
+import { CommandId, type OrchestrationV2ThreadProjection } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Ref from "effect/Ref";
 
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import * as ThreadManagementService from "./ThreadManagementService.ts";
 import { isUndeliveredMailboxSteer } from "./NotificationMailbox.ts";
 

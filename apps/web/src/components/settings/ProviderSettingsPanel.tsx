@@ -4,15 +4,15 @@ import {
   AuthSettingsWriteScope,
   AuthProvidersManageScope,
   AuthOrchestrationReadScope,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useEnvironmentScope, readEnvironmentScope } from "../../state/session";
 import { useAtomValue } from "@effect/atom-react";
-import { connectionAddressLabel, connectionStatusTitle } from "@supacode/client-runtime/connection";
-import { safeErrorLogAttributes } from "@supacode/client-runtime/errors";
+import { connectionAddressLabel, connectionStatusTitle } from "@supaterm/client-runtime/connection";
+import { safeErrorLogAttributes } from "@supaterm/client-runtime/errors";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   defaultInstanceIdForDriver,
   type EnvironmentId,
@@ -24,12 +24,12 @@ import {
   type ProviderInstanceId,
   resolveEnvironmentMachineKind,
   resolveProviderInstanceEnabled,
-} from "@supacode/contracts";
-import { DEFAULT_UNIFIED_SETTINGS } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import { DEFAULT_UNIFIED_SETTINGS } from "@supaterm/contracts/settings";
 import {
   getBackgroundActivityPresetSettings,
   resolveServerBackgroundActivitySettings,
-} from "@supacode/shared/backgroundActivitySettings";
+} from "@supaterm/shared/backgroundActivitySettings";
 import * as Arr from "effect/Array";
 import * as Duration from "effect/Duration";
 import * as Result from "effect/Result";

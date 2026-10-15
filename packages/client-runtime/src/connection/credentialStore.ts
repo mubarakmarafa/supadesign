@@ -17,7 +17,7 @@ export class ConnectionCredentialStore extends Context.Service<
     ) => Effect.Effect<void, ConnectionAttemptError>;
     readonly remove: (connectionId: string) => Effect.Effect<void, ConnectionAttemptError>;
   }
->()("@supacode/client-runtime/connection/credentialStore/ConnectionCredentialStore") {}
+>()("@supaterm/client-runtime/connection/credentialStore/ConnectionCredentialStore") {}
 
 export const make = (service: ConnectionCredentialStore["Service"]) =>
   ConnectionCredentialStore.of(service);

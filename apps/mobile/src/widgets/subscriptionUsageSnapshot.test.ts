@@ -4,7 +4,7 @@ import {
   ProviderInstanceId,
   UsageLimitSourceId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   buildSubscriptionUsageSnapshot,
@@ -23,7 +23,7 @@ const window = {
   resetsAt: "2026-09-05T12:10:00.000Z",
 } as const;
 const limits = { checkedAt, windows: [window] };
-const deepLink = "supacode-dev://settings/usage?tab=limits";
+const deepLink = "supaterm-dev://settings/usage?tab=limits";
 function provider(overrides: Partial<ServerProvider> = {}): ServerProvider {
   return {
     instanceId: ProviderInstanceId.make("codex"),

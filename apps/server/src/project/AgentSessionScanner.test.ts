@@ -7,8 +7,8 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerSettings as ContractServerSettings,
-} from "@supacode/contracts";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+} from "@supaterm/contracts";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -73,7 +73,7 @@ const layerScannerTest = (input: ScannerTestInput) =>
         }),
         ServerConfig.layerTest(
           input.claudeHomePath,
-          input.configBaseDir ?? { prefix: "supacode-scanner-config-" },
+          input.configBaseDir ?? { prefix: "supaterm-scanner-config-" },
         ),
         layerProjectStore(input.importedWorkspaceRoots ?? []),
       ),
@@ -162,10 +162,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("reads Claude project cwds from transcripts, newest first", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const olderWorkspace = yield* makeTempDir("supacode-workspace-older-");
-        const newerWorkspace = yield* makeTempDir("supacode-workspace-newer-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const olderWorkspace = yield* makeTempDir("supaterm-workspace-older-");
+        const newerWorkspace = yield* makeTempDir("supaterm-workspace-newer-");
 
         // Slugs are intentionally lossy; the scanner must not decode them.
         yield* writeTranscript({
@@ -212,10 +212,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("groups Codex rollouts by cwd across date directories", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
-        const otherWorkspace = yield* makeTempDir("supacode-workspace-other-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
+        const otherWorkspace = yield* makeTempDir("supaterm-workspace-other-");
 
         const rollout = (year: string, month: string, day: string, name: string) =>
           path.join(codexHomePath, "sessions", year, month, day, name);
@@ -267,8 +267,8 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         Effect.gen(function* () {
           const path = yield* Path.Path;
           const fileSystem = yield* FileSystem.FileSystem;
-          const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-          const codexHomePath = yield* makeTempDir("supacode-codex-home-");
+          const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+          const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
           const transcriptPath =
             source === "claudeAgent"
               ? path.join(claudeHomePath, "projects", "-slug", "session.jsonl")
@@ -299,8 +299,8 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         Effect.gen(function* () {
           const path = yield* Path.Path;
           const fileSystem = yield* FileSystem.FileSystem;
-          const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-          const codexHomePath = yield* makeTempDir("supacode-codex-home-");
+          const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+          const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
           const discoveryRoot =
             source === "claudeAgent"
               ? path.join(claudeHomePath, "projects")
@@ -337,9 +337,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("merges the same cwd seen by both agents and flags imported projects", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-slug", "a.jsonl"),
@@ -384,10 +384,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
-        const linkParent = yield* makeTempDir("supacode-scanner-links-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
+        const linkParent = yield* makeTempDir("supaterm-scanner-links-");
         const workspaceAlias = path.join(linkParent, "workspace-alias");
         yield* fileSystem.symlink(workspace, workspaceAlias);
 
@@ -416,10 +416,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
-        const linkParent = yield* makeTempDir("supacode-scanner-links-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
+        const linkParent = yield* makeTempDir("supaterm-scanner-links-");
         const workspaceAlias = path.join(linkParent, "workspace-alias");
         yield* fileSystem.symlink(workspace, workspaceAlias);
 
@@ -448,9 +448,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const workspaceAlias = path.join(
           path.dirname(workspace),
           path.basename(workspace).toUpperCase(),
@@ -496,11 +496,11 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const backingUpper = yield* makeTempDir("supacode-backing-upper-");
-        const backingLower = yield* makeTempDir("supacode-backing-lower-");
-        const aliasParent = yield* makeTempDir("supacode-case-aliases-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const backingUpper = yield* makeTempDir("supaterm-backing-upper-");
+        const backingLower = yield* makeTempDir("supaterm-backing-lower-");
+        const aliasParent = yield* makeTempDir("supaterm-case-aliases-");
         const upperWorkspace = path.join(aliasParent, "Repo");
         const lowerWorkspace = path.join(aliasParent, "repo");
 
@@ -540,13 +540,13 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("uses explicit default-slot homes instead of the fixture homes", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-legacy-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-legacy-");
-        const claudeInstanceHome = yield* makeTempDir("supacode-claude-instance-");
-        const codexInstanceHome = yield* makeTempDir("supacode-codex-instance-");
-        const legacyWorkspace = yield* makeTempDir("supacode-workspace-legacy-");
-        const claudeWorkspace = yield* makeTempDir("supacode-workspace-claude-");
-        const codexWorkspace = yield* makeTempDir("supacode-workspace-codex-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-legacy-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-legacy-");
+        const claudeInstanceHome = yield* makeTempDir("supaterm-claude-instance-");
+        const codexInstanceHome = yield* makeTempDir("supaterm-codex-instance-");
+        const legacyWorkspace = yield* makeTempDir("supaterm-workspace-legacy-");
+        const claudeWorkspace = yield* makeTempDir("supaterm-workspace-claude-");
+        const codexWorkspace = yield* makeTempDir("supaterm-workspace-codex-");
 
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-legacy", "session.jsonl"),
@@ -596,11 +596,11 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("scans each distinct home across multiple instances once", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const otherCodexHome = yield* makeTempDir("supacode-codex-other-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
-        const otherWorkspace = yield* makeTempDir("supacode-workspace-other-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const otherCodexHome = yield* makeTempDir("supaterm-codex-other-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
+        const otherWorkspace = yield* makeTempDir("supaterm-workspace-other-");
 
         for (const [home, cwd] of [
           [codexHomePath, workspace],
@@ -639,12 +639,12 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("honors provider instance home directory environment variables", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-legacy-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-legacy-");
-        const claudeEnvironmentHome = yield* makeTempDir("supacode-claude-env-");
-        const codexEnvironmentHome = yield* makeTempDir("supacode-codex-env-");
-        const claudeWorkspace = yield* makeTempDir("supacode-workspace-claude-");
-        const codexWorkspace = yield* makeTempDir("supacode-workspace-codex-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-legacy-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-legacy-");
+        const claudeEnvironmentHome = yield* makeTempDir("supaterm-claude-env-");
+        const codexEnvironmentHome = yield* makeTempDir("supaterm-codex-env-");
+        const claudeWorkspace = yield* makeTempDir("supaterm-workspace-claude-");
+        const codexWorkspace = yield* makeTempDir("supaterm-workspace-codex-");
 
         yield* writeTranscript({
           filePath: path.join(claudeEnvironmentHome, "projects", "-actual", "session.jsonl"),
@@ -693,9 +693,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("ignores invalid provider instances while scanning the remaining providers", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-actual", "session.jsonl"),
@@ -721,12 +721,12 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("does not scan provider instances disabled by the envelope or config", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const envelopeDisabledHome = yield* makeTempDir("supacode-codex-disabled-envelope-");
-        const configDisabledHome = yield* makeTempDir("supacode-codex-disabled-config-");
-        const envelopeWorkspace = yield* makeTempDir("supacode-workspace-disabled-envelope-");
-        const configWorkspace = yield* makeTempDir("supacode-workspace-disabled-config-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const envelopeDisabledHome = yield* makeTempDir("supaterm-codex-disabled-envelope-");
+        const configDisabledHome = yield* makeTempDir("supaterm-codex-disabled-config-");
+        const envelopeWorkspace = yield* makeTempDir("supaterm-workspace-disabled-envelope-");
+        const configWorkspace = yield* makeTempDir("supaterm-workspace-disabled-config-");
 
         for (const [home, workspace, session] of [
           [envelopeDisabledHome, envelopeWorkspace, "envelope-disabled"],
@@ -762,9 +762,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("ignores relative working directories from malformed transcripts", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-relative", "session.jsonl"),
@@ -781,8 +781,8 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("drops candidates whose directory no longer exists", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
 
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-slug", "a.jsonl"),
@@ -796,13 +796,13 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       }),
     );
 
-    it.effect("excludes the home directory, temporary root, and Supacode data directory", () =>
+    it.effect("excludes the home directory, temporary root, and Supaterm data directory", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const configBaseDir = yield* makeTempDir("supacode-scanner-base-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const configBaseDir = yield* makeTempDir("supaterm-scanner-base-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         for (const [index, cwd] of [
           NodeOS.homedir(),
@@ -823,14 +823,14 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       }),
     );
 
-    it.effect("excludes Supacode-managed worktree sandboxes", () =>
+    it.effect("excludes Supaterm-managed worktree sandboxes", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
         const fileSystem = yield* FileSystem.FileSystem;
 
-        const worktreeCwd = path.join(claudeHomePath, ".supacode", "worktrees", "supacode", "wt-1");
+        const worktreeCwd = path.join(claudeHomePath, ".supaterm", "worktrees", "supaterm", "wt-1");
         yield* fileSystem.makeDirectory(worktreeCwd, { recursive: true });
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-slug", "a.jsonl"),
@@ -848,19 +848,19 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
         // The exclusions key off the real home directory, so these fixtures
         // must live there. Each run owns a uniquely named subtree and removes
         // only that subtree, never the shared Codex or Downloads parents.
         const home = NodeOS.homedir();
         // Borrow a unique suffix from a scoped temp dir instead of reaching for
         // Date.now or Math.random, which the Effect lint rejects.
-        const runId = path.basename(yield* makeTempDir("supacode-scanner-test-"));
+        const runId = path.basename(yield* makeTempDir("supaterm-scanner-test-"));
         const scratchRoot = path.join(home, "Documents", "Codex", runId);
         const scratch = path.join(scratchRoot, "2026-09-01", "some-conversation");
         const downloads = path.join(home, "Downloads", runId);
-        const keep = yield* makeTempDir("supacode-workspace-keep-");
+        const keep = yield* makeTempDir("supaterm-workspace-keep-");
         yield* fileSystem.makeDirectory(scratch, { recursive: true });
         yield* fileSystem.makeDirectory(downloads, { recursive: true });
         yield* Effect.addFinalizer(() =>
@@ -895,13 +895,13 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const repo = yield* makeTempDir("supacode-workspace-repo-");
-        const worktree = yield* makeTempDir("supacode-workspace-worktree-");
-        const plain = yield* makeTempDir("supacode-workspace-plain-");
-        const noRemote = yield* makeTempDir("supacode-workspace-noremote-");
-        const submodule = yield* makeTempDir("supacode-workspace-submodule-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const repo = yield* makeTempDir("supaterm-workspace-repo-");
+        const worktree = yield* makeTempDir("supaterm-workspace-worktree-");
+        const plain = yield* makeTempDir("supaterm-workspace-plain-");
+        const noRemote = yield* makeTempDir("supaterm-workspace-noremote-");
+        const submodule = yield* makeTempDir("supaterm-workspace-submodule-");
 
         yield* fileSystem.makeDirectory(path.join(repo, ".git"));
         yield* fileSystem.writeFileString(
@@ -957,19 +957,19 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     );
 
     it.effect(
-      "excludes sandboxes under the configured worktrees dir without .supacode in the path",
+      "excludes sandboxes under the configured worktrees dir without .supaterm in the path",
       () =>
         Effect.gen(function* () {
           const path = yield* Path.Path;
-          const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-          const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-          const configBaseDir = yield* makeTempDir("supacode-scanner-base-");
+          const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+          const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+          const configBaseDir = yield* makeTempDir("supaterm-scanner-base-");
           const fileSystem = yield* FileSystem.FileSystem;
 
           // worktreesDir derives as `<baseDir>/worktrees`, and the temp base
-          // dir contains no `.supacode` segment — only the config-based prefix match
+          // dir contains no `.supaterm` segment — only the config-based prefix match
           // can exclude this one.
-          const worktreeCwd = path.join(configBaseDir, "worktrees", "supacode", "wt-2");
+          const worktreeCwd = path.join(configBaseDir, "worktrees", "supaterm", "wt-2");
           yield* fileSystem.makeDirectory(worktreeCwd, { recursive: true });
           yield* writeTranscript({
             filePath: path.join(claudeHomePath, "projects", "-slug", "a.jsonl"),
@@ -986,15 +986,15 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("excludes sandboxes reached through a symlink into the worktrees dir", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const configBaseDir = yield* makeTempDir("supacode-scanner-base-");
-        const linkParent = yield* makeTempDir("supacode-scanner-links-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const configBaseDir = yield* makeTempDir("supaterm-scanner-base-");
+        const linkParent = yield* makeTempDir("supaterm-scanner-links-");
         const fileSystem = yield* FileSystem.FileSystem;
 
         // The recorded cwd is a symlink whose own spelling looks harmless;
         // only its realpath reveals the managed sandbox.
-        const worktreeCwd = path.join(configBaseDir, "worktrees", "supacode", "wt-3");
+        const worktreeCwd = path.join(configBaseDir, "worktrees", "supaterm", "wt-3");
         yield* fileSystem.makeDirectory(worktreeCwd, { recursive: true });
         const symlinkCwd = path.join(linkParent, "innocent-project");
         yield* fileSystem.symlink(worktreeCwd, symlinkCwd);
@@ -1013,9 +1013,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("finds the cwd on a later line when the first records carry none", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         // Claude transcripts often open with records that have no cwd.
         const contents = `{"type":"file-history-snapshot","messageId":"m1"}\n{"type":"queue-operation","operation":"enqueue"}\n${claudeSessionLine(workspace)}`;
@@ -1034,9 +1034,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("reads a complete transcript record at the exact chunk boundary", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const record = claudeSessionLine(workspace).split("\n")[0]!;
         const prefix = '{"padding":"';
         const suffix = `",${record.slice(1)}`;
@@ -1058,9 +1058,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("finds session metadata after a first record larger than one chunk", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const history = `{"type":"file-history-snapshot","data":"${"x".repeat(32 * 1024)}"}\n`;
 
         yield* writeTranscript({
@@ -1079,11 +1079,11 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-metadata-home-");
-        const secondHome = yield* makeTempDir("supacode-metadata-second-");
-        const codexHomePath = yield* makeTempDir("supacode-metadata-codex-");
-        const firstWorkspace = yield* makeTempDir("supacode-metadata-first-project-");
-        const secondWorkspace = yield* makeTempDir("supacode-metadata-second-project-");
+        const claudeHomePath = yield* makeTempDir("supaterm-metadata-home-");
+        const secondHome = yield* makeTempDir("supaterm-metadata-second-");
+        const codexHomePath = yield* makeTempDir("supaterm-metadata-codex-");
+        const firstWorkspace = yield* makeTempDir("supaterm-metadata-first-project-");
+        const secondWorkspace = yield* makeTempDir("supaterm-metadata-second-project-");
         const directories = [
           path.join(claudeHomePath, "projects", "p"),
           path.join(secondHome, "projects", "p"),
@@ -1163,9 +1163,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-short-metadata-home-");
-        const codexHomePath = yield* makeTempDir("supacode-short-metadata-codex-");
-        const workspace = yield* makeTempDir("supacode-short-metadata-project-");
+        const claudeHomePath = yield* makeTempDir("supaterm-short-metadata-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-short-metadata-codex-");
+        const workspace = yield* makeTempDir("supaterm-short-metadata-project-");
         const directory = path.join(claudeHomePath, "projects", "p");
         const template = path.join(directory, "template.jsonl");
         const record = encodeTranscriptRecord({ cwd: workspace });
@@ -1218,10 +1218,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
-        const claudeHomePath = yield* makeTempDir("supacode-record-metadata-home-");
-        const secondHome = yield* makeTempDir("supacode-record-metadata-second-");
-        const codexHomePath = yield* makeTempDir("supacode-record-metadata-codex-");
-        const workspace = yield* makeTempDir("supacode-record-metadata-project-");
+        const claudeHomePath = yield* makeTempDir("supaterm-record-metadata-home-");
+        const secondHome = yield* makeTempDir("supaterm-record-metadata-second-");
+        const codexHomePath = yield* makeTempDir("supaterm-record-metadata-codex-");
+        const workspace = yield* makeTempDir("supaterm-record-metadata-project-");
         const directory = path.join(claudeHomePath, "projects", "p");
         const template = path.join(directory, "template.jsonl");
         yield* writeTranscript({
@@ -1271,8 +1271,8 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         Effect.gen(function* () {
           const path = yield* Path.Path;
           const fileSystem = yield* FileSystem.FileSystem;
-          const claudeHomePath = yield* makeTempDir("supacode-directory-budget-home-");
-          const codexHomePath = yield* makeTempDir("supacode-directory-budget-codex-");
+          const claudeHomePath = yield* makeTempDir("supaterm-directory-budget-home-");
+          const codexHomePath = yield* makeTempDir("supaterm-directory-budget-codex-");
           const projectsDir = path.join(claudeHomePath, "projects");
           let reads = 0;
           const observedFileSystem = FileSystem.FileSystem.of({
@@ -1303,9 +1303,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("skips malformed transcripts without failing the scan", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-broken", "a.jsonl"),
@@ -1343,7 +1343,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("returns an empty result when neither home directory exists", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const root = yield* makeTempDir("supacode-missing-homes-");
+        const root = yield* makeTempDir("supaterm-missing-homes-");
 
         const result = yield* runScan({
           claudeHomePath: path.join(root, "no-claude"),
@@ -1364,9 +1364,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
           const path = yield* Path.Path;
           const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
           yield* TestClock.setTime(nowMs);
-          const claudeHomePath = yield* makeTempDir("supacode-record-limit-claude-");
-          const codexHomePath = yield* makeTempDir("supacode-record-limit-codex-");
-          const workspace = yield* makeTempDir("supacode-record-limit-project-");
+          const claudeHomePath = yield* makeTempDir("supaterm-record-limit-claude-");
+          const codexHomePath = yield* makeTempDir("supaterm-record-limit-codex-");
+          const workspace = yield* makeTempDir("supaterm-record-limit-project-");
           const directory = path.join(codexHomePath, "sessions", "2026", "08", "24");
           yield* writeTranscript({
             filePath: path.join(directory, "rollout-records.jsonl"),
@@ -1410,10 +1410,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const path = yield* Path.Path;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
-        const otherWorkspace = yield* makeTempDir("supacode-workspace-other-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
+        const otherWorkspace = yield* makeTempDir("supaterm-workspace-other-");
 
         const claudeTranscript = (cwd: string, sessionId: string) =>
           `${JSON.stringify({
@@ -1499,9 +1499,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const workspaceAlias = path.join(
           path.dirname(workspace),
           path.basename(workspace).toUpperCase(),
@@ -1546,10 +1546,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const path = yield* Path.Path;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const customHome = yield* makeTempDir("supacode-codex-custom-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const customHome = yield* makeTempDir("supaterm-codex-custom-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         yield* writeTranscript({
           filePath: path.join(customHome, "sessions", "2026", "08", "24", "rollout-custom.jsonl"),
@@ -1587,9 +1587,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const path = yield* Path.Path;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const contents = [
           encodeTranscriptRecord({
             type: "session_meta",
@@ -1632,9 +1632,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-budget-claude-");
-        const codexHomePath = yield* makeTempDir("supacode-budget-codex-");
-        const workspace = yield* makeTempDir("supacode-budget-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-budget-claude-");
+        const codexHomePath = yield* makeTempDir("supaterm-budget-codex-");
+        const workspace = yield* makeTempDir("supaterm-budget-workspace-");
         const transcriptPaths = new Set<string>();
         for (const [index, source] of [
           "codex",
@@ -1734,9 +1734,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const path = yield* Path.Path;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-record-budget-claude-");
-        const codexHomePath = yield* makeTempDir("supacode-record-budget-codex-");
-        const workspace = yield* makeTempDir("supacode-record-budget-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-record-budget-claude-");
+        const codexHomePath = yield* makeTempDir("supaterm-record-budget-codex-");
+        const workspace = yield* makeTempDir("supaterm-record-budget-workspace-");
         for (const [sessionId, padding, mtimeMs] of [
           ["excessive", "\n".repeat(100_001), nowMs],
           ["older", "", nowMs - 1_000],
@@ -1789,7 +1789,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
               const fileSystem = yield* FileSystem.FileSystem;
               const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
               yield* TestClock.setTime(nowMs);
-              const fixture = yield* makeTempDir("supacode-replaced-cwd-");
+              const fixture = yield* makeTempDir("supaterm-replaced-cwd-");
               const workspace = path.join(fixture, "original");
               const otherWorkspace = path.join(fixture, "other");
               const alias = path.join(fixture, "alias");
@@ -1876,9 +1876,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-completed-claude-");
-        const codexHomePath = yield* makeTempDir("supacode-completed-codex-");
-        const workspace = yield* makeTempDir("supacode-completed-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-completed-claude-");
+        const codexHomePath = yield* makeTempDir("supaterm-completed-codex-");
+        const workspace = yield* makeTempDir("supaterm-completed-workspace-");
         const filePath = path.join(
           codexHomePath,
           "sessions",
@@ -1944,9 +1944,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const path = yield* Path.Path;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const transcript = `${[
           encodeTranscriptRecord({
             type: "session_meta",
@@ -1990,9 +1990,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const missingPath = path.join(codexHomePath, "missing.jsonl");
         const transcriptPaths = {
           stat: path.join(codexHomePath, "sessions", "2026", "08", "24", "rollout-stat.jsonl"),
@@ -2062,10 +2062,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
-        const nonFilePath = yield* makeTempDir("supacode-non-file-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
+        const nonFilePath = yield* makeTempDir("supaterm-non-file-");
         const transcriptPath = path.join(
           codexHomePath,
           "sessions",
@@ -2121,9 +2121,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const path = yield* Path.Path;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         yield* writeTranscript({
           filePath: path.join(
             codexHomePath,
@@ -2165,9 +2165,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const transcriptPath = path.join(
           codexHomePath,
           "sessions",
@@ -2236,9 +2236,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const transcriptPath = path.join(
           codexHomePath,
           "sessions",
@@ -2295,9 +2295,9 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
         const makeCodexTranscript = (sessionId: string, text: string) =>
           [
             encodeTranscriptRecord({
@@ -2373,16 +2373,16 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
       }),
     );
 
-    it.effect("does not import sessions from a Supacode-managed worktree", () =>
+    it.effect("does not import sessions from a Supaterm-managed worktree", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const configBaseDir = yield* makeTempDir("supacode-scanner-base-");
-        const workspace = path.join(configBaseDir, "worktrees", "supacode", "managed-worktree");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const configBaseDir = yield* makeTempDir("supaterm-scanner-base-");
+        const workspace = path.join(configBaseDir, "worktrees", "supaterm", "managed-worktree");
         yield* fileSystem.makeDirectory(workspace, { recursive: true });
 
         yield* writeTranscript({
@@ -2423,10 +2423,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const path = yield* Path.Path;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const sharedHome = yield* makeTempDir("supacode-codex-shared-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const sharedHome = yield* makeTempDir("supaterm-codex-shared-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         yield* writeTranscript({
           filePath: path.join(sharedHome, "sessions", "2026", "08", "24", "rollout-shared.jsonl"),
@@ -2472,10 +2472,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const path = yield* Path.Path;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const sharedHome = yield* makeTempDir("supacode-codex-shared-");
-        const workspace = yield* makeTempDir("supacode-workspace-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const sharedHome = yield* makeTempDir("supaterm-codex-shared-");
+        const workspace = yield* makeTempDir("supaterm-workspace-");
 
         yield* writeTranscript({
           filePath: path.join(sharedHome, "sessions", "2026", "08", "24", "rollout-shared.jsonl"),
@@ -2518,11 +2518,11 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const fileSystem = yield* FileSystem.FileSystem;
         const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
         yield* TestClock.setTime(nowMs);
-        const claudeHomePath = yield* makeTempDir("supacode-claude-home-");
-        const codexHomePath = yield* makeTempDir("supacode-codex-home-");
-        const oldWorkspace = yield* makeTempDir("supacode-workspace-old-");
-        const recentWorkspace = yield* makeTempDir("supacode-workspace-recent-");
-        const recentHome = yield* makeTempDir("supacode-claude-recent-home-");
+        const claudeHomePath = yield* makeTempDir("supaterm-claude-home-");
+        const codexHomePath = yield* makeTempDir("supaterm-codex-home-");
+        const oldWorkspace = yield* makeTempDir("supaterm-workspace-old-");
+        const recentWorkspace = yield* makeTempDir("supaterm-workspace-recent-");
+        const recentHome = yield* makeTempDir("supaterm-claude-recent-home-");
         const oldDirectory = path.join(claudeHomePath, "projects", "-aaa-old");
         const oldTranscript = path.join(oldDirectory, "old.jsonl");
         const recentDirectory = path.join(recentHome, "projects", "-zzz-recent");

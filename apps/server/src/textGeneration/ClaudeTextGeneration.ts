@@ -14,18 +14,18 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-import { type ClaudeSettings, TextGenerationError } from "@supacode/contracts";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import { type ClaudeSettings, TextGenerationError } from "@supaterm/contracts";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 
-import * as TextGenerationOperations from "@supacode/provider-core/server/textGenerationOperations";
+import * as TextGenerationOperations from "@supaterm/provider-core/server/textGenerationOperations";
 import {
   normalizeCliError,
   toJsonSchemaObject,
-} from "@supacode/provider-core/server/textGenerationUtils";
+} from "@supaterm/provider-core/server/textGenerationUtils";
 import {
   getModelSelectionStringOptionValue,
   getProviderOptionDescriptors,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 import {
   BUNDLED_CLAUDE_MODEL_CATALOG,
   type ClaudeModelCatalog,
@@ -179,7 +179,7 @@ export const makeClaudeTextGeneration = Effect.fn("makeClaudeTextGeneration")(fu
       const workingDirectory =
         operation === "generateThreadTitle"
           ? yield* fileSystem
-              .makeTempDirectoryScoped({ prefix: "supacode-claude-title-" })
+              .makeTempDirectoryScoped({ prefix: "supaterm-claude-title-" })
               .pipe(
                 Effect.mapError((cause) =>
                   normalizeCliError("claude", operation, cause, "Failed to create title directory"),

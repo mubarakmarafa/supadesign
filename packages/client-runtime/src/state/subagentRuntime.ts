@@ -8,8 +8,8 @@ import type {
   OrchestrationV2Subagent,
   OrchestrationV2SubagentWorkflow,
   OrchestrationV2TurnItem,
-} from "@supacode/contracts";
-import { isOrchestrationV2WorkActive } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { isOrchestrationV2WorkActive } from "@supaterm/contracts";
 
 export type RuntimeSubagentStatus =
   | "pending"

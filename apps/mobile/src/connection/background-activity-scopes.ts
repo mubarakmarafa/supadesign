@@ -1,5 +1,5 @@
-import type { EnvironmentRpcSubscriptionObservation } from "@supacode/client-runtime/rpc";
-import { type BackgroundScope, type EnvironmentId, WS_METHODS } from "@supacode/contracts";
+import type { EnvironmentRpcSubscriptionObservation } from "@supaterm/client-runtime/rpc";
+import { type BackgroundScope, type EnvironmentId, WS_METHODS } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 interface RetainedScope {

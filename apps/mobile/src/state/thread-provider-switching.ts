@@ -1,6 +1,6 @@
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { threadSupportsProviderHandoff } from "@supacode/client-runtime/state/thread-workflows";
-import type { OrchestrationV2ThreadProjection } from "@supacode/contracts";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { threadSupportsProviderHandoff } from "@supaterm/client-runtime/state/thread-workflows";
+import type { OrchestrationV2ThreadProjection } from "@supaterm/contracts";
 
 type ThreadStartMarkers = Pick<
   EnvironmentThreadShell,

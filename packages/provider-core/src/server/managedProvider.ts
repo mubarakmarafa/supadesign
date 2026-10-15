@@ -2,8 +2,8 @@ import {
   DEFAULT_PROVIDER_HEALTH_REFRESH_INTERVAL,
   type ServerProvider,
   ServerSettingsError,
-} from "@supacode/contracts";
-import { resolveServerBackgroundActivitySettings } from "@supacode/shared/backgroundActivitySettings";
+} from "@supaterm/contracts";
+import { resolveServerBackgroundActivitySettings } from "@supaterm/shared/backgroundActivitySettings";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Equal from "effect/Equal";

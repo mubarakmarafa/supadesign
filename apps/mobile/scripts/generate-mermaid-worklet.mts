@@ -16,8 +16,8 @@ export async function generateMermaidWorklet(
       target: "es2022",
       minify: true,
       lib: {
-        entry: NodeURL.fileURLToPath(import.meta.resolve("@supacode/mermaid-ascii")),
-        name: "SupacodeMermaidAscii",
+        entry: NodeURL.fileURLToPath(import.meta.resolve("@supaterm/mermaid-ascii")),
+        name: "SupatermMermaidAscii",
         formats: ["iife"],
       },
     },
@@ -34,7 +34,7 @@ export async function generateMermaidWorklet(
 "worklet";
 ${chunk.code}
 try {
-  return SupacodeMermaidAscii.renderMermaidAscii(source, { useAscii: true });
+  return SupatermMermaidAscii.renderMermaidAscii(source, { useAscii: true });
 } catch {
   return null;
 }

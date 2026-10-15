@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { MessageId, RunId, type ReviewDiffPreviewSource } from "@supacode/contracts";
-import type { ThreadCheckpointSummary } from "@supacode/client-runtime/state/thread-checkpoints";
+import { MessageId, RunId, type ReviewDiffPreviewSource } from "@supaterm/contracts";
+import type { ThreadCheckpointSummary } from "@supaterm/client-runtime/state/thread-checkpoints";
 
 import {
   applyReviewDiffMetadata,
@@ -18,7 +18,7 @@ function makeCheckpoint(
     Pick<ThreadCheckpointSummary, "runId" | "checkpointTurnCount" | "completedAt">,
 ): ThreadCheckpointSummary {
   return {
-    checkpointRef: `refs/supacode/checkpoints/thread/${input.checkpointTurnCount}` as any,
+    checkpointRef: `refs/supaterm/checkpoints/thread/${input.checkpointTurnCount}` as any,
     status: "ready",
     files: [],
     assistantMessageId: MessageId.make(`msg-${input.checkpointTurnCount}`),

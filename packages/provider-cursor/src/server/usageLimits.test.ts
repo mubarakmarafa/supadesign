@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import { NodeServices } from "@effect/platform-node";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";

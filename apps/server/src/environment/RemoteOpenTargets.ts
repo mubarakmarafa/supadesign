@@ -8,10 +8,10 @@
  * Targets are ordered most-reachable first (tailnet name works from anywhere
  * on the tailnet; `<hostname>.local` only on the same LAN).
  */
-import { type RemoteOpenTarget } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import * as NetService from "@supacode/shared/Net";
-import { readTailscaleStatus } from "@supacode/tailscale";
+import { type RemoteOpenTarget } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import * as NetService from "@supaterm/shared/Net";
+import { readTailscaleStatus } from "@supaterm/tailscale";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -24,7 +24,7 @@ export class RemoteOpenTargets extends Context.Service<
   {
     readonly resolveTargets: () => Effect.Effect<ReadonlyArray<RemoteOpenTarget>>;
   }
->()("supacode/environment/RemoteOpenTargets") {}
+>()("supaterm/environment/RemoteOpenTargets") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {

@@ -1,5 +1,5 @@
-import { parseDelimitedPreview } from "@supacode/shared/delimitedPreview";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+import { parseDelimitedPreview } from "@supaterm/shared/delimitedPreview";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import { useMemo } from "react";
 
 import { FileSurfaceNotice } from "./fileSurfaceChrome";

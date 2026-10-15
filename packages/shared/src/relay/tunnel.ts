@@ -1,6 +1,6 @@
 import type { WebSocketLike } from "effect/socket/Socket";
 import { after, every } from "./timer.ts";
-import { DEFAULT_PUBLIC_RELAY_URL } from "@supacode/contracts";
+import { DEFAULT_PUBLIC_RELAY_URL } from "@supaterm/contracts";
 import {
   createClientHandshake,
   parseRelayAddress,

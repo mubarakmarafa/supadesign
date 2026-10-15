@@ -17,9 +17,9 @@ import * as Option from "effect/Option";
 
 import * as Electron from "electron";
 
-import * as NetService from "@supacode/shared/Net";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import type { RemoteSupacodeRunnerOptions } from "@supacode/ssh/tunnel";
+import * as NetService from "@supaterm/shared/Net";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import type { RemoteSupatermRunnerOptions } from "@supaterm/ssh/tunnel";
 import serverPackageJson from "../../server/package.json" with { type: "json" };
 
 import * as DesktopIpc from "./ipc/DesktopIpc.ts";
@@ -106,8 +106,8 @@ const layerDesktopEnvironment = Layer.unwrap(
 // a source checkout instead so the two sides can be iterated together.
 const resolveDesktopSshCliRunner = (
   environment: DesktopEnvironment.DesktopEnvironment["Service"],
-): RemoteSupacodeRunnerOptions => {
-  const devRemoteEntryPath = Option.getOrUndefined(environment.devRemoteSupacodeServerEntryPath);
+): RemoteSupatermRunnerOptions => {
+  const devRemoteEntryPath = Option.getOrUndefined(environment.devRemoteSupatermServerEntryPath);
   if (environment.isDevelopment && devRemoteEntryPath !== undefined) {
     return {
       nodeScriptPath: devRemoteEntryPath,

@@ -1,4 +1,4 @@
-import type { SnapShotAccessibilityNode, SnapShotSource } from "@supacode/contracts";
+import type { SnapShotAccessibilityNode, SnapShotSource } from "@supaterm/contracts";
 
 /** Keep image-relative accessibility coordinates aligned with a recompressed attachment. */
 export function resizeSnapShotSource(

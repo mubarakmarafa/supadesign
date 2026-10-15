@@ -3,13 +3,13 @@
  *
  * @module source-control-gitlab/client/definition
  */
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import {
   defineSourceControlClient,
   isChangeRequestInProjectRepository,
   isChangeRequestOnProjectHost,
   isChangeRequestPath,
-} from "@supacode/source-control-core/client/definition";
+} from "@supaterm/source-control-core/client/definition";
 
 const CHECKOUT_COMMAND = /^glab\s+mr\s+checkout\s+(.+)$/i;
 const CHANGE_REQUEST_REFERENCE =

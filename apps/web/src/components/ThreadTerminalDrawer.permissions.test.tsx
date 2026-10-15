@@ -3,9 +3,9 @@ import {
   EnvironmentId,
   ThreadId,
   type AuthEnvironmentScope,
-} from "@supacode/contracts";
-import { DEFAULT_CLIENT_SETTINGS } from "@supacode/contracts/settings";
-import { nextTerminalAttachSeedState } from "@supacode/client-runtime/state/terminal";
+} from "@supaterm/contracts";
+import { DEFAULT_CLIENT_SETTINGS } from "@supaterm/contracts/settings";
+import { nextTerminalAttachSeedState } from "@supaterm/client-runtime/state/terminal";
 import { AsyncResult } from "effect/reactivity";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";

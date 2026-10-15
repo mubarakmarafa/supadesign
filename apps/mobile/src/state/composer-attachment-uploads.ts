@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { AuthOrchestrationOperateScope, type EnvironmentId } from "@supacode/contracts";
+import { AuthOrchestrationOperateScope, type EnvironmentId } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 import { useEffect, useRef } from "react";
 

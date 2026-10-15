@@ -1,15 +1,15 @@
-import { EnvironmentRegistry } from "@supacode/client-runtime/connection";
+import { EnvironmentRegistry } from "@supaterm/client-runtime/connection";
 import {
   EnvironmentRpcSubscriptionObserver,
   request,
   type EnvironmentRpcSubscriptionObservation,
-} from "@supacode/client-runtime/rpc";
+} from "@supaterm/client-runtime/rpc";
 import {
   type BackgroundScope,
   type ClientActivityReportInput,
   type EnvironmentId,
   WS_METHODS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -21,7 +21,7 @@ import * as SubscriptionRef from "effect/SubscriptionRef";
 
 import { randomUUID } from "./utils";
 
-const CLIENT_ID_STORAGE_KEY = "supacode.backgroundActivity.clientId";
+const CLIENT_ID_STORAGE_KEY = "supaterm.backgroundActivity.clientId";
 const REPORT_INTERVAL_MS = 25_000;
 const LEASE_TTL_MS = 45_000;
 const RECENT_INTERACTION_WINDOW_MS = LEASE_TTL_MS;

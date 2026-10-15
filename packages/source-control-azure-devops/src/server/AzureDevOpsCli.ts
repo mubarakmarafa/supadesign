@@ -9,15 +9,15 @@ import {
   TrimmedNonEmptyString,
   type SourceControlRepositoryVisibility,
   type VcsError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 import {
   decodeAzureDevOpsPullRequestJson,
   decodeAzureDevOpsPullRequestListJson,
   type NormalizedAzureDevOpsPullRequestRecord,
 } from "./azureDevOpsPullRequests.ts";
-import * as SourceControlProvider from "@supacode/source-control-core/server/SourceControlProvider";
+import * as SourceControlProvider from "@supaterm/source-control-core/server/SourceControlProvider";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -263,7 +263,7 @@ export class AzureDevOpsCli extends Context.Service<
       readonly remoteName?: string;
     }) => Effect.Effect<void, AzureDevOpsCliError>;
   }
->()("@supacode/source-control-azure-devops/server/AzureDevOpsCli") {}
+>()("@supaterm/source-control-azure-devops/server/AzureDevOpsCli") {}
 
 function normalizeChangeRequestId(reference: string): string {
   const trimmed = reference.trim().replace(/^#/, "");

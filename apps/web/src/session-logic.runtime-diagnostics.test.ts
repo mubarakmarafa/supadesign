@@ -1,4 +1,4 @@
-import { RunId, ThreadId, TurnItemId, type OrchestrationV2TurnItem } from "@supacode/contracts";
+import { RunId, ThreadId, TurnItemId, type OrchestrationV2TurnItem } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 

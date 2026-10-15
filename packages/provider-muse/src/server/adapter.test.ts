@@ -17,8 +17,8 @@ import {
   ThreadId,
   type OrchestrationV2AppThread,
   type OrchestrationV2ProviderThread,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { MuseSettings } from "../settings.ts";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
@@ -31,13 +31,13 @@ import * as Queue from "effect/Queue";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
 import type { MuseItem } from "./protocol.ts";
 import type { MuseSdkHost } from "./sdk.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
-import type * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
+import type * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import { makeMuseAdapterV2, type MuseAdapterV2Options } from "./adapter.ts";
 
 const testLayer = Layer.mergeAll(
@@ -368,7 +368,7 @@ describe("MuseAdapterV2", () => {
         const call = yield* fake.takeCall(nativeId ? "session/resume" : "session/start");
         assert.deepStrictEqual(call.params.config, {
           mcpServers: {
-            supacode: {
+            supaterm: {
               transport: "streamableHttp",
               mode: "optional",
               url: "http://127.0.0.1:43210/mcp",

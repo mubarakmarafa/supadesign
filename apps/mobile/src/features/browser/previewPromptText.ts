@@ -1,4 +1,4 @@
-import type { PreviewStreamControl } from "@supacode/client-runtime/preview/server-browser-stream";
+import type { PreviewStreamControl } from "@supaterm/client-runtime/preview/server-browser-stream";
 
 type Dialog = PreviewStreamControl["dialog"];
 

@@ -14,7 +14,7 @@ import {
   type PreviewAutomationRequest,
   type PreviewAutomationStreamEvent,
   SERVER_BROWSER_AUTOMATION_CLIENT_ID,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Deferred from "effect/Deferred";

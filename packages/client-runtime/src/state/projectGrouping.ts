@@ -5,8 +5,8 @@ import {
   type EnvironmentId,
   type ScopedProjectRef,
   type SidebarProjectGroupingMode,
-} from "@supacode/contracts";
-import type { ClientSettings } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import type { ClientSettings } from "@supaterm/contracts/settings";
 
 import type { EnvironmentProject } from "./models.ts";
 import { normalizeProjectPathForComparison } from "./projects.ts";

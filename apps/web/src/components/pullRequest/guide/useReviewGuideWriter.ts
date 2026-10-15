@@ -1,5 +1,5 @@
-import type { EnvironmentId, PullRequestRef } from "@supacode/contracts";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import type { EnvironmentId, PullRequestRef } from "@supaterm/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import { useAtomValue } from "@effect/atom-react";
 import { useEffect, useEffectEvent, useState } from "react";
 

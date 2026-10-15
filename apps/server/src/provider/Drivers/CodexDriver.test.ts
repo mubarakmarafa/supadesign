@@ -11,8 +11,8 @@ import {
   ProviderInstanceId,
   ProviderSessionId,
   ThreadId,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as Deferred from "effect/Deferred";
 import * as Fiber from "effect/Fiber";
@@ -31,23 +31,23 @@ import * as BackgroundPolicy from "../../background/BackgroundPolicy.ts";
 import * as ServerConfig from "../../config.ts";
 import * as ServerSettings from "../../serverSettings.ts";
 import * as ResetCreditCoordinator from "../resetCreditCoordinator.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import * as ModelManifest from "../ModelManifest.ts";
 import {
   createProviderVersionAdvisory,
   resolveLatestProviderVersion,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 import { CodexDriver } from "./CodexDriver.ts";
 import * as CodexAdapterV2 from "../../orchestration-v2/Adapters/CodexAdapterV2.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProviderCredentialStore from "../ProviderCredentialStore.ts";
 import * as ProviderHostLive from "../ProviderHostLive.ts";
 
 const layerDeps = ServerConfig.layerTest(process.cwd(), {
-  prefix: "supacodex-driver-maintenance-",
+  prefix: "supatermx-driver-maintenance-",
 }).pipe(
   Layer.provideMerge(NodeServices.layer),
   Layer.provideMerge(IdAllocator.layer),
@@ -215,7 +215,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
           `providers/codex/${instanceId}/shadow`,
         );
         yield* Deferred.await(observedAccount);
-        // Sessions launch the Supacode-installed Codex with the account's token, not ambient credentials.
+        // Sessions launch the Supaterm-installed Codex with the account's token, not ambient credentials.
         const threadId = ThreadId.make("managed-account-thread");
         yield* instance.orchestrationAdapter
           .openSession({
@@ -283,7 +283,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const tempDir = yield* fs
-          .makeTempDirectoryScoped({ prefix: "supacodex-driver-" })
+          .makeTempDirectoryScoped({ prefix: "supatermx-driver-" })
           .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
         const sharedHome = NodePath.join(tempDir, "codex-home");
         const shadowHome = NodePath.join(tempDir, "codex-shadow");
@@ -327,7 +327,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
         environment: [],
         config: {
           ...CodexDriver.defaultConfig(),
-          binaryPath: NodePath.join(NodeOS.tmpdir(), "supacodex-missing", "codex"),
+          binaryPath: NodePath.join(NodeOS.tmpdir(), "supatermx-missing", "codex"),
         },
       });
       expect((yield* instance.snapshot.resolveMaintenance()).update).toBeNull();
@@ -360,7 +360,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const tempDir = yield* fs
-          .makeTempDirectoryScoped({ prefix: "supacodex-installer-" })
+          .makeTempDirectoryScoped({ prefix: "supatermx-installer-" })
           .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
         const installPath = NodePath.join(tempDir, ...fixture.installSegments);
         const realBinaryPath = NodePath.join(
@@ -419,7 +419,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const tempDir = yield* fs
-          .makeTempDirectoryScoped({ prefix: `supacodex-mise-${layout}-` })
+          .makeTempDirectoryScoped({ prefix: `supatermx-mise-${layout}-` })
           .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
         const binaryPath =
           layout === "direct"
@@ -496,7 +496,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const tempDir = yield* fs
-          .makeTempDirectoryScoped({ prefix: "supacodex-mise-shim-" })
+          .makeTempDirectoryScoped({ prefix: "supatermx-mise-shim-" })
           .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
         const brewPrefix = NodePath.join(tempDir, "homebrew");
         const brewPath = NodePath.join(brewPrefix, "bin", "brew");

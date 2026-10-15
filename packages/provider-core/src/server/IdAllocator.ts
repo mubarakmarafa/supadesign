@@ -20,7 +20,7 @@ import {
   RuntimeRequestId,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -186,7 +186,7 @@ export class IdAllocatorV2 extends Context.Service<
     readonly allocate: IdAllocatorV2Allocate;
     readonly derive: IdAllocatorV2Derive;
   }
->()("@supacode/provider-core/server/IdAllocator/IdAllocatorV2") {}
+>()("@supaterm/provider-core/server/IdAllocator/IdAllocatorV2") {}
 
 const encodePart = (part: string | number): string => encodeURIComponent(String(part));
 

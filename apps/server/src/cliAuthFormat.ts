@@ -1,4 +1,4 @@
-import type { AuthClientMetadata, AuthClientSession, AuthPairingLink } from "@supacode/contracts";
+import type { AuthClientMetadata, AuthClientSession, AuthPairingLink } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 import type { IssuedBearerSession, IssuedPairingLink } from "./auth/EnvironmentAuth.ts";

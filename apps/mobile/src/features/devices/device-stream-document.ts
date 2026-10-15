@@ -1,5 +1,5 @@
-import type { DeviceHubAccess } from "@supacode/client-runtime/device/hub-access";
-import type { DevicePlatform } from "@supacode/contracts";
+import type { DeviceHubAccess } from "@supaterm/client-runtime/device/hub-access";
+import type { DevicePlatform } from "@supaterm/contracts";
 
 export interface DeviceStreamConfiguration {
   readonly access: DeviceHubAccess;
@@ -20,7 +20,7 @@ export function deviceStreamDocument(configuration: string, script: string) {
   const safeConfiguration = configuration.replace(/</g, "\\u003c");
   const safeScript = script.replace(/<\/script/gi, "<\\/script");
   const failure = `window.ReactNativeWebView.postMessage(JSON.stringify({type:"status",status:"error",detail:"Device viewer stopped unexpectedly."}));`;
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"></head><body><script>window.addEventListener("error",function(){${failure}});window.addEventListener("unhandledrejection",function(){${failure}});\n${safeScript}\ntry{SupacodeDeviceStream.start(${safeConfiguration});}catch{${failure}}</script></body></html>`;
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"></head><body><script>window.addEventListener("error",function(){${failure}});window.addEventListener("unhandledrejection",function(){${failure}});\n${safeScript}\ntry{SupatermDeviceStream.start(${safeConfiguration});}catch{${failure}}</script></body></html>`;
 }
 
 export function deviceStreamMessage(data: string) {

@@ -3,8 +3,8 @@ import {
   scopeProjectRef,
   scopedThreadKey,
   scopeThreadRef,
-} from "@supacode/client-runtime/environment";
-import type { ScopedThreadRef } from "@supacode/contracts";
+} from "@supaterm/client-runtime/environment";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useEffectEvent, useRef } from "react";
 

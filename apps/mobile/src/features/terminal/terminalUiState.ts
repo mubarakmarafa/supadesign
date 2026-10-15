@@ -1,4 +1,4 @@
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 
 export interface TerminalGridSize {
   readonly cols: number;

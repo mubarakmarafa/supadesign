@@ -3,10 +3,10 @@ import {
   scopeProjectRef,
   scopeThreadRef,
   scopedThreadKey,
-} from "@supacode/client-runtime/environment";
-import { settlePromise, squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import { canSnooze, threadWokeAt } from "@supacode/client-runtime/state/thread-settled";
-import { threadRuntimeCanArchive } from "@supacode/client-runtime/state/models";
+} from "@supaterm/client-runtime/environment";
+import { settlePromise, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import { canSnooze, threadWokeAt } from "@supaterm/client-runtime/state/thread-settled";
+import { threadRuntimeCanArchive } from "@supaterm/client-runtime/state/models";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
@@ -15,8 +15,8 @@ import {
   type ScopedThreadRef,
   ThreadId,
   sessionGrantsScope,
-} from "@supacode/contracts";
-import { resolveWorktreeCleanup } from "@supacode/shared/projectSettings";
+} from "@supaterm/contracts";
+import { resolveWorktreeCleanup } from "@supaterm/shared/projectSettings";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { AsyncResult } from "effect/reactivity";
@@ -29,7 +29,7 @@ import { environmentSession, readEnvironmentScope } from "../state/session";
 
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { environmentServerConfigsAtom } from "../state/server";
-import { isScratchProject } from "@supacode/client-runtime/state/projects";
+import { isScratchProject } from "@supaterm/client-runtime/state/projects";
 import { threadEnvironment } from "../state/threads";
 import { vcsEnvironment } from "../state/vcs";
 import { useNewThreadHandler } from "./useHandleNewThread";

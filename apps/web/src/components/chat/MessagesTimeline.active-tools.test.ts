@@ -1,4 +1,4 @@
-import { RunId } from "@supacode/contracts";
+import { RunId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { deriveMessagesTimelineRows, liveWorkEntryLabel } from "./MessagesTimeline.logic";
 

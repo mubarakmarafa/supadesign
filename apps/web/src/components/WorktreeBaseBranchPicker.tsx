@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { ChevronDownIcon, GitBranchIcon } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 

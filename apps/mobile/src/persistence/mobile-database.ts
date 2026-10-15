@@ -1,5 +1,5 @@
 import { loadExpoFileSystem } from "../lib/expoFileSystem";
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -7,7 +7,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import type { SQLiteDatabase } from "expo-sqlite";
 
-const DATABASE_NAME = "supacode-client.db";
+const DATABASE_NAME = "supaterm-client.db";
 const DATABASE_SCHEMA_VERSION = 1;
 const LEGACY_CACHE_DIRECTORIES = [
   "connection-shell-snapshots",
@@ -237,7 +237,7 @@ export class MobileDatabase extends Context.Service<
       updatedAt: number,
     ) => Effect.Effect<void, MobileDatabaseError>;
   }
->()("@supacode/mobile/persistence/MobileDatabase") {}
+>()("@supaterm/mobile/persistence/MobileDatabase") {}
 
 const makeAvailable = Effect.gen(function* () {
   const database = yield* Effect.acquireRelease(

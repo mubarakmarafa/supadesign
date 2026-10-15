@@ -1,4 +1,4 @@
-import { createMcpAppEnvironmentAtoms } from "@supacode/client-runtime/state/mcp-apps";
+import { createMcpAppEnvironmentAtoms } from "@supaterm/client-runtime/state/mcp-apps";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 

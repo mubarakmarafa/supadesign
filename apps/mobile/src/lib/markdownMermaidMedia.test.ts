@@ -4,7 +4,7 @@ import { markdownMermaidMedia } from "./markdownMermaidMedia";
 describe("markdownMermaidMedia", () => {
   it("replaces closed diagrams while preserving surrounding Markdown", () => {
     const result = markdownMermaidMedia("Before\n\n```mermaid\ngraph LR\nA --> B\n```\n\nAfter");
-    expect(result.markdown).toBe("Before\n\n![Mermaid](<supacode-mermaid://block/0>)\n\nAfter");
+    expect(result.markdown).toBe("Before\n\n![Mermaid](<supaterm-mermaid://block/0>)\n\nAfter");
     expect([...result.sources.values()]).toEqual(["graph LR\nA --> B"]);
   });
 
@@ -15,7 +15,7 @@ describe("markdownMermaidMedia", () => {
   ])("handles container prefixes and matching fence lengths", (markdown) => {
     const result = markdownMermaidMedia(markdown);
     expect([...result.sources.values()]).toEqual(["graph LR\nA --> B"]);
-    expect(result.markdown).toContain("![Mermaid](<supacode-mermaid://block/0>)");
+    expect(result.markdown).toContain("![Mermaid](<supaterm-mermaid://block/0>)");
   });
 
   it.each([

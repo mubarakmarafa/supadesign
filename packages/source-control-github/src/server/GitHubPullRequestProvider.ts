@@ -1,5 +1,5 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
-import { removeAgentCredits } from "@supacode/source-control-core/server/mergeMessage";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import { removeAgentCredits } from "@supaterm/source-control-core/server/mergeMessage";
 import * as Effect from "effect/Effect";
 import type {
   PullRequestActor,
@@ -7,9 +7,9 @@ import type {
   PullRequestCheck,
   PullRequestReaction,
   PullRequestViewerPermissions,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 import * as GitHubPullRequestApi from "./GitHubPullRequestApi.ts";
 import {
   PullRequestProviderError,
@@ -18,7 +18,7 @@ import {
   type ProviderChangeRequestDetail,
   type PullRequestProviderApi,
   type ProviderRepositoryRef,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 import type { GitHubViewerAccess, GitHubWorkflowRunApproval } from "./gitHubPullRequestJson.ts";
 import { definition } from "../client/definition.ts";
 

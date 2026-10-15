@@ -22,7 +22,7 @@ export function ListSection(props: {
             }
           >
             {props.titleIcon}
-            <Text className="shrink text-sm font-supacode-medium text-foreground-muted">
+            <Text className="shrink text-sm font-supaterm-medium text-foreground-muted">
               {props.title}
             </Text>
           </View>

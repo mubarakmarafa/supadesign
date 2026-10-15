@@ -1,10 +1,10 @@
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   type DesktopPendingSnapShot,
   EnvironmentId,
   ProjectId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { DraftId, useComposerDraftStore } from "../../composerDraftStore";

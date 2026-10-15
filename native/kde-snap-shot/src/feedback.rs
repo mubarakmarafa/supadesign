@@ -165,7 +165,7 @@ pub(super) fn run(connection: &Connection, directory: &Path, options: &str) -> R
     });
 
     let path = directory.join("feedback.qml");
-    let name = format!("supacode-capture-feedback-{}", std::process::id());
+    let name = format!("supaterm-capture-feedback-{}", std::process::id());
     let bus = serde_json::to_string(
         connection
             .unique_name()

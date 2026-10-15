@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -13,28 +13,28 @@ import {
 
 it("formats package runner commands from their cache entry paths", () => {
   for (const [entryPath, expected] of [
-    ["/home/theo/.npm/_npx/abc123/node_modules/supacode/dist/bin.mjs", "npx supacode serve"],
+    ["/home/theo/.npm/_npx/abc123/node_modules/supaterm/dist/bin.mjs", "npx supaterm serve"],
     [
-      "C:\\Users\\theo\\AppData\\Local\\npm-cache\\_npx\\abc\\node_modules\\supacode\\dist\\bin.mjs",
-      "npx supacode serve",
+      "C:\\Users\\theo\\AppData\\Local\\npm-cache\\_npx\\abc\\node_modules\\supaterm\\dist\\bin.mjs",
+      "npx supaterm serve",
     ],
     [
-      "/home/theo/.cache/pnpm/dlx/abc/node_modules/supacode/dist/bin.mjs",
-      "pnpm dlx supacode serve",
+      "/home/theo/.cache/pnpm/dlx/abc/node_modules/supaterm/dist/bin.mjs",
+      "pnpm dlx supaterm serve",
     ],
     [
-      "/home/theo/.local/share/pnpm/.pnpm/dlx/abc/node_modules/supacode/dist/bin.mjs",
-      "pnpm dlx supacode serve",
+      "/home/theo/.local/share/pnpm/.pnpm/dlx/abc/node_modules/supaterm/dist/bin.mjs",
+      "pnpm dlx supaterm serve",
     ],
     [
-      "C:\\Users\\theo\\AppData\\Local\\pnpm-cache\\dlx\\abc\\node_modules\\supacode\\dist\\bin.mjs",
-      "pnpm dlx supacode serve",
+      "C:\\Users\\theo\\AppData\\Local\\pnpm-cache\\dlx\\abc\\node_modules\\supaterm\\dist\\bin.mjs",
+      "pnpm dlx supaterm serve",
     ],
-    ["/home/theo/.bun/install/cache/supacode@0.0.31/dist/bin.mjs", "bunx supacode serve"],
-    ["/tmp/bunx-1000-supacode@latest/node_modules/supacode/dist/bin.mjs", "bunx supacode serve"],
+    ["/home/theo/.bun/install/cache/supaterm@0.0.31/dist/bin.mjs", "bunx supaterm serve"],
+    ["/tmp/bunx-1000-supaterm@latest/node_modules/supaterm/dist/bin.mjs", "bunx supaterm serve"],
     [
-      "C:\\Users\\theo\\AppData\\Local\\Temp\\bunx-0-supacode@latest\\node_modules\\supacode\\dist\\bin.mjs",
-      "bunx supacode serve",
+      "C:\\Users\\theo\\AppData\\Local\\Temp\\bunx-0-supaterm@latest\\node_modules\\supaterm\\dist\\bin.mjs",
+      "bunx supaterm serve",
     ],
   ] as const) {
     assert.equal(formatCliCommand({ subcommand: "serve", entryPath, version: "0.0.31" }), expected);
@@ -43,29 +43,29 @@ it("formats package runner commands from their cache entry paths", () => {
 
 it("treats stable installs as direct invocations", () => {
   for (const entryPath of [
-    "/usr/local/lib/node_modules/supacode/dist/bin.mjs",
-    "/home/theo/Code/work/supacode/apps/server/dist/bin.mjs",
-    "/home/theo/.supacode/runtime/0.0.31/node_modules/supacode/dist/bin.mjs",
+    "/usr/local/lib/node_modules/supaterm/dist/bin.mjs",
+    "/home/theo/Code/work/supaterm/apps/server/dist/bin.mjs",
+    "/home/theo/.supaterm/runtime/0.0.31/node_modules/supaterm/dist/bin.mjs",
     "",
   ]) {
     assert.equal(
       formatCliCommand({ subcommand: "serve", entryPath, version: "0.0.31" }),
-      "supacode serve",
+      "supaterm serve",
     );
   }
 });
 
 it("re-suggests the prerelease channel only for prerelease builds", () => {
   for (const [version, expected] of [
-    ["0.0.31-nightly.20260729", "npx supacode@nightly serve"],
-    ["0.0.31-preview.20260729.1", "npx supacode@preview serve"],
-    ["0.0.31-foo-preview.20260729.1", "npx supacode serve"],
-    ["0.0.31", "npx supacode serve"],
+    ["0.0.31-nightly.20260729", "npx supaterm@nightly serve"],
+    ["0.0.31-preview.20260729.1", "npx supaterm@preview serve"],
+    ["0.0.31-foo-preview.20260729.1", "npx supaterm serve"],
+    ["0.0.31", "npx supaterm serve"],
   ] as const) {
     assert.equal(
       formatCliCommand({
         subcommand: "serve",
-        entryPath: "/home/theo/.npm/_npx/abc123/node_modules/supacode/dist/bin.mjs",
+        entryPath: "/home/theo/.npm/_npx/abc123/node_modules/supaterm/dist/bin.mjs",
         version,
       }),
       expected,
@@ -77,26 +77,26 @@ it("formats serve suggestions to match the launching command", () => {
   assert.equal(
     formatCliCommand({
       subcommand: "serve",
-      entryPath: "/home/theo/.npm/_npx/abc/node_modules/supacode/dist/bin.mjs",
+      entryPath: "/home/theo/.npm/_npx/abc/node_modules/supaterm/dist/bin.mjs",
       version: "0.0.31-nightly.20260729",
     }),
-    "npx supacode@nightly serve",
+    "npx supaterm@nightly serve",
   );
   assert.equal(
     formatCliCommand({
       subcommand: "serve",
-      entryPath: "/tmp/bunx-1000-supacode@latest/node_modules/supacode/dist/bin.mjs",
+      entryPath: "/tmp/bunx-1000-supaterm@latest/node_modules/supaterm/dist/bin.mjs",
       version: "0.0.31",
     }),
-    "bunx supacode serve",
+    "bunx supaterm serve",
   );
   assert.equal(
     formatCliCommand({
       subcommand: "serve",
-      entryPath: "/usr/local/lib/node_modules/supacode/dist/bin.mjs",
+      entryPath: "/usr/local/lib/node_modules/supaterm/dist/bin.mjs",
       version: "0.0.31-nightly.20260729",
     }),
-    "supacode serve",
+    "supaterm serve",
   );
 });
 
@@ -116,32 +116,32 @@ it.layer(NodeServices.layer)("root CLI commands", (it) => {
       Effect.provideService(HostProcess.Environment, { PATH: input.path ?? "", ...input.env }),
     );
 
-  const pathWithSupacode = Effect.gen(function* () {
+  const pathWithSupaterm = Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const bin = yield* fs.makeTempDirectoryScoped();
-    yield* fs.writeFileString(path.join(bin, "supacode"), "#!/bin/sh\n", { mode: 0o755 });
+    yield* fs.writeFileString(path.join(bin, "supaterm"), "#!/bin/sh\n", { mode: 0o755 });
     return bin;
   });
 
   it.effect("keeps a user-installed Node reachable when the command runs under sudo", () =>
     Effect.gen(function* () {
-      const npx = "/home/theo/.npm/_npx/abc/node_modules/supacode/dist/bin.mjs";
+      const npx = "/home/theo/.npm/_npx/abc/node_modules/supaterm/dist/bin.mjs";
       // sudo's secure_path already has a system Node.
       expect(yield* rootCommand({ node: "/usr/bin/node", entry: npx })).toBe(
-        "sudo npx supacode browser setup",
+        "sudo npx supaterm browser setup",
       );
       // nvm, fnm, and tarball installs are dropped by sudo's PATH reset.
       expect(
         yield* rootCommand({ node: "/home/theo/.nvm/versions/node/v24/bin/node", entry: npx }),
-      ).toBe('sudo env "PATH=$PATH" npx supacode browser setup');
+      ).toBe('sudo env "PATH=$PATH" npx supaterm browser setup');
       expect(
         yield* rootCommand({
           node: "/home/theo/.local/node/bin/node",
-          entry: "/home/theo/.local/lib/node_modules/supacode/dist/bin.mjs",
-          path: yield* pathWithSupacode,
+          entry: "/home/theo/.local/lib/node_modules/supaterm/dist/bin.mjs",
+          path: yield* pathWithSupaterm,
         }),
-      ).toBe('sudo env "PATH=$PATH" supacode browser setup');
+      ).toBe('sudo env "PATH=$PATH" supaterm browser setup');
     }).pipe(Effect.scoped),
   );
 
@@ -166,37 +166,40 @@ it.layer(NodeServices.layer)("root CLI commands", (it) => {
     }).pipe(Effect.scoped),
   );
 
-  it.effect("names this install's launcher when supacode is not on PATH", () =>
+  it.effect("names this install's launcher when supaterm is not on PATH", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
-      const shim = path.join(home, ".local bin", "supacode");
+      const shim = path.join(home, ".local bin", "supaterm");
       yield* fs.makeDirectory(path.dirname(shim), { recursive: true });
       yield* fs.writeFileString(shim, "#!/bin/sh\n", { mode: 0o755 });
       const desktop = {
-        node: "/tmp/.mount_Supacodeabc/supacode",
-        entry: "/tmp/.mount_Supacodeabc/resources/app.asar/apps/server/dist/bin.mjs",
-        env: { SUPACODE_CLI_PATH: shim },
+        node: "/tmp/.mount_Supatermabc/supaterm",
+        entry: "/tmp/.mount_Supatermabc/resources/app.asar/apps/server/dist/bin.mjs",
+        env: { SUPATERM_CLI_SHIM_PATH: shim },
       };
 
       expect(yield* rootCommand(desktop)).toBe(`sudo '${shim}' browser setup`);
 
-      expect(yield* rootCommand({ ...desktop, path: yield* pathWithSupacode })).toBe(
-        'sudo env "PATH=$PATH" supacode browser setup',
+      expect(yield* rootCommand({ ...desktop, path: yield* pathWithSupaterm })).toBe(
+        'sudo env "PATH=$PATH" supaterm browser setup',
       );
 
       expect(
         yield* rootCommand({
-          node: "/opt/supacode/supacode",
-          entry: "/opt/supacode/supacode",
+          node: "/opt/supaterm/supaterm",
+          entry: "/opt/supaterm/supaterm",
           executable: true,
         }),
-      ).toBe("sudo /opt/supacode/supacode browser setup");
+      ).toBe("sudo /opt/supaterm/supaterm browser setup");
 
       expect(
-        yield* rootCommand({ ...desktop, env: { SUPACODE_CLI_PATH: path.join(home, "gone") } }),
-      ).toBe('sudo env "PATH=$PATH" supacode browser setup');
+        yield* rootCommand({
+          ...desktop,
+          env: { SUPATERM_CLI_SHIM_PATH: path.join(home, "gone") },
+        }),
+      ).toBe('sudo env "PATH=$PATH" supaterm browser setup');
     }).pipe(Effect.scoped),
   );
 });
@@ -208,10 +211,10 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
       for (const [relative, kind] of [
-        ["npm/_npx/hash/node_modules/supacode/dist/bin.mjs", "npx"],
-        ["npm/_npx/hash/node_modules/@supabitapp/supacode-linux-x64/supacode", "npx"],
-        ["pnpm/dlx/hash/node_modules/supacode/dist/bin.mjs", "pnpm-dlx"],
-        [".bun/install/cache/supacode/dist/bin.mjs", "bunx"],
+        ["npm/_npx/hash/node_modules/supaterm/dist/bin.mjs", "npx"],
+        ["npm/_npx/hash/node_modules/@supabitapp/supaterm-linux-x64/supaterm", "npx"],
+        ["pnpm/dlx/hash/node_modules/supaterm/dist/bin.mjs", "pnpm-dlx"],
+        [".bun/install/cache/supaterm/dist/bin.mjs", "bunx"],
       ] as const) {
         const entry = path.join(root, relative);
         yield* fs.makeDirectory(path.dirname(entry), { recursive: true });
@@ -219,7 +222,7 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
         const installation = yield* resolveServerInstallation.pipe(
           Effect.provideService(HostProcess.Arguments, ["node", entry]),
           Effect.provideService(HostProcess.ExecutablePath, entry),
-          Effect.provideService(HostProcess.IsExecutable, entry.endsWith("/supacode")),
+          Effect.provideService(HostProcess.IsExecutable, entry.endsWith("/supaterm")),
         );
         expect(installation).toEqual({ kind });
       }
@@ -232,15 +235,15 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
       const prefix = path.join(root, "bunx-tools");
-      const packageRoot = path.join(prefix, "lib/node_modules/supacode");
+      const packageRoot = path.join(prefix, "lib/node_modules/supaterm");
       const entry = path.join(packageRoot, "dist/bin.mjs");
-      const globalBin = path.join(prefix, "bin/supacode");
+      const globalBin = path.join(prefix, "bin/supaterm");
       yield* fs.makeDirectory(path.dirname(entry), { recursive: true });
       yield* fs.makeDirectory(path.dirname(globalBin), { recursive: true });
       yield* fs.writeFileString(entry, "");
       yield* fs.writeFileString(
         path.join(packageRoot, "package.json"),
-        '{"name":"supacode","version":"0.0.45","bin":{"supacode":"./dist/bin.mjs"}}',
+        '{"name":"supaterm","version":"0.0.45","bin":{"supaterm":"./dist/bin.mjs"}}',
       );
       const resolve = resolveServerInstallation.pipe(
         Effect.provideService(HostProcess.Arguments, ["node", entry]),
@@ -251,7 +254,7 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
       yield* fs.symlink(entry, globalBin);
       expect(yield* resolve).toEqual({ kind: "npm-global", prefix });
       yield* fs.remove(globalBin);
-      yield* fs.writeFileString(globalBin, "an unrelated supacode command");
+      yield* fs.writeFileString(globalBin, "an unrelated supaterm command");
       expect(yield* resolve).toBeNull();
       expect(yield* resolve.pipe(Effect.provideService(HostProcess.Platform, "win32"))).toBeNull();
     }),
@@ -263,9 +266,9 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
       const prefix = path.join(root, "bunx-tools");
-      const packageRoot = path.join(prefix, "lib/node_modules/supacode");
-      const launcher = path.join(packageRoot, "bin/supacode.js");
-      const entry = path.join(packageRoot, "node_modules/@supabitapp/supacode-linux-x64/supacode");
+      const packageRoot = path.join(prefix, "lib/node_modules/supaterm");
+      const launcher = path.join(packageRoot, "bin/supaterm.js");
+      const entry = path.join(packageRoot, "node_modules/@supabitapp/supaterm-linux-x64/supaterm");
       yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
       yield* fs.makeDirectory(path.dirname(entry), { recursive: true });
       yield* fs.makeDirectory(path.join(prefix, "bin"));
@@ -273,9 +276,9 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
       yield* fs.writeFileString(entry, "");
       yield* fs.writeFileString(
         path.join(packageRoot, "package.json"),
-        '{"name":"supacode","version":"0.0.45","bin":{"supacode":"./bin/supacode.js"},"optionalDependencies":{"@supabitapp/supacode-linux-x64":"0.0.45"}}',
+        '{"name":"supaterm","version":"0.0.45","bin":{"supaterm":"./bin/supaterm.js"},"optionalDependencies":{"@supabitapp/supaterm-linux-x64":"0.0.45"}}',
       );
-      yield* fs.symlink(launcher, path.join(prefix, "bin/supacode"));
+      yield* fs.symlink(launcher, path.join(prefix, "bin/supaterm"));
       const resolve = resolveServerInstallation.pipe(
         Effect.provideService(HostProcess.ExecutablePath, entry),
         Effect.provideService(HostProcess.IsExecutable, true),
@@ -287,7 +290,7 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
       ]) {
         yield* fs.writeFileString(
           path.join(path.dirname(entry), "package.json"),
-          `{"name":"@supabitapp/supacode-linux-x64","version":"${version}"}`,
+          `{"name":"@supabitapp/supaterm-linux-x64","version":"${version}"}`,
         );
         expect(yield* resolve).toEqual(expected);
       }
@@ -300,9 +303,9 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
       for (const relative of [
-        "project/node_modules/supacode/dist/bin.mjs",
+        "project/node_modules/supaterm/dist/bin.mjs",
         "project/apps/server/dist/bin.mjs",
-        ".supacode/runtime/0.0.45/supacode",
+        ".supaterm/runtime/0.0.45/supaterm",
         "missing/dist/bin.mjs",
       ]) {
         const entry = path.join(root, relative);

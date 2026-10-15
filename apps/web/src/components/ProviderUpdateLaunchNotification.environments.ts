@@ -1,5 +1,5 @@
-import type { ConnectionCatalogEntry } from "@supacode/client-runtime/connection";
-import type { ServerConfig } from "@supacode/contracts";
+import type { ConnectionCatalogEntry } from "@supaterm/client-runtime/connection";
+import type { ServerConfig } from "@supaterm/contracts";
 import { useMemo } from "react";
 
 import { useEnvironments, usePrimaryEnvironmentId } from "~/state/environments";

@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 import { createAtomCommandScheduler, type AtomCommandConcurrency } from "./runtime.ts";
 

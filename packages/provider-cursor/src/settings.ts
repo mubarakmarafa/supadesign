@@ -1,4 +1,4 @@
-import { CustomModelSetting, makeProviderSettingsSchema, TrimmedString } from "@supacode/contracts";
+import { CustomModelSetting, makeProviderSettingsSchema, TrimmedString } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 

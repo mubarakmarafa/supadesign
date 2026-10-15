@@ -4,7 +4,7 @@ import {
   MessageId,
   type OrchestrationV2DomainEvent,
   type OrchestrationV2ThreadProjection,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { describe, test } from "vite-plus/test";
@@ -43,7 +43,7 @@ const target = new PrimaryConnectionTarget({
   wsBaseUrl: "wss://remote.example.test/ws",
 });
 const responses = {
-  "/.well-known/supacode/environment": {
+  "/.well-known/supaterm/environment": {
     environmentId: target.environmentId,
     label: target.label,
     platform: { os: "linux", arch: "x64" },

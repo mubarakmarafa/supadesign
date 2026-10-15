@@ -2,11 +2,11 @@ import {
   type EnvironmentId,
   isProviderSendTurnSupportedImageMimeType,
   PROVIDER_SEND_TURN_MAX_FILE_BYTES,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   clampFileAttachmentUploadBytes,
   fileAttachmentTooLargeMessage,
-} from "@supacode/client-runtime/state/attachments";
+} from "@supaterm/client-runtime/state/attachments";
 
 import type { ComposerFileAttachment, ComposerImageAttachment } from "../../composerDraftStore";
 import { isHeicImageFile } from "../../lib/imageCompression";

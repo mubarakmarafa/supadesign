@@ -31,7 +31,7 @@ import * as OpenCode2Server from "./OpenCode2Server.ts";
 
 const binaryPath = process.env.OPENCODE2_BIN;
 
-// A negative pid probes the whole process group, which Supacode stops as one unit.
+// A negative pid probes the whole process group, which Supaterm stops as one unit.
 const isAlive = (pid: number) => {
   try {
     process.kill(pid, 0);
@@ -44,7 +44,7 @@ const isAlive = (pid: number) => {
 /**
  * Stops a server the test spawned itself: SIGTERM, then SIGKILL if it is still
  * alive after five seconds. Keyed on the PID captured at spawn, never on a
- * pattern. Servers Supacode spawns are stopped by Supacode, through the instance scope.
+ * pattern. Servers Supaterm spawns are stopped by Supaterm, through the instance scope.
  */
 const stopByPid = (pid: number) =>
   Effect.gen(function* () {
@@ -102,7 +102,7 @@ describe.runIf(binaryPath !== undefined)("OpenCode2Server live", () => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const root = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-opencode2-server-live-",
+          prefix: "supaterm-opencode2-server-live-",
         });
         const first = path.join(root, "first");
         const second = path.join(root, "second");
@@ -115,7 +115,7 @@ describe.runIf(binaryPath !== undefined)("OpenCode2Server live", () => {
           XDG_DATA_HOME: path.join(root, "data"),
           XDG_STATE_HOME: path.join(root, "state"),
           XDG_CACHE_HOME: path.join(root, "cache"),
-          // Ignored: the Supacode password is the only one the server sees.
+          // Ignored: the Supaterm password is the only one the server sees.
           OPENCODE_SERVER_PASSWORD: "ambient-password",
         };
 

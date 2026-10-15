@@ -1,7 +1,7 @@
 import {
   threadPullRequestsOf,
   threadPullRequestKeysEqual,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 import {
   CommandId,
   pullRequestHostOf,
@@ -10,14 +10,14 @@ import {
   type SourceControlProviderKind,
   type ThreadId,
   type ThreadPullRequestLink,
-} from "@supacode/contracts";
-import { changeRequestUrlFor, parseChangeRequestUrl } from "@supacode/shared/changeRequestUrl";
+} from "@supaterm/contracts";
+import { changeRequestUrlFor, parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 import {
   normalizeThreadPullRequestKey,
   resolveThreadPullRequestChains,
   threadPullRequestKeyOf,
   visibleThreadPullRequests,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 import * as Cause from "effect/Cause";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";

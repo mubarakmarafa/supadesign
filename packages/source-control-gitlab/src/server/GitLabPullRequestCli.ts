@@ -18,7 +18,7 @@ import type {
   PullRequestReviewThread,
   PullRequestReviewVerdict,
   PullRequestReviewerCandidateList,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as GitLabCli from "./GitLabCli.ts";
 import {
@@ -44,7 +44,7 @@ import {
   type GitLabMergeRequestListItem,
   type GitLabProjectUsers,
 } from "./gitLabMergeRequestJson.ts";
-import type { ProviderListCursor } from "@supacode/source-control-core/server/PullRequestProvider";
+import type { ProviderListCursor } from "@supaterm/source-control-core/server/PullRequestProvider";
 
 /**
  * Names the read that produced unusable output, so a failure reports the call it came from
@@ -411,7 +411,7 @@ export class GitLabPullRequestCli extends Context.Service<
       readonly reacted: boolean;
     }) => Effect.Effect<void, GitLabPullRequestCliError>;
   }
->()("@supacode/source-control-gitlab/server/GitLabPullRequestCli") {}
+>()("@supaterm/source-control-gitlab/server/GitLabPullRequestCli") {}
 
 /** The REST API addresses a project by its URL-encoded full path. */
 function projectPath(repository: string): string {

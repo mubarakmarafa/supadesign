@@ -5,7 +5,7 @@ import {
   pullRequestAgentPrompt,
   pullRequestAgentThread,
 } from "./pullRequestAgentTasks";
-import { IsoDateTime, ProjectId, ThreadId, type PullRequestDetail } from "@supacode/contracts";
+import { IsoDateTime, ProjectId, ThreadId, type PullRequestDetail } from "@supaterm/contracts";
 
 const pr = { state: "open", mergeability: "conflicting" } as PullRequestDetail;
 

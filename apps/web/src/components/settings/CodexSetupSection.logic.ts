@@ -1,5 +1,5 @@
-import type { PreparedConnection } from "@supacode/client-runtime/connection";
-import { isLoopbackHost } from "@supacode/shared/preview";
+import type { PreparedConnection } from "@supaterm/client-runtime/connection";
+import { isLoopbackHost } from "@supaterm/shared/preview";
 
 export function isLocalProviderAuthConnection(connection: PreparedConnection | null): boolean {
   return (

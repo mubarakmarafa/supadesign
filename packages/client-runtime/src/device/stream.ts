@@ -3,7 +3,7 @@
 
 /**
  * Framework-free client for expo-device-hub's per-device streams, reached
- * through the Supacode proxy. One class handles both platforms because the hub
+ * through the Supaterm proxy. One class handles both platforms because the hub
  * vendors two servers with different wire formats:
  *
  * - iOS (serve-sim): video is an HTTP `stream.avcc` body of length-prefixed
@@ -29,7 +29,7 @@ import * as Schema from "effect/Schema";
 import * as Option from "effect/Option";
 import { createCanvasFrameSink, type DeviceFrameSink } from "./frame.ts";
 import { type DeviceHubAccess, withDeviceHubQuery } from "./hubAccess.ts";
-import type { DevicePlatform } from "@supacode/contracts";
+import type { DevicePlatform } from "@supaterm/contracts";
 
 export type DeviceStreamStatus = "connecting" | "streaming" | "error";
 

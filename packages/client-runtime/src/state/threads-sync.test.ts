@@ -9,7 +9,7 @@ import {
   type OrchestrationV2ThreadProjection,
   type OrchestrationV2ThreadStreamItem,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";

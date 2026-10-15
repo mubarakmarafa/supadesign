@@ -14,12 +14,12 @@
  *
  * @module usageScanCache
  */
-import type { UsageProviderKind } from "@supacode/contracts";
+import type { UsageProviderKind } from "@supaterm/contracts";
 import type {
   TranscriptUsageFormat,
   UsageRecord,
   UsageSpeed,
-} from "@supacode/provider-core/server/usage";
+} from "@supaterm/provider-core/server/usage";
 import * as Schema from "effect/Schema";
 
 import { GUARD_LENGTH, type TranscriptParsePosition } from "./usageTranscriptReader.ts";

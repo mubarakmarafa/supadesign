@@ -26,7 +26,7 @@ import {
 
 const layerTest = ServerSecretStore.layer.pipe(
   Layer.provideMerge(
-    ServerConfig.layerTest(process.cwd(), { prefix: "supacode-attachment-upload-" }),
+    ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-attachment-upload-" }),
   ),
   Layer.provideMerge(NodeServices.layer),
 );

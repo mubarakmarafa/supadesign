@@ -12,7 +12,7 @@ import {
   sanitizeThreadTitle,
   toJsonSchemaObject,
 } from "./textGenerationUtils.ts";
-import { TextGenerationError } from "@supacode/contracts";
+import { TextGenerationError } from "@supaterm/contracts";
 
 describe("buildCommitMessagePrompt", () => {
   it("includes staged patch and summary in the prompt", () => {
@@ -283,7 +283,7 @@ describe("buildThreadTitlePrompt", () => {
     });
 
     expect(result.prompt).toContain(
-      "Regenerate the title for an existing Supacode thread so the user can recognize it weeks later.",
+      "Regenerate the title for an existing Supaterm thread so the user can recognize it weeks later.",
     );
     expect(result.prompt).toContain('The previous title was "Investigate reconnect regressions".');
     expect(result.prompt).toContain("Thread contents:");

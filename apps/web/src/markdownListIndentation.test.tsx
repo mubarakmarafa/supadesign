@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { describe, expect, it } from "vite-plus/test";
 
-import { remarkNormalizeListItemIndentation } from "@supacode/shared/markdownListIndentation";
+import { remarkNormalizeListItemIndentation } from "@supaterm/shared/markdownListIndentation";
 
 function renderMarkdown(markdown: string): string {
   return renderToStaticMarkup(

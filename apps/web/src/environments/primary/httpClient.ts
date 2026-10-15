@@ -1,4 +1,4 @@
-import { makeEnvironmentHttpApiClient } from "@supacode/client-runtime/rpc";
+import { makeEnvironmentHttpApiClient } from "@supaterm/client-runtime/rpc";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -16,7 +16,7 @@ export interface PrimaryEnvironmentHttpClient {
 export const PrimaryEnvironmentHttpClient: Context.Service<
   PrimaryEnvironmentHttpClient,
   PrimaryEnvironmentHttpApiClient
-> = Context.Service("@supacode/web/environments/primary/httpClient/PrimaryEnvironmentHttpClient");
+> = Context.Service("@supaterm/web/environments/primary/httpClient/PrimaryEnvironmentHttpClient");
 
 const make = Effect.suspend(() =>
   makeEnvironmentHttpApiClient(resolvePrimaryEnvironmentHttpUrl("/")),

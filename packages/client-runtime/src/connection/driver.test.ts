@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -42,7 +42,7 @@ const lan = route("lan", "192.168.1.2:4389");
 const tailnet = route("tailnet", "100.100.1.2:4389");
 const relay = route(
   "relay",
-  `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`,
+  `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
 );
 const entry = { ...lan, enabled: true, alternateRoutes: [tailnet] };
 const lease = (route: ConnectionRoute) =>

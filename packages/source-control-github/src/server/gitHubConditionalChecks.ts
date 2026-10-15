@@ -5,12 +5,12 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
-import { PositiveInt, type PullRequestChecks } from "@supacode/contracts";
+import { PositiveInt, type PullRequestChecks } from "@supaterm/contracts";
 
 import * as GitHubApi from "./GitHubApi.ts";
 import type { GitHubPullRequestDetail } from "./gitHubPullRequestJson.ts";
 import type { GitHubPullRequestApiError } from "./GitHubPullRequestApi.ts";
-import type { ProviderRepositoryRef } from "@supacode/source-control-core/server/PullRequestProvider";
+import type { ProviderRepositoryRef } from "@supaterm/source-control-core/server/PullRequestProvider";
 
 const HeadSchema = Schema.Struct({
   head: Schema.Struct({
@@ -43,7 +43,7 @@ export type KnownWorkflowRun = typeof WorkflowRunSchema.Type;
 export const KnownWorkflowRuns = Context.Reference<{
   readonly headSha: string;
   readonly runs: ReadonlyArray<KnownWorkflowRun>;
-} | null>("@supacode/source-control-github/server/gitHubConditionalChecks/KnownWorkflowRuns", {
+} | null>("@supaterm/source-control-github/server/gitHubConditionalChecks/KnownWorkflowRuns", {
   defaultValue: () => null,
 });
 

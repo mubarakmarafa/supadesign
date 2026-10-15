@@ -3,7 +3,7 @@ import {
   ProviderReplayNdjsonRecord,
   ProviderReplayTranscript,
   type ProviderReplayTranscriptHeader,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";

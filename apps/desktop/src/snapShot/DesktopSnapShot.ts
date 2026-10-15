@@ -19,7 +19,7 @@ import {
   type SnapShotShortcut,
   type DesktopSnapShotEvent,
   type DesktopSnapShotId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -88,7 +88,7 @@ import {
   snapShotShortcutRegistrationFailureMessage,
   snapShotShortcutSystemConflict,
 } from "./snapShot.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const MAX_CAPTURE_WIDTH = 2_560;
 const MAX_CAPTURE_HEIGHT = 1_600;
@@ -101,11 +101,11 @@ const FLASH_FRAME_INTERVAL_MS = 16;
 const FLASH_PEAK_OPACITY = 0.08;
 const MAC_SCREEN_CAPTURE_SETTINGS_URL = MAC_PERMISSION_SETTINGS_URLS["screen-recording"];
 const MAC_SCREEN_CAPTURE_PERMISSION_MESSAGE =
-  "Allow Screen Recording in System Settings, then restart Supacode.";
+  "Allow Screen Recording in System Settings, then restart Supaterm.";
 const MAC_ACCESSIBILITY_PERMISSION_MESSAGE =
-  "Allow Accessibility in System Settings, then restart Supacode.";
+  "Allow Accessibility in System Settings, then restart Supaterm.";
 const MAC_BOTH_PERMISSIONS_MESSAGE =
-  "Allow Accessibility and Screen Recording in System Settings, then restart Supacode.";
+  "Allow Accessibility and Screen Recording in System Settings, then restart Supaterm.";
 const MAC_PERMISSION_MESSAGES = new Set([
   MAC_SCREEN_CAPTURE_PERMISSION_MESSAGE,
   MAC_ACCESSIBILITY_PERMISSION_MESSAGE,
@@ -187,7 +187,7 @@ export class DesktopSnapShot extends Context.Service<
       shortcut: SnapShotShortcut,
     ) => Effect.Effect<DesktopSnapShotShortcutAvailability>;
     readonly setShortcutSuppressed: (suppressed: boolean) => Effect.Effect<void>;
-    /** Capture the foreground window in place, including Supacode itself. */
+    /** Capture the foreground window in place, including Supaterm itself. */
     readonly capture: Effect.Effect<void, DesktopSnapShotError>;
     readonly listPending: Effect.Effect<
       ReadonlyArray<DesktopPendingSnapShot>,
@@ -201,7 +201,7 @@ export class DesktopSnapShot extends Context.Service<
     readonly dismissAnimation: (id: string) => Effect.Effect<void>;
     readonly acknowledge: (id: string) => Effect.Effect<void, DesktopSnapShotError>;
   }
->()("@supacode/desktop/snapShot/DesktopSnapShot") {}
+>()("@supaterm/desktop/snapShot/DesktopSnapShot") {}
 
 export class DesktopSnapShotSetupError extends Schema.TaggedError<DesktopSnapShotSetupError>()(
   "DesktopSnapShotSetupError",
@@ -898,7 +898,7 @@ export const make = Effect.gen(function* () {
       const capturedAt = yield* DateTime.now.pipe(Effect.map(DateTime.formatIso));
       if (snapshot.linuxActivationFailure) {
         yield* Effect.logWarning(
-          "The compositor could not activate Supacode after the snapshot",
+          "The compositor could not activate Supaterm after the snapshot",
           snapshot.linuxActivationFailure.cause,
         );
       }
@@ -1018,7 +1018,7 @@ export const make = Effect.gen(function* () {
     if (mode === "portal" && niriSocketPath()) {
       return {
         available: false,
-        message: "Configure the capture shortcut in your Niri config, not in Supacode.",
+        message: "Configure the capture shortcut in your Niri config, not in Supaterm.",
       };
     }
     if (mode === "portal" && isHyprlandCaptureSession()) {
@@ -1168,7 +1168,7 @@ export const make = Effect.gen(function* () {
         const { startNiriCaptureShortcut } = await import("./NiriCaptureShortcut.ts");
         return startNiriCaptureShortcut(linuxAppId, onCurrentShortcut, () => {
           void runPromise(
-            setShortcutFailure("The Niri capture endpoint disconnected. Restart Supacode."),
+            setShortcutFailure("The Niri capture endpoint disconnected. Restart Supaterm."),
           ).catch(() => undefined);
         });
       }).pipe(
@@ -1190,7 +1190,7 @@ export const make = Effect.gen(function* () {
         shortcutActionRegistered: registered,
         shortcutMessage: registered
           ? "Set up the shortcut to add it to your Niri config."
-          : "Could not start the Niri capture endpoint. Another Supacode instance may be using it.",
+          : "Could not start the Niri capture endpoint. Another Supaterm instance may be using it.",
         message: null,
       });
       return;
@@ -1333,7 +1333,7 @@ export const make = Effect.gen(function* () {
       yield* Effect.scoped(
         Effect.gen(function* () {
           const directory = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-snapshot-test-",
+            prefix: "supaterm-snapshot-test-",
           });
           yield* Effect.tryPromise(async () => {
             const active = await activeWindow("darwin");

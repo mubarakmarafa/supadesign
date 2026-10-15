@@ -18,18 +18,18 @@ import {
   type SourceControlRepositoryCloneUrls,
   type SourceControlRepositoryInfo,
   type SourceControlRepositoryLookupInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as ServerConfig from "../config.ts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import {
   parseGitCloneProgressLine,
   type GitCloneProgressLine,
 } from "../project/gitCloneProgress.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
-import * as BitbucketApi from "@supacode/source-control-bitbucket/server/BitbucketApi";
+import * as BitbucketApi from "@supaterm/source-control-bitbucket/server/BitbucketApi";
 import * as SourceControlProviderRegistry from "./SourceControlProviderRegistry.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 const isSourceControlRepositoryError = Schema.is(SourceControlRepositoryError);
 const isSourceControlProviderError = Schema.is(SourceControlProviderError);
 const isBitbucketRepositoryLocatorError = Schema.is(BitbucketApi.BitbucketRepositoryLocatorError);
@@ -60,7 +60,7 @@ export class SourceControlRepositoryService extends Context.Service<
       input: SourceControlPublishRepositoryInput,
     ) => Effect.Effect<SourceControlPublishRepositoryResult, SourceControlRepositoryError>;
   }
->()("supacode/sourceControl/SourceControlRepositoryService") {}
+>()("supaterm/sourceControl/SourceControlRepositoryService") {}
 
 export interface SourceControlPreparedClone {
   readonly destinationPath: string;

@@ -11,7 +11,7 @@ import {
   RunAttemptId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { CursorSettings } from "../settings.ts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -22,10 +22,10 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import {
   cursorMcpServers,
   cursorRuntimeAgentPolicy,
@@ -897,7 +897,7 @@ describe("CursorAdapterV2", () => {
     };
 
     assert.deepEqual(cursorMcpServers(mcpSession), {
-      supacode: {
+      supaterm: {
         type: "http",
         url: "http://127.0.0.1:43123/mcp",
         headers: {

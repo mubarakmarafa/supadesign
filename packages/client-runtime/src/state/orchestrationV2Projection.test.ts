@@ -13,7 +13,7 @@ import {
   RunId,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 import { applyOrchestrationV2ProjectionEvent } from "./orchestrationV2Projection.ts";

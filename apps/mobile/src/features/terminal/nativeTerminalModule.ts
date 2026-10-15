@@ -4,7 +4,7 @@ import { requireNativeView, requireOptionalNativeModule } from "expo";
 
 import { NativeViewResolutionError } from "../../native/nativeViewResolutionError";
 
-const NATIVE_TERMINAL_MODULE_NAME = "SupacodeTerminalSurface";
+const NATIVE_TERMINAL_MODULE_NAME = "SupatermTerminalSurface";
 
 interface ExpoGlobalWithViewConfig {
   readonly expo?: {

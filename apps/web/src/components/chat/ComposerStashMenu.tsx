@@ -1,6 +1,6 @@
 import { BookmarkIcon, FileIcon, FileTextIcon, XIcon } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
-import { assistantCitationsToPlainText } from "@supacode/shared/assistantCitations";
+import { assistantCitationsToPlainText } from "@supaterm/shared/assistantCitations";
 
 import { useInlineConfirm } from "~/hooks/useInlineConfirm";
 import { formatRelativeTimeLabel } from "../../timestampFormat";

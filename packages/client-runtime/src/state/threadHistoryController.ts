@@ -1,4 +1,4 @@
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -45,7 +45,7 @@ export class ThreadHistoryController extends Context.Service<
       throughEntryId?: string,
     ) => Effect.Effect<ThreadHistoryLoadEarlierResult>;
   }
->()("@supacode/client-runtime/state/threadHistoryController") {}
+>()("@supaterm/client-runtime/state/threadHistoryController") {}
 
 export const layer: Layer.Layer<ThreadHistoryController> = Layer.effect(
   ThreadHistoryController,

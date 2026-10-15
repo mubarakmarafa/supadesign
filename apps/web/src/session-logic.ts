@@ -1,4 +1,4 @@
-import { resolveThreadWorkingStartedAt } from "@supacode/client-runtime/state/models";
+import { resolveThreadWorkingStartedAt } from "@supaterm/client-runtime/state/models";
 import {
   type AssetResource,
   type OrchestrationV2ExecutionNode,
@@ -14,30 +14,30 @@ import {
   type ToolActivitySource,
   type ThreadId,
   type TurnItemId,
-} from "@supacode/contracts";
-import { extractToolActivityPresentation } from "@supacode/client-runtime/work-log/tool-presentation";
+} from "@supaterm/contracts";
+import { extractToolActivityPresentation } from "@supaterm/client-runtime/work-log/tool-presentation";
 import {
   classifyToolActivity,
   collectToolFilePaths,
   formatReadToolLabel,
   formatSearchToolLabel,
-} from "@supacode/shared/toolActivity";
-import type { HtmlRenderReference } from "@supacode/shared/htmlRender";
-import { turnItemDetailRevision } from "@supacode/client-runtime/work-log/item-detail";
-import type { McpAppReference } from "@supacode/shared/mcpApp";
-import { htmlRenderFromToolItem, mcpAppFromToolItem } from "@supacode/shared/toolOutput";
+} from "@supaterm/shared/toolActivity";
+import type { HtmlRenderReference } from "@supaterm/shared/htmlRender";
+import { turnItemDetailRevision } from "@supaterm/client-runtime/work-log/item-detail";
+import type { McpAppReference } from "@supaterm/shared/mcpApp";
+import { htmlRenderFromToolItem, mcpAppFromToolItem } from "@supaterm/shared/toolOutput";
 import {
   contextCompactionLabel,
   workEntryIndicatesToolFailure,
-} from "@supacode/client-runtime/work-log/presentation";
-import type { ThreadCheckpointSummary } from "@supacode/client-runtime/state/thread-checkpoints";
+} from "@supaterm/client-runtime/work-log/presentation";
+import type { ThreadCheckpointSummary } from "@supaterm/client-runtime/state/thread-checkpoints";
 import type {
   ThreadPendingApproval,
   ThreadPendingUserInput,
-} from "@supacode/client-runtime/state/thread-requests";
-import type { ThreadRunSummary, ThreadRuntimeSummary } from "@supacode/client-runtime/state/shell";
-import { threadRuntimeHasInterruptibleRun } from "@supacode/client-runtime/state/thread-execution";
-import { turnItemIsWorkspacePreparation } from "@supacode/client-runtime/state/turn-item-presentation";
+} from "@supaterm/client-runtime/state/thread-requests";
+import type { ThreadRunSummary, ThreadRuntimeSummary } from "@supaterm/client-runtime/state/shell";
+import { threadRuntimeHasInterruptibleRun } from "@supaterm/client-runtime/state/thread-execution";
+import { turnItemIsWorkspacePreparation } from "@supaterm/client-runtime/state/turn-item-presentation";
 
 import {
   isImageAttachment,
@@ -51,11 +51,11 @@ import * as DateTime from "effect/DateTime";
 import * as Equal from "effect/Equal";
 import { shallow } from "zustand/vanilla/shallow";
 
-export { formatDuration } from "@supacode/shared/orchestrationTiming";
+export { formatDuration } from "@supaterm/shared/orchestrationTiming";
 export {
   workEntryDisplayIndicatesToolFailure,
   workEntryIndicatesToolFailure,
-} from "@supacode/client-runtime/work-log/presentation";
+} from "@supaterm/client-runtime/work-log/presentation";
 
 export type WorkLogToolLifecycleStatus =
   | "idle"
@@ -66,7 +66,7 @@ export type WorkLogToolLifecycleStatus =
   | "stopped";
 
 export interface WorkLogEntry {
-  readonly questionAnswer?: import("@supacode/contracts").UserInputAttachmentAnswerPayload;
+  readonly questionAnswer?: import("@supaterm/contracts").UserInputAttachmentAnswerPayload;
   readonly id: string;
   readonly createdAt: string;
   readonly runId?: RunId | null;

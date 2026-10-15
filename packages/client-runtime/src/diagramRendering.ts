@@ -1,4 +1,4 @@
-import { MERMAID_ASCII_LIMITS } from "@supacode/mermaid-ascii/limits";
+import { MERMAID_ASCII_LIMITS } from "@supaterm/mermaid-ascii/limits";
 
 export function createDiagramRenderer(
   render: (source: string) => Promise<string | null>,

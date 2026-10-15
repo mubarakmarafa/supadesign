@@ -20,8 +20,8 @@ import {
   type UsageLimitSourceConfig,
   type UsageLimitSourceId,
   type UsageLimitSourceSnapshot,
-} from "@supacode/contracts";
-import { resolveServerBackgroundActivitySettings } from "@supacode/shared/backgroundActivitySettings";
+} from "@supaterm/contracts";
+import { resolveServerBackgroundActivitySettings } from "@supaterm/shared/backgroundActivitySettings";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -49,7 +49,7 @@ export class UsageLimitSources extends Context.Service<
       input: UsageLimitSourceConsumeResetCreditInput,
     ) => Effect.Effect<ProviderConsumeResetCreditResult, UsageLimitSourceError>;
   }
->()("supacode/usage/UsageLimitSources") {}
+>()("supaterm/usage/UsageLimitSources") {}
 
 function sourceLabel(id: string, config: UsageLimitSourceConfig): string {
   if (config.label) return config.label;

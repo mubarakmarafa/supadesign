@@ -2,7 +2,7 @@ import {
   DesktopBackendBootstrap,
   type DesktopBackendBootstrap as DesktopBackendBootstrapValue,
   DesktopTelemetryControlMessage,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { assert, describe, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
@@ -48,7 +48,7 @@ const baseConfig: DesktopBackendManager.DesktopBackendStartConfig = {
     mode: "desktop",
     noBrowser: true,
     port: 3773,
-    supacodeHome: "/tmp/supacode",
+    supatermHome: "/tmp/supaterm",
     host: "127.0.0.1",
     desktopBootstrapToken: "token",
     tailscaleServeEnabled: false,
@@ -296,7 +296,7 @@ describe("DesktopBackendManager", () => {
         }).pipe(Effect.flip, Effect.forkChild);
 
         const request = yield* Deferred.await(requested);
-        assert.equal(request.url, "http://127.0.0.1:3773/.well-known/supacode/environment");
+        assert.equal(request.url, "http://127.0.0.1:3773/.well-known/supaterm/environment");
 
         yield* TestClock.adjust(Duration.millis(50));
         const error = yield* Fiber.join(readiness);
@@ -308,13 +308,13 @@ describe("DesktopBackendManager", () => {
         assert.equal(error.httpBaseUrl.href, "http://127.0.0.1:3773/");
         assert.equal(
           error.readinessUrl.href,
-          "http://127.0.0.1:3773/.well-known/supacode/environment",
+          "http://127.0.0.1:3773/.well-known/supaterm/environment",
         );
         assert.equal(error.timeoutMs, 50);
         assert.isDefined(error.cause);
         assert.equal(
           error.message,
-          "Timed out after 50ms waiting for desktop backend readiness at http://127.0.0.1:3773/.well-known/supacode/environment.",
+          "Timed out after 50ms waiting for desktop backend readiness at http://127.0.0.1:3773/.well-known/supaterm/environment.",
         );
       }).pipe(Effect.provide(layer));
     }),
@@ -716,7 +716,7 @@ describe("DesktopBackendManager", () => {
 
         assert.equal(readyCount, 0);
         assert.deepEqual(prunedRuntimes, []);
-        assert.deepEqual(requestUrls, ["http://127.0.0.1:3773/.well-known/supacode/environment"]);
+        assert.deepEqual(requestUrls, ["http://127.0.0.1:3773/.well-known/supaterm/environment"]);
 
         yield* TestClock.adjust(Duration.millis(100));
         yield* Deferred.await(backendReady);
@@ -727,8 +727,8 @@ describe("DesktopBackendManager", () => {
         assert.equal(readyCount, 1);
         assert.deepEqual(prunedRuntimes, [["Ubuntu", "1.2.3-x64"]]);
         assert.deepEqual(requestUrls, [
-          "http://127.0.0.1:3773/.well-known/supacode/environment",
-          "http://127.0.0.1:3773/.well-known/supacode/environment",
+          "http://127.0.0.1:3773/.well-known/supaterm/environment",
+          "http://127.0.0.1:3773/.well-known/supaterm/environment",
         ]);
       }).pipe(Effect.provide(TestClock.layer())),
     ),

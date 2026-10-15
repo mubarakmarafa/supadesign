@@ -6,7 +6,7 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult, type Atom } from "effect/reactivity";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -212,7 +212,7 @@ describe("queued PR checkout", () => {
     });
   const preparedCheckout = {
     branch: "pr-123",
-    worktreePath: "/repo/.supacode/worktrees/pr-123",
+    worktreePath: "/repo/.supaterm/worktrees/pr-123",
     isOnPullRequestHead: true,
   };
 

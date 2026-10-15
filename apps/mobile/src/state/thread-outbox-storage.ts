@@ -1,5 +1,5 @@
 import { loadExpoFileSystem } from "../lib/expoFileSystem";
-import { EnvironmentId, MessageId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, MessageId, ThreadId } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 import { writeFileAtomically } from "../lib/atomic-file";

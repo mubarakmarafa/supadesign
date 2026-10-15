@@ -1,6 +1,6 @@
 import { SidebarPendingThreadRow } from "./SidebarPendingThreadRow";
 import { useThreadOutbox } from "../state/threadOutbox";
-import { type EnvironmentId, type ScopedProjectRef } from "@supacode/contracts";
+import { type EnvironmentId, type ScopedProjectRef } from "@supaterm/contracts";
 import { ThreadHoverCard, ThreadHoverCardPopup } from "./ThreadHoverCard";
 import { CollapsibleSectionHeader } from "./ui/collapsible-section-header";
 import { ThreadContextDragGhost } from "./chat/ThreadContextDragGhost";
@@ -12,16 +12,16 @@ import {
 import { discardComposerDraft } from "../lib/discardComposerDraft";
 import { requestCustomSnooze } from "./CustomSnoozeDialog";
 import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
-import { resolveThreadCurrentPullRequestLink } from "@supacode/shared/threadPullRequests";
-import { getProviderOptionDescriptors } from "@supacode/shared/model";
-import { formatModelSelectionEffort } from "@supacode/client-runtime/state/thread-execution";
+import { resolveThreadCurrentPullRequestLink } from "@supaterm/shared/threadPullRequests";
+import { getProviderOptionDescriptors } from "@supaterm/shared/model";
+import { formatModelSelectionEffort } from "@supaterm/client-runtime/state/thread-execution";
 import {
   getSpeedToggle,
   SPEED_TOGGLE_LABELS,
-} from "@supacode/client-runtime/provider-speed-toggle";
+} from "@supaterm/client-runtime/provider-speed-toggle";
 import { useAtomValue } from "@effect/atom-react";
-import { isEnvironmentConnected } from "@supacode/client-runtime/connection";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
+import { isEnvironmentConnected } from "@supaterm/client-runtime/connection";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 import * as Schema from "effect/Schema";
 import {
   DndContext,
@@ -39,31 +39,31 @@ import {
   canSnooze,
   effectiveSnoozed,
   threadWokeAt,
-} from "@supacode/client-runtime/state/thread-settled";
-import { createInboxReturnTracker } from "@supacode/client-runtime/state/thread-inbox";
+} from "@supaterm/client-runtime/state/thread-settled";
+import { createInboxReturnTracker } from "@supaterm/client-runtime/state/thread-inbox";
 import {
   pageRecentThreads,
   resolveSettledThreadTimestamp,
   sortSettledThreads,
   sortSnoozedThreadsByWake,
-} from "@supacode/client-runtime/state/thread-sort";
+} from "@supaterm/client-runtime/state/thread-sort";
 import {
   resolveThreadProviderStack,
   threadRuntimeCanArchive,
   type EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/models";
+} from "@supaterm/client-runtime/state/models";
 import {
   parseScopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
   scopedThreadKey,
-} from "@supacode/client-runtime/environment";
+} from "@supaterm/client-runtime/environment";
 import {
   AuthOrchestrationOperateScope,
   type EnvironmentMachineKind,
   type ScopedThreadRef,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   AlarmClockIcon,
@@ -112,7 +112,7 @@ import {
   settlePromise,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { isElectron } from "../env";
 import {
   resolveShortcutCommand,
@@ -184,8 +184,8 @@ import {
 } from "../threadRoutes";
 import { formatRelativeTimeLabel, parseTimestampDate } from "../timestampFormat";
 import type { SidebarThreadSummary } from "../types";
-import { isScratchProject } from "@supacode/client-runtime/state/projects";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+import { isScratchProject } from "@supaterm/client-runtime/state/projects";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import { cn } from "~/lib/utils";
 import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";
 import { ProjectEnvironmentBadge } from "./ProjectEnvironmentBadge";
@@ -305,11 +305,11 @@ const EMPTY_THREADS: readonly EnvironmentThreadShell[] = [];
 
 const SETTLED_TAIL_INITIAL_COUNT = 10;
 const SETTLED_TAIL_PAGE_COUNT = 25;
-const PINNED_SHELF_EXPANDED_KEY = "supacode:sidebar:pinned-expanded";
-const SETTLED_SHELF_EXPANDED_KEY = "supacode:sidebar:settled-expanded";
-const SNOOZED_SHELF_EXPANDED_KEY = "supacode:sidebar:snoozed-expanded";
-const WORKING_SHELF_EXPANDED_KEY = "supacode:sidebar:working-expanded";
-const DRAFTS_SHELF_EXPANDED_KEY = "supacode:sidebar:drafts-expanded";
+const PINNED_SHELF_EXPANDED_KEY = "supaterm:sidebar:pinned-expanded";
+const SETTLED_SHELF_EXPANDED_KEY = "supaterm:sidebar:settled-expanded";
+const SNOOZED_SHELF_EXPANDED_KEY = "supaterm:sidebar:snoozed-expanded";
+const WORKING_SHELF_EXPANDED_KEY = "supaterm:sidebar:working-expanded";
+const DRAFTS_SHELF_EXPANDED_KEY = "supaterm:sidebar:drafts-expanded";
 const PARKED_ACTION_BUTTON_CLASS_NAME =
   "pointer-events-none absolute inset-y-0 right-0 -mr-1 inline-flex cursor-pointer items-center gap-1 rounded-md bg-transparent px-1.5 text-xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:pointer-events-auto focus-visible:opacity-100 group-any-hover/sidebar-row:pointer-events-auto group-any-hover/sidebar-row:opacity-100 group-focus-within/sidebar-row:pointer-events-auto group-focus-within/sidebar-row:opacity-100";
 

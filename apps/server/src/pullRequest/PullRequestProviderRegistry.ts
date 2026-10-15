@@ -1,10 +1,10 @@
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import type { SourceControlProviderKind } from "@supacode/contracts";
+import type { SourceControlProviderKind } from "@supaterm/contracts";
 
 import * as BuiltInDrivers from "../sourceControl/builtInDrivers.ts";
-import type { PullRequestProviderApi } from "@supacode/source-control-core/server/PullRequestProvider";
+import type { PullRequestProviderApi } from "@supaterm/source-control-core/server/PullRequestProvider";
 
 export class PullRequestProviderRegistry extends Context.Service<
   PullRequestProviderRegistry,
@@ -13,7 +13,7 @@ export class PullRequestProviderRegistry extends Context.Service<
     readonly get: (kind: SourceControlProviderKind) => PullRequestProviderApi | null;
     readonly kinds: ReadonlyArray<SourceControlProviderKind>;
   }
->()("supacode/pullRequest/PullRequestProviderRegistry") {}
+>()("supaterm/pullRequest/PullRequestProviderRegistry") {}
 
 /** Exported for tests, which stand a registry up from providers they supply themselves. */
 export function fromProviders(

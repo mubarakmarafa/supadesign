@@ -1,12 +1,12 @@
 import type { MediaActionsSource } from "../lib/mediaActionsSource";
 import { useNavigation } from "@react-navigation/native";
-import type { MediaActionId } from "@supacode/client-runtime/media-actions";
+import type { MediaActionId } from "@supaterm/client-runtime/media-actions";
 import {
   AuthFilesystemReadScope,
   type EnvironmentId,
   sessionGrantsScope,
   type SessionGrantInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { normalizeNativeMarkdownUrl } from "../lib/markdownLinks";
 import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";

@@ -4,7 +4,7 @@ import {
   EnvironmentId,
   ThreadId,
   type AuthSessionState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
@@ -28,7 +28,7 @@ vi.mock("~/state/session", () => ({
   usePreparedConnection: () => ({ _tag: "Some", value: { httpBaseUrl: "https://host.test" } }),
 }));
 vi.mock("~/state/filesystem", async () => {
-  const { resolveFilesystemReadAccess } = await import("@supacode/client-runtime/state/filesystem");
+  const { resolveFilesystemReadAccess } = await import("@supaterm/client-runtime/state/filesystem");
   return {
     useFilesystemReadAccess: () =>
       resolveFilesystemReadAccess({

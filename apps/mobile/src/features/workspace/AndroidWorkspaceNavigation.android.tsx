@@ -29,7 +29,7 @@ interface NativeNavigationProps extends ViewProps {
   readonly onCompose?: () => void;
 }
 
-const NativeNavigation = requireNativeView<NativeNavigationProps>("SupacodeWorkspaceNavigation");
+const NativeNavigation = requireNativeView<NativeNavigationProps>("SupatermWorkspaceNavigation");
 
 function nativeColor(value: string) {
   const color = processColor(value);

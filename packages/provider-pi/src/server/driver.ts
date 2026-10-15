@@ -6,8 +6,8 @@
  * Pi state (sessions, settings, extensions, auth) lives in the user's own
  * `~/.pi/agent`, so continuation identity uses the default instance grouping.
  */
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import { ProviderDriverKind, type ServerProvider } from "@supacode/contracts";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import { ProviderDriverKind, type ServerProvider } from "@supaterm/contracts";
 import { PiSettings } from "../settings.ts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -16,37 +16,37 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import { piUsageReader } from "./usage.ts";
 import { makePiTextGeneration } from "./textGeneration.ts";
 import { PiAdapterV2Driver, type PiAdapterV2DriverEnv } from "./adapter.ts";
-import { ProviderDriverError } from "@supacode/provider-core/server/errors";
+import { ProviderDriverError } from "@supaterm/provider-core/server/errors";
 import {
   buildInitialPiProviderSnapshot,
   checkPiProviderStatus,
   discoverPiCommandsForCwd,
   enrichPiSnapshot,
 } from "./status.ts";
-import { makeManagedServerProvider } from "@supacode/provider-core/server/managedProvider";
+import { makeManagedServerProvider } from "@supaterm/provider-core/server/managedProvider";
 import {
   defaultProviderContinuationIdentity,
   type ProviderDriver,
   type ProviderInstance,
-} from "@supacode/provider-core/server/driver";
-import type { ServerProviderDraft } from "@supacode/provider-core/server/snapshotProbe";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
+} from "@supaterm/provider-core/server/driver";
+import type { ServerProviderDraft } from "@supaterm/provider-core/server/snapshotProbe";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
 import {
   makeCachedProviderMaintenanceResolution,
   makePackageManagedProviderMaintenanceResolver,
   resolveProviderMaintenanceCapabilitiesEffect,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 import {
   haveProviderSnapshotSettingsChanged,
   makeProviderSnapshotSettingsSource,
   type ProviderSnapshotSettings,
-} from "@supacode/provider-core/server/snapshotSettings";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/provider-core/server/snapshotSettings";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const decodePiSettings = Schema.decodeSync(PiSettings);
 

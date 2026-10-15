@@ -69,8 +69,8 @@ const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
 export function loadWindowsForegroundApi(): Promise<WindowsForegroundApi> {
   windowsForegroundApiPromise ??= import("ffi-rs").then(({ DataType, load, open }) => {
-    const kernel32 = "supacode-kernel32";
-    const user32 = "supacode-user32";
+    const kernel32 = "supaterm-kernel32";
+    const user32 = "supaterm-user32";
     open({ library: kernel32, path: "kernel32.dll" });
     open({ library: user32, path: "user32.dll" });
 
@@ -216,7 +216,7 @@ export function loadWindowsForegroundApi(): Promise<WindowsForegroundApi> {
 export async function activateWindowsForeground(handleBuffer: Buffer): Promise<void> {
   const api = await loadWindowsForegroundApi();
   if (activateWindowsForegroundWithApi(handleBuffer, api)) return;
-  throw new Error("Windows refused to activate the Supacode window.");
+  throw new Error("Windows refused to activate the Supaterm window.");
 }
 
 export async function isWindowsShellHostedForeground(): Promise<boolean> {

@@ -3,8 +3,8 @@ import * as NodeFSP from "node:fs/promises";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import * as NodeUtil from "node:util";
-import { EnvironmentId } from "@supacode/contracts";
-import { settlePromise, squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { EnvironmentId } from "@supaterm/contracts";
+import { settlePromise, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { checkoutNewTaskBranch } from "./checkout-new-task-branch";
@@ -17,7 +17,7 @@ const branch = { name: "feature/a", current: false, isDefault: false, worktreePa
 const environmentId = EnvironmentId.make("branch-test-environment");
 
 beforeEach(async () => {
-  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-branch-selection-"));
+  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-branch-selection-"));
   cwd = NodePath.join(directory, "project");
   await exec("git", ["init", "-b", "main", cwd]);
   await git("config", "user.name", "Branch test");

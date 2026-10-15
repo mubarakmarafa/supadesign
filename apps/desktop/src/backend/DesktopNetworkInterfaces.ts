@@ -1,6 +1,6 @@
 import * as NodeOS from "node:os";
 
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -37,7 +37,7 @@ export class DesktopNetworkInterfaces extends Context.Service<
   {
     readonly read: Effect.Effect<NetworkInterfaces>;
   }
->()("@supacode/desktop/backend/DesktopNetworkInterfaces") {}
+>()("@supaterm/desktop/backend/DesktopNetworkInterfaces") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {

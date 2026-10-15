@@ -5,7 +5,7 @@ import {
   branchNamingChoiceOf,
   branchNamingChoicePatch,
   DEFAULT_SERVER_SETTINGS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { Input } from "../ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
@@ -97,7 +97,7 @@ export function BranchNamingSettings() {
           serverScoped
           settingKeys={["branchNamePrefix"]}
           title="Branch prefix"
-          description="supacode/ gives supacode/add-search. Leave empty for no prefix."
+          description="supaterm/ gives supaterm/add-search. Leave empty for no prefix."
           resetAction={
             prefixMixed ||
             settings.branchNamePrefix !== DEFAULT_SERVER_SETTINGS.branchNamePrefix ? (

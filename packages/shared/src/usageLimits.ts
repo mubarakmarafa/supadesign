@@ -16,7 +16,7 @@ import {
   type ServerProviderUsageLimits,
   type ServerProviderUsageWindow,
   type UsageLimitSourceSnapshots,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as DateTime from "effect/DateTime";
 
@@ -638,7 +638,7 @@ export function headlineUsageWindows(provider: ServerProvider | null) {
   });
 }
 
-/** Limit commands are served by Supacode from the same snapshots as Usage → Limits. */
+/** Limit commands are served by Supaterm from the same snapshots as Usage → Limits. */
 export const USAGE_LIMITS_COMMAND = {
   name: "usage-limits",
   description: "Show this provider's usage limits",

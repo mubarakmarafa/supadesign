@@ -1,8 +1,8 @@
-import { classifyMarkdownImageSource } from "@supacode/client-runtime/markdown-images";
+import { classifyMarkdownImageSource } from "@supaterm/client-runtime/markdown-images";
 import {
   resolveMediaSource,
   type ResolveMediaSourceInput,
-} from "@supacode/client-runtime/media-source";
+} from "@supaterm/client-runtime/media-source";
 
 /** A project draft names its workspace explicitly because it has no thread. */
 export function resolveMobileMarkdownMediaSource(href: string, input: ResolveMediaSourceInput) {

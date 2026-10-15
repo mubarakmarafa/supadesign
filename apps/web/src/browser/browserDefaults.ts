@@ -20,7 +20,7 @@ import {
   type DesktopPreviewTabDefaults,
   type PreviewAppearancePreference,
   type PreviewViewportSetting,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   ensureClientSettingsHydrated,

@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { createKnownEnvironment } from "./knownEnvironment.ts";

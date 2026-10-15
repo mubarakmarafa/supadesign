@@ -8,14 +8,14 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   COMPOSER_CONTEXT_MAX_RECORDS,
   type EnvironmentId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   decodeComposerContextClipboardHtml,
   decodeComposerContextFragment,
   encodeComposerContextFragment,
-} from "@supacode/shared/composerContextClipboard";
-import { executeAtomQuery, squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
+} from "@supaterm/shared/composerContextClipboard";
+import { executeAtomQuery, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import * as Option from "effect/Option";
 import { appAtomRegistry } from "../state/atom-registry";
 import { assetEnvironment } from "../state/assets";
@@ -47,7 +47,7 @@ function checkAborted(signal: AbortSignal): void {
 const nativeClipboard = () =>
   requireNativeModule<{
     writeContextClipboard: (text: string, fragment: string) => Promise<void>;
-  }>("SupacodeComposerEditor");
+  }>("SupatermComposerEditor");
 
 export function writeComposerContextClipboard(
   text: string,

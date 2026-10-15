@@ -1,4 +1,4 @@
-import type { VcsRef } from "@supacode/contracts";
+import type { VcsRef } from "@supaterm/contracts";
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
 import { useAtomValue } from "@effect/atom-react";
 import {

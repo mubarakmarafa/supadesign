@@ -4,13 +4,13 @@ import {
   PRIMARY_LOCAL_ENVIRONMENT_ID,
   type DesktopBridge,
   type DesktopSshEnvironmentTarget,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import {
   ConnectionBlockedError,
   ConnectionTransientError,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 
 import {
   canRetainCachedPlatformRegistrationAfterRefreshFailure,

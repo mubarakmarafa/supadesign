@@ -1,5 +1,5 @@
 import { readCanQueueComposerMessage } from "../../state/composerQueue";
-import { formatProviderSkillDisplayName } from "@supacode/shared/inlineSkills";
+import { formatProviderSkillDisplayName } from "@supaterm/shared/inlineSkills";
 import { useComposerTypingGuard } from "./useComposerTypingGuard";
 import { DESKTOP_PASTE_AS_TEXT_EVENT } from "../../lib/desktopPasteAsText";
 import { runtimeModeConfig, runtimeModeOptions as runtimeModes } from "./runtimeModeConfig";
@@ -8,7 +8,7 @@ import { usePrimaryEnvironmentId } from "../../state/environments";
 import { useRightPanelStore } from "~/rightPanelStore";
 import { AttachmentFilePreview } from "../files/AttachmentFilePreview";
 import { Dialog, DialogPopup, DialogTitle } from "../ui/dialog";
-import { filterComposerPullRequestMatches } from "@supacode/shared/composerPullRequestMatches";
+import { filterComposerPullRequestMatches } from "@supaterm/shared/composerPullRequestMatches";
 import { importPastedComposerText, readPastedComposerContext } from "../composerInlineTokenPaste";
 import { elementContextToPreviewAnnotation } from "../../lib/elementContext";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
@@ -38,7 +38,7 @@ import type {
   ServerProvider,
   ThreadId,
   SnapShotSource,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   AuthOrchestrationOperateScope,
   ProviderDriverKind,
@@ -47,23 +47,23 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   PROVIDER_SEND_TURN_MAX_INPUT_CHARS,
   PROVIDER_WORKSPACE_SNAPSHOT_TTL_MS,
-} from "@supacode/contracts";
-import type { EnvironmentConnectionPresentation } from "@supacode/client-runtime/connection";
+} from "@supaterm/contracts";
+import type { EnvironmentConnectionPresentation } from "@supaterm/client-runtime/connection";
 import {
   isPasteAsTextShortcut,
   nextPastedTextFileName,
   pastedTextDisposition,
   wouldTextPasteExceedLimit,
-} from "@supacode/client-runtime/text-paste";
+} from "@supaterm/client-runtime/text-paste";
 import {
   detectComposerTrigger,
   replaceTextRange,
   serializeComposerFileLink,
   type ComposerTrigger,
-} from "@supacode/shared/composerTrigger";
+} from "@supaterm/shared/composerTrigger";
 import { folderDropTarget, resolveDroppedFolderPath } from "./folderDrop";
-import { createModelSelection, normalizeModelSlug } from "@supacode/shared/model";
-import { USAGE_LIMITS_COMMAND } from "@supacode/shared/usageLimits";
+import { createModelSelection, normalizeModelSlug } from "@supaterm/shared/model";
+import { USAGE_LIMITS_COMMAND } from "@supaterm/shared/usageLimits";
 import {
   Fragment,
   memo,
@@ -164,7 +164,7 @@ import { compressImageForStash, prepareImageForAttachment } from "../../lib/imag
 import {
   fileAttachmentTooLargeMessage,
   formatAttachmentSize,
-} from "@supacode/client-runtime/state/attachments";
+} from "@supaterm/client-runtime/state/attachments";
 import {
   attachmentsToReleaseOnUploadCapabilityLoss,
   composerOtherFilesForPresentation,
@@ -198,7 +198,7 @@ import {
   type TerminalContextSelection,
 } from "../../lib/terminalContext";
 import { useComposerPathSearch } from "../../lib/composerPathSearchState";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 import {
   getRestingComposerImagePreviewCounts,
   resolveRestingComposerControlsLayout,
@@ -249,12 +249,12 @@ import {
   threadContextRecord,
   threadContextReference,
 } from "~/lib/composerContextRecords";
-import { matchComposerThreadItems } from "@supacode/client-runtime/composerThreadItems";
+import { matchComposerThreadItems } from "@supaterm/client-runtime/composerThreadItems";
 import { THREAD_CONTEXT_DROP_EVENT, threadContextDropTargetProps } from "./threadContextDrag";
 import { readThreadShell, useThreadShells } from "~/state/entities";
 import { requestConfirmDialog } from "~/confirmDialog";
-import { encodeComposerContextFragment } from "@supacode/shared/composerContextClipboard";
-import type { ComposerContextClipboardFragment, ComposerContextRecord } from "@supacode/contracts";
+import { encodeComposerContextFragment } from "@supaterm/shared/composerContextClipboard";
+import type { ComposerContextClipboardFragment, ComposerContextRecord } from "@supaterm/contracts";
 import { resolveAssetUrl } from "~/assets/assetUrls";
 import { assetEnvironment } from "~/state/assets";
 import { readPreparedConnection } from "~/state/session";
@@ -1107,7 +1107,7 @@ import {
   type ProviderInstanceEntry,
 } from "../../providerInstances";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
-import type { UnifiedSettings } from "@supacode/contracts/settings";
+import type { UnifiedSettings } from "@supaterm/contracts/settings";
 import {
   isVideoAttachment,
   type ChatMessage,
@@ -1126,7 +1126,7 @@ import type { PendingApproval, PendingUserInput } from "../../session-logic";
 import {
   resolveComposerDispatchMode,
   type ComposerDispatchMode,
-} from "@supacode/client-runtime/state/composer-dispatch";
+} from "@supaterm/client-runtime/state/composer-dispatch";
 import {
   getProviderSlashCommandsForSlashMenu,
   getProviderSkillsForSlashMenu,
@@ -1134,7 +1134,7 @@ import {
   hasCurrentProviderWorkspaceSnapshot,
   resolveProviderSkillsForCwd,
   resolveProviderSlashCommandsForCwd,
-} from "@supacode/client-runtime/providerSkills";
+} from "@supaterm/client-runtime/providerSkills";
 import { searchProviderSkills } from "../../providerSkillSearch";
 import * as Schema from "effect/Schema";
 import { useDelayedStatus } from "../../hooks/useDelayedStatus";
@@ -1147,7 +1147,7 @@ import { serverEnvironment } from "../../state/server";
 import type { ReviewCommentContext } from "../../reviewCommentContext";
 
 const WORKSPACE_SNAPSHOT_RETRY_COOLDOWN_MS = 10_000;
-const COMPOSER_TASKS_EXPANDED_KEY = "supacode:composer:tasks-expanded";
+const COMPOSER_TASKS_EXPANDED_KEY = "supaterm:composer:tasks-expanded";
 
 const extendReplacementRangeForTrailingSpace = (
   text: string,
@@ -6180,7 +6180,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       return;
     }
 
-    // Copied Supacode chips need the structured importer to bring their records and files along.
+    // Copied Supaterm chips need the structured importer to bring their records and files along.
     if ((readPastedComposerContext(event.clipboardData)?.records.length ?? 0) > 0) return;
     if (!foldPastedText(plainText, bypassAutoAttachment)) {
       return;

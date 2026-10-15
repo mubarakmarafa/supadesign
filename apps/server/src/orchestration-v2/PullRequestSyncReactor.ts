@@ -1,4 +1,4 @@
-import { siblingPullRequestUrl } from "@supacode/shared/changeRequestUrl";
+import { siblingPullRequestUrl } from "@supaterm/shared/changeRequestUrl";
 import {
   CommandId,
   type PullRequestSummary,
@@ -7,14 +7,14 @@ import {
   type ThreadPullRequestLink,
   type ThreadPullRequestSnapshot,
   type ThreadPullRequestStack,
-} from "@supacode/contracts";
-import { makeDrainableWorker } from "@supacode/shared/DrainableWorker";
+} from "@supaterm/contracts";
+import { makeDrainableWorker } from "@supaterm/shared/DrainableWorker";
 import {
   threadPullRequestKeyOf,
   normalizeThreadPullRequestKey,
   threadPullRequestKeysEqual,
   visibleThreadPullRequests,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -29,7 +29,7 @@ import * as Semaphore from "effect/Semaphore";
 import * as Stream from "effect/Stream";
 
 import * as GitManager from "../git/GitManager.ts";
-import { PullRequestProviderError } from "@supacode/source-control-core/server/PullRequestProvider";
+import { PullRequestProviderError } from "@supaterm/source-control-core/server/PullRequestProvider";
 import * as PullRequestService from "../pullRequest/PullRequestService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as Orchestrator from "./Orchestrator.ts";
@@ -149,7 +149,7 @@ export class PullRequestSyncReactor extends Context.Service<
      */
     readonly requestSync: (key: ThreadPullRequestKey) => Effect.Effect<void>;
   }
->()("supacode/orchestration-v2/PullRequestSyncReactor") {}
+>()("supaterm/orchestration-v2/PullRequestSyncReactor") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {

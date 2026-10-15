@@ -2,4 +2,4 @@ export {
   getPairingTokenFromUrl,
   setPairingTokenOnUrl,
   stripPairingTokenFromUrl,
-} from "@supacode/shared/remote";
+} from "@supaterm/shared/remote";

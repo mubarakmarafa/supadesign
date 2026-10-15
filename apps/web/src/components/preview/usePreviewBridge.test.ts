@@ -1,4 +1,4 @@
-import type { DesktopPreviewTabState } from "@supacode/contracts";
+import type { DesktopPreviewTabState } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { projectDesktopState } from "./usePreviewBridge";

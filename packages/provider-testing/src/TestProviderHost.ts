@@ -1,5 +1,5 @@
-import { DEFAULT_SERVER_SETTINGS, type ServerSettings } from "@supacode/contracts";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import { DEFAULT_SERVER_SETTINGS, type ServerSettings } from "@supaterm/contracts";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -20,7 +20,7 @@ export interface TestProviderHostOptions {
 export class TestProviderHostSettings extends Context.Service<
   TestProviderHostSettings,
   { readonly set: (settings: ServerSettings) => Effect.Effect<void> }
->()("@supacode/provider-testing/TestProviderHost/TestProviderHostSettings") {}
+>()("@supaterm/provider-testing/TestProviderHost/TestProviderHostSettings") {}
 
 export const layer = (
   options: TestProviderHostOptions = {},
@@ -34,7 +34,7 @@ export const layer = (
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const baseDir = yield* fileSystem
-        .makeTempDirectoryScoped({ prefix: "supacode-provider-host-" })
+        .makeTempDirectoryScoped({ prefix: "supaterm-provider-host-" })
         .pipe(Effect.orDie);
       const stateDir = path.join(baseDir, "userdata");
       const providerStatusCacheDir = path.join(baseDir, "caches");
@@ -66,7 +66,7 @@ export const layer = (
           Effect.sync(() => {
             const key = `${namespace}:${bindingId}`;
             return {
-              binding: { owner: "supacode" as const, key },
+              binding: { owner: "supaterm" as const, key },
               get: Effect.sync(() => Option.fromUndefinedOr(credentials.get(key))),
               set: (value: Uint8Array) => Effect.sync(() => void credentials.set(key, value)),
               remove: Effect.sync(() => void credentials.delete(key)),

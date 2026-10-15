@@ -1,6 +1,6 @@
 // @effect-diagnostics nodeBuiltinImport:off globalFetchInEffect:off - verifies generated remote scripts using real shell and Node processes.
 import * as Effect from "effect/Effect";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { describe, expect, it } from "@effect/vitest";
 import * as NodeChildProcess from "node:child_process";
 import * as NodeFSP from "node:fs/promises";
@@ -16,7 +16,7 @@ it.effect("finds Android Studio Java for a non-interactive SSH session", () =>
   Effect.gen(function* () {
     if ((yield* HostProcess.Platform) === "win32") return;
     yield* Effect.promise(async () => {
-      const home = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-ssh-java-"));
+      const home = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-ssh-java-"));
       try {
         const javaHome = NodePath.join(home, ".local/opt/android-studio/jbr");
         await NodeFSP.mkdir(NodePath.join(javaHome, "bin"), { recursive: true });
@@ -53,12 +53,12 @@ describe("remote helper lifecycle", () => {
       if ((yield* HostProcess.Platform) === "win32") return;
       yield* Effect.promise(async () => {
         const home = await NodeFSP.mkdtemp(
-          NodePath.join(NodeOS.tmpdir(), "supacode-remote-script-"),
+          NodePath.join(NodeOS.tmpdir(), "supaterm-remote-script-"),
         );
         const bin = NodePath.join(home, "bin");
         await NodeFSP.mkdir(bin);
         await NodeFSP.writeFile(NodePath.join(bin, "adb"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-        const root = NodePath.join(home, ".supacode/device");
+        const root = NodePath.join(home, ".supaterm/device");
         const hubDir = NodePath.join(root, `tools/expo-device-hub@${DEVICE_HUB_VERSION}`);
         const agentDir = NodePath.join(root, `tools/agent-device@${AGENT_DEVICE_VERSION}`);
         const hub = NodePath.join(hubDir, "node_modules/expo-device-hub/dist/server/cli.mjs");

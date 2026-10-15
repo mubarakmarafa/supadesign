@@ -1,4 +1,4 @@
-import { CHAT_MARKDOWN_REHYPE_PLUGINS } from "@supacode/shared/markdownPipeline";
+import { CHAT_MARKDOWN_REHYPE_PLUGINS } from "@supaterm/shared/markdownPipeline";
 import type { Root } from "mdast";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
@@ -6,10 +6,10 @@ import remarkGfm from "remark-gfm";
 import type { Plugin } from "unified";
 import { describe, expect, it } from "vite-plus/test";
 
-import { remarkCodexDirectives } from "@supacode/shared/codexMarkdownDirectives";
-import { remarkGithubAlerts } from "@supacode/shared/markdownGithubAlerts";
+import { remarkCodexDirectives } from "@supaterm/shared/codexMarkdownDirectives";
+import { remarkGithubAlerts } from "@supaterm/shared/markdownGithubAlerts";
 import { createIncrementalMarkdownPlugin } from "./markdown-incremental";
-import { remarkNormalizeListItemIndentation } from "@supacode/shared/markdownListIndentation";
+import { remarkNormalizeListItemIndentation } from "@supaterm/shared/markdownListIndentation";
 
 function render(source: string, incremental?: Plugin<[], Root>, parsedSources?: string[]) {
   let tree: Root | undefined;
@@ -58,7 +58,7 @@ describe("incremental Markdown parsing", () => {
     const next = source + " more";
     expect(render(next, incremental, parsedSources)).toEqual(render(next));
     expect(parsedSources).not.toContain(next);
-    expect(parsedSources.some((text) => text.startsWith("supacode-markdown-inline-prefix:"))).toBe(
+    expect(parsedSources.some((text) => text.startsWith("supaterm-markdown-inline-prefix:"))).toBe(
       true,
     );
   });

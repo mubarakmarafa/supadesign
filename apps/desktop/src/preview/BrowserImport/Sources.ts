@@ -15,9 +15,9 @@
  *
  * @module BrowserImportSources
  */
-import type { BrowserImportSourceId, BrowserImportSourceProfile } from "@supacode/contracts";
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { BrowserImportSourceId, BrowserImportSourceProfile } from "@supaterm/contracts";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";

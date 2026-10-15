@@ -2,12 +2,12 @@ import type {
   OrchestrationV2Command,
   OrchestrationV2DomainEvent,
   OrchestrationV2ThreadProjection,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 
 import type { PendingOrchestrationEffectV2 } from "./EffectOutbox.ts";
-import type * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import type * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 
 export interface ThreadDeletionPlan {
   readonly events: ReadonlyArray<OrchestrationV2DomainEvent>;

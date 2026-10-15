@@ -5,7 +5,7 @@ import * as NodePath from "node:path";
 import * as NodeUtil from "node:util";
 import { assert, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";

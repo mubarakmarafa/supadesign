@@ -1,4 +1,4 @@
-import { createReviewEnvironmentAtoms } from "@supacode/client-runtime/state/review";
+import { createReviewEnvironmentAtoms } from "@supaterm/client-runtime/state/review";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 

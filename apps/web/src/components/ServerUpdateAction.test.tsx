@@ -1,7 +1,7 @@
 import { act, type ReactElement } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
-import { AuthSessionState, type EnvironmentId, type ServerInstallation } from "@supacode/contracts";
+import { AuthSessionState, type EnvironmentId, type ServerInstallation } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { AsyncResult } from "effect/reactivity";
@@ -84,7 +84,7 @@ const legacyAuth = {
   policy: "remote-reachable",
   bootstrapMethods: ["one-time-token"],
   sessionMethods: ["bearer-access-token"],
-  sessionCookieName: "supacode_session",
+  sessionCookieName: "supaterm_session",
 } as const;
 
 const currentSession = {
@@ -165,21 +165,21 @@ describe("ServerUpdateAction", () => {
   it.each([
     [
       { kind: "npm-global", prefix: "/opt/node" },
-      "npm install --global --prefix '/opt/node' supacode@0.0.45",
+      "npm install --global --prefix '/opt/node' supaterm@0.0.45",
       "Update command copied",
-      "then restart supacode",
+      "then restart supaterm",
     ],
     [
       { kind: "npx" },
-      "npx supacode@0.0.45",
+      "npx supaterm@0.0.45",
       "Relaunch command copied",
-      "This does not update an installed supacode command.",
+      "This does not update an installed supaterm command.",
     ],
     [
       undefined,
-      "npx supacode@0.0.45",
+      "npx supaterm@0.0.45",
       "Relaunch command copied",
-      "This does not update an installed supacode command.",
+      "This does not update an installed supaterm command.",
     ],
   ] satisfies ReadonlyArray<readonly [ServerInstallation | undefined, string, string, string]>)(
     "copies an honest manual command for %j without invoking remote update",
@@ -218,7 +218,7 @@ describe("ServerUpdateAction", () => {
     expect(testState.toast).toHaveBeenCalledWith({
       type: "success",
       title: "Test server updated",
-      description: "Reconnected on supacode@0.0.31.",
+      description: "Reconnected on supaterm@0.0.31.",
     });
   });
 

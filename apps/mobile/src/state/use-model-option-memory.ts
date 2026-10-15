@@ -1,4 +1,4 @@
-import type { ProviderOptionSelection } from "@supacode/contracts";
+import type { ProviderOptionSelection } from "@supaterm/contracts";
 import { appAtomRegistry } from "./atom-registry";
 import {
   modelOptionMemoryAtom,

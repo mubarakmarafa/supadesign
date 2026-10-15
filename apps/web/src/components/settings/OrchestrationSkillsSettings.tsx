@@ -1,4 +1,4 @@
-import type { OrchestrationSkillsEnvironment } from "@supacode/client-runtime/orchestrationSkills";
+import type { OrchestrationSkillsEnvironment } from "@supaterm/client-runtime/orchestrationSkills";
 import { useOrchestrationSkills } from "../../state/useOrchestrationSkills";
 import { serverEnvironment } from "../../state/server";
 import { Button } from "../ui/button";
@@ -26,7 +26,7 @@ function SelectedEnvironmentSkills({
       title="Orchestration skills"
       description={
         <>
-          Install supacode-commitee and supacode-advisor skills.
+          Install supaterm-commitee and supaterm-advisor skills.
           {skills.notices.map((notice) => (
             <span className="block" key={notice}>
               {notice}
@@ -90,7 +90,7 @@ export function OrchestrationSkillsSettings() {
       {connectedEnvironments.length === 0 ? (
         <SettingsRow
           title="Orchestration skills"
-          description="Connect to an environment to install supacode-commitee and supacode-advisor skills."
+          description="Connect to an environment to install supaterm-commitee and supaterm-advisor skills."
         />
       ) : (
         <SelectedEnvironmentSkills

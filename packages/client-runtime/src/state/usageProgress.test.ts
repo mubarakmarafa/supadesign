@@ -3,7 +3,7 @@ import {
   UsageDay,
   type UsageProviderKind,
   type UsageSummary,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { usageEnvironmentProgress, usageLoadingState, usageProgress } from "./usageProgress.ts";

@@ -2,7 +2,7 @@ import { assert } from "@effect/vitest";
 import type {
   OrchestrationV2ThreadProjection,
   ProviderReplayTranscript,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import type { OrchestratorV2ScenarioResult } from "../../OrchestratorScenario.ts";
 import {
@@ -24,7 +24,7 @@ const runTexts = (projection: OrchestrationV2ThreadProjection, runId: string | u
  * A background `subagent` call. The parent's first execution ends at once,
  * so run 1 waits on the subagent. When it ends, OpenCode reports it to the
  * parent and runs the parent again on its own: that execution is run 2, a
- * continuation Supacode opens for it, and nothing stays waiting afterwards.
+ * continuation Supaterm opens for it, and nothing stays waiting afterwards.
  */
 export function assertOpenCode2BackgroundOutput(
   result: OrchestratorV2ScenarioResult,

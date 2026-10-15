@@ -1,6 +1,6 @@
-import { createDeviceEnvironmentAtoms } from "@supacode/client-runtime/state/device";
-import { resolveDeviceHubAccess } from "@supacode/client-runtime/state/deviceHubAccess";
-import type { EnvironmentId } from "@supacode/contracts";
+import { createDeviceEnvironmentAtoms } from "@supaterm/client-runtime/state/device";
+import { resolveDeviceHubAccess } from "@supaterm/client-runtime/state/deviceHubAccess";
+import type { EnvironmentId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { Atom } from "effect/reactivity";

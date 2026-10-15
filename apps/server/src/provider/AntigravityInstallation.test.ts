@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Crypto from "effect/Crypto";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -140,7 +140,7 @@ const makeHarness = Effect.fn("test.makeAntigravityInstallation")(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const baseDir =
-    options.baseDir ?? (yield* fs.makeTempDirectoryScoped({ prefix: "supacode-agy-test-" }));
+    options.baseDir ?? (yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-agy-test-" }));
   const platform = options.platform ?? hostPlatform;
   const archive = options.archive ?? completeArchive;
   const asset =
@@ -736,7 +736,7 @@ it.layer(NodeServices.layer)("Antigravity installation", (it) => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const baseDir = yield* fs
-          .makeTempDirectoryScoped({ prefix: "supacode-agy-path-test-" })
+          .makeTempDirectoryScoped({ prefix: "supaterm-agy-path-test-" })
           .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
         const externalDirectory = path.join(baseDir, "external");
         const externalExecutable = path.join(externalDirectory, executableName);

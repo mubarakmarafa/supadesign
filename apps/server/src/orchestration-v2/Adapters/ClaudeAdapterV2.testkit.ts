@@ -8,14 +8,14 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { SpawnExecutableResolution } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { SpawnExecutableResolution } from "@supaterm/shared/shell";
 import {
   ProviderReplayEntry,
   type ModelSelection,
   type ProviderApprovalDecision,
   type ProviderReplayTranscript,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Crypto from "effect/Crypto";
 import * as Duration from "effect/Duration";
@@ -31,15 +31,15 @@ import {
   resolveClaudeSdkExecutablePath,
 } from "../../provider/Drivers/ClaudeExecutable.ts";
 import * as ClaudeAdapterV2 from "./ClaudeAdapterV2.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import { ProviderAdapterDriverCreateError } from "@supacode/provider-core/server/adapterDriver";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import { ProviderAdapterDriverCreateError } from "@supaterm/provider-core/server/adapterDriver";
 import * as ProviderAdapterRegistry from "../ProviderAdapterRegistry.ts";
-import { randomUuidV4 } from "@supacode/provider-core/server/randomUuid";
+import { randomUuidV4 } from "@supaterm/provider-core/server/randomUuid";
 import {
   makeReplayServerConfig,
   type OrchestratorV2ProviderReplayHarness,
 } from "../testkit/ProviderReplayHarness.ts";
-import type { ProviderReplayGate } from "@supacode/provider-testing/replayGate";
+import type { ProviderReplayGate } from "@supaterm/provider-testing/replayGate";
 
 export const CLAUDE_AGENT_SDK_REPLAY_PROTOCOL = "claude-agent-sdk.query" as const;
 /**

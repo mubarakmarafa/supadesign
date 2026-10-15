@@ -1,11 +1,11 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 /**
  * The GitHub driver: repository operations and discovery through `gh` and git, and pull requests
  * through the GitHub REST and GraphQL APIs.
  *
  * @module source-control-github/server/driver
  */
-import { defineSourceControlDriver } from "@supacode/source-control-core/server/driver";
+import { defineSourceControlDriver } from "@supaterm/source-control-core/server/driver";
 import * as Effect from "effect/Effect";
 
 import * as GitHubPullRequestProvider from "./GitHubPullRequestProvider.ts";

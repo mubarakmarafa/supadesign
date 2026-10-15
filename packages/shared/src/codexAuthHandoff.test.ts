@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { EnvironmentId, ProviderInstanceId } from "@supacode/contracts";
+import { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 import {
   codexAuthorizationRequest,
   codexAuthDeliveryUrl,
@@ -22,7 +22,7 @@ const authorizationUrl = () => {
 };
 const input = {
   authorizationUrl: authorizationUrl(),
-  returnUrl: "https://app.next.supacode.sh/welcome#agents:remote-environment",
+  returnUrl: "https://app.supaterm.com/welcome#agents:remote-environment",
   environmentId: EnvironmentId.make("remote-environment"),
   instanceId: ProviderInstanceId.make("work-codex"),
   flowId: "flow-one",

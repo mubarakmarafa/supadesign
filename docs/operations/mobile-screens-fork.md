@@ -4,7 +4,7 @@ The mobile client pins `react-native-screens` to the committed
 `apps/mobile/deps/react-native-screens-5.0.0-supacode.27.tgz` archive. Its runtime,
 declarations and native sources come from
 [source commit 176ff648](https://github.com/juliusmarminge/react-native-screens/commit/176ff64880ddd0a6122a1f18eda826479c8e73c7),
-based on `72f38a66c188bdebee7a7798c9b72a121b7a8451`. Supacode changes the package
+based on `72f38a66c188bdebee7a7798c9b72a121b7a8451`. Supaterm changes the package
 version and archive metadata; it preserves the runtime and native source.
 `supacode-fork.json` inside the archive records that provenance.
 
@@ -15,7 +15,7 @@ and update the dependency and lockfile together.
 
 The fingerprint includes native dependency files and applied native patches.
 A change to either requires a matching native client before the new bundle can
-run. See [native client verification](../../.agents/skills/test-supacode-mobile/SKILL.md).
+run. See [native client verification](../../.agents/skills/test-supaterm-mobile/SKILL.md).
 
 The same iOS binary supports iPhone, iPad, and Duo. UIKit hinge updates enable
 phone workspace columns at runtime; regular phones retain portrait rotation.

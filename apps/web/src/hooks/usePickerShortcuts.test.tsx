@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import {
   compileResolvedKeybindingsConfig,
   DEFAULT_RESOLVED_KEYBINDINGS,
-} from "@supacode/shared/keybindings";
+} from "@supaterm/shared/keybindings";
 
 import { usePickerShortcuts } from "./usePickerShortcuts";
 

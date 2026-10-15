@@ -4,7 +4,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 

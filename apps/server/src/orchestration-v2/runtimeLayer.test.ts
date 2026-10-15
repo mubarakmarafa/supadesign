@@ -1,6 +1,6 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { limitRecoveryCommand } from "./UsageLimitRecoveryWorker.ts";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
 import * as SourceControlProviderRegistry from "../sourceControl/SourceControlProviderRegistry.ts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
@@ -28,7 +28,7 @@ import {
   ProviderTurnId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
@@ -52,7 +52,7 @@ import * as ProjectService from "../project/ProjectService.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as McpSessionRegistryTestkit from "../mcp/McpSessionRegistry.testkit.ts";
 import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
-import type { ProviderInstance } from "@supacode/provider-core/server/driver";
+import type { ProviderInstance } from "@supaterm/provider-core/server/driver";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
 import * as VcsProcess from "../vcs/VcsProcess.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
@@ -66,7 +66,7 @@ import * as ProviderRuntimeRecoveryService from "./ProviderRuntimeRecoveryServic
 import * as ProjectionMaintenance from "./ProjectionMaintenance.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as PullRequestWatchReactor from "./PullRequestWatchReactor.ts";
-import { PullRequestProviderError } from "@supacode/source-control-core/server/PullRequestProvider";
+import { PullRequestProviderError } from "@supaterm/source-control-core/server/PullRequestProvider";
 import * as PullRequestService from "../pullRequest/PullRequestService.ts";
 import * as ProjectStore from "./ProjectStore.ts";
 import * as ProviderSessionManager from "./ProviderSessionManager.ts";
@@ -75,7 +75,7 @@ import { shellStreamItemFromThreadShell } from "./ShellStream.ts";
 import { CodexProviderCapabilitiesV2 } from "./Adapters/CodexAdapterV2.ts";
 import * as ThreadManagementService from "./ThreadManagementService.ts";
 import * as ThreadCommandExecutor from "./ThreadCommandExecutor.ts";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 const layerPlatformTest = Layer.merge(
   NodeServices.layer,
@@ -85,7 +85,7 @@ const layerPlatformTest = Layer.merge(
 );
 
 const layerServerConfig = ServerConfig.layerTest(process.cwd(), {
-  prefix: "supacode-orchestration-v2-runtime-layer-",
+  prefix: "supaterm-orchestration-v2-runtime-layer-",
 });
 
 const modelSelection = {
@@ -550,7 +550,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive", (it) => {
         interactionMode: "default",
         branch: null,
         // Its own path, so other rollback tests keep an isolated worktree.
-        worktreePath: `/tmp/supacode-${name}`,
+        worktreePath: `/tmp/supaterm-${name}`,
       });
       yield* orchestrator.dispatch({
         type: "message.dispatch",
@@ -583,7 +583,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive", (it) => {
               parentCheckpointId: null,
               ordinalWithinScope: 0,
               appRunOrdinal: null,
-              ref: CheckpointRef.make(`refs/supacode/${name}`),
+              ref: CheckpointRef.make(`refs/supaterm/${name}`),
               status: "ready",
               files: [],
               capturedAt: now,
@@ -735,7 +735,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive", (it) => {
                 parentCheckpointId: null,
                 ordinalWithinScope: 0,
                 appRunOrdinal: null,
-                ref: CheckpointRef.make(`refs/supacode/runtime-rollback-${status}`),
+                ref: CheckpointRef.make(`refs/supaterm/runtime-rollback-${status}`),
                 status,
                 files: [],
                 capturedAt: now,
@@ -1721,7 +1721,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
         threadId,
         title: "Renamed lifecycle thread",
         branch: "feature/v2",
-        worktreePath: "/tmp/supacode-v2-worktree",
+        worktreePath: "/tmp/supaterm-v2-worktree",
       });
       const staleWorkspaceUpdate = yield* orchestrator
         .dispatch({
@@ -1738,7 +1738,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       assert.equal(projectionAfterStaleWorkspaceUpdate.thread.branch, "feature/v2");
       assert.equal(
         projectionAfterStaleWorkspaceUpdate.thread.worktreePath,
-        "/tmp/supacode-v2-worktree",
+        "/tmp/supaterm-v2-worktree",
       );
       const pullRequestSnapshot = yield* orchestrator.getShellSnapshot();
       const pullRequest = {
@@ -1758,7 +1758,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
           expected: {
             workspaceRoot: "/workspace/project",
             branch: "feature/v2",
-            worktreePath: "/tmp/supacode-v2-worktree",
+            worktreePath: "/tmp/supaterm-v2-worktree",
             linkedPullRequest: null,
             branchPullRequest: null,
           },
@@ -1776,7 +1776,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
         expected: {
           workspaceRoot: "/workspace/project",
           branch: "feature/v2",
-          worktreePath: "/tmp/supacode-v2-worktree",
+          worktreePath: "/tmp/supaterm-v2-worktree",
           linkedPullRequest: null,
           branchPullRequest: null,
         },
@@ -1796,7 +1796,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
           expected: {
             workspaceRoot: "/workspace/project",
             branch: "feature/v2",
-            worktreePath: "/tmp/supacode-v2-worktree",
+            worktreePath: "/tmp/supaterm-v2-worktree",
             linkedPullRequest: null,
             branchPullRequest: null,
           },
@@ -1964,7 +1964,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       const projection = yield* orchestrator.getThreadProjection(threadId);
       assert.equal(projection.thread.title, "Renamed lifecycle thread");
       assert.equal(projection.thread.branch, "feature/v2");
-      assert.equal(projection.thread.worktreePath, "/tmp/supacode-v2-worktree");
+      assert.equal(projection.thread.worktreePath, "/tmp/supaterm-v2-worktree");
       assert.equal(projection.thread.runtimeMode, "approval-required");
       assert.equal(projection.thread.interactionMode, "plan");
       assert.equal(projection.thread.modelSelection.model, "gpt-5.5");
@@ -3225,7 +3225,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
           notification: {
             source: { kind: "system" as const },
             outcome: "updated" as const,
-            summary: "Supacode restarted and resumed this turn",
+            summary: "Supaterm restarted and resumed this turn",
             detail: "Continue where you left off.",
           },
           attachments: [],
@@ -3247,7 +3247,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
           continuationItems.flatMap((item) =>
             item.type === "notification" ? [[item.summary, item.detail]] : [],
           ),
-          ["Supacode restarted and resumed this turn", "Continue where you left off."],
+          ["Supaterm restarted and resumed this turn", "Continue where you left off."],
         );
         // A differently identified stale delivery still must not create another run.
         yield* orchestrator.dispatch({
@@ -3331,7 +3331,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
           commandId: CommandId.make(`restart-${status}-continuation`),
           threadId,
           messageId: MessageId.make(`restart-${status}-continuation`),
-          text: "Note: the Supacode server restarted.",
+          text: "Note: the Supaterm server restarted.",
           attachments: [],
           modelSelection,
           dispatchMode: { type: "start_immediately" },

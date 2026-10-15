@@ -1,7 +1,7 @@
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentId, ScopedThreadRef } from "@supacode/contracts";
-import { promptLinkAppPath } from "@supacode/shared/promptLinks";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentId, ScopedThreadRef } from "@supaterm/contracts";
+import { promptLinkAppPath } from "@supaterm/shared/promptLinks";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useEffectEvent, useRef } from "react";
 
@@ -46,9 +46,9 @@ function threadShowingBrowser(
 }
 
 /**
- * Opens each link the OS hands Supacode. Prompt and thread links, by `supacode://`
+ * Opens each link the OS hands Supaterm. Prompt and thread links, by `supaterm://`
  * or as hosted-app pages, open in the app. Other web links and HTML files arrive
- * because Supacode is the default browser (macOS): with a browser panel on screen
+ * because Supaterm is the default browser (macOS): with a browser panel on screen
  * the page opens as a new tab there; otherwise it starts a thread without a
  * project, its browser panel maximized.
  */

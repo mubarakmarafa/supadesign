@@ -1,7 +1,7 @@
 import {
   type CheckpointDiffState,
   type CheckpointDiffTarget,
-} from "@supacode/client-runtime/state/threads";
+} from "@supaterm/client-runtime/state/threads";
 
 import { useCheckpointDiff as useCheckpointDiffQuery } from "../state/queries";
 

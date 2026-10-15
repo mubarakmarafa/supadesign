@@ -3,7 +3,7 @@ import {
   type DevicePlatformAvailability,
   type EnvironmentId,
   SshDeviceHostConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 export interface DeviceHostCheckTarget {

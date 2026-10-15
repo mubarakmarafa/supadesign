@@ -6,7 +6,7 @@
  *
  * @module OrchestrationCommandReceiptRepository
  */
-import { CommandId, IsoDateTime, NonNegativeInt, ProjectId, ThreadId } from "@supacode/contracts";
+import { CommandId, IsoDateTime, NonNegativeInt, ProjectId, ThreadId } from "@supaterm/contracts";
 import * as SqlClient from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 import * as Context from "effect/Context";
@@ -66,7 +66,7 @@ export class OrchestrationCommandReceiptRepository extends Context.Service<
       OrchestrationCommandReceiptRepositoryError
     >;
   }
->()("supacode/persistence/OrchestrationCommandReceipts/OrchestrationCommandReceiptRepository") {}
+>()("supaterm/persistence/OrchestrationCommandReceipts/OrchestrationCommandReceiptRepository") {}
 
 const makeOrchestrationCommandReceiptRepository = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;

@@ -2,7 +2,7 @@ import type {
   PullRequestComment,
   PullRequestDetail,
   PullRequestReviewThread,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 /** Only the parts of a detail either answer reads, so a caller can pass a whole detail view. */
 type EditingSubject = Pick<

@@ -1,9 +1,9 @@
 import type {
   OrchestrationV2ThreadProjection,
   OrchestrationV2ThreadStreamItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
-import { omitLocalVisibleTurnItems } from "@supacode/shared/orchestrationV2BoundedSnapshot";
+import { omitLocalVisibleTurnItems } from "@supaterm/shared/orchestrationV2BoundedSnapshot";
 
 import {
   buildBoundedThreadProjection,

@@ -1,18 +1,18 @@
-import { upgradeLegacyContextMessage } from "@supacode/shared/composerContextLegacy";
+import { upgradeLegacyContextMessage } from "@supaterm/shared/composerContextLegacy";
 import { buildProjectThreadStartTurnInput } from "./projectThreadStartTurn";
 import {
   ProjectId,
   ProviderInstanceId,
   ComposerContextId,
   type OrchestrationMessageContext,
-} from "@supacode/contracts";
-import { collectComposerInlineTokens } from "@supacode/shared/composerInlineTokens";
+} from "@supaterm/contracts";
+import { collectComposerInlineTokens } from "@supaterm/shared/composerInlineTokens";
 import {
   ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
   collectComposerContextReferences,
   formatComposerContextReference,
   projectComposerContextForProvider,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 import { describe, expect, it } from "vite-plus/test";
 import {
   composerContextEditorTokens,
@@ -301,7 +301,7 @@ describe("host context compatibility", () => {
             worktreeBranchName: "unused",
           }).message;
     expect(message).not.toHaveProperty("context");
-    expect(message.text).not.toContain("supacode-context://");
+    expect(message.text).not.toContain("supaterm-context://");
     expect(
       upgradeLegacyContextMessage(message.text).records.find(
         (record) => record.kind === "terminal",

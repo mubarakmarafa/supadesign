@@ -5,7 +5,7 @@
  * the results. Raw transcripts never leave the machine that produced them.
  *
  * Mirror of `apps/web/src/state/usage.ts` over mobile's atom wiring; the merge
- * rules themselves live in `@supacode/shared/usageMerge`.
+ * rules themselves live in `@supaterm/shared/usageMerge`.
  *
  * @module state/usage
  */
@@ -16,10 +16,10 @@ import {
   type EnvironmentId,
   type UsageSummary,
   type UsageSummaryInput,
-} from "@supacode/contracts";
-import { needsCursorKeychainAccess, refreshUsage } from "@supacode/client-runtime/state/usage";
-import { resolveUsageAccess } from "@supacode/client-runtime/state/usage-access";
-import { mergeUsage, type EnvironmentUsage, type MergedUsage } from "@supacode/shared/usageMerge";
+} from "@supaterm/contracts";
+import { needsCursorKeychainAccess, refreshUsage } from "@supaterm/client-runtime/state/usage";
+import { resolveUsageAccess } from "@supaterm/client-runtime/state/usage-access";
+import { mergeUsage, type EnvironmentUsage, type MergedUsage } from "@supaterm/shared/usageMerge";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useCallback, useMemo } from "react";

@@ -2,7 +2,7 @@ import type {
   EnvironmentId,
   OrchestrationV2ShellSnapshot,
   OrchestrationV2ThreadShell,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import { AsyncResult, Atom } from "effect/reactivity";
 

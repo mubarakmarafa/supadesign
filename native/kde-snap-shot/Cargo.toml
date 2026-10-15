@@ -1,5 +1,5 @@
 [package]
-name = "supacode-kde-snap-shot"
+name = "supaterm-kde-snap-shot"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"

@@ -36,7 +36,7 @@ export function MaterialButton(props: MaterialButtonProps) {
     >
       <AppText
         className={cn(
-          "text-center font-supacode-medium",
+          "text-center font-supaterm-medium",
           disabled ? "text-foreground-muted" : labelClassName,
         )}
       >

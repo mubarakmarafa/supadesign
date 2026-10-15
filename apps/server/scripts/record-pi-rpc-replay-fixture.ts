@@ -10,7 +10,7 @@
  * user's Pi session store.
  */
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import type { ProviderReplayEntry, ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderReplayEntry, ProviderReplayTranscript } from "@supaterm/contracts";
 import * as Console from "effect/Console";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -29,8 +29,8 @@ import {
   PiOrchestratorReplayHarness,
 } from "../src/orchestration-v2/Adapters/PiAdapterV2.testkit.ts";
 import * as PiAdapterV2Testkit from "../src/orchestration-v2/Adapters/PiAdapterV2.testkit.ts";
-import { PI_PROVIDER } from "@supacode/provider-pi/server";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import { PI_PROVIDER } from "@supaterm/provider-pi/server";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import { provideDeterministicTestRuntime } from "../src/orchestration-v2/testkit/DeterministicRuntime.ts";
 import { ORCHESTRATOR_REPLAY_FIXTURES } from "../src/orchestration-v2/testkit/fixtures/index.ts";
 import { materializeFixtureInput } from "../src/orchestration-v2/testkit/fixtures/shared.ts";
@@ -38,7 +38,7 @@ import { runOrchestratorV2ProviderReplayScenario } from "../src/orchestration-v2
 import {
   checkpointWorkspace,
   makeCheckpointWorkspace,
-} from "@supacode/provider-testing/replayWorkspace";
+} from "@supaterm/provider-testing/replayWorkspace";
 
 /**
  * Keeps the user's skills, templates and context files out of the recording.
@@ -68,7 +68,7 @@ if (fixture === undefined || variant === undefined) {
   throw new Error(`Pass --scenario with a fixture that registers Pi: ${names.join(", ")}`);
 }
 
-const piBinary = process.env.SUPACODE_PI_BIN ?? "pi";
+const piBinary = process.env.SUPATERM_PI_BIN ?? "pi";
 const [modelProvider, ...modelId] = variant.modelSelection.model.split("/");
 const launchArgs = `--provider ${modelProvider} --model ${modelId.join("/")} ${HERMETIC_LAUNCH_ARGS}`;
 const home = process.env.HOME ?? "";
@@ -235,7 +235,7 @@ const record = Effect.gen(function* () {
     path.join(workspace, ".pi", "settings.json"),
     encodeJson(WORKSPACE_PI_SETTINGS),
   );
-  const sessionDir = yield* fs.makeTempDirectory({ prefix: `supacode-pi-record-sessions-` });
+  const sessionDir = yield* fs.makeTempDirectory({ prefix: `supaterm-pi-record-sessions-` });
   yield* Effect.addFinalizer(() =>
     Effect.all([
       fs.remove(workspace, { recursive: true, force: true }),

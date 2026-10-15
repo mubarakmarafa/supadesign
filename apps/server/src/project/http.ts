@@ -2,7 +2,7 @@ import {
   AuthOrchestrationReadScope,
   EnvironmentHttpApi,
   requiredScopesForProjectMutation,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
 

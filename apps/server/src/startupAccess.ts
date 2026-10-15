@@ -1,7 +1,7 @@
 import * as NodeOS from "node:os";
 
-import { QrCode } from "@supacode/shared/qrCode";
-import { buildPairingUrl } from "@supacode/shared/remote";
+import { QrCode } from "@supaterm/shared/qrCode";
+import { buildPairingUrl } from "@supaterm/shared/remote";
 import * as Effect from "effect/Effect";
 import { HttpServer } from "effect/http";
 
@@ -116,7 +116,7 @@ export const renderTerminalQrCode = (value: string, margin = 2): string => {
 
 export const formatHeadlessServeOutput = (accessInfo: HeadlessServeAccessInfo): string =>
   [
-    "Supacode server is ready.",
+    "Supaterm server is ready.",
     `Connection string: ${accessInfo.connectionString}`,
     `Token: ${accessInfo.token}`,
     `Pairing URL: ${accessInfo.pairingUrl}`,

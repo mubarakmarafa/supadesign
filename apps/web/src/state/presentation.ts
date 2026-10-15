@@ -1,10 +1,10 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentPresentation } from "@supacode/client-runtime/connection";
+import type { EnvironmentPresentation } from "@supaterm/client-runtime/connection";
 import {
   createEnvironmentPresentationAtoms,
   createEnvironmentSummaryAtoms,
-} from "@supacode/client-runtime/state/presentation";
-import type { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/presentation";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import { environmentCatalog } from "../connection/catalog";

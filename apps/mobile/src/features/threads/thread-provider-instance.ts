@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import {
   normalizeProviderAccentColor,
   resolveProviderInstanceDisplayName,
   shouldShowInstanceBadge,
-} from "@supacode/client-runtime/state/provider-instance-display";
-import type { EnvironmentId, ProviderDriverKind } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/provider-instance-display";
+import type { EnvironmentId, ProviderDriverKind } from "@supaterm/contracts";
 
 import type { ThreadListProvider } from "../../state/thread-list-environments";
 /** What a thread row needs to draw the provider glyph and its account badge. */

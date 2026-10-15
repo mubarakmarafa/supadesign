@@ -4,7 +4,7 @@ import {
   type OrchestrationProjectShell,
   type OrchestrationV2ShellSnapshot,
   type OrchestrationV2ShellStreamItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 const sameThreadShell = Schema.toEquivalence(OrchestrationV2ThreadShell);

@@ -1,4 +1,4 @@
-import type { DesktopUpdateRemoteOutcome, DesktopUpdateState } from "@supacode/contracts";
+import type { DesktopUpdateRemoteOutcome, DesktopUpdateState } from "@supaterm/contracts";
 
 /**
  * What a server-triggered update run should do next, given the updater's

@@ -1,13 +1,13 @@
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { deriveThreadQueueWorkflowState } from "@supacode/client-runtime/state/thread-workflows";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { deriveThreadQueueWorkflowState } from "@supaterm/client-runtime/state/thread-workflows";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 import type {
   ChatAttachment as ContractChatAttachment,
   EnvironmentId,
   MessageId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   Clock3Icon,
   CornerUpRightIcon,
@@ -43,7 +43,7 @@ interface QueuedRowThumbnail {
   readonly url: string | null;
 }
 
-const QUEUED_RUN_DRAG_TYPE = "application/x-supacode-queued-run";
+const QUEUED_RUN_DRAG_TYPE = "application/x-supaterm-queued-run";
 
 export interface QueuedRunsControlHandle {
   steerNext: (repeat: boolean) => boolean;

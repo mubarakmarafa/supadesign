@@ -1,8 +1,8 @@
-import { fileBasename } from "@supacode/shared/path";
-import type { ThreadId } from "@supacode/contracts";
+import { fileBasename } from "@supaterm/shared/path";
+import type { ThreadId } from "@supaterm/contracts";
 import { resolveMarkdownLinkPresentation } from "../../lib/markdownLinks";
 import type { MarkdownFileContextMenu } from "../../native/SelectableMarkdownText.types";
-import { hostPreviewMimeTypeFromExtension } from "@supacode/shared/filePreview";
+import { hostPreviewMimeTypeFromExtension } from "@supaterm/shared/filePreview";
 
 import {
   isAbsolutePath,

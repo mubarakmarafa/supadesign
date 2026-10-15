@@ -1,4 +1,4 @@
-import type { KeybindingCommand, ResolvedKeybindingsConfig } from "@supacode/contracts";
+import type { KeybindingCommand, ResolvedKeybindingsConfig } from "@supaterm/contracts";
 import type { UsageChartMetric } from "./UsageProviderChart";
 import { resolveShortcutCommand, type ShortcutEventLike } from "../../keybindings";
 

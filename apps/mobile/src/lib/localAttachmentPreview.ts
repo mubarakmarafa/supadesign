@@ -1,5 +1,5 @@
 import { loadExpoFileSystem } from "./expoFileSystem";
-import { videoMimeType } from "@supacode/shared/video";
+import { videoMimeType } from "@supaterm/shared/video";
 
 import type { FileBackedComposerAttachment } from "./composerImages";
 import { resolveOwnedComposerAttachmentFileUri } from "./composerAttachmentFiles";

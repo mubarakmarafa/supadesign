@@ -1,5 +1,5 @@
-import type { ServerConfig } from "@supacode/contracts";
-import { EnvironmentId } from "@supacode/contracts";
+import type { ServerConfig } from "@supaterm/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Option from "effect/Option";
 import * as DateTime from "effect/DateTime";

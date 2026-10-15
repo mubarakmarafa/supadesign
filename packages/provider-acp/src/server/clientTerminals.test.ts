@@ -2,7 +2,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Result from "effect/Result";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import {
   makeAcpClientTerminals,
@@ -50,7 +50,7 @@ describe("AcpClientTerminals", () => {
       const terminals = yield* makeAcpClientTerminals({
         defaultCwd: process.cwd(),
         environmentForSession: (sessionId) => ({
-          SUPACODE_TEST_ACP_SESSION_TOKEN: sessionId === "session-a" ? "token-a" : "token-b",
+          SUPATERM_TEST_ACP_SESSION_TOKEN: sessionId === "session-a" ? "token-a" : "token-b",
         }),
       });
       yield* Effect.addFinalizer(() => terminals.disposeAll);
@@ -62,7 +62,7 @@ describe("AcpClientTerminals", () => {
         const created = yield* terminals.create({
           sessionId,
           command: process.execPath,
-          args: ["-e", "process.stdout.write(process.env.SUPACODE_TEST_ACP_SESSION_TOKEN ?? '')"],
+          args: ["-e", "process.stdout.write(process.env.SUPATERM_TEST_ACP_SESSION_TOKEN ?? '')"],
         });
         yield* terminals.waitForExit({ sessionId, terminalId: created.terminalId });
         const output = yield* terminals.output({ sessionId, terminalId: created.terminalId });
@@ -76,13 +76,13 @@ describe("AcpClientTerminals", () => {
       const terminals = yield* makeAcpClientTerminals({
         defaultCwd: process.cwd(),
         shellCommands: true,
-        environmentForSession: () => ({ SUPACODE_ACP_MCP_NODE: "mailbox-probe" }),
+        environmentForSession: () => ({ SUPATERM_ACP_MCP_NODE: "mailbox-probe" }),
       });
       yield* Effect.addFinalizer(() => terminals.disposeAll);
       // Same command-only shape as the failed production commands and live capture.
       const terminal = yield* terminals.create({
         sessionId: "devin",
-        command: 'printf "%s\\n" "$SUPACODE_ACP_MCP_NODE" | tr a-z A-Z',
+        command: 'printf "%s\\n" "$SUPATERM_ACP_MCP_NODE" | tr a-z A-Z',
       });
       const exit = yield* terminals.waitForExit({ sessionId: "devin", ...terminal });
       const output = yield* terminals.output({ sessionId: "devin", ...terminal });
@@ -289,14 +289,14 @@ describe("resolveEmbeddedTerminalContent", () => {
         toolCallId: "call-1",
         content: [
           { type: "content" as const, content: { type: "text" as const, text: "before" } },
-          { type: "terminal" as const, terminalId: "supacode-term-1" },
-          { type: "terminal" as const, terminalId: "supacode-term-unknown" },
+          { type: "terminal" as const, terminalId: "supaterm-term-1" },
+          { type: "terminal" as const, terminalId: "supaterm-term-unknown" },
         ],
       },
     };
 
     const resolved = resolveEmbeddedTerminalContent(notification, (sessionId, terminalId) =>
-      sessionId === "session" && terminalId === "supacode-term-1"
+      sessionId === "session" && terminalId === "supaterm-term-1"
         ? { output: "compiled 3 files", truncated: false, exitStatus: undefined }
         : undefined,
     );
@@ -305,7 +305,7 @@ describe("resolveEmbeddedTerminalContent", () => {
       content: [
         { type: "content", content: { type: "text", text: "before" } },
         { type: "content", content: { type: "text", text: "compiled 3 files" } },
-        { type: "content", content: { type: "text", text: "[terminal supacode-term-unknown]" } },
+        { type: "content", content: { type: "text", text: "[terminal supaterm-term-unknown]" } },
       ],
     });
   });

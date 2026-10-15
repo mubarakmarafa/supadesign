@@ -1,9 +1,9 @@
 import * as ProviderRegistry from "../ProviderRegistry.ts";
-import type { ServerProvider } from "@supacode/contracts";
+import type { ServerProvider } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Stream from "effect/Stream";
-import { makeManualOnlyProviderMaintenanceCapabilities } from "@supacode/provider-core/server/maintenanceResolver";
+import { makeManualOnlyProviderMaintenanceCapabilities } from "@supaterm/provider-core/server/maintenanceResolver";
 
 const makeProviderRegistryMock = (
   providers: ReadonlyArray<ServerProvider> = [],

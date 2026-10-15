@@ -1,6 +1,6 @@
-import type { AdvertisedEndpoint, DesktopWslState } from "@supacode/contracts";
+import type { AdvertisedEndpoint, DesktopWslState } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { buildPairingUrl } from "@supacode/shared/remote";
+import { buildPairingUrl } from "@supaterm/shared/remote";
 import {
   applyWslEnableSelection,
   canRevokeOtherClients,
@@ -14,7 +14,7 @@ import {
 
 it("shares the confirmed relay route before its status subscription arrives", () => {
   const relay = {
-    relayEndpoint: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`,
+    relayEndpoint: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
     relayUrl: "wss://custom-relay.invalid",
   };
   const settings = { publicRelayEnabled: true, publicRelayUrl: relay.relayUrl };
@@ -254,7 +254,7 @@ describe("canRevokeOtherClients", () => {
 
 it("uses current routing when the relay server changes after link creation", () => {
   const prepared = {
-    relayEndpoint: "https://relay.supacode.invalid/",
+    relayEndpoint: "https://relay.supaterm.invalid/",
     relayUrl: "wss://old-relay.invalid",
   };
   const settings = { publicRelayEnabled: true, publicRelayUrl: "wss://new-relay.invalid" };

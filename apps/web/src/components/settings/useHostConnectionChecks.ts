@@ -1,8 +1,8 @@
-import { AuthSettingsWriteScope } from "@supacode/contracts";
+import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { readEnvironmentScope } from "../../state/session";
 import { useRef, useState } from "react";
 import * as Cause from "effect/Cause";
-import type { SshDeviceHostConfig } from "@supacode/contracts";
+import type { SshDeviceHostConfig } from "@supaterm/contracts";
 import { deviceEnvironment } from "../../state/device";
 import { useAtomCommand } from "../../state/use-atom-command";
 import {

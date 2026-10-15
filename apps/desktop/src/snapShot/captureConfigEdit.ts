@@ -1,4 +1,4 @@
-import { parseKeybindingShortcut } from "@supacode/shared/keybindings";
+import { parseKeybindingShortcut } from "@supaterm/shared/keybindings";
 import { readKdlNodes, type KdlNode } from "./captureConfigKdl.ts";
 import { niriCaptureBinding } from "./linuxCaptureSession.ts";
 

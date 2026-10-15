@@ -1,24 +1,24 @@
-import type { ProviderInteractionMode } from "@supacode/contracts";
+import type { ProviderInteractionMode } from "@supaterm/contracts";
 import type { V2TurnStartParams__AdditionalContextEntry } from "effect-codex-app-server/schema";
-import { buildRuntimeInstructions } from "@supacode/provider-core/server/runtimeInstructions";
+import { buildRuntimeInstructions } from "@supaterm/provider-core/server/runtimeInstructions";
 
 import {
-  SUPACODE_BROWSER_TOOL_INSTRUCTIONS,
-  SUPACODE_ORCHESTRATION_INSTRUCTIONS,
-} from "@supacode/provider-core/server/orchestrationInstructions";
+  SUPATERM_BROWSER_TOOL_INSTRUCTIONS,
+  SUPATERM_ORCHESTRATION_INSTRUCTIONS,
+} from "@supaterm/provider-core/server/orchestrationInstructions";
 
-const SUPACODE_DEVICE_TOOL_INSTRUCTIONS = `## Supacode devices
+const SUPATERM_DEVICE_TOOL_INSTRUCTIONS = `## Supaterm devices
 
-The \`supacode\` MCP server also exposes \`device_*\` tools for iOS Simulators and Android Emulators on this environment. For mobile verification, call \`device_list\`, then \`device_open\` so the user can watch the device in their Device panel; its result explains how to drive the device. Driving happens through the \`agent-device\` CLI, using the exact launcher path returned by \`device_open\`. Keep the host config and session flags returned by \`device_open\` on every command so concurrent devices stay independent: prefer \`agent-device snapshot -i\` refs over coordinates, and use \`device_screenshot\` when you need to see the screen. Prefer these tools and \`agent-device\` for opening and driving devices. Platform tools such as \`xcrun simctl\` and \`adb\` remain available for anything they do not cover, such as builds, logs, or port forwarding. If \`device_list\` reports a platform as unavailable, say so.`;
+The \`supaterm\` MCP server also exposes \`device_*\` tools for iOS Simulators and Android Emulators on this environment. For mobile verification, call \`device_list\`, then \`device_open\` so the user can watch the device in their Device panel; its result explains how to drive the device. Driving happens through the \`agent-device\` CLI, using the exact launcher path returned by \`device_open\`. Keep the host config and session flags returned by \`device_open\` on every command so concurrent devices stay independent: prefer \`agent-device snapshot -i\` refs over coordinates, and use \`device_screenshot\` when you need to see the screen. Prefer these tools and \`agent-device\` for opening and driving devices. Platform tools such as \`xcrun simctl\` and \`adb\` remain available for anything they do not cover, such as builds, logs, or port forwarding. If \`device_list\` reports a platform as unavailable, say so.`;
 
-export interface SupacodeToolAvailability {
+export interface SupatermToolAvailability {
   readonly browser: boolean;
   readonly device: boolean;
 }
 
 const normalizeAvailability = (
-  availability: boolean | SupacodeToolAvailability,
-): SupacodeToolAvailability =>
+  availability: boolean | SupatermToolAvailability,
+): SupatermToolAvailability =>
   typeof availability === "boolean" ? { browser: availability, device: false } : availability;
 
 /**
@@ -28,11 +28,11 @@ const normalizeAvailability = (
  * from Playwright, agent-browser, and raw simctl/adb, so leaving them in would
  * talk it out of the only automation it still has.
  */
-const toolInstructions = (availability: boolean | SupacodeToolAvailability): string => {
+const toolInstructions = (availability: boolean | SupatermToolAvailability): string => {
   const tools = normalizeAvailability(availability);
   return [
-    tools.browser ? SUPACODE_BROWSER_TOOL_INSTRUCTIONS : "",
-    tools.device ? SUPACODE_DEVICE_TOOL_INSTRUCTIONS : "",
+    tools.browser ? SUPATERM_BROWSER_TOOL_INSTRUCTIONS : "",
+    tools.device ? SUPATERM_DEVICE_TOOL_INSTRUCTIONS : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -195,7 +195,7 @@ export function buildCodexDeveloperInstructions(interactionMode: ProviderInterac
 }
 
 /**
- * Supacode context for `turn/start.additionalContext`. Codex renders each entry
+ * Supaterm context for `turn/start.additionalContext`. Codex renders each entry
  * as a `<key>value</key>` developer message and resends it only when the value
  * changes.
  *
@@ -206,20 +206,20 @@ export function buildCodexDeveloperInstructions(interactionMode: ProviderInterac
 export function buildCodexAdditionalContext(
   runtime: CodexRuntimeInfo,
   /**
-   * Whether the `supacode` MCP server is attached to this turn. Callers derive
+   * Whether the `supaterm` MCP server is attached to this turn. Callers derive
    * it from the session's actual MCP configuration rather than re-reading the
    * setting, so the prompt cannot claim tools the turn doesn't have.
    */
-  toolsAvailable: boolean | SupacodeToolAvailability = true,
+  toolsAvailable: boolean | SupatermToolAvailability = true,
 ): Record<string, V2TurnStartParams__AdditionalContextEntry> {
   const tools = toolInstructions(toolsAvailable);
   // Separate keys keep each value under Codex's per-entry token cap.
   return {
-    supacode_orchestration: { kind: "application", value: SUPACODE_ORCHESTRATION_INSTRUCTIONS },
-    supacode_runtime: {
+    supaterm_orchestration: { kind: "application", value: SUPATERM_ORCHESTRATION_INSTRUCTIONS },
+    supaterm_runtime: {
       kind: "application",
       value: buildRuntimeInstructions({ harness: "Codex", ...runtime }),
     },
-    ...(tools ? { supacode_tools: { kind: "application", value: tools } } : {}),
+    ...(tools ? { supaterm_tools: { kind: "application", value: tools } } : {}),
   };
 }

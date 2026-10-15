@@ -15,7 +15,7 @@ import {
   PastedTextAttachmentSource,
   ThreadId,
   UploadChatAttachment,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 const CreateThread = Schema.Struct({

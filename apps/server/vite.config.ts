@@ -23,7 +23,7 @@ export { shouldBundleCliDependency };
 // step refuses multi-chunk output and counts the sourcemap as a chunk, and the
 // executable needs a host Node that supports `--build-sea` (25.7+), so this is
 // a separate mode rather than a second entry in the default build.
-const packExecutable = process.env.SUPACODE_PACK_EXE === "1";
+const packExecutable = process.env.SUPATERM_PACK_EXE === "1";
 // `<platform>-<arch>` in nodejs.org naming (darwin-x64, linux-arm64, win-x64).
 // When set, tsdown injects the bundle into a downloaded Node of that target
 // instead of the host Node, which is how the arm64 macOS runner produces the
@@ -41,10 +41,10 @@ const SEA_TARGETS = {
   "win-arm64": { platform: "win", arch: "arm64" },
   "win-x64": { platform: "win", arch: "x64" },
 } as const;
-const packExecutableTarget = process.env.SUPACODE_PACK_EXE_TARGET?.trim();
+const packExecutableTarget = process.env.SUPATERM_PACK_EXE_TARGET?.trim();
 if (packExecutableTarget && !Object.hasOwn(SEA_TARGETS, packExecutableTarget)) {
   throw new Error(
-    `SUPACODE_PACK_EXE_TARGET must be one of ${Object.keys(SEA_TARGETS).join(", ")}, got "${packExecutableTarget}".`,
+    `SUPATERM_PACK_EXE_TARGET must be one of ${Object.keys(SEA_TARGETS).join(", ")}, got "${packExecutableTarget}".`,
   );
 }
 const packExecutableTargets = packExecutableTarget
@@ -63,7 +63,7 @@ export default mergeConfig(
       tasks: {
         build: {
           command: "node scripts/cli.ts build",
-          dependsOn: ["@supacode/web#build"],
+          dependsOn: ["@supaterm/web#build"],
           cache: false,
         },
       },
@@ -78,7 +78,7 @@ export default mergeConfig(
       ...(packExecutable
         ? {
             exe: {
-              fileName: "supacode",
+              fileName: "supaterm",
               outDir: "dist-exe",
               ...(packExecutableTargets ? { targets: packExecutableTargets } : {}),
               // Node's SEA docs: `import()` does not work when useCodeCache is

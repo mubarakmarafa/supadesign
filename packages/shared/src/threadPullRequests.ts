@@ -4,9 +4,9 @@ import type {
   ThreadLinkedPullRequest,
   ThreadPullRequestKey,
   ThreadPullRequestLink,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
-import { pullRequestHostOf } from "@supacode/contracts";
+import { pullRequestHostOf } from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import { parseChangeRequestUrl } from "./changeRequestUrl.ts";
 import { canonicalRepositoryKey, sourceControlRepositorySelector } from "./sourceControl.ts";

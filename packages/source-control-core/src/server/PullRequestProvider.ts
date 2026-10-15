@@ -36,8 +36,8 @@ import type {
   PullRequestUpdateMethod,
   PullRequestViewerPermissions,
   SourceControlProviderKind,
-} from "@supacode/contracts";
-import { SourceControlProviderKind as SourceControlProviderKindSchema } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { SourceControlProviderKind as SourceControlProviderKindSchema } from "@supaterm/contracts";
 
 /**
  * The one failure shape every provider reports, so the service can decide what a failure means

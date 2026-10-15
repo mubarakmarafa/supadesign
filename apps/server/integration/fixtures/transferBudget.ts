@@ -1,4 +1,4 @@
-import type { ProviderDriverKind } from "@supacode/contracts";
+import type { ProviderDriverKind } from "@supaterm/contracts";
 export const TRANSFER_HISTORY_TURN_COUNT = 10;
 export const TRANSFER_HISTORY_TOOLS_PER_TURN = 5;
 export const TRANSFER_MEASURED_TOOLS = 20;

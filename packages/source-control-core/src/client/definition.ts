@@ -17,8 +17,8 @@ import {
   type PullRequestReviewVerdict,
   type RepositoryIdentity,
   SourceControlProviderKind,
-} from "@supacode/contracts";
-import type { ChangeRequestLink } from "@supacode/shared/changeRequestUrl";
+} from "@supaterm/contracts";
+import type { ChangeRequestLink } from "@supaterm/shared/changeRequestUrl";
 import * as Schema from "effect/Schema";
 
 /** What a host calls a change request, e.g. `MR` and `merge request` on GitLab. */

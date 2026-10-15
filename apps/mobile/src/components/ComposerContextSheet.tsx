@@ -1,16 +1,16 @@
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import { useOpenPullRequest } from "../native/useOpenPullRequest";
 import { SourceFileSurface } from "../features/files/SourceFileSurface";
-import { filePreviewKind } from "@supacode/shared/filePreview";
+import { filePreviewKind } from "@supaterm/shared/filePreview";
 import type {
   ComposerContextRecord,
   ElementContextSource,
   EnvironmentId,
   ProjectId,
   ScopedThreadRef,
-} from "@supacode/contracts";
-import { formatAttachmentSize } from "@supacode/client-runtime/state/attachments";
-import { videoMimeType } from "@supacode/shared/video";
+} from "@supaterm/contracts";
+import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
+import { videoMimeType } from "@supaterm/shared/video";
 import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { REVIEW_MONO_FONT_FAMILY } from "../features/review/reviewDiffRendering";

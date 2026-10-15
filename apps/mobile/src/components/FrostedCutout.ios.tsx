@@ -4,7 +4,7 @@ import { StyleSheet, type ViewProps } from "react-native";
 import type { FrostedCutoutProps } from "./FrostedCutout.types";
 
 const NativeFrostedCutout = requireNativeView<ViewProps & FrostedCutoutProps>(
-  "SupacodeNativeControls",
+  "SupatermNativeControls",
   "FrostedCutout",
 );
 

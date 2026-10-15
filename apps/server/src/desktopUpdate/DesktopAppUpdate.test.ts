@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
-import type { DesktopUpdateState, DesktopUpdateStatusReport } from "@supacode/contracts";
+import type { DesktopUpdateState, DesktopUpdateStatusReport } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Fiber from "effect/Fiber";
@@ -66,7 +66,7 @@ const makeHarness = Effect.fn("test.make_desktop_app_update_harness")(function* 
 ) {
   const fs = yield* FileSystem.FileSystem;
   const baseDir = yield* fs.makeTempDirectoryScoped({
-    prefix: "supacode-desktop-app-update-test-",
+    prefix: "supaterm-desktop-app-update-test-",
   });
   let currentRequestId = "not-requested";
   const baseConfig = yield* ServerConfig.ServerConfig.pipe(
@@ -115,7 +115,7 @@ it.layer(NodeServices.layer)("desktop app update", (it) => {
       const noFd = yield* makeHarness({ controlFd: undefined });
       expect(noFd.service.available).toBe(false);
       expect((yield* noFd.service.run(() => Effect.void).pipe(Effect.flip)).reason).toContain(
-        "not started by the Supacode desktop app",
+        "not started by the Supaterm desktop app",
       );
       const desktop = yield* makeHarness();
       expect(desktop.service.available).toBe(true);

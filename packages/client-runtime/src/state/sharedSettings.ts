@@ -13,8 +13,8 @@ import type {
   ExecutionEnvironmentCapabilities,
   ServerSettings,
   ServerSettingsPatch,
-} from "@supacode/contracts";
-import { isModelSelectionProviderEnabled } from "@supacode/shared/serverSettings";
+} from "@supaterm/contracts";
+import { isModelSelectionProviderEnabled } from "@supaterm/shared/serverSettings";
 import * as Equal from "effect/Equal";
 import * as Struct from "effect/Struct";
 

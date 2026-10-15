@@ -83,7 +83,7 @@ import { isForegroundHandoffActive } from "./foreground-handoff";
 
 const NOW = 1_787_990_400_000;
 const DAY_MS = 24 * 60 * 60_000;
-const CACHE = "file:///cache/supacode-attachment-downloads";
+const CACHE = "file:///cache/supaterm-attachment-downloads";
 const input = {
   url: "https://chosen-environment.example/api/assets/signed-token/report.pdf",
   attachment: { name: "report.pdf", mimeType: "application/pdf" },

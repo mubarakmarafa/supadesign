@@ -7,14 +7,14 @@
  *
  * @module sourceControl/sourceControlHostSecrets
  */
-import { secretSettingsFields } from "@supacode/contracts";
-import * as AzureDevOps from "@supacode/source-control-azure-devops/client/definition";
-import * as Bitbucket from "@supacode/source-control-bitbucket/client/definition";
-import type { SourceControlClientDefinition } from "@supacode/source-control-core/client/definition";
-import * as Forgejo from "@supacode/source-control-forgejo/client/definition";
-import * as GitCafe from "@supacode/source-control-gitcafe/client/definition";
-import * as GitHub from "@supacode/source-control-github/client/definition";
-import * as GitLab from "@supacode/source-control-gitlab/client/definition";
+import { secretSettingsFields } from "@supaterm/contracts";
+import * as AzureDevOps from "@supaterm/source-control-azure-devops/client/definition";
+import * as Bitbucket from "@supaterm/source-control-bitbucket/client/definition";
+import type { SourceControlClientDefinition } from "@supaterm/source-control-core/client/definition";
+import * as Forgejo from "@supaterm/source-control-forgejo/client/definition";
+import * as GitCafe from "@supaterm/source-control-gitcafe/client/definition";
+import * as GitHub from "@supaterm/source-control-github/client/definition";
+import * as GitLab from "@supaterm/source-control-gitlab/client/definition";
 
 const definitions: ReadonlyArray<SourceControlClientDefinition> = [
   GitHub.definition,

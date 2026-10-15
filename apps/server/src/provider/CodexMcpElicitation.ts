@@ -1,4 +1,4 @@
-import type { ProviderApprovalDecision, ProviderApprovalOption } from "@supacode/contracts";
+import type { ProviderApprovalDecision, ProviderApprovalOption } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import type * as EffectCodexSchema from "effect-codex-app-server/schema";
 
@@ -171,7 +171,7 @@ export function describeMcpElicitation(
   };
 }
 
-/** Converts a Supacode approval decision into the MCP elicitation wire response. */
+/** Converts a Supaterm approval decision into the MCP elicitation wire response. */
 export function toMcpElicitationResponse(
   payload: EffectCodexSchema.McpServerElicitationRequestParams,
   decision: ProviderApprovalDecision,

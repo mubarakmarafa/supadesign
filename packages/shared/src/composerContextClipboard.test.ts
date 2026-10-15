@@ -72,7 +72,7 @@ describe("composerContextClipboard", () => {
     expect(html).not.toContain("<script>");
     expect(decodeComposerContextClipboardHtml(html)).toEqual(JSON.parse(raw));
     expect(
-      decodeComposerContextClipboardHtml('<pre data-supacode-context-fragment="%ZZ">bad</pre>'),
+      decodeComposerContextClipboardHtml('<pre data-supaterm-context-fragment="%ZZ">bad</pre>'),
     ).toBeNull();
     expect(decodeComposerContextClipboardHtml("<p>Ordinary clipboard</p>")).toBeNull();
   });

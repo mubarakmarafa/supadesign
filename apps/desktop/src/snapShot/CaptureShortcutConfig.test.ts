@@ -8,7 +8,7 @@ import { afterEach, beforeEach, expect, it as test, vi } from "vite-plus/test";
 import { CaptureShortcutConfig, niriCaptureConfigPath } from "./CaptureShortcutConfig.ts";
 import { captureConfigBinding } from "./captureConfigEdit.ts";
 
-// oxlint-disable-next-line supacode/no-global-process-runtime -- Test collection checks the host before starting these Linux-native filesystem tests.
+// oxlint-disable-next-line supaterm/no-global-process-runtime -- Test collection checks the host before starting these Linux-native filesystem tests.
 const it = process.platform === "linux" ? test : test.skip;
 let directory: string;
 let path: string;
@@ -19,11 +19,11 @@ const tools = {
     vi.fn<() => Promise<{ modmask: number; key: string; dispatcher: string; arg: string }[]>>(),
   reloadHyprland: vi.fn<() => Promise<void>>(),
 };
-const appId = "com.supaterm.supacode";
+const appId = "com.supaterm.desktop";
 const install = { operation: "install", chooseFile: false } as const;
 const target = () => ({ desktop: "niri" as const, path, appId });
 beforeEach(async () => {
-  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-capture-config-"));
+  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-capture-config-"));
   path = NodePath.join(directory, "config.kdl");
   await NodeFSP.writeFile(path, "binds {\n    Mod+Q { quit; }\n}\n", { mode: 0o640 });
   tools.validateNiri.mockReset().mockResolvedValue(undefined);

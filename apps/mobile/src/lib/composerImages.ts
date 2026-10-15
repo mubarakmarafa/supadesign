@@ -2,7 +2,7 @@ import { loadExpoFileSystem } from "./expoFileSystem";
 import {
   clampFileAttachmentUploadBytes,
   fileAttachmentTooLargeMessage,
-} from "@supacode/client-runtime/state/attachments";
+} from "@supaterm/client-runtime/state/attachments";
 import {
   isProviderSendTurnSupportedImageMimeType,
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
@@ -11,7 +11,7 @@ import {
   type EnvironmentId,
   type PastedTextAttachmentSource,
   type UploadChatImageAttachment,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { DocumentPickerResult } from "expo-document-picker";
 import { estimateBase64ByteSize } from "./base64";
 import {
@@ -19,8 +19,8 @@ import {
   isComposerAttachmentFileRetained,
   resolveOwnedComposerAttachmentFileUri,
 } from "./composerAttachmentFiles";
-import { imageMimeType } from "@supacode/shared/image";
-import { videoMimeType } from "@supacode/shared/video";
+import { imageMimeType } from "@supaterm/shared/image";
+import { videoMimeType } from "@supaterm/shared/video";
 import { beginForegroundHandoff } from "./foreground-handoff";
 import { uuidv4 } from "./uuid";
 import { writeFileAtomically } from "./atomic-file";
@@ -132,7 +132,7 @@ export function composerAttachmentInlineUri(
   return attachment.type === "image" ? (attachment.dataUrl ?? attachment.previewUri) : undefined;
 }
 
-const OWNED_PASTED_IMAGE_DIRECTORY = "supacode-composer-paste";
+const OWNED_PASTED_IMAGE_DIRECTORY = "supaterm-composer-paste";
 const ATTACHMENT_COPY_CHUNK_BYTES = 64 * 1024;
 
 export async function persistComposerAttachmentFile(

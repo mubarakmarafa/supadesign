@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
-import { EnvironmentId, ProjectId, ThreadId } from "@supacode/contracts";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
+import { EnvironmentId, ProjectId, ThreadId } from "@supaterm/contracts";
 import { act, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

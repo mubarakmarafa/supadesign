@@ -1,4 +1,4 @@
-import { resolveFilesystemReadAccess } from "@supacode/client-runtime/state/filesystem";
+import { resolveFilesystemReadAccess } from "@supaterm/client-runtime/state/filesystem";
 import { useEnvironmentPresentation } from "../../state/presentation";
 import { environmentSession } from "../../state/session";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -11,19 +11,19 @@ import type {
   ProviderOptionSelection,
   RuntimeMode,
   ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   CommandId,
   DEFAULT_RUNTIME_MODE,
   DEFAULT_SERVER_SETTINGS,
   MessageId,
   repositoryGroupingKeyOf,
-  SUPACODE_PROJECT_FILE_NAME,
+  SUPATERM_PROJECT_FILE_NAME,
   ThreadId,
-} from "@supacode/contracts";
-import { sanitizeNewRefName } from "@supacode/shared/git";
-import { resolveNewThreadEnvMode, resolveProjectSettings } from "@supacode/shared/projectSettings";
-import { parseSupacodeProjectFile } from "@supacode/shared/supacodeProjectFile";
+} from "@supaterm/contracts";
+import { sanitizeNewRefName } from "@supaterm/shared/git";
+import { resolveNewThreadEnvMode, resolveProjectSettings } from "@supaterm/shared/projectSettings";
+import { parseSupatermProjectFile } from "@supaterm/shared/supatermProjectFile";
 import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 
@@ -95,14 +95,14 @@ import {
   useRemoteConnectionStatus,
   useSavedRemoteConnections,
 } from "../../state/use-remote-environment-registry";
-import { availableScratchWorkspaceRoot } from "@supacode/client-runtime/operations/projects";
+import { availableScratchWorkspaceRoot } from "@supaterm/client-runtime/operations/projects";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import { isScratchProject } from "@supacode/client-runtime/state/projects";
-import { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import { type VcsRef } from "@supacode/client-runtime/state/vcs";
+} from "@supaterm/client-runtime/state/runtime";
+import { isScratchProject } from "@supaterm/client-runtime/state/projects";
+import { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import { type VcsRef } from "@supaterm/client-runtime/state/vcs";
 import {
   buildHomeProjectScopes,
   sortHomeProjectScopes,
@@ -519,7 +519,7 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
   const attachments = selectedProjectDraft.attachments;
   // Default mode until the user picks one explicitly — same resolution web
   // uses for new draft threads: per-project setting, then the repo's
-  // checked-in supacode.json, then the server's configured default (which a new
+  // checked-in supaterm.json, then the server's configured default (which a new
   // project with no threads yet replaces with its checkout).
   const fileAccessSession = useEnvironmentQuery(
     selectedProject !== null && selectedProject.workspaceRoot !== ""
@@ -536,23 +536,23 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
   const { canReadFiles } = fileAccess;
   const fileAccessPending =
     selectedProject !== null && selectedProject.workspaceRoot !== "" && fileAccess.isPending;
-  const supacodeProjectFileQuery = useEnvironmentQuery(
+  const supatermProjectFileQuery = useEnvironmentQuery(
     canReadFiles && selectedProject !== null && selectedProject.workspaceRoot !== ""
       ? projectEnvironment.readFile({
           environmentId: selectedProject.environmentId,
-          input: { cwd: selectedProject.workspaceRoot, relativePath: SUPACODE_PROJECT_FILE_NAME },
+          input: { cwd: selectedProject.workspaceRoot, relativePath: SUPATERM_PROJECT_FILE_NAME },
         })
       : null,
   );
-  const supacodeProjectFileData = supacodeProjectFileQuery.data as ProjectReadFileResult | null;
-  const supacodeProjectFile = useMemo(
+  const supatermProjectFileData = supatermProjectFileQuery.data as ProjectReadFileResult | null;
+  const supatermProjectFile = useMemo(
     () =>
-      supacodeProjectFileData === null || supacodeProjectFileData.truncated
+      supatermProjectFileData === null || supatermProjectFileData.truncated
         ? null
-        : parseSupacodeProjectFile(supacodeProjectFileData.contents),
-    [supacodeProjectFileData],
+        : parseSupatermProjectFile(supatermProjectFileData.contents),
+    [supatermProjectFileData],
   );
-  // Environment settings with the project's overrides and its supacode.json
+  // Environment settings with the project's overrides and its supaterm.json
   // applied; the aggregate's own legacy fields still count until the server
   // folds them.
   const projectSettings = useMemo(
@@ -561,9 +561,9 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
         selectedEnvironmentServerConfig?.settings ?? DEFAULT_SERVER_SETTINGS,
         selectedProject?.id ?? null,
         selectedProject,
-        supacodeProjectFile,
+        supatermProjectFile,
       ),
-    [selectedEnvironmentServerConfig?.settings, selectedProject, supacodeProjectFile],
+    [selectedEnvironmentServerConfig?.settings, selectedProject, supatermProjectFile],
   );
   // A thread without a project runs in a plain folder, so worktree mode
   // would leave it unsendable: it is always local and offers no choice.
@@ -586,11 +586,11 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
   // While the file read is pending and nothing above it decided, the
   // resolved default is provisional. Nothing may write it into the draft
   // during that window (the auto-branch effect does), or the frozen interim
-  // value beats the supacode.json default once it loads.
+  // value beats the supaterm.json default once it loads.
   const defaultWorkspaceModeSettled =
     selectedProjectDraft.workspaceSelection?.mode !== undefined ||
     projectSettings.sources.defaultThreadEnvMode !== "environment" ||
-    (!supacodeProjectFileQuery.isPending && !fileAccessPending);
+    (!supatermProjectFileQuery.isPending && !fileAccessPending);
   const workspaceMode = canChooseWorkspace
     ? (selectedProjectDraft.workspaceSelection?.mode ?? defaultWorkspaceMode)
     : "local";

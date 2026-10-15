@@ -5,12 +5,12 @@ import {
   type ProjectScript,
   type ProjectScriptIcon,
   type ResolvedKeybindingsConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   BugIcon,
   FlaskConicalIcon,
@@ -112,7 +112,7 @@ export const EMPTY_PROJECT_SCRIPT_INPUT: NewProjectScriptInput = {
 export interface ProjectScriptEditorRequest {
   scriptId: string | null;
   initial: NewProjectScriptInput;
-  /** Validation error to show immediately (e.g. a failed supacode.json import). */
+  /** Validation error to show immediately (e.g. a failed supaterm.json import). */
   error?: string;
 }
 

@@ -7,7 +7,7 @@ import {
   type ProviderInstanceId,
   type RuntimeMode,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 
@@ -20,14 +20,14 @@ const ALL_MCP_CAPABILITIES = [
 ] as const;
 export type McpCapability = (typeof ALL_MCP_CAPABILITIES)[number];
 
-/** A provider session Supacode launched for one thread. */
+/** A provider session Supaterm launched for one thread. */
 export interface McpThreadCaller {
   readonly threadId: ThreadId;
   readonly providerSessionId: string;
   readonly providerInstanceId: ProviderInstanceId;
 }
 
-/** An agent Supacode did not launch, signed in through MCP OAuth. */
+/** An agent Supaterm did not launch, signed in through MCP OAuth. */
 export interface McpClientCaller {
   readonly sessionId: string;
   readonly label: string;
@@ -63,7 +63,7 @@ export interface McpInvocationScope {
 export class McpInvocationContext extends Context.Service<
   McpInvocationContext,
   McpInvocationScope
->()("supacode/mcp/McpInvocationContext") {}
+>()("supaterm/mcp/McpInvocationContext") {}
 
 /** The error a missing capability surfaces as; preview keeps its own so the broker can route it. */
 export type McpCapabilityError<C extends McpCapability> = C extends "preview"
@@ -121,7 +121,7 @@ export const requireThreadMcpCapability = <const C extends "preview" | "device">
 const threadCallerRequired = (operation: string) =>
   new OrchestratorMcpFailure({
     code: "thread_credential_required",
-    message: `${operation} acts as the calling Supacode thread, so it needs an agent running inside Supacode. This MCP client signed in from outside a thread.`,
+    message: `${operation} acts as the calling Supaterm thread, so it needs an agent running inside Supaterm. This MCP client signed in from outside a thread.`,
   });
 
 /** A scope with a thread caller, for tools whose whole surface acts as the caller. */

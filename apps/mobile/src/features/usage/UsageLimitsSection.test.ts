@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 
 const state = vi.hoisted(() => ({
@@ -45,7 +45,7 @@ vi.mock("../../state/server", () => ({ serverEnvironment: { refreshProviders: nu
 vi.mock("../../state/use-atom-command", () => ({ useAtomCommand: () => state.refreshProviders }));
 
 import { useRefreshLimits } from "./UsageLimitsSection";
-import { refreshUsageLimits } from "@supacode/client-runtime/state/usage";
+import { refreshUsageLimits } from "@supaterm/client-runtime/state/usage";
 
 beforeEach(() => {
   state.values = [];

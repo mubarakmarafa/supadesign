@@ -1,8 +1,8 @@
 import { DeviceHostUpdates } from "./DeviceHostUpdates";
-import type { DevicePlatform, DeviceServiceState, EnvironmentId } from "@supacode/contracts";
+import type { DevicePlatform, DeviceServiceState, EnvironmentId } from "@supaterm/contracts";
 import { Check } from "lucide-react";
 import { Check as CheckGlyph, CircleAlert } from "lucide";
-import { AuthSettingsWriteScope } from "@supacode/contracts";
+import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { useState } from "react";
 
 import { Button } from "~/components/ui/button";

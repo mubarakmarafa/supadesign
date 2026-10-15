@@ -1,4 +1,4 @@
-import { OrchestratorMcpFailure, type ServerSettings } from "@supacode/contracts";
+import { OrchestratorMcpFailure, type ServerSettings } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Environment from "../../../environment/ServerEnvironment.ts";
 import * as ThreadCommandExecutor from "../../../orchestration-v2/ThreadCommandExecutor.ts";
@@ -41,7 +41,7 @@ const access = Effect.gen(function* () {
   return { ...context, descriptor, settings: yield* Settings.ServerSettingsService };
 });
 export const layer = McpToolAccess.toLayer(EnvironmentToolkit, {
-  supacode_environment_read: McpToolAccess.reads(() =>
+  supaterm_environment_read: McpToolAccess.reads(() =>
     Effect.gen(function* () {
       const { descriptor, settings } = yield* access;
       const current = yield* settings.getSettings.pipe(Effect.mapError(unavailable));
@@ -54,7 +54,7 @@ export const layer = McpToolAccess.toLayer(EnvironmentToolkit, {
       };
     }),
   ),
-  supacode_environment_preferences_update: McpToolAccess.writesEnvironment((patch, check) =>
+  supaterm_environment_preferences_update: McpToolAccess.writesEnvironment((patch, check) =>
     Effect.gen(function* () {
       const scope = yield* McpInvocationContext.McpInvocationContext;
       const executor = yield* ThreadCommandExecutor.ThreadCommandExecutor;

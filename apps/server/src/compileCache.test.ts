@@ -9,7 +9,7 @@ it.each([false, true])(
   "persists an enabled cache before forced exit (disabled: %s)",
   async (disabled) => {
     const directory = await NodeFSP.mkdtemp(
-      NodePath.join(NodeOS.tmpdir(), "supacode-compile-cache-"),
+      NodePath.join(NodeOS.tmpdir(), "supaterm-compile-cache-"),
     );
     try {
       const cacheDirectory = NodePath.join(directory, "cache");

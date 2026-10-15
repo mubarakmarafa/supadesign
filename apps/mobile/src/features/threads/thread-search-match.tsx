@@ -1,5 +1,5 @@
-import { splitThreadSearchText } from "@supacode/shared/threadSearch";
-import type { EnvironmentThreadSearchMatch } from "@supacode/client-runtime/state/thread-search";
+import { splitThreadSearchText } from "@supaterm/shared/threadSearch";
+import type { EnvironmentThreadSearchMatch } from "@supaterm/client-runtime/state/thread-search";
 
 import { AppText as Text } from "../../components/AppText";
 import { cn } from "../../lib/cn";
@@ -27,7 +27,7 @@ export function ThreadSearchMatchExcerpt(props: {
     >
       <Text
         className={cn(
-          props.compact ? "text-sm font-supacode-medium" : "text-xs font-supacode-medium",
+          props.compact ? "text-sm font-supaterm-medium" : "text-xs font-supaterm-medium",
           props.selected
             ? "text-thread-selected-foreground"
             : isUser
@@ -43,7 +43,7 @@ export function ThreadSearchMatchExcerpt(props: {
         <Text
           className={cn(
             props.compact ? "text-sm" : "text-xs",
-            part.highlighted && "font-supacode-bold",
+            part.highlighted && "font-supaterm-bold",
             props.selected
               ? "text-thread-selected-foreground"
               : part.highlighted

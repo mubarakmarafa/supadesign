@@ -3,7 +3,7 @@ import {
   IsoDateTime,
   ProviderInstanceId,
   type PullRequestReviewGuideResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { guideNoticeState, reviewGuideState } from "./reviewGuideState";
 
 const guide: NonNullable<PullRequestReviewGuideResult["guide"]> = {

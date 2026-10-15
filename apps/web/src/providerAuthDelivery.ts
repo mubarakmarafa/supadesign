@@ -1,4 +1,4 @@
-import { readCodexAuthDelivery } from "@supacode/shared/codexAuthHandoff";
+import { readCodexAuthDelivery } from "@supaterm/shared/codexAuthHandoff";
 
 let pending: ReturnType<typeof readCodexAuthDelivery>;
 

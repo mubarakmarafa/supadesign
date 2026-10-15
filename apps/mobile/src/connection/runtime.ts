@@ -1,10 +1,10 @@
-import { Connection } from "@supacode/client-runtime/connection";
-import { ShellSnapshotLoader } from "@supacode/client-runtime/state/shell";
-import { PullRequestDiffLoader } from "@supacode/client-runtime/state/pull-requests";
+import { Connection } from "@supaterm/client-runtime/connection";
+import { ShellSnapshotLoader } from "@supaterm/client-runtime/state/shell";
+import { PullRequestDiffLoader } from "@supaterm/client-runtime/state/pull-requests";
 import {
   BoundedThreadSnapshotLoader,
   ThreadHistoryController,
-} from "@supacode/client-runtime/state/threads";
+} from "@supaterm/client-runtime/state/threads";
 import * as Layer from "effect/Layer";
 import { Atom } from "effect/reactivity";
 
@@ -55,7 +55,7 @@ export const connectionAtomRuntime: Atom.AtomRuntime<
   Layer.Success<ConnectionLayerSource>,
   Layer.Error<ConnectionLayerSource>
 > = hotSwappableAtomRuntime({
-  id: "supacode.mobile.connection-runtime",
+  id: "supaterm.mobile.connection-runtime",
   hotModule: typeof module === "undefined" ? undefined : module.hot,
   registry: appAtomRegistry,
   layer: layerConnection,

@@ -7,7 +7,7 @@ import type {
   SelectedLineRange,
 } from "@pierre/diffs";
 import type { CodeViewHandle } from "@pierre/diffs/react";
-import type { ScopedThreadRef } from "@supacode/contracts";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 import { useCallback, useMemo, useState, type ReactNode, type Ref } from "react";
 
 import { type DraftId, useComposerDraftStore } from "~/composerDraftStore";

@@ -3,7 +3,7 @@ import type { ConnectedEnvironmentSummary } from "../../state/remote-runtime-typ
 const SHOWCASE_LOCAL_ENVIRONMENT_DISPLAY_URLS: Readonly<Record<string, string>> = {
   "Studio Laptop": "https://studio.tailb37e.ts.net/",
   "Basement Tower": "http://192.168.1.40:3773/",
-  "Helsinki VPS": "https://vps.next.supacode.sh/",
+  "Helsinki VPS": "https://vps.supaterm.com/",
 };
 
 export function applyShowcaseLocalEnvironmentDisplayUrls(

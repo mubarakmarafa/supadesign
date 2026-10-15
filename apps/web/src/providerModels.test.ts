@@ -2,7 +2,7 @@ import {
   ProviderDriverKind,
   type ModelCapabilities,
   type ServerProviderModel,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { getProviderModelCapabilities } from "./providerModels";

@@ -1,5 +1,5 @@
-import { StoredOrchestrationShellSnapshot } from "@supacode/client-runtime/platform";
-import { OrchestrationV2ThreadShellJson } from "@supacode/contracts";
+import { StoredOrchestrationShellSnapshot } from "@supaterm/client-runtime/platform";
+import { OrchestrationV2ThreadShellJson } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 

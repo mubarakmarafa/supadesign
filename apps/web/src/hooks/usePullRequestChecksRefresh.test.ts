@@ -1,4 +1,4 @@
-import type { PullRequestCheck } from "@supacode/contracts";
+import type { PullRequestCheck } from "@supaterm/contracts";
 import { act, createElement } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { expect, it, vi } from "vite-plus/test";

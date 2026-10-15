@@ -24,7 +24,7 @@ import {
   localSnoozeTime,
   resolveCustomSnooze,
   type CustomSnoozeInput,
-} from "@supacode/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/thread-settled";
 import { requireNativeModule } from "expo";
 import { useEffect, useState } from "react";
 import { AppState, useWindowDimensions } from "react-native";
@@ -55,7 +55,7 @@ const units = [
 
 function systemUses24HourClock() {
   return requireNativeModule<{ is24HourFormat(): boolean }>(
-    "SupacodeNativeControls",
+    "SupatermNativeControls",
   ).is24HourFormat();
 }
 

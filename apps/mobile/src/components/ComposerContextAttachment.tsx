@@ -1,4 +1,4 @@
-import type { ComposerContextRecord, EnvironmentId } from "@supacode/contracts";
+import type { ComposerContextRecord, EnvironmentId } from "@supaterm/contracts";
 import { Alert, Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { useEffect, useId, useMemo, useState } from "react";

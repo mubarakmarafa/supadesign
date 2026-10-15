@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import { EnvironmentId, ThreadId, type TerminalSummary } from "@supacode/contracts";
-import { selectRunningSubprocessTerminalIds } from "@supacode/client-runtime/state/terminal";
+import { EnvironmentId, ThreadId, type TerminalSummary } from "@supaterm/contracts";
+import { selectRunningSubprocessTerminalIds } from "@supaterm/client-runtime/state/terminal";
 
 import { selectKnownTerminalSessions } from "./terminalSessions";
 

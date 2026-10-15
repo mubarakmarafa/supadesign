@@ -1,8 +1,8 @@
-import type { DiscoveredLocalServer } from "@supacode/contracts";
-import { isLoopbackHost } from "@supacode/shared/preview";
+import type { DiscoveredLocalServer } from "@supaterm/contracts";
+import { isLoopbackHost } from "@supaterm/shared/preview";
 import { useMemo } from "react";
 
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { resolveDiscoveredServerUrl } from "~/browser/browserTargetResolver";
 import { useDiscoveredPortsState } from "~/portDiscoveryState";
 

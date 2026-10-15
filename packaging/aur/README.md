@@ -1,7 +1,7 @@
 # AUR packaging
 
-This directory maintains the [`supacode-bin`](https://aur.archlinux.org/packages/supacode-bin) and
-[`supacode-nightly-bin`](https://aur.archlinux.org/packages/supacode-nightly-bin) packages. Both
+This directory maintains the [`supaterm-bin`](https://aur.archlinux.org/packages/supaterm-bin) and
+[`supaterm-nightly-bin`](https://aur.archlinux.org/packages/supaterm-nightly-bin) packages. Both
 repackage the official x86_64 AppImage from GitHub Releases.
 
 ## Publishing

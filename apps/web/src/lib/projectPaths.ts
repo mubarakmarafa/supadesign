@@ -14,4 +14,4 @@ export {
   normalizeProjectPathForComparison,
   normalizeProjectPathForDispatch,
   resolveProjectPathForDispatch,
-} from "@supacode/client-runtime/state/projects";
+} from "@supaterm/client-runtime/state/projects";

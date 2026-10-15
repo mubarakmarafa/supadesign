@@ -2,8 +2,8 @@ import {
   BearerConnectionTarget,
   PrimaryConnectionTarget,
   SshConnectionTarget,
-} from "@supacode/client-runtime/connection";
-import { buildRemoteOpenUrl, EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/connection";
+import { buildRemoteOpenUrl, EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { resolveRemoteOpenState } from "./remoteOpen";

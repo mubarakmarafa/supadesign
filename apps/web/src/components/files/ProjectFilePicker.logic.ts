@@ -1,5 +1,5 @@
-import type { ProjectEntry } from "@supacode/contracts";
-import { normalizeSearchQuery } from "@supacode/shared/searchRanking";
+import type { ProjectEntry } from "@supaterm/contracts";
+import { normalizeSearchQuery } from "@supaterm/shared/searchRanking";
 
 export const PROJECT_FILE_PICKER_RESULT_LIMIT = 200;
 

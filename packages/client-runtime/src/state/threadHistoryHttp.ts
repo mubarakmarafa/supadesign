@@ -1,4 +1,4 @@
-import type { ThreadId } from "@supacode/contracts";
+import type { ThreadId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 import type { PreparedConnection } from "../connection/model.ts";

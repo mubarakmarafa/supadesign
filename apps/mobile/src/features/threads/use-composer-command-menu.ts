@@ -1,14 +1,14 @@
-import type { EnvironmentId, ProjectId, ServerProvider, ThreadId } from "@supacode/contracts";
-import { matchComposerThreadItems } from "@supacode/client-runtime/composerThreadItems";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/models";
+import type { EnvironmentId, ProjectId, ServerProvider, ThreadId } from "@supaterm/contracts";
+import { matchComposerThreadItems } from "@supaterm/client-runtime/composerThreadItems";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/models";
 
 const EMPTY_THREAD_SHELLS: ReadonlyArray<EnvironmentThreadShell> = [];
 import {
   COMPOSER_CONTEXT_MAX_RECORDS,
   PROVIDER_WORKSPACE_SNAPSHOT_TTL_MS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Alert } from "react-native";
-import { formatComposerContextReference } from "@supacode/shared/composerContextReferences";
+import { formatComposerContextReference } from "@supaterm/shared/composerContextReferences";
 import { pullRequestComposerContext, threadComposerContext } from "../../lib/composerContext";
 import { uuidv4 } from "../../lib/uuid";
 import {
@@ -16,18 +16,18 @@ import {
   readComposerDraftSelection,
   setComposerDraftContext,
 } from "../../state/use-composer-drafts";
-import { USAGE_LIMITS_COMMAND } from "@supacode/shared/usageLimits";
+import { USAGE_LIMITS_COMMAND } from "@supaterm/shared/usageLimits";
 import {
   detectComposerTrigger,
   replaceTextRange,
   serializeComposerFileLink,
   type ComposerTrigger,
-} from "@supacode/shared/composerTrigger";
+} from "@supaterm/shared/composerTrigger";
 import {
   insertRankedSearchResult,
   normalizeSearchQuery,
   scoreQueryMatch,
-} from "@supacode/shared/searchRanking";
+} from "@supaterm/shared/searchRanking";
 import {
   dedupeProviderSkillsByName,
   getProviderSkillsForSlashMenu,
@@ -37,7 +37,7 @@ import {
   hasCurrentProviderWorkspaceSnapshot,
   resolveProviderSkillsForCwd,
   resolveProviderSlashCommandsForCwd,
-} from "@supacode/client-runtime/providerSkills";
+} from "@supaterm/client-runtime/providerSkills";
 import { useAtomValue } from "@effect/atom-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -59,7 +59,7 @@ export function buildComposerSlashCommandItems(input: {
   readonly query: string;
   readonly hasThread: boolean;
   readonly hasCompactableConversation?: boolean;
-  /** Whether Supacode itself offers /usage-limits for the selected provider. */
+  /** Whether Supaterm itself offers /usage-limits for the selected provider. */
   readonly offersUsageLimits?: boolean;
   readonly selectedProviderStatus: Pick<ServerProvider, "driver" | "slashCommands"> | null;
 }): ComposerCommandItem[] {
@@ -78,7 +78,7 @@ export function buildComposerSlashCommandItems(input: {
   for (const command of input.selectedProviderStatus?.slashCommands ?? []) {
     if (!command.name.toLowerCase().includes(query)) continue;
     if (command.name === "compact" && !input.hasCompactableConversation) continue;
-    // Supacode's own limits command is answered by the thread composer; New Task has
+    // Supaterm's own limits command is answered by the thread composer; New Task has
     // nowhere to show it. A provider's same-named command is left alone.
     if (command.name === USAGE_LIMITS_COMMAND.name && input.offersUsageLimits && !input.hasThread) {
       continue;
@@ -155,7 +155,7 @@ export function useComposerCommandMenu({
   readonly selectedProviderStatus: ServerProvider | null;
   readonly hasThread: boolean;
   readonly hasCompactableConversation: boolean;
-  /** Whether Supacode itself offers /usage-limits for the selected provider. */
+  /** Whether Supaterm itself offers /usage-limits for the selected provider. */
   readonly offersUsageLimits?: boolean;
   readonly enabled?: boolean;
   readonly onChangeDraftMessage: (value: string) => void;

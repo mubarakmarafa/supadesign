@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useAtomValue } from "@effect/atom-react";
-import { createDeviceEnvironmentAtoms } from "@supacode/client-runtime/state/device";
+import { createDeviceEnvironmentAtoms } from "@supaterm/client-runtime/state/device";
 import {
   type DeviceHubAccess,
   resolveDeviceHubAccess,
-} from "@supacode/client-runtime/state/deviceHubAccess";
-import type { DeviceServiceState, EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/deviceHubAccess";
+import type { DeviceServiceState, EnvironmentId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";

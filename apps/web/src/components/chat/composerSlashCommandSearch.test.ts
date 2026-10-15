@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { ProviderDriverKind } from "@supacode/contracts";
+import { ProviderDriverKind } from "@supaterm/contracts";
 
 import type { ComposerCommandItem } from "./ComposerCommandMenu";
 import { searchSlashCommandItems } from "./composerSlashCommandSearch";

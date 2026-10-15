@@ -1,9 +1,0 @@
-{
-  "name": "@supacode/mobile-relay-tunnel",
-  "version": "0.0.0",
-  "private": true,
-  "main": "index.ts",
-  "peerDependencies": {
-    "expo": "*"
-  }
-}

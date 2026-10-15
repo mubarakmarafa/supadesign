@@ -3,7 +3,7 @@ import type {
   PullRequestListEntry,
   PullRequestListInput,
   PullRequestListResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { PullRequestListControls } from "../../persistence/mobile-preferences";
 
 export const PR_LIST_PAGE_SIZE = 30;

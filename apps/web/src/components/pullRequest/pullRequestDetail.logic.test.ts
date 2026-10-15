@@ -1,5 +1,5 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
-import { serializeLegacyContextMessage } from "@supacode/shared/composerContextLegacySend";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import { serializeLegacyContextMessage } from "@supaterm/shared/composerContextLegacySend";
 import {
   ProjectId,
   PullRequestAction,
@@ -11,7 +11,7 @@ import {
   type PullRequestReviewThread,
   type RepositoryIdentity,
   type ThreadPullRequestLink,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { formatInlineContextReference } from "~/lib/composerContextReferences";
 import { buildMessageContext, reviewCommentContextReference } from "~/lib/composerContextRecords";
@@ -91,8 +91,8 @@ describe("pull request checkout commands", () => {
     [
       "bitbucket",
       "feature/checkout",
-      "maria/supacode",
-      "git clone --single-branch --branch feature/checkout https://bitbucket.org/maria/supacode.git supacode-pr-42",
+      "maria/supaterm",
+      "git clone --single-branch --branch feature/checkout https://bitbucket.org/maria/supaterm.git supaterm-pr-42",
     ],
     ["unknown", "feature", null, null],
   ] as const)("builds the %s command", (provider, branch, repository, expected) => {
@@ -823,7 +823,7 @@ describe("fix findings handoff", () => {
       reviewThreads: [
         thread("already handled", { isResolved: true }),
         thread("   ", { id: "t2" }),
-        thread("still open", { id: "supacode" }),
+        thread("still open", { id: "supaterm" }),
       ],
       checks: [],
     });
@@ -1148,7 +1148,7 @@ describe("asking about a change rather than working on it", () => {
     expect(legacyText).toContain(base.url);
     expect(legacyText).toContain(prose);
     expect(legacyText).not.toContain("PLEASE IMPLEMENT THIS PLAN");
-    expect(legacyText).not.toContain("supacode-context://");
+    expect(legacyText).not.toContain("supaterm-context://");
   });
 
   it("builds a neutral composer reference without prescribing an action", () => {
@@ -1992,7 +1992,7 @@ describe("cached pull request detail", () => {
 
   it("shrugs off corrupt storage and no storage at all", () => {
     const storage = makeStorage();
-    storage.setItem("supacode.pullRequests.detail:env-1:project-1:acme/web#7", "{not json");
+    storage.setItem("supaterm.pullRequests.detail:env-1:project-1:acme/web#7", "{not json");
     expect(readPullRequestDetailSnapshot(storage, "env-1", reference)).toBeNull();
     expect(readPullRequestDetailSnapshot(undefined, "env-1", reference)).toBeNull();
     const hosted = { ...reference, host: "github.com" };

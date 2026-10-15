@@ -1,7 +1,7 @@
 import {
   createAssetEnvironmentAtoms,
   createProjectFaviconUrlAtomFamily,
-} from "@supacode/client-runtime/state/assets";
+} from "@supaterm/client-runtime/state/assets";
 import { Atom } from "effect/reactivity";
 
 import { connectionAtomRuntime } from "../connection/runtime";

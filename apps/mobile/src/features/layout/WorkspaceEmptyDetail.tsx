@@ -43,7 +43,7 @@ export function WorkspaceEmptyDetail(props: {
             tintColorClassName="accent-icon-subtle"
             type="hierarchical"
           />
-          <Text className="text-center text-xl font-supacode-bold">Select a thread</Text>
+          <Text className="text-center text-xl font-supaterm-bold">Select a thread</Text>
           <Text className="text-center text-base text-foreground-muted">
             {Platform.OS === "android"
               ? "Choose a thread from the sidebar or start a new thread."
@@ -58,7 +58,7 @@ export function WorkspaceEmptyDetail(props: {
                 className="mt-2 flex-row items-center gap-2 rounded-full bg-primary px-5 py-3 active:opacity-70"
                 onPress={props.onStartNewTask}
               >
-                <Text className="text-base font-supacode-bold text-primary-foreground">
+                <Text className="text-base font-supaterm-bold text-primary-foreground">
                   New Task
                 </Text>
               </Pressable>

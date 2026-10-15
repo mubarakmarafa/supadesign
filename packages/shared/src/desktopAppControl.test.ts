@@ -12,21 +12,21 @@ describe("resolveDesktopAppControlAddress", () => {
       joinPath: (...segments) => segments.join("/"),
     });
     const second = resolveDesktopAppControlAddress({
-      stateDir: "/home/user/.supacode/other/userdata",
+      stateDir: "/home/user/.supaterm/other/userdata",
       platform: "linux",
       tempDir: "/tmp",
       userId: 1000,
       joinPath: (...segments) => segments.join("/"),
     });
 
-    expect(first.directory).toBe("/tmp/supacode-1000");
+    expect(first.directory).toBe("/tmp/supaterm-1000");
     expect(first.address.length).toBeLessThan(108);
     expect(first.address).not.toBe(second.address);
   });
 
   it("uses a Windows named pipe", () => {
     const result = resolveDesktopAppControlAddress({
-      stateDir: "C:\\Users\\user\\.supacode\\userdata",
+      stateDir: "C:\\Users\\user\\.supaterm\\userdata",
       platform: "win32",
       tempDir: "C:\\Temp",
       userId: undefined,
@@ -34,6 +34,6 @@ describe("resolveDesktopAppControlAddress", () => {
     });
 
     expect(result.directory).toBeNull();
-    expect(result.address).toMatch(/^\\\\\.\\pipe\\supacode-app-[a-f0-9]{24}$/);
+    expect(result.address).toMatch(/^\\\\\.\\pipe\\supaterm-app-[a-f0-9]{24}$/);
   });
 });

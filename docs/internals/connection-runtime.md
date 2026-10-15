@@ -32,10 +32,10 @@ supervisor retains established sessions but parks connection attempts and
 retries. Expected background disconnects do not become connection failures in the
 foreground UI.
 
-Native tunnels ([iOS](../../apps/mobile/modules/supacode-relay-tunnel/Sources/RelayTunnelCore/RelayTunnel.swift),
-[Android](../../apps/mobile/modules/supacode-relay-tunnel/android/src/main/java/expo/modules/supacoderelaytunnel/core/NativeTunnel.kt))
+Native tunnels ([iOS](../../apps/mobile/modules/supaterm-relay-tunnel/Sources/RelayTunnelCore/RelayTunnel.swift),
+[Android](../../apps/mobile/modules/supaterm-relay-tunnel/android/src/main/java/expo/modules/supatermrelaytunnel/core/NativeTunnel.kt))
 never retry on their own. A relay attempt that fails before its session is up
-answers every waiting loopback request with a 5xx carrying `X-Supacode-Relay-Error`,
+answers every waiting loopback request with a 5xx carrying `X-Supaterm-Relay-Error`,
 and requests in the next two seconds get the same answer without dialing. After
 that, the next loopback request dials again. A tunnel cannot see a client abandon
 a loopback request, so a tunnel-side retry loop keeps dialing an offline host long

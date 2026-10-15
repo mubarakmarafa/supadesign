@@ -1,4 +1,4 @@
-import type { ModelTotals } from "@supacode/shared/usageMerge";
+import type { ModelTotals } from "@supaterm/shared/usageMerge";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

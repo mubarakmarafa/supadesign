@@ -13,7 +13,7 @@ import {
   type ProviderInstanceId,
   type PullRequestMergeMethod,
   type SidebarProjectGroupingMode,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { ComposerEnterBehavior } from "../lib/composerEnterBehavior";
 import type { FollowUpBehavior } from "../lib/followUpBehavior";
 import { isMicrophoneKind, type MicrophoneEntry } from "../lib/microphonePriority";
@@ -22,8 +22,8 @@ import * as MobileDatabase from "./mobile-database";
 import * as MobileSecureStorage from "./mobile-secure-storage";
 import { MobileStorageDecodeError, MobileStorageEncodeError } from "./mobile-storage";
 
-const PREFERENCES_KEY = "supacode.preferences";
-const PREFERENCES_FALLBACK_KEY = "supacode.preferences.fallback";
+const PREFERENCES_KEY = "supaterm.preferences";
+const PREFERENCES_FALLBACK_KEY = "supaterm.preferences.fallback";
 
 /** The pull request list's filters and sort for one environment scope. */
 export const PullRequestListControls = Schema.Struct({
@@ -128,7 +128,7 @@ export class MobilePreferencesStore extends Context.Service<
       transform: (current: Preferences) => Partial<Preferences>,
     ) => Effect.Effect<Preferences, MobilePreferencesSaveError>;
   }
->()("@supacode/mobile/persistence/MobilePreferencesStore") {}
+>()("@supaterm/mobile/persistence/MobilePreferencesStore") {}
 
 function sanitizePreferences(parsed: Preferences): Preferences {
   const preferences: {

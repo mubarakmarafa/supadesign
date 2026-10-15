@@ -17,7 +17,7 @@ import {
   ModelCapabilities,
   TrimmedNonEmptyString,
   type ProviderDriverKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -28,13 +28,13 @@ import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 import { HttpClient, HttpClientResponse } from "effect/http";
 
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
 import { ServerConfig } from "../config.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import { hasValidClaudeManifestAdapters } from "./ClaudeModelManifest.ts";
 import bundledManifestJson from "./model-manifest.json" with { type: "json" };
 import { ProviderCompatibilityPolicy } from "./providerCompatibility.ts";
-import * as ModelCatalog from "@supacode/provider-core/server/ModelCatalog";
+import * as ModelCatalog from "@supaterm/provider-core/server/ModelCatalog";
 
 const MODEL_MANIFEST_URL =
   "https://raw.githubusercontent.com/supabitapp/supacode-next/main/apps/server/src/provider/model-manifest.json";
@@ -200,7 +200,7 @@ export class ModelManifest extends Context.Service<
      * the teardown of whichever instance happened to trigger it. */
     readonly refreshInBackground: Effect.Effect<void>;
   }
->()("supacode/provider/ModelManifest") {}
+>()("supaterm/provider/ModelManifest") {}
 
 /** Constant service backing the bundled-data test layer. */
 const BundledOnlyModelManifest: ModelManifest["Service"] = {

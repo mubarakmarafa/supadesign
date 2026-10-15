@@ -3,8 +3,8 @@ import {
   PREVIEW_URL_MAX_LENGTH,
   type DiscoveredLocalServer,
   type EnvironmentId,
-} from "@supacode/contracts";
-import { isLoopbackHost } from "@supacode/shared/preview";
+} from "@supaterm/contracts";
+import { isLoopbackHost } from "@supaterm/shared/preview";
 import { useMemo } from "react";
 
 import { previewEnvironment } from "./state/preview";

@@ -5,13 +5,13 @@ import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
 
 import { describe, expect, it, vi } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Scope from "effect/Scope";
 
-import * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
+import * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
 
 const threadSpawnHelperSource = NodeURL.fileURLToPath(
   new URL("../../../scripts/acp-thread-spawn-helper.c", import.meta.url),
@@ -95,7 +95,7 @@ describe("terminatePosixOwnedProcessTree", () => {
     ).toHaveLength(2);
   });
 
-  it.live("sweeps empty supacode-acp sibling leases owned by dead pids only", () =>
+  it.live("sweeps empty supaterm-acp sibling leases owned by dead pids only", () =>
     Effect.sync(() => {
       const scratchRoot = NodePath.join(process.cwd(), "tmp");
       NodeFS.mkdirSync(scratchRoot, { recursive: true });
@@ -113,10 +113,10 @@ describe("terminatePosixOwnedProcessTree", () => {
       const deadPid = 2_147_483_646;
       // Synthetic live foreign pid (not this process, still reported alive by the probe).
       const liveForeignPid = 2_147_483_645;
-      const staleEmpty = writeSibling(`supacode-acp-${deadPid}-aaaa`, "0");
-      const currentPidSibling = writeSibling(`supacode-acp-${process.pid}-bbbb`, "0");
-      const liveForeignSibling = writeSibling(`supacode-acp-${liveForeignPid}-cccc`, "0");
-      const stalePopulated = writeSibling(`supacode-acp-${deadPid}-dddd`, "1");
+      const staleEmpty = writeSibling(`supaterm-acp-${deadPid}-aaaa`, "0");
+      const currentPidSibling = writeSibling(`supaterm-acp-${process.pid}-bbbb`, "0");
+      const liveForeignSibling = writeSibling(`supaterm-acp-${liveForeignPid}-cccc`, "0");
+      const stalePopulated = writeSibling(`supaterm-acp-${deadPid}-dddd`, "1");
       const unrelated = writeSibling("other-lease", "0");
       const isProcessAlive = (pid: number) => pid === process.pid || pid === liveForeignPid;
       try {
@@ -134,7 +134,7 @@ describe("terminatePosixOwnedProcessTree", () => {
         expect(NodeFS.existsSync(stalePopulated)).toBe(true);
         expect(NodeFS.existsSync(unrelated)).toBe(true);
         // Missing populated state must not remove a sibling.
-        writeSibling(`supacode-acp-${deadPid}-eeee`, null);
+        writeSibling(`supaterm-acp-${deadPid}-eeee`, null);
         AcpSessionRuntime.sweepStaleLinuxCgroupSiblings(parent, {
           isProcessAlive,
           readPopulated: (path) => populatedByPath.get(path),
@@ -143,7 +143,7 @@ describe("terminatePosixOwnedProcessTree", () => {
             NodeFS.rmdirSync(path);
           },
         });
-        expect(NodeFS.existsSync(NodePath.join(parent, `supacode-acp-${deadPid}-eeee`))).toBe(true);
+        expect(NodeFS.existsSync(NodePath.join(parent, `supaterm-acp-${deadPid}-eeee`))).toBe(true);
         expect(NodeFS.existsSync(currentPidSibling)).toBe(true);
       } finally {
         NodeFS.rmSync(parent, { recursive: true, force: true });
@@ -159,7 +159,7 @@ describe("terminatePosixOwnedProcessTree", () => {
       const scratchRoot = NodePath.join(process.cwd(), "tmp");
       NodeFS.mkdirSync(scratchRoot, { recursive: true });
       const scratch = NodeFS.mkdtempSync(NodePath.join(scratchRoot, "acp-cgroup-wrapper-"));
-      const linkedNode = NodePath.join(scratch, "Supacode AppImage 'quoted'");
+      const linkedNode = NodePath.join(scratch, "Supaterm AppImage 'quoted'");
       const bareGrok = NodePath.join(scratch, "grok");
       const relativeBin = NodePath.join(scratch, "relative-bin");
       const directoryBin = NodePath.join(scratch, "directory-bin");
@@ -201,7 +201,7 @@ describe("terminatePosixOwnedProcessTree", () => {
         "fs.writeFileSync(process.argv[1], JSON.stringify({",
         "  args: process.argv.slice(2),",
         "  electron: process.env.ELECTRON_RUN_AS_NODE,",
-        "  wrapper: process.env.SUPACODE_ACP_CGROUP_WRAPPER,",
+        "  wrapper: process.env.SUPATERM_ACP_CGROUP_WRAPPER,",
         "}));",
       ].join("\n");
       const wrapped = AcpSessionRuntime.wrapCommandForLinuxCgroup(lease, linkedNode, [
@@ -218,7 +218,7 @@ describe("terminatePosixOwnedProcessTree", () => {
           env: {
             ...process.env,
             ELECTRON_RUN_AS_NODE: "1",
-            SUPACODE_ACP_CGROUP_WRAPPER: "1",
+            SUPATERM_ACP_CGROUP_WRAPPER: "1",
           },
         });
         expect(result.status, result.stderr).toBe(0);
@@ -258,7 +258,7 @@ describe("terminatePosixOwnedProcessTree", () => {
     try {
       const wrapped = AcpSessionRuntime.wrapCommandForLinuxCgroup(lease, "/bin/sh", [
         "-c",
-        'printf "%s\\n" "$0" "$1" "$2" "$3" "${ELECTRON_RUN_AS_NODE-}" "${SUPACODE_ACP_CGROUP_WRAPPER-}" > "$4"',
+        'printf "%s\\n" "$0" "$1" "$2" "$3" "${ELECTRON_RUN_AS_NODE-}" "${SUPATERM_ACP_CGROUP_WRAPPER-}" > "$4"',
         "packaged-target",
         "space value",
         "single'quote",
@@ -270,7 +270,7 @@ describe("terminatePosixOwnedProcessTree", () => {
         env: {
           ...process.env,
           ELECTRON_RUN_AS_NODE: "1",
-          SUPACODE_ACP_CGROUP_WRAPPER: "1",
+          SUPATERM_ACP_CGROUP_WRAPPER: "1",
         },
       });
       expect(result.status, result.stderr).toBe(0);
@@ -295,7 +295,7 @@ describe("terminatePosixOwnedProcessTree", () => {
 
       const missingTarget = AcpSessionRuntime.wrapCommandForLinuxCgroup(
         lease,
-        "/nonexistent-supacode-probe",
+        "/nonexistent-supaterm-probe",
         [],
       );
       const missingTargetResult = NodeChildProcess.spawnSync(
@@ -355,7 +355,7 @@ describe("terminatePosixOwnedProcessTree", () => {
       ]);
       const provider = NodeChildProcess.spawn(wrapped.command, wrapped.args, {
         detached: true,
-        env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", SUPACODE_ACP_CGROUP_WRAPPER: "1" },
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", SUPATERM_ACP_CGROUP_WRAPPER: "1" },
         stdio: "ignore",
       });
       provider.unref();
@@ -429,8 +429,8 @@ describe("terminatePosixOwnedProcessTree", () => {
       const lease: AcpSessionRuntime.AcpLinuxCgroupLease = {
         contains: () => false,
         exists: () => exists,
-        path: "/test/supacode-acp-repopulation",
-        relativePath: "/test/supacode-acp-repopulation",
+        path: "/test/supaterm-acp-repopulation",
+        relativePath: "/test/supaterm-acp-repopulation",
         kill: () => {
           killCalls += 1;
           populated = false;
@@ -470,8 +470,8 @@ describe("terminatePosixOwnedProcessTree", () => {
       const lease: AcpSessionRuntime.AcpLinuxCgroupLease = {
         contains: () => false,
         exists: () => true,
-        path: "/test/supacode-acp-busy",
-        relativePath: "/test/supacode-acp-busy",
+        path: "/test/supaterm-acp-busy",
+        relativePath: "/test/supaterm-acp-busy",
         kill: () => undefined,
         populated: () => false,
         remove: () => {
@@ -480,7 +480,7 @@ describe("terminatePosixOwnedProcessTree", () => {
       };
 
       const error = yield* Effect.flip(AcpSessionRuntime.terminateLinuxCgroupLease(lease));
-      expect(error.detail).toBe("Failed to remove ACP cgroup /test/supacode-acp-busy");
+      expect(error.detail).toBe("Failed to remove ACP cgroup /test/supaterm-acp-busy");
       expect(error.cause).toBe(removeError);
     }),
   );
@@ -501,8 +501,8 @@ describe("terminatePosixOwnedProcessTree", () => {
     const lease: AcpSessionRuntime.AcpLinuxCgroupLease = {
       contains: () => true,
       exists: () => true,
-      path: "/test/supacode-acp-root",
-      relativePath: "/test/supacode-acp-root",
+      path: "/test/supaterm-acp-root",
+      relativePath: "/test/supaterm-acp-root",
       kill: () => undefined,
       populated: () => true,
       remove: () => undefined,
@@ -879,7 +879,7 @@ describe("terminatePosixOwnedProcessTree", () => {
   );
 
   it.live(
-    "re-admits a still-owned child after PID reuse and never signals the Supacode session",
+    "re-admits a still-owned child after PID reuse and never signals the Supaterm session",
     () =>
       Effect.gen(function* () {
         const reused = identity(110, 100, 110, 110, "reused");

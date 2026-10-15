@@ -64,7 +64,7 @@ platform :ios do
       skip_binary_upload: true,
       screenshots_path: required_store_env("MOBILE_STORE_ASSETS"),
       metadata_path: File.expand_path("metadata", __dir__),
-      release_notes: {"en-US" => ENV.fetch("MOBILE_RELEASE_NOTES", "This update includes the latest Supacode app changes.")},
+      release_notes: {"en-US" => ENV.fetch("MOBILE_RELEASE_NOTES", "This update includes the latest Supaterm app changes.")},
       overwrite_screenshots: true,
       force: true,
       submit_for_review: true,

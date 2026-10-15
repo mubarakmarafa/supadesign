@@ -4,9 +4,9 @@ import {
   AuthMcpApprovalError,
   AuthMcpClientAccess,
   type AuthMcpAuthorizationRequest,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Radio as RadioPrimitive } from "@base-ui/react/radio";
-import { isLoopbackHost } from "@supacode/shared/preview";
+import { isLoopbackHost } from "@supaterm/shared/preview";
 import { EyeIcon, type LucideIcon } from "lucide-react";
 import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -252,7 +252,7 @@ export function ConnectAgentSurface() {
               value={pairingCode}
             />
             <p className="text-xs text-muted-foreground">
-              Create one in Settings → Connections, or run <code>supacode auth pairing create</code>{" "}
+              Create one in Settings → Connections, or run <code>supaterm auth pairing create</code>{" "}
               on this machine.
             </p>
           </div>

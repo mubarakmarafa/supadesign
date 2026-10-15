@@ -1,4 +1,4 @@
-import { ThreadId, type DeviceServiceState } from "@supacode/contracts";
+import { ThreadId, type DeviceServiceState } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { selectedThreadDevicePreview, threadDevicePreviews } from "./threadDevicePreviews";

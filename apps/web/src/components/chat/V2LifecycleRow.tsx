@@ -1,18 +1,18 @@
 import { ThreadHoverCardPopup } from "../ThreadHoverCard";
 import { AgentElapsed } from "./AgentElapsed";
-import { projectedSubagentsToRuntime } from "@supacode/client-runtime/state/subagentRuntime";
+import { projectedSubagentsToRuntime } from "@supaterm/client-runtime/state/subagentRuntime";
 import type { ReactNode } from "react";
 import { useThreadShell, useProject } from "../../state/entities";
 import { SubagentTooltipContent } from "./SubagentTooltipContent";
 import { useAtomValue } from "@effect/atom-react";
-import { scopeThreadRef, scopeProjectRef } from "@supacode/client-runtime/environment";
+import { scopeThreadRef, scopeProjectRef } from "@supaterm/client-runtime/environment";
 import { environmentThreadDetails } from "../../state/threads";
 import { MiddleTruncate } from "../ui/middle-truncate";
 import * as DateTime from "effect/DateTime";
 import { WorkLogRow } from "./WorkLog";
-import { resolveHandoffEndpoints, type HandoffTimelineRun } from "@supacode/client-runtime/handoff";
+import { resolveHandoffEndpoints, type HandoffTimelineRun } from "@supaterm/client-runtime/handoff";
 import { Fragment } from "react";
-import { formatSubagentDisplayTitle } from "@supacode/client-runtime/state/subagent-display";
+import { formatSubagentDisplayTitle } from "@supaterm/client-runtime/state/subagent-display";
 import {
   ProviderDriverKind,
   type OrchestrationV2Notification,
@@ -24,8 +24,8 @@ import {
   type EnvironmentId,
   type NodeId,
   type ScopedThreadRef,
-} from "@supacode/contracts";
-import type { TimestampFormat } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import type { TimestampFormat } from "@supaterm/contracts/settings";
 import {
   BotIcon,
   ChevronRightIcon,
@@ -45,7 +45,7 @@ import { ProviderInstanceIcon, providerTextColor } from "./ProviderInstanceIcon"
 import { cn } from "~/lib/utils";
 import { TimelineSystemDivider } from "./TimelineSystemDivider";
 import { Button, InlineButton } from "../ui/button";
-import { SupacodeMark } from "../SupacodeMark";
+import { SupatermMark } from "../SupatermMark";
 
 const LIFECYCLE_TYPES = new Set<OrchestrationV2TurnItem["type"]>([
   "run_interrupt_request",
@@ -61,7 +61,7 @@ export function isV2LifecycleItem(item: OrchestrationV2TurnItem): boolean {
   return LIFECYCLE_TYPES.has(item.type);
 }
 
-export type { HandoffTimelineRun } from "@supacode/client-runtime/handoff";
+export type { HandoffTimelineRun } from "@supaterm/client-runtime/handoff";
 
 export function V2LifecycleRow(props: {
   readonly item: OrchestrationV2TurnItem;
@@ -195,7 +195,7 @@ export function V2LifecycleRow(props: {
     return (
       <WorkLogRow
         data-v2-item-type={item.type}
-        icon={<SupacodeMark className="size-4 text-icon-muted" aria-hidden />}
+        icon={<SupatermMark className="size-4 text-icon-muted" aria-hidden />}
         label={<>Created thread{item.title ? ` · ${item.title}` : ""}</>}
         trailing={
           <InlineButton

@@ -171,7 +171,7 @@ describe("AuthEnvironmentScopes", () => {
         policy: "remote-reachable",
         bootstrapMethods: ["one-time-token"],
         sessionMethods: ["browser-session-cookie", "bearer-access-token", "dpop-access-token"],
-        sessionCookieName: "supacode_session",
+        sessionCookieName: "supaterm_session",
       },
       sessionMethod: "bearer-access-token",
       scopes: ["orchestration:read", "relay:read"],

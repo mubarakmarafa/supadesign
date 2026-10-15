@@ -2,8 +2,8 @@ import {
   createPreviewFramePainter,
   createPreviewStreamClient,
   type PreviewStreamClient,
-} from "@supacode/client-runtime/preview/server-browser-stream";
-import type { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/preview/server-browser-stream";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { useSyncExternalStore } from "react";
 
 import { readPreviewStreamAccess } from "~/state/previewStream";

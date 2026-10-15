@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/client-runtime",
+  "name": "@supaterm/client-runtime",
   "private": true,
   "type": "module",
   "exports": {
@@ -131,9 +131,9 @@
       "types": "./src/voice-input/index.ts",
       "default": "./src/voice-input/index.ts"
     },
-    "./supacodeToolSummary": {
-      "types": "./src/supacodeToolSummary.ts",
-      "default": "./src/supacodeToolSummary.ts"
+    "./supatermToolSummary": {
+      "types": "./src/supatermToolSummary.ts",
+      "default": "./src/supatermToolSummary.ts"
     },
     "./state/auth": {
       "types": "./src/state/auth.ts",
@@ -458,16 +458,16 @@
   },
   "dependencies": {
     "@pierre/diffs": "catalog:",
-    "@supacode/contracts": "workspace:*",
-    "@supacode/mermaid-ascii": "workspace:*",
-    "@supacode/shared": "workspace:*",
-    "@supacode/source-control-azure-devops": "workspace:*",
-    "@supacode/source-control-bitbucket": "workspace:*",
-    "@supacode/source-control-core": "workspace:*",
-    "@supacode/source-control-forgejo": "workspace:*",
-    "@supacode/source-control-gitcafe": "workspace:*",
-    "@supacode/source-control-github": "workspace:*",
-    "@supacode/source-control-gitlab": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/mermaid-ascii": "workspace:*",
+    "@supaterm/shared": "workspace:*",
+    "@supaterm/source-control-azure-devops": "workspace:*",
+    "@supaterm/source-control-bitbucket": "workspace:*",
+    "@supaterm/source-control-core": "workspace:*",
+    "@supaterm/source-control-forgejo": "workspace:*",
+    "@supaterm/source-control-gitcafe": "workspace:*",
+    "@supaterm/source-control-github": "workspace:*",
+    "@supaterm/source-control-gitlab": "workspace:*",
     "effect": "catalog:",
     "three": "0.180.0"
   },

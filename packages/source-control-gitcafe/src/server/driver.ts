@@ -1,11 +1,11 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 /**
  * The GitCafe driver: repository operations and discovery through `cafe` and git, and pull
  * requests through GitCafe's REST API on git.cafe and staging.git.cafe.
  *
  * @module source-control-gitcafe/server/driver
  */
-import { defineSourceControlDriver } from "@supacode/source-control-core/server/driver";
+import { defineSourceControlDriver } from "@supaterm/source-control-core/server/driver";
 import * as Effect from "effect/Effect";
 
 import * as GitCafePullRequestProvider from "./GitCafePullRequestProvider.ts";

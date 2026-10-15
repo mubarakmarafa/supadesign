@@ -4,7 +4,7 @@ import {
   isModifierPairShortcut,
   type DesktopSnapShotSetupAction,
   type DesktopSnapShotState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useState, type ReactNode } from "react";
 import { MacAccessibilityIcon, MacScreenRecordingIcon } from "../Icons";
 import { CaptureShortcutConfig } from "./CaptureShortcutConfig";
@@ -30,7 +30,7 @@ const GNOME_ACCESS_COPY = {
   "not-installed": {
     title: "Install the extension",
     description:
-      "The Supacode GNOME extension lets you capture other windows and bring them into your draft. Sign out once after installing.",
+      "The Supaterm GNOME extension lets you capture other windows and bring them into your draft. Sign out once after installing.",
   },
   "restart-required": {
     title: "Extension installed",
@@ -46,7 +46,7 @@ const GNOME_ACCESS_COPY = {
   },
   disabled: {
     title: "Enable the extension",
-    description: "Enable Supacode SnapShots to start capturing windows.",
+    description: "Enable Supaterm SnapShots to start capturing windows.",
   },
   enabled: {
     title: "Capture is ready",
@@ -58,7 +58,7 @@ const GNOME_ACCESS_COPY = {
   },
   error: {
     title: "Couldn't set up the extension",
-    description: "Check Supacode SnapShots in GNOME Extensions, then try again.",
+    description: "Check Supaterm SnapShots in GNOME Extensions, then try again.",
   },
 };
 
@@ -174,7 +174,7 @@ export function SnapShotSetupDialog({
                       ? "Update the capture helper"
                       : "Allow snapshots",
                   description:
-                    "Supacode's capture helper lets you capture other apps and return to your draft. It's included with Supacode.",
+                    "Supaterm's capture helper lets you capture other apps and return to your draft. It's included with Supaterm.",
                 }
           : backend === "niri"
             ? {
@@ -355,7 +355,7 @@ export function SnapShotSetupDialog({
                     </p>
                   ))}
                   {step === "access" && (backend === "gnome" || helperBackend) ? (
-                    <p>Included with Supacode. No download needed.</p>
+                    <p>Included with Supaterm. No download needed.</p>
                   ) : null}
                   {step === "access" && backend === "gnome" && extension?.status === "enabled" ? (
                     <Button

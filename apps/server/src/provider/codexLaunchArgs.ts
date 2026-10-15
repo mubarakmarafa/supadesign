@@ -1,11 +1,11 @@
-import { tokenizeCliArgs } from "@supacode/shared/cliArgs";
+import { tokenizeCliArgs } from "@supaterm/shared/cliArgs";
 
-const SUPACODE_CODEX_LAUNCH_ARGS_ENV = "SUPACODE_CODEX_LAUNCH_ARGS";
+const SUPATERM_CODEX_LAUNCH_ARGS_ENV = "SUPATERM_CODEX_LAUNCH_ARGS";
 
 export const resolveCodexLaunchArgs = (
   launchArgs?: string,
   environment: NodeJS.ProcessEnv = process.env,
-) => environment[SUPACODE_CODEX_LAUNCH_ARGS_ENV]?.trim() || launchArgs?.trim() || "";
+) => environment[SUPATERM_CODEX_LAUNCH_ARGS_ENV]?.trim() || launchArgs?.trim() || "";
 
 const codexLaunchArgv = (launchArgs?: string): ReadonlyArray<string> => tokenizeCliArgs(launchArgs);
 

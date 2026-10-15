@@ -1,4 +1,4 @@
-import type { DesktopPreviewRecordingInput } from "@supacode/contracts";
+import type { DesktopPreviewRecordingInput } from "@supaterm/contracts";
 
 import { readPreviewAnnotationTheme } from "./annotationTheme";
 

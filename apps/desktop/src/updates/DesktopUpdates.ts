@@ -5,8 +5,8 @@ import {
   type DesktopUpdateChannel,
   type DesktopUpdateCheckResult,
   type DesktopUpdateState,
-} from "@supacode/contracts";
-import { errorTag } from "@supacode/shared/observability";
+} from "@supaterm/contracts";
+import { errorTag } from "@supaterm/shared/observability";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
@@ -188,7 +188,7 @@ export class DesktopUpdates extends Context.Service<
       expectedVersion: string,
     ) => Effect.Effect<DesktopPreparedUpdateInstallResult>;
   }
->()("@supacode/desktop/updates/DesktopUpdates") {}
+>()("@supaterm/desktop/updates/DesktopUpdates") {}
 
 const {
   logInfo: logUpdaterInfo,
@@ -318,7 +318,7 @@ function getAutoUpdateDisabledReason(args: {
     return "Automatic updates are only available in packaged production builds.";
   }
   if (args.disabledByEnv) {
-    return "Automatic updates are disabled by the SUPACODE_DISABLE_AUTO_UPDATE setting.";
+    return "Automatic updates are disabled by the SUPATERM_DISABLE_AUTO_UPDATE setting.";
   }
   if (args.platform === "linux" && !args.appImage && !args.isDebPackage) {
     return "Automatic updates on Linux require the AppImage or the .deb package.";

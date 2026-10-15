@@ -6,7 +6,7 @@ import {
   ServerSettingsPatch,
   UsageLimitSourceId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Duration from "effect/Duration";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";

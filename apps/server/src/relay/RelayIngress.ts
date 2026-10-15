@@ -1,6 +1,6 @@
 // @effect-diagnostics nodeBuiltinImport:off - identifies the synthetic Node HTTP socket.
-import type { TunnelStream } from "@supacode/shared/relay/tunnel";
-import { TunnelSocket } from "@supacode/shared/relay/tunnelNode";
+import type { TunnelStream } from "@supaterm/shared/relay/tunnel";
+import { TunnelSocket } from "@supaterm/shared/relay/tunnelNode";
 import * as Context from "effect/Context";
 import * as Cookies from "effect/http/Cookies";
 import * as Effect from "effect/Effect";
@@ -11,7 +11,7 @@ export class RelayIngress extends Context.Service<
   {
     readonly accept: (stream: TunnelStream) => void;
   }
->()("supacode/relay/RelayIngress") {}
+>()("supaterm/relay/RelayIngress") {}
 
 export const isRelayedRequest = (request: HttpServerRequest.HttpServerRequest) =>
   request.source instanceof Object &&
@@ -22,7 +22,7 @@ export const isRelayPath = (pathname: string) =>
   pathname === "/ws" ||
   pathname.startsWith("/api/") ||
   pathname === "/oauth/token" ||
-  pathname === "/.well-known/supacode/environment";
+  pathname === "/.well-known/supaterm/environment";
 
 export const layerPathGuard = HttpRouter.middleware(
   (app) =>

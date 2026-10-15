@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { ProviderInstanceId, ProviderSessionId, ThreadId } from "@supacode/contracts";
-import { resolveSelfInvocation } from "@supacode/shared/nodeRuntime";
+import { ProviderInstanceId, ProviderSessionId, ThreadId } from "@supaterm/contracts";
+import { resolveSelfInvocation } from "@supaterm/shared/nodeRuntime";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -14,32 +14,32 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as EffectAcpErrors from "effect-acp/errors";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import * as ServerSettings from "../../serverSettings.ts";
 import type {
   AcpRegistryAvailableCommands,
   AcpRegistryLiveConfiguration,
-} from "@supacode/provider-acp-registry/testing";
-import * as AcpRegistrySupport from "@supacode/provider-acp-registry/server/AcpRegistrySupport";
-import * as AcpRegistryRuntimeCoordinator from "@supacode/provider-acp-registry/server/AcpRegistryRuntimeCoordinator";
-import { ACP_SESSION_MODE_OPTION_ID } from "@supacode/provider-acp/server/sessionConfig";
-import * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+} from "@supaterm/provider-acp-registry/testing";
+import * as AcpRegistrySupport from "@supaterm/provider-acp-registry/server/AcpRegistrySupport";
+import * as AcpRegistryRuntimeCoordinator from "@supaterm/provider-acp-registry/server/AcpRegistryRuntimeCoordinator";
+import { ACP_SESSION_MODE_OPTION_ID } from "@supaterm/provider-acp/server/sessionConfig";
+import * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import {
   decodeAcpReplayTranscript,
   makeAcpReplayCompletenessAssertion,
   makeAcpReplayRuntime,
 } from "./AcpAdapterV2.testkit.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import { BUILT_IN_PROVIDER_ADAPTER_DRIVER_KINDS_V2 } from "../builtInProviderAdapterDrivers.ts";
-import { AcpRegistryAdapterV2Driver } from "@supacode/provider-acp-registry/server";
+import { AcpRegistryAdapterV2Driver } from "@supaterm/provider-acp-registry/server";
 import {
   ACP_REGISTRY_PROVIDER,
   makeAcpRegistryAdapterV2,
   acpRegistryPromptFailure,
-} from "@supacode/provider-acp-registry/testing";
+} from "@supaterm/provider-acp-registry/testing";
 
 const registryUrl = "https://registry.test/registry.json";
 const decodeAcpRegistryAdapterSettings = Schema.decodeUnknownEffect(
@@ -160,7 +160,7 @@ describe("AcpRegistryAdapterV2", () => {
     });
 
     // A scripted ACP v1 agent: initialize, session/new answered with `setup`,
-    // then the frames Supacode must send (and the agent's answers) to apply the
+    // then the frames Supaterm must send (and the agent's answers) to apply the
     // user's stored pick from the agent's mode picker.
     const openWithStoredModePick = Effect.fn("openWithStoredModePick")(function* (input: {
       readonly setup: unknown;
@@ -171,7 +171,7 @@ describe("AcpRegistryAdapterV2", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const replayDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-acp-registry-mode-pick-",
+        prefix: "supaterm-acp-registry-mode-pick-",
       });
       const statusPath = path.join(replayDir, "status.json");
       const transcript = yield* decodeAcpReplayTranscript(
@@ -292,7 +292,7 @@ describe("AcpRegistryAdapterV2", () => {
                     command: process.execPath,
                     args: [mockAgentPath],
                     cwd: input.cwd,
-                    env: { SUPACODE_ACP_SESSION_LIFECYCLE: "1" },
+                    env: { SUPATERM_ACP_SESSION_LIFECYCLE: "1" },
                   },
                   authMethodId: "test",
                 }).pipe(
@@ -361,8 +361,8 @@ describe("AcpRegistryAdapterV2", () => {
         instanceId,
         settings,
         environment: {
-          SUPACODE_ACP_SESSION_LIFECYCLE: "1",
-          SUPACODE_ACP_COMMAND_ADVERTISEMENT_DELAY_MS: "750",
+          SUPATERM_ACP_SESSION_LIFECYCLE: "1",
+          SUPATERM_ACP_COMMAND_ADVERTISEMENT_DELAY_MS: "750",
         },
       }).pipe(
         Effect.provide(

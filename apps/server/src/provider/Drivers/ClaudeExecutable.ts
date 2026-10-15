@@ -2,8 +2,8 @@
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { SpawnExecutableResolution } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { SpawnExecutableResolution } from "@supaterm/shared/shell";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 

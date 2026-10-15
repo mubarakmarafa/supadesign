@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useEffectEvent, useMemo } from "react";
 
-import { EnvironmentProject, EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import type { AtomCommandResult } from "@supacode/client-runtime/state/runtime";
+import { EnvironmentProject, EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import type { AtomCommandResult } from "@supaterm/client-runtime/state/runtime";
 import {
   type GitActionRequestInput,
   type VcsActionOperation,
   type VcsRef,
-} from "@supacode/client-runtime/state/vcs";
+} from "@supaterm/client-runtime/state/vcs";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
   EnvironmentAuthorizationError,
   type GitRunStackedActionResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   dedupeRemoteBranchesWithLocalMatches,
   sanitizeFeatureBranchName,
-} from "@supacode/shared/git";
+} from "@supaterm/shared/git";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 

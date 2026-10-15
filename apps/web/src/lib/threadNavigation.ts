@@ -1,4 +1,4 @@
-import type { ScopedThreadRef } from "@supacode/contracts";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 
 export function createThreadNavigation<Location>(input: {
   readonly getLocation: () => Location;

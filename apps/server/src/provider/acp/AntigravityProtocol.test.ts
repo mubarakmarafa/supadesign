@@ -20,7 +20,7 @@ import {
 import {
   mergeToolCallState,
   parseSessionUpdateEvent,
-} from "@supacode/provider-acp/server/runtimeModel";
+} from "@supaterm/provider-acp/server/runtimeModel";
 
 const isSessionNotification = Schema.is(AcpWireSchema.SessionNotification);
 

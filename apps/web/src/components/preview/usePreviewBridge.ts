@@ -5,8 +5,8 @@ import type {
   PreviewReportStatusInput,
   ScopedThreadRef,
   ThreadId,
-} from "@supacode/contracts";
-import { parseScopedThreadKey, scopedThreadKey } from "@supacode/client-runtime/environment";
+} from "@supaterm/contracts";
+import { parseScopedThreadKey, scopedThreadKey } from "@supaterm/client-runtime/environment";
 import * as Option from "effect/Option";
 import { useEffect, useEffectEvent, useMemo, useRef } from "react";
 

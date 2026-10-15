@@ -1,11 +1,11 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import {
   EnvironmentId,
   ProjectId,
   CommandId,
   SourceControlDiscoveryResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 
 import {

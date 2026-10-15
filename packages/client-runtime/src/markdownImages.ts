@@ -1,11 +1,11 @@
-import { isWindowsAbsolutePath, stripSlashPrefixedWindowsDrive } from "@supacode/shared/path";
+import { isWindowsAbsolutePath, stripSlashPrefixedWindowsDrive } from "@supaterm/shared/path";
 
 import {
   normalizeMarkdownLinkDestination,
   safeDecodeURIComponent,
   splitMarkdownLinkSearchAndHash,
-} from "@supacode/shared/markdownLinks";
-import { parseFileUrlHref } from "@supacode/shared/fileLinks";
+} from "@supaterm/shared/markdownLinks";
+import { parseFileUrlHref } from "@supaterm/shared/fileLinks";
 
 const DIRECT_IMAGE_SOURCE_PATTERN = /^(?:https?:|data:|blob:|\/\/)/i;
 const URI_SCHEME_PATTERN = /^[A-Za-z][A-Za-z0-9+.-]*:/;

@@ -56,7 +56,7 @@ export const WorktreeSetupSnapshot = Schema.Struct({
   branch: Schema.NullOr(TrimmedNonEmptyString),
   baseRef: Schema.NullOr(TrimmedNonEmptyString),
   worktreePath: Schema.NullOr(TrimmedNonEmptyString),
-  /** Display name plus command of the setup script from supacode.json, when one runs. */
+  /** Display name plus command of the setup script from supaterm.json, when one runs. */
   setupScript: Schema.NullOr(
     Schema.Struct({
       name: TrimmedNonEmptyString,

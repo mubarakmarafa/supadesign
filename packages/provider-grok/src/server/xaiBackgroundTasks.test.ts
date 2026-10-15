@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { TurnId } from "@supacode/contracts";
+import { TurnId } from "@supaterm/contracts";
 
 import {
   buildGrokBackgroundTaskEvents,

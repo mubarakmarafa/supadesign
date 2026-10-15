@@ -1,5 +1,5 @@
-import { makeMcpAppRequests } from "@supacode/client-runtime/mcp-apps/requests";
-import type { EnvironmentId, ThreadId, TurnItemId } from "@supacode/contracts";
+import { makeMcpAppRequests } from "@supaterm/client-runtime/mcp-apps/requests";
+import type { EnvironmentId, ThreadId, TurnItemId } from "@supaterm/contracts";
 import {
   makeMcpAppHost,
   McpAppHostRefusal,
@@ -7,15 +7,15 @@ import {
   type McpAppCallToolResult,
   type McpAppHost,
   type McpAppHostContext,
-} from "@supacode/client-runtime/mcp-apps";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { CommandId, MessageId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/mcp-apps";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { CommandId, MessageId } from "@supaterm/contracts";
 import {
   mcpAppAllowAttribute,
   mcpAppFileName,
   mcpAppReferencesEqual,
   type McpAppReference,
-} from "@supacode/shared/mcpApp";
+} from "@supaterm/shared/mcpApp";
 import * as Predicate from "effect/Predicate";
 import Constants from "expo-constants";
 import { useNavigation } from "@react-navigation/native";
@@ -49,9 +49,9 @@ function outerDocument(src: string, allow: string, secret: string) {
 <body><iframe id="app" sandbox="allow-scripts allow-forms" allow="${attribute(allow)}"></iframe>
 <script>(function(){var frame=document.getElementById("app"),secret=${JSON.stringify(secret)},loads=0,live=true;
 var send=function(m){window.ReactNativeWebView.postMessage(JSON.stringify({secret:secret,message:m}));};
-frame.addEventListener("load",function(){loads+=1;if(loads>1&&live){live=false;send({supacode:"navigated"});}});
+frame.addEventListener("load",function(){loads+=1;if(loads>1&&live){live=false;send({supaterm:"navigated"});}});
 window.addEventListener("message",function(e){if(live&&e.source===frame.contentWindow)send(e.data);});
-window.__supacodeMcpAppReceive=function(m){live&&frame.contentWindow&&frame.contentWindow.postMessage(m,"*");};
+window.__supatermMcpAppReceive=function(m){live&&frame.contentWindow&&frame.contentWindow.postMessage(m,"*");};
 frame.src=${JSON.stringify(src).replace(/</g, "\\u003c")};})();</script></body></html>`;
 }
 
@@ -254,7 +254,7 @@ export function ThreadMcpApp(props: {
         platform: "mobile",
         locale: Intl.DateTimeFormat().resolvedOptions().locale,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        userAgent: `supacode/${Constants.expoConfig?.version ?? "0.0.0"}`,
+        userAgent: `supaterm/${Constants.expoConfig?.version ?? "0.0.0"}`,
         deviceCapabilities: { touch: true, hover: false },
 
         safeAreaInsets: isFullscreen
@@ -294,7 +294,7 @@ export function ThreadMcpApp(props: {
       hostVersion: Constants.expoConfig?.version ?? "0.0.0",
       post: (message) =>
         webView.current?.injectJavaScript(
-          `window.__supacodeMcpAppReceive&&window.__supacodeMcpAppReceive(${JSON.stringify(message)});true;`,
+          `window.__supatermMcpAppReceive&&window.__supatermMcpAppReceive(${JSON.stringify(message)});true;`,
         ),
       hostContext,
       ...requests,
@@ -467,7 +467,7 @@ export function ThreadMcpApp(props: {
             }
             if (!Predicate.isObject(envelope) || envelope.secret !== secret) return;
             const message = envelope.message;
-            if (Predicate.isObject(message) && message.supacode === "navigated") {
+            if (Predicate.isObject(message) && message.supaterm === "navigated") {
               hostRef.current?.dispose();
               setNavigatedAway(true);
               return;

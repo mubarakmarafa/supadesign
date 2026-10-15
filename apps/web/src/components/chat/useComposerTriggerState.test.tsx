@@ -2,7 +2,7 @@ import { act, StrictMode, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { detectComposerTrigger } from "@supacode/shared/composerTrigger";
+import { detectComposerTrigger } from "@supaterm/shared/composerTrigger";
 import { useComposerTriggerState } from "./useComposerTriggerState";
 
 const command = "pnpm install -g @openai/codex@latest";

@@ -1,6 +1,6 @@
 # Antigravity
 
-Supacode runs Google's official Antigravity ACP agent on your selected environment.
+Supaterm runs Google's official Antigravity ACP agent on your selected environment.
 It has its own sign-in, separate from the Antigravity IDE or CLI. Google controls
 which models and account access are available through this agent.
 
@@ -8,7 +8,7 @@ which models and account access are available through this agent.
 
 On web or desktop, open **Settings > Providers**, choose the environment that runs
 your project, and enable Antigravity. Install its runtime there, then choose
-**Sign in** and complete the browser sign-in. Wait for Supacode to confirm
+**Sign in** and complete the browser sign-in. Wait for Supaterm to confirm
 account access and load models before starting a thread. Once the runtime is installed,
 you can also sign in from **Settings > Provider accounts** in the mobile app.
 
@@ -25,12 +25,12 @@ fail to load because the sign-in listener is on the environment.
 Copy the full return address, including everything after `?`, into the return URL
 field in the client where you started sign-in, then choose
 **Continue**. Keep the original address; do not replace it with the server's
-hostname. Only that Supacode sign-in session can finish the attempt. If it expires,
+hostname. Only that Supaterm sign-in session can finish the attempt. If it expires,
 retry sign-in and use the new link.
 
 The return URL contains a temporary sign-in code. Paste it only into the setup
 field. A successful callback page alone does not confirm account access; wait for
-Supacode's confirmation.
+Supaterm's confirmation.
 
 ### Other sign-in methods
 
@@ -72,18 +72,18 @@ The model list comes from your Antigravity account and can differ from other
 Antigravity apps. A resumed thread keeps its selected model. If access to that
 model ends, select another available model before continuing.
 
-Use Antigravity's native `/plan` command for planning. Supacode's separate Plan mode
+Use Antigravity's native `/plan` command for planning. Supaterm's separate Plan mode
 is unavailable. Tool approvals follow [Permission modes](./permission-modes.md).
 Questions with fixed choices still need one of the offered answers, even in
 **Full access**.
 
-Supacode keeps conversation history and file diffs, but Antigravity cannot rewind
+Supaterm keeps conversation history and file diffs, but Antigravity cannot rewind
 its conversation. Reverting a thread or editing and resubmitting an earlier turn
 is unavailable. Continue with a follow-up message or start a new thread.
 
 ### Skills and attachments
 
-Put project skills in `.agents/skills`. Supacode also reads `.gemini/skills` and the
+Put project skills in `.agents/skills`. Supaterm also reads `.gemini/skills` and the
 legacy `.agent/skills` directory. Among these project locations, the first copy
 wins in this order: `.gemini/skills`, `.agents/skills`, `.agent/skills`. See
 [commands and skills](./composer.md#commands-and-skills) for invoking them.
@@ -127,7 +127,7 @@ is refused while the runtime is in use.
 
 Open **Usage > Limits** to see the remaining Gemini and shared Claude/GPT allowances
 for Google sign-ins. Each group has separate five-hour and weekly limits and reset
-times. Limits refresh with provider status and include usage outside Supacode.
+times. Limits refresh with provider status and include usage outside Supaterm.
 
 A server restart keeps your Google sign-in. The provider shows the saved account
 until a session, a refresh, or a sign-out reports something new.

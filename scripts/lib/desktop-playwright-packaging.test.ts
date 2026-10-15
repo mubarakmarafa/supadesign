@@ -81,7 +81,7 @@ async function stagePackage(
 
 it("loads the packaged Playwright runtime through the server browser loader path", async () => {
   const scratch = await NodeFSP.mkdtemp(
-    NodePath.join(NodeOS.tmpdir(), "supacode-playwright-package-"),
+    NodePath.join(NodeOS.tmpdir(), "supaterm-playwright-package-"),
   );
   try {
     // Missing staged dependencies must not resolve from a developer's /tmp tree.

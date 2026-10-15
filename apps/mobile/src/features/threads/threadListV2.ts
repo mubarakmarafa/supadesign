@@ -1,4 +1,4 @@
-import { threadPullRequestSearchTerms } from "@supacode/shared/threadPullRequests";
+import { threadPullRequestSearchTerms } from "@supaterm/shared/threadPullRequests";
 import {
   canSnooze,
   effectiveSnoozed,
@@ -6,17 +6,17 @@ import {
   QUEUED_TURN_START_GRACE_MS,
   resolveSnoozePresets,
   snoozeWakeLabel,
-} from "@supacode/client-runtime/state/thread-settled";
-import type { SnoozePreset } from "@supacode/client-runtime/state/thread-settled";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { resolveThreadProviderStack } from "@supacode/client-runtime/state/models";
-import { threadSearchMatchKey } from "@supacode/client-runtime/state/thread-search";
+} from "@supaterm/client-runtime/state/thread-settled";
+import type { SnoozePreset } from "@supaterm/client-runtime/state/thread-settled";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { resolveThreadProviderStack } from "@supaterm/client-runtime/state/models";
+import { threadSearchMatchKey } from "@supaterm/client-runtime/state/thread-search";
 import {
   createInboxReturnTracker,
   isThreadWorking,
   sortInboxThreadsByReturn,
   sortWorkingThreadsBySend,
-} from "@supacode/client-runtime/state/thread-inbox";
+} from "@supaterm/client-runtime/state/thread-inbox";
 import {
   sortActiveThreadsByOrderKey,
   pageRecentThreads,
@@ -24,8 +24,8 @@ import {
   sortPinnedThreadsByOrderKey,
   sortSettledThreads,
   sortSnoozedThreadsByWake,
-} from "@supacode/client-runtime/state/thread-sort";
-import type { EnvironmentId, ProjectId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/thread-sort";
+import type { EnvironmentId, ProjectId } from "@supaterm/contracts";
 
 import type { ThreadListProvider } from "../../state/thread-list-environments";
 

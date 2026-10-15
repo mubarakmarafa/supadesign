@@ -3,10 +3,10 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   EMPTY_TERMINAL_BUFFER_STATE,
   type KnownTerminalSession,
-} from "@supacode/client-runtime/state/terminal";
-import { DEFAULT_TERMINAL_ID, EnvironmentId, ThreadId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/terminal";
+import { DEFAULT_TERMINAL_ID, EnvironmentId, ThreadId } from "@supaterm/contracts";
 
-import { getTerminalLabel } from "@supacode/shared/terminalLabels";
+import { getTerminalLabel } from "@supaterm/shared/terminalLabels";
 
 import {
   buildTerminalMenuSessions,

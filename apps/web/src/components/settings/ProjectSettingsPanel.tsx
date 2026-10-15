@@ -1,6 +1,6 @@
 import { useComposerMenuState } from "../chat/useComposerMenuState";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
-import { AuthOrchestrationOperateScope } from "@supacode/contracts";
+import { AuthOrchestrationOperateScope } from "@supaterm/contracts";
 import { useEnvironmentsWithScope, readEnvironmentScope } from "../../state/session";
 import {
   isAtomCommandInterrupted,
@@ -8,10 +8,10 @@ import {
   settlePromise,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
+} from "@supaterm/client-runtime/state/runtime";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import { AsyncResult } from "effect/reactivity";
-import { type EnvironmentId, type ProjectIconOverride } from "@supacode/contracts";
+import { type EnvironmentId, type ProjectIconOverride } from "@supaterm/contracts";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import * as Cause from "effect/Cause";
 import { InfoIcon, Trash2Icon } from "lucide-react";

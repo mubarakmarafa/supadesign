@@ -1,4 +1,4 @@
-import { OrchestrationGetWorkflowScriptError } from "@supacode/contracts";
+import { OrchestrationGetWorkflowScriptError } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import { readContainedWorkflowFile } from "./workflowFileRead.ts";
 

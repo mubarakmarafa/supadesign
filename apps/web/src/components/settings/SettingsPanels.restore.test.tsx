@@ -1,4 +1,4 @@
-import { DEFAULT_UNIFIED_SETTINGS, type UnifiedSettings } from "@supacode/contracts";
+import { DEFAULT_UNIFIED_SETTINGS, type UnifiedSettings } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { reactHookHarness as hooks } from "../../test/reactHookHarness";

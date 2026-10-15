@@ -10,12 +10,12 @@ import * as Queue from "effect/Queue";
 import * as Schema from "effect/Schema";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import { TextGenerationError } from "@supacode/contracts";
+import { TextGenerationError } from "@supaterm/contracts";
 import type { PiSettings } from "../settings.ts";
 
 import { makePiRpcConnection, parsePiModelSlug } from "./rpc.ts";
 import { buildPiRpcLaunch, resolvePiLaunchArgs } from "./mcpInjection.ts";
-import * as TextGenerationOperations from "@supacode/provider-core/server/textGenerationOperations";
+import * as TextGenerationOperations from "@supaterm/provider-core/server/textGenerationOperations";
 
 const PI_TIMEOUT_MS = 180_000;
 

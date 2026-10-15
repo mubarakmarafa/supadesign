@@ -4,7 +4,7 @@ import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings"
 import { ScopedSwitch } from "./ScopedSwitch";
 import { DeviceHostsSettings } from "./DeviceHostsSettings";
 /**
- * Integrations settings - preferences for surfaces Supacode embeds rather than
+ * Integrations settings - preferences for surfaces Supaterm embeds rather than
  * owns. Browser is the first section: the defaults a preview tab opens at,
  * applied to both hand-opened tabs and agent `preview_open` calls that don't
  * state their own size.
@@ -38,8 +38,8 @@ import {
   type BrowserImportSource,
   type PreviewAppearancePreference,
   type PreviewViewportSetting,
-} from "@supacode/contracts";
-import { PREVIEW_VIEWPORT_PRESETS } from "@supacode/shared/previewViewport";
+} from "@supaterm/contracts";
+import { PREVIEW_VIEWPORT_PRESETS } from "@supaterm/shared/previewViewport";
 import { MoreVertical, Plus as PlusIcon } from "lucide-react";
 import { useCallback, useId, useRef, useState } from "react";
 
@@ -55,7 +55,7 @@ import { readEnvironmentScope, useEnvironmentScope } from "~/state/session";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { previewEnvironment } from "~/state/preview";
 import { useServerConfigs } from "~/state/entities";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import {
   AgentDeviceSetupStatus,
   DeviceHubSetupStatus,
@@ -570,7 +570,7 @@ function BrowserRecordingFrameRateSetting({ disabled }: { readonly disabled: boo
 
 const LINK_TARGET_LABELS: Readonly<Record<BrowserLinkTarget, string>> = {
   system: "Your default browser",
-  app: "Supacode",
+  app: "Supaterm",
 };
 
 function BrowserLinkTargetSetting({ disabled }: { readonly disabled: boolean }) {

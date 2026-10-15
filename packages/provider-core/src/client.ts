@@ -1,4 +1,4 @@
-import type { ProviderDriverKind } from "@supacode/contracts";
+import type { ProviderDriverKind } from "@supaterm/contracts";
 import type * as Schema from "effect/Schema";
 
 export type ProviderSettingsSchema = {

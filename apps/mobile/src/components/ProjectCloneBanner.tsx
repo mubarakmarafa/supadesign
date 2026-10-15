@@ -2,7 +2,7 @@ import {
   projectCloneDisplayName,
   projectCloneProgressSummary,
   type ProjectCloneSnapshot,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { ComponentProps } from "react";
 import { Pressable, View } from "react-native";
 
@@ -30,7 +30,7 @@ export function ProjectCloneBanner(props: {
       <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3">
         <AppActivityIndicator size="small" />
         <View className="min-w-0 flex-1">
-          <Text className="font-supacode-medium text-sm" numberOfLines={1}>
+          <Text className="font-supaterm-medium text-sm" numberOfLines={1}>
             Cloning {name}
           </Text>
           <Text className="text-xs text-foreground-muted" numberOfLines={1}>
@@ -51,7 +51,7 @@ export function ProjectCloneBanner(props: {
     >
       <Text
         className={cn(
-          "font-supacode-medium text-sm",
+          "font-supaterm-medium text-sm",
           cancelled ? "text-warning-foreground" : "text-danger-foreground",
         )}
         numberOfLines={1}
@@ -85,7 +85,7 @@ function BannerAction({
       className="rounded-full border border-border bg-card px-3 py-1.5"
       {...props}
     >
-      <Text className="font-supacode-medium text-xs">{label}</Text>
+      <Text className="font-supaterm-medium text-xs">{label}</Text>
     </Pressable>
   );
 }

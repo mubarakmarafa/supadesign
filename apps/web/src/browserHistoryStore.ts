@@ -1,10 +1,10 @@
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
-import type { ScopedThreadRef } from "@supacode/contracts";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 
-import { normalizePreviewUrl } from "@supacode/shared/preview";
+import { normalizePreviewUrl } from "@supaterm/shared/preview";
 import { readPreparedConnection } from "~/state/session";
 
 import { isLocalLoopbackHost, normalizeHostname } from "./browser/browserTargetResolver";
@@ -138,7 +138,7 @@ export function migratePersistedBrowserHistoryState(persistedState: unknown): {
   return { byProjectKey: evictExcessProjects(byProjectKey) };
 }
 
-const BROWSER_HISTORY_STORAGE_KEY = "supacode:browser-history:v1";
+const BROWSER_HISTORY_STORAGE_KEY = "supaterm:browser-history:v1";
 
 const PENDING_MAX_PER_THREAD = 10;
 const PENDING_MAX_THREADS = 20;

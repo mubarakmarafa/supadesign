@@ -6,8 +6,8 @@ import {
   type ProviderInstanceId,
   ProviderSetupError,
   type ProviderSetupInput,
-} from "@supacode/contracts";
-import { resolveCommandPath } from "@supacode/shared/shell";
+} from "@supaterm/contracts";
+import { resolveCommandPath } from "@supaterm/shared/shell";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
@@ -18,7 +18,7 @@ import * as AntigravityInstallation from "./AntigravityInstallation.ts";
 import { deriveProviderInstanceConfigMap } from "./ProviderInstanceRegistryHydration.ts";
 import * as ProviderInstanceRegistry from "./ProviderInstanceRegistry.ts";
 import * as ProviderRegistry from "./ProviderRegistry.ts";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
 
 const ANTIGRAVITY = ProviderDriverKind.make("antigravity");
 const hasBinaryPath = Schema.is(Schema.Struct({ binaryPath: Schema.String }));
@@ -83,7 +83,7 @@ export const makeProviderInstallation = Effect.fn("makeProviderInstallation")(fu
       return yield* new ProviderSetupError({
         instanceId,
         operation,
-        detail: "Choose managed setup to install Codex in Supacode.",
+        detail: "Choose managed setup to install Codex in Supaterm.",
       });
     }
     if (managedOnly && config.binaryPath && (!isCodex || config.binaryPath !== "codex")) {
@@ -91,7 +91,7 @@ export const makeProviderInstallation = Effect.fn("makeProviderInstallation")(fu
         instanceId,
         operation,
         detail:
-          "This instance uses a custom executable. Clear its binary path to manage installation in Supacode.",
+          "This instance uses a custom executable. Clear its binary path to manage installation in Supaterm.",
       });
     }
     return { installation, driver: instance.driverKind };

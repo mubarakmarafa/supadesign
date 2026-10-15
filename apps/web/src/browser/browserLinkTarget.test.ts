@@ -1,4 +1,4 @@
-import type { BrowserLinkTarget } from "@supacode/contracts";
+import type { BrowserLinkTarget } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import { ensureClientSettingsHydrated } from "~/hooks/useSettings";

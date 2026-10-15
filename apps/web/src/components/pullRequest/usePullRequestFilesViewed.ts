@@ -1,5 +1,5 @@
-import { isAtomCommandInterrupted } from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentId, PullRequestRef } from "@supacode/contracts";
+import { isAtomCommandInterrupted } from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentId, PullRequestRef } from "@supaterm/contracts";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { pullRequestEnvironment } from "~/state/pullRequests";

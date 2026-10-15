@@ -4,8 +4,8 @@ import {
   ProviderSessionId,
   ProviderThreadId,
   ThreadId,
-} from "@supacode/contracts";
-import { modelSelectionsEqual } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { modelSelectionsEqual } from "@supaterm/shared/model";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -49,7 +49,7 @@ export interface ProviderSwitchServiceV2Shape {
 export class ProviderSwitchServiceV2 extends Context.Service<
   ProviderSwitchServiceV2,
   ProviderSwitchServiceV2Shape
->()("supacode/orchestration-v2/ProviderSwitchService/ProviderSwitchServiceV2") {}
+>()("supaterm/orchestration-v2/ProviderSwitchService/ProviderSwitchServiceV2") {}
 
 // Stopped and errored records stay in session history but can no longer be
 // restarted or released; only live sessions participate in a transition.

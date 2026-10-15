@@ -5,53 +5,53 @@ import * as NodeOS from "node:os";
 import * as NodeSea from "node:sea";
 
 export const Platform = Context.Reference<NodeJS.Platform>(
-  "@supacode/shared/HostProcess/Platform",
+  "@supaterm/shared/HostProcess/Platform",
   {
     defaultValue: () => process.platform,
   },
 );
 
 export const Architecture = Context.Reference<NodeJS.Architecture>(
-  "@supacode/shared/HostProcess/Architecture",
+  "@supaterm/shared/HostProcess/Architecture",
   {
     defaultValue: () => process.arch,
   },
 );
 
-export const Hostname = Context.Reference<string>("@supacode/shared/HostProcess/Hostname", {
+export const Hostname = Context.Reference<string>("@supaterm/shared/HostProcess/Hostname", {
   defaultValue: () => NodeOS.hostname(),
 });
 
 export const HomeDirectory = Context.Reference<string>(
-  "@supacode/shared/HostProcess/HomeDirectory",
+  "@supaterm/shared/HostProcess/HomeDirectory",
   {
     defaultValue: () => NodeOS.homedir(),
   },
 );
 
 export const Environment = Context.Reference<NodeJS.ProcessEnv>(
-  "@supacode/shared/HostProcess/Environment",
+  "@supaterm/shared/HostProcess/Environment",
   {
     defaultValue: () => process.env,
   },
 );
 
 export const WorkingDirectory = Context.Reference<string>(
-  "@supacode/shared/HostProcess/WorkingDirectory",
+  "@supaterm/shared/HostProcess/WorkingDirectory",
   {
     defaultValue: () => process.cwd(),
   },
 );
 
 export const ExecutablePath = Context.Reference<string>(
-  "@supacode/shared/HostProcess/ExecutablePath",
+  "@supaterm/shared/HostProcess/ExecutablePath",
   {
     defaultValue: () => process.execPath,
   },
 );
 
 export const Arguments = Context.Reference<ReadonlyArray<string>>(
-  "@supacode/shared/HostProcess/Arguments",
+  "@supaterm/shared/HostProcess/Arguments",
   {
     defaultValue: () => process.argv,
   },
@@ -59,10 +59,10 @@ export const Arguments = Context.Reference<ReadonlyArray<string>>(
 
 /**
  * The command the shell was given, before Node resolved it to the binary:
- * `supacode` for a PATH lookup, `./supacode` or the launcher symlink for an explicit
+ * `supaterm` for a PATH lookup, `./supaterm` or the launcher symlink for an explicit
  * path. `process.argv[0]` and `execPath` are always the resolved binary.
  */
-export const InvokedAs = Context.Reference<string>("@supacode/shared/HostProcess/InvokedAs", {
+export const InvokedAs = Context.Reference<string>("@supaterm/shared/HostProcess/InvokedAs", {
   defaultValue: () => process.argv0,
 });
 
@@ -73,7 +73,7 @@ export const InvokedAs = Context.Reference<string>("@supacode/shared/HostProcess
  * subcommands of itself.
  */
 export const IsExecutable = Context.Reference<boolean>(
-  "@supacode/shared/HostProcess/IsExecutable",
+  "@supaterm/shared/HostProcess/IsExecutable",
   {
     defaultValue: () => NodeSea.isSea(),
   },
@@ -90,7 +90,7 @@ export const IsExecutable = Context.Reference<boolean>(
  * Best effort: a failed lookup just leaves the interface set.
  */
 export const Addresses = Context.Reference<Effect.Effect<ReadonlySet<string>>>(
-  "@supacode/shared/HostProcess/Addresses",
+  "@supaterm/shared/HostProcess/Addresses",
   {
     defaultValue: () =>
       Effect.gen(function* () {
@@ -109,7 +109,7 @@ export const Addresses = Context.Reference<Effect.Effect<ReadonlySet<string>>>(
 );
 
 /** Undefined on platforms without POSIX uids (Windows). */
-export const UserId = Context.Reference<number | undefined>("@supacode/shared/HostProcess/UserId", {
+export const UserId = Context.Reference<number | undefined>("@supaterm/shared/HostProcess/UserId", {
   defaultValue: () => process.getuid?.(),
 });
 

@@ -10,7 +10,7 @@ import desktopConfig from "../vite.config.ts";
 
 it("keeps lazy Linux imports and worker bundles from executing desktop startup twice", async () => {
   const directory = await NodeFSP.mkdtemp(
-    NodePath.join(NodeOS.tmpdir(), "supacode-desktop-bundle-"),
+    NodePath.join(NodeOS.tmpdir(), "supaterm-desktop-bundle-"),
   );
   try {
     const workerEntries = [
@@ -113,7 +113,7 @@ void import("./linux.ts").then(({ result }) => process.emit("ready", result));`,
 });
 
 it("loads the emitted packaged boot entry and backend cache preload", async () => {
-  const directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-desktop-boot-"));
+  const directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-desktop-boot-"));
   try {
     const entries = ["src/boot.ts", "src/compileCache.ts"];
     await NodeFSP.mkdir(NodePath.join(directory, "src"));

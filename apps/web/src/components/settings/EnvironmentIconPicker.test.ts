@@ -1,4 +1,4 @@
-import type { ServerConfig } from "@supacode/contracts";
+import type { ServerConfig } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { resolveEnvironmentIconPickerLock } from "./EnvironmentIconPicker";

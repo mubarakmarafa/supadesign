@@ -1,4 +1,4 @@
-import { type RuntimeRequestId } from "@supacode/contracts";
+import { type RuntimeRequestId } from "@supaterm/contracts";
 import { memo, useEffect, useRef, useState } from "react";
 import { type PendingUserInput } from "../../session-logic";
 import {

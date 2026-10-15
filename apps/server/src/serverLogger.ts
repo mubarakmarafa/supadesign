@@ -1,4 +1,4 @@
-import * as SharedObservability from "@supacode/shared/observability";
+import * as SharedObservability from "@supaterm/shared/observability";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Logger from "effect/Logger";

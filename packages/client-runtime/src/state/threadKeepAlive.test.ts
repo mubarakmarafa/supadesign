@@ -5,7 +5,7 @@ import {
   RunId,
   ThreadId,
   type OrchestrationV2ThreadShell,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { describe, expect, it } from "vite-plus/test";

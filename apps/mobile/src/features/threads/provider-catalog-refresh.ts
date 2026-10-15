@@ -1,9 +1,9 @@
-import type { EnvironmentId } from "@supacode/contracts";
-import type { AtomCommandResult } from "@supacode/client-runtime/state/runtime";
+import type { EnvironmentId } from "@supaterm/contracts";
+import type { AtomCommandResult } from "@supaterm/client-runtime/state/runtime";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 type RefreshProvidersTarget = {
   readonly environmentId: EnvironmentId;

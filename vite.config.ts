@@ -6,9 +6,9 @@ import antiSlop from "ultracite/oxlint/anti-slop";
 /** Import restrictions every file keeps, including the one module exempt from the glyph rule. */
 const RESTRICTED_IMPORT_PATHS = [
   {
-    name: "@supacode/client-runtime",
+    name: "@supaterm/client-runtime",
     message:
-      "Import from an explicit @supacode/client-runtime/* subpath. The package has no root export.",
+      "Import from an explicit @supaterm/client-runtime/* subpath. The package has no root export.",
   },
   {
     name: "@pierre/diffs/react",
@@ -64,6 +64,7 @@ export default defineConfig({
     environment: "node",
     exclude: [
       "**/.supacode/**",
+      "**/.supaterm/**",
       "**/node_modules/**",
       "**/dist/**",
       "**/dist-electron/**",
@@ -120,13 +121,13 @@ export default defineConfig({
       "apps/mobile/android/**",
       "apps/mobile/ios/**",
       "apps/mobile/uniwind-types.d.ts",
-      "oxlint-plugin-supacode/**",
+      "oxlint-plugin-supaterm/**",
     ],
     plugins: ["eslint", "oxc", "react", "unicorn", "typescript"],
     jsPlugins: [
-      "./oxlint-plugin-supacode/index.ts",
-      "./oxlint-plugin-supacode/array-guardrails.ts",
-      "./oxlint-plugin-supacode/test-waits.ts",
+      "./oxlint-plugin-supaterm/index.ts",
+      "./oxlint-plugin-supaterm/array-guardrails.ts",
+      "./oxlint-plugin-supaterm/test-waits.ts",
       "@shadcn/lint",
     ],
     settings: {
@@ -181,18 +182,18 @@ export default defineConfig({
         "error",
         { paths: [...RESTRICTED_IMPORT_PATHS, RESTRICTED_PULL_REQUEST_GLYPH_IMPORTS] },
       ],
-      "supacode/no-global-process-runtime": "error",
-      "supacode/no-inline-schema-compile": "error",
-      "supacode/no-manual-effect-runtime-in-tests": "error",
-      "supacode/no-native-title-tooltip": "error",
-      "supacode/no-raw-mcp-registration": "error",
-      "supacode/no-test-in-loop": "error",
-      "supacode/no-rpc-permission-bypass": ["error", { allowRawClientAccess: true }],
-      "supacode/no-unscoped-has": "error",
-      "supacode/namespace-node-imports": "error",
-      "supacode/prefer-catch-tags": "error",
-      "supacode/require-centered-scroll-gutter": "error",
-      "supacode/require-suppression-reason": "error",
+      "supaterm/no-global-process-runtime": "error",
+      "supaterm/no-inline-schema-compile": "error",
+      "supaterm/no-manual-effect-runtime-in-tests": "error",
+      "supaterm/no-native-title-tooltip": "error",
+      "supaterm/no-raw-mcp-registration": "error",
+      "supaterm/no-test-in-loop": "error",
+      "supaterm/no-rpc-permission-bypass": ["error", { allowRawClientAccess: true }],
+      "supaterm/no-unscoped-has": "error",
+      "supaterm/namespace-node-imports": "error",
+      "supaterm/prefer-catch-tags": "error",
+      "supaterm/require-centered-scroll-gutter": "error",
+      "supaterm/require-suppression-reason": "error",
     },
     overrides: [
       {
@@ -223,7 +224,7 @@ export default defineConfig({
       },
       {
         files: ["packages/client-runtime/src/state/**", "apps/{web,mobile,desktop}/src/**"],
-        rules: { "supacode/no-rpc-permission-bypass": ["error", { allowRawClientAccess: false }] },
+        rules: { "supaterm/no-rpc-permission-bypass": ["error", { allowRawClientAccess: false }] },
       },
       {
         // Only shared command boundaries install the session-backed permission guard.
@@ -232,7 +233,7 @@ export default defineConfig({
           "packages/client-runtime/src/state/vcsAction.ts",
         ],
         rules: {
-          "supacode/no-rpc-permission-bypass": [
+          "supaterm/no-rpc-permission-bypass": [
             "error",
             { allowGuardInstallation: true, allowRawClientAccess: false },
           ],
@@ -246,12 +247,12 @@ export default defineConfig({
           "apps/web/src/components/device/DevicePhoneViewport.tsx",
           "apps/web/src/components/device/DeviceDuoViewport.tsx",
         ],
-        rules: { "supacode/no-rpc-permission-bypass": ["error", { allowRawClientAccess: true }] },
+        rules: { "supaterm/no-rpc-permission-bypass": ["error", { allowRawClientAccess: true }] },
       },
       {
         // Incompatible hosts cannot open a normal session; their updater uses a dedicated socket.
         files: ["packages/client-runtime/src/connection/outdatedHostUpdate.ts"],
-        rules: { "supacode/no-rpc-permission-bypass": "off" },
+        rules: { "supaterm/no-rpc-permission-bypass": "off" },
       },
       {
         // RPC implementation and transport test fixtures need the raw client.
@@ -259,17 +260,17 @@ export default defineConfig({
           "packages/client-runtime/src/rpc/**",
           "**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
         ],
-        rules: { "supacode/no-rpc-permission-bypass": "off" },
+        rules: { "supaterm/no-rpc-permission-bypass": "off" },
       },
       {
         // The one place that reads the host platform to seed the injected references.
         files: ["packages/shared/src/HostProcess.ts"],
-        rules: { "supacode/no-global-process-runtime": "off" },
+        rules: { "supaterm/no-global-process-runtime": "off" },
       },
       {
         // The registration helpers that only accept handlers built by McpToolAccess.
         files: ["apps/server/src/mcp/McpHttpServer.ts"],
-        rules: { "supacode/no-raw-mcp-registration": "off" },
+        rules: { "supaterm/no-raw-mcp-registration": "off" },
       },
       {
         files: ["apps/web/src/**"],
@@ -292,7 +293,7 @@ export default defineConfig({
       },
       {
         files: ["apps/mobile/src/**"],
-        rules: { "supacode/no-mobile-uniwind-theme-escape-hatches": "error" },
+        rules: { "supaterm/no-mobile-uniwind-theme-escape-hatches": "error" },
       },
       {
         // React commits state set in a raw ResizeObserver callback after the paint, so derived
@@ -302,7 +303,7 @@ export default defineConfig({
           "apps/web/src/lib/observeResize.ts",
           "**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
         ],
-        rules: { "supacode/no-raw-resize-observer": "error" },
+        rules: { "supaterm/no-raw-resize-observer": "error" },
       },
       {
         // Every class in web code must be one Tailwind generates: a typo or a class nothing
@@ -313,7 +314,7 @@ export default defineConfig({
       {
         // State indicators paint inward; decorative rings keep their own geometry.
         files: ["apps/web/src/**"],
-        rules: { "supacode/no-outset-state-indicators": "error" },
+        rules: { "supaterm/no-outset-state-indicators": "error" },
       },
       {
         // Colors come from theme tokens so status tones follow custom themes. components/ui
@@ -400,7 +401,7 @@ export default defineConfig({
           "packages/shared/src/**",
         ],
         excludeFiles: ["**/*.test.ts", "**/*.test.tsx"],
-        rules: { "supacode/no-hermes-unsupported-apis": "error" },
+        rules: { "supaterm/no-hermes-unsupported-apis": "error" },
       },
       {
         // Reviewed native and third-party interop boundaries that cannot consume a className.
@@ -430,12 +431,12 @@ export default defineConfig({
           "apps/mobile/src/features/threads/thread-list-items.tsx",
           "apps/mobile/src/features/threads/thread-list-v2-items.tsx",
           "apps/mobile/src/lib/useMobileNavigationTheme.ts",
-          "apps/mobile/src/native/SupacodeComposerEditor.ios.tsx",
-          "apps/mobile/src/native/SupacodeComposerEditor.native.tsx",
+          "apps/mobile/src/native/SupatermComposerEditor.ios.tsx",
+          "apps/mobile/src/native/SupatermComposerEditor.native.tsx",
           "apps/mobile/src/native/SelectableMarkdownText.tsx",
         ],
         rules: {
-          "supacode/no-mobile-uniwind-theme-escape-hatches": ["error", { allowUniwindTheme: true }],
+          "supaterm/no-mobile-uniwind-theme-escape-hatches": ["error", { allowUniwindTheme: true }],
         },
       },
     ],

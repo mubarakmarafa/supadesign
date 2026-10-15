@@ -1,4 +1,4 @@
-import type { ThreadId } from "@supacode/contracts";
+import type { ThreadId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import type * as Effect from "effect/Effect";
 
@@ -14,7 +14,7 @@ export class ProviderEventLoggers extends Context.Service<
     readonly native: EventNdjsonLogger | undefined;
     readonly canonical: EventNdjsonLogger | undefined;
   }
->()("@supacode/provider-core/server/ProviderEventLoggers") {}
+>()("@supaterm/provider-core/server/ProviderEventLoggers") {}
 
 export const NoOpProviderEventLoggers: ProviderEventLoggers["Service"] = {
   native: undefined,

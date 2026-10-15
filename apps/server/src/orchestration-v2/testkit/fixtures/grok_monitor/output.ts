@@ -1,5 +1,5 @@
 import { assert } from "@effect/vitest";
-import type { ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderReplayTranscript } from "@supaterm/contracts";
 
 import type { OrchestratorV2ScenarioResult } from "../../OrchestratorScenario.ts";
 import {
@@ -76,7 +76,7 @@ export function assertGrokMonitorOutput(
   );
   assert.include(rootTexts, "ROOT_DONE");
 
-  // Full access approves the monitor prompt for Supacode. It must answer with
+  // Full access approves the monitor prompt for Supaterm. It must answer with
   // Grok's allow-once: Grok saves `always-allow` for the whole project.
   const permissionAnswer = transcript.entries.find(
     (entry) =>

@@ -1,6 +1,6 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { FileDiffMetadata } from "@pierre/diffs";
-import type { EnvironmentId, ReviewDiffPreviewSource } from "@supacode/contracts";
+import type { EnvironmentId, ReviewDiffPreviewSource } from "@supaterm/contracts";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import {

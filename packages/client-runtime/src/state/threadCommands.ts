@@ -1,4 +1,4 @@
-import type { ThreadId } from "@supacode/contracts";
+import type { ThreadId } from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -9,7 +9,7 @@ import {
   type OrchestrationV2Command,
   type EnvironmentId,
   type OrchestrationV2ShellSnapshot,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { createOptimisticThreadLifecycle } from "./threadLifecycle.ts";
 import { createOptimisticThreadCreation } from "./threadCreation.ts";

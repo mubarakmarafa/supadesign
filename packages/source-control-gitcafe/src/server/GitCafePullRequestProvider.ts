@@ -1,19 +1,19 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import { randomUuidV4 } from "@supacode/provider-core/server/randomUuid";
+import { randomUuidV4 } from "@supaterm/provider-core/server/randomUuid";
 import {
   NonNegativeInt,
   TrimmedNonEmptyString,
   type PullRequestCapabilities,
   type PullRequestStackHead,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   PullRequestProviderError,
   type ProviderRepositoryRef,
   type PullRequestProviderApi,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 
 import * as GitCafeApi from "./GitCafeApi.ts";
 import * as GitCafeHosts from "./gitCafeHosts.ts";
@@ -722,7 +722,7 @@ export const make = Effect.gen(function* () {
           return;
         }
         default:
-          return yield* failure(input.action, `GitCafe cannot ${input.action} from Supacode.`);
+          return yield* failure(input.action, `GitCafe cannot ${input.action} from Supaterm.`);
       }
     }),
     updateChangeRequest: Effect.fn("GitCafePullRequestProvider.updateChangeRequest")(

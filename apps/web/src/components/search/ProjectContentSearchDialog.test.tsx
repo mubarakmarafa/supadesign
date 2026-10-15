@@ -1,5 +1,5 @@
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { AuthFilesystemReadScope, EnvironmentId, ThreadId } from "@supacode/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { AuthFilesystemReadScope, EnvironmentId, ThreadId } from "@supaterm/contracts";
 import type { ReactNode } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";

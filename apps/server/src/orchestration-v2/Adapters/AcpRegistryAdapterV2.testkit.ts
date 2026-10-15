@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { AcpRegistrySettings } from "@supacode/provider-acp-registry/settings";
-import { resolveSelfInvocation } from "@supacode/shared/nodeRuntime";
+import { AcpRegistrySettings } from "@supaterm/provider-acp-registry/settings";
+import { resolveSelfInvocation } from "@supaterm/shared/nodeRuntime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -8,10 +8,10 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProviderAdapterRegistry from "../ProviderAdapterRegistry.ts";
-import type { ProviderReplayGate } from "@supacode/provider-testing/replayGate";
+import type { ProviderReplayGate } from "@supaterm/provider-testing/replayGate";
 import type { OrchestratorV2ProviderReplayHarness } from "../testkit/ProviderReplayHarness.ts";
 import {
   type AcpReplayTranscript,
@@ -24,8 +24,8 @@ import {
   ACP_REGISTRY_DEFAULT_INSTANCE_ID,
   ACP_REGISTRY_PROVIDER,
   makeAcpRegistryAdapterV2,
-} from "@supacode/provider-acp-registry/testing";
-import * as AcpRegistrySupport from "@supacode/provider-acp-registry/server/AcpRegistrySupport";
+} from "@supaterm/provider-acp-registry/testing";
+import * as AcpRegistrySupport from "@supaterm/provider-acp-registry/server/AcpRegistrySupport";
 
 const REPLAY_SETTINGS = Schema.decodeUnknownSync(AcpRegistrySettings)({
   agentId: "replay-agent",
@@ -46,7 +46,7 @@ function layerAcpRegistryProviderAdapterRegistryReplay(
       const replayGate = options.replayGate;
       const replayDir = yield* fileSystem
         .makeTempDirectory({
-          prefix: `supacode-orchestration-v2-acp-registry-replay-${transcript.scenario}-`,
+          prefix: `supaterm-orchestration-v2-acp-registry-replay-${transcript.scenario}-`,
         })
         .pipe(Effect.orDie);
       const statusPath = path.join(replayDir, "status.json");

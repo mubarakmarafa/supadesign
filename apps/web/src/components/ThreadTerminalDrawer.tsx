@@ -2,14 +2,14 @@ import { useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   INITIAL_TERMINAL_OUTPUT_CURSOR,
   readTerminalOutputUpdate,
   type TerminalOutputCursor,
   type TerminalOutputUpdate,
   type TerminalSessionState,
-} from "@supacode/client-runtime/state/terminal";
+} from "@supaterm/client-runtime/state/terminal";
 import {
   Plus,
   Square,
@@ -27,8 +27,8 @@ import {
   type ResolvedKeybindingsConfig,
   type ScopedThreadRef,
   type ThreadId,
-} from "@supacode/contracts";
-import { getTerminalLabel } from "@supacode/shared/terminalLabels";
+} from "@supaterm/contracts";
+import { getTerminalLabel } from "@supaterm/shared/terminalLabels";
 import * as Schema from "effect/Schema";
 import {
   type PointerEvent as ReactPointerEvent,
@@ -61,7 +61,7 @@ import {
 } from "~/terminal/ghostty/surface";
 import { type GhosttyColor, type GhosttyTheme } from "~/terminal/ghostty/core";
 import { useOpenInPreferredEditor } from "../editorPreferences";
-import { resolvePathLinkTarget } from "@supacode/shared/fileLinks";
+import { resolvePathLinkTarget } from "@supaterm/shared/fileLinks";
 import { isTerminalUrl } from "../terminal-links";
 import {
   isDiffToggleShortcut,

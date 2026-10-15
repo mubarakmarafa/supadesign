@@ -1,0 +1,4 @@
+interface:
+  display_name: "Supaterm App Testing"
+  short_description: "Test web and desktop in Supaterm's Browser panel"
+  default_prompt: "Use $test-supaterm-app to verify the affected web or desktop flow through Supaterm's Browser panel."

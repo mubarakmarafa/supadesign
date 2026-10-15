@@ -1,4 +1,4 @@
-import { HTML_RENDER_DEFAULT_FONTS, htmlRenderTheme } from "@supacode/shared/htmlRender";
+import { HTML_RENDER_DEFAULT_FONTS, htmlRenderTheme } from "@supaterm/shared/htmlRender";
 import { useMemo, useSyncExternalStore } from "react";
 
 import { appearanceFontStack } from "../appearanceFonts";

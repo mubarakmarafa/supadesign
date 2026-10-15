@@ -81,7 +81,7 @@ export function SegmentedControl<Value extends number | string>(
             <Text
               className={cn(
                 compact ? "text-xs" : "text-sm",
-                active ? "font-supacode-medium text-secondary-foreground" : "text-foreground-muted",
+                active ? "font-supaterm-medium text-secondary-foreground" : "text-foreground-muted",
               )}
             >
               {option.label}

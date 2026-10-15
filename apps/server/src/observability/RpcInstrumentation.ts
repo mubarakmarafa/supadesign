@@ -1,4 +1,4 @@
-import { ORCHESTRATION_V2_WS_METHODS, WS_METHODS, type WsRpcGroup } from "@supacode/contracts";
+import { ORCHESTRATION_V2_WS_METHODS, WS_METHODS, type WsRpcGroup } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as References from "effect/References";
@@ -226,7 +226,7 @@ const RPC_METHODS_WITH_TRACING_DISABLED: ReadonlySet<string> = new Set([
  * after `RpcScopeAuthorization`, so it wraps authorization and also records rejected calls.
  */
 export class RpcInstrumentation extends RpcMiddleware.Service<RpcInstrumentation>()(
-  "supacode/server/RpcInstrumentation",
+  "supaterm/server/RpcInstrumentation",
 ) {}
 
 /**

@@ -1,8 +1,8 @@
 import { useAtomRefresh } from "@effect/atom-react";
 import { StackActions, useNavigation, type StaticScreenProps } from "@react-navigation/native";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { PullRequestReviewVerdict } from "@supacode/contracts";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { PullRequestReviewVerdict } from "@supaterm/contracts";
 import { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { Platform, Pressable, View } from "react-native";
@@ -187,7 +187,7 @@ export function PullRequestReviewSheet({
       />
       {reviewing && store.draft.comments.length ? (
         <View className="gap-2">
-          <Text className="text-sm font-supacode-medium">
+          <Text className="text-sm font-supaterm-medium">
             {store.draft.comments.length} pending line{" "}
             {store.draft.comments.length === 1 ? "comment" : "comments"}
           </Text>

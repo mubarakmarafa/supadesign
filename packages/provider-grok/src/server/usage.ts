@@ -5,21 +5,21 @@
  * @module provider-grok/server/usage
  */
 
-import type { UsageTokenTotals } from "@supacode/contracts";
+import type { UsageTokenTotals } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import {
   tokenCount,
   totalTokens,
   type ProviderUsageReader,
   type TranscriptUsageFormat,
   type UsageRecord,
-} from "@supacode/provider-core/server/usage";
+} from "@supaterm/provider-core/server/usage";
 
 import type { GrokSettings } from "../settings.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 /**
  * Grok reports cost in integer ticks where `1 USD = 10^10` ticks. See Grok

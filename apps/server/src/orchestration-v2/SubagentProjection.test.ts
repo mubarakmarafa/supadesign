@@ -13,7 +13,7 @@ import {
   ProviderInstanceId,
   ProviderThreadId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 
@@ -24,7 +24,7 @@ import {
   makeSubagentConversationArtifacts,
   endOrphanedNativeSubagent,
   endRunlessRootTurns,
-} from "@supacode/provider-core/server/subagentProjection";
+} from "@supaterm/provider-core/server/subagentProjection";
 
 import { emptyProjection } from "./ProjectionStore.ts";
 

@@ -8,7 +8,7 @@ import {
   type OrchestrationV2ThreadProjection,
   type OrchestrationV2ThreadDetailSnapshot,
   type OrchestrationV2ThreadStreamItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { afterEach, describe, expect, it, vi } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";

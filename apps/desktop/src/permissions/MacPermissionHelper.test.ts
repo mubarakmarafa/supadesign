@@ -61,7 +61,7 @@ vi.mock("electron", async () => {
   }
   return {
     app: {
-      getPath: () => "/Applications/Supacode (Nightly).app/Contents/MacOS/Supacode (Nightly)",
+      getPath: () => "/Applications/Supaterm (Nightly).app/Contents/MacOS/Supaterm (Nightly)",
     },
     nativeImage: { createFromPath: mocks.createFromPath },
     BrowserWindow: class extends MockWindow {},
@@ -124,11 +124,11 @@ function send(action: string, trusted = true) {
 
 describe("macAppBundlePath", () => {
   it("resolves bundles with spaces and refuses non-bundle executables", () => {
-    expect(macAppBundlePath("/Applications/Supacode.app/Contents/MacOS/Supacode")).toBe(
-      "/Applications/Supacode.app",
+    expect(macAppBundlePath("/Applications/Supaterm.app/Contents/MacOS/Supaterm")).toBe(
+      "/Applications/Supaterm.app",
     );
     expect(macAppBundlePath("/usr/local/bin/electron")).toBeUndefined();
-    expect(macAppBundlePath("/Applications/Supacode.app/other/MacOS/Supacode")).toBeUndefined();
+    expect(macAppBundlePath("/Applications/Supaterm.app/other/MacOS/Supaterm")).toBeUndefined();
   });
 });
 it("drags the running app bundle only for the helper's own renderer", async () => {
@@ -138,11 +138,11 @@ it("drags the running app bundle only for the helper's own renderer", async () =
   send("drag");
   expect(mocks.createFromPath).toHaveBeenCalledWith("/bundle/prod-resources/icon.png");
   expect(mocks.startDrag).toHaveBeenCalledWith({
-    file: "/Applications/Supacode (Nightly).app",
+    file: "/Applications/Supaterm (Nightly).app",
     icon: mocks.createFromPath.mock.results[0]!.value.resize(),
   });
   send("finder");
-  expect(mocks.showItemInFolder).toHaveBeenCalledWith("/Applications/Supacode (Nightly).app");
+  expect(mocks.showItemInFolder).toHaveBeenCalledWith("/Applications/Supaterm (Nightly).app");
 });
 it("rechecks permissions and releases resources when granted", async () => {
   await open();
@@ -168,7 +168,7 @@ it("does not open for a permission already granted", async () => {
 });
 it("does not show a helper with a missing packaged icon", async () => {
   mocks.createFromPath.mockReturnValueOnce({ isEmpty: () => true });
-  await expect(open()).rejects.toThrow("packaged Supacode icon is missing");
+  await expect(open()).rejects.toThrow("packaged Supaterm icon is missing");
   expect(windows).toHaveLength(0);
 });
 it("cleans up when the helper page fails to load", async () => {
@@ -184,7 +184,7 @@ it("offers the Finder fallback when native dragging fails", async () => {
     throw new Error("drag failed");
   });
   send("drag");
-  expect(mocks.showItemInFolder).toHaveBeenCalledWith("/Applications/Supacode (Nightly).app");
+  expect(mocks.showItemInFolder).toHaveBeenCalledWith("/Applications/Supaterm (Nightly).app");
   expect(windows[0]!.destroyed).toBe(false);
 });
 

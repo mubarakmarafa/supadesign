@@ -1,7 +1,7 @@
-import { DEFAULT_SERVER_SETTINGS, VcsProcessSpawnError } from "@supacode/contracts";
-import { applyServerSettingsPatch } from "@supacode/shared/serverSettings";
-import { SourceControlProviderKind } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { DEFAULT_SERVER_SETTINGS, VcsProcessSpawnError } from "@supaterm/contracts";
+import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { assert, describe, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";
@@ -13,8 +13,8 @@ import * as Schema from "effect/Schema";
 import { ChildProcessSpawner } from "effect/process";
 import * as TestClock from "effect/testing/TestClock";
 
-import type * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import * as TestSourceControlHost from "@supacode/source-control-testing/TestSourceControlHost";
+import type * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import * as TestSourceControlHost from "@supaterm/source-control-testing/TestSourceControlHost";
 import * as GitHubApi from "./GitHubApi.ts";
 import * as GitHubCredentials from "./GitHubCredentials.ts";
 import { parseGitHubAuthStatus } from "./gitHubAuthStatus.ts";

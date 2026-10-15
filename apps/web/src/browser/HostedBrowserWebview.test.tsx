@@ -5,7 +5,7 @@ import {
   ThreadId,
   type ClientSettings,
   type DesktopPreviewBridge,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { act } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -71,7 +71,7 @@ beforeEach(() => {
   mocks.closeTab.mockReset().mockResolvedValue(undefined);
   mocks.registerWebview.mockReset().mockResolvedValue(undefined);
   mocks.getPreviewConfig.mockReset().mockResolvedValue({
-    partition: "persist:supacode-preview-work",
+    partition: "persist:supaterm-preview-work",
     webPreferences: "contextIsolation=yes",
     preloadUrl: null,
   });
@@ -179,7 +179,7 @@ describe("HostedBrowserWebview settings hydration", () => {
     expect(createGuest).toHaveBeenCalledOnce();
     expect(createGuest).toHaveBeenCalledWith(
       expect.objectContaining({
-        partition: "persist:supacode-preview-work",
+        partition: "persist:supaterm-preview-work",
         src: "https://example.com",
       }),
     );

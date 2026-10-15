@@ -1,5 +1,5 @@
-import { sanitizeNewRefName } from "@supacode/shared/git";
-import { parseChangeRequestUrl } from "@supacode/shared/changeRequestUrl";
+import { sanitizeNewRefName } from "@supaterm/shared/git";
+import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 
 type WorkspaceMode = "local" | "worktree";
 

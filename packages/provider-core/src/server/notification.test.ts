@@ -7,7 +7,7 @@ import {
   RunId,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 import { backgroundWorkNotification, notificationTurnItem } from "./notification.ts";

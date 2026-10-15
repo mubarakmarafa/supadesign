@@ -6,7 +6,7 @@ import * as NodeModule from "node:module";
 import * as NodeVM from "node:vm";
 import { assert, describe, expect, it } from "@effect/vitest";
 
-import { PI_SUPACODE_MCP_EXTENSION_SOURCE } from "./mcpExtensionSource.ts";
+import { PI_SUPATERM_MCP_EXTENSION_SOURCE } from "./mcpExtensionSource.ts";
 import { loadMcpBridge } from "./mcpBridge.testkit.ts";
 
 type RequestHook = (
@@ -29,12 +29,12 @@ async function loadHooks(commands: ReadonlyArray<SkillCommand> = []) {
   const handlers = new Map<string, unknown>();
 
   const source = NodeModule.stripTypeScriptTypes(
-    PI_SUPACODE_MCP_EXTENSION_SOURCE.replace(/^import .*;$/gm, "").replace(
+    PI_SUPATERM_MCP_EXTENSION_SOURCE.replace(/^import .*;$/gm, "").replace(
       "export default async function",
       "async function",
     ),
   );
-  await NodeVM.runInNewContext(`${source}\nsupacodeMcpExtension(pi)`, {
+  await NodeVM.runInNewContext(`${source}\nsupatermMcpExtension(pi)`, {
     process: { env: {} },
     NodeFSP,
     NodePath,
@@ -57,7 +57,7 @@ describe("Pi MCP tool results", () => {
     ] as const;
     const result = { content, structuredContent: { count: 2 }, _meta: { private: true } };
     const bridge = await loadMcpBridge({ modern: true, result });
-    const tool = bridge.tools.find((tool) => tool.name === "mcp__supacode__preview_snapshot")!;
+    const tool = bridge.tools.find((tool) => tool.name === "mcp__supaterm__preview_snapshot")!;
     const output = await tool.execute("snapshot", {});
     assert.deepEqual(output.content, [
       content[0],
@@ -132,10 +132,10 @@ describe("Pi MCP tool exposure", () => {
         .filter((tool) => tool.exposure !== "hidden")
         .map((tool) => [tool.name, tool.exposure]),
       [
-        ["mcp__supacode__orchestrator_capabilities", "direct"],
-        ["mcp__supacode__delegate_task", "direct"],
-        ["mcp__supacode__task_status", "direct"],
-        ["mcp__supacode__preview_snapshot", "deferred"],
+        ["mcp__supaterm__orchestrator_capabilities", "direct"],
+        ["mcp__supaterm__delegate_task", "direct"],
+        ["mcp__supaterm__task_status", "direct"],
+        ["mcp__supaterm__preview_snapshot", "deferred"],
       ],
     );
     assert.deepEqual(
@@ -143,7 +143,7 @@ describe("Pi MCP tool exposure", () => {
       [],
     );
     const result = await bridge.tools
-      .find((tool) => tool.name === "mcp__supacode__preview_snapshot")!
+      .find((tool) => tool.name === "mcp__supaterm__preview_snapshot")!
       .execute("call-1", { depth: 2 });
     assert.equal(result.content[0]?.text, "browser snapshot");
     assert.equal(bridge.requests.at(-1)?.method, "tools/call");
@@ -167,7 +167,7 @@ describe("Pi MCP tool exposure", () => {
           .filter((tool) => tool.exposure !== "hidden")
           .every((tool) => tool.exposure === undefined || tool.exposure === "direct"),
       );
-      const tool = bridge.tools.find((tool) => tool.name === "mcp__supacode__preview_snapshot");
+      const tool = bridge.tools.find((tool) => tool.name === "mcp__supaterm__preview_snapshot");
       assert.isDefined(tool);
       const controller = new AbortController();
       const result = await tool!.execute("call-1", { depth: 2 }, controller.signal);
@@ -191,7 +191,7 @@ describe("Pi MCP tool exposure", () => {
       modern: true,
       toolSearchAvailable: true,
       allowsTool: (name) =>
-        name === "read" || name === "tool_search" || name.startsWith("mcp__supacode__"),
+        name === "read" || name === "tool_search" || name.startsWith("mcp__supaterm__"),
     });
     await bridge.handlers.get("session_start")!(
       { systemPrompt: "" },
@@ -199,7 +199,7 @@ describe("Pi MCP tool exposure", () => {
     );
     assert.equal(bridge.tools.length, 4);
     assert.equal(bridge.tools.filter((tool) => tool.exposure === "direct").length, 3);
-    const tool = bridge.tools.find((tool) => tool.name === "mcp__supacode__preview_snapshot");
+    const tool = bridge.tools.find((tool) => tool.name === "mcp__supaterm__preview_snapshot");
     assert.isDefined(tool);
     assert.equal((await tool!.execute("selected", {})).content[0]?.text, "browser snapshot");
   });
@@ -211,7 +211,7 @@ describe("Pi MCP tool exposure", () => {
         modern: true,
         toolSearchAvailable: true,
         allowsTool: (name) =>
-          name !== "mcp__supacode__delegate_task" && (!excludeSearch || name !== "tool_search"),
+          name !== "mcp__supaterm__delegate_task" && (!excludeSearch || name !== "tool_search"),
       });
       await bridge.handlers.get("session_start")!(
         { systemPrompt: "" },
@@ -219,16 +219,16 @@ describe("Pi MCP tool exposure", () => {
       );
       bridge.restoreActiveTools([
         "read",
-        "mcp__supacode__task_status",
-        "mcp__supacode__preview_snapshot",
+        "mcp__supaterm__task_status",
+        "mcp__supaterm__preview_snapshot",
       ]);
       const tree = bridge.handlers.get("session_tree");
       assert.isDefined(tree);
       await tree!({ systemPrompt: "" }, { ui: { notify: () => undefined } });
       assert.deepEqual(bridge.getActiveTools(), [
         "read",
-        "mcp__supacode__task_status",
-        "mcp__supacode__preview_snapshot",
+        "mcp__supaterm__task_status",
+        "mcp__supaterm__preview_snapshot",
         ...(!excludeSearch ? ["tool_search"] : []),
       ]);
       assert.isFalse(
@@ -242,7 +242,7 @@ describe("Pi MCP tool exposure", () => {
 
 describe("Pi tool discovery permissions", () => {
   it.each(["approval-required", "auto-accept-edits", "auto"])(
-    "allows annotated Supacode reads in %s while gating mutations and replacements",
+    "allows annotated Supaterm reads in %s while gating mutations and replacements",
     async (runtimeMode) => {
       const bridge = await loadMcpBridge({ modern: true, runtimeMode });
       const hook = bridge.handlers.get("tool_call") as unknown as (
@@ -259,21 +259,21 @@ describe("Pi tool discovery permissions", () => {
         },
       };
       assert.isUndefined(
-        await hook({ toolName: "mcp__supacode__orchestrator_capabilities", input: {} }, ctx),
+        await hook({ toolName: "mcp__supaterm__orchestrator_capabilities", input: {} }, ctx),
       );
       assert.equal(
-        (await hook({ toolName: "mcp__supacode__delegate_task", input: {} }, ctx))?.block,
+        (await hook({ toolName: "mcp__supaterm__delegate_task", input: {} }, ctx))?.block,
         true,
       );
       // task_status acknowledges result delivery, and is intentionally not read-only.
       assert.equal(
-        (await hook({ toolName: "mcp__supacode__task_status", input: {} }, ctx))?.block,
+        (await hook({ toolName: "mcp__supaterm__task_status", input: {} }, ctx))?.block,
         true,
       );
       assert.equal(confirmations.length, 2);
       bridge.setBridgeSourcePath("/user/extensions/replacement.ts");
       assert.equal(
-        (await hook({ toolName: "mcp__supacode__orchestrator_capabilities", input: {} }, ctx))
+        (await hook({ toolName: "mcp__supaterm__orchestrator_capabilities", input: {} }, ctx))
           ?.block,
         true,
       );
@@ -302,13 +302,13 @@ describe("Pi tool discovery permissions", () => {
     let toolCall: ToolCallHook | undefined;
     let searchPath = "builtin:tool-search";
     const source = NodeModule.stripTypeScriptTypes(
-      PI_SUPACODE_MCP_EXTENSION_SOURCE.replace(/^import .*;$/gm, "").replace(
+      PI_SUPATERM_MCP_EXTENSION_SOURCE.replace(/^import .*;$/gm, "").replace(
         "export default async function",
         "async function",
       ),
     );
-    await NodeVM.runInNewContext(`${source}\nsupacodeMcpExtension(pi)`, {
-      process: { env: { SUPACODE_PI_RUNTIME_MODE: "approval-required" } },
+    await NodeVM.runInNewContext(`${source}\nsupatermMcpExtension(pi)`, {
+      process: { env: { SUPATERM_PI_RUNTIME_MODE: "approval-required" } },
       pi: {
         on: (name: string, handler: ToolCallHook) => {
           if (name === "tool_call") toolCall = handler;
@@ -333,9 +333,9 @@ describe("Pi tool discovery permissions", () => {
       await toolCall!({ toolName: "tool_search", input: { query: "preview_snapshot" } }, ctx),
     );
     assert.equal(confirmations.length, 0);
-    const result = await toolCall!({ toolName: "mcp__supacode__preview_snapshot", input: {} }, ctx);
+    const result = await toolCall!({ toolName: "mcp__supaterm__preview_snapshot", input: {} }, ctx);
     assert.equal(result?.block, true);
-    assert.deepEqual(confirmations, ["Allow mcp__supacode__preview_snapshot?"]);
+    assert.deepEqual(confirmations, ["Allow mcp__supaterm__preview_snapshot?"]);
 
     searchPath = "/extensions/custom-search.ts";
     const replaced = await toolCall!({ toolName: "tool_search", input: {} }, ctx);
@@ -348,12 +348,12 @@ async function loadRequestHook(): Promise<RequestHook> {
   const handlers = new Map<string, RequestHook>();
 
   const source = NodeModule.stripTypeScriptTypes(
-    PI_SUPACODE_MCP_EXTENSION_SOURCE.replace(/^import .*;$/gm, "").replace(
+    PI_SUPATERM_MCP_EXTENSION_SOURCE.replace(/^import .*;$/gm, "").replace(
       "export default async function",
       "async function",
     ),
   );
-  await NodeVM.runInNewContext(`${source}\nsupacodeMcpExtension(pi)`, {
+  await NodeVM.runInNewContext(`${source}\nsupatermMcpExtension(pi)`, {
     process: { env: {} },
     pi: { on: (name: string, handler: RequestHook) => handlers.set(name, handler) },
   });

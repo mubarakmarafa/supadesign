@@ -1,6 +1,6 @@
-import type { UsageProviderKind } from "@supacode/contracts";
+import type { UsageProviderKind } from "@supaterm/contracts";
 
-import { ProviderDriverKind } from "@supacode/contracts";
+import { ProviderDriverKind } from "@supaterm/contracts";
 
 type UsageProviderPresentation = {
   readonly label: string;

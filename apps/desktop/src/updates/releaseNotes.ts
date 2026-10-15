@@ -1,4 +1,4 @@
-import type { DesktopUpdateChannel, DesktopUpdateReleaseNote } from "@supacode/contracts";
+import type { DesktopUpdateChannel, DesktopUpdateReleaseNote } from "@supaterm/contracts";
 
 import { resolveDefaultDesktopUpdateChannel } from "./updateChannels.ts";
 

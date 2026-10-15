@@ -12,7 +12,7 @@ an existing worktree, use **New thread in this worktree** from the branch toolba
 On mobile, a new task opens in the project you last chose; tap the project in the
 draft to pick another.
 
-When you change a new thread's project, Supacode stays in the current environment
+When you change a new thread's project, Supaterm stays in the current environment
 if that project exists there. Otherwise it selects an environment that has it.
 
 ### Start without a project
@@ -24,8 +24,8 @@ project** from the project list. It starts on your current machine; before
 sending, pick another machine from the machine menu to move it there. To move a
 draft into a project, pick the project in that menu.
 
-Each thread without a project works in its own folder under `~/.supacode/scratch` (the
-`scratch` folder of your Supacode data directory), named after its date, the first words
+Each thread without a project works in its own folder under `~/.supaterm/scratch` (the
+`scratch` folder of your Supaterm data directory), named after its date, the first words
 of its first message, and a short id, like
 `2026-09-25-convert-these-pngs-to-webp-a1b2c3d4`. Deleting a thread keeps its
 folder, so the files the agent wrote stay until you delete them. Branch, worktree, and diff controls stay hidden because
@@ -35,13 +35,13 @@ directory itself sits inside a Git checkout.
 ### Send feedback
 
 Choose **Help > Send feedback** at the bottom of the sidebar, or **Send feedback** in
-the command palette. On mobile, open **Settings > About Supacode**. Supacode opens a
+the command palette. On mobile, open **Settings > About Supaterm**. Supaterm opens a
 new thread under **No project** with a prepared message in the prompt, using your
 usual model and settings. Add anything you like and send it. The agent runs
-`supacode triage --print`, asks what happened, and investigates on that machine.
+`supaterm triage --print`, asks what happened, and investigates on that machine.
 Review the report before the agent posts it to GitHub.
 
-If the app cannot open, run `supacode triage` in a terminal on the affected machine
+If the app cannot open, run `supaterm triage` in a terminal on the affected machine
 instead.
 
 ### Start in the background
@@ -111,7 +111,7 @@ The active list is ordered by when each thread last came back to you, with the m
 at the bottom, so you cannot drag or move threads within it. The settled shelf uses settlement
 time, with the most recently settled threads at the bottom. **Show more** reveals older history above them.
 
-If dragging is unavailable for one environment, update the Supacode server running in that
+If dragging is unavailable for one environment, update the Supaterm server running in that
 environment. Pinned reordering requires server support. Threads from older servers keep their
 default order until the server is updated.
 
@@ -119,7 +119,7 @@ To generate a fresh title from the conversation, open a thread's menu and choose
 **Regenerate title**. The action is unavailable while title generation is in progress
 or when the connected environment needs a server update.
 
-Agents connected through Supacode can use the same server-owned metadata workflow to
+Agents connected through Supaterm can use the same server-owned metadata workflow to
 rename a thread, regenerate its title, or link and unlink a pull request. These changes
 appear on web, desktop, and mobile without requiring the originating browser to remain
 open.
@@ -143,7 +143,7 @@ runs a command, such as a dev server, stays open.
 
 To reclaim disk space from settled work, turn on **Run in the thread's worktree when the
 thread settles** for one of the project's actions, or set `"runOnSettle": true` on a
-`supacode.json` script, for example `cargo clean`. It runs each time a thread in its own
+`supaterm.json` script, for example `cargo clean`. It runs each time a thread in its own
 worktree settles, manually or automatically, even if a terminal there still runs a
 command such as a dev server. Threads in the project's main checkout skip it. Its terminal
 closes when the command succeeds and stays open when it fails.

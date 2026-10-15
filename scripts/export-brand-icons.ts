@@ -2,7 +2,7 @@
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -633,7 +633,7 @@ const writeAtomically = Effect.fn("iconExport.writeAtomically")(function* (
   const temporaryPath = yield* fs
     .makeTempFileScoped({
       directory: targetDirectory,
-      prefix: ".supacode-icon-export-",
+      prefix: ".supaterm-icon-export-",
       suffix: ".tmp",
     })
     .pipe(
@@ -707,7 +707,7 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
   const tool = yield* resolveIconComposerTool();
   const temporaryDirectory = yield* fs
     .makeTempDirectoryScoped({
-      prefix: "supacode-icon-export-",
+      prefix: "supaterm-icon-export-",
     })
     .pipe(
       Effect.mapError(

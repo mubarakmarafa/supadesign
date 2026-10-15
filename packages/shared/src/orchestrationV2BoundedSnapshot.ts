@@ -1,7 +1,7 @@
 import type {
   OrchestrationV2ProjectedTurnItem,
   OrchestrationV2ThreadProjection,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 function isLocalTimelineRow(
   projection: Pick<OrchestrationV2ThreadProjection, "thread">,

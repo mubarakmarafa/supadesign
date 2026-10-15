@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const mocks = vi.hoisted(() => {
@@ -125,7 +125,7 @@ describe("mobile connection storage", () => {
 
   it("skips stored connections that have no bearer token", async () => {
     await mocks.setItemAsync(
-      "supacode.connections",
+      "supaterm.connections",
       JSON.stringify({
         connections: [
           { ...bearerConnection, environmentId: "environment-2", bearerToken: null },
@@ -144,14 +144,14 @@ describe("mobile connection storage", () => {
     await expect(loadSavedConnections()).rejects.toMatchObject({
       _tag: "MobileSecureStorageError",
       operation: "read",
-      key: "supacode.connections",
+      key: "supaterm.connections",
       cause,
-      message: "Mobile secure storage operation read failed for key supacode.connections.",
+      message: "Mobile secure storage operation read failed for key supaterm.connections.",
     });
   });
 
   it("logs structured decode failures before using the empty fallback", async () => {
-    await mocks.setItemAsync("supacode.connections", "{");
+    await mocks.setItemAsync("supaterm.connections", "{");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     await expect(loadSavedConnections()).resolves.toEqual([]);
@@ -159,9 +159,9 @@ describe("mobile connection storage", () => {
       "[mobile-storage] ignored invalid JSON",
       expect.objectContaining({
         _tag: "MobileStorageDecodeError",
-        key: "supacode.connections",
+        key: "supaterm.connections",
         cause: expect.any(SyntaxError),
-        message: "Failed to decode mobile storage value for key supacode.connections.",
+        message: "Failed to decode mobile storage value for key supaterm.connections.",
       }),
     );
 
@@ -170,7 +170,7 @@ describe("mobile connection storage", () => {
 
   it("loads legacy preferences when SQLite is unavailable", async () => {
     mocks.setDatabaseFailures(true, true);
-    await mocks.setItemAsync("supacode.preferences", JSON.stringify({ baseFontSize: 17 }));
+    await mocks.setItemAsync("supaterm.preferences", JSON.stringify({ baseFontSize: 17 }));
 
     await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 17 });
   });
@@ -198,19 +198,19 @@ describe("mobile connection storage", () => {
     const themes = { lightThemeId: "material-you", darkThemeId: "ocean" } as const;
     await savePreferencesPatch(themes);
     await expect(loadPreferences()).resolves.toEqual(themes);
-    await savePreferencesPatch({ lightThemeId: "supacode-chat" });
-    await expect(loadPreferences()).resolves.toEqual({ ...themes, lightThemeId: "supacode-chat" });
+    await savePreferencesPatch({ lightThemeId: "supaterm-chat" });
+    await expect(loadPreferences()).resolves.toEqual({ ...themes, lightThemeId: "supaterm-chat" });
   });
 
   it.each([true, false])("drops the removed Android layout preference (%s)", async (enabled) => {
     mocks.setPreferencesJson(
       JSON.stringify({
         materialYouStyleLayoutEnabled: enabled,
-        lightThemeId: "supacode-chat",
+        lightThemeId: "supaterm-chat",
       }),
       10,
     );
-    await expect(loadPreferences()).resolves.toEqual({ lightThemeId: "supacode-chat" });
+    await expect(loadPreferences()).resolves.toEqual({ lightThemeId: "supaterm-chat" });
   });
 
   it("drops the removed theme transition preference", async () => {
@@ -222,7 +222,7 @@ describe("mobile connection storage", () => {
   it("falls back to secure storage when SQLite cannot save preferences", async () => {
     mocks.setDatabaseFailures(true, true);
     await expect(savePreferencesPatch({ baseFontSize: 19 })).resolves.toEqual({ baseFontSize: 19 });
-    const fallback = JSON.parse(mocks.getStoredValue("supacode.preferences.fallback") ?? "") as {
+    const fallback = JSON.parse(mocks.getStoredValue("supaterm.preferences.fallback") ?? "") as {
       readonly payload: string;
       readonly updatedAt: number;
     };
@@ -299,7 +299,7 @@ describe("mobile connection storage", () => {
   it("reconciles fallback preferences after SQLite recovers", async () => {
     mocks.setPreferencesJson(JSON.stringify({ baseFontSize: 15 }), 10);
     await mocks.setItemAsync(
-      "supacode.preferences.fallback",
+      "supaterm.preferences.fallback",
       JSON.stringify({
         payload: JSON.stringify({ baseFontSize: 19 }),
         updatedAt: 20,
@@ -308,13 +308,13 @@ describe("mobile connection storage", () => {
 
     await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 19 });
     expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({ baseFontSize: 19 });
-    expect(mocks.getStoredValue("supacode.preferences.fallback")).toBeNull();
+    expect(mocks.getStoredValue("supaterm.preferences.fallback")).toBeNull();
   });
 
   it("ignores a stale fallback when its previous deletion failed", async () => {
     mocks.setPreferencesJson(JSON.stringify({ baseFontSize: 21 }), 30);
     await mocks.setItemAsync(
-      "supacode.preferences.fallback",
+      "supaterm.preferences.fallback",
       JSON.stringify({
         payload: JSON.stringify({ baseFontSize: 19 }),
         updatedAt: 20,
@@ -323,27 +323,27 @@ describe("mobile connection storage", () => {
 
     await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 21 });
     expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({ baseFontSize: 21 });
-    expect(mocks.getStoredValue("supacode.preferences.fallback")).toBeNull();
+    expect(mocks.getStoredValue("supaterm.preferences.fallback")).toBeNull();
   });
 
   it("ignores an invalid fallback even when it has a newer timestamp", async () => {
     mocks.setPreferencesJson(JSON.stringify({ baseFontSize: 21 }), 30);
     await mocks.setItemAsync(
-      "supacode.preferences.fallback",
+      "supaterm.preferences.fallback",
       JSON.stringify({ payload: "{", updatedAt: 40 }),
     );
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 21 });
     expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({ baseFontSize: 21 });
-    expect(mocks.getStoredValue("supacode.preferences.fallback")).toBeNull();
+    expect(mocks.getStoredValue("supaterm.preferences.fallback")).toBeNull();
 
     warn.mockRestore();
   });
 
   it("keeps SQLite authoritative when stale legacy preferences remain", async () => {
     mocks.setPreferencesJson(JSON.stringify({ baseFontSize: 21 }), 30);
-    await mocks.setItemAsync("supacode.preferences", JSON.stringify({ baseFontSize: 19 }));
+    await mocks.setItemAsync("supaterm.preferences", JSON.stringify({ baseFontSize: 19 }));
 
     await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 21 });
     expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({ baseFontSize: 21 });

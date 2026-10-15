@@ -169,7 +169,7 @@ export function ReasoningSliderRow(props: ReasoningSliderRowProps) {
   return (
     <View className="border-b border-border-subtle bg-grouped-card px-4 pb-2 pt-1">
       <View className="h-8 flex-row items-center">
-        <Text className="min-w-0 flex-1 text-center text-sm font-supacode-medium text-primary-text">
+        <Text className="min-w-0 flex-1 text-center text-sm font-supaterm-medium text-primary-text">
           {choices[previewIndex]?.label}
         </Text>
       </View>

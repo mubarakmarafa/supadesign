@@ -11,7 +11,7 @@ on:
         default: dark
       theme:
         type: string
-        default: supacode
+        default: supaterm
       source_sha:
         required: true
         type: string
@@ -38,11 +38,11 @@ on:
       theme:
         description: Palette to capture (all multiplies the run by the palette count)
         required: true
-        default: supacode
+        default: supaterm
         type: choice
         options:
-          - supacode
-          - supacode-chat
+          - supaterm
+          - supaterm-chat
           - grove
           - ocean
           - ember
@@ -75,7 +75,7 @@ jobs:
       - name: Install workspace dependencies
         run: |
           mise exec -- pnpm config set virtualStoreType project --location project
-          mise exec -- vp install --filter=@supacode/mobile... --filter=@supacode/scripts... --filter=supacode...
+          mise exec -- vp install --filter=@supaterm/mobile... --filter=@supaterm/scripts... --filter=supaterm...
       - name: Expose pnpm
         run: mise exec -- pnpm --version
 
@@ -113,7 +113,7 @@ jobs:
     # native build is shared between them.
     timeout-minutes: ${{ inputs.theme == 'all' && 350 || 120 }}
     env:
-      SUPACODE_SHOWCASE_ANDROID_ABI: x86_64
+      SUPATERM_SHOWCASE_ANDROID_ABI: x86_64
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -125,7 +125,7 @@ jobs:
       - name: Install workspace dependencies
         run: |
           mise exec -- pnpm config set virtualStoreType project --location project
-          mise exec -- vp install --filter=@supacode/mobile... --filter=@supacode/scripts... --filter=supacode...
+          mise exec -- vp install --filter=@supaterm/mobile... --filter=@supaterm/scripts... --filter=supaterm...
       - name: Expose pnpm
         run: mise exec -- pnpm --version
 
@@ -150,14 +150,14 @@ jobs:
         env:
           APP_VARIANT: production
           EXPO_NO_GIT_STATUS: "1"
-          SUPACODE_SHOWCASE_CAPTURE_BUILD: "1"
+          SUPATERM_SHOWCASE_CAPTURE_BUILD: "1"
           NODE_ENV: development
           GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2
         run: |
           free -m
           pnpm exec expo prebuild --clean --platform android
           cd android
-          ./gradlew app:assembleDebug "-PreactNativeArchitectures=$SUPACODE_SHOWCASE_ANDROID_ABI"
+          ./gradlew app:assembleDebug "-PreactNativeArchitectures=$SUPATERM_SHOWCASE_ANDROID_ABI"
           test -s app/build/outputs/apk/debug/app-debug.apk
           free -m
 

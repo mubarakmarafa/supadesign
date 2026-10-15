@@ -1,4 +1,4 @@
-import type { DevicePlatform } from "@supacode/contracts";
+import type { DevicePlatform } from "@supaterm/contracts";
 
 export type DeviceModelId = "iphone-18-pro" | "iphone-18-pro-max" | "ipad-pro-13-m5" | "iphone-duo";
 

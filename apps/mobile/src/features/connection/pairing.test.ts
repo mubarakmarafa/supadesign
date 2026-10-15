@@ -38,7 +38,7 @@ describe("extractPairingUrlFromQrPayload", () => {
   it("unwraps mobile deep links that carry an encoded pairing url", () => {
     expect(
       extractPairingUrlFromQrPayload(
-        "supacode://pair?pairingUrl=https%3A%2F%2Fremote.example.com%2Fpair%23token%3Dpairing-token",
+        "supaterm://pair?pairingUrl=https%3A%2F%2Fremote.example.com%2Fpair%23token%3Dpairing-token",
       ),
     ).toBe("https://remote.example.com/pair#token=pairing-token");
   });
@@ -63,13 +63,13 @@ describe("parsePairingUrl", () => {
     expect(pairingUrlForFields(fields.host, "new-code", original)).toBe(
       "http://192.168.1.10:3773/#token=new-code",
     );
-    const wrapper = `supacode://pair?pairingUrl=${encodeURIComponent(original)}`;
+    const wrapper = `supaterm://pair?pairingUrl=${encodeURIComponent(original)}`;
     expect(extractPairingUrlFromQrPayload(wrapper)).toBe(original);
   });
   it("reads hosted pairing links into backend host fields", () => {
     expect(
       parsePairingUrl(
-        "https://app.next.supacode.sh/pair?host=https%3A%2F%2Fdesktop.tailnet.ts.net%2F#token=pairing-token",
+        "https://app.supaterm.com/pair?host=https%3A%2F%2Fdesktop.tailnet.ts.net%2F#token=pairing-token",
       ),
     ).toEqual({
       host: "https://desktop.tailnet.ts.net",

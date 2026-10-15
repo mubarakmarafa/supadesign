@@ -1,5 +1,5 @@
-import { EnvironmentId, type PersistedSavedEnvironmentRecord } from "@supacode/contracts";
-import { fromLenientJson } from "@supacode/shared/schemaJson";
+import { EnvironmentId, type PersistedSavedEnvironmentRecord } from "@supaterm/contracts";
+import { fromLenientJson } from "@supaterm/shared/schemaJson";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Base64 from "effect/encoding/Base64";
@@ -144,7 +144,7 @@ export class DesktopSavedEnvironments extends Context.Service<
       environmentId: string,
     ) => Effect.Effect<Option.Option<string>, DesktopSavedEnvironmentsGetSecretError>;
   }
->()("@supacode/desktop/settings/DesktopSavedEnvironments") {}
+>()("@supaterm/desktop/settings/DesktopSavedEnvironments") {}
 
 function toPersistedSavedEnvironmentRecord(
   record: PersistedSavedEnvironmentStorageRecord,

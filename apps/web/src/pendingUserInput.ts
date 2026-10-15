@@ -1,6 +1,6 @@
-import type { ThreadContextRecord, UserInputQuestion } from "@supacode/contracts";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
-import { formatThreadLink } from "@supacode/shared/threadLinks";
+import type { ThreadContextRecord, UserInputQuestion } from "@supaterm/contracts";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
+import { formatThreadLink } from "@supaterm/shared/threadLinks";
 
 /** Question responses carry text, so send thread chips as links with the actual thread IDs. */
 export function projectPendingUserInputAnswer(

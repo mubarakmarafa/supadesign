@@ -8,7 +8,7 @@
 import {
   DesktopPreviewRecordingInputSchema,
   DESKTOP_PREVIEW_RECORDING_CAPTURE_TRIGGER,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type {
   DesktopPreviewAnnotationTheme,
   DesktopPreviewColorScheme,
@@ -24,10 +24,10 @@ import type {
   DesktopPreviewScreenshotArtifact,
   DesktopPreviewTabDefaults,
   PreviewForwardedShortcut,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { matchesKeybindingShortcut } from "@supacode/shared/keybindings";
-import { normalizePreviewUrl } from "@supacode/shared/preview";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { matchesKeybindingShortcut } from "@supaterm/shared/keybindings";
+import { normalizePreviewUrl } from "@supaterm/shared/preview";
 import {
   BrowserWindow,
   ClipboardItem,
@@ -3622,7 +3622,7 @@ export class PreviewManager extends Context.Service<
       listener: RecordingFrameListener,
     ) => Effect.Effect<void, never, Scope.Scope>;
   }
->()("@supacode/desktop/preview/Manager/PreviewManager") {}
+>()("@supaterm/desktop/preview/Manager/PreviewManager") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* PreviewManagerMake() {

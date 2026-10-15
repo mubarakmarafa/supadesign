@@ -5,12 +5,12 @@ import type {
   PreviewOpenInput,
   PreviewSessionSnapshot,
   ScopedThreadRef,
-} from "@supacode/contracts";
-import { mediaFileReference } from "@supacode/client-runtime/media-reference";
+} from "@supaterm/contracts";
+import { mediaFileReference } from "@supaterm/client-runtime/media-reference";
 import {
   type AtomCommandResult,
   mapAtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import * as Cause from "effect/Cause";
 import * as Data from "effect/Data";
 import { AsyncResult } from "effect/reactivity";

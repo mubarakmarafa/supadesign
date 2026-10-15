@@ -1,4 +1,4 @@
-import { EnvironmentId, ProviderInstanceId, RunId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ProviderInstanceId, RunId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { createInboxReturnTracker, sortWorkingThreadsBySend } from "./threadInbox.ts";

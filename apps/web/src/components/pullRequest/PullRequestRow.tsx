@@ -1,5 +1,5 @@
-import type { PullRequestAction } from "@supacode/contracts";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+import type { PullRequestAction } from "@supaterm/contracts";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import { SearchIcon } from "lucide-react";
 import { PullRequestStackPopover } from "./PullRequestStackPopover";
 import {

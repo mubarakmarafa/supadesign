@@ -22,9 +22,9 @@ const defaultEnvironmentInput = {
   platform: "darwin",
   processArch: "arm64",
   appVersion: "1.2.3",
-  appPath: "/Applications/Supacode.app/Contents/Resources/app.asar",
+  appPath: "/Applications/Supaterm.app/Contents/Resources/app.asar",
   isPackaged: true,
-  resourcesPath: "/Applications/Supacode.app/Contents/Resources",
+  resourcesPath: "/Applications/Supaterm.app/Contents/Resources",
   runningUnderArm64Translation: false,
 } satisfies DesktopEnvironment.MakeDesktopEnvironmentInput;
 
@@ -41,7 +41,7 @@ interface ElectronAppCalls {
 const layerElectronApp = (calls: ElectronAppCalls) =>
   Layer.succeed(ElectronApp.ElectronApp, {
     metadata: Effect.die("unexpected metadata read"),
-    name: Effect.succeed("Supacode"),
+    name: Effect.succeed("Supaterm"),
     systemLocale: Effect.succeed("en-US"),
     environmentMachineIcons: Effect.succeed({}),
     whenReady: Effect.void,
@@ -131,13 +131,13 @@ const withIdentity = <A, E, R>(
         Layer.provideMerge(
           FileSystem.layerNoop({
             exists: (path) =>
-              !/Supacode \((Alpha|Dev)\)/.test(path)
+              !/Supaterm \((Alpha|Dev)\)/.test(path)
                 ? Effect.succeed(false)
                 : input.legacyPathProbeError
                   ? Effect.fail(input.legacyPathProbeError)
                   : Effect.succeed(input.legacyPathExists === true),
             readFileString: () =>
-              Effect.succeed(input.packageJson ?? '{"supacodeCommitHash":"abcdef1234567890"}'),
+              Effect.succeed(input.packageJson ?? '{"supatermCommitHash":"abcdef1234567890"}'),
           }),
         ),
         Layer.provideMerge(layerAssets(input.pngIconPath ?? Option.none())),
@@ -155,7 +155,7 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         const userDataPath = yield* identity.resolveUserDataPath;
 
-        assert.equal(userDataPath, "/Users/alice/Library/Application Support/supacode-v2");
+        assert.equal(userDataPath, "/Users/alice/Library/Application Support/supaterm-v2");
       }),
       { legacyPathExists: true },
     ),
@@ -167,7 +167,7 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         assert.equal(
           yield* identity.resolveUserDataPath,
-          "/Users/alice/Library/Application Support/Supacode (Dev)",
+          "/Users/alice/Library/Application Support/Supaterm (Dev)",
         );
       }),
       {
@@ -178,7 +178,7 @@ describe("DesktopAppIdentity", () => {
   );
 
   it.effect("preserves failures while inspecting the legacy userData path", () => {
-    const legacyPath = "/Users/alice/Library/Application Support/Supacode (Dev)";
+    const legacyPath = "/Users/alice/Library/Application Support/Supaterm (Dev)";
     const cause = PlatformError.systemError({
       _tag: "PermissionDenied",
       module: "FileSystem",
@@ -219,8 +219,8 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         yield* identity.configure;
 
-        assert.deepEqual(calls.setName, ["Supacode"]);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, "Supacode");
+        assert.deepEqual(calls.setName, ["Supaterm"]);
+        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, "Supaterm");
         assert.equal(calls.setAboutPanelOptions[0]?.applicationVersion, "1.2.3");
         assert.equal(calls.setAboutPanelOptions[0]?.version, "0123456789ab");
         // Packaged: the bundle's own icon stands, so a custom one the user
@@ -231,7 +231,7 @@ describe("DesktopAppIdentity", () => {
         calls,
         environment: {
           env: {
-            SUPACODE_COMMIT_HASH: "0123456789abcdef",
+            SUPATERM_COMMIT_HASH: "0123456789abcdef",
           },
         },
         pngIconPath: Option.some("/icon.png"),
@@ -240,17 +240,17 @@ describe("DesktopAppIdentity", () => {
   });
 
   it.effect.each([
-    { stage: "Stable", runtimeName: "Supacode", aboutName: "Supacode", environment: {} },
+    { stage: "Stable", runtimeName: "Supaterm", aboutName: "Supaterm", environment: {} },
     {
       stage: "Nightly",
-      runtimeName: "Supacode Nightly",
-      aboutName: "Supacode (Nightly)",
+      runtimeName: "Supaterm Nightly",
+      aboutName: "Supaterm (Nightly)",
       environment: { appVersion: "0.0.43-nightly.20260929.2428" },
     },
     {
       stage: "Dev",
-      runtimeName: "Supacode Dev",
-      aboutName: "Supacode (Dev)",
+      runtimeName: "Supaterm Dev",
+      aboutName: "Supaterm (Dev)",
       environment: { env: { VITE_DEV_SERVER_URL: "http://localhost:5173" } },
     },
   ])(

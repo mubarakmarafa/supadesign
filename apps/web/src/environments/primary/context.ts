@@ -2,8 +2,8 @@ import {
   attachEnvironmentDescriptor,
   createKnownEnvironment,
   type KnownEnvironment,
-} from "@supacode/client-runtime/environment";
-import type { ExecutionEnvironmentDescriptor } from "@supacode/contracts";
+} from "@supaterm/client-runtime/environment";
+import type { ExecutionEnvironmentDescriptor } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 import { PrimaryEnvironmentRequestError, retryTransientBootstrap } from "./auth";

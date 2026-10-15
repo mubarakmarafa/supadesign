@@ -7,9 +7,9 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
-import * as PtyAdapter from "@supacode/shared/PtyAdapter";
+import * as PtyAdapter from "@supaterm/shared/PtyAdapter";
 
 export class NodePtyModuleLoadError extends Schema.TaggedError<NodePtyModuleLoadError>()(
   "NodePtyModuleLoadError",
@@ -87,7 +87,7 @@ const ensureNodePtySpawnHelperExecutable = Effect.fn(function* () {
  * Waits for Windows process creation so the manager receives a valid PID.
  * node-pty defers creation to avoid blocking on named pipes:
  * https://github.com/microsoft/node-pty/pull/885
- * Supacode adopted that behavior when upgrading from 1.1.0 to 1.2.0-beta.15:
+ * Supaterm adopted that behavior when upgrading from 1.1.0 to 1.2.0-beta.15:
  * https://github.com/supabitapp/supacode-next/pull/13748
  * Its public API has no readiness event. The private ready_datapipe handler sets
  * pid before our listener runs.

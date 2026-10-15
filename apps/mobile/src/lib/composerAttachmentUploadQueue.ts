@@ -1,5 +1,5 @@
-import { EnvironmentId, type ServerConfig } from "@supacode/contracts";
-import { clampFileAttachmentUploadBytes } from "@supacode/client-runtime/state/attachments";
+import { EnvironmentId, type ServerConfig } from "@supaterm/contracts";
+import { clampFileAttachmentUploadBytes } from "@supaterm/client-runtime/state/attachments";
 
 import { parseLegacyNewTaskDraftKey } from "../state/new-task-draft-key";
 import type { DraftComposerAttachment } from "./composerImages";

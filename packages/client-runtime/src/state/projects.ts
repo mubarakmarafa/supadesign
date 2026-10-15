@@ -5,7 +5,7 @@ import {
   isWindowsDrivePath,
   normalizeProjectPathForComparison,
   normalizeProjectPathForDispatch,
-} from "@supacode/shared/path";
+} from "@supaterm/shared/path";
 
 export { normalizeProjectPathForComparison, normalizeProjectPathForDispatch };
 

@@ -1,5 +1,5 @@
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
-import type { RunId, ScopedThreadRef } from "@supacode/contracts";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
+import type { RunId, ScopedThreadRef } from "@supaterm/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -118,7 +118,7 @@ export const useDiffPanelStore = create<DiffPanelStoreState>()(
         }),
     }),
     {
-      name: "supacode:diff-panel-state:v1",
+      name: "supaterm:diff-panel-state:v1",
       version: 2,
       storage: createJSONStorage(() =>
         resolveStorage(typeof window !== "undefined" ? window.localStorage : undefined),

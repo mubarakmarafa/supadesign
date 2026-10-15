@@ -1,24 +1,24 @@
 import { useMemo } from "react";
-import { sourceControlRepositorySelector } from "@supacode/shared/sourceControl";
+import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
 import type {
   EnvironmentId,
   ScopedThreadRef,
   ThreadLinkedPullRequest,
   ThreadPullRequestLink,
-} from "@supacode/contracts";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+} from "@supaterm/contracts";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   planThreadPullRequestMutation,
   threadPullRequestLinkMode,
-} from "@supacode/client-runtime/thread-pull-request-compatibility";
+} from "@supaterm/client-runtime/thread-pull-request-compatibility";
 import {
   threadPullRequestKeysEqual,
   visibleThreadPullRequests,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 import {
   findProjectForChangeRequest,
   matchesLinkedPullRequestUrl,

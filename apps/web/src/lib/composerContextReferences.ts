@@ -1,9 +1,9 @@
-import type { ComposerContextId, ComposerContextKind } from "@supacode/contracts";
+import type { ComposerContextId, ComposerContextKind } from "@supaterm/contracts";
 import {
   collectComposerContextReferences,
   formatComposerContextReference,
   replaceComposerContextReferences,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 
 /**
  * Prompt-string operations on inline context references, independent of kind. Each context

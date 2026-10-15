@@ -3,7 +3,7 @@ import {
   AuthAdministrativeScopes,
   type AuthCreatePairingCredentialInput,
   EnvironmentHttpApi,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { expect, it } from "@effect/vitest";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -30,7 +30,7 @@ class AuthTestApi extends HttpApi.make("environment")
   .add(EnvironmentHttpApi.groups.auth)
   .add(EnvironmentHttpApi.groups.mcpOAuth) {}
 
-const layerConfig = ServerConfig.layerTest(process.cwd(), { prefix: "supacode-mcp-oauth-test-" });
+const layerConfig = ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-mcp-oauth-test-" });
 const layerEnvironmentAuth = EnvironmentAuth.layer.pipe(
   Layer.provide(Sqlite.layerMemory),
   Layer.provideMerge(ServerSecretStore.layer),

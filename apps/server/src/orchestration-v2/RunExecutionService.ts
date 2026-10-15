@@ -1,5 +1,5 @@
 import { makeAssistantStreamingFilter } from "./assistantStreaming.ts";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import {
   isOrchestrationV2WorkActive,
   CommandId,
@@ -23,7 +23,7 @@ import {
   type RunAttemptId,
   type ThreadId,
   type TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
@@ -40,14 +40,14 @@ import * as McpAppModelContext from "../mcpApps/McpAppModelContext.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as CheckpointService from "./CheckpointService.ts";
 import * as EventSink from "./EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProviderEventIngestor from "./ProviderEventIngestor.ts";
 import type { ProjectionStoreV2Error } from "./ProjectionStore.ts";
 import {
   makeProviderFailure,
   makeProviderFailureTurnItem,
-} from "@supacode/provider-core/server/failure";
+} from "@supaterm/provider-core/server/failure";
 import * as RunFinalizationService from "./RunFinalizationService.ts";
 
 export interface ProviderEventRoutingState {
@@ -555,7 +555,7 @@ export interface RunExecutionServiceV2Shape {
 export class RunExecutionServiceV2 extends Context.Service<
   RunExecutionServiceV2,
   RunExecutionServiceV2Shape
->()("supacode/orchestration-v2/RunExecutionService/RunExecutionServiceV2") {}
+>()("supaterm/orchestration-v2/RunExecutionService/RunExecutionServiceV2") {}
 
 /**
  * IMPLEMENTATIONS

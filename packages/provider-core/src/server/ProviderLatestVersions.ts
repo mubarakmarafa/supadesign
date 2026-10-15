@@ -24,7 +24,7 @@ export class ProviderLatestVersions extends Context.Service<
     ) => Effect.Effect<string | null, E, R>;
     readonly invalidate: (key: string) => Effect.Effect<void>;
   }
->()("@supacode/provider-core/server/ProviderLatestVersions") {}
+>()("@supaterm/provider-core/server/ProviderLatestVersions") {}
 
 export const make = (seed: Iterable<readonly [key: string, version: string | null]> = []) =>
   Effect.gen(function* () {

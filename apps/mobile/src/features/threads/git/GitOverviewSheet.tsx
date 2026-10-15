@@ -4,12 +4,12 @@ import {
   buildMenuItems,
   getGitActionDisabledReason,
   requiresDefaultBranchConfirmation,
-} from "@supacode/client-runtime/state/vcs";
+} from "@supaterm/client-runtime/state/vcs";
 import {
   resolveThreadPullRequestChains,
   threadPullRequestKeyOf,
-} from "@supacode/shared/threadPullRequests";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+} from "@supaterm/shared/threadPullRequests";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import {
   CommonActions,
   StackActions,
@@ -354,7 +354,7 @@ function GitOverviewSheetContent(props: GitOverviewSheetProps) {
 
       {linkedPrChains.length > 0 ? (
         <View className="gap-2">
-          <Text className="px-1 text-xs font-supacode-bold text-foreground-muted">
+          <Text className="px-1 text-xs font-supaterm-bold text-foreground-muted">
             Linked pull requests
           </Text>
           {linkedPrChains.map((chain) => (
@@ -541,10 +541,10 @@ function GitOverviewSheetContent(props: GitOverviewSheetProps) {
               />
             </Pressable>
           )}
-          <Text className="text-xs font-supacode-bold tracking-[1px] uppercase text-foreground-muted">
+          <Text className="text-xs font-supaterm-bold tracking-[1px] uppercase text-foreground-muted">
             Repository
           </Text>
-          <Text className="pr-10 text-xl font-supacode-bold">{currentBranchLabel}</Text>
+          <Text className="pr-10 text-xl font-supaterm-bold">{currentBranchLabel}</Text>
           <Text className="text-foreground-secondary text-sm font-medium leading-normal">
             {currentStatusSummary}
           </Text>

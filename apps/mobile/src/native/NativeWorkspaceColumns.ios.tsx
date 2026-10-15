@@ -5,8 +5,8 @@ import { useNativeLayoutMetrics } from "./native-layout-metrics";
 
 const nativeControls = requireOptionalNativeModule<{
   readonly supportsWorkspaceColumns?: boolean;
-  readonly ViewPrototypes?: { readonly SupacodeNativeControls_LayoutMetrics?: unknown };
-}>("SupacodeNativeControls");
+  readonly ViewPrototypes?: { readonly SupatermNativeControls_LayoutMetrics?: unknown };
+}>("SupatermNativeControls");
 export const NATIVE_WORKSPACE_COLUMNS_SUPPORTED =
   Platform.OS === "ios" && Platform.isPad && nativeControls?.supportsWorkspaceColumns === true;
 
@@ -21,7 +21,7 @@ export function useNativeWorkspaceColumnsReady() {
   // without the observer can immediately use the compact navigator.
   const waiting =
     !(Platform.OS === "ios" && Platform.isPad) &&
-    !!nativeControls?.ViewPrototypes?.SupacodeNativeControls_LayoutMetrics &&
+    !!nativeControls?.ViewPrototypes?.SupatermNativeControls_LayoutMetrics &&
     metrics === null;
 
   useEffect(() => {

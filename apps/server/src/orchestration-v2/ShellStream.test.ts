@@ -5,9 +5,9 @@ import type {
   OrchestrationV2ShellStreamItem,
   OrchestrationV2StoredEvent,
   OrchestrationV2ThreadShell,
-} from "@supacode/contracts";
-import { ProjectId, ProviderInstanceId, ThreadId } from "@supacode/contracts";
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
+} from "@supaterm/contracts";
+import { ProjectId, ProviderInstanceId, ThreadId } from "@supaterm/contracts";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";

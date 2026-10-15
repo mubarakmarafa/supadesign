@@ -3,7 +3,7 @@ import {
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
   PROVIDER_SEND_TURN_MAX_FILE_BYTES,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { ResolvedSharePayload, SharePayload } from "expo-sharing";
 
 import {
@@ -660,7 +660,7 @@ describe("incoming native shares", () => {
       value: "content://shared/report",
       mimeType: "application/pdf",
     };
-    const persistedUri = "file:///documents/supacode-composer-attachments/report.pdf";
+    const persistedUri = "file:///documents/supaterm-composer-attachments/report.pdf";
     const removeOwnedFile = vi.fn(async (_uri: string) => undefined);
 
     const result = await buildIncomingShareDraft({
@@ -711,7 +711,7 @@ describe("share cleanup ownership", () => {
     ).toBe(true);
     expect(
       isShareFileUriUnderOwnedRoots(
-        "file:///var/mobile/Containers/Data/Application/APP/Documents/supacode-composer-attachments/a.pdf",
+        "file:///var/mobile/Containers/Data/Application/APP/Documents/supaterm-composer-attachments/a.pdf",
         ["file:///private/var/mobile/Containers/Data/Application/APP/Documents/"],
       ),
     ).toBe(true);

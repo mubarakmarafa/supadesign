@@ -43,7 +43,7 @@ export function LocalEnvironmentSetting() {
         {...searchableSetting("local-environment")}
         description={
           enabled
-            ? "Run agents on this computer. Turn off to use Supacode only with remote environments."
+            ? "Run agents on this computer. Turn off to use Supaterm only with remote environments."
             : "Turned off. Agents only run in remote environments."
         }
         control={
@@ -70,8 +70,8 @@ export function LocalEnvironmentSetting() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {enabled
-                ? "Supacode will restart without running a server on this computer. Any agents and terminals running here will stop, and other devices will no longer be able to connect to this computer. Your projects, history, and remote environments are unaffected."
-                : "Supacode will restart and start running a server on this computer again."}
+                ? "Supaterm will restart without running a server on this computer. Any agents and terminals running here will stop, and other devices will no longer be able to connect to this computer. Your projects, history, and remote environments are unaffected."
+                : "Supaterm will restart and start running a server on this computer again."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? <p className="px-6 pb-4 text-sm text-destructive">{error}</p> : null}

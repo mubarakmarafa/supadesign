@@ -4,7 +4,7 @@ import type {
   ServerProcessDiagnosticsResult,
   ServerProcessSignal,
   ServerSignalProcessResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -36,7 +36,7 @@ export class ProcessDiagnostics extends Context.Service<
       readonly signal: ServerProcessSignal;
     }) => Effect.Effect<ServerSignalProcessResult>;
   }
->()("supacode/diagnostics/ProcessDiagnostics") {}
+>()("supaterm/diagnostics/ProcessDiagnostics") {}
 
 function formatElapsed(runTimeMs: number): string {
   const totalSeconds = Math.max(0, Math.floor(runTimeMs / 1_000));
@@ -94,7 +94,7 @@ export const make = Effect.fn("makeProcessDiagnostics")(function* () {
           pid: input.pid,
           signal: input.signal,
           signaled: false,
-          message: Option.some("Refusing to signal the Supacode server process."),
+          message: Option.some("Refusing to signal the Supaterm server process."),
         };
       }
       const current = yield* telemetry.refresh.pipe(Effect.option);
@@ -128,7 +128,7 @@ export const make = Effect.fn("makeProcessDiagnostics")(function* () {
           signal: input.signal,
           signaled: false,
           message: Option.some(
-            `Process ${input.pid} is not a signalable Supacode backend descendant.`,
+            `Process ${input.pid} is not a signalable Supaterm backend descendant.`,
           ),
         };
       }

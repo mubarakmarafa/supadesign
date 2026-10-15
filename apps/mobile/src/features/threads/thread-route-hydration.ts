@@ -1,6 +1,6 @@
-import type { EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
-import type { EnvironmentShellStatus } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentThreadStatus } from "@supacode/client-runtime/state/threads";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
+import type { EnvironmentShellStatus } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentThreadStatus } from "@supaterm/client-runtime/state/threads";
 
 /**
  * Reports whether the route-local projections can still yield the requested

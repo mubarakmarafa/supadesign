@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import type { DeviceActionInput } from "@supacode/contracts";
+import type { DeviceActionInput } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 import { readDeviceDetail, runDeviceAction, supportsAction } from "./DeviceActions.ts";

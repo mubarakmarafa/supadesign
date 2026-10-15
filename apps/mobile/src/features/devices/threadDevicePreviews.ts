@@ -1,4 +1,4 @@
-import type { DeviceServiceState, ThreadId } from "@supacode/contracts";
+import type { DeviceServiceState, ThreadId } from "@supaterm/contracts";
 
 /** Host identity is part of the selection because Android serials repeat across hosts. */
 export function threadDevicePreviews(state: DeviceServiceState | null, threadId: ThreadId) {

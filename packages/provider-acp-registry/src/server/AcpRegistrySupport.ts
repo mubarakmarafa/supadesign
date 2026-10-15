@@ -9,15 +9,15 @@ import {
   type AcpRegistrySearchInput,
   type AcpRegistrySearchResult,
   type AcpRegistryDistribution as AcpRegistryDistributionKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { AcpRegistryDistributionPreference } from "../settings.ts";
 import type { AcpRegistrySettings } from "../settings.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   mergePathEntries,
   resolveSpawnCommand,
   SpawnExecutableResolution,
-} from "@supacode/shared/shell";
+} from "@supaterm/shared/shell";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
@@ -41,9 +41,9 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import { collectUint8StreamText } from "@supacode/provider-core/server/collectStreamText";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import type * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
+import { collectUint8StreamText } from "@supaterm/provider-core/server/collectStreamText";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import type * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
 
 const ACP_REGISTRY_URL = "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json";
 
@@ -504,7 +504,7 @@ export class AcpRegistryCatalog extends Context.Service<
       input: AcpRegistryManagedBinaryUninstallInput,
     ) => Effect.Effect<AcpRegistryManagedBinaryUninstallResult, AcpRegistryError>;
   }
->()("@supacode/provider-acp-registry/server/AcpRegistrySupport/AcpRegistryCatalog") {}
+>()("@supaterm/provider-acp-registry/server/AcpRegistrySupport/AcpRegistryCatalog") {}
 
 const layer = (options: AcpRegistryCatalogOptions) =>
   Layer.effect(AcpRegistryCatalog, makeAcpRegistryCatalog(options));

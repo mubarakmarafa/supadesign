@@ -1,6 +1,6 @@
 import * as NodeURL from "node:url";
 
-import type { ChatAttachment, ProviderApprovalDecision, RuntimeMode } from "@supacode/contracts";
+import type { ChatAttachment, ProviderApprovalDecision, RuntimeMode } from "@supaterm/contracts";
 import {
   createOpencodeClient,
   type Agent,
@@ -31,15 +31,15 @@ import * as Stream from "effect/Stream";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import { signalProcessGroup } from "@supacode/provider-core/server/processGroup";
-import { isWindowsCommandNotFound } from "@supacode/provider-core/server/snapshotProbe";
+import { signalProcessGroup } from "@supaterm/provider-core/server/processGroup";
+import { isWindowsCommandNotFound } from "@supaterm/provider-core/server/snapshotProbe";
 import * as OpenCodeServerLedger from "./OpenCodeServerLedger.ts";
-import { collectStreamAsString } from "@supacode/provider-core/server/snapshotProbe";
-import * as NetService from "@supacode/shared/Net";
-import { AgentScope } from "@supacode/shared/AgentScope";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { compareSemverVersions, parseSemver } from "@supacode/shared/semver";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import { collectStreamAsString } from "@supaterm/provider-core/server/snapshotProbe";
+import * as NetService from "@supaterm/shared/Net";
+import { AgentScope } from "@supaterm/shared/AgentScope";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { compareSemverVersions, parseSemver } from "@supaterm/shared/semver";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 const encodeUnknownJsonStringExit = Schema.encodeUnknownExit(Schema.fromJsonString(Schema.Unknown));
 const OPENCODE_EMPTY_CONFIG_CONTENT = "{}";
 
@@ -161,7 +161,7 @@ export const verifyOpenCodeServerVersion = Effect.fn("verifyOpenCodeServerVersio
       (cause) =>
         new OpenCodeRuntimeError({
           operation: "global.health",
-          detail: `OpenCode server returned an invalid health response. Supacode requires OpenCode v${MINIMUM_OPENCODE_VERSION} or newer.`,
+          detail: `OpenCode server returned an invalid health response. Supaterm requires OpenCode v${MINIMUM_OPENCODE_VERSION} or newer.`,
           cause,
         }),
     ),
@@ -169,7 +169,7 @@ export const verifyOpenCodeServerVersion = Effect.fn("verifyOpenCodeServerVersio
   if (parseSemver(health.version) === null) {
     return yield* new OpenCodeRuntimeError({
       operation: "global.health",
-      detail: `OpenCode server returned an invalid version. Supacode requires OpenCode v${MINIMUM_OPENCODE_VERSION} or newer.`,
+      detail: `OpenCode server returned an invalid version. Supaterm requires OpenCode v${MINIMUM_OPENCODE_VERSION} or newer.`,
     });
   }
   if (compareSemverVersions(health.version, MINIMUM_OPENCODE_VERSION) < 0) {
@@ -283,7 +283,7 @@ export class OpenCodeRuntime extends Context.Service<
       readonly environment?: NodeJS.ProcessEnv;
     }) => Effect.Effect<ReadonlyArray<OpenCodeSkill>, OpenCodeRuntimeError>;
   }
->()("@supacode/provider-opencode/server/OpenCodeRuntime") {}
+>()("@supaterm/provider-opencode/server/OpenCodeRuntime") {}
 
 function parseServerUrlFromOutput(output: string): string | null {
   for (const line of output.split("\n")) {

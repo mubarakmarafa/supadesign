@@ -1,5 +1,5 @@
-import { SUPACODE_PROJECT_FILE_NAME, type SupacodeProjectFile } from "@supacode/contracts";
-import { parseSupacodeProjectFile } from "@supacode/shared/supacodeProjectFile";
+import { SUPATERM_PROJECT_FILE_NAME, type SupatermProjectFile } from "@supaterm/contracts";
+import { parseSupatermProjectFile } from "@supaterm/shared/supatermProjectFile";
 import { useAtomValue } from "@effect/atom-react";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
@@ -13,7 +13,7 @@ import { resolveSettingsScope, type SettingsScopeSearch } from "./settingsScope"
 import { selectSingleEnvironmentScope } from "./settingsScopeAxis";
 
 /**
- * Each member's decoded supacode.json, so file-backed settings show the file as a
+ * Each member's decoded supaterm.json, so file-backed settings show the file as a
  * layer in the inheritance chain. A member is only present once its read has
  * settled; the query atom caches per (environment, cwd).
  */
@@ -23,13 +23,13 @@ function useMemberProjectFiles(scope: ReturnType<typeof resolveSettingsScope>) {
     useMemo(
       () =>
         Atom.make((get) => {
-          const files = new Map<string, SupacodeProjectFile | null>();
+          const files = new Map<string, SupatermProjectFile | null>();
           for (const member of members) {
             const result = get(
               getProjectFileQueryAtom(
                 member.environmentId,
                 member.workspaceRoot,
-                SUPACODE_PROJECT_FILE_NAME,
+                SUPATERM_PROJECT_FILE_NAME,
               ),
             );
             if (result.waiting) continue;
@@ -39,12 +39,12 @@ function useMemberProjectFiles(scope: ReturnType<typeof resolveSettingsScope>) {
                 optimisticFileAtom(
                   member.environmentId,
                   member.workspaceRoot,
-                  SUPACODE_PROJECT_FILE_NAME,
+                  SUPATERM_PROJECT_FILE_NAME,
                 ),
               )?.data ?? Option.getOrNull(AsyncResult.value(result));
             files.set(
               member.physicalProjectKey,
-              data === null || data.truncated ? null : parseSupacodeProjectFile(data.contents),
+              data === null || data.truncated ? null : parseSupatermProjectFile(data.contents),
             );
           }
           return files;

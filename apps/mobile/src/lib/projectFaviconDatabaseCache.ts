@@ -5,7 +5,7 @@ import {
   PROJECT_FAVICON_MAX_DATA_URL_LENGTH,
   PROJECT_FAVICON_THUMBNAIL_SIZE,
   type ProjectFaviconEntry,
-} from "@supacode/client-runtime/project-favicon-cache";
+} from "@supaterm/client-runtime/project-favicon-cache";
 import * as Effect from "effect/Effect";
 
 import * as MobileDatabase from "../persistence/mobile-database";
@@ -44,7 +44,7 @@ export async function downscaleProjectFavicon(
   for (const size of [PROJECT_FAVICON_THUMBNAIL_SIZE, PROJECT_FAVICON_THUMBNAIL_SIZE / 2]) {
     signal.throwIfAborted();
     const decoded = await Image.loadAsync(image.url, { maxWidth: size, maxHeight: size });
-    const cacheKey = `supacode-favicon-thumbnail:${size}:${image.url}`;
+    const cacheKey = `supaterm-favicon-thumbnail:${size}:${image.url}`;
     try {
       signal.throwIfAborted();
       if (decoded.width > size || decoded.height > size) {

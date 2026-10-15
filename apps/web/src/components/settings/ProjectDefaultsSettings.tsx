@@ -3,9 +3,9 @@ import {
   type ModelSelection,
   type ProviderInstanceId,
   type WorktreeSubmodules,
-} from "@supacode/contracts";
-import { createModelSelection } from "@supacode/shared/model";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+} from "@supaterm/contracts";
+import { createModelSelection } from "@supaterm/shared/model";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import { useNavigate } from "@tanstack/react-router";
 
 import { mergeEnvironmentSettings } from "../../hooks/useSettings";
@@ -90,7 +90,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
   const isProjectScope = scope.kind === "project" || scope.kind === "checkout";
   const unavailable = connectedEnvironments.length === 0;
   // File-backed keys show their effective value; the target already carries
-  // the checkout's supacode.json, and a null file here only fills the built-in.
+  // the checkout's supaterm.json, and a null file here only fills the built-in.
   // The reset arrow beside the title clears the tier (SettingsRow handles a
   // project override, the environment value is cleared here), so the picker
   // has no "inherit" item.

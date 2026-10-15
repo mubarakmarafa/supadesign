@@ -1,4 +1,4 @@
-import type { ProviderDriverKind } from "@supacode/contracts";
+import type { ProviderDriverKind } from "@supaterm/contracts";
 
 export interface ProviderMaintenanceCapabilities {
   readonly provider: ProviderDriverKind;

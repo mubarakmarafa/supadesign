@@ -26,7 +26,7 @@ import {
   ServerSettingsError,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Exit from "effect/Exit";
 import * as DateTime from "effect/DateTime";
@@ -42,8 +42,8 @@ import * as ServerSettings from "../serverSettings.ts";
 import * as CheckpointService from "./CheckpointService.ts";
 import type { PendingOrchestrationEffectV2 } from "./EffectOutbox.ts";
 import * as EventSink from "./EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ProviderEventIngestor from "./ProviderEventIngestor.ts";
 import * as McpAppModelContext from "../mcpApps/McpAppModelContext.ts";

@@ -4,8 +4,8 @@ import type {
   PullRequestRef,
   PullRequestStack,
   PullRequestMergeMethod,
-} from "@supacode/contracts";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { useInlineConfirm } from "~/hooks/useInlineConfirm";

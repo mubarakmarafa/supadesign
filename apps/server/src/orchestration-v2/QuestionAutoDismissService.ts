@@ -1,4 +1,4 @@
-import { CommandId, USER_INPUT_AUTO_DISMISS_TIMEOUT_MS } from "@supacode/contracts";
+import { CommandId, USER_INPUT_AUTO_DISMISS_TIMEOUT_MS } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -14,7 +14,7 @@ export class QuestionAutoDismissService extends Context.Service<
   {
     readonly sweep: Effect.Effect<void, ProjectionStore.ProjectionStoreV2Error>;
   }
->()("supacode/orchestration-v2/QuestionAutoDismissService") {}
+>()("supaterm/orchestration-v2/QuestionAutoDismissService") {}
 
 const make = Effect.gen(function* () {
   const projections = yield* ProjectionStore.ProjectionStoreV2;

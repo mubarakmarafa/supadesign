@@ -12,9 +12,9 @@ import type {
   UsageCostSource,
   UsageModelPriceOverride,
   UsageTokenTotals,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
-import type { UsageRecord, UsageSpeed } from "@supacode/provider-core/server/usage";
+import type { UsageRecord, UsageSpeed } from "@supaterm/provider-core/server/usage";
 
 /** Token rates for one billing speed. All values are USD per token. */
 export interface TokenRates {

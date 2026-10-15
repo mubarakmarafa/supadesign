@@ -38,7 +38,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-8
     timeout-minutes: 10
     env:
-      VITE_HOSTED_APP_URL: https://preview-${{ github.event.pull_request.number }}.next.supacode.sh
+      VITE_HOSTED_APP_URL: https://preview-${{ github.event.pull_request.number }}.supaterm.com
     steps:
       - name: Checkout PR without credentials
         shell: bash
@@ -55,9 +55,9 @@ jobs:
       - name: Setup Mise
         uses: ./.github/actions/setup-mise
       - name: Install workspace dependencies
-        run: mise exec -- vp install --filter=@supacode/scripts... --filter=@supacode/web...
+        run: mise exec -- vp install --filter=@supaterm/scripts... --filter=@supaterm/web...
       - name: Build preview
-        run: vp run --filter @supacode/web build
+        run: vp run --filter @supaterm/web build
       - name: Upload static assets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

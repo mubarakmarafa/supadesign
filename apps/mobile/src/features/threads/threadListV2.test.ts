@@ -1,6 +1,6 @@
-import { presentThreadShell } from "@supacode/client-runtime/state/models";
+import { presentThreadShell } from "@supaterm/client-runtime/state/models";
 import * as DateTime from "effect/DateTime";
-import { planPinnedMove } from "@supacode/client-runtime/state/thread-sort";
+import { planPinnedMove } from "@supaterm/client-runtime/state/thread-sort";
 import {
   createPendingThreadOrder,
   createThreadMovePlanner,
@@ -9,9 +9,9 @@ import {
   reconcilePendingThreadOrder,
   type PendingThreadOrder,
 } from "./threadOrder";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { threadSearchMatchKey } from "@supacode/client-runtime/state/thread-search";
-import { resolveSnoozePresets } from "@supacode/client-runtime/state/thread-settled";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { threadSearchMatchKey } from "@supaterm/client-runtime/state/thread-search";
+import { resolveSnoozePresets } from "@supaterm/client-runtime/state/thread-settled";
 import {
   CommandId,
   EnvironmentId,
@@ -20,7 +20,7 @@ import {
   ProviderInstanceId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import type { PendingNewTask } from "../../state/use-pending-new-tasks";

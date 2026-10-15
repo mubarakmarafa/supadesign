@@ -1,4 +1,4 @@
-import { EnvironmentId, WS_METHODS } from "@supacode/contracts";
+import { EnvironmentId, WS_METHODS } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 

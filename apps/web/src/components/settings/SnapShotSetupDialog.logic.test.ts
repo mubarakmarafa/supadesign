@@ -1,4 +1,4 @@
-import { DEFAULT_CLIENT_SETTINGS, type DesktopSnapShotState } from "@supacode/contracts";
+import { DEFAULT_CLIENT_SETTINGS, type DesktopSnapShotState } from "@supaterm/contracts";
 import { expect, it } from "vite-plus/test";
 import {
   captureSetupAccessReady,

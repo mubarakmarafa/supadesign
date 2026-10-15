@@ -21,8 +21,8 @@ import {
   EnvironmentThemeFile,
   EnvironmentThemeId,
   environmentThemeFileHasColors,
-} from "@supacode/contracts";
-import { UNPUBLISHABLE_THEME_IDS } from "@supacode/shared/themePalettes";
+} from "@supaterm/contracts";
+import { UNPUBLISHABLE_THEME_IDS } from "@supaterm/shared/themePalettes";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
@@ -86,7 +86,7 @@ export class EnvironmentThemeService extends Context.Service<
      */
     readonly streamChanges: Stream.Stream<ReadonlyArray<EnvironmentTheme>>;
   }
->()("supacode/environmentTheme/EnvironmentThemeService") {}
+>()("supaterm/environmentTheme/EnvironmentThemeService") {}
 
 /**
  * Reads a theme file through one opened handle, so every check binds to the

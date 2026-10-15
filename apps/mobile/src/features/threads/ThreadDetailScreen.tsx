@@ -1,19 +1,19 @@
-import { pendingThreadCreationLabel } from "@supacode/client-runtime/pending-thread-creation";
+import { pendingThreadCreationLabel } from "@supaterm/client-runtime/pending-thread-creation";
 import { useSelectedThreadComposerMetadata } from "../../state/use-thread-detail";
 import { useAtomValue } from "@effect/atom-react";
 import { useChildThreadInputs } from "../../state/entities";
 import { UsageLimitRecoveryCard } from "./UsageLimitRecoveryCard";
 import { useNavigation } from "@react-navigation/native";
 import type { WorktreeSetupCardProps } from "./worktree-setup-card";
-import type { ComposerTextPaste } from "../../native/SupacodeComposerEditor.types";
-import { type EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
+import type { ComposerTextPaste } from "../../native/SupatermComposerEditor.types";
+import { type EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import type {
   CodexFeedbackSubmission,
   EnvironmentThreadStatus,
-} from "@supacode/client-runtime/state/threads";
+} from "@supaterm/client-runtime/state/threads";
 import { useKeyboardChatComposerInset, useKeyboardScrollToEnd } from "@legendapp/list/keyboard";
-import { resolveProviderSkillsForCwd } from "@supacode/client-runtime/providerSkills";
+import { resolveProviderSkillsForCwd } from "@supaterm/client-runtime/providerSkills";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { HeaderHeightContext } from "@react-navigation/elements";
 import { NativeLayoutObserver } from "../../native/NativeLayoutObserver";
@@ -25,29 +25,29 @@ import type {
   ProviderApprovalDecision,
   RuntimeMode,
   RuntimeRequestId,
-  ServerConfig as SupacodeServerConfig,
+  ServerConfig as SupatermServerConfig,
   ThreadId,
   UsageLimitsReport,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   appendCodexArtifactTemplateUsePrompt,
   type CodexArtifactTemplate,
-} from "@supacode/shared/codexArtifactTemplates";
-import type { ThreadUserInputQuestion } from "@supacode/client-runtime/state/thread-requests";
+} from "@supaterm/shared/codexArtifactTemplates";
+import type { ThreadUserInputQuestion } from "@supaterm/client-runtime/state/thread-requests";
 import {
   presentPendingBackgroundWork,
   presentProviderGoal,
-} from "@supacode/client-runtime/state/thread-execution";
-import { resolveSubagentPillSegment } from "@supacode/client-runtime/state/thread-subagents";
+} from "@supaterm/client-runtime/state/thread-execution";
+import { resolveSubagentPillSegment } from "@supaterm/client-runtime/state/thread-subagents";
 import {
   formatModelSelectionEffort,
   type ProviderSubagentStatus,
-} from "@supacode/client-runtime/state/thread-execution";
-import { formatModelSlugName, resolveSelectableModel } from "@supacode/shared/model";
-import { isProviderNativeSubagentThread } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/thread-execution";
+import { formatModelSlugName, resolveSelectableModel } from "@supaterm/shared/model";
+import { isProviderNativeSubagentThread } from "@supaterm/contracts";
 import type { QueuedRunEdit } from "../../state/queued-run-edit";
 import type { FollowUpBehavior } from "../../lib/followUpBehavior";
-import type { ActiveTurnComposerAction } from "@supacode/client-runtime/state/composer-dispatch";
+import type { ActiveTurnComposerAction } from "@supaterm/client-runtime/state/composer-dispatch";
 import * as Haptics from "expo-haptics";
 import {
   memo,
@@ -90,7 +90,7 @@ import { useWorkspaceContentWidth } from "../layout/workspace-content-width";
 import { useNativeWorkspaceColumnsSupported } from "../../native/NativeWorkspaceColumns";
 import { useNativeColumnLayoutMetrics } from "../../native/native-layout-metrics";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
-import { collectProviderUsageLimits } from "@supacode/shared/usageLimits";
+import { collectProviderUsageLimits } from "@supaterm/shared/usageLimits";
 import type { ComposerEditorHandle } from "../../components/ComposerEditor";
 import type { StatusTone } from "../../components/StatusPill";
 import type { DraftComposerAttachment } from "../../lib/composerImages";
@@ -216,7 +216,7 @@ export interface ThreadDetailScreenProps {
   readonly selectedThreadQueueCount: number;
   readonly queuedMessages: ReadonlyArray<QueuedThreadMessage>;
   readonly dispatchingMessageId: MessageId | null;
-  readonly serverConfig: SupacodeServerConfig | null;
+  readonly serverConfig: SupatermServerConfig | null;
   readonly layoutVariant?: LayoutVariant;
   readonly usesAutomaticContentInsets?: boolean;
   readonly onHeaderMaterialVisibilityChange?: (visible: boolean) => void;

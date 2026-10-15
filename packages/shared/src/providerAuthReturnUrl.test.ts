@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { providerAuthReturnUrl } from "./providerAuthReturnUrl.ts";
 
 describe("provider auth return destinations", () => {
-  it.each(["supacode", "supacode-dev"])(
+  it.each(["supaterm", "supaterm-dev"])(
     "returns to %s Welcome and the selected settings instance",
     (scheme) => {
       expect(providerAuthReturnUrl(`${scheme}://app/welcome?code=secret#agents:machine-id`)).toBe(
@@ -14,11 +14,11 @@ describe("provider auth return destinations", () => {
     },
   );
   it.each([
-    "supacode://attacker/welcome",
-    "supacode://app:123/welcome",
-    "supacode://app/auth/callback",
-    "supacode://user@ app/welcome",
-    "supacode://app/welcome/../evil",
+    "supaterm://attacker/welcome",
+    "supaterm://app:123/welcome",
+    "supaterm://app/auth/callback",
+    "supaterm://user@ app/welcome",
+    "supaterm://app/welcome/../evil",
     "https://attacker.example/welcome",
     "file:///welcome",
     "javascript:alert(1)",

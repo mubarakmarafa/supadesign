@@ -1,7 +1,7 @@
-import { bootstrapRemoteBearerSession } from "@supacode/client-runtime/authorization";
-import type { RemoteEnvironmentRequestError } from "@supacode/client-runtime/rpc";
-import { PRIMARY_LOCAL_ENVIRONMENT_ID } from "@supacode/contracts";
-import { currentDesktopBootstrapToken } from "@supacode/shared/desktopBootstrapToken";
+import { bootstrapRemoteBearerSession } from "@supaterm/client-runtime/authorization";
+import type { RemoteEnvironmentRequestError } from "@supaterm/client-runtime/rpc";
+import { PRIMARY_LOCAL_ENVIRONMENT_ID } from "@supaterm/contracts";
+import { currentDesktopBootstrapToken } from "@supaterm/shared/desktopBootstrapToken";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
@@ -65,7 +65,7 @@ export class DesktopLocalEnvironmentAuth extends Context.Service<
   {
     readonly getBearerToken: Effect.Effect<string, DesktopLocalEnvironmentAuthError>;
   }
->()("@supacode/desktop/backend/DesktopLocalEnvironmentAuth") {}
+>()("@supaterm/desktop/backend/DesktopLocalEnvironmentAuth") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {
@@ -104,7 +104,7 @@ export const make = Effect.gen(function* () {
           httpBaseUrl: config.httpBaseUrl.href,
           credential,
           clientMetadata: {
-            label: "Supacode Desktop",
+            label: "Supaterm Desktop",
             deviceType: "desktop",
           },
         }).pipe(

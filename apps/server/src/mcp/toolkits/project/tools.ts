@@ -16,7 +16,7 @@ import {
   OrchestratorMcpFailure,
   SourceControlCloneRepositoryInput,
   SourceControlCloneRepositoryResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as FileSystem from "effect/FileSystem";
 import * as ServerConfig from "../../../config.ts";
 import * as ServerSettings from "../../../serverSettings.ts";
@@ -42,7 +42,7 @@ const shared = {
     Crypto.Crypto,
   ],
 };
-const ProjectListTool = Tool.make("supacode_project_list", {
+const ProjectListTool = Tool.make("supaterm_project_list", {
   ...shared,
   description:
     "List registered projects in this environment. Pages use the current project snapshot and may shift between calls.",
@@ -57,7 +57,7 @@ const ProjectListTool = Tool.make("supacode_project_list", {
 })
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false);
-const ProjectReadTool = Tool.make("supacode_project_read", {
+const ProjectReadTool = Tool.make("supaterm_project_read", {
   ...shared,
   description:
     "Read a registered project in this environment, including its workspace and saved scripts.",
@@ -65,10 +65,10 @@ const ProjectReadTool = Tool.make("supacode_project_read", {
 })
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false);
-const ProjectCreateTool = Tool.make("supacode_project_create", {
+const ProjectCreateTool = Tool.make("supaterm_project_create", {
   ...shared,
   description:
-    "Register a project directory through the existing project service. Set createWorkspaceRootIfMissing to create a directory. Omit workspaceRoot to start a new project from just its title: the app makes a Git repository for it in its own projects folder, with a README, an icon, and a first commit (commitError says why a commit failed; the project exists either way). Each call creates a new request; an existing registered workspace is rejected. Clone separately with supacode_project_clone when needed.",
+    "Register a project directory through the existing project service. Set createWorkspaceRootIfMissing to create a directory. Omit workspaceRoot to start a new project from just its title: the app makes a Git repository for it in its own projects folder, with a README, an icon, and a first commit (commitError says why a commit failed; the project exists either way). Each call creates a new request; an existing registered workspace is rejected. Clone separately with supaterm_project_clone when needed.",
   parameters: Schema.Struct({
     ...ProjectCreatePayload.fields,
     workspaceRoot: Schema.optional(ProjectCreatePayload.fields.workspaceRoot),
@@ -76,22 +76,22 @@ const ProjectCreateTool = Tool.make("supacode_project_create", {
   success: Schema.Struct({ ...Project.fields, commitError: Schema.optional(Schema.String) }),
   dependencies: [...shared.dependencies, ManagedProjectFolders.ManagedProjectFolders],
 }).annotate(Tool.Destructive, true);
-const ProjectUpdateTool = Tool.make("supacode_project_update", {
+const ProjectUpdateTool = Tool.make("supaterm_project_update", {
   ...shared,
   description:
     "Update a registered project's settings. Omitted fields are preserved. Uses the same project service as the app.",
   parameters: Schema.Struct({ projectId: ProjectId, ...ProjectUpdatePayload.fields }),
 }).annotate(Tool.Destructive, true);
-const ProjectDeleteTool = Tool.make("supacode_project_delete", {
+const ProjectDeleteTool = Tool.make("supaterm_project_delete", {
   ...shared,
   description:
     "Delete a project using the existing project deletion lifecycle. Nonempty projects require force=true. This does not delete the repository directory or promise a deleted-thread count.",
   parameters: Schema.Struct({ projectId: ProjectId, force: Schema.optionalKey(Schema.Boolean) }),
 }).annotate(Tool.Destructive, true);
-const ProjectCloneTool = Tool.make("supacode_project_clone", {
+const ProjectCloneTool = Tool.make("supaterm_project_clone", {
   ...shared,
   description:
-    "Clone a repository using the app's source-control service. This only clones; register the returned cwd with supacode_project_create. An existing destination is not adopted or removed on failure.",
+    "Clone a repository using the app's source-control service. This only clones; register the returned cwd with supaterm_project_create. An existing destination is not adopted or removed on failure.",
   parameters: SourceControlCloneRepositoryInput,
   success: SourceControlCloneRepositoryResult,
   dependencies: [
@@ -101,10 +101,10 @@ const ProjectCloneTool = Tool.make("supacode_project_clone", {
 })
   .annotate(Tool.Destructive, true)
   .annotate(Tool.OpenWorld, true);
-const ThreadLaunchTool = Tool.make("supacode_thread_launch", {
+const ThreadLaunchTool = Tool.make("supaterm_thread_launch", {
   ...shared,
   description:
-    'Create an ordinary TOP-LEVEL thread with an explicit workspace binding before its agent starts. Use this when the user requests independent work, a new thread, or a PR stack in its own worktree; use delegate_task for child subagents. Set workspaceStrategy to {type:"worktree",baseRef:"parent-branch",branch:"new-branch",startFromOrigin:false} for a new worktree based on local commits, or {type:"existing_worktree",worktreePath:"/absolute/path",branch:"existing-branch"} to use an existing checkout. For upstream commits, set startFromOrigin:true. Omitted workspaceStrategy means the project root, NOT the caller\'s worktree. Omit projectId/modelSelection/modes to inherit those settings from the calling thread; a caller outside a Supacode thread must pass projectId and gets the project\'s default model. Set scratch:true instead of projectId for a thread without a project: it runs in a fresh folder of its own, outside any repository. Put the task in message. Do not ask the agent to create its own worktree via shell: that does not update the thread binding. Each call creates a new launch with no retry key; retain threadId and use supacode_thread_read/supacode_thread_wait to follow preparation. To link a thread for the user, write `[title](supacode-thread://v1/<threadId>)` with the threadId exactly as returned, not URL-encoded; Supacode shows the thread\'s current title. After errors or lost responses, inspect supacode_thread_list before retrying. Attachments must be pending uploads. The new thread may not run with broader runtime or interaction modes than the caller: the calling Supacode thread\'s own modes, or the permission mode an outside agent was approved with.',
+    'Create an ordinary TOP-LEVEL thread with an explicit workspace binding before its agent starts. Use this when the user requests independent work, a new thread, or a PR stack in its own worktree; use delegate_task for child subagents. Set workspaceStrategy to {type:"worktree",baseRef:"parent-branch",branch:"new-branch",startFromOrigin:false} for a new worktree based on local commits, or {type:"existing_worktree",worktreePath:"/absolute/path",branch:"existing-branch"} to use an existing checkout. For upstream commits, set startFromOrigin:true. Omitted workspaceStrategy means the project root, NOT the caller\'s worktree. Omit projectId/modelSelection/modes to inherit those settings from the calling thread; a caller outside a Supaterm thread must pass projectId and gets the project\'s default model. Set scratch:true instead of projectId for a thread without a project: it runs in a fresh folder of its own, outside any repository. Put the task in message. Do not ask the agent to create its own worktree via shell: that does not update the thread binding. Each call creates a new launch with no retry key; retain threadId and use supaterm_thread_read/supaterm_thread_wait to follow preparation. To link a thread for the user, write `[title](supaterm-thread://v1/<threadId>)` with the threadId exactly as returned, not URL-encoded; Supaterm shows the thread\'s current title. After errors or lost responses, inspect supaterm_thread_list before retrying. Attachments must be pending uploads. The new thread may not run with broader runtime or interaction modes than the caller: the calling Supaterm thread\'s own modes, or the permission mode an outside agent was approved with.',
   parameters: Schema.Struct({
     projectId: Schema.optional(ProjectId),
     scratch: Schema.optional(

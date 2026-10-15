@@ -1,4 +1,4 @@
-import type { EnvironmentId, PullRequestRef, PullRequestReviewGuide } from "@supacode/contracts";
+import type { EnvironmentId, PullRequestRef, PullRequestReviewGuide } from "@supaterm/contracts";
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { createPullRequestDiffFileContentsLoader } from "~/lib/diffFileContents";
@@ -18,7 +18,7 @@ import {
   useGuideRunStore,
   type GuideProgress,
 } from "./guideRunStore";
-import { stepTourPosition, stopFilePaths } from "@supacode/client-runtime/review-guide-tour";
+import { stepTourPosition, stopFilePaths } from "@supaterm/client-runtime/review-guide-tour";
 import { useGuideDiffFiles } from "./useGuideDiffFiles";
 
 /**

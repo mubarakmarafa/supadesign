@@ -6,8 +6,8 @@ import {
   type ScopedThreadRef,
   type ThreadId,
   WS_METHODS,
-} from "@supacode/contracts";
-import { normalizeProjectPathForComparison, resolveWorkspaceFilePath } from "@supacode/shared/path";
+} from "@supaterm/contracts";
+import { normalizeProjectPathForComparison, resolveWorkspaceFilePath } from "@supaterm/shared/path";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";

@@ -1,10 +1,10 @@
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
 import {
   ChatFileAttachment,
   INCOGNITO_BROWSER_PROFILE_ID,
   PreviewSessionSnapshot,
   ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -123,7 +123,7 @@ export const useClosedViewStore = create<ClosedViewStoreState>()(
         set((state) => ({ entries: state.entries.filter((entry) => entry.id !== id) })),
     }),
     {
-      name: "supacode:closed-views:v2",
+      name: "supaterm:closed-views:v2",
       storage: createJSONStorage(() =>
         resolveStorage(typeof window !== "undefined" ? window.localStorage : undefined),
       ),

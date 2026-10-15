@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { BrowserImportSource } from "@supacode/contracts";
+import type { BrowserImportSource } from "@supaterm/contracts";
 
 import {
   canCloseWizard,

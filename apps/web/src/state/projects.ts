@@ -1,7 +1,7 @@
-import { createEnvironmentProjectAtoms } from "@supacode/client-runtime/state/projects";
-import { createProjectEnvironmentAtoms } from "@supacode/client-runtime/state/projects";
-import { createEnvironmentRpcQueryAtomFamily } from "@supacode/client-runtime/state/runtime";
-import { WS_METHODS } from "@supacode/contracts";
+import { createEnvironmentProjectAtoms } from "@supaterm/client-runtime/state/projects";
+import { createProjectEnvironmentAtoms } from "@supaterm/client-runtime/state/projects";
+import { createEnvironmentRpcQueryAtomFamily } from "@supaterm/client-runtime/state/runtime";
+import { WS_METHODS } from "@supaterm/contracts";
 
 import { environmentCatalog } from "../connection/catalog";
 import { connectionAtomRuntime } from "../connection/runtime";

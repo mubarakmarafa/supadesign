@@ -3,15 +3,15 @@ import {
   PROVIDER_SEND_TURN_SUPPORTED_IMAGE_MIME_TYPES,
   type ChatAttachment,
   type EnvironmentId,
-} from "@supacode/contracts";
-import { parseScopedThreadKey } from "@supacode/client-runtime/environment";
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
+} from "@supaterm/contracts";
+import { parseScopedThreadKey } from "@supaterm/client-runtime/environment";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import {
   deletePendingAttachmentUpload,
   runAttachmentUploadCycle,
   verifyPersistedAttachmentUpload,
   type PersistedAttachmentVerification,
-} from "@supacode/client-runtime/state/attachments";
+} from "@supaterm/client-runtime/state/attachments";
 import { create } from "zustand";
 import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";

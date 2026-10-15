@@ -1,6 +1,6 @@
 import * as NodeOS from "node:os";
 
-import { historyResponseItems } from "@supacode/provider-core/server/handoffBudget";
+import { historyResponseItems } from "@supaterm/provider-core/server/handoffBudget";
 import {
   makeProviderTextDeltaCoalescer,
   type ProviderTextDeltaUpdate,
@@ -27,10 +27,10 @@ import {
   RunId,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { assert, describe, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { SpawnExecutableResolution } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { SpawnExecutableResolution } from "@supaterm/shared/shell";
 import * as CodexClient from "effect-codex-app-server/client";
 import * as CodexError from "effect-codex-app-server/errors";
 import * as CodexReplay from "effect-codex-app-server/replay";
@@ -40,7 +40,7 @@ import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as FileSystem from "effect/FileSystem";
-import { MCP_APP_OUTPUT_KEY, readMcpAppReference } from "@supacode/shared/mcpApp";
+import { MCP_APP_OUTPUT_KEY, readMcpAppReference } from "@supaterm/shared/mcpApp";
 import { resolveAttachmentPathById } from "../../attachmentStore.ts";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
@@ -54,14 +54,14 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 import packageJson from "../../../package.json" with { type: "json" };
 import * as ServerConfig from "../../config.ts";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as EffectWorker from "../EffectWorker.ts";
 import * as Orchestrator from "../Orchestrator.ts";
 import * as ProviderReplayHarness from "../testkit/ProviderReplayHarness.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
-import type * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
+import type * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import * as CodexAdapterV2 from "./CodexAdapterV2.ts";
 import { makeReplayServerConfig, withCodexReplayChildMetadata } from "./CodexAdapterV2.testkit.ts";
 import * as CodexAdapterV2Testkit from "./CodexAdapterV2.testkit.ts";
@@ -393,7 +393,7 @@ describe("CodexAdapterV2 assistant message streaming", () => {
 });
 
 describe("CodexAdapterV2 runtime policy", () => {
-  it.effect("derives concrete Codex turn policies from every Supacode runtime mode", () =>
+  it.effect("derives concrete Codex turn policies from every Supaterm runtime mode", () =>
     Effect.gen(function* () {
       const build = (
         runtimeMode: "approval-required" | "auto-accept-edits" | "auto" | "full-access",
@@ -473,24 +473,24 @@ describe("CodexAdapterV2 runtime policy", () => {
         "mcp_app_todos_list_todos_item-1": { kind: "untrusted", value: "Filtered to overdue" },
       });
 
-      const withSupacode = yield* CodexAdapterV2.buildCodexTurnStartParams({
+      const withSupaterm = yield* CodexAdapterV2.buildCodexTurnStartParams({
         nativeThreadId: "native-app-context",
         codexInput: [{ type: "text", text: "what's on my list?" }],
         runtimePolicy: policy,
         modelSelection,
-        hasSupacodeMcp: true,
+        hasSupatermMcp: true,
         appContext,
       });
-      assert.deepEqual(withSupacode.additionalContext?.["mcp_app_todos_list_todos_item-1"], {
+      assert.deepEqual(withSupaterm.additionalContext?.["mcp_app_todos_list_todos_item-1"], {
         kind: "untrusted",
         value: "Filtered to overdue",
       });
-      assert.isDefined(withSupacode.additionalContext?.["supacode_runtime"]);
+      assert.isDefined(withSupaterm.additionalContext?.["supaterm_runtime"]);
     }),
   );
 
   it.effect(
-    "adds default-mode developer instructions when the Supacode MCP server is attached",
+    "adds default-mode developer instructions when the Supaterm MCP server is attached",
     () =>
       Effect.gen(function* () {
         const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
@@ -505,25 +505,25 @@ describe("CodexAdapterV2 runtime policy", () => {
             instanceId: ProviderInstanceId.make("codex"),
             model: "gpt-5.4",
           },
-          hasSupacodeMcp: true,
+          hasSupatermMcp: true,
         });
 
         assert.equal(params.collaborationMode?.mode, "default");
         assert.include(
-          params.additionalContext?.supacode_orchestration?.value ?? "",
+          params.additionalContext?.supaterm_orchestration?.value ?? "",
           "Use `delegate_task`",
         );
         assert.include(
-          params.additionalContext?.supacode_orchestration?.value ?? "",
+          params.additionalContext?.supaterm_orchestration?.value ?? "",
           "structured object, never as JSON text",
         );
       }),
   );
 
-  it.effect("omits default-mode collaboration settings without the Supacode MCP server", () =>
+  it.effect("omits default-mode collaboration settings without the Supaterm MCP server", () =>
     Effect.gen(function* () {
       const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
-        nativeThreadId: "native-default-without-supacode-mcp",
+        nativeThreadId: "native-default-without-supaterm-mcp",
         codexInput: [{ type: "text", text: "implement this task" }],
         runtimePolicy: {
           runtimeMode: "full-access",
@@ -534,7 +534,7 @@ describe("CodexAdapterV2 runtime policy", () => {
           instanceId: ProviderInstanceId.make("codex"),
           model: "gpt-5.4",
         },
-        hasSupacodeMcp: false,
+        hasSupatermMcp: false,
       });
 
       assert.isUndefined(params.collaborationMode);
@@ -542,11 +542,11 @@ describe("CodexAdapterV2 runtime policy", () => {
   );
 
   it.effect(
-    "adds Supacode plan-mode developer instructions when the Supacode MCP server is attached",
+    "adds Supaterm plan-mode developer instructions when the Supaterm MCP server is attached",
     () =>
       Effect.gen(function* () {
         const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
-          nativeThreadId: "native-plan-with-supacode-mcp",
+          nativeThreadId: "native-plan-with-supaterm-mcp",
           codexInput: [{ type: "text", text: "plan this task" }],
           runtimePolicy: {
             runtimeMode: "full-access",
@@ -557,7 +557,7 @@ describe("CodexAdapterV2 runtime policy", () => {
             instanceId: ProviderInstanceId.make("codex"),
             model: "gpt-5.4",
           },
-          hasSupacodeMcp: true,
+          hasSupatermMcp: true,
         });
 
         assert.equal(params.collaborationMode?.mode, "plan");
@@ -565,14 +565,14 @@ describe("CodexAdapterV2 runtime policy", () => {
           params.collaborationMode?.settings.developer_instructions ?? "",
           "request_user_input",
         );
-        assert.include(params.additionalContext?.supacode_tools?.value ?? "", "preview_status");
+        assert.include(params.additionalContext?.supaterm_tools?.value ?? "", "preview_status");
       }),
   );
 
-  it.effect("keeps Codex in plan mode without referencing unavailable Supacode MCP tools", () =>
+  it.effect("keeps Codex in plan mode without referencing unavailable Supaterm MCP tools", () =>
     Effect.gen(function* () {
       const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
-        nativeThreadId: "native-plan-without-supacode-mcp",
+        nativeThreadId: "native-plan-without-supaterm-mcp",
         codexInput: [{ type: "text", text: "plan this task" }],
         runtimePolicy: {
           runtimeMode: "full-access",
@@ -583,7 +583,7 @@ describe("CodexAdapterV2 runtime policy", () => {
           instanceId: ProviderInstanceId.make("codex"),
           model: "gpt-5.4",
         },
-        hasSupacodeMcp: false,
+        hasSupatermMcp: false,
       });
 
       assert.equal(params.collaborationMode?.mode, "plan");
@@ -669,7 +669,7 @@ describe("CodexAdapterV2 process spawning", () => {
         config: {
           "tools.update_plan.enabled": true,
           mcp_servers: {
-            supacode: {
+            supaterm: {
               url: "http://127.0.0.1:43123/mcp",
               http_headers: {
                 Authorization: "Bearer secret-codex-token",
@@ -772,7 +772,7 @@ describe("CodexAdapterV2 process spawning", () => {
           .pipe(Effect.scoped, Effect.exit);
 
       yield* open({});
-      yield* open({ SUPACODE_CODEX_LAUNCH_ARGS: " --enable env-feature " });
+      yield* open({ SUPATERM_CODEX_LAUNCH_ARGS: " --enable env-feature " });
 
       assert.deepEqual(spawnedArgs, [
         ["app-server", "--strict-config", "-c", "model_reasoning_summary=detailed"],
@@ -801,7 +801,7 @@ describe("CodexAdapterV2 process spawning", () => {
         Effect.provide(
           Layer.mergeAll(
             CodexAdapterV2.layerAppServerClientFactory,
-            ServerConfig.layerTest(process.cwd(), { prefix: "supacodex-binary-home-" }),
+            ServerConfig.layerTest(process.cwd(), { prefix: "supatermx-binary-home-" }),
           ),
         ),
         Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
@@ -1018,7 +1018,7 @@ describe("CodexAdapterV2 dynamic tool projection", () => {
       const projection = yield* CodexAdapterV2.projectCodexDynamicToolItem({
         type: "mcpToolCall",
         id: "call-create-threads",
-        server: "supacode",
+        server: "supaterm",
         tool: "create_threads",
         status: "completed",
         arguments: {
@@ -1033,7 +1033,7 @@ describe("CodexAdapterV2 dynamic tool projection", () => {
       });
 
       assert.deepEqual(projection, {
-        toolName: "supacode.create_threads",
+        toolName: "supaterm.create_threads",
         input: {
           threads: [{ title: "Fixture child", prompt: "fixture child prompt" }],
         },
@@ -1053,7 +1053,7 @@ describe("CodexAdapterV2 dynamic tool projection", () => {
       const projection = yield* CodexAdapterV2.projectCodexDynamicToolItem({
         type: "mcpToolCall",
         id: "call-screenshot",
-        server: "supacode",
+        server: "supaterm",
         tool: "preview_snapshot",
         status: "completed",
         arguments: {},
@@ -1636,7 +1636,7 @@ function codexReplayPreamble(input: {
         id: 1,
         method: "initialize",
         params: {
-          clientInfo: { name: "supacode", title: "Supacode", version: packageJson.version },
+          clientInfo: { name: "supaterm", title: "Supaterm", version: packageJson.version },
           capabilities: {
             experimentalApi: true,
             optOutNotificationMethods: ["turn/diff/updated"],
@@ -1653,7 +1653,7 @@ function codexReplayPreamble(input: {
       frame: {
         id: 1,
         result: {
-          userAgent: "supacode/0.156.1",
+          userAgent: "supaterm/0.156.1",
           codexHome: "/tmp/codex-home",
           platformFamily: "unix",
           platformOs: "macos",
@@ -2233,7 +2233,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
       // version, so pin the whole value here.
       assert.deepEqual(initializeParams, [
         {
-          clientInfo: { name: "supacode", title: "Supacode", version: packageJson.version },
+          clientInfo: { name: "supaterm", title: "Supaterm", version: packageJson.version },
           capabilities: {
             experimentalApi: true,
             optOutNotificationMethods: ["turn/diff/updated"],
@@ -2803,7 +2803,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
     ),
   );
 
-  it.effect("preserves Supacode context on the wire and restores it after compaction", () =>
+  it.effect("preserves Supaterm context on the wire and restores it after compaction", () =>
     Effect.scoped(
       Effect.gen(function* () {
         const nativeThreadId = "context-thread";
@@ -2813,10 +2813,10 @@ describe("CodexAdapterV2 post-settle continuation", () => {
           codexInput: [{ type: "text", text: "work" }],
           runtimePolicy: CODEX_TEST_RUNTIME_POLICY,
           modelSelection: CODEX_TEST_MODEL_SELECTION,
-          hasSupacodeMcp: true,
+          hasSupatermMcp: true,
         });
         assert.include(
-          params.additionalContext?.supacode_orchestration?.value ?? "",
+          params.additionalContext?.supaterm_orchestration?.value ?? "",
           "delegate_task",
         );
         const entries = codexReplayPreamble({ nativeThreadId, nativeTurnId, prompt: "work" });
@@ -4409,7 +4409,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
       ),
   );
 
-  // "thread_unloaded": the thread was settled, so Supacode unsubscribed and Codex
+  // "thread_unloaded": the thread was settled, so Supaterm unsubscribed and Codex
   // unloaded it (killing its terminals) before Stop arrived.
   const backgroundStopCases = [true, false, "still_running", "thread_unloaded"] as const;
   const makeBackgroundStopTranscript = (terminated: (typeof backgroundStopCases)[number]) => {
@@ -4573,7 +4573,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
     return Effect.scoped(
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
-        const cwd = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-bg-stop-workspace-" });
+        const cwd = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-bg-stop-workspace-" });
         const localTranscript = yield* decodeReplayTranscriptJson(
           (yield* encodeReplayTranscriptJson(transcript)).replaceAll(
             yield* encodeStringJson("/workspace"),
@@ -4705,7 +4705,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
     Effect.scoped(
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
-        const cwd = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-bg-stale-workspace-" });
+        const cwd = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-bg-stale-workspace-" });
         const staleTranscript = makeCodexReplayTranscript({
           scenario: "codex-bg-stop-untracked",
           entries: [
@@ -6920,8 +6920,8 @@ describe("CodexAdapterV2 post-settle continuation", () => {
             item: {
               type: "mcpToolCall",
               id: COMPLETED_WAIT_ITEM,
-              server: "supacode",
-              tool: "supacode_thread_wait",
+              server: "supaterm",
+              tool: "supaterm_thread_wait",
               status: "inProgress",
               arguments: { threadId: "thread:completed-wait", timeoutMs: 30000 },
             },
@@ -6940,8 +6940,8 @@ describe("CodexAdapterV2 post-settle continuation", () => {
             item: {
               type: "mcpToolCall",
               id: COMPLETED_WAIT_ITEM,
-              server: "supacode",
-              tool: "supacode_thread_wait",
+              server: "supaterm",
+              tool: "supaterm_thread_wait",
               status: "completed",
               arguments: { threadId: "thread:completed-wait", timeoutMs: 30000 },
               result: { content: [{ type: "text", text: "idle" }] },
@@ -6961,8 +6961,8 @@ describe("CodexAdapterV2 post-settle continuation", () => {
             item: {
               type: "mcpToolCall",
               id: ORPHAN_WAIT_ITEM,
-              server: "supacode",
-              tool: "supacode_thread_wait",
+              server: "supaterm",
+              tool: "supaterm_thread_wait",
               status: "inProgress",
               arguments: {
                 threadId:

@@ -1,15 +1,15 @@
-import { tokenizeCliArgs } from "@supacode/shared/cliArgs";
+import { tokenizeCliArgs } from "@supaterm/shared/cliArgs";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 
-import type { McpProviderSessionConfig } from "@supacode/provider-core/server/mcpSession";
+import type { McpProviderSessionConfig } from "@supaterm/provider-core/server/mcpSession";
 import {
-  PI_SUPACODE_MCP_EXTENSION_FILENAME,
-  PI_SUPACODE_MCP_EXTENSION_SOURCE,
-  SUPACODE_MCP_BEARER_ENV,
-  SUPACODE_MCP_URL_ENV,
-  SUPACODE_PI_RUNTIME_MODE_ENV,
-  SUPACODE_PI_MCP_EXTENSION_PATH_ENV,
+  PI_SUPATERM_MCP_EXTENSION_FILENAME,
+  PI_SUPATERM_MCP_EXTENSION_SOURCE,
+  SUPATERM_MCP_BEARER_ENV,
+  SUPATERM_MCP_URL_ENV,
+  SUPATERM_PI_RUNTIME_MODE_ENV,
+  SUPATERM_PI_MCP_EXTENSION_PATH_ENV,
 } from "./mcpExtensionSource.ts";
 
 const RESERVED_PI_LAUNCH_ARGUMENTS = new Set([
@@ -102,7 +102,7 @@ function normalizePiBuiltInEqualsArguments(args: ReadonlyArray<string>): Readonl
 
 /**
  * Pi launch arguments may configure resources, models, tools, trust, and
- * storage. Supacode owns RPC mode and session identity, so arguments that select a
+ * storage. Supaterm owns RPC mode and session identity, so arguments that select a
  * different execution mode or native session are rejected before spawn.
  */
 export function resolvePiLaunchArgs(launchArgs: string): PiLaunchArgsResolution {
@@ -119,7 +119,7 @@ export function resolvePiLaunchArgs(launchArgs: string): PiLaunchArgsResolution 
     if (reserved !== undefined) {
       return {
         ok: false,
-        message: `Pi launch argument '${reserved}' is controlled by Supacode and cannot be overridden.`,
+        message: `Pi launch argument '${reserved}' is controlled by Supaterm and cannot be overridden.`,
       };
     }
     if (arg === "--") {
@@ -154,7 +154,7 @@ export function resolvePiLaunchArgs(launchArgs: string): PiLaunchArgsResolution 
       continue;
     }
     if (arg.startsWith("-")) {
-      return { ok: false, message: `Pi launch argument '${arg}' is not supported by Supacode.` };
+      return { ok: false, message: `Pi launch argument '${arg}' is not supported by Supaterm.` };
     }
     return {
       ok: false,
@@ -231,18 +231,18 @@ function withoutToolSelectionArgs(args: ReadonlyArray<string>): ReadonlyArray<st
   return filtered;
 }
 
-function piSupacodeMcpExtensionDestPath(cacheDir: string): string {
-  return `${cacheDir.replace(/\\/g, "/")}/${PI_SUPACODE_MCP_EXTENSION_FILENAME}`;
+function piSupatermMcpExtensionDestPath(cacheDir: string): string {
+  return `${cacheDir.replace(/\\/g, "/")}/${PI_SUPATERM_MCP_EXTENSION_FILENAME}`;
 }
 
-export const materializePiSupacodeMcpExtension = Effect.fn("materializePiSupacodeMcpExtension")(
+export const materializePiSupatermMcpExtension = Effect.fn("materializePiSupatermMcpExtension")(
   function* (cacheDir: string) {
     const fs = yield* FileSystem.FileSystem;
     yield* fs.makeDirectory(cacheDir, { recursive: true });
-    const dest = piSupacodeMcpExtensionDestPath(cacheDir);
+    const dest = piSupatermMcpExtensionDestPath(cacheDir);
     const existing = yield* fs.readFileString(dest).pipe(Effect.orElseSucceed(() => ""));
-    if (existing !== PI_SUPACODE_MCP_EXTENSION_SOURCE) {
-      yield* fs.writeFileString(dest, PI_SUPACODE_MCP_EXTENSION_SOURCE);
+    if (existing !== PI_SUPATERM_MCP_EXTENSION_SOURCE) {
+      yield* fs.writeFileString(dest, PI_SUPATERM_MCP_EXTENSION_SOURCE);
     }
     return dest;
   },
@@ -260,11 +260,11 @@ export function buildPiRpcLaunch(input: {
 }): {
   readonly args: ReadonlyArray<string>;
   readonly env: NodeJS.ProcessEnv;
-  readonly hasSupacodeMcp: boolean;
+  readonly hasSupatermMcp: boolean;
 } {
-  const hasSupacodeExtension =
+  const hasSupatermExtension =
     input.disableExtensions !== true && input.extensionPath !== undefined;
-  const hasSupacodeMcp = hasSupacodeExtension && input.mcpSession !== undefined;
+  const hasSupatermMcp = hasSupatermExtension && input.mcpSession !== undefined;
   const extensionSafeArgs =
     input.disableExtensions === true
       ? withoutExplicitExtensions(input.launchArgs)
@@ -282,41 +282,41 @@ export function buildPiRpcLaunch(input: {
     ...(input.disableTools === true ? ["--no-tools"] : []),
   ];
   if (
-    hasSupacodeExtension &&
+    hasSupatermExtension &&
     input.extensionPath !== undefined &&
     !hasExplicitExtension(args, input.extensionPath)
   ) {
     args.push("--extension", input.extensionPath);
   }
   const environment = { ...input.environment };
-  // These values belong to the current Supacode session. Never let a Pi child reuse
+  // These values belong to the current Supaterm session. Never let a Pi child reuse
   // credentials inherited from the server or a parent provider process.
-  delete environment[SUPACODE_MCP_URL_ENV];
-  delete environment[SUPACODE_MCP_BEARER_ENV];
-  delete environment[SUPACODE_PI_MCP_EXTENSION_PATH_ENV];
+  delete environment[SUPATERM_MCP_URL_ENV];
+  delete environment[SUPATERM_MCP_BEARER_ENV];
+  delete environment[SUPATERM_PI_MCP_EXTENSION_PATH_ENV];
 
   return {
     args,
     env: {
       ...environment,
-      ...(hasSupacodeExtension && input.extensionPath !== undefined
-        ? { [SUPACODE_PI_MCP_EXTENSION_PATH_ENV]: input.extensionPath }
+      ...(hasSupatermExtension && input.extensionPath !== undefined
+        ? { [SUPATERM_PI_MCP_EXTENSION_PATH_ENV]: input.extensionPath }
         : {}),
-      ...(hasSupacodeExtension && input.runtimeMode !== undefined
+      ...(hasSupatermExtension && input.runtimeMode !== undefined
         ? {
-            [SUPACODE_PI_RUNTIME_MODE_ENV]:
+            [SUPATERM_PI_RUNTIME_MODE_ENV]:
               input.runtimeMode === "auto" ? "approval-required" : input.runtimeMode,
           }
         : {}),
-      ...(hasSupacodeMcp && input.mcpSession !== undefined
+      ...(hasSupatermMcp && input.mcpSession !== undefined
         ? {
-            [SUPACODE_MCP_URL_ENV]: input.mcpSession.endpoint,
-            [SUPACODE_MCP_BEARER_ENV]: bearerTokenFromAuthorizationHeader(
+            [SUPATERM_MCP_URL_ENV]: input.mcpSession.endpoint,
+            [SUPATERM_MCP_BEARER_ENV]: bearerTokenFromAuthorizationHeader(
               input.mcpSession.authorizationHeader,
             ),
           }
         : {}),
     },
-    hasSupacodeMcp,
+    hasSupatermMcp,
   };
 }

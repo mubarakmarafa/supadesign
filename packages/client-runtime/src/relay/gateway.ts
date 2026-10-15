@@ -1,5 +1,5 @@
-import { DEFAULT_PUBLIC_RELAY_URL } from "@supacode/contracts";
-import { canonicalRelayAddress } from "@supacode/shared/relay/protocol";
+import { DEFAULT_PUBLIC_RELAY_URL } from "@supaterm/contracts";
+import { canonicalRelayAddress } from "@supaterm/shared/relay/protocol";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -24,7 +24,7 @@ export class RelayGateway extends Context.Service<
     readonly release: (address: string) => Promise<void>;
     readonly fetch: typeof globalThis.fetch;
   }
->()("@supacode/client-runtime/relay/gateway/RelayGateway") {}
+>()("@supaterm/client-runtime/relay/gateway/RelayGateway") {}
 
 export function layer(input: {
   readonly available?: boolean;

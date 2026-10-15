@@ -6,13 +6,13 @@ import {
   EnvironmentId,
   type ProjectCloneSnapshot,
   WS_METHODS,
-} from "@supacode/contracts";
-import { mediaMimeTypeFromExtension } from "@supacode/shared/filePreview";
-import { isWindowsAbsolutePath } from "@supacode/shared/path";
+} from "@supaterm/contracts";
+import { mediaMimeTypeFromExtension } from "@supaterm/shared/filePreview";
+import { isWindowsAbsolutePath } from "@supaterm/shared/path";
 import {
   getProjectFaviconResourceKey,
   isProjectFaviconFallbackUrl,
-} from "@supacode/shared/projectFavicon";
+} from "@supaterm/shared/projectFavicon";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";

@@ -1,4 +1,4 @@
-import type { PullRequestBodySegment } from "@supacode/client-runtime/pull-request-markdown";
+import type { PullRequestBodySegment } from "@supaterm/client-runtime/pull-request-markdown";
 import type { MarkdownNode } from "../../lib/markdownDocument";
 
 /** Read media from the parsed document so code examples never become attachments. */

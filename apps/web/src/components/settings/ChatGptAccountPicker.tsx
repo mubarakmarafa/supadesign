@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ProviderAuthMethod } from "@supacode/contracts";
+import type { ProviderAuthMethod } from "@supaterm/contracts";
 import { RadioGroup, Radio } from "../ui/radio-group";
 import {
   Dialog,

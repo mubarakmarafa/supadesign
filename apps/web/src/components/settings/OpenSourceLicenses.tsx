@@ -8,7 +8,7 @@ import {
   thirdPartyLicenseEntryKey,
   type ThirdPartyLicenseEntry,
   type ThirdPartyLicenseManifest,
-} from "@supacode/shared/thirdPartyLicenses";
+} from "@supaterm/shared/thirdPartyLicenses";
 
 import { Button } from "../ui/button";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";

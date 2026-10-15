@@ -1,4 +1,4 @@
-import type { PreviewSessionSnapshot, ProjectScript } from "@supacode/contracts";
+import type { PreviewSessionSnapshot, ProjectScript } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { getConfiguredPreviewUrls, shouldShowPreviewEmptyState } from "./previewEmptyStateLogic";

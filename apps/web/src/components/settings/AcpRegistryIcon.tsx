@@ -2,12 +2,12 @@ import { useEffect, useId, useState } from "react";
 import {
   resolveOfficialAcpRegistryIconUrl,
   officialAcpRegistryIconUrlForAgentId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { cn } from "../../lib/utils";
 import { ACPRegistryIcon } from "../Icons";
 
-const ACP_REGISTRY_ICON_CACHE = "supacode-acp-registry-icons-v1";
+const ACP_REGISTRY_ICON_CACHE = "supaterm-acp-registry-icons-v1";
 const MAX_ICON_BYTES = 512 * 1_024;
 const inFlightIcons = new Map<string, Promise<Blob>>();
 

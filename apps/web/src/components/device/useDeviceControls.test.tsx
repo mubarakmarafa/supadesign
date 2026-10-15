@@ -1,5 +1,5 @@
-import { EnvironmentId, type DeviceDetail, type DeviceSummary } from "@supacode/contracts";
-import type { DeviceHubAccess } from "@supacode/client-runtime/device/hub-access";
+import { EnvironmentId, type DeviceDetail, type DeviceSummary } from "@supaterm/contracts";
+import type { DeviceHubAccess } from "@supaterm/client-runtime/device/hub-access";
 import { act, useEffect } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";

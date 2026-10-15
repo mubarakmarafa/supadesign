@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -79,7 +79,7 @@ function makeWindowsRevealWindow() {
     show: vi.fn(),
     moveTop: vi.fn(),
     focus: vi.fn(),
-    getTitle: vi.fn(() => "Supacode (Dev)"),
+    getTitle: vi.fn(() => "Supaterm (Dev)"),
     getBounds: vi.fn(() => ({ x: 100, y: 50, width: 1_200, height: 800 })),
     getContentBounds: vi.fn(() => ({ x: 108, y: 50, width: 1_184, height: 792 })),
     getNativeWindowHandle: vi.fn(() => Buffer.from([41, 0, 0, 0])),
@@ -116,7 +116,7 @@ describe("ElectronWindow", () => {
         throw cause;
       });
       const options = {
-        title: "Supacode",
+        title: "Supaterm",
         width: 1100,
         height: 780,
         minWidth: 840,
@@ -129,7 +129,7 @@ describe("ElectronWindow", () => {
         icon: {} as Electron.NativeImage,
         webPreferences: {
           preload: "/tmp/preload.js",
-          partition: "persist:supacode-preview-test",
+          partition: "persist:supaterm-preview-test",
           sandbox: true,
           contextIsolation: true,
           nodeIntegration: false,
@@ -143,7 +143,7 @@ describe("ElectronWindow", () => {
 
       assert.instanceOf(error, ElectronWindow.ElectronWindowCreateError);
       assert.deepEqual(error.options, {
-        title: "Supacode",
+        title: "Supaterm",
         width: 1100,
         height: 780,
         minWidth: 840,
@@ -155,7 +155,7 @@ describe("ElectronWindow", () => {
         backgroundColor: "#101010",
         webPreferences: {
           preload: "/tmp/preload.js",
-          partition: "persist:supacode-preview-test",
+          partition: "persist:supaterm-preview-test",
           backgroundThrottling: null,
           sandbox: true,
           contextIsolation: true,
@@ -166,7 +166,7 @@ describe("ElectronWindow", () => {
       assert.isFalse("icon" in error.options);
       assert.isFalse("spellcheck" in error.options.webPreferences);
       assert.strictEqual(error.cause, cause);
-      assert.equal(error.message, 'Failed to create Electron BrowserWindow "Supacode" (1100x780).');
+      assert.equal(error.message, 'Failed to create Electron BrowserWindow "Supaterm" (1100x780).');
       assert.notInclude(error.message, cause.message);
       assert.deepEqual(browserWindowMock.mock.calls, [[options]]);
     }).pipe(Effect.provide(layerTest)),
@@ -265,7 +265,7 @@ describe("ElectronWindow", () => {
     }).pipe(Effect.provide(layerTestFor("win32"))),
   );
 
-  it.effect("focuses the exact Supacode window before activating from a shell-hosted app", () =>
+  it.effect("focuses the exact Supaterm window before activating from a shell-hosted app", () =>
     Effect.gen(function* () {
       const operations: Array<string> = [];
       shellHostedForegroundMock.mockResolvedValue(true);
@@ -302,7 +302,7 @@ describe("ElectronWindow", () => {
           {
             windowId: 41,
             processId: process.pid,
-            title: "Supacode (Dev)",
+            title: "Supaterm (Dev)",
             bounds: { x: 100, y: 50, width: 1_200, height: 800 },
             contentBounds: { x: 108, y: 50, width: 1_184, height: 792 },
           },
@@ -311,7 +311,7 @@ describe("ElectronWindow", () => {
     }).pipe(Effect.provide(layerTestFor("win32"))),
   );
 
-  it.effect("prepares the exact Supacode window before a capture overlay", () =>
+  it.effect("prepares the exact Supaterm window before a capture overlay", () =>
     Effect.gen(function* () {
       windowsForegroundPrepareMock.mockResolvedValue(true);
       const window = makeWindowsRevealWindow();
@@ -327,7 +327,7 @@ describe("ElectronWindow", () => {
           {
             windowId: 41,
             processId: process.pid,
-            title: "Supacode (Dev)",
+            title: "Supaterm (Dev)",
             bounds: { x: 100, y: 50, width: 1_200, height: 800 },
             contentBounds: { x: 108, y: 50, width: 1_184, height: 792 },
           },

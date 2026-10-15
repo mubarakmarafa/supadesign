@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 
-import { ProviderInstanceId, type ModelSelection } from "@supacode/contracts";
+import { ProviderInstanceId, type ModelSelection } from "@supaterm/contracts";
 
 import { compileClaudeModelSelection } from "./claudeModelOptions.ts";
 

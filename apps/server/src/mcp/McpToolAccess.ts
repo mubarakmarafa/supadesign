@@ -3,7 +3,7 @@ import {
   type ProviderInteractionMode,
   type RuntimeMode,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Ref from "effect/Ref";
 import * as Struct from "effect/Struct";
@@ -34,7 +34,7 @@ import {
  * Both constructors demand this. Their private constructors only stop the type
  * checker; this also stops `Reflect.construct` and friends at runtime.
  */
-const builtHere: unique symbol = Symbol("supacode/mcp/McpToolAccess/builtHere");
+const builtHere: unique symbol = Symbol("supaterm/mcp/McpToolAccess/builtHere");
 
 const refuseOutsideConstruction = (token: symbol) => {
   if (token !== builtHere) {
@@ -62,13 +62,13 @@ let handlersLayer: <Tools extends Record<string, Tool.Any>, EX, RX>(
 ) => HandlersLayer<Tools, EX, RX>;
 
 /**
- * Who may call a Supacode MCP tool. Every handler is built by one of the
+ * Who may call a Supaterm MCP tool. Every handler is built by one of the
  * declarations below, which say what the tool does. `toLayer` accepts only
  * declarations, and `/mcp` registers only layers `toLayer` built, so a tool
  * without a decision here does not compile. Both are nominal classes, so a
  * handler or layer cannot pass for one by copying its fields. Effect's own
  * registration functions accept any handler, so the
- * `supacode/no-raw-mcp-registration` lint rule keeps Effect's `McpServer` inside
+ * `supaterm/no-raw-mcp-registration` lint rule keeps Effect's `McpServer` inside
  * McpHttpServer.
  *
  * Parameters choose the target; the caller sets the limits: a thread caller
@@ -136,14 +136,14 @@ const requireThreadCaller = McpInvocationContext.McpInvocationContext.pipe(
 export const reads = <P, A, E, R>(handle: (params: P) => Effect.Effect<A, E, R>) =>
   declare((params: P) => handle(params));
 
-/** Reads what belongs to the calling Supacode thread, such as its preview tabs or devices. */
+/** Reads what belongs to the calling Supaterm thread, such as its preview tabs or devices. */
 export const readsAsCaller = <P, A, E, R>(handle: (params: P) => Effect.Effect<A, E, R>) =>
   declare((params: P) => requireThreadCaller.pipe(Effect.flatMap(() => handle(params))));
 
 /**
- * Acts as the calling Supacode thread (its subagents, preview tabs, devices,
+ * Acts as the calling Supaterm thread (its subagents, preview tabs, devices,
  * worktree) while that thread's run is live. Only an agent running inside a
- * Supacode thread has one.
+ * Supaterm thread has one.
  */
 export const actsAsCaller = <P, A, E, R>(handle: (params: P) => Effect.Effect<A, E, R>) =>
   declare((params: P) =>

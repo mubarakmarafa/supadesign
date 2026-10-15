@@ -25,7 +25,7 @@ interface RecoveredMarkdown {
   readonly source: string;
 }
 
-const INLINE_PARSE_PREFIX = "supacode-markdown-inline-prefix:";
+const INLINE_PARSE_PREFIX = "supaterm-markdown-inline-prefix:";
 
 function isSameLineOverIndentedCode(
   node: MarkdownAstNode,

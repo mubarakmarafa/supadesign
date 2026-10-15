@@ -4,9 +4,9 @@ import {
   assetUrlStateFromResult,
   EMPTY_ASSET_URL_ATOM,
   resolveAssetUrl,
-} from "@supacode/client-runtime/state/assets";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { AssetResource, EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/assets";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { AssetResource, EnvironmentId } from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { useCallback, useMemo } from "react";
 
@@ -15,7 +15,7 @@ import { useFilesystemReadAccess } from "~/state/filesystem";
 import { usePreparedConnection } from "~/state/session";
 import { useAtomQueryRunner } from "~/state/use-atom-query-runner";
 
-export { resolveAssetUrl, type AssetUrlState } from "@supacode/client-runtime/state/assets";
+export { resolveAssetUrl, type AssetUrlState } from "@supaterm/client-runtime/state/assets";
 
 export function useAssetUrlState(
   environmentId: EnvironmentId | null,

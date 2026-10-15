@@ -1,6 +1,6 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { assert, it, vi } from "@effect/vitest";
-import { ProjectId } from "@supacode/contracts";
+import { ProjectId } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -107,8 +107,8 @@ it.effect("resolves setup scripts through the standalone project service", () =>
     });
     assert.equal(open.mock.calls[0]?.[0].cwd, "/repo-worktree");
     assert.deepEqual(open.mock.calls[0]?.[0].env, {
-      SUPACODE_PROJECT_ROOT: "/repo",
-      SUPACODE_WORKTREE_PATH: "/repo-worktree",
+      SUPATERM_PROJECT_ROOT: "/repo",
+      SUPATERM_WORKTREE_PATH: "/repo-worktree",
       COLORTERM: "",
       NO_COLOR: "1",
       FORCE_COLOR: "0",
@@ -159,7 +159,7 @@ it.effect("resolves setup scripts through the standalone project service", () =>
     const observedTerminalId = observedSettle.status === "started" ? observedSettle.terminalId : "";
     // Each settle gets its own shell, so a busy one is never typed into.
     assert.notEqual(observedTerminalId, settleTerminalId);
-    const token = /__SUPACODE_SETUP_DONE___(\w+):/.exec(
+    const token = /__SUPATERM_SETUP_DONE___(\w+):/.exec(
       write.mock.calls.at(-1)?.[0].data ?? "",
     )?.[1];
     const settleListener = listeners.at(-1)!;
@@ -172,7 +172,7 @@ it.effect("resolves setup scripts through the standalone project service", () =>
       type: "output",
       threadId: "thread-1",
       terminalId: observedTerminalId,
-      data: `\r\n__SUPACODE_SETUP_DONE___${token}:0\r\n`,
+      data: `\r\n__SUPATERM_SETUP_DONE___${token}:0\r\n`,
     });
     yield* Effect.yieldNow;
     assert.equal(closeIdle.mock.calls.length, 0);

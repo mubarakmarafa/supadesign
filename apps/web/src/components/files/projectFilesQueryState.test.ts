@@ -1,5 +1,5 @@
-import type { ProjectReadFileResult } from "@supacode/contracts";
-import { EnvironmentId } from "@supacode/contracts";
+import type { ProjectReadFileResult } from "@supaterm/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 

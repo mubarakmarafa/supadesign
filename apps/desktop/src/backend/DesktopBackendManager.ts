@@ -47,8 +47,8 @@ import {
   PRIMARY_LOCAL_ENVIRONMENT_ID,
   DesktopTelemetryControlMessage,
   type DesktopTelemetryControlMessage as DesktopTelemetryControlMessageValue,
-} from "@supacode/contracts";
-import { waitForHttpReady as waitForHttpReadyShared } from "@supacode/shared/httpReadiness";
+} from "@supaterm/contracts";
+import { waitForHttpReady as waitForHttpReadyShared } from "@supaterm/shared/httpReadiness";
 
 import * as DesktopObservability from "../app/DesktopObservability.ts";
 import * as DesktopTelemetryPublisher from "../telemetry/DesktopTelemetryPublisher.ts";
@@ -67,7 +67,7 @@ const DEFAULT_BACKEND_READINESS_INTERVAL = Duration.millis(100);
 const DEFAULT_BACKEND_READINESS_REQUEST_TIMEOUT = Duration.seconds(1);
 const DEFAULT_BACKEND_TERMINATE_GRACE = Duration.seconds(2);
 const DEFAULT_BACKEND_OUTPUT_DRAIN_TIMEOUT = Duration.seconds(5);
-const BACKEND_READINESS_PATH = "/.well-known/supacode/environment";
+const BACKEND_READINESS_PATH = "/.well-known/supaterm/environment";
 const { logWarning: logBackendProcessWarning } =
   DesktopObservability.makeComponentLogger("desktop-backend-process");
 
@@ -91,7 +91,7 @@ export interface DesktopBackendStartConfig extends BackendProcessContext {
   readonly env: Record<string, string | undefined>;
   // When true the spawner merges the desktop process.env on top of `env`;
   // when false `env` is passed verbatim. WSL mode opts out so a leaking
-  // SUPACODE_HOME can't pin the WSL backend to /mnt/c/...\.supacode.
+  // SUPATERM_HOME can't pin the WSL backend to /mnt/c/...\.supaterm.
   readonly extendEnv: boolean;
   readonly bootstrap: DesktopBackendBootstrapValue;
   readonly bootstrapDelivery: DesktopBackendBootstrapDelivery;

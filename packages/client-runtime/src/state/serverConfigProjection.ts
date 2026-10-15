@@ -1,5 +1,5 @@
-import type { ServerConfig, ServerConfigStreamEvent } from "@supacode/contracts";
-import { withRelayAdvertisement } from "@supacode/contracts";
+import type { ServerConfig, ServerConfigStreamEvent } from "@supaterm/contracts";
+import { withRelayAdvertisement } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 
 export interface ServerConfigProjection {

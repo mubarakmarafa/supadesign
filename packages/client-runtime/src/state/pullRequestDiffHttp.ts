@@ -2,7 +2,7 @@ import {
   EnvironmentAuthInvalidError,
   type PullRequestDiffInput,
   type PullRequestDiffResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -25,7 +25,7 @@ export class PullRequestDiffCredentialRejectedError extends Schema.TaggedError<P
   },
 ) {
   override get message(): string {
-    return "This environment session is no longer valid (invalid_credential). Refresh the page or quit and reopen Supacode.";
+    return "This environment session is no longer valid (invalid_credential). Refresh the page or quit and reopen Supaterm.";
   }
 }
 
@@ -68,7 +68,7 @@ export class PullRequestDiffLoader extends Context.Service<
       input: PullRequestDiffInput,
     ) => Effect.Effect<PullRequestDiffResult, PullRequestDiffLoadError>;
   }
->()("@supacode/client-runtime/state/pullRequestDiffHttp/PullRequestDiffLoader") {}
+>()("@supaterm/client-runtime/state/pullRequestDiffHttp/PullRequestDiffLoader") {}
 
 export const layer: Layer.Layer<PullRequestDiffLoader, never, HttpClient.HttpClient> = Layer.effect(
   PullRequestDiffLoader,

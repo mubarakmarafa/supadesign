@@ -2,7 +2,7 @@ import {
   DEFAULT_PROVIDER_INTERACTION_MODE,
   type ProviderInteractionMode,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 type InteractionModeProvider = Pick<ServerProvider, "showInteractionModeToggle">;
 

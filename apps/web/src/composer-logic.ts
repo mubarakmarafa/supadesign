@@ -1,10 +1,10 @@
-import type { ClientSettings } from "@supacode/contracts/settings";
-import type { AssistantCitation, ResolvedKeybindingsConfig } from "@supacode/contracts";
+import type { ClientSettings } from "@supaterm/contracts/settings";
+import type { AssistantCitation, ResolvedKeybindingsConfig } from "@supaterm/contracts";
 import {
   serializeAssistantCitation,
   withAssistantCitationComment,
-} from "@supacode/shared/assistantCitations";
-import { detectComposerTrigger, type ComposerTrigger } from "@supacode/shared/composerTrigger";
+} from "@supaterm/shared/assistantCitations";
+import { detectComposerTrigger, type ComposerTrigger } from "@supaterm/shared/composerTrigger";
 import {
   splitPromptIntoComposerSegments,
   type ComposerPromptSegment,

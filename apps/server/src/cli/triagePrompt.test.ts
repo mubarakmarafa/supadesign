@@ -33,10 +33,10 @@ it("launch prompt stays a single argv-safe line naming the prompt file", () => {
   // The launch argument goes through cmd.exe on Windows (.cmd shims), which
   // cannot carry newlines; the playbook itself must stay on disk.
   const launch = buildTriageLaunchPrompt(
-    String.raw`C:\Users\a b\.supacode\userdata\triage\x\prompt.md`,
+    String.raw`C:\Users\a b\.supaterm\userdata\triage\x\prompt.md`,
   );
   assert.notInclude(launch, "\n");
-  assert.include(launch, String.raw`C:\Users\a b\.supacode\userdata\triage\x\prompt.md`);
+  assert.include(launch, String.raw`C:\Users\a b\.supaterm\userdata\triage\x\prompt.md`);
   assert.isBelow(launch.length, 1_000);
 });
 
@@ -47,30 +47,30 @@ it("context file carries every path the playbook depends on", () => {
     releaseTag: "v0.0.33",
     os: "linux x64 (7.0.0)",
     nodeVersion: "v24.0.0",
-    launchedAs: "supacode triage",
+    launchedAs: "supaterm triage",
     server: "running (pid 42, http://127.0.0.1:4501)",
     paths: {
-      stateDir: "/home/u/.supacode/userdata",
-      dbPath: "/home/u/.supacode/userdata/state.sqlite",
-      settingsPath: "/home/u/.supacode/userdata/settings.json",
-      logsDir: "/home/u/.supacode/userdata/logs",
-      serviceLogPath: "/home/u/.supacode/userdata/logs/boot-service.log",
-      desktopBackendLogGlob: "/home/u/.supacode/userdata/logs/server-child*.log*",
-      serverTracePath: "/home/u/.supacode/userdata/logs/server.trace.ndjson",
-      providerEventLogPath: "/home/u/.supacode/userdata/logs/provider/events.log",
-      terminalLogsDir: "/home/u/.supacode/userdata/logs/terminals",
-      providerStatusCacheDir: "/home/u/.supacode/caches",
-      secretsDir: "/home/u/.supacode/userdata/secrets",
-      sourceCacheDir: "/home/u/.supacode/source",
+      stateDir: "/home/u/.supaterm/userdata",
+      dbPath: "/home/u/.supaterm/userdata/state.sqlite",
+      settingsPath: "/home/u/.supaterm/userdata/settings.json",
+      logsDir: "/home/u/.supaterm/userdata/logs",
+      serviceLogPath: "/home/u/.supaterm/userdata/logs/boot-service.log",
+      desktopBackendLogGlob: "/home/u/.supaterm/userdata/logs/server-child*.log*",
+      serverTracePath: "/home/u/.supaterm/userdata/logs/server.trace.ndjson",
+      providerEventLogPath: "/home/u/.supaterm/userdata/logs/provider/events.log",
+      terminalLogsDir: "/home/u/.supaterm/userdata/logs/terminals",
+      providerStatusCacheDir: "/home/u/.supaterm/caches",
+      secretsDir: "/home/u/.supaterm/userdata/secrets",
+      sourceCacheDir: "/home/u/.supaterm/source",
     },
   });
-  assert.include(context, "/home/u/.supacode/userdata/state.sqlite");
-  assert.include(context, "/home/u/.supacode/userdata/logs/server.trace.ndjson");
-  assert.include(context, "/home/u/.supacode/userdata/logs/boot-service.log");
-  assert.include(context, "/home/u/.supacode/userdata/logs/server-child*.log*");
-  assert.include(context, "/home/u/.supacode/userdata/logs/provider/events.log");
-  assert.include(context, "/home/u/.supacode/userdata/secrets");
-  assert.include(context, "/home/u/.supacode/source");
-  assert.include(context, "supacode triage");
+  assert.include(context, "/home/u/.supaterm/userdata/state.sqlite");
+  assert.include(context, "/home/u/.supaterm/userdata/logs/server.trace.ndjson");
+  assert.include(context, "/home/u/.supaterm/userdata/logs/boot-service.log");
+  assert.include(context, "/home/u/.supaterm/userdata/logs/server-child*.log*");
+  assert.include(context, "/home/u/.supaterm/userdata/logs/provider/events.log");
+  assert.include(context, "/home/u/.supaterm/userdata/secrets");
+  assert.include(context, "/home/u/.supaterm/source");
+  assert.include(context, "supaterm triage");
   assert.include(context, "v0.0.33");
 });

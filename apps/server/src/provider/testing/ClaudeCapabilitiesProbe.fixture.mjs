@@ -16,7 +16,7 @@ if (rawMcpConfig) {
   }
 }
 NodeFS.writeFileSync(
-  process.env.SUPACODE_PROBE_INVOCATION_PATH,
+  process.env.SUPATERM_PROBE_INVOCATION_PATH,
   JSON.stringify({
     args,
     cwd: process.cwd(),

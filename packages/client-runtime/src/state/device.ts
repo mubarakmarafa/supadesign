@@ -1,4 +1,4 @@
-import { type DeviceToolVersions, WS_METHODS } from "@supacode/contracts";
+import { type DeviceToolVersions, WS_METHODS } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import type { EnvironmentRegistry } from "../connection/registry.ts";
@@ -96,4 +96,4 @@ export function deviceToolUpdatePolicy(tools: DeviceToolVersions | undefined) {
     : "Required tools are installed automatically when needed. Checking versions does not install or start anything.";
 }
 export const deviceToolUpdateOwnership =
-  "This environment's Supacode server chooses device tool versions for itself and its SSH hosts. Update that server to receive newer tool versions; updating only your browser or mobile app does not update a remote server.";
+  "This environment's Supaterm server chooses device tool versions for itself and its SSH hosts. Update that server to receive newer tool versions; updating only your browser or mobile app does not update a remote server.";

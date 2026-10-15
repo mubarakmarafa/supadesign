@@ -6,9 +6,9 @@ import * as FileSystem from "effect/FileSystem";
 import * as Schema from "effect/Schema";
 import { vi } from "vite-plus/test";
 
-import { writeFakeCli } from "@supacode/provider-testing/fakeCli";
+import { writeFakeCli } from "@supaterm/provider-testing/fakeCli";
 import type { MuseSdkHost } from "./sdk.ts";
-import { COMPACT_SLASH_COMMAND } from "@supacode/provider-core/server/snapshotProbe";
+import { COMPACT_SLASH_COMMAND } from "@supaterm/provider-core/server/snapshotProbe";
 import { checkMuseProviderStatus } from "./status.ts";
 
 const settings = Schema.decodeSync(MuseSettings);
@@ -72,7 +72,7 @@ it.layer(NodeServices.layer)("Muse status", (it) => {
       expect(snapshot.installed).toBe(false);
       expect(snapshot.status).toBe("error");
       expect(snapshot.message).toContain("muse login");
-      expect(snapshot.message).toContain("this Supacode server host");
+      expect(snapshot.message).toContain("this Supaterm server host");
     }),
   );
 

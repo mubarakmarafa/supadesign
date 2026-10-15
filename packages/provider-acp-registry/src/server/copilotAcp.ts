@@ -1,11 +1,11 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import type * as AcpSchema from "effect-acp/compat";
-import type { AcpToolCallState } from "@supacode/provider-acp/server/runtimeModel";
+import type { AcpToolCallState } from "@supaterm/provider-acp/server/runtimeModel";
 import type {
   AcpAdapterV2ExtensionContext,
   AcpAdapterV2SubagentUpdate,
-} from "@supacode/provider-acp/server/adapter";
+} from "@supaterm/provider-acp/server/adapter";
 
 // Copilot CLI streams subagent text as plain `agent_message_chunk`s on the
 // root session. Only its opt-in raw event feed says who wrote a chunk: each

@@ -1,14 +1,14 @@
 // @effect-diagnostics nodeBuiltinImport:off - plain local servers stand in for LAN services.
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
-import { ThreadId } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { ThreadId } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   HTML_RENDER_MEASURE_FONTS,
   HTML_RENDER_MEASURE_WIDTHS,
   htmlRenderTheme,
-} from "@supacode/shared/htmlRender";
-import { SUPACODE_DARK_THEME_COLORS } from "@supacode/shared/themePalettes";
+} from "@supaterm/shared/htmlRender";
+import { SUPATERM_DARK_THEME_COLORS } from "@supaterm/shared/themePalettes";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Base64 from "effect/encoding/Base64";
@@ -27,8 +27,8 @@ import * as HtmlRender from "./HtmlRender.ts";
 import * as PreviewBrowser from "../preview/PreviewBrowser.ts";
 
 // Real-browser tests run only when this names a chrome-headless-shell, for
-// example one Supacode installed under <Supacode home>/tools/chrome-headless-shell.
-const TEST_BROWSER_ENV = "SUPACODE_TEST_HEADLESS_SHELL";
+// example one Supaterm installed under <Supaterm home>/tools/chrome-headless-shell.
+const TEST_BROWSER_ENV = "SUPATERM_TEST_HEADLESS_SHELL";
 
 const layerHtmlRender = (
   executable?: string,
@@ -49,7 +49,7 @@ const layerHtmlRender = (
         }),
       ),
     ),
-    Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "supacode-html-render-" })),
+    Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-html-render-" })),
     Layer.provideMerge(NodeServices.layer),
   );
 const layerTest = layerHtmlRender();
@@ -63,7 +63,7 @@ describe("HtmlRender", () => {
       const path = yield* Path.Path;
       const htmlRender = yield* HtmlRender.HtmlRender;
       const directory = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-html-images-",
+        prefix: "supaterm-html-images-",
       });
       const png = path.join(directory, "shot.png");
       const svg = path.join(directory, "logo.svg");
@@ -95,9 +95,9 @@ describe("HtmlRender", () => {
       for (const src of kept) expect(prepared).toContain(`<img src="${src}">`);
       // The theme bootstrap opens the head, ahead of the page's own markup.
       expect(prepared.indexOf("<head>")).toBeLessThan(
-        prepared.indexOf('<style id="supacode-theme">'),
+        prepared.indexOf('<style id="supaterm-theme">'),
       );
-      expect(prepared.indexOf('<style id="supacode-theme">')).toBeLessThan(
+      expect(prepared.indexOf('<style id="supaterm-theme">')).toBeLessThan(
         prepared.indexOf("<title>"),
       );
     }).pipe(Effect.provide(layerTest)),
@@ -109,7 +109,7 @@ describe("HtmlRender", () => {
       const path = yield* Path.Path;
       const htmlRender = yield* HtmlRender.HtmlRender;
       const directory = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-html-images-",
+        prefix: "supaterm-html-images-",
       });
       const svg = path.join(directory, "styled.svg");
       const source = [
@@ -132,7 +132,7 @@ describe("HtmlRender", () => {
       const path = yield* Path.Path;
       const htmlRender = yield* HtmlRender.HtmlRender;
       const directory = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-html-images-",
+        prefix: "supaterm-html-images-",
       });
       const folder = path.join(directory, "folder.png");
       yield* fileSystem.makeDirectory(folder);
@@ -205,7 +205,7 @@ describe("HtmlRender", () => {
       });
       expect(stored?.endsWith(".html")).toBe(true);
       const html = yield* fileSystem.readFileString(stored ?? "");
-      expect(html).toContain('<style id="supacode-theme">');
+      expect(html).toContain('<style id="supaterm-theme">');
       expect(html).toContain("<p>Quarterly revenue</p>");
     }).pipe(Effect.provide(layerTest)),
   );
@@ -255,7 +255,7 @@ describe("HtmlRender", () => {
           const preview = yield* htmlRender.preview({
             html: [
               '<!doctype html><html><head></head><body><div id="page" tabindex="0" style="height:300px;background:var(--accent)"></div>',
-              '<img src="/nonexistent/supacode-missing.png" hidden>',
+              '<img src="/nonexistent/supaterm-missing.png" hidden>',
               "<script>",
               "const root = getComputedStyle(document.documentElement);",
               'const page = document.getElementById("page"); page.focus();',
@@ -277,7 +277,7 @@ describe("HtmlRender", () => {
             width: 400,
             contentHeight: 300,
             capturedHeight: 300,
-            missingImages: ["/nonexistent/supacode-missing.png"],
+            missingImages: ["/nonexistent/supaterm-missing.png"],
           });
           // Headless Chrome prefers light, so a dark background proves the theme fragment applied.
           expect(preview.consoleMessages).toEqual(
@@ -287,7 +287,7 @@ describe("HtmlRender", () => {
               { level: "info", text: HTML_RENDER_MEASURE_FONTS.sans },
               {
                 level: "warning",
-                text: htmlRenderTheme(SUPACODE_DARK_THEME_COLORS, "dark").variables["--background"],
+                text: htmlRenderTheme(SUPATERM_DARK_THEME_COLORS, "dark").variables["--background"],
               },
               { level: "error", text: "boom" },
               {
@@ -312,7 +312,7 @@ describe("HtmlRender", () => {
           const path = yield* Path.Path;
           const htmlRender = yield* HtmlRender.HtmlRender;
           const directory = yield* fileSystem.makeTempDirectoryScoped({
-            prefix: "supacode-html-files-",
+            prefix: "supaterm-html-files-",
           });
           const secret = path.join(directory, "secret.js");
           yield* fileSystem.writeFileString(secret, 'window.secret = "abc123";');

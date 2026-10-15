@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 export class ProjectThreadTaskRequiredError extends Schema.TaggedError<ProjectThreadTaskRequiredError>()(

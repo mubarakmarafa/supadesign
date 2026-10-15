@@ -47,7 +47,7 @@ const CAPTURE_TIMEOUT = "20 seconds";
 // public addresses, so a page cannot reach this machine's local network. The
 // main frame also stays on the page and the browser opens no popups, so a
 // capture always shows the page itself.
-const PAGE_ORIGIN = "http://supacode-page.localhost";
+const PAGE_ORIGIN = "http://supaterm-page.localhost";
 const PAGE_URL = `${PAGE_ORIGIN}/page.html`;
 // Stack traces and load errors name the page this way instead of its URL.
 const PAGE_NAME = "page.html";
@@ -302,7 +302,7 @@ const launchBrowser = Effect.fnUntraced(function* (input: {
         return fulfillPage(sessionId, paused.requestId, body);
       }
       // A frame inside the page may show another site; Local Network Access
-      // still covers it. The main frame and Supacode's own origin serve nothing else.
+      // still covers it. The main frame and Supaterm's own origin serve nothing else.
       const otherSiteFrame =
         paused.resourceType === "Document" &&
         paused.frameId !== page.mainFrameId &&
@@ -432,7 +432,7 @@ const launchBrowser = Effect.fnUntraced(function* (input: {
       Ignored,
       sessionId,
     );
-    // Pauses Supacode's own origin, to serve the page, and every document, to keep
+    // Pauses Supaterm's own origin, to serve the page, and every document, to keep
     // the main frame on it.
     yield* send(
       "Fetch.enable",
@@ -521,7 +521,7 @@ const launchBrowser = Effect.fnUntraced(function* (input: {
 const scratchDirectory = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;
   return yield* Effect.acquireRelease(
-    fileSystem.makeTempDirectory({ prefix: "supacode-html-preview-" }),
+    fileSystem.makeTempDirectory({ prefix: "supaterm-html-preview-" }),
     (directory) => fileSystem.remove(directory, { recursive: true }).pipe(Effect.ignore),
   ).pipe(
     Effect.mapError(

@@ -1,10 +1,10 @@
-import type { ProviderOptionChoice, ProviderOptionDescriptor } from "@supacode/contracts";
+import type { ProviderOptionChoice, ProviderOptionDescriptor } from "@supaterm/contracts";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
 import type { AcpSessionModeState } from "./runtimeModel.ts";
 
 /**
- * Maps ACP session configuration and session modes onto Supacode's provider option
+ * Maps ACP session configuration and session modes onto Supaterm's provider option
  * descriptors so the existing model-options UI can drive them.
  *
  * Model selection stays on the dedicated model picker: `category: "model"`
@@ -15,7 +15,7 @@ import type { AcpSessionModeState } from "./runtimeModel.ts";
  */
 
 /** Synthetic descriptor ID for agents that expose modes outside config options. */
-export const ACP_SESSION_MODE_OPTION_ID = "_supacode/session-mode";
+export const ACP_SESSION_MODE_OPTION_ID = "_supaterm/session-mode";
 
 const MAX_OPTION_DESCRIPTORS = 16;
 const MAX_OPTION_CHOICES = 64;
@@ -69,7 +69,7 @@ export function acpProviderOptionDescriptors(input: {
 
   for (const option of input.configOptions ?? []) {
     // "model" options surface as the model list; "collaboration_mode" options
-    // are driven by Supacode's own plan/build interaction mode in the ACP adapter.
+    // are driven by Supaterm's own plan/build interaction mode in the ACP adapter.
     if (option.category === "model" || option.category === "collaboration_mode") {
       continue;
     }

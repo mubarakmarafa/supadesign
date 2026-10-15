@@ -1,7 +1,7 @@
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { planPinnedReorder } from "@supacode/client-runtime/state/thread-sort";
-import { effectiveSnoozed } from "@supacode/client-runtime/state/thread-settled";
-import type { EnvironmentId, ExecutionEnvironmentCapabilities } from "@supacode/contracts";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { planPinnedReorder } from "@supaterm/client-runtime/state/thread-sort";
+import { effectiveSnoozed } from "@supaterm/client-runtime/state/thread-settled";
+import type { EnvironmentId, ExecutionEnvironmentCapabilities } from "@supaterm/contracts";
 
 export type ThreadMoveDestination =
   | "up"

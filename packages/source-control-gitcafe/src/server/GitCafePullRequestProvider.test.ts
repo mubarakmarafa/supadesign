@@ -2,7 +2,7 @@
  * Pins the requests `./GitCafePullRequestProvider.ts` sends for each operation this layer
  * supports. Pass 2 creates:
  *
- * - `./GitCafeApi.ts`: service `GitCafeApi` (key `"@supacode/source-control-gitcafe/server/GitCafeApi"`)
+ * - `./GitCafeApi.ts`: service `GitCafeApi` (key `"@supaterm/source-control-gitcafe/server/GitCafeApi"`)
  *   with `request({ host, operation, method?, path, body? }) => Effect<string, GitCafeApiError>`
  *   (the response body), sending `https://<host>/api<path>` with the `GitCafeCredentials` bearer
  *   token through `HttpClient`; `make` / `layer`. Refuses any host outside `GITCAFE_HOSTS`.
@@ -25,8 +25,8 @@ import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import * as HttpClient from "effect/http/HttpClient";
 import type * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import * as TestSourceControlHost from "@supacode/source-control-testing/TestSourceControlHost";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import * as TestSourceControlHost from "@supaterm/source-control-testing/TestSourceControlHost";
 
 import * as GitCafeApi from "./GitCafeApi.ts";
 import * as GitCafeCredentials from "./GitCafeCredentials.ts";

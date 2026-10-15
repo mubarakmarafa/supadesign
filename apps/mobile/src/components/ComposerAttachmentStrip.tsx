@@ -2,8 +2,8 @@ import { loadExpoFileSystem } from "../lib/expoFileSystem";
 import { FilePreviewGallery, useFilePreviewGallery } from "./FilePreviewGallery";
 import { composerImageGallery } from "../lib/composerImageGallery";
 import { SymbolView } from "../components/AppSymbol";
-import { imageMimeType } from "@supacode/shared/image";
-import { videoMimeType } from "@supacode/shared/video";
+import { imageMimeType } from "@supaterm/shared/image";
+import { videoMimeType } from "@supaterm/shared/video";
 import { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
@@ -22,7 +22,7 @@ import { type MediaActionsSource } from "../lib/mediaActionsSource";
 import { PresentationSource } from "./NativePresentation";
 import type { FilePreviewSource } from "./FilePreviewModal";
 import { isPdfFile } from "../lib/filePreview";
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import {
   retryComposerAttachmentUpload,
   useComposerAttachmentUploadState,
@@ -108,7 +108,7 @@ export function ComposerAttachmentThumbnail(props: ComposerAttachmentThumbnailPr
  * persisted URI renders meanwhile, which is correct everywhere but after a
  * container move.
  */
-const PREVIEW_CACHE_DIRECTORY = "supacode-composer-previews";
+const PREVIEW_CACHE_DIRECTORY = "supaterm-composer-previews";
 
 /**
  * Fabric re-parses an image source URL on every layout pass of the node, and a

@@ -8,8 +8,8 @@ import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import { CaptureService, isWaylandSession } from "./captureService.js";
 import { CaptureFeedback } from "./captureFeedback.js";
 
-const NAME = "org.gnome.Shell.Extensions.SupacodeSnapShot";
-const PATH = "/org/gnome/Shell/Extensions/SupacodeSnapShot";
+const NAME = "org.gnome.Shell.Extensions.SupatermSnapShot";
+const PATH = "/org/gnome/Shell/Extensions/SupatermSnapShot";
 const XML = `<node><interface name="${NAME}">
   <property name="Version" type="u" access="read"/>
   <method name="Capture">
@@ -73,7 +73,7 @@ function takeSnapshot(animate) {
     try {
       content = window.get_compositor_private().paint_to_content(null);
     } catch (error) {
-      console.warn(`Supacode capture preview unavailable: ${error.message}`);
+      console.warn(`Supaterm capture preview unavailable: ${error.message}`);
     }
   }
   const metadata = JSON.stringify({
@@ -114,7 +114,7 @@ function takeSnapshot(animate) {
   });
 }
 
-export default class SupacodeSnapShotExtension extends Extension {
+export default class SupatermSnapShotExtension extends Extension {
   enable() {
     this._feedback = new CaptureFeedback();
     this._sessionChanged = Main.sessionMode.connect("updated", () => this._feedback.dispose());

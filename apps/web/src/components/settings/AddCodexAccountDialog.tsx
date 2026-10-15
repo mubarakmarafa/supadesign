@@ -1,4 +1,4 @@
-import { AuthProvidersManageScope } from "@supacode/contracts";
+import { AuthProvidersManageScope } from "@supaterm/contracts";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -6,9 +6,9 @@ import {
   ProviderInstanceId,
   type EnvironmentId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useEffect, useEffectEvent, useState, type ReactNode } from "react";
-import { usesChatGptSharing } from "@supacode/shared/usageLimits";
+import { usesChatGptSharing } from "@supaterm/shared/usageLimits";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { randomUUID } from "../../lib/utils";

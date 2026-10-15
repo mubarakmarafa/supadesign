@@ -17,7 +17,7 @@ import {
   ProviderInstanceId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
@@ -36,7 +36,7 @@ import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as CommandReceiptStore from "./CommandReceiptStore.ts";
 import * as Orchestrator from "./Orchestrator.ts";
 import * as ProviderSessionManager from "./ProviderSessionManager.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ThreadManagementService from "./ThreadManagementService.ts";
 import * as ThreadCommandExecutor from "./ThreadCommandExecutor.ts";
 import { DispatchModeLimit, type DispatchModeRefusal } from "./DispatchModeLimit.ts";

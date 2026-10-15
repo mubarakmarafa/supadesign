@@ -1,5 +1,5 @@
-import { createServerEnvironmentAtoms } from "@supacode/client-runtime/state/server";
-import { createEnvironmentServerConfigsAtom } from "@supacode/client-runtime/state/shell";
+import { createServerEnvironmentAtoms } from "@supaterm/client-runtime/state/server";
+import { createEnvironmentServerConfigsAtom } from "@supaterm/client-runtime/state/shell";
 
 import { environmentCatalog } from "../connection/catalog";
 import { connectionAtomRuntime } from "../connection/runtime";

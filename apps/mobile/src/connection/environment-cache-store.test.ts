@@ -2,7 +2,7 @@ import {
   ORCHESTRATION_CACHE_SCHEMA_VERSION,
   ORCHESTRATION_THREAD_CACHE_SCHEMA_VERSION,
   StoredOrchestrationShellSnapshot,
-} from "@supacode/client-runtime/platform";
+} from "@supaterm/client-runtime/platform";
 import {
   CommandId,
   EnvironmentId,
@@ -13,7 +13,7 @@ import {
   type OrchestrationV2ThreadDetailSnapshot,
   type ThreadPullRequestLink,
   type VcsListRefsResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -265,7 +265,7 @@ describe("mobile SQLite environment cache store", () => {
       );
       const link: ThreadPullRequestLink = {
         host: "github.com",
-        repository: "pingdotgg/supacode",
+        repository: "pingdotgg/supaterm",
         number: 42,
         url: "https://github.com/supabitapp/supacode-next/pull/42",
         source: "agent",
@@ -299,7 +299,7 @@ describe("mobile SQLite environment cache store", () => {
       );
       const link: ThreadPullRequestLink = {
         host: "github.com",
-        repository: "pingdotgg/supacode",
+        repository: "pingdotgg/supaterm",
         number: 5,
         url: "https://github.com/supabitapp/supacode-next/pull/5",
         source: "agent",

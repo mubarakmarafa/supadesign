@@ -6,9 +6,9 @@ import {
   type OrchestrationV2TurnItem,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
-import { searchableMessageSegments, searchablePlanSegments } from "@supacode/shared/threadFindText";
-import { countThreadSearchOccurrences } from "@supacode/shared/threadSearch";
+} from "@supaterm/contracts";
+import { searchableMessageSegments, searchablePlanSegments } from "@supaterm/shared/threadFindText";
+import { countThreadSearchOccurrences } from "@supaterm/shared/threadSearch";
 import * as Cache from "effect/Cache";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";

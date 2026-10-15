@@ -1,4 +1,4 @@
-import type { DesktopUpdateState } from "@supacode/contracts";
+import type { DesktopUpdateState } from "@supaterm/contracts";
 import { isValidElement, type MouseEvent, type ReactElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 

@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { enabledEnvironmentIds } from "@supacode/client-runtime/state/connections";
+import { enabledEnvironmentIds } from "@supaterm/client-runtime/state/connections";
 import {
   createEnvironmentThreadDetailAtoms,
   createEnvironmentThreadShellAtoms,
@@ -8,8 +8,8 @@ import {
   EMPTY_ENVIRONMENT_THREAD_STATE,
   type EnvironmentThreadState,
   createThreadEnvironmentAtoms,
-} from "@supacode/client-runtime/state/threads";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/threads";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 

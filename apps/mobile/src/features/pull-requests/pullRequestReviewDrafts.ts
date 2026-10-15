@@ -1,6 +1,6 @@
-import type { PullRequestReviewCommentDraft } from "@supacode/contracts";
+import type { PullRequestReviewCommentDraft } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
-import { PullRequestReviewCommentDraft as CommentSchema } from "@supacode/contracts";
+import { PullRequestReviewCommentDraft as CommentSchema } from "@supaterm/contracts";
 import type { PullRequestParams } from "./usePullRequestDiff";
 
 export type PendingReviewComment = PullRequestReviewCommentDraft & {

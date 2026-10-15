@@ -1,11 +1,11 @@
 import { useAtomValue } from "@effect/atom-react";
-import { createEnvironmentSessionAtoms } from "@supacode/client-runtime/state/session";
+import { createEnvironmentSessionAtoms } from "@supaterm/client-runtime/state/session";
 import {
   type AuthEnvironmentScope,
   type AuthSessionState,
   type EnvironmentId,
   sessionGrantsScope,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useMemo } from "react";

@@ -8,20 +8,20 @@ import { expect, it } from "vite-plus/test";
 
 import { legacyCliLauncherScript } from "./legacyCliLauncher.ts";
 
-// oxlint-disable-next-line supacode/no-global-process-runtime -- This test launches a real host executable.
+// oxlint-disable-next-line supaterm/no-global-process-runtime -- This test launches a real host executable.
 const hostPlatform = NodeOS.platform();
-// oxlint-disable-next-line supacode/no-global-process-runtime -- Match the real executable used by the subprocess.
+// oxlint-disable-next-line supaterm/no-global-process-runtime -- Match the real executable used by the subprocess.
 const hostArch = NodeOS.arch();
 
 // The fixture executable uses a POSIX shebang. The wrapper itself also runs on Windows.
 it.skipIf(hostPlatform === "win32")(
   "keeps service IPC, arguments, and termination connected",
   async () => {
-    const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-legacy-launcher-"));
-    const entry = NodePath.join(root, "node_modules/supacode/dist/bin.mjs");
+    const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-legacy-launcher-"));
+    const entry = NodePath.join(root, "node_modules/supaterm/dist/bin.mjs");
     const executable = NodePath.join(
       root,
-      `node_modules/@supabitapp/supacode-${hostPlatform}-${hostArch}/supacode`,
+      `node_modules/@supabitapp/supaterm-${hostPlatform}-${hostArch}/supaterm`,
     );
     await NodeFSP.mkdir(NodePath.dirname(entry), { recursive: true });
     await NodeFSP.mkdir(NodePath.dirname(executable), { recursive: true });

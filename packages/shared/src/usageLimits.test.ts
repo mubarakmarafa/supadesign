@@ -5,7 +5,7 @@ import {
   type ServerProvider,
   type ServerProviderUsageWindow,
   UsageLimitSourceId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

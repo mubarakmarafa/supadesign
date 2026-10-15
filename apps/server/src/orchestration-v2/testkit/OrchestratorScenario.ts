@@ -11,7 +11,7 @@ import type {
   ProviderUserInputAnswers,
   CommandId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -23,7 +23,7 @@ import * as Stream from "effect/Stream";
 import { TestClock } from "effect/testing";
 
 import * as Orchestrator from "../Orchestrator.ts";
-import type { ProviderReplayGate } from "@supacode/provider-testing/replayGate";
+import type { ProviderReplayGate } from "@supaterm/provider-testing/replayGate";
 
 export type OrchestratorV2ScenarioStep =
   | {

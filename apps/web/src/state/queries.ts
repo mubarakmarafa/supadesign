@@ -2,17 +2,17 @@ import { useAtomValue } from "@effect/atom-react";
 import {
   type CheckpointDiffTarget,
   type ComposerPathSearchTarget,
-} from "@supacode/client-runtime/state/threads";
+} from "@supaterm/client-runtime/state/threads";
 import {
   type VcsRefTarget,
   vcsRefsCacheStateAtom,
   vcsRefsLiveRevisionAtom,
-} from "@supacode/client-runtime/state/vcs";
+} from "@supaterm/client-runtime/state/vcs";
 import {
   createThreadSearchResultsAtomFamily,
   makeThreadSearchKey,
   type EnvironmentThreadSearchMatch,
-} from "@supacode/client-runtime/state/thread-search";
+} from "@supaterm/client-runtime/state/thread-search";
 import type {
   EnvironmentId,
   ProjectContentMatch,
@@ -22,7 +22,7 @@ import type {
   TurnItemId,
   VcsListRefsResult,
   VcsRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";

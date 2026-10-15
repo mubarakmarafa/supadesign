@@ -1,17 +1,17 @@
 import { DEFAULT_HOSTED_APP_URL } from "./remote.ts";
 
 /**
- * Prompt links open Supacode from outside it with a prompt ready to send. They never send it:
+ * Prompt links open Supaterm from outside it with a prompt ready to send. They never send it:
  * a link from a stranger fills a draft, and the user reads it and presses Send. A link also
  * cannot pick a runtime mode, branch, or worktree. Those stay the user's own defaults.
  *
  * Shared links are https on the hosted app, because that is what Twitter and GitHub make
- * clickable. The `supacode://` scheme carries the same paths into desktop and mobile:
+ * clickable. The `supaterm://` scheme carries the same paths into desktop and mobile:
  *
- *   https://app.next.supacode.sh/new?prompt=…&repo=owner/name&provider=codex&model=gpt-5
- *   https://app.next.supacode.sh/new?pr=owner/name/123&prompt=…
- *   https://app.next.supacode.sh/<environmentId>/<threadId>?prompt=…
- *   supacode://new?…   supacode://threads/<environmentId>/<threadId>?…
+ *   https://app.supaterm.com/new?prompt=…&repo=owner/name&provider=codex&model=gpt-5
+ *   https://app.supaterm.com/new?pr=owner/name/123&prompt=…
+ *   https://app.supaterm.com/<environmentId>/<threadId>?prompt=…
+ *   supaterm://new?…   supaterm://threads/<environmentId>/<threadId>?…
  */
 
 /** URLs stay well under the limits browsers and link shorteners apply. */
@@ -134,7 +134,7 @@ function readPrompt(params: URLSearchParams): PromptLinkResult<LinkedPrompt | nu
   if (raw.length > PROMPT_LINK_MAX_PROMPT_LENGTH) {
     return {
       ok: false,
-      error: `This prompt is longer than ${PROMPT_LINK_MAX_PROMPT_LENGTH.toLocaleString("en-US")} characters, so Supacode did not open it.`,
+      error: `This prompt is longer than ${PROMPT_LINK_MAX_PROMPT_LENGTH.toLocaleString("en-US")} characters, so Supaterm did not open it.`,
     };
   }
   const prompt = sanitizeLinkedPrompt(raw);
@@ -142,7 +142,7 @@ function readPrompt(params: URLSearchParams): PromptLinkResult<LinkedPrompt | nu
     return {
       ok: false,
       error:
-        "This prompt had only hidden characters, so it may be malicious. Supacode did not open it.",
+        "This prompt had only hidden characters, so it may be malicious. Supaterm did not open it.",
     };
   }
   return { ok: true, value: prompt.text.length > 0 ? prompt : null };
@@ -159,7 +159,7 @@ export function parseNewThreadLink(search: string): PromptLinkResult<NewThreadLi
   if (pr !== null) {
     const pullRequest = parsePromptLinkPullRequest(pr);
     if (pullRequest === null) {
-      return { ok: false, error: "This link names a pull request Supacode cannot read." };
+      return { ok: false, error: "This link names a pull request Supaterm cannot read." };
     }
     return { ok: true, value: { kind: "pull-request", pullRequest, prompt: prompt.value } };
   }
@@ -167,7 +167,7 @@ export function parseNewThreadLink(search: string): PromptLinkResult<NewThreadLi
   const repo = params.get("repo");
   const repository = repo === null ? null : parsePromptLinkRepository(repo);
   if (repo !== null && repository === null) {
-    return { ok: false, error: "This link names a repository Supacode cannot read." };
+    return { ok: false, error: "This link names a repository Supaterm cannot read." };
   }
   return {
     ok: true,
@@ -212,12 +212,12 @@ export function buildNewThreadLink(input: {
   return url.toString();
 }
 
-const APP_SCHEME = /^supacode(?:-[a-z]+)?:$/;
+const APP_SCHEME = /^supaterm(?:-[a-z]+)?:$/;
 const THREAD_PATH = /^\/([^/]+)\/([^/]+)\/?$/;
 
 /**
  * The in-app path a prompt link or thread deep link opens, or null for any other URL.
- * Desktop uses it for links the OS hands over, both `supacode://` ones and, as the default
+ * Desktop uses it for links the OS hands over, both `supaterm://` ones and, as the default
  * browser on macOS, hosted-app ones.
  */
 export function promptLinkAppPath(
@@ -241,8 +241,8 @@ export function promptLinkAppPath(
   return thread ? `/${thread[1]}/${thread[2]}${url.search}` : null;
 }
 
-/** The `supacode://` link that hands an in-app path to an installed desktop or mobile app. */
-export function promptLinkDeepLink(appPath: string, scheme = "supacode"): string {
+/** The `supaterm://` link that hands an in-app path to an installed desktop or mobile app. */
+export function promptLinkDeepLink(appPath: string, scheme = "supaterm"): string {
   const url = new URL(appPath, "https://app.invalid");
   const host = url.pathname === "/new" ? "new" : `threads${url.pathname}`;
   return `${scheme}://${host}${url.search}`;

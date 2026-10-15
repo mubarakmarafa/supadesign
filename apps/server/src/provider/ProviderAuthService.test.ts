@@ -9,7 +9,7 @@ import {
   type OrchestrationV2ProviderSession,
   type OrchestrationV2ThreadShell,
   type ProviderAuthState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Deferred from "effect/Deferred";
@@ -22,8 +22,8 @@ import * as SubscriptionRef from "effect/SubscriptionRef";
 
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProviderSessionManager from "../orchestration-v2/ProviderSessionManager.ts";
-import { AcpProviderCapabilitiesV2 } from "@supacode/provider-acp/server/adapter";
-import type { ProviderInstance } from "@supacode/provider-core/server/driver";
+import { AcpProviderCapabilitiesV2 } from "@supaterm/provider-acp/server/adapter";
+import type { ProviderInstance } from "@supaterm/provider-core/server/driver";
 import * as ProviderAuthService from "./ProviderAuthService.ts";
 import * as ProviderInstanceRegistry from "./ProviderInstanceRegistry.ts";
 
@@ -899,7 +899,7 @@ it.effect.each(["start", "logout", "prompt"] as const)(
 
 it.effect.each([
   { owner: "provider" as const, key: "different-binding" },
-  { owner: "supacode" as const, key: "shared" },
+  { owner: "supaterm" as const, key: "shared" },
 ])(
   "does not invalidate a peer that switches credential binding during session draining %#",
   (binding) =>

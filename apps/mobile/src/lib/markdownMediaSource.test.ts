@@ -1,4 +1,4 @@
-import { ThreadId } from "@supacode/contracts";
+import { ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { resolveMobileMarkdownMediaSource } from "./markdownMediaSource";
 

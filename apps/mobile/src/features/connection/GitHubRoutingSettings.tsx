@@ -5,7 +5,7 @@ import {
   gitHubRoutingConnectionKey,
   gitHubRoutingPermissionFor,
   type GitHubRoutingPermission,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import { useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 
@@ -61,7 +61,7 @@ export function GitHubRoutingSettings() {
                 onPress={() => setExpanded(expanded === environmentId ? null : environmentId)}
               >
                 <View className="min-w-0 flex-1 gap-0.5">
-                  <Text className="text-base font-supacode-bold text-foreground">
+                  <Text className="text-base font-supaterm-bold text-foreground">
                     {entry.target.label}
                   </Text>
                   {displayUrl ? (

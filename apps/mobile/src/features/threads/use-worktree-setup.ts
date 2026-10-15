@@ -1,5 +1,5 @@
-import type { EnvironmentId, ThreadId, WorktreeSetupSnapshot } from "@supacode/contracts";
-import { resolveVisibleWorktreeSetup } from "@supacode/client-runtime/worktree-setup";
+import type { EnvironmentId, ThreadId, WorktreeSetupSnapshot } from "@supaterm/contracts";
+import { resolveVisibleWorktreeSetup } from "@supaterm/client-runtime/worktree-setup";
 import { useState } from "react";
 import { useEnvironmentQuery } from "../../state/query";
 import { vcsEnvironment } from "../../state/vcs";

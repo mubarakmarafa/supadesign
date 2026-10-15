@@ -1,9 +1,9 @@
-import { resolveFilesystemReadAccess } from "@supacode/client-runtime/state/filesystem";
+import { resolveFilesystemReadAccess } from "@supaterm/client-runtime/state/filesystem";
 import { useEnvironmentPresentation } from "../state/presentation";
 import { useEnvironmentQuery } from "../state/query";
 import { resolveMobileMarkdownMediaSource } from "../lib/markdownMediaSource";
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import type { MarkdownImageSourceResolver } from "./SelectableMarkdownText.types";
 import { normalizeNativeMarkdownUrl } from "../lib/markdownLinks";
 import { useCallback } from "react";

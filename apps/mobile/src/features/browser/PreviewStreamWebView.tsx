@@ -1,4 +1,4 @@
-import previewStreamScript from "@supacode/mobile-preview-stream";
+import previewStreamScript from "@supaterm/mobile-preview-stream";
 import {
   previewStreamControlLabel,
   previewStreamHostSetupMessage,
@@ -8,8 +8,8 @@ import {
   type PreviewStreamInput,
   resolvePreviewStreamDownload,
   uploadPreviewStreamFiles,
-} from "@supacode/client-runtime/preview/server-browser-stream";
-import type { EnvironmentId, PreviewStreamHostSetup } from "@supacode/contracts";
+} from "@supaterm/client-runtime/preview/server-browser-stream";
+import type { EnvironmentId, PreviewStreamHostSetup } from "@supaterm/contracts";
 import {
   useEffect,
   useEffectEvent,
@@ -311,12 +311,12 @@ function PreviewStreamDocumentView({
   const controlChanged = useEffectEvent((next: PreviewStreamControl | null) => onControl?.(next));
   const command = (input: PreviewStreamInput) =>
     webView.current?.injectJavaScript(
-      `window.SupacodePreviewStream?.command(${JSON.stringify(input)}); true;`,
+      `window.SupatermPreviewStream?.command(${JSON.stringify(input)}); true;`,
     );
   const fail = (message: string) => {
     if (!active.current || failed.current) return;
     failed.current = true;
-    webView.current?.injectJavaScript("window.SupacodePreviewStream?.stop(); true;");
+    webView.current?.injectJavaScript("window.SupatermPreviewStream?.stop(); true;");
     onStreamingChange?.(false);
     setControl(null);
     setFileChooser(null);
@@ -343,14 +343,14 @@ function PreviewStreamDocumentView({
   useImperativeHandle(ref, () => ({
     command,
     togglePictureInPicture: () =>
-      webView.current?.injectJavaScript("window.SupacodePreviewStream?.pictureInPicture(); true;"),
+      webView.current?.injectJavaScript("window.SupatermPreviewStream?.pictureInPicture(); true;"),
   }));
   useLayoutEffect(() => {
     active.current = true;
     const view = webView.current;
     return () => {
       active.current = false;
-      view?.injectJavaScript("window.SupacodePreviewStream?.stop(); true;");
+      view?.injectJavaScript("window.SupatermPreviewStream?.stop(); true;");
     };
   }, []);
   useEffect(() => () => onStreamingChange?.(false), [onStreamingChange]);

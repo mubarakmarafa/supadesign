@@ -1,19 +1,19 @@
-import { backgroundWorkHoldsCompletion } from "@supacode/shared/orchestrationV2PendingBackgroundWork";
-import { threadPullRequestSearchTerms } from "@supacode/shared/threadPullRequests";
+import { backgroundWorkHoldsCompletion } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
+import { threadPullRequestSearchTerms } from "@supaterm/shared/threadPullRequests";
 import * as React from "react";
 import {
   isAtomCommandInterrupted,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { defaultAnimateLayoutChanges, type AnimateLayoutChanges } from "@dnd-kit/sortable";
-import type { ContextMenuItem } from "@supacode/contracts";
-import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@supacode/contracts/settings";
+import type { ContextMenuItem } from "@supaterm/contracts";
+import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@supaterm/contracts/settings";
 import type { AsyncResult } from "effect/reactivity";
-import { planPinnedReorder } from "@supacode/client-runtime/state/thread-sort";
+import { planPinnedReorder } from "@supaterm/client-runtime/state/thread-sort";
 import {
   effectiveSnoozed,
   type ThreadSnoozeShell,
-} from "@supacode/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/thread-settled";
 import {
   getThreadSortTimestamp,
   sortThreads,
@@ -27,7 +27,7 @@ import { resolveServerBackedAppStageLabel } from "../branding.logic";
 export {
   formatWorkingDurationLabel,
   resolveThreadListDurationStartedAt as resolveSidebarV2DurationStartedAt,
-} from "@supacode/client-runtime/state/thread-timing";
+} from "@supaterm/client-runtime/state/thread-timing";
 
 export function shouldNavigateAfterThreadPark(input: {
   readonly threadKey: string;
@@ -964,12 +964,12 @@ export {
   isThreadWorking as isSidebarThreadWorking,
   sortInboxThreadsByReturn,
   sortWorkingThreadsBySend,
-} from "@supacode/client-runtime/state/thread-inbox";
+} from "@supaterm/client-runtime/state/thread-inbox";
 
 // Pinned-reorder key math and the keyed sort live in client-runtime
 // (state/thread-sort) so web and mobile compute identical pinned orders.
-export { pinOrderKeyBetween } from "@supacode/client-runtime/state/thread-sort";
-export { sortPinnedThreadsByOrderKey as sortPinnedThreadsForSidebar } from "@supacode/client-runtime/state/thread-sort";
+export { pinOrderKeyBetween } from "@supaterm/client-runtime/state/thread-sort";
+export { sortPinnedThreadsByOrderKey as sortPinnedThreadsForSidebar } from "@supaterm/client-runtime/state/thread-sort";
 
 /**
  * Whether a PR's search terms contain every whitespace-separated token of the

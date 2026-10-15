@@ -3,9 +3,9 @@ import {
   createEnvironmentThreadDetailAtoms,
   EMPTY_ENVIRONMENT_THREAD_STATE,
   type EnvironmentThreadState,
-} from "@supacode/client-runtime/state/threads";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { CommandId, EnvironmentId, MessageId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/threads";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { CommandId, EnvironmentId, MessageId } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";

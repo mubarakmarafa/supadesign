@@ -1,5 +1,5 @@
-import { findProjectByPath } from "@supacode/client-runtime/state/projects";
-import type { AgentSessionProjectCandidate, EnvironmentId, ProjectId } from "@supacode/contracts";
+import { findProjectByPath } from "@supaterm/client-runtime/state/projects";
+import type { AgentSessionProjectCandidate, EnvironmentId, ProjectId } from "@supaterm/contracts";
 
 const RECENT_PROJECT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 /** One or two threads in a directory is usually a one-off question, not a project. */

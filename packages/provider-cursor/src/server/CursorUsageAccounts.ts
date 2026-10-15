@@ -11,10 +11,10 @@
  * @module provider-cursor/server/CursorUsageAccounts
  */
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import type { ProviderUsageScan } from "@supacode/provider-core/server/usage";
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import type { ProviderUsageScan } from "@supaterm/provider-core/server/usage";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";
@@ -60,7 +60,7 @@ export class CursorUsageAccounts extends Context.Service<
     /** Waits for every cache write scheduled so far, as a restart would need. */
     readonly awaitPersisted: Effect.Effect<void>;
   }
->()("@supacode/provider-cursor/server/CursorUsageAccounts") {}
+>()("@supaterm/provider-cursor/server/CursorUsageAccounts") {}
 
 const make = Effect.gen(function* () {
   const fileSystem = yield* FileSystem.FileSystem;

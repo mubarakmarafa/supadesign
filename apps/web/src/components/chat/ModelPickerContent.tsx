@@ -4,10 +4,10 @@ import {
   type EnvironmentId,
   type ProviderDriverKind,
   type ResolvedKeybindingsConfig,
-} from "@supacode/contracts";
-import { resolveSelectableModel } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { resolveSelectableModel } from "@supaterm/shared/model";
 import { useAtomValue } from "@effect/atom-react";
-import { formatProviderUpdateRequiredNotice } from "@supacode/client-runtime/providerUpdateRequiredModels";
+import { formatProviderUpdateRequiredNotice } from "@supaterm/client-runtime/providerUpdateRequiredModels";
 import { useNavigate } from "@tanstack/react-router";
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
 import { memo, useMemo, useState, useCallback, useEffect, useLayoutEffect, useRef } from "react";

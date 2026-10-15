@@ -4,7 +4,7 @@ import {
   type ServerProvider,
   type ServerProviderSlashCommand,
   type ServerProviderResetCredits,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cache from "effect/Cache";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
@@ -17,8 +17,8 @@ import * as Path from "effect/Path";
 import * as Ref from "effect/Ref";
 import * as Result from "effect/Result";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { createModelCapabilities } from "@supacode/shared/model";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import { createModelCapabilities } from "@supaterm/shared/model";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import {
   query as claudeQuery,
   type Options as ClaudeQueryOptions,
@@ -37,12 +37,12 @@ import {
   providerModelsFromSettings,
   spawnAndCollect,
   type ServerProviderDraft,
-} from "@supacode/provider-core/server/snapshotProbe";
+} from "@supaterm/provider-core/server/snapshotProbe";
 import { resolveClaudeSdkExecutablePath } from "./Drivers/ClaudeExecutable.ts";
 import { makeClaudeEnvironment } from "./Drivers/ClaudeHome.ts";
 import { discoverClaudeSkills } from "./Drivers/ClaudeSkills.ts";
-import type { ProviderWorkspaceSnapshot } from "@supacode/provider-core/server/driver";
-import { makeUnavailableUsageLimits } from "@supacode/provider-core/server/usageLimits";
+import type { ProviderWorkspaceSnapshot } from "@supaterm/provider-core/server/driver";
+import { makeUnavailableUsageLimits } from "@supaterm/provider-core/server/usageLimits";
 import {
   type ClaudeScopedLimitNames,
   claudeUsageResponseToLimits,
@@ -563,7 +563,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Claude is disabled in Supacode settings.",
+        message: "Claude is disabled in Supaterm settings.",
       },
     });
   }
@@ -766,7 +766,7 @@ export const makePendingClaudeProvider = (
           version: null,
           status: "warning",
           auth: { status: "unknown" },
-          message: "Claude is disabled in Supacode settings.",
+          message: "Claude is disabled in Supaterm settings.",
         },
       });
     }

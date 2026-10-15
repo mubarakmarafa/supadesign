@@ -22,7 +22,7 @@ import {
   ThreadId,
   TurnItemId,
   type ThreadPullRequestLink,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -3432,7 +3432,7 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
         const nodeId = NodeId.make("node:checkpoint-context");
         const scopeId = CheckpointScopeId.make("scope:checkpoint-context");
         const checkpointId = CheckpointId.make("checkpoint:checkpoint-context");
-        const ref = CheckpointRef.make("refs/supacode/checkpoint-context/1");
+        const ref = CheckpointRef.make("refs/supaterm/checkpoint-context/1");
         yield* projectionStore.apply({
           id: EventId.make("event:checkpoint-context:thread"),
           type: "thread.created",

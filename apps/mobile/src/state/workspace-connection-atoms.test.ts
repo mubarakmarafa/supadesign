@@ -3,10 +3,10 @@ import {
   PrimaryConnectionTarget,
   type EnvironmentPresentation,
   type NetworkStatus,
-} from "@supacode/client-runtime/connection";
-import type { EnvironmentCatalogState } from "@supacode/client-runtime/state/connections";
-import type { EnvironmentShellSummary } from "@supacode/client-runtime/state/shell";
-import { EnvironmentId, type ServerConfig } from "@supacode/contracts";
+} from "@supaterm/client-runtime/connection";
+import type { EnvironmentCatalogState } from "@supaterm/client-runtime/state/connections";
+import type { EnvironmentShellSummary } from "@supaterm/client-runtime/state/shell";
+import { EnvironmentId, type ServerConfig } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { Atom, AtomRegistry } from "effect/reactivity";
 

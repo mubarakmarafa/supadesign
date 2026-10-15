@@ -2,7 +2,7 @@ import {
   EnvironmentId,
   ProviderDriverKind,
   type AcpRegistrySearchAgent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { visitElements } from "../../test/reactElementTree";
@@ -36,8 +36,8 @@ vi.mock("react/compiler-runtime", async () => {
   return { c: reactHookHarness.useMemoCache };
 });
 
-vi.mock("@supacode/client-runtime/state/runtime", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@supacode/client-runtime/state/runtime")>()),
+vi.mock("@supaterm/client-runtime/state/runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@supaterm/client-runtime/state/runtime")>()),
   squashAtomCommandFailure: () => new Error("The settings update failed."),
 }));
 

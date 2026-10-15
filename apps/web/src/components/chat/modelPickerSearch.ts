@@ -1,4 +1,4 @@
-import { normalizeSearchQuery, scoreQueryMatch } from "@supacode/shared/searchRanking";
+import { normalizeSearchQuery, scoreQueryMatch } from "@supaterm/shared/searchRanking";
 
 type ModelPickerSearchableModel = {
   /** Driver kind — indexed so "codex" still matches a Codex Personal instance. */

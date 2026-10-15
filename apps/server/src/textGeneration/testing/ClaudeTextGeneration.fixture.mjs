@@ -29,7 +29,7 @@ const settingsIndex = argv.indexOf("--settings");
 if (settingsIndex === -1 || JSON.parse(argv[settingsIndex + 1]).disableAllHooks !== true) {
   fail("text generation must disable hooks", 10);
 }
-const cwdMustNotBe = process.env.SUPACODE_FAKE_CLAUDE_CWD_MUST_NOT_BE;
+const cwdMustNotBe = process.env.SUPATERM_FAKE_CLAUDE_CWD_MUST_NOT_BE;
 if (cwdMustNotBe && NodeFS.realpathSync(process.cwd()) === NodeFS.realpathSync(cwdMustNotBe)) {
   fail("text generation ran in the project directory", 11);
 }
@@ -43,30 +43,30 @@ if (!process.stdin.isTTY) {
   stdinContent = Buffer.concat(chunks).toString("utf8");
 }
 
-const argsMustContain = process.env.SUPACODE_FAKE_CLAUDE_ARGS_MUST_CONTAIN;
+const argsMustContain = process.env.SUPATERM_FAKE_CLAUDE_ARGS_MUST_CONTAIN;
 if (argsMustContain && !args.includes(argsMustContain)) {
   fail("args missing expected content", 2);
 }
 
-const argsMustNotContain = process.env.SUPACODE_FAKE_CLAUDE_ARGS_MUST_NOT_CONTAIN;
+const argsMustNotContain = process.env.SUPATERM_FAKE_CLAUDE_ARGS_MUST_NOT_CONTAIN;
 if (argsMustNotContain && args.includes(argsMustNotContain)) {
   fail("args contained forbidden content", 3);
 }
 
-const stdinMustContain = process.env.SUPACODE_FAKE_CLAUDE_STDIN_MUST_CONTAIN;
+const stdinMustContain = process.env.SUPATERM_FAKE_CLAUDE_STDIN_MUST_CONTAIN;
 if (stdinMustContain && !stdinContent.includes(stdinMustContain)) {
   fail("stdin missing expected content", 4);
 }
 
-const configDirMustBe = process.env.SUPACODE_FAKE_CLAUDE_CONFIG_DIR_MUST_BE;
+const configDirMustBe = process.env.SUPATERM_FAKE_CLAUDE_CONFIG_DIR_MUST_BE;
 if (configDirMustBe && process.env.CLAUDE_CONFIG_DIR !== configDirMustBe) {
   fail("CLAUDE_CONFIG_DIR was " + (process.env.CLAUDE_CONFIG_DIR ?? ""), 5);
 }
 
-const stderrText = process.env.SUPACODE_FAKE_CLAUDE_STDERR;
+const stderrText = process.env.SUPATERM_FAKE_CLAUDE_STDERR;
 if (stderrText) {
   process.stderr.write(stderrText + "\n");
 }
 
-process.stdout.write(process.env.SUPACODE_FAKE_CLAUDE_OUTPUT ?? "");
-process.exitCode = Number(process.env.SUPACODE_FAKE_CLAUDE_EXIT_CODE ?? 0);
+process.stdout.write(process.env.SUPATERM_FAKE_CLAUDE_OUTPUT ?? "");
+process.exitCode = Number(process.env.SUPATERM_FAKE_CLAUDE_EXIT_CODE ?? 0);

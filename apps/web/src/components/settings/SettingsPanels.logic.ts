@@ -7,14 +7,14 @@ import type {
   ServerSettings,
   SidebarProjectGroupingMode,
   UnifiedSettings,
-} from "@supacode/contracts";
-import { DEFAULT_UNIFIED_SETTINGS } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import { DEFAULT_UNIFIED_SETTINGS } from "@supaterm/contracts/settings";
 import {
   getBackgroundActivityBaseProfile,
   normalizeBackgroundActivitySettings,
   normalizeServerBackgroundActivitySettings,
   resolveServerBackgroundActivitySettings,
-} from "@supacode/shared/backgroundActivitySettings";
+} from "@supaterm/shared/backgroundActivitySettings";
 import * as Duration from "effect/Duration";
 import * as Equal from "effect/Equal";
 
@@ -30,7 +30,7 @@ export function projectGroupingModeFromToggle(
   return lastEnabledMode === "repository_path" ? "repository_path" : "repository";
 }
 
-const LAST_ENABLED_PROJECT_GROUPING_MODE_KEY = "supacode:last-enabled-project-grouping-mode";
+const LAST_ENABLED_PROJECT_GROUPING_MODE_KEY = "supaterm:last-enabled-project-grouping-mode";
 
 export function readLastEnabledProjectGroupingMode(): SidebarProjectGroupingMode {
   try {

@@ -1,11 +1,11 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 /**
  * The Forgejo / Gitea driver: repository operations, discovery, and pull requests through
  * `fj` or `tea`.
  *
  * @module source-control-forgejo/server/driver
  */
-import { defineSourceControlDriver } from "@supacode/source-control-core/server/driver";
+import { defineSourceControlDriver } from "@supaterm/source-control-core/server/driver";
 import * as Effect from "effect/Effect";
 
 import * as ForgejoPullRequestProvider from "./ForgejoPullRequestProvider.ts";

@@ -5,9 +5,9 @@ import type {
   ProviderApprovalOption,
   ProviderRequestKind,
   RuntimeRequestId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
-import { canAutoDismissUserInput, userInputAutoDismissAt } from "@supacode/contracts";
+import { canAutoDismissUserInput, userInputAutoDismissAt } from "@supaterm/contracts";
 
 export interface ThreadPendingApproval {
   readonly requestId: RuntimeRequestId;

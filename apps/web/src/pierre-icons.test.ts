@@ -4,7 +4,7 @@ import {
   hasSpecificPierreIconForFileName,
   resolvePierreIconForEntry,
   syntheticFileNameForLanguageId,
-  SUPACODE_PIERRE_ICONS,
+  SUPATERM_PIERRE_ICONS,
 } from "./pierre-icons";
 
 describe("Pierre file icons", () => {
@@ -43,27 +43,27 @@ describe("Pierre file icons", () => {
     );
   });
 
-  it("extends Pierre with Supacode-specific exact filename icons", () => {
-    assert.equal(resolvePierreIconForEntry("AGENTS.md", "file")?.name, "supacode-file-icon-agents");
+  it("extends Pierre with Supaterm-specific exact filename icons", () => {
+    assert.equal(resolvePierreIconForEntry("AGENTS.md", "file")?.name, "supaterm-file-icon-agents");
     assert.equal(
       resolvePierreIconForEntry("pnpm-lock.yaml", "file")?.name,
-      "supacode-file-icon-pnpm",
+      "supaterm-file-icon-pnpm",
     );
     assert.equal(
       resolvePierreIconForEntry("pnpm-workspace.yaml", "file")?.name,
-      "supacode-file-icon-pnpm",
+      "supaterm-file-icon-pnpm",
     );
   });
 
   it("ships every custom icon referenced by the extended resolver", () => {
     const customIconNames = new Set(
       [
-        ...Object.values(SUPACODE_PIERRE_ICONS.byFileName),
-        ...Object.values(SUPACODE_PIERRE_ICONS.byFileExtension),
-      ].filter((name) => name.startsWith("supacode-")),
+        ...Object.values(SUPATERM_PIERRE_ICONS.byFileName),
+        ...Object.values(SUPATERM_PIERRE_ICONS.byFileExtension),
+      ].filter((name) => name.startsWith("supaterm-")),
     );
     for (const iconName of customIconNames) {
-      assert.include(SUPACODE_PIERRE_ICONS.spriteSheet, `id="${iconName}"`);
+      assert.include(SUPATERM_PIERRE_ICONS.spriteSheet, `id="${iconName}"`);
     }
   });
 

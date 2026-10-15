@@ -1,7 +1,7 @@
 import type {
   OrchestrationV2SearchThreadInput,
   OrchestrationV2SearchThreadResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type {
   ProjectionRecordField,
   ProjectionRecordFilter,
@@ -32,7 +32,7 @@ import {
   type ScheduledTaskId,
   ThreadId,
   type TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -448,7 +448,7 @@ export interface ThreadManagementServiceShape {
 export class ThreadManagementService extends Context.Service<
   ThreadManagementService,
   ThreadManagementServiceShape
->()("supacode/orchestration-v2/ThreadManagementService") {}
+>()("supaterm/orchestration-v2/ThreadManagementService") {}
 
 export function isActiveRun(run: OrchestrationV2Run): boolean {
   return (

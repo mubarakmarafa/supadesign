@@ -1,4 +1,4 @@
-import type { EnvironmentProject } from "@supacode/client-runtime/state/models";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/models";
 
 export type PullRequestEnvironmentTarget = {
   readonly environmentId: string;

@@ -21,7 +21,7 @@ it.each(["lookup", "children"])("falls back to enumeration after a failed %s", a
   else byPid.mockResolvedValue({ children: () => Promise.reject(error) });
   const bounds = { x: 0, y: 0, width: 800, height: 600 };
   const focus = vi.fn().mockResolvedValue(undefined);
-  list.mockResolvedValue([{ pid: 42, asElement: () => ({ name: "Supacode", bounds, focus }) }]);
+  list.mockResolvedValue([{ pid: 42, asElement: () => ({ name: "Supaterm", bounds, focus }) }]);
   await import("./WindowsForegroundFocusWorker.ts");
   await vi.dynamicImportSettled();
   const result = Promise.withResolvers<unknown>();
@@ -29,7 +29,7 @@ it.each(["lookup", "children"])("falls back to enumeration after a failed %s", a
   on.mock.calls[0]![1]({
     type: "focus",
     requestId: 1,
-    target: { windowId: 1, processId: 42, title: "Supacode", bounds, contentBounds: bounds },
+    target: { windowId: 1, processId: 42, title: "Supaterm", bounds, contentBounds: bounds },
   });
   assert.deepEqual(await result.promise, { type: "result", requestId: 1, focused: true });
   assert.lengthOf(focus.mock.calls, 1);

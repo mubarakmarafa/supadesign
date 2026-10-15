@@ -41,14 +41,14 @@ describe("resolveNewTaskLocalWorkspaceSelection", () => {
     expect(
       resolveNewTaskLocalWorkspaceSelection({
         branches: [
-          { name: "feature/split", current: true, worktreePath: "/repo/.supacode/worktrees/split" },
+          { name: "feature/split", current: true, worktreePath: "/repo/.supaterm/worktrees/split" },
           { name: "main", current: false, worktreePath: "/repo" },
         ],
         projectCwd: "/repo",
       }),
     ).toEqual({
       branch: "feature/split",
-      worktreePath: "/repo/.supacode/worktrees/split",
+      worktreePath: "/repo/.supaterm/worktrees/split",
       awaitsCurrentBranch: false,
     });
   });
@@ -60,9 +60,9 @@ describe("resolveNewTaskBranchWorktreePath", () => {
       resolveNewTaskBranchWorktreePath({
         workspaceMode: "local",
         projectCwd: "/repo",
-        branchWorktreePath: "/repo/.supacode/worktrees/feature",
+        branchWorktreePath: "/repo/.supaterm/worktrees/feature",
       }),
-    ).toBe("/repo/.supacode/worktrees/feature");
+    ).toBe("/repo/.supaterm/worktrees/feature");
   });
 
   it("keeps the project checkout represented by a null override", () => {
@@ -80,7 +80,7 @@ describe("resolveNewTaskBranchWorktreePath", () => {
       resolveNewTaskBranchWorktreePath({
         workspaceMode: "worktree",
         projectCwd: "/repo",
-        branchWorktreePath: "/repo/.supacode/worktrees/feature",
+        branchWorktreePath: "/repo/.supaterm/worktrees/feature",
       }),
     ).toBeNull();
   });

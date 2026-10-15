@@ -1,5 +1,5 @@
-import type { ContextMenuItem } from "@supacode/contracts";
-import type { SnoozePreset } from "@supacode/client-runtime/state/thread-settled";
+import type { ContextMenuItem } from "@supaterm/contracts";
+import type { SnoozePreset } from "@supaterm/client-runtime/state/thread-settled";
 
 /**
  * Ids for the per-thread action menu. Snooze presets are dispatched as

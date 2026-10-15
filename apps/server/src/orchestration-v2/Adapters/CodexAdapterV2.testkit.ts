@@ -1,7 +1,7 @@
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
-import { DEFAULT_SIGNAL_EXPORT } from "@supacode/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
+import { DEFAULT_SIGNAL_EXPORT } from "@supaterm/shared/observability";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { type ProviderReplayTranscript } from "@supacode/contracts";
+import { type ProviderReplayTranscript } from "@supaterm/contracts";
 import * as CodexClient from "effect-codex-app-server/client";
 import type * as CodexError from "effect-codex-app-server/errors";
 import * as CodexReplay from "effect-codex-app-server/replay";
@@ -14,12 +14,12 @@ import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";
 
 import * as ServerConfig from "../../config.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
-import { ProviderAdapterDriverCreateError } from "@supacode/provider-core/server/adapterDriver";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
+import { ProviderAdapterDriverCreateError } from "@supaterm/provider-core/server/adapterDriver";
 import * as ProviderAdapterRegistry from "../ProviderAdapterRegistry.ts";
 import type { OrchestratorV2ProviderReplayHarness } from "../testkit/ProviderReplayHarness.ts";
-import type { ProviderReplayGate } from "@supacode/provider-testing/replayGate";
+import type { ProviderReplayGate } from "@supaterm/provider-testing/replayGate";
 import * as CodexAdapterV2 from "./CodexAdapterV2.ts";
 
 export class CodexReplayTranscriptDecodeError extends Schema.TaggedError<CodexReplayTranscriptDecodeError>()(
@@ -105,7 +105,7 @@ export function makeReplayServerConfig(
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const baseDir = yield* fs.makeTempDirectory({
-      prefix: `supacode-orchestration-v2-codex-${scenario}-`,
+      prefix: `supaterm-orchestration-v2-codex-${scenario}-`,
     });
     const stateDir = path.join(baseDir, "userdata");
     const logsDir = path.join(stateDir, "logs");

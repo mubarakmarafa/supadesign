@@ -6,7 +6,7 @@ import {
   ThreadId,
   type OrchestrationV2ThreadShell,
   type Project as ProjectRecord,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";
@@ -82,7 +82,7 @@ it.effect("attributes a launched thread's first message to the calling thread", 
       Layer.mock(ManagedProjectFolders.ManagedProjectFolders)({ namedProjectsRoot: "/projects" }),
       Layer.mock(GitVcsDriver.GitVcsDriver)({}),
       NodeServices.layer,
-      ServerConfig.layerTest(process.cwd(), { prefix: "supacode-source-link-" }).pipe(
+      ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-source-link-" }).pipe(
         Layer.provide(NodeServices.layer),
       ),
     );
@@ -94,7 +94,7 @@ it.effect("attributes a launched thread's first message to the calling thread", 
       ),
     );
     const result = yield* toolkit
-      .handle("supacode_thread_launch", { title: "Audit", message: "Review the change" })
+      .handle("supaterm_thread_launch", { title: "Audit", message: "Review the change" })
       .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(layerDependencies));
     expect(result.at(-1)?.result).toMatchObject({ projectId, modelSelection });
     expect(launchedSender).toBe(sourceThreadId);
@@ -157,7 +157,7 @@ it.effect("launches a scratch thread into the Scratch project", () =>
       }),
       Layer.mock(GitVcsDriver.GitVcsDriver)({}),
       NodeServices.layer,
-      ServerConfig.layerTest(process.cwd(), { prefix: "supacode-scratch-launch-" }).pipe(
+      ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-scratch-launch-" }).pipe(
         Layer.provide(NodeServices.layer),
       ),
     );
@@ -168,9 +168,9 @@ it.effect("launches a scratch thread into the Scratch project", () =>
         ),
       ),
     );
-    const handle = (params: Parameters<typeof toolkit.handle<"supacode_thread_launch">>[1]) =>
+    const handle = (params: Parameters<typeof toolkit.handle<"supaterm_thread_launch">>[1]) =>
       toolkit
-        .handle("supacode_thread_launch", params)
+        .handle("supaterm_thread_launch", params)
         .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(layerDependencies));
 
     const result = yield* handle({ title: "Notes", scratch: true, message: "Draft a list" });
@@ -261,7 +261,7 @@ it.effect("starts a project from just a title when workspaceRoot is omitted", ()
       }),
       Layer.mock(GitVcsDriver.GitVcsDriver)({}),
       NodeServices.layer,
-      ServerConfig.layerTest(process.cwd(), { prefix: "supacode-named-project-" }).pipe(
+      ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-named-project-" }).pipe(
         Layer.provide(NodeServices.layer),
       ),
     );
@@ -272,9 +272,9 @@ it.effect("starts a project from just a title when workspaceRoot is omitted", ()
         ),
       ),
     );
-    const handle = (params: Parameters<typeof toolkit.handle<"supacode_project_create">>[1]) =>
+    const handle = (params: Parameters<typeof toolkit.handle<"supaterm_project_create">>[1]) =>
       toolkit
-        .handle("supacode_project_create", params)
+        .handle("supaterm_project_create", params)
         .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(layerDependencies));
 
     const result = yield* handle({ title: "Pinball Stats" });
@@ -367,7 +367,7 @@ const clientLaunchHarness = (input: {
     Layer.provideMerge(GitVcsDriver.layer),
     Layer.provideMerge(VcsProcess.layer),
     Layer.provideMerge(
-      ServerConfig.layerTest(process.cwd(), { prefix: "supacode-client-launch-" }).pipe(
+      ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-client-launch-" }).pipe(
         Layer.provide(NodeServices.layer),
       ),
     ),
@@ -388,9 +388,9 @@ it.effect("a client launches at its ceiling with the project's default model", (
         McpToolAccess.HandlersLayer.layer(ProjectHandlers.layer).pipe(Layer.provide(dependencies)),
       ),
     );
-    const handle = (params: Parameters<typeof toolkit.handle<"supacode_thread_launch">>[1]) =>
+    const handle = (params: Parameters<typeof toolkit.handle<"supaterm_thread_launch">>[1]) =>
       toolkit
-        .handle("supacode_thread_launch", params)
+        .handle("supaterm_thread_launch", params)
         .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(dependencies));
 
     const result = yield* handle({ title: "Fix", projectId, message: "Fix the bug" });
@@ -411,7 +411,7 @@ it.effect("a launch binds only an existing checkout that is one of the project's
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const root = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-launch-worktree-" });
+    const root = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-launch-worktree-" });
     const repo = path.join(root, "repo");
     const worktree = path.join(root, "feature");
     const outside = path.join(root, "outside");
@@ -439,7 +439,7 @@ it.effect("a launch binds only an existing checkout that is one of the project's
     );
     const launchInto = (worktreePath: string) =>
       toolkit
-        .handle("supacode_thread_launch", {
+        .handle("supaterm_thread_launch", {
           title: "Fix",
           projectId,
           workspaceStrategy: { type: "existing_worktree", worktreePath },
@@ -475,7 +475,7 @@ it.effect("a launch into a new worktree creates nothing when its base ref has no
       runtimeModeCeiling: "auto",
       launched,
       checkWorktreeBase: ({ projectId, workspaceStrategy }) =>
-        workspaceStrategy.type === "worktree" && workspaceStrategy.baseRef === "supacode/renamed"
+        workspaceStrategy.type === "worktree" && workspaceStrategy.baseRef === "supaterm/renamed"
           ? Effect.fail(
               new ThreadLaunch.ThreadLaunchBaseRefError({
                 projectId,
@@ -493,17 +493,17 @@ it.effect("a launch into a new worktree creates nothing when its base ref has no
     );
     const launchFrom = (baseRef: string) =>
       toolkit
-        .handle("supacode_thread_launch", {
+        .handle("supaterm_thread_launch", {
           title: "Fix",
           projectId,
           workspaceStrategy: { type: "worktree", baseRef, startFromOrigin: false },
         })
         .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(dependencies));
 
-    const refused = (yield* launchFrom("supacode/renamed")).at(-1)?.result;
+    const refused = (yield* launchFrom("supaterm/renamed")).at(-1)?.result;
     expect(refused).toMatchObject({ code: "invalid_request" });
     expect((refused as { message: string }).message).toContain(
-      'Base ref "supacode/renamed" does not resolve to a commit in project "Client target" (/projects/client-target). No thread was created.',
+      'Base ref "supaterm/renamed" does not resolve to a commit in project "Client target" (/projects/client-target). No thread was created.',
     );
     expect(launched).toHaveLength(0);
 

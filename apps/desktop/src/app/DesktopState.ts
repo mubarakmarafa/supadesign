@@ -9,7 +9,7 @@ export class DesktopState extends Context.Service<
     readonly backendReady: Ref.Ref<boolean>;
     readonly quitting: Ref.Ref<boolean>;
   }
->()("@supacode/desktop/app/DesktopState") {}
+>()("@supaterm/desktop/app/DesktopState") {}
 
 const make = Effect.all({
   backendReady: Ref.make(false),

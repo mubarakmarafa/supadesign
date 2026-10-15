@@ -1,5 +1,5 @@
-import type { DesktopBridge } from "@supacode/contracts";
-import { safeErrorLogAttributes } from "@supacode/client-runtime/errors";
+import type { DesktopBridge } from "@supaterm/contracts";
+import { safeErrorLogAttributes } from "@supaterm/client-runtime/errors";
 import * as Schema from "effect/Schema";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import {
@@ -34,7 +34,7 @@ type ThemeSnapshot = {
 
 type DesktopThemeBridge = Pick<DesktopBridge, "setTheme">;
 
-const STORAGE_KEY = "supacode:theme";
+const STORAGE_KEY = "supaterm:theme";
 const MEDIA_QUERY = "(prefers-color-scheme: dark)";
 const DEFAULT_THEME_SNAPSHOT: ThemeSnapshot = {
   theme: "system",

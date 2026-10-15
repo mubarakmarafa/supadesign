@@ -8,7 +8,7 @@ type KnownContentBlock<T extends V2.ContentBlock["type"]> = Extract<
   { readonly type: T }
 >;
 
-/** Provider-neutral content accepted by Supacode after ACP v1 or v2 negotiation. */
+/** Provider-neutral content accepted by Supaterm after ACP v1 or v2 negotiation. */
 export type ContentBlock =
   | KnownContentBlock<"text">
   | KnownContentBlock<"image">
@@ -16,7 +16,7 @@ export type ContentBlock =
   | KnownContentBlock<"resource_link">
   | KnownContentBlock<"resource">
   | {
-      readonly type: "_supacode_unknown";
+      readonly type: "_supaterm_unknown";
       readonly originalType: string;
       readonly raw: unknown;
     };
@@ -263,7 +263,7 @@ export type ToolCallContent =
     }
   | { readonly type: "terminal"; readonly terminalId: string; readonly _meta?: Meta }
   | {
-      readonly type: "_supacode_unknown";
+      readonly type: "_supaterm_unknown";
       readonly originalType: string;
       readonly raw: unknown;
     };
@@ -358,7 +358,7 @@ export type SessionUpdate =
   | { readonly sessionUpdate: "plan"; readonly entries: ReadonlyArray<V2.PlanEntry> }
   | { readonly sessionUpdate: "current_mode_update"; readonly currentModeId: string }
   | {
-      readonly sessionUpdate: "_supacode_unknown";
+      readonly sessionUpdate: "_supaterm_unknown";
       readonly originalSessionUpdate: string;
       readonly raw: unknown;
     };

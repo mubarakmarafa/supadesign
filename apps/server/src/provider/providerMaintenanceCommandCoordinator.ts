@@ -1,4 +1,4 @@
-import * as KeyedLock from "@supacode/shared/KeyedLock";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
 import * as Effect from "effect/Effect";
 import * as Ref from "effect/Ref";
 

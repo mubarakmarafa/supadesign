@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { ScopedThreadRef } from "@supacode/contracts";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 
 /**
  * Field-wise ref equality. `scopedThreadKey` joins with `:`, so two distinct

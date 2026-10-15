@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import { AcpRegistrySettings } from "../settings.ts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";

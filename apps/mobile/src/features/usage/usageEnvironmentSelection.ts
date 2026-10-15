@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 /** Null follows all environments, including ones connected after the menu opened. */
 export function toggleUsageEnvironment(

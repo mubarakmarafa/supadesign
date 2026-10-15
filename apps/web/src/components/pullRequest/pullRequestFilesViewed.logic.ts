@@ -1,4 +1,4 @@
-import type { PullRequestFileViewedState, PullRequestFilesViewedResult } from "@supacode/contracts";
+import type { PullRequestFileViewedState, PullRequestFilesViewedResult } from "@supaterm/contracts";
 
 /** What the host last said about each file, by path. Absent means the host said nothing. */
 export type FileViewedStates = ReadonlyMap<string, PullRequestFileViewedState>;

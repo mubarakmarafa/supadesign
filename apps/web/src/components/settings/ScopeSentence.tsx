@@ -1,4 +1,4 @@
-import { resolveEnvironmentMachineKind } from "@supacode/contracts";
+import { resolveEnvironmentMachineKind } from "@supaterm/contracts";
 import { ChevronDownIcon, FolderIcon, LayersIcon } from "lucide-react";
 import type { ReactNode } from "react";
 

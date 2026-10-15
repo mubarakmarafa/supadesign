@@ -4,19 +4,19 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import { repointLauncher, resolveLauncherPath } from "./update.ts";
 
-it.layer(NodeServices.layer)("supacode update launcher", (it) => {
+it.layer(NodeServices.layer)("supaterm update launcher", (it) => {
   it.effect("repoints a symlink that lives in a runtime versions tree", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-update-" });
-      const oldExe = path.join(root, "runtime/versions/1.0.0/supacode");
-      const newExe = path.join(root, "runtime/versions/2.0.0/supacode");
-      const launcher = path.join(root, "bin/supacode");
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-update-" });
+      const oldExe = path.join(root, "runtime/versions/1.0.0/supaterm");
+      const newExe = path.join(root, "runtime/versions/2.0.0/supaterm");
+      const launcher = path.join(root, "bin/supaterm");
       for (const file of [oldExe, newExe]) {
         yield* fs.makeDirectory(path.dirname(file), { recursive: true });
         yield* fs.writeFileString(file, "");
@@ -39,14 +39,14 @@ it.layer(NodeServices.layer)("supacode update launcher", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-update-" });
-      const newExe = path.join(root, "runtime/versions/2.0.0/supacode");
-      const copy = path.join(root, "copy/supacode");
-      const foreign = path.join(root, "foreign/supacode");
-      const elsewhere = path.join(root, "elsewhere/supacode");
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-update-" });
+      const newExe = path.join(root, "runtime/versions/2.0.0/supaterm");
+      const copy = path.join(root, "copy/supaterm");
+      const foreign = path.join(root, "foreign/supaterm");
+      const elsewhere = path.join(root, "elsewhere/supaterm");
       // Another install's versions tree: same shape, different home.
-      const otherHome = path.join(root, "other/runtime/versions/1.0.0/supacode");
-      const otherLauncher = path.join(root, "other/bin/supacode");
+      const otherHome = path.join(root, "other/runtime/versions/1.0.0/supaterm");
+      const otherLauncher = path.join(root, "other/bin/supaterm");
       for (const file of [newExe, copy, elsewhere, otherHome]) {
         yield* fs.makeDirectory(path.dirname(file), { recursive: true });
         yield* fs.writeFileString(file, "");
@@ -73,25 +73,25 @@ it.layer(NodeServices.layer)("supacode update launcher", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-update-" });
-      const launcher = path.join(root, "bin/supacode");
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-update-" });
+      const launcher = path.join(root, "bin/supaterm");
       yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
       yield* fs.writeFileString(launcher, "");
 
       const bare = yield* resolveLauncherPath.pipe(
-        Effect.provideService(HostProcess.InvokedAs, "supacode"),
+        Effect.provideService(HostProcess.InvokedAs, "supaterm"),
         Effect.provideService(HostProcess.Environment, {
           PATH: `${path.join(root, "missing")}:${path.join(root, "bin")}`,
         }),
         Effect.provideService(HostProcess.WorkingDirectory, root),
       );
       const relative = yield* resolveLauncherPath.pipe(
-        Effect.provideService(HostProcess.InvokedAs, "./bin/supacode"),
+        Effect.provideService(HostProcess.InvokedAs, "./bin/supaterm"),
         Effect.provideService(HostProcess.Environment, { PATH: "" }),
         Effect.provideService(HostProcess.WorkingDirectory, root),
       );
       const absent = yield* resolveLauncherPath.pipe(
-        Effect.provideService(HostProcess.InvokedAs, "supacode"),
+        Effect.provideService(HostProcess.InvokedAs, "supaterm"),
         Effect.provideService(HostProcess.Environment, { PATH: path.join(root, "missing") }),
         Effect.provideService(HostProcess.WorkingDirectory, root),
       );

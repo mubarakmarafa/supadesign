@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { CameraView } from "expo-camera";
@@ -123,7 +123,7 @@ const pairingUrl =
   "http://192.168.1.10:3773/pair#token=code&env=machine&routes=https://machine.ts.net";
 
 describe("QR pairing", () => {
-  it.each([pairingUrl, `supacode://pair?pairingUrl=${encodeURIComponent(pairingUrl)}`])(
+  it.each([pairingUrl, `supaterm://pair?pairingUrl=${encodeURIComponent(pairingUrl)}`])(
     "pairs a scanned link immediately and dismisses only after acceptance: %s",
     async (data) => {
       const result = deferredResult();

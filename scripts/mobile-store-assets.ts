@@ -28,7 +28,7 @@ export async function prepareMobileStoreAssets(
         input.screenshotRoot,
         device.storeAsset.directory,
         "dark",
-        "supacode",
+        "supaterm",
         `${scene}.png`,
       );
       const data = await NodeFSP.readFile(source);

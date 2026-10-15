@@ -4,8 +4,8 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NodeOS from "node:os";
 import * as NodeURL from "node:url";
-import { resolveWorktreeSupacodeHome } from "@supacode/shared/devHome";
-import { resolveDefaultSupacodeHome } from "@supacode/shared/supacodeHome";
+import { resolveWorktreeSupatermHome } from "@supaterm/shared/devHome";
+import { resolveDefaultSupatermHome } from "@supaterm/shared/supatermHome";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -18,14 +18,14 @@ import { Command, Flag } from "effect/cli";
 
 import * as ProjectionStore from "../src/orchestration-v2/ProjectionStore.ts";
 import { migrationManifest, runMigrations } from "../src/persistence/Migrations.ts";
-import * as NodeSqliteClient from "@supacode/shared/nodeSqliteClient";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 
 export class MigrateDevDbNotInWorktreeError extends Schema.TaggedError<MigrateDevDbNotInWorktreeError>()(
   "MigrateDevDbNotInWorktreeError",
   {},
 ) {
   override get message(): string {
-    return "Not inside a linked git worktree. Pass --base-dir to target an isolated .supacode directory.";
+    return "Not inside a linked git worktree. Pass --base-dir to target an isolated .supaterm directory.";
   }
 }
 
@@ -34,7 +34,7 @@ export class MigrateDevDbSharedHomeError extends Schema.TaggedError<MigrateDevDb
   {},
 ) {
   override get message(): string {
-    return "Refusing to rebuild the shared ~/.supacode database. Use an isolated --base-dir.";
+    return "Refusing to rebuild the shared ~/.supaterm database. Use an isolated --base-dir.";
   }
 }
 
@@ -68,7 +68,7 @@ export class MigrateDevDbServerRunningError extends Schema.TaggedError<MigrateDe
   },
 ) {
   override get message(): string {
-    return `Dev database at '${this.databasePath}' is open by a running server (pid ${this.pid} per server-runtime.json). Stop that server first; if that pid is not actually a Supacode server (stale descriptor, reused pid), delete the server-runtime.json next to the database and retry.`;
+    return `Dev database at '${this.databasePath}' is open by a running server (pid ${this.pid} per server-runtime.json). Stop that server first; if that pid is not actually a Supaterm server (stale descriptor, reused pid), delete the server-runtime.json next to the database and retry.`;
   }
 }
 
@@ -121,9 +121,9 @@ export class MigrateDevDbPhaseError extends Schema.TaggedError<MigrateDevDbPhase
 }
 
 export interface RunMigrateDevDbInput {
-  /** Isolated .supacode directory. Defaults to `<worktree>/.supacode` of the cwd. */
+  /** Isolated .supaterm directory. Defaults to `<worktree>/.supaterm` of the cwd. */
   readonly baseDir?: string | undefined;
-  /** Source database. Defaults to `~/.supacode/userdata/statev2.sqlite`. */
+  /** Source database. Defaults to `~/.supaterm/userdata/statev2.sqlite`. */
   readonly source?: string | undefined;
   readonly projects: number;
   readonly threadsPerProject: number;
@@ -441,7 +441,7 @@ export const runMigrateDevDb = Effect.fn("runMigrateDevDb")(function* (
   const path = yield* Path.Path;
 
   const sharedHome = path.resolve(
-    options.sharedHome ?? resolveDefaultSupacodeHome(NodeOS.homedir(), path.join),
+    options.sharedHome ?? resolveDefaultSupatermHome(NodeOS.homedir(), path.join),
   );
   const sourcePath = path.resolve(
     input.source ?? path.join(sharedHome, "userdata", "statev2.sqlite"),
@@ -450,7 +450,7 @@ export const runMigrateDevDb = Effect.fn("runMigrateDevDb")(function* (
   const baseDir =
     input.baseDir !== undefined
       ? path.resolve(input.baseDir)
-      : yield* resolveWorktreeSupacodeHome(process.cwd());
+      : yield* resolveWorktreeSupatermHome(process.cwd());
   if (baseDir === undefined) {
     return yield* new MigrateDevDbNotInWorktreeError();
   }
@@ -599,12 +599,12 @@ export const migrateDevDbCommand = Command.make(
     baseDir: Flag.String("base-dir").pipe(
       Flag.optional,
       Flag.withDescription(
-        "Isolated .supacode directory. Defaults to the current worktree's .supacode.",
+        "Isolated .supaterm directory. Defaults to the current worktree's .supaterm.",
       ),
     ),
     source: Flag.String("source").pipe(
       Flag.optional,
-      Flag.withDescription("Source database. Defaults to ~/.supacode/userdata/statev2.sqlite."),
+      Flag.withDescription("Source database. Defaults to ~/.supaterm/userdata/statev2.sqlite."),
     ),
   },
   ({ projects, threadsPerProject, baseDir, source }) =>
@@ -631,7 +631,7 @@ export const migrateDevDbCommand = Command.make(
     }),
 ).pipe(
   Command.withDescription(
-    "Rebuild the worktree dev database from a pruned snapshot of the real ~/.supacode data, then run migrations.",
+    "Rebuild the worktree dev database from a pruned snapshot of the real ~/.supaterm data, then run migrations.",
   ),
 );
 

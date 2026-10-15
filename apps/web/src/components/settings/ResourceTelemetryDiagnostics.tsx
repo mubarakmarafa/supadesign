@@ -1,5 +1,5 @@
 import { ProcessSignalActions } from "./ProcessSignalActions";
-import { AuthEnvironmentMaintainScope } from "@supacode/contracts";
+import { AuthEnvironmentMaintainScope } from "@supaterm/contracts";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import {
   ActivityIcon,
@@ -25,14 +25,14 @@ import type {
   ResourceTelemetrySourceHealth,
   ResourceTelemetrySourceStatus,
   ServerProcessSignal,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 import {
   useResourceTelemetry,
@@ -126,8 +126,8 @@ function categoryLabel(category: ResourceTelemetryProcessCategory): string {
       return "Electron utility";
     case "resource-monitor":
       return "Monitor";
-    case "unknown-supacode":
-      return "Supacode process";
+    case "unknown-supaterm":
+      return "Supaterm process";
   }
 }
 
@@ -836,7 +836,7 @@ export function ResourceTelemetryDiagnostics({
   const signalingKeysRef = useRef<ReadonlySet<string>>(new Set());
   const [isRetrying, setIsRetrying] = useState(false);
   const snapshot = telemetry.data;
-  const allSupacode = snapshot?.groups.allSupacode;
+  const allSupaterm = snapshot?.groups.allSupaterm;
 
   const signalProcess = useCallback(
     (process: ResourceTelemetryProcess, signal: ServerProcessSignal) => {
@@ -958,7 +958,7 @@ export function ResourceTelemetryDiagnostics({
           <div className="flex flex-col gap-3 border-b border-border/60 bg-linear-to-r from-muted/45 via-muted/20 to-transparent px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
               <div className="text-3xs font-semibold uppercase tracking-widest text-muted-foreground/70">
-                Supacode system footprint
+                Supaterm system footprint
               </div>
               <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
                 Live native counters for the server, providers, terminals, desktop processes, and
@@ -974,48 +974,48 @@ export function ResourceTelemetryDiagnostics({
             <IconStat
               icon={<CpuIcon className="size-3.5" />}
               label="Current CPU"
-              value={allSupacode ? `${allSupacode.currentCpuPercent.toFixed(1)}%` : "..."}
+              value={allSupaterm ? `${allSupaterm.currentCpuPercent.toFixed(1)}%` : "..."}
               detail={
-                allSupacode
-                  ? `${formatCpuTime(allSupacode.cpuTimeMs)} observed CPU time`
+                allSupaterm
+                  ? `${formatCpuTime(allSupaterm.cpuTimeMs)} observed CPU time`
                   : undefined
               }
             />
             <IconStat
               icon={<MemoryStickIcon className="size-3.5" />}
               label="Resident memory"
-              value={allSupacode ? formatBytes(allSupacode.currentRssBytes) : "..."}
+              value={allSupaterm ? formatBytes(allSupaterm.currentRssBytes) : "..."}
               detail={
-                allSupacode
-                  ? `${formatBytes(allSupacode.peakRssBytes)} combined process peaks`
+                allSupaterm
+                  ? `${formatBytes(allSupaterm.peakRssBytes)} combined process peaks`
                   : undefined
               }
             />
             <IconStat
               icon={<ActivityIcon className="size-3.5" />}
               label="Process count"
-              value={allSupacode ? String(allSupacode.processCount) : "..."}
+              value={allSupaterm ? String(allSupaterm.processCount) : "..."}
               detail={
-                allSupacode
-                  ? `${allSupacode.processStarts} starts · ${allSupacode.processExits} exits`
+                allSupaterm
+                  ? `${allSupaterm.processStarts} starts · ${allSupaterm.processExits} exits`
                   : undefined
               }
             />
             <IconStat
               icon={<HardDriveIcon className="size-3.5" />}
               label="Read throughput"
-              value={allSupacode ? formatRate(allSupacode.ioReadBytesPerSecond) : "..."}
-              detail={allSupacode ? `${formatBytes(allSupacode.ioReadBytes)} observed` : undefined}
+              value={allSupaterm ? formatRate(allSupaterm.ioReadBytesPerSecond) : "..."}
+              detail={allSupaterm ? `${formatBytes(allSupaterm.ioReadBytes)} observed` : undefined}
             />
             <IconStat
               icon={<DatabaseIcon className="size-3.5" />}
               label="Write throughput"
-              value={allSupacode ? formatRate(allSupacode.ioWriteBytesPerSecond) : "..."}
-              detail={allSupacode ? `${formatBytes(allSupacode.ioWriteBytes)} observed` : undefined}
+              value={allSupaterm ? formatRate(allSupaterm.ioWriteBytesPerSecond) : "..."}
+              detail={allSupaterm ? `${formatBytes(allSupaterm.ioWriteBytes)} observed` : undefined}
               tone={
-                allSupacode && allSupacode.ioWriteBytesPerSecond >= 10 * 1_024 * 1_024
+                allSupaterm && allSupaterm.ioWriteBytesPerSecond >= 10 * 1_024 * 1_024
                   ? "danger"
-                  : allSupacode && allSupacode.ioWriteBytesPerSecond >= 1_024 * 1_024
+                  : allSupaterm && allSupaterm.ioWriteBytesPerSecond >= 1_024 * 1_024
                     ? "warning"
                     : "default"
               }
@@ -1250,7 +1250,7 @@ export function ResourceTelemetryDiagnostics({
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs/5">
           <div className="bg-muted/15 px-4 py-3 text-2xs leading-relaxed text-muted-foreground sm:px-5">
             Native counters identify which process is reading or writing. These application-level
-            counters identify known Supacode operations so process spikes can be correlated with
+            counters identify known Supaterm operations so process spikes can be correlated with
             specific persistence and logging paths.
           </div>
           <AttributionTable entries={snapshot?.attribution.entries ?? []} />

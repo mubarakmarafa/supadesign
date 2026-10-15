@@ -1,5 +1,5 @@
-import type { ServerProvider } from "@supacode/contracts";
-import { CHATGPT_USAGE_URL, usesChatGptSharing } from "@supacode/shared/usageLimits";
+import type { ServerProvider } from "@supaterm/contracts";
+import { CHATGPT_USAGE_URL, usesChatGptSharing } from "@supaterm/shared/usageLimits";
 import { Alert, Linking, Pressable, View } from "react-native";
 import { AppText as Text } from "../../components/AppText";
 import { ProviderIcon } from "../../components/ProviderIcon";
@@ -32,7 +32,7 @@ export function ChatGptSharingStatus({ provider }: { provider: ServerProvider | 
         className="min-h-11 justify-center"
         onPress={() => void Linking.openURL(CHATGPT_USAGE_URL).catch(() => undefined)}
       >
-        <Text className="text-xs font-supacode-medium text-primary">Manage usage</Text>
+        <Text className="text-xs font-supaterm-medium text-primary">Manage usage</Text>
       </Pressable>
     </View>
   );

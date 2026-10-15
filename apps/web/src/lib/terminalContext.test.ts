@@ -1,6 +1,6 @@
-import { ThreadId } from "@supacode/contracts";
+import { ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
-import { collectComposerContextReferences } from "@supacode/shared/composerContextReferences";
+import { collectComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 import { terminalContextRecord } from "./composerContextRecords";
 
 import {
@@ -49,7 +49,7 @@ describe("terminalContext", () => {
 
   it("formats a terminal context as a canonical reference link", () => {
     expect(formatTerminalContextReference(makeContext())).toBe(
-      "[Terminal 1 lines 12-13](supacode-context://v1/terminal/terminal_context-1)",
+      "[Terminal 1 lines 12-13](supaterm-context://v1/terminal/terminal_context-1)",
     );
   });
 

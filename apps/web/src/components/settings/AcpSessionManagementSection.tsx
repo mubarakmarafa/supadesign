@@ -2,7 +2,7 @@ import {
   AuthOrchestrationOperateScope,
   AuthProvidersManageScope,
   AuthOrchestrationReadScope,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useEnvironmentScope, readEnvironmentScope } from "~/state/session";
 import type {
   AcpRegistryConfigurableProvider,
@@ -11,12 +11,12 @@ import type {
   ProjectId,
   ProviderInstanceId,
   ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { useState } from "react";
 
 import { ensureLocalApi } from "../../localApi";
@@ -302,7 +302,7 @@ export function AcpSessionManagementSection(props: {
     <div className="grid gap-3">
       <SettingsRow
         title="Native sessions"
-        description="Resume agent-owned conversations as Supacode threads."
+        description="Resume agent-owned conversations as Supaterm threads."
         status={
           canList && props.projects.length === 0
             ? "Add a project before importing sessions."

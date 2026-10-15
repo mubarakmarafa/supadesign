@@ -4,9 +4,9 @@ import {
   createEnvironmentSnapshotAtom,
   createShellEnvironmentAtoms,
   type EnvironmentShellState,
-} from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/shell";
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { Atom } from "effect/reactivity";
 

@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { ProviderDriverKind, ProviderInstanceId } from "@supacode/contracts";
+import { ProviderDriverKind, ProviderInstanceId } from "@supaterm/contracts";
 
 import { hasValidClaudeManifestAdapters } from "./ClaudeModelManifest.ts";
 import { resolveProviderCatalog, type ModelManifestData } from "./ModelManifest.ts";

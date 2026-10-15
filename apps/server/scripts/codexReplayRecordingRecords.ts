@@ -1,6 +1,6 @@
 const REPLAY_WORKSPACE_PLACEHOLDER = "<workspace>";
 const REPLAY_HOME = "/home/replay-user";
-const REPLAY_CHECKOUT = "/home/replay-user/supacode";
+const REPLAY_CHECKOUT = "/home/replay-user/supaterm";
 const REPLAY_HOSTNAME = "replay-host";
 /** Account- and install-scoped values Codex reports; the adapter reads none of them. */
 const REPLAY_VALUES_BY_KEY: Readonly<Record<string, string>> = {

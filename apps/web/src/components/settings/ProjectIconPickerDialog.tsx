@@ -5,7 +5,7 @@ import {
   ProjectMonogramText,
   type ProjectIconColor,
   type ProjectIconOverride,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { DynamicIcon, type IconName } from "lucide-react/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {

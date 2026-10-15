@@ -21,7 +21,7 @@ export class ProviderInstanceNotFoundError extends Schema.TaggedError<ProviderIn
   }
 }
 
-export { ProviderDriverError } from "@supacode/provider-core/server/errors";
+export { ProviderDriverError } from "@supaterm/provider-core/server/errors";
 
 /**
  * ProviderWorkspaceMissingError - The session's working directory no longer

@@ -6,8 +6,8 @@ import {
   ProviderDriverKind,
   type ProviderInstanceId,
   type ServerProviderModel,
-} from "@supacode/contracts";
-import { type CustomModelDefinition, normalizeCustomModelSlug } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { type CustomModelDefinition, normalizeCustomModelSlug } from "@supaterm/shared/model";
 
 import { cn } from "../../lib/utils";
 import { sortModelsForProviderInstance } from "../../modelOrdering";

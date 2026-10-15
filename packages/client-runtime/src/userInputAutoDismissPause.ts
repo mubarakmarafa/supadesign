@@ -1,4 +1,4 @@
-import type { EnvironmentId, RuntimeRequestId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, RuntimeRequestId, ThreadId } from "@supaterm/contracts";
 
 export function createUserInputAutoDismissPause() {
   let requestedKey: string | null = null;

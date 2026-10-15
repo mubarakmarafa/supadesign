@@ -1,9 +1,9 @@
 import { Image } from "expo-image";
 import { Path, Svg } from "react-native-svg";
 import { View } from "react-native";
-import { providerInstanceInitials } from "@supacode/client-runtime/state/provider-instance-display";
+import { providerInstanceInitials } from "@supaterm/client-runtime/state/provider-instance-display";
 import { useState } from "react";
-import { resolveOfficialAcpRegistryIconUrl } from "@supacode/contracts";
+import { resolveOfficialAcpRegistryIconUrl } from "@supaterm/contracts";
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { AppText as Text } from "./AppText";
 import { getProviderClient } from "../lib/providerClients";

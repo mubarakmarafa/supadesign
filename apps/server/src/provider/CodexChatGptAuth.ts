@@ -7,8 +7,8 @@ import {
   type ChatGptReconnectProfile,
   type ChatGptTransferredProfile,
   type ProviderInstanceId,
-} from "@supacode/contracts";
-import { codexCallbackUrl } from "@supacode/shared/codexAuthHandoff";
+} from "@supaterm/contracts";
+import { codexCallbackUrl } from "@supaterm/shared/codexAuthHandoff";
 import * as Clock from "effect/Clock";
 import * as Cause from "effect/Cause";
 import * as AnalyticsService from "../telemetry/AnalyticsService.ts";
@@ -19,8 +19,8 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
-import * as ProviderAuthFlow from "@supacode/provider-core/server/providerAuthFlow";
-import type { ProviderAuthFlowContext } from "@supacode/provider-core/server/providerAuthFlow";
+import * as ProviderAuthFlow from "@supaterm/provider-core/server/providerAuthFlow";
+import type { ProviderAuthFlowContext } from "@supaterm/provider-core/server/providerAuthFlow";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import * as ProviderCredentialStore from "./ProviderCredentialStore.ts";
 import { withChatGptSessionLock } from "./CodexChatGptSessionLock.ts";
@@ -520,7 +520,7 @@ export const makeCodexChatGptAuth = Effect.fn("makeCodexChatGptAuth")(function* 
               ? { prompt: "consent" }
               : {}),
           }
-        : { agent_name_hint: "supacode" }),
+        : { agent_name_hint: "supaterm" }),
       ext_agent_host_id: hostId,
       response_type: "code",
       redirect_uri: redirectUri,

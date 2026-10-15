@@ -1,4 +1,4 @@
-import { type RunId } from "@supacode/contracts";
+import { type RunId } from "@supaterm/contracts";
 import { type MouseEvent, type ReactNode, memo, useCallback, useMemo, useState } from "react";
 import { type TurnDiffFileChange } from "../../types";
 import {

@@ -8,8 +8,8 @@
  *
  * @module AnalyticsService
  */
-import * as HostProcess from "@supacode/shared/HostProcess";
-import type { ClientOs } from "@supacode/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import type { ClientOs } from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
@@ -67,15 +67,15 @@ export function retryDelayMs(failures: number, random: number): number {
 }
 
 const TelemetryEnvConfig = Config.all({
-  posthogKey: Config.String("SUPACODE_POSTHOG_KEY").pipe(
+  posthogKey: Config.String("SUPATERM_POSTHOG_KEY").pipe(
     Config.withDefault("phc_mpkbs8jxUDhRkrsvAPZEpzVxykW3Ce2HEPGPrfhgSrLC"), // gitleaks:allow
   ),
-  posthogHost: Config.String("SUPACODE_POSTHOG_HOST").pipe(
+  posthogHost: Config.String("SUPATERM_POSTHOG_HOST").pipe(
     Config.withDefault("https://us.i.posthog.com"),
   ),
-  enabled: Config.Boolean("SUPACODE_TELEMETRY_ENABLED").pipe(Config.withDefault(true)),
-  flushBatchSize: Config.Number("SUPACODE_TELEMETRY_FLUSH_BATCH_SIZE").pipe(Config.withDefault(20)),
-  maxBufferedEvents: Config.Number("SUPACODE_TELEMETRY_MAX_BUFFERED_EVENTS").pipe(
+  enabled: Config.Boolean("SUPATERM_TELEMETRY_ENABLED").pipe(Config.withDefault(true)),
+  flushBatchSize: Config.Number("SUPATERM_TELEMETRY_FLUSH_BATCH_SIZE").pipe(Config.withDefault(20)),
+  maxBufferedEvents: Config.Number("SUPATERM_TELEMETRY_MAX_BUFFERED_EVENTS").pipe(
     Config.withDefault(1_000),
   ),
   wslDistroName: Config.String("WSL_DISTRO_NAME").pipe(Config.option),
@@ -93,7 +93,7 @@ export class AnalyticsService extends Context.Service<
     /** Flush all currently queued telemetry events. */
     readonly flush: Effect.Effect<void>;
   }
->()("supacode/telemetry/AnalyticsService") {
+>()("supaterm/telemetry/AnalyticsService") {
   /** No-op layer for callers that intentionally disable telemetry. */
   static readonly layerTest = Layer.succeed(
     AnalyticsService,
@@ -188,7 +188,7 @@ export const make = Effect.gen(function* () {
           platform: hostPlatform,
           wsl: Option.getOrUndefined(telemetryConfig.wslDistroName),
           arch: hostArchitecture,
-          supacodeVersion: packageJson.version,
+          supatermVersion: packageJson.version,
           clientType,
           serverOs: serverOsFromNodePlatform(hostPlatform),
           serverArch: hostArchitecture,

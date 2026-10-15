@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, it, vi } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as ConfigProvider from "effect/ConfigProvider";
@@ -11,8 +11,8 @@ import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
 import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/http";
 
-import { GitCommandError } from "@supacode/contracts";
-import * as BitbucketApi from "@supacode/source-control-bitbucket/server/BitbucketApi";
+import { GitCommandError } from "@supaterm/contracts";
+import * as BitbucketApi from "@supaterm/source-control-bitbucket/server/BitbucketApi";
 import * as ServerSettings from "../serverSettings.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
@@ -35,7 +35,7 @@ const bitbucketPullRequest = {
   source: {
     branch: { name: "feature/source-control" },
     repository: {
-      full_name: "octocat/supacode",
+      full_name: "octocat/supaterm",
       workspace: { slug: "octocat" },
     },
   },
@@ -160,9 +160,9 @@ function makeLayer(input: {
       ConfigProvider.layer(
         ConfigProvider.fromEnv({
           env: input.env ?? {
-            SUPACODE_BITBUCKET_API_BASE_URL: "https://api.test.local/2.0",
-            SUPACODE_BITBUCKET_EMAIL: "user@example.com",
-            SUPACODE_BITBUCKET_API_TOKEN: "token",
+            SUPATERM_BITBUCKET_API_BASE_URL: "https://api.test.local/2.0",
+            SUPATERM_BITBUCKET_EMAIL: "user@example.com",
+            SUPATERM_BITBUCKET_API_TOKEN: "token",
           },
         }),
       ),
@@ -198,7 +198,7 @@ it.effect("parses pull request responses from the Bitbucket REST API", () => {
       state: "open",
       updatedAt: Option.some(DateTime.makeUnsafe("2026-01-02T00:00:00.000Z")),
       isCrossRepository: true,
-      headRepositoryNameWithOwner: "octocat/supacode",
+      headRepositoryNameWithOwner: "octocat/supaterm",
       headRepositoryOwnerLogin: "octocat",
     });
     assert.strictEqual(
@@ -354,7 +354,7 @@ it.effect.each([false, true])(
 
     return Effect.gen(function* () {
       const bitbucket = yield* BitbucketApi.BitbucketApi;
-      for (const repository of ["supacode", "", " \t "]) {
+      for (const repository of ["supaterm", "", " \t "]) {
         const error = yield* bitbucket
           .getRepositoryCloneUrls({
             cwd: "/repo",
@@ -684,7 +684,7 @@ it.effect("never puts a saved token that is unsafe for an HTTP header on the wir
 it.effect("reports saved credentials as configured when Bitbucket cannot confirm them", () => {
   const { layer } = makeLayer({
     response: () => new Response(null, { status: 401 }),
-    env: { SUPACODE_BITBUCKET_API_BASE_URL: "https://api.test.local/2.0" },
+    env: { SUPATERM_BITBUCKET_API_BASE_URL: "https://api.test.local/2.0" },
   });
 
   return Effect.gen(function* () {
@@ -938,15 +938,15 @@ it.effect("preserves Git checkout failures without deriving the domain message f
 it.effect("checks out fork pull requests through an ensured fork remote", () => {
   const { git, layer } = makeLayer({
     response: (request) => {
-      if (request.url.endsWith("/repositories/octocat/supacode")) {
+      if (request.url.endsWith("/repositories/octocat/supaterm")) {
         return Response.json({
           ...repositoryJson,
-          full_name: "octocat/supacode",
+          full_name: "octocat/supaterm",
           links: {
-            html: { href: "https://bitbucket.org/octocat/supacode" },
+            html: { href: "https://bitbucket.org/octocat/supaterm" },
             clone: [
-              { name: "https", href: "https://bitbucket.org/octocat/supacode.git" },
-              { name: "ssh", href: "git@bitbucket.org:octocat/supacode.git" },
+              { name: "https", href: "https://bitbucket.org/octocat/supaterm.git" },
+              { name: "ssh", href: "git@bitbucket.org:octocat/supaterm.git" },
             ],
           },
         });
@@ -956,7 +956,7 @@ it.effect("checks out fork pull requests through an ensured fork remote", () => 
         source: {
           branch: { name: "main" },
           repository: {
-            full_name: "octocat/supacode",
+            full_name: "octocat/supaterm",
             workspace: { slug: "octocat" },
           },
         },
@@ -975,23 +975,23 @@ it.effect("checks out fork pull requests through an ensured fork remote", () => 
     assert.deepStrictEqual(git.ensureRemote.mock.calls[0]?.[0], {
       cwd: "/repo",
       preferredName: "octocat",
-      url: "git@bitbucket.org:octocat/supacode.git",
+      url: "git@bitbucket.org:octocat/supaterm.git",
     });
     assert.deepStrictEqual(git.fetchRemoteBranch.mock.calls[0]?.[0], {
       cwd: "/repo",
       remoteName: "octocat",
       remoteBranch: "main",
-      localBranch: "supacode/pr-42/main",
+      localBranch: "supaterm/pr-42/main",
     });
     assert.deepStrictEqual(git.setBranchUpstream.mock.calls[0]?.[0], {
       cwd: "/repo",
-      branch: "supacode/pr-42/main",
+      branch: "supaterm/pr-42/main",
       remoteName: "octocat",
       remoteBranch: "main",
     });
     assert.deepStrictEqual(git.switchRef.mock.calls[0]?.[0], {
       cwd: "/repo",
-      refName: "supacode/pr-42/main",
+      refName: "supaterm/pr-42/main",
     });
   }).pipe(Effect.provide(layer));
 });

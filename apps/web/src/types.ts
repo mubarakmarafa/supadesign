@@ -1,4 +1,4 @@
-import { imageMimeType } from "@supacode/shared/image";
+import { imageMimeType } from "@supaterm/shared/image";
 import type {
   ChatFileAttachment as ContractChatFileAttachment,
   ChatImageAttachment as ContractChatImageAttachment,
@@ -15,16 +15,16 @@ import type {
   RuntimeMode,
   ScheduledTaskId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
   ThreadRuntimeSummary,
-} from "@supacode/client-runtime/state/shell";
-import type { ThreadCheckpointSummary } from "@supacode/client-runtime/state/thread-checkpoints";
-import { videoMimeType } from "@supacode/shared/video";
+} from "@supaterm/client-runtime/state/shell";
+import type { ThreadCheckpointSummary } from "@supaterm/client-runtime/state/thread-checkpoints";
+import { videoMimeType } from "@supaterm/shared/video";
 
-export { videoMimeType } from "@supacode/shared/video";
+export { videoMimeType } from "@supaterm/shared/video";
 
 export type SessionPhase = "disconnected" | "connecting" | "ready" | "running";
 export const DEFAULT_RUNTIME_MODE: RuntimeMode = "full-access";
@@ -81,7 +81,7 @@ export function isVideoAttachment(attachment: ChatFileAttachment): boolean {
 }
 
 export interface ChatMessage {
-  readonly context?: import("@supacode/contracts").OrchestrationMessageContext | undefined;
+  readonly context?: import("@supaterm/contracts").OrchestrationMessageContext | undefined;
   readonly id: MessageId;
   readonly role: "user" | "assistant" | "system";
   readonly text: string;

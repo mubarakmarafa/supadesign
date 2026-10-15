@@ -4,7 +4,7 @@ import {
   htmlRenderResult,
   readHtmlRenderContentHeight,
   readHtmlRenderLinkRequest,
-} from "@supacode/shared/htmlRender";
+} from "@supaterm/shared/htmlRender";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useHtmlRenderTheme } from "~/hooks/useHtmlRenderTheme";

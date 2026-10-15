@@ -1,4 +1,4 @@
-import { DesktopThemeSchema, type DesktopTheme } from "@supacode/contracts";
+import { DesktopThemeSchema, type DesktopTheme } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -26,7 +26,7 @@ export class ElectronTheme extends Context.Service<
     readonly setSource: (theme: DesktopTheme) => Effect.Effect<void, ElectronThemeSetSourceError>;
     readonly onUpdated: (listener: () => void) => Effect.Effect<void, never, Scope.Scope>;
   }
->()("@supacode/desktop/electron/ElectronTheme") {}
+>()("@supaterm/desktop/electron/ElectronTheme") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = ElectronTheme.of({

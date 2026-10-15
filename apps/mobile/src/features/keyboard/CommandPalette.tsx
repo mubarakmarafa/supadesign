@@ -1,11 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
-import type { EnvironmentThreadSearchMatch } from "@supacode/client-runtime/state/thread-search";
+import type { EnvironmentThreadSearchMatch } from "@supaterm/client-runtime/state/thread-search";
 import {
   AuthOrchestrationOperateScope,
   THREAD_JUMP_KEYBINDING_COMMANDS,
-} from "@supacode/contracts";
-import { resolveThreadForkSource } from "@supacode/client-runtime/state/thread-workflows";
-import { threadPullRequestSearchTerms } from "@supacode/shared/threadPullRequests";
+} from "@supaterm/contracts";
+import { resolveThreadForkSource } from "@supaterm/client-runtime/state/thread-workflows";
+import { threadPullRequestSearchTerms } from "@supaterm/shared/threadPullRequests";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
@@ -27,7 +27,7 @@ import { AppText as Text } from "../../components/AppText";
 import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
 import { cn } from "../../lib/cn";
 import { scopedProjectKey, scopedThreadKey } from "../../lib/scopedEntities";
-import { SupacodeKeyboardCommands } from "../../native/SupacodeKeyboardCommands";
+import { SupatermKeyboardCommands } from "../../native/SupatermKeyboardCommands";
 import { useProjects, useThreadShell, useThreadShells } from "../../state/entities";
 import { useThreadSearch } from "../../state/queries";
 import { useThreadProjection } from "../../state/use-thread-detail";
@@ -446,7 +446,7 @@ export function CommandPalette(props: {
       onDismiss={handleDismissed}
     >
       <GestureHandlerRootView className="flex-1">
-        <SupacodeKeyboardCommands enabledCommands={PALETTE_COMMANDS} onCommand={onCommand}>
+        <SupatermKeyboardCommands enabledCommands={PALETTE_COMMANDS} onCommand={onCommand}>
           <KeyboardAvoidingView
             behavior="padding"
             className="flex-1 items-center justify-center p-4"
@@ -531,7 +531,7 @@ export function CommandPalette(props: {
               />
             </GlassSurface>
           </KeyboardAvoidingView>
-        </SupacodeKeyboardCommands>
+        </SupatermKeyboardCommands>
       </GestureHandlerRootView>
     </Modal>
   );

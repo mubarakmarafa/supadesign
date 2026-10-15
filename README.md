@@ -1,30 +1,30 @@
-# Supacode
+# Supaterm
 
-The next version of supacode, a command center for ur coding agents
+A command center for ur coding agents
 
 ## Desktop app
 
-Download at https://next.supacode.sh
+Download at https://supaterm.com
 
 ## iOS app
 
-[Join the Supacode beta on TestFlight](https://testflight.apple.com/join/ga2vGT3h).
+[Join the Supaterm beta on TestFlight](https://testflight.apple.com/join/ga2vGT3h).
 
 ## Command line
 
 ```
-curl -fsSL https://next.supacode.sh/install.sh | sh
+curl -fsSL https://supaterm.com/install.sh | sh
 ```
 
 on Windows
 
 ```
-irm https://next.supacode.sh/install.ps1 | iex
+irm https://supaterm.com/install.ps1 | iex
 ```
 
-Then run `supacode` to start the server and open the local web app. `supacode service install` keeps it running in the background, `supacode update` moves to a newer release
+Then run `supaterm` to start the server and open the local web app. `supaterm service install` keeps it running in the background, `supaterm update` moves to a newer release
 
-To try it once without installing, run npx supacode@latest instead.
+To try it once without installing, run npx supaterm@latest instead.
 
 ## Documentation
 
@@ -43,4 +43,4 @@ The [documentation index](./docs/README.md) for all pages.
 
 ## Attribution
 
-Supacode is a fork of https://github.com/pingdotgg/t3code
+Supaterm is a fork of https://github.com/pingdotgg/t3code

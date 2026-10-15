@@ -1,15 +1,15 @@
 import { useNavigation, useNavigationState, useRoute } from "@react-navigation/native";
-import { threadPullRequestLinkMode } from "@supacode/client-runtime/thread-pull-request-compatibility";
+import { threadPullRequestLinkMode } from "@supaterm/client-runtime/thread-pull-request-compatibility";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
   ThreadId,
   type PullRequestDetail,
   type PullRequestLinkedThreadsResult,
-} from "@supacode/contracts";
-import { formatComposerContextReference } from "@supacode/shared/composerContextReferences";
-import { parseChangeRequestUrl } from "@supacode/shared/changeRequestUrl";
-import { normalizeThreadPullRequestKey } from "@supacode/shared/threadPullRequests";
+} from "@supaterm/contracts";
+import { formatComposerContextReference } from "@supaterm/shared/composerContextReferences";
+import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
+import { normalizeThreadPullRequestKey } from "@supaterm/shared/threadPullRequests";
 import { useRef, useState } from "react";
 import { Alert, Platform } from "react-native";
 import { useAndroidWorkspaceSelection } from "../workspace/useAndroidWorkspaceSelection";

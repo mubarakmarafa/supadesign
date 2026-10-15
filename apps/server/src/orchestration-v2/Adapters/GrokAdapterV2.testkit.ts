@@ -1,21 +1,21 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { GrokSettings } from "@supacode/provider-grok/settings";
+import { GrokSettings } from "@supaterm/provider-grok/settings";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveSelfInvocation } from "@supacode/shared/nodeRuntime";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveSelfInvocation } from "@supaterm/shared/nodeRuntime";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import { GROK_ACP_CANCEL_META, GROK_ACP_INITIALIZE_META } from "@supacode/provider-grok/testing";
-import { makeXAiPromptCompletionRuntime } from "@supacode/provider-grok/testing";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import { GROK_ACP_CANCEL_META, GROK_ACP_INITIALIZE_META } from "@supaterm/provider-grok/testing";
+import { makeXAiPromptCompletionRuntime } from "@supaterm/provider-grok/testing";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import * as ProviderAdapterRegistry from "../ProviderAdapterRegistry.ts";
-import type { ProviderReplayGate } from "@supacode/provider-testing/replayGate";
+import type { ProviderReplayGate } from "@supaterm/provider-testing/replayGate";
 import type { OrchestratorV2ProviderReplayHarness } from "../testkit/ProviderReplayHarness.ts";
 import {
   type AcpReplayTranscript,
@@ -28,7 +28,7 @@ import {
   GROK_DEFAULT_INSTANCE_ID,
   GROK_PROVIDER,
   makeGrokAdapterV2,
-} from "@supacode/provider-grok/testing";
+} from "@supaterm/provider-grok/testing";
 
 const DEFAULT_GROK_SETTINGS = Schema.decodeUnknownSync(GrokSettings)({});
 
@@ -49,7 +49,7 @@ function layerGrokProviderAdapterRegistryReplay(
       const replayGate = options.replayGate;
       const replayDir = yield* fileSystem
         .makeTempDirectory({
-          prefix: `supacode-orchestration-v2-grok-replay-${transcript.scenario}-`,
+          prefix: `supaterm-orchestration-v2-grok-replay-${transcript.scenario}-`,
         })
         .pipe(Effect.orDie);
       const statusPath = path.join(replayDir, "status.json");

@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import type {
@@ -18,7 +18,7 @@ function member(id: string, environmentId: EnvironmentId): SidebarProjectGroupMe
   return {
     id: ProjectId.make(id),
     environmentId,
-    title: "supacode",
+    title: "supaterm",
     workspaceRoot: `/repos/${id}`,
     physicalProjectKey: `${environmentId}:/repos/${id}`,
     environmentLabel:
@@ -57,21 +57,21 @@ function group(
   };
 }
 
-const groups = [group("supacode", [first, second, third]), group("other", [other])];
+const groups = [group("supaterm", [first, second, third]), group("other", [other])];
 
 describe("settings scope search", () => {
   it("ignores the retired scope key from older links", () => {
-    expect(validateSettingsScopeSearch({ scope: "device", project: "supacode" })).toEqual({
-      project: "supacode",
+    expect(validateSettingsScopeSearch({ scope: "device", project: "supaterm" })).toEqual({
+      project: "supaterm",
     });
     expect(validateSettingsScopeSearch({ scope: "all" })).toEqual({});
   });
 
   it("retains legacy project and machine links without inventing an explicit broad scope", () => {
     expect(
-      validateSettingsScopeSearch({ project: "supacode", machine: laptopId, unused: true }),
+      validateSettingsScopeSearch({ project: "supaterm", machine: laptopId, unused: true }),
     ).toEqual({
-      project: "supacode",
+      project: "supaterm",
       machine: laptopId,
     });
   });
@@ -107,7 +107,7 @@ describe("settings scope resolution", () => {
   });
 
   it("keeps all physical members in a project aggregate, including several on one environment", () => {
-    expect(resolveSettingsScope({ project: "supacode" }, groups, environments)).toMatchObject({
+    expect(resolveSettingsScope({ project: "supaterm" }, groups, environments)).toMatchObject({
       kind: "project",
       environmentId: null,
       members: [first, second, third],
@@ -117,11 +117,11 @@ describe("settings scope resolution", () => {
 
   it("preserves legacy project plus machine aggregates with multiple checkouts", () => {
     expect(
-      resolveSettingsScope({ project: "supacode", machine: laptopId }, groups, environments),
+      resolveSettingsScope({ project: "supaterm", machine: laptopId }, groups, environments),
     ).toMatchObject({
       kind: "project",
       environmentId: laptopId,
-      label: "supacode / Laptop",
+      label: "supaterm / Laptop",
       members: [first, second],
       environmentIds: [laptopId],
     });
@@ -130,7 +130,7 @@ describe("settings scope resolution", () => {
   it("narrows a checkout target to exactly one member, deriving its environment when omitted", () => {
     expect(
       resolveSettingsScope(
-        { project: "supacode", checkout: second.physicalProjectKey },
+        { project: "supaterm", checkout: second.physicalProjectKey },
         groups,
         environments,
       ),
@@ -138,7 +138,7 @@ describe("settings scope resolution", () => {
       kind: "checkout",
       checkout: second,
       environmentId: laptopId,
-      label: "supacode / Laptop · /repos/second",
+      label: "supaterm / Laptop · /repos/second",
       members: [second],
       environmentIds: [laptopId],
     });
@@ -147,11 +147,11 @@ describe("settings scope resolution", () => {
   it.each([
     { project: "missing" },
     { machine: "removed" },
-    { project: "supacode", machine: "removed" },
-    { project: "supacode", checkout: "deleted" },
+    { project: "supaterm", machine: "removed" },
+    { project: "supaterm", checkout: "deleted" },
     { project: "other", machine: laptopId },
     { project: "other", checkout: first.physicalProjectKey },
-    { project: "supacode", machine: serverId, checkout: first.physicalProjectKey },
+    { project: "supaterm", machine: serverId, checkout: first.physicalProjectKey },
   ])("never widens an invalid or stale target: %j", (search) => {
     expect(resolveSettingsScope(search, groups, environments)).toMatchObject({
       kind: "unavailable",
@@ -162,7 +162,7 @@ describe("settings scope resolution", () => {
 
   it("leaves a removed checkout unavailable while sibling checkouts remain", () => {
     const search = {
-      project: "supacode",
+      project: "supaterm",
       machine: laptopId,
       checkout: first.physicalProjectKey,
     };
@@ -171,17 +171,17 @@ describe("settings scope resolution", () => {
       members: [first],
     });
     expect(
-      resolveSettingsScope(search, [group("supacode", [second, third])], environments),
+      resolveSettingsScope(search, [group("supaterm", [second, third])], environments),
     ).toMatchObject({ kind: "unavailable", members: [], environmentIds: [] });
   });
 
   it("does not select another environment after removing a project's last local checkout", () => {
-    const search = { project: "supacode", machine: laptopId };
+    const search = { project: "supaterm", machine: laptopId };
     expect(resolveSettingsScope(search, groups, environments)).toMatchObject({
       kind: "project",
       members: [first, second],
     });
-    expect(resolveSettingsScope(search, [group("supacode", [third])], environments)).toMatchObject({
+    expect(resolveSettingsScope(search, [group("supaterm", [third])], environments)).toMatchObject({
       kind: "unavailable",
       members: [],
       environmentIds: [],
@@ -191,7 +191,7 @@ describe("settings scope resolution", () => {
   it("rejects a cached checkout whose environment was removed", () => {
     expect(
       resolveSettingsScope(
-        { project: "supacode", checkout: third.physicalProjectKey },
+        { project: "supaterm", checkout: third.physicalProjectKey },
         groups,
         environments.slice(0, 1),
       ),

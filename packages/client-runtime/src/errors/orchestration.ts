@@ -1,4 +1,4 @@
-import { OrchestrationDispatchCommandError } from "@supacode/contracts";
+import { OrchestrationDispatchCommandError } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 const isOrchestrationDispatchCommandError = Schema.is(OrchestrationDispatchCommandError);

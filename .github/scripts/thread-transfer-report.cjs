@@ -3,7 +3,7 @@ const path = require("node:path");
 
 const ARTIFACT_NAME = "thread-transfer-results";
 const RESULT_FILE = "thread-transfer-result.json";
-const COMMENT_MARKER = "<!-- supacode-thread-transfer-report -->";
+const COMMENT_MARKER = "<!-- supaterm-thread-transfer-report -->";
 const PROVIDERS = ["codex", "claudeAgent"];
 const OBSERVED_KEYS = [
   "totalWireBytes",
@@ -30,7 +30,7 @@ const SCENARIO_KEYS = [
 ];
 
 function resultShaMarker(sha) {
-  return `<!-- supacode-thread-transfer-result-sha:${sha} -->`;
+  return `<!-- supaterm-thread-transfer-result-sha:${sha} -->`;
 }
 
 function assertObject(value, label) {

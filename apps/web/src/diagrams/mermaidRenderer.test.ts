@@ -1,4 +1,4 @@
-import { MERMAID_ASCII_LIMITS } from "@supacode/mermaid-ascii/limits";
+import { MERMAID_ASCII_LIMITS } from "@supaterm/mermaid-ascii/limits";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { createBrowserDiagramRenderer } from "./mermaidRenderer";

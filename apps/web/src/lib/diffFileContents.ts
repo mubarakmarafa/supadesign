@@ -2,7 +2,7 @@ import type { FileDiffContentsLoader } from "@pierre/diffs";
 import {
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import type {
   EnvironmentId,
   PullRequestDiffFileContentsInput,
@@ -11,7 +11,7 @@ import type {
   ReviewDiffFileContentsInput,
   ReviewDiffFileContentsResult,
   ReviewDiffPreviewSourceKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { resolveFileDiffPath } from "./diffRendering";
 

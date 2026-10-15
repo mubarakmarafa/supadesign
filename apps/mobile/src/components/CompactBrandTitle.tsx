@@ -33,7 +33,7 @@ export function CompactBrandTitle(
   return (
     <View
       aria-level={1}
-      accessibilityLabel={props.accessibilityLabel ?? "Supacode, Threads"}
+      accessibilityLabel={props.accessibilityLabel ?? "Supaterm, Threads"}
       accessible
       role="heading"
       className="flex-row items-center gap-1.5"
@@ -41,10 +41,10 @@ export function CompactBrandTitle(
     >
       <Text
         allowFontScaling={props.allowFontScaling}
-        className="font-supacode-bold text-foreground-muted"
+        className="font-supaterm-bold text-foreground-muted"
         style={{ fontSize: 21 * scale, letterSpacing: -0.5 * scale }}
       >
-        Supacode
+        Supaterm
       </Text>
       {stageLabel ? (
         <View
@@ -57,7 +57,7 @@ export function CompactBrandTitle(
         >
           <Text
             allowFontScaling={props.allowFontScaling}
-            className="font-supacode-bold text-foreground-muted uppercase"
+            className="font-supaterm-bold text-foreground-muted uppercase"
             style={{ fontSize: 9 * scale, letterSpacing: 0.9 * scale }}
           >
             {stageLabel}

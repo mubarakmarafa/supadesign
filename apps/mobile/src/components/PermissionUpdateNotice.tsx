@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { sessionHasLegacyPermissions } from "@supacode/contracts";
+import { sessionHasLegacyPermissions } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -8,7 +8,7 @@ import { Alert } from "react-native";
 import { useEnvironments } from "../state/environments";
 import { environmentSession } from "../state/session";
 
-const storageKey = "supacode.permission-update.v1";
+const storageKey = "supaterm.permission-update.v1";
 const dismissedThisLaunch = new Set<string>();
 const shownThisLaunch = new Set<string>();
 

@@ -1,4 +1,4 @@
-import type { RunId, ThreadId } from "@supacode/contracts";
+import type { RunId, ThreadId } from "@supaterm/contracts";
 import { GitForkIcon } from "lucide-react";
 import { useState } from "react";
 

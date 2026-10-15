@@ -1,4 +1,4 @@
-import type { ModelSelection, OrchestrationV2ProviderCapabilities } from "@supacode/contracts";
+import type { ModelSelection, OrchestrationV2ProviderCapabilities } from "@supaterm/contracts";
 
 export interface ProviderSelectionTransitionInput {
   readonly current: ModelSelection;

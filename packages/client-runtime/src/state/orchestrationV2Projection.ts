@@ -3,11 +3,11 @@ import type {
   OrchestrationV2Run,
   OrchestrationV2ThreadProjection,
   OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   createOrchestrationV2TurnItemVisibility,
   isOrchestrationV2TurnItemVisible,
-} from "@supacode/shared/orchestrationV2Timeline";
+} from "@supaterm/shared/orchestrationV2Timeline";
 
 export type ApplyOrchestrationV2ProjectionEventOptions = {
   readonly partialTimeline?: boolean;

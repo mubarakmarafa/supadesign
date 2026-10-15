@@ -12,7 +12,7 @@ import {
   AuthSessionId,
   ClientSurface,
   ServerAuthSessionMethod,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   type AuthSessionRepositoryError,
@@ -130,7 +130,7 @@ export class AuthSessionRepository extends Context.Service<
       input: SetAuthSessionClientConnectionInput,
     ) => Effect.Effect<void, AuthSessionRepositoryError>;
   }
->()("supacode/persistence/AuthSessions/AuthSessionRepository") {}
+>()("supaterm/persistence/AuthSessions/AuthSessionRepository") {}
 
 const AuthSessionDbRow = Schema.Struct({
   sessionId: AuthSessionId,

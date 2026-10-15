@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { EnvironmentId, ProviderInstanceId } from "@supacode/contracts";
+import { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 
 import { ProviderSettingsPanel } from "../components/settings/ProviderSettingsPanel";
 import { useSettingsScope } from "../components/settings/SettingsScopeContext";

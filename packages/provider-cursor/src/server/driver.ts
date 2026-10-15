@@ -6,7 +6,7 @@
  *
  * @module provider/Drivers/CursorDriver
  */
-import { ProviderDriverKind, ProviderSetupError } from "@supacode/contracts";
+import { ProviderDriverKind, ProviderSetupError } from "@supaterm/contracts";
 import { CursorSettings } from "../settings.ts";
 import * as Effect from "effect/Effect";
 import * as Crypto from "effect/Crypto";
@@ -16,26 +16,26 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import { readCursorUsageLimits } from "./usageLimits.ts";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import { makeCursorTextGeneration } from "./textGeneration.ts";
 import { CursorAdapterV2Driver, type CursorAdapterV2DriverEnv } from "./adapter.ts";
-import { ProviderDriverError } from "@supacode/provider-core/server/errors";
+import { ProviderDriverError } from "@supaterm/provider-core/server/errors";
 import { buildInitialCursorProviderSnapshot, checkCursorProviderStatus } from "./status.ts";
 import * as CursorSdkCatalog from "./CursorSdkCatalog.ts";
-import { makeManagedServerProvider } from "@supacode/provider-core/server/managedProvider";
+import { makeManagedServerProvider } from "@supaterm/provider-core/server/managedProvider";
 import {
   defaultProviderContinuationIdentity,
   type ProviderDriver,
   type ProviderInstance,
-} from "@supacode/provider-core/server/driver";
-import { withInstanceIdentity } from "@supacode/provider-core/server/instanceIdentity";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
-import { makeManualOnlyProviderMaintenanceCapabilities } from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/driver";
+import { withInstanceIdentity } from "@supaterm/provider-core/server/instanceIdentity";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
+import { makeManualOnlyProviderMaintenanceCapabilities } from "@supaterm/provider-core/server/maintenanceResolver";
 import {
   haveProviderSnapshotSettingsChanged,
   makeProviderSnapshotSettingsSource,
   type ProviderSnapshotSettings,
-} from "@supacode/provider-core/server/snapshotSettings";
+} from "@supaterm/provider-core/server/snapshotSettings";
 import { probeCursorSkills } from "./skills.ts";
 import { makeCursorAuth } from "./auth.ts";
 import * as CursorCredentialStore from "./credentialStore.ts";
@@ -43,7 +43,7 @@ import * as CursorAgentSdk from "./CursorAgentSdk.ts";
 import * as CursorSdk from "./CursorSdk.ts";
 import * as CursorKeychain from "./CursorKeychain.ts";
 import * as CursorUsageAccounts from "./CursorUsageAccounts.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const decodeCursorSettings = Schema.decodeSync(CursorSettings);
 const isSdkRunnerError = Schema.is(CursorAgentSdk.CursorAgentSdkRunnerError);

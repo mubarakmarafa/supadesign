@@ -1,4 +1,4 @@
-import { type ProviderDriverKind, type ProviderInstanceId } from "@supacode/contracts";
+import { type ProviderDriverKind, type ProviderInstanceId } from "@supaterm/contracts";
 import { memo } from "react";
 import { CheckIcon, StarIcon } from "lucide-react";
 import {

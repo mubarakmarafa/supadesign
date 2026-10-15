@@ -1,4 +1,4 @@
-import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import type { DraftId } from "../composerDraftStore";
@@ -25,7 +25,7 @@ describe("window capture animation", () => {
     const source = {
       kind: "snap-shot" as const,
       capturedAt: "2026-08-29T00:00:00.000Z",
-      appName: "supacode",
+      appName: "supaterm",
       windowTitle: "Capture animation",
     };
 

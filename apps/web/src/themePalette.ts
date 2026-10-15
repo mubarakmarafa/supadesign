@@ -5,9 +5,9 @@ import { converter, parse } from "culori/fn";
 import {
   BUILT_IN_THEMES,
   GROVE_THEME,
-  SUPACODE_CHAT_THEME,
-  SUPACODE_LIGHT_THEME_COLORS,
-  SUPACODE_DARK_THEME_COLORS,
+  SUPATERM_CHAT_THEME,
+  SUPATERM_LIGHT_THEME_COLORS,
+  SUPATERM_DARK_THEME_COLORS,
   RESERVED_THEME_IDS,
   THEME_COLOR_ROLES,
   type ThemeAppearance,
@@ -15,18 +15,18 @@ import {
   type ThemeColors,
   type ThemeDefinition,
   type ThemeVariants,
-} from "@supacode/shared/themePalettes";
+} from "@supaterm/shared/themePalettes";
 
-export { GROVE_THEME, SUPACODE_CHAT_THEME, THEME_COLOR_ROLES };
+export { GROVE_THEME, SUPATERM_CHAT_THEME, THEME_COLOR_ROLES };
 export type { ThemeAppearance, ThemeColorRole, ThemeColors, ThemeDefinition, ThemeVariants };
 
-export const SUPACODE_CHAT_THEME_ID = "supacode-chat" as const;
+export const SUPATERM_CHAT_THEME_ID = "supaterm-chat" as const;
 export const OCEAN_THEME_ID = "ocean" as const;
 export const THEME_FILE_VERSION = 1 as const;
-export const CUSTOM_THEMES_STORAGE_KEY = "supacode:themes:v1";
-export const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "supacode:theme-follow-system";
-export const THEME_APPEARANCE_MODE_STORAGE_KEY = "supacode:theme-appearance-mode";
-export const THEME_HALVES_STORAGE_KEY = "supacode:theme-halves:v1";
+export const CUSTOM_THEMES_STORAGE_KEY = "supaterm:themes:v1";
+export const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "supaterm:theme-follow-system";
+export const THEME_APPEARANCE_MODE_STORAGE_KEY = "supaterm:theme-appearance-mode";
+export const THEME_HALVES_STORAGE_KEY = "supaterm:theme-halves:v1";
 
 export const ThemePreference = Schema.String;
 export type ThemePreference = typeof ThemePreference.Type;
@@ -314,16 +314,16 @@ export function subscribeToCustomThemes(listener: () => void): () => void {
 }
 
 /**
- * The standard Supacode look as a theme palette, for seeding a new theme when
+ * The standard Supaterm look as a theme palette, for seeding a new theme when
  * no theme is installed. Distinct from {@link getDefaultThemeColors}, which
- * carries the flagship Supacode Chat palette used to fill roles omitted by theme
+ * carries the flagship Supaterm Chat palette used to fill roles omitted by theme
  * files.
  */
 export function getStandardThemeColors(appearance: ThemeAppearance): ThemeColors {
   if (appearance === "dark") {
-    return (standardDarkThemeColors ??= decodeThemeColors(SUPACODE_DARK_THEME_COLORS));
+    return (standardDarkThemeColors ??= decodeThemeColors(SUPATERM_DARK_THEME_COLORS));
   }
-  return (standardLightThemeColors ??= decodeThemeColors(SUPACODE_LIGHT_THEME_COLORS));
+  return (standardLightThemeColors ??= decodeThemeColors(SUPATERM_LIGHT_THEME_COLORS));
 }
 
 type ThemeRgbColor = {
@@ -579,7 +579,7 @@ function solveOklchLightness(
 }
 
 /**
- * The status colors Supacode shows without a theme, read from the app's own
+ * The status colors Supaterm shows without a theme, read from the app's own
  * tokens (red-500 / amber-500 families). Generated palettes fall back to
  * these instead of the flagship theme's, so an imported or created theme
  * never inherits a brand tint on destructive buttons and warnings.
@@ -864,7 +864,7 @@ function standardMutedThemeText(
 
 /** Theme-file defaults follow the flagship palette for the requested mode. */
 export function getDefaultThemeColors(appearance: ThemeAppearance): ThemeColors {
-  return appearance === "dark" ? SUPACODE_CHAT_THEME.variants!.dark! : SUPACODE_CHAT_THEME.colors;
+  return appearance === "dark" ? SUPATERM_CHAT_THEME.variants!.dark! : SUPATERM_CHAT_THEME.colors;
 }
 
 /**
@@ -1073,13 +1073,13 @@ export function updateThemeColorFamily(
 
 const BUILT_IN_THEME_DEFINITIONS: ReadonlyArray<ThemeDefinition> = BUILT_IN_THEMES;
 
-// Resolve saved selections and appearance mixes without listing a second copy of Supacode.
+// Resolve saved selections and appearance mixes without listing a second copy of Supaterm.
 const LEGACY_GRAPHITE_THEME: ThemeDefinition = {
   id: "graphite",
-  label: "Supacode",
+  label: "Supaterm",
   appearance: "light",
-  colors: SUPACODE_LIGHT_THEME_COLORS,
-  variants: { dark: SUPACODE_DARK_THEME_COLORS },
+  colors: SUPATERM_LIGHT_THEME_COLORS,
+  variants: { dark: SUPATERM_DARK_THEME_COLORS },
 };
 
 export function getThemeDefinition(theme: ThemePreference): ThemeDefinition | null {

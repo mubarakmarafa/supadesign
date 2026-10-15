@@ -5,11 +5,11 @@ import {
   ProjectId,
   ProviderInstanceId,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { applyServerSettingsPatch } from "@supacode/shared/serverSettings";
+import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
 import * as Cause from "effect/Cause";
-import { resolveWorktreeCleanup } from "@supacode/shared/projectSettings";
+import { resolveWorktreeCleanup } from "@supaterm/shared/projectSettings";
 
 import type { SidebarProjectSnapshot } from "../../sidebarProjectGrouping";
 import {
@@ -487,7 +487,7 @@ describe("project overrides at environment scope", () => {
   const laptop = EnvironmentId.make("laptop");
   const desk = EnvironmentId.make("desk");
   const fleet = ProjectId.make("fleet");
-  const supacode = ProjectId.make("supacode");
+  const supaterm = ProjectId.make("supaterm");
   const environment = (
     environmentId: EnvironmentId,
     overrides: ServerSettings["projectSettingsOverrides"],
@@ -506,7 +506,7 @@ describe("project overrides at environment scope", () => {
       [
         environment(laptop, {
           [fleet]: { defaultAutoPull: true, defaultThreadEnvMode: "local" },
-          [supacode]: { defaultThreadEnvMode: "local" },
+          [supaterm]: { defaultThreadEnvMode: "local" },
         }),
         environment(desk, { [fleet]: { defaultAutoPull: false } }),
       ],
@@ -523,12 +523,12 @@ describe("project overrides at environment scope", () => {
       [
         environment(laptop, {
           [fleet]: { defaultAutoPull: true, defaultThreadEnvMode: "local" },
-          [supacode]: { defaultAutoPull: true },
+          [supaterm]: { defaultAutoPull: true },
         }),
       ],
       [
         { environmentId: laptop, projectId: fleet },
-        { environmentId: laptop, projectId: supacode },
+        { environmentId: laptop, projectId: supaterm },
       ],
       ["defaultAutoPull"],
     );
@@ -539,11 +539,11 @@ describe("project overrides at environment scope", () => {
         patch: {
           projectSettingsOverrides: {
             [fleet]: { defaultThreadEnvMode: "local" },
-            [supacode]: null,
+            [supaterm]: null,
           },
           projectSettingsOverrideRemovals: {
             [fleet]: ["defaultAutoPull"],
-            [supacode]: ["defaultAutoPull"],
+            [supaterm]: ["defaultAutoPull"],
           },
         },
       },

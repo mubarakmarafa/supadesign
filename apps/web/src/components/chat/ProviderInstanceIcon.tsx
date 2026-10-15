@@ -1,8 +1,8 @@
 import { type CSSProperties, memo } from "react";
 
-import { providerInstanceInitials } from "@supacode/client-runtime/state/provider-instance-display";
+import { providerInstanceInitials } from "@supaterm/client-runtime/state/provider-instance-display";
 
-import { ProviderDriverKind } from "@supacode/contracts";
+import { ProviderDriverKind } from "@supaterm/contracts";
 import { AntigravityIcon, ClaudeAI, Icon, OpenAI } from "../Icons";
 
 import { cn } from "~/lib/utils";

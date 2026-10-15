@@ -1,4 +1,4 @@
-import type { OrchestrationV2ThreadProjection } from "@supacode/contracts";
+import type { OrchestrationV2ThreadProjection } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { threadAllowsProviderSwitch } from "./thread-provider-switching";

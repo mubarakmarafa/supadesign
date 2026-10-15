@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { EnvironmentId, type ServerConfig } from "@supacode/contracts";
+import { EnvironmentId, type ServerConfig } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 

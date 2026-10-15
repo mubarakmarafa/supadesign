@@ -5,7 +5,7 @@ import {
   type OrchestrationV2ShellStreamItem,
   ThreadId,
   type ThreadPullRequestLink,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -961,7 +961,7 @@ describe("environment shell synchronization", () => {
     Effect.gen(function* () {
       const link = (number: number): ThreadPullRequestLink => ({
         host: "github.com",
-        repository: "pingdotgg/supacode",
+        repository: "pingdotgg/supaterm",
         number,
         url: `https://github.com/supabitapp/supacode-next/pull/${number}`,
         source: "agent",
@@ -1057,7 +1057,7 @@ describe("environment shell synchronization", () => {
     Effect.gen(function* () {
       const link: ThreadPullRequestLink = {
         host: "github.com",
-        repository: "pingdotgg/supacode",
+        repository: "pingdotgg/supaterm",
         number: 7,
         url: "https://github.com/supabitapp/supacode-next/pull/7",
         source: "agent",
@@ -1139,7 +1139,7 @@ describe("environment shell synchronization", () => {
     Effect.gen(function* () {
       const link: ThreadPullRequestLink = {
         host: "github.com",
-        repository: "pingdotgg/supacode",
+        repository: "pingdotgg/supaterm",
         number: 8,
         url: "https://github.com/supabitapp/supacode-next/pull/8",
         source: "agent",
@@ -1205,7 +1205,7 @@ describe("environment shell synchronization", () => {
     Effect.gen(function* () {
       const link = (number: number): ThreadPullRequestLink => ({
         host: "github.com",
-        repository: "pingdotgg/supacode",
+        repository: "pingdotgg/supaterm",
         number,
         url: `https://github.com/supabitapp/supacode-next/pull/${number}`,
         source: "agent",

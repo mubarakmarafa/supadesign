@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
-import { relayHttpBaseUrl, relayPublicKey } from "@supacode/shared/relay/protocol";
+import { relayHttpBaseUrl, relayPublicKey } from "@supaterm/shared/relay/protocol";
 import { layer, RelayGateway } from "./gateway.ts";
 
 const address = relayHttpBaseUrl(relayPublicKey(new Uint8Array(32).fill(19)));

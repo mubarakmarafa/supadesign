@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { ServerProviderModel } from "@supacode/contracts";
+import type { ServerProviderModel } from "@supaterm/contracts";
 
 import { groupModelsForDisplay, nextHiddenModelsForBulkToggle } from "./ProviderModelsSection";
 

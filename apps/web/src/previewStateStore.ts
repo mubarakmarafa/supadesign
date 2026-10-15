@@ -6,7 +6,7 @@
  * is the one place that must enumerate every live preview tab.
  */
 import { useAtomValue } from "@effect/atom-react";
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
 import {
   type DesktopPreviewColorScheme,
   type DesktopPreviewFavicon,
@@ -14,7 +14,7 @@ import {
   type PreviewListResult,
   type PreviewSessionSnapshot,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import { PREVIEW_RECENT_URL_LIMIT } from "./components/preview/previewConstants";

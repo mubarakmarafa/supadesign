@@ -1,7 +1,7 @@
 import {
   isWorkspaceAudioPreviewPath,
   isWorkspaceVideoPreviewPath,
-} from "@supacode/shared/filePreview";
+} from "@supaterm/shared/filePreview";
 
 export interface FileBreadcrumb {
   readonly label: string;

@@ -7,7 +7,7 @@ import {
   THREAD_JUMP_KEYBINDING_COMMANDS,
   type ModelPickerJumpKeybindingCommand,
   type ThreadJumpKeybindingCommand,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isMacPlatform,
   matchesKeybindingShortcut,
@@ -16,12 +16,12 @@ import {
   resolveEventKeys,
   type ShortcutEventLike,
   type ShortcutModifierStateLike,
-} from "@supacode/shared/keybindings";
+} from "@supaterm/shared/keybindings";
 import { isElectron } from "./env";
 import { projectScriptIdFromCommand } from "./projectScripts";
 
-export type { ShortcutEventLike, ShortcutModifierStateLike } from "@supacode/shared/keybindings";
-export { shortcutKeyFromEvent } from "@supacode/shared/keybindings";
+export type { ShortcutEventLike, ShortcutModifierStateLike } from "@supaterm/shared/keybindings";
+export { shortcutKeyFromEvent } from "@supaterm/shared/keybindings";
 
 export interface ShortcutMatchContext {
   terminalFocus: boolean;

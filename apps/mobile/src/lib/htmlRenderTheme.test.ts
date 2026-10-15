@@ -23,7 +23,7 @@ describe("mobileHtmlRenderTheme", () => {
 
   it("takes Material You's system roles over the default palette", () => {
     const variables = {
-      ...getMobileThemeVariables("supacode", "light"),
+      ...getMobileThemeVariables("supaterm", "light"),
       "--color-primary": "#6750A4FF",
       "--color-foreground": "#1D1B20FF",
     };

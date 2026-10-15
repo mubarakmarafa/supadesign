@@ -2,7 +2,7 @@ import type {
   PullRequestAction,
   PullRequestMergeMethod,
   PullRequestStackHead,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Clock from "effect/Clock";
 import * as Result from "effect/Result";

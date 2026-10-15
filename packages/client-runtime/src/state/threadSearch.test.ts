@@ -3,7 +3,7 @@ import {
   ProjectId,
   ThreadId,
   type OrchestrationSearchThreadsResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { expect, it } from "vite-plus/test";

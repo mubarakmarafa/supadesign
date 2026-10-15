@@ -6,11 +6,11 @@ const state = vi.hoisted(() => ({
   workflow: null as unknown,
 }));
 
-vi.mock("@supacode/client-runtime/environment", () => ({
+vi.mock("@supaterm/client-runtime/environment", () => ({
   scopeThreadRef: () => ({}) as never,
 }));
 
-vi.mock("@supacode/client-runtime/state/thread-workflows", () => ({
+vi.mock("@supaterm/client-runtime/state/thread-workflows", () => ({
   deriveThreadQueueWorkflowState: () => state.workflow,
 }));
 

@@ -2,5 +2,5 @@ import type { ReactNode } from "react";
 import { AppText } from "../../components/AppText";
 
 export function PullRequestSectionHeading({ children }: { readonly children: ReactNode }) {
-  return <AppText className="text-base font-supacode-semibold">{children}</AppText>;
+  return <AppText className="text-base font-supaterm-semibold">{children}</AppText>;
 }

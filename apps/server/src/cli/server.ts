@@ -1,4 +1,4 @@
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
@@ -45,7 +45,7 @@ export const runDefaultServerCommand = (flags: CliServerFlags) =>
       ) {
         return yield* new CliError.UserError({
           cause: cwd,
-          userMessage: `Unknown command ${yield* encodeCommand(cwd)}. Use "supacode --help" for commands or an explicit path such as "supacode ./my-project" for a new directory.`,
+          userMessage: `Unknown command ${yield* encodeCommand(cwd)}. Use "supaterm --help" for commands or an explicit path such as "supaterm ./my-project" for a new directory.`,
         });
       }
     }
@@ -53,13 +53,13 @@ export const runDefaultServerCommand = (flags: CliServerFlags) =>
   });
 
 export const startCommand = Command.make("start", { ...sharedServerCommandFlags }).pipe(
-  Command.withDescription("Run the Supacode server."),
+  Command.withDescription("Run the Supaterm server."),
   Command.withHandler((flags) => runServerCommand(flags, { rejectRunningServer: true })),
 );
 
 export const serveCommand = Command.make("serve", { ...sharedServerCommandFlags }).pipe(
   Command.withDescription(
-    "Run the Supacode server without opening a browser and print headless pairing details.",
+    "Run the Supaterm server without opening a browser and print headless pairing details.",
   ),
   Command.withHandler((flags) =>
     runServerCommand(flags, {

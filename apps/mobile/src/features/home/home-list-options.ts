@@ -1,5 +1,5 @@
-import type { EnvironmentId, SidebarProjectGroupingMode } from "@supacode/contracts";
-import { DEFAULT_SIDEBAR_PROJECT_SORT_ORDER } from "@supacode/contracts";
+import type { EnvironmentId, SidebarProjectGroupingMode } from "@supaterm/contracts";
+import { DEFAULT_SIDEBAR_PROJECT_SORT_ORDER } from "@supaterm/contracts";
 import { useAtomSet } from "@effect/atom-react";
 import {
   createContext,

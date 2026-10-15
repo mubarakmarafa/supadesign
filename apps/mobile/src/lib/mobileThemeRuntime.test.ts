@@ -15,12 +15,12 @@ const initialState: MobileThemeRuntimeState = {
 
 describe("mobileThemeRuntime", () => {
   it("keeps the default palette on Uniwind's built-in appearance themes", () => {
-    expect(getMobileUniwindThemeName("supacode", "light")).toBe("light");
-    expect(getMobileUniwindThemeName("supacode", "dark")).toBe("dark");
+    expect(getMobileUniwindThemeName("supaterm", "light")).toBe("light");
+    expect(getMobileUniwindThemeName("supaterm", "dark")).toBe("dark");
   });
 
   it("maps custom palettes and appearances to registered themes", () => {
-    expect(getMobileUniwindThemeName("supacode-chat", "dark")).toBe("supacode-chat-dark");
+    expect(getMobileUniwindThemeName("supaterm-chat", "dark")).toBe("supaterm-chat-dark");
   });
 
   it("hydrates text variables and clears the native appearance override", () => {

@@ -1,11 +1,11 @@
-import { ProjectId, type ProjectScript } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { ProjectId, type ProjectScript } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   projectScriptRuntimeEnv,
   resolveProjectScripts,
   settleProjectScript,
   setupProjectScript,
-} from "@supacode/shared/projectScripts";
+} from "@supaterm/shared/projectScripts";
 
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -134,7 +134,7 @@ export class ProjectSetupScriptRunner extends Context.Service<
       input: ProjectSetupScriptRunnerInput,
     ) => Effect.Effect<ProjectSetupScriptRunnerResult, ProjectSetupScriptRunnerError>;
   }
->()("supacode/project/ProjectSetupScriptRunner") {}
+>()("supaterm/project/ProjectSetupScriptRunner") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 /**
@@ -142,7 +142,7 @@ export class ProjectSetupScriptRunner extends Context.Service<
  * the PTY stream. Each run gets its own random token so script output cannot
  * spoof completion, and the sentinel pattern is built per run from it.
  */
-const COMPLETION_SENTINEL_PREFIX = "__SUPACODE_SETUP_DONE__";
+const COMPLETION_SENTINEL_PREFIX = "__SUPATERM_SETUP_DONE__";
 const OUTPUT_LINE_MAX_LENGTH = 400;
 /** A partial line longer than this is a byte stream, not a line. Keep only the tail. */
 const PARTIAL_LINE_MAX_LENGTH = 4_096;
@@ -204,7 +204,7 @@ function wrapCommandForCompletion(
   const body = command.replace(/\r?\n/g, "\r");
   switch (shell) {
     case "powershell":
-      return `$global:LASTEXITCODE = $null; & {\r${body}\r}; if ($null -ne $LASTEXITCODE) { $__supacodec = $LASTEXITCODE } elseif ($?) { $__supacodec = 0 } else { $__supacodec = 1 }; Write-Host "${sentinel}$__supacodec"`;
+      return `$global:LASTEXITCODE = $null; & {\r${body}\r}; if ($null -ne $LASTEXITCODE) { $__supatermc = $LASTEXITCODE } elseif ($?) { $__supatermc = 0 } else { $__supatermc = 1 }; Write-Host "${sentinel}$__supatermc"`;
     case "fish":
       return `begin\r${body}\rend; printf '\\n${sentinel}%s\\n' $status`;
     case "posix":

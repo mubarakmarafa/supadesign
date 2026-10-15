@@ -1,5 +1,5 @@
-import type { ChatGptHandoffInput, ChatGptHandoffState } from "@supacode/contracts";
-import { ProviderSetupError } from "@supacode/contracts";
+import type { ChatGptHandoffInput, ChatGptHandoffState } from "@supaterm/contracts";
+import { ProviderSetupError } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";

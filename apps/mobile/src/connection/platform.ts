@@ -2,8 +2,8 @@ import {
   ClientCapabilities,
   PlatformConnectionSource,
   Persistence,
-} from "@supacode/client-runtime/platform";
-import { ConnectionBlockedError, Connectivity, Wakeups } from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/platform";
+import { ConnectionBlockedError, Connectivity, Wakeups } from "@supaterm/client-runtime/connection";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

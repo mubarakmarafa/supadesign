@@ -1,4 +1,4 @@
-import { EnvironmentId, type ServerSelfUpdateCapability } from "@supacode/contracts";
+import { EnvironmentId, type ServerSelfUpdateCapability } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

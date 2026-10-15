@@ -2,7 +2,7 @@
 import * as NodeOS from "node:os";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { CodexSettings, EnvironmentId, ProviderInstanceId } from "@supacode/contracts";
+import { CodexSettings, EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -26,21 +26,21 @@ it.effect("managed home defaults to the global Codex home and honors configured 
   Effect.gen(function* () {
     const path = yield* Path.Path;
     const primary = yield* resolveManagedCodexHomeLayout(
-      "/supacode-state",
+      "/supaterm-state",
       ProviderInstanceId.make("codex"),
       decodeSettings({}),
     );
     assert.equal(primary.sharedHomePath, path.join(NodeOS.homedir(), ".codex"));
     assert.equal(primary.mode, "direct");
     const additional = yield* resolveManagedCodexHomeLayout(
-      "/supacode-state",
+      "/supaterm-state",
       ProviderInstanceId.make("codex-work"),
       decodeSettings({}),
     );
     assert.equal(additional.sharedHomePath, primary.sharedHomePath);
     assert.equal(additional.mode, "authOverlay");
     const configured = yield* resolveManagedCodexHomeLayout(
-      "/supacode-state",
+      "/supaterm-state",
       ProviderInstanceId.make("codex-work"),
       decodeSettings({ homePath: "/custom/shared", shadowHomePath: "/custom/shadow" }),
     );
@@ -117,7 +117,7 @@ it.effect.each(
           CODEX_HOME: "/user/.codex",
           OPENAI_API_KEY: "dummy-global-key",
           OPENAI_BASE_URL: "https://user-proxy.test",
-          SUPACODE_CODEX_LAUNCH_ARGS: "--config model_provider=global-proxy",
+          SUPATERM_CODEX_LAUNCH_ARGS: "--config model_provider=global-proxy",
           PATH: "/usr/bin",
         };
         const runtime = yield* makeCodexManagedRuntime({
@@ -152,7 +152,7 @@ it.effect.each(
           assert.strictEqual(effective.environment.ACCESS_TOKEN, "dummy-owned-access");
           assert.isUndefined(effective.environment.OPENAI_API_KEY);
           assert.isUndefined(effective.environment.OPENAI_BASE_URL);
-          assert.isUndefined(effective.environment.SUPACODE_CODEX_LAUNCH_ARGS);
+          assert.isUndefined(effective.environment.SUPATERM_CODEX_LAUNCH_ARGS);
           const args = codexAppServerArgs(effective.config.launchArgs);
           assert.include(
             args,
@@ -216,7 +216,7 @@ it.effect.each(
       Effect.scoped,
       Effect.provide(
         ServerConfig.layerTest(process.cwd(), {
-          prefix: "supacode-managed-runtime-",
+          prefix: "supaterm-managed-runtime-",
         }).pipe(Layer.provideMerge(NodeServices.layer)),
       ),
     ),

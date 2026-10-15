@@ -2,7 +2,7 @@ import {
   MOBILE_DEFAULT_THEME_ID,
   MOBILE_THEME_IDS,
   type MobileThemeId,
-} from "@supacode/shared/themePalettes";
+} from "@supaterm/shared/themePalettes";
 
 import { SHOWCASE_SCENES, type ShowcaseScene } from "./mobile-showcase-environment.ts";
 
@@ -90,7 +90,7 @@ export function resolveShowcaseAndroidAbi(
     return value as NonNullable<ShowcaseAndroidDevice["abi"]>;
   }
   throw new Error(
-    `Unsupported SUPACODE_SHOWCASE_ANDROID_ABI '${value}'. Use ${ANDROID_ABIS.join(", ")}.`,
+    `Unsupported SUPATERM_SHOWCASE_ANDROID_ABI '${value}'. Use ${ANDROID_ABIS.join(", ")}.`,
   );
 }
 
@@ -110,7 +110,7 @@ const config: ShowcaseConfig = {
     {
       id: "iphone-6.9",
       platform: "ios",
-      simulator: "Supacode Showcase iPhone 17 Pro Max",
+      simulator: "Supaterm Showcase iPhone 17 Pro Max",
       simulatorDeviceType: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
       appearance: "dark",
       theme: DEFAULT_SHOWCASE_THEME,
@@ -127,7 +127,7 @@ const config: ShowcaseConfig = {
     {
       id: "iphone-6.3",
       platform: "ios",
-      simulator: "Supacode Showcase iPhone 17 Pro",
+      simulator: "Supaterm Showcase iPhone 17 Pro",
       simulatorDeviceType: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro",
       appearance: "dark",
       theme: DEFAULT_SHOWCASE_THEME,
@@ -144,7 +144,7 @@ const config: ShowcaseConfig = {
     {
       id: "iphone-6.5",
       platform: "ios",
-      simulator: "Supacode Showcase iPhone 14 Plus",
+      simulator: "Supaterm Showcase iPhone 14 Plus",
       simulatorDeviceType: "com.apple.CoreSimulator.SimDeviceType.iPhone-14-Plus",
       appearance: "dark",
       theme: DEFAULT_SHOWCASE_THEME,
@@ -182,7 +182,7 @@ const config: ShowcaseConfig = {
       avd: "Pixel_10_Pro",
       // Apple Silicon uses ARM64 locally; CI overrides this with x86_64 so its
       // Blacksmith Linux runner can use KVM acceleration.
-      abi: resolveShowcaseAndroidAbi(process.env.SUPACODE_SHOWCASE_ANDROID_ABI),
+      abi: resolveShowcaseAndroidAbi(process.env.SUPATERM_SHOWCASE_ANDROID_ABI),
       appearance: "dark",
       theme: DEFAULT_SHOWCASE_THEME,
       viewport: {
@@ -206,7 +206,7 @@ const config: ShowcaseConfig = {
       id: "android-tablet-7",
       platform: "android",
       avd: "Pixel_10_Pro",
-      abi: resolveShowcaseAndroidAbi(process.env.SUPACODE_SHOWCASE_ANDROID_ABI),
+      abi: resolveShowcaseAndroidAbi(process.env.SUPATERM_SHOWCASE_ANDROID_ABI),
       appearance: "dark",
       theme: DEFAULT_SHOWCASE_THEME,
       viewport: {
@@ -230,7 +230,7 @@ const config: ShowcaseConfig = {
       id: "android-tablet-10",
       platform: "android",
       avd: "Pixel_10_Pro",
-      abi: resolveShowcaseAndroidAbi(process.env.SUPACODE_SHOWCASE_ANDROID_ABI),
+      abi: resolveShowcaseAndroidAbi(process.env.SUPATERM_SHOWCASE_ANDROID_ABI),
       appearance: "dark",
       theme: DEFAULT_SHOWCASE_THEME,
       viewport: {

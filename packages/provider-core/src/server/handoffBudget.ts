@@ -7,13 +7,13 @@ import type {
   OrchestrationV2HistoricalMessage,
   OrchestrationV2ProviderThread,
   OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as Config from "effect/Config";
 
 export const DEFAULT_HANDOFF_TOKEN_CAP = 16_000;
 const HANDOFF_BYTE_CAP = 64_000;
-export const handoffTokenCapConfig = Config.Int("SUPACODE_CONTEXT_HANDOFF_TOKEN_CAP").pipe(
+export const handoffTokenCapConfig = Config.Int("SUPATERM_CONTEXT_HANDOFF_TOKEN_CAP").pipe(
   Config.withDefault(DEFAULT_HANDOFF_TOKEN_CAP),
   Config.map((value) => Math.max(1_024, Math.min(HANDOFF_BYTE_CAP, value))),
 );
@@ -277,6 +277,6 @@ export function handoffCoverage(input: {
   return [
     `Provider context handoff. Thread: ${input.threadId}. Covered app runs: ${input.coveredRunOrdinals.from}-${input.coveredRunOrdinals.to}.`,
     `Source item range: ${input.items.at(0)?.id ?? "none"} through ${input.items.at(-1)?.id ?? "none"}.`,
-    `Recover omitted history using supacode_thread_read({threadId:"${input.threadId}",view:"activity",limit:20,maxCharsPerItem:4000}); paginate with afterPosition=nextPosition. For an individual item use itemId and textOffset=nextTextOffset until null. Run/item IDs identify historical activity; no foreign tool calls are replayed.`,
+    `Recover omitted history using supaterm_thread_read({threadId:"${input.threadId}",view:"activity",limit:20,maxCharsPerItem:4000}); paginate with afterPosition=nextPosition. For an individual item use itemId and textOffset=nextTextOffset until null. Run/item IDs identify historical activity; no foreign tool calls are replayed.`,
   ].join("\n");
 }

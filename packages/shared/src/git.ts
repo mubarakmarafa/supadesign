@@ -8,13 +8,13 @@ import {
   type VcsStatusRemoteResult,
   type VcsStatusResult,
   type VcsStatusStreamEvent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import * as Result from "effect/Result";
 import { fileBasename } from "./path.ts";
 import { detectSourceControlProviderFromRemoteUrl } from "./sourceControl.ts";
 
-export const WORKTREE_BRANCH_PREFIX = "supacode";
+export const WORKTREE_BRANCH_PREFIX = "supaterm";
 
 export function resolveDefaultWorktreeBaseBranch(
   refs: ReadonlyArray<Pick<VcsRef, "name" | "isDefault" | "current" | "isRemote">>,
@@ -26,11 +26,11 @@ export function resolveDefaultWorktreeBaseBranch(
   );
 }
 
-// Canonical form is `supacode/<8 hex>`. Older mobile builds generated `supacode/<uuid>`
+// Canonical form is `supaterm/<8 hex>`. Older mobile builds generated `supaterm/<uuid>`
 // via Crypto.randomUUID() (always RFC 4122 v4), so the matcher also accepts exactly
 // that shape — version nibble `4`, variant nibble `[89ab]` — to keep those threads
 // eligible for branch regeneration without loosening beyond what was ever generated.
-// `supacode-<8 hex>` is the fallback when a plain `supacode` branch blocks the namespace.
+// `supaterm-<8 hex>` is the fallback when a plain `supaterm` branch blocks the namespace.
 const TEMP_WORKTREE_BRANCH_PATTERN = new RegExp(
   `^${WORKTREE_BRANCH_PREFIX}(?:-[0-9a-f]{8}$|\\/(?:[0-9a-f]{8}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$)`,
 );
@@ -166,8 +166,8 @@ export function buildTemporaryWorktreeBranchName(
 }
 
 /**
- * Git stores refs as paths, so a plain `supacode` branch makes every `supacode/<hex>`
- * ref impossible. This moves a temporary name to the flat `supacode-<hex>` sibling.
+ * Git stores refs as paths, so a plain `supaterm` branch makes every `supaterm/<hex>`
+ * ref impossible. This moves a temporary name to the flat `supaterm-<hex>` sibling.
  */
 export function flattenTemporaryWorktreeBranchName(refName: string): string {
   // Keep only the canonical 8-hex token so legacy UUID names stay recognizable.

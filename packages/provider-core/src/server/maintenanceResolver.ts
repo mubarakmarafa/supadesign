@@ -1,20 +1,20 @@
 export type {
   ProviderMaintenanceCapabilities,
   ProviderMaintenanceCommandAction,
-} from "@supacode/provider-core/server/maintenance";
+} from "@supaterm/provider-core/server/maintenance";
 import type {
   ProviderMaintenanceCapabilities,
   ProviderMaintenanceCommandAction,
-} from "@supacode/provider-core/server/maintenance";
+} from "@supaterm/provider-core/server/maintenance";
 import {
   ProviderDriverKind,
   type ServerProvider,
   type ServerProviderVersionAdvisory,
-} from "@supacode/contracts";
-import { compareSemverVersions } from "@supacode/shared/semver";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { causeErrorTag } from "@supacode/shared/observability";
-import { resolveCommandPath } from "@supacode/shared/shell";
+} from "@supaterm/contracts";
+import { compareSemverVersions } from "@supaterm/shared/semver";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { causeErrorTag } from "@supaterm/shared/observability";
+import { resolveCommandPath } from "@supaterm/shared/shell";
 import * as Cache from "effect/Cache";
 import * as Config from "effect/Config";
 import * as DateTime from "effect/DateTime";
@@ -366,7 +366,7 @@ const runHomebrew = Effect.fn("runHomebrew")(function* (
 /**
  * Derive update capabilities from where the executable actually lives. Every
  * package-manager branch has evidence that the named tool owns that path, so
- * Supacode never runs a package manager against an install it did not create.
+ * Supaterm never runs a package manager against an install it did not create.
  * An unproven install falls back to the provider's own updater, which detects
  * its installer itself, and stays manual-only without one.
  */

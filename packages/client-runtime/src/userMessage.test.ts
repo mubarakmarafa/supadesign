@@ -1,4 +1,4 @@
-import { ScheduledTaskId } from "@supacode/contracts";
+import { ScheduledTaskId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { resolveUserMessagePresentation } from "./userMessage.ts";
@@ -55,8 +55,8 @@ describe("resolveUserMessagePresentation", () => {
     }
   });
 
-  it("attributes older server-sent restart continuations to Supacode, not another agent", () => {
-    const text = "Note: the Supacode server restarted.";
+  it("attributes older server-sent restart continuations to Supaterm, not another agent", () => {
+    const text = "Note: the Supaterm server restarted.";
     expect(
       resolveUserMessagePresentation({
         role: "user",
@@ -64,7 +64,7 @@ describe("resolveUserMessagePresentation", () => {
         creationSource: "server",
         text,
       }),
-    ).toMatchObject({ attribution: "supacode" });
+    ).toMatchObject({ attribution: "supaterm" });
     for (const creationSource of ["mcp", "provider"] as const) {
       expect(
         resolveUserMessagePresentation({ role: "user", createdBy: "agent", creationSource, text }),

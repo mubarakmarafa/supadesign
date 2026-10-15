@@ -4,10 +4,10 @@ import {
   DeviceToolVersions,
   deviceToolInstallMessage,
   type SshDeviceHostConfig,
-} from "@supacode/contracts";
-import { runSshCommand, baseSshArgs, resolveSshCommand } from "@supacode/ssh/command";
-import * as NetService from "@supacode/shared/Net";
-import { waitForHttpReady } from "@supacode/shared/httpReadiness";
+} from "@supaterm/contracts";
+import { runSshCommand, baseSshArgs, resolveSshCommand } from "@supaterm/ssh/command";
+import * as NetService from "@supaterm/shared/Net";
+import { waitForHttpReady } from "@supaterm/shared/httpReadiness";
 import * as Crypto from "effect/Crypto";
 import * as Exit from "effect/Exit";
 import * as Effect from "effect/Effect";

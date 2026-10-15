@@ -3,7 +3,7 @@ import {
   EnvironmentId,
   ThreadId,
   type AuthSessionState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 

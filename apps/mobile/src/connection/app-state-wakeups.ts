@@ -1,4 +1,4 @@
-import type { Wakeups } from "@supacode/client-runtime/connection";
+import type { Wakeups } from "@supaterm/client-runtime/connection";
 
 export function mobileApplicationStateWakeup(
   previous: string | null | undefined,

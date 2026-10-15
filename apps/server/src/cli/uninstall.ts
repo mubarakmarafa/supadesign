@@ -4,7 +4,7 @@
 // cannot express: it kills the child when the scope closes.
 import * as NodeChildProcess from "node:child_process";
 
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -29,13 +29,13 @@ export class CliUninstallError extends Schema.TaggedError<CliUninstallError>()(
 }
 
 /**
- * What `supacode uninstall` would remove for one Supacode home. Computed before anything
+ * What `supaterm uninstall` would remove for one Supaterm home. Computed before anything
  * is touched so the user sees the whole plan in one place.
  */
 export interface UninstallPlan {
   /** The background service serves this home and will be stopped and removed. */
   readonly service: boolean;
-  /** The `supacode` launcher (symlink or `.cmd` shim) that points into this home's runtime tree. */
+  /** The `supaterm` launcher (symlink or `.cmd` shim) that points into this home's runtime tree. */
   readonly launcher: string | undefined;
   /** `<home>/runtime`, holding every downloaded version, when it exists. */
   readonly runtimeDir: string | undefined;
@@ -106,7 +106,7 @@ export const uninstallCommand = Command.make("uninstall", {
   ),
 }).pipe(
   Command.withDescription(
-    "Remove Supacode from this machine: the background service, the launcher, and every downloaded version. Your projects and threads are kept.",
+    "Remove Supaterm from this machine: the background service, the launcher, and every downloaded version. Your projects and threads are kept.",
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
@@ -130,10 +130,10 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
   const plan = yield* planUninstall({ baseDir: input.baseDir });
 
   if (!plan.service && plan.launcher === undefined && plan.runtimeDir === undefined) {
-    yield* Console.log(`Nothing to remove: Supacode is not installed for ${input.baseDir}.`);
+    yield* Console.log(`Nothing to remove: Supaterm is not installed for ${input.baseDir}.`);
     if (!(yield* HostProcess.IsExecutable)) {
       yield* Console.log(
-        "  This Supacode runs from a Node script, so it was installed by npm or built from source. Remove it the same way (`npm uninstall -g supacode`, or delete the checkout).",
+        "  This Supaterm runs from a Node script, so it was installed by npm or built from source. Remove it the same way (`npm uninstall -g supaterm`, or delete the checkout).",
       );
     }
     return;
@@ -157,7 +157,7 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
       });
     }
     const confirmed = yield* Prompt.run(
-      Prompt.Confirm({ message: "Remove Supacode from this machine?", initial: false }),
+      Prompt.Confirm({ message: "Remove Supaterm from this machine?", initial: false }),
     ).pipe(Effect.catchTags({ QuitError: () => Effect.succeed(false) }));
     if (!confirmed) {
       yield* Console.log("Left as is.");
@@ -201,7 +201,7 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
             reason: `Could not schedule removal of ${runtimeDir}. Delete it yourself once this window is closed.`,
           }),
       });
-      yield* Console.log(`${runtimeDir} will be removed once Supacode exits.`);
+      yield* Console.log(`${runtimeDir} will be removed once Supaterm exits.`);
     } else {
       yield* fs
         .remove(plan.runtimeDir, { recursive: true, force: true })
@@ -214,5 +214,5 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
     }
   }
   yield* Console.log("");
-  yield* Console.log("Supacode is uninstalled. Thanks for trying Supacode.");
+  yield* Console.log("Supaterm is uninstalled. Thanks for trying Supaterm.");
 });

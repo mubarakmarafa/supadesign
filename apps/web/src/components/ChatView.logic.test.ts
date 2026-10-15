@@ -8,9 +8,9 @@ import {
   ANTIGRAVITY_DEFAULT_MODEL,
   ProviderDriverKind,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { deriveProviderInstanceEntries, NO_PROVIDER_MODEL_SELECTION } from "../providerInstances";
-import { headlineUsageWindows } from "@supacode/shared/usageLimits";
+import { headlineUsageWindows } from "@supaterm/shared/usageLimits";
 import type { RightPanelSurface } from "../rightPanelStore";
 import {
   CommandId,
@@ -23,8 +23,8 @@ import {
   TurnItemId,
   type OrchestrationV2ProjectedTurnItem,
   type WorktreeSetupSnapshot,
-} from "@supacode/contracts";
-import type { CodexArtifactTemplate } from "@supacode/shared/codexArtifactTemplates";
+} from "@supaterm/contracts";
+import type { CodexArtifactTemplate } from "@supaterm/shared/codexArtifactTemplates";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
@@ -261,7 +261,7 @@ describe("resolveThreadMetadataUpdateForNextTurn", () => {
 describe("deriveComposerSendState", () => {
   it("treats expired terminal pills as non-sendable content", () => {
     const state = deriveComposerSendState({
-      prompt: "[Terminal 1](supacode-context://v1/terminal/ctx-expired)",
+      prompt: "[Terminal 1](supaterm-context://v1/terminal/ctx-expired)",
       imageCount: 0,
       terminalContexts: [
         {
@@ -285,7 +285,7 @@ describe("deriveComposerSendState", () => {
 
   it("keeps text sendable while excluding expired terminal pills", () => {
     const state = deriveComposerSendState({
-      prompt: `yoo [Terminal 1](supacode-context://v1/terminal/ctx-expired) waddup`,
+      prompt: `yoo [Terminal 1](supaterm-context://v1/terminal/ctx-expired) waddup`,
       imageCount: 0,
       terminalContexts: [
         {

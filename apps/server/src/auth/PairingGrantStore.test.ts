@@ -1,4 +1,4 @@
-import { AuthAdministrativeScopes, AuthStandardClientScopes } from "@supacode/contracts";
+import { AuthAdministrativeScopes, AuthStandardClientScopes } from "@supaterm/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
 import * as Duration from "effect/Duration";
@@ -11,7 +11,7 @@ import * as SqlClient from "effect/sql/SqlClient";
 import {
   DESKTOP_BOOTSTRAP_TOKEN_WINDOW_MS,
   currentDesktopBootstrapToken,
-} from "@supacode/shared/desktopBootstrapToken";
+} from "@supaterm/shared/desktopBootstrapToken";
 
 import * as ServerConfig from "../config.ts";
 import * as AuthPairingLinks from "../persistence/AuthPairingLinks.ts";
@@ -35,7 +35,7 @@ const layerServerConfig = (
     }),
   ).pipe(
     Layer.provide(
-      ServerConfig.layerTest(process.cwd(), { prefix: "supacode-auth-bootstrap-test-" }),
+      ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-auth-bootstrap-test-" }),
     ),
   );
 

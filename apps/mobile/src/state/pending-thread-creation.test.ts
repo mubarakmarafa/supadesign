@@ -6,7 +6,7 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -237,7 +237,7 @@ describe("pendingThreadCreationMessage", () => {
       path: "src/Checkout.tsx",
     };
     const context = { version: 1 as const, records: [record] };
-    const text = "[Checkout.tsx](supacode-context://v1/mention/setup-file)";
+    const text = "[Checkout.tsx](supaterm-context://v1/mention/setup-file)";
     const message = pendingThreadCreationMessage({ ...creation, text, context });
     expect(message.text).toBe(text);
     expect(message.context).toEqual(context);

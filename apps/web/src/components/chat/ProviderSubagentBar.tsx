@@ -1,8 +1,8 @@
 import {
   formatProviderSubagentStatus,
   type ProviderSubagentStatus,
-} from "@supacode/client-runtime/state/thread-execution";
-import { isOrchestrationV2WorkActive } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/thread-execution";
+import { isOrchestrationV2WorkActive } from "@supaterm/contracts";
 import { ArrowUpLeftIcon } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 

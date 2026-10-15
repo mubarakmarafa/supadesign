@@ -1,17 +1,17 @@
-import type { DevicePlatform, EnvironmentId } from "@supacode/contracts";
+import type { DevicePlatform, EnvironmentId } from "@supaterm/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { refreshDeviceHubAccess, useDeviceHubAccess } from "~/state/device";
-import { createCanvasFrameSink } from "@supacode/client-runtime/device/frame";
-import { resolveDeviceShape } from "@supacode/client-runtime/device/shape-profile";
+import { createCanvasFrameSink } from "@supaterm/client-runtime/device/frame";
+import { resolveDeviceShape } from "@supaterm/client-runtime/device/shape-profile";
 import { deviceKeyboard, deviceModel } from "./deviceModels";
 import { fitDeviceFrame } from "./deviceFrameLayout";
 import { DeviceDuoViewport } from "./DeviceDuoViewport";
 import { DeviceDuoControls } from "./DeviceDuoControls";
 import { DeviceAndroidFoldControls } from "./DeviceAndroidFoldControls";
-import type { DuoControlState } from "@supacode/client-runtime/device/duo-control";
+import type { DuoControlState } from "@supaterm/client-runtime/device/duo-control";
 import { DevicePhoneViewport } from "./DevicePhoneViewport";
 import { DeviceLoadingView } from "./DeviceLoadingView";
 import { type DeviceAxElement, fetchDeviceAxTree } from "./deviceHubApi";
@@ -21,7 +21,7 @@ import {
   type DeviceScreenSize,
   type DeviceStreamClient,
   type DeviceStreamStatus,
-} from "@supacode/client-runtime/device/stream";
+} from "@supaterm/client-runtime/device/stream";
 import { observeResize } from "~/lib/observeResize";
 
 const AX_POLL_INTERVAL_MS = 2_000;

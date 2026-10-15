@@ -1,4 +1,4 @@
-import type { OrchestrationV2ProjectedTurnItem } from "@supacode/contracts";
+import type { OrchestrationV2ProjectedTurnItem } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 

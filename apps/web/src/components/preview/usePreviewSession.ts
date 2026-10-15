@@ -1,8 +1,8 @@
 "use client";
 
 import { useAtomValue } from "@effect/atom-react";
-import { parseScopedThreadKey, scopedThreadKey } from "@supacode/client-runtime/environment";
-import type { ScopedThreadRef } from "@supacode/contracts";
+import { parseScopedThreadKey, scopedThreadKey } from "@supaterm/client-runtime/environment";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import { AsyncResult, Atom } from "effect/reactivity";
 

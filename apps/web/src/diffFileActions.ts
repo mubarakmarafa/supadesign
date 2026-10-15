@@ -1,8 +1,8 @@
-import type { ScopedThreadRef } from "@supacode/contracts";
-import { isWindowsAbsolutePath, normalizeProjectPathForComparison } from "@supacode/shared/path";
+import type { ScopedThreadRef } from "@supaterm/contracts";
+import { isWindowsAbsolutePath, normalizeProjectPathForComparison } from "@supaterm/shared/path";
 
 import { useRightPanelStore } from "./rightPanelStore";
-import { resolvePathLinkTarget } from "@supacode/shared/fileLinks";
+import { resolvePathLinkTarget } from "@supaterm/shared/fileLinks";
 
 interface OpenDiffFilePrimaryActionInput {
   readonly threadRef: ScopedThreadRef | null;

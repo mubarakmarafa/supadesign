@@ -12,7 +12,7 @@ import pkg from "./package.json" with { type: "json" };
 import {
   DEV_PROXIED_ORIGIN_PRESERVING_PREFIXES,
   DEV_PROXIED_PATH_PREFIXES,
-} from "@supacode/shared/devProxy";
+} from "@supaterm/shared/devProxy";
 
 import { loadRepoEnv } from "../../scripts/lib/public-config";
 import { thirdPartyLicensesPlugin } from "../../scripts/lib/third-party-licenses";
@@ -27,7 +27,7 @@ Object.assign(process.env, loadRepoEnv());
 // pins the client to localhost and breaks every non-localhost origin — the
 // exact failure single-origin mode exists to prevent, and an invisible one
 // since the page still loads.
-const isSingleOriginDev = process.env.SUPACODE_SINGLE_ORIGIN_DEV === "1";
+const isSingleOriginDev = process.env.SUPATERM_SINGLE_ORIGIN_DEV === "1";
 
 const port = Number(process.env.PORT ?? 5733);
 const explicitHost = process.env.HOST?.trim();
@@ -37,14 +37,14 @@ const configuredHttpUrl = isSingleOriginDev ? undefined : process.env.VITE_HTTP_
 const configuredHostedAppChannel = process.env.VITE_HOSTED_APP_CHANNEL?.trim() || "";
 const configuredAppVersion = process.env.APP_VERSION?.trim() || pkg.version;
 const configuredHostedAppUrl = process.env.VITE_HOSTED_APP_URL?.trim() || undefined;
-const sourcemapEnv = process.env.SUPACODE_WEB_SOURCEMAP?.trim().toLowerCase();
+const sourcemapEnv = process.env.SUPATERM_WEB_SOURCEMAP?.trim().toLowerCase();
 
 // Vite 8.1's experimental bundled dev mode: serves rolldown-bundled chunks in
 // dev for much faster startup/reload on large module graphs, with HMR served
-// as hot patches. Opt-in while experimental: SUPACODE_BUNDLED_DEV=1 pnpm dev:web
+// as hot patches. Opt-in while experimental: SUPATERM_BUNDLED_DEV=1 pnpm dev:web
 // The dev runner defaults this on for --share runs (remote browsers pay a
-// round trip per import level in unbundled dev); SUPACODE_BUNDLED_DEV=0 opts out.
-const bundledDevEnv = process.env.SUPACODE_BUNDLED_DEV?.trim().toLowerCase();
+// round trip per import level in unbundled dev); SUPATERM_BUNDLED_DEV=0 opts out.
+const bundledDevEnv = process.env.SUPATERM_BUNDLED_DEV?.trim().toLowerCase();
 const bundledDev = bundledDevEnv === "1" || bundledDevEnv === "true";
 
 const buildSourcemap: boolean | "hidden" =
@@ -74,7 +74,7 @@ function resolveDevProxyTarget(
 ): string | undefined {
   // Browser dev is single-origin: the backend port is proxied through this
   // server so the app works from any origin (localhost, tailnet, LAN, phone).
-  // SUPACODE_PORT is set by scripts/dev-runner.ts for every non-desktop mode.
+  // SUPATERM_PORT is set by scripts/dev-runner.ts for every non-desktop mode.
   const port = Number(backendPort?.trim());
   if (Number.isInteger(port) && port > 0) {
     return `http://localhost:${port}/`;
@@ -102,7 +102,7 @@ function resolveDevProxyTarget(
   }
 }
 
-const devProxyTarget = resolveDevProxyTarget(process.env.SUPACODE_PORT, configuredWsUrl);
+const devProxyTarget = resolveDevProxyTarget(process.env.SUPATERM_PORT, configuredWsUrl);
 
 // Vite's dev server sends JS uncompressed. On localhost that is free; over a
 // shared origin (tailnet, LAN) it is the whole cold-start: bundled dev serves
@@ -112,7 +112,7 @@ const devProxyTarget = resolveDevProxyTarget(process.env.SUPACODE_PORT, configur
 // (quality 11) would trade the transfer stall for an equally long encode stall.
 function devCompressionPlugin(): Plugin {
   return {
-    name: "supacode:dev-compression",
+    name: "supaterm:dev-compression",
     apply: "serve",
     configureServer(server) {
       // compression() is typed against Express's req/res, which extend the
@@ -130,7 +130,7 @@ function devCompressionPlugin(): Plugin {
 // a dev server over Tailscale/LAN. Tailnet names are safe to allow wholesale:
 // the DNS is controlled by tailscale, so they can't be rebound by an attacker.
 // Anything else (ngrok, a LAN IP alias) goes through the env var.
-const configuredAllowedHosts = (process.env.SUPACODE_DEV_ALLOWED_HOSTS ?? "")
+const configuredAllowedHosts = (process.env.SUPATERM_DEV_ALLOWED_HOSTS ?? "")
   .split(",")
   .map((entry) => entry.trim())
   .filter((entry) => entry.length > 0);

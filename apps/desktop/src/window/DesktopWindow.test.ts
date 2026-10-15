@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
-import { DesktopSnapShotId } from "@supacode/contracts";
+import { DesktopSnapShotId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
@@ -21,7 +21,7 @@ vi.mock("electron", async (importOriginal) => ({
   ...(await importOriginal<typeof import("electron")>()),
   session: {
     fromPartition: vi.fn(() => ({
-      getUserAgent: vi.fn(() => "Mozilla/5.0 Electron/41.5.0 supacode/1.2.3"),
+      getUserAgent: vi.fn(() => "Mozilla/5.0 Electron/41.5.0 supaterm/1.2.3"),
       setPermissionRequestHandler: vi.fn(),
       setUserAgent: vi.fn(),
     })),
@@ -76,7 +76,7 @@ function makeFakeBrowserWindow() {
     copyImageAt: vi.fn(),
     focus: vi.fn(),
     isDestroyed: vi.fn(() => false),
-    getURL: vi.fn(() => "supacode-dev://app/"),
+    getURL: vi.fn(() => "supaterm-dev://app/"),
     getZoomLevel: vi.fn(() => zoomLevel),
     getZoomFactor: vi.fn(() => 1.2 ** zoomLevel),
     setZoomLevel: vi.fn((level: number) => {
@@ -203,7 +203,7 @@ const layerDesktopEnvironment = DesktopEnvironment.layer(environmentInput).pipe(
     Layer.mergeAll(
       NodeServices.layer,
       DesktopConfig.layerTest({
-        SUPACODE_PORT: "3773",
+        SUPATERM_PORT: "3773",
         VITE_DEV_SERVER_URL: "http://127.0.0.1:5733",
       }),
     ),
@@ -323,8 +323,8 @@ function layerTest(input: {
           getBrowserSession: () => Effect.succeed({} as Electron.Session),
           setMainWindow: () => Effect.void,
           prepareWebview: () => Effect.void,
-          isBrowserPartition: (partition) => partition.startsWith("persist:supacode-preview-"),
-          getBrowserPartition: () => Effect.succeed("persist:supacode-preview-test"),
+          isBrowserPartition: (partition) => partition.startsWith("persist:supaterm-preview-"),
+          getBrowserPartition: () => Effect.succeed("persist:supaterm-preview-test"),
           reapplyZoom: () =>
             Effect.sync(() => {
               input.previewZoomReapplies?.push(input.window.webContents.getZoomLevel());
@@ -425,8 +425,8 @@ const makeSplashScenario = (createOutcomes: readonly (Electron.BrowserWindow | n
           Layer.mock(PreviewManager.PreviewManager)({
             getBrowserSession: () => Effect.succeed({} as Electron.Session),
             setMainWindow: () => Effect.void,
-            isBrowserPartition: (partition) => partition.startsWith("persist:supacode-preview-"),
-            getBrowserPartition: () => Effect.succeed("persist:supacode-preview-test"),
+            isBrowserPartition: (partition) => partition.startsWith("persist:supaterm-preview-"),
+            getBrowserPartition: () => Effect.succeed("persist:supaterm-preview-test"),
           }),
         ),
       ),
@@ -596,19 +596,19 @@ describe("DesktopWindow", () => {
   it("recognizes only same-origin renderer navigations", () => {
     assert.isTrue(
       DesktopWindow.isSameOriginRendererNavigation({
-        applicationUrl: "supacode://app/",
-        navigationUrl: "supacode://app/settings/connections",
+        applicationUrl: "supaterm://app/",
+        navigationUrl: "supaterm://app/settings/connections",
       }),
     );
     assert.isFalse(
       DesktopWindow.isSameOriginRendererNavigation({
-        applicationUrl: "supacode://app/",
+        applicationUrl: "supaterm://app/",
         navigationUrl: "https://accounts.microsoft.com/oauth",
       }),
     );
     assert.isFalse(
       DesktopWindow.isSameOriginRendererNavigation({
-        applicationUrl: "supacode://app/",
+        applicationUrl: "supaterm://app/",
         navigationUrl: "not a url",
       }),
     );
@@ -641,7 +641,7 @@ describe("DesktopWindow", () => {
         assert.isTrue(createdWindowOptions[0]?.disableAutoHideCursor);
         assert.isFalse(createdWindowOptions[0]?.webPreferences?.backgroundThrottling);
         assert.deepEqual(fakeWindow.setAutoHideCursor.mock.calls, [[false]]);
-        assert.deepEqual(fakeWindow.loadURL.mock.calls[0], ["supacode-dev://app/"]);
+        assert.deepEqual(fakeWindow.loadURL.mock.calls[0], ["supaterm-dev://app/"]);
         assert.equal(fakeWindow.openDevTools.mock.calls.length, 1);
       }).pipe(Effect.provide(layer));
     }),
@@ -1349,17 +1349,17 @@ describe("DesktopWindow", () => {
           return yield* Effect.die("renderer load listeners were not registered");
         }
 
-        didFailLoad({}, -9, "ERR_UNEXPECTED", "supacode-dev://app/", true);
+        didFailLoad({}, -9, "ERR_UNEXPECTED", "supaterm-dev://app/", true);
         assert.equal(fakeWindow.loadURL.mock.calls.length, 1);
 
         yield* TestClock.adjust(100);
         assert.deepEqual(fakeWindow.loadURL.mock.calls, [
-          ["supacode-dev://app/"],
-          ["supacode-dev://app/"],
+          ["supaterm-dev://app/"],
+          ["supaterm-dev://app/"],
         ]);
         assert.equal(fakeWindow.reload.mock.calls.length, 0);
 
-        didFailLoad({}, -9, "ERR_UNEXPECTED", "supacode-dev://app/", true);
+        didFailLoad({}, -9, "ERR_UNEXPECTED", "supaterm-dev://app/", true);
         didFinishLoad();
         yield* TestClock.adjust(250);
         assert.equal(fakeWindow.loadURL.mock.calls.length, 2);
@@ -1371,23 +1371,23 @@ describe("DesktopWindow", () => {
   it("retries only transient failures for the development renderer", () => {
     assert.isTrue(
       DesktopWindow.isRetryableDevelopmentRendererLoadFailure({
-        applicationUrl: "supacode-dev://app/",
+        applicationUrl: "supaterm-dev://app/",
         errorCode: -102,
         isMainFrame: true,
-        validatedUrl: "supacode-dev://app/",
+        validatedUrl: "supaterm-dev://app/",
       }),
     );
     assert.isFalse(
       DesktopWindow.isRetryableDevelopmentRendererLoadFailure({
-        applicationUrl: "supacode-dev://app/",
+        applicationUrl: "supaterm-dev://app/",
         errorCode: -3,
         isMainFrame: true,
-        validatedUrl: "supacode-dev://app/",
+        validatedUrl: "supaterm-dev://app/",
       }),
     );
     assert.isFalse(
       DesktopWindow.isRetryableDevelopmentRendererLoadFailure({
-        applicationUrl: "supacode-dev://app/",
+        applicationUrl: "supaterm-dev://app/",
         errorCode: -102,
         isMainFrame: true,
         validatedUrl: "https://example.com/",
@@ -1552,7 +1552,7 @@ describe("DesktopWindow", () => {
         createCount,
         mainWindow,
         onReveal: () => {
-          foreground = "Supacode";
+          foreground = "Supaterm";
           operations.push("reveal");
         },
       });
@@ -1561,7 +1561,7 @@ describe("DesktopWindow", () => {
         const desktopWindow = yield* DesktopWindow.DesktopWindow;
         yield* desktopWindow.handleBackendReady(new URL("http://127.0.0.1:3773"));
         yield* desktopWindow.dispatchSnapShotEvent({ type: "started", id: captureOne });
-        assert.equal(foreground, "Supacode");
+        assert.equal(foreground, "Supaterm");
         foreground = "Explorer";
         yield* desktopWindow.dispatchSnapShotEvent({ type: "ready", id: captureOne });
         yield* desktopWindow.dispatchSnapShotEvent({ type: "failed", id: captureTwo });

@@ -1,22 +1,22 @@
 import { ProcessSignalActions } from "./ProcessSignalActions";
-import { resolveUsageAccess } from "@supacode/client-runtime/state/usage-access";
+import { resolveUsageAccess } from "@supaterm/client-runtime/state/usage-access";
 import { environmentSession } from "../../state/session";
-import { AuthOrchestrationOperateScope } from "@supacode/contracts";
+import { AuthOrchestrationOperateScope } from "@supaterm/contracts";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
-import { AuthEnvironmentMaintainScope } from "@supacode/contracts";
+import { AuthEnvironmentMaintainScope } from "@supaterm/contracts";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { AlertTriangleIcon, CopyIcon, FolderOpenIcon, InfoIcon } from "lucide-react";
 import { ChevronDown, ChevronRight } from "lucide";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   ServerProcessDiagnosticsEntry,
   ServerProcessResourceHistorySummary,
   ServerProcessSignal,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 
@@ -838,7 +838,7 @@ export function DiagnosticsSettingsPanel() {
                 type: "info",
                 title: "Process already exited",
                 description:
-                  "The process is not a child of the Supacode Server. It might already have exited.",
+                  "The process is not a child of the Supaterm Server. It might already have exited.",
               });
               return;
             }
@@ -968,7 +968,7 @@ export function DiagnosticsSettingsPanel() {
           <StatBlock
             label="CPU Time"
             value={resourceData ? formatCpuTime(resourceData.totalCpuSecondsApprox) : "..."}
-            tooltip="Approximate active CPU time for the Supacode server root process and its descendants during the selected window. It grows only while sampled processes use CPU and older samples leave as the window moves."
+            tooltip="Approximate active CPU time for the Supaterm server root process and its descendants during the selected window. It grows only while sampled processes use CPU and older samples leave as the window moves."
           />
           <StatBlock
             label="Samples"

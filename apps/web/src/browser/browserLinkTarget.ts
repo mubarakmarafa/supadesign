@@ -8,7 +8,7 @@
  *
  * @module browserLinkTarget
  */
-import type { BrowserLinkTarget, ScopedThreadRef } from "@supacode/contracts";
+import type { BrowserLinkTarget, ScopedThreadRef } from "@supaterm/contracts";
 
 import { ensureClientSettingsHydrated, getClientSettings } from "~/hooks/useSettings";
 import { isPreviewAvailableFor } from "./previewRuntime";

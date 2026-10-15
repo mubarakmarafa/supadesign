@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -28,7 +28,7 @@ it.effect("maps GitLab MR summaries into provider-neutral change requests", () =
           state: "closed",
           closedAt: "2026-08-23T10:00:00Z",
           isCrossRepository: true,
-          headRepositoryNameWithOwner: "fork/supacode",
+          headRepositoryNameWithOwner: "fork/supaterm",
           headRepositoryOwnerLogin: "fork",
         }),
     });
@@ -50,7 +50,7 @@ it.effect("maps GitLab MR summaries into provider-neutral change requests", () =
       mergedAt: null,
       updatedAt: Option.none(),
       isCrossRepository: true,
-      headRepositoryNameWithOwner: "fork/supacode",
+      headRepositoryNameWithOwner: "fork/supaterm",
       headRepositoryOwnerLogin: "fork",
     });
   }),

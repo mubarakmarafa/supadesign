@@ -3,9 +3,9 @@ import {
   DesktopUpdateChannelSchema,
   type DesktopServerExposureMode,
   type DesktopUpdateChannel,
-} from "@supacode/contracts";
-import { fromLenientJson } from "@supacode/shared/schemaJson";
-import { resolveSymlinkTarget } from "@supacode/shared/symlink";
+} from "@supaterm/contracts";
+import { fromLenientJson } from "@supaterm/shared/schemaJson";
+import { resolveSymlinkTarget } from "@supaterm/shared/symlink";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -189,7 +189,7 @@ export class DesktopAppSettings extends Context.Service<
     >;
     readonly applyWslWindowsFallbackInMemory: Effect.Effect<DesktopSettingsChange>;
   }
->()("@supacode/desktop/settings/DesktopAppSettings") {}
+>()("@supaterm/desktop/settings/DesktopAppSettings") {}
 
 export function resolveDefaultDesktopSettings(appVersion: string): DesktopSettings {
   return {

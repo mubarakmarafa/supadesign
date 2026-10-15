@@ -9,22 +9,22 @@ import {
 } from "./codexLaunchArgs.ts";
 
 describe("resolveCodexLaunchArgs", () => {
-  it("uses SUPACODE_CODEX_LAUNCH_ARGS before configured settings", () => {
+  it("uses SUPATERM_CODEX_LAUNCH_ARGS before configured settings", () => {
     NodeAssert.equal(
-      resolveCodexLaunchArgs(" --strict-config ", { SUPACODE_CODEX_LAUNCH_ARGS: "--enable foo" }),
+      resolveCodexLaunchArgs(" --strict-config ", { SUPATERM_CODEX_LAUNCH_ARGS: "--enable foo" }),
       "--enable foo",
     );
   });
 
-  it("uses configured settings when SUPACODE_CODEX_LAUNCH_ARGS is empty", () => {
+  it("uses configured settings when SUPATERM_CODEX_LAUNCH_ARGS is empty", () => {
     NodeAssert.equal(
-      resolveCodexLaunchArgs(" --strict-config ", { SUPACODE_CODEX_LAUNCH_ARGS: "   " }),
+      resolveCodexLaunchArgs(" --strict-config ", { SUPATERM_CODEX_LAUNCH_ARGS: "   " }),
       "--strict-config",
     );
   });
 
   it("ignores whitespace-only environment values", () => {
-    NodeAssert.equal(resolveCodexLaunchArgs("", { SUPACODE_CODEX_LAUNCH_ARGS: "   " }), "");
+    NodeAssert.equal(resolveCodexLaunchArgs("", { SUPATERM_CODEX_LAUNCH_ARGS: "   " }), "");
   });
 });
 

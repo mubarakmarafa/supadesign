@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import type { ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderReplayTranscript } from "@supaterm/contracts";
 import * as CodexReplay from "effect-codex-app-server/replay";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
@@ -18,7 +18,7 @@ import {
   THREAD_MERGE_BACK_SIBLINGS_SOURCE_MARKER,
   THREAD_MERGE_BACK_SOURCE_MARKER,
 } from "./fixtures/shared.ts";
-import { readProviderReplayTranscript } from "@supacode/provider-testing/replayTranscript";
+import { readProviderReplayTranscript } from "@supaterm/provider-testing/replayTranscript";
 
 const PROVIDER_THREAD_RESUME_FIRST_FINAL = "provider thread resume fixture first turn complete";
 const PROVIDER_THREAD_RESUME_SECOND_FINAL = "provider thread resume fixture second turn complete";

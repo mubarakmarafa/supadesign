@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId, RuntimeRequestId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId, RuntimeRequestId, ThreadId } from "@supaterm/contracts";
 
 export function scopedProjectKey(environmentId: EnvironmentId, projectId: ProjectId): string {
   return `${environmentId}:${projectId}`;

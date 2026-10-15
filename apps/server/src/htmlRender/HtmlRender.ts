@@ -1,5 +1,5 @@
-import type { ThreadId } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { ThreadId } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   clampHtmlRenderHeight,
   HTML_RENDER_COLUMN_WIDTH,
@@ -10,12 +10,12 @@ import {
   htmlRenderThemeFragment,
   injectHtmlRenderBootstrap,
   type HtmlRenderReference,
-} from "@supacode/shared/htmlRender";
+} from "@supaterm/shared/htmlRender";
 import {
-  SUPACODE_DARK_THEME_COLORS,
-  SUPACODE_LIGHT_THEME_COLORS,
+  SUPATERM_DARK_THEME_COLORS,
+  SUPATERM_LIGHT_THEME_COLORS,
   type ThemeAppearance,
-} from "@supacode/shared/themePalettes";
+} from "@supaterm/shared/themePalettes";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -124,7 +124,7 @@ export class HtmlRender extends Context.Service<
       | HeadlessChrome.HtmlRenderBrowserError
     >;
   }
->()("supacode/htmlRender/HtmlRender") {}
+>()("supaterm/htmlRender/HtmlRender") {}
 
 const IMAGE_MIME_TYPES: Record<string, string> = {
   png: "image/png",
@@ -328,7 +328,7 @@ const MEASURE_TIMEOUT = "6 seconds";
 
 // Measured in the dark theme with Arial-metric fonts, so text wraps close to how clients show it.
 const MEASURE_FRAGMENT = htmlRenderThemeFragment(
-  htmlRenderTheme(SUPACODE_DARK_THEME_COLORS, "dark", HTML_RENDER_MEASURE_FONTS),
+  htmlRenderTheme(SUPATERM_DARK_THEME_COLORS, "dark", HTML_RENDER_MEASURE_FONTS),
 );
 
 const make = Effect.gen(function* () {
@@ -460,7 +460,7 @@ const make = Effect.gen(function* () {
     const inlined = yield* inline(input.html);
     const executable = yield* previewBrowser.executable;
     const theme = htmlRenderTheme(
-      appearance === "light" ? SUPACODE_LIGHT_THEME_COLORS : SUPACODE_DARK_THEME_COLORS,
+      appearance === "light" ? SUPATERM_LIGHT_THEME_COLORS : SUPATERM_DARK_THEME_COLORS,
       appearance,
       HTML_RENDER_MEASURE_FONTS,
     );

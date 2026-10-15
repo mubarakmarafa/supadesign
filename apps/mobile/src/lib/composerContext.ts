@@ -1,6 +1,6 @@
-import { serializeLegacyContextMessage } from "@supacode/shared/composerContextLegacySend";
-import { filePreviewKind } from "@supacode/shared/filePreview";
-import { videoMimeType } from "@supacode/shared/video";
+import { serializeLegacyContextMessage } from "@supaterm/shared/composerContextLegacySend";
+import { filePreviewKind } from "@supaterm/shared/filePreview";
+import { videoMimeType } from "@supaterm/shared/video";
 import {
   COMPOSER_CONTEXT_MAX_RECORDS,
   COMPOSER_CONTEXT_REVIEW_TEXT_MAX_CHARS,
@@ -11,7 +11,7 @@ import {
   type ReviewCommentContextRecord,
   type ScopedThreadRef,
   type ThreadContextRecord,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import {
   ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
@@ -20,11 +20,11 @@ import {
   isImageReferencesOnly,
   replaceComposerContextReferences,
   sanitizeComposerContextLabel,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 import {
   collectComposerInlineTokens,
   type ComposerInlineToken,
-} from "@supacode/shared/composerInlineTokens";
+} from "@supaterm/shared/composerInlineTokens";
 
 const isMessageContext = Schema.is(OrchestrationMessageContext);
 const decodeMessageContext = Schema.decodeUnknownOption(OrchestrationMessageContext);

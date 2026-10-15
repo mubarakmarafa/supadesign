@@ -1,1 +1,1 @@
-export { faviconUrlForOrigin } from "@supacode/shared/favicon";
+export { faviconUrlForOrigin } from "@supaterm/shared/favicon";

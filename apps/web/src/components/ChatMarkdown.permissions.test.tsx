@@ -6,8 +6,8 @@ import {
   type AuthEnvironmentScope,
   type EditorId,
   type ThreadLinkedPullRequest,
-} from "@supacode/contracts";
-import { DEFAULT_CLIENT_SETTINGS } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import { DEFAULT_CLIENT_SETTINGS } from "@supaterm/contracts/settings";
 import { AsyncResult } from "effect/reactivity";
 import { cloneElement, type ReactElement, type ReactNode } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";

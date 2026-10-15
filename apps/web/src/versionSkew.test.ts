@@ -1,5 +1,5 @@
-import { EnvironmentId } from "@supacode/contracts";
-import type { ServerUpdateState } from "@supacode/client-runtime/state/server";
+import { EnvironmentId } from "@supaterm/contracts";
+import type { ServerUpdateState } from "@supaterm/client-runtime/state/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import serverPackage from "../../server/package.json" with { type: "json" };
 
@@ -25,25 +25,25 @@ import {
 } from "./versionSkew";
 
 const MISMATCH_HINT =
-  "Version mismatch. Try syncing the client and server to the same Supacode version.";
+  "Version mismatch. Try syncing the client and server to the same Supaterm version.";
 
 describe("versionSkew", () => {
   it("updates only the proven npm prefix and safely quotes its path", () => {
     expect(manualServerUpdateCommand("0.0.45", { kind: "npm-global", prefix: "/opt/node" })).toBe(
-      "npm install --global --prefix '/opt/node' supacode@0.0.45",
+      "npm install --global --prefix '/opt/node' supaterm@0.0.45",
     );
     expect(
       manualServerUpdateCommand("0.0.45", { kind: "npm-global", prefix: "/opt/maria's node" }),
-    ).toBe("npm install --global --prefix '/opt/maria'\\''s node' supacode@0.0.45");
+    ).toBe("npm install --global --prefix '/opt/maria'\\''s node' supaterm@0.0.45");
   });
 
   it("keeps runner and unknown commands as relaunches", () => {
-    expect(manualServerUpdateCommand("0.0.45")).toBe("npx supacode@0.0.45");
-    expect(manualServerUpdateCommand("0.0.45", { kind: "npx" })).toBe("npx supacode@0.0.45");
+    expect(manualServerUpdateCommand("0.0.45")).toBe("npx supaterm@0.0.45");
+    expect(manualServerUpdateCommand("0.0.45", { kind: "npx" })).toBe("npx supaterm@0.0.45");
     expect(manualServerUpdateCommand("0.0.45", { kind: "pnpm-dlx" })).toBe(
-      "pnpm dlx supacode@0.0.45",
+      "pnpm dlx supaterm@0.0.45",
     );
-    expect(manualServerUpdateCommand("0.0.45", { kind: "bunx" })).toBe("bunx supacode@0.0.45");
+    expect(manualServerUpdateCommand("0.0.45", { kind: "bunx" })).toBe("bunx supaterm@0.0.45");
   });
   beforeEach(() => {
     branding.APP_VERSION = "0.0.34";

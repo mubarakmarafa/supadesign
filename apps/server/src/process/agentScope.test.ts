@@ -5,7 +5,7 @@ import * as NodePath from "node:path";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import { ChildProcessSpawner } from "effect/process";
 
@@ -63,7 +63,7 @@ const withFakeSystemd = <A, E>(
   }) => Effect.Effect<A, E>,
 ) =>
   Effect.gen(function* () {
-    const bin = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-agent-scope-"));
+    const bin = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-agent-scope-"));
     for (const name of ["systemd-run", "systemctl", "agent"]) {
       NodeFS.writeFileSync(NodePath.join(bin, name), "", { mode: 0o755 });
     }

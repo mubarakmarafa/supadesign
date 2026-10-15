@@ -10,7 +10,7 @@ import { isDesktopRuntimeExternalDependency } from "../../scripts/lib/desktop-ex
 // bundle that already carries its own copy of the same libraries.
 const isMainProcessExternal = (id: string) =>
   id === "electron" || id.startsWith("electron/") || isDesktopRuntimeExternalDependency(id);
-const shouldLaunchElectronAfterPack = process.env.SUPACODE_DESKTOP_DEV === "1";
+const shouldLaunchElectronAfterPack = process.env.SUPATERM_DESKTOP_DEV === "1";
 
 export default defineConfig({
   run: {
@@ -18,13 +18,13 @@ export default defineConfig({
       build: {
         command:
           "node scripts/build-browser-secret.mjs && node scripts/build-preview-annotation-css.mjs && vp pack",
-        dependsOn: ["supacode#build"],
+        dependsOn: ["supaterm#build"],
         cache: false,
       },
       dev: {
         command:
-          "node scripts/build-browser-secret.mjs && node scripts/build-preview-annotation-css.mjs && cross-env SUPACODE_DESKTOP_DEV=1 vp pack --watch",
-        dependsOn: ["supacode#build"],
+          "node scripts/build-browser-secret.mjs && node scripts/build-preview-annotation-css.mjs && cross-env SUPATERM_DESKTOP_DEV=1 vp pack --watch",
+        dependsOn: ["supaterm#build"],
         cache: false,
       },
       "dev:bundle": {
@@ -34,7 +34,7 @@ export default defineConfig({
       },
       "dev:electron": {
         command: "node scripts/dev-electron.mjs",
-        dependsOn: ["supacode#build"],
+        dependsOn: ["supaterm#build"],
         cache: false,
       },
     },

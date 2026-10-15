@@ -1,4 +1,4 @@
-import { DesktopAppActivationResponse } from "@supacode/contracts";
+import { DesktopAppActivationResponse } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 

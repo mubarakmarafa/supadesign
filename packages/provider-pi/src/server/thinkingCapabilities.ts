@@ -1,5 +1,5 @@
-import { type ModelCapabilities, type ProviderOptionChoice } from "@supacode/contracts";
-import { createModelCapabilities } from "@supacode/shared/model";
+import { type ModelCapabilities, type ProviderOptionChoice } from "@supaterm/contracts";
+import { createModelCapabilities } from "@supaterm/shared/model";
 import * as Predicate from "effect/Predicate";
 
 /**

@@ -2,7 +2,7 @@ import type {
   OrchestrationV2ThreadProjection,
   OrchestrationV2ThreadShell,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 
 export type ThreadRelationshipKind = "parent" | "fork" | "subagent" | "transfer";

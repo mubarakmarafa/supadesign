@@ -1,10 +1,10 @@
-import { EnvironmentId } from "@supacode/contracts";
-import { mediaMimeType } from "@supacode/shared/filePreview";
+import { EnvironmentId } from "@supaterm/contracts";
+import { mediaMimeType } from "@supaterm/shared/filePreview";
 import {
   getProjectFaviconCacheKey,
   getProjectFaviconResourceKey,
   isProjectFaviconFallbackUrl,
-} from "@supacode/shared/projectFavicon";
+} from "@supaterm/shared/projectFavicon";
 import * as Base64 from "effect/encoding/Base64";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";

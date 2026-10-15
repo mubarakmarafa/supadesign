@@ -1,0 +1,16 @@
+{
+  "address": "https://79b5562e8fe654f94078b112e8a98ba7.901f853ae695bed7e0e3910bad049664.relay.supaterm.invalid/",
+  "clientSecret": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+  "hello": "{\"type\":\"hello\",\"version\":2,\"key\":\"WGmv9FBUlzLLqu1eXfmzCm2jHLDldCutWtShp2jxpns\"}",
+  "welcome": "{\"type\":\"welcome\",\"version\":2,\"key\":\"ZLEBsdC-WocEvQePmJUAH8A-jp-VIvGI3RKNmEbUhGY\",\"signature\":\"-fo9aY5xy0W-Ybaf-oHFPvMpUVi5PXs_xYg0Q8b8aHZWs2oyqArky8BjIL0DLng2bxtWq270ujRqYDX3CvhwCg\"}",
+  "transcript": "737570617465726d2d74756e6e656c2d76320a79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad0496645869aff450549732cbaaed5e5df9b30a6da31cb0e5742bad5ad4a1a768f1a67b64b101b1d0be5a8704bd078f9895001fc03e8e9f9522f188dd128d9846d48466",
+  "plain": "01000000010000000002000000010000000568656c6c6f",
+  "clientRecords": [
+    "0000000000000000af88a9dfb550db816497aca87a9dd1104bc154bef718d8327964f801ec85cf4d98a434779fddcf",
+    "0000000000000001f1b58749d8763423371a302d86e7c289f931f36444cec65292cb93b1e25587471b2b4e85d408e2"
+  ],
+  "hostRecords": [
+    "000000000000000009035f5b7f11ba4e91b425496ad741f25f196bddcd489dca62f0fa75c733fe6b0718154b8c0f42",
+    "00000000000000018fe128d32dec0759504357d0e2a1ef3107164c8cb19fb789e2da184278725cb3b56dca1e4fe437"
+  ]
+}

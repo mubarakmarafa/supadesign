@@ -1,7 +1,7 @@
 import {
   ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
   collectComposerContextReferences,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 import { PLAN_IMPLEMENTATION_PROMPT_PREFIX } from "../../proposedPlan";
 
 /**

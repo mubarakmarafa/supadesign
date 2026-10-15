@@ -18,7 +18,7 @@ describe("buildCodexDeveloperInstructions", () => {
       buildCodexDeveloperInstructions("default"),
       /^<collaboration_mode># Collaboration Mode: Default/,
     );
-    NodeAssert.match(instructions, /Supacode/);
+    NodeAssert.match(instructions, /Supaterm/);
     NodeAssert.match(instructions, /Codex harness/);
     NodeAssert.match(instructions, /as gpt-5\.3-codex with high reasoning effort/);
   });
@@ -70,13 +70,13 @@ describe("buildCodexDeveloperInstructions", () => {
   });
 });
 
-describe("Supacode browser developer instructions", () => {
+describe("Supaterm browser developer instructions", () => {
   const runtime = { model: "gpt-5.3-codex", reasoningEffort: "high" };
 
   it("prefers the product-native preview tools in both collaboration modes", () => {
     {
       const instructions = toolInstructions(runtime, true);
-      NodeAssert.match(instructions, /Supacode/);
+      NodeAssert.match(instructions, /Supaterm/);
       NodeAssert.match(instructions, /preview_status/);
       NodeAssert.match(instructions, /preview_open/);
       NodeAssert.match(instructions, /Do not switch to global browser skills/);
@@ -88,7 +88,7 @@ describe("Supacode browser developer instructions", () => {
       const instructions = toolInstructions(runtime, false);
       NodeAssert.doesNotMatch(instructions, /preview_status/);
       NodeAssert.doesNotMatch(instructions, /preview_open/);
-      NodeAssert.doesNotMatch(instructions, /Supacode collaborative browser/);
+      NodeAssert.doesNotMatch(instructions, /Supaterm collaborative browser/);
       // Steering away from other browser automation must go with the tools;
       // keeping it would leave the model talked out of its only option.
       NodeAssert.doesNotMatch(instructions, /Do not switch to global browser skills/);
@@ -105,11 +105,11 @@ describe("Supacode browser developer instructions", () => {
 });
 
 function runtimeInstructions(runtime: Parameters<typeof buildCodexAdditionalContext>[0]) {
-  return buildCodexAdditionalContext(runtime).supacode_runtime!.value;
+  return buildCodexAdditionalContext(runtime).supaterm_runtime!.value;
 }
 function toolInstructions(
   runtime: Parameters<typeof buildCodexAdditionalContext>[0],
   available: boolean,
 ) {
-  return buildCodexAdditionalContext(runtime, available).supacode_tools?.value ?? "";
+  return buildCodexAdditionalContext(runtime, available).supaterm_tools?.value ?? "";
 }

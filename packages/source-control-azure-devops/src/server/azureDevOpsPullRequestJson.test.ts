@@ -636,7 +636,7 @@ describe("what az devops invoke answers with", () => {
             path: "/README.md",
             objectId: "8f8047a49",
             gitObjectType: "blob",
-            content: "# SupacodeDemo\n",
+            content: "# SupatermDemo\n",
             contentMetadata: {
               contentType: "application/octet-stream",
               encoding: 65001,
@@ -647,6 +647,6 @@ describe("what az devops invoke answers with", () => {
           }),
         ),
       ),
-    ).toEqual({ contents: "# SupacodeDemo\n", isBinary: false });
+    ).toEqual({ contents: "# SupatermDemo\n", isBinary: false });
   });
 });

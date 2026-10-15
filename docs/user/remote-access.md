@@ -1,6 +1,6 @@
 # Remote access
 
-Connect a phone, browser, or another desktop app to Supacode running on a different
+Connect a phone, browser, or another desktop app to Supaterm running on a different
 machine. That machine must stay running and reachable while you work.
 
 ## Pair through the public relay
@@ -18,47 +18,47 @@ Connections settings show the same name once it connects.
 On a host you reach only over SSH, print a relay pairing link there:
 
 ```bash
-supacode pair --relay
+supaterm pair --relay
 ```
 
 If public relay is off, enable it from the terminal before creating the link:
 
 ```bash
-supacode settings set publicRelayEnabled true
+supaterm settings set publicRelayEnabled true
 ```
 
-Use `supacode settings set publicRelayUrl <relay-url>` when the host should use a
-different `ws://` or `wss://` relay service. Run `supacode settings list` to see
-the supported settings and accepted values, or `supacode settings get publicRelayEnabled` to
+Use `supaterm settings set publicRelayUrl <relay-url>` when the host should use a
+different `ws://` or `wss://` relay service. Run `supaterm settings list` to see
+the supported settings and accepted values, or `supaterm settings get publicRelayEnabled` to
 check the effective value. Pass `--base-dir <path>` when the server uses a
-custom Supacode home. When no home is configured, a linked worktree uses its
-own `.supacode` directory.
+custom Supaterm home. When no home is configured, a linked worktree uses its
+own `.supaterm` directory.
 
-For browser access, install the [Supacode command line](./install.md) on the
+For browser access, install the [Supaterm command line](./install.md) on the
 computer running the browser, then start its companion:
 
 ```bash
-supacode relay-client
+supaterm relay-client
 ```
 
 Open the local URL it prints and paste your relay pairing link. Keep the
 companion running while you work. It serves the browser client without starting
 agents or an environment on that computer. Browser previews, media, downloads,
 and WebSockets use the same encrypted tunnel. A relay address must be paired
-inside the app; opening it as a website does not load Supacode.
+inside the app; opening it as a website does not load Supaterm.
 
 The host and client encrypt the connection end to end. The relay forwards
 encrypted bytes, including HTTP requests. Pairing permissions and authorized
 client revocation work as they do for direct connections. Turning off **Public
 relay** closes relay connections; turning it back on lets already authorized
 clients reconnect. The host must stay running and have internet access.
-After the first activation, the host reconnects automatically when Supacode starts
+After the first activation, the host reconnects automatically when Supaterm starts
 while **Public relay** is enabled.
 
 New pairing links carry the configured relay server to the clients that pair
 with them. Automatically learned relay routes follow a server change through a
 working connection; routes paired explicitly through relay need a new link. If Connections reports that
-another host is using the relay identity, the same Supacode data is running on a
+another host is using the relay identity, the same Supaterm data is running on a
 second machine. Turn **Public relay** off and on to bring the relay back to this
 host.
 
@@ -74,13 +74,13 @@ For a command-line host, replace `<private-ip>` with the host's LAN or tailnet
 address:
 
 ```bash
-supacode serve --host <private-ip>
+supaterm serve --host <private-ip>
 ```
 
 If a server is already running, generate a fresh link without restarting it:
 
 ```bash
-supacode pair
+supaterm pair
 ```
 
 Scan the QR code on your phone or paste the pairing URL into **Add environment**
@@ -109,7 +109,7 @@ A saved machine can keep several routes, including LAN, Tailscale, a public URL,
 and SSH. Pair it again using another address, or choose **Add route** from its
 route list. Both addresses belong to the same machine in your client.
 
-Supacode also learns the LAN and Tailscale addresses reported by a paired
+Supaterm also learns the LAN and Tailscale addresses reported by a paired
 machine. Desktop, mobile, and browser clients using the local companion also
 learn its relay address once relay is activated, without rescanning. On a fresh
 host, create the first relay pairing link to activate it;
@@ -124,9 +124,9 @@ through another saved route to learn the change.
 
 Routes are tried in your saved preference order. Relay is last by default;
 moving it higher makes it take priority over the routes below it.
-Supacode checks higher-priority direct addresses before opening a relay connection,
+Supaterm checks higher-priority direct addresses before opening a relay connection,
 so a reachable preferred LAN or Tailscale route avoids relay traffic.
-Supacode checks for a preferred route when your network changes, when you return
+Supaterm checks for a preferred route when your network changes, when you return
 to the app, and periodically while using a fallback.
 A browser opened over HTTPS needs HTTPS routes; it cannot connect to plain HTTP
 LAN addresses.
@@ -143,7 +143,7 @@ Open **Permissions** next to **Routes** in web or desktop, or **Your permissions
 in the mobile route details, to see what your current connection can do on that
 environment. For a remote environment, this is in its route details. Permissions
 shown there apply only to the route marked **In use**; other routes are not
-checked. Direct pairing and Supacode Connect have separate sessions and may grant
+checked. Direct pairing and Supaterm Connect have separate sessions and may grant
 different permissions.
 
 ### Balance new threads across machines
@@ -173,13 +173,13 @@ HTTPS** in **Settings → Connections**. Turn it off there to remove that route.
 To start a command-line server with Tailscale HTTPS:
 
 ```bash
-supacode serve --tailscale-serve
+supaterm serve --tailscale-serve
 ```
 
 For an already-running server:
 
 ```bash
-supacode pair --tailscale
+supaterm pair --tailscale
 ```
 
 The pairing link uses an address such as `https://machine.tailnet.ts.net/`.
@@ -191,7 +191,7 @@ tailscale serve --https=443 off
 ```
 
 If that port is already in use, choose another with
-`--tailscale-serve-port`. See `supacode pair --help` for other pairing options.
+`--tailscale-serve-port`. See `supaterm pair --help` for other pairing options.
 
 ### Hosted web app
 
@@ -208,13 +208,13 @@ scheme uses HTTP, so include `https://` when your server uses HTTPS.
 ## Desktop-managed SSH
 
 In the desktop app, open **Settings → Connections → Add environment**, choose
-**SSH**, and enter a host or SSH alias such as `user@example.com`. Supacode starts
+**SSH**, and enter a host or SSH alias such as `user@example.com`. Supaterm starts
 or reuses a server there and opens the port forward for you. Projects, provider
 credentials, and agent work stay on the remote machine.
 
 The remote host must be Linux or an Apple Silicon Mac with `curl` or `wget`,
 `tar`, `sha256sum` or `shasum`, and [provider setup](./install.md#providers).
-The first launch downloads Supacode's server to `~/.supacode/runtime` on the host, so
+The first launch downloads Supaterm's server to `~/.supaterm/runtime` on the host, so
 it takes longer than later ones.
 Provider CLIs must be on the `PATH` of a non-interactive login shell there;
 check with:
@@ -224,7 +224,7 @@ ssh user@example.com 'sh -lc "command -v claude codex"'
 ```
 
 If SSH reconnecting fails after an app update, retry the launch once. Removing
-the connection stops a server that Supacode launched; a server that was already
+the connection stops a server that Supaterm launched; a server that was already
 running is left alone.
 
 For Antigravity's Google callback on a remote host, see
@@ -238,7 +238,7 @@ directly. Every other device, and the desktop app for other environments,
 streams them from the host. Agents keep using them while no device is
 connected, and `localhost` addresses reach servers on the host.
 
-The first tab downloads a headless Chrome, about 120 MB, into the Supacode home. It
+The first tab downloads a headless Chrome, about 120 MB, into the Supaterm home. It
 is the same browser [HTML renders](html-renders.md) use, so a host downloads it
 only once. Some Linux hosts need [setup](#browser-host-setup) before it can
 start.
@@ -266,22 +266,22 @@ the server says so at startup, and browser tabs and HTML previews show the
 command to run on the host:
 
 ```sh
-sudo supacode browser setup
+sudo supaterm browser setup
 ```
 
 The server shows the exact line for how you started it, such as
-`sudo npx supacode browser setup`, and keeps your `PATH` when Node is installed only
-for your user. Where `supacode` is not on your `PATH`, such as with only the
-desktop app installed, it names the full path of the app's own `supacode` instead. It allows Chrome's sandbox with an AppArmor profile and installs
+`sudo npx supaterm browser setup`, and keeps your `PATH` when Node is installed only
+for your user. Where `supaterm` is not on your `PATH`, such as with only the
+desktop app installed, it names the full path of the app's own `supaterm` instead. It allows Chrome's sandbox with an AppArmor profile and installs
 any missing libraries with apt. It is safe to run again. Without `sudo`, it
 only reports what it would change.
 
 The browser always runs in Chrome's sandbox. Where you cannot change the host,
-set `SUPACODE_SERVER_BROWSER_SANDBOX=0` for the environment to run without it.
+set `SUPATERM_SERVER_BROWSER_SANDBOX=0` for the environment to run without it.
 
 ## Connect an outside agent
 
-Claude Code, Codex, ChatGPT and other agents Supacode did not start can drive
+Claude Code, Codex, ChatGPT and other agents Supaterm did not start can drive
 threads on an environment through its MCP server. See
 [outside agents](./outside-agents.md) for setup.
 
@@ -290,7 +290,7 @@ threads on an environment through its MCP server. See
 On the host, **Settings → Connections** lets authorized administrators create
 pairing links and revoke client sessions. Revoking an unused link prevents new
 pairings; revoke a device's session to remove its existing access. Command-line
-management is available through `supacode auth --help`.
+management is available through `supaterm auth --help`.
 
 To restore a device whose session was revoked, pair it again with a fresh link.
 If the link's address is one the device already uses for that machine but cannot
@@ -303,11 +303,11 @@ expires.
 To choose a token's permissions, pass `--scope` once for each scope you want:
 
 ```sh
-npx supacode pair --scope orchestration:read --scope terminal:read
+npx supaterm pair --scope orchestration:read --scope terminal:read
 ```
 
 The selected scopes replace the default permissions. The same option works with
-`npx supacode auth pairing create` and `npx supacode auth session issue`; each command's
+`npx supaterm auth pairing create` and `npx supaterm auth session issue`; each command's
 `--help` lists the available scopes. Without `--scope`, pairing tokens retain
 standard client permissions and issued bearer sessions retain administrative
 permissions.
@@ -347,7 +347,7 @@ screenshots, logs, or bug reports.
 
 If a computer should only drive work running elsewhere, turn off its local environment. In the
 desktop app, open **Settings → Connections** and switch off **Local
-environment**. Supacode restarts without a local server: no local agents or terminals run, WSL
+environment**. Supaterm restarts without a local server: no local agents or terminals run, WSL
 backends stay off, and other devices can no longer connect to this computer. Your projects,
 history, and saved connections are kept, and you keep working through paired environments or SSH.
 

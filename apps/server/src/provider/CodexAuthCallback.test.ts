@@ -1,6 +1,6 @@
 // @effect-diagnostics nodeBuiltinImport:off globalFetchInEffect:off - Exercise the real local callback receiver without contacting OpenAI.
 import { expect, it } from "@effect/vitest";
-import { EnvironmentId, ProviderInstanceId } from "@supacode/contracts";
+import { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -98,7 +98,7 @@ it.effect("the local server refuses nonlocal return destinations", () =>
     const request = yield* Effect.promise(input);
     const result = yield* subscribeCodexAuthCallback({
       ...request,
-      returnUrl: "https://app.next.supacode.sh/welcome",
+      returnUrl: "https://app.supaterm.com/welcome",
     }).pipe(Stream.runDrain, Effect.result);
     expect(result._tag).toBe("Failure");
   }),

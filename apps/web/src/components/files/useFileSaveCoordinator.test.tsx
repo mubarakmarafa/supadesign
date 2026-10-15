@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { act, StrictMode } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";

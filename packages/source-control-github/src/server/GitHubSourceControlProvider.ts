@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
@@ -13,11 +13,11 @@ import {
   TrimmedNonEmptyString,
   type ChangeRequest,
   type SourceControlRepositoryCloneUrls,
-} from "@supacode/contracts";
-import { normalizeGitRemoteUrl } from "@supacode/shared/git";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { decodeJsonResult } from "@supacode/shared/schemaJson";
-import { isSshRemoteUrl } from "@supacode/shared/sourceControl";
+} from "@supaterm/contracts";
+import { normalizeGitRemoteUrl } from "@supaterm/shared/git";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { decodeJsonResult } from "@supaterm/shared/schemaJson";
+import { isSshRemoteUrl } from "@supaterm/shared/sourceControl";
 
 import * as GitHubApi from "./GitHubApi.ts";
 import * as GitHubChangeRequestTemplate from "./gitHubChangeRequestTemplate.ts";
@@ -33,9 +33,9 @@ import {
   resolveGitHubRepository,
   type GitHubRepositoryLocator,
 } from "./gitHubRepositoryResolution.ts";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
-import * as SourceControlProvider from "@supacode/source-control-core/server/SourceControlProvider";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
+import * as SourceControlProvider from "@supaterm/source-control-core/server/SourceControlProvider";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 
 const decodeLinkSubject = Schema.decodeUnknownEffect(
   Schema.fromJsonString(

@@ -12,7 +12,7 @@ import * as NodePath from "node:path";
 export const symlinksSupported: boolean = (() => {
   let directory: string | undefined;
   try {
-    directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-symlink-probe-"));
+    directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-symlink-probe-"));
     NodeFS.symlinkSync(NodePath.join(directory, "target"), NodePath.join(directory, "link"));
     return true;
   } catch {

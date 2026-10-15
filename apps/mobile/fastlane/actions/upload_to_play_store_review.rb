@@ -37,7 +37,7 @@ module Fastlane
       def self.available_options = Supply::Options.available_options
       def self.is_supported?(platform) = platform == :android
       def self.description = "Upload Google Play assets and submit without cancelling an active review"
-      def self.authors = ["Supacode"]
+      def self.authors = ["Supaterm"]
     end
   end
 end

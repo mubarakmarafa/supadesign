@@ -6,7 +6,7 @@ import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
 
-import { AuthEnvironmentScopes } from "@supacode/contracts";
+import { AuthEnvironmentScopes } from "@supaterm/contracts";
 
 import {
   type AuthPairingLinkRepositoryError,
@@ -99,7 +99,7 @@ export class AuthPairingLinkRepository extends Context.Service<
       input: GetAuthPairingLinkByCredentialInput,
     ) => Effect.Effect<Option.Option<AuthPairingLinkRecord>, AuthPairingLinkRepositoryError>;
   }
->()("supacode/persistence/AuthPairingLinks/AuthPairingLinkRepository") {}
+>()("supaterm/persistence/AuthPairingLinks/AuthPairingLinkRepository") {}
 
 function toPersistenceSqlOrDecodeError(
   sqlOperation: string,

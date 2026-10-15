@@ -1,5 +1,5 @@
-import type { ProjectGroupingSettings } from "@supacode/client-runtime/state/project-grouping";
-import type { SidebarProjectGroupingMode } from "@supacode/contracts";
+import type { ProjectGroupingSettings } from "@supaterm/client-runtime/state/project-grouping";
+import type { SidebarProjectGroupingMode } from "@supaterm/contracts";
 
 import type { Preferences } from "../persistence/mobile-preferences";
 

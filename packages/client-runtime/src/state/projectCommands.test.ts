@@ -8,7 +8,7 @@ import {
   type ScopedProjectRef,
   type ServerConfig,
   WS_METHODS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { vi } from "vite-plus/test";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";

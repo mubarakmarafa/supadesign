@@ -1,4 +1,4 @@
-import type { ThreadPullRequestLink } from "@supacode/contracts";
+import type { ThreadPullRequestLink } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { resolveThreadReferenceCopyTarget } from "./threadReference.ts";
@@ -21,7 +21,7 @@ describe("resolveThreadReferenceCopyTarget", () => {
         threadId: "thread-1",
         openPanelPullRequestUrl: null,
         pullRequests: [crossRepositoryPullRequest],
-        linkedPullRequestUrl: "https://github.com/supacode/pr/12",
+        linkedPullRequestUrl: "https://github.com/supaterm/pr/12",
       }),
     ).toBeNull();
   });
@@ -30,18 +30,18 @@ describe("resolveThreadReferenceCopyTarget", () => {
     expect(
       resolveThreadReferenceCopyTarget({
         threadId: "thread-1",
-        openPanelPullRequestUrl: "https://github.com/supacode/pr/14",
+        openPanelPullRequestUrl: "https://github.com/supaterm/pr/14",
         pullRequests: [crossRepositoryPullRequest],
-        linkedPullRequestUrl: "https://github.com/supacode/pr/12",
+        linkedPullRequestUrl: "https://github.com/supaterm/pr/12",
       }),
     ).toMatchObject({
       kind: "pull-request",
-      value: "https://github.com/supacode/pr/14",
+      value: "https://github.com/supaterm/pr/14",
       successTitle: "PR link copied",
     });
   });
 
-  it.each([null, "https://github.com/supacode/pr/12"])(
+  it.each([null, "https://github.com/supaterm/pr/12"])(
     "copies a native cross-repository link before the fallback URL %s",
     (linkedPullRequestUrl) => {
       expect(
@@ -88,20 +88,20 @@ describe("resolveThreadReferenceCopyTarget", () => {
       resolveThreadReferenceCopyTarget({
         threadId: "thread-1",
         pullRequests: [{ ...crossRepositoryPullRequest, source: "stack-dismissed" }],
-        linkedPullRequestUrl: "https://github.com/supacode/pr/12",
+        linkedPullRequestUrl: "https://github.com/supaterm/pr/12",
       }),
-    ).toMatchObject({ kind: "pull-request", value: "https://github.com/supacode/pr/12" });
+    ).toMatchObject({ kind: "pull-request", value: "https://github.com/supaterm/pr/12" });
   });
 
   it("uses the thread pull request when no panel is open", () => {
     expect(
       resolveThreadReferenceCopyTarget({
         threadId: "thread-1",
-        linkedPullRequestUrl: "https://github.com/supacode/pr/12",
+        linkedPullRequestUrl: "https://github.com/supaterm/pr/12",
       }),
     ).toMatchObject({
       kind: "pull-request",
-      value: "https://github.com/supacode/pr/12",
+      value: "https://github.com/supaterm/pr/12",
       successTitle: "PR link copied",
     });
   });

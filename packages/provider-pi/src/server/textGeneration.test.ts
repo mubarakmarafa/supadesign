@@ -1,6 +1,6 @@
 import { assert, it } from "@effect/vitest";
-import { ProviderInstanceId } from "@supacode/contracts";
-import { createModelSelection } from "@supacode/shared/model";
+import { ProviderInstanceId } from "@supaterm/contracts";
+import { createModelSelection } from "@supaterm/shared/model";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Queue from "effect/Queue";

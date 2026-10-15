@@ -1,7 +1,7 @@
 import { AppActivityIndicator } from "../../components/AppActivityIndicator";
 import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
-import { type EnvironmentMachineKind, resolveEnvironmentMachineKind } from "@supacode/contracts";
+import { type EnvironmentMachineKind, resolveEnvironmentMachineKind } from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { useMemo } from "react";
 import { Pressable, View } from "react-native";
@@ -185,7 +185,7 @@ function CacheEnvironmentRow(props: {
         className="rounded-full px-3 py-2 disabled:opacity-40"
       >
         <Text
-          className="font-supacode-medium tabular-nums text-danger-foreground"
+          className="font-supaterm-medium tabular-nums text-danger-foreground"
           numberOfLines={1}
         >
           {armed ? "Confirm clear" : `Clear ${formatBytes(props.environment.payloadBytes)}`}

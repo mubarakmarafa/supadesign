@@ -1,6 +1,6 @@
-import type { DesktopSshPasswordPromptRequest } from "@supacode/contracts";
-import { DesktopSshPasswordPromptResolutionInputSchema } from "@supacode/contracts";
-import type { SshPasswordRequest } from "@supacode/ssh/auth";
+import type { DesktopSshPasswordPromptRequest } from "@supaterm/contracts";
+import { DesktopSshPasswordPromptResolutionInputSchema } from "@supaterm/contracts";
+import type { SshPasswordRequest } from "@supaterm/ssh/auth";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -63,7 +63,7 @@ export class DesktopSshPromptWindowUnavailableError extends Schema.TaggedError<D
 ) {
   override get message(): string {
     const request = this.requestId === null ? "before a request id was assigned" : this.requestId;
-    return `Supacode window is unavailable during ${this.stage} for SSH authentication to ${this.destination} (request: ${request}).`;
+    return `Supaterm window is unavailable during ${this.stage} for SSH authentication to ${this.destination} (request: ${request}).`;
   }
 }
 
@@ -186,7 +186,7 @@ export class DesktopSshPasswordPrompts extends Context.Service<
       input: DesktopSshPasswordPromptResolutionInput,
     ) => Effect.Effect<void, DesktopSshPasswordPromptResolveError>;
   }
->()("@supacode/desktop/ssh/DesktopSshPasswordPrompts") {}
+>()("@supaterm/desktop/ssh/DesktopSshPasswordPrompts") {}
 
 interface PendingSshPasswordPrompt {
   readonly requestId: string;

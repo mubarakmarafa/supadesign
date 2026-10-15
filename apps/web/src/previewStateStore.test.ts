@@ -1,10 +1,10 @@
-import { scopedThreadKey, scopeThreadRef } from "@supacode/client-runtime/environment";
+import { scopedThreadKey, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   type EnvironmentId,
   type PreviewEvent,
   type PreviewSessionSnapshot,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import {

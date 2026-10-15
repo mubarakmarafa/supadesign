@@ -1,4 +1,4 @@
-import type { ClientSettingsPatch, DesktopSnapShotState, SnapShotSound } from "@supacode/contracts";
+import type { ClientSettingsPatch, DesktopSnapShotState, SnapShotSound } from "@supaterm/contracts";
 import {
   captureSetupBackend,
   captureSetupDesktopName,

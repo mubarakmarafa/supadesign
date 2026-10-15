@@ -1,7 +1,7 @@
 import { parsePatchFiles } from "@pierre/diffs/utils/parsePatchFiles";
 import type { ChangeTypes, FileDiffMetadata } from "@pierre/diffs/types";
-import type { ThreadCheckpointSummary } from "@supacode/client-runtime/state/thread-checkpoints";
-import type { ReviewDiffPreviewSource } from "@supacode/contracts";
+import type { ThreadCheckpointSummary } from "@supaterm/client-runtime/state/thread-checkpoints";
+import type { ReviewDiffPreviewSource } from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 import * as Order from "effect/Order";

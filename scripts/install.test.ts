@@ -1,5 +1,5 @@
 // @effect-diagnostics nodeBuiltinImport:off - Drives the real shell installer through a PTY and a gated HTTP fixture.
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as NodeChildProcess from "node:child_process";
 import * as NodeCrypto from "node:crypto";
 import * as NodeFSP from "node:fs/promises";
@@ -14,18 +14,18 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer term
     "preserves download and install behavior (HTTP failure: %s)",
     async (fail) => {
       const root = await NodeFSP.mkdtemp(
-        NodePath.join(NodeOS.tmpdir(), "supacode-install-progress-"),
+        NodePath.join(NodeOS.tmpdir(), "supaterm-install-progress-"),
       );
       const version = "1.2.3";
-      const stem = `supacode-${version}-linux-${HostProcess.Architecture.defaultValue()}`;
+      const stem = `supaterm-${version}-linux-${HostProcess.Architecture.defaultValue()}`;
       const archiveName = `${stem}.tar.gz`;
       let resumeDownload: (() => void) | undefined;
       let sawPartialProgress = false;
       let output = "";
       await NodeFSP.mkdir(NodePath.join(root, stem));
       await NodeFSP.writeFile(
-        NodePath.join(root, stem, "supacode"),
-        "#!/bin/sh\necho 'supacode v1.2.3'\n",
+        NodePath.join(root, stem, "supaterm"),
+        "#!/bin/sh\necho 'supaterm v1.2.3'\n",
         {
           mode: 0o755,
         },
@@ -66,10 +66,10 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer term
           ...process.env,
           TERM: "xterm",
           NO_COLOR: "1",
-          SUPACODE_VERSION: version,
-          SUPACODE_HOME: NodePath.join(root, "home"),
-          SUPACODE_INSTALL_BIN_DIR: NodePath.join(root, "bin"),
-          SUPACODE_RELEASE_BASE_URL: `http://127.0.0.1:${address.port}`,
+          SUPATERM_VERSION: version,
+          SUPATERM_HOME: NodePath.join(root, "home"),
+          SUPATERM_INSTALL_BIN_DIR: NodePath.join(root, "bin"),
+          SUPATERM_RELEASE_BASE_URL: `http://127.0.0.1:${address.port}`,
         },
         stdio: ["ignore", "pipe", "pipe"],
       });
@@ -92,22 +92,22 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer term
           expect(code).not.toBe(0);
           expect(output).toContain("500");
           expect(output).not.toContain("100%");
-          expect(output).not.toContain("Installed Supacode");
+          expect(output).not.toContain("Installed Supaterm");
           expect(await NodeFSP.readdir(versions)).toEqual([]);
         } else {
           expect(code).toBe(0);
           expect(sawPartialProgress).toBe(true);
           expect(output).toContain("100%");
           expect(output).toContain("0.1 / 0.1 MB");
-          expect(output).toContain("Installed Supacode 1.2.3");
+          expect(output).toContain("Installed Supaterm 1.2.3");
           expect(
             await NodeFSP.readFile(NodePath.join(versions, version, ".install-complete"), "utf8"),
           ).toBe("1.2.3\n");
           expect(
-            NodeChildProcess.execFileSync(NodePath.join(root, "bin/supacode"), ["--version"], {
+            NodeChildProcess.execFileSync(NodePath.join(root, "bin/supaterm"), ["--version"], {
               encoding: "utf8",
             }).trim(),
-          ).toBe("supacode v1.2.3");
+          ).toBe("supaterm v1.2.3");
           expect(await NodeFSP.readdir(versions)).toEqual([version]);
         }
       } finally {

@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/source-control-core",
+  "name": "@supaterm/source-control-core",
   "private": true,
   "type": "module",
   "exports": {
@@ -49,8 +49,8 @@
     "test": "vp test run --config ../../vite.config.ts --dir ."
   },
   "dependencies": {
-    "@supacode/contracts": "workspace:*",
-    "@supacode/shared": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/shared": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

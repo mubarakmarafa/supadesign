@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { converter } from "culori/fn";
-import { BUILT_IN_THEMES } from "@supacode/shared/themePalettes";
+import { BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
 
 import {
   applyThemeColorPreview,
@@ -25,7 +25,7 @@ import {
   subscribeToThemePreview,
   subscribeToCustomThemes,
   themeAllowsSidebarArtwork,
-  SUPACODE_CHAT_THEME,
+  SUPATERM_CHAT_THEME,
   GROVE_THEME,
   updateCustomTheme,
   updateThemeColorFamily,
@@ -401,13 +401,13 @@ describe("theme files", () => {
 
   it("canonicalizes the explicitly exported theme", () => {
     const serialized = serializeThemeFile({
-      ...SUPACODE_CHAT_THEME,
-      colors: { ...SUPACODE_CHAT_THEME.colors, accent: "hsl(263 70% 58%)" },
+      ...SUPATERM_CHAT_THEME,
+      colors: { ...SUPATERM_CHAT_THEME.colors, accent: "hsl(263 70% 58%)" },
     });
     expect(JSON.parse(serialized)).toMatchObject({
       version: THEME_FILE_VERSION,
-      id: SUPACODE_CHAT_THEME.id,
-      name: SUPACODE_CHAT_THEME.label,
+      id: SUPATERM_CHAT_THEME.id,
+      name: SUPATERM_CHAT_THEME.label,
       appearance: "light",
       colors: { accent: canonical("hsl(263 70% 58%)") },
     });
@@ -459,15 +459,15 @@ describe("theme files", () => {
       },
     });
 
-    applyThemeColorPreview(SUPACODE_CHAT_THEME.colors, "light");
+    applyThemeColorPreview(SUPATERM_CHAT_THEME.colors, "light");
     expect(getThemePreviewAppearance()).toBe("light");
     expect(listener).toHaveBeenCalledTimes(1);
 
-    applyThemeColorPreview(SUPACODE_CHAT_THEME.variants!.dark!, "dark");
+    applyThemeColorPreview(SUPATERM_CHAT_THEME.variants!.dark!, "dark");
     expect(getThemePreviewAppearance()).toBe("dark");
     expect(listener).toHaveBeenCalledTimes(2);
 
-    applyThemeColorPreview(SUPACODE_CHAT_THEME.variants!.dark!, "dark");
+    applyThemeColorPreview(SUPATERM_CHAT_THEME.variants!.dark!, "dark");
     expect(listener).toHaveBeenCalledTimes(2);
 
     applyThemePalette("system");
@@ -495,19 +495,19 @@ describe("theme files", () => {
       canvas: canonical("#101827"),
       text: canonical("#eef5ff"),
     });
-    expect(getThemeModes(SUPACODE_CHAT_THEME)).toEqual(["light", "dark"]);
-    expect(resolveThemeAppearance(SUPACODE_CHAT_THEME.id, true, true)).toBe("dark");
-    expect(resolveDesktopTheme(SUPACODE_CHAT_THEME.id, true)).toBe("system");
-    expect(resolveThemeAppearance(SUPACODE_CHAT_THEME.id, false, false, "dark")).toBe("dark");
-    expect(resolveDesktopTheme(SUPACODE_CHAT_THEME.id, false, "dark")).toBe("dark");
+    expect(getThemeModes(SUPATERM_CHAT_THEME)).toEqual(["light", "dark"]);
+    expect(resolveThemeAppearance(SUPATERM_CHAT_THEME.id, true, true)).toBe("dark");
+    expect(resolveDesktopTheme(SUPATERM_CHAT_THEME.id, true)).toBe("system");
+    expect(resolveThemeAppearance(SUPATERM_CHAT_THEME.id, false, false, "dark")).toBe("dark");
+    expect(resolveDesktopTheme(SUPATERM_CHAT_THEME.id, false, "dark")).toBe("dark");
     expect(JSON.parse(serializeThemeFile(theme)).variants.dark).toMatchObject({
       canvas: canonical("#101827"),
       text: canonical("#eef5ff"),
     });
   });
 
-  it("pins the Supacode Chat palette and keeps it readable", () => {
-    expectThemeColors(SUPACODE_CHAT_THEME.colors, {
+  it("pins the Supaterm Chat palette and keeps it readable", () => {
+    expectThemeColors(SUPATERM_CHAT_THEME.colors, {
       canvas: "#fdf7fd",
       chrome: "#fdf7fd",
       toolbarBorder: "#efbdeb",
@@ -522,7 +522,7 @@ describe("theme files", () => {
       accentSurface: "#f3e6f5",
       sidebar: "#f2e1f4",
     });
-    expectThemeColors(SUPACODE_CHAT_THEME.variants!.dark!, {
+    expectThemeColors(SUPATERM_CHAT_THEME.variants!.dark!, {
       canvas: "#1f1a24",
       chrome: "#1f1a24",
       surface: "#29232d",
@@ -536,7 +536,7 @@ describe("theme files", () => {
     });
 
     for (const mode of ["light", "dark"] as const) {
-      const colors = getThemeColorsForMode(SUPACODE_CHAT_THEME, mode)!;
+      const colors = getThemeColorsForMode(SUPATERM_CHAT_THEME, mode)!;
       expect(contrastRatio(colors.text, colors.canvas)).toBeGreaterThanOrEqual(7);
       expect(contrastRatio(colors.textMuted, colors.canvas)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(colors.messageForeground, colors.messageSurface)).toBeGreaterThanOrEqual(
@@ -563,7 +563,7 @@ describe("theme files", () => {
         expect(colors).not.toBeNull();
         expect(contrastRatio(colors!.text, colors!.canvas)).toBeGreaterThanOrEqual(4.5);
         expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeGreaterThanOrEqual(4.5);
-        if (theme !== SUPACODE_CHAT_THEME) {
+        if (theme !== SUPATERM_CHAT_THEME) {
           expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeLessThan(5.5);
           expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeCloseTo(
             mode === "dark" ? 5.082 : 4.705,
@@ -682,7 +682,7 @@ describe("theme files", () => {
       ["graphite-custom", "Graphite Tweak"],
       ["graphite-custom-2", "My Graphite"],
     ]);
-    expect(getThemeDefinition("graphite")?.label).toBe("Supacode");
+    expect(getThemeDefinition("graphite")?.label).toBe("Supaterm");
 
     removeCustomTheme("graphite-custom-2");
 
@@ -1151,7 +1151,7 @@ describe("stored theme preferences", () => {
   });
 
   it("recognizes only preferences the runtime can render", () => {
-    for (const preference of ["light", "dark", "system", SUPACODE_CHAT_THEME.id, GROVE_THEME.id]) {
+    for (const preference of ["light", "dark", "system", SUPATERM_CHAT_THEME.id, GROVE_THEME.id]) {
       expect(isKnownThemePreference(preference)).toBe(true);
     }
     expect(isKnownThemePreference(`${GROVE_THEME.id}:dark`)).toBe(false);
@@ -1201,8 +1201,8 @@ describe("stored theme preferences", () => {
 
 describe("singleAppearanceOf", () => {
   it("reports the only half a theme can claim, and null for a pair", () => {
-    const { variants: _pair, ...base } = SUPACODE_CHAT_THEME;
+    const { variants: _pair, ...base } = SUPATERM_CHAT_THEME;
     expect(singleAppearanceOf({ ...base, id: "x", appearance: "dark" })).toBe("dark");
-    expect(singleAppearanceOf(SUPACODE_CHAT_THEME)).toBe(null);
+    expect(singleAppearanceOf(SUPATERM_CHAT_THEME)).toBe(null);
   });
 });

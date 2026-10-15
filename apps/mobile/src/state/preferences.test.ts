@@ -4,7 +4,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { vi } from "vite-plus/test";
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import { RegistryContext, useAtomSet } from "@effect/atom-react";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";

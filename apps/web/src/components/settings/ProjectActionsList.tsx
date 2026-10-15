@@ -1,4 +1,4 @@
-import type { ProjectScript, ResolvedKeybindingsConfig } from "@supacode/contracts";
+import type { ProjectScript, ResolvedKeybindingsConfig } from "@supaterm/contracts";
 import { SettingsIcon } from "lucide-react";
 import { shortcutLabelForCommand } from "../../keybindings";
 import { commandForProjectScript } from "../../projectScripts";

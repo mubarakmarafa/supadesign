@@ -17,8 +17,8 @@ import type * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 
 import { sweepStalePendingAttachments } from "./attachmentStore.ts";
-import { DEFAULT_SIGNAL_EXPORT, type SignalExport } from "@supacode/shared/observability";
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
+import { DEFAULT_SIGNAL_EXPORT, type SignalExport } from "@supaterm/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 
 export const DEFAULT_PORT = 7373;
 
@@ -106,7 +106,7 @@ export class ServerConfig extends Context.Service<
     readonly tailscaleServeEnabled: boolean;
     readonly tailscaleServePort: number;
   }
->()("supacode/config/ServerConfig") {
+>()("supaterm/config/ServerConfig") {
   /** @deprecated Import and use `layerTest` from this module. */
   static readonly layerTest = (
     cwd: string,
@@ -121,10 +121,10 @@ export const make = (config: ServerConfig["Service"]) => ServerConfig.of(config)
  * logs report the same service identity to the collector.
  */
 export const otlpResource = (config: ServerConfig["Service"]) => ({
-  serviceName: "supacode-server",
+  serviceName: "supaterm-server",
   attributes: {
-    "service.namespace": "supacode",
-    "service.runtime": "supacode-server",
+    "service.namespace": "supaterm",
+    "service.runtime": "supaterm-server",
     "service.mode": config.mode,
   },
 });

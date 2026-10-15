@@ -1,4 +1,4 @@
-import type { DesktopPreviewRecordingInput } from "@supacode/contracts";
+import type { DesktopPreviewRecordingInput } from "@supaterm/contracts";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { createRecordingCompositor, RecordingDecorations } from "./recordingCompositor";

@@ -1,4 +1,4 @@
-import type { FilePreviewKind } from "@supacode/shared/filePreview";
+import type { FilePreviewKind } from "@supaterm/shared/filePreview";
 
 /** The available preview and selected body must agree, including source-only draft files. */
 export function attachmentDocumentPresentation(input: {

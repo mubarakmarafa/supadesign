@@ -4,8 +4,8 @@ import {
   type VcsListRefsResult,
   type VcsStatusResult,
   WS_METHODS,
-} from "@supacode/contracts";
-import { applyGitStatusStreamEvent } from "@supacode/shared/git";
+} from "@supaterm/contracts";
+import { applyGitStatusStreamEvent } from "@supaterm/shared/git";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";

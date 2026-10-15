@@ -9,22 +9,22 @@ import { it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
-import { createModelSelection } from "@supacode/shared/model";
+import { createModelSelection } from "@supaterm/shared/model";
 import { expect } from "vite-plus/test";
-import { ProviderInstanceId } from "@supacode/contracts";
-import { GrokSettings } from "@supacode/provider-grok/settings";
+import { ProviderInstanceId } from "@supaterm/contracts";
+import { GrokSettings } from "@supaterm/provider-grok/settings";
 
 import * as ServerConfig from "../config.ts";
 import * as TextGeneration from "./TextGeneration.ts";
-import { makeGrokTextGeneration } from "@supacode/provider-grok/testing";
-import { execScriptSource, writeFakeCli } from "@supacode/provider-testing/fakeCli";
+import { makeGrokTextGeneration } from "@supaterm/provider-grok/testing";
+import { execScriptSource, writeFakeCli } from "@supaterm/provider-testing/fakeCli";
 const decodeGrokSettings = Schema.decodeSync(GrokSettings);
 
 const __dirname = NodePath.dirname(NodeURL.fileURLToPath(import.meta.url));
 const mockAgentPath = NodePath.join(__dirname, "../provider/testFixtures/grok-text-mock-agent.mjs");
 
 const layerGrokTextGenerationTest = ServerConfig.ServerConfig.layerTest(process.cwd(), {
-  prefix: "supacode-grok-text-generation-test-",
+  prefix: "supaterm-grok-text-generation-test-",
 }).pipe(Layer.provideMerge(NodeServices.layer));
 
 function makeAcpGrokWrapper(dir: string, env: Record<string, string>): string {
@@ -44,7 +44,7 @@ function withFakeAcpGrok<A, E, R>(
   effectFn: (textGeneration: TextGeneration.TextGeneration["Service"]) => Effect.Effect<A, E, R>,
 ) {
   return Effect.gen(function* () {
-    const tempDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-grok-text-acp-"));
+    const tempDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-grok-text-acp-"));
     yield* Effect.addFinalizer(() =>
       Effect.sync(() => {
         NodeFS.rmSync(tempDir, { recursive: true, force: true });
@@ -70,14 +70,14 @@ function readJsonRpcRequests(
 it.layer(layerGrokTextGenerationTest)("GrokTextGeneration", (it) => {
   it.effect("uses ACP with disabled tool capabilities and forwards the requested model id", () => {
     const requestLogDir = NodeFS.mkdtempSync(
-      NodePath.join(NodeOS.tmpdir(), "supacode-grok-text-log-"),
+      NodePath.join(NodeOS.tmpdir(), "supaterm-grok-text-log-"),
     );
     const requestLogPath = NodePath.join(requestLogDir, "requests.ndjson");
 
     return withFakeAcpGrok(
       {
-        SUPACODE_ACP_REQUEST_LOG_PATH: requestLogPath,
-        SUPACODE_ACP_PROMPT_RESPONSE_TEXT: JSON.stringify({
+        SUPATERM_ACP_REQUEST_LOG_PATH: requestLogPath,
+        SUPATERM_ACP_PROMPT_RESPONSE_TEXT: JSON.stringify({
           subject: "Add Grok provider",
           body: "Wire up the ACP runtime and headless text generation path.",
         }),
@@ -116,7 +116,7 @@ it.layer(layerGrokTextGenerationTest)("GrokTextGeneration", (it) => {
   it.effect("extracts the JSON object when Grok wraps it in conversational text", () =>
     withFakeAcpGrok(
       {
-        SUPACODE_ACP_PROMPT_RESPONSE_TEXT:
+        SUPATERM_ACP_PROMPT_RESPONSE_TEXT:
           "Sure! Here's a thread title:\n\n" +
           JSON.stringify({ title: "Investigate failing CI" }) +
           "\n\nLet me know if you need anything else.",
@@ -136,7 +136,7 @@ it.layer(layerGrokTextGenerationTest)("GrokTextGeneration", (it) => {
   it.effect("surfaces ACP request failures as text generation errors", () =>
     withFakeAcpGrok(
       {
-        SUPACODE_ACP_PROMPT_RESPONSE_TEXT: JSON.stringify({ branch: "unreachable" }),
+        SUPATERM_ACP_PROMPT_RESPONSE_TEXT: JSON.stringify({ branch: "unreachable" }),
       },
       (textGeneration) =>
         Effect.gen(function* () {
@@ -159,7 +159,7 @@ it.layer(layerGrokTextGenerationTest)("GrokTextGeneration", (it) => {
   it.effect("fails with TextGenerationError when output is empty", () =>
     withFakeAcpGrok(
       {
-        SUPACODE_ACP_PROMPT_RESPONSE_TEXT: "   \n  ",
+        SUPATERM_ACP_PROMPT_RESPONSE_TEXT: "   \n  ",
       },
       (textGeneration) =>
         Effect.gen(function* () {
@@ -179,7 +179,7 @@ it.layer(layerGrokTextGenerationTest)("GrokTextGeneration", (it) => {
   it.effect("decodes a structured PR title + body", () =>
     withFakeAcpGrok(
       {
-        SUPACODE_ACP_PROMPT_RESPONSE_TEXT: JSON.stringify({
+        SUPATERM_ACP_PROMPT_RESPONSE_TEXT: JSON.stringify({
           title: "feat(grok): wire up session/set_model",
           body: "## Summary\n- Replace `-m` spawn flag with the typed ACP `session/set_model`.\n- Translate `MODEL_SWITCH_INCOMPATIBLE_AGENT` into a validation error.",
         }),
@@ -205,7 +205,7 @@ it.layer(layerGrokTextGenerationTest)("GrokTextGeneration", (it) => {
   it.effect("fails with TextGenerationError when output is unparseable JSON", () =>
     withFakeAcpGrok(
       {
-        SUPACODE_ACP_PROMPT_RESPONSE_TEXT: "totally not json output from a confused model",
+        SUPATERM_ACP_PROMPT_RESPONSE_TEXT: "totally not json output from a confused model",
       },
       (textGeneration) =>
         Effect.gen(function* () {

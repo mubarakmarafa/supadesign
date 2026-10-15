@@ -38,7 +38,7 @@ jobs:
       - name: Install workspace dependencies
         run: mise exec -- vp install
       - name: Ensure Electron runtime is installed
-        run: vp run --filter @supacode/desktop ensure:electron
+        run: vp run --filter @supaterm/desktop ensure:electron
 
       # Files/dependencies are repo-wide; export checks cover clean workspaces only.
       # The runner waits for background checks before cleanup and propagates failures.
@@ -62,7 +62,7 @@ jobs:
       - name: Install workspace dependencies
         run: mise exec -- vp install
       - name: Ensure Electron runtime is installed
-        run: vp run --filter @supacode/desktop ensure:electron
+        run: vp run --filter @supaterm/desktop ensure:electron
 
       - name: Typecheck
         run: mise exec -- vp run typecheck
@@ -92,7 +92,7 @@ jobs:
       - name: Install workspace dependencies
         run: mise exec -- vp install
       - name: Ensure Electron runtime is installed
-        run: vp run --filter @supacode/desktop ensure:electron
+        run: vp run --filter @supaterm/desktop ensure:electron
 
       - name: Finish installing browser secret helper build libraries
         timeout-minutes: 5
@@ -107,7 +107,7 @@ jobs:
       - name: Verify preload bundle output
         run: node apps/desktop/scripts/verify-preload-bundle.mjs
 
-  # Everything except `supacode` (apps/server) and the web app, which has its own job
+  # Everything except `supaterm` (apps/server) and the web app, which has its own job
   # below. `--parallel` drops the package dependency ordering that `vp run`
   # applies by default: these `test` tasks declare no `dependsOn` and resolve
   # workspace deps from source, so ordering only bought us idle runners between
@@ -137,7 +137,7 @@ jobs:
       - name: Install workspace dependencies
         run: mise exec -- vp install
       - name: Ensure Electron runtime is installed
-        run: vp run --filter @supacode/desktop ensure:electron
+        run: vp run --filter @supaterm/desktop ensure:electron
 
       - name: Finish installing test build dependencies
         timeout-minutes: 5
@@ -149,7 +149,7 @@ jobs:
           command -v cc
 
       - name: Test
-        run: vp run --parallel --concurrency-limit 4 --filter '!supacode' --filter '!@supacode/monorepo' --filter '!@supacode/web' test
+        run: vp run --parallel --concurrency-limit 4 --filter '!supaterm' --filter '!@supaterm/monorepo' --filter '!@supaterm/web' test
 
   # The web suite is the largest outside the server. In the shared Test job it
   # started last and ran alone for about 40s after everything else finished.
@@ -166,7 +166,7 @@ jobs:
       - name: Install workspace dependencies
         run: mise exec -- vp install
       - name: Test
-        run: vp run --filter @supacode/web test
+        run: vp run --filter @supaterm/web test
 
   # apps/server sets `fileParallelism: false`, so its test files run strictly
   # one at a time. Sharding spreads them over separate runners instead of
@@ -197,9 +197,9 @@ jobs:
 
       - name: Test
         env:
-          SUPACODE_TRANSFER_BUDGET_REPORT_PATH: ${{ runner.temp }}/supacode-transfer-budget.md
-          SUPACODE_TRANSFER_BUDGET_RESULT_PATH: ${{ runner.temp }}/thread-transfer-result.json
-        run: vp run --filter supacode test --shard ${{ matrix.shard }}/${{ strategy.job-total }}
+          SUPATERM_TRANSFER_BUDGET_REPORT_PATH: ${{ runner.temp }}/supaterm-transfer-budget.md
+          SUPATERM_TRANSFER_BUDGET_RESULT_PATH: ${{ runner.temp }}/thread-transfer-result.json
+        run: vp run --filter supaterm test --shard ${{ matrix.shard }}/${{ strategy.job-total }}
 
       # integration/transferBudgetV2.integration.test.ts writes the report; exactly one shard
       # produces these files. Gating the upload on their presence keeps a
@@ -218,8 +218,8 @@ jobs:
       - name: Publish transfer budget report
         if: always() && steps.transfer_budget.outputs.present == 'true'
         run: |
-          if test -f "${{ runner.temp }}/supacode-transfer-budget.md"; then
-            tee -a "$GITHUB_STEP_SUMMARY" < "${{ runner.temp }}/supacode-transfer-budget.md"
+          if test -f "${{ runner.temp }}/supaterm-transfer-budget.md"; then
+            tee -a "$GITHUB_STEP_SUMMARY" < "${{ runner.temp }}/supaterm-transfer-budget.md"
           else
             echo "Transfer budget report was not produced." >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -355,7 +355,7 @@ jobs:
       - name: Setup Mise
         uses: ./.github/actions/setup-mise
       - name: Install workspace dependencies
-        run: mise exec -- vp install --filter=@supacode/scripts...
+        run: mise exec -- vp install --filter=@supaterm/scripts...
       - name: Install mobile native static analysis tools
         run: brew bundle install --file apps/mobile/Brewfile
 
@@ -373,7 +373,7 @@ jobs:
       - name: Setup Mise
         uses: ./.github/actions/setup-mise
       - name: Install workspace dependencies
-        run: mise exec -- vp install --filter=@supacode/scripts...
+        run: mise exec -- vp install --filter=@supaterm/scripts...
       - name: Exercise release-only workflow steps
         run: node scripts/release-smoke.ts
 

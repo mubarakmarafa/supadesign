@@ -9,7 +9,7 @@ import type {
   McpAppUpdateModelContextInput,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { squashAtomCommandFailure, type AtomCommandResult } from "../state/runtime.ts";
 import {
   McpAppHostRefusal,

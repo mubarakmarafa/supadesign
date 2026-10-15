@@ -1,4 +1,4 @@
-import type { ProviderInstanceId } from "@supacode/contracts";
+import type { ProviderInstanceId } from "@supaterm/contracts";
 
 const MODEL_KEY_PREFIX = "model:";
 const LEGACY_SECTION_KEY_PREFIX = "legacy-models:";

@@ -7,15 +7,15 @@ import * as PlatformError from "effect/PlatformError";
 import * as TestClock from "effect/testing/TestClock";
 import * as Tracer from "effect/Tracer";
 import { ChildProcessSpawner } from "effect/process";
-import { VcsProcessSpawnError, VcsProcessTimeoutError } from "@supacode/contracts";
+import { VcsProcessSpawnError, VcsProcessTimeoutError } from "@supaterm/contracts";
 import { HttpClient, HttpClientResponse, type HttpClientRequest } from "effect/http";
 
 import * as GitHubApi from "./GitHubApi.ts";
 import * as GitHubCredentials from "./GitHubCredentials.ts";
 import * as GitHubQuota from "./GitHubQuota.ts";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
-import type * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import * as TestSourceControlHost from "@supacode/source-control-testing/TestSourceControlHost";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
+import type * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import * as TestSourceControlHost from "@supaterm/source-control-testing/TestSourceControlHost";
 
 const NOW = Date.parse("2026-10-05T12:00:00.000Z");
 

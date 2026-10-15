@@ -1,10 +1,10 @@
 import { DeviceToolVersions } from "../device/DeviceToolVersions";
-import { AuthSettingsWriteScope } from "@supacode/contracts";
+import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import { AppleIcon, AndroidIcon } from "../Icons";
 import { Spinner } from "../ui/spinner";
-import type { EnvironmentId, SshDeviceHostConfig } from "@supacode/contracts";
+import type { EnvironmentId, SshDeviceHostConfig } from "@supaterm/contracts";
 import { randomUUID } from "../../lib/utils";
 import { useState } from "react";
 import { useInlineConfirm } from "../../hooks/useInlineConfirm";

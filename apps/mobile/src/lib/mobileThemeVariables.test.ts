@@ -6,10 +6,10 @@ import { getMobileThemeRuntimeVariables } from "./mobileThemeVariables";
 
 describe("mobile theme runtime variables", () => {
   it("matches the standard base palette to the generated stylesheet", () => {
-    expect(getMobileThemeRuntimeVariables("supacode", "light", "web")).toEqual(
+    expect(getMobileThemeRuntimeVariables("supaterm", "light", "web")).toEqual(
       readDefaultMobileThemeVariables("light"),
     );
-    expect(getMobileThemeRuntimeVariables("supacode", "dark", "web")).toEqual(
+    expect(getMobileThemeRuntimeVariables("supaterm", "dark", "web")).toEqual(
       readDefaultMobileThemeVariables("dark"),
     );
   });
@@ -28,7 +28,7 @@ describe("mobile theme runtime variables", () => {
     (themeId) => {
       for (const appearance of ["light", "dark"] as const) {
         const base = getMobileThemeVariables(
-          themeId === "material-you" ? "supacode" : themeId,
+          themeId === "material-you" ? "supaterm" : themeId,
           appearance,
         );
         const android = getMobileThemeRuntimeVariables(themeId, appearance, "android");
@@ -36,7 +36,7 @@ describe("mobile theme runtime variables", () => {
           ...base,
           "--color-header": themeColorWithAlpha(
             base[
-              themeId === "supacode" || themeId === "material-you"
+              themeId === "supaterm" || themeId === "material-you"
                 ? "--color-row-hover"
                 : "--color-drawer"
             ],
@@ -50,7 +50,7 @@ describe("mobile theme runtime variables", () => {
     },
   );
 
-  it.each(["supacode", "material-you"] as const)(
+  it.each(["supaterm", "material-you"] as const)(
     "keeps the %s default Material frame distinct in both appearances",
     (themeId) => {
       for (const appearance of ["light", "dark"] as const) {
@@ -65,7 +65,7 @@ describe("mobile theme runtime variables", () => {
     },
   );
 
-  it.each(["supacode", "material-you"] as const)(
+  it.each(["supaterm", "material-you"] as const)(
     "adapts %s iPad chrome without reversing the dark desktop hierarchy",
     (themeId) => {
       for (const appearance of ["light", "dark"] as const) {
@@ -76,7 +76,7 @@ describe("mobile theme runtime variables", () => {
           expect(ios["--color-header"]).toBe(android["--color-header"]);
           expect(ios["--color-header-foreground"]).toBe(ios["--color-drawer-foreground"]);
         } else {
-          expect(ios).toEqual(getMobileThemeVariables("supacode", appearance));
+          expect(ios).toEqual(getMobileThemeVariables("supaterm", appearance));
           expect(ios["--color-drawer"]).toBe("#18191c");
           expect(ios["--color-thread-canvas"]).toBe("#1d1e22");
         }

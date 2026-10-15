@@ -1,10 +1,10 @@
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 import type {
   EnvironmentId,
   ModelSelection,
   ProjectId,
   ScopedProjectRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { ComposerThreadDraftState, DraftThreadEnvMode } from "../composerDraftStore";
 
 type ComposerModelSelectionState = Pick<

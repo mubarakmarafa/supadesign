@@ -1,4 +1,4 @@
-import type { PullRequestCheck } from "@supacode/contracts";
+import type { PullRequestCheck } from "@supaterm/contracts";
 
 import { useLiveRefresh } from "./useLiveRefresh";
 

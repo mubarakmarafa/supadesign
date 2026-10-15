@@ -5,7 +5,7 @@
  * removed. (A deny-all session is refused on the free tier: the spike's
  * `text_generation` recording.)
  */
-import type { ProviderReplayEntry } from "@supacode/contracts";
+import type { ProviderReplayEntry } from "@supaterm/contracts";
 
 export const OPENCODE2_TITLE_GENERATION: ReadonlyArray<ProviderReplayEntry> = [
   { type: "expect_outbound", label: "event.subscribe", frame: { type: "event.subscribe" } },
@@ -23,7 +23,7 @@ export const OPENCODE2_TITLE_GENERATION: ReadonlyArray<ProviderReplayEntry> = [
     frame: {
       type: "session.create",
       input: {
-        title: "supacode generateThreadTitle",
+        title: "supaterm generateThreadTitle",
         location: { directory: "<any>" },
         model: { providerID: "opencode", id: "big-pickle" },
         permissions: [{ action: "*", resource: "*", effect: "ask" }],
@@ -44,7 +44,7 @@ export const OPENCODE2_TITLE_GENERATION: ReadonlyArray<ProviderReplayEntry> = [
           cost: 0,
           tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
           time: { created: 1790753350431, updated: 1790753350431 },
-          title: "supacode generateThreadTitle",
+          title: "supaterm generateThreadTitle",
           permissions: [{ action: "*", resource: "*", effect: "ask" }],
           location: { directory: "<work>" },
         },
@@ -68,7 +68,7 @@ export const OPENCODE2_TITLE_GENERATION: ReadonlyArray<ProviderReplayEntry> = [
           projectID: "global",
           location: { directory: "<work>" },
           subpath: "",
-          title: "supacode generateThreadTitle",
+          title: "supaterm generateThreadTitle",
           permissions: [{ action: "*", resource: "*", effect: "ask" }],
           model: { id: "big-pickle", providerID: "opencode" },
         },

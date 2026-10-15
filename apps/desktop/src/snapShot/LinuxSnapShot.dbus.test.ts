@@ -27,7 +27,7 @@ const hasDbus =
   NodeChildProcess.spawnSync("gdbus", ["help"]).status === 0;
 
 it.runIf(hasDbus)("captures through real D-Bus marshalling on a private bus", async () => {
-  const directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-private-dbus-"));
+  const directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-private-dbus-"));
   let daemon: NodeChildProcess.ChildProcess | undefined;
   let server: MessageBus | undefined;
   const clients: LinuxCaptureConnection[] = [];
@@ -58,7 +58,7 @@ it.runIf(hasDbus)("captures through real D-Bus marshalling on a private bus", as
     server = sessionBus({ busAddress: String(address) });
     server.on("error", () => undefined);
     await server.requestName("org.freedesktop.portal.Desktop", NameFlag.DO_NOT_QUEUE);
-    await server.requestName("org.gnome.Shell.Extensions.SupacodeSnapShot", NameFlag.DO_NOT_QUEUE);
+    await server.requestName("org.gnome.Shell.Extensions.SupatermSnapShot", NameFlag.DO_NOT_QUEUE);
     await server.requestName("org.gnome.Shell", NameFlag.DO_NOT_QUEUE);
     await server.requestName("org.kde.KWin.ScreenShot2", NameFlag.DO_NOT_QUEUE);
     const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
@@ -164,13 +164,13 @@ it.runIf(hasDbus)("captures through real D-Bus marshalling on a private bus", as
       setup.close();
     }
     const portal = connect();
-    expect(await portal.backend("com.supaterm.supacode")).toBe("screenshot-portal");
+    expect(await portal.backend("com.supaterm.desktop")).toBe("screenshot-portal");
     expect(await portal.capturePortal()).toEqual({ png });
     expect(target).toBe(8);
     portalVersion = 2;
     const extension = connect();
-    expect(await extension.backend("com.supaterm.supacode")).toBe("gnome-extension");
-    expect(await extension.captureExtension("com.supaterm.supacode")).toMatchObject({
+    expect(await extension.backend("com.supaterm.desktop")).toBe("gnome-extension");
+    expect(await extension.captureExtension("com.supaterm.desktop")).toMatchObject({
       png,
       window: { processId: 42 },
     });
@@ -181,35 +181,35 @@ it.runIf(hasDbus)("captures through real D-Bus marshalling on a private bus", as
         interface: "org.freedesktop.DBus",
         member: "GetNameOwner",
         signature: "s",
-        body: ["com.supaterm.supacode.SnapShot"],
+        body: ["com.supaterm.desktop.SnapShot"],
       }),
     );
     expect(owner?.body[0]).toBe(clientName);
     extension.close();
     extensionVersion = 2;
     const updated = connect();
-    expect(await updated.backend("com.supaterm.supacode")).toBe("gnome-extension");
-    const snapshot = await updated.captureExtension("com.supaterm.supacode", {
+    expect(await updated.backend("com.supaterm.desktop")).toBe("gnome-extension");
+    const snapshot = await updated.captureExtension("com.supaterm.desktop", {
       flash: true,
       animate: true,
     });
     expect(snapshot.feedback?.animationStarted).toBe(true);
-    await snapshot.feedback!.activate("Supacode");
+    await snapshot.feedback!.activate("Supaterm");
     await snapshot.feedback!.animateTo({ x: 0.1, y: 0.8, width: 0.2, height: 0.1 });
     await snapshot.feedback!.complete();
     expect(feedbackArgs).toEqual([true, true]);
-    expect(activateTitle).toBe("Supacode");
+    expect(activateTitle).toBe("Supaterm");
     expect(animateFrame).toEqual([0.1, 0.8, 0.2, 0.1]);
     vi.stubEnv("XDG_CURRENT_DESKTOP", "KDE");
     const kde = connect();
-    expect(await kde.backend("com.supaterm.supacode")).toBe("kde");
+    expect(await kde.backend("com.supaterm.desktop")).toBe("kde");
     expect(kde.feedbackAvailable).toBe(false);
     kde.close();
     const triggered = vi.fn();
     const failed = vi.fn();
     const niriBus = sessionBus({ busAddress: String(address) });
     stopNiriShortcut = await startNiriCaptureShortcut(
-      "com.supaterm.supacode.NiriTest",
+      "com.supaterm.desktop.NiriTest",
       triggered,
       failed,
       niriBus,
@@ -218,7 +218,7 @@ it.runIf(hasDbus)("captures through real D-Bus marshalling on a private bus", as
       "call",
       "--session",
       "--dest",
-      "com.supaterm.supacode.NiriTest.SnapShot",
+      "com.supaterm.desktop.NiriTest.SnapShot",
       "--object-path",
       "/com/supaterm/SnapShot",
       "--method",
@@ -240,7 +240,7 @@ it.runIf(hasDbus)("captures through real D-Bus marshalling on a private bus", as
     expect(failed).not.toHaveBeenCalled();
     const invalid = server.call(
       new Message({
-        destination: "com.supaterm.supacode.NiriTest.SnapShot",
+        destination: "com.supaterm.desktop.NiriTest.SnapShot",
         path: "/com/supaterm/SnapShot",
         interface: "com.supaterm.SnapShot",
         member: "Capture",
@@ -252,7 +252,7 @@ it.runIf(hasDbus)("captures through real D-Bus marshalling on a private bus", as
     expect(triggered).toHaveBeenCalledOnce();
     await expect(
       startNiriCaptureShortcut(
-        "com.supaterm.supacode.NiriTest",
+        "com.supaterm.desktop.NiriTest",
         triggered,
         failed,
         sessionBus({ busAddress: String(address) }),
@@ -260,7 +260,7 @@ it.runIf(hasDbus)("captures through real D-Bus marshalling on a private bus", as
     ).rejects.toThrow("already owns");
     stopNiriShortcut();
     const restarted = await startNiriCaptureShortcut(
-      "com.supaterm.supacode.NiriTest",
+      "com.supaterm.desktop.NiriTest",
       triggered,
       failed,
       sessionBus({ busAddress: String(address) }),

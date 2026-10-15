@@ -7,8 +7,8 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+} from "@supaterm/contracts";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Stream from "effect/Stream";
@@ -54,7 +54,7 @@ it.effect.each([
       const manager = yield* Preview.make.pipe(
         Effect.provide(
           Layer.merge(
-            ServerConfig.layerTest(process.cwd(), { prefix: "supacode-preview-controls-" }).pipe(
+            ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-preview-controls-" }).pipe(
               Layer.provide(NodeServices.layer),
             ),
             NodeCrypto.layer,
@@ -79,10 +79,10 @@ it.effect.each([
         ),
       );
       const listed = yield* toolkit
-        .handle("supacode_preview_list", {})
+        .handle("supaterm_preview_list", {})
         .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(layerDependencies));
       const closed = yield* toolkit
-        .handle("supacode_preview_close", { tabId: tab.tabId })
+        .handle("supaterm_preview_close", { tabId: tab.tabId })
         .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(layerDependencies));
       if (projectAccess) {
         expect(listed.at(-1)?.result).toMatchObject({ sessions: [tab], nextCursor: null });

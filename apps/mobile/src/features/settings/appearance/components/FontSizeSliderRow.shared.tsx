@@ -170,7 +170,7 @@ export function FontSizeSliderRow(props: {
           weight="regular"
         />
         <Text className="flex-1 text-lg text-foreground">{props.label}</Text>
-        <Text className="text-base font-supacode-medium text-foreground-muted">
+        <Text className="text-base font-supaterm-medium text-foreground-muted">
           {props.valueLabel}
         </Text>
       </View>

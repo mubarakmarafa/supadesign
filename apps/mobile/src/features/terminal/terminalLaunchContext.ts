@@ -1,4 +1,4 @@
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 
 interface TerminalLocationLike {
   readonly cwd: string;

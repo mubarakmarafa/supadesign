@@ -1,6 +1,6 @@
-import { shouldRetryThreadOutboxDelivery } from "@supacode/client-runtime/thread-outbox";
+import { shouldRetryThreadOutboxDelivery } from "@supaterm/client-runtime/thread-outbox";
 import { AtomRegistry } from "effect/reactivity";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "@effect/vitest";
 
 import {

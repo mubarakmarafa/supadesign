@@ -1,7 +1,7 @@
-import { type ServerProviderSkill, type ServerProviderSlashCommand } from "@supacode/contracts";
+import { type ServerProviderSkill, type ServerProviderSlashCommand } from "@supaterm/contracts";
 import * as Predicate from "effect/Predicate";
 
-// Pi RPC get_commands omits TUI builtins. Advertise /compact so Supacode can map it to RPC compact.
+// Pi RPC get_commands omits TUI builtins. Advertise /compact so Supaterm can map it to RPC compact.
 export const PI_COMPACT_SLASH_COMMAND: ServerProviderSlashCommand = {
   name: "compact",
   description: "Summarize the conversation and reduce context usage",
@@ -42,7 +42,7 @@ function normalizePiSkillScope(scope: string | undefined): string | undefined {
   return scope;
 }
 
-/** Maps Pi's `get_commands` payload to Supacode's shared command and skill surfaces. */
+/** Maps Pi's `get_commands` payload to Supaterm's shared command and skill surfaces. */
 export function parsePiDiscoveredCommands(data: unknown): PiDiscoveredCommands {
   const commands = recordField(data, "commands");
   if (!Array.isArray(commands)) return { slashCommands: [], skills: [] };

@@ -3,7 +3,7 @@ import { NativeStackScreenOptions } from "../../native/StackHeader";
 import {
   addProjectRemoteSourceLabel,
   parseAddProjectRemoteSource,
-} from "@supacode/client-runtime/operations/projects";
+} from "@supaterm/client-runtime/operations/projects";
 
 import { AddProjectRepositoryScreen } from "./AddProjectScreen";
 

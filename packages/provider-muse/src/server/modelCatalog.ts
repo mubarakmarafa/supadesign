@@ -1,7 +1,7 @@
 import type { SendUserTurnOptions } from "@muse-code/sdk";
-import { ModelCapabilities, ServerProviderModel } from "@supacode/contracts";
+import { ModelCapabilities, ServerProviderModel } from "@supaterm/contracts";
 import { MuseSettings } from "../settings.ts";
-import { createModelCapabilities, getProviderOptionDescriptors } from "@supacode/shared/model";
+import { createModelCapabilities, getProviderOptionDescriptors } from "@supaterm/shared/model";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { createMuseSdkHost, createMuseSdkHostEffect, type MuseSdkHost } from "./sdk.ts";

@@ -1,5 +1,5 @@
 import { LegendList } from "@legendapp/list/react-native";
-import type { ProjectEntry } from "@supacode/contracts";
+import type { ProjectEntry } from "@supaterm/contracts";
 import { AppActivityIndicator } from "../../components/AppActivityIndicator";
 import { DisclosureChevron } from "../../components/DisclosureChevron";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -88,10 +88,10 @@ const FileTreeRow = memo(function FileTreeRow(props: {
         className={cn(
           "min-w-0 flex-1 text-sm leading-normal",
           props.selected
-            ? "font-supacode-bold text-thread-selected-foreground"
+            ? "font-supaterm-bold text-thread-selected-foreground"
             : node.ignored
-              ? "font-supacode-medium text-foreground-tertiary"
-              : "font-supacode-medium text-foreground-secondary",
+              ? "font-supaterm-medium text-foreground-tertiary"
+              : "font-supaterm-medium text-foreground-secondary",
         )}
         numberOfLines={1}
       >
@@ -282,7 +282,7 @@ export function FileTreeBrowser(props: {
         <View className="px-4 py-5">
           {props.error && props.entries.length === 0 ? (
             <>
-              <Text className="text-sm font-supacode-bold text-foreground">Files unavailable</Text>
+              <Text className="text-sm font-supaterm-bold text-foreground">Files unavailable</Text>
               <Text
                 accessibilityRole="alert"
                 className="mt-1 text-xs leading-normal text-foreground-muted"
@@ -295,14 +295,14 @@ export function FileTreeBrowser(props: {
                 disabled={props.isPending}
                 className="mt-3 min-h-11 self-start justify-center rounded-full bg-subtle px-4 active:opacity-70 disabled:opacity-50"
               >
-                <Text className="text-sm font-supacode-medium text-foreground">Try again</Text>
+                <Text className="text-sm font-supaterm-medium text-foreground">Try again</Text>
               </Pressable>
             </>
           ) : props.isPending ? (
             <AppActivityIndicator size="small" />
           ) : (
             <>
-              <Text className="text-sm font-supacode-bold text-foreground">No files found</Text>
+              <Text className="text-sm font-supaterm-bold text-foreground">No files found</Text>
               <Text className="mt-1 text-xs leading-normal text-foreground-muted">
                 {props.searchQuery.trim().length > 0
                   ? "Try a different search."

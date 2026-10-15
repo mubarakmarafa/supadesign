@@ -12,7 +12,7 @@ const access = Effect.gen(function* () {
   return { scope, manager: yield* Preview.PreviewManager };
 });
 export const layer = McpToolAccess.toLayer(PreviewControlsToolkit, {
-  supacode_preview_list: McpToolAccess.readsAsCaller((input) =>
+  supaterm_preview_list: McpToolAccess.readsAsCaller((input) =>
     Effect.gen(function* () {
       const { scope, manager } = yield* access;
       const result = yield* manager.list({ threadId: scope.thread.threadId });
@@ -25,7 +25,7 @@ export const layer = McpToolAccess.toLayer(PreviewControlsToolkit, {
       };
     }),
   ),
-  supacode_preview_close: McpToolAccess.actsAsCaller((input) =>
+  supaterm_preview_close: McpToolAccess.actsAsCaller((input) =>
     Effect.gen(function* () {
       const { scope, manager } = yield* access;
       const { sessions } = yield* manager.list({ threadId: scope.thread.threadId });

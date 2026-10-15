@@ -16,7 +16,7 @@ import {
   type OrchestrationV2AppThread,
   type OrchestrationV2ProviderThread,
   type OrchestrationV2ProviderTurn,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -32,14 +32,14 @@ import * as TestClock from "effect/testing/TestClock";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
-import { handoffBudget } from "@supacode/provider-core/server/handoffBudget";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { toolOutputImages, compactDynamicToolOutput } from "@supacode/shared/toolOutput";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
+import { handoffBudget } from "@supaterm/provider-core/server/handoffBudget";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { toolOutputImages, compactDynamicToolOutput } from "@supaterm/shared/toolOutput";
 import {
   makePiAdapterV2,
   PiAdapterV2Driver,
@@ -1283,7 +1283,7 @@ describe("PiAdapterV2", () => {
       }).pipe(Effect.scoped, Effect.provide(layerTest)),
   );
 
-  it.effect("stops provider-initiated work that has no Supacode turn owner", () =>
+  it.effect("stops provider-initiated work that has no Supaterm turn owner", () =>
     Effect.gen(function* () {
       const fake = yield* makeFakePi;
       const { runtime, takeEvent } = yield* openRuntime(fake);
@@ -1306,7 +1306,7 @@ describe("PiAdapterV2", () => {
     }).pipe(Effect.scoped, Effect.provide(layerTest)),
   );
 
-  it.effect("injects the Supacode MCP extension and bearer when a session exists", () =>
+  it.effect("injects the Supaterm MCP extension and bearer when a session exists", () =>
     Effect.gen(function* () {
       yield* (yield* McpProviderSessions.McpProviderSessions).set({
         environmentId: EnvironmentId.make("environment-pi-mcp"),
@@ -1325,10 +1325,10 @@ describe("PiAdapterV2", () => {
         arg === "--extension" ? [spawn.args[index + 1]] : [],
       );
       assert.isFalse(spawn.args.includes("--no-extensions"));
-      assert.isTrue(extensions.some((path) => path?.endsWith("pi-supacode-mcp-extension.ts")));
-      assert.equal(spawn.env.SUPACODE_MCP_URL, "http://127.0.0.1:43123/mcp");
-      assert.equal(spawn.env.SUPACODE_MCP_BEARER_TOKEN, "secret-pi-token");
-      assert.equal(spawn.env.SUPACODE_PI_RUNTIME_MODE, "full-access");
+      assert.isTrue(extensions.some((path) => path?.endsWith("pi-supaterm-mcp-extension.ts")));
+      assert.equal(spawn.env.SUPATERM_MCP_URL, "http://127.0.0.1:43123/mcp");
+      assert.equal(spawn.env.SUPATERM_MCP_BEARER_TOKEN, "secret-pi-token");
+      assert.equal(spawn.env.SUPATERM_PI_RUNTIME_MODE, "full-access");
     }).pipe(Effect.scoped, Effect.provide(layerTest)),
   );
 
@@ -1908,11 +1908,11 @@ describe("PiAdapterV2", () => {
             expected: { content, structuredContent: structured },
           },
           {
-            toolName: "mcp__supacode__preview_snapshot",
+            toolName: "mcp__supaterm__preview_snapshot",
             result: {
               content,
               structuredContent: scriptResult,
-              details: { server: "supacode", tool: "preview_snapshot" },
+              details: { server: "supaterm", tool: "preview_snapshot" },
             },
             expected: { content, structuredContent: { threadId: "child-thread" } },
           },
@@ -1927,7 +1927,7 @@ describe("PiAdapterV2", () => {
             expected: { content, structuredContent: { content: ["domain content"], ready: true } },
           },
           {
-            toolName: "mcp__supacode__preview_snapshot",
+            toolName: "mcp__supaterm__preview_snapshot",
             result: {
               content: [
                 { type: "text", text: "first" },
@@ -1939,7 +1939,7 @@ describe("PiAdapterV2", () => {
                   { type: "text", text: "second" },
                 ],
               },
-              details: { server: "supacode", tool: "preview_snapshot" },
+              details: { server: "supaterm", tool: "preview_snapshot" },
             },
             expected: {
               content: [
@@ -2109,7 +2109,7 @@ describe("PiAdapterV2", () => {
             loadMcpBridge({ modern: true, result: { content, structuredContent: metadata } }),
           );
           const tool = bridge.tools.find(
-            (tool) => tool.name === "mcp__supacode__preview_snapshot",
+            (tool) => tool.name === "mcp__supaterm__preview_snapshot",
           )!;
           const result = yield* Effect.promise(() => tool.execute("screenshot", {}));
           assert.deepEqual(result.structuredContent, { content, structuredContent: metadata });

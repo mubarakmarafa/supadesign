@@ -5,7 +5,7 @@ import {
   type ScopedProjectRef,
   type ServerConfig,
   WS_METHODS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -37,7 +37,7 @@ import {
 } from "../operations/commands.ts";
 import type { EnvironmentRegistry } from "../connection/registry.ts";
 import { createFileMetadataAtoms } from "./fileMetadata.ts";
-import { resolveWorkspaceFilePath } from "@supacode/shared/path";
+import { resolveWorkspaceFilePath } from "@supaterm/shared/path";
 import { findExistingAddProject } from "../operations/projects.ts";
 
 export type {

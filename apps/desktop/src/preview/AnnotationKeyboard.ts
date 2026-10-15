@@ -1,4 +1,4 @@
-import type { PreviewAnnotationSubmission } from "@supacode/contracts";
+import type { PreviewAnnotationSubmission } from "@supaterm/contracts";
 
 interface AnnotationKeyboardEvent {
   readonly key: string;

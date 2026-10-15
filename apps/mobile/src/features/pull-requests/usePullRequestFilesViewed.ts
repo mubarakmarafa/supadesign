@@ -1,7 +1,7 @@
 import { usePullRequestConnected } from "./usePullRequestConnected";
 import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { PullRequestDetail } from "@supacode/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { PullRequestDetail } from "@supaterm/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { composerPullRequests } from "../../state/pull-requests";
 import { useEnvironmentQuery } from "../../state/query";

@@ -1,7 +1,7 @@
 import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
 import { useNavigation } from "@react-navigation/native";
 import { Platform, View } from "react-native";
-import { deriveProjectGroupLabel } from "@supacode/client-runtime/state/project-grouping";
+import { deriveProjectGroupLabel } from "@supaterm/client-runtime/state/project-grouping";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
@@ -164,7 +164,7 @@ function SettingsIndexSections() {
 
       <SettingsSection title="App">
         <SettingsRow icon="chart.bar.xaxis" label="Usage" target="SettingsUsage" />
-        <SettingsRow icon="info.circle" label="About Supacode" target="SettingsAbout" />
+        <SettingsRow icon="info.circle" label="About Supaterm" target="SettingsAbout" />
       </SettingsSection>
     </>
   );

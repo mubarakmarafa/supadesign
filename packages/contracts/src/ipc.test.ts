@@ -7,10 +7,10 @@ describe("DesktopAppBrandingSchema", () => {
   const decode = Schema.decodeUnknownSync(DesktopAppBrandingSchema);
 
   it("preserves the absent stage for stable desktop branding", () => {
-    expect(decode({ baseName: "Supacode", stageLabel: null, displayName: "Supacode" })).toEqual({
-      baseName: "Supacode",
+    expect(decode({ baseName: "Supaterm", stageLabel: null, displayName: "Supaterm" })).toEqual({
+      baseName: "Supaterm",
       stageLabel: null,
-      displayName: "Supacode",
+      displayName: "Supaterm",
     });
   });
 });

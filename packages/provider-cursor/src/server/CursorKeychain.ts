@@ -56,7 +56,7 @@ export class CursorKeychain extends Context.Service<
       CursorKeychainTimeoutError | CursorKeychainReadError
     >;
   }
->()("@supacode/provider-cursor/server/CursorKeychain") {}
+>()("@supaterm/provider-cursor/server/CursorKeychain") {}
 
 /** Reads the Cursor CLI's default macOS credential without invoking the shared security binary. */
 const readKeychainEntry = Effect.tryPromise({

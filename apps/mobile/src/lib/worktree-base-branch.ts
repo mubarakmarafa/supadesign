@@ -1,1 +1,1 @@
-export { resolveDefaultWorktreeBaseBranch } from "@supacode/shared/git";
+export { resolveDefaultWorktreeBaseBranch } from "@supaterm/shared/git";

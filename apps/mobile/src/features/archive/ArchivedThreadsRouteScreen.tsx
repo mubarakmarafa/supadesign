@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
 import { useFocusEffect } from "@react-navigation/native";

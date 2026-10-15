@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 
-import { EnvironmentId, TerminalSessionSnapshot, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, TerminalSessionSnapshot, ThreadId } from "@supaterm/contracts";
 
 import {
   applyTerminalAttachStreamEvent,

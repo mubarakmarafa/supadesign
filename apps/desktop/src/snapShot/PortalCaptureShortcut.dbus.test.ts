@@ -12,7 +12,7 @@ import { PortalCaptureShortcut } from "./PortalCaptureShortcut.ts";
 it.runIf(NodeChildProcess.spawnSync("dbus-daemon", ["--version"]).status === 0)(
   "registers, rebinds saved keys, receives activations, and replaces sessions over real D-Bus",
   async () => {
-    const dir = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-shortcut-dbus-"));
+    const dir = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-shortcut-dbus-"));
     let daemon: NodeChildProcess.ChildProcess | undefined;
     let server: MessageBus | undefined;
     const clients: PortalCaptureShortcut[] = [];
@@ -52,7 +52,7 @@ it.runIf(NodeChildProcess.spawnSync("dbus-daemon", ["--version"]).status === 0)(
       let bindCount = 0;
       server.addMethodHandler((message: Message) => {
         if (message.member === "Register") {
-          expect(message.body[0]).toBe("com.supaterm.supacode");
+          expect(message.body[0]).toBe("com.supaterm.desktop");
           identities.add(message.sender);
           server!.send(Message.newMethodReturn(message));
         } else if (message.member === "Get") {
@@ -117,7 +117,7 @@ it.runIf(NodeChildProcess.spawnSync("dbus-daemon", ["--version"]).status === 0)(
         const received = Promise.withResolvers<void>();
         const capture = vi.fn(() => received.resolve());
         const client = new PortalCaptureShortcut(
-          "com.supaterm.supacode",
+          "com.supaterm.desktop",
           { ...shortcut, key },
           capture,
           () => {},

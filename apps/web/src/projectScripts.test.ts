@@ -1,4 +1,4 @@
-import { MAX_SCRIPT_ID_LENGTH } from "@supacode/contracts";
+import { MAX_SCRIPT_ID_LENGTH } from "@supaterm/contracts";
 import { shortcutLabelForCommand } from "./keybindings";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -7,7 +7,7 @@ import {
   projectScriptMenuLabel,
   settleProjectScript,
   setupProjectScript,
-} from "@supacode/shared/projectScripts";
+} from "@supaterm/shared/projectScripts";
 
 import {
   buildProjectScript,
@@ -198,8 +198,8 @@ describe("projectScripts helpers", () => {
     });
 
     expect(env).toMatchObject({
-      SUPACODE_PROJECT_ROOT: "/repo",
-      SUPACODE_WORKTREE_PATH: "/repo/worktree-a",
+      SUPATERM_PROJECT_ROOT: "/repo",
+      SUPATERM_WORKTREE_PATH: "/repo/worktree-a",
     });
   });
 
@@ -207,14 +207,14 @@ describe("projectScripts helpers", () => {
     const env = projectScriptRuntimeEnv({
       project: { cwd: "/repo" },
       extraEnv: {
-        SUPACODE_PROJECT_ROOT: "/custom-root",
+        SUPATERM_PROJECT_ROOT: "/custom-root",
         CUSTOM_FLAG: "1",
       },
     });
 
-    expect(env.SUPACODE_PROJECT_ROOT).toBe("/custom-root");
+    expect(env.SUPATERM_PROJECT_ROOT).toBe("/custom-root");
     expect(env.CUSTOM_FLAG).toBe("1");
-    expect(env.SUPACODE_WORKTREE_PATH).toBeUndefined();
+    expect(env.SUPATERM_WORKTREE_PATH).toBeUndefined();
   });
 
   it("prefers the worktree path for script cwd resolution", () => {

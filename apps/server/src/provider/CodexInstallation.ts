@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off - Effect has no incremental digest.
-import { ProviderDriverKind, type ProviderInstallState } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveCommandPath, resolveSpawnCommand } from "@supacode/shared/shell";
+import { ProviderDriverKind, type ProviderInstallState } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveCommandPath, resolveSpawnCommand } from "@supaterm/shared/shell";
 import * as Clock from "effect/Clock";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -136,7 +136,7 @@ interface CodexInstallationService {
 export class CodexInstallation extends Context.Service<
   CodexInstallation,
   CodexInstallationService
->()("supacode/provider/CodexInstallation") {
+>()("supaterm/provider/CodexInstallation") {
   static readonly layer = Layer.effect(
     CodexInstallation,
     Effect.gen(function* () {
@@ -282,7 +282,7 @@ export const makeCodexInstallation = Effect.fn("makeCodexInstallation")(function
       return executable;
     },
     Effect.mapError(
-      wrapFailure("resolve", "Codex is not installed in Supacode. Install it to continue."),
+      wrapFailure("resolve", "Codex is not installed in Supaterm. Install it to continue."),
     ),
   );
   const acquire = Effect.fn("CodexInstallation.acquire")(function* () {
@@ -338,7 +338,7 @@ export const makeCodexInstallation = Effect.fn("makeCodexInstallation")(function
       if (executablePath === null) return null;
       // Keep launcher symlinks intact: version-manager shims dispatch by their invoked name.
       const realExecutablePath = yield* fs.realPath(executablePath);
-      // A PATH entry pointing into Supacode's download remains a managed installation.
+      // A PATH entry pointing into Supaterm's download remains a managed installation.
       const realManaged = yield* fs.realPath(managedDirectory).pipe(Effect.option);
       if (
         realExecutablePath.startsWith(

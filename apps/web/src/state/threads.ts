@@ -1,10 +1,10 @@
-import { enabledEnvironmentIds } from "@supacode/client-runtime/state/connections";
+import { enabledEnvironmentIds } from "@supaterm/client-runtime/state/connections";
 import {
   createEnvironmentThreadDetailAtoms,
   createEnvironmentThreadShellAtoms,
   createEnvironmentThreadStateAtoms,
   createRunningThreadKeepAliveAtom,
-} from "@supacode/client-runtime/state/threads";
+} from "@supaterm/client-runtime/state/threads";
 import { Atom } from "effect/reactivity";
 
 import { environmentCatalog } from "../connection/catalog";

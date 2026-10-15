@@ -32,29 +32,29 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(root) {
   animation: none;
 }
 
-html[data-mobile-composer-route-transition="true"]::view-transition-group(supacode-mobile-composer) {
+html[data-mobile-composer-route-transition="true"]::view-transition-group(supaterm-mobile-composer) {
   animation-duration: var(--mobile-composer-transition-duration);
   animation-timing-function: var(--ease-drawer);
 }
 
-html[data-mobile-composer-route-transition="true"]::view-transition-image-pair(supacode-mobile-composer) {
+html[data-mobile-composer-route-transition="true"]::view-transition-image-pair(supaterm-mobile-composer) {
   isolation: isolate;
 }
 
-html[data-mobile-composer-route-transition="true"]::view-transition-old(supacode-mobile-composer) {
-  animation: supacode-mobile-composer-old var(--mobile-composer-transition-duration) linear both;
+html[data-mobile-composer-route-transition="true"]::view-transition-old(supaterm-mobile-composer) {
+  animation: supaterm-mobile-composer-old var(--mobile-composer-transition-duration) linear both;
   mix-blend-mode: normal;
 }
 
-html[data-mobile-composer-route-transition="true"]::view-transition-new(supacode-mobile-composer) {
-  animation: supacode-mobile-composer-new var(--mobile-composer-transition-duration) linear both;
+html[data-mobile-composer-route-transition="true"]::view-transition-new(supaterm-mobile-composer) {
+  animation: supaterm-mobile-composer-new var(--mobile-composer-transition-duration) linear both;
   mix-blend-mode: normal;
 }
 
 /* The expanded and compact composers have different internal layouts. Use a
    brief crossfade while their shared wrapper moves so the layout change does
    not read as a single-frame cut. */
-@keyframes supacode-mobile-composer-old {
+@keyframes supaterm-mobile-composer-old {
   0%,
   35% {
     opacity: 1;
@@ -65,7 +65,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supacode
   }
 }
 
-@keyframes supacode-mobile-composer-new {
+@keyframes supaterm-mobile-composer-new {
   0%,
   35% {
     opacity: 0;
@@ -369,7 +369,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supacode
 }
 
 /* Paint find results without changing rendered markdown or copied text. */
-::highlight(supacode-thread-find) {
+::highlight(supaterm-thread-find) {
   color: var(--app-theme-search-match-foreground, oklch(0.216164 0.028283 77.423));
   background-color: var(--app-theme-search-match-background, oklch(0.915 0.11 85));
 
@@ -379,7 +379,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supacode
   }
 }
 
-::highlight(supacode-thread-find-active) {
+::highlight(supaterm-thread-find-active) {
   color: var(--app-theme-search-match-active-foreground, oklch(0.216164 0.028283 77.423));
   background-color: var(
     --app-theme-search-match-active-background,
@@ -631,14 +631,14 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supacode
 }
 
 @layer base {
-  ::highlight(supacode-assistant-citation) {
+  ::highlight(supaterm-assistant-citation) {
     background-color: color-mix(
       in oklab,
       var(--primary) calc(var(--assistant-citation-highlight-opacity) * 100%),
       transparent
     );
   }
-  ::highlight(supacode-assistant-citation-comment) {
+  ::highlight(supaterm-assistant-citation-comment) {
     background-color: color-mix(in oklab, var(--primary) 45%, transparent);
   }
   :root {
@@ -714,7 +714,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supacode
   /* Each maintainer palette tints the night sky behind the meteor shower and sleigh.
      These colors stay deliberately deep at the top edge so the white stage
      wordmark and controls retain contrast in both appearance modes. */
-  html[data-theme-id="supacode-chat"] {
+  html[data-theme-id="supaterm-chat"] {
     --stage-art-top: oklch(0.760675 0.141361 348.019);
     --stage-art-mid: oklch(0.588093 0.188832 353.138);
     --stage-art-bottom: oklch(0.383959 0.135096 348.656);
@@ -827,7 +827,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supacode
   }
 
   :is(
-    html[data-theme-id="supacode-chat"],
+    html[data-theme-id="supaterm-chat"],
     html[data-theme-id="ocean"],
     html[data-theme-id="iris"],
     html[data-theme-id="__default"],
@@ -849,7 +849,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supacode
   }
 
   :is(
-    html[data-theme-id="supacode-chat"],
+    html[data-theme-id="supaterm-chat"],
     html[data-theme-id="grove"],
     html[data-theme-id="ocean"],
     html[data-theme-id="ember"],
@@ -1435,10 +1435,10 @@ html[data-theme-id] :is(.chat-markdown, .composer-tiptap) .chat-markdown-codeblo
   color: color-mix(in srgb, var(--code-foreground) 72%, transparent);
 }
 
-/* Supacode Chat draws inline code and compact chat artifacts on its translucent
+/* Supaterm Chat draws inline code and compact chat artifacts on its translucent
    secondary surface flattened over the light chat canvas, which is much lighter
    than the raw muted and secondary tokens. */
-html[data-theme-id="supacode-chat"] {
+html[data-theme-id="supaterm-chat"] {
   @variant light {
     & .chat-markdown :not(pre) > code,
     & [data-changed-files-state],
@@ -1484,9 +1484,9 @@ html[data-theme-id] [data-app-sidebar] {
   }
 }
 
-/* Supacode Chat's panel divider is deliberately pink, and its resize affordance
+/* Supaterm Chat's panel divider is deliberately pink, and its resize affordance
    keeps that color while hovered. Do not neutralize this branded edge. */
-html[data-theme-id="supacode-chat"] [data-app-sidebar] {
+html[data-theme-id="supaterm-chat"] [data-app-sidebar] {
   @variant dark {
     border-color: var(--contrast-sidebar-border);
   }
@@ -1654,9 +1654,9 @@ body {
   --surface-grain-size: 256px 256px;
 }
 
-/* Supacode Chat uses a finer grain: a 128px grayscale tile at a constant 7/255
+/* Supaterm Chat uses a finer grain: a 128px grayscale tile at a constant 7/255
    alpha, kept procedural so it stays cheap. */
-html[data-theme-id="supacode-chat"] {
+html[data-theme-id="supaterm-chat"] {
   --surface-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02745'/%3E%3C/svg%3E");
   --surface-grain-size: 128px 128px;
 }

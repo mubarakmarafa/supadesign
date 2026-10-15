@@ -1,4 +1,4 @@
-import type { DesktopBridge } from "@supacode/contracts";
+import type { DesktopBridge } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { DESKTOP_PASTE_AS_TEXT_EVENT, installDesktopPasteAsText } from "./desktopPasteAsText";
 

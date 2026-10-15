@@ -4,13 +4,13 @@ import type {
   ModelSelection,
   ProjectId,
   RuntimeMode,
-  ServerConfig as SupacodeServerConfig,
-} from "@supacode/contracts";
-import { resolveProjectProviderInstanceEnabled } from "@supacode/contracts";
+  ServerConfig as SupatermServerConfig,
+} from "@supaterm/contracts";
+import { resolveProjectProviderInstanceEnabled } from "@supaterm/contracts";
 import {
   buildExplicitProviderOptionSelectionsFromDescriptors,
   getProviderOptionDescriptors,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 
 export type ModelOption = {
   readonly key: string;
@@ -32,7 +32,7 @@ export type ModelOption = {
 };
 
 type ProviderUpdateRequired = Pick<
-  SupacodeServerConfig["providers"][number],
+  SupatermServerConfig["providers"][number],
   "driver" | "updateRequiredModels"
 >;
 
@@ -64,7 +64,7 @@ function providerDisplayLabel(provider: {
  * from there, not from a snapshot another project may be keeping alive.
  */
 function isProviderEnabledForProject(
-  config: SupacodeServerConfig | null | undefined,
+  config: SupatermServerConfig | null | undefined,
   provider:
     | { readonly instanceId: ModelSelection["instanceId"]; readonly enabled: boolean }
     | undefined,
@@ -83,7 +83,7 @@ function isProviderEnabledForProject(
  * to it merely being disabled or unreachable at the machine level.
  */
 function isProjectDisabledOverride(
-  config: SupacodeServerConfig | null | undefined,
+  config: SupatermServerConfig | null | undefined,
   instanceId: ModelSelection["instanceId"],
   projectId: ProjectId | null,
 ): boolean {
@@ -104,7 +104,7 @@ function isProjectDisabledOverride(
  * another project's keep-alive left it up.
  */
 function isDisabledForProject(
-  config: SupacodeServerConfig | null | undefined,
+  config: SupatermServerConfig | null | undefined,
   provider:
     | { readonly instanceId: ModelSelection["instanceId"]; readonly enabled: boolean }
     | undefined,
@@ -152,7 +152,7 @@ function normalizeSelectionOptions(
  * off. Pass `null` explicitly outside a project's scope.
  */
 export function isModelSelectionUnavailable(
-  config: SupacodeServerConfig | null | undefined,
+  config: SupatermServerConfig | null | undefined,
   selection: ModelSelection | null | undefined,
   projectId: ProjectId | null,
 ): boolean {
@@ -179,7 +179,7 @@ export function isModelSelectionUnavailable(
 
 /** Why `isModelSelectionUnavailable` refused a selection, worded for the recovery that applies. */
 export function describeUnavailableModelSelection(
-  config: SupacodeServerConfig | null | undefined,
+  config: SupatermServerConfig | null | undefined,
   selection: ModelSelection,
   projectId: ProjectId | null,
 ): { readonly title: string; readonly detail: string } {
@@ -205,7 +205,7 @@ export function describeUnavailableModelSelection(
  * `projectId` has no default; see `isModelSelectionUnavailable`.
  */
 export function resolveSelectableModelSelection(
-  config: SupacodeServerConfig | null | undefined,
+  config: SupatermServerConfig | null | undefined,
   selection: ModelSelection | null,
   projectId: ProjectId | null,
 ): ModelSelection | null {
@@ -236,7 +236,7 @@ export function resolveSelectableModelSelection(
  * `projectId` has no default; see `isModelSelectionUnavailable`.
  */
 export function resolveDefaultableModelSelection(
-  config: SupacodeServerConfig | null | undefined,
+  config: SupatermServerConfig | null | undefined,
   selection: ModelSelection | null,
   projectId: ProjectId | null,
 ): ModelSelection | null {
@@ -269,7 +269,7 @@ export function resolveNewTaskModelSelection(input: {
  * `projectId` has no default; see `isModelSelectionUnavailable`.
  */
 export function buildModelOptions(
-  config: SupacodeServerConfig | null | undefined,
+  config: SupatermServerConfig | null | undefined,
   fallbackModelSelection: ModelSelection | null,
   providerInstanceId: ModelSelection["instanceId"] | undefined,
   projectId: ProjectId | null,

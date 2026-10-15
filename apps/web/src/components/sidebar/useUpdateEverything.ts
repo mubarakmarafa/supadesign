@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { PROVIDER_DISPLAY_NAMES } from "@supacode/contracts";
+import { PROVIDER_DISPLAY_NAMES } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 import { useMemo } from "react";
 
@@ -52,7 +52,7 @@ export function useUpdateEverything(localUpdateVersion: string | null) {
   const machines = useAtomValue(machinesAtom);
   const behindServers = collectServerUpdateTargets(machines, targetVersion);
   // A desktop-managed server installs from its own app's update feed, so only
-  // servers that download supacode from npm wait for npm to publish the version.
+  // servers that download supaterm from npm wait for npm to publish the version.
   const needsNpm = behindServers.some((server) => server.selfUpdate !== "desktop-managed");
   const published = useNpmReleasePublished(needsNpm ? targetVersion : null);
   const servers = published

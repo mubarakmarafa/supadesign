@@ -1,9 +1,9 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { pullRequestMediaSource, pullRequestImageSource } from "./pullRequestMediaSource";
 import { useFilePreviewGallery } from "../../components/FilePreviewGallery";
-import type { AssetResource, EnvironmentId } from "@supacode/contracts";
-import { githubMediaFetchUrl } from "@supacode/shared/githubMedia";
-import { videoMimeType } from "@supacode/shared/video";
+import type { AssetResource, EnvironmentId } from "@supaterm/contracts";
+import { githubMediaFetchUrl } from "@supaterm/shared/githubMedia";
+import { videoMimeType } from "@supaterm/shared/video";
 import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { AppText } from "../../components/AppText";

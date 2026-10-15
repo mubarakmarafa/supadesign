@@ -18,7 +18,7 @@ import {
   RunId,
   NonNegativeInt,
   ProjectId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Schema from "effect/Schema";
 import { Tool, Toolkit } from "effect/ai";
@@ -28,7 +28,7 @@ import * as ScheduledTaskService from "../../../scheduledTasks/ScheduledTaskServ
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 
-const ThreadOrganizeTool = Tool.make("supacode_thread_organize", {
+const ThreadOrganizeTool = Tool.make("supaterm_thread_organize", {
   description:
     "Pin, snooze, settle, archive, or mark a thread unread. Omit threadId for this thread. snooze requires snoozedUntil. Existing thread lifecycle rules apply. Settling this thread takes effect when your turn completes, returning settlesWhenTurnEnds=true; a turn that fails or is interrupted, or a queued message, leaves it active.",
   parameters: Schema.Struct({
@@ -77,10 +77,10 @@ const queueEntry = Schema.Struct({
   text: Schema.String,
   truncated: Schema.Boolean,
 });
-const QueueListTool = Tool.make("supacode_queue_list", {
+const QueueListTool = Tool.make("supaterm_queue_list", {
   ...commandTool,
   description:
-    "List queued messages in delivery order. Results are a live offset page; use supacode_thread_read for full thread history.",
+    "List queued messages in delivery order. Results are a live offset page; use supaterm_thread_read for full thread history.",
   parameters: Schema.Struct({
     threadId: Schema.optional(ThreadId),
     cursor: Schema.optional(NonNegativeInt),
@@ -93,7 +93,7 @@ const QueueListTool = Tool.make("supacode_queue_list", {
 })
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false);
-const QueueReadTool = Tool.make("supacode_queue_read", {
+const QueueReadTool = Tool.make("supaterm_queue_read", {
   ...commandTool,
   description: "Read up to 16,000 characters of a queued message. Omit threadId for this thread.",
   parameters: Schema.Struct(queueTarget),
@@ -101,7 +101,7 @@ const QueueReadTool = Tool.make("supacode_queue_read", {
 })
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false);
-const QueueEditTool = Tool.make("supacode_queue_edit", {
+const QueueEditTool = Tool.make("supaterm_queue_edit", {
   ...commandTool,
   description:
     "Replace a queued message's text, preserving its attachments. The service rejects runs that are no longer queued.",
@@ -110,17 +110,17 @@ const QueueEditTool = Tool.make("supacode_queue_edit", {
     text: Schema.String.check(Schema.isMaxLength(100000)),
   }),
 }).annotate(Tool.Destructive, true);
-const QueueCancelTool = Tool.make("supacode_queue_cancel", {
+const QueueCancelTool = Tool.make("supaterm_queue_cancel", {
   ...commandTool,
   description: "Cancel a queued run using the existing queue command.",
   parameters: Schema.Struct(queueTarget),
 }).annotate(Tool.Destructive, true);
-const QueueReorderTool = Tool.make("supacode_queue_reorder", {
+const QueueReorderTool = Tool.make("supaterm_queue_reorder", {
   ...commandTool,
   description: "Move a queued run before another queued run, or to the end with beforeRunId=null.",
   parameters: Schema.Struct({ ...queueTarget, beforeRunId: Schema.NullOr(RunId) }),
 }).annotate(Tool.Destructive, true);
-const QueuePromoteTool = Tool.make("supacode_queue_promote_to_steer", {
+const QueuePromoteTool = Tool.make("supaterm_queue_promote_to_steer", {
   ...commandTool,
   description:
     "Deliver a queued message as steering to the specified active run. Existing provider and run-state rules apply.",
@@ -148,7 +148,7 @@ const pendingRequest = Schema.Struct({
   requestId: RuntimeRequestId,
   questions: Schema.Array(question),
 });
-const PendingRequestListTool = Tool.make("supacode_pending_request_list", {
+const PendingRequestListTool = Tool.make("supaterm_pending_request_list", {
   ...commandTool,
   description:
     "List pending user questions in a thread. Omit threadId for this thread. Approval requests are not included.",
@@ -157,16 +157,16 @@ const PendingRequestListTool = Tool.make("supacode_pending_request_list", {
 })
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false);
-const PendingRequestReadTool = Tool.make("supacode_pending_request_read", {
+const PendingRequestReadTool = Tool.make("supaterm_pending_request_read", {
   ...commandTool,
   description:
-    "Read a pending user question. Answer with supacode_pending_request_respond; existing live or message response handling is used.",
+    "Read a pending user question. Answer with supaterm_pending_request_respond; existing live or message response handling is used.",
   parameters: Schema.Struct(requestTarget),
   success: pendingRequest,
 })
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false);
-const PendingRequestRespondTool = Tool.make("supacode_pending_request_respond", {
+const PendingRequestRespondTool = Tool.make("supaterm_pending_request_respond", {
   ...commandTool,
   description:
     "Answer a pending user-input request using the existing runtime response command. This cannot approve a permission request.",
@@ -175,7 +175,7 @@ const PendingRequestRespondTool = Tool.make("supacode_pending_request_respond", 
   .annotate(Tool.Destructive, true)
   .annotate(Tool.OpenWorld, true);
 
-const ThreadConfigurationTool = Tool.make("supacode_thread_configuration", {
+const ThreadConfigurationTool = Tool.make("supaterm_thread_configuration", {
   ...commandTool,
   description:
     "Read a thread's provider/model selection and modes. Omit threadId for this thread. orchestrator_capabilities lists available providers and models.",
@@ -189,7 +189,7 @@ const ThreadConfigurationTool = Tool.make("supacode_thread_configuration", {
 })
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false);
-const ThreadConfigureTool = Tool.make("supacode_thread_configure", {
+const ThreadConfigureTool = Tool.make("supaterm_thread_configure", {
   ...commandTool,
   description:
     "Set a thread's provider, model and options with the existing selection command. Omit threadId for this thread. This does not change permission modes. Use orchestrator_capabilities to choose a selection.",
@@ -200,7 +200,7 @@ const ThreadConfigureTool = Tool.make("supacode_thread_configure", {
 }).annotate(Tool.Destructive, true);
 
 const transferResult = Schema.Struct({ sequence: NonNegativeInt, targetThreadId: ThreadId });
-const ThreadForkTool = Tool.make("supacode_thread_fork", {
+const ThreadForkTool = Tool.make("supaterm_thread_fork", {
   ...commandTool,
   description:
     "Fork a thread from a finished run or checkpoint. Use latest_stable for the newest provider-finished run, even while a newer run is active or checkpoint capture is pending. Omit threadId to fork this thread. The fork inherits the source configuration. Acceptance does not mean a provider turn has completed.",
@@ -211,7 +211,7 @@ const ThreadForkTool = Tool.make("supacode_thread_fork", {
   }),
   success: transferResult,
 }).annotate(Tool.Destructive, true);
-const ThreadMergeBackTool = Tool.make("supacode_thread_merge_back", {
+const ThreadMergeBackTool = Tool.make("supaterm_thread_merge_back", {
   ...commandTool,
   description:
     "Merge context from a thread back to a related thread in the same project. Omit sourceThreadId to merge from this thread. Existing lineage and transfer rules apply.",
@@ -222,7 +222,7 @@ const ThreadMergeBackTool = Tool.make("supacode_thread_merge_back", {
   }),
   success: transferResult,
 }).annotate(Tool.Destructive, true);
-const ThreadTransfersTool = Tool.make("supacode_thread_transfers", {
+const ThreadTransfersTool = Tool.make("supaterm_thread_transfers", {
   ...commandTool,
   description: "Read context transfer status for a thread. Omit threadId for this thread.",
   parameters: Schema.Struct({ threadId: Schema.optional(ThreadId) }),
@@ -240,10 +240,10 @@ const ThreadTransfersTool = Tool.make("supacode_thread_transfers", {
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false);
 
-const ThreadSearchTool = Tool.make("supacode_thread_search", {
+const ThreadSearchTool = Tool.make("supaterm_thread_search", {
   ...commandTool,
   description:
-    "Search active thread titles and content with the app's existing bounded search. Matches are limited to one project (projectId, else the calling thread's project) out of the global top matches, so this may return fewer than limit. A caller outside a Supacode thread that omits projectId searches every project. No pagination or exhaustive-result guarantee.",
+    "Search active thread titles and content with the app's existing bounded search. Matches are limited to one project (projectId, else the calling thread's project) out of the global top matches, so this may return fewer than limit. A caller outside a Supaterm thread that omits projectId searches every project. No pagination or exhaustive-result guarantee.",
   parameters: Schema.Struct({
     ...OrchestrationSearchThreadsInput.fields,
     projectId: Schema.optional(ProjectId),

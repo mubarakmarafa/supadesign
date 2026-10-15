@@ -1,4 +1,4 @@
-import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supaterm/contracts";
 
 const COMPOSER_THREAD_RESULT_LIMIT = 5;
 

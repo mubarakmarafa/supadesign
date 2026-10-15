@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as NetService from "@supacode/shared/Net";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as NetService from "@supaterm/shared/Net";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -99,72 +99,72 @@ const NODE_SCRIPT = {
 
 describe("ssh tunnel scripts", () => {
   it("installs and runs the release archive without Node, npm, or npx", () => {
-    const script = SshTunnel.buildRemoteSupacodeRunnerScript(ARCHIVE);
+    const script = SshTunnel.buildRemoteSupatermRunnerScript(ARCHIVE);
 
-    assert.include(script, "SUPACODE_ARCHIVE_VERSION='1.2.3-preview.20260911.4'");
-    assert.include(script, "SUPACODE_NODE_SCRIPT_PATH=''");
+    assert.include(script, "SUPATERM_ARCHIVE_VERSION='1.2.3-preview.20260911.4'");
+    assert.include(script, "SUPATERM_NODE_SCRIPT_PATH=''");
     assert.include(
       script,
-      "SUPACODE_RELEASE_BASE_URL='https://github.com/supabitapp/supacode-next/releases/download'",
+      "SUPATERM_RELEASE_BASE_URL='https://github.com/supabitapp/supacode-next/releases/download'",
     );
     assert.include(
       script,
-      'SUPACODE_RUNTIME_DIR="$HOME/.supacode/runtime/versions/$SUPACODE_ARCHIVE_VERSION"',
+      'SUPATERM_RUNTIME_DIR="$HOME/.supaterm/runtime/versions/$SUPATERM_ARCHIVE_VERSION"',
     );
     assert.include(
       script,
-      'SUPACODE_ARCHIVE="supacode-$SUPACODE_ARCHIVE_VERSION-$SUPACODE_PLATFORM-$SUPACODE_ARCH.tar.gz"',
+      'SUPATERM_ARCHIVE="supaterm-$SUPATERM_ARCHIVE_VERSION-$SUPATERM_PLATFORM-$SUPATERM_ARCH.tar.gz"',
     );
     assert.include(script, "SHA256SUMS");
-    assert.include(script, 'exec "$SUPACODE_RUNTIME_DIR/supacode" "$@"');
+    assert.include(script, 'exec "$SUPATERM_RUNTIME_DIR/supaterm" "$@"');
     assert.notInclude(script, "npx");
     assert.notInclude(script, "npm exec");
-    assert.notInclude(script, "supacode@latest");
-    assert.notInclude(script, 'exec supacode "$@"');
+    assert.notInclude(script, "supaterm@latest");
+    assert.notInclude(script, 'exec supaterm "$@"');
     // Concurrent launches serialize on a per-version mkdir lock and recheck
     // the completion marker after acquiring it.
     assert.include(
       script,
-      'SUPACODE_LOCK="$HOME/.supacode/runtime/versions/.$SUPACODE_ARCHIVE_VERSION.install.lock"',
+      'SUPATERM_LOCK="$HOME/.supaterm/runtime/versions/.$SUPATERM_ARCHIVE_VERSION.install.lock"',
     );
     // mkdir is the exclusive create; the pid follows atomically. A dead owner
     // is reclaimed at once, a never-published owner after a short grace.
-    assert.include(script, 'while ! mkdir "$SUPACODE_LOCK" 2>/dev/null; do');
-    assert.include(script, 'mv "$SUPACODE_LOCK/pid.tmp" "$SUPACODE_LOCK/pid"');
-    assert.include(script, 'if ! kill -0 "$SUPACODE_LOCK_OWNER" 2>/dev/null; then');
-    assert.include(script, 'if [ "$SUPACODE_LOCK_UNOWNED" -ge 5 ]; then');
-    assert.include(script, 'if [ "$SUPACODE_LOCK_WAITED" -ge 360 ]; then');
-    assert.include(script, '"$SUPACODE_STAGING/SHA256SUMS" 30');
-    assert.include(script, '"$SUPACODE_STAGING/$SUPACODE_ARCHIVE" 240');
-    assert.notInclude(script, "SUPACODE_LOCK_CANDIDATE");
+    assert.include(script, 'while ! mkdir "$SUPATERM_LOCK" 2>/dev/null; do');
+    assert.include(script, 'mv "$SUPATERM_LOCK/pid.tmp" "$SUPATERM_LOCK/pid"');
+    assert.include(script, 'if ! kill -0 "$SUPATERM_LOCK_OWNER" 2>/dev/null; then');
+    assert.include(script, 'if [ "$SUPATERM_LOCK_UNOWNED" -ge 5 ]; then');
+    assert.include(script, 'if [ "$SUPATERM_LOCK_WAITED" -ge 360 ]; then');
+    assert.include(script, '"$SUPATERM_STAGING/SHA256SUMS" 30');
+    assert.include(script, '"$SUPATERM_STAGING/$SUPATERM_ARCHIVE" 240');
+    assert.notInclude(script, "SUPATERM_LOCK_CANDIDATE");
     assert.notInclude(script, "-mmin");
-    assert.equal(script.split("if ! supacode_runtime_ready; then").length - 1, 2);
+    assert.equal(script.split("if ! supaterm_runtime_ready; then").length - 1, 2);
     assert.isBelow(
-      script.indexOf('"$SUPACODE_STAGING/supacode" --version'),
-      script.indexOf('> "$SUPACODE_STAGING/.install-complete"'),
+      script.indexOf('"$SUPATERM_STAGING/supaterm" --version'),
+      script.indexOf('> "$SUPATERM_STAGING/.install-complete"'),
     );
     // Node discovery is defined for the dev path but only ever invoked inside
     // the node-script branch, which the archive path skips entirely.
     assert.equal(script.split("ensure_remote_node_path || true").length - 1, 1);
     assert.isBelow(
       script.indexOf("ensure_remote_node_path || true"),
-      script.indexOf('exec node "$SUPACODE_NODE_SCRIPT_PATH" "$@"'),
+      script.indexOf('exec node "$SUPATERM_NODE_SCRIPT_PATH" "$@"'),
     );
     assert.isBelow(
-      script.indexOf('exec node "$SUPACODE_NODE_SCRIPT_PATH" "$@"'),
-      script.indexOf("SUPACODE_ARCHIVE_VERSION="),
+      script.indexOf('exec node "$SUPATERM_NODE_SCRIPT_PATH" "$@"'),
+      script.indexOf("SUPATERM_ARCHIVE_VERSION="),
     );
 
     const launch = SshTunnel.buildRemoteLaunchScript({
       ...ARCHIVE,
-      releaseBaseUrl: "https://mirror.example/supacode/",
+      releaseBaseUrl: "https://mirror.example/supaterm/",
     });
-    assert.include(launch, "SUPACODE_ARCHIVE_MODE=1");
-    assert.include(launch, "SUPACODE_RELEASE_BASE_URL='https://mirror.example/supacode'");
+    assert.include(launch, "SUPATERM_ARCHIVE_MODE=1");
+    assert.include(launch, "SUPATERM_RELEASE_BASE_URL='https://mirror.example/supaterm'");
     assert.include(launch, '"$RUNNER_FILE" __ssh-helper pick-port "$PORT_FILE"');
     assert.include(launch, '"$RUNNER_FILE" __ssh-helper wait-ready "$REMOTE_PORT"');
     assert.include(launch, '"$RUNNER_FILE" __ssh-helper runtime-port "$DEFAULT_RUNTIME_FILE"');
-    assert.include(SshTunnel.buildRemoteLaunchScript(NODE_SCRIPT), "SUPACODE_ARCHIVE_MODE=0");
+    assert.include(SshTunnel.buildRemoteLaunchScript(NODE_SCRIPT), "SUPATERM_ARCHIVE_MODE=0");
   });
 
   it("rejects archive versions that are not a single exact version segment", () => {
@@ -177,22 +177,22 @@ describe("ssh tunnel scripts", () => {
       "v1.2.3",
     ]) {
       assert.throws(
-        () => SshTunnel.buildRemoteSupacodeRunnerScript({ archiveVersion }),
+        () => SshTunnel.buildRemoteSupatermRunnerScript({ archiveVersion }),
         SshTunnel.SshInvalidArchiveVersionError,
         undefined,
         archiveVersion,
       );
     }
     assert.include(
-      SshTunnel.buildRemoteSupacodeRunnerScript(ARCHIVE),
-      "SUPACODE_ARCHIVE_VERSION='1.2.3-preview.20260911.4'",
+      SshTunnel.buildRemoteSupatermRunnerScript(ARCHIVE),
+      "SUPATERM_ARCHIVE_VERSION='1.2.3-preview.20260911.4'",
     );
   });
 
   it("refuses to build a runner with neither an archive version nor a node script", () => {
     for (const input of [undefined, {}, { archiveVersion: "  " }, { nodeScriptPath: null }]) {
       assert.throws(
-        () => SshTunnel.buildRemoteSupacodeRunnerScript(input),
+        () => SshTunnel.buildRemoteSupatermRunnerScript(input),
         SshTunnel.SshMissingRunnerError,
       );
     }
@@ -200,26 +200,26 @@ describe("ssh tunnel scripts", () => {
   });
 
   it("does not hard-code a remote node engine range", () => {
-    const script = SshTunnel.buildRemoteSupacodeRunnerScript(NODE_SCRIPT);
+    const script = SshTunnel.buildRemoteSupatermRunnerScript(NODE_SCRIPT);
 
-    assert.include(script, "SUPACODE_NODE_ENGINE_RANGE=''");
+    assert.include(script, "SUPATERM_NODE_ENGINE_RANGE=''");
     assert.notInclude(script, TEST_NODE_ENGINE_RANGE);
   });
 
-  it("builds the remote Supacode runner with a node script override", () => {
-    const script = SshTunnel.buildRemoteSupacodeRunnerScript({
+  it("builds the remote Supaterm runner with a node script override", () => {
+    const script = SshTunnel.buildRemoteSupatermRunnerScript({
       ...NODE_SCRIPT,
       nodeEngineRange: TEST_NODE_ENGINE_RANGE,
     });
 
     assert.include(
       script,
-      "SUPACODE_NODE_SCRIPT_PATH='/Users/julius/Development/Work/codething-mvp/apps/server/dist/bin.mjs'",
+      "SUPATERM_NODE_SCRIPT_PATH='/Users/julius/Development/Work/codething-mvp/apps/server/dist/bin.mjs'",
     );
-    assert.include(script, 'exec node "$SUPACODE_NODE_SCRIPT_PATH" "$@"');
-    assert.include(script, "SUPACODE_ARCHIVE_VERSION=''");
+    assert.include(script, 'exec node "$SUPATERM_NODE_SCRIPT_PATH" "$@"');
+    assert.include(script, "SUPATERM_ARCHIVE_VERSION=''");
     assert.include(script, 'prepend_path_if_dir "$HOME/.local/bin"');
-    assert.include(script, `SUPACODE_NODE_ENGINE_RANGE='${TEST_NODE_ENGINE_RANGE}'`);
+    assert.include(script, `SUPATERM_NODE_ENGINE_RANGE='${TEST_NODE_ENGINE_RANGE}'`);
     assert.include(script, "remote_node_satisfies_engine()");
     assert.include(script, "function satisfiesSemverRange");
     assert.include(script, "satisfiesSemverRange(rawVersion, range)");
@@ -233,18 +233,18 @@ describe("ssh tunnel scripts", () => {
     assert.include(script, 'prepend_path_if_dir "$HOME/.nodenv/shims"');
     assert.include(script, 'NVM_DIR="$HOME/.nvm"');
     assert.include(script, "nvm use --silent default");
-    assert.include(script, 'for SUPACODE_NODE_BIN in "$NVM_DIR"/versions/node/*/bin');
+    assert.include(script, 'for SUPATERM_NODE_BIN in "$NVM_DIR"/versions/node/*/bin');
     assert.notInclude(script, "ensure $NVM_DIR/nvm.sh is available");
     assert.notInclude(script, "npx");
   });
 
   it("embeds the runner in the launch script byte for byte", () => {
-    const runner = SshTunnel.buildRemoteSupacodeRunnerScript(ARCHIVE);
-    assert.include(runner, 'printf \'%s\\n\' "$$" > "$SUPACODE_LOCK/pid.tmp"');
+    const runner = SshTunnel.buildRemoteSupatermRunnerScript(ARCHIVE);
+    assert.include(runner, 'printf \'%s\\n\' "$$" > "$SUPATERM_LOCK/pid.tmp"');
     assert.include(SshTunnel.buildRemoteLaunchScript(ARCHIVE), runner);
   });
 
-  it("uses the remote Supacode runner for launch and pairing scripts", () => {
+  it("uses the remote Supaterm runner for launch and pairing scripts", () => {
     const stateKey = "711bc738002d72fd";
     const launch = SshTunnel.buildRemoteLaunchScript(ARCHIVE);
     const devLaunch = SshTunnel.buildRemoteLaunchScript({
@@ -259,18 +259,18 @@ describe("ssh tunnel scripts", () => {
     assert.include(launch, "RUNNER_CHANGED=1");
     assert.include(launch, "ensure_remote_node_path()");
     assert.include(launch, "if ! ensure_remote_node_path; then");
-    assert.include(devLaunch, `SUPACODE_NODE_ENGINE_RANGE='${TEST_NODE_ENGINE_RANGE}'`);
+    assert.include(devLaunch, `SUPATERM_NODE_ENGINE_RANGE='${TEST_NODE_ENGINE_RANGE}'`);
     assert.include(devLaunch, "does not satisfy required range ");
     assert.include(launch, 'kill "$REMOTE_PID" 2>/dev/null || true');
     assert.include(launch, "wait_ready");
     assert.include(launch, '"$RUNNER_FILE" serve --host 127.0.0.1');
     assert.include(launch, '--base-dir "$DEFAULT_SERVER_HOME"');
     assert.notInclude(launch, "server-home");
-    assert.include(launch, "Remote Supacode server did not become ready");
+    assert.include(launch, "Remote Supaterm server did not become ready");
     assert.include(launch, 'wait_ready "60000"');
     assert.include(launch, 'if [ -s "$LOG_FILE" ]; then');
     assert.include(launch, "It wrote nothing to %s");
-    assert.include(launch, "SUPACODE_ARCHIVE_VERSION='1.2.3-preview.20260911.4'");
+    assert.include(launch, "SUPATERM_ARCHIVE_VERSION='1.2.3-preview.20260911.4'");
     assert.include(
       SshTunnel.buildRemotePairingScript(stateKey, ARCHIVE),
       '"$RUNNER_FILE" auth pairing create --base-dir "$PAIRING_BASE_DIR" --json',
@@ -282,7 +282,7 @@ describe("ssh tunnel scripts", () => {
     assert.notInclude(SshTunnel.buildRemotePairingScript(stateKey, ARCHIVE), "server-home");
     assert.include(
       SshTunnel.buildRemotePairingScript(stateKey, ARCHIVE),
-      "SUPACODE_ARCHIVE_VERSION='1.2.3-preview.20260911.4'",
+      "SUPATERM_ARCHIVE_VERSION='1.2.3-preview.20260911.4'",
     );
     assert.include(
       SshTunnel.buildRemoteStopScript(stateKey),
@@ -522,7 +522,7 @@ describe("ssh tunnel scripts", () => {
                 exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(1)),
                 stderr: Stream.make(
                   new TextEncoder().encode(
-                    "Remote Supacode server did not stop within 2 seconds.\n",
+                    "Remote Supaterm server did not stop within 2 seconds.\n",
                   ),
                 ),
               };
@@ -565,7 +565,7 @@ describe("ssh tunnel scripts", () => {
             assert.instanceOf(disconnected.failure, SshCommandError);
             assert.equal(
               disconnected.failure.message,
-              "Remote Supacode server did not stop within 2 seconds.",
+              "Remote Supaterm server did not stop within 2 seconds.",
             );
           }
         } else {
@@ -749,14 +749,14 @@ describe("archive runner script", () => {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const platform = hostPlatform === "darwin" ? "darwin" : "linux";
     const arch = hostArch === "arm64" ? "arm64" : "x64";
-    const stem = `supacode-${archiveVersion}-${platform}-${arch}`;
+    const stem = `supaterm-${archiveVersion}-${platform}-${arch}`;
     const stage = `${root}/stage/${stem}`;
     const release = `${root}/mirror/v${archiveVersion}`;
     const script = [
       "set -eu",
       `mkdir -p '${stage}' '${release}'`,
-      `printf '#!/bin/sh\\necho supacode v${archiveVersion}\\n' > '${stage}/supacode'`,
-      `chmod +x '${stage}/supacode'`,
+      `printf '#!/bin/sh\\necho supaterm v${archiveVersion}\\n' > '${stage}/supaterm'`,
+      `chmod +x '${stage}/supaterm'`,
       `tar -czf '${release}/${stem}.tar.gz' -C '${root}/stage' '${stem}'`,
       `cd '${release}' && (sha256sum '${stem}.tar.gz' 2>/dev/null || shasum -a 256 '${stem}.tar.gz') > SHA256SUMS`,
     ].join("\n");
@@ -770,12 +770,12 @@ describe("archive runner script", () => {
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
-        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-archive-runner-" });
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-archive-runner-" });
         const releaseBaseUrl = yield* makeMirror(root);
-        const runner = `${root}/run-supacode.sh`;
+        const runner = `${root}/run-supaterm.sh`;
         yield* fs.writeFileString(
           runner,
-          SshTunnel.buildRemoteSupacodeRunnerScript({ archiveVersion, releaseBaseUrl }),
+          SshTunnel.buildRemoteSupatermRunnerScript({ archiveVersion, releaseBaseUrl }),
         );
         const home = `${root}/home`;
         yield* fs.makeDirectory(home, { recursive: true });
@@ -786,9 +786,9 @@ describe("archive runner script", () => {
         );
         for (const result of results) {
           assert.equal(result.exitCode, 0, result.stderr);
-          assert.include(result.stdout, `supacode v${archiveVersion}`);
+          assert.include(result.stdout, `supaterm v${archiveVersion}`);
         }
-        const versionsDir = `${home}/.supacode/runtime/versions`;
+        const versionsDir = `${home}/.supaterm/runtime/versions`;
         assert.deepEqual(yield* fs.readDirectory(versionsDir), [archiveVersion]);
         assert.equal(
           (yield* fs.readFileString(`${versionsDir}/${archiveVersion}/.install-complete`)).trim(),

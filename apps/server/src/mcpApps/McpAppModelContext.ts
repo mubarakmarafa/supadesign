@@ -1,4 +1,4 @@
-import type { ThreadId, TurnItemId } from "@supacode/contracts";
+import type { ThreadId, TurnItemId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -36,7 +36,7 @@ export class McpAppModelContext extends Context.Service<
       threadId: ThreadId,
     ) => Effect.Effect<ReadonlyArray<McpAppModelContextEntry>, McpAppModelContextError>;
   }
->()("supacode/mcpApps/McpAppModelContext") {}
+>()("supaterm/mcpApps/McpAppModelContext") {}
 
 export const layer = Layer.effect(
   McpAppModelContext,

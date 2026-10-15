@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { EnvironmentProject } from "./models.ts";
@@ -181,8 +181,8 @@ const repositoryIdentity = {
   },
   provider: "github",
   owner: "supabitapp",
-  name: "supacode",
-  displayName: "supacode",
+  name: "supaterm",
+  displayName: "supaterm",
 };
 
 function makeProject(
@@ -342,18 +342,18 @@ describe("buildProjectGroups", () => {
 
   it("preserves every physical clone as a selectable member in repository modes", () => {
     const projects = [
-      makeProject("supacode", "/work/supacode"),
-      makeProject("supacode-2", "/work/supacode-2"),
-      makeProject("supacode-3", "/work/supacode-3"),
+      makeProject("supaterm", "/work/supaterm"),
+      makeProject("supaterm-2", "/work/supaterm-2"),
+      makeProject("supaterm-3", "/work/supaterm-3"),
     ];
 
     for (const mode of ["repository", "repository_path"] as const) {
       const groups = buildProjectGroups({ projects, settings: settings(mode) });
       expect(groups).toHaveLength(1);
       expect(groups[0]?.members.map((member) => member.project.id)).toEqual([
-        "supacode",
-        "supacode-2",
-        "supacode-3",
+        "supaterm",
+        "supaterm-2",
+        "supaterm-3",
       ]);
       expect(groups[0]?.memberProjectRefs).toHaveLength(3);
     }
@@ -361,8 +361,8 @@ describe("buildProjectGroups", () => {
 
   it("uses a shared custom title as the repository group's label", () => {
     const projects = [
-      makeProject("first", "/work/supacode", { title: "Custom project" }),
-      makeProject("second", "/work/supacode-2", { title: "Custom project" }),
+      makeProject("first", "/work/supaterm", { title: "Custom project" }),
+      makeProject("second", "/work/supaterm-2", { title: "Custom project" }),
     ];
 
     expect(buildProjectGroups({ projects, settings: settings("repository") })[0]?.label).toBe(
@@ -372,37 +372,37 @@ describe("buildProjectGroups", () => {
 
   it("keeps the repository label when shared titles match its repository name", () => {
     const projects = [
-      makeProject("first", "/work/supacode", { title: "supacode" }),
-      makeProject("second", "/work/supacode-2", { title: "supacode" }),
+      makeProject("first", "/work/supaterm", { title: "supaterm" }),
+      makeProject("second", "/work/supaterm-2", { title: "supaterm" }),
     ];
 
     expect(buildProjectGroups({ projects, settings: settings("repository") })[0]?.label).toBe(
-      "supacode",
+      "supaterm",
     );
   });
 
   it("keeps a fork apart from its upstream checkout and labels it by its own remote", () => {
-    const fork = makeProject("fork", "/work/supacode-fork", {
+    const fork = makeProject("fork", "/work/supaterm-fork", {
       repositoryIdentity: {
         ...repositoryIdentity,
         origin: {
-          canonicalKey: "github.com/julius/supacode-fork",
-          displayName: "julius/supacode-fork",
+          canonicalKey: "github.com/julius/supaterm-fork",
+          displayName: "julius/supaterm-fork",
         },
       },
     });
-    const forkWorktree = makeProject("fork-2", "/work/supacode-fork-2", {
+    const forkWorktree = makeProject("fork-2", "/work/supaterm-fork-2", {
       repositoryIdentity: fork.repositoryIdentity,
     });
-    const projects = [makeProject("supacode", "/work/supacode"), fork, forkWorktree];
+    const projects = [makeProject("supaterm", "/work/supaterm"), fork, forkWorktree];
 
     const groups = buildProjectGroups({ projects, settings: settings("repository") });
     expect(groups.map((group) => group.key)).toEqual([
       "github.com/supabitapp/supacode-next",
-      "github.com/julius/supacode-fork",
+      "github.com/julius/supaterm-fork",
     ]);
     expect(groups[1]?.members.map((member) => member.project.id)).toEqual(["fork", "fork-2"]);
-    expect(groups[1]?.label).toBe("julius/supacode-fork");
+    expect(groups[1]?.label).toBe("julius/supaterm-fork");
   });
 
   it("labels a fork by its canonical key when its origin has no display name", () => {
@@ -422,21 +422,21 @@ describe("buildProjectGroups", () => {
 
   it("keeps physical clones in separate groups when requested", () => {
     const projects = [
-      makeProject("supacode", "/work/supacode"),
-      makeProject("supacode-2", "/work/supacode-2"),
-      makeProject("supacode-3", "/work/supacode-3"),
+      makeProject("supaterm", "/work/supaterm"),
+      makeProject("supaterm-2", "/work/supaterm-2"),
+      makeProject("supaterm-3", "/work/supaterm-3"),
     ];
 
     const groups = buildProjectGroups({ projects, settings: settings("separate") });
     expect(groups).toHaveLength(3);
     expect(groups.flatMap((group) => group.members)).toHaveLength(3);
-    expect(groups.map((group) => group.label)).toEqual(["supacode", "supacode-2", "supacode-3"]);
+    expect(groups.map((group) => group.label)).toEqual(["supaterm", "supaterm-2", "supaterm-3"]);
   });
 
   it("applies a physical-project override without dropping its siblings", () => {
-    const first = makeProject("supacode", "/work/supacode");
-    const second = makeProject("supacode-2", "/work/supacode-2");
-    const third = makeProject("supacode-3", "/work/supacode-3");
+    const first = makeProject("supaterm", "/work/supaterm");
+    const second = makeProject("supaterm-2", "/work/supaterm-2");
+    const third = makeProject("supaterm-3", "/work/supaterm-3");
     const groups = buildProjectGroups({
       projects: [first, second, third],
       settings: settings("repository", {
@@ -446,18 +446,18 @@ describe("buildProjectGroups", () => {
 
     expect(groups).toHaveLength(2);
     expect(groups.flatMap((group) => group.members.map((member) => member.project.id))).toEqual([
-      "supacode",
-      "supacode-3",
-      "supacode-2",
+      "supaterm",
+      "supaterm-3",
+      "supaterm-2",
     ]);
   });
 
   it("dedupes stale registrations at one physical path using the freshest project", () => {
-    const stale = makeProject("stale", "/work/supacode", {
+    const stale = makeProject("stale", "/work/supaterm", {
       repositoryIdentity: null,
       updatedAt: "2026-07-01T00:00:00.000Z",
     });
-    const fresh = makeProject("fresh", "/work/supacode/", {
+    const fresh = makeProject("fresh", "/work/supaterm/", {
       updatedAt: "2026-07-02T00:00:00.000Z",
     });
 
@@ -472,14 +472,14 @@ describe("buildProjectGroups", () => {
   });
 
   it("uses repository identity from a duplicate registration when the winner lacks it", () => {
-    const identified = makeProject("identified", "/work/supacode", {
+    const identified = makeProject("identified", "/work/supaterm", {
       updatedAt: "2026-07-01T00:00:00.000Z",
     });
-    const freshUnidentified = makeProject("fresh", "/work/supacode/", {
+    const freshUnidentified = makeProject("fresh", "/work/supaterm/", {
       repositoryIdentity: null,
       updatedAt: "2026-07-02T00:00:00.000Z",
     });
-    const sibling = makeProject("sibling", "/work/supacode-2");
+    const sibling = makeProject("sibling", "/work/supaterm-2");
 
     const groups = buildProjectGroups({
       projects: [identified, freshUnidentified, sibling],
@@ -492,18 +492,18 @@ describe("buildProjectGroups", () => {
   it("uses the freshest winner's repository identity when stale duplicates disagree", () => {
     const staleIdentity = {
       ...repositoryIdentity,
-      canonicalKey: "github.com/supacode/old-repository",
+      canonicalKey: "github.com/supaterm/old-repository",
       name: "old-repository",
       displayName: "Old Repository",
     };
-    const stale = makeProject("stale", "/work/supacode", {
+    const stale = makeProject("stale", "/work/supaterm", {
       repositoryIdentity: staleIdentity,
       updatedAt: "2026-07-01T00:00:00.000Z",
     });
-    const fresh = makeProject("fresh", "/work/supacode/", {
+    const fresh = makeProject("fresh", "/work/supaterm/", {
       updatedAt: "2026-07-02T00:00:00.000Z",
     });
-    const sibling = makeProject("sibling", "/work/supacode-2");
+    const sibling = makeProject("sibling", "/work/supaterm-2");
 
     const groups = buildProjectGroups({
       projects: [stale, fresh, sibling],
@@ -516,22 +516,22 @@ describe("buildProjectGroups", () => {
   it("uses the freshest identity-bearing duplicate when the winner lacks identity", () => {
     const staleIdentity = {
       ...repositoryIdentity,
-      canonicalKey: "github.com/supacode/old-repository",
+      canonicalKey: "github.com/supaterm/old-repository",
       name: "old-repository",
       displayName: "Old Repository",
     };
-    const staleIdentified = makeProject("stale-identified", "/work/supacode", {
+    const staleIdentified = makeProject("stale-identified", "/work/supaterm", {
       repositoryIdentity: staleIdentity,
       updatedAt: "2026-07-01T00:00:00.000Z",
     });
-    const freshIdentified = makeProject("fresh-identified", "/work/supacode/", {
+    const freshIdentified = makeProject("fresh-identified", "/work/supaterm/", {
       updatedAt: "2026-07-02T00:00:00.000Z",
     });
-    const winner = makeProject("winner", "/work/supacode", {
+    const winner = makeProject("winner", "/work/supaterm", {
       repositoryIdentity: null,
       updatedAt: "2026-07-03T00:00:00.000Z",
     });
-    const sibling = makeProject("sibling", "/work/supacode-2");
+    const sibling = makeProject("sibling", "/work/supaterm-2");
 
     const groups = buildProjectGroups({
       projects: [staleIdentified, freshIdentified, winner, sibling],

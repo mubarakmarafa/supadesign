@@ -13,7 +13,7 @@ import {
   type ScheduledTaskRunNowResult,
   type ScheduledTaskSetEnabledInput,
   type ScheduledTaskUpsertInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -88,7 +88,7 @@ export class ScheduledTaskService extends Context.Service<
       input: ScheduledTaskRunNowInput,
     ) => Effect.Effect<ScheduledTaskRunNowResult, ScheduledTaskError>;
   }
->()("supacode/scheduledTasks/ScheduledTaskService") {}
+>()("supaterm/scheduledTasks/ScheduledTaskService") {}
 
 function taskError(message: string, input?: { taskId?: ScheduledTaskId; cause?: unknown }) {
   return new ScheduledTaskError({

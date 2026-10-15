@@ -1,6 +1,6 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import type { RemoteEnvironmentAuthError } from "../authorization/remote.ts";
-import type { RelayTunnelFailure } from "@supacode/shared/relay/protocol";
+import type { RelayTunnelFailure } from "@supaterm/shared/relay/protocol";
 import {
   ConnectionBlockedError,
   type ConnectionAttemptError,
@@ -98,7 +98,7 @@ function relayTunnelError(failure: RelayTunnelFailure): ConnectionTransientError
     case "host-offline":
       return new ConnectionTransientError({
         reason: "endpoint-unavailable",
-        detail: "The environment is offline. Make sure Supacode is running on that computer.",
+        detail: "The environment is offline. Make sure Supaterm is running on that computer.",
       });
     case "relay-busy":
       return new ConnectionTransientError({

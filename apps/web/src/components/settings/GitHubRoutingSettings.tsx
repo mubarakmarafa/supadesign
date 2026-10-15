@@ -1,10 +1,10 @@
 import { useAtomValue } from "@effect/atom-react";
-import { resolveEnvironmentMachineKind } from "@supacode/contracts";
+import { resolveEnvironmentMachineKind } from "@supaterm/contracts";
 import {
   gitHubRoutingConnectionKey,
   gitHubRoutingPermissionFor,
   type GitHubRoutingPermission,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import { useState } from "react";
 
 import { environmentCatalog } from "~/connection/catalog";

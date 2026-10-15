@@ -6,7 +6,7 @@ import {
   ProjectId,
   ThreadId,
   VcsProcessSpawnError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -110,7 +110,7 @@ const withScratch = <A, E>(
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const baseDir = yield* fileSystem.makeTempDirectoryScoped({
-      prefix: "supacode-managed-folders-",
+      prefix: "supaterm-managed-folders-",
     });
     return yield* body({ baseDir }).pipe(Effect.provide(layer(baseDir, options)));
   }).pipe(Effect.scoped, Effect.provide(NodeServices.layer));
@@ -140,10 +140,10 @@ it.effect("offers nothing when the data dir sits inside a Git checkout", () =>
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const checkout = yield* fileSystem.makeTempDirectoryScoped({
-      prefix: "supacode-scratch-repo-",
+      prefix: "supaterm-scratch-repo-",
     });
     yield* git(checkout, ["init", "--quiet"]);
-    const baseDir = path.join(checkout, ".supacode");
+    const baseDir = path.join(checkout, ".supaterm");
     yield* fileSystem.makeDirectory(baseDir);
     yield* Effect.gen(function* () {
       const scratch = yield* ManagedProjectFolders.ManagedProjectFolders;
@@ -337,7 +337,7 @@ const withGitEnv = <A, E, R>(
 ) =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
-    const emptyConfig = yield* fileSystem.makeTempFileScoped({ prefix: "supacode-gitconfig-" });
+    const emptyConfig = yield* fileSystem.makeTempFileScoped({ prefix: "supaterm-gitconfig-" });
     return yield* Effect.acquireUseRelease(
       Effect.sync(() => {
         const saved = GIT_IDENTITY_KEYS.map((key) => [key, process.env[key]] as const);

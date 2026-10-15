@@ -1,5 +1,5 @@
 import { cursorRateModel } from "./accountUsage.ts";
-import type { UsageRecord } from "@supacode/provider-core/server/usage";
+import type { UsageRecord } from "@supaterm/provider-core/server/usage";
 
 export type CursorCredentialSource = string | { readonly kind: "keychain" };
 

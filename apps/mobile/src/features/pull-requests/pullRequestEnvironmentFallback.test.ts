@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/models";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/models";
 import { pullRequestFallbackEnvironment } from "./pullRequestEnvironmentFallback";
 
 const project = (environmentId: string, id: string, canonicalKey: string) =>

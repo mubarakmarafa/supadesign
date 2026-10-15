@@ -16,7 +16,7 @@ let dataHome: string;
 const bundle = NodePath.resolve(import.meta.dirname, "../../gnome-extension");
 const installedPath = () => NodePath.join(dataHome, "gnome-shell/extensions", GNOME_CAPTURE_UUID);
 beforeEach(async () => {
-  dataHome = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-gnome-setup-test-"));
+  dataHome = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-gnome-setup-test-"));
 });
 afterEach(async () => {
   await NodeFSP.rm(dataHome, { recursive: true, force: true });
@@ -76,7 +76,7 @@ it("preserves the replaced extension as a recoverable backup", async () => {
   await installGnomeCaptureBundle({ bundle, dataHome });
   await NodeFSP.writeFile(NodePath.join(installedPath(), "custom.txt"), "local change");
   await installGnomeCaptureBundle({ bundle, dataHome });
-  const backups = NodePath.join(dataHome, "supacode/extension-backups");
+  const backups = NodePath.join(dataHome, "supaterm/extension-backups");
   const [backup] = await NodeFSP.readdir(backups);
   expect(
     await NodeFSP.readFile(
@@ -189,7 +189,7 @@ it("surfaces desktop rejection and disconnect as actionable failures", async () 
 it("does not offer host extension installation in another desktop or sandbox", () => {
   expect(isGnomeCaptureSession({ XDG_CURRENT_DESKTOP: "ubuntu:GNOME" })).toBe(true);
   expect(isGnomeCaptureSession({ XDG_CURRENT_DESKTOP: "niri", GDMSESSION: "gnome" })).toBe(false);
-  expect(isGnomeCaptureSession({ XDG_CURRENT_DESKTOP: "GNOME", FLATPAK_ID: "com.supacode" })).toBe(
+  expect(isGnomeCaptureSession({ XDG_CURRENT_DESKTOP: "GNOME", FLATPAK_ID: "com.supaterm" })).toBe(
     false,
   );
 });

@@ -9,11 +9,11 @@ import { beforeEach, vi } from "vite-plus/test";
 import * as DesktopRelayGateway from "./DesktopRelayGateway.ts";
 
 const { openLoopbackRelay } = vi.hoisted(() => ({
-  openLoopbackRelay: vi.fn<typeof import("@supacode/shared/relay/tunnelNode").openLoopbackRelay>(),
+  openLoopbackRelay: vi.fn<typeof import("@supaterm/shared/relay/tunnelNode").openLoopbackRelay>(),
 }));
-vi.mock("@supacode/shared/relay/tunnelNode", () => ({ openLoopbackRelay }));
+vi.mock("@supaterm/shared/relay/tunnelNode", () => ({ openLoopbackRelay }));
 
-const address = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+const address = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
 const RELAY_URL = "wss://relay.example";
 beforeEach(() => openLoopbackRelay.mockReset());
 
@@ -139,7 +139,7 @@ it.effect("a failed close does not prevent reopening or disposal of other enviro
         yield* gateway.start(address, RELAY_URL);
         expect((yield* gateway.stop(address).pipe(Effect.result))._tag).toBe("Failure");
         expect(yield* gateway.start(address, RELAY_URL)).toBe("http://127.0.0.1:4322");
-        const other = `https://${"33".repeat(16)}.${"44".repeat(16)}.relay.supacode.invalid/`;
+        const other = `https://${"33".repeat(16)}.${"44".repeat(16)}.relay.supaterm.invalid/`;
         yield* gateway.start(other, RELAY_URL);
       }).pipe(Effect.provide(DesktopRelayGateway.layer)),
     );

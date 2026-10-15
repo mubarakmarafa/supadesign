@@ -2,7 +2,7 @@ import {
   AuthSettingsWriteScope,
   type EnvironmentId,
   type SourceControlProviderAuth,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useState } from "react";
 import * as Option from "effect/Option";
@@ -14,7 +14,7 @@ import { Button } from "../ui/button";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { groupGitHubAccounts, nextGitHubHosts } from "./GitHubAccountSettings.logic";
-import { readGitHubSettings } from "@supacode/client-runtime/source-control-clients";
+import { readGitHubSettings } from "@supaterm/client-runtime/source-control-clients";
 import { redactedPlaceholder } from "./RedactedSensitiveText";
 import { useEnvironmentScope } from "../../state/session";
 

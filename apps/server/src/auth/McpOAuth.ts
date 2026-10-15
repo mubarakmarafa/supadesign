@@ -13,8 +13,8 @@ import {
   type AuthEnvironmentScope,
   AuthOrchestrationOperateScope,
   AuthOrchestrationReadScope,
-} from "@supacode/contracts";
-import { encodeOAuthScope } from "@supacode/shared/oauthScope";
+} from "@supaterm/contracts";
+import { encodeOAuthScope } from "@supaterm/shared/oauthScope";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -40,10 +40,10 @@ import {
 
 /**
  * The OAuth authorization server MCP clients (Claude Code, Codex, any agent
- * Supacode did not launch) use to sign in to this environment's `/mcp`.
+ * Supaterm did not launch) use to sign in to this environment's `/mcp`.
  *
  * Every URL is derived from the request's own origin, so the same server
- * answers correctly over loopback, Tailscale Serve and a Supacode Connect tunnel.
+ * answers correctly over loopback, Tailscale Serve and a Supaterm Connect tunnel.
  * Client registration is stateless: a client id is its signed metadata, so
  * an unauthenticated caller cannot grow server state. Redirects go to a
  * loopback address (a CLI agent on the user's machine) or any https address
@@ -88,7 +88,7 @@ export const protectedResourceMetadata = (
   authorization_servers: [urls.issuer],
   scopes_supported: MCP_OAUTH_SCOPES,
   bearer_methods_supported: ["header"],
-  resource_name: "Supacode",
+  resource_name: "Supaterm",
 });
 
 export const authorizationServerMetadata = (
@@ -239,7 +239,7 @@ export class McpOAuth extends Context.Service<
       readonly token: AuthMcpTokenRequest;
     }) => Effect.Effect<AuthMcpTokenResult, AuthMcpTokenError>;
   }
->()("supacode/auth/McpOAuth") {}
+>()("supaterm/auth/McpOAuth") {}
 
 /** Appends OAuth response parameters, keeping any the client put in its redirect URI. */
 const redirectWith = (redirectUri: string, params: Record<string, string | undefined>) => {

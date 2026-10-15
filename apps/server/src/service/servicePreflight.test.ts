@@ -14,7 +14,7 @@ it.each([1, 2])("blocks legacy launcher protocol %i", (launcherProtocol) => {
     status: "blocked",
     version: "1.2.3",
     reason:
-      "This release requires a newer Supacode service launcher. Update it on the server machine.",
+      "This release requires a newer Supaterm service launcher. Update it on the server machine.",
   });
 });
 

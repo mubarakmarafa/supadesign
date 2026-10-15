@@ -1,13 +1,13 @@
 import { assert, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import * as OpenCode2AdapterV2Testkit from "../orchestration-v2/Adapters/OpenCode2AdapterV2.testkit.ts";
-import * as OpenCode2Server from "@supacode/provider-opencode/server/v2/OpenCode2Server";
-import * as OpenCode2TextGeneration from "@supacode/provider-opencode/server/v2/textGeneration";
+import * as OpenCode2Server from "@supaterm/provider-opencode/server/v2/OpenCode2Server";
+import * as OpenCode2TextGeneration from "@supaterm/provider-opencode/server/v2/textGeneration";
 import { OPENCODE2_TITLE_GENERATION } from "./OpenCode2TextGeneration.fixture.ts";
 
 const layer = TestProviderHost.layer().pipe(Layer.provideMerge(NodeServices.layer));

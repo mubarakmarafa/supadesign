@@ -1,15 +1,15 @@
 import {
   createAdvertisedEndpoint,
   type CreateAdvertisedEndpointInput,
-} from "@supacode/shared/advertisedEndpoint";
+} from "@supaterm/shared/advertisedEndpoint";
 import {
   DesktopServerExposureModeSchema,
   type AdvertisedEndpoint,
   type AdvertisedEndpointProvider,
   type DesktopServerExposureMode,
   type DesktopServerExposureState,
-} from "@supacode/contracts";
-import { isTailscaleIpv4Address, readTailscaleStatus } from "@supacode/tailscale";
+} from "@supaterm/contracts";
+import { isTailscaleIpv4Address, readTailscaleStatus } from "@supaterm/tailscale";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -285,7 +285,7 @@ export class DesktopServerExposure extends Context.Service<
     }) => Effect.Effect<DesktopServerExposureChange, DesktopTailscaleServePersistenceError>;
     readonly getAdvertisedEndpoints: Effect.Effect<readonly AdvertisedEndpoint[]>;
   }
->()("@supacode/desktop/backend/DesktopServerExposure") {}
+>()("@supaterm/desktop/backend/DesktopServerExposure") {}
 
 interface RuntimeState {
   readonly requestedMode: DesktopServerExposureMode;

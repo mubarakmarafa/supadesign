@@ -1,4 +1,4 @@
-import { ClientSettingsSchema } from "@supacode/contracts";
+import { ClientSettingsSchema } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";

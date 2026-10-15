@@ -2,11 +2,11 @@ import {
   AuthOrchestrationOperateScope,
   type EnvironmentId,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { useDebouncedValue } from "@tanstack/react-pacer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

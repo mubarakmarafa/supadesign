@@ -1,4 +1,4 @@
-import type { DiscoveredLocalServer } from "@supacode/contracts";
+import type { DiscoveredLocalServer } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { mergeServers } from "./useDiscoveredLocalServers";

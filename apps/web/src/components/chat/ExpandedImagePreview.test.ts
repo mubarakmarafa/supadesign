@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 
 import type { ComposerFileAttachment } from "../../composerDraftStore";
 import {
@@ -16,8 +16,8 @@ describe("resolveMarkdownMediaPreview", () => {
   });
 
   it.each([
-    ["supacode:", "https:"],
-    ["supacode-dev:", "https:"],
+    ["supaterm:", "https:"],
+    ["supaterm-dev:", "https:"],
     ["http:", "http:"],
     ["https:", "https:"],
   ])(

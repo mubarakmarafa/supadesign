@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 
 const { readPreparedConnection } = vi.hoisted(() => ({
   readPreparedConnection: vi.fn<() => { httpBaseUrl: string } | null>(() => null),

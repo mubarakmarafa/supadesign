@@ -1,5 +1,5 @@
-import type { AssetResource, OrchestrationV2TurnItem } from "@supacode/contracts";
-import { readToolOutputImage, toolOutputImages } from "@supacode/shared/toolOutput";
+import type { AssetResource, OrchestrationV2TurnItem } from "@supaterm/contracts";
+import { readToolOutputImage, toolOutputImages } from "@supaterm/shared/toolOutput";
 import * as DateTime from "effect/DateTime";
 
 const MAX_TEXT_BLOCK_DEPTH = 4;

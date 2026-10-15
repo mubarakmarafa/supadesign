@@ -3,7 +3,7 @@ import type {
   OrchestrationV2ThreadProjection,
   ProviderReplayTranscript,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import type { OrchestratorV2ScenarioResult } from "../../OrchestratorScenario.ts";
 import {

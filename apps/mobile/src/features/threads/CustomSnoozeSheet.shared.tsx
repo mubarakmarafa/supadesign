@@ -4,7 +4,7 @@ import {
   localSnoozeTime,
   resolveCustomSnooze,
   type CustomSnoozeInput,
-} from "@supacode/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/thread-settled";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -40,7 +40,7 @@ export function CustomSnoozeSheet(props: {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ padding: 24, paddingBottom: 24, gap: 20 }}
         >
-          <AppText accessibilityRole="header" className="text-xl font-supacode-semibold">
+          <AppText accessibilityRole="header" className="text-xl font-supaterm-semibold">
             Custom snooze
           </AppText>
           <AppText className="text-base text-foreground-secondary">

@@ -327,7 +327,7 @@ describe("readCursorAccountUsage", () => {
         accountKey: null,
         records: [],
         missing: false,
-        error: "Allow Keychain access on the Mac running Supacode, then refresh.",
+        error: "Allow Keychain access on the Mac running Supaterm, then refresh.",
       });
     }).pipe(Effect.provide(NodeServices.layer)),
   );

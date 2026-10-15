@@ -1,5 +1,5 @@
-import { runRanAfter } from "@supacode/shared/orchestrationV2ThreadError";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+import { runRanAfter } from "@supaterm/shared/orchestrationV2ThreadError";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import {
   CommandId,
   type OrchestrationV2DomainEvent,
@@ -8,7 +8,7 @@ import {
   type OrchestrationV2Subagent,
   type OrchestrationV2ThreadProjection,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
@@ -18,14 +18,14 @@ import * as Schema from "effect/Schema";
 
 import * as EffectOutbox from "./EffectOutbox.ts";
 import * as EventSink from "./EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import { restartContinuationRun } from "./RestartContinuation.ts";
 import {
   endOrphanedNativeSubagent,
   endRunlessRootTurns,
-} from "@supacode/provider-core/server/subagentProjection";
+} from "@supaterm/provider-core/server/subagentProjection";
 import {
   cancelledRosterTaskWork,
   cancelledTurnItemWork,
@@ -70,7 +70,7 @@ export class ProviderRuntimeRecoveryService extends Context.Service<
     readonly prepareForShutdown: Effect.Effect<void, ProviderRuntimeRecoveryError>;
     readonly recover: Effect.Effect<ProviderRuntimeRecoverySummary, ProviderRuntimeRecoveryError>;
   }
->()("supacode/orchestration-v2/ProviderRuntimeRecoveryService") {}
+>()("supaterm/orchestration-v2/ProviderRuntimeRecoveryService") {}
 
 function nonterminalRuns(projection: ProjectionStore.ProjectionRuntimeRecoveryState) {
   return projection.runs.filter((run) => {

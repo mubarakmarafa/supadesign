@@ -3,7 +3,7 @@ import {
   dynamicToolTitle,
   formatReadToolLabel,
   formatSearchToolLabel,
-} from "@supacode/shared/toolActivity";
+} from "@supaterm/shared/toolActivity";
 import { field, text } from "../unknownField.ts";
 import { readWorkflowAgentAnswers } from "../workflowAgentAnswers.ts";
 import {
@@ -13,7 +13,7 @@ import {
   parseClaudeWorkflowRunHandles,
 } from "./claudeWorkflowProgress.ts";
 
-import { isWorkspaceImagePreviewPath } from "@supacode/shared/filePreview";
+import { isWorkspaceImagePreviewPath } from "@supaterm/shared/filePreview";
 import { normalizeClaudeTurnTokenUsage } from "../../provider/ClaudeTurnTokenUsage.ts";
 import {
   type CanUseTool,
@@ -39,14 +39,14 @@ import type {
   AskUserQuestionInput,
   WebSearchOutput,
 } from "@anthropic-ai/claude-agent-sdk/sdk-tools";
-import { parseCliArgs } from "@supacode/shared/cliArgs";
-import { AgentScope } from "@supacode/shared/AgentScope";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { applyClaudePromptEffortPrefix } from "@supacode/shared/model";
+import { parseCliArgs } from "@supaterm/shared/cliArgs";
+import { AgentScope } from "@supaterm/shared/AgentScope";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { applyClaudePromptEffortPrefix } from "@supaterm/shared/model";
 import {
   CLAUDE_RESUME_COMPACTION_NEVER_ANSWER,
   formatClaudeResumeCompactionQuestion,
-} from "@supacode/shared/claudeCompaction";
+} from "@supaterm/shared/claudeCompaction";
 import {
   type ChatAttachment,
   ClaudeSettings,
@@ -80,7 +80,7 @@ import {
   type ProviderThreadId,
   type RunId,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -107,7 +107,7 @@ import { planClaudeSkillDispatch } from "../../provider/Drivers/ClaudeSkillDispa
 import { discoverClaudeSkills } from "../../provider/Drivers/ClaudeSkills.ts";
 import { compileClaudeModelSelection } from "../../claudeModelOptions.ts";
 import * as ServerConfig from "../../config.ts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import {
   claudeSignedOutMessage,
   makeClaudeEnvironment,
@@ -124,44 +124,44 @@ import {
   boundProviderEventForLogging,
   shouldPersistProviderEvent,
 } from "../../provider/EventNdjsonLogger.ts";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import {
   claudeRateLimitEventToUpdate,
   type ClaudeScopedLimitNames,
 } from "../../provider/claudeUsageLimits.ts";
-import type { ManagedServerProvider } from "@supacode/provider-core/server/snapshot";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
-import { SUPACODE_ORCHESTRATION_INSTRUCTIONS } from "@supacode/provider-core/server/orchestrationInstructions";
-import { buildRuntimeInstructions } from "@supacode/provider-core/server/runtimeInstructions";
+import type { ManagedServerProvider } from "@supaterm/provider-core/server/snapshot";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
+import { SUPATERM_ORCHESTRATION_INSTRUCTIONS } from "@supaterm/provider-core/server/orchestrationInstructions";
+import { buildRuntimeInstructions } from "@supaterm/provider-core/server/runtimeInstructions";
 import {
   mcpToolPresentation,
   normalizeMcpText,
-} from "@supacode/provider-core/server/mcpToolPresentation";
-import * as McpProviderSession from "@supacode/provider-core/server/mcpSession";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+} from "@supaterm/provider-core/server/mcpToolPresentation";
+import * as McpProviderSession from "@supaterm/provider-core/server/mcpSession";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import {
   makeProviderFailure,
   makeProviderRetryTurnItem,
-} from "@supacode/provider-core/server/failure";
-import { turnScopedSelectionTransition } from "@supacode/provider-core/server/selectionTransition";
-import { providerMessageTextWithAttachmentPaths } from "@supacode/provider-core/server/attachmentPrompt";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+} from "@supaterm/provider-core/server/failure";
+import { turnScopedSelectionTransition } from "@supaterm/provider-core/server/selectionTransition";
+import { providerMessageTextWithAttachmentPaths } from "@supaterm/provider-core/server/attachmentPrompt";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import {
   ProviderAdapterDriverCreateError,
   type ProviderAdapterDriver,
   type ProviderAdapterDriverCreateInput,
-} from "@supacode/provider-core/server/adapterDriver";
+} from "@supaterm/provider-core/server/adapterDriver";
 import {
   type BackgroundWorkReport,
   backgroundWorkNotification,
-} from "@supacode/provider-core/server/notification";
-import * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+} from "@supaterm/provider-core/server/notification";
+import * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import {
   makeSubagentChildThread,
   makeSubagentConversationArtifacts,
   subagentThreadTitle,
-} from "@supacode/provider-core/server/subagentProjection";
+} from "@supaterm/provider-core/server/subagentProjection";
 
 export const CLAUDE_PROVIDER = ProviderDriverKind.make("claudeAgent");
 export const CLAUDE_AGENT_SDK_QUERY_PROTOCOL = "claude-agent-sdk.query" as const;
@@ -427,7 +427,7 @@ export interface ClaudeAgentSdkQueryRunnerShape {
 export class ClaudeAgentSdkQueryRunner extends Context.Service<
   ClaudeAgentSdkQueryRunner,
   ClaudeAgentSdkQueryRunnerShape
->()("supacode/orchestration-v2/Adapters/ClaudeAdapterV2/ClaudeAgentSdkQueryRunner") {}
+>()("supaterm/orchestration-v2/Adapters/ClaudeAdapterV2/ClaudeAgentSdkQueryRunner") {}
 
 export interface ClaudeAgentSdkSessionForkInput {
   readonly sessionId: string;
@@ -1054,7 +1054,7 @@ export function makeClaudeQueryOptions(input: {
       preset: "claude_code" as const,
       append:
         buildRuntimeInstructions({ harness: "Claude Code" }) +
-        (input.mcpServers === undefined ? "" : SUPACODE_ORCHESTRATION_INSTRUCTIONS),
+        (input.mcpServers === undefined ? "" : SUPATERM_ORCHESTRATION_INSTRUCTIONS),
     },
     ...(Object.keys(extraArgs).length === 0 ? {} : { extraArgs }),
   };
@@ -1067,41 +1067,41 @@ export function makeClaudeQueryOptions(input: {
   return input.cwd === null ? withDirectories : { ...withDirectories, cwd: input.cwd };
 }
 
-export const CLAUDE_SUPACODE_MCP_TOOL_WILDCARD = "mcp__supacode__*";
+export const CLAUDE_SUPATERM_MCP_TOOL_WILDCARD = "mcp__supaterm__*";
 
 // Must stay in sync with the Tool.Readonly annotations on OrchestratorToolkit;
 // ClaudeAdapterV2.test.ts cross-checks this list against the toolkit.
-export const CLAUDE_READ_ONLY_SUPACODE_MCP_ALLOWED_TOOLS: ReadonlyArray<string> = [
-  "mcp__supacode__orchestrator_capabilities",
-  "mcp__supacode__list_scheduled_tasks",
-  "mcp__supacode__supacode_thread_list",
-  "mcp__supacode__supacode_thread_wait",
-  "mcp__supacode__supacode_pending_request_list",
-  "mcp__supacode__supacode_pending_request_read",
-  "mcp__supacode__supacode_thread_configuration",
-  "mcp__supacode__supacode_thread_transfers",
-  "mcp__supacode__supacode_worktree_status",
-  "mcp__supacode__supacode_worktree_list",
-  "mcp__supacode__supacode_project_list",
-  "mcp__supacode__supacode_project_read",
-  "mcp__supacode__supacode_thread_search",
-  "mcp__supacode__supacode_preview_list",
-  "mcp__supacode__supacode_environment_read",
-  "mcp__supacode__supacode_queue_list",
-  "mcp__supacode__supacode_queue_read",
-  "mcp__supacode__html_preview",
-  "mcp__supacode__html_render",
+export const CLAUDE_READ_ONLY_SUPATERM_MCP_ALLOWED_TOOLS: ReadonlyArray<string> = [
+  "mcp__supaterm__orchestrator_capabilities",
+  "mcp__supaterm__list_scheduled_tasks",
+  "mcp__supaterm__supaterm_thread_list",
+  "mcp__supaterm__supaterm_thread_wait",
+  "mcp__supaterm__supaterm_pending_request_list",
+  "mcp__supaterm__supaterm_pending_request_read",
+  "mcp__supaterm__supaterm_thread_configuration",
+  "mcp__supaterm__supaterm_thread_transfers",
+  "mcp__supaterm__supaterm_worktree_status",
+  "mcp__supaterm__supaterm_worktree_list",
+  "mcp__supaterm__supaterm_project_list",
+  "mcp__supaterm__supaterm_project_read",
+  "mcp__supaterm__supaterm_thread_search",
+  "mcp__supaterm__supaterm_preview_list",
+  "mcp__supaterm__supaterm_environment_read",
+  "mcp__supaterm__supaterm_queue_list",
+  "mcp__supaterm__supaterm_queue_read",
+  "mcp__supaterm__html_preview",
+  "mcp__supaterm__html_render",
 ];
 
 // Claude Code aborts an HTTP MCP call after 60 s ("The operation timed out.")
-// unless the server config sets `timeout`. Supacode's wait tools (supacode_thread_wait,
+// unless the server config sets `timeout`. Supaterm's wait tools (supaterm_thread_wait,
 // delegate_task mode=wait) legitimately block for up to an hour
 // (MAX_WAIT_TIMEOUT_MS in OrchestratorMcpService), so the budget sits just
 // above that and the server's own wait timeout is what ends a long call.
-export const CLAUDE_SUPACODE_MCP_TOOL_TIMEOUT_MS = 65 * 60 * 1_000;
+export const CLAUDE_SUPATERM_MCP_TOOL_TIMEOUT_MS = 65 * 60 * 1_000;
 
 // The SDK's `allowedTools` only pre-approves tool calls; availability is the
-// separate `tools` option. Attaching the Supacode MCP server therefore always
+// separate `tools` option. Attaching the Supaterm MCP server therefore always
 // pre-approves its tools (headless modes like `dontAsk` deny anything that is
 // not pre-approved), but read-only sandboxes pre-approve only the annotated
 // read-only orchestrator tools so a read-only session cannot silently spawn
@@ -1123,18 +1123,18 @@ export function claudeMcpQueryOverrides(input: {
     return input.allowedTools === undefined ? {} : { allowedTools: input.allowedTools };
   }
   const mcpAllowedTools = input.readOnlySandbox
-    ? CLAUDE_READ_ONLY_SUPACODE_MCP_ALLOWED_TOOLS
-    : [CLAUDE_SUPACODE_MCP_TOOL_WILDCARD];
+    ? CLAUDE_READ_ONLY_SUPATERM_MCP_ALLOWED_TOOLS
+    : [CLAUDE_SUPATERM_MCP_TOOL_WILDCARD];
   return {
     allowedTools: Array.from(new Set([...(input.allowedTools ?? []), ...mcpAllowedTools])),
     mcpServers: {
-      supacode: {
+      supaterm: {
         type: "http",
         url: session.endpoint,
         headers: {
           Authorization: session.authorizationHeader,
         },
-        timeout: CLAUDE_SUPACODE_MCP_TOOL_TIMEOUT_MS,
+        timeout: CLAUDE_SUPATERM_MCP_TOOL_TIMEOUT_MS,
       },
     },
   };
@@ -1978,7 +1978,7 @@ function isClaudeBackgroundTasksChangedMessage(message: SDKMessage): boolean {
   );
 }
 
-// Claude opens every turn it runs with a root `init` frame. Outside a Supacode turn
+// Claude opens every turn it runs with a root `init` frame. Outside a Supaterm turn
 // that turn is a wake, and `init` comes 20-110 ms after the notification that
 // caused it but seconds before its first output (model thinking time).
 function isClaudeTurnStartMessage(message: SDKMessage): boolean {
@@ -7595,7 +7595,7 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
 
           // The converse of the drop above, and the case actually worth
           // watching: a positive-turn task-notification result settling a turn
-          // Supacode did not mark as a continuation. That is the hang fix working,
+          // Supaterm did not mark as a continuation. That is the hang fix working,
           // but it is also the shape a stale result would take if one ever
           // carried model turns, which nothing on the wire lets us rule out.
           if (

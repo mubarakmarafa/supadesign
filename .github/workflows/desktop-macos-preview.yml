@@ -68,7 +68,7 @@ jobs:
       - name: Setup Mise
         uses: ./.github/actions/setup-mise
       - name: Install bundle dependencies
-        run: vp install --filter=supacode... --filter=@supacode/web... --filter=@supacode/desktop... --filter=@supacode/scripts...
+        run: vp install --filter=supaterm... --filter=@supaterm/web... --filter=@supaterm/desktop... --filter=@supaterm/scripts...
 
       # The publish workflow derives the same version from this run's number,
       # so the version baked into the bundle matches the packaged app.

@@ -2,7 +2,7 @@ import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { create } from "zustand";
 
 import { stackedThreadToast, toastManager } from "../components/ui/toast";

@@ -3,7 +3,7 @@ import type {
   ResourceMonitorProcessSample,
   ResourceMonitorSnapshotEvent,
   ResourceTelemetryHealth,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";

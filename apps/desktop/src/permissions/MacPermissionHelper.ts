@@ -60,8 +60,8 @@ button:focus-visible { outline: 2px solid #007aff; outline-offset: -2px; }
 img { width: 32px; height: 32px; pointer-events: none; }
 </style></head><body><main id="panel">
 <button id="close" aria-label="Close permission helper">×</button>
-<header>↑ Drag Supacode into the list above</header>
-<button id="app" draggable="true" aria-label="Drag Supacode to System Settings, or click to reveal in Finder"><img src="${escapeHtml(icon)}" alt="" draggable="false">Supacode</button>
+<header>↑ Drag Supaterm into the list above</header>
+<button id="app" draggable="true" aria-label="Drag Supaterm to System Settings, or click to reveal in Finder"><img src="${escapeHtml(icon)}" alt="" draggable="false">Supaterm</button>
 </main></body></html>`;
 }
 
@@ -95,7 +95,7 @@ export class MacPermissionHelper {
     const appIcon = iconPaths
       .map((iconPath) => Electron.nativeImage.createFromPath(iconPath))
       .find((image) => !image.isEmpty());
-    if (!appIcon) throw new Error("The packaged Supacode icon is missing.");
+    if (!appIcon) throw new Error("The packaged Supaterm icon is missing.");
     const icon = appIcon.resize({ width: 64, height: 64 });
     const window = new Electron.BrowserWindow({
       width: 560,

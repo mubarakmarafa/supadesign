@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import {
@@ -18,9 +18,9 @@ import {
   type ServerSettings as ContractServerSettings,
   type ServerSettingsPatch,
   type ThreadPullRequestLink,
-} from "@supacode/contracts";
-import { applyServerSettingsPatch } from "@supacode/shared/serverSettings";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
+} from "@supaterm/contracts";
+import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
 import * as Crypto from "effect/Crypto";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";

@@ -2,7 +2,7 @@ import type {
   EnvironmentId,
   ServerSettingsPatch,
   UsageModelPriceOverride,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export interface UsagePriceTarget {
   readonly environmentId: EnvironmentId;

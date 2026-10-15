@@ -1,4 +1,4 @@
-import type { DesktopDiscoveredSshHost } from "@supacode/contracts";
+import type { DesktopDiscoveredSshHost } from "@supaterm/contracts";
 
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";

@@ -8,14 +8,14 @@ import {
   type ServerProvider,
   type ThreadLinkedPullRequest,
   type ThreadPullRequestLink,
-} from "@supacode/contracts";
-import { resolveSelectableModel, type SelectableModelOption } from "@supacode/shared/model";
-import type { PromptLinkPullRequest, PromptLinkRepository } from "@supacode/shared/promptLinks";
+} from "@supaterm/contracts";
+import { resolveSelectableModel, type SelectableModelOption } from "@supaterm/shared/model";
+import type { PromptLinkPullRequest, PromptLinkRepository } from "@supaterm/shared/promptLinks";
 import {
   threadPullRequestKeyOf,
   threadPullRequestsOf,
   visibleThreadPullRequests,
-} from "@supacode/shared/threadPullRequests";
+} from "@supaterm/shared/threadPullRequests";
 
 /**
  * How web and mobile resolve a prompt link against what this client knows. Both read the same

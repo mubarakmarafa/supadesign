@@ -5,7 +5,7 @@ import type {
   OrchestrationV2Subagent,
   OrchestrationV2TurnItem,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 type NotificationOutcome = OrchestrationV2Notification["outcome"];
 

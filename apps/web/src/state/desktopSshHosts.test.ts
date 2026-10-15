@@ -1,4 +1,4 @@
-import type { DesktopDiscoveredSshHost } from "@supacode/contracts";
+import type { DesktopDiscoveredSshHost } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AtomRegistry } from "effect/reactivity";
 import * as AsyncResult from "effect/reactivity/AsyncResult";

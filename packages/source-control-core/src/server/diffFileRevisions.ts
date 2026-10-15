@@ -1,4 +1,4 @@
-import { unquoteGitPatchPath } from "@supacode/shared/gitPatchPath";
+import { unquoteGitPatchPath } from "@supaterm/shared/gitPatchPath";
 
 const ENTRY = "diff --git ";
 const QUOTE = '"';

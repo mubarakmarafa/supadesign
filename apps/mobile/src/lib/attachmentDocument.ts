@@ -1,7 +1,7 @@
-import { filePreviewDelimiter, parseDelimitedPreview } from "@supacode/shared/delimitedPreview";
-import type { EnvironmentId } from "@supacode/contracts";
-import { readFilePreviewResponse } from "@supacode/client-runtime/file-preview";
-import { filePreviewKind, FILE_TEXT_PREVIEW_MAX_BYTES } from "@supacode/shared/filePreview";
+import { filePreviewDelimiter, parseDelimitedPreview } from "@supaterm/shared/delimitedPreview";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { readFilePreviewResponse } from "@supaterm/client-runtime/file-preview";
+import { filePreviewKind, FILE_TEXT_PREVIEW_MAX_BYTES } from "@supaterm/shared/filePreview";
 import { fetch } from "expo/fetch";
 import { File } from "expo-file-system";
 import { useEffect, useMemo, useRef, useState } from "react";

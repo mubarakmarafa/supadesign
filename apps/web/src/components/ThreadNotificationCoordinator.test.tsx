@@ -1,4 +1,4 @@
-import type { ClientSettings } from "@supacode/contracts/settings";
+import type { ClientSettings } from "@supaterm/contracts/settings";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 import { act } from "react";

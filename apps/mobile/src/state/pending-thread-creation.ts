@@ -2,8 +2,8 @@ import {
   buildPendingThreadShell,
   type PendingThreadCreation as SharedPendingThreadCreation,
   type PendingThreadCreationOutcome as SharedPendingThreadCreationOutcome,
-} from "@supacode/client-runtime/pending-thread-creation";
-import { DEFAULT_PROVIDER_INTERACTION_MODE, DEFAULT_RUNTIME_MODE } from "@supacode/contracts";
+} from "@supaterm/client-runtime/pending-thread-creation";
+import { DEFAULT_PROVIDER_INTERACTION_MODE, DEFAULT_RUNTIME_MODE } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import { deriveThreadTitleFromPrompt } from "../lib/projectThreadStartTurn";
@@ -15,7 +15,7 @@ export {
   isPendingThreadCreationVisible,
   pendingThreadCreationMessage,
   resolvePendingThreadCreation,
-} from "@supacode/client-runtime/pending-thread-creation";
+} from "@supaterm/client-runtime/pending-thread-creation";
 
 export type PendingThreadCreationOutcome = SharedPendingThreadCreationOutcome<QueuedThreadMessage>;
 export type PendingThreadCreation = SharedPendingThreadCreation<QueuedThreadMessage>;

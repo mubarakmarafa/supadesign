@@ -1,5 +1,5 @@
-import { scopedThreadKey } from "@supacode/client-runtime/environment";
-import type { ScopedThreadRef, SnapShotSource } from "@supacode/contracts";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
+import type { ScopedThreadRef, SnapShotSource } from "@supaterm/contracts";
 
 import type { DraftId } from "../composerDraftStore";
 import { getDesktopSnapShotBridge } from "./desktopSnapShot";

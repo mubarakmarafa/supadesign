@@ -1,5 +1,5 @@
-import type { ScopedThreadRef } from "@supacode/contracts";
-import { parseThreadLinkPrompt, withoutPromptLinkParams } from "@supacode/shared/promptLinks";
+import type { ScopedThreadRef } from "@supaterm/contracts";
+import { parseThreadLinkPrompt, withoutPromptLinkParams } from "@supaterm/shared/promptLinks";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 

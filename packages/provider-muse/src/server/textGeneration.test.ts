@@ -5,9 +5,9 @@ import {
   MUSE_DEFAULT_MODEL,
   ProviderInstanceId,
   type ServerProviderModel,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { MuseSettings } from "../settings.ts";
-import { createModelSelection } from "@supacode/shared/model";
+import { createModelSelection } from "@supaterm/shared/model";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Schema from "effect/Schema";

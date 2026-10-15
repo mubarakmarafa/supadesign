@@ -1,18 +1,18 @@
 // Embedded so desktop bundles and standalone executables carry the same skills.
 export const ORCHESTRATION_SKILLS = [
   {
-    name: "supacode-commitee",
+    name: "supaterm-commitee",
     description:
       "Form a committee of two high-reasoning agents to step back, do root cause analysis, and produce a plan. Use when stuck, looping, tunnel-visioning, or facing a hard planning problem.",
     content: `---
-name: supacode-commitee
+name: supaterm-commitee
 description: Form a committee of two high-reasoning agents to step back, do root cause analysis, and produce a plan. Use when stuck, looping, tunnel-visioning, or facing a hard planning problem.
 license: Apache-2.0
 ---
 
 # Committee Skill
 
-<!-- Modified for Supacode orchestration. -->
+<!-- Modified for Supaterm orchestration. -->
 
 Two agents from contrasting providers, fresh context, planning a solution in parallel.
 
@@ -20,7 +20,7 @@ Two agents from contrasting providers, fresh context, planning a solution in par
 
 ## Prerequisites
 
-Read the [Supacode orchestration reference](references/orchestration.md). Call \`orchestrator_capabilities\` before choosing committee members. Do not create committee agents until you have read the configured providers, their models, and their constraints.
+Read the [Supaterm orchestration reference](references/orchestration.md). Call \`orchestrator_capabilities\` before choosing committee members. Do not create committee agents until you have read the configured providers, their models, and their constraints.
 
 Contrast is the point of a committee, so pick models from different provider families when possible. Materialize each provider and model into \`delegate_task\`.
 
@@ -41,12 +41,12 @@ If the user names providers or models, use those. If fewer than two suitable pro
   This is analysis only. Do NOT edit, create, or delete any files. Do NOT write code.
   \`\`\`
 
-- **Trust the finish notification.** Do not poll, send hurry-ups, or interrupt. Models can reason for 15–30 minutes. You can go idle and Supacode will notify you.
+- **Trust the finish notification.** Do not poll, send hurry-ups, or interrupt. Models can reason for 15–30 minutes. You can go idle and Supaterm will notify you.
 
 ## Workflow
 
 1. Write a problem-level prompt
-2. Create both agents in parallel via Supacode with \`delegate_task\`, \`[Committee] <task>\` titles, and the same prompt
+2. Create both agents in parallel via Supaterm with \`delegate_task\`, \`[Committee] <task>\` titles, and the same prompt
 3. Wait for both responses, then read them with \`task_status\`
 4. Resolve disagreements by passing their arguments between each other through fresh \`delegate_task\` calls, as described by the orchestration reference
 5. Keep going until they converge into a response
@@ -55,18 +55,18 @@ Share the consensus with the user. Summarize where the agents diverged and how t
 `,
   },
   {
-    name: "supacode-advisor",
+    name: "supaterm-advisor",
     description:
       'Spin up a single agent as an advisor \u2014 second opinion on the current task. Use when the user says "advisor", "second opinion", "what does X think", or wants an outside take without delegating the work itself.',
     content: `---
-name: supacode-advisor
+name: supaterm-advisor
 description: Spin up a single agent as an advisor — second opinion on the current task. Use when the user says "advisor", "second opinion", "what does X think", or wants an outside take without delegating the work itself.
 license: Apache-2.0
 ---
 
-# Supacode Advisor
+# Supaterm Advisor
 
-<!-- Modified for Supacode orchestration. -->
+<!-- Modified for Supaterm orchestration. -->
 
 Single agent. Reads the situation you're in. Gives a judgment. You decide what to do — the advisor doesn't drive the work.
 
@@ -74,7 +74,7 @@ Single agent. Reads the situation you're in. Gives a judgment. You decide what t
 
 ## Prerequisites
 
-Read the [Supacode orchestration reference](references/orchestration.md). Call \`orchestrator_capabilities\` before choosing the advisor. Do not create the advisor until you have read the configured providers, their models, and their constraints.
+Read the [Supaterm orchestration reference](references/orchestration.md). Call \`orchestrator_capabilities\` before choosing the advisor. Do not create the advisor until you have read the configured providers, their models, and their constraints.
 
 ## Picking the advisor
 
@@ -103,9 +103,9 @@ This is analysis only. Do NOT edit, create, or delete any files. Do NOT write co
 
 If \`$ARGUMENTS\` contains another skill reference — \`/unslop\`, \`/unslop-risk\`, \`$unslop\`, etc. — the user is asking the advisor to run that skill against the current task. Examples:
 
-- \`/supacode-advisor /unslop\` → advisor runs \`/unslop\` on the current diff.
-- \`/supacode-advisor /unslop-risk\` → advisor does an unslop-risk review.
-- \`/supacode-advisor $diagnose this build failure\` → advisor invokes \`/diagnose\`.
+- \`/supaterm-advisor /unslop\` → advisor runs \`/unslop\` on the current diff.
+- \`/supaterm-advisor /unslop-risk\` → advisor does an unslop-risk review.
+- \`/supaterm-advisor $diagnose this build failure\` → advisor invokes \`/diagnose\`.
 
 Parse the forwarded skill name out of \`$ARGUMENTS\` (\`/<name>\` or \`$<name>\`). In the briefing, tell the advisor explicitly:
 
@@ -117,7 +117,7 @@ Pass through any remaining arguments after the skill name as the skill's own inp
 
 ## Launch and synthesize
 
-Create the advisor agent via Supacode with \`delegate_task\`, a \`[Advisor] <topic>\` title, and the briefing as \`task\`. Wait for it to finish. Read its response. Synthesize for the user — the advisor's verdict + your recommendation.
+Create the advisor agent via Supaterm with \`delegate_task\`, a \`[Advisor] <topic>\` title, and the briefing as \`task\`. Wait for it to finish. Read its response. Synthesize for the user — the advisor's verdict + your recommendation.
 
 ## Persistent advisor
 
@@ -126,9 +126,9 @@ If the user wants ongoing input ("keep this advisor for the next few decisions")
   },
 ] as const;
 
-export const ORCHESTRATION_SKILL_REFERENCE = `# Supacode orchestration
+export const ORCHESTRATION_SKILL_REFERENCE = `# Supaterm orchestration
 
-Use the user's invocation as \`$ARGUMENTS\` when the harness does not substitute it. Supacode supplies provider instances and models instead of agent profiles.
+Use the user's invocation as \`$ARGUMENTS\` when the harness does not substitute it. Supaterm supplies provider instances and models instead of agent profiles.
 
 ## Select a target
 
@@ -140,23 +140,23 @@ Use the returned \`providerInstanceId\` and a model ID from that provider's \`mo
 
 Call \`delegate_task\` with \`task\`, \`title\`, \`target: { providerInstanceId, model, options? }\`, \`mode: "async"\`, and a \`clientRequestId\`. Retain the returned \`taskId\`. Use a distinct request ID for each member and round, stable across retries of that request.
 
-These are Supacode-owned child tasks. \`create_threads\` and \`supacode_thread_launch\` create top-level conversations; the returned \`childThreadId\` is backing storage for the child.
+These are Supaterm-owned child tasks. \`create_threads\` and \`supaterm_thread_launch\` create top-level conversations; the returned \`childThreadId\` is backing storage for the child.
 
 An async completion notification wakes the parent. End the turn when waiting and resume on notification. Call \`task_status\` with the retained task ID to read \`summary\`. Reading a terminal result acknowledges delivery. \`workState: "waiting_for_children"\` means nested work is still pending; wait for \`workState: "result_available"\` and a terminal status.
 
-Each follow-up or review round needs a fresh \`delegate_task\`. Include the original brief, prior findings, responses, and unresolved objections. Do not continue delegated review with \`supacode_thread_send\` on \`childThreadId\`.
+Each follow-up or review round needs a fresh \`delegate_task\`. Include the original brief, prior findings, responses, and unresolved objections. Do not continue delegated review with \`supaterm_thread_send\` on \`childThreadId\`.
 
 ## Tool availability
 
-Tool names can have a harness prefix such as \`mcp__supacode__delegate_task\`. If the initial tool catalog omits Supacode, make one bounded discovery or direct invocation attempt. In Codex code mode, call \`tools.mcp__supacode__orchestrator_capabilities({})\`.
+Tool names can have a harness prefix such as \`mcp__supaterm__delegate_task\`. If the initial tool catalog omits Supaterm, make one bounded discovery or direct invocation attempt. In Codex code mode, call \`tools.mcp__supaterm__orchestrator_capabilities({})\`.
 
-When MCP tools remain unavailable and \`SUPACODE_ACP_MCP_NODE\` is present, use the supported terminal transport:
+When MCP tools remain unavailable and \`SUPATERM_ACP_MCP_NODE\` is present, use the supported terminal transport:
 
 \`\`\`sh
-ELECTRON_RUN_AS_NODE=1 "$SUPACODE_ACP_MCP_NODE" \${SUPACODE_ACP_MCP_ENTRYPOINT:+"$SUPACODE_ACP_MCP_ENTRYPOINT"} acp-mcp-call orchestrator_capabilities '{}'
+ELECTRON_RUN_AS_NODE=1 "$SUPATERM_ACP_MCP_NODE" \${SUPATERM_ACP_MCP_ENTRYPOINT:+"$SUPATERM_ACP_MCP_ENTRYPOINT"} acp-mcp-call orchestrator_capabilities '{}'
 \`\`\`
 
-Call the other tools through the same launcher with their tool name and JSON arguments. If neither transport works, report that Supacode orchestration is unavailable.
+Call the other tools through the same launcher with their tool name and JSON arguments. If neither transport works, report that Supaterm orchestration is unavailable.
 
-The contract is defined by Supacode's [tool definitions](https://github.com/supabitapp/supacode-next/blob/6331199f7/apps/server/src/mcp/toolkits/orchestrator/tools.ts), [schemas](https://github.com/supabitapp/supacode-next/blob/6331199f7/packages/contracts/src/orchestratorMcp.ts), and [provider instructions](https://github.com/supabitapp/supacode-next/blob/6331199f7/apps/server/src/provider/SupacodeOrchestrationInstructions.ts). Use the live tool schemas when they change.
+The contract is defined by Supaterm's [tool definitions](https://github.com/supabitapp/supacode-next/blob/6331199f7/apps/server/src/mcp/toolkits/orchestrator/tools.ts), [schemas](https://github.com/supabitapp/supacode-next/blob/6331199f7/packages/contracts/src/orchestratorMcp.ts), and [provider instructions](https://github.com/supabitapp/supacode-next/blob/6331199f7/apps/server/src/provider/SupacodeOrchestrationInstructions.ts). Use the live tool schemas when they change.
 `;

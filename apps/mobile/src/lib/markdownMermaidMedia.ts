@@ -16,7 +16,7 @@ export function markdownMermaidMedia(markdown: string) {
       )?.[1];
       if (!opening || !closing || opening[0] !== closing[0] || closing.length < opening.length)
         return;
-      const href = `supacode-mermaid://block/${sources.size}`;
+      const href = `supaterm-mermaid://block/${sources.size}`;
       sources.set(href, node.value);
       edits.push({ start, end, href });
     } else if ("children" in node) node.children.forEach(visit);

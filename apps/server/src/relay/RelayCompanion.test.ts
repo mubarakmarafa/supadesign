@@ -3,7 +3,7 @@ import * as NodeCrypto from "node:crypto";
 import * as NodeNet from "node:net";
 import { expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
-import { relayHttpBaseUrl, relayPublicKey } from "@supacode/shared/relay/protocol";
+import { relayHttpBaseUrl, relayPublicKey } from "@supaterm/shared/relay/protocol";
 import { RelayCompanion, layer } from "./RelayCompanion.ts";
 const address = relayHttpBaseUrl(relayPublicKey(NodeCrypto.randomBytes(32)));
 const reachable = (origin: string) =>

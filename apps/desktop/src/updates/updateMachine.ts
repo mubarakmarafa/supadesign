@@ -3,7 +3,7 @@ import type {
   DesktopUpdateChannel,
   DesktopUpdateReleaseNote,
   DesktopUpdateState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 function nextStatusAfterDownloadFailure(
   currentState: DesktopUpdateState,

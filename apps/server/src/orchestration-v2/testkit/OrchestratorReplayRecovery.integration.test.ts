@@ -6,7 +6,7 @@ import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as CodexReplay from "effect-codex-app-server/replay";
-import { ProviderDriverKind } from "@supacode/contracts";
+import { ProviderDriverKind } from "@supaterm/contracts";
 
 import {
   ClaudeOrchestratorReplayHarness,
@@ -20,7 +20,7 @@ import {
   makeCursorAgentSdkReplayRunner,
 } from "../Adapters/CursorAdapterV2.testkit.ts";
 import * as CursorAdapterV2Testkit from "../Adapters/CursorAdapterV2.testkit.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as SqlitePersistence from "../../persistence/Sqlite.ts";
 import { provideDeterministicTestRuntime } from "./DeterministicRuntime.ts";
 import {
@@ -43,12 +43,12 @@ import {
   projectionFor,
 } from "./fixtures/shared.ts";
 import { runOrchestratorV2ProviderReplayScenario } from "./ProviderReplayHarness.ts";
-import { checkpointWorkspace } from "@supacode/provider-testing/replayWorkspace";
+import { checkpointWorkspace } from "@supaterm/provider-testing/replayWorkspace";
 import { materializeReplayTranscriptRuntimeInstructions } from "./ReplayRuntimeInstructions.ts";
 import {
   materializeReplayTranscriptWorkspace,
   readProviderReplayTranscript,
-} from "@supacode/provider-testing/replayTranscript";
+} from "@supaterm/provider-testing/replayTranscript";
 
 const FIRST_FINAL = "provider thread resume fixture first turn complete";
 const SECOND_FINAL = "provider thread resume fixture second turn complete";
@@ -114,7 +114,7 @@ const runCursorRecovery = Effect.fn("runCursorRecovery")(function* (input: {
   const path = yield* Path.Path;
   const tempDir = yield* Effect.acquireRelease(
     fs.makeTempDirectory({
-      prefix: "supacode-orchestration-v2-cursor-recovery-",
+      prefix: "supaterm-orchestration-v2-cursor-recovery-",
     }),
     (directory) => fs.remove(directory, { recursive: true, force: true }).pipe(Effect.orDie),
   );
@@ -210,7 +210,7 @@ describe("orchestrator replay recovery", () => {
           const path = yield* Path.Path;
           const tempDir = yield* Effect.acquireRelease(
             fs.makeTempDirectory({
-              prefix: "supacode-orchestration-v2-recovery-",
+              prefix: "supaterm-orchestration-v2-recovery-",
             }),
             (directory) =>
               fs.remove(directory, { recursive: true, force: true }).pipe(Effect.orDie),
@@ -320,7 +320,7 @@ describe("orchestrator replay recovery", () => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const tempDir = yield* Effect.acquireRelease(
-          fs.makeTempDirectory({ prefix: "supacode-orchestration-v2-claude-recovery-" }),
+          fs.makeTempDirectory({ prefix: "supaterm-orchestration-v2-claude-recovery-" }),
           (directory) => fs.remove(directory, { recursive: true, force: true }).pipe(Effect.orDie),
         );
         const materialized = yield* materializeFixtureInput({

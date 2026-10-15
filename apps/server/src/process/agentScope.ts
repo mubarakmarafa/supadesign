@@ -7,9 +7,9 @@ import {
   agentScopeCommand,
   type AgentScopeShape,
   type AgentSystemdScope,
-} from "@supacode/shared/AgentScope";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveCommandPath } from "@supacode/shared/shell";
+} from "@supaterm/shared/AgentScope";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveCommandPath } from "@supaterm/shared/shell";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -22,7 +22,7 @@ import * as ProcessRunner from "../processRunner.ts";
  * server's own unit, so the server's CPUWeight and IOWeight compete with the
  * agents directly.
  */
-const AGENT_SLICE = "app-supacode-agents.slice";
+const AGENT_SLICE = "app-supaterm-agents.slice";
 
 const GiB = 1024 ** 3;
 
@@ -306,7 +306,7 @@ export const make = Effect.gen(function* () {
       if (resolved === null) return { command, args };
       const scope = yield* systemd;
       if (scope === undefined) return agentScopeCommand({ command: resolved, args });
-      const unit = `supacode-${name}-${NodeCrypto.randomUUID().slice(0, 8)}.scope`;
+      const unit = `supaterm-${name}-${NodeCrypto.randomUUID().slice(0, 8)}.scope`;
       if (threadId !== undefined || sessionId !== undefined)
         yield* track(scope.systemctl, scopeKey(threadId ?? "", sessionId), unit);
       const systemdScope: AgentSystemdScope = {

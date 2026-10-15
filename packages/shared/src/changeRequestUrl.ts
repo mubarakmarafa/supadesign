@@ -1,4 +1,4 @@
-import type { RepositoryIdentity, ThreadLinkedPullRequest } from "@supacode/contracts";
+import type { RepositoryIdentity, ThreadLinkedPullRequest } from "@supaterm/contracts";
 import { canonicalRepositoryKey } from "./sourceControl.ts";
 
 /**

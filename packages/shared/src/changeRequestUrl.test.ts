@@ -48,8 +48,8 @@ describe("parseChangeRequestUrl", () => {
 
   it("reads a GitLab merge request on any host, nested groups and all", () => {
     expect(
-      parseChangeRequestUrl("https://gitlab.com/supacode/platform/supacode/-/merge_requests/42"),
-    ).toEqual({ host: "gitlab.com", repository: "supacode/platform/supacode", number: 42 });
+      parseChangeRequestUrl("https://gitlab.com/supaterm/platform/supaterm/-/merge_requests/42"),
+    ).toEqual({ host: "gitlab.com", repository: "supaterm/platform/supaterm", number: 42 });
     expect(parseChangeRequestUrl("https://code.acme.test/team/project/-/merge_requests/9")).toEqual(
       { host: "code.acme.test", repository: "team/project", number: 9 },
     );
@@ -62,11 +62,11 @@ describe("parseChangeRequestUrl", () => {
       number: 5,
     });
     expect(
-      parseChangeRequestUrl("https://dev.azure.com/acme/platform/_git/supacode/pullrequest/17"),
-    ).toEqual({ host: "dev.azure.com", repository: "acme/platform/_git/supacode", number: 17 });
+      parseChangeRequestUrl("https://dev.azure.com/acme/platform/_git/supaterm/pullrequest/17"),
+    ).toEqual({ host: "dev.azure.com", repository: "acme/platform/_git/supaterm", number: 17 });
     expect(
-      parseChangeRequestUrl("https://acme.visualstudio.com/platform/_git/supacode/pullrequest/17"),
-    ).toEqual({ host: "acme.visualstudio.com", repository: "platform/_git/supacode", number: 17 });
+      parseChangeRequestUrl("https://acme.visualstudio.com/platform/_git/supaterm/pullrequest/17"),
+    ).toEqual({ host: "acme.visualstudio.com", repository: "platform/_git/supaterm", number: 17 });
   });
 
   it("survives trailing segments, a trailing slash and a query string", () => {

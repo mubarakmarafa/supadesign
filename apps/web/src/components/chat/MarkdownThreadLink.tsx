@@ -1,6 +1,6 @@
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
-import { formatThreadLink, percentDecodedThreadLinkId } from "@supacode/shared/threadLinks";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
+import { formatThreadLink, percentDecodedThreadLinkId } from "@supaterm/shared/threadLinks";
 import { Link } from "@tanstack/react-router";
 import { MessageSquareTextIcon } from "lucide-react";
 

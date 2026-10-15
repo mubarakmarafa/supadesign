@@ -17,7 +17,7 @@ export class Scheduler extends Context.Service<
       runDueWork: Effect.Effect<void, E, R>,
     ) => Effect.Effect<void, never, R | Scope.Scope>;
   }
->()("supacode/scheduling/Scheduler") {}
+>()("supaterm/scheduling/Scheduler") {}
 
 const make = Effect.gen(function* () {
   const sources = yield* Ref.make(new Map<symbol, Effect.Effect<void>>());

@@ -1,4 +1,4 @@
-import type { BrowserImportFailureReason, BrowserImportSource } from "@supacode/contracts";
+import type { BrowserImportFailureReason, BrowserImportSource } from "@supaterm/contracts";
 
 export interface WizardTargetProfile {
   readonly id: string;

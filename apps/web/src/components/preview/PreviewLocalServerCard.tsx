@@ -1,4 +1,4 @@
-import type { ScopedThreadRef } from "@supacode/contracts";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 import { DiscoveryListRow } from "../ui/discovery-list";
 
 import { PreviewFaviconIcon } from "./PreviewFaviconIcon";

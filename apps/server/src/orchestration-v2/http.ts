@@ -2,7 +2,7 @@ import {
   AuthOrchestrationReadScope,
   EnvironmentHttpApi,
   type OrchestrationProjectShell,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";

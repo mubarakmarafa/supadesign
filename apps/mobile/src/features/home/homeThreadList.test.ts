@@ -1,8 +1,8 @@
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
-import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/shell";
+import { EnvironmentId, ProjectId, ProviderInstanceId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -137,13 +137,13 @@ describe("home project scopes", () => {
       makeProject({
         environmentId: localEnvironmentId,
         id: ProjectId.make("project-local"),
-        title: "supacode",
+        title: "supaterm",
         repositoryIdentity,
       }),
       makeProject({
         environmentId: remoteEnvironmentId,
         id: ProjectId.make("project-remote"),
-        title: "supacode",
+        title: "supaterm",
         repositoryIdentity,
       }),
     ];
@@ -155,7 +155,7 @@ describe("home project scopes", () => {
     });
 
     expect(scopes).toHaveLength(1);
-    expect(scopes[0]?.title).toBe("supacode");
+    expect(scopes[0]?.title).toBe("supaterm");
     expect(scopes[0]?.projects).toEqual(projects);
     expect(scopes[0]?.projectRefs).toEqual(
       projects.map((project) => ({
@@ -180,22 +180,22 @@ describe("home project scopes", () => {
       makeProject({
         environmentId: localEnvironmentId,
         id: ProjectId.make("project-local"),
-        title: "supacode",
+        title: "supaterm",
         repositoryIdentity,
       }),
       makeProject({
         environmentId: remoteEnvironmentId,
         id: ProjectId.make("project-remote-with-identity"),
-        title: "supacode",
-        workspaceRoot: "/remote/supacode",
+        title: "supaterm",
+        workspaceRoot: "/remote/supaterm",
         repositoryIdentity,
         updatedAt: "2026-06-01T00:00:00.000Z",
       }),
       makeProject({
         environmentId: remoteEnvironmentId,
         id: ProjectId.make("project-remote-fresh"),
-        title: "supacode",
-        workspaceRoot: "/remote/supacode/",
+        title: "supaterm",
+        workspaceRoot: "/remote/supaterm/",
         updatedAt: "2026-06-02T00:00:00.000Z",
       }),
     ];
@@ -301,14 +301,14 @@ describe("home project scopes", () => {
     const olderMember = makeProject({
       environmentId: localEnvironmentId,
       id: ProjectId.make("project-older-member"),
-      title: "supacode",
+      title: "supaterm",
       updatedAt: "2026-06-01T00:00:00.000Z",
       repositoryIdentity,
     });
     const newerMember = makeProject({
       environmentId: remoteEnvironmentId,
       id: ProjectId.make("project-newer-member"),
-      title: "supacode",
+      title: "supaterm",
       updatedAt: "2026-06-03T00:00:00.000Z",
       repositoryIdentity,
     });

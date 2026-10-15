@@ -1,6 +1,6 @@
 import { RelayGateway, releaseRelayOrigin } from "../relay/gateway.ts";
-import { canonicalRelayAddress } from "@supacode/shared/relay/protocol";
-import { EnvironmentId } from "@supacode/contracts";
+import { canonicalRelayAddress } from "@supaterm/shared/relay/protocol";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Equal from "effect/Equal";
@@ -184,7 +184,7 @@ export class EnvironmentRegistry extends Context.Service<
       stream: Stream.Stream<A, E, R>,
     ) => Stream.Stream<A, E, Exclude<R, EnvironmentSupervisor.EnvironmentSupervisor>>;
   }
->()("@supacode/client-runtime/connection/registry/EnvironmentRegistry") {}
+>()("@supaterm/client-runtime/connection/registry/EnvironmentRegistry") {}
 
 interface EnvironmentServiceScope {
   readonly entry: Ref.Ref<ConnectionCatalogEntry>;

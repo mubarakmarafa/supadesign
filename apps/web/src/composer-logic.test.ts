@@ -1,17 +1,17 @@
-import { resolveComposerDispatchMode } from "@supacode/client-runtime/state/composer-dispatch";
-import { filterComposerPullRequestMatches } from "@supacode/shared/composerPullRequestMatches";
-import { detectComposerTrigger, replaceTextRange } from "@supacode/shared/composerTrigger";
-import { EnvironmentId, MessageId, ThreadId, type AssistantCitation } from "@supacode/contracts";
+import { resolveComposerDispatchMode } from "@supaterm/client-runtime/state/composer-dispatch";
+import { filterComposerPullRequestMatches } from "@supaterm/shared/composerPullRequestMatches";
+import { detectComposerTrigger, replaceTextRange } from "@supaterm/shared/composerTrigger";
+import { EnvironmentId, MessageId, ThreadId, type AssistantCitation } from "@supaterm/contracts";
 import {
   collectAssistantCitations,
   expandAssistantCitationsForProvider,
   serializeAssistantCitation,
-} from "@supacode/shared/assistantCitations";
+} from "@supaterm/shared/assistantCitations";
 import {
   DEFAULT_RESOLVED_KEYBINDINGS,
   compileResolvedKeybindingsConfig,
   mergeWithDefaultKeybindings,
-} from "@supacode/shared/keybindings";
+} from "@supaterm/shared/keybindings";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

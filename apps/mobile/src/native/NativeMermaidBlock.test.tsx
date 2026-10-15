@@ -13,7 +13,7 @@ vi.mock("react-native", () => ({
   ScrollView: "ScrollView",
   Pressable: "Pressable",
 }));
-vi.mock("@supacode/mobile-source-text", () => ({ SourceText: "SourceText" }));
+vi.mock("@supaterm/mobile-source-text", () => ({ SourceText: "SourceText" }));
 vi.mock("expo-clipboard", () => ({ setStringAsync: copy }));
 vi.mock("expo-haptics", () => ({ impactAsync: vi.fn(), ImpactFeedbackStyle: { Light: "light" } }));
 vi.mock("../components/AppSymbol", () => ({ SymbolView: "SymbolView" }));

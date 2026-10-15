@@ -46,8 +46,8 @@ interface ManagedChild {
 // built-ins only.
 const runtimePaths = (baseDir: string, version: string) => {
   const versionDir = NodePath.join(baseDir, "runtime", "versions", version);
-  // oxlint-disable-next-line supacode/no-global-process-runtime -- Standalone launcher has no Effect runtime.
-  const executableName = process.platform === "win32" ? "supacode.exe" : "supacode";
+  // oxlint-disable-next-line supaterm/no-global-process-runtime -- Standalone launcher has no Effect runtime.
+  const executableName = process.platform === "win32" ? "supaterm.exe" : "supaterm";
   return {
     versionDir,
     entryPath: NodePath.join(versionDir, executableName),
@@ -350,7 +350,7 @@ export class Launcher {
   }
 
   async #recover(): Promise<void> {
-    // A restart deferred by `supacode update` is done no matter who restarted the
+    // A restart deferred by `supaterm update` is done no matter who restarted the
     // service, but only once this launcher is the version the marker waits
     // for: a launcher that came up between the CLI writing the marker and
     // writing the new state still runs the old version, and the marker has
@@ -397,7 +397,7 @@ export class Launcher {
   async #startChild(version: string, role: ChildRole, update?: ServiceUpdateRecord): Promise<void> {
     if (this.#stopping) return;
     if (!(await runtimeExists(this.#baseDir, version))) {
-      throw new Error(`Selected supacode@${version} runtime is missing or incomplete.`);
+      throw new Error(`Selected supaterm@${version} runtime is missing or incomplete.`);
     }
     if (this.#stopping) return;
     const paths = runtimePaths(this.#baseDir, version);
@@ -608,9 +608,9 @@ export class Launcher {
 }
 
 export async function main(): Promise<void> {
-  const baseDir = process.env.SUPACODE_HOME?.trim();
+  const baseDir = process.env.SUPATERM_HOME?.trim();
   if (baseDir === undefined || baseDir === "") {
-    throw new Error("SUPACODE_HOME is required by the Supacode service launcher.");
+    throw new Error("SUPATERM_HOME is required by the Supaterm service launcher.");
   }
   const statePath = NodePath.join(baseDir, "runtime", SERVICE_STATE_FILE);
   const state = await readServiceState(statePath);

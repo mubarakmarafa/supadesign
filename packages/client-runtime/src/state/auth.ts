@@ -2,8 +2,8 @@ import type {
   AuthAccessSnapshot,
   AuthAccessStreamEvent,
   AuthAccessStreamSnapshotEvent,
-} from "@supacode/contracts";
-import { WS_METHODS } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { WS_METHODS } from "@supaterm/contracts";
 import * as Stream from "effect/Stream";
 import { Atom } from "effect/reactivity";
 

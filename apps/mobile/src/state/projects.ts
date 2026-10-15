@@ -1,5 +1,5 @@
-import { createEnvironmentProjectAtoms } from "@supacode/client-runtime/state/projects";
-import { createProjectEnvironmentAtoms } from "@supacode/client-runtime/state/projects";
+import { createEnvironmentProjectAtoms } from "@supaterm/client-runtime/state/projects";
+import { createProjectEnvironmentAtoms } from "@supaterm/client-runtime/state/projects";
 
 import { environmentCatalog } from "../connection/catalog";
 import { connectionAtomRuntime } from "../connection/runtime";

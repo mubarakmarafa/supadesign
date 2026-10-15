@@ -15,7 +15,7 @@ import {
   ProviderInstanceId,
   RuntimeMode,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   PersistenceDecodeError,
@@ -122,7 +122,7 @@ export class ProviderSessionRuntimeRepository extends Context.Service<
       input: DeleteProviderSessionRuntimeInput,
     ) => Effect.Effect<void, ProviderSessionRuntimeRepositoryError>;
   }
->()("supacode/persistence/ProviderSessionRuntime/ProviderSessionRuntimeRepository") {}
+>()("supaterm/persistence/ProviderSessionRuntime/ProviderSessionRuntimeRepository") {}
 
 const ProviderSessionRuntimeDbRowSchema = ProviderSessionRuntime.mapFields(
   Struct.assign({

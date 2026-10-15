@@ -1,11 +1,11 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { vi } from "vite-plus/test";
 import {
   EnvironmentId,
   AuthSourceControlWriteScope,
   WS_METHODS,
   type SourceControlPublishRepositoryResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Stream from "effect/Stream";

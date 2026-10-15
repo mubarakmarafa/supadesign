@@ -5,8 +5,8 @@ import type {
   PullRequestChecksState,
   PullRequestRef,
   ScopedThreadRef,
-} from "@supacode/contracts";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+} from "@supaterm/contracts";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import { ChevronDownIcon } from "lucide-react";
 
 import { useOpenLink } from "~/browser/useOpenLink";

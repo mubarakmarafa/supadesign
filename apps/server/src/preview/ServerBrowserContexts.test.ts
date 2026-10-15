@@ -1,6 +1,6 @@
 import * as NodeEvents from "node:events";
 
-import { INCOGNITO_BROWSER_PROFILE_ID } from "@supacode/contracts";
+import { INCOGNITO_BROWSER_PROFILE_ID } from "@supaterm/contracts";
 import { chromium, type Browser, type BrowserContext, type BrowserType } from "playwright-core";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -187,7 +187,7 @@ describe("ServerBrowserContexts", () => {
     launches.launch.mockResolvedValue(browser as unknown as Browser);
     const pool = new ServerBrowserContexts({
       ...options(),
-      env: { SUPACODE_SERVER_BROWSER_SANDBOX: "0" },
+      env: { SUPATERM_SERVER_BROWSER_SANDBOX: "0" },
     });
     await pool.contextFor(INCOGNITO_BROWSER_PROFILE_ID);
     expect(launches.launch).toHaveBeenCalledWith(

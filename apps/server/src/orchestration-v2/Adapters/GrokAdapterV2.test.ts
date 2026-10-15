@@ -5,12 +5,12 @@ import {
   ProviderSessionId,
   type RuntimeMode,
   ThreadId,
-} from "@supacode/contracts";
-import { GrokSettings } from "@supacode/provider-grok/settings";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveSelfInvocation } from "@supacode/shared/nodeRuntime";
+} from "@supaterm/contracts";
+import { GrokSettings } from "@supaterm/provider-grok/settings";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveSelfInvocation } from "@supaterm/shared/nodeRuntime";
 import * as EffectAcpErrors from "effect-acp/errors";
-import { xAiRateLimitedErrorCode } from "@supacode/provider-grok/testing";
+import { xAiRateLimitedErrorCode } from "@supaterm/provider-grok/testing";
 import { assert, describe, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -20,27 +20,27 @@ import * as Schema from "effect/Schema";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import * as ProjectStore from "../ProjectStore.ts";
-import { buildInitialGrokProviderSnapshot } from "@supacode/provider-grok/testing";
-import type { ProviderInstance } from "@supacode/provider-core/server/driver";
+import { buildInitialGrokProviderSnapshot } from "@supaterm/provider-grok/testing";
+import type { ProviderInstance } from "@supaterm/provider-core/server/driver";
 import * as ProviderInstanceRegistry from "../../provider/ProviderInstanceRegistry.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as RuntimePolicy from "../RuntimePolicy.ts";
-import { acpPermissionDisposition } from "@supacode/provider-acp/server/clientPolicy";
+import { acpPermissionDisposition } from "@supaterm/provider-acp/server/clientPolicy";
 import {
   AcpProviderCapabilitiesV2,
   acpCompletedTurnShouldTerminalizeTool,
   acpSubagentStatusBlocksTurnSettlement,
   acpSupportsImagePrompts,
-} from "@supacode/provider-acp/server/adapter";
+} from "@supaterm/provider-acp/server/adapter";
 import {
   makeGrokAcpAdapterFlavor,
   makeGrokAdapterV2,
   GrokProviderCapabilitiesV2,
-} from "@supacode/provider-grok/testing";
+} from "@supaterm/provider-grok/testing";
 
 const LAUNCH_TEST_GROK_SETTINGS = Schema.decodeSync(GrokSettings)({
   binaryPath: "grok-launch-test",
@@ -342,7 +342,7 @@ describe("Grok permission prompts", () => {
   ).permissionDisposition;
 
   // grok_auto_blocked_command replays Auto end to end. When an explicit policy
-  // launches Grok asking instead, Supacode's policy still answers its prompts.
+  // launches Grok asking instead, Supaterm's policy still answers its prompts.
   it("leaves Auto prompts to the user unless an explicit policy launched Grok asking", () => {
     assert.equal(
       disposition?.(runtimePolicy({ runtimeMode: "auto" }), permissionRequest("read")),

@@ -4,7 +4,7 @@ import {
   normalizeDevinSessionUpdate,
   normalizeDevinToolCall,
   extractDevinSubagentUpdate,
-} from "@supacode/provider-acp-registry/testing";
+} from "@supaterm/provider-acp-registry/testing";
 // @effect-diagnostics nodeBuiltinImport:off
 import * as NodeChildProcess from "node:child_process";
 import * as NodeFS from "node:fs";
@@ -27,10 +27,10 @@ import {
   RunId,
   ThreadId,
   type OrchestrationV2ProviderThread,
-} from "@supacode/contracts";
-import { GrokSettings } from "@supacode/provider-grok/settings";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveSelfInvocation } from "@supacode/shared/nodeRuntime";
+} from "@supaterm/contracts";
+import { GrokSettings } from "@supaterm/provider-grok/settings";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveSelfInvocation } from "@supaterm/shared/nodeRuntime";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
 import type * as Duration from "effect/Duration";
@@ -55,20 +55,20 @@ import * as EffectAcpErrors from "effect-acp/errors";
 import type * as EffectAcpProtocol from "effect-acp/protocol";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import { ACP_SESSION_MODE_OPTION_ID } from "@supacode/provider-acp/server/sessionConfig";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import { ACP_SESSION_MODE_OPTION_ID } from "@supaterm/provider-acp/server/sessionConfig";
 import {
   extractXAiAcpSubagentEndNotice,
   extractXAiAcpSubagentUpdate,
   makeXAiPromptCompletionRuntime,
   normalizeXAiAcpToolCallState,
   registerXAiBackgroundTaskTracking,
-} from "@supacode/provider-grok/testing";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
-import type * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+} from "@supaterm/provider-grok/testing";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
+import type * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import {
   AcpProviderCapabilitiesV2,
   acpProviderItemNativeId,
@@ -87,13 +87,13 @@ import {
   type AcpAdapterV2Flavor,
   type AcpAdapterV2RuntimeInput,
   type AcpAdapterV2SubagentUpdate,
-} from "@supacode/provider-acp/server/adapter";
+} from "@supaterm/provider-acp/server/adapter";
 
-import { makeGrokAdapterV2 } from "@supacode/provider-grok/testing";
+import { makeGrokAdapterV2 } from "@supaterm/provider-grok/testing";
 import {
   acpRegistryPromptFailure,
   registerMistralVibeAcpExtensions,
-} from "@supacode/provider-acp-registry/testing";
+} from "@supaterm/provider-acp-registry/testing";
 
 const DEFAULT_GROK_SETTINGS = Schema.decodeSync(GrokSettings)({});
 
@@ -443,7 +443,7 @@ function makeMockRuntime(input: {
             args: [input.mockAgentPath],
             cwd: runtimeInput.cwd,
             env: {
-              SUPACODE_ACP_SESSION_LIFECYCLE: "1",
+              SUPATERM_ACP_SESSION_LIFECYCLE: "1",
               ...(typeof input.environment === "function"
                 ? input.environment(runtimeOrdinal)
                 : input.environment),
@@ -624,7 +624,7 @@ describe("AcpAdapterV2", () => {
               mockAgentPath: yield* path.fromFileUrl(
                 new URL("../../../scripts/acp-mock-agent.ts", import.meta.url),
               ),
-              environment: { SUPACODE_ACP_VIBE_RETRY_OUTCOME: outcome },
+              environment: { SUPATERM_ACP_VIBE_RETRY_OUTCOME: outcome },
             }),
           },
         });
@@ -755,12 +755,12 @@ describe("AcpAdapterV2", () => {
 
       const mcpServer = runtimeInput?.mcpServers[0];
       if (mcpServer === undefined || !("command" in mcpServer)) {
-        return yield* Effect.die("ACP runtime must receive the Supacode stdio MCP server");
+        return yield* Effect.die("ACP runtime must receive the Supaterm stdio MCP server");
       }
       assert.equal(mcpServer.command, process.execPath);
       assert.deepEqual(mcpServer.args, ["acp-mcp-bridge"]);
-      assert.equal(runtimeInput?.processEnvironment?.SUPACODE_ACP_MCP_NODE, process.execPath);
-      assert.equal(runtimeInput?.processEnvironment?.SUPACODE_ACP_MCP_ENTRYPOINT, undefined);
+      assert.equal(runtimeInput?.processEnvironment?.SUPATERM_ACP_MCP_NODE, process.execPath);
+      assert.equal(runtimeInput?.processEnvironment?.SUPATERM_ACP_MCP_ENTRYPOINT, undefined);
     }).pipe(Effect.provide(layerTest), Effect.scoped),
   );
 
@@ -848,11 +848,11 @@ describe("AcpAdapterV2", () => {
 
       const command = yield* runTurn(0, defaultPolicy, "/compact");
       assert.isTrue(command.prompt.startsWith("/compact"));
-      assert.notInclude(command.prompt, "<supacode_instructions>");
+      assert.notInclude(command.prompt, "<supaterm_instructions>");
       const firstDefault = yield* runTurn(1, defaultPolicy, "First default request.");
-      assert.include(firstDefault.prompt, "Supacode interaction mode: Default");
-      assert.include(firstDefault.prompt, "Supacode collaborative browser");
-      assert.include(firstDefault.prompt, "Supacode orchestration");
+      assert.include(firstDefault.prompt, "Supaterm interaction mode: Default");
+      assert.include(firstDefault.prompt, "Supaterm collaborative browser");
+      assert.include(firstDefault.prompt, "Supaterm orchestration");
       assert.notInclude(
         firstDefault.methods,
         "session/set_config_option",
@@ -865,18 +865,18 @@ describe("AcpAdapterV2", () => {
 
       const planPolicy = policy("plan");
       const firstPlan = yield* runTurn(3, planPolicy, "Plan this change.");
-      assert.include(firstPlan.prompt, "Supacode interaction mode: Plan");
+      assert.include(firstPlan.prompt, "Supaterm interaction mode: Plan");
       assert.include(firstPlan.methods, "session/set_config_option");
       assert.include(
         (yield* runTurn(4, planPolicy, "Continue planning.")).prompt,
         "Continue planning.",
       );
       const restoredBuild = yield* runTurn(5, defaultPolicy, "Implement the change.");
-      assert.include(restoredBuild.prompt, "Supacode interaction mode: Default");
+      assert.include(restoredBuild.prompt, "Supaterm interaction mode: Default");
       assert.include(
         restoredBuild.methods,
         "session/set_config_option",
-        "Build should restore the native mode that Supacode temporarily replaced for Plan",
+        "Build should restore the native mode that Supaterm temporarily replaced for Plan",
       );
     }).pipe(Effect.provide(layerTest), Effect.scoped),
   );
@@ -901,7 +901,7 @@ describe("AcpAdapterV2", () => {
             mockAgentPath,
             protocolEvents,
             // The model switch lands, then the agent rejects the mode step.
-            environment: { SUPACODE_ACP_FAIL_SET_MODE_CONFIG_OPTION: "1" },
+            environment: { SUPATERM_ACP_FAIL_SET_MODE_CONFIG_OPTION: "1" },
           }),
         },
         selfInvocation: yield* resolveSelfInvocation(),
@@ -1495,13 +1495,13 @@ describe("AcpAdapterV2", () => {
       );
       assert.deepEqual([...childMessages.values()], ["Checking the code.", "ONE"]);
       assert.equal(task?.prompt, "Run pwd, then reply ONE.");
-      // Terminal-fallback MCP calls in a child session keep their Supacode identity.
+      // Terminal-fallback MCP calls in a child session keep their Supaterm identity.
       assert.isTrue(
         items.some(
           (item) =>
             item.threadId === task?.childThreadId &&
             item.type === "dynamic_tool" &&
-            item.toolName === "supacode.task_status",
+            item.toolName === "supaterm.task_status",
         ),
       );
       const childMcp = items.find(
@@ -1774,7 +1774,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_V2_FIDELITY: "1" },
+            environment: { SUPATERM_ACP_EMIT_V2_FIDELITY: "1" },
             wrapRuntime: (runtime) => ({
               ...runtime,
               handleSessionUpdate: (handler) =>
@@ -1900,15 +1900,15 @@ describe("AcpAdapterV2", () => {
         results: undefined,
       });
       assert.deepEqual(webItem("grok-web-search", "completed"), {
-        title: "Web search: supacode code",
-        patterns: ["supacode code"],
+        title: "Web search: supaterm code",
+        patterns: ["supaterm code"],
         results: [
-          { url: "https://supacode.sh" },
+          { url: "https://supaterm.com" },
           { url: "https://github.com/supabitapp/supacode-next" },
         ],
       });
       assert.deepEqual(webItem("grok-web-fetch", "completed")?.results, [
-        { url: "https://supacode.sh", snippet: "Supacode page" },
+        { url: "https://supaterm.com", snippet: "Supaterm page" },
       ]);
       const completedCompaction = items.find(
         (item) =>
@@ -2045,7 +2045,7 @@ describe("AcpAdapterV2", () => {
             mockAgentPath,
             protocolEvents,
             environment: (runtimeOrdinal) =>
-              runtimeOrdinal === 1 ? { SUPACODE_ACP_FAIL_LOAD_SESSION: "1" } : {},
+              runtimeOrdinal === 1 ? { SUPATERM_ACP_FAIL_LOAD_SESSION: "1" } : {},
           }),
         },
         selfInvocation,
@@ -2133,7 +2133,7 @@ describe("AcpAdapterV2", () => {
       const failed = yield* Effect.scoped(
         Effect.gen(function* () {
           const commandPidPath = yield* fileSystem.makeTempFileScoped({
-            prefix: "supacode-acp-forced-failure-command-",
+            prefix: "supaterm-acp-forced-failure-command-",
           });
           yield* Effect.addFinalizer(() =>
             Effect.sync(() => cleanupPublishedDetachedFixture(commandPidPath)),
@@ -2250,7 +2250,7 @@ describe("AcpAdapterV2", () => {
         new URL("../../../scripts/acp-mock-agent.ts", import.meta.url),
       );
       const commandPidPath = yield* fileSystem.makeTempFileScoped({
-        prefix: "supacode-acp-provider-exit-command-",
+        prefix: "supaterm-acp-provider-exit-command-",
       });
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => cleanupPublishedDetachedFixture(commandPidPath)),
@@ -2269,10 +2269,10 @@ describe("AcpAdapterV2", () => {
             ownDetachedProcessGroup: true,
             processGroupTerminationGrace: 0,
             environment: {
-              SUPACODE_ACP_EMIT_RUNNING_COMMAND_THEN_HANG: "1",
-              SUPACODE_ACP_EXIT_AFTER_RUNNING_COMMAND_LAUNCH: "1",
-              SUPACODE_ACP_RUNNING_COMMAND_PID_PATH: commandPidPath,
-              SUPACODE_ACP_RUNNING_COMMAND_SEPARATE_SESSION: "1",
+              SUPATERM_ACP_EMIT_RUNNING_COMMAND_THEN_HANG: "1",
+              SUPATERM_ACP_EXIT_AFTER_RUNNING_COMMAND_LAUNCH: "1",
+              SUPATERM_ACP_RUNNING_COMMAND_PID_PATH: commandPidPath,
+              SUPATERM_ACP_RUNNING_COMMAND_SEPARATE_SESSION: "1",
             },
           }),
         },
@@ -2386,8 +2386,8 @@ describe("AcpAdapterV2", () => {
           return {
             contains: () => false,
             exists: () => cgroupExists,
-            path: "/definitely-missing/supacode-acp-cgroup",
-            relativePath: "/definitely-missing/supacode-acp-cgroup",
+            path: "/definitely-missing/supaterm-acp-cgroup",
+            relativePath: "/definitely-missing/supaterm-acp-cgroup",
             kill: () => {
               killCalls += 1;
             },
@@ -2558,16 +2558,16 @@ describe("AcpAdapterV2", () => {
         mcpServers: [
           {
             type: "stdio",
-            name: "supacode",
+            name: "supaterm",
             command: process.execPath,
             args: [
-              process.argv[1] === undefined ? "supacode" : NodePath.resolve(process.argv[1]),
+              process.argv[1] === undefined ? "supaterm" : NodePath.resolve(process.argv[1]),
               "acp-mcp-bridge",
             ],
             env: [
               { name: "ELECTRON_RUN_AS_NODE", value: "1" },
-              { name: "SUPACODE_ACP_MCP_ENDPOINT", value: "http://127.0.0.1:43123/mcp" },
-              { name: "SUPACODE_ACP_MCP_AUTHORIZATION", value: "Bearer target-thread-token" },
+              { name: "SUPATERM_ACP_MCP_ENDPOINT", value: "http://127.0.0.1:43123/mcp" },
+              { name: "SUPATERM_ACP_MCP_AUTHORIZATION", value: "Bearer target-thread-token" },
             ],
           },
         ],
@@ -2590,7 +2590,7 @@ describe("AcpAdapterV2", () => {
         {
           sessionId: "mock-child-session-without-credential-scope",
           command: process.execPath,
-          args: ["-e", "process.stdout.write(process.env.SUPACODE_ACP_MCP_AUTHORIZATION ?? '')"],
+          args: ["-e", "process.stdout.write(process.env.SUPATERM_ACP_MCP_AUTHORIZATION ?? '')"],
         },
         { requestId: "test-unknown-terminal-create", method: "terminal/create" },
       );
@@ -2614,7 +2614,7 @@ describe("AcpAdapterV2", () => {
         {
           sessionId: "mock-session-1-fork",
           command: process.execPath,
-          args: ["-e", "process.stdout.write(process.env.SUPACODE_ACP_MCP_AUTHORIZATION ?? '')"],
+          args: ["-e", "process.stdout.write(process.env.SUPATERM_ACP_MCP_AUTHORIZATION ?? '')"],
         },
         { requestId: "test-terminal-create", method: "terminal/create" },
       );
@@ -2648,7 +2648,7 @@ describe("AcpAdapterV2", () => {
           new URL("../../../scripts/acp-mock-agent.ts", import.meta.url),
         );
         const workspace = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-acp-no-client-fs-",
+          prefix: "supaterm-acp-no-client-fs-",
         });
         const probePath = path.join(workspace, "planted.txt");
         const probeLogPath = path.join(workspace, "fs-probe.jsonl");
@@ -2664,8 +2664,8 @@ describe("AcpAdapterV2", () => {
               mockAgentPath,
               protocolEvents,
               environment: {
-                SUPACODE_ACP_CLIENT_FS_PROBE_PATH: probePath,
-                SUPACODE_ACP_CLIENT_FS_PROBE_LOG_PATH: probeLogPath,
+                SUPATERM_ACP_CLIENT_FS_PROBE_PATH: probePath,
+                SUPATERM_ACP_CLIENT_FS_PROBE_LOG_PATH: probeLogPath,
               },
             }),
           },
@@ -2744,7 +2744,7 @@ describe("AcpAdapterV2", () => {
       const makeRuntime = makeMockRuntime({
         childProcessSpawner,
         mockAgentPath,
-        environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+        environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
         wrapRuntime: (runtime) => ({
           ...runtime,
           handleRequestPermission: (handler) =>
@@ -2938,7 +2938,7 @@ describe("AcpAdapterV2", () => {
       const makeRuntime = makeMockRuntime({
         childProcessSpawner,
         mockAgentPath,
-        environment: { SUPACODE_ACP_PROMPT_DELAY_MS: "100" },
+        environment: { SUPATERM_ACP_PROMPT_DELAY_MS: "100" },
       });
       const adapter = yield* makeAcpAdapterV2({
         instanceId,
@@ -3023,7 +3023,7 @@ describe("AcpAdapterV2", () => {
       assert.isString(rolledBack.providerThread.nativeThreadRef?.nativeId);
       assert.deepEqual(rolledBack.providerTurns, []);
       assert.equal(
-        runtimeInputs[1]?.processEnvironment?.SUPACODE_ACP_MCP_AUTHORIZATION,
+        runtimeInputs[1]?.processEnvironment?.SUPATERM_ACP_MCP_AUTHORIZATION,
         "Bearer rollback-target-token",
       );
       const replacementMcpServer = runtimeInputs[1]?.mcpServers[0];
@@ -3035,7 +3035,7 @@ describe("AcpAdapterV2", () => {
           : undefined;
       assert.equal(
         replacementMcpEnvironment?.find(
-          (variable) => variable.name === "SUPACODE_ACP_MCP_AUTHORIZATION",
+          (variable) => variable.name === "SUPATERM_ACP_MCP_AUTHORIZATION",
         )?.value,
         "Bearer rollback-target-token",
       );
@@ -3666,7 +3666,7 @@ describe("AcpAdapterV2", () => {
             mockAgentPath,
             environment: (runtimeOrdinal) =>
               runtimeOrdinal === 1
-                ? { SUPACODE_ACP_EMIT_EMPTY_SUCCESSFUL_BASH_THEN_HANG: "1" }
+                ? { SUPATERM_ACP_EMIT_EMPTY_SUCCESSFUL_BASH_THEN_HANG: "1" }
                 : {},
             ownDetachedProcessGroup: true,
             protocolEvents,
@@ -3806,7 +3806,7 @@ describe("AcpAdapterV2", () => {
             mockAgentPath: yield* path.fromFileUrl(
               new URL("../../../scripts/acp-mock-agent.ts", import.meta.url),
             ),
-            environment: { SUPACODE_ACP_COMPLETE_FIRST_PROMPT_ON_CANCEL: "1" },
+            environment: { SUPATERM_ACP_COMPLETE_FIRST_PROMPT_ON_CANCEL: "1" },
             protocolEvents,
             cancelBehavior: "wait-for-prompt",
             wrapRuntime: (runtime) => {
@@ -3913,7 +3913,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_TOOL_CALLS: "1" },
+            environment: { SUPATERM_ACP_EMIT_TOOL_CALLS: "1" },
             wrapCancel: (cancel) => Deferred.await(releaseCancel).pipe(Effect.andThen(cancel)),
           }),
         },
@@ -4008,7 +4008,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_TOOL_CALLS: "1" },
+            environment: { SUPATERM_ACP_EMIT_TOOL_CALLS: "1" },
             wrapOutgoingResponse: (onOutgoingResponse) => (requestId) =>
               Deferred.succeed(responseEnqueued, undefined).pipe(
                 Effect.andThen(Deferred.await(releaseResponseAcknowledgement)),
@@ -4100,7 +4100,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_ELICITATION: "1" },
+            environment: { SUPATERM_ACP_EMIT_ELICITATION: "1" },
             wrapOutgoingResponse: (onOutgoingResponse) => (requestId) =>
               Deferred.succeed(responseWritten, undefined).pipe(
                 Effect.andThen(Deferred.await(releaseResponseAcknowledgement)),
@@ -4180,7 +4180,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_MCP_TOOL_APPROVAL_ELICITATION: "1" },
+            environment: { SUPATERM_ACP_EMIT_MCP_TOOL_APPROVAL_ELICITATION: "1" },
           }),
         },
         selfInvocation,
@@ -4244,7 +4244,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_TOOL_CALLS: "1" },
+            environment: { SUPATERM_ACP_EMIT_TOOL_CALLS: "1" },
             wrapOutgoingResponse: (onOutgoingResponse) => (requestId) =>
               Deferred.succeed(responseWritten, undefined).pipe(
                 Effect.andThen(Deferred.await(releaseResponseAcknowledgement)),
@@ -4347,7 +4347,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_TOOL_CALLS: "1" },
+            environment: { SUPATERM_ACP_EMIT_TOOL_CALLS: "1" },
           }),
         },
         selfInvocation,
@@ -4456,8 +4456,8 @@ describe("AcpAdapterV2", () => {
             childProcessSpawner,
             mockAgentPath,
             environment: {
-              SUPACODE_ACP_EMIT_TOOL_CALLS: "1",
-              SUPACODE_ACP_HANG_AFTER_PERMISSION: "1",
+              SUPATERM_ACP_EMIT_TOOL_CALLS: "1",
+              SUPATERM_ACP_HANG_AFTER_PERMISSION: "1",
             },
             ownDetachedProcessGroup: true,
             processGroupPlatform: "win32",
@@ -4588,8 +4588,8 @@ describe("AcpAdapterV2", () => {
             childProcessSpawner,
             mockAgentPath,
             environment: {
-              SUPACODE_ACP_EMIT_TOOL_CALLS: "1",
-              SUPACODE_ACP_HANG_AFTER_PERMISSION: "1",
+              SUPATERM_ACP_EMIT_TOOL_CALLS: "1",
+              SUPATERM_ACP_HANG_AFTER_PERMISSION: "1",
             },
             ownDetachedProcessGroup: true,
             processGroupPlatform: "win32",
@@ -4703,7 +4703,7 @@ describe("AcpAdapterV2", () => {
               makeRuntime: makeMockRuntime({
                 childProcessSpawner,
                 mockAgentPath,
-                environment: { SUPACODE_ACP_EMIT_TOOL_CALLS: "1" },
+                environment: { SUPATERM_ACP_EMIT_TOOL_CALLS: "1" },
                 ownDetachedProcessGroup: true,
                 processGroupPlatform: "win32",
                 windowsProcessTreeTerminator: (pid) =>
@@ -4796,7 +4796,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_URL_ELICITATION: "1" },
+            environment: { SUPATERM_ACP_EMIT_URL_ELICITATION: "1" },
             ownDetachedProcessGroup: true,
             processGroupPlatform: "win32",
             windowsProcessTreeTerminator: (pid) =>
@@ -4883,7 +4883,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_TOOL_CALLS: "1" },
+            environment: { SUPATERM_ACP_EMIT_TOOL_CALLS: "1" },
             ownDetachedProcessGroup: true,
             processGroupPlatform: "win32",
             windowsProcessTreeTerminator: (pid) =>
@@ -4969,7 +4969,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_ELICITATION: "1" },
+            environment: { SUPATERM_ACP_EMIT_ELICITATION: "1" },
             ownDetachedProcessGroup: true,
             processGroupPlatform: "win32",
             windowsProcessTreeTerminator: (pid) =>
@@ -5073,7 +5073,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_PROMPT_DELAY_MS: "5000" },
+            environment: { SUPATERM_ACP_PROMPT_DELAY_MS: "5000" },
             protocolEvents,
           }),
         },
@@ -5174,7 +5174,7 @@ describe("AcpAdapterV2", () => {
             childProcessSpawner,
             mockAgentPath,
             ownDetachedProcessGroup: true,
-            environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+            environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
             protocolEvents,
           }),
         },
@@ -5279,7 +5279,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+            environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
           }),
         },
         selfInvocation,
@@ -5383,7 +5383,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
             }),
           },
           selfInvocation,
@@ -5523,7 +5523,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
             }),
           },
           selfInvocation,
@@ -5670,7 +5670,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+            environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
             wrapRuntime: (runtime) => ({
               ...runtime,
               handleSessionUpdate: (handler) =>
@@ -5925,7 +5925,7 @@ describe("AcpAdapterV2", () => {
               makeRuntime: makeMockRuntime({
                 childProcessSpawner,
                 mockAgentPath,
-                environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+                environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
                 wrapRuntime: (runtime) => ({
                   ...runtime,
                   handleSessionUpdate: (handler) =>
@@ -6118,7 +6118,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
               protocolEvents,
               wrapRuntime: (runtime) => ({
                 ...runtime,
@@ -6317,7 +6317,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+            environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
             protocolEvents,
           }),
         },
@@ -6470,7 +6470,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+            environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
             protocolEvents,
             wrapRuntime: (runtime) => ({
               ...runtime,
@@ -6720,7 +6720,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
               wrapRuntime: (runtime) => ({
                 ...runtime,
                 handleSessionUpdate: (handler) =>
@@ -7006,7 +7006,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
               wrapRuntime: (runtime) => ({
                 ...runtime,
                 handleSessionUpdate: (handler) =>
@@ -7251,7 +7251,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+            environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
             protocolEvents,
             wrapRuntime: (runtime) => ({
               ...runtime,
@@ -7464,7 +7464,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
               wrapRuntime: (runtime) => ({
                 ...runtime,
                 handleSessionUpdate: (handler) =>
@@ -7729,7 +7729,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
               wrapRuntime: (runtime) => ({
                 ...runtime,
                 handleSessionUpdate: (handler) =>
@@ -7975,7 +7975,7 @@ describe("AcpAdapterV2", () => {
               mockAgentPath,
               environment: (runtimeOrdinal) => {
                 runtimeOrdinalSeen = Math.max(runtimeOrdinalSeen, runtimeOrdinal);
-                return { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" };
+                return { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" };
               },
               wrapCancel: (cancel) =>
                 Effect.sync(() => {
@@ -8112,7 +8112,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+            environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
             protocolEvents,
           }),
         },
@@ -8206,8 +8206,8 @@ describe("AcpAdapterV2", () => {
               environment: (runtimeOrdinal) => {
                 runtimeOrdinalSeen = Math.max(runtimeOrdinalSeen, runtimeOrdinal);
                 return {
-                  SUPACODE_ACP_EMIT_RUNNING_COMMAND_THEN_HANG_FIRST_PROMPT: "1",
-                  SUPACODE_ACP_EMIT_TASK_BACKGROUNDED_AFTER_CANCEL: "1",
+                  SUPATERM_ACP_EMIT_RUNNING_COMMAND_THEN_HANG_FIRST_PROMPT: "1",
+                  SUPATERM_ACP_EMIT_TASK_BACKGROUNDED_AFTER_CANCEL: "1",
                 };
               },
               protocolEvents,
@@ -8392,7 +8392,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+            environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
             ownDetachedProcessGroup: true,
             protocolEvents,
           }),
@@ -8531,7 +8531,7 @@ describe("AcpAdapterV2", () => {
             // complete normally so startTurn / session-load assertions can finish.
             environment: (runtimeOrdinal) => {
               runtimeOrdinalSeen = Math.max(runtimeOrdinalSeen, runtimeOrdinal);
-              return runtimeOrdinal === 1 ? { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" } : {};
+              return runtimeOrdinal === 1 ? { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" } : {};
             },
             ownDetachedProcessGroup: true,
             protocolEvents,
@@ -8683,7 +8683,7 @@ describe("AcpAdapterV2", () => {
               mockAgentPath,
               environment: (runtimeOrdinal) => {
                 runtimeOrdinalSeen = Math.max(runtimeOrdinalSeen, runtimeOrdinal);
-                return { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" };
+                return { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" };
               },
               ownDetachedProcessGroup: true,
               protocolEvents,
@@ -8970,7 +8970,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+            environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
             ownDetachedProcessGroup: true,
             protocolEvents,
             wrapRuntime: (runtime) => ({
@@ -9166,7 +9166,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
               protocolEvents,
               wrapCancel: (cancel) =>
                 Effect.sync(() => {
@@ -9310,7 +9310,7 @@ describe("AcpAdapterV2", () => {
               childProcessSpawner,
               mockAgentPath,
               environment: {
-                SUPACODE_ACP_EMIT_IN_TURN_TASKOUTPUT_THEN_LATE_DUPLICATE: "1",
+                SUPATERM_ACP_EMIT_IN_TURN_TASKOUTPUT_THEN_LATE_DUPLICATE: "1",
               },
               protocolEvents,
             }),
@@ -9760,8 +9760,8 @@ describe("AcpAdapterV2", () => {
               childProcessSpawner,
               mockAgentPath,
               environment: {
-                SUPACODE_ACP_EMIT_POST_SETTLE_MONITOR_FLOW: "1",
-                SUPACODE_ACP_INJECTED_REPORT_TRIGGER_PATH: triggerPath,
+                SUPATERM_ACP_EMIT_POST_SETTLE_MONITOR_FLOW: "1",
+                SUPATERM_ACP_INJECTED_REPORT_TRIGGER_PATH: triggerPath,
               },
               protocolEvents,
             }),
@@ -9937,8 +9937,8 @@ describe("AcpAdapterV2", () => {
               childProcessSpawner,
               mockAgentPath,
               environment: {
-                SUPACODE_ACP_EMIT_POST_SETTLE_MONITOR_FLOW: "1",
-                SUPACODE_ACP_INJECTED_REPORT_TRIGGER_PATH: triggerPath,
+                SUPATERM_ACP_EMIT_POST_SETTLE_MONITOR_FLOW: "1",
+                SUPATERM_ACP_INJECTED_REPORT_TRIGGER_PATH: triggerPath,
               },
               protocolEvents,
             }),
@@ -10124,7 +10124,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+              environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
               protocolEvents,
               wrapRuntime: (runtime) => ({
                 ...runtime,
@@ -10366,7 +10366,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+              environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
               protocolEvents,
               wrapRuntime: (runtime) => ({
                 ...runtime,
@@ -10584,7 +10584,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+              environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
               protocolEvents,
               wrapRuntime: (runtime) => ({
                 ...runtime,
@@ -10811,7 +10811,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+              environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
               protocolEvents,
               wrapRuntime: (runtime) => ({
                 ...runtime,
@@ -11135,7 +11135,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+            environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
             wrapRuntime: (runtime) => ({
               ...runtime,
               handleSessionUpdate: (handler) =>
@@ -11308,7 +11308,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+            environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
             protocolEvents,
             wrapRuntime: (runtime) => ({
               ...runtime,
@@ -11620,7 +11620,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+              environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
               protocolEvents,
               wrapRuntime: (runtime) => ({
                 ...runtime,
@@ -11806,7 +11806,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+            environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
             protocolEvents,
             wrapRuntime: (runtime) => ({
               ...runtime,
@@ -12043,7 +12043,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+            environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
             protocolEvents,
             wrapRuntime: (runtime) => ({
               ...runtime,
@@ -12302,10 +12302,10 @@ describe("AcpAdapterV2", () => {
             command: process.execPath,
             args: [mockAgentPath],
             cwd: process.cwd(),
-            env: { SUPACODE_ACP_SESSION_LIFECYCLE: "1" },
+            env: { SUPATERM_ACP_SESSION_LIFECYCLE: "1" },
           },
           cwd: process.cwd(),
-          clientInfo: { name: "supacode-acp-test", version: "0.0.0" },
+          clientInfo: { name: "supaterm-acp-test", version: "0.0.0" },
           ownDetachedProcessGroup: true,
           processGroupPlatform: "win32",
         }).pipe(Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner))),
@@ -12415,7 +12415,7 @@ describe("AcpAdapterV2", () => {
         AcpSessionRuntime.layer({
           spawn: { command: process.execPath, args: [mockAgentPath], cwd: process.cwd() },
           cwd: process.cwd(),
-          clientInfo: { name: "supacode-acp-test", version: "0.0.0" },
+          clientInfo: { name: "supaterm-acp-test", version: "0.0.0" },
           ownDetachedProcessGroup: true,
           processGroupPlatform: "win32",
           windowsProcessTreeTerminator: () =>
@@ -12450,7 +12450,7 @@ describe("AcpAdapterV2", () => {
         new URL("../../../scripts/acp-mock-agent.ts", import.meta.url),
       );
       const commandPidPath = yield* fileSystem.makeTempFileScoped({
-        prefix: "supacode-acp-failed-teardown-command-",
+        prefix: "supaterm-acp-failed-teardown-command-",
       });
       const residualCallbackDir = yield* fileSystem.makeTempDirectoryScoped();
       const residualCallbackResponseLogPath = path.join(residualCallbackDir, "responses.log");
@@ -12483,10 +12483,10 @@ describe("AcpAdapterV2", () => {
                 return yield* Effect.die("mock taskkill defect");
               }),
             environment: {
-              SUPACODE_ACP_EMIT_RUNNING_COMMAND_THEN_HANG: "1",
-              SUPACODE_ACP_RESIDUAL_CALLBACK_RESPONSE_LOG_PATH: residualCallbackResponseLogPath,
-              SUPACODE_ACP_RESIDUAL_CALLBACK_TRIGGER_PATH: residualCallbackTriggerPath,
-              SUPACODE_ACP_RUNNING_COMMAND_PID_PATH: commandPidPath,
+              SUPATERM_ACP_EMIT_RUNNING_COMMAND_THEN_HANG: "1",
+              SUPATERM_ACP_RESIDUAL_CALLBACK_RESPONSE_LOG_PATH: residualCallbackResponseLogPath,
+              SUPATERM_ACP_RESIDUAL_CALLBACK_TRIGGER_PATH: residualCallbackTriggerPath,
+              SUPATERM_ACP_RUNNING_COMMAND_PID_PATH: commandPidPath,
             },
             protocolEvents,
           }),
@@ -12674,7 +12674,7 @@ describe("AcpAdapterV2", () => {
           makeRuntime: makeMockRuntime({
             childProcessSpawner,
             mockAgentPath,
-            environment: { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" },
+            environment: { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" },
             protocolEvents,
           }),
         },
@@ -12769,7 +12769,7 @@ describe("AcpAdapterV2", () => {
               ),
             environment: (runtimeOrdinal) => {
               runtimeOrdinalSeen = runtimeOrdinal;
-              return runtimeOrdinal === 1 ? { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" } : {};
+              return runtimeOrdinal === 1 ? { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" } : {};
             },
             protocolEvents,
           }),
@@ -12879,7 +12879,7 @@ describe("AcpAdapterV2", () => {
         windowsProcessTreeTerminator: () => Effect.void,
         environment: (runtimeOrdinal) => {
           runtimeOrdinalSeen = runtimeOrdinal;
-          return { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" };
+          return { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" };
         },
         protocolEvents,
         wrapRuntime: (runtime, runtimeOrdinal) => {
@@ -13223,7 +13223,7 @@ describe("AcpAdapterV2", () => {
             ownDetachedProcessGroup: true,
             processGroupPlatform: "win32",
             windowsProcessTreeTerminator: () => Effect.void,
-            environment: { SUPACODE_ACP_EMIT_TOOL_CALLS: "1" },
+            environment: { SUPATERM_ACP_EMIT_TOOL_CALLS: "1" },
             protocolEvents,
           }),
         },
@@ -13351,7 +13351,7 @@ describe("AcpAdapterV2", () => {
               ),
             environment: (runtimeOrdinal) => {
               runtimeOrdinalSeen = runtimeOrdinal;
-              return runtimeOrdinal === 1 ? { SUPACODE_ACP_HANG_PROMPT_FOREVER: "1" } : {};
+              return runtimeOrdinal === 1 ? { SUPATERM_ACP_HANG_PROMPT_FOREVER: "1" } : {};
             },
             protocolEvents,
           }),
@@ -13458,7 +13458,7 @@ describe("AcpAdapterV2", () => {
       );
       const protocolEvents = yield* Queue.bounded<EffectAcpProtocol.AcpProtocolLogEvent>(256);
       const commandPidPath = yield* fileSystem.makeTempFileScoped({
-        prefix: "supacode-acp-direct-stop-command-",
+        prefix: "supaterm-acp-direct-stop-command-",
       });
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => cleanupPublishedDetachedFixture(commandPidPath)),
@@ -13488,11 +13488,11 @@ describe("AcpAdapterV2", () => {
             environment: (runtimeOrdinal) =>
               runtimeOrdinal === 1
                 ? {
-                    SUPACODE_ACP_EMIT_RUNNING_COMMAND_THEN_HANG: "1",
-                    SUPACODE_ACP_EMIT_LATE_UPDATE_AFTER_CANCEL: "1",
-                    SUPACODE_ACP_RUNNING_COMMAND_PID_PATH: commandPidPath,
-                    SUPACODE_ACP_RUNNING_COMMAND_IGNORE_TERM: "1",
-                    SUPACODE_ACP_RUNNING_COMMAND_SEPARATE_SESSION: "1",
+                    SUPATERM_ACP_EMIT_RUNNING_COMMAND_THEN_HANG: "1",
+                    SUPATERM_ACP_EMIT_LATE_UPDATE_AFTER_CANCEL: "1",
+                    SUPATERM_ACP_RUNNING_COMMAND_PID_PATH: commandPidPath,
+                    SUPATERM_ACP_RUNNING_COMMAND_IGNORE_TERM: "1",
+                    SUPATERM_ACP_RUNNING_COMMAND_SEPARATE_SESSION: "1",
                   }
                 : {},
             protocolEvents,
@@ -13766,7 +13766,7 @@ describe("AcpAdapterV2", () => {
             makeRuntime: makeMockRuntime({
               childProcessSpawner,
               mockAgentPath,
-              environment: { SUPACODE_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
+              environment: { SUPATERM_ACP_EMIT_GENERIC_TOOL_PLACEHOLDERS: "1" },
             }),
           },
           selfInvocation,
@@ -13878,7 +13878,7 @@ describe("AcpAdapterV2", () => {
       );
       const protocolEvents = yield* Queue.bounded<EffectAcpProtocol.AcpProtocolLogEvent>(256);
       const commandPidPath = yield* fileSystem.makeTempFileScoped({
-        prefix: "supacode-acp-restart-active-command-",
+        prefix: "supaterm-acp-restart-active-command-",
       });
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => cleanupPublishedDetachedFixture(commandPidPath)),
@@ -13902,11 +13902,11 @@ describe("AcpAdapterV2", () => {
             environment: (runtimeOrdinal) =>
               runtimeOrdinal === 1
                 ? {
-                    SUPACODE_ACP_EXIT_ON_CANCEL: "1",
-                    SUPACODE_ACP_EMIT_LATE_UPDATE_AFTER_CANCEL: "1",
-                    SUPACODE_ACP_EMIT_RUNNING_COMMAND_THEN_HANG: "1",
-                    SUPACODE_ACP_RUNNING_COMMAND_PID_PATH: commandPidPath,
-                    SUPACODE_ACP_RUNNING_COMMAND_SEPARATE_SESSION: "1",
+                    SUPATERM_ACP_EXIT_ON_CANCEL: "1",
+                    SUPATERM_ACP_EMIT_LATE_UPDATE_AFTER_CANCEL: "1",
+                    SUPATERM_ACP_EMIT_RUNNING_COMMAND_THEN_HANG: "1",
+                    SUPATERM_ACP_RUNNING_COMMAND_PID_PATH: commandPidPath,
+                    SUPATERM_ACP_RUNNING_COMMAND_SEPARATE_SESSION: "1",
                   }
                 : {},
             protocolEvents,

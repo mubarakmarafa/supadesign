@@ -4,8 +4,8 @@ import {
   duoHoldOrientation,
   type DuoCommand,
   type DuoControlState,
-} from "@supacode/client-runtime/device/duo-control";
-import type { DeviceScreenSize } from "@supacode/client-runtime/device/stream";
+} from "@supaterm/client-runtime/device/duo-control";
+import type { DeviceScreenSize } from "@supaterm/client-runtime/device/stream";
 import { DeviceDuoGlyph } from "./DeviceDuoGlyph";
 import { Button } from "~/components/ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";

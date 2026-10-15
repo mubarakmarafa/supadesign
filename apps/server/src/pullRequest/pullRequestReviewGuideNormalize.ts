@@ -1,8 +1,8 @@
 import type {
   PullRequestReviewGuideExcerpt,
   PullRequestReviewGuideStop,
-} from "@supacode/contracts";
-import type { ReviewGuideGenerationResult } from "@supacode/provider-core/server/textGeneration";
+} from "@supaterm/contracts";
+import type { ReviewGuideGenerationResult } from "@supaterm/provider-core/server/textGeneration";
 
 /** Longest excerpt kept. The reader wants the lines that carry the idea, not the whole hunk. */
 const MAX_EXCERPT_LINES = 25;

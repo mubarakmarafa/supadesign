@@ -3,7 +3,7 @@ import {
   type AuthMcpAuthorizationRequest,
   AuthMcpClientAccess,
   EnvironmentHttpApi,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Result from "effect/Result";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";

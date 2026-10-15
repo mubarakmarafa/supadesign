@@ -7,7 +7,7 @@ import {
   ProjectId,
   ScheduledTaskId,
   type ScheduledTask,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   scheduledTaskDefaultModel,
   createDraft,

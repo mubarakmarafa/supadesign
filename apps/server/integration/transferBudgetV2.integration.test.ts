@@ -22,7 +22,7 @@ import {
   type OrchestrationV2DomainEvent,
   type OrchestrationV2ThreadStreamItem,
   type OrchestrationV2ShellStreamItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -360,8 +360,8 @@ it.live(
       const fs = yield* FileSystem.FileSystem;
       const report = formatTransferBudgetReport(runs);
       for (const [path, contents] of [
-        [process.env.SUPACODE_TRANSFER_BUDGET_REPORT_PATH, report],
-        [process.env.SUPACODE_TRANSFER_BUDGET_RESULT_PATH, formatTransferBudgetResult(runs)],
+        [process.env.SUPATERM_TRANSFER_BUDGET_REPORT_PATH, report],
+        [process.env.SUPATERM_TRANSFER_BUDGET_RESULT_PATH, formatTransferBudgetResult(runs)],
       ])
         if (path && contents) yield* fs.writeFileString(path, contents);
       yield* Effect.log(report);

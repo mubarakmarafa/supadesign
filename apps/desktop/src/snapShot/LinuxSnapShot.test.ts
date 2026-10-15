@@ -41,7 +41,7 @@ import {
 } from "./LinuxSnapShot.ts";
 
 const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
-const appId = "com.supaterm.supacode";
+const appId = "com.supaterm.desktop";
 const metadata = {
   title: "Editor",
   appName: "Text Editor",
@@ -155,7 +155,7 @@ let directory: string;
 beforeEach(async () => {
   bus = new FakeBus();
   connect.mockImplementation(() => bus as unknown as MessageBus);
-  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-portal-test-"));
+  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-portal-test-"));
   bus.uri = NodeURL.pathToFileURL(NodePath.join(directory, "image.png")).href;
   await NodeFSP.writeFile(NodePath.join(directory, "image.png"), png);
   imageSize.width = 800;
@@ -265,7 +265,7 @@ it("retains the authenticated connection until the compositor flight has landed"
   const feedback = snapshot!.feedback!;
   expect(snapshot).toMatchObject({ png, window: metadata, feedback: { animationStarted: true } });
   expect(bus.disconnect).not.toHaveBeenCalled();
-  await feedback.activate("Supacode");
+  await feedback.activate("Supaterm");
   const landed = Promise.withResolvers<void>();
   bus.animation = landed.promise;
   const flight = feedback.animateTo({ x: 0.1, y: 0.8, width: 0.2, height: 0.1 });
@@ -277,7 +277,7 @@ it("retains the authenticated connection until the compositor flight has landed"
     bus.calls
       .filter((call) => ["CaptureWithFeedback", "Activate", "Animate"].includes(call.member))
       .map((call) => call.body),
-  ).toEqual([[false, true], ["Supacode"], [0.1, 0.8, 0.2, 0.1]]);
+  ).toEqual([[false, true], ["Supaterm"], [0.1, 0.8, 0.2, 0.1]]);
   expect(bus.disconnect).toHaveBeenCalledOnce();
   feedback.close();
   expect(bus.disconnect).toHaveBeenCalledOnce();
@@ -301,7 +301,7 @@ it("can activate without animation, and expires a renderer-abandoned capture", a
   const snapshot = await captureLinuxWindow(appId, { flash: false, animate: false });
   expect(snapshot!.feedback!.animationStarted).toBe(false);
   bus.activationError = new Error("No window");
-  await expect(snapshot!.feedback!.activate("Supacode")).rejects.toThrow("No window");
+  await expect(snapshot!.feedback!.activate("Supaterm")).rejects.toThrow("No window");
   expect(snapshot!.png).toEqual(png);
   await vi.advanceTimersByTimeAsync(15_000);
   expect(bus.disconnect).toHaveBeenCalledOnce();

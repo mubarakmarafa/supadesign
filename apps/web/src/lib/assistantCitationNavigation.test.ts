@@ -1,4 +1,4 @@
-import { EnvironmentId, MessageId, ThreadId, type AssistantCitation } from "@supacode/contracts";
+import { EnvironmentId, MessageId, ThreadId, type AssistantCitation } from "@supaterm/contracts";
 import {
   createMemoryHistory,
   createRootRoute,

@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/mermaid-ascii",
+  "name": "@supaterm/mermaid-ascii",
   "private": true,
   "type": "module",
   "exports": {

@@ -9,7 +9,7 @@ import {
   type CachedFile,
   type ScanCache,
 } from "./usageScanCache.ts";
-import type { UsageRecord } from "@supacode/provider-core/server/usage";
+import type { UsageRecord } from "@supaterm/provider-core/server/usage";
 
 import { TEST_FORMAT_MAP } from "./usageTestFormats.ts";
 

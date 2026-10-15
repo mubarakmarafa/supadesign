@@ -1,5 +1,5 @@
 import { parsePatchFiles } from "@pierre/diffs/utils/parsePatchFiles";
-import type { PullRequestReviewGuideStop } from "@supacode/contracts";
+import type { PullRequestReviewGuideStop } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

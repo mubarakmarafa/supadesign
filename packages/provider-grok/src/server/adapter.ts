@@ -1,18 +1,18 @@
-import { makeProviderFailure } from "@supacode/provider-core/server/failure";
+import { makeProviderFailure } from "@supaterm/provider-core/server/failure";
 import {
   XAiPromptFailureText,
   isXAiTaskCompletedWakeNotification,
   xAiRateLimitedErrorCode,
 } from "./xaiAcpExtension.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { getModelSelectionStringOptionValue } from "@supacode/shared/model";
-import { resolveSelfInvocation, type SelfInvocation } from "@supacode/shared/nodeRuntime";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { getModelSelectionStringOptionValue } from "@supaterm/shared/model";
+import { resolveSelfInvocation, type SelfInvocation } from "@supaterm/shared/nodeRuntime";
 import {
   defaultInstanceIdForDriver,
   ProviderDriverKind,
   type OrchestrationV2ProviderCapabilities,
   type RuntimeMode,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { GrokSettings } from "../settings.ts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -23,9 +23,9 @@ import type * as Scope from "effect/Scope";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as EffectAcpErrors from "effect-acp/errors";
 
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import { makeAcpNativeLoggerFactory } from "@supacode/provider-acp/server/nativeLogging";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import { makeAcpNativeLoggerFactory } from "@supaterm/provider-acp/server/nativeLogging";
 import {
   applyGrokAcpModelSelection,
   currentGrokModelIdFromSessionSetup,
@@ -54,25 +54,25 @@ import {
   XAiAskUserQuestionRequest,
   XAiExitPlanModeRequest,
 } from "./xaiAcpExtension.ts";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
-import { acpPermissionDisposition } from "@supacode/provider-acp/server/clientPolicy";
-import * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
+import { acpPermissionDisposition } from "@supaterm/provider-acp/server/clientPolicy";
+import * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import {
   ProviderAdapterDriverCreateError,
   type ProviderAdapterDriver,
   type ProviderAdapterDriverCreateInput,
-} from "@supacode/provider-core/server/adapterDriver";
+} from "@supaterm/provider-core/server/adapterDriver";
 import {
   AcpProviderCapabilitiesV2,
   makeAcpAdapterV2,
   type AcpAdapterV2ExtensionContext,
   type AcpAdapterV2Flavor,
   type AcpAdapterV2RuntimeInput,
-} from "@supacode/provider-acp/server/adapter";
+} from "@supaterm/provider-acp/server/adapter";
 
 export const GROK_PROVIDER = ProviderDriverKind.make("grok");
 const GROK_DRIVER_KIND = GROK_PROVIDER;
@@ -150,7 +150,7 @@ const registerGrokAcpExtensions: NonNullable<AcpAdapterV2Flavor["registerExtensi
 
 /**
  * Grok intercepts exit_plan_mode and reverse-requests client approval. Capture
- * the plan into Supacode's proposed-plan card and abandon the native gate so the
+ * the plan into Supaterm's proposed-plan card and abandon the native gate so the
  * turn does not hang (#8358; mirrors the Claude ExitPlanMode pattern). Plan
  * content preference: the request payload, then the plan.md contents sniffed
  * from tool calls this turn, then the empty-state placeholder.
@@ -215,7 +215,7 @@ const registerGrokAskUserQuestionExtensions = ({
 
 /**
  * Grok's permission mode is fixed at launch. Explicit approval or sandbox
- * overrides launch it asking, so every mutating prompt reaches Supacode's policy
+ * overrides launch it asking, so every mutating prompt reaches Supaterm's policy
  * check instead of being bypassed by always-approve or Grok's auto classifier.
  */
 export function grokLaunchRuntimeMode(

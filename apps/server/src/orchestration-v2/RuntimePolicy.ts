@@ -4,7 +4,7 @@ import {
   ProjectId,
   ProviderInstanceId,
   type RuntimeMode,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -12,7 +12,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
 import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProjectStore from "./ProjectStore.ts";
 
 /**
@@ -53,7 +53,7 @@ export interface RuntimePolicyV2Shape {
 }
 
 export class RuntimePolicyV2 extends Context.Service<RuntimePolicyV2, RuntimePolicyV2Shape>()(
-  "supacode/orchestration-v2/RuntimePolicy/RuntimePolicyV2",
+  "supaterm/orchestration-v2/RuntimePolicy/RuntimePolicyV2",
 ) {}
 
 /**
@@ -71,7 +71,7 @@ export const layer: Layer.Layer<RuntimePolicyV2> = Layer.succeed(RuntimePolicyV2
 /**
  * The mode a provider runs a thread in. A mode the provider does not offer
  * (a thread set before it stopped offering it, or a stale client) runs in
- * Supervised rather than having Supacode imitate it.
+ * Supervised rather than having Supaterm imitate it.
  */
 function providerRuntimeMode(
   runtimeMode: RuntimeMode,

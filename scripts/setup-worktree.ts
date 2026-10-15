@@ -1,8 +1,8 @@
 // @effect-diagnostics nodeBuiltinImport:off - runs before `vp i`, so only Node built-ins exist.
 /**
- * Worktree setup, run by the supacode.json "Setup Worktree" action as
+ * Worktree setup, run by the supaterm.json "Setup Worktree" action as
  * `node scripts/setup-worktree.ts`. Plain Node keeps one command working in
- * every shell Supacode spawns (zsh, bash, fish, PowerShell): it installs
+ * every shell Supaterm spawns (zsh, bash, fish, PowerShell): it installs
  * dependencies, links the main checkout's gitignored `.env` into this
  * worktree, then warms the web dependency cache.
  */
@@ -10,10 +10,10 @@ import * as NodeChildProcess from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 
-const projectRoot = process.env.SUPACODE_PROJECT_ROOT;
+const projectRoot = process.env.SUPATERM_PROJECT_ROOT;
 if (!projectRoot) {
   throw new Error(
-    "SUPACODE_PROJECT_ROOT is not set. Run this through the supacode.json setup action.",
+    "SUPATERM_PROJECT_ROOT is not set. Run this through the supaterm.json setup action.",
   );
 }
 const worktree = NodePath.dirname(import.meta.dirname);

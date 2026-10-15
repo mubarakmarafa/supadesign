@@ -1,8 +1,8 @@
-import type { AssistantCitation } from "@supacode/contracts";
+import type { AssistantCitation } from "@supaterm/contracts";
 import {
   assistantCitationLabel,
   serializeAssistantCitation,
-} from "@supacode/shared/assistantCitations";
+} from "@supaterm/shared/assistantCitations";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowUpRightIcon, PencilIcon, QuoteIcon } from "lucide-react";
 import {

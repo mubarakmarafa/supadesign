@@ -1,4 +1,4 @@
-import { presentThreadShell } from "@supacode/client-runtime/state/models";
+import { presentThreadShell } from "@supaterm/client-runtime/state/models";
 import * as DateTime from "effect/DateTime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { defaultAnimateLayoutChanges, type AnimateLayoutChanges } from "@dnd-kit/sortable";
@@ -57,7 +57,7 @@ import {
   type SidebarSection,
   resolveSidebarDropVerb,
 } from "./Sidebar.logic";
-import { EnvironmentId, ProjectId, ProviderInstanceId, RunId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId, ProviderInstanceId, RunId, ThreadId } from "@supaterm/contracts";
 
 import {
   DEFAULT_INTERACTION_MODE,
@@ -74,16 +74,16 @@ describe("resolveSidebarRowAccessibility", () => {
     {
       title: "Can you audit the UI?",
       statusLabel: "Working",
-      projectDisplayName: "supacode",
+      projectDisplayName: "supaterm",
       isActive: true,
-      expected: { label: "Can you audit the UI?, Working, supacode", current: "page" },
+      expected: { label: "Can you audit the UI?, Working, supaterm", current: "page" },
     },
     {
       title: "The audit is done",
       statusLabel: null,
-      projectDisplayName: "supacode",
+      projectDisplayName: "supaterm",
       isActive: false,
-      expected: { label: "The audit is done, supacode", current: undefined },
+      expected: { label: "The audit is done, supaterm", current: undefined },
     },
     {
       title: "Untitled task",
@@ -643,7 +643,7 @@ describe("createThreadJumpHintVisibilityController", () => {
 
 describe("getSidebarThreadIdsToPrewarm", () => {
   it("returns only the first visible thread ids up to the prewarm limit", () => {
-    expect(getSidebarThreadIdsToPrewarm(["t1", "t2", "supacode"], 2)).toEqual(["t1", "t2"]);
+    expect(getSidebarThreadIdsToPrewarm(["t1", "t2", "supaterm"], 2)).toEqual(["t1", "t2"]);
   });
 
   it("returns all visible thread ids when they fit within the limit", () => {

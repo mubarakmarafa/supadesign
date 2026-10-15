@@ -1,18 +1,18 @@
 import {
   groupThreadOutboxMessages,
   flattenThreadOutboxMessages,
-} from "@supacode/client-runtime/thread-outbox";
+} from "@supaterm/client-runtime/thread-outbox";
 export {
   shouldRetryThreadOutboxDelivery,
   threadOutboxRetryDelayMs,
-} from "@supacode/client-runtime/thread-outbox";
+} from "@supaterm/client-runtime/thread-outbox";
 export {
   resolveThreadOutboxDeliveryAction,
   resolveThreadOutboxDispatchStep,
   resolveThreadOutboxFailureAction,
   type ThreadOutboxCommandStage,
   type ThreadOutboxFailureAction,
-} from "@supacode/client-runtime/thread-outbox";
+} from "@supaterm/client-runtime/thread-outbox";
 import {
   CommandId,
   EnvironmentId,
@@ -29,11 +29,11 @@ import {
   type ProviderInteractionMode as ProviderInteractionModeType,
   type RuntimeMode as RuntimeModeType,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 import { DraftComposerAttachmentSchema } from "../lib/composer-image-schema";
-import type { ComposerDispatchMode } from "@supacode/client-runtime/state/composer-dispatch";
+import type { ComposerDispatchMode } from "@supaterm/client-runtime/state/composer-dispatch";
 import type { DraftComposerAttachment } from "../lib/composerImages";
 import { resolveProviderInteractionMode } from "./provider-interaction-mode";
 

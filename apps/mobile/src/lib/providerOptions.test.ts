@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { ModelCapabilities } from "@supacode/contracts";
+import type { ModelCapabilities } from "@supaterm/contracts";
 
 import {
   applyProviderOptionSelection,

@@ -1,7 +1,7 @@
 import {
   buildPendingThreadShell,
   type PendingThreadCreation,
-} from "@supacode/client-runtime/pending-thread-creation";
+} from "@supaterm/client-runtime/pending-thread-creation";
 import type { PendingThreadTurn } from "./threadOutbox";
 
 export function pendingThreadCreation(entry: PendingThreadTurn) {

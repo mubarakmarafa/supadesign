@@ -8,7 +8,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Schema from "effect/Schema";
 import { HttpClient, HttpClientResponse } from "effect/http";
-import { GrokSettings } from "@supacode/provider-grok/settings";
+import { GrokSettings } from "@supaterm/provider-grok/settings";
 
 import {
   buildGrokModelCapabilities,
@@ -17,9 +17,9 @@ import {
   checkGrokProviderStatus,
   grokSlashCommandsFromInitialize,
   parseGrokModelsCliOutput,
-} from "@supacode/provider-grok/testing";
-import { execScriptSource, writeFakeCli } from "@supacode/provider-testing/fakeCli";
-import { grokUsageResponseToLimits, readGrokAccount } from "@supacode/provider-grok/testing";
+} from "@supaterm/provider-grok/testing";
+import { execScriptSource, writeFakeCli } from "@supaterm/provider-testing/fakeCli";
+import { grokUsageResponseToLimits, readGrokAccount } from "@supaterm/provider-grok/testing";
 
 const decodeGrokSettings = Schema.decodeSync(GrokSettings);
 const __dirname = NodePath.dirname(NodeURL.fileURLToPath(import.meta.url));
@@ -375,7 +375,7 @@ it.layer(NodeServices.layer)("checkGrokProviderStatus", (it) => {
       const snapshot = yield* Effect.scoped(
         Effect.gen(function* () {
           const fs = yield* FileSystem.FileSystem;
-          const dir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-grok-version-" });
+          const dir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-grok-version-" });
           const grokPath = writeFakeCli({
             directory: dir,
             name: "grok",
@@ -405,7 +405,7 @@ it.layer(NodeServices.layer)("checkGrokProviderStatus", (it) => {
   const writeFakeGrokCli = (input: { readonly modelsOutput: string; readonly acp: boolean }) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const dir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-grok-probe-" });
+      const dir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-grok-probe-" });
       const mockAgentPath = NodePath.resolve(__dirname, "../../scripts/acp-mock-agent.ts");
       return writeFakeCli({
         directory: dir,

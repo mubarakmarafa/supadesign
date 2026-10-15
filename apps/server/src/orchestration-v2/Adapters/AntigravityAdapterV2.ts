@@ -4,8 +4,8 @@ import {
   ProviderInstanceId,
   type OrchestrationV2ProviderCapabilities,
   type ProviderSetupError,
-} from "@supacode/contracts";
-import type { SelfInvocation } from "@supacode/shared/nodeRuntime";
+} from "@supaterm/contracts";
+import type { SelfInvocation } from "@supaterm/shared/nodeRuntime";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -14,9 +14,9 @@ import * as Exit from "effect/Exit";
 import * as Scope from "effect/Scope";
 import * as EffectAcpErrors from "effect-acp/errors";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import type { AntigravityAuth } from "../../provider/AntigravityAuth.ts";
-import type * as AcpSessionRuntime from "@supacode/provider-acp/server/AcpSessionRuntime";
+import type * as AcpSessionRuntime from "@supaterm/provider-acp/server/AcpSessionRuntime";
 import {
   antigravityPermissionMode,
   applyAntigravityAcpModelSelection,
@@ -39,7 +39,7 @@ import {
   makeAcpAdapterV2,
   type AcpAdapterV2Flavor,
   type AcpAdapterV2RuntimeInput,
-} from "@supacode/provider-acp/server/adapter";
+} from "@supaterm/provider-acp/server/adapter";
 
 const ANTIGRAVITY_PROVIDER = ProviderDriverKind.make("antigravity");
 

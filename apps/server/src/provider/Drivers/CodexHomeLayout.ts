@@ -1,12 +1,12 @@
-import { ProviderDriverKind, type CodexSettings } from "@supacode/contracts";
+import { ProviderDriverKind, type CodexSettings } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as PlatformError from "effect/PlatformError";
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 export interface CodexHomeLayout {
   readonly mode: "direct" | "authOverlay";

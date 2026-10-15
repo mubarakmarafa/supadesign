@@ -1,4 +1,4 @@
-import { resolveFilesystemReadAccess } from "@supacode/client-runtime/state/filesystem";
+import { resolveFilesystemReadAccess } from "@supaterm/client-runtime/state/filesystem";
 import { environmentSession } from "../../state/session";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { StackActions, useNavigation, type StaticScreenProps } from "@react-navigation/native";
@@ -6,14 +6,14 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
-import { EnvironmentId, type ProjectReadFileResult, ThreadId } from "@supacode/contracts";
-import { videoMimeType } from "@supacode/shared/video";
+import { EnvironmentId, type ProjectReadFileResult, ThreadId } from "@supaterm/contracts";
+import { videoMimeType } from "@supaterm/shared/video";
 import {
   isWorkspaceBrowserPreviewPath,
   isWorkspaceImagePreviewPath,
   mediaMimeTypeFromExtension,
-} from "@supacode/shared/filePreview";
-import { mediaFileReference } from "@supacode/client-runtime/media-reference";
+} from "@supaterm/shared/filePreview";
+import { mediaFileReference } from "@supaterm/client-runtime/media-reference";
 
 import { MaterialScreenContent } from "../../components/MaterialScreenContent";
 import { AudioFilePreview } from "../../components/AudioFilePreview";

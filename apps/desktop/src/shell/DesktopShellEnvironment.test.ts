@@ -26,9 +26,9 @@ const isDesktopShellEnvironmentCommandError = Schema.is(
 function envOutput(values: Readonly<Record<string, string>>): string {
   return Object.entries(values)
     .flatMap(([name, value]) => [
-      `__SUPACODE_ENV_${name}_START__`,
+      `__SUPATERM_ENV_${name}_START__`,
       value,
-      `__SUPACODE_ENV_${name}_END__`,
+      `__SUPATERM_ENV_${name}_END__`,
     ])
     .join("\n");
 }
@@ -357,13 +357,13 @@ describe("DesktopShellEnvironment", () => {
           envOutput({
             PATH: "/home/linuxbrew/.linuxbrew/bin:/usr/bin",
             SSH_AUTH_SOCK: "/tmp/secretive.sock",
-            SUPACODE_TELEMETRY_ENABLED: "false",
+            SUPATERM_TELEMETRY_ENABLED: "false",
           }),
       });
 
       assert.equal(env.PATH, "/home/linuxbrew/.linuxbrew/bin:/usr/bin");
       assert.equal(env.SSH_AUTH_SOCK, "/tmp/secretive.sock");
-      assert.equal(env.SUPACODE_TELEMETRY_ENABLED, "false");
+      assert.equal(env.SUPATERM_TELEMETRY_ENABLED, "false");
     }),
   );
 

@@ -1,4 +1,4 @@
-import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supaterm/contracts";
 import { act } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { MessageId } from "@supacode/contracts";
+import { MessageId } from "@supaterm/contracts";
 import type { MessagesTimelineRow } from "./MessagesTimeline.logic";
 import { deriveTimelineMinimapItems, resolveTimelineMinimapPreview } from "./timelineMinimapItems";
 import type { ChatMessage } from "../../types";

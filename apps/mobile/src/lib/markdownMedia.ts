@@ -1,14 +1,14 @@
 import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
-} from "@supacode/client-runtime/markdown-images";
-import { splitFilePathPosition } from "@supacode/shared/fileLinks";
+} from "@supaterm/client-runtime/markdown-images";
+import { splitFilePathPosition } from "@supaterm/shared/fileLinks";
 import {
   mediaFileReference,
   mediaUrlReference,
   mediaReferenceFileName,
-} from "@supacode/client-runtime/media-reference";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/media-reference";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { normalizeNativeMarkdownUrl } from "./markdownLinks";
 import { resolveMobileMarkdownMediaSource } from "./markdownMediaSource";
 

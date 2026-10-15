@@ -34,12 +34,12 @@ import {
   ProviderDriverKind,
   type ProviderInstanceConfigMap,
   ProviderInstanceId,
-} from "@supacode/contracts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import type { GrokSettings } from "@supacode/provider-grok/settings";
-import type { CursorSettings } from "@supacode/provider-cursor/settings";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import type { GrokSettings } from "@supaterm/provider-grok/settings";
+import type { CursorSettings } from "@supaterm/provider-cursor/settings";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -54,15 +54,15 @@ import * as ServerConfig from "../config.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import { ClaudeDriver, type ClaudeDriverEnv } from "./Drivers/ClaudeDriver.ts";
 import { CodexDriver, type CodexDriverEnv } from "./Drivers/CodexDriver.ts";
-import { CursorDriver, type CursorDriverEnv } from "@supacode/provider-cursor/server";
-import { GrokDriver, type GrokDriverEnv } from "@supacode/provider-grok/server";
-import { OpenCodeDriver, type OpenCodeDriverEnv } from "@supacode/provider-opencode/server";
-import type { OpenCodeSettings } from "@supacode/provider-opencode/settings";
+import { CursorDriver, type CursorDriverEnv } from "@supaterm/provider-cursor/server";
+import { GrokDriver, type GrokDriverEnv } from "@supaterm/provider-grok/server";
+import { OpenCodeDriver, type OpenCodeDriverEnv } from "@supaterm/provider-opencode/server";
+import type { OpenCodeSettings } from "@supaterm/provider-opencode/settings";
 import * as ModelManifest from "./ModelManifest.ts";
-import * as OpenCodeRuntime from "@supacode/provider-opencode/server/OpenCodeRuntime";
-import * as OpenCodeServerLedger from "@supacode/provider-opencode/server/OpenCodeServerLedger";
+import * as OpenCodeRuntime from "@supaterm/provider-opencode/server/OpenCodeRuntime";
+import * as OpenCodeServerLedger from "@supaterm/provider-opencode/server/OpenCodeServerLedger";
 import * as ResetCreditCoordinator from "./resetCreditCoordinator.ts";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import { makeProviderInstanceRegistry } from "./ProviderInstanceRegistry.ts";
 import * as ProviderOrchestrationAdapterInfrastructure from "./ProviderOrchestrationAdapterInfrastructure.ts";
 import * as ProviderHostLive from "./ProviderHostLive.ts";
@@ -158,7 +158,7 @@ const makeTildeProviderFixtures = Effect.fn(
   const homePath = yield* HostProcess.HomeDirectory;
   const fixtureDir = yield* fileSystem.makeTempDirectoryScoped({
     directory: homePath,
-    prefix: ".supacode-provider-path-test-",
+    prefix: ".supaterm-provider-path-test-",
   });
   const codexPath = path.join(fixtureDir, "codex");
   const claudePath = path.join(fixtureDir, "claude");
@@ -370,7 +370,7 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
             enabled: true,
             environment: [
               {
-                name: "SUPACODEX_COLLAB_SCRIPT",
+                name: "SUPATERMX_COLLAB_SCRIPT",
                 value: fixtures.codexScriptPath,
                 sensitive: false,
               },
@@ -401,7 +401,7 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
           enabled: true,
           environment: [
             {
-              name: "SUPACODEX_COLLAB_SCRIPT",
+              name: "SUPATERMX_COLLAB_SCRIPT",
               value: fixtures.codexScriptPath,
               sensitive: false,
             },
@@ -462,7 +462,7 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
               driver: ProviderDriverKind.make("claudeAgent"),
               enabled: true,
               environment: [
-                { name: "SUPACODE_CLAUDE_AUTH_STATE", value: statePath, sensitive: false },
+                { name: "SUPATERM_CLAUDE_AUTH_STATE", value: statePath, sensitive: false },
               ],
               config: makeClaudeConfig({
                 enabled: true,
@@ -555,11 +555,11 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
             driver: ProviderDriverKind.make("claudeAgent"),
             enabled: true,
             environment: [
-              { name: "SUPACODE_CLAUDE_RESET_MARKER", value: marker, sensitive: false },
+              { name: "SUPATERM_CLAUDE_RESET_MARKER", value: marker, sensitive: false },
               ...(claim.usageFailsAfterClaim
                 ? [
                     {
-                      name: "SUPACODE_CLAUDE_USAGE_FAILS_AFTER_CLAIM",
+                      name: "SUPATERM_CLAUDE_USAGE_FAILS_AFTER_CLAIM",
                       value: "1",
                       sensitive: false,
                     },

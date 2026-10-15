@@ -1,4 +1,4 @@
-import type { ServerConfigStreamEvent } from "@supacode/contracts";
+import type { ServerConfigStreamEvent } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

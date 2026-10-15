@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId, type AgentSessionProjectCandidate } from "@supacode/contracts";
+import { EnvironmentId, ProjectId, type AgentSessionProjectCandidate } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -84,12 +84,12 @@ describe("partitionOnboardingProjects", () => {
 
 describe("groupOnboardingProjects", () => {
   it("groups clones by origin, keeps local repos separate, and folds non-git folders away", () => {
-    const main = candidate("/code/supacode", {
+    const main = candidate("/code/supaterm", {
       git: github("supabitapp/supacode-next"),
       threadCount: 79,
       lastActiveAt: "2026-08-21T12:00:00.000Z",
     });
-    const clone = candidate("/code/clones/supacode-2", {
+    const clone = candidate("/code/clones/supaterm-2", {
       git: github("supabitapp/supacode-next"),
       threadCount: 13,
       lastActiveAt: "2026-08-10T12:00:00.000Z",
@@ -121,7 +121,7 @@ describe("groupOnboardingProjects", () => {
       },
       {
         label: "supabitapp/supacode-next",
-        paths: ["/code/supacode", "/code/clones/supacode-2"],
+        paths: ["/code/supaterm", "/code/clones/supaterm-2"],
         threadCount: 92,
         lastActiveAt: "2026-08-21T12:00:00.000Z",
       },

@@ -3,8 +3,8 @@ import type {
   RelayHostStatus,
   ServerSettings,
   ServerSettingsPatch,
-} from "@supacode/contracts";
-import { relayName } from "@supacode/shared/relay/name";
+} from "@supaterm/contracts";
+import { relayName } from "@supaterm/shared/relay/name";
 
 import { useEnvironmentQuery } from "~/state/query";
 import { serverEnvironment } from "~/state/server";

@@ -298,7 +298,7 @@ describe("createNativeReviewDiffTheme", () => {
   );
 
   it("uses the selected app palette for native code surfaces", () => {
-    const standard = createNativeReviewDiffTheme("dark", "supacode", appTheme("supacode", "dark"));
+    const standard = createNativeReviewDiffTheme("dark", "supaterm", appTheme("supaterm", "dark"));
     const iris = createNativeReviewDiffTheme("dark", "iris", appTheme("iris", "dark"));
 
     expect(iris.background).not.toBe(standard.background);

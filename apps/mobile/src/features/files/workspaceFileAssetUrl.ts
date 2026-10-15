@@ -1,4 +1,4 @@
-import type { AssetResource, EnvironmentId, ThreadId } from "@supacode/contracts";
+import type { AssetResource, EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { useMemo } from "react";
 
 import { useAssetUrlState, useRefreshAssetUrl } from "../../state/assets";

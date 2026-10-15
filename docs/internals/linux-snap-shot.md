@@ -91,16 +91,16 @@ Modifier serialization writes Linux `Ctrl` explicitly, never the cross-platform 
 
 ## GNOME extension
 
-Source in `apps/desktop/gnome-extension`, UUID `snap-shot@supacode.sh`. GNOME only discovers a newly
+Source in `apps/desktop/gnome-extension`, UUID `snap-shot@supaterm.com`. GNOME only discovers a newly
 installed extension at login, so setup distinguishes "installed, needs logout" from "discovered but
 disabled" and compares loaded and installed versions.
 
-The extension trusts callers that own `com.supaterm.supacode.SnapShot` (or the `.Development`
+The extension trusts callers that own `com.supaterm.desktop.SnapShot` (or the `.Development`
 variant) on the same connection. This is GNOME's trusted-session-client pattern, not authentication
 against a hostile process on the user's bus.
 
 Electron does not position overlay windows on Wayland, so the flash and flight run as Shell actors
-inside the extension with coordinates relative to Supacode's content area. Electron 44's restored-session
+inside the extension with coordinates relative to Supaterm's content area. Electron 44's restored-session
 path can skip rebinding and leave callbacks behind on unregister, which is why
 `PortalCaptureShortcut` owns its own portal session instead of using Electron's global-shortcut API.
 

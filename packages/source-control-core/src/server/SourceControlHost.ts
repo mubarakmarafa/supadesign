@@ -1,9 +1,9 @@
 /**
  * SourceControlHost — what a source control provider package may ask of the server it runs in.
  *
- * Providers run inside a Supacode server but must not import it. The server provides this one
+ * Providers run inside a Supaterm server but must not import it. The server provides this one
  * service; everything a provider needs from its environment (settings, the process runner)
- * goes through it, so a provider package depends only on `@supacode/source-control-core` and
+ * goes through it, so a provider package depends only on `@supaterm/source-control-core` and
  * its own API and CLI code. HTTP, the filesystem, and paths come from Effect's platform
  * services directly.
  *
@@ -20,7 +20,7 @@ import type {
   VcsListRemotesResult,
   VcsSwitchRefInput,
   VcsSwitchRefResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import type * as Effect from "effect/Effect";
 import type * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
@@ -123,4 +123,4 @@ export class SourceControlHost extends Context.Service<
       ) => Effect.Effect<VcsSwitchRefResult, GitCommandError>;
     };
   }
->()("@supacode/source-control-core/server/SourceControlHost") {}
+>()("@supaterm/source-control-core/server/SourceControlHost") {}

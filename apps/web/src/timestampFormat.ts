@@ -1,4 +1,4 @@
-import { type TimestampFormat } from "@supacode/contracts/settings";
+import { type TimestampFormat } from "@supaterm/contracts/settings";
 
 function getTimestampFormatOptions(
   timestampFormat: TimestampFormat,

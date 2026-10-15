@@ -10,7 +10,7 @@ import {
   type RuntimeRequestId,
   type ThreadId,
   type TurnId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   type AcpPermissionRequest,

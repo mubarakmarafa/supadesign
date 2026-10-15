@@ -10,7 +10,7 @@
  * channel via prototype pollution) would otherwise throw deep in the
  * renderer and the chip silently never appears.
  */
-import type { PickedElementPayload, PreviewAnnotationPayload } from "@supacode/contracts";
+import type { PickedElementPayload, PreviewAnnotationPayload } from "@supaterm/contracts";
 
 function isStringOrNull(value: unknown): value is string | null {
   return value === null || typeof value === "string";

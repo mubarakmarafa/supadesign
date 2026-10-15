@@ -3,9 +3,9 @@ import {
   createProjectFaviconImageLoader,
   PROJECT_FAVICON_MAX_DATA_URL_LENGTH,
   PROJECT_FAVICON_THUMBNAIL_SIZE,
-} from "@supacode/client-runtime/project-favicon-cache";
+} from "@supaterm/client-runtime/project-favicon-cache";
 
-const DATABASE_NAME = "supacode:project-favicons";
+const DATABASE_NAME = "supaterm:project-favicons";
 const DATABASE_VERSION = 2;
 const STORE_NAME = "images";
 let database: Promise<IDBDatabase> | undefined;

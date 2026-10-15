@@ -6,7 +6,7 @@ import type {
   PullRequestListFilters,
   PullRequestListState,
   SourceControlProviderKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   CircleCheckIcon,
   CircleDashedIcon,

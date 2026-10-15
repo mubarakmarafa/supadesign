@@ -1,23 +1,23 @@
-import { AuthSettingsWriteScope, EnvironmentAuthorizationError } from "@supacode/contracts";
+import { AuthSettingsWriteScope, EnvironmentAuthorizationError } from "@supaterm/contracts";
 import { readEnvironmentScope } from "../../state/session";
 import {
   isAtomCommandInterrupted,
   mapAtomCommandResult,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   type EnvironmentId,
   type ProjectId,
   type ProjectScript,
   type ResolvedKeybindingsConfig,
   type ServerSettings,
-} from "@supacode/contracts";
-import { resolveProjectScripts } from "@supacode/shared/projectScripts";
+} from "@supaterm/contracts";
+import { resolveProjectScripts } from "@supaterm/shared/projectScripts";
 import {
   clearProjectSettingsOverrides,
   projectSettingsOverridesForWrite,
-} from "@supacode/shared/projectSettings";
+} from "@supaterm/shared/projectSettings";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { useRef, useState } from "react";

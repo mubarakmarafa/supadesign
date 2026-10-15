@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect";
 import * as TestClock from "effect/testing/TestClock";
 
 import * as GitHubQuota from "./GitHubQuota.ts";
-import { CredentialScope } from "@supacode/source-control-core/server/SourceControlRateLimit";
+import { CredentialScope } from "@supaterm/source-control-core/server/SourceControlRateLimit";
 
 const RESET = Date.parse("2099-08-13T14:00:00Z");
 const headers = (remaining: number, resource = "graphql", reset = RESET) => ({

@@ -34,10 +34,10 @@ describe("device tool helpers", () => {
     const text = agentDeviceQuickStart(
       device,
       ["--session", "thread-1", "--config", "/tmp/host.json"],
-      "/tmp/supacode tools/agent-device",
+      "/tmp/supaterm tools/agent-device",
     );
     expect(text).toContain(
-      "'/tmp/supacode tools/agent-device' snapshot -i --session thread-1 --config /tmp/host.json",
+      "'/tmp/supaterm tools/agent-device' snapshot -i --session thread-1 --config /tmp/host.json",
     );
     expect(text).not.toContain("  agent-device ");
     expect(text).not.toContain("is on PATH");

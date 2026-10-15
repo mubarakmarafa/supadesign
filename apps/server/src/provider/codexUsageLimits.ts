@@ -11,12 +11,12 @@ import type {
   ServerProviderResetCredits,
   ServerProviderUsageLimits,
   ServerProviderUsageWindow,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 import type * as CodexErrors from "effect-codex-app-server/errors";
 
-import { clampPercent, makeUsageLimits } from "@supacode/provider-core/server/usageLimits";
+import { clampPercent, makeUsageLimits } from "@supaterm/provider-core/server/usageLimits";
 
 interface CodexRateLimitWindow {
   readonly usedPercent: number;

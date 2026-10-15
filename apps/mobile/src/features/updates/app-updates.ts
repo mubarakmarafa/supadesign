@@ -6,7 +6,7 @@ import {
   reportAtomCommandResult,
   settlePromise,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 export type AppUpdateCheckState =
   | "idle"

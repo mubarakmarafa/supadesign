@@ -1,9 +1,9 @@
 import {
   formatSubagentDisplayTitle,
   subagentDetailPreview,
-} from "@supacode/client-runtime/state/subagent-display";
-import { isActiveSubagentStatus } from "@supacode/client-runtime/state/subagentRuntime";
-import type { OrchestrationV2Subagent } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/subagent-display";
+import { isActiveSubagentStatus } from "@supaterm/client-runtime/state/subagentRuntime";
+import type { OrchestrationV2Subagent } from "@supaterm/contracts";
 
 const PROMPT_TITLE_LIMIT = 80;
 

@@ -1,14 +1,14 @@
 import { pruneLocalDeviceTools } from "./deviceToolMaintenance.ts";
-import { deviceToolInstallMessage } from "@supacode/contracts";
+import { deviceToolInstallMessage } from "@supaterm/contracts";
 /**
  * The device host that is this machine.
  *
  * Runs expo-device-hub as a supervised child on a loopback port and starts the
- * agent-device daemon in HTTP mode under a Supacode-owned state directory. Both are
+ * agent-device daemon in HTTP mode under a Supaterm-owned state directory. Both are
  * lazy: the device service requires explicit setup consent before it calls
  * ensureReady to install tools or start helper processes.
  *
- * The hub runs in its standalone mode (origin root). The Supacode proxy strips its
+ * The hub runs in its standalone mode (origin root). The Supaterm proxy strips its
  * own prefix, and the Device panel derives stream and socket URLs from the
  * prefix itself rather than from anything the hub prints.
  */
@@ -17,15 +17,15 @@ import {
   type DevicePlatform,
   type DevicePlatformAvailability,
   LOCAL_DEVICE_HOST_ID,
-} from "@supacode/contracts";
-import { waitForHttpReady } from "@supacode/shared/httpReadiness";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import { waitForHttpReady } from "@supaterm/shared/httpReadiness";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   resolveNodeExecutable,
   type NodeRuntimeUnavailableError,
-} from "@supacode/shared/nodeRuntime";
-import * as NetService from "@supacode/shared/Net";
-import { isCommandAvailable } from "@supacode/shared/shell";
+} from "@supaterm/shared/nodeRuntime";
+import * as NetService from "@supaterm/shared/Net";
+import { isCommandAvailable } from "@supaterm/shared/shell";
 import * as Clock from "effect/Clock";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -43,7 +43,7 @@ import { HttpClient } from "effect/http";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
 import * as ServerConfig from "../config.ts";
 import * as ProcessRunner from "../processRunner.ts";
 import * as DeviceHost from "./DeviceHost.ts";

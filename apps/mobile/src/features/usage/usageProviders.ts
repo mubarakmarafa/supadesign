@@ -1,4 +1,4 @@
-import type { UsageProviderKind } from "@supacode/contracts";
+import type { UsageProviderKind } from "@supaterm/contracts";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 
 /**

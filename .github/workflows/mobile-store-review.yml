@@ -74,7 +74,7 @@ jobs:
       source_sha: ${{ inputs.source_sha }}
       platform: ${{ needs.prepare.outputs.platform }}
       appearance: dark
-      theme: supacode
+      theme: supaterm
 
   submit:
     name: Submit ${{ matrix.platform }} for review
@@ -105,7 +105,7 @@ jobs:
           ref: ${{ inputs.source_sha }}
       - uses: ./.github/actions/setup-mise
       - name: Install asset tooling
-        run: mise exec -- vp install --filter=@supacode/scripts...
+        run: mise exec -- vp install --filter=@supaterm/scripts...
       - name: Download captured screenshots
         uses: actions/download-artifact@v8
         with:

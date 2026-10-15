@@ -14,9 +14,9 @@ const defaultInput = {
   platform: "darwin",
   processArch: "arm64",
   appVersion: "0.0.22",
-  appPath: "/Applications/Supacode.app/Contents/Resources/app.asar",
+  appPath: "/Applications/Supaterm.app/Contents/Resources/app.asar",
   isPackaged: false,
-  resourcesPath: "/Applications/Supacode.app/Contents/Resources",
+  resourcesPath: "/Applications/Supaterm.app/Contents/Resources",
   runningUnderArm64Translation: false,
 } satisfies DesktopEnvironment.MakeDesktopEnvironmentInput;
 
@@ -45,7 +45,7 @@ describe("resolveDesktopAppBranding", () => {
         isDevelopment: false,
         appVersion: "0.0.28",
       }),
-      { baseName: "Supacode", stageLabel: null, displayName: "Supacode" },
+      { baseName: "Supaterm", stageLabel: null, displayName: "Supaterm" },
     );
   });
 
@@ -55,7 +55,7 @@ describe("resolveDesktopAppBranding", () => {
         isDevelopment: true,
         appVersion: "0.0.28",
       }),
-      { baseName: "Supacode", stageLabel: "Dev", displayName: "Supacode (Dev)" },
+      { baseName: "Supaterm", stageLabel: "Dev", displayName: "Supaterm (Dev)" },
     );
   });
 
@@ -65,7 +65,7 @@ describe("resolveDesktopAppBranding", () => {
         isDevelopment: false,
         appVersion: "0.0.28-nightly.20260616.12",
       }),
-      { baseName: "Supacode", stageLabel: "Nightly", displayName: "Supacode (Nightly)" },
+      { baseName: "Supaterm", stageLabel: "Nightly", displayName: "Supaterm (Nightly)" },
     );
   });
 });
@@ -76,47 +76,47 @@ describe("DesktopEnvironment", () => {
       const environment = yield* makeEnvironment(
         {},
         {
-          SUPACODE_HOME: " /tmp/supacode ",
-          SUPACODE_COMMIT_HASH: " 0123456789abcdef ",
-          SUPACODE_PORT: "4949",
+          SUPATERM_HOME: " /tmp/supaterm ",
+          SUPATERM_COMMIT_HASH: " 0123456789abcdef ",
+          SUPATERM_PORT: "4949",
           VITE_DEV_SERVER_URL: "http://localhost:5173",
-          SUPACODE_DEV_REMOTE_SUPACODE_SERVER_ENTRY_PATH: " /remote/server.mjs ",
-          SUPACODE_OTLP_TRACES_URL: " http://127.0.0.1:4318/v1/traces ",
-          SUPACODE_OTLP_METRICS_URL: " http://127.0.0.1:4318/v1/metrics ",
-          SUPACODE_OTLP_LOGS_URL: " http://127.0.0.1:4318/v1/logs ",
-          SUPACODE_OTLP_EXPORT_INTERVAL_MS: "2500",
-          SUPACODE_OTLP_HEADERS: "authorization=Basic%20abc%3D%3D,x-tenant=supacode",
-          SUPACODE_OTLP_PROTOCOL: "http/protobuf",
+          SUPATERM_DEV_REMOTE_SUPATERM_SERVER_ENTRY_PATH: " /remote/server.mjs ",
+          SUPATERM_OTLP_TRACES_URL: " http://127.0.0.1:4318/v1/traces ",
+          SUPATERM_OTLP_METRICS_URL: " http://127.0.0.1:4318/v1/metrics ",
+          SUPATERM_OTLP_LOGS_URL: " http://127.0.0.1:4318/v1/logs ",
+          SUPATERM_OTLP_EXPORT_INTERVAL_MS: "2500",
+          SUPATERM_OTLP_HEADERS: "authorization=Basic%20abc%3D%3D,x-tenant=supaterm",
+          SUPATERM_OTLP_PROTOCOL: "http/protobuf",
         },
       );
 
       assert.equal(environment.isDevelopment, true);
       assert.equal(environment.appDataDirectory, "/Users/alice/Library/Application Support");
-      assert.equal(environment.baseDir, "/tmp/supacode");
-      assert.equal(environment.stateDir, "/tmp/supacode/userdata");
-      assert.equal(environment.desktopSettingsPath, "/tmp/supacode/userdata/desktop-settings.json");
-      assert.equal(environment.clientSettingsPath, "/tmp/supacode/userdata/client-settings.json");
+      assert.equal(environment.baseDir, "/tmp/supaterm");
+      assert.equal(environment.stateDir, "/tmp/supaterm/userdata");
+      assert.equal(environment.desktopSettingsPath, "/tmp/supaterm/userdata/desktop-settings.json");
+      assert.equal(environment.clientSettingsPath, "/tmp/supaterm/userdata/client-settings.json");
       assert.equal(
         environment.savedEnvironmentRegistryPath,
-        "/tmp/supacode/userdata/saved-environments.json",
+        "/tmp/supaterm/userdata/saved-environments.json",
       );
-      assert.equal(environment.serverSettingsPath, "/tmp/supacode/userdata/settings.json");
-      assert.equal(environment.logDir, "/tmp/supacode/userdata/logs");
-      assert.equal(environment.browserArtifactsDir, "/tmp/supacode/userdata/browser-artifacts");
+      assert.equal(environment.serverSettingsPath, "/tmp/supaterm/userdata/settings.json");
+      assert.equal(environment.logDir, "/tmp/supaterm/userdata/logs");
+      assert.equal(environment.browserArtifactsDir, "/tmp/supaterm/userdata/browser-artifacts");
       assert.equal(environment.rootDir, "/repo");
       assert.equal(environment.appRoot, "/repo");
       assert.equal(environment.serverRoot, "/repo");
       assert.equal(environment.backendEntryPath, "/repo/apps/server/dist/bin.mjs");
       assert.equal(environment.backendCwd, "/repo");
-      assert.equal(environment.appUserModelId, "com.supaterm.supacode.dev");
-      assert.equal(environment.linuxWmClass, "supacode-dev");
-      assert.equal(environment.linuxDesktopEntryName, "com.supaterm.supacode.Development.desktop");
+      assert.equal(environment.appUserModelId, "com.supaterm.desktop.dev");
+      assert.equal(environment.linuxWmClass, "supaterm-dev");
+      assert.equal(environment.linuxDesktopEntryName, "com.supaterm.desktop.Development.desktop");
       assert.deepEqual(
         Option.map(environment.devServerUrl, (url) => url.href),
         Option.some("http://localhost:5173/"),
       );
       assert.deepEqual(
-        environment.devRemoteSupacodeServerEntryPath,
+        environment.devRemoteSupatermServerEntryPath,
         Option.some("/remote/server.mjs"),
       );
       assert.deepEqual(environment.configuredBackendPort, Option.some(4949));
@@ -129,7 +129,7 @@ describe("DesktopEnvironment", () => {
         environment.otlpHeaders,
         Option.some({
           authorization: "Basic abc==",
-          "x-tenant": "supacode",
+          "x-tenant": "supaterm",
         }),
       );
       assert.equal(environment.otlpProtocol, "http/protobuf");
@@ -141,15 +141,15 @@ describe("DesktopEnvironment", () => {
       const environment = yield* makeEnvironment(
         {},
         {
-          SUPACODE_HOME: "/tmp/supacode",
+          SUPATERM_HOME: "/tmp/supaterm",
         },
       );
 
       assert.equal(environment.isDevelopment, false);
-      assert.equal(environment.stateDir, "/tmp/supacode/userdata");
-      assert.equal(environment.logDir, "/tmp/supacode/userdata/logs");
-      assert.equal(environment.browserArtifactsDir, "/tmp/supacode/userdata/browser-artifacts");
-      assert.equal(environment.serverSettingsPath, "/tmp/supacode/userdata/settings.json");
+      assert.equal(environment.stateDir, "/tmp/supaterm/userdata");
+      assert.equal(environment.logDir, "/tmp/supaterm/userdata/logs");
+      assert.equal(environment.browserArtifactsDir, "/tmp/supaterm/userdata/browser-artifacts");
+      assert.equal(environment.serverSettingsPath, "/tmp/supaterm/userdata/settings.json");
       assert.equal(environment.otlpProtocol, "http/json");
     }),
   );
@@ -181,11 +181,11 @@ describe("DesktopEnvironment", () => {
       const environment = yield* makeEnvironment({
         platform: "linux",
         isPackaged: true,
-        appPath: "/tmp/.mount_supacode/resources/app.asar",
-        resourcesPath: "/tmp/.mount_supacode/resources",
+        appPath: "/tmp/.mount_supaterm/resources/app.asar",
+        resourcesPath: "/tmp/.mount_supaterm/resources",
       });
 
-      assert.equal(environment.linuxDesktopEntryName, "com.supaterm.supacode.desktop");
+      assert.equal(environment.linuxDesktopEntryName, "com.supaterm.desktop.desktop");
     }),
   );
 
@@ -197,8 +197,8 @@ describe("DesktopEnvironment", () => {
       );
       const production = yield* makeEnvironment();
 
-      assert.equal(development.stateDir, "/Users/alice/.supacode/dev");
-      assert.equal(production.stateDir, "/Users/alice/.supacode/userdata");
+      assert.equal(development.stateDir, "/Users/alice/.supaterm/dev");
+      assert.equal(production.stateDir, "/Users/alice/.supaterm/userdata");
     }),
   );
 
@@ -207,12 +207,12 @@ describe("DesktopEnvironment", () => {
       const environment = yield* makeEnvironment(
         {},
         {
-          SUPACODE_DESKTOP_APP_USER_MODEL_ID: " com.supaterm.supacode.dev.local ",
+          SUPATERM_DESKTOP_APP_USER_MODEL_ID: " com.supaterm.desktop.dev.local ",
           VITE_DEV_SERVER_URL: "http://localhost:5173",
         },
       );
 
-      assert.equal(environment.appUserModelId, "com.supaterm.supacode.dev.local");
+      assert.equal(environment.appUserModelId, "com.supaterm.desktop.dev.local");
     }),
   );
 

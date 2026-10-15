@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { useServerConfigs } from "~/state/entities";
 
 export function useSupportsMultiplePullRequests(environmentId: EnvironmentId | null): boolean {

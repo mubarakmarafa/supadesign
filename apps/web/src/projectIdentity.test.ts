@@ -24,7 +24,7 @@ describe("deriveProjectIdentity", () => {
 
   it("uses only colors available in the icon picker", () => {
     const palette = PROJECT_ICON_COLORS.map(({ value }) => value);
-    for (const name of ["Jobs", "Scripts and Extractors", "Supacode", "文書", "", "---"]) {
+    for (const name of ["Jobs", "Scripts and Extractors", "Supaterm", "文書", "", "---"]) {
       expect(palette).toContain(deriveProjectIdentity(name).color);
     }
   });

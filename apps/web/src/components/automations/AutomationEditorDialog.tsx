@@ -10,17 +10,17 @@ import type {
   ScheduledTaskSchedule,
   ScheduledTaskUpsertInput,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   AuthOrchestrationOperateScope,
   MIN_SCHEDULED_TASK_INTERVAL_MS,
   ProviderInstanceId,
   resolveEnvironmentMachineKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { getCustomModelOptionsByInstance } from "../../modelSelection";

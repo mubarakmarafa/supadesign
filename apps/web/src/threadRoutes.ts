@@ -1,6 +1,6 @@
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentShellStatus } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supacode/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentShellStatus } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@supaterm/contracts";
 import type { DraftId } from "./composerDraftStore";
 
 export type ThreadRouteTarget =

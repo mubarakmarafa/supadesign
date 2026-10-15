@@ -12,13 +12,13 @@ import {
   type SourceControlProviderAuth,
   type SourceControlRepositoryCloneUrls,
   type SourceControlRepositoryVisibility,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
-import { sanitizeBranchFragment } from "@supacode/shared/git";
+import { sanitizeBranchFragment } from "@supaterm/shared/git";
 import {
   detectSourceControlProviderFromRemoteUrl,
   isSshRemoteUrl,
-} from "@supacode/shared/sourceControl";
+} from "@supaterm/shared/sourceControl";
 
 import {
   BitbucketPullRequestListSchema,
@@ -26,13 +26,13 @@ import {
   normalizeBitbucketPullRequestRecord,
   type NormalizedBitbucketPullRequestRecord,
 } from "./bitbucketPullRequests.ts";
-import { collectUint8StreamText } from "@supacode/provider-core/server/collectStreamText";
-import * as SourceControlProvider from "@supacode/source-control-core/server/SourceControlProvider";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import { readSourceControlHostSettings } from "@supacode/source-control-core/client/definition";
+import { collectUint8StreamText } from "@supaterm/provider-core/server/collectStreamText";
+import * as SourceControlProvider from "@supaterm/source-control-core/server/SourceControlProvider";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import { readSourceControlHostSettings } from "@supaterm/source-control-core/client/definition";
 
 import * as BitbucketClient from "../client/definition.ts";
-import { retryAtFromHeader } from "@supacode/source-control-core/server/SourceControlRateLimit";
+import { retryAtFromHeader } from "@supaterm/source-control-core/server/SourceControlRateLimit";
 
 const DEFAULT_API_BASE_URL = "https://api.bitbucket.org/2.0";
 /** A response body past this is cut short, so one huge diff cannot exhaust the server. */
@@ -41,12 +41,12 @@ const DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
 
 const BitbucketApiEnvConfig = Config.all({
-  baseUrl: Config.String("SUPACODE_BITBUCKET_API_BASE_URL").pipe(
+  baseUrl: Config.String("SUPATERM_BITBUCKET_API_BASE_URL").pipe(
     Config.withDefault(DEFAULT_API_BASE_URL),
   ),
-  accessToken: Config.String("SUPACODE_BITBUCKET_ACCESS_TOKEN").pipe(Config.option),
-  email: Config.String("SUPACODE_BITBUCKET_EMAIL").pipe(Config.option),
-  apiToken: Config.String("SUPACODE_BITBUCKET_API_TOKEN").pipe(Config.option),
+  accessToken: Config.String("SUPATERM_BITBUCKET_ACCESS_TOKEN").pipe(Config.option),
+  email: Config.String("SUPATERM_BITBUCKET_EMAIL").pipe(Config.option),
+  apiToken: Config.String("SUPATERM_BITBUCKET_API_TOKEN").pipe(Config.option),
 });
 
 const BitbucketApiOperation = Schema.Literals([
@@ -389,7 +389,7 @@ export class BitbucketApi extends Context.Service<
       readonly force?: boolean;
     }) => Effect.Effect<void, BitbucketApiError>;
   }
->()("@supacode/source-control-bitbucket/server/BitbucketApi") {}
+>()("@supaterm/source-control-bitbucket/server/BitbucketApi") {}
 
 function nonEmpty(value: string | undefined): Option.Option<string> {
   const trimmed = value?.trim();
@@ -527,7 +527,7 @@ function checkoutBranchName(input: {
     return input.headBranch;
   }
 
-  return `supacode/pr-${input.pullRequestId}/${sanitizeBranchFragment(input.headBranch)}`;
+  return `supaterm/pr-${input.pullRequestId}/${sanitizeBranchFragment(input.headBranch)}`;
 }
 
 function repositoryNameWithOwner(
@@ -566,7 +566,7 @@ function credentialFrom(input: {
 }
 
 /**
- * Credentials saved in settings win over the `SUPACODE_BITBUCKET_*` environment variables, which
+ * Credentials saved in settings win over the `SUPATERM_BITBUCKET_*` environment variables, which
  * stay as a fallback. Within each source the access token wins.
  */
 function resolveCredential(
@@ -607,7 +607,7 @@ function authFromCredential(credential: BitbucketCredential | null): SourceContr
     account: Option.none(),
     host: Option.some("bitbucket.org"),
     detail: Option.some(
-      "Add a Bitbucket token in Settings → Source Control, or set the SUPACODE_BITBUCKET_* environment variables on the server.",
+      "Add a Bitbucket token in Settings → Source Control, or set the SUPATERM_BITBUCKET_* environment variables on the server.",
     ),
   };
 }

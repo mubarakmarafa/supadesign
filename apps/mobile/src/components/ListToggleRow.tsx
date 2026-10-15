@@ -28,7 +28,7 @@ export function ListToggleRow(
             className="rounded-full bg-subtle px-3 py-2 active:opacity-70"
             onPress={() => props.onValueChange(true)}
           >
-            <AppText className="text-sm font-supacode-medium text-foreground">
+            <AppText className="text-sm font-supaterm-medium text-foreground">
               Mixed · Set on
             </AppText>
           </Pressable>

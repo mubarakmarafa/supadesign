@@ -2,11 +2,11 @@ import {
   ChatAttachment,
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
   type OrchestrationMessageContext,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
   collectComposerContextReferences,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 import * as Schema from "effect/Schema";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 

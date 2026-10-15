@@ -1,9 +1,9 @@
-import { findThreadSearchOccurrences } from "@supacode/shared/threadSearch";
+import { findThreadSearchOccurrences } from "@supaterm/shared/threadSearch";
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { THREAD_FIND_BLOCK_TAGS } from "@supacode/shared/threadFindText";
+import { THREAD_FIND_BLOCK_TAGS } from "@supaterm/shared/threadFindText";
 
-const THREAD_FIND_HIGHLIGHT_NAME = "supacode-thread-find";
-const THREAD_FIND_ACTIVE_HIGHLIGHT_NAME = "supacode-thread-find-active";
+const THREAD_FIND_HIGHLIGHT_NAME = "supaterm-thread-find";
+const THREAD_FIND_ACTIVE_HIGHLIGHT_NAME = "supaterm-thread-find-active";
 
 const THREAD_FIND_TEXT_SELECTOR = "[data-thread-find-text]";
 const THREAD_FIND_IGNORE_SELECTOR = "[data-thread-find-ignore]";

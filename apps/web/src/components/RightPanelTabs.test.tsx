@@ -1,7 +1,7 @@
-import { EnvironmentId, type ThreadPullRequestLink } from "@supacode/contracts";
-import type { DesktopPreviewFavicon, PreviewSessionSnapshot } from "@supacode/contracts";
+import { EnvironmentId, type ThreadPullRequestLink } from "@supaterm/contracts";
+import type { DesktopPreviewFavicon, PreviewSessionSnapshot } from "@supaterm/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

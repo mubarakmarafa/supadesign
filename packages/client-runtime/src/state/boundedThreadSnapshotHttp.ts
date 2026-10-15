@@ -1,5 +1,5 @@
-import type { ThreadId } from "@supacode/contracts";
-import { boundedSnapshotProjection } from "@supacode/shared/orchestrationV2BoundedSnapshot";
+import type { ThreadId } from "@supaterm/contracts";
+import { boundedSnapshotProjection } from "@supaterm/shared/orchestrationV2BoundedSnapshot";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

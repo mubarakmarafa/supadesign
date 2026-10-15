@@ -8,7 +8,7 @@ import * as Ref from "effect/Ref";
 
 import * as Electron from "electron";
 
-import { type DesktopSnapShotEvent, DEFAULT_CLIENT_SETTINGS } from "@supacode/contracts";
+import { type DesktopSnapShotEvent, DEFAULT_CLIENT_SETTINGS } from "@supaterm/contracts";
 
 import * as DesktopAssets from "../app/DesktopAssets.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
@@ -141,7 +141,7 @@ export class DesktopWindow extends Context.Service<
     readonly runMainContentsCommand: (command: MainWindowContentsCommand) => Effect.Effect<void>;
     readonly syncAppearance: Effect.Effect<void>;
   }
->()("@supacode/desktop/window/DesktopWindow") {}
+>()("@supaterm/desktop/window/DesktopWindow") {}
 
 const { logInfo: logWindowInfo, logWarning: logWindowWarning } =
   makeComponentLogger("desktop-window");

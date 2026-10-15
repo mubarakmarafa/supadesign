@@ -1,4 +1,4 @@
-import type { EnvironmentTheme } from "@supacode/contracts";
+import type { EnvironmentTheme } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import * as Equal from "effect/Equal";
 import { useEffect, useRef, useSyncExternalStore } from "react";
@@ -24,7 +24,7 @@ function publishedThemeColors(
   colors: Readonly<Record<string, string>> | undefined,
 ): ThemeColors {
   // Seeds generate the base with the guided theme editor's generator, so a
-  // desktop theme arrives as a coherent Supacode palette rather than a foreign
+  // desktop theme arrives as a coherent Supaterm palette rather than a foreign
   // one — but only for the appearance they describe. A variant builds on that
   // appearance's stock defaults: the generator follows the seed canvas's
   // luminance, so dark seeds would give a light variant unreadable colors.

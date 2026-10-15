@@ -1,5 +1,5 @@
-import { shouldPreserveAssistantLineBreaks } from "@supacode/shared/markdownPipeline";
-import { ThreadId, type WorktreeSetupSnapshot } from "@supacode/contracts";
+import { shouldPreserveAssistantLineBreaks } from "@supaterm/shared/markdownPipeline";
+import { ThreadId, type WorktreeSetupSnapshot } from "@supaterm/contracts";
 import {
   CheckpointRef,
   NodeId,
@@ -11,7 +11,7 @@ import {
   RuntimeRequestId,
   type OrchestrationV2ProjectedTurnItem,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import {
   deriveTimelineEntriesFromVisibleTurnItems,
@@ -22,8 +22,8 @@ import {
 import { makeStreamingTimelineFixture } from "../../test-fixtures";
 import type { TurnDiffSummary } from "../../types";
 import { describe, expect, it } from "vite-plus/test";
-import { EnvironmentId, MessageId, RunId } from "@supacode/contracts";
-import { serializeAssistantCitation } from "@supacode/shared/assistantCitations";
+import { EnvironmentId, MessageId, RunId } from "@supaterm/contracts";
+import { serializeAssistantCitation } from "@supaterm/shared/assistantCitations";
 import {
   computeStableMessagesTimelineRows,
   computeMessageDurationStart,
@@ -158,7 +158,7 @@ describe("work entry labels", () => {
   ] as const)("uses the same friendly %s label in both views", (toolLifecycleStatus, label) => {
     const browserEntry = {
       ...entry,
-      toolTitle: "Supacode.preview_click",
+      toolTitle: "Supaterm.preview_click",
       detail: '{"ok":true}',
       toolLifecycleStatus,
     };
@@ -181,7 +181,7 @@ describe("work entry labels", () => {
       toolLifecycleStatus,
       structuredPayload: {
         type: "dynamic_tool",
-        toolName: "supacode.supacode_thread_read",
+        toolName: "supaterm.supaterm_thread_read",
         input: { threadId: " thread-child ", view: "activity" },
       } as never,
     };
@@ -195,16 +195,16 @@ describe("work entry labels", () => {
       structuredPayload: { type: "dynamic_tool", toolName, input } as never,
     });
     expect(
-      threadReadTargetId(payload("supacode.supacode_thread_wait", { threadId: "t" })),
+      threadReadTargetId(payload("supaterm.supaterm_thread_wait", { threadId: "t" })),
     ).toBeNull();
     expect(
-      threadReadTargetId(payload("supacode.supacode_thread_read", { threadId: "  " })),
+      threadReadTargetId(payload("supaterm.supaterm_thread_read", { threadId: "  " })),
     ).toBeNull();
-    expect(threadReadTargetId(payload("supacode.supacode_thread_read", null))).toBeNull();
+    expect(threadReadTargetId(payload("supaterm.supaterm_thread_read", null))).toBeNull();
   });
 
   it("uses the active summary state for legacy tools without a lifecycle status", () => {
-    const browserEntry = { ...entry, toolTitle: "Supacode.preview_click" };
+    const browserEntry = { ...entry, toolTitle: "Supaterm.preview_click" };
     expect(liveWorkEntryLabel(browserEntry, undefined, true)).toBe(
       "Clicking in the preview browser",
     );
@@ -216,7 +216,7 @@ describe("work entry labels", () => {
   it("keeps the latest live activity in the present tense after the call completes", () => {
     const browserEntry = {
       ...entry,
-      toolTitle: "Supacode.preview_click",
+      toolTitle: "Supaterm.preview_click",
       toolLifecycleStatus: "completed" as const,
     };
     expect(liveWorkEntryLabel(browserEntry, undefined, true)).toBe(
@@ -368,7 +368,7 @@ describe("work entry labels", () => {
             entry: {
               ...entry,
               itemType: "dynamic_tool",
-              toolData: { server: "supacode", tool },
+              toolData: { server: "supaterm", tool },
             },
           },
         ],
@@ -945,7 +945,7 @@ describe("deriveMessagesTimelineRows", () => {
         id: TurnItemId.make("list"),
         status: "completed",
         title: "Custom provider title",
-        toolName: "Supacode.supacode_project_list",
+        toolName: "Supaterm.supaterm_project_list",
         input: {},
         output: { projects: [] },
       },
@@ -955,7 +955,7 @@ describe("deriveMessagesTimelineRows", () => {
         id: TurnItemId.make("clone"),
         status: "completed",
         title: "Custom provider title",
-        toolName: "mcp__supacode__supacode_project_clone",
+        toolName: "mcp__supaterm__supaterm_project_clone",
         input: {},
         output: { cwd: "/tmp/repo" },
       },
@@ -965,7 +965,7 @@ describe("deriveMessagesTimelineRows", () => {
         id: TurnItemId.make("failed-clone"),
         status: "completed",
         title: "Custom provider title",
-        toolName: "supacode_project_clone",
+        toolName: "supaterm_project_clone",
         input: {},
         output: { isError: true },
       },
@@ -986,7 +986,7 @@ describe("deriveMessagesTimelineRows", () => {
     expect(
       resolveTimelineToolPresentation(items[1]!.type === "dynamic_tool" ? items[1].toolName : null)
         ?.logo,
-    ).toBe("supacode");
+    ).toBe("supaterm");
     const rows = deriveMessagesTimelineRows({
       timelineEntries: entries,
       isWorking: false,
@@ -3369,7 +3369,7 @@ describe("deriveMessagesTimelineRows", () => {
           toolCallId: `call-${index}`,
           createdAt,
           runId,
-          label: "supacode.preview_snapshot",
+          label: "supaterm.preview_snapshot",
           tone: "tool" as const,
           toolLifecycleStatus:
             isWorking && index === 999 ? ("inProgress" as const) : ("completed" as const),
@@ -3731,24 +3731,24 @@ describe("computeStableMessagesTimelineRows", () => {
 });
 
 describe("resolveTimelineToolPresentation", () => {
-  it("pretty prints Claude and Cursor Supacode MCP tool names", () => {
-    expect(resolveTimelineToolPresentation("mcp__supacode__supacode_thread_read")).toEqual({
-      displayName: "Read a Supacode thread",
-      logo: "supacode",
+  it("pretty prints Claude and Cursor Supaterm MCP tool names", () => {
+    expect(resolveTimelineToolPresentation("mcp__supaterm__supaterm_thread_read")).toEqual({
+      displayName: "Read a Supaterm thread",
+      logo: "supaterm",
     });
   });
 
-  it("pretty prints Codex Supacode MCP tool names", () => {
-    expect(resolveTimelineToolPresentation("supacode.create_threads")).toEqual({
-      displayName: "Create Supacode threads",
-      logo: "supacode",
+  it("pretty prints Codex Supaterm MCP tool names", () => {
+    expect(resolveTimelineToolPresentation("supaterm.create_threads")).toEqual({
+      displayName: "Create Supaterm threads",
+      logo: "supaterm",
     });
   });
 
-  it("pretty prints bare Supacode MCP toolkit names", () => {
+  it("pretty prints bare Supaterm MCP toolkit names", () => {
     expect(resolveTimelineToolPresentation("list_scheduled_tasks")).toEqual({
       displayName: "List scheduled tasks",
-      logo: "supacode",
+      logo: "supaterm",
     });
   });
 
@@ -4371,7 +4371,7 @@ describe("streaming v2 row projection", () => {
         {
           runId: source.historyRunId,
           checkpointTurnCount: 1,
-          checkpointRef: CheckpointRef.make("refs/supacode/checkpoints/history"),
+          checkpointRef: CheckpointRef.make("refs/supaterm/checkpoints/history"),
           status: "ready",
           files: [],
           assistantMessageId: MessageId.make("history-assistant"),
@@ -4785,7 +4785,7 @@ describe("linked timeline resources", () => {
               runId,
               type: "dynamic_tool",
               status: failed ? "failed" : status,
-              toolName: "supacode.delegate_task",
+              toolName: "supaterm.delegate_task",
               input: { task: taskId === "b" ? "a" : taskId, role },
               ...(status === "completed"
                 ? {
@@ -5505,7 +5505,7 @@ describe("shouldCollapseUserMessage", () => {
       (_, index) =>
         `[file${index}.ts](/workspace/projects/example/packages/some/deeply/nested/directory/file${index}.ts)`,
     );
-    const text = `Compare ${links.join(", ")} with [terminal 1](supacode-context://v1/terminal/${"a".repeat(36)}).`;
+    const text = `Compare ${links.join(", ")} with [terminal 1](supaterm-context://v1/terminal/${"a".repeat(36)}).`;
 
     expect(text.length).toBeGreaterThan(600);
     expect(shouldCollapseUserMessage(text)).toBe(false);

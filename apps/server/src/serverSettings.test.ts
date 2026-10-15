@@ -10,8 +10,8 @@ import {
   ServerSettings,
   ServerSettingsPatch,
   UsageLimitSourceId,
-} from "@supacode/contracts";
-import { createModelSelection } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { createModelSelection } from "@supaterm/shared/model";
 import { assert, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -30,7 +30,7 @@ import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
 import { sourceControlHostSecretName } from "./sourceControl/sourceControlHostSecrets.ts";
 import * as ServerConfig from "./config.ts";
 import * as SqlitePersistence from "./persistence/Sqlite.ts";
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
 import * as ServerSettingsModule from "./serverSettings.ts";
 import { resolveProviderInstanceTerminalEnvironment } from "./terminal/Manager.ts";
 
@@ -49,7 +49,7 @@ const layerServerSettings = () =>
     Layer.provideMerge(
       Layer.fresh(
         ServerConfig.layerTest(process.cwd(), {
-          prefix: "supacode-server-settings-test-",
+          prefix: "supaterm-server-settings-test-",
         }),
       ),
     ),
@@ -63,7 +63,7 @@ const layerServerSettingsWithSecrets = () =>
     Layer.provideMerge(
       Layer.fresh(
         ServerConfig.layerTest(process.cwd(), {
-          prefix: "supacode-server-settings-test-",
+          prefix: "supaterm-server-settings-test-",
         }),
       ),
     ),
@@ -325,7 +325,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const service = yield* ServerSettingsModule.ServerSettingsService;
-      const dotfiles = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-settings-dotfiles-" });
+      const dotfiles = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-settings-dotfiles-" });
       const linkedSettingsPath = path.join(dotfiles, "settings.json");
       yield* fs.writeFileString(linkedSettingsPath, `{ "responseStreamingMode": "turn" }`);
       yield* fs.remove(config.settingsPath, { force: true });
@@ -349,7 +349,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         const path = yield* Path.Path;
         const service = yield* ServerSettingsModule.ServerSettingsService;
         const dotfiles = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-settings-dotfiles-",
+          prefix: "supaterm-settings-dotfiles-",
         });
         const linkedSettingsPath = path.join(dotfiles, "settings.json");
         yield* fs.writeFileString(linkedSettingsPath, `{ "responseStreamingMode": "turn" }`);
@@ -377,7 +377,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         const path = yield* Path.Path;
         const service = yield* ServerSettingsModule.ServerSettingsService;
         const dotfiles = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-settings-dotfiles-",
+          prefix: "supaterm-settings-dotfiles-",
         });
         const firstSettingsPath = path.join(dotfiles, "first", "settings.json");
         const secondSettingsPath = path.join(dotfiles, "second", "settings.json");
@@ -414,7 +414,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         const path = yield* Path.Path;
         const service = yield* ServerSettingsModule.ServerSettingsService;
         const dotfiles = yield* fs.makeTempDirectoryScoped({
-          prefix: "supacode-settings-dotfiles-",
+          prefix: "supaterm-settings-dotfiles-",
         });
         const linkedSettingsPath = path.join(dotfiles, "not-yet", "settings.json");
         yield* fs.remove(config.settingsPath, { force: true });
@@ -447,7 +447,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
     });
     const layerConfig = Layer.fresh(
       ServerConfig.layerTest(process.cwd(), {
-        prefix: "supacode-server-settings-secret-failure-test-",
+        prefix: "supaterm-server-settings-secret-failure-test-",
       }),
     );
     const layerSettings = ServerSettingsModule.layer.pipe(
@@ -1423,7 +1423,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       Layer.provideMerge(
         Layer.fresh(
           ServerConfig.layerTest(process.cwd(), {
-            prefix: "supacode-inline-secret-failure-test-",
+            prefix: "supaterm-inline-secret-failure-test-",
           }),
         ),
       ),
@@ -1848,7 +1848,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       Layer.provideMerge(
         Layer.fresh(
           ServerConfig.layerTest(process.cwd(), {
-            prefix: "supacode-server-settings-legacy-failure-test-",
+            prefix: "supaterm-server-settings-legacy-failure-test-",
           }),
         ),
       ),
@@ -1922,7 +1922,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       Layer.provideMerge(
         Layer.fresh(
           ServerConfig.layerTest(process.cwd(), {
-            prefix: "supacode-legacy-source-control-copy-failure-test-",
+            prefix: "supaterm-legacy-source-control-copy-failure-test-",
           }),
         ),
       ),
@@ -2197,7 +2197,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         Layer.provideMerge(
           Layer.fresh(
             ServerConfig.layerTest(process.cwd(), {
-              prefix: "supacode-server-settings-materialization-failure-test-",
+              prefix: "supaterm-server-settings-materialization-failure-test-",
             }),
           ),
         ),

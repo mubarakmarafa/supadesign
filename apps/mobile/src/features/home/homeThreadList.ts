@@ -1,18 +1,18 @@
-import { buildProjectGroups } from "@supacode/client-runtime/state/project-grouping";
+import { buildProjectGroups } from "@supaterm/client-runtime/state/project-grouping";
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/shell";
 import {
   getThreadSortTimestamp,
   toSortableTimestamp,
-} from "@supacode/client-runtime/state/thread-sort";
+} from "@supaterm/client-runtime/state/thread-sort";
 import type {
   EnvironmentId,
   ScopedProjectRef,
   SidebarProjectGroupingMode,
   SidebarProjectSortOrder,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
 

@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { PullRequestDetail } from "@supacode/contracts";
+import type { PullRequestDetail } from "@supaterm/contracts";
 import { usePullRequestConnected } from "./usePullRequestConnected";
 import { composerPullRequests } from "../../state/pull-requests";
 import { pullRequestTarget, type PullRequestParams } from "./usePullRequestDiff";

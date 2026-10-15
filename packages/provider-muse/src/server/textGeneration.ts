@@ -4,11 +4,11 @@ import {
   type ModelSelection,
   type ServerProviderModel,
   TextGenerationError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { MuseSettings } from "../settings.ts";
-import { formatGeneratedBranchName, sanitizeFeatureBranchName } from "@supacode/shared/git";
-import { getModelSelectionStringOptionValue } from "@supacode/shared/model";
-import { extractJsonObject } from "@supacode/shared/schemaJson";
+import { formatGeneratedBranchName, sanitizeFeatureBranchName } from "@supaterm/shared/git";
+import { getModelSelectionStringOptionValue } from "@supaterm/shared/model";
+import { extractJsonObject } from "@supaterm/shared/schemaJson";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
@@ -16,20 +16,20 @@ import * as Schema from "effect/Schema";
 
 import { createMuseSdkHost, createMuseSdkHostEffect, type MuseSdkHost } from "./sdk.ts";
 import { museModelCapabilities, resolveMuseReasoningEffort } from "./modelCatalog.ts";
-import type { ProviderTextGeneration } from "@supacode/provider-core/server/textGeneration";
-import { investigationUnsupported } from "@supacode/provider-core/server/textGenerationOperations";
+import type { ProviderTextGeneration } from "@supaterm/provider-core/server/textGeneration";
+import { investigationUnsupported } from "@supaterm/provider-core/server/textGenerationOperations";
 import {
   buildBranchNamePrompt,
   buildCommitMessagePrompt,
   buildPrContentPrompt,
   buildThreadTitlePrompt,
-} from "@supacode/provider-core/server/textGenerationPrompts";
+} from "@supaterm/provider-core/server/textGenerationPrompts";
 import {
   sanitizeCommitSubject,
   sanitizePrTitle,
   sanitizeThreadTitle,
   toJsonSchemaObject,
-} from "@supacode/provider-core/server/textGenerationUtils";
+} from "@supaterm/provider-core/server/textGenerationUtils";
 
 const SessionStarted = Schema.Struct({ session: Schema.Struct({ sessionId: Schema.String }) });
 const ItemNotification = Schema.Struct({
@@ -112,7 +112,7 @@ async function generateMuseText(
       await host.connection.command("userInput/cancel", {
         sessionId,
         userInputId: request.userInputId,
-        reason: "Supacode text generation cannot request user input.",
+        reason: "Supaterm text generation cannot request user input.",
       });
     }
   };
@@ -155,7 +155,7 @@ async function generateMuseText(
   });
   host.connection.onProtocolError(rejectCompletion);
   host.connection.onServerRequest(async () => {
-    const error = new Error("Supacode text generation cannot approve interactive requests.");
+    const error = new Error("Supaterm text generation cannot approve interactive requests.");
     rejectCompletion(error);
     throw error;
   });
@@ -234,7 +234,7 @@ export const makeMuseTextGeneration = Effect.fn("makeMuseTextGeneration")(functi
       ),
     );
     const response = yield* Effect.gen(function* () {
-      const cwd = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-muse-text-" });
+      const cwd = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-muse-text-" });
       const host = yield* Effect.acquireRelease(
         createMuseSdkHostEffect(
           {
@@ -267,7 +267,7 @@ export const makeMuseTextGeneration = Effect.fn("makeMuseTextGeneration")(functi
           new TextGenerationError({
             operation,
             detail:
-              "Muse Code text generation failed. Check Muse login and availability on this Supacode server host.",
+              "Muse Code text generation failed. Check Muse login and availability on this Supaterm server host.",
             cause,
           }),
       ),

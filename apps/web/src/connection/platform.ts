@@ -2,7 +2,7 @@ import {
   ClientCapabilities,
   PlatformConnectionSource,
   Persistence,
-} from "@supacode/client-runtime/platform";
+} from "@supaterm/client-runtime/platform";
 import {
   BearerConnectionCredential,
   BearerConnectionProfile,
@@ -17,17 +17,17 @@ import {
   PrimaryConnectionRegistration,
   PrimaryConnectionTarget,
   Wakeups,
-} from "@supacode/client-runtime/connection";
-import { bootstrapRemoteBearerSession } from "@supacode/client-runtime/authorization";
-import { fetchRemoteEnvironmentDescriptor } from "@supacode/client-runtime/environment";
-import { EnvironmentRpcRequestObserver } from "@supacode/client-runtime/rpc";
+} from "@supaterm/client-runtime/connection";
+import { bootstrapRemoteBearerSession } from "@supaterm/client-runtime/authorization";
+import { fetchRemoteEnvironmentDescriptor } from "@supaterm/client-runtime/environment";
+import { EnvironmentRpcRequestObserver } from "@supaterm/client-runtime/rpc";
 import {
   AuthStandardClientScopes,
   type DesktopBridge,
   type DesktopEnvironmentBootstrap,
   type DesktopSshEnvironmentTarget,
   PRIMARY_LOCAL_ENVIRONMENT_ID,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";

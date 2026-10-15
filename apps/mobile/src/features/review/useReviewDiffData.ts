@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { formatDiffCount } from "@supacode/client-runtime/diff-count";
+import { formatDiffCount } from "@supaterm/client-runtime/diff-count";
 
 import { countReviewCommentContexts, parseReviewInlineComments } from "./reviewCommentSelection";
 import { getCachedNativeReviewDiffData } from "./nativeReviewDiffAdapter";
@@ -17,7 +17,7 @@ import type {
   EnvironmentId,
   ReviewDiffFileStat,
   ReviewDiffPreviewSource,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";

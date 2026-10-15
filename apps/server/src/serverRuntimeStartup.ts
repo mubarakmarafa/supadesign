@@ -8,8 +8,8 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+} from "@supaterm/contracts";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import * as Cause from "effect/Cause";
 import * as Console from "effect/Console";
 import * as Context from "effect/Context";
@@ -77,7 +77,7 @@ export class ServerRuntimeStartup extends Context.Service<
       effect: Effect.Effect<A, E>,
     ) => Effect.Effect<A, E | ServerRuntimeStartupError>;
   }
->()("supacode/serverRuntimeStartup") {}
+>()("supaterm/serverRuntimeStartup") {}
 
 interface QueuedCommand {
   readonly run: Effect.Effect<void, never>;
@@ -587,7 +587,7 @@ const make = (options?: StartupOptions) =>
             const startupBrowserTarget = yield* resolveStartupBrowserTarget;
             if (serverConfig.mode !== "desktop") {
               yield* Effect.logInfo(
-                "Authentication required. Open Supacode using the pairing URL.",
+                "Authentication required. Open Supaterm using the pairing URL.",
               ).pipe(Effect.annotateLogs({ pairingUrl: startupBrowserTarget }));
             }
             yield* runStartupPhase("browser.open", maybeOpenBrowser(startupBrowserTarget));

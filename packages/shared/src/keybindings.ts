@@ -11,7 +11,7 @@ import {
   type ResolvedKeybindingRule,
   type ResolvedKeybindingsConfig,
   THREAD_JUMP_KEYBINDING_COMMANDS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export interface ShortcutEventLike {
   getModifierState?: (key: "AltGraph") => boolean;

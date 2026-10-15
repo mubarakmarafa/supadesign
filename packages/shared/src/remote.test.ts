@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 
 import {
   RemoteBackendUrlInvalidError,
@@ -55,7 +55,7 @@ describe("remote", () => {
   );
 
   it("carries a non-default relay with relay pairing links only", () => {
-    const relayAddress = `https://${"ab".repeat(16)}.${"cd".repeat(16)}.relay.supacode.invalid/`;
+    const relayAddress = `https://${"ab".repeat(16)}.${"cd".repeat(16)}.relay.supaterm.invalid/`;
     const relayUrl = "wss://relay.example/tunnel";
     const pairingUrl = buildPairingUrl(relayAddress, "code", { environmentId, relayUrl });
     expect(resolveRemotePairingTarget({ pairingUrl })).toMatchObject({
@@ -140,7 +140,7 @@ describe("remote", () => {
     expect(
       resolveRemotePairingTarget({
         pairingUrl:
-          "https://app.next.supacode.sh/pair?host=https%3A%2F%2Fdesktop.tailnet.ts.net%3A44342%2F#token=pairing-token",
+          "https://app.supaterm.com/pair?host=https%3A%2F%2Fdesktop.tailnet.ts.net%3A44342%2F#token=pairing-token",
       }),
     ).toEqual({
       credential: "pairing-token",
@@ -192,7 +192,7 @@ describe("remote", () => {
     expect(
       resolveRemotePairingTarget({
         pairingUrl:
-          "https://app.next.supacode.sh/pair?host=%2F%2Fremote.example.com#token=pairing-token",
+          "https://app.supaterm.com/pair?host=%2F%2Fremote.example.com#token=pairing-token",
       }),
     ).toEqual({
       credential: "pairing-token",
@@ -260,7 +260,7 @@ describe("remote", () => {
     try {
       resolveRemotePairingTarget({
         pairingUrl:
-          "https://app.next.supacode.sh/pair?host=ftp%3A%2F%2Fremote.example.com#token=pairing-token",
+          "https://app.supaterm.com/pair?host=ftp%3A%2F%2Fremote.example.com#token=pairing-token",
       });
     } catch (cause) {
       hostError = cause;

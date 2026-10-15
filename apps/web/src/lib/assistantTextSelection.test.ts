@@ -4,11 +4,11 @@ import {
   EnvironmentId,
   MessageId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   formatAssistantCitationHref,
   parseAssistantCitationHref,
-} from "@supacode/shared/assistantCitations";
+} from "@supaterm/shared/assistantCitations";
 
 import {
   type AssistantTextSelector,
@@ -273,7 +273,7 @@ describe("captureAssistantTextSelection", () => {
     const viewport = new SelectionNode("MAIN").append(
       source,
       new SelectionNode("DIV", "", { "data-select-none": "" }).append(textNode("echo ok")),
-      new SelectionNode("H3", "", { "data-select-none": "" }).append(textNode("Supacode")),
+      new SelectionNode("H3", "", { "data-select-none": "" }).append(textNode("Supaterm")),
       assistantSource(nextParagraph),
     );
 

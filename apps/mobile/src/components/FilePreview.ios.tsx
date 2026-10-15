@@ -18,7 +18,7 @@ const NativeControls = requireNativeModule<{
     identifier: string,
   ): Promise<void>;
   dismissFile(identifier: string): Promise<void>;
-}>("SupacodeNativeControls");
+}>("SupatermNativeControls");
 
 function NativeFilePreview(props: {
   readonly source: ResolvedFilePreviewSource;

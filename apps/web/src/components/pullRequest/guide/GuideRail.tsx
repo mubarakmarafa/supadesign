@@ -1,10 +1,10 @@
-import type { PullRequestReviewGuideStop } from "@supacode/contracts";
+import type { PullRequestReviewGuideStop } from "@supaterm/contracts";
 import { CheckIcon } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 
 import { Badge } from "../../ui/badge";
-import { stopSubline } from "@supacode/client-runtime/review-guide-tour";
+import { stopSubline } from "@supaterm/client-runtime/review-guide-tour";
 
 /**
  * The tour's table of contents: where the reader is and which stops they have read past. A stop

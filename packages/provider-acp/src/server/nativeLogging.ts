@@ -1,16 +1,16 @@
-import type { ProviderDriverKind, ThreadId } from "@supacode/contracts";
-import { causeErrorTag } from "@supacode/shared/observability";
+import type { ProviderDriverKind, ThreadId } from "@supaterm/contracts";
+import { causeErrorTag } from "@supaterm/shared/observability";
 import * as Cause from "effect/Cause";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import type * as EffectAcpProtocol from "effect-acp/protocol";
 
-import type * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import type * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import {
   structuralProtocolMethod,
   summarizeNativeProtocolPayload,
-} from "@supacode/provider-core/server/nativeProtocolLogging";
+} from "@supaterm/provider-core/server/nativeProtocolLogging";
 import type * as AcpSessionRuntime from "./AcpSessionRuntime.ts";
 
 const transientProtocolUpdates = new Set(["agent_message_chunk", "agent_thought_chunk"]);

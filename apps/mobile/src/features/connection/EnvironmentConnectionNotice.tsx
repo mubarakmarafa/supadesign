@@ -3,7 +3,7 @@ import { ConnectionTraceId } from "./ConnectionTraceId";
 import {
   type EnvironmentConnectionPhase,
   type EnvironmentConnectionPresentation,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import { SymbolView } from "../../components/AppSymbol";
 import { Pressable, View } from "react-native";
 
@@ -76,7 +76,7 @@ export function EnvironmentConnectionNotice(props: {
           />
         )}
 
-        <Text className="text-center text-lg font-supacode-bold text-foreground">
+        <Text className="text-center text-lg font-supaterm-bold text-foreground">
           {noticeTitle(props.connection.phase, props.environmentLabel)}
         </Text>
         <Text className="text-center text-sm leading-normal text-foreground-muted">
@@ -92,7 +92,7 @@ export function EnvironmentConnectionNotice(props: {
             className="mt-1 rounded-full bg-subtle px-4 py-2.5 active:opacity-70"
             onPress={props.onRetry}
           >
-            <Text className="text-sm font-supacode-bold text-foreground">Retry now</Text>
+            <Text className="text-sm font-supaterm-bold text-foreground">Retry now</Text>
           </Pressable>
         ) : null}
       </View>

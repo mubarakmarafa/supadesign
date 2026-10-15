@@ -3,9 +3,9 @@ import type {
   OrchestrationV2ThreadShell,
   OrchestrationProjectShell,
   ServerProvider,
-} from "@supacode/contracts";
-import { formatModelSlugName, resolveSelectableModel } from "@supacode/shared/model";
-import { fileBasename } from "@supacode/shared/path";
+} from "@supaterm/contracts";
+import { formatModelSlugName, resolveSelectableModel } from "@supaterm/shared/model";
+import { fileBasename } from "@supaterm/shared/path";
 import { isTerminalSubagentStatus } from "./subagentRuntime.ts";
 
 /** Summarizes one adjacent group, without changing its member identities or order. */

@@ -1,4 +1,4 @@
-import { AuthAdministrativeScopes } from "@supacode/contracts";
+import { AuthAdministrativeScopes } from "@supaterm/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
@@ -26,7 +26,7 @@ const layerServerConfig = (
   ).pipe(
     Layer.provide(
       ServerConfig.layerTest(process.cwd(), {
-        prefix: "supacode-auth-control-plane-test-",
+        prefix: "supaterm-auth-control-plane-test-",
       }),
     ),
   );

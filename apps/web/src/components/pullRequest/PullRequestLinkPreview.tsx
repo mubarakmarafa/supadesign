@@ -1,6 +1,6 @@
 import type { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
-import { isAtomCommandInterrupted } from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentId, PullRequestRef } from "@supacode/contracts";
+import { isAtomCommandInterrupted } from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentId, PullRequestRef } from "@supaterm/contracts";
 import {
   cloneElement,
   useRef,

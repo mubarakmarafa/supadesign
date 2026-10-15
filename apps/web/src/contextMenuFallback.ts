@@ -1,4 +1,4 @@
-import type { ContextMenuItem } from "@supacode/contracts";
+import type { ContextMenuItem } from "@supaterm/contracts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 

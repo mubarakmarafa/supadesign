@@ -200,7 +200,7 @@ export class GhosttyRuntime {
     }
     const result = await WebAssembly.instantiate(await response.arrayBuffer(), {
       env: {
-        supacode_write_pty: (
+        supaterm_write_pty: (
           _terminal: number,
           userdata: number,
           pointer: number,

@@ -2,8 +2,8 @@ import {
   isModifierPairShortcut,
   type SnapShotModifier,
   type SnapShotShortcut,
-} from "@supacode/contracts";
-import { parseKeybindingShortcut } from "@supacode/shared/keybindings";
+} from "@supaterm/contracts";
+import { parseKeybindingShortcut } from "@supaterm/shared/keybindings";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { getDesktopSnapShotBridge } from "../../lib/desktopSnapShot";
 import {

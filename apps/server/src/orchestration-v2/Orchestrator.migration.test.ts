@@ -1,6 +1,6 @@
 import { assert, it } from "@effect/vitest";
 import * as Schema from "effect/Schema";
-import { ContextHandoffId, OrchestrationV2Command, ThreadId } from "@supacode/contracts";
+import { ContextHandoffId, OrchestrationV2Command, ThreadId } from "@supaterm/contracts";
 
 import {
   appendContextHandoffId,

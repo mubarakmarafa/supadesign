@@ -5,7 +5,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import type { ScopedThreadRef } from "@supacode/contracts";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 import { ScrollArea } from "../ui/scroll-area";
 import { TooltipProvider } from "../ui/tooltip";
 import { cn } from "../../lib/utils";

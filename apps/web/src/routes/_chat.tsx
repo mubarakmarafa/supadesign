@@ -1,4 +1,4 @@
-import { AuthPreviewOperateScope } from "@supacode/contracts";
+import { AuthPreviewOperateScope } from "@supaterm/contracts";
 import { Outlet, createFileRoute, redirect, useParams } from "@tanstack/react-router";
 import { useAtomValue } from "@effect/atom-react";
 import { useEffect } from "react";
@@ -144,7 +144,7 @@ function ChatRouteGlobalShortcuts() {
             stackedThreadToast({
               type: "info",
               title: "Preview is desktop-only",
-              description: "Open Supacode in the desktop app to use the in-app preview.",
+              description: "Open Supaterm in the desktop app to use the in-app preview.",
             }),
           );
           return;

@@ -9,7 +9,7 @@ import {
   type ThreadId,
   type ProjectId,
   WS_METHODS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";

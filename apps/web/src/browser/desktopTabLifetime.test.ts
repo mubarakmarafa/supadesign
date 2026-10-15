@@ -4,7 +4,7 @@ import {
   DEFAULT_CLIENT_SETTINGS,
   EnvironmentId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const { closeTab, createTab, stopBrowserRecording } = vi.hoisted(() => ({

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://supaterm.com/schema/supaterm.json",
+  "defaultThreadEnvMode": "worktree",
+  "iconPath": "assets/dev/blueprint-web-apple-touch-180.png",
+  "scripts": [
+    {
+      "name": "Setup Worktree",
+      "command": "node scripts/setup-worktree.ts",
+      "icon": "configure",
+      "runOnWorktreeCreate": true,
+      "async": false
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import type { ProjectCloneStage } from "@supacode/contracts";
+import type { ProjectCloneStage } from "@supaterm/contracts";
 
 export interface GitCloneProgressLine {
   readonly stage: ProjectCloneStage;

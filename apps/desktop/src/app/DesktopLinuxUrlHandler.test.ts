@@ -28,11 +28,11 @@ const makeEnvironment = (path: Path.Path, overrides: Record<string, unknown> = {
     platform: "linux",
     isPackaged: true,
     isDevelopment: false,
-    displayName: "Supacode",
-    linuxDesktopEntryName: "com.supaterm.supacode.desktop",
-    linuxWmClass: "supacode",
+    displayName: "Supaterm",
+    linuxDesktopEntryName: "com.supaterm.desktop.desktop",
+    linuxWmClass: "supaterm",
     linuxApplicationsDir: "/home/alice/.local/share/applications",
-    appImagePath: Option.some("/home/alice/Applications/Supacode.AppImage"),
+    appImagePath: Option.some("/home/alice/Applications/Supaterm.AppImage"),
     path,
     ...overrides,
   } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]);
@@ -160,51 +160,51 @@ const emptyRecording = (): RecordedRegistration => ({
 describe("DesktopLinuxUrlHandler", () => {
   it("renders a scheme-handler desktop entry with freedesktop Exec quoting", () => {
     const entry = DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
-      displayName: "Supacode (Nightly)",
-      execTarget: '/home/al ice/Apps/Supacode "100%" $HOME\\x.AppImage',
-      scheme: "supacode",
-      iconPath: "/home/al ice/icons/Supacode\\x.png",
+      displayName: "Supaterm (Nightly)",
+      execTarget: '/home/al ice/Apps/Supaterm "100%" $HOME\\x.AppImage',
+      scheme: "supaterm",
+      iconPath: "/home/al ice/icons/Supaterm\\x.png",
     });
 
     assert.include(entry, "[Desktop Entry]");
-    assert.include(entry, "Name=Supacode (Nightly)");
+    assert.include(entry, "Name=Supaterm (Nightly)");
     // Exec composes both escaping layers: a literal backslash becomes four
     // backslashes in the file, a quote three characters, a dollar sign two
     // backslashes plus the sign.
     assert.include(
       entry,
-      'Exec="/home/al ice/Apps/Supacode \\\\"100%%\\\\" \\\\$HOME\\\\\\\\x.AppImage" %U',
+      'Exec="/home/al ice/Apps/Supaterm \\\\"100%%\\\\" \\\\$HOME\\\\\\\\x.AppImage" %U',
     );
     assert.include(entry, "NoDisplay=true");
     assert.notInclude(entry, "StartupWMClass=");
-    assert.include(entry, "MimeType=x-scheme-handler/supacode;");
-    assert.include(entry, "Icon=/home/al ice/icons/Supacode\\\\x.png");
+    assert.include(entry, "MimeType=x-scheme-handler/supaterm;");
+    assert.include(entry, "Icon=/home/al ice/icons/Supaterm\\\\x.png");
   });
 
   it("carries structured context on registration errors", () => {
     const writeError = new DesktopLinuxUrlHandler.DesktopLinuxUrlHandlerRegistrationError({
       step: "write-desktop-entry",
-      scheme: "supacode",
-      desktopEntryPath: "/home/alice/.local/share/applications/com.supaterm.supacode.desktop",
+      scheme: "supaterm",
+      desktopEntryPath: "/home/alice/.local/share/applications/com.supaterm.desktop.desktop",
       cause: new Error("boom"),
     });
     assert.equal(
       writeError.message,
-      "Failed to register the supacode:// URL handler (step: write-desktop-entry).",
+      "Failed to register the supaterm:// URL handler (step: write-desktop-entry).",
     );
     assert.equal(
       writeError.desktopEntryPath,
-      "/home/alice/.local/share/applications/com.supaterm.supacode.desktop",
+      "/home/alice/.local/share/applications/com.supaterm.desktop.desktop",
     );
 
     const exitError = new DesktopLinuxUrlHandler.DesktopLinuxUrlHandlerRegistrationError({
       step: "set-default-handler",
-      scheme: "supacode",
+      scheme: "supaterm",
       exitCode: 4,
     });
     assert.equal(
       exitError.message,
-      "Failed to register the supacode:// URL handler (step: set-default-handler, xdg-mime exit code 4).",
+      "Failed to register the supaterm:// URL handler (step: set-default-handler, xdg-mime exit code 4).",
     );
   });
 
@@ -220,13 +220,13 @@ describe("DesktopLinuxUrlHandler", () => {
         assert.equal(recorded.files.length, 1);
         assert.equal(
           recorded.files[0]?.path,
-          "/home/alice/.local/share/applications/com.supaterm.supacode.desktop",
+          "/home/alice/.local/share/applications/com.supaterm.desktop.desktop",
         );
         assert.include(
           recorded.files[0]?.content,
-          'Exec="/home/alice/Applications/Supacode.AppImage" %U',
+          'Exec="/home/alice/Applications/Supaterm.AppImage" %U',
         );
-        assert.include(recorded.files[0]?.content, "MimeType=x-scheme-handler/supacode;");
+        assert.include(recorded.files[0]?.content, "MimeType=x-scheme-handler/supaterm;");
         assert.deepEqual(recorded.commands, [
           {
             command: "update-desktop-database",
@@ -234,7 +234,7 @@ describe("DesktopLinuxUrlHandler", () => {
           },
           {
             command: "xdg-mime",
-            args: ["default", "com.supaterm.supacode.desktop", "x-scheme-handler/supacode"],
+            args: ["default", "com.supaterm.desktop.desktop", "x-scheme-handler/supaterm"],
           },
         ]);
       });
@@ -260,10 +260,10 @@ describe("DesktopLinuxUrlHandler", () => {
     return Effect.gen(function* () {
       yield* runRegister(recorded, {
         existingEntry: DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
-          displayName: "Supacode",
-          execTarget: "/home/alice/Applications/Supacode.AppImage",
-          scheme: "supacode",
-          iconPath: "/home/alice/.local/share/icons/com.supaterm.supacode.desktop.png",
+          displayName: "Supaterm",
+          execTarget: "/home/alice/Applications/Supaterm.AppImage",
+          scheme: "supaterm",
+          iconPath: "/home/alice/.local/share/icons/com.supaterm.desktop.desktop.png",
         }),
       });
 
@@ -276,7 +276,7 @@ describe("DesktopLinuxUrlHandler", () => {
         },
         {
           command: "xdg-mime",
-          args: ["default", "com.supaterm.supacode.desktop", "x-scheme-handler/supacode"],
+          args: ["default", "com.supaterm.desktop.desktop", "x-scheme-handler/supaterm"],
         },
       ]);
     });
@@ -284,20 +284,20 @@ describe("DesktopLinuxUrlHandler", () => {
 
   it.effect("installs a persistent icon even when the desktop entry is already current", () => {
     const recorded = emptyRecording();
-    const iconPath = "/home/alice/.local/share/icons/com.supaterm.supacode.desktop.png";
+    const iconPath = "/home/alice/.local/share/icons/com.supaterm.desktop.desktop.png";
     return Effect.gen(function* () {
       yield* runRegister(recorded, {
-        iconSource: "/tmp/.mount_Supacode/resources/icon.png",
+        iconSource: "/tmp/.mount_Supaterm/resources/icon.png",
         existingEntry: DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
-          displayName: "Supacode",
-          execTarget: "/home/alice/Applications/Supacode.AppImage",
-          scheme: "supacode",
+          displayName: "Supaterm",
+          execTarget: "/home/alice/Applications/Supaterm.AppImage",
+          scheme: "supaterm",
           iconPath,
         }),
       });
       assert.deepEqual(recorded.files, []);
       assert.deepEqual(recorded.copies, [
-        { source: "/tmp/.mount_Supacode/resources/icon.png", destination: iconPath },
+        { source: "/tmp/.mount_Supaterm/resources/icon.png", destination: iconPath },
       ]);
       assert.equal(recorded.commands.at(-1)?.command, "xdg-mime");
     });
@@ -307,7 +307,7 @@ describe("DesktopLinuxUrlHandler", () => {
     const recorded = emptyRecording();
     return Effect.gen(function* () {
       yield* runRegister(recorded, {
-        iconSource: "/tmp/.mount_Supacode/resources/icon.png",
+        iconSource: "/tmp/.mount_Supaterm/resources/icon.png",
         iconCopyError: PlatformError.systemError({
           _tag: "PermissionDenied",
           module: "FileSystem",
@@ -332,14 +332,14 @@ describe("DesktopLinuxUrlHandler", () => {
       yield* runRegister(unpackaged, {
         environment: {
           isPackaged: false,
-          linuxDesktopEntryName: "com.supaterm.supacode.Development.desktop",
+          linuxDesktopEntryName: "com.supaterm.desktop.Development.desktop",
         },
       });
 
       assert.deepEqual(nonLinux.files, []);
       assert.equal(
         unpackaged.files[0]?.path,
-        "/home/alice/.local/share/applications/com.supaterm.supacode.Development.desktop",
+        "/home/alice/.local/share/applications/com.supaterm.desktop.Development.desktop",
       );
       assert.deepEqual(unpackaged.commands, []);
     });
@@ -359,7 +359,7 @@ describe("DesktopLinuxUrlHandler", () => {
           module: "FileSystem",
           method: "writeFileString",
           description: "read-only filesystem",
-          pathOrDescriptor: "/home/alice/.local/share/applications/com.supaterm.supacode.desktop",
+          pathOrDescriptor: "/home/alice/.local/share/applications/com.supaterm.desktop.desktop",
         }),
       });
 

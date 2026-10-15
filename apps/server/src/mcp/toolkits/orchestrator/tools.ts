@@ -28,7 +28,7 @@ import {
   OrchestratorMcpThreadWaitResult,
   ThreadMetadataMcpUpdateInput,
   ThreadMetadataMcpUpdateResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Tool, Toolkit } from "effect/ai";
 import * as Schema from "effect/Schema";
 
@@ -50,7 +50,7 @@ const threadMetadataDependencies = [
 
 const OrchestratorCapabilitiesTool = Tool.make("orchestrator_capabilities", {
   description:
-    "List the V2 provider instances and their current models from the same live catalog as the composer, including configured custom models, inherited runtime settings, and app-owned orchestration features available to this caller. For a separate top-level thread in a new or existing worktree, use supacode_thread_launch with workspaceStrategy.",
+    "List the V2 provider instances and their current models from the same live catalog as the composer, including configured custom models, inherited runtime settings, and app-owned orchestration features available to this caller. For a separate top-level thread in a new or existing worktree, use supaterm_thread_launch with workspaceStrategy.",
   success: OrchestratorMcpCapabilitiesResult,
   failure: OrchestratorMcpFailure,
   failureMode: "return",
@@ -63,7 +63,7 @@ const OrchestratorCapabilitiesTool = Tool.make("orchestrator_capabilities", {
 
 export const DelegateTaskTool = Tool.make("delegate_task", {
   description:
-    "Needs an agent running inside a Supacode thread. Delegate one task to a Supacode-owned child agent/subagent of THIS thread and run it with only the supplied task prompt, without copying parent conversation history. Choose providers and models from orchestrator_capabilities, which uses the same live catalog as the composer. Prefer native subagent tools for same-provider work only when they support the chosen model. Use this for any model missing from the native tool, including same-provider work, for cross-provider work, or for explicitly Supacode-owned child tasks. For every Supacode delegated review round, call delegate_task again with the original brief, prior findings, responses, and unresolved objections in the task prompt. Track each round by its own taskId and use a distinct clientRequestId per round, stable across retries of that round. The childThreadId is backing storage, not the target for starting another delegated review round through supacode_thread_send. Provider, model, model options (see orchestrator_capabilities), runtime mode, and interaction mode inherit unless target overrides them. A requested runtimeMode must be one the target provider lists in orchestrator_capabilities runtimeModes; an inherited one steps down to the broadest mode it offers. Prefer mode='async' for long work; mode='wait' blocks until completion or timeout. timeoutMs on mode=wait is only the parent's wait budget and does not cancel the child. waitTimedOut on that wait call means the timeout fired; keep that taskId and read status on later task_status. An async child's completion wakes this thread through a notification, steered into active turns where supported or queued otherwise, so end the turn instead of polling or spawning watchers; use task_status only when the result is needed mid-turn.",
+    "Needs an agent running inside a Supaterm thread. Delegate one task to a Supaterm-owned child agent/subagent of THIS thread and run it with only the supplied task prompt, without copying parent conversation history. Choose providers and models from orchestrator_capabilities, which uses the same live catalog as the composer. Prefer native subagent tools for same-provider work only when they support the chosen model. Use this for any model missing from the native tool, including same-provider work, for cross-provider work, or for explicitly Supaterm-owned child tasks. For every Supaterm delegated review round, call delegate_task again with the original brief, prior findings, responses, and unresolved objections in the task prompt. Track each round by its own taskId and use a distinct clientRequestId per round, stable across retries of that round. The childThreadId is backing storage, not the target for starting another delegated review round through supaterm_thread_send. Provider, model, model options (see orchestrator_capabilities), runtime mode, and interaction mode inherit unless target overrides them. A requested runtimeMode must be one the target provider lists in orchestrator_capabilities runtimeModes; an inherited one steps down to the broadest mode it offers. Prefer mode='async' for long work; mode='wait' blocks until completion or timeout. timeoutMs on mode=wait is only the parent's wait budget and does not cancel the child. waitTimedOut on that wait call means the timeout fired; keep that taskId and read status on later task_status. An async child's completion wakes this thread through a notification, steered into active turns where supported or queued otherwise, so end the turn instead of polling or spawning watchers; use task_status only when the result is needed mid-turn.",
   parameters: OrchestratorMcpDelegateTaskInput,
   success: OrchestratorMcpDelegateTaskResult,
   failure: OrchestratorMcpFailure,
@@ -76,7 +76,7 @@ export const DelegateTaskTool = Tool.make("delegate_task", {
 
 const TaskStatusTool = Tool.make("task_status", {
   description:
-    "Needs an agent running inside a Supacode thread. Read a Supacode-owned delegated task created by this parent thread. childRunId identifies the original delegated run. workState distinguishes working, waiting_for_children, and result_available; a completed turn with live nested work is not a completed task. summary is the final task result, including provider errors on failure, and remains stable after publication. hasPendingChildRuns reports later queued or executing turns in the backing child thread, even after the task is terminal; it does not reopen the task, and task_cancel stops those turns too. Turns held in a stopped queue wait for the user and do not count. latestTerminal* provides later non-monitor turn results. Reading a terminal result acknowledges its automatic parent delivery.",
+    "Needs an agent running inside a Supaterm thread. Read a Supaterm-owned delegated task created by this parent thread. childRunId identifies the original delegated run. workState distinguishes working, waiting_for_children, and result_available; a completed turn with live nested work is not a completed task. summary is the final task result, including provider errors on failure, and remains stable after publication. hasPendingChildRuns reports later queued or executing turns in the backing child thread, even after the task is terminal; it does not reopen the task, and task_cancel stops those turns too. Turns held in a stopped queue wait for the user and do not count. latestTerminal* provides later non-monitor turn results. Reading a terminal result acknowledges its automatic parent delivery.",
   parameters: OrchestratorMcpTaskStatusInput,
   success: OrchestratorMcpDelegateTaskResult,
   failure: OrchestratorMcpFailure,
@@ -90,7 +90,7 @@ const TaskStatusTool = Tool.make("task_status", {
 
 const TaskCancelTool = Tool.make("task_cancel", {
   description:
-    "Needs an agent running inside a Supacode thread. Stop a Supacode-owned delegated task and dispose its automatic parent delivery. Its child thread stops like a user Stop: the running turn is interrupted, queued turns are held, pull request watches end, and the tasks it delegated stop too. This includes later child-thread runs, even after the task is terminal. A terminal task returns its existing status, and published task results remain available.",
+    "Needs an agent running inside a Supaterm thread. Stop a Supaterm-owned delegated task and dispose its automatic parent delivery. Its child thread stops like a user Stop: the running turn is interrupted, queued turns are held, pull request watches end, and the tasks it delegated stop too. This includes later child-thread runs, even after the task is terminal. A terminal task returns its existing status, and published task results remain available.",
   parameters: OrchestratorMcpTaskCancelInput,
   success: OrchestratorMcpTaskCancelResult,
   failure: OrchestratorMcpFailure,
@@ -100,9 +100,9 @@ const TaskCancelTool = Tool.make("task_cancel", {
   .annotate(Tool.Title, "Cancel delegated task")
   .annotate(Tool.Destructive, true);
 
-const WorkflowStopTool = Tool.make("supacode_workflow_stop", {
+const WorkflowStopTool = Tool.make("supaterm_workflow_stop", {
   description:
-    "Stop one running Claude workflow in a Supacode thread. Use the workflow coordinator's subagentId returned by supacode_thread_read with view='activity'. Stops the whole workflow, including its phases and agents. Does not stop the parent thread or other workflows. Individual workflow phases and agents cannot be stopped separately.",
+    "Stop one running Claude workflow in a Supaterm thread. Use the workflow coordinator's subagentId returned by supaterm_thread_read with view='activity'. Stops the whole workflow, including its phases and agents. Does not stop the parent thread or other workflows. Individual workflow phases and agents cannot be stopped separately.",
   parameters: OrchestrationV2StopWorkflowInput,
   success: Schema.Struct({}),
   failure: OrchestratorMcpFailure,
@@ -165,48 +165,48 @@ const DeleteScheduledTaskTool = Tool.make("delete_scheduled_task", {
 
 export const CreateThreadsTool = Tool.make("create_threads", {
   description:
-    "Needs an agent running inside a Supacode thread. Create one or more ORDINARY TOP-LEVEL Supacode conversations. This is not delegation and does not create child agents/subagents. For delegated work, choose models from orchestrator_capabilities. Prefer native subagents only when they support the chosen model; otherwise call delegate_task, including for same-provider work. Use create_threads for a batch of separate top-level threads sharing this checkout. Prefer supacode_thread_launch for a single thread. Both require the user to request separate/new/top-level threads or conversations. Each entry may override provider, model, options, runtime mode, and interaction mode; omitted settings inherit. Project, branch, and worktree always inherit and cannot be overridden here. For independent implementation or a PR stack in its own worktree, use supacode_thread_launch with workspaceStrategy instead of asking the agent to create a worktree in its prompt.",
+    "Needs an agent running inside a Supaterm thread. Create one or more ORDINARY TOP-LEVEL Supaterm conversations. This is not delegation and does not create child agents/subagents. For delegated work, choose models from orchestrator_capabilities. Prefer native subagents only when they support the chosen model; otherwise call delegate_task, including for same-provider work. Use create_threads for a batch of separate top-level threads sharing this checkout. Prefer supaterm_thread_launch for a single thread. Both require the user to request separate/new/top-level threads or conversations. Each entry may override provider, model, options, runtime mode, and interaction mode; omitted settings inherit. Project, branch, and worktree always inherit and cannot be overridden here. For independent implementation or a PR stack in its own worktree, use supaterm_thread_launch with workspaceStrategy instead of asking the agent to create a worktree in its prompt.",
   parameters: OrchestratorMcpCreateThreadsInput,
   success: OrchestratorMcpCreateThreadsResult,
   failure: OrchestratorMcpFailure,
   failureMode: "return",
   dependencies,
 })
-  .annotate(Tool.Title, "Create Supacode threads")
+  .annotate(Tool.Title, "Create Supaterm threads")
   .annotate(Tool.Destructive, true)
   .annotate(Tool.OpenWorld, true);
 
-const ThreadListTool = Tool.make("supacode_thread_list", {
+const ThreadListTool = Tool.make("supaterm_thread_list", {
   description:
-    "List Supacode threads in a project, newest first. Omit projectId for the calling thread's project. Filter by durable run status, title, or settled state (settled=true lists threads the user or auto-settlement moved out of the active list), or snoozed state, and paginate with the returned cursor. A snoozed thread wakes early when it asks for something, fails, or completes. To link a thread for the user, write `[title](supacode-thread://v1/<threadId>)` with the threadId exactly as returned, not URL-encoded; Supacode shows the thread's current title.",
+    "List Supaterm threads in a project, newest first. Omit projectId for the calling thread's project. Filter by durable run status, title, or settled state (settled=true lists threads the user or auto-settlement moved out of the active list), or snoozed state, and paginate with the returned cursor. A snoozed thread wakes early when it asks for something, fails, or completes. To link a thread for the user, write `[title](supaterm-thread://v1/<threadId>)` with the threadId exactly as returned, not URL-encoded; Supaterm shows the thread's current title.",
   parameters: OrchestratorMcpThreadListInput,
   success: OrchestratorMcpThreadListResult,
   failure: OrchestratorMcpFailure,
   failureMode: "return",
   dependencies,
 })
-  .annotate(Tool.Title, "List Supacode threads")
+  .annotate(Tool.Title, "List Supaterm threads")
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false)
   .annotate(Tool.Idempotent, true);
 
-const ThreadReadTool = Tool.make("supacode_thread_read", {
+const ThreadReadTool = Tool.make("supaterm_thread_read", {
   description:
-    "Read durable state and a paginated timeline from any Supacode thread in this environment. The default messages view returns user messages, assistant messages, and proposed plans; activity returns all summarized timeline items. Reading an untruncated terminal assistant result from this parent thread's direct app-owned child acknowledges that child's automatic completion delivery. Continue with afterPosition=nextPosition. Recover long item text with itemId and textOffset=nextTextOffset until nextTextOffset is null; offsets count UTF-16 code units. The thread also reports its snooze state. To link a thread for the user, write `[title](supacode-thread://v1/<threadId>)` with the threadId exactly as returned, not URL-encoded; Supacode shows the thread's current title.",
+    "Read durable state and a paginated timeline from any Supaterm thread in this environment. The default messages view returns user messages, assistant messages, and proposed plans; activity returns all summarized timeline items. Reading an untruncated terminal assistant result from this parent thread's direct app-owned child acknowledges that child's automatic completion delivery. Continue with afterPosition=nextPosition. Recover long item text with itemId and textOffset=nextTextOffset until nextTextOffset is null; offsets count UTF-16 code units. The thread also reports its snooze state. To link a thread for the user, write `[title](supaterm-thread://v1/<threadId>)` with the threadId exactly as returned, not URL-encoded; Supaterm shows the thread's current title.",
   parameters: OrchestratorMcpThreadReadInput,
   success: OrchestratorMcpThreadReadResult,
   failure: OrchestratorMcpFailure,
   failureMode: "return",
   dependencies,
 })
-  .annotate(Tool.Title, "Read a Supacode thread")
+  .annotate(Tool.Title, "Read a Supaterm thread")
   // Strict so a misspelled paging param fails instead of silently reading from position 0.
   .annotate(Tool.Strict, true)
   .annotate(Tool.Readonly, false)
   .annotate(Tool.Destructive, false)
   .annotate(Tool.Idempotent, true);
 
-export const ThreadUpdateTool = Tool.make("supacode_thread_update", {
+export const ThreadUpdateTool = Tool.make("supaterm_thread_update", {
   description:
     "Update metadata for a thread. Omit threadId to update this thread. Use action='rename' with title, action='regenerate_title' with no extra field, action='link_pull_request' with pullRequest, or action='unlink_pull_request'. Workspace and branch changes are intentionally not supported. clientRequestId makes retries idempotent.",
   parameters: ThreadMetadataMcpUpdateInput,
@@ -215,47 +215,47 @@ export const ThreadUpdateTool = Tool.make("supacode_thread_update", {
   failureMode: "return",
   dependencies: threadMetadataDependencies,
 })
-  .annotate(Tool.Title, "Update Supacode thread metadata")
+  .annotate(Tool.Title, "Update Supaterm thread metadata")
   .annotate(Tool.Destructive, true)
   .annotate(Tool.Idempotent, false);
 
-const ThreadSendTool = Tool.make("supacode_thread_send", {
+const ThreadSendTool = Tool.make("supaterm_thread_send", {
   description:
-    "Send a message to any Supacode thread in this environment. The target cannot have broader permission modes than the caller. Use delegate_task with the full review context and a new clientRequestId for independent review rounds. For a follow-up that needs the same child's conversation, send to its childThreadId. After the original task completes, a requested follow-up creates a fresh task in that child thread and returns taskId; its completion notifies the parent, and the original result stays unchanged. mode='auto' starts an idle thread, steers a fully active turn, or queues behind a turn that is not yet steerable. Use queue for a separate follow-up turn, steer for an in-flight update, or restart to interrupt-and-restart the active turn. clientRequestId makes retries idempotent.",
+    "Send a message to any Supaterm thread in this environment. The target cannot have broader permission modes than the caller. Use delegate_task with the full review context and a new clientRequestId for independent review rounds. For a follow-up that needs the same child's conversation, send to its childThreadId. After the original task completes, a requested follow-up creates a fresh task in that child thread and returns taskId; its completion notifies the parent, and the original result stays unchanged. mode='auto' starts an idle thread, steers a fully active turn, or queues behind a turn that is not yet steerable. Use queue for a separate follow-up turn, steer for an in-flight update, or restart to interrupt-and-restart the active turn. clientRequestId makes retries idempotent.",
   parameters: OrchestratorMcpThreadSendInput,
   success: OrchestratorMcpThreadSendResult,
   failure: OrchestratorMcpFailure,
   failureMode: "return",
   dependencies,
 })
-  .annotate(Tool.Title, "Send to a Supacode thread")
+  .annotate(Tool.Title, "Send to a Supaterm thread")
   .annotate(Tool.Destructive, true)
   .annotate(Tool.OpenWorld, true);
 
-const ThreadWaitTool = Tool.make("supacode_thread_wait", {
+const ThreadWaitTool = Tool.make("supaterm_thread_wait", {
   description:
-    "Wait for a Supacode thread run to reach a terminal durable state. Without runId, the latest run at call time is selected; an idle thread returns immediately. Timeout does not interrupt work, so call again or use supacode_thread_read/list after timedOut=true. Waiting reports status only and does not acknowledge a delegated result.",
+    "Wait for a Supaterm thread run to reach a terminal durable state. Without runId, the latest run at call time is selected; an idle thread returns immediately. Timeout does not interrupt work, so call again or use supaterm_thread_read/list after timedOut=true. Waiting reports status only and does not acknowledge a delegated result.",
   parameters: OrchestratorMcpThreadWaitInput,
   success: OrchestratorMcpThreadWaitResult,
   failure: OrchestratorMcpFailure,
   failureMode: "return",
   dependencies,
 })
-  .annotate(Tool.Title, "Wait for a Supacode thread")
+  .annotate(Tool.Title, "Wait for a Supaterm thread")
   .annotate(Tool.Readonly, true)
   .annotate(Tool.Destructive, false)
   .annotate(Tool.Idempotent, true);
 
-const ThreadInterruptTool = Tool.make("supacode_thread_interrupt", {
+const ThreadInterruptTool = Tool.make("supaterm_thread_interrupt", {
   description:
-    "Request interruption of a running turn in any Supacode thread in this environment. Without runId, the newest interruptible run is selected. Terminal runs and threads without an active turn return without another side effect. clientRequestId makes retries idempotent.",
+    "Request interruption of a running turn in any Supaterm thread in this environment. Without runId, the newest interruptible run is selected. Terminal runs and threads without an active turn return without another side effect. clientRequestId makes retries idempotent.",
   parameters: OrchestratorMcpThreadInterruptInput,
   success: OrchestratorMcpThreadInterruptResult,
   failure: OrchestratorMcpFailure,
   failureMode: "return",
   dependencies,
 })
-  .annotate(Tool.Title, "Interrupt a Supacode thread")
+  .annotate(Tool.Title, "Interrupt a Supaterm thread")
   .annotate(Tool.Destructive, true);
 
 export const OrchestratorToolkit = Toolkit.make(

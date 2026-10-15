@@ -1,4 +1,4 @@
-import { EnvironmentId, RunId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, RunId, ThreadId } from "@supaterm/contracts";
 import { act, useEffect } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";

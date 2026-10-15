@@ -9,7 +9,7 @@ import {
   type ServerConfigStreamEvent as ServerConfigStreamEventType,
   WS_METHODS,
   UsageLimitSourceId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Cause from "effect/Cause";
 import * as Deferred from "effect/Deferred";
@@ -134,7 +134,7 @@ const SERVER_CONFIG: ServerConfigType = {
     policy: "loopback-browser",
     bootstrapMethods: ["one-time-token"],
     sessionMethods: ["browser-session-cookie", "bearer-access-token"],
-    sessionCookieName: "supacode_session",
+    sessionCookieName: "supaterm_session",
   },
   cwd: "/tmp/workspace",
   keybindingsConfigPath: "/tmp/workspace/keybindings.json",
@@ -312,7 +312,7 @@ describe("RpcSessionFactory", () => {
         );
         expect(yield* Queue.take(updates)).toEqual(config);
         const advertisement = {
-          relayEndpoint: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`,
+          relayEndpoint: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
           relayUrl: "wss://custom.example.test",
         };
         yield* publishConfigEvents(socket, [

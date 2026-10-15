@@ -1,4 +1,4 @@
-import { stripDisplayedPlanMarkdown, proposedPlanTitle } from "@supacode/shared/proposedPlanText";
+import { stripDisplayedPlanMarkdown, proposedPlanTitle } from "@supaterm/shared/proposedPlanText";
 
 export function buildCollapsedProposedPlanPreviewMarkdown(
   planMarkdown: string,

@@ -1,4 +1,4 @@
-import type { DevicePlatformAvailability } from "@supacode/contracts";
+import type { DevicePlatformAvailability } from "@supaterm/contracts";
 import { Check, Minus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 

@@ -4,11 +4,11 @@
  *
  * @module source-control-github/server/gitHubChangeRequestTemplate
  */
-import type { GitCommandError } from "@supacode/contracts";
+import type { GitCommandError } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 
-import type * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+import type * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 
 const TEMPLATE_MAX_BYTES = 8_000;
 const TREE_LIST_MAX_BYTES = 100_000;

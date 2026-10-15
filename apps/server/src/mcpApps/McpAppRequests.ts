@@ -10,9 +10,9 @@ import {
   type OrchestrationV2AppThread,
   type ThreadId,
   type TurnItemId,
-} from "@supacode/contracts";
-import { mcpAppToolCallableByApp, type McpAppReference } from "@supacode/shared/mcpApp";
-import { mcpAppFromToolItem } from "@supacode/shared/toolOutput";
+} from "@supaterm/contracts";
+import { mcpAppToolCallableByApp, type McpAppReference } from "@supaterm/shared/mcpApp";
+import { mcpAppFromToolItem } from "@supaterm/shared/toolOutput";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -21,7 +21,7 @@ import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";
 
 import * as Orchestrator from "../orchestration-v2/Orchestrator.ts";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProviderSessionManager from "../orchestration-v2/ProviderSessionManager.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
 import * as McpAppModelContext from "./McpAppModelContext.ts";
@@ -42,7 +42,7 @@ export class McpAppRequests extends Context.Service<
       input: McpAppUpdateModelContextInput,
     ) => Effect.Effect<void, McpAppRequestError>;
   }
->()("supacode/mcpApps/McpAppRequests") {}
+>()("supaterm/mcpApps/McpAppRequests") {}
 
 const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 const utf8 = new TextEncoder();

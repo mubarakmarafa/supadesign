@@ -13,7 +13,7 @@ import {
 export const ORCHESTRATION_PROTOCOL_VERSION = 2;
 export const ORCHESTRATION_PROTOCOL_VERSION_TEXT = "2";
 export const ORCHESTRATION_PROTOCOL_QUERY_PARAM = "orchestrationProtocol";
-export const ORCHESTRATION_PROTOCOL_HEADER = "x-supacode-orchestration-protocol";
+export const ORCHESTRATION_PROTOCOL_HEADER = "x-supaterm-orchestration-protocol";
 
 export const ExecutionEnvironmentPlatformOs = Schema.Literals([
   "darwin",
@@ -86,7 +86,7 @@ export type ServerInstallation = typeof ServerInstallation.Type;
 
 /** What update path a client should offer for a server: one of the RPC
     self-update methods above, or "desktop-managed" when the backend's
-    version belongs to the Supacode desktop app supervising it — updating the
+    version belongs to the Supaterm desktop app supervising it — updating the
     app on that machine is the only way to update the server. */
 export const ServerSelfUpdateCapability = Schema.Literals([
   "boot-service",

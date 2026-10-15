@@ -5,7 +5,7 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   type ChatAttachment,
   type RuntimeMode,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -213,7 +213,7 @@ const makeAttachmentFixture = Effect.fn("AntigravityAcpSupportTest.makeAttachmen
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const attachmentsDir = yield* fs.makeTempDirectoryScoped({
-      prefix: "supacode-antigravity-attachments-",
+      prefix: "supaterm-antigravity-attachments-",
     });
     const write = Effect.fn("AntigravityAcpSupportTest.writeAttachment")(function* (
       attachment: ChatAttachment,

@@ -1,11 +1,11 @@
-import { NodeId, PlanId, ProjectId, RunId } from "@supacode/contracts";
+import { NodeId, PlanId, ProjectId, RunId } from "@supaterm/contracts";
 import {
   getLatestThreadForProject,
   sortActiveThreadsByOrderKey,
   sortPinnedThreadsByOrderKey,
   sortThreads,
-} from "@supacode/client-runtime/state/thread-sort";
-import { formatHourShort, formatRelativeHourShort } from "@supacode/shared/usageFormat";
+} from "@supaterm/client-runtime/state/thread-sort";
+import { formatHourShort, formatRelativeHourShort } from "@supaterm/shared/usageFormat";
 import { describe, test } from "vite-plus/test";
 
 import { makeThreadProjectionFixture } from "./test-fixtures";

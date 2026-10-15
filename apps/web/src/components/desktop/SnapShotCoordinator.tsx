@@ -2,7 +2,7 @@ import {
   type DesktopPendingSnapShot,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 
 import {

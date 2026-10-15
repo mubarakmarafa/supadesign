@@ -1,6 +1,6 @@
 // @effect-diagnostics nodeBuiltinImport:off - OS file-open events carry paths that Node converts to file URLs.
 import * as NodeURL from "node:url";
-import { promptLinkAppPath } from "@supacode/shared/promptLinks";
+import { promptLinkAppPath } from "@supaterm/shared/promptLinks";
 import * as DesktopWebLinks from "./DesktopWebLinks.ts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -8,11 +8,11 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Scope from "effect/Scope";
 
-import { codexAuthDeliveryUrl, readCodexAuthHandoff } from "@supacode/shared/codexAuthHandoff";
+import { codexAuthDeliveryUrl, readCodexAuthHandoff } from "@supaterm/shared/codexAuthHandoff";
 import { receiveCodexAuthCallback, CodexAuthCallbackError } from "./CodexAuthCallback.ts";
 import * as ElectronShell from "../electron/ElectronShell.ts";
-import { providerAuthReturnUrl } from "@supacode/shared/providerAuthReturnUrl";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { providerAuthReturnUrl } from "@supaterm/shared/providerAuthReturnUrl";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
@@ -33,7 +33,7 @@ export class DesktopDeepLinks extends Context.Service<
       | DesktopOpenEvents.DesktopOpenEvents
     >;
   }
->()("@supacode/desktop/app/DesktopDeepLinks") {}
+>()("@supaterm/desktop/app/DesktopDeepLinks") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {

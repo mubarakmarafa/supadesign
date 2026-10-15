@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/scripts",
+  "name": "@supaterm/scripts",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,9 +10,9 @@
     "@effect/platform-node": "catalog:",
     "@electron/asar": "^4.3.0",
     "@electron/osx-sign": "2.7.1",
-    "@supacode/contracts": "workspace:*",
-    "@supacode/shared": "workspace:*",
-    "@supacode/tailscale": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/shared": "workspace:*",
+    "@supaterm/tailscale": "workspace:*",
     "effect": "catalog:",
     "playwright-core": "1.60.0",
     "plist": "3.1.0",

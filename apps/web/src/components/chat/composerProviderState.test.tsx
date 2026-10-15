@@ -4,8 +4,8 @@ import {
   type ProviderOptionDescriptor,
   type ProviderOptionSelection,
   type ServerProviderModel,
-} from "@supacode/contracts";
-import { getProviderOptionDescriptors } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { getProviderOptionDescriptors } from "@supaterm/shared/model";
 import { getProviderModelCapabilities } from "../../providerModels";
 import {
   getComposerPromptInjectionState,

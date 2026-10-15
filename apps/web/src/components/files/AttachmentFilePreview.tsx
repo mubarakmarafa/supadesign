@@ -1,8 +1,8 @@
-import { filePreviewDelimiter } from "@supacode/shared/delimitedPreview";
-import type { EnvironmentId } from "@supacode/contracts";
-import { formatAttachmentSize } from "@supacode/client-runtime/state/attachments";
-import { readFilePreviewResponse } from "@supacode/client-runtime/file-preview";
-import { filePreviewKind, FILE_TEXT_PREVIEW_MAX_BYTES } from "@supacode/shared/filePreview";
+import { filePreviewDelimiter } from "@supaterm/shared/delimitedPreview";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
+import { readFilePreviewResponse } from "@supaterm/client-runtime/file-preview";
+import { filePreviewKind, FILE_TEXT_PREVIEW_MAX_BYTES } from "@supaterm/shared/filePreview";
 import { ChevronRightIcon, DownloadIcon, Trash2Icon, WrapTextIcon, XIcon } from "lucide-react";
 import { Check, Code2, Copy, Eye, Table2 } from "lucide";
 import {
@@ -334,7 +334,7 @@ export function AttachmentFilePreview(props: {
       />
     </div>
   ) : kind === "image" ? (
-    // oxlint-disable-next-line supacode/require-centered-scroll-gutter -- The image is capped at max-h-full max-w-full, so this never scrolls.
+    // oxlint-disable-next-line supaterm/require-centered-scroll-gutter -- The image is capped at max-h-full max-w-full, so this never scrolls.
     <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
       <img
         src={url}

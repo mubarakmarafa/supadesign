@@ -4,7 +4,7 @@ import {
   EnvironmentId,
   type AuthEnvironmentScope,
   ORCHESTRATION_PROTOCOL_VERSION,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -13,7 +13,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as SubscriptionRef from "effect/SubscriptionRef";
 import * as TestClock from "effect/testing/TestClock";
-import { buildPairingUrl } from "@supacode/shared/remote";
+import { buildPairingUrl } from "@supaterm/shared/remote";
 
 import { RelayGateway, layer as layerRelayGateway } from "../relay/gateway.ts";
 import * as RpcHttp from "../rpc/http.ts";
@@ -44,7 +44,7 @@ const layerClientPresentation = Layer.succeed(
   ClientCapabilities.ClientPresentation,
   ClientCapabilities.ClientPresentation.of({
     metadata: {
-      label: "Supacode Test",
+      label: "Supaterm Test",
       deviceType: "desktop",
       os: "Test OS",
     },
@@ -93,7 +93,7 @@ function pairingServer(options?: {
   let sessionScopes: ReadonlyArray<string> = [];
   let exchanged = false;
   return (path, init) => {
-    if (path === "/.well-known/supacode/environment") {
+    if (path === "/.well-known/supaterm/environment") {
       if (options?.failDescriptor === true) {
         return Response.json({ message: "descriptor unavailable" }, { status: 503 });
       }
@@ -149,7 +149,7 @@ function pairingServer(options?: {
           policy: "remote-reachable",
           bootstrapMethods: ["one-time-token"],
           sessionMethods: ["bearer-access-token"],
-          sessionCookieName: "supacode_session",
+          sessionCookieName: "supaterm_session",
         },
         scopes: sessionScopes,
         sessionMethod: "bearer-access-token",
@@ -272,7 +272,7 @@ describe("connection onboarding", () => {
       Effect.gen(function* () {
         const calls: Array<Call> = [];
         const entered = Promise.withResolvers<void>();
-        const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+        const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
         const pairingUrl = buildPairingUrl(relayEndpoint, "pairing-token", {
           environmentId: SAVED_ENVIRONMENT_ID,
           routes: [TAILNET],
@@ -324,7 +324,7 @@ describe("connection onboarding", () => {
         const closed = Promise.withResolvers<void>();
         let closes = 0;
         const calls: Call[] = [];
-        const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+        const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
         const gatewayLayer = layerRelayGateway({
           fetch: globalThis.fetch,
           open: async () => {
@@ -377,7 +377,7 @@ describe("connection onboarding", () => {
     Effect.gen(function* () {
       const calls: Array<Call> = [];
       const entered = Promise.withResolvers<void>();
-      const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+      const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
       const pending = yield* preparePairingRegistration(
         { pairingUrl: buildPairingUrl(relayEndpoint, "pairing-token") },
         NO_SAVED_ENVIRONMENTS,
@@ -414,7 +414,7 @@ describe("connection onboarding", () => {
     "pairs an unreachable LAN link through a learned custom relay with a cold gateway",
     () =>
       Effect.gen(function* () {
-        const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+        const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
         const customRelay = "wss://private-relay.example.test";
         const loopback = "http://127.0.0.1:44000";
         const calls: Call[] = [];
@@ -523,7 +523,7 @@ describe("connection onboarding", () => {
         ),
       );
       expect(urls(calls)).toEqual([
-        `${LAN}/.well-known/supacode/environment`,
+        `${LAN}/.well-known/supaterm/environment`,
         `${LAN}/oauth/token`,
       ]);
     }),
@@ -551,7 +551,7 @@ describe("connection onboarding", () => {
         Effect.forkChild,
       );
       yield* Deferred.await(silenced);
-      expect(urls(calls)).toEqual([`${LAN}/.well-known/supacode/environment`]);
+      expect(urls(calls)).toEqual([`${LAN}/.well-known/supaterm/environment`]);
       yield* TestClock.adjust(ROUTE_CHECK_TIMEOUT_MS);
       const { registration } = yield* Fiber.join(fiber);
       expect(registration.profile.httpBaseUrl).toBe(`${TAILNET}/`);
@@ -576,7 +576,7 @@ describe("connection onboarding", () => {
       );
       expect(registration.profile.httpBaseUrl).toBe(`${LAN}/`);
       expect(
-        urls(calls).filter((url) => url === `${TAILNET}/.well-known/supacode/environment`),
+        urls(calls).filter((url) => url === `${TAILNET}/.well-known/supaterm/environment`),
       ).toHaveLength(1);
     }),
   );
@@ -655,7 +655,7 @@ describe("connection onboarding", () => {
         },
       });
       expect(calls.map((call) => call.url)).toEqual([
-        "https://remote.example.test/.well-known/supacode/environment",
+        "https://remote.example.test/.well-known/supaterm/environment",
         "https://remote.example.test/oauth/token",
       ]);
 
@@ -667,7 +667,7 @@ describe("connection onboarding", () => {
       const tokenParams = new URLSearchParams(tokenBody);
       expect(tokenParams.get("subject_token")).toBe("pairing-token");
       expect(tokenParams.has("scope")).toBe(false);
-      expect(tokenParams.get("client_label")).toBe("Supacode Test");
+      expect(tokenParams.get("client_label")).toBe("Supaterm Test");
       expect(tokenParams.get("client_device_type")).toBe("desktop");
       expect(tokenParams.get("client_os")).toBe("Test OS");
     }),
@@ -695,7 +695,7 @@ describe("connection onboarding", () => {
       );
       expect(error).toMatchObject({ reason: "unsupported" });
       expect(calls.map((call) => call.url)).toEqual([
-        "https://remote.example.test/.well-known/supacode/environment",
+        "https://remote.example.test/.well-known/supaterm/environment",
       ]);
     }),
   );
@@ -776,7 +776,7 @@ describe("connection onboarding", () => {
       expect(error).toMatchObject({ reason: "unsupported" });
       expect(error).not.toHaveProperty("serverUpdateRequired");
       expect(calls.map((call) => call.url)).toEqual([
-        "https://remote.example.test/.well-known/supacode/environment",
+        "https://remote.example.test/.well-known/supaterm/environment",
       ]);
     }),
   );
@@ -802,7 +802,7 @@ describe("connection onboarding", () => {
       );
 
       expect(calls.map((call) => call.url)).toEqual([
-        "https://remote.example.test/.well-known/supacode/environment",
+        "https://remote.example.test/.well-known/supaterm/environment",
       ]);
     }),
   );
@@ -970,7 +970,7 @@ describe("connection onboarding", () => {
         Effect.forkChild,
       );
       yield* Deferred.await(silenced);
-      expect(urls(calls)).toEqual([`${LAN}/.well-known/supacode/environment`]);
+      expect(urls(calls)).toEqual([`${LAN}/.well-known/supaterm/environment`]);
 
       yield* TestClock.adjust(ROUTE_CHECK_TIMEOUT_MS);
       yield* Fiber.join(fiber);
@@ -992,7 +992,7 @@ describe("connection onboarding", () => {
       );
 
       expect(urls(calls)).toEqual([
-        `${LAN}/.well-known/supacode/environment`,
+        `${LAN}/.well-known/supaterm/environment`,
         `${LAN}/oauth/token`,
       ]);
     }),

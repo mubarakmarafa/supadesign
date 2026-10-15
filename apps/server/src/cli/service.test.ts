@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import * as NetService from "@supacode/shared/Net";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import * as NetService from "@supaterm/shared/Net";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -19,18 +19,18 @@ const status = {
   supported: true,
   installed: true,
   current: true,
-  unitPath: "/home/me/.config/systemd/user/supacode.service",
-  logPath: "/home/me/.supacode/userdata/logs/boot-service.log",
+  unitPath: "/home/me/.config/systemd/user/supaterm.service",
+  logPath: "/home/me/.supaterm/userdata/logs/boot-service.log",
 } as const;
 
 it("reports the installed service version and host paths", () => {
   assert.equal(
     formatServiceStatus(status, "0.0.29"),
     [
-      "Supacode service",
-      "  Status: installed · supacode@0.0.29",
-      "  Unit: /home/me/.config/systemd/user/supacode.service",
-      "  Logs: /home/me/.supacode/userdata/logs/boot-service.log",
+      "Supaterm service",
+      "  Status: installed · supaterm@0.0.29",
+      "  Unit: /home/me/.config/systemd/user/supaterm.service",
+      "  Logs: /home/me/.supaterm/userdata/logs/boot-service.log",
     ].join("\n"),
   );
 });
@@ -38,7 +38,7 @@ it("reports the installed service version and host paths", () => {
 it("gives a direct repair command for a stale service", () => {
   assert.include(
     formatServiceStatus({ ...status, current: false }, "0.0.29"),
-    "Next: Run `supacode service install` to repair it.",
+    "Next: Run `supaterm service install` to repair it.",
   );
 });
 
@@ -57,7 +57,7 @@ it("explains an incomplete nightly installation and keeps repair on its installe
   expect(output).toContain("last login session ends");
   expect(output).toContain('sudo loginctl enable-linger "$(id -un)"');
   expect(output).toContain("[service-stopped]");
-  expect(output).toContain("Run `supacode service install` to repair it.");
+  expect(output).toContain("Run `supaterm service install` to repair it.");
   expect(output).not.toContain("npx");
 });
 
@@ -66,7 +66,7 @@ it("points an older service at a repair, never at npx", () => {
     { ...status, current: false, installedVersion: "0.0.28" },
     "0.0.29",
   );
-  expect(output).toContain("Run `supacode service install` to repair it.");
+  expect(output).toContain("Run `supaterm service install` to repair it.");
   expect(output).not.toContain("npx");
 });
 
@@ -83,8 +83,8 @@ it("reports a newer installed service and tells the CLI to catch up to it", () =
     "0.0.31",
   );
 
-  assert.include(output, "supacode@0.0.32-nightly.1 (newer than this supacode@0.0.31 CLI)");
-  assert.include(output, "Run `supacode update 0.0.32-nightly.1` to match it");
+  assert.include(output, "supaterm@0.0.32-nightly.1 (newer than this supaterm@0.0.31 CLI)");
+  assert.include(output, "Run `supaterm update 0.0.32-nightly.1` to match it");
   assert.notInclude(output, "npx");
 });
 
@@ -103,8 +103,8 @@ function makeTestService(serviceStatus: BootService.BootServiceStatus) {
       Effect.sync(() => {
         installOptions.push(options);
         return {
-          program: ["/test/supacode/runtime/versions/1.0.0/supacode", "__service-launcher"],
-          baseDir: "/test/supacode",
+          program: ["/test/supaterm/runtime/versions/1.0.0/supaterm", "__service-launcher"],
+          baseDir: "/test/supaterm",
           unitPath: serviceStatus.unitPath,
           logPath: serviceStatus.logPath,
         };
@@ -118,7 +118,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
   it.effect("restart restarts the installed service", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-service-cli-test-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-service-cli-test-" });
       const { service, installOptions, restarts } = makeTestService(status);
       vi.spyOn(BootService, "layer").mockReturnValue(
         Layer.succeed(BootService.BootService, service),
@@ -143,7 +143,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
     (command) =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
-        const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-service-cli-test-" });
+        const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-service-cli-test-" });
         const { service, installOptions } = makeTestService(newerServiceStatus);
         vi.spyOn(BootService, "layer").mockReturnValue(
           Layer.succeed(BootService.BootService, service),
@@ -171,7 +171,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
   it.effect.each(["install", "update"] as const)("%s allows an explicit downgrade", (command) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-service-cli-test-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-service-cli-test-" });
       const { service, installOptions } = makeTestService(newerServiceStatus);
       vi.spyOn(BootService, "layer").mockReturnValue(
         Layer.succeed(BootService.BootService, service),

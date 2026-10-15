@@ -1,9 +1,9 @@
 import type {
   EnvironmentPresentation,
   PreparedConnection,
-} from "@supacode/client-runtime/connection";
-import { connectionCatalogDisplayUrl } from "@supacode/client-runtime/connection";
-import type { EnvironmentId, ServerConfig } from "@supacode/contracts";
+} from "@supaterm/client-runtime/connection";
+import { connectionCatalogDisplayUrl } from "@supaterm/client-runtime/connection";
+import type { EnvironmentId, ServerConfig } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { Atom } from "effect/reactivity";
 

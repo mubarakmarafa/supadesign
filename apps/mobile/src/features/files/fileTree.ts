@@ -1,5 +1,5 @@
-import type { ProjectEntry } from "@supacode/contracts";
-import { normalizeSearchQuery, scoreQueryMatch } from "@supacode/shared/searchRanking";
+import type { ProjectEntry } from "@supaterm/contracts";
+import { normalizeSearchQuery, scoreQueryMatch } from "@supaterm/shared/searchRanking";
 
 export interface FileTreeNode {
   readonly path: string;

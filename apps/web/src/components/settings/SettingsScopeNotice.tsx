@@ -1,4 +1,4 @@
-import { connectionAddressLabel } from "@supacode/client-runtime/connection";
+import { connectionAddressLabel } from "@supaterm/client-runtime/connection";
 import { Button } from "../ui/button";
 import { Alert, AlertAction, AlertDescription } from "../ui/alert";
 import { SettingsPageContainer } from "./settingsLayout";
@@ -7,7 +7,7 @@ import { useEnvironments } from "../../state/environments";
 import type { SettingsScopeSearch } from "./settingsScope";
 import { useSettingsProjectGroups } from "./useSettingsProjectGroups";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 /** Offer an explicit target change when a category has no settings at this scope. */
 export function SettingsScopeNotice({

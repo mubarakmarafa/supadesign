@@ -3,7 +3,7 @@ import type {
   ServerProvider,
   UsageSummary,
   UsageSummaryInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import type { AtomRegistry } from "effect/reactivity";
 

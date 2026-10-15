@@ -9,7 +9,7 @@ Device panel work over Tailscale and other remote connections, including when an
 
 [expo-device-hub](../../apps/server/src/device/LocalDeviceHost.ts) streams and
 [agent-device](../../apps/server/src/device/AgentDeviceShim.ts) drives. Each is
-npm-installed at a pinned version into the Supacode home after its matching Device
+npm-installed at a pinned version into the Supaterm home after its matching Device
 panel consent step. Manual setup installs and starts only expo-device-hub;
 agent-device remains absent and stopped until agent access is granted. Both run
 with the server's Node; `npx` would make the first `device_open` after a reboot
@@ -43,7 +43,7 @@ the Vite proxy must forward WebSocket upgrades for `/api`, not only `/ws`.
 
 serve-sim's preview drives its Tools panel by sending shell commands over that
 same exec channel. Proxying it, even allowlisted, would hand any environment
-session arbitrary command execution on the host, so Supacode does not. The
+session arbitrary command execution on the host, so Supaterm does not. The
 [`device.action`](../../apps/server/src/device/DeviceActions.ts) RPC runs the
 underlying `simctl`, `adb`, and serve-sim helper binaries itself through
 `DeviceHostReady.run`, one typed action per control, and returns the settings
@@ -55,7 +55,7 @@ screenshot capture and stream tuning.
 
 The `device_*` toolkit is deliberately four tools: list, open, screenshot, and
 close. Driving happens through the `agent-device` CLI, which has the semantic
-snapshot model agents need and stays current with its own releases. Supacode prepends
+snapshot model agents need and stays current with its own releases. Supaterm prepends
 a shim directory to the provider's PATH. The CLI installs on the environment
 server even when that server cannot run simulators. Hosts start on demand.
 

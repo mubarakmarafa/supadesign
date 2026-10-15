@@ -13,14 +13,14 @@ import {
   type ProviderInstanceId,
   type ScopedThreadRef,
   type SidebarProjectGroupingMode,
-} from "@supacode/contracts";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { presentThreadShell } from "@supacode/client-runtime/state/shell";
+} from "@supaterm/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { presentThreadShell } from "@supaterm/client-runtime/state/shell";
 import {
   isAtomCommandInterrupted,
   settlePromise,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   DEFAULT_UNIFIED_SETTINGS,
   type ChatWidth,
@@ -41,9 +41,9 @@ import {
   MIN_TERMINAL_FONT_SIZE,
   type QuitConfirmationMode,
   SidebarProjectSortOrder,
-} from "@supacode/contracts/settings";
-import { resolveServerBackgroundActivitySettings } from "@supacode/shared/backgroundActivitySettings";
-import { createModelSelection } from "@supacode/shared/model";
+} from "@supaterm/contracts/settings";
+import { resolveServerBackgroundActivitySettings } from "@supaterm/shared/backgroundActivitySettings";
+import { createModelSelection } from "@supaterm/shared/model";
 import * as Duration from "effect/Duration";
 import * as Equal from "effect/Equal";
 import * as Schema from "effect/Schema";
@@ -1919,7 +1919,7 @@ export function GeneralSettingsPanel() {
         <NotificationSettings />
         <SettingsRow
           {...searchableSetting("in-app-notifications")}
-          description="Show toasts for other threads while Supacode is focused."
+          description="Show toasts for other threads while Supaterm is focused."
           control={
             <Switch
               checked={settings.inAppNotificationsEnabled}

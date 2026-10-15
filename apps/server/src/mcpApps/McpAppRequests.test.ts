@@ -6,7 +6,7 @@ import {
   type McpAppRequestError,
   type OrchestrationV2ProviderThread,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { assert, describe, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -14,7 +14,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
 import * as Orchestrator from "../orchestration-v2/Orchestrator.ts";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProviderSessionManager from "../orchestration-v2/ProviderSessionManager.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
 import * as McpAppModelContext from "./McpAppModelContext.ts";
@@ -165,7 +165,7 @@ describe("McpAppRequests", () => {
         readOnly: true,
         tool: { name: "refresh", annotations: { readOnlyHint: true } },
       });
-    }).pipe(Effect.provide(makeLayer({ item: appItem({ supacodeMcpApp: app }), mcpApps }))),
+    }).pipe(Effect.provide(makeLayer({ item: appItem({ supatermMcpApp: app }), mcpApps }))),
   );
 
   it.effect("refuses tools hidden from apps or missing from the server", () =>
@@ -179,7 +179,7 @@ describe("McpAppRequests", () => {
         );
       }
       assert.equal(calls.length, before);
-    }).pipe(Effect.provide(makeLayer({ item: appItem({ supacodeMcpApp: app }), mcpApps }))),
+    }).pipe(Effect.provide(makeLayer({ item: appItem({ supatermMcpApp: app }), mcpApps }))),
   );
 
   it.effect("keeps each app's latest model context, without a live session", () =>
@@ -220,7 +220,7 @@ describe("McpAppRequests", () => {
       );
       yield* requests.updateModelContext(own);
       assert.isFalse(storedContext.has(`${threadId}/${itemId}`));
-    }).pipe(Effect.provide(makeLayer({ item: appItem({ supacodeMcpApp: app }), live: false }))),
+    }).pipe(Effect.provide(makeLayer({ item: appItem({ supatermMcpApp: app }), live: false }))),
   );
 
   it.effect("stores a fork's model context under the fork, and refuses unrelated threads", () =>
@@ -254,7 +254,7 @@ describe("McpAppRequests", () => {
         content,
       });
       assert.isTrue(storedContext.has(`${deepForkId(70)}/${itemId}`));
-    }).pipe(Effect.provide(makeLayer({ item: appItem({ supacodeMcpApp: app }), live: false }))),
+    }).pipe(Effect.provide(makeLayer({ item: appItem({ supatermMcpApp: app }), live: false }))),
   );
 
   it.effect("reports why a request cannot run", () =>
@@ -269,11 +269,11 @@ describe("McpAppRequests", () => {
         "not-an-app",
       );
       assert.equal(
-        yield* run(makeLayer({ item: appItem({ supacodeMcpApp: app }), mcpApps, live: false })),
+        yield* run(makeLayer({ item: appItem({ supatermMcpApp: app }), mcpApps, live: false })),
         "session-stopped",
       );
       assert.equal(
-        yield* run(makeLayer({ item: appItem({ supacodeMcpApp: app }) })),
+        yield* run(makeLayer({ item: appItem({ supatermMcpApp: app }) })),
         "provider-unsupported",
       );
     }),

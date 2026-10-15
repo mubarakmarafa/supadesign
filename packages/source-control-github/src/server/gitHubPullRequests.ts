@@ -4,8 +4,8 @@ import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
-import { PositiveInt, TrimmedNonEmptyString } from "@supacode/contracts";
-import { decodeJsonResult } from "@supacode/shared/schemaJson";
+import { PositiveInt, TrimmedNonEmptyString } from "@supaterm/contracts";
+import { decodeJsonResult } from "@supaterm/shared/schemaJson";
 
 export interface NormalizedGitHubPullRequestRecord {
   readonly number: number;

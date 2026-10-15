@@ -18,9 +18,9 @@ import {
   EnvironmentScopeRequiredError,
   EnvironmentAuthenticatedAuth,
   EnvironmentAuthenticatedPrincipal,
-} from "@supacode/contracts";
-import { parseOAuthScope } from "@supacode/shared/oauthScope";
-import { causeErrorTag } from "@supacode/shared/observability";
+} from "@supaterm/contracts";
+import { parseOAuthScope } from "@supaterm/shared/oauthScope";
+import { causeErrorTag } from "@supaterm/shared/observability";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 

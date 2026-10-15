@@ -3,27 +3,27 @@ import {
   buildFileLinkParentSuffixByPath,
   fileLinkLabel,
   resolvePathLinkTarget,
-} from "@supacode/shared/fileLinks";
+} from "@supaterm/shared/fileLinks";
 import {
   isWindowsDrivePathHref,
   normalizeMarkdownLinkDestination,
   extractInlineCodeSpans,
   extractMarkdownLinkHrefs,
   inlineCodeFilePathCandidate,
-} from "@supacode/shared/markdownLinks";
-import { isAbsolutePath } from "@supacode/shared/path";
+} from "@supaterm/shared/markdownLinks";
+import { isAbsolutePath } from "@supaterm/shared/path";
 import { usePullRequestLinking } from "~/hooks/usePullRequestLinking";
-import { AuthFilesystemReadScope, AuthOrchestrationOperateScope } from "@supacode/contracts";
+import { AuthFilesystemReadScope, AuthOrchestrationOperateScope } from "@supaterm/contracts";
 import {
   CHAT_MARKDOWN_REMARK_PLUGINS,
   CHAT_MARKDOWN_REMARK_PLUGINS_WITH_BREAKS,
   CHAT_MARKDOWN_REHYPE_PLUGINS,
-} from "@supacode/shared/markdownPipeline";
+} from "@supaterm/shared/markdownPipeline";
 import { useAtomValue } from "@effect/atom-react";
 import {
   COMPOSER_CONTEXT_CLIPBOARD_MIME,
   encodeComposerContextClipboardHtml,
-} from "@supacode/shared/composerContextClipboard";
+} from "@supaterm/shared/composerContextClipboard";
 import {
   FileSpreadsheetIcon,
   FileTextIcon,
@@ -50,25 +50,25 @@ import {
   type ScopedThreadRef,
   type ServerProviderSkill,
   type ThreadPullRequestKey,
-} from "@supacode/contracts";
-import { faviconUrlForOrigin } from "@supacode/shared/favicon";
-import { githubMediaFetchUrl } from "@supacode/shared/githubMedia";
+} from "@supaterm/contracts";
+import { faviconUrlForOrigin } from "@supaterm/shared/favicon";
+import { githubMediaFetchUrl } from "@supaterm/shared/githubMedia";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   codexArtifactTemplatePresentationLabel,
   type CodexArtifactTemplate,
   type CodexArtifactTemplateKind,
-} from "@supacode/shared/codexArtifactTemplates";
+} from "@supaterm/shared/codexArtifactTemplates";
 import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
-} from "@supacode/client-runtime/markdown-images";
-import { mediaFileReference, mediaUrlReference } from "@supacode/client-runtime/media-reference";
-import { mediaKindFromPath, mediaMimeTypeFromExtension } from "@supacode/shared/filePreview";
+} from "@supaterm/client-runtime/markdown-images";
+import { mediaFileReference, mediaUrlReference } from "@supaterm/client-runtime/media-reference";
+import { mediaKindFromPath, mediaMimeTypeFromExtension } from "@supaterm/shared/filePreview";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import React, {
@@ -98,15 +98,15 @@ import ReactMarkdown from "react-markdown";
 import { toHtml } from "hast-util-to-html";
 import { createIncrementalMarkdownPlugin } from "../markdown-incremental";
 import { defaultUrlTransform } from "react-markdown";
-import { parseAssistantCitationHref } from "@supacode/shared/assistantCitations";
-import { parseComposerContextHref } from "@supacode/shared/composerContextReferences";
-import { parseThreadLinkHref } from "@supacode/shared/threadLinks";
+import { parseAssistantCitationHref } from "@supaterm/shared/assistantCitations";
+import { parseComposerContextHref } from "@supaterm/shared/composerContextReferences";
+import { parseThreadLinkHref } from "@supaterm/shared/threadLinks";
 import { AssistantCitationChip } from "./chat/AssistantCitationChip";
 import { MarkdownThreadLink } from "./chat/MarkdownThreadLink";
 import {
   artifactTemplateFromHastProperties,
   renderCodexFileCitationsAsMarkdown,
-} from "@supacode/shared/codexMarkdownDirectives";
+} from "@supaterm/shared/codexMarkdownDirectives";
 import { renderSkillInlineMarkdownChildren } from "./chat/SkillInlineText";
 import {
   resolveMarkdownMediaPreview,
@@ -170,7 +170,7 @@ import {
   shouldOpenMarkdownFileLinkInEditor,
   type MarkdownFileLinkMeta,
 } from "../markdown-links";
-import { isMarkdownFileLinkLabel } from "@supacode/shared/markdownLinks";
+import { isMarkdownFileLinkLabel } from "@supaterm/shared/markdownLinks";
 import { isElectron } from "../env";
 import { readLocalApi } from "../localApi";
 import { useAssetUrlRefresh, useAssetUrlState } from "../assets/assetUrls";
@@ -238,7 +238,7 @@ interface ChatMarkdownProps {
   imageBaseDir?: string | undefined;
   onImageExpand?: ((preview: ExpandedImagePreview) => void) | undefined;
   extraRemarkPlugins?: NonNullable<ReactMarkdownOptions["remarkPlugins"]>;
-  /** Renders a `supacode-context://` link as a chip; without it the link shows its label as text. */
+  /** Renders a `supaterm-context://` link as a chip; without it the link shows its label as text. */
   renderContextReference?: ((reference: ChatMarkdownContextReference) => ReactNode) | undefined;
   /** Loads GitHub-hosted media through `cwd`'s GitHub credential, which a private repository's
       uploads need; without it those images and videos load unauthenticated and 404. */

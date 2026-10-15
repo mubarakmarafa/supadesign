@@ -1,9 +1,9 @@
 import { SettingsGroup } from "./SettingsGroup";
-import { AuthSettingsWriteScope } from "@supacode/contracts";
+import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { usePrimaryEnvironmentId, usePrimaryEnvironment } from "../../state/environments";
 import { useEnvironmentScope, useEnvironmentsWithScope } from "../../state/session";
 import { InfoIcon, Undo2Icon } from "lucide-react";
-import { DEFAULT_SERVER_SETTINGS, type ServerSettings } from "@supacode/contracts";
+import { DEFAULT_SERVER_SETTINGS, type ServerSettings } from "@supaterm/contracts";
 import * as Equal from "effect/Equal";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
@@ -430,8 +430,8 @@ export function SettingsRow({
     ? { state: "mixed", summary: "Mixed across selected environments" }
     : source === "project"
       ? { state: "overridden", summary: "Overridden for this project" }
-      : source === "supacode.json"
-        ? { state: "inherited", summary: "Inherited from the repository's supacode.json" }
+      : source === "supaterm.json"
+        ? { state: "inherited", summary: "Inherited from the repository's supaterm.json" }
         : source === "environment" && scopedKeys.length > 0
           ? { state: "inherited", summary: `Inherited from ${inheritedFrom}` }
           : customized

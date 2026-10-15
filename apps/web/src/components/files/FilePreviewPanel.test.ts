@@ -1,5 +1,5 @@
-import type { ScopedThreadRef } from "@supacode/contracts";
-import { ProjectReadFileError } from "@supacode/contracts";
+import type { ScopedThreadRef } from "@supaterm/contracts";
+import { ProjectReadFileError } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";
 

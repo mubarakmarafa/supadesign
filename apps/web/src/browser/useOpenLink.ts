@@ -1,8 +1,8 @@
-import { AuthPreviewOperateScope, type ScopedThreadRef } from "@supacode/contracts";
+import { AuthPreviewOperateScope, type ScopedThreadRef } from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { useCallback } from "react";
 
 import { recordVisitForThread } from "~/browserHistoryStore";

@@ -19,7 +19,7 @@ import {
   type ProviderReplayTranscript,
   type ProviderUserInputAnswers,
   type RuntimeMode,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 
@@ -27,7 +27,7 @@ import type {
   OrchestratorV2ScenarioResult,
   OrchestratorV2ScenarioStep,
 } from "../OrchestratorScenario.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import type { RuntimePolicyV2Override } from "../../RuntimePolicy.ts";
 
 export const SIMPLE_PROMPT = "Respond with the following text: fixture simple ok";
@@ -1392,7 +1392,7 @@ export function assertConversationMessageRoles(
 }
 
 /**
- * ACP agents run their own file and shell work: Supacode advertises neither
+ * ACP agents run their own file and shell work: Supaterm advertises neither
  * capability (the transcript pins its initialize) and the agent never asks.
  */
 export function assertNoAcpClientFileOrTerminalRequests(transcript: ProviderReplayTranscript) {
@@ -1404,7 +1404,7 @@ export function assertNoAcpClientFileOrTerminalRequests(transcript: ProviderRepl
   assert.deepInclude(
     frames.find((frame) => frame.method === "initialize")?.params?.clientCapabilities ?? {},
     { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
-    "Supacode must not advertise client fs or terminals",
+    "Supaterm must not advertise client fs or terminals",
   );
   assert.deepEqual(
     frames.flatMap((frame) =>
@@ -1413,7 +1413,7 @@ export function assertNoAcpClientFileOrTerminalRequests(transcript: ProviderRepl
         : [],
     ),
     [],
-    "the agent must not route file or terminal work through Supacode",
+    "the agent must not route file or terminal work through Supaterm",
   );
 }
 

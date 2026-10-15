@@ -1,9 +1,9 @@
-import { AuthSettingsWriteScope } from "@supacode/contracts";
+import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { useEnvironmentsWithScope } from "../../state/session";
 import {
   requiredScopesForServerSettingsPatch,
   EnvironmentAuthorizationError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { readEnvironmentScope } from "../../state/session";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
@@ -12,7 +12,7 @@ import {
   type ProjectScopedServerSettingKey,
   type ServerSettings,
   type UnifiedSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useCallback, useMemo } from "react";
 
 import {

@@ -1,14 +1,14 @@
 included:
-  - ios/Supacode
-  - modules/supacode-composer-editor/ios
-  - modules/supacode-native-controls/ios
-  - modules/supacode-terminal/ios
-  - modules/supacode-review-diff/ios
+  - ios/Supaterm
+  - modules/supaterm-composer-editor/ios
+  - modules/supaterm-native-controls/ios
+  - modules/supaterm-terminal/ios
+  - modules/supaterm-review-diff/ios
 
 excluded:
   - ios/Pods
   - ios/build
-  - modules/supacode-terminal/Vendor
+  - modules/supaterm-terminal/Vendor
 
 reporter: xcode
 

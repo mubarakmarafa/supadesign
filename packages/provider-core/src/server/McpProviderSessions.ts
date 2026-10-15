@@ -1,4 +1,4 @@
-import type { ThreadId } from "@supacode/contracts";
+import type { ThreadId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -13,7 +13,7 @@ export class McpProviderSessions extends Context.Service<
     readonly read: (threadId: ThreadId) => Effect.Effect<McpProviderSessionConfig | undefined>;
     readonly clear: (threadId: ThreadId) => Effect.Effect<void>;
   }
->()("@supacode/provider-core/server/McpProviderSessions") {}
+>()("@supaterm/provider-core/server/McpProviderSessions") {}
 
 const make = Effect.gen(function* () {
   const sessions = yield* Ref.make(new Map<ThreadId, McpProviderSessionConfig>());

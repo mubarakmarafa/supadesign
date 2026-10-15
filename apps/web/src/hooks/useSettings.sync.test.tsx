@@ -6,7 +6,7 @@ import {
   type AuthEnvironmentScope,
   type AuthSessionState,
   type ServerSettingsPatch,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { act } from "react";
@@ -31,7 +31,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("~/connection/runtime", () => ({ connectionAtomRuntime: undefined }));
-vi.mock("@supacode/client-runtime/state/session", () => ({
+vi.mock("@supaterm/client-runtime/state/session", () => ({
   createEnvironmentSessionAtoms: () => ({
     sessionStateAtom: (id: EnvironmentId) => state.sessions.get(id)!,
   }),
@@ -67,7 +67,7 @@ const session = (scopes: ReadonlyArray<AuthEnvironmentScope>): AuthSessionState 
     policy: "remote-reachable",
     bootstrapMethods: ["one-time-token"],
     sessionMethods: ["bearer-access-token"],
-    sessionCookieName: "supacode_session",
+    sessionCookieName: "supaterm_session",
   },
 });
 let renderer: ReactTestRenderer | undefined;

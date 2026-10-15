@@ -151,13 +151,13 @@ jobs:
       - name: Install desktop dependencies
         env:
           pnpm_config_cache_dir: ${{ runner.temp }}/pnpm-metadata
-        run: vp install --filter=@supacode/desktop... --filter=supacode... --filter=@supacode/scripts...
+        run: vp install --filter=@supaterm/desktop... --filter=supaterm... --filter=@supaterm/scripts...
 
       - name: Cache resource monitor
         id: resource_monitor_cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: native/resource-monitor/target/${{ inputs.rust_target }}/release/supacode-resource-monitor${{ inputs.platform == 'win' && '.exe' || '' }}
+          path: native/resource-monitor/target/${{ inputs.rust_target }}/release/supaterm-resource-monitor${{ inputs.platform == 'win' && '.exe' || '' }}
           key: resource-monitor-${{ inputs.rust_target }}-${{ hashFiles('native/resource-monitor/Cargo.lock', 'native/resource-monitor/Cargo.toml', 'native/resource-monitor/src/**') }}
 
       - name: Cache Linux capture helpers
@@ -166,8 +166,8 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
-            native/kde-snap-shot/target/${{ inputs.rust_target }}/release/supacode-kde-snap-shot
-            native/hyprland-snap-shot/target/${{ inputs.rust_target }}/release/supacode-hyprland-snap-shot
+            native/kde-snap-shot/target/${{ inputs.rust_target }}/release/supaterm-kde-snap-shot
+            native/hyprland-snap-shot/target/${{ inputs.rust_target }}/release/supaterm-hyprland-snap-shot
           key: linux-capture-helpers-${{ inputs.rust_target }}-${{ hashFiles('native/kde-snap-shot/Cargo.lock', 'native/kde-snap-shot/Cargo.toml', 'native/kde-snap-shot/src/**', 'native/hyprland-snap-shot/Cargo.lock', 'native/hyprland-snap-shot/Cargo.toml', 'native/hyprland-snap-shot/src/**', 'native/hyprland-snap-shot/protocols/**') }}
 
       - name: Setup Rust
@@ -365,18 +365,18 @@ jobs:
           MACOS_PROVISIONING_PROFILE: ${{ secrets.MACOS_PROVISIONING_PROFILE }}
         run: |
           if [[ -n "$MACOS_PROVISIONING_PROFILE" ]]; then
-            profile_path="$RUNNER_TEMP/supacode.provisionprofile"
+            profile_path="$RUNNER_TEMP/supaterm.provisionprofile"
             printf '%s' "$MACOS_PROVISIONING_PROFILE" | base64 --decode > "$profile_path"
             chmod 600 "$profile_path"
-            echo "SUPACODE_MACOS_PROVISIONING_PROFILE=$profile_path" >> "$GITHUB_ENV"
+            echo "SUPATERM_MACOS_PROVISIONING_PROFILE=$profile_path" >> "$GITHUB_ENV"
           fi
 
       - name: Build desktop artifact
         shell: bash
         env:
           pnpm_config_cache_dir: ${{ runner.temp }}/pnpm-metadata
-          SUPACODE_DESKTOP_REUSE_RESOURCE_MONITOR: ${{ steps.resource_monitor_cache.outputs.cache-hit == 'true' }}
-          SUPACODE_DESKTOP_REUSE_LINUX_CAPTURE_HELPERS: ${{ steps.capture_helper_cache.outputs.cache-hit == 'true' }}
+          SUPATERM_DESKTOP_REUSE_RESOURCE_MONITOR: ${{ steps.resource_monitor_cache.outputs.cache-hit == 'true' }}
+          SUPATERM_DESKTOP_REUSE_LINUX_CAPTURE_HELPERS: ${{ steps.capture_helper_cache.outputs.cache-hit == 'true' }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -417,7 +417,7 @@ jobs:
           elif [[ "${{ inputs.platform }}" == "win" ]]; then
             # Embed the Linux CLI archive built by the same-arch Linux job as
             # the WSL runtime. Required for a working WSL backend on Windows.
-            args+=(--wsl-runtime "$GITHUB_WORKSPACE"/wsl-runtime/supacode-*-linux-${{ inputs.arch }}.tar.gz)
+            args+=(--wsl-runtime "$GITHUB_WORKSPACE"/wsl-runtime/supaterm-*-linux-${{ inputs.arch }}.tar.gz)
             if has_all \
               "$AZURE_TENANT_ID" \
               "$AZURE_CLIENT_ID" \
@@ -461,9 +461,9 @@ jobs:
             echo "macOS CLI signing disabled (missing CSC_LINK); the archive is signed ad hoc."
             exit 0
           fi
-          keychain="$RUNNER_TEMP/supacode-cli-signing.keychain-db"
+          keychain="$RUNNER_TEMP/supaterm-cli-signing.keychain-db"
           keychain_password="$(openssl rand -hex 16)"
-          cert_path="$RUNNER_TEMP/supacode-cli-signing.p12"
+          cert_path="$RUNNER_TEMP/supaterm-cli-signing.p12"
           printf '%s' "$CSC_LINK" | base64 --decode > "$cert_path"
           security create-keychain -p "$keychain_password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
@@ -481,7 +481,7 @@ jobs:
             exit 1
           fi
           echo "::add-mask::$keychain_password"
-          echo "SUPACODE_CLI_MAC_SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "SUPATERM_CLI_MAC_SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
           echo "macOS CLI signing enabled."
 
       - name: Stage resource monitor for the CLI archive
@@ -489,7 +489,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          binary_name="supacode-resource-monitor"
+          binary_name="supaterm-resource-monitor"
           if [[ "${{ inputs.platform }}" == "win" ]]; then
             binary_name="${binary_name}.exe"
           fi
@@ -583,7 +583,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          binary_name="supacode-resource-monitor"
+          binary_name="supaterm-resource-monitor"
           if [[ "${{ inputs.platform }}" == "win" ]]; then
             binary_name="${binary_name}.exe"
           fi

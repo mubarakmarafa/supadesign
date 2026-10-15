@@ -1,8 +1,8 @@
-import type { ModelSelection, ProviderOptionDescriptor } from "@supacode/contracts";
+import type { ModelSelection, ProviderOptionDescriptor } from "@supaterm/contracts";
 import {
   getProviderOptionCurrentLabel,
   getProviderOptionCurrentValue,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 
 import { ComposerInlineControl } from "../../components/ComposerToolbar";
 import { ProviderIcon } from "../../components/ProviderIcon";

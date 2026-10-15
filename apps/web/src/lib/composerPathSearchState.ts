@@ -1,7 +1,7 @@
 import {
   type ComposerPathSearchState,
   type ComposerPathSearchTarget,
-} from "@supacode/client-runtime/state/threads";
+} from "@supaterm/client-runtime/state/threads";
 
 import { useMemo } from "react";
 

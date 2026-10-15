@@ -2,7 +2,7 @@ import type {
   ToolActivityIcon,
   ToolActivityNativeAppReference,
   ToolActivitySource,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as Hex from "effect/encoding/Hex";
@@ -12,7 +12,7 @@ import {
   mcpToolPresentation as integrationToolPresentation,
   normalizeMcpHttpUrl as normalizedHttpUrl,
   normalizeMcpText as normalizedDisplayName,
-} from "@supacode/provider-core/server/mcpToolPresentation";
+} from "@supaterm/provider-core/server/mcpToolPresentation";
 
 type CodexLifecycleItem = EffectCodexSchema.V2ItemCompletedNotification["item"];
 

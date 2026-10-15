@@ -16,12 +16,12 @@ import {
   type PreviewStreamPointer,
   type PreviewStreamViewport,
   previewStreamHostSetupMessage,
-} from "@supacode/client-runtime/preview/server-browser-stream";
+} from "@supaterm/client-runtime/preview/server-browser-stream";
 import type {
   EnvironmentId,
   PreviewStreamHostSetup,
   PreviewViewportSetting,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { readFreshPreviewStreamAccess } from "~/state/previewStream";
 import {
   type FormEvent,

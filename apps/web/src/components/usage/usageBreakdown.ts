@@ -1,10 +1,10 @@
-import type { UsageTokenTotals } from "@supacode/contracts";
+import type { UsageTokenTotals } from "@supaterm/contracts";
 import {
   isModelCostUnknown,
   type CategoryCost,
   type ModelTotals,
   type SpeedCost,
-} from "@supacode/shared/usageMerge";
+} from "@supaterm/shared/usageMerge";
 
 import type { ShareSegment } from "./UsageShareBar";
 

@@ -1,7 +1,7 @@
 import { useIsFocused, useNavigation, type StaticScreenProps } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { EnvironmentId, ThreadId, type PreviewSessionSnapshot } from "@supacode/contracts";
-import { normalizePreviewUrl } from "@supacode/shared/preview";
+import { EnvironmentId, ThreadId, type PreviewSessionSnapshot } from "@supaterm/contracts";
+import { normalizePreviewUrl } from "@supaterm/shared/preview";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, AppState, Platform, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

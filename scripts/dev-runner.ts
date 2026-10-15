@@ -4,11 +4,11 @@ import * as NodeOS from "node:os";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as NetService from "@supacode/shared/Net";
-import { resolveGitWorktreePath, resolveWorktreeSupacodeHome } from "@supacode/shared/devHome";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
-import { resolveDefaultSupacodeHome } from "@supacode/shared/supacodeHome";
+import * as NetService from "@supaterm/shared/Net";
+import { resolveGitWorktreePath, resolveWorktreeSupatermHome } from "@supaterm/shared/devHome";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
+import { resolveDefaultSupatermHome } from "@supaterm/shared/supatermHome";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Hash from "effect/Hash";
@@ -68,27 +68,27 @@ export function isProxiableBindHost(host: string): boolean {
   );
 }
 
-export const DEFAULT_SUPACODE_HOME = Effect.map(Effect.service(Path.Path), (path) =>
-  resolveDefaultSupacodeHome(NodeOS.homedir(), path.join),
+export const DEFAULT_SUPATERM_HOME = Effect.map(Effect.service(Path.Path), (path) =>
+  resolveDefaultSupatermHome(NodeOS.homedir(), path.join),
 );
 
 const MODE_ARGS = {
   dev: [
     "run",
-    "--filter=@supacode/contracts",
-    "--filter=@supacode/web",
-    "--filter=supacode",
+    "--filter=@supaterm/contracts",
+    "--filter=@supaterm/web",
+    "--filter=supaterm",
     "--parallel",
     "dev",
   ],
-  "dev:server": ["run", "--filter=supacode", "dev"],
-  "dev:web": ["run", "--filter=@supacode/web", "dev"],
-  "dev:desktop": ["run", "--filter=@supacode/desktop", "--filter=@supacode/web", "dev"],
+  "dev:server": ["run", "--filter=supaterm", "dev"],
+  "dev:web": ["run", "--filter=@supaterm/web", "dev"],
+  "dev:desktop": ["run", "--filter=@supaterm/desktop", "--filter=@supaterm/web", "dev"],
 } as const satisfies Record<string, ReadonlyArray<string>>;
 
 type DevMode = keyof typeof MODE_ARGS;
 /**
- * `role` matters because only the backend honours `--host`/`SUPACODE_HOST`; the
+ * `role` matters because only the backend honours `--host`/`SUPATERM_HOST`; the
  * web port is always loopback. Passed explicitly rather than inferred from the
  * port number, which stops distinguishing them under a large port offset.
  */
@@ -122,7 +122,7 @@ export class DevRunnerConfigurationError extends Schema.TaggedError<DevRunnerCon
 export class DevRunnerInvalidPortOffsetError extends Schema.TaggedError<DevRunnerInvalidPortOffsetError>()(
   "DevRunnerInvalidPortOffsetError",
   {
-    configKey: Schema.Literal("SUPACODE_PORT_OFFSET"),
+    configKey: Schema.Literal("SUPATERM_PORT_OFFSET"),
     portOffset: Schema.Number,
     minimum: Schema.Number,
   },
@@ -212,8 +212,8 @@ const optionalIntegerConfig = (name: string): Config.Config<number | undefined> 
     Config.map((value) => Option.getOrUndefined(value)),
   );
 const OffsetConfig = Config.all({
-  portOffset: optionalIntegerConfig("SUPACODE_PORT_OFFSET"),
-  devInstance: optionalStringConfig("SUPACODE_DEV_INSTANCE"),
+  portOffset: optionalIntegerConfig("SUPATERM_PORT_OFFSET"),
+  devInstance: optionalStringConfig("SUPATERM_DEV_INSTANCE"),
 });
 
 export function resolveOffset(config: {
@@ -228,7 +228,7 @@ export function resolveOffset(config: {
     if (config.portOffset < 0) {
       return Effect.fail(
         new DevRunnerInvalidPortOffsetError({
-          configKey: "SUPACODE_PORT_OFFSET",
+          configKey: "SUPATERM_PORT_OFFSET",
           portOffset: config.portOffset,
           minimum: 0,
         }),
@@ -236,7 +236,7 @@ export function resolveOffset(config: {
     }
     return Effect.succeed({
       offset: config.portOffset,
-      source: `SUPACODE_PORT_OFFSET=${config.portOffset}`,
+      source: `SUPATERM_PORT_OFFSET=${config.portOffset}`,
     });
   }
 
@@ -245,12 +245,12 @@ export function resolveOffset(config: {
     if (/^\d+$/.test(seed)) {
       return Effect.succeed({
         offset: Number(seed),
-        source: `numeric SUPACODE_DEV_INSTANCE=${seed}`,
+        source: `numeric SUPATERM_DEV_INSTANCE=${seed}`,
       });
     }
 
     const offset = ((Hash.string(seed) >>> 0) % MAX_HASH_OFFSET) + 1;
-    return Effect.succeed({ offset, source: `hashed SUPACODE_DEV_INSTANCE=${seed}` });
+    return Effect.succeed({ offset, source: `hashed SUPATERM_DEV_INSTANCE=${seed}` });
   }
 
   // Worktrees get ports derived from their path so each one is stable across
@@ -276,7 +276,7 @@ function resolveBaseDir(baseDir: string | undefined): Effect.Effect<string, neve
       return path.resolve(configured);
     }
 
-    return yield* DEFAULT_SUPACODE_HOME;
+    return yield* DEFAULT_SUPATERM_HOME;
   });
 }
 
@@ -285,7 +285,7 @@ interface CreateDevRunnerEnvInput {
   readonly baseEnv: NodeJS.ProcessEnv;
   readonly serverOffset: number;
   readonly webOffset: number;
-  readonly supacodeHome: string | undefined;
+  readonly supatermHome: string | undefined;
   readonly browser: boolean | undefined;
   readonly autoBootstrapProjectFromCwd: boolean | undefined;
   readonly logWebSocketEvents: boolean | undefined;
@@ -299,7 +299,7 @@ export function createDevRunnerEnv({
   baseEnv,
   serverOffset,
   webOffset,
-  supacodeHome,
+  supatermHome,
   browser,
   autoBootstrapProjectFromCwd,
   logWebSocketEvents,
@@ -310,9 +310,9 @@ export function createDevRunnerEnv({
   return Effect.gen(function* () {
     const serverPort = port ?? BASE_SERVER_PORT + serverOffset;
     const webPort = BASE_WEB_PORT + webOffset;
-    // Precedence (--home-dir > worktree .supacode > ambient SUPACODE_HOME) is resolved
-    // by the caller; an unset supacodeHome here genuinely means "use the default".
-    const configuredBaseDir = supacodeHome?.trim() || undefined;
+    // Precedence (--home-dir > worktree .supaterm > ambient SUPATERM_HOME) is resolved
+    // by the caller; an unset supatermHome here genuinely means "use the default".
+    const configuredBaseDir = supatermHome?.trim() || undefined;
     const resolvedBaseDir = yield* resolveBaseDir(configuredBaseDir);
     const isDesktopMode = mode === "dev:desktop";
 
@@ -325,21 +325,21 @@ export function createDevRunnerEnv({
     };
 
     if (configuredBaseDir !== undefined) {
-      output.SUPACODE_HOME = resolvedBaseDir;
+      output.SUPATERM_HOME = resolvedBaseDir;
     } else {
-      delete output.SUPACODE_HOME;
+      delete output.SUPATERM_HOME;
     }
 
     // A dev-runner server is never launcher-managed. When the shell that runs
-    // this script was itself spawned by the machine's managed Supacode service (an
-    // agent working inside Supacode), these leak through and the child server
-    // fails startup with "The service launcher started a different Supacode version"
+    // this script was itself spawned by the machine's managed Supaterm service (an
+    // agent working inside Supaterm), these leak through and the child server
+    // fails startup with "The service launcher started a different Supaterm version"
     // (serviceLauncherClient.ts resolveStartup).
-    delete output.SUPACODE_SERVICE_LAUNCHER_CONTEXT;
-    delete output.SUPACODE_BOOT_SERVICE_UNIT;
+    delete output.SUPATERM_SERVICE_LAUNCHER_CONTEXT;
+    delete output.SUPATERM_BOOT_SERVICE_UNIT;
 
     if (!isDesktopMode) {
-      output.SUPACODE_PORT = String(serverPort);
+      output.SUPATERM_PORT = String(serverPort);
       // HOST is Vite's own bind address, and the desktop branch below is the
       // only place we set it. An inherited one (an exported HOST, a container,
       // a `HOST=0.0.0.0 npm start` habit) would otherwise reach Vite and pin
@@ -362,58 +362,58 @@ export function createDevRunnerEnv({
         // with either URL in their `.env` would get it back and silently lose
         // single-origin mode. This states the intent positively so Vite can
         // ignore those values rather than infer from their absence.
-        output.SUPACODE_SINGLE_ORIGIN_DEV = "1";
+        output.SUPATERM_SINGLE_ORIGIN_DEV = "1";
       } else {
         output.VITE_HTTP_URL = `http://localhost:${serverPort}`;
         output.VITE_WS_URL = `ws://localhost:${serverPort}`;
-        delete output.SUPACODE_SINGLE_ORIGIN_DEV;
+        delete output.SUPATERM_SINGLE_ORIGIN_DEV;
       }
     } else {
-      output.SUPACODE_PORT = String(serverPort);
+      output.SUPATERM_PORT = String(serverPort);
       output.VITE_HTTP_URL = `http://${DESKTOP_DEV_LOOPBACK_HOST}:${serverPort}`;
       output.VITE_WS_URL = `ws://${DESKTOP_DEV_LOOPBACK_HOST}:${serverPort}`;
       // Desktop pins the renderer to loopback on purpose; an ambient marker
       // must not make Vite drop those URLs.
-      delete output.SUPACODE_SINGLE_ORIGIN_DEV;
-      delete output.SUPACODE_MODE;
-      delete output.SUPACODE_NO_BROWSER;
-      delete output.SUPACODE_HOST;
-      delete output.SUPACODE_DEV_AUTH_TOKEN;
+      delete output.SUPATERM_SINGLE_ORIGIN_DEV;
+      delete output.SUPATERM_MODE;
+      delete output.SUPATERM_NO_BROWSER;
+      delete output.SUPATERM_HOST;
+      delete output.SUPATERM_DEV_AUTH_TOKEN;
     }
 
     if (!isDesktopMode && host !== undefined) {
-      output.SUPACODE_HOST = host;
+      output.SUPATERM_HOST = host;
     }
 
     if (!isDesktopMode) {
-      output.SUPACODE_NO_BROWSER = browser === true ? "0" : "1";
+      output.SUPATERM_NO_BROWSER = browser === true ? "0" : "1";
     }
 
     if (autoBootstrapProjectFromCwd !== undefined) {
-      output.SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD = autoBootstrapProjectFromCwd ? "1" : "0";
+      output.SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD = autoBootstrapProjectFromCwd ? "1" : "0";
     } else {
-      delete output.SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD;
+      delete output.SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD;
     }
 
     if (logWebSocketEvents !== undefined) {
-      output.SUPACODE_LOG_WS_EVENTS = logWebSocketEvents ? "1" : "0";
+      output.SUPATERM_LOG_WS_EVENTS = logWebSocketEvents ? "1" : "0";
     } else {
-      delete output.SUPACODE_LOG_WS_EVENTS;
+      delete output.SUPATERM_LOG_WS_EVENTS;
     }
 
     if (mode === "dev") {
-      output.SUPACODE_MODE = "web";
-      delete output.SUPACODE_DESKTOP_WS_URL;
+      output.SUPATERM_MODE = "web";
+      delete output.SUPATERM_DESKTOP_WS_URL;
     }
 
     if (mode === "dev:server" || mode === "dev:web") {
-      output.SUPACODE_MODE = "web";
-      delete output.SUPACODE_DESKTOP_WS_URL;
+      output.SUPATERM_MODE = "web";
+      delete output.SUPATERM_DESKTOP_WS_URL;
     }
 
     if (isDesktopMode) {
       output.HOST = DESKTOP_DEV_LOOPBACK_HOST;
-      delete output.SUPACODE_DESKTOP_WS_URL;
+      delete output.SUPATERM_DESKTOP_WS_URL;
     }
 
     return output;
@@ -450,7 +450,7 @@ export function checkPortAvailabilityOnHosts<R>(
  * Hosts to probe for a dev server bound to `configuredHost`.
  *
  * Loopback is always checked because the web server and the desktop renderer
- * target reach it there. When `--host`/`SUPACODE_HOST` moves the backend onto
+ * target reach it there. When `--host`/`SUPATERM_HOST` moves the backend onto
  * another interface, that interface decides whether the bind actually
  * succeeds — probing only loopback would hand back a port that is free here
  * and taken there, and the server would fail to start.
@@ -609,7 +609,7 @@ export function resolveModePortOffsets<R = NetService.NetService>({
 
 interface DevRunnerCliInput {
   readonly mode: DevMode;
-  readonly supacodeHome: string | undefined;
+  readonly supatermHome: string | undefined;
   readonly browser: boolean | undefined;
   readonly autoBootstrapProjectFromCwd: boolean | undefined;
   readonly logWebSocketEvents: boolean | undefined;
@@ -627,7 +627,7 @@ export function runDevRunnerWithInput(input: DevRunnerCliInput) {
       Effect.mapError(
         (cause) =>
           new DevRunnerConfigurationError({
-            configKeys: ["SUPACODE_PORT_OFFSET", "SUPACODE_DEV_INSTANCE"],
+            configKeys: ["SUPATERM_PORT_OFFSET", "SUPATERM_DEV_INSTANCE"],
             cause,
           }),
       ),
@@ -666,22 +666,22 @@ export function runDevRunnerWithInput(input: DevRunnerCliInput) {
 
     const hostEnvironment = yield* HostProcess.Environment;
     // A dev server started inside a worktree defaults to that worktree's own
-    // (gitignored) `.supacode` — see @supacode/shared/devHome for why this must
-    // outrank an ambient SUPACODE_HOME. `--home-dir` still wins.
-    const worktreeHome = yield* resolveWorktreeSupacodeHome(yield* HostProcess.WorkingDirectory);
+    // (gitignored) `.supaterm` — see @supaterm/shared/devHome for why this must
+    // outrank an ambient SUPATERM_HOME. `--home-dir` still wins.
+    const worktreeHome = yield* resolveWorktreeSupatermHome(yield* HostProcess.WorkingDirectory);
     // Trim before choosing: `--home-dir ""` is not a selection, and treating it
     // as one would skip the worktree default and land on the shared home —
     // exactly the outcome this precedence exists to prevent.
-    const resolvedSupacodeHome =
-      (input.supacodeHome?.trim() || undefined) ??
+    const resolvedSupatermHome =
+      (input.supatermHome?.trim() || undefined) ??
       worktreeHome ??
-      (hostEnvironment.SUPACODE_HOME?.trim() || undefined);
+      (hostEnvironment.SUPATERM_HOME?.trim() || undefined);
     const env = yield* createDevRunnerEnv({
       mode: input.mode,
       baseEnv: hostEnvironment,
       serverOffset,
       webOffset,
-      supacodeHome: resolvedSupacodeHome,
+      supatermHome: resolvedSupatermHome,
       browser: input.browser,
       autoBootstrapProjectFromCwd: input.autoBootstrapProjectFromCwd,
       logWebSocketEvents: input.logWebSocketEvents,
@@ -694,10 +694,10 @@ export function runDevRunnerWithInput(input: DevRunnerCliInput) {
       serverOffset !== offset || webOffset !== offset
         ? ` selectedOffset(server=${serverOffset},web=${webOffset})`
         : "";
-    const baseDir = env.SUPACODE_HOME ?? (yield* DEFAULT_SUPACODE_HOME);
+    const baseDir = env.SUPATERM_HOME ?? (yield* DEFAULT_SUPATERM_HOME);
 
     yield* Effect.logInfo(
-      `[dev-runner] mode=${input.mode} source=${source}${selectionSuffix} serverPort=${String(env.SUPACODE_PORT)} webPort=${String(env.PORT)} baseDir=${baseDir}`,
+      `[dev-runner] mode=${input.mode} source=${source}${selectionSuffix} serverPort=${String(env.SUPATERM_PORT)} webPort=${String(env.PORT)} baseDir=${baseDir}`,
     );
 
     // Before the share block: --dry-run only resolves and prints. Sharing would
@@ -767,8 +767,8 @@ export function runDevRunnerWithInput(input: DevRunnerCliInput) {
           // The app is reached from the tailnet origin. Vite already allows
           // *.ts.net hosts; the backend needs the origin for credentialed
           // requests that bypass the proxy (desktop renderer, direct calls).
-          env.SUPACODE_DEV_ALLOWED_ORIGINS = [
-            env.SUPACODE_DEV_ALLOWED_ORIGINS,
+          env.SUPATERM_DEV_ALLOWED_ORIGINS = [
+            env.SUPATERM_DEV_ALLOWED_ORIGINS,
             new URL(shared.url).origin,
           ]
             .filter((entry) => entry && entry.length > 0)
@@ -782,10 +782,10 @@ export function runDevRunnerWithInput(input: DevRunnerCliInput) {
           // A shared origin serves a remote browser, where unbundled dev's
           // per-module requests each pay a tailnet round trip — a cold module
           // graph takes minutes to first paint. Bundled dev collapses that to
-          // a few chunk requests. Only defaulted, so SUPACODE_BUNDLED_DEV=0
+          // a few chunk requests. Only defaulted, so SUPATERM_BUNDLED_DEV=0
           // still opts a --share run back out.
-          if (env.SUPACODE_BUNDLED_DEV === undefined) {
-            env.SUPACODE_BUNDLED_DEV = "1";
+          if (env.SUPATERM_BUNDLED_DEV === undefined) {
+            env.SUPATERM_BUNDLED_DEV = "1";
           }
           yield* Effect.logInfo(`[dev-runner] shared on tailnet: ${shared.url}`);
         }
@@ -849,9 +849,9 @@ const devRunnerCli = Command.make("dev-runner", {
   mode: Argument.Literals("mode", DEV_RUNNER_MODES).pipe(
     Argument.withDescription("Development mode to run."),
   ),
-  supacodeHome: Flag.String("home-dir").pipe(
+  supatermHome: Flag.String("home-dir").pipe(
     Flag.withDescription(
-      "Explicit Supacode data directory; runtime state is stored under userdata (equivalent to SUPACODE_HOME). Inside a git worktree this defaults to that worktree's own .supacode so dev state stays off the shared home.",
+      "Explicit Supaterm data directory; runtime state is stored under userdata (equivalent to SUPATERM_HOME). Inside a git worktree this defaults to that worktree's own .supaterm so dev state stays off the shared home.",
     ),
     Flag.optional,
     Flag.map(Option.getOrUndefined),
@@ -862,23 +862,23 @@ const devRunnerCli = Command.make("dev-runner", {
   ),
   autoBootstrapProjectFromCwd: Flag.Boolean("auto-bootstrap-project-from-cwd").pipe(
     Flag.withDescription(
-      "Auto-bootstrap toggle (equivalent to SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD).",
+      "Auto-bootstrap toggle (equivalent to SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD).",
     ),
-    Flag.withFallbackConfig(optionalBooleanConfig("SUPACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD")),
+    Flag.withFallbackConfig(optionalBooleanConfig("SUPATERM_AUTO_BOOTSTRAP_PROJECT_FROM_CWD")),
   ),
   logWebSocketEvents: Flag.Boolean("log-websocket-events").pipe(
-    Flag.withDescription("WebSocket event logging toggle (equivalent to SUPACODE_LOG_WS_EVENTS)."),
+    Flag.withDescription("WebSocket event logging toggle (equivalent to SUPATERM_LOG_WS_EVENTS)."),
     Flag.withAlias("log-ws-events"),
-    Flag.withFallbackConfig(optionalBooleanConfig("SUPACODE_LOG_WS_EVENTS")),
+    Flag.withFallbackConfig(optionalBooleanConfig("SUPATERM_LOG_WS_EVENTS")),
   ),
   host: Flag.String("host").pipe(
-    Flag.withDescription("Server host/interface override (forwards to SUPACODE_HOST)."),
-    Flag.withFallbackConfig(optionalStringConfig("SUPACODE_HOST")),
+    Flag.withDescription("Server host/interface override (forwards to SUPATERM_HOST)."),
+    Flag.withFallbackConfig(optionalStringConfig("SUPATERM_HOST")),
   ),
   port: Flag.Int("port").pipe(
     Flag.withSchema(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 65535 }))),
-    Flag.withDescription("Server port override (forwards to SUPACODE_PORT)."),
-    Flag.withFallbackConfig(optionalPortConfig("SUPACODE_PORT")),
+    Flag.withDescription("Server port override (forwards to SUPATERM_PORT)."),
+    Flag.withFallbackConfig(optionalPortConfig("SUPATERM_PORT")),
   ),
   devUrl: Flag.String("dev-url").pipe(
     Flag.withSchema(Schema.URLFromString),

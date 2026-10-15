@@ -6,7 +6,7 @@ import {
   NIRI_CAPTURE_PATH as PATH,
 } from "./linuxCaptureSession.ts";
 
-/** Niri owns the keybinding; this endpoint triggers capture without first focusing Supacode. */
+/** Niri owns the keybinding; this endpoint triggers capture without first focusing Supaterm. */
 export async function startNiriCaptureShortcut(
   appId: string,
   onCapture: () => void,
@@ -55,7 +55,7 @@ export async function startNiriCaptureShortcut(
       }),
     ]);
     if (result !== RequestNameReply.PRIMARY_OWNER)
-      throw new Error("Another Supacode instance already owns the capture shortcut.");
+      throw new Error("Another Supaterm instance already owns the capture shortcut.");
     return close;
   } catch (error) {
     close();

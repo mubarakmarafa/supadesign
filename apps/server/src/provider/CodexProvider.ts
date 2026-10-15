@@ -25,15 +25,15 @@ import type {
   ProviderOptionDescriptor,
   ServerProviderModel,
   ServerProviderSkill,
-} from "@supacode/contracts";
-import { PREFERRED_DEFAULT_CODEX_MODELS, ServerSettingsError } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { PREFERRED_DEFAULT_CODEX_MODELS, ServerSettingsError } from "@supaterm/contracts";
 
 import {
   codexModelFamily,
   createModelCapabilities,
   formatCodexModelName,
-} from "@supacode/shared/model";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+} from "@supaterm/shared/model";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import { codexAppServerArgs, resolveCodexLaunchArgs } from "./codexLaunchArgs.ts";
 import {
   AUTH_PROBE_TIMEOUT_MS,
@@ -41,16 +41,16 @@ import {
   COMPACT_SLASH_COMMAND,
   providerModelsFromSettings,
   type ServerProviderDraft,
-} from "@supacode/provider-core/server/snapshotProbe";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import { makeUnavailableUsageLimits } from "@supacode/provider-core/server/usageLimits";
+} from "@supaterm/provider-core/server/snapshotProbe";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import { makeUnavailableUsageLimits } from "@supaterm/provider-core/server/usageLimits";
 import {
   codexRateLimitsFailureMessage,
   codexRateLimitsToLimits,
   type CodexRateLimitSnapshot,
   type CodexResetCreditsSummary,
 } from "./codexUsageLimits.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import packageJson from "../../package.json" with { type: "json" };
 const isCodexAppServerSpawnError = Schema.is(CodexErrors.CodexAppServerSpawnError);
 const RATE_LIMITS_PROBE_TIMEOUT_MS = 3_000;
@@ -71,7 +71,7 @@ type CodexRateLimitsProbe =
 const CODEX_APP_SERVER_PROBE_FORCE_KILL_AFTER = "2 seconds" as const;
 const CODEX_CATALOG_REFRESH_TIMEOUT = "3 seconds" as const;
 const CODEX_CATALOG_REFRESH_POLL = "100 millis" as const;
-const CODEX_CLIENT_NAME = "supacode";
+const CODEX_CLIENT_NAME = "supaterm";
 
 const CODEX_PRESENTATION = {
   displayName: "Codex",
@@ -355,7 +355,7 @@ const readCodexModelsCacheFetchedAt = Effect.fn("readCodexModelsCacheFetchedAt")
 });
 
 /**
- * Lists the ChatGPT model catalog as fetched for Supacode.
+ * Lists the ChatGPT model catalog as fetched for Supaterm.
  *
  * `model/list` serves `CODEX_HOME/models_cache.json` while it is under five
  * minutes old. Every Codex client on the machine shares that file, and the
@@ -389,7 +389,7 @@ const requestCodexChatGptModels = Effect.fn("requestCodexChatGptModels")(functio
 });
 
 /**
- * Environment for every `codex app-server` Supacode spawns.
+ * Environment for every `codex app-server` Supaterm spawns.
  *
  * Codex sends its client name as the `originator` header, and the backend
  * tailors the model catalog to it. App-server starts its catalog refresh
@@ -409,7 +409,7 @@ export function buildCodexInitializeParams(): CodexSchema.V1InitializeParams {
   return {
     clientInfo: {
       name: CODEX_CLIENT_NAME,
-      title: "Supacode",
+      title: "Supaterm",
       version: packageJson.version,
     },
     capabilities: {
@@ -582,7 +582,7 @@ const makePendingCodexProvider = (
           version: null,
           status: "warning",
           auth: { status: "unknown" },
-          message: "Codex is disabled in Supacode settings.",
+          message: "Codex is disabled in Supaterm settings.",
         },
       });
     }
@@ -675,7 +675,7 @@ export const checkCodexProviderStatus = Effect.fn("checkCodexProviderStatus")(fu
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Codex is disabled in Supacode settings.",
+        message: "Codex is disabled in Supaterm settings.",
       },
     });
   }

@@ -9,15 +9,15 @@
  * @module provider/Drivers/AntigravityUsage
  */
 
-import { type AntigravitySettings, UsageReadError } from "@supacode/contracts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import { type AntigravitySettings, UsageReadError } from "@supaterm/contracts";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import type {
   ProviderUsageInstance,
   ProviderUsageReader,
   ProviderUsageScan,
-} from "@supacode/provider-core/server/usage";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/provider-core/server/usage";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -37,7 +37,7 @@ export class AntigravityUsage extends Context.Service<
       readonly windowStartMs: number;
     }) => Effect.Effect<ReadonlyArray<ProviderUsageScan>, UsageReadError>;
   }
->()("supacode/provider/Drivers/AntigravityUsage") {}
+>()("supaterm/provider/Drivers/AntigravityUsage") {}
 
 const make = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto;

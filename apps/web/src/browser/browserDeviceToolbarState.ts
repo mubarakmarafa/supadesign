@@ -1,4 +1,4 @@
-import type { PreviewViewportSetting } from "@supacode/contracts";
+import type { PreviewViewportSetting } from "@supaterm/contracts";
 
 export async function commitViewportAndAspectRatio(
   setting: PreviewViewportSetting,

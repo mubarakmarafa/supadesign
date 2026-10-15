@@ -1,5 +1,5 @@
-import { ProviderDriverKind, type ServerProvider } from "@supacode/contracts";
-import { compareSemverVersions } from "@supacode/shared/semver";
+import { ProviderDriverKind, type ServerProvider } from "@supaterm/contracts";
+import { compareSemverVersions } from "@supaterm/shared/semver";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Schema from "effect/Schema";
@@ -12,9 +12,9 @@ import {
   makeProviderMaintenanceCapabilities,
   type ProviderMaintenanceCapabilities,
   type ProviderMaintenanceCapabilitiesResolver,
-} from "@supacode/provider-core/server/maintenanceResolver";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import { parseGenericCliVersion } from "@supacode/provider-core/server/snapshotProbe";
+} from "@supaterm/provider-core/server/maintenanceResolver";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import { parseGenericCliVersion } from "@supaterm/provider-core/server/snapshotProbe";
 
 const DRIVER = ProviderDriverKind.make("muse");
 

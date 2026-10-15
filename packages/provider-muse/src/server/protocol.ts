@@ -1,4 +1,4 @@
-import type { ProviderApprovalDecision } from "@supacode/contracts";
+import type { ProviderApprovalDecision } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 const NonEmptyString = Schema.String.check(Schema.isMinLength(1));

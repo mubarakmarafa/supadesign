@@ -1,6 +1,6 @@
 // @effect-diagnostics globalDate:off -- Tests exercise local calendar snooze boundaries.
-import { ThreadId } from "@supacode/contracts";
-import { TurnId } from "@supacode/contracts";
+import { ThreadId } from "@supaterm/contracts";
+import { TurnId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

@@ -1,6 +1,6 @@
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentId } from "@supacode/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";

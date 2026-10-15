@@ -196,7 +196,7 @@ describe("AcpRuntimeModel", () => {
     } as EffectAcpSchema.InitializeResponse);
 
     expect(response.modes).toBeUndefined();
-    expect(response._meta).toMatchObject({ supacodeSessionLoadReady: "replay_idle" });
+    expect(response._meta).toMatchObject({ supatermSessionLoadReady: "replay_idle" });
   });
 
   it("builds a synthetic load response with initialize mode state", () => {
@@ -1176,7 +1176,7 @@ describe("AcpRuntimeModel", () => {
   it("turns future ACP content and session updates into explicit placeholders", () => {
     expect(
       acpContentBlockDisplayText({
-        type: "_supacode_unknown",
+        type: "_supaterm_unknown",
         originalType: "chart",
         raw: { type: "chart", points: [] },
       }),
@@ -1186,7 +1186,7 @@ describe("AcpRuntimeModel", () => {
       parseSessionUpdateEvent({
         sessionId: "session-1",
         update: {
-          sessionUpdate: "_supacode_unknown",
+          sessionUpdate: "_supaterm_unknown",
           originalSessionUpdate: "timeline_update",
           raw: { sessionUpdate: "timeline_update", entries: [] },
         },
@@ -1413,19 +1413,19 @@ describe("extractMcpToolCallIdentity", () => {
       sessionUpdate: "tool_call",
       toolCallId: "exec-f4591587-0754-4bb4-990b-f2767894ba93",
       kind: "execute",
-      title: "mcp.supacode.orchestrator_capabilities",
+      title: "mcp.supaterm.orchestrator_capabilities",
       status: "in_progress",
-      rawInput: { server: "supacode", tool: "orchestrator_capabilities", arguments: {} },
+      rawInput: { server: "supaterm", tool: "orchestrator_capabilities", arguments: {} },
       _meta: { is_mcp_tool_call: true },
     });
 
     expect(extractMcpToolCallIdentity(toolCall)).toEqual({
-      server: "supacode",
+      server: "supaterm",
       tool: "orchestrator_capabilities",
     });
   });
 
-  it("recovers Supacode identity from acp-mcp-call fallback commands", () => {
+  it("recovers Supaterm identity from acp-mcp-call fallback commands", () => {
     const toolCall = toolCallFromUpdate({
       sessionUpdate: "tool_call",
       toolCallId: "exec-1",
@@ -1437,13 +1437,13 @@ describe("extractMcpToolCallIdentity", () => {
     expect(
       extractMcpToolCallIdentity(toolCall, {
         embeddedTerminalCommands: [
-          '/usr/bin/node /srv/supacode/bin.ts acp-mcp-call delegate_task {"task":"x"}',
+          '/usr/bin/node /srv/supaterm/bin.ts acp-mcp-call delegate_task {"task":"x"}',
         ],
       }),
-    ).toEqual({ server: "supacode", tool: "delegate_task", input: { task: "x" } });
+    ).toEqual({ server: "supaterm", tool: "delegate_task", input: { task: "x" } });
   });
 
-  it("recovers Supacode identity from pi-acp title-only fallback execs", () => {
+  it("recovers Supaterm identity from pi-acp title-only fallback execs", () => {
     // Captured verbatim from pi-acp 0.0.33 2026-08-14: rawInput is null and
     // the command line only appears as the verbatim title, which the
     // presentation layer summarizes into "Ran command".
@@ -1452,7 +1452,7 @@ describe("extractMcpToolCallIdentity", () => {
       toolCallId: "call_JdxnvzjHHrbvyASTLVekLYWV|fc_08f5a805a7159aa6016a7ec4afad548191",
       kind: "execute",
       title:
-        '"$SUPACODE_ACP_MCP_NODE" "$SUPACODE_ACP_MCP_ENTRYPOINT" acp-mcp-call orchestrator_capabilities \'{}\'',
+        '"$SUPATERM_ACP_MCP_NODE" "$SUPATERM_ACP_MCP_ENTRYPOINT" acp-mcp-call orchestrator_capabilities \'{}\'',
       status: "in_progress",
       rawInput: null,
       content: [
@@ -1465,13 +1465,13 @@ describe("extractMcpToolCallIdentity", () => {
 
     expect(toolCall.title).toBe("Ran command");
     expect(extractMcpToolCallIdentity(toolCall)).toEqual({
-      server: "supacode",
+      server: "supaterm",
       tool: "orchestrator_capabilities",
       input: {},
     });
   });
 
-  it("recovers Supacode identity from server-namespaced titles across titleless updates", () => {
+  it("recovers Supaterm identity from server-namespaced titles across titleless updates", () => {
     // Captured verbatim from Kilo 7.4.22 2026-08-15: the initial tool_call
     // titles the MCP function "<server>_<tool>" with kind "other", and the
     // completed update carries no title at all, so the merged presentation
@@ -1480,7 +1480,7 @@ describe("extractMcpToolCallIdentity", () => {
       sessionUpdate: "tool_call",
       toolCallId: "chatcmpl-tool-b2a6142ee1a510a5",
       kind: "other",
-      title: "supacode_orchestrator_capabilities",
+      title: "supaterm_orchestrator_capabilities",
       status: "pending",
       locations: [],
       rawInput: {},
@@ -1494,38 +1494,38 @@ describe("extractMcpToolCallIdentity", () => {
     const merged = mergeToolCallState(created, completed);
 
     expect(extractMcpToolCallIdentity(merged)).toEqual({
-      server: "supacode",
+      server: "supaterm",
       tool: "orchestrator_capabilities",
     });
   });
 
-  it("recovers Supacode identity from Gemini and qwen MCP-server title templates", () => {
+  it("recovers Supaterm identity from Gemini and qwen MCP-server title templates", () => {
     // Gemini CLI 0.55.1: "<tool> (<server> MCP Server)"; qwen-code 0.21.12
     // appends ": <args json>" to the same template.
     const gemini = toolCallFromUpdate({
       sessionUpdate: "tool_call",
       toolCallId: "gemini-1",
       kind: "other",
-      title: "delegate_task (Supacode MCP Server)",
+      title: "delegate_task (Supaterm MCP Server)",
       status: "in_progress",
     });
     const qwen = toolCallFromUpdate({
       sessionUpdate: "tool_call",
       toolCallId: "qwen-1",
       kind: "other",
-      title: 'task_status (Supacode MCP Server): {"taskId":"node:delegated-task:1"}',
+      title: 'task_status (Supaterm MCP Server): {"taskId":"node:delegated-task:1"}',
       status: "pending",
       rawInput: { taskId: "node:delegated-task:1" },
     });
 
     expect(extractMcpToolCallIdentity(gemini)).toEqual({
-      server: "supacode",
+      server: "supaterm",
       tool: "delegate_task",
     });
-    expect(extractMcpToolCallIdentity(qwen)).toEqual({ server: "supacode", tool: "task_status" });
+    expect(extractMcpToolCallIdentity(qwen)).toEqual({ server: "supaterm", tool: "task_status" });
   });
 
-  it("recovers Supacode identity across the registry agents' naming conventions", () => {
+  it("recovers Supaterm identity across the registry agents' naming conventions", () => {
     // One representative per surveyed convention (2026-08 registry builds):
     // droid triple underscore, Copilot hyphen, Amp mangled server + detail
     // tail, cline args tail, Auggie tool-first suffix.
@@ -1534,15 +1534,15 @@ describe("extractMcpToolCallIdentity", () => {
     // tail, cline args tail, Auggie tool-first suffix, fast-agent slash,
     // Kimi bare name with args tail.
     for (const title of [
-      "supacode___delegate_task",
-      "supacode-delegate_task",
-      'mcp__supacode__delegate_task: {"mode":"async"}',
-      'supacode__delegate_task: {"mode":"async"}',
-      "delegate_task_supacode",
-      "supacode/delegate_task",
-      "mcp__supacode__delegate_task",
-      "supacode_delegate_task",
-      "delegate_task (supacode MCP Server)",
+      "supaterm___delegate_task",
+      "supaterm-delegate_task",
+      'mcp__supaterm__delegate_task: {"mode":"async"}',
+      'supaterm__delegate_task: {"mode":"async"}',
+      "delegate_task_supaterm",
+      "supaterm/delegate_task",
+      "mcp__supaterm__delegate_task",
+      "supaterm_delegate_task",
+      "delegate_task (supaterm MCP Server)",
       'delegate_task: {"mode":"async"}',
     ]) {
       const toolCall = toolCallFromUpdate({
@@ -1553,18 +1553,18 @@ describe("extractMcpToolCallIdentity", () => {
         status: "pending",
       });
       expect(extractMcpToolCallIdentity(toolCall), title).toEqual({
-        server: "supacode",
+        server: "supaterm",
         tool: "delegate_task",
       });
     }
   });
 
-  it("recovers Supacode tools whose names start with the server name", () => {
+  it("recovers Supaterm tools whose names start with the server name", () => {
     for (const title of [
-      "supacode_thread_send",
-      'supacode_thread_send: {"threadId":"thread-1"}',
-      "supacode_supacode_thread_send",
-      "mcp__supacode__supacode_thread_send",
+      "supaterm_thread_send",
+      'supaterm_thread_send: {"threadId":"thread-1"}',
+      "supaterm_supaterm_thread_send",
+      "mcp__supaterm__supaterm_thread_send",
     ]) {
       const toolCall = toolCallFromUpdate({
         sessionUpdate: "tool_call",
@@ -1574,13 +1574,13 @@ describe("extractMcpToolCallIdentity", () => {
         status: "pending",
       });
       expect(extractMcpToolCallIdentity(toolCall), title).toEqual({
-        server: "supacode",
-        tool: "supacode_thread_send",
+        server: "supaterm",
+        tool: "supaterm_thread_send",
       });
     }
   });
 
-  it("recovers Supacode identity from goose _meta despite LLM-rewritten titles", () => {
+  it("recovers Supaterm identity from goose _meta despite LLM-rewritten titles", () => {
     // goose enriches titles asynchronously, so only _meta.goose.toolCall is
     // stable; shape from crates/goose/src/acp/server/tool_calls/conversion.rs.
     const toolCall = toolCallFromUpdate({
@@ -1590,19 +1590,19 @@ describe("extractMcpToolCallIdentity", () => {
       status: "in_progress",
       _meta: {
         goose: {
-          toolCall: { toolName: "supacode__task_status", extensionName: "supacode" },
+          toolCall: { toolName: "supaterm__task_status", extensionName: "supaterm" },
           messageId: "message-1",
         },
       },
     });
 
     expect(extractMcpToolCallIdentity(toolCall)).toEqual({
-      server: "supacode",
+      server: "supaterm",
       tool: "task_status",
     });
   });
 
-  it("recovers Supacode identity from qwen serverId meta regardless of prefix format", () => {
+  it("recovers Supaterm identity from qwen serverId meta regardless of prefix format", () => {
     // qwen-code 0.21.12 emits _meta.serverId + _meta.toolName; serverId is an
     // explicit origin assertion, so a known tool suffix suffices even if the
     // prefix format changes.
@@ -1613,15 +1613,15 @@ describe("extractMcpToolCallIdentity", () => {
       title: "unrelated display title",
       status: "pending",
       _meta: {
-        toolName: "mcp::supacode::supacode_thread_send",
-        serverId: "supacode",
+        toolName: "mcp::supaterm::supaterm_thread_send",
+        serverId: "supaterm",
         provenance: "mcp",
       },
     });
 
     expect(extractMcpToolCallIdentity(toolCall)).toEqual({
-      server: "supacode",
-      tool: "supacode_thread_send",
+      server: "supaterm",
+      tool: "supaterm_thread_send",
     });
   });
 
@@ -1662,12 +1662,12 @@ describe("extractMcpToolCallIdentity", () => {
     },
   );
 
-  it("uses the asserted server instead of a misleading Supacode title", () => {
+  it("uses the asserted server instead of a misleading Supaterm title", () => {
     const toolCall = toolCallFromUpdate({
       sessionUpdate: "tool_call",
       toolCallId: "foreign-1",
       kind: "other",
-      title: "supacode_delegate_task",
+      title: "supaterm_delegate_task",
       status: "pending",
       _meta: { toolName: "delegate_task", serverId: "other-orchestrator" },
     });
@@ -1679,7 +1679,7 @@ describe("extractMcpToolCallIdentity", () => {
   });
 
   it("does not brand path-like or unknown-tool titles", () => {
-    for (const title of ["supacode/README.md", "supacode_not_a_real_tool"]) {
+    for (const title of ["supaterm/README.md", "supaterm_not_a_real_tool"]) {
       const toolCall = toolCallFromUpdate({
         sessionUpdate: "tool_call",
         toolCallId: "path-1",
@@ -1731,12 +1731,12 @@ describe("embeddedTerminalIdsFromSessionUpdate", () => {
           toolCallId: "call_1",
           status: "in_progress",
           content: [
-            { type: "terminal", terminalId: "supacode-term-9" },
+            { type: "terminal", terminalId: "supaterm-term-9" },
             { type: "content", content: { type: "text", text: "noise" } },
           ],
         },
       }),
-    ).toEqual({ toolCallId: "call_1", terminalIds: ["supacode-term-9"] });
+    ).toEqual({ toolCallId: "call_1", terminalIds: ["supaterm-term-9"] });
     expect(
       embeddedTerminalIdsFromSessionUpdate({
         sessionId: "session-1",

@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigation, type StaticScreenProps } from "@react-navigation/native";
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import {
   collectLimitAccounts,
   collectExternalUsageLinks,
@@ -12,7 +12,7 @@ import {
   remainingPercent,
   type LimitAccount,
   type LimitPoolWindow,
-} from "@supacode/shared/usageLimits";
+} from "@supaterm/shared/usageLimits";
 import { Fragment, type ReactNode, useId, useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import { Defs, Path, Pattern, Rect, Svg } from "react-native-svg";
@@ -106,11 +106,11 @@ function PoolWindowCard({
     <View className="gap-3 rounded-[24px] border-continuous bg-grouped-card p-4">
       <View className="flex-row items-start justify-between gap-3">
         <View className="gap-1">
-          <Text className="text-sm font-supacode-medium text-foreground">
+          <Text className="text-sm font-supaterm-medium text-foreground">
             {label ?? pool.label}
           </Text>
           <View className="flex-row items-baseline gap-1.5">
-            <Text className="text-3xl font-supacode-bold tabular-nums text-foreground">
+            <Text className="text-3xl font-supaterm-bold tabular-nums text-foreground">
               {pool.remainingPercent}%
             </Text>
             <Text className="text-sm text-foreground-muted">left</Text>
@@ -147,7 +147,7 @@ function PoolWindowCard({
                 pending={Boolean(window.resetsAt)}
               />
               <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
-                <Text className="text-xs font-supacode-medium tabular-nums text-foreground">
+                <Text className="text-xs font-supaterm-medium tabular-nums text-foreground">
                   {index + 1}
                 </Text>
               </View>
@@ -170,17 +170,17 @@ function PoolWindowCard({
               className="min-h-[44px] flex-row items-center gap-2 active:opacity-60"
             >
               <View className="size-5 items-center justify-center overflow-hidden rounded-md bg-subtle-strong">
-                <Text className="text-xs font-supacode-medium tabular-nums text-foreground">
+                <Text className="text-xs font-supaterm-medium tabular-nums text-foreground">
                   {index + 1}
                 </Text>
               </View>
               <Text
                 numberOfLines={1}
-                className="min-w-0 flex-1 text-sm font-supacode-medium text-foreground"
+                className="min-w-0 flex-1 text-sm font-supaterm-medium text-foreground"
               >
                 {accountName(account)}
               </Text>
-              <Text className="text-sm font-supacode-medium tabular-nums text-foreground">
+              <Text className="text-sm font-supaterm-medium tabular-nums text-foreground">
                 {remainingPercent(window)}%
               </Text>
               <View className="flex-row items-center gap-1">
@@ -200,7 +200,7 @@ function PoolWindowCard({
                   <>
                     {resetsIn ? <Text className="text-xs text-foreground-tertiary">·</Text> : null}
                     <SymbolView name="ticket" size={13} tintColorClassName="accent-icon" />
-                    <Text className="text-xs font-supacode-medium tabular-nums text-foreground">
+                    <Text className="text-xs font-supaterm-medium tabular-nums text-foreground">
                       {credits}
                     </Text>
                   </>
@@ -260,7 +260,7 @@ export function UsageLimitsSection({
             <View className="gap-3">
               <View className="flex-row items-center gap-2 px-1">
                 <ProviderIcon provider={pool.driver} size={18} />
-                <Text className="text-base font-supacode-medium text-foreground">
+                <Text className="text-base font-supaterm-medium text-foreground">
                   {DRIVER_LABEL[pool.driver] ?? pool.driver}
                 </Text>
               </View>
@@ -294,7 +294,7 @@ export function UsageLimitsSection({
       {cursorPromptAt === pools.length ? cursorPrompt : null}
       {externalLinks.map((link) => (
         <View key={link.url} className="gap-3 rounded-xl border border-border-subtle p-4">
-          <Text className="text-base font-supacode-medium text-foreground">{link.label}</Text>
+          <Text className="text-base font-supaterm-medium text-foreground">{link.label}</Text>
           <Text className="text-xs text-foreground-muted">{link.accounts.join(", ")}</Text>
           {link.message ? (
             <Text className="text-sm text-foreground-muted">{link.message}</Text>
@@ -304,7 +304,7 @@ export function UsageLimitsSection({
             className="min-h-11 justify-center"
             onPress={() => void Linking.openURL(link.url).catch(() => undefined)}
           >
-            <Text className="text-sm font-supacode-medium text-primary">Manage usage</Text>
+            <Text className="text-sm font-supaterm-medium text-primary">Manage usage</Text>
           </Pressable>
         </View>
       ))}
@@ -322,12 +322,12 @@ export function UsageLimitsSection({
           />
           <View className="min-w-0 flex-1 gap-0.5">
             {notices.map((notice) => (
-              <Text key={notice} className="text-sm font-supacode-medium text-warning-foreground">
+              <Text key={notice} className="text-sm font-supaterm-medium text-warning-foreground">
                 {notice}
               </Text>
             ))}
             {failedLabels.length > 0 ? (
-              <Text className="text-sm font-supacode-medium text-warning-foreground">
+              <Text className="text-sm font-supaterm-medium text-warning-foreground">
                 {failedLabels.join(", ")} could not refresh limits. Showing the last known values.
               </Text>
             ) : null}
@@ -381,7 +381,7 @@ export function UsageLimitAccountScreen({ route }: AccountScreenProps) {
             <View className="gap-2">
               <View className="flex-row items-center gap-2">
                 <ProviderIcon provider={account.driver} size={24} />
-                <Text className="flex-1 text-xl font-supacode-bold text-foreground">
+                <Text className="flex-1 text-xl font-supaterm-bold text-foreground">
                   {account.displayName ?? DRIVER_LABEL[account.driver] ?? account.driver}
                 </Text>
               </View>
@@ -404,8 +404,8 @@ export function UsageLimitAccountScreen({ route }: AccountScreenProps) {
               ) : null}
             </View>
             <View className="gap-3 rounded-[24px] border-continuous bg-grouped-card p-4">
-              <Text className="text-sm font-supacode-medium text-foreground">{window.label}</Text>
-              <Text className="text-3xl font-supacode-bold tabular-nums text-foreground">
+              <Text className="text-sm font-supaterm-medium text-foreground">{window.label}</Text>
+              <Text className="text-3xl font-supaterm-bold tabular-nums text-foreground">
                 {remainingPercent(window)}% left
               </Text>
               {window.resetsAt ? (
@@ -424,7 +424,7 @@ export function UsageLimitAccountScreen({ route }: AccountScreenProps) {
               ) : null}
             </View>
             <View className="gap-2 rounded-[24px] border-continuous bg-grouped-card p-4">
-              <Text className="text-sm font-supacode-medium text-foreground">
+              <Text className="text-sm font-supaterm-medium text-foreground">
                 {account.environments.length ? "Signed in" : "Source"}
               </Text>
               {account.environments.length ? (
@@ -439,7 +439,7 @@ export function UsageLimitAccountScreen({ route }: AccountScreenProps) {
             </View>
             {account.redeem && account.limits.resetCredits ? (
               <View className="gap-3 rounded-[24px] border-continuous bg-grouped-card p-4">
-                <Text className="text-sm font-supacode-medium text-foreground">Reset credits</Text>
+                <Text className="text-sm font-supaterm-medium text-foreground">Reset credits</Text>
                 <ResetCredits
                   key={account.key}
                   environmentId={account.redeem.environmentId}

@@ -1,9 +1,9 @@
 import * as NodeDnsPromises from "node:dns/promises";
 import * as NodeNet from "node:net";
-import type { SshDeviceHostConfig } from "@supacode/contracts";
+import type { SshDeviceHostConfig } from "@supaterm/contracts";
 import * as NodeOS from "node:os";
 import * as Context from "effect/Context";
-import { runSshCommand } from "@supacode/ssh/command";
+import { runSshCommand } from "@supaterm/ssh/command";
 import * as Effect from "effect/Effect";
 
 export const LocalDeviceHostAddresses = Context.Reference<ReadonlySet<string>>(

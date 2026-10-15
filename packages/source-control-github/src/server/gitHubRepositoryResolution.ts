@@ -1,8 +1,8 @@
-import { normalizeGitRemoteUrl, parseGitRemoteFetchUrls } from "@supacode/shared/git";
+import { normalizeGitRemoteUrl, parseGitRemoteFetchUrls } from "@supaterm/shared/git";
 import {
   detectSourceControlProviderFromRemoteUrl,
   isSshRemoteUrl,
-} from "@supacode/shared/sourceControl";
+} from "@supaterm/shared/sourceControl";
 
 export interface GitHubRepositoryLocator {
   readonly host: string;

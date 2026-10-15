@@ -1,4 +1,4 @@
-import { clampMcpAppHeight } from "@supacode/shared/mcpApp";
+import { clampMcpAppHeight } from "@supaterm/shared/mcpApp";
 
 /** Taller apps scroll inside the inline view; full screen fills its own screen. */
 export const MCP_APP_INLINE_MAX_HEIGHT = 420;

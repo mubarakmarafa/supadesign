@@ -1,9 +1,9 @@
-import type { ProviderDriverKind } from "@supacode/contracts";
+import type { ProviderDriverKind } from "@supaterm/contracts";
 
 import {
   AcpRegistryAdapterV2Driver,
   type AcpRegistryAdapterV2DriverEnv,
-} from "@supacode/provider-acp-registry/server";
+} from "@supaterm/provider-acp-registry/server";
 import {
   ClaudeAdapterV2Driver,
   type ClaudeAdapterV2DriverEnv,
@@ -12,14 +12,14 @@ import { CodexAdapterV2Driver, type CodexAdapterV2DriverEnv } from "./Adapters/C
 import {
   CursorAdapterV2Driver,
   type CursorAdapterV2DriverEnv,
-} from "@supacode/provider-cursor/server";
-import { GrokAdapterV2Driver, type GrokAdapterV2DriverEnv } from "@supacode/provider-grok/server";
+} from "@supaterm/provider-cursor/server";
+import { GrokAdapterV2Driver, type GrokAdapterV2DriverEnv } from "@supaterm/provider-grok/server";
 import {
   OpenCodeAdapterV2Driver,
   type OpenCodeAdapterV2DriverEnv,
-} from "@supacode/provider-opencode/server";
-import { PiAdapterV2Driver, type PiAdapterV2DriverEnv } from "@supacode/provider-pi/server";
-import type { AnyProviderAdapterDriver } from "@supacode/provider-core/server/adapterDriver";
+} from "@supaterm/provider-opencode/server";
+import { PiAdapterV2Driver, type PiAdapterV2DriverEnv } from "@supaterm/provider-pi/server";
+import type { AnyProviderAdapterDriver } from "@supaterm/provider-core/server/adapterDriver";
 
 export type BuiltInProviderAdapterDriversV2Env =
   | AcpRegistryAdapterV2DriverEnv

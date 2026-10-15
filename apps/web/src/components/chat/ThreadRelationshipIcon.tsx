@@ -1,4 +1,4 @@
-import type { ProviderDriverKind, ServerProvider } from "@supacode/contracts";
+import type { ProviderDriverKind, ServerProvider } from "@supaterm/contracts";
 import { BotIcon, type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { ProviderInstanceIcon } from "./ProviderInstanceIcon";

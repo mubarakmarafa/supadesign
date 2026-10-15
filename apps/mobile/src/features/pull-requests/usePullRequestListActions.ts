@@ -1,7 +1,7 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { useNavigation } from "@react-navigation/native";
-import { executeAtomQuery, squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentId, PullRequestAction } from "@supacode/contracts";
+import { executeAtomQuery, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentId, PullRequestAction } from "@supaterm/contracts";
 import * as Clipboard from "expo-clipboard";
 import { Atom } from "effect/reactivity";
 import { use, useCallback, useMemo, useRef, useState } from "react";

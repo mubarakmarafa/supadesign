@@ -11,7 +11,7 @@ import * as HttpClientError from "effect/http/HttpClientError";
 import * as HttpServer from "effect/http/HttpServer";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import * as ServerConfig from "../config.ts";
 import { getTelemetryIdentifier } from "./Identify.ts";
@@ -30,7 +30,7 @@ interface RecordedBatchRequest {
         readonly serverArch?: string;
         readonly serverAppVersion?: string;
         readonly serverMode?: string;
-        readonly supacodeVersion?: string;
+        readonly supatermVersion?: string;
       };
     }>;
   } | null;
@@ -46,7 +46,7 @@ interface RecordedBatchBody {
       readonly serverArch?: string;
       readonly serverAppVersion?: string;
       readonly serverMode?: string;
-      readonly supacodeVersion?: string;
+      readonly supatermVersion?: string;
     };
   }>;
 }
@@ -95,15 +95,15 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
       const layerRuntime = AnalyticsService.layer.pipe(
         Layer.provideMerge(
           ServerConfig.ServerConfig.layerTest(process.cwd(), {
-            prefix: "supacode-telemetry-retry-",
+            prefix: "supaterm-telemetry-retry-",
           }),
         ),
         Layer.provide(
           ConfigProvider.layer(
             ConfigProvider.fromUnknown({
-              SUPACODE_TELEMETRY_ENABLED: true,
-              SUPACODE_POSTHOG_KEY: "phc_test_key",
-              SUPACODE_POSTHOG_HOST: "http://localhost",
+              SUPATERM_TELEMETRY_ENABLED: true,
+              SUPATERM_POSTHOG_KEY: "phc_test_key",
+              SUPATERM_POSTHOG_HOST: "http://localhost",
             }),
           ),
         ),
@@ -138,15 +138,15 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
     Effect.gen(function* () {
       const capturedRequests: Array<RecordedBatchRequest> = [];
       const layerServerConfig = ServerConfig.ServerConfig.layerTest(process.cwd(), {
-        prefix: "supacode-telemetry-base-",
+        prefix: "supaterm-telemetry-base-",
       });
 
       const layerTelemetry = AnalyticsService.layer.pipe(Layer.provideMerge(layerServerConfig));
       const layerConfig = ConfigProvider.layer(
         ConfigProvider.fromUnknown({
-          SUPACODE_TELEMETRY_ENABLED: true,
-          SUPACODE_POSTHOG_HOST: "http://localhost",
-          SUPACODE_TELEMETRY_FLUSH_BATCH_SIZE: 20,
+          SUPATERM_TELEMETRY_ENABLED: true,
+          SUPATERM_POSTHOG_HOST: "http://localhost",
+          SUPATERM_TELEMETRY_FLUSH_BATCH_SIZE: 20,
         }),
       );
       const layerBatchServer = HttpServer.serve(
@@ -232,7 +232,7 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
             (event) =>
               event.properties?.serverOs === "Linux" &&
               event.properties.serverArch === "arm64" &&
-              event.properties.serverAppVersion === event.properties.supacodeVersion &&
+              event.properties.serverAppVersion === event.properties.supatermVersion &&
               event.properties.serverMode === "web",
           ),
         ),
@@ -245,14 +245,14 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
     Effect.gen(function* () {
       const capturedPaths: Array<string> = [];
       const layerServerConfig = ServerConfig.ServerConfig.layerTest(process.cwd(), {
-        prefix: "supacode-telemetry-disabled-",
+        prefix: "supaterm-telemetry-disabled-",
       });
       const layerTelemetry = AnalyticsService.layer.pipe(Layer.provideMerge(layerServerConfig));
       const layerConfig = ConfigProvider.layer(
         ConfigProvider.fromUnknown({
-          SUPACODE_TELEMETRY_ENABLED: false,
-          SUPACODE_POSTHOG_KEY: "phc_test_key",
-          SUPACODE_POSTHOG_HOST: "http://localhost",
+          SUPATERM_TELEMETRY_ENABLED: false,
+          SUPATERM_POSTHOG_KEY: "phc_test_key",
+          SUPATERM_POSTHOG_HOST: "http://localhost",
         }),
       );
       const layerBatchServer = HttpServer.serve(

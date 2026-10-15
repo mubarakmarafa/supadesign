@@ -5,7 +5,7 @@ import {
   selectRunningSubprocessTerminalIds,
   type KnownTerminalSession,
   type TerminalSessionState,
-} from "@supacode/client-runtime/state/terminal";
+} from "@supaterm/client-runtime/state/terminal";
 import {
   ThreadId,
   AuthTerminalReadScope,
@@ -13,7 +13,7 @@ import {
   type EnvironmentId,
   type TerminalAttachInput,
   type TerminalSummary,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useMemo } from "react";
 
 import { useEnvironmentQuery } from "./query";

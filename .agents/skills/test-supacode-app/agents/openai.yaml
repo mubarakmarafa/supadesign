@@ -1,4 +1,0 @@
-interface:
-  display_name: "Supacode App Testing"
-  short_description: "Test web and desktop in Supacode's Browser panel"
-  default_prompt: "Use $test-supacode-app to verify the affected web or desktop flow through Supacode's Browser panel."

@@ -166,7 +166,7 @@ export function SettingsMicrophoneRouteScreen() {
             <Text className="px-2 text-sm text-foreground-muted">
               {permission === "ask"
                 ? "Voice input needs microphone access before it can record or list your microphones."
-                : "Microphone access is off for Supacode. Turn it on in Settings to use voice input."}
+                : "Microphone access is off for Supaterm. Turn it on in Settings to use voice input."}
             </Text>
           </>
         ) : null}
@@ -179,7 +179,7 @@ export function SettingsMicrophoneRouteScreen() {
                 onPress={() => setEditing((value) => !value)}
                 className="px-2 py-1 active:opacity-70"
               >
-                <Text className="text-sm font-supacode-medium text-foreground">
+                <Text className="text-sm font-supaterm-medium text-foreground">
                   {editing ? "Done" : "Edit"}
                 </Text>
               </Pressable>

@@ -3,7 +3,7 @@ import type {
   DesktopAppStageLabel,
   DesktopRuntimeArch,
   DesktopRuntimeInfo,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -16,7 +16,7 @@ import * as DesktopConfig from "./DesktopConfig.ts";
 import { resolveLinuxDesktopEntryName } from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopBaseDir, resolveDesktopStateDir } from "./DesktopStatePaths.ts";
 import { isNightlyDesktopVersion } from "../updates/updateChannels.ts";
-import type { OtlpProtocol } from "@supacode/shared/observability";
+import type { OtlpProtocol } from "@supaterm/shared/observability";
 
 export interface MakeDesktopEnvironmentInput {
   readonly dirname: string;
@@ -62,7 +62,7 @@ export class DesktopEnvironment extends Context.Service<
     // extracts on demand (see DesktopWslServerTree).
     readonly serverRoot: string;
     readonly backendEntryPath: string;
-    // Built web client the packaged renderer is served from over supacode://app.
+    // Built web client the packaged renderer is served from over supaterm://app.
     readonly clientAssetsDir: string;
     readonly backendCwd: string;
     readonly preloadPath: string;
@@ -70,7 +70,7 @@ export class DesktopEnvironment extends Context.Service<
     readonly compileCachePath: string;
     readonly appUpdateYmlPath: string;
     readonly devServerUrl: Option.Option<URL>;
-    readonly devRemoteSupacodeServerEntryPath: Option.Option<string>;
+    readonly devRemoteSupatermServerEntryPath: Option.Option<string>;
     readonly configuredBackendPort: Option.Option<number>;
     readonly commitHashOverride: Option.Option<string>;
     readonly otlpTracesUrl: Option.Option<string>;
@@ -91,9 +91,9 @@ export class DesktopEnvironment extends Context.Service<
     readonly resolvePickFolderDefaultPath: (rawOptions: unknown) => Option.Option<string>;
     readonly resolveResourcePathCandidates: (fileName: string) => readonly string[];
   }
->()("@supacode/desktop/app/DesktopEnvironment") {}
+>()("@supaterm/desktop/app/DesktopEnvironment") {}
 
-const APP_BASE_NAME = "Supacode";
+const APP_BASE_NAME = "Supaterm";
 
 function resolveDesktopAppStageLabel(input: {
   readonly isDevelopment: boolean;
@@ -167,7 +167,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
   const baseDir = resolveDesktopBaseDir({
     homeDirectory,
     joinPath: path.join,
-    supacodeHome: config.supacodeHome,
+    supatermHome: config.supatermHome,
   });
   const rootDir = path.resolve(input.dirname, "../../..");
   const appRoot = input.isPackaged ? input.appPath : rootDir;
@@ -184,7 +184,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
     baseDir,
     isDevelopment,
     joinPath: path.join,
-    supacodeHome: config.supacodeHome,
+    supatermHome: config.supatermHome,
   });
   const linuxApplicationsDir = path.join(
     Option.getOrElse(config.xdgDataHome, () => path.join(homeDirectory, ".local", "share")),
@@ -224,7 +224,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
       ? path.join(resourcesPath, "app-update.yml")
       : path.join(input.appPath, "dev-app-update.yml"),
     devServerUrl,
-    devRemoteSupacodeServerEntryPath: config.devRemoteSupacodeServerEntryPath,
+    devRemoteSupatermServerEntryPath: config.devRemoteSupatermServerEntryPath,
     configuredBackendPort: config.configuredBackendPort,
     commitHashOverride: config.commitHashOverride,
     otlpTracesUrl: config.otlpTracesUrl,
@@ -236,10 +236,10 @@ const make = Effect.fn("desktop.environment.make")(function* (
     branding,
     displayName,
     appUserModelId: Option.getOrElse(config.appUserModelIdOverride, () =>
-      isDevelopment ? "com.supaterm.supacode.dev" : "com.supaterm.supacode",
+      isDevelopment ? "com.supaterm.desktop.dev" : "com.supaterm.desktop",
     ),
     linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment),
-    linuxWmClass: isDevelopment ? "supacode-dev" : "supacode",
+    linuxWmClass: isDevelopment ? "supaterm-dev" : "supaterm",
     linuxApplicationsDir,
     appImagePath: config.appImagePath,
     defaultDesktopSettings: DesktopAppSettings.resolveDefaultDesktopSettings(input.appVersion),

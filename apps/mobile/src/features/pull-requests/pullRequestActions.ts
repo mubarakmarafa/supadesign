@@ -1,10 +1,10 @@
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import type {
   PullRequestAction,
   PullRequestDetail,
   PullRequestMergeMethod,
   SourceControlProviderKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { AppSymbolName } from "../../components/AppSymbol";
 
 type ActionDetail = Pick<

@@ -1,13 +1,13 @@
 import { useAtomValue } from "@effect/atom-react";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { resolveHandoffEndpoints } from "@supacode/client-runtime/handoff";
-import { resolveProviderInstanceDisplayName } from "@supacode/client-runtime/state/provider-instance-display";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { resolveHandoffEndpoints } from "@supaterm/client-runtime/handoff";
+import { resolveProviderInstanceDisplayName } from "@supaterm/client-runtime/state/provider-instance-display";
 import type {
   EnvironmentId,
   OrchestrationV2ProjectedTurnItem,
   ProviderInstanceId,
   ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 import { Fragment, useMemo } from "react";
 import { Alert, Pressable, View, type ColorValue } from "react-native";

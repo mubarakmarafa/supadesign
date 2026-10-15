@@ -83,7 +83,7 @@ vi.mock("./use-thread-detail", () => ({
   }),
 }));
 
-import { ApprovalRequestId, EnvironmentId, ThreadId } from "@supacode/contracts";
+import { ApprovalRequestId, EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { questionAttachmentDraftKey } from "./question-attachments";
 import { useSelectedThreadRequests } from "./use-selected-thread-requests";
 

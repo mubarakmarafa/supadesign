@@ -6,7 +6,7 @@ import type {
   PullRequestDetailView,
   PullRequestRef,
   ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   ChevronDownIcon,
   ExternalLinkIcon,

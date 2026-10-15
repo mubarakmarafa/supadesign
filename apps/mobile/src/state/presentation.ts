@@ -2,9 +2,9 @@ import { useAtomValue } from "@effect/atom-react";
 import {
   environmentConnectionAddress,
   type EnvironmentPresentation,
-} from "@supacode/client-runtime/connection";
-import { createEnvironmentPresentationAtoms } from "@supacode/client-runtime/state/presentation";
-import type { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/connection";
+import { createEnvironmentPresentationAtoms } from "@supaterm/client-runtime/state/presentation";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 import * as Option from "effect/Option";
 

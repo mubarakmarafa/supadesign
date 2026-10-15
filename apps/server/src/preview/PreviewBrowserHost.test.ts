@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as Sink from "effect/Sink";
 import * as Stream from "effect/Stream";
@@ -61,9 +61,9 @@ const diagnose = (input: {
     version: input.version ?? LOADER_ERROR,
   });
   return PreviewBrowserHost.diagnoseLaunchFailure({
-    executable: "/home/me/.supacode/tools/chrome-headless-shell/linux64/154/chrome-headless-shell",
+    executable: "/home/me/.supaterm/tools/chrome-headless-shell/linux64/154/chrome-headless-shell",
     output: input.output,
-    setupCommand: "sudo supacode browser setup",
+    setupCommand: "sudo supaterm browser setup",
   }).pipe(
     Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
     Effect.provideService(HostProcess.Platform, input.platform),
@@ -80,7 +80,7 @@ describe("diagnoseLaunchFailure", () => {
         ldd: "",
       });
       expect(error?._tag).toBe("PreviewBrowserSandboxError");
-      expect(error?.message).toContain("Run `sudo supacode browser setup` on the host");
+      expect(error?.message).toContain("Run `sudo supaterm browser setup` on the host");
       expect(commands).toEqual([]);
     }),
   );
@@ -96,7 +96,7 @@ describe("diagnoseLaunchFailure", () => {
         _tag: "PreviewBrowserLibrariesError",
         libraries: ["libglib-2.0.so.0", "libnss3.so", "libX11.so.6"],
       });
-      expect(error?.message).toContain("Run `sudo supacode browser setup` on the host");
+      expect(error?.message).toContain("Run `sudo supaterm browser setup` on the host");
     }),
   );
 

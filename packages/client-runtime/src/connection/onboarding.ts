@@ -1,5 +1,5 @@
-import type { DesktopSshEnvironmentTarget, EnvironmentId } from "@supacode/contracts";
-import { resolveRemotePairingTarget } from "@supacode/shared/remote";
+import type { DesktopSshEnvironmentTarget, EnvironmentId } from "@supaterm/contracts";
+import { resolveRemotePairingTarget } from "@supaterm/shared/remote";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -83,7 +83,7 @@ export class ConnectionOnboarding extends Context.Service<
       input: BearerConnectionUpdateInput,
     ) => Effect.Effect<void, ConnectionAttemptError | Persistence.ConnectionPersistenceError>;
   }
->()("@supacode/client-runtime/connection/onboarding/ConnectionOnboarding") {}
+>()("@supaterm/client-runtime/connection/onboarding/ConnectionOnboarding") {}
 
 const resolvePairingTarget = Effect.fn("clientRuntime.connection.onboarding.resolvePairingTarget")(
   function* (input: PairingConnectionInput) {

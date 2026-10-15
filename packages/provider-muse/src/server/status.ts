@@ -1,6 +1,6 @@
-import { ServerProviderModel } from "@supacode/contracts";
+import { ServerProviderModel } from "@supaterm/contracts";
 import { MuseSettings } from "../settings.ts";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -18,7 +18,7 @@ import {
   providerModelsFromSettings,
   spawnAndCollect,
   type ProviderProbeResult,
-} from "@supacode/provider-core/server/snapshotProbe";
+} from "@supaterm/provider-core/server/snapshotProbe";
 
 const MUSE_PRESENTATION = {
   displayName: "Muse Code",
@@ -46,7 +46,7 @@ export const makePendingMuseProvider = Effect.fn("makePendingMuseProvider")(func
       auth: { status: "unknown" },
       message: settings.enabled
         ? "Checking Muse Code CLI availability..."
-        : "Muse Code is disabled in Supacode settings.",
+        : "Muse Code is disabled in Supaterm settings.",
     },
   });
 });
@@ -92,8 +92,8 @@ export const checkMuseProviderStatus = Effect.fn("checkMuseProviderStatus")(func
       status: "error",
       auth: { status: "unknown" },
       message: missing
-        ? "Muse Code CLI (`muse`) was not found. Install Muse Code and run `muse login` on this Supacode server host."
-        : "Failed to execute Muse Code CLI. Check its binary path on this Supacode server host.",
+        ? "Muse Code CLI (`muse`) was not found. Install Muse Code and run `muse login` on this Supaterm server host."
+        : "Failed to execute Muse Code CLI. Check its binary path on this Supaterm server host.",
     });
   }
   if (Option.isNone(versionResult.success)) {
@@ -129,7 +129,7 @@ export const checkMuseProviderStatus = Effect.fn("checkMuseProviderStatus")(func
       status: "error",
       auth: { status: "unknown" },
       message:
-        "Muse Code SDK could not read the model catalog. Check your Muse installation and run `muse login` on this Supacode server host.",
+        "Muse Code SDK could not read the model catalog. Check your Muse installation and run `muse login` on this Supaterm server host.",
     });
   }
   const models = catalog.success.value;
@@ -144,7 +144,7 @@ export const checkMuseProviderStatus = Effect.fn("checkMuseProviderStatus")(func
         : {
             status: "warning",
             message:
-              "Muse Code returned no models. Run `muse login` on this Supacode server host and refresh its status.",
+              "Muse Code returned no models. Run `muse login` on this Supaterm server host and refresh its status.",
           }),
     },
     models,

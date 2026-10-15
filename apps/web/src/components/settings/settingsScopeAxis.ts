@@ -1,4 +1,4 @@
-import { connectionAddressLabel } from "@supacode/client-runtime/connection";
+import { connectionAddressLabel } from "@supaterm/client-runtime/connection";
 import type { EnvironmentPresentation } from "../../state/environments";
 import type { ResolvedSettingsScope, SettingsScopeSearch } from "./settingsScope";
 

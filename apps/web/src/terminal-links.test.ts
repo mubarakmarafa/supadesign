@@ -1,4 +1,4 @@
-import { resolvePathLinkTarget } from "@supacode/shared/fileLinks";
+import { resolvePathLinkTarget } from "@supaterm/shared/fileLinks";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

@@ -1,4 +1,4 @@
-import type { RuntimeMode } from "@supacode/contracts";
+import type { RuntimeMode } from "@supaterm/contracts";
 import { type LucideIcon, LockIcon, LockOpenIcon, PenLineIcon, SparklesIcon } from "lucide-react";
 
 export const runtimeModeConfig: Record<

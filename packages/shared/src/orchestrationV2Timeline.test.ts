@@ -1,4 +1,4 @@
-import { NodeId, RunId } from "@supacode/contracts";
+import { NodeId, RunId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

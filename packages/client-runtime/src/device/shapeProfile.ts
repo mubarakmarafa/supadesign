@@ -1,4 +1,4 @@
-import type { DevicePlatform } from "@supacode/contracts";
+import type { DevicePlatform } from "@supaterm/contracts";
 
 export interface DeviceShapeProfile {
   readonly id: "ios-phone" | "ios-tablet" | "android-phone" | "android-tablet";

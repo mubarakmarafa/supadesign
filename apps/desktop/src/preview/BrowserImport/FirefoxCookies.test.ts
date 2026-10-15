@@ -43,7 +43,7 @@ const writeFirefoxCookieDatabase = Effect.fnUntraced(function* (
   schemaVersion = 15,
 ) {
   const fileSystem = yield* FileSystem.FileSystem;
-  const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-firefox-test-" });
+  const directory = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-firefox-test-" });
   const file = `${directory}/cookies.sqlite`;
   const database = new NodeSqlite.DatabaseSync(file);
   database.exec(`pragma user_version = ${schemaVersion}`);

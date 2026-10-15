@@ -3,9 +3,9 @@ import {
   COMPOSER_CONTEXT_TERMINAL_TEXT_MAX_CHARS,
   type EnvironmentId,
   type ThreadId,
-} from "@supacode/contracts";
-import { formatComposerContextReference } from "@supacode/shared/composerContextReferences";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+} from "@supaterm/contracts";
+import { formatComposerContextReference } from "@supaterm/shared/composerContextReferences";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import { useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

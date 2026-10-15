@@ -6,10 +6,10 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as PlatformError from "effect/PlatformError";
 import { ChildProcessSpawner } from "effect/process";
-import { VcsProcessExitError, VcsProcessSpawnError } from "@supacode/contracts";
+import { VcsProcessExitError, VcsProcessSpawnError } from "@supaterm/contracts";
 
-import type * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import * as TestSourceControlHost from "@supacode/source-control-testing/TestSourceControlHost";
+import type * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import * as TestSourceControlHost from "@supaterm/source-control-testing/TestSourceControlHost";
 import * as AzureDevOpsCli from "./AzureDevOpsCli.ts";
 
 const processOutput = (stdout: string): SourceControlHost.SourceControlProcessOutput => ({
@@ -298,7 +298,7 @@ describe("AzureDevOpsCli.layer", () => {
   it.effect("creates pull requests using the body file as the Azure description", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const bodyFile = `/tmp/supacode-azure-devops-cli-.md`;
+      const bodyFile = `/tmp/supaterm-azure-devops-cli-.md`;
       yield* fileSystem.writeFileString(bodyFile, "Generated body");
       mockRun.mockReturnValueOnce(Effect.succeed(processOutput("{}")));
 

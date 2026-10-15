@@ -10,9 +10,9 @@ import {
   DESKTOP_APP_ACTIVATION_PROTOCOL_VERSION,
   DesktopAppActivationRequest,
   type DesktopAppActivationResponse,
-} from "@supacode/contracts";
-import { resolveDesktopAppControlAddress } from "@supacode/shared/desktopAppControl";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import { resolveDesktopAppControlAddress } from "@supaterm/shared/desktopAppControl";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -107,7 +107,7 @@ function closeServer(server: NodeNet.Server): Promise<void> {
 }
 
 /**
- * Serves `supacode app` requests on the local control address until `close`.
+ * Serves `supaterm app` requests on the local control address until `close`.
  *
  * Two desktop apps can share one state dir, for example nightly and a preview
  * build. They share one socket path, so on Unix:
@@ -171,7 +171,7 @@ export async function startDesktopAppControlServer(input: {
       activeRequestId = parsed.requestId;
       void input.handle(parsed).then(finish, () => {
         finish(
-          invalidResponse(parsed.requestId, "Supacode could not process the desktop app request."),
+          invalidResponse(parsed.requestId, "Supaterm could not process the desktop app request."),
         );
       });
     });
@@ -305,7 +305,7 @@ export class DesktopAppActivation extends Context.Service<
     readonly setRendererReady: (ready: boolean) => Effect.Effect<void>;
     readonly complete: (response: DesktopAppActivationResponse) => Effect.Effect<void>;
   }
->()("@supacode/desktop/app/DesktopAppActivation") {}
+>()("@supaterm/desktop/app/DesktopAppActivation") {}
 
 const { logWarning } = makeComponentLogger("desktop-app-activation");
 

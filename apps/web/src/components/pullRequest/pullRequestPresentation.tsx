@@ -8,8 +8,8 @@ import type {
   PullRequestMergeability,
   PullRequestReviewDecision,
   PullRequestState,
-} from "@supacode/contracts";
-import { formatDiffCount } from "@supacode/client-runtime/diff-count";
+} from "@supaterm/contracts";
+import { formatDiffCount } from "@supaterm/client-runtime/diff-count";
 import {
   CircleCheckIcon,
   CircleDashedIcon,

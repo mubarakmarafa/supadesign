@@ -1,6 +1,6 @@
 import { closestCenter, type CollisionDetection, type Modifier } from "@dnd-kit/core";
 import { verticalListSortingStrategy, type SortingStrategy } from "@dnd-kit/sortable";
-import { pageRecentThreads } from "@supacode/client-runtime/state/thread-sort";
+import { pageRecentThreads } from "@supaterm/client-runtime/state/thread-sort";
 import {
   resolveSidebarDropTarget,
   sidebarListItemId,

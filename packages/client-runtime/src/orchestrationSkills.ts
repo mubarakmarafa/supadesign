@@ -1,4 +1,4 @@
-import type { EnvironmentId, OrchestrationSkillsStatus } from "@supacode/contracts";
+import type { EnvironmentId, OrchestrationSkillsStatus } from "@supaterm/contracts";
 
 export interface OrchestrationSkillsEnvironment {
   readonly environmentId: EnvironmentId;

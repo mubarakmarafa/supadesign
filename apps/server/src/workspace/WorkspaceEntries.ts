@@ -18,12 +18,12 @@ import type {
   ProjectSearchContentsResult,
   ProjectSearchEntriesInput,
   ProjectSearchEntriesResult,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { isExplicitRelativePath, isWindowsAbsolutePath } from "@supacode/shared/path";
-import { normalizeSearchQuery } from "@supacode/shared/searchRanking";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { isExplicitRelativePath, isWindowsAbsolutePath } from "@supaterm/shared/path";
+import { normalizeSearchQuery } from "@supaterm/shared/searchRanking";
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import * as VcsProcess from "../vcs/VcsProcess.ts";
 import * as WorkspacePaths from "./WorkspacePaths.ts";
 import * as WorkspaceSearchIndex from "./WorkspaceSearchIndex.ts";
@@ -104,7 +104,7 @@ export class WorkspaceEntries extends Context.Service<
     ) => Effect.Effect<ProjectSearchContentsResult, WorkspaceEntriesError>;
     readonly refresh: (cwd: string) => Effect.Effect<void>;
   }
->()("supacode/workspace/WorkspaceEntries") {}
+>()("supaterm/workspace/WorkspaceEntries") {}
 
 const resolveBrowseTarget = Effect.fn("WorkspaceEntries.resolveBrowseTarget")(function* (
   input: FilesystemBrowseInput,

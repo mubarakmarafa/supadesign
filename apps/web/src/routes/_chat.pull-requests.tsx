@@ -5,7 +5,7 @@ import type { PullRequestSpeedActionResult } from "~/components/pullRequest/Pull
 import { usePullRequestCloseBatch } from "~/components/pullRequest/usePullRequestActions";
 import { SidebarPointerSensor } from "~/components/Sidebar.pointer";
 import { resolveSidebarSweepKeys } from "~/components/Sidebar.logic";
-import { pullRequestHostOf, resolveEnvironmentMachineKind } from "@supacode/contracts";
+import { pullRequestHostOf, resolveEnvironmentMachineKind } from "@supaterm/contracts";
 import type {
   EnvironmentId,
   ProjectId,
@@ -17,7 +17,7 @@ import type {
   PullRequestListResult,
   PullRequestListState,
   SourceControlProviderKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
@@ -1966,7 +1966,7 @@ function PullRequestsRouteView() {
       ) : !pullRequestsSupported ? (
         <PullRequestsUnavailableState
           title="Pull requests unavailable"
-          error="Update your Supacode servers to browse pull requests."
+          error="Update your Supaterm servers to browse pull requests."
         />
       ) : firstLoad ? (
         <PullRequestListGhost rows={7} />
@@ -2312,7 +2312,7 @@ function PullRequestsRouteView() {
           {rightPanelPresent && renderedPullRequestSurface && panelEnvironmentId !== null ? (
             <PreviewPanelInline
               open={rightPanelState.isOpen}
-              widthStorageKey="supacode:pull-request-panel-width"
+              widthStorageKey="supaterm:pull-request-panel-width"
               onCollapse={closeRightPanel}
               // Default to roughly half the viewport: the PR list needs more
               // room than a chat, so the 540px chat-preview default squashes

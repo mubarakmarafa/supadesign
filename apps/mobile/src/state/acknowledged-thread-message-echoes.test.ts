@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { Atom, AtomRegistry } from "effect/reactivity";
-import { CommandId, EnvironmentId, MessageId, ThreadId } from "@supacode/contracts";
-import type { EnvironmentThread } from "@supacode/client-runtime/state/models";
+import { CommandId, EnvironmentId, MessageId, ThreadId } from "@supaterm/contracts";
+import type { EnvironmentThread } from "@supaterm/client-runtime/state/models";
 import {
   v2Projection,
   v2Now,

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import {
   PrimaryConnectionTarget,
   type PreparedConnection,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import { isLocalProviderAuthConnection } from "./CodexSetupSection.logic";
 
 const target = new PrimaryConnectionTarget({

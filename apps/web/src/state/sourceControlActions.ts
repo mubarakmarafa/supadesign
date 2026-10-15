@@ -3,12 +3,12 @@ import type {
   AtomCommandFailure,
   AtomCommandResult,
   AtomCommandSuccess,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   VcsActionUnavailableError,
   type VcsActionOperation,
   type RunVcsStackedActionInput,
-} from "@supacode/client-runtime/state/vcs";
+} from "@supaterm/client-runtime/state/vcs";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
@@ -19,7 +19,7 @@ import {
   type SourceControlProviderKind,
   type SourceControlRepositoryVisibility,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";

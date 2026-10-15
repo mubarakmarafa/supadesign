@@ -3,7 +3,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ModelCapabilities,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   applyClaudePromptEffortPrefix,

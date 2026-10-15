@@ -6,14 +6,14 @@ import {
   removeCatalogValue,
   replaceCatalogValue,
   Persistence,
-} from "@supacode/client-runtime/platform";
+} from "@supaterm/client-runtime/platform";
 import {
   ConnectionTransientError,
   CredentialStore,
   ProfileStore,
   GitHubRoutingPermissions,
   makeGitHubRoutingPermissions,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";

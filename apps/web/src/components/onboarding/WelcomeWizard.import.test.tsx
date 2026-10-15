@@ -7,7 +7,7 @@ import {
   type AgentSessionProjectCandidate,
   type AuthEnvironmentScope,
   type AuthSessionState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
@@ -37,7 +37,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("../../connection/runtime", () => ({ connectionAtomRuntime: undefined }));
-vi.mock("@supacode/client-runtime/state/session", () => ({
+vi.mock("@supaterm/client-runtime/state/session", () => ({
   createEnvironmentSessionAtoms: () => ({
     sessionStateAtom: (id: EnvironmentId) => state.sessions.get(id)!,
   }),
@@ -54,7 +54,7 @@ vi.mock("../../hooks/useCopyToClipboard", () => ({
   useCopyToClipboard: () => ({ copyToClipboard: vi.fn(), copied: false }),
 }));
 vi.mock("../../cloud/publicConfig", () => ({ hasCloudPublicConfig: () => false }));
-vi.mock("../clerk/useSupacodeConnectAuthPrompt", () => ({ useSupacodeConnectAuthPrompt: vi.fn() }));
+vi.mock("../clerk/useSupatermConnectAuthPrompt", () => ({ useSupatermConnectAuthPrompt: vi.fn() }));
 vi.mock("../../onboarding/firstRun", () => ({
   useCompleteOnboarding: () => state.completeOnboarding,
 }));
@@ -163,7 +163,7 @@ function session(scopes: ReadonlyArray<AuthEnvironmentScope>): AuthSessionState 
       policy: "remote-reachable",
       bootstrapMethods: ["one-time-token"],
       sessionMethods: ["bearer-access-token"],
-      sessionCookieName: "supacode_session",
+      sessionCookieName: "supaterm_session",
     },
   };
 }

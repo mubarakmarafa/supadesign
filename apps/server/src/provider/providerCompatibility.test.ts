@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { ProviderDriverKind, ProviderInstanceId, type ServerProvider } from "@supacode/contracts";
+import { ProviderDriverKind, ProviderInstanceId, type ServerProvider } from "@supaterm/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Deferred from "effect/Deferred";
 import * as Fiber from "effect/Fiber";
@@ -12,8 +12,8 @@ import * as ServerConfig from "../config.ts";
 import * as ModelManifest from "./ModelManifest.ts";
 import * as ProviderRegistry from "./ProviderRegistry.ts";
 import * as ProviderInstanceRegistry from "./ProviderInstanceRegistry.ts";
-import type { ProviderInstance } from "@supacode/provider-core/server/driver";
-import { makeManualOnlyProviderMaintenanceCapabilities } from "@supacode/provider-core/server/maintenanceResolver";
+import type { ProviderInstance } from "@supaterm/provider-core/server/driver";
+import { makeManualOnlyProviderMaintenanceCapabilities } from "@supaterm/provider-core/server/maintenanceResolver";
 import { BUILT_IN_DRIVERS } from "./builtInDrivers.ts";
 import * as Schema from "effect/Schema";
 import {
@@ -25,7 +25,7 @@ import {
 const driver = ProviderDriverKind.make("codex");
 const policy: ProviderCompatibilityPolicy = {
   driver,
-  supacodeRange: ">=0.0.42",
+  supatermRange: ">=0.0.42",
   recommendedVersion: "2.0.0",
   recommendedRange: ">=2.0.0 <3.0.0",
   ranges: [
@@ -111,14 +111,14 @@ describe("provider compatibility", () => {
       ["1.14.19", "graceful"],
       ["1.14.18", "broken"],
     ] as const) {
-      for (const supacodeVersion of [V2_RELEASE, "0.0.46-preview.20261002.2598"]) {
+      for (const supatermVersion of [V2_RELEASE, "0.0.46-preview.20261002.2598"]) {
         const advisory = resolveProviderCompatibility(
           ModelManifest.BUNDLED_MODEL_MANIFEST.compatibility,
           opencode,
           version,
-          supacodeVersion,
+          supatermVersion,
         );
-        assert.strictEqual(advisory?.status, expected, `OpenCode ${version} on ${supacodeVersion}`);
+        assert.strictEqual(advisory?.status, expected, `OpenCode ${version} on ${supatermVersion}`);
         assert.strictEqual(advisory?.recommendedRange, ">=2.0.18");
       }
     }
@@ -143,7 +143,7 @@ describe("provider compatibility", () => {
     const cursor = ProviderDriverKind.make("cursor");
     const cursorPolicy: ProviderCompatibilityPolicy = {
       driver: cursor,
-      supacodeRange: policy.supacodeRange,
+      supatermRange: policy.supatermRange,
       ranges: [
         { range: "<2026.05.09", status: "unsupported" },
         { range: ">=2026.05.09", status: "supported" },
@@ -253,7 +253,7 @@ describe("provider compatibility", () => {
     assert.strictEqual(supported.status, "error");
     assert.strictEqual(supported.message, "Authentication failed");
     assert.strictEqual(
-      applyProviderCompatibility(supported, [{ ...policy, supacodeRange: "<0.0.42" }], [policy])
+      applyProviderCompatibility(supported, [{ ...policy, supatermRange: "<0.0.42" }], [policy])
         .compatibilityAdvisory?.status,
       "broken",
     );
@@ -275,7 +275,7 @@ describe("provider compatibility", () => {
     assert.doesNotThrow(() => decode(policy));
     const prefixed = decode({
       ...policy,
-      supacodeRange: ">=v0.0.42",
+      supatermRange: ">=v0.0.42",
       recommendedRange: "^v2",
       ranges: [{ range: ">=v2.0 <v3", status: "supported" }],
     });
@@ -288,7 +288,7 @@ describe("provider compatibility", () => {
       "unknown",
     );
     for (const invalid of [
-      { ...policy, supacodeRange: "*" },
+      { ...policy, supatermRange: "*" },
       { ...policy, recommendedVersion: "3.0.0" },
       { ...policy, ranges: [{ range: ">=2.0.0 garbage", status: "supported" }] },
       { ...policy, recommendedVersion: "2.0.0; echo unsafe" },

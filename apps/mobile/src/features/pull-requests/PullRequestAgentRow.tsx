@@ -1,4 +1,4 @@
-import type { PullRequestDetail } from "@supacode/contracts";
+import type { PullRequestDetail } from "@supaterm/contracts";
 import { ControlPillMenu } from "../../components/ControlPillMenu";
 import { PullRequestCardRow } from "./PullRequestControls";
 import type { PullRequestAgentTask } from "./pullRequestAgentTasks";

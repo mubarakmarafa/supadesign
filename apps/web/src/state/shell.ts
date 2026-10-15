@@ -1,18 +1,18 @@
 import {
   AVAILABLE_CONNECTION_STATE,
   connectionProjectionPhase,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 import {
   createEnvironmentShellAtoms,
   createEnvironmentSnapshotAtom,
   createShellEnvironmentAtoms,
   type EnvironmentShellState,
-} from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/shell";
 import {
   type EnvironmentCatalogState,
   enabledEnvironmentIds,
-} from "@supacode/client-runtime/state/connections";
-import type { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/connections";
+import type { EnvironmentId } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 

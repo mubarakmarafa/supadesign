@@ -3,7 +3,7 @@ import type {
   OrchestrationGetFullThreadDiffResult,
   OrchestrationGetTurnDiffResult,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export type CheckpointDiffResult =
   | OrchestrationGetTurnDiffResult

@@ -3,13 +3,13 @@
  *
  * @module source-control-azure-devops/client/definition
  */
-import { SourceControlProviderKind } from "@supacode/contracts";
-import { canonicalRepositoryKey } from "@supacode/shared/sourceControl";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import { canonicalRepositoryKey } from "@supaterm/shared/sourceControl";
 import {
   defineSourceControlClient,
   isChangeRequestAuthorityOfProject,
   isChangeRequestPath,
-} from "@supacode/source-control-core/client/definition";
+} from "@supaterm/source-control-core/client/definition";
 
 const CHECKOUT_COMMAND = /^az\s+repos\s+pr\s+checkout\s+(.+)$/i;
 const CHANGE_REQUEST_REFERENCE =

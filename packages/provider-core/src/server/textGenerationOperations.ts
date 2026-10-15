@@ -9,9 +9,9 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 
-import { type ChatAttachment, type ModelSelection, TextGenerationError } from "@supacode/contracts";
-import { formatGeneratedBranchName, sanitizeFeatureBranchName } from "@supacode/shared/git";
-import { extractJsonObject } from "@supacode/shared/schemaJson";
+import { type ChatAttachment, type ModelSelection, TextGenerationError } from "@supaterm/contracts";
+import { formatGeneratedBranchName, sanitizeFeatureBranchName } from "@supaterm/shared/git";
+import { extractJsonObject } from "@supaterm/shared/schemaJson";
 
 import type { ProviderTextGeneration } from "./textGeneration.ts";
 import {

@@ -1,4 +1,4 @@
-import type { OrchestrationV2ThreadProjection } from "@supacode/contracts";
+import type { OrchestrationV2ThreadProjection } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 
 import { EMPTY_THREAD_HISTORY_META, type ThreadHistoryMeta } from "./threadHistoryMerge.ts";

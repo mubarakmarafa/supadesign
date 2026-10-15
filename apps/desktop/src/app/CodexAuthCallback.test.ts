@@ -1,8 +1,8 @@
 // @effect-diagnostics nodeBuiltinImport:off globalFetch:off - Tests exercise the real native loopback listener without an OpenAI account.
 import * as NodeHttp from "node:http";
 import { describe, expect, it } from "vite-plus/test";
-import { codexAuthDeliveryUrl, readCodexAuthDelivery } from "@supacode/shared/codexAuthHandoff";
-import { EnvironmentId, ProviderInstanceId } from "@supacode/contracts";
+import { codexAuthDeliveryUrl, readCodexAuthDelivery } from "@supaterm/shared/codexAuthHandoff";
+import { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 import { receiveCodexAuthCallback, cancelCodexAuthCallback } from "./CodexAuthCallback.ts";
 
 async function freePort() {
@@ -57,7 +57,7 @@ describe("desktop Codex callback helper", () => {
     const input = {
       authorizationUrl,
       returnUrl:
-        "https://app.next.supacode.sh/settings/providers?environmentId=remote-one&instanceId=work",
+        "https://app.supaterm.com/settings/providers?environmentId=remote-one&instanceId=work",
       environmentId: EnvironmentId.make("remote-one"),
       instanceId: ProviderInstanceId.make("work"),
       flowId: "flow-one",

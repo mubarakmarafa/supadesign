@@ -1,4 +1,4 @@
-import type { AtomCommandResult } from "@supacode/client-runtime/state/runtime";
+import type { AtomCommandResult } from "@supaterm/client-runtime/state/runtime";
 
 export interface FileSaveCoordinatorOptions<A, E> {
   readonly debounceMs: number;

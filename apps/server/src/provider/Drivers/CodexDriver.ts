@@ -1,4 +1,4 @@
-import { CodexSettings, ProviderDriverKind } from "@supacode/contracts";
+import { CodexSettings, ProviderDriverKind } from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -8,11 +8,11 @@ import { HttpClient } from "effect/http";
 import { ChildProcessSpawner } from "effect/process";
 
 import { makeCodexTextGeneration } from "../../textGeneration/CodexTextGeneration.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import * as ServerConfig from "../../config.ts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import {
   createCodexAdapterV2,
   type CodexAdapterV2DriverEnv,
@@ -26,24 +26,24 @@ import {
   withCodexAppServerClient,
 } from "../CodexProvider.ts";
 import { resolveCodexLaunchArgs } from "../codexLaunchArgs.ts";
-import { makeManagedServerProvider } from "@supacode/provider-core/server/managedProvider";
-import * as ModelCatalog from "@supacode/provider-core/server/ModelCatalog";
+import { makeManagedServerProvider } from "@supaterm/provider-core/server/managedProvider";
+import * as ModelCatalog from "@supaterm/provider-core/server/ModelCatalog";
 import { applyCodexModelCatalog } from "../codexModelCatalog.ts";
-import type { ProviderDriver, ProviderInstance } from "@supacode/provider-core/server/driver";
-import { withInstanceIdentity } from "@supacode/provider-core/server/instanceIdentity";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
+import type { ProviderDriver, ProviderInstance } from "@supaterm/provider-core/server/driver";
+import { withInstanceIdentity } from "@supaterm/provider-core/server/instanceIdentity";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
 import {
   enrichProviderSnapshotWithVersionAdvisory,
   makeCachedProviderMaintenanceResolution,
   makePackageManagedProviderMaintenanceResolver,
   normalizeCommandPath,
   resolveProviderMaintenanceCapabilitiesEffect,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 import {
   haveProviderSnapshotSettingsChanged,
   makeProviderSnapshotSettingsSource,
   type ProviderSnapshotSettings,
-} from "@supacode/provider-core/server/snapshotSettings";
+} from "@supaterm/provider-core/server/snapshotSettings";
 import {
   codexContinuationIdentity,
   materializeCodexShadowHome,
@@ -54,7 +54,7 @@ import { codexUsageReader } from "./codexUsage.ts";
 import * as CodexInstallation from "../CodexInstallation.ts";
 import * as ServerSecretStore from "../../auth/ServerSecretStore.ts";
 import * as ServerEnvironment from "../../environment/ServerEnvironment.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 const decodeCodexSettings = Schema.decodeSync(CodexSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("codex");

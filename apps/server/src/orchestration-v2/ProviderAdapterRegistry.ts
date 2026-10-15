@@ -5,7 +5,7 @@ import {
   type ProviderDriverKind,
   type ProviderInstanceConfig,
   type ProviderInstanceConfigMap,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -17,8 +17,8 @@ import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.
 import {
   ProviderAdapterDriverCreateError,
   type AnyProviderAdapterDriver,
-} from "@supacode/provider-core/server/adapterDriver";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+} from "@supaterm/provider-core/server/adapterDriver";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 const isProviderSetupError = Schema.is(ProviderSetupError);
 
@@ -64,7 +64,7 @@ export interface ProviderAdapterRegistryV2Shape {
 export class ProviderAdapterRegistryV2 extends Context.Service<
   ProviderAdapterRegistryV2,
   ProviderAdapterRegistryV2Shape
->()("supacode/orchestration-v2/ProviderAdapterRegistry/ProviderAdapterRegistryV2") {}
+>()("supaterm/orchestration-v2/ProviderAdapterRegistry/ProviderAdapterRegistryV2") {}
 
 /**
  * Production facade over the canonical provider-instance registry. Adapter

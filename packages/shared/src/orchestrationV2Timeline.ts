@@ -3,7 +3,7 @@ import type {
   OrchestrationV2RunAttempt,
   OrchestrationV2TurnItem,
   OrchestrationV2UserMessageInputIntent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 type TimelineRun = Pick<OrchestrationV2Run, "id" | "status">;
 type TimelineRunAttempt = Pick<OrchestrationV2RunAttempt, "runId" | "rootNodeId" | "status">;

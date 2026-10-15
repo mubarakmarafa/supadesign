@@ -1,12 +1,12 @@
 import { useAtomValue } from "@effect/atom-react";
-import { resolveFilesystemReadAccess } from "@supacode/client-runtime/state/filesystem";
+import { resolveFilesystemReadAccess } from "@supaterm/client-runtime/state/filesystem";
 import {
   assetUrlStateFromResult,
   createAssetEnvironmentAtoms,
   createProjectFaviconUrlAtomFamily,
   EMPTY_ASSET_URL_ATOM,
-} from "@supacode/client-runtime/state/assets";
-import type { AssetResource, EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/assets";
+import type { AssetResource, EnvironmentId } from "@supaterm/contracts";
 import { useCallback } from "react";
 
 import { connectionAtomRuntime } from "../connection/runtime";

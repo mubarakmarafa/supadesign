@@ -1,8 +1,8 @@
 import { usePullRequestConnected } from "./usePullRequestConnected";
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigation, type StaticScreenProps } from "@react-navigation/native";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import type { PullRequestReviewerCandidate } from "@supacode/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import type { PullRequestReviewerCandidate } from "@supaterm/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -222,7 +222,7 @@ export function PullRequestReviewersScreen({ route }: StaticScreenProps<PullRequ
               >
                 <PullRequestAvatar actor={item} size={32} />
                 <View className="min-w-0 flex-1 gap-0.5">
-                  <Text className="text-sm font-supacode-medium" numberOfLines={1}>
+                  <Text className="text-sm font-supaterm-medium" numberOfLines={1}>
                     {item.name || item.login}
                   </Text>
                   <Text className="text-xs text-foreground-muted" numberOfLines={1}>

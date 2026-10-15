@@ -20,8 +20,8 @@ import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { SpawnExecutableResolution } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { SpawnExecutableResolution } from "@supaterm/shared/shell";
 import * as ExternalLauncher from "./externalLauncher.ts";
 
 // Tests below write `#!/bin/sh` stubs into a real temp dir and hand that
@@ -129,7 +129,7 @@ it.effect("launches an installed editor with platform-safe arguments", () =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     yield* fileSystem.writeFileString(path.join(binDir, "code.CMD"), "@echo off\r\n");
 
     let spawned: ChildProcess.StandardCommand | undefined;
@@ -168,7 +168,7 @@ for (const platform of ["darwin", "linux"] as const) {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       const cursorPath = path.join(binDir, "cursor");
       yield* fileSystem.writeFileString(cursorPath, "#!/bin/sh\n");
       yield* fileSystem.chmod(cursorPath, 0o755);
@@ -217,7 +217,7 @@ it.effect("launches Cursor in classic IDE mode through the Windows command shim"
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     yield* fileSystem.writeFileString(path.join(binDir, "cursor.CMD"), "@echo off\r\n");
 
     let spawned: ChildProcess.StandardCommand | undefined;
@@ -256,7 +256,7 @@ it.effect.skipIf(windowsHost)("reveals a file in Finder with open -R on macOS", 
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     const openPath = path.join(binDir, "open");
     yield* fileSystem.writeFileString(openPath, "#!/bin/sh\n");
     yield* fileSystem.chmod(openPath, 0o755);
@@ -291,7 +291,7 @@ it.effect("reveals a file in File Explorer through PowerShell on Windows", () =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     yield* fileSystem.writeFileString(path.join(binDir, "explorer.CMD"), "@echo off\r\n");
     // resolvePowerShellPath builds `${SYSTEMROOT}\System32\...` with Windows
     // separators, which on the posix test filesystem is one file name.
@@ -351,12 +351,12 @@ it.effect("reveals a file in File Explorer through PowerShell on Windows", () =>
 // single `/select,"<path>"` switch. Mock argv assertions cannot prove this —
 // only Windows' own PowerShell -> CreateProcess quoting chain can, so the
 // test runs only where that chain exists.
-// oxlint-disable-next-line supacode/no-global-process-runtime -- the skip decision needs the real host platform, outside any Effect runtime.
+// oxlint-disable-next-line supaterm/no-global-process-runtime -- the skip decision needs the real host platform, outside any Effect runtime.
 it.skipIf(process.platform !== "win32")(
   "delivers the raw /select switch for spaced paths through real PowerShell",
   { timeout: 60_000 },
   async () => {
-    const tempDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-reveal-smoke-"));
+    const tempDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-reveal-smoke-"));
     try {
       const recorderPath = NodePath.join(tempDir, "recorder.cmd");
       const outputPath = NodePath.join(tempDir, "argv.txt");
@@ -404,7 +404,7 @@ it.effect("does not advertise reveal on Windows when PowerShell is missing", () 
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     yield* fileSystem.writeFileString(path.join(binDir, "explorer.CMD"), "@echo off\r\n");
 
     const result = yield* Effect.gen(function* () {
@@ -439,7 +439,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       for (const name of ["explorer.exe", "powershell.exe", "xdg-open"]) {
         const filePath = path.join(binDir, name);
         yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -453,7 +453,7 @@ it.effect.skipIf(windowsHost)(
         const editors = yield* launcher.resolveAvailableEditors();
         yield* launcher.launchEditor({
           editor: "file-manager",
-          cwd: "/home/supacode/workspace/media/clip.mp4",
+          cwd: "/home/supaterm/workspace/media/clip.mp4",
           reveal: true,
         });
         return { kind, editors };
@@ -483,7 +483,7 @@ it.effect.skipIf(windowsHost)(
       const decodedCommand = Buffer.from(encodedCommand, "base64").toString("utf16le");
       assert.equal(
         decodedCommand,
-        "$ProgressPreference = 'SilentlyContinue'; Start-Process 'explorer.exe' -ArgumentList ('/select,\"' + '\\\\wsl.localhost\\Ubuntu-24.04\\home\\supacode\\workspace\\media\\clip.mp4' + '\"')",
+        "$ProgressPreference = 'SilentlyContinue'; Start-Process 'explorer.exe' -ArgumentList ('/select,\"' + '\\\\wsl.localhost\\Ubuntu-24.04\\home\\supaterm\\workspace\\media\\clip.mp4' + '\"')",
       );
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
 );
@@ -494,7 +494,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       const explorerPath = path.join(binDir, "explorer.exe");
       yield* fileSystem.writeFileString(explorerPath, "");
       yield* fileSystem.chmod(explorerPath, 0o755);
@@ -532,7 +532,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       for (const name of ["explorer.exe", "xdg-open", "xdg-mime"]) {
         const filePath = path.join(binDir, name);
         yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -545,7 +545,7 @@ it.effect.skipIf(windowsHost)(
         const revealKind = yield* launcher.resolveFileManagerRevealKind();
         yield* launcher.launchEditor({
           editor: "file-manager",
-          cwd: "/home/supacode/workspace/media/clip.mp4",
+          cwd: "/home/supaterm/workspace/media/clip.mp4",
           reveal: true,
         });
         return revealKind;
@@ -573,7 +573,7 @@ it.effect.skipIf(windowsHost)(
       assert.equal(kind, "files");
       const launch = spawnedCommands.find((command) => command.command === "xdg-open");
       assert.ok(launch);
-      assert.deepEqual(launch.args, ["/home/supacode/workspace/media"]);
+      assert.deepEqual(launch.args, ["/home/supaterm/workspace/media"]);
       assert.isUndefined(spawnedCommands.find((command) => command.command === "explorer.exe"));
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
 );
@@ -587,7 +587,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       for (const name of ["xdg-open", "xdg-mime"]) {
         const filePath = path.join(binDir, name);
         yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -601,7 +601,7 @@ it.effect.skipIf(windowsHost)(
         const kind = yield* launcher.resolveFileManagerRevealKind();
         yield* launcher.launchEditor({
           editor: "file-manager",
-          cwd: "/home/supacode/workspace/media/clip.mp4",
+          cwd: "/home/supaterm/workspace/media/clip.mp4",
           reveal: true,
         });
         return { editors, kind };
@@ -630,7 +630,7 @@ it.effect.skipIf(windowsHost)(
       assert.equal(result.kind, "files");
       const launch = spawnedCommands.find((command) => command.command === "xdg-open");
       assert.ok(launch);
-      assert.deepEqual(launch.args, ["/home/supacode/workspace/media"]);
+      assert.deepEqual(launch.args, ["/home/supaterm/workspace/media"]);
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
 );
 
@@ -640,7 +640,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       for (const name of ["explorer.exe", "powershell.exe"]) {
         const filePath = path.join(binDir, name);
         yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -652,7 +652,7 @@ it.effect.skipIf(windowsHost)(
         const launcher = yield* ExternalLauncher.ExternalLauncher;
         yield* launcher.launchEditor({
           editor: "file-manager",
-          cwd: '/home/supacode/work "quoted"/clip.mp4',
+          cwd: '/home/supaterm/work "quoted"/clip.mp4',
           reveal: true,
         });
       }).pipe(
@@ -676,7 +676,7 @@ it.effect.skipIf(windowsHost)(
       assert.ok(spawned);
       assert.equal(spawned.command, "explorer.exe");
       assert.deepEqual(spawned.args, [
-        '\\\\wsl.localhost\\Ubuntu-24.04\\home\\supacode\\work "quoted"',
+        '\\\\wsl.localhost\\Ubuntu-24.04\\home\\supaterm\\work "quoted"',
       ]);
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
 );
@@ -685,7 +685,7 @@ it.effect.skipIf(windowsHost)("reveals by opening the containing directory on Li
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     for (const name of ["xdg-open", "xdg-mime"]) {
       const filePath = path.join(binDir, name);
       yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -726,7 +726,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       const xdgOpenPath = path.join(binDir, "xdg-open");
       yield* fileSystem.writeFileString(xdgOpenPath, "#!/bin/sh\n");
       yield* fileSystem.chmod(xdgOpenPath, 0o755);
@@ -746,7 +746,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       for (const name of ["xdg-open", "xdg-mime"]) {
         const filePath = path.join(binDir, name);
         yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -789,7 +789,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       for (const name of ["xdg-open", "xdg-mime"]) {
         const filePath = path.join(binDir, name);
         yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -819,7 +819,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       for (const name of ["xdg-open", "xdg-mime"]) {
         const filePath = path.join(binDir, name);
         yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -854,7 +854,7 @@ it.live.skipIf(windowsHost)("a stalled handler probe drops only the file manager
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     for (const name of ["xdg-open", "xdg-mime", "code"]) {
       const filePath = path.join(binDir, name);
       yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
@@ -885,7 +885,7 @@ it.effect.skipIf(windowsHost)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+      const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
       const xdgOpenPath = path.join(binDir, "xdg-open");
       yield* fileSystem.writeFileString(xdgOpenPath, "#!/bin/sh\n");
       yield* fileSystem.chmod(xdgOpenPath, 0o755);
@@ -905,7 +905,7 @@ it.effect("discovers editors through the service API", () =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     yield* fileSystem.writeFileString(path.join(binDir, "code.CMD"), "@echo off\r\n");
     yield* fileSystem.writeFileString(path.join(binDir, "explorer.CMD"), "@echo off\r\n");
 
@@ -1012,7 +1012,7 @@ for (const { platform, installPath, editor, args } of [
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const home = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-editor installs-" });
+        const home = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-editor installs-" });
         const executable = path.join(home, installPath);
         yield* fs.makeDirectory(path.dirname(executable), { recursive: true });
         yield* fs.writeFileString(executable, "#!/bin/sh\n");
@@ -1058,7 +1058,7 @@ it.effect.each([
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const home = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-editor-versioned-" });
+      const home = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-editor-versioned-" });
       const executable = path.join(home, installPath);
       yield* fs.makeDirectory(path.dirname(executable), { recursive: true });
       yield* fs.writeFileString(executable, "#!/bin/sh\n");
@@ -1100,7 +1100,7 @@ it.effect("matches macOS bundles on the name boundary only", () =>
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const unrelatedHome = yield* fs.makeTempDirectoryScoped({
-      prefix: "supacode-editor-unrelated-",
+      prefix: "supaterm-editor-unrelated-",
     });
     const unrelated = path.join(
       unrelatedHome,
@@ -1122,7 +1122,7 @@ it.effect("matches macOS bundles on the name boundary only", () =>
 
     assert.notInclude(yield* editorsFor(unrelatedHome), "webstorm");
 
-    const exactHome = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-editor-exact-" });
+    const exactHome = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-editor-exact-" });
     const exact = path.join(exactHome, "Applications/WebStorm.app/Contents/MacOS/webstorm");
     yield* fs.makeDirectory(path.dirname(exact), { recursive: true });
     yield* fs.writeFileString(exact, "#!/bin/sh\n");
@@ -1140,7 +1140,7 @@ it.effect("keeps the macOS VS Code Insiders bundle out of stable VS Code", () =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const home = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-editor-insiders-" });
+    const home = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-editor-insiders-" });
     // The real Insiders bundle ships both `code-insiders` and `code`.
     const bin = path.join(
       home,
@@ -1189,7 +1189,7 @@ for (const { platform, installPath, onPath } of [
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const home = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-agy-cli-" });
+        const home = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-agy-cli-" });
         const executable = path.join(home, installPath);
         yield* fs.makeDirectory(path.dirname(executable), { recursive: true });
         yield* fs.writeFileString(executable, "#!/bin/sh\n");
@@ -1219,7 +1219,7 @@ it.effect.skipIf(windowsHost)("ignores unusable app bundles and keeps PATH launc
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const home = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-editor-priority-" });
+    const home = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-editor-priority-" });
     const executable = path.join(home, "Applications/Cursor.app/Contents/Resources/app/bin/code");
     const env = { HOME: home, PATH: path.join(home, "bin") };
     const discover = Effect.gen(function* () {
@@ -1311,7 +1311,7 @@ it.effect("memoizes editor discovery and refreshes after the cache window", () =
         ConfigProvider.layer(
           ConfigProvider.fromEnv({
             env: {
-              PATH: "C:\\supacode-editor-discovery-cache-test",
+              PATH: "C:\\supaterm-editor-discovery-cache-test",
               PATHEXT: ".COM;.EXE;.BAT;.CMD",
             },
           }),
@@ -1376,7 +1376,7 @@ it.effect("keeps scanning after the caller is interrupted and shares that scan",
         ConfigProvider.layer(
           ConfigProvider.fromEnv({
             env: {
-              PATH: "C:\\supacode-editor-discovery-interrupt-test",
+              PATH: "C:\\supaterm-editor-discovery-interrupt-test",
               PATHEXT: ".COM;.EXE;.BAT;.CMD",
             },
           }),
@@ -1390,7 +1390,7 @@ const launchWindowsShimEditor = (cwd: string) =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     yield* fileSystem.writeFileString(path.join(binDir, "code.CMD"), "@echo off\r\n");
     let spawned: ChildProcess.StandardCommand | undefined;
     const exit = yield* Effect.gen(function* () {
@@ -1449,7 +1449,7 @@ it.effect.skipIf(windowsHost)("passes line breaks through to editors started wit
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supacode-editors-" });
+    const binDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-editors-" });
     const zed = path.join(binDir, "zed");
     yield* fileSystem.writeFileString(zed, "#!/bin/sh\n");
     yield* fileSystem.chmod(zed, 0o755);

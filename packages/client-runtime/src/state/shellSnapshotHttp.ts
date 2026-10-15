@@ -1,4 +1,4 @@
-import { EnvironmentHttpCommonError } from "@supacode/contracts";
+import { EnvironmentHttpCommonError } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -89,7 +89,7 @@ export class ShellSnapshotLoader extends Context.Service<
       prepared: PreparedConnection,
     ) => Effect.Effect<Option.Option<DeferredShellSnapshot>>;
   }
->()("@supacode/client-runtime/state/shellSnapshotHttp/ShellSnapshotLoader") {}
+>()("@supaterm/client-runtime/state/shellSnapshotHttp/ShellSnapshotLoader") {}
 
 export const layer: Layer.Layer<ShellSnapshotLoader, never, HttpClient.HttpClient> = Layer.effect(
   ShellSnapshotLoader,

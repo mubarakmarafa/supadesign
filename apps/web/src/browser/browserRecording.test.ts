@@ -2,7 +2,7 @@ import {
   DESKTOP_PREVIEW_RECORDING_CAPTURE_TRIGGER,
   EnvironmentId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { ensureClientSettingsHydrated } from "~/hooks/useSettings";

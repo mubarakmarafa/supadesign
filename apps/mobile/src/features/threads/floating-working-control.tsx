@@ -1,5 +1,5 @@
-import type { SubagentPillSegment } from "@supacode/client-runtime/state/thread-subagents";
-import { formatDuration } from "@supacode/shared/orchestrationTiming";
+import type { SubagentPillSegment } from "@supaterm/client-runtime/state/thread-subagents";
+import { formatDuration } from "@supaterm/shared/orchestrationTiming";
 import { GlassContainer, GlassView } from "expo-glass-effect";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
@@ -264,7 +264,7 @@ export function FloatingWorkingControl(props: {
         >
           {hasStatus || hasPreview ? <View className="mr-1 h-4 w-px bg-border" /> : null}
           <SymbolView name="person.2" size={13} tintColorClassName="accent-foreground-muted" />
-          <Text className="font-supacode-medium text-xs tabular-nums" numberOfLines={1}>
+          <Text className="font-supaterm-medium text-xs tabular-nums" numberOfLines={1}>
             {agents.label}
           </Text>
         </Pressable>
@@ -283,7 +283,7 @@ export function FloatingWorkingControl(props: {
             <View className="mr-1 h-4 w-px bg-border" />
           ) : null}
           <SymbolView name="list.number" size={13} tintColorClassName="accent-foreground-muted" />
-          <Text className="shrink font-supacode-medium text-xs tabular-nums" numberOfLines={1}>
+          <Text className="shrink font-supaterm-medium text-xs tabular-nums" numberOfLines={1}>
             {props.queuedCount} queued
           </Text>
         </Pressable>
@@ -398,7 +398,7 @@ function CompactingLabel(props: { readonly onLayout: (event: LayoutChangeEvent) 
         tintColorClassName="foreground"
         type="monochrome"
       />
-      <Text className="font-supacode-medium text-xs text-foreground">Compacting…</Text>
+      <Text className="font-supaterm-medium text-xs text-foreground">Compacting…</Text>
     </StatusLabelRow>
   );
 }
@@ -418,7 +418,7 @@ function FloatingStatusLabel(props: {
         onLayout={props.onLayout}
       >
         <AppActivityIndicator size="small" colorClassName="accent-icon-muted" />
-        <Text className="shrink font-supacode-medium text-xs text-foreground" numberOfLines={1}>
+        <Text className="shrink font-supaterm-medium text-xs text-foreground" numberOfLines={1}>
           {props.status.label}
         </Text>
       </StatusLabelRow>
@@ -438,7 +438,7 @@ function FloatingStatusLabel(props: {
         onPress={props.status.onPress}
       >
         <SymbolView name="text.bubble" size={13} tintColorClassName="foreground" />
-        <Text className="shrink font-supacode-medium text-xs text-foreground" numberOfLines={1}>
+        <Text className="shrink font-supaterm-medium text-xs text-foreground" numberOfLines={1}>
           {props.status.label}
         </Text>
       </StatusLabelRow>
@@ -460,7 +460,7 @@ function FloatingStatusLabel(props: {
           <View className="h-2 w-2 rounded-full bg-red-500" />
         )}
         <Text
-          className="max-w-[260px] shrink font-supacode-medium text-xs text-foreground"
+          className="max-w-[260px] shrink font-supaterm-medium text-xs text-foreground"
           numberOfLines={1}
         >
           {props.status.label}
@@ -484,7 +484,7 @@ function FloatingStatusLabel(props: {
           tintColorClassName="foreground"
           type="monochrome"
         />
-        <Text className="shrink font-supacode-medium text-xs text-foreground" numberOfLines={1}>
+        <Text className="shrink font-supaterm-medium text-xs text-foreground" numberOfLines={1}>
           {props.status.label}
         </Text>
       </StatusLabelRow>
@@ -499,7 +499,7 @@ function FloatingStatusLabel(props: {
         onLayout={props.onLayout}
       >
         <SymbolView name="target" size={13} tintColorClassName="foreground" type="monochrome" />
-        <Text className="shrink font-supacode-medium text-xs text-foreground" numberOfLines={1}>
+        <Text className="shrink font-supaterm-medium text-xs text-foreground" numberOfLines={1}>
           {props.status.label}
         </Text>
       </StatusLabelRow>
@@ -521,7 +521,7 @@ function FloatingStatusLabel(props: {
         />
         <ShimmeringWorkContent
           className="flex-none"
-          textClassName="font-supacode-medium"
+          textClassName="font-supaterm-medium"
           compact
           icon="arrow.triangle.branch"
           iconSubtleColor="transparent"

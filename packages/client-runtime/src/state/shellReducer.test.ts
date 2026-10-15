@@ -1,4 +1,4 @@
-import { ProjectId, ThreadId, type ThreadPullRequestLink } from "@supacode/contracts";
+import { ProjectId, ThreadId, type ThreadPullRequestLink } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { v2Project, v2ShellSnapshot, v2ThreadShell } from "./orchestrationV2TestFixtures.ts";
@@ -471,7 +471,7 @@ describe("applyShellStreamEvent", () => {
 describe("reuseUnchangedThreadShells", () => {
   const link: ThreadPullRequestLink = {
     host: "github.com",
-    repository: "pingdotgg/supacode",
+    repository: "pingdotgg/supaterm",
     number: 3,
     url: "https://github.com/supabitapp/supacode-next/pull/3",
     source: "agent",

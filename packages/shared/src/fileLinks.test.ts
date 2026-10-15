@@ -5,8 +5,8 @@ describe("parseFileUrlHref", () => {
   it.each([
     ["file:///Users/julius/project/src/main.ts#L42", "/Users/julius/project/src/main.ts", "#L42"],
     [
-      "file:///D:/Programme/supacode/OpenInPicker.tsx#L69",
-      "D:/Programme/supacode/OpenInPicker.tsx",
+      "file:///D:/Programme/supaterm/OpenInPicker.tsx#L69",
+      "D:/Programme/supaterm/OpenInPicker.tsx",
       "#L69",
     ],
     ["file://server/share/workspace-image.svg", "\\\\server\\share\\workspace-image.svg", ""],

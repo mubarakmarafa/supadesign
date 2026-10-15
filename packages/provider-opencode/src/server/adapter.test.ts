@@ -15,7 +15,7 @@ import {
   ThreadId,
   type OrchestrationV2ProviderThread,
   type OrchestrationV2ProviderTurn,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { OpenCodeSettings } from "../settings.ts";
 import * as Effect from "effect/Effect";
 import * as Clock from "effect/Clock";
@@ -31,12 +31,12 @@ import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import type * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import type * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
 
 import {
   advanceOpenCodePromptAdmission,
@@ -51,7 +51,7 @@ import {
   OPENCODE_PROVIDER,
   reconcileOpenCodePromptAdmissionStatus,
 } from "./adapter.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 const encodeUnknownJson = Schema.encodeUnknownSync(Schema.fromJsonString(Schema.Unknown));
 const OPEN_CODE_TEST_SETTINGS = Schema.decodeSync(OpenCodeSettings)({

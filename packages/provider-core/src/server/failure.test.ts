@@ -6,7 +6,7 @@ import {
   ProviderTurnId,
   RunId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -19,7 +19,7 @@ import {
   ContextHandoffBudgetError,
 } from "./failure.ts";
 import * as IdAllocator from "./IdAllocator.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 it("redacts credentials and URL secrets from provider failures", () => {
   const failure = makeProviderFailure({

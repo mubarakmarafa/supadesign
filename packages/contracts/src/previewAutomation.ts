@@ -16,7 +16,7 @@ const BoundedUrl = Schema.String.check(Schema.isTrimmed())
   .check(Schema.isNonEmpty())
   .check(Schema.isMaxLength(2048));
 const URL_GUIDANCE =
-  "Absolute http(s) URL or a schemeless host such as next.supacode.sh or localhost:5173. Schemeless public hosts use https; loopback hosts use http.";
+  "Absolute http(s) URL or a schemeless host such as supaterm.com or localhost:5173. Schemeless public hosts use https; loopback hosts use http.";
 const PROFILE_GUIDANCE =
   "Browser profile for a new tab, by id or name (case-insensitive) from preview_status profiles. Omit to use the user's default profile. A tab keeps the profile it opened with.";
 const OptionalTimeoutMs = Schema.optional(
@@ -835,7 +835,7 @@ export const PreviewAutomationResponse = Schema.Struct({
 });
 export type PreviewAutomationResponse = typeof PreviewAutomationResponse.Type;
 
-// Thread fields are absent when the caller signed in from outside a Supacode thread.
+// Thread fields are absent when the caller signed in from outside a Supaterm thread.
 const McpCapabilityErrorFields = {
   environmentId: EnvironmentId,
   threadId: Schema.optional(ThreadId),
@@ -856,7 +856,7 @@ export class PreviewAutomationUnavailableError extends Schema.TaggedError<Previe
   }
 }
 
-/** A `supacode` MCP tool was called with a credential that does not carry its capability. */
+/** A `supaterm` MCP tool was called with a credential that does not carry its capability. */
 export class McpCapabilityUnavailableError extends Schema.TaggedError<McpCapabilityUnavailableError>()(
   "McpCapabilityUnavailableError",
   {
@@ -992,7 +992,7 @@ export class PreviewAutomationControlInterruptedError extends Schema.TaggedError
     if (this.reason === "dialogPending")
       return "A browser dialog is pending. Read preview_status and resolve it with preview_dialog.";
     if (this.reason === "tabLimit")
-      return "Too many server browser tabs are open. Close one with supacode_preview_close, or reuse a tabId from preview_status tabs.";
+      return "Too many server browser tabs are open. Close one with supaterm_preview_close, or reuse a tabId from preview_status tabs.";
     if (this.reason === "closed") return "This browser tab is closed. Call preview_open.";
     if (this.reason === "interrupted")
       return "Browser control changed. Take a fresh snapshot before trying again.";

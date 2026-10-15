@@ -31,12 +31,12 @@ import type {
   PullRequestLabelCandidateList,
   PullRequestState,
   PullRequestThreadComment,
-} from "@supacode/contracts";
-import { quoteGitPatchPath } from "@supacode/shared/gitPatchPath";
-import { decodeJsonResult } from "@supacode/shared/schemaJson";
+} from "@supaterm/contracts";
+import { quoteGitPatchPath } from "@supaterm/shared/gitPatchPath";
+import { decodeJsonResult } from "@supaterm/shared/schemaJson";
 
 import { aliasedGraphQlDocument, type GraphQlDocument } from "./githubGraphQl.ts";
-import { dedupeChecks } from "@supacode/source-control-core/server/pullRequestChecks";
+import { dedupeChecks } from "@supaterm/source-control-core/server/pullRequestChecks";
 
 /**
  * Enum-ish GitHub CLI fields are decoded as plain strings and normalized here: a `gh`

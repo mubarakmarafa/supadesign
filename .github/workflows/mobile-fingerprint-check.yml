@@ -62,7 +62,7 @@ jobs:
         uses: ./.github/actions/setup-mise
       - name: Install workspace dependencies
         if: steps.changes.outputs.relevant == 'true'
-        run: mise exec -- vp install --filter=@supacode/mobile...
+        run: mise exec -- vp install --filter=@supaterm/mobile...
       - name: Expose pnpm
         if: steps.changes.outputs.relevant == 'true'
         run: mise exec -- pnpm --version
@@ -85,7 +85,7 @@ jobs:
           # Re-sync node_modules to the base commit's lockfile before
           # fingerprinting — a dep-changing PR must not fingerprint the base
           # against head's installed packages.
-          pnpm install --filter=@supacode/mobile...
+          pnpm install --filter=@supaterm/mobile...
           cd apps/mobile
           for platform in ios android; do
             npx expo-updates fingerprint:generate --platform "$platform" > "$RUNNER_TEMP/fp/base/$platform.json"

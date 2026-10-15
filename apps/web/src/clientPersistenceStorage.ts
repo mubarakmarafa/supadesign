@@ -1,8 +1,8 @@
-import { ClientSettingsSchema, type ClientSettings } from "@supacode/contracts";
+import { ClientSettingsSchema, type ClientSettings } from "@supaterm/contracts";
 
 import { getLocalStorageItem, setLocalStorageItem } from "./hooks/useLocalStorage";
 
-const CLIENT_SETTINGS_STORAGE_KEY = "supacode:client-settings:v1";
+const CLIENT_SETTINGS_STORAGE_KEY = "supaterm:client-settings:v1";
 
 function hasWindow(): boolean {
   return typeof window !== "undefined";

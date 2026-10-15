@@ -1,4 +1,4 @@
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import {
   modelPickerLegacySectionKey,

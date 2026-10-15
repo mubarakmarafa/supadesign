@@ -1,20 +1,20 @@
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
-import { getCloneDestinationPath } from "@supacode/client-runtime/operations/projects";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { getCloneDestinationPath } from "@supaterm/client-runtime/operations/projects";
 import {
   findPromptLinkProject,
   findPromptLinkPullRequestThread,
   resolvePromptLinkModelSelection,
-} from "@supacode/client-runtime/prompt-links";
+} from "@supaterm/client-runtime/prompt-links";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import {
   type NewThreadLink,
   type PromptLinkRepository,
   promptLinkPullRequestUrl,
-} from "@supacode/shared/promptLinks";
+} from "@supaterm/shared/promptLinks";
 import { useAtomValue } from "@effect/atom-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from "react";
@@ -99,7 +99,7 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
       replace: true,
     }).catch(() => null);
     if (opened === null) {
-      setState({ status: "failed", message: "Supacode could not open a new thread." });
+      setState({ status: "failed", message: "Supaterm could not open a new thread." });
       return;
     }
     setState({ status: "opened" });
@@ -170,7 +170,7 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
       setState({
         status: "failed",
         message:
-          "This machine cannot clone from a link. Update Supacode on it, or clone the repository from the command palette.",
+          "This machine cannot clone from a link. Update Supaterm on it, or clone the repository from the command palette.",
       });
       return;
     }

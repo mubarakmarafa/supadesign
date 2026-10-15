@@ -4,11 +4,11 @@ import {
   type AuthEnvironmentScope,
   type AuthPairingLink,
   type ServerAuthBootstrapMethod,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   DESKTOP_BOOTSTRAP_TOKEN_WINDOW_MS,
   isValidDesktopBootstrapToken,
-} from "@supacode/shared/desktopBootstrapToken";
+} from "@supaterm/shared/desktopBootstrapToken";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -221,7 +221,7 @@ export class PairingGrantStore extends Context.Service<
       },
     ) => Effect.Effect<BootstrapGrant, BootstrapCredentialError>;
   }
->()("supacode/auth/PairingGrantStore") {}
+>()("supaterm/auth/PairingGrantStore") {}
 
 interface StoredBootstrapGrant extends BootstrapGrant {
   readonly remainingUses: number | "unbounded";

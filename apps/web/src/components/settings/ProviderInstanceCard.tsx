@@ -30,13 +30,13 @@ import {
   type ProviderDriverKind,
   type ServerProvider,
   type ServerProviderModel,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   type CustomModelDefinition,
   readCustomModelEntries,
   toCustomModelSetting,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 import { cn } from "../../lib/utils";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { normalizeProviderAccentColor } from "../../providerInstances";
@@ -53,7 +53,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import type {
   ProviderClientDefinition,
   ProviderEnvironmentField,
-} from "@supacode/provider-core/client";
+} from "@supaterm/provider-core/client";
 import { deriveProviderSettingsFields, ProviderSettingsForm } from "./ProviderSettingsForm";
 import { ProviderModelsSection } from "./ProviderModelsSection";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";

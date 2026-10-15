@@ -266,7 +266,7 @@ export const makeAcpClientTerminals = Effect.fn("makeAcpClientTerminals")(functi
             ),
           );
 
-          const terminalId = `supacode-term-${nextTerminalNumber}`;
+          const terminalId = `supaterm-term-${nextTerminalNumber}`;
           nextTerminalNumber += 1;
           const record: ManagedAcpTerminal = {
             terminalId,

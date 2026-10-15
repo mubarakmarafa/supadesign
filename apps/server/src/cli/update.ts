@@ -1,4 +1,4 @@
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   CLI_RELEASE_BASE_URL_ENV,
   CLI_RELEASE_CHANNELS,
@@ -6,7 +6,7 @@ import {
   cliReleaseChannelOf,
   newestCliReleaseVersion,
   type CliReleaseChannel,
-} from "@supacode/shared/cliRelease";
+} from "@supaterm/shared/cliRelease";
 import * as Console from "effect/Console";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -69,16 +69,16 @@ const resolveNewestVersion = Effect.fn("cli.update.resolve_newest")(function* (
       .pipe(
         Effect.flatMap(HttpClientResponse.filterStatusOk),
         Effect.flatMap((response) => response.text),
-        Effect.mapError(() => new CliUpdateError({ reason: "Could not list Supacode releases." })),
+        Effect.mapError(() => new CliUpdateError({ reason: "Could not list Supaterm releases." })),
         Effect.timeoutOrElse({
           duration: RELEASE_INDEX_TIMEOUT,
           orElse: () =>
-            Effect.fail(new CliUpdateError({ reason: "Timed out listing Supacode releases." })),
+            Effect.fail(new CliUpdateError({ reason: "Timed out listing Supaterm releases." })),
         }),
       );
     const releases = yield* decodeReleaseIndex(body).pipe(
       Effect.mapError(
-        () => new CliUpdateError({ reason: "The Supacode release index had an unexpected shape." }),
+        () => new CliUpdateError({ reason: "The Supaterm release index had an unexpected shape." }),
       ),
     );
     const version = newestCliReleaseVersion(releases, channel);
@@ -99,8 +99,8 @@ export function launcherOwnsVersionsDir(
 }
 
 /**
- * The launcher the install scripts leave behind: a symlink at `<bin>/supacode` on
- * POSIX, a `supacode.cmd` shim on Windows. `supacode update` repoints it so the next `supacode`
+ * The launcher the install scripts leave behind: a symlink at `<bin>/supaterm` on
+ * POSIX, a `supaterm.cmd` shim on Windows. `supaterm update` repoints it so the next `supaterm`
  * invocation is the new version. Only a launcher that already points into
  * this home's `runtime/versions` tree is touched; a plain copy of the
  * executable, or a launcher for some other install, is left alone.
@@ -121,9 +121,9 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
 
   if (platform === "win32") {
     // The shim runs the executable by absolute path, so the executable sees
-    // itself as argv0; the shim is the `supacode.cmd` next to it only when launched
+    // itself as argv0; the shim is the `supaterm.cmd` next to it only when launched
     // from an install script's bin directory. Find it by searching the
-    // directories that would resolve `supacode` on this shell's PATH.
+    // directories that would resolve `supaterm` on this shell's PATH.
     const shimPath = yield* findWindowsShim(input.launchedAs);
     if (shimPath === undefined) return Option.none<string>();
     const current = yield* fs.readFileString(shimPath).pipe(Effect.option);
@@ -133,7 +133,7 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
       Effect.mapError(
         () =>
           new CliUpdateError({
-            reason: `Could not rewrite the Supacode launcher at ${shimPath}.`,
+            reason: `Could not rewrite the Supaterm launcher at ${shimPath}.`,
           }),
       ),
     );
@@ -150,7 +150,7 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
     Effect.mapError(
       () =>
         new CliUpdateError({
-          reason: `Could not repoint the Supacode launcher at ${input.launchedAs}.`,
+          reason: `Could not repoint the Supaterm launcher at ${input.launchedAs}.`,
         }),
     ),
   );
@@ -159,8 +159,8 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
 
 /**
  * The path the executable was started through. Node keeps the shell's
- * spelling in argv0: a launcher symlink or `./supacode` resolves against the
- * working directory, while a bare `supacode` was found on PATH and has to be
+ * spelling in argv0: a launcher symlink or `./supaterm` resolves against the
+ * working directory, while a bare `supaterm` was found on PATH and has to be
  * looked up there again, or the launcher symlink is never seen.
  */
 export const resolveLauncherPath = Effect.gen(function* () {
@@ -186,7 +186,7 @@ export const resolveLauncherPath = Effect.gen(function* () {
 
 /**
  * On Windows a `.cmd` shim is what PATH resolves, but the executable it runs
- * only ever sees its own path. Walk PATH for a `supacode.cmd` whose target is the
+ * only ever sees its own path. Walk PATH for a `supaterm.cmd` whose target is the
  * running executable; that is the launcher the install script wrote.
  */
 export const findWindowsShim = Effect.fn("cli.update.find_windows_shim")(function* (
@@ -196,11 +196,11 @@ export const findWindowsShim = Effect.fn("cli.update.find_windows_shim")(functio
   const path = yield* Path.Path;
   const environment = yield* HostProcess.Environment;
   const candidates = [
-    ...(environment["SUPACODE_INSTALL_BIN_DIR"] ? [environment["SUPACODE_INSTALL_BIN_DIR"]] : []),
+    ...(environment["SUPATERM_INSTALL_BIN_DIR"] ? [environment["SUPATERM_INSTALL_BIN_DIR"]] : []),
     ...(environment["PATH"] ?? environment["Path"] ?? "").split(";"),
   ].filter((entry) => entry.trim().length > 0);
   for (const directory of candidates) {
-    const shimPath = path.join(directory, "supacode.cmd");
+    const shimPath = path.join(directory, "supaterm.cmd");
     const contents = yield* fs.readFileString(shimPath).pipe(Effect.option);
     if (Option.isNone(contents)) continue;
     const target = /^"([^"]+)"/m.exec(contents.value)?.[1];
@@ -218,7 +218,7 @@ const updateFlags = {
   ...projectLocationFlags,
   channel: Flag.Literals("channel", CLI_RELEASE_CHANNELS).pipe(
     Flag.withDescription(
-      "Release channel to follow. Defaults to the channel this Supacode was published on.",
+      "Release channel to follow. Defaults to the channel this Supaterm was published on.",
     ),
     Flag.optional,
   ),
@@ -247,7 +247,7 @@ export const updateCommand = Command.make("update", {
   version: versionArgument,
 }).pipe(
   Command.withDescription(
-    "Download a newer Supacode and switch this machine to it, including the background service when one is installed.",
+    "Download a newer Supaterm and switch this machine to it, including the background service when one is installed.",
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
@@ -271,7 +271,7 @@ export const updateCommand = Command.make("update", {
 );
 
 /**
- * A `supacode serve` or `supacode` someone started by hand, as opposed to the one the
+ * A `supaterm serve` or `supaterm` someone started by hand, as opposed to the one the
  * background service supervises. The server records its pid on startup; a
  * stale file from a crashed server is ignored by checking the pid is alive.
  *
@@ -300,7 +300,7 @@ const belongsToBootService = Effect.fn("cli.update.belongs_to_boot_service")(fun
   const runner = yield* ProcessRunner.ProcessRunner;
   if (platform === "linux") {
     const cgroup = yield* fs.readFileString(`/proc/${pid}/cgroup`).pipe(Effect.option);
-    return Option.isSome(cgroup) && cgroup.value.includes("/supacode.service");
+    return Option.isSome(cgroup) && cgroup.value.includes("/supaterm.service");
   }
   if (platform === "darwin") {
     // The service server's parent is the launcher process.
@@ -346,7 +346,7 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   const channel = input.channel ?? cliReleaseChannelOf(currentVersion);
   if (input.requestedVersion !== undefined && !isExactServiceVersion(input.requestedVersion)) {
     return yield* new CliUpdateError({
-      reason: `'${input.requestedVersion}' is not an exact Supacode version.`,
+      reason: `'${input.requestedVersion}' is not an exact Supaterm version.`,
     });
   }
   const progress = createUpdateProgress();
@@ -366,10 +366,10 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   if (targetChannel === "preview" && currentChannel !== "preview") {
     yield* Console.log(
       [
-        `supacode@${targetVersion} is a preview build.`,
+        `supaterm@${targetVersion} is a preview build.`,
         "  Preview builds are cut by maintainers from unreleased branches to exercise the release",
         "  pipeline. They can be broken, receive no fixes, and are never offered as updates; you",
-        `  will have to switch back to ${currentChannel} yourself with \`supacode update --channel ${currentChannel} --allow-downgrade\`.`,
+        `  will have to switch back to ${currentChannel} yourself with \`supaterm update --channel ${currentChannel} --allow-downgrade\`.`,
       ].join("\n"),
     );
     if (!(process.stdin.isTTY && process.stdout.isTTY)) {
@@ -390,7 +390,7 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   // Work out everything that will be touched before touching anything, so the
   // user sees one plan and one question rather than a surprise restart.
   const status = yield* service.status;
-  // The unit name is per user, not per Supacode home. Only touch the service when it
+  // The unit name is per user, not per Supaterm home. Only touch the service when it
   // serves the home this update targets; otherwise it belongs to another
   // install on this machine and restarting it would take that server down.
   const servesThisHome =
@@ -426,14 +426,14 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   if (executableCurrent && serviceCurrent) {
     yield* Console.log(
       serviceVersion !== undefined
-        ? `Supacode and its background service are already on ${targetVersion} (${targetChannel}).`
-        : `Supacode is already on ${targetVersion} (${targetChannel}).`,
+        ? `Supaterm and its background service are already on ${targetVersion} (${targetChannel}).`
+        : `Supaterm is already on ${targetVersion} (${targetChannel}).`,
     );
     return;
   }
   if (!input.allowDowngrade && compareExactServiceVersions(targetVersion, newestInstalled) < 0) {
     return yield* new CliUpdateError({
-      reason: `supacode@${targetVersion} is older than the installed ${newestInstalled}. Pass --allow-downgrade to install it anyway.`,
+      reason: `supaterm@${targetVersion} is older than the installed ${newestInstalled}. Pass --allow-downgrade to install it anyway.`,
     });
   }
 
@@ -450,8 +450,8 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
       : executableCurrent
         ? `Updating the background service ${serviceVersion ?? "(unknown version)"} -> ${targetVersion} (${targetChannel}).`
         : alreadyOnDisk
-          ? "Switching Supacode"
-          : "Updating Supacode",
+          ? "Switching Supaterm"
+          : "Updating Supaterm",
     executableCurrent
       ? ""
       : `${currentVersion} → ${targetVersion}${targetChannel === "stable" ? "" : ` (${targetChannel})`}`,
@@ -459,7 +459,7 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   let restartService = false;
   if (serviceInstalled && !serviceCurrent) {
     yield* Console.log(
-      "  A background service is installed for this Supacode home. Restarting it interrupts anything running in it: agent turns, terminals, remote clients.",
+      "  A background service is installed for this Supaterm home. Restarting it interrupts anything running in it: agent turns, terminals, remote clients.",
     );
     if (input.assumeYes) {
       restartService = true;
@@ -472,7 +472,7 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
       ).pipe(Effect.catchTags({ QuitError: () => Effect.succeed(false) }));
     } else {
       yield* Console.log(
-        "  Not a terminal, so the service keeps running its current version. Rerun with --yes to restart it now, or run `supacode service restart` later.",
+        "  Not a terminal, so the service keeps running its current version. Rerun with --yes to restart it now, or run `supaterm service restart` later.",
       );
     }
   }
@@ -498,14 +498,14 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
         .pipe(
           Effect.mapError(
             (cause) =>
-              new PinnedRuntimeInstallError({ step: "verifying the downloaded Supacode", cause }),
+              new PinnedRuntimeInstallError({ step: "verifying the downloaded Supaterm", cause }),
           ),
           Effect.flatMap((result) =>
             result.code === 0 && /\bv(\S+)\s*$/.exec(result.stdout)?.[1] === targetVersion
               ? Effect.void
               : Effect.fail(
                   new PinnedRuntimeInstallError({
-                    step: "verifying the downloaded Supacode",
+                    step: "verifying the downloaded Supaterm",
                     exitCode: Number(result.code),
                   }),
                 ),
@@ -516,12 +516,12 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
     Effect.catchIf(
       (error): error is PinnedRuntimeInstallError =>
         error._tag === "PinnedRuntimeInstallError" &&
-        error.step.startsWith("downloading the Supacode release checksums") &&
+        error.step.startsWith("downloading the Supaterm release checksums") &&
         String(error.cause).includes("404"),
       () =>
         Effect.fail(
           new CliUpdateError({
-            reason: `No release archive was published for supacode@${targetVersion}.`,
+            reason: `No release archive was published for supaterm@${targetVersion}.`,
           }),
         ),
     ),
@@ -538,7 +538,7 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   // downloaded runtime has already proven it runs (the `--version` check
   // above), and doing it here rather than through the target's own CLI means
   // a downgrade to a version without today's commands still works. The unit
-  // is rewritten either way so a later `supacode service restart` lands on the new
+  // is rewritten either way so a later `supaterm service restart` lands on the new
   // version; only the restart itself waits for the user's answer.
   let serviceUpdated = false;
   if (serviceInstalled && !serviceCurrent) {
@@ -561,16 +561,16 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
       Effect.mapError(
         (error) =>
           new CliUpdateError({
-            reason: `supacode@${targetVersion} is installed but the background service could not be ${restartService ? "updated" : "pointed at it"}: ${error.message}`,
+            reason: `supaterm@${targetVersion} is installed but the background service could not be ${restartService ? "updated" : "pointed at it"}: ${error.message}`,
           }),
       ),
     );
     serviceUpdated = restartService;
   }
 
-  progress.success(`Installed Supacode ${targetVersion}`);
+  progress.success(`Installed Supaterm ${targetVersion}`);
   if (Option.isSome(repointed)) {
-    yield* Console.log("  Run Supacode to get started.\n");
+    yield* Console.log("  Run Supaterm to get started.\n");
   } else {
     yield* Console.log(`  Run ${runtime.entryPath}\n`);
   }
@@ -580,11 +580,11 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
     yield* Console.log(`  Background service already on ${targetVersion}`);
   } else if (serviceInstalled) {
     yield* Console.log(
-      `  Background service still running ${serviceVersion ?? "an unknown version"}. Run \`supacode service restart\` when you are ready to switch it to ${targetVersion}.`,
+      `  Background service still running ${serviceVersion ?? "an unknown version"}. Run \`supaterm service restart\` when you are ready to switch it to ${targetVersion}.`,
     );
   } else if (status.installed && !servesThisHome) {
     yield* Console.log(
-      `  The background service serves ${status.installedBaseDir ?? "another Supacode home"} and was left unchanged.`,
+      `  The background service serves ${status.installedBaseDir ?? "another Supaterm home"} and was left unchanged.`,
     );
   }
   if (foreground !== undefined) {

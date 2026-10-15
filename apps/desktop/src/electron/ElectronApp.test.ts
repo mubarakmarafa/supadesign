@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import { beforeEach, vi } from "vite-plus/test";
 
@@ -70,7 +70,7 @@ vi.mock("electron", () => ({
     getSystemLocale: getSystemLocaleMock,
     getVersion: getVersionMock,
     isPackaged: true,
-    name: "Supacode",
+    name: "Supaterm",
     on: onMock,
     quit: quitMock,
     relaunch: relaunchMock,

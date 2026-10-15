@@ -1,5 +1,5 @@
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import { type EnvironmentId, ThreadId } from "@supacode/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { type EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { useClosedViewStore } from "./closedViewStore";
@@ -34,7 +34,7 @@ describe("rightPanelStore", () => {
     const store = useRightPanelStore.getState();
     const pr = pullRequestSurface({
       projectId: "project-a",
-      repository: "pingdotgg/supacode",
+      repository: "pingdotgg/supaterm",
       number: 42,
     });
     store.openFile(refA, "src/app.ts");

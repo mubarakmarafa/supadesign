@@ -1,5 +1,5 @@
-import { PROVIDER_SEND_TURN_MAX_INPUT_CHARS } from "@supacode/contracts";
-import { expandAssistantCitationsForProvider } from "@supacode/shared/assistantCitations";
+import { PROVIDER_SEND_TURN_MAX_INPUT_CHARS } from "@supaterm/contracts";
+import { expandAssistantCitationsForProvider } from "@supaterm/shared/assistantCitations";
 
 type ComposerSubmitEvent = { preventDefault: () => void };
 

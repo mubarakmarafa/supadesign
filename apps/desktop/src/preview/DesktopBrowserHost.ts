@@ -13,7 +13,7 @@ import {
   DesktopBrowserCommand,
   DesktopBrowserEvent,
   type DesktopBrowserEvent as DesktopBrowserEventType,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as NodePath from "node:path";
 import * as Effect from "effect/Effect";
@@ -91,7 +91,7 @@ export class DesktopBrowserHost extends Context.Service<
       readonly y: number;
     }>;
   }
->()("@supacode/desktop/preview/DesktopBrowserHost") {}
+>()("@supaterm/desktop/preview/DesktopBrowserHost") {}
 
 export const make = Effect.gen(function* () {
   const outbox = yield* PubSub.unbounded<DesktopBrowserEventType>();

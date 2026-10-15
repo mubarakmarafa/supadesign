@@ -10,9 +10,9 @@ lines.on("line", (line) => {
   const message = JSON.parse(line);
   if (message.type !== "control_request") return;
   if (message.request?.subtype === "get_usage") {
-    const marker = process.env.SUPACODE_CLAUDE_RESET_MARKER;
+    const marker = process.env.SUPATERM_CLAUDE_RESET_MARKER;
     if (
-      process.env.SUPACODE_CLAUDE_USAGE_FAILS_AFTER_CLAIM &&
+      process.env.SUPATERM_CLAUDE_USAGE_FAILS_AFTER_CLAIM &&
       marker &&
       NodeFS.existsSync(marker)
     ) {
@@ -47,7 +47,7 @@ lines.on("line", (line) => {
     return;
   }
   if (message.request?.subtype !== "initialize") return;
-  const statePath = process.env.SUPACODE_CLAUDE_AUTH_STATE;
+  const statePath = process.env.SUPATERM_CLAUDE_AUTH_STATE;
   const authState = statePath ? NodeFS.readFileSync(statePath, "utf8") : "ready";
   if (authState === "failure") {
     process.stdout.write(

@@ -1,4 +1,4 @@
-import type { ModelPreferences } from "@supacode/contracts/settings";
+import type { ModelPreferences } from "@supaterm/contracts/settings";
 import {
   DEFAULT_MODEL_BY_PROVIDER,
   DEFAULT_TEXT_GENERATION_MODEL,
@@ -20,7 +20,7 @@ import {
   type ServerProvider,
   ServerSettings,
   ServerSettingsPatch,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";

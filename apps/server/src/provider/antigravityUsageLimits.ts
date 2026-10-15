@@ -1,5 +1,5 @@
-import type { AntigravitySettings, ServerProviderUsageWindow } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { AntigravitySettings, ServerProviderUsageWindow } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Clock from "effect/Clock";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
@@ -13,7 +13,7 @@ import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } fr
 import {
   makeUnavailableUsageLimits,
   makeUsageLimits,
-} from "@supacode/provider-core/server/usageLimits";
+} from "@supaterm/provider-core/server/usageLimits";
 
 const ENDPOINTS = [
   "https://daily-cloudcode-pa.googleapis.com",

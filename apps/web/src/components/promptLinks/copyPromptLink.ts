@@ -1,20 +1,20 @@
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import {
   type ModelSelection,
   repositoryGroupingKeyOf,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   buildNewThreadLink,
   parsePromptLinkRepository,
   PROMPT_LINK_MAX_PROMPT_LENGTH,
   type PromptLinkRepository,
-} from "@supacode/shared/promptLinks";
+} from "@supaterm/shared/promptLinks";
 
 import { type ComposerThreadTarget, useComposerDraftStore } from "~/composerDraftStore";
 import { writeTextToClipboard } from "~/hooks/useCopyToClipboard";
 import { configuredHostedAppUrl } from "~/hostedPairing";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 
 import { stackedThreadToast, toastManager } from "../ui/toast";
 

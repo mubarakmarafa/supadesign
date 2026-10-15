@@ -1,5 +1,5 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
-import { ProjectId, type PullRequestSummary, type VcsStatusResult } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import { ProjectId, type PullRequestSummary, type VcsStatusResult } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { AtomRegistry } from "effect/reactivity";

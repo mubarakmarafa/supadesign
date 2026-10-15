@@ -3,9 +3,9 @@ import type {
   OrchestrationV2ProjectedTurnItem,
   OrchestrationV2ProviderCapabilities,
   OrchestrationV2ThreadProjection,
-} from "@supacode/contracts";
-import { latestForkableRun } from "@supacode/contracts";
-import { copySorted } from "@supacode/shared/Array";
+} from "@supaterm/contracts";
+import { latestForkableRun } from "@supaterm/contracts";
+import { copySorted } from "@supaterm/shared/Array";
 
 type Projection = OrchestrationV2ThreadProjection;
 type Run = Projection["runs"][number];

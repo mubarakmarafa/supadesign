@@ -62,7 +62,7 @@ it("keeps the notice visible and persists dismissal, with a route to pairing set
   expect(state.navigate).toHaveBeenCalledWith({ to: "/settings/connections" });
   expect(state.close).toHaveBeenCalledWith("notice");
   expect(state.save).toHaveBeenCalledWith(
-    `supacode:permission-update:v1:env-${state.id}`,
+    `supaterm:permission-update:v1:env-${state.id}`,
     true,
     expect.anything(),
   );
@@ -103,7 +103,7 @@ it("persists the secondary dismissal without relying on the toast close callback
   };
   notice.data.secondaryActionProps.onClick();
   expect(state.save).toHaveBeenCalledWith(
-    `supacode:permission-update:v1:env-${state.id}`,
+    `supaterm:permission-update:v1:env-${state.id}`,
     true,
     expect.anything(),
   );

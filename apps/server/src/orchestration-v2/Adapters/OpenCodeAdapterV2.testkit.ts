@@ -1,24 +1,24 @@
 import type { OpencodeClient } from "@opencode-ai/sdk/v2";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ProviderReplayEntry, type ProviderReplayTranscript } from "@supacode/contracts";
+import { ProviderReplayEntry, type ProviderReplayTranscript } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Duration from "effect/Duration";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 
-import { OpenCodeAdapterV2Driver } from "@supacode/provider-opencode/server";
-import * as OpenCodeRuntime from "@supacode/provider-opencode/server/OpenCodeRuntime";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import { ProviderAdapterDriverCreateError } from "@supacode/provider-core/server/adapterDriver";
+import { OpenCodeAdapterV2Driver } from "@supaterm/provider-opencode/server";
+import * as OpenCodeRuntime from "@supaterm/provider-opencode/server/OpenCodeRuntime";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import { ProviderAdapterDriverCreateError } from "@supaterm/provider-core/server/adapterDriver";
 import * as ProviderAdapterRegistry from "../ProviderAdapterRegistry.ts";
 import { type OrchestratorV2ProviderReplayHarness } from "../testkit/ProviderReplayHarness.ts";
 import {
   OPENCODE_DEFAULT_INSTANCE_ID,
   OPENCODE_PROVIDER,
   OPENCODE_SDK_PROTOCOL,
-} from "@supacode/provider-opencode/testing";
+} from "@supaterm/provider-opencode/testing";
 
 const OPENCODE_SDK_REPLAY_PROTOCOL = OPENCODE_SDK_PROTOCOL;
 

@@ -11,7 +11,7 @@ import { requireNativeView } from "expo";
 
 import { NativeViewResolutionError } from "../../native/nativeViewResolutionError";
 
-const NATIVE_REVIEW_DIFF_MODULE_NAME = "SupacodeReviewDiffSurface";
+const NATIVE_REVIEW_DIFF_MODULE_NAME = "SupatermReviewDiffSurface";
 const NATIVE_REVIEW_DIFF_PAYLOAD_RETRY_FRAMES = 60;
 
 interface ExpoGlobalWithViewConfig {
@@ -184,7 +184,7 @@ export function isPendingNativeViewRegistration(error: unknown): boolean {
   return (
     error.message.includes(`Unable to find the '${NATIVE_REVIEW_DIFF_MODULE_NAME}' view`) ||
     (error.message.includes("Unable to find the class") &&
-      error.message.includes("SupacodeReviewDiffView view with tag"))
+      error.message.includes("SupatermReviewDiffView view with tag"))
   );
 }
 

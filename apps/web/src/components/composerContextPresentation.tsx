@@ -1,11 +1,11 @@
 import ChatMarkdown from "./ChatMarkdown";
 import { ReadOnlySourcePreview } from "./files/AttachmentFilePreview";
-import type { PreviewAnnotationPayload, ThreadContextRecord } from "@supacode/contracts";
-import { formatAttachmentSize } from "@supacode/client-runtime/state/attachments";
-import { videoMimeType } from "@supacode/shared/video";
+import type { PreviewAnnotationPayload, ThreadContextRecord } from "@supaterm/contracts";
+import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
+import { videoMimeType } from "@supaterm/shared/video";
 import { MessageCircleIcon, MousePointerClickIcon } from "lucide-react";
 import { createContext, type MouseEvent, type ReactElement, type ReactNode, use } from "react";
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 import type { ComposerFileAttachment, ComposerImageAttachment } from "~/composerDraftStore";
 import { composerFileNeedsReattach } from "~/composerDraftStore";

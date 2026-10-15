@@ -5,7 +5,7 @@ import {
   DEFAULT_AUTOMATIC_GIT_FETCH_INTERVAL,
   DEFAULT_PROVIDER_HEALTH_REFRESH_INTERVAL,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Duration from "effect/Duration";
 
 export interface ResolvedBackgroundActivitySettings {

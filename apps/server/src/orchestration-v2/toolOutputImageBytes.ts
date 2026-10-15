@@ -1,9 +1,9 @@
-import type { OrchestrationV2TurnItem } from "@supacode/contracts";
+import type { OrchestrationV2TurnItem } from "@supaterm/contracts";
 import {
   MAX_TOOL_OUTPUT_IMAGE_BASE64_LENGTH,
   readToolOutputImage,
   toolOutputImageBlocks,
-} from "@supacode/shared/toolOutput";
+} from "@supaterm/shared/toolOutput";
 
 const IMAGE_MIME_KEYS = ["mimeType", "mime_type", "media_type", "type"] as const;
 const IMAGE_BODY_KEYS = new Set(["data", "blob", "base64"]);

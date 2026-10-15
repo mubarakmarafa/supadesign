@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { Platform } from "react-native";
 import { CommonActions } from "@react-navigation/native";
 import { androidWorkspaceNavigationState } from "../lib/android-workspace-navigation";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { useThreadShell } from "../state/entities";
 import { tryOpenExternalUrl } from "../lib/openExternalUrl";
 

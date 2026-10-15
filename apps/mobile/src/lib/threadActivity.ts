@@ -2,20 +2,20 @@ import type {
   ThreadPendingApproval,
   ThreadPendingUserInput,
   ThreadUserInputQuestion,
-} from "@supacode/client-runtime/state/thread-requests";
-import { turnItemIsWorkspacePreparation } from "@supacode/client-runtime/state/turn-item-presentation";
-import { formatSubagentDisplayTitle } from "@supacode/client-runtime/state/subagent-display";
-import { isLiveSubagentTurnItem } from "@supacode/client-runtime/state/subagentRuntime";
-import { extractToolActivityPresentation } from "@supacode/client-runtime/work-log/tool-presentation";
+} from "@supaterm/client-runtime/state/thread-requests";
+import { turnItemIsWorkspacePreparation } from "@supaterm/client-runtime/state/turn-item-presentation";
+import { formatSubagentDisplayTitle } from "@supaterm/client-runtime/state/subagent-display";
+import { isLiveSubagentTurnItem } from "@supaterm/client-runtime/state/subagentRuntime";
+import { extractToolActivityPresentation } from "@supaterm/client-runtime/work-log/tool-presentation";
 import {
   turnItemDetailRevision,
   turnItemHasDetail,
   turnItemNeedsDetailFetch,
-} from "@supacode/client-runtime/work-log/item-detail";
+} from "@supaterm/client-runtime/work-log/item-detail";
 import {
   commandDisplayText,
   commandProgramName,
-} from "@supacode/client-runtime/work-log/command-label";
+} from "@supaterm/client-runtime/work-log/command-label";
 import {
   latestToolGroupImage,
   type ToolGroupImage,
@@ -31,13 +31,13 @@ import {
   type ToolGroupSummaryKind,
   type WorkLogPresentationEntry,
   type WorkLogToolLifecycleStatus,
-} from "@supacode/client-runtime/work-log/presentation";
+} from "@supaterm/client-runtime/work-log/presentation";
 import {
-  resolveSupacodeMcpToolDefinition,
-  resolveSupacodeMcpToolPresentation,
-  type SupacodeMcpToolLogo,
-  type SupacodeMcpToolPresentation,
-} from "@supacode/shared/supacodeMcpToolPresentation";
+  resolveSupatermMcpToolDefinition,
+  resolveSupatermMcpToolPresentation,
+  type SupatermMcpToolLogo,
+  type SupatermMcpToolPresentation,
+} from "@supaterm/shared/supatermMcpToolPresentation";
 import type {
   ChatAttachment,
   MessageId,
@@ -53,8 +53,8 @@ import type {
   RunAttemptId,
   ScheduledTaskId,
   TurnItemId,
-} from "@supacode/contracts";
-import { RunId, ThreadId } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { RunId, ThreadId } from "@supaterm/contracts";
 import {
   classifyToolActivity,
   collectToolFilePaths,
@@ -62,15 +62,15 @@ import {
   isJavaScriptReplTool,
   formatReadToolLabel,
   formatSearchToolLabel,
-} from "@supacode/shared/toolActivity";
-import { formatDuration } from "@supacode/shared/orchestrationTiming";
-import type { HtmlRenderReference } from "@supacode/shared/htmlRender";
-import type { McpAppReference } from "@supacode/shared/mcpApp";
+} from "@supaterm/shared/toolActivity";
+import { formatDuration } from "@supaterm/shared/orchestrationTiming";
+import type { HtmlRenderReference } from "@supaterm/shared/htmlRender";
+import type { McpAppReference } from "@supaterm/shared/mcpApp";
 import {
   compactDynamicToolOutput,
   htmlRenderFromToolItem,
   mcpAppFromToolItem,
-} from "@supacode/shared/toolOutput";
+} from "@supaterm/shared/toolOutput";
 import * as DateTime from "effect/DateTime";
 
 export type PendingApproval = ThreadPendingApproval;
@@ -115,7 +115,7 @@ export interface ThreadFeedActivity {
     | "warning"
     | "wrench"
     | "zap";
-  readonly logo: SupacodeMcpToolLogo | null;
+  readonly logo: SupatermMcpToolLogo | null;
   readonly toolLike: boolean;
   readonly prominent: boolean;
   readonly status: "success" | "failure" | "neutral" | null;
@@ -127,7 +127,7 @@ export interface ThreadFeedActivity {
 }
 
 export interface ThreadFeedMessage {
-  readonly context?: import("@supacode/contracts").OrchestrationMessageContext | undefined;
+  readonly context?: import("@supaterm/contracts").OrchestrationMessageContext | undefined;
   readonly id: MessageId;
   readonly role: "user" | "assistant";
   readonly text: string;
@@ -216,7 +216,7 @@ type ThreadFeedEntryContent =
       readonly summaryKind: ToolGroupSummaryKind;
       readonly toolSurface?: WorkLogPresentationEntry["toolSurface"];
       readonly toolIcon?: WorkLogPresentationEntry["toolIcon"];
-      readonly summaryToolIcon?: "browser" | "device" | "supacode" | "pull-request";
+      readonly summaryToolIcon?: "browser" | "device" | "supaterm" | "pull-request";
       readonly hasFailure: boolean;
       readonly live: boolean;
       readonly shimmer: boolean;
@@ -574,19 +574,19 @@ function itemIcon(item: OrchestrationV2TurnItem): ThreadFeedActivity["icon"] {
   }
 }
 
-function itemToolPresentation(item: OrchestrationV2TurnItem): SupacodeMcpToolPresentation | null {
+function itemToolPresentation(item: OrchestrationV2TurnItem): SupatermMcpToolPresentation | null {
   if (item.type !== "dynamic_tool") {
     return null;
   }
   return (
-    resolveSupacodeMcpToolPresentation(item.toolName) ??
-    resolveSupacodeMcpToolPresentation(item.title)
+    resolveSupatermMcpToolPresentation(item.toolName) ??
+    resolveSupatermMcpToolPresentation(item.title)
   );
 }
 
 function itemSummary(
   item: OrchestrationV2TurnItem,
-  toolPresentation: SupacodeMcpToolPresentation | null = null,
+  toolPresentation: SupatermMcpToolPresentation | null = null,
 ): string {
   if (item.type === "notification") return item.summary;
   if (item.type === "system_notice") return item.message;
@@ -917,7 +917,7 @@ function groupAdjacentActivities(entries: ReadonlyArray<RawThreadFeedEntry>): Th
         item.type === "dynamic_tool" &&
         item.runId !== null &&
         (item.status === "running" || item.status === "completed") &&
-        resolveSupacodeMcpToolDefinition(item.toolName)?.summaryAction === "delegate" &&
+        resolveSupatermMcpToolDefinition(item.toolName)?.summaryAction === "delegate" &&
         !workEntryDisplayIndicatesToolFailure(entry.activity.workEntry)
       ) {
         const output = compactDynamicToolOutput(item.output);

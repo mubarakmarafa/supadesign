@@ -16,7 +16,7 @@ import type {
   UsageReadError,
   UsageSource,
   UsageTokenTotals,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type * as Effect from "effect/Effect";
 import type * as Schema from "effect/Schema";
 

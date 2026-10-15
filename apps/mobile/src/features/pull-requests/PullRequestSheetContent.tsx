@@ -59,7 +59,7 @@ export function PullRequestSheetContent(props: {
             onPress={() => navigation.goBack()}
           />
           <View className="min-w-0 flex-1 items-center gap-1">
-            <Text className="text-center text-base font-supacode-bold">{props.title}</Text>
+            <Text className="text-center text-base font-supaterm-bold">{props.title}</Text>
             <Text numberOfLines={1} className="text-center text-xs text-foreground-muted">
               {props.subtitle}
             </Text>

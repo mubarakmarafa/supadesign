@@ -1,4 +1,4 @@
-import { AuthGrantScope } from "@supacode/contracts";
+import { AuthGrantScope } from "@supaterm/contracts";
 import { Flag } from "effect/cli";
 
 export const authScopesFlag = (defaults: ReadonlyArray<AuthGrantScope>) =>

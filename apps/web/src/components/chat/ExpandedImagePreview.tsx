@@ -1,4 +1,4 @@
-import type { SnapShotSource } from "@supacode/contracts";
+import type { SnapShotSource } from "@supaterm/contracts";
 
 import type { ComposerFileAttachment } from "../../composerDraftStore";
 import { type ChatFileAttachment, type ChatImageAttachment, isVideoAttachment } from "../../types";
@@ -7,14 +7,14 @@ import type {
   AssetResource,
   EnvironmentId,
   ScopedThreadRef,
-} from "@supacode/contracts";
-import { videoMimeType } from "@supacode/shared/video";
-import { resolveMediaSource } from "@supacode/client-runtime/media-source";
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
+} from "@supaterm/contracts";
+import { videoMimeType } from "@supaterm/shared/video";
+import { resolveMediaSource } from "@supaterm/client-runtime/media-source";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import {
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import { resolveExternalWebLinkHost } from "./externalLinkContextMenu";
 import type { MediaActionSource } from "../media/MediaActions";
 import { resolveProtocolRelativeMediaUrl } from "../media/mediaContent";

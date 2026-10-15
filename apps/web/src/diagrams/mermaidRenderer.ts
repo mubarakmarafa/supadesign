@@ -1,5 +1,5 @@
-import { createDiagramRenderer } from "@supacode/client-runtime/diagram-rendering";
-import { MERMAID_ASCII_LIMITS } from "@supacode/mermaid-ascii/limits";
+import { createDiagramRenderer } from "@supaterm/client-runtime/diagram-rendering";
+import { MERMAID_ASCII_LIMITS } from "@supaterm/mermaid-ascii/limits";
 
 export function createBrowserDiagramRenderer() {
   let worker: Worker | undefined;

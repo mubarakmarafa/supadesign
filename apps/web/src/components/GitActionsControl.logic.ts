@@ -2,10 +2,10 @@ import type {
   GitRunStackedActionResult,
   GitStackedAction,
   VcsStatusResult,
-} from "@supacode/contracts";
-import { isTemporaryWorktreeBranch } from "@supacode/shared/git";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
-import type { ChangeRequestTerminology } from "@supacode/client-runtime/source-control-clients";
+} from "@supaterm/contracts";
+import { isTemporaryWorktreeBranch } from "@supaterm/shared/git";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
+import type { ChangeRequestTerminology } from "@supaterm/client-runtime/source-control-clients";
 
 export type GitActionIconName = "commit" | "push" | "pr";
 
@@ -485,4 +485,4 @@ export function resolveLiveThreadBranchUpdate(input: {
 }
 
 // Re-export from shared for backwards compatibility in this module's exports
-export { resolveAutoFeatureBranchName } from "@supacode/shared/git";
+export { resolveAutoFeatureBranchName } from "@supaterm/shared/git";

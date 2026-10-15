@@ -1,11 +1,11 @@
-import { isWorkspaceImagePreviewPath } from "@supacode/shared/filePreview";
-import { COMPUTER_USE_TOOL_SOURCE, dynamicToolSurface } from "@supacode/shared/toolActivity";
+import { isWorkspaceImagePreviewPath } from "@supaterm/shared/filePreview";
+import { COMPUTER_USE_TOOL_SOURCE, dynamicToolSurface } from "@supaterm/shared/toolActivity";
 import type {
   ToolActivityIcon,
   ToolActivityNativeAppReference,
   ToolActivitySource,
   ToolActivitySurface,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export interface ExtractedToolActivityPresentation {
   readonly viewedImagePath?: string;

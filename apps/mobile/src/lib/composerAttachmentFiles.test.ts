@@ -14,9 +14,9 @@ describe("owned attachment paths", () => {
     "file:///var/mobile/Containers/Data/Application/",
     "file:///Users/dev/Library/Developer/CoreSimulator/Devices/device/data/Containers/Data/Application/",
   ])("resolves saved files after an iOS container move under %s", (prefix) => {
-    const oldUri = `${prefix}${OLD_CONTAINER}/Documents/supacode-composer-attachments/${FILE_NAME}`;
+    const oldUri = `${prefix}${OLD_CONTAINER}/Documents/supaterm-composer-attachments/${FILE_NAME}`;
     const documentUri = `${prefix}${CURRENT_CONTAINER}/Documents/`;
-    const currentUri = `${documentUri}supacode-composer-attachments/${FILE_NAME}`;
+    const currentUri = `${documentUri}supaterm-composer-attachments/${FILE_NAME}`;
 
     expect(resolveOwnedComposerAttachmentFileUri(oldUri, documentUri)).toBe(currentUri);
     expect(composerAttachmentFileReferenceKey(oldUri)).toBe(
@@ -25,9 +25,9 @@ describe("owned attachment paths", () => {
   });
 
   it("recognizes the private/var alias without changing the stored filename", () => {
-    const oldUri = `file:///private/var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/supacode-composer-attachments/${FILE_NAME}`;
+    const oldUri = `file:///private/var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/supaterm-composer-attachments/${FILE_NAME}`;
     const documentUri = `file:///var/mobile/Containers/Data/Application/${CURRENT_CONTAINER}/Documents/`;
-    const currentUri = `${documentUri}supacode-composer-attachments/${FILE_NAME}`;
+    const currentUri = `${documentUri}supaterm-composer-attachments/${FILE_NAME}`;
 
     expect(resolveOwnedComposerAttachmentFileUri(oldUri, documentUri)).toBe(currentUri);
     expect(composerAttachmentFileReferenceKey(oldUri)).toBe(
@@ -36,15 +36,15 @@ describe("owned attachment paths", () => {
   });
 
   it.each([
-    `file:///private/var/mobile/Containers/Shared/FileProvider/other/Documents/supacode-composer-attachments/${FILE_NAME}`,
-    `file:///var/mobile/Containers/Shared/AppGroup/other/supacode-composer-attachments/${FILE_NAME}`,
+    `file:///private/var/mobile/Containers/Shared/FileProvider/other/Documents/supaterm-composer-attachments/${FILE_NAME}`,
+    `file:///var/mobile/Containers/Shared/AppGroup/other/supaterm-composer-attachments/${FILE_NAME}`,
     `file:///var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/report.pdf`,
-    `file:///var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/supacode-composer-attachments/report.pdf`,
-    `file:///downloads/supacode-composer-attachments/${FILE_NAME}`,
-    `content://shared/supacode-composer-attachments/${FILE_NAME}`,
-    `https://example.com/supacode-composer-attachments/${FILE_NAME}`,
-    `file:///var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/supacode-composer-attachments/..%2F..%2Fsender.pdf`,
-    `file:///var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/supacode-composer-attachments/${FILE_NAME}%2Fnested.pdf`,
+    `file:///var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/supaterm-composer-attachments/report.pdf`,
+    `file:///downloads/supaterm-composer-attachments/${FILE_NAME}`,
+    `content://shared/supaterm-composer-attachments/${FILE_NAME}`,
+    `https://example.com/supaterm-composer-attachments/${FILE_NAME}`,
+    `file:///var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/supaterm-composer-attachments/..%2F..%2Fsender.pdf`,
+    `file:///var/mobile/Containers/Data/Application/${OLD_CONTAINER}/Documents/supaterm-composer-attachments/${FILE_NAME}%2Fnested.pdf`,
   ])("does not rebase an external or escaped path: %s", (uri) => {
     expect(
       resolveOwnedComposerAttachmentFileUri(

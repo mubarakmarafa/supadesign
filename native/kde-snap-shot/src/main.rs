@@ -108,7 +108,7 @@ fn script(connection: &Connection, directory: &Path, body: &str) -> Result<Strin
         },
     )?;
     let path = directory.join("window.js");
-    let name = format!("supacode-capture-{}", std::process::id());
+    let name = format!("supaterm-capture-{}", std::process::id());
     let destination = serde_json::to_string(
         connection
             .unique_name()
@@ -192,7 +192,7 @@ fn check(connection: &Connection) -> Result<()> {
     let reply: zbus::Result<HashMap<String, OwnedValue>> = proxy.call(
         "CaptureWindow",
         &(
-            "supacode-permission-check-not-a-window",
+            "supaterm-permission-check-not-a-window",
             HashMap::<&str, Value<'_>>::new(),
             Fd::from(sink.as_fd()),
         ),
@@ -348,7 +348,7 @@ fn run() -> Result<()> {
                 ),
             )?;
             if serde_json::from_str::<serde_json::Value>(&value)?["activated"] != true {
-                return Err("KDE could not identify the Supacode window to activate".into());
+                return Err("KDE could not identify the Supaterm window to activate".into());
             }
             println!("{{\"activated\":true}}");
         }

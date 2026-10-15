@@ -10,14 +10,14 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { FetchHttpClient } from "effect/http";
 
-import * as GitHubPullRequestApi from "@supacode/source-control-github/server/GitHubPullRequestApi";
-import * as GitHubPullRequestProvider from "@supacode/source-control-github/server/GitHubPullRequestProvider";
-import * as GitHubApi from "@supacode/source-control-github/server/GitHubApi";
-import * as GitHubCredentials from "@supacode/source-control-github/server/GitHubCredentials";
+import * as GitHubPullRequestApi from "@supaterm/source-control-github/server/GitHubPullRequestApi";
+import * as GitHubPullRequestProvider from "@supaterm/source-control-github/server/GitHubPullRequestProvider";
+import * as GitHubApi from "@supaterm/source-control-github/server/GitHubApi";
+import * as GitHubCredentials from "@supaterm/source-control-github/server/GitHubCredentials";
 import * as ServerConfig from "../src/config.ts";
 import * as ServerSettings from "../src/serverSettings.ts";
-import * as GitHubQuota from "@supacode/source-control-github/server/GitHubQuota";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
+import * as GitHubQuota from "@supaterm/source-control-github/server/GitHubQuota";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 import * as ServerSourceControlHost from "../src/sourceControl/ServerSourceControlHost.ts";
 import * as GitVcsDriver from "../src/vcs/GitVcsDriver.ts";
 import * as VcsDriverRegistry from "../src/vcs/VcsDriverRegistry.ts";
@@ -51,8 +51,8 @@ const sourceControlHost = ServerSourceControlHost.layer.pipe(
   Layer.provide(VcsDriverRegistry.layer.pipe(Layer.provide(VcsProjectConfig.layer))),
   Layer.provide(GitVcsDriver.layer),
   Layer.provide(ServerSettings.layerTest()),
-  // A scratch state directory, so nothing here touches a real Supacode home.
-  Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "supacode-measure-pr-preview-" })),
+  // A scratch state directory, so nothing here touches a real Supaterm home.
+  Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-measure-pr-preview-" })),
   Layer.provideMerge(VcsProcess.layer),
   Layer.provideMerge(NodeServices.layer),
 );

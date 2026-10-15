@@ -10,7 +10,7 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { Argument, Command, Flag } from "effect/cli";
-import { fromJsonStringPretty } from "@supacode/shared/schemaJson";
+import { fromJsonStringPretty } from "@supaterm/shared/schemaJson";
 
 export class ReleasePackageManifestError extends Schema.TaggedError<ReleasePackageManifestError>()(
   "ReleasePackageManifestError",

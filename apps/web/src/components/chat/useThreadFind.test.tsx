@@ -7,7 +7,7 @@ import {
   ThreadId,
   type OrchestrationV2SearchThreadInput,
   type OrchestrationV2SearchThreadResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useThreadFind } from "./useThreadFind";
 import { orchestrationEnvironment } from "~/state/orchestration";
 import { requestThreadFindOpen } from "./threadFindActionBus";

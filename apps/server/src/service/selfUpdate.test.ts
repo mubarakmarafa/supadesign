@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
-import { ServerSelfUpdateError, ThreadId } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { ServerSelfUpdateError, ThreadId } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Cause from "effect/Cause";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -40,7 +40,7 @@ const releaseHttpClient = (order: string[]) =>
         ).join("");
         return HttpClientResponse.fromWeb(
           request,
-          new Response(`${hex}  supacode-1.1.0-linux-x64.tar.gz\n`),
+          new Response(`${hex}  supaterm-1.1.0-linux-x64.tar.gz\n`),
         );
       }
       order.push("download");
@@ -53,7 +53,7 @@ const makeHarness = Effect.fn("test.make_self_update_harness")(function* (
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-self-update-test-" });
+  const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-self-update-test-" });
   const order: string[] = [];
   const runner = ProcessRunner.ProcessRunner.of({
     run: (input) =>
@@ -63,7 +63,7 @@ const makeHarness = Effect.fn("test.make_self_update_harness")(function* (
           const stagingDir = input.args[input.args.indexOf("-C") + 1];
           if (stagingDir === undefined) return yield* Effect.die("missing tar target");
           yield* fs
-            .writeFileString(path.join(stagingDir, "supacode"), "#!/bin/sh\n")
+            .writeFileString(path.join(stagingDir, "supaterm"), "#!/bin/sh\n")
             .pipe(Effect.orDie);
           return {
             stdout: "",
@@ -362,7 +362,7 @@ it.layer(NodeServices.layer)("server self update", (it) => {
       const web = yield* makeHarness();
       expect(
         (yield* web.selfUpdate.update({ targetVersion: "latest" }).pipe(Effect.flip)).reason,
-      ).toBe("'latest' is not an exact Supacode version.");
+      ).toBe("'latest' is not an exact Supaterm version.");
       const desktop = yield* makeHarness({ mode: "desktop" });
       expect(
         (yield* desktop.selfUpdate.update({ targetVersion: "1.1.0" }).pipe(Effect.flip)).reason,

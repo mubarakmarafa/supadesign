@@ -1,4 +1,4 @@
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { resolveUsageShortcut } from "./usageShortcuts";
 

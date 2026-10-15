@@ -4,7 +4,7 @@ import {
   type ProjectListEntriesResult,
   ProjectReadFileError,
   type ProjectReadFileResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -15,7 +15,7 @@ import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { useFilesystemReadAccess } from "~/state/filesystem";
 import { projectEnvironment } from "~/state/projects";
 import { useProjectPathSearch } from "~/state/queries";
-import { executeAtomQuery } from "@supacode/client-runtime/state/runtime";
+import { executeAtomQuery } from "@supaterm/client-runtime/state/runtime";
 
 const EMPTY_PROJECT_FILE_PATH = "";
 const EMPTY_PROJECT_ENTRIES_QUERY_ATOM = Atom.make(

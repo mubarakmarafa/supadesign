@@ -1,4 +1,4 @@
-import { EnvironmentId, type OrchestrationSkillsStatus } from "@supacode/contracts";
+import { EnvironmentId, type OrchestrationSkillsStatus } from "@supaterm/contracts";
 import { act, useLayoutEffect } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -39,7 +39,7 @@ function skillsStatus(installed: boolean): OrchestrationSkillsStatus {
         providers: ["Claude"],
         skills: [
           {
-            name: "supacode-advisor",
+            name: "supaterm-advisor",
             state: installed ? "installed" : "not-installed",
             managed: installed,
           },

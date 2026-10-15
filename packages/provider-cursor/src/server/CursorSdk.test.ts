@@ -40,7 +40,7 @@ const Scope = await import("effect/Scope");
 const scope = Scope.makeUnsafe();
 await Effect.runPromise(Layer.buildWithScope(layer, scope));
 const mode = process.argv[1];
-const missingCwd = join(tmpdir(), "supacode-missing-cwd-" + process.pid);
+const missingCwd = join(tmpdir(), "supaterm-missing-cwd-" + process.pid);
 
 if (mode === "cursor-shell") {
   const child = spawn("/bin/zsh", ["-c", "dump_zsh_state >&4", "--", "true"], {

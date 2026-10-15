@@ -10,8 +10,8 @@ import {
   relayPublicKey,
   signRelayChallenge,
   createClientHandshake,
-} from "@supacode/shared/relay/protocol";
-import { createTunnelSession } from "@supacode/shared/relay/tunnel";
+} from "@supaterm/shared/relay/protocol";
+import { createTunnelSession } from "@supaterm/shared/relay/tunnel";
 import { startRelayTransport, type RelayHostState } from "./transport.ts";
 
 async function relay() {

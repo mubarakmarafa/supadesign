@@ -6,7 +6,7 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import * as Effect from "effect/Effect";
 
-import { resolveGitWorktreePath, resolveWorktreeSupacodeHome } from "./devHome.ts";
+import { resolveGitWorktreePath, resolveWorktreeSupatermHome } from "./devHome.ts";
 
 const makeRepo = (
   kind:
@@ -20,7 +20,7 @@ const makeRepo = (
 ) =>
   Effect.acquireRelease(
     Effect.sync(() => {
-      const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-devhome-"));
+      const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-devhome-"));
       if (kind === "worktree") {
         NodeFS.writeFileSync(NodePath.join(root, ".git"), "gitdir: /elsewhere/.git/worktrees/x\n");
       } else if (kind === "bare-repo-worktree") {
@@ -94,12 +94,12 @@ describe("resolveGitWorktreePath", () => {
   );
 });
 
-describe("resolveWorktreeSupacodeHome", () => {
-  it.effect("answers with .supacode before the dev runner creates it", () =>
+describe("resolveWorktreeSupatermHome", () => {
+  it.effect("answers with .supaterm before the dev runner creates it", () =>
     Effect.gen(function* () {
       const { root, nested } = yield* makeRepo("worktree");
-      const home = yield* resolveWorktreeSupacodeHome(nested);
-      assert.equal(home, NodePath.join(NodePath.resolve(root), ".supacode"));
+      const home = yield* resolveWorktreeSupatermHome(nested);
+      assert.equal(home, NodePath.join(NodePath.resolve(root), ".supaterm"));
       assert.isFalse(NodeFS.existsSync(home ?? ""));
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );

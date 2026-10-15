@@ -25,7 +25,7 @@ jobs:
     permissions:
       contents: write
     env:
-      PACKAGE_NAME: com.supaterm.supacode
+      PACKAGE_NAME: com.supaterm.mobile
       PLAY_TRACK: internal
       RELEASE_TAG: android-nightly
     steps:

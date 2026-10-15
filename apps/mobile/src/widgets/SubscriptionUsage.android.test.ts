@@ -43,7 +43,7 @@ const provider = {
 } satisfies SubscriptionUsageSnapshot["providers"][number];
 const snapshot = {
   checkedAt: now,
-  url: "supacode-dev://settings/usage?tab=limits",
+  url: "supaterm-dev://settings/usage?tab=limits",
   providers: [provider, { ...provider, name: "Claude" }],
 } satisfies SubscriptionUsageSnapshot;
 
@@ -68,25 +68,25 @@ describe("SubscriptionUsage Android layout", () => {
       ...snapshot,
       providers: [{ ...provider, expiresAt: now - 1 }],
     });
-    expect(tree).toContain("Open Supacode to refresh");
+    expect(tree).toContain("Open Supaterm to refresh");
     expect(tree).not.toContain("LinearProgressIndicator");
-    expect(tree).not.toContain("more in Supacode");
+    expect(tree).not.toContain("more in Supaterm");
   });
 
   it("counts the quotas that did not fit", () => {
     const tree = render({ ...snapshot, providers: [{ ...provider, totalWindows: 5 }] });
-    expect(tree).toContain("3 more in Supacode");
+    expect(tree).toContain("3 more in Supaterm");
   });
 
   it("keeps quotas without an expiry deadline visible", () => {
     const tree = render({ ...snapshot, providers: [{ ...provider, expiresAt: 0 }] });
     expect(tree).toContain("5 hours · 60% left");
-    expect(tree).not.toContain("Open Supacode to refresh");
+    expect(tree).not.toContain("Open Supaterm to refresh");
   });
 
   it("invites connecting when nothing has been checked", () => {
     const tree = render({ checkedAt: 0, providers: [] }, "light");
-    expect(tree).toContain("Tap to connect in Supacode");
+    expect(tree).toContain("Tap to connect in Supaterm");
     expect(tree).not.toContain("As of ");
     expect(tree).toContain('"containerColor":"light-surface"');
   });

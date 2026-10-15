@@ -3,7 +3,7 @@ import {
   type OrchestrationV2ProviderTurn,
   ProviderThreadId,
   ProviderTurnId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { assert, describe, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 

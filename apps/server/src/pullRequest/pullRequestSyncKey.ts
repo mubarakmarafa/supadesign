@@ -5,9 +5,9 @@ import {
   type RepositoryIdentity,
   SourceControlProviderKind,
   type ThreadPullRequestKey,
-} from "@supacode/contracts";
-import { sourceControlRepositorySelector } from "@supacode/shared/sourceControl";
-import { normalizeThreadPullRequestKey } from "@supacode/shared/threadPullRequests";
+} from "@supaterm/contracts";
+import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
+import { normalizeThreadPullRequestKey } from "@supaterm/shared/threadPullRequests";
 
 /** Convert checkout-scoped references to the host-level identity used by linked threads. */
 export function pullRequestSyncKey(

@@ -2,7 +2,7 @@ import {
   WORKTREE_SETUP_ACTIVITY_KIND,
   WorktreeSetupSnapshot,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 

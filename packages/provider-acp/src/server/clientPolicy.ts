@@ -1,15 +1,15 @@
 // @effect-diagnostics nodeBuiltinImport:off
-import type { ProviderRequestKind, RuntimeMode } from "@supacode/contracts";
+import type { ProviderRequestKind, RuntimeMode } from "@supaterm/contracts";
 import type * as EffectAcpSchema from "effect-acp/compat";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 
 /**
- * Runtime-policy decisions for ACP work that Supacode mediates.
+ * Runtime-policy decisions for ACP work that Supaterm mediates.
  *
  * ACP agents run their own tools under their own permission model and ask
- * through `session/request_permission`, which Supacode answers by policy. The one
- * client-mediated path left is Devin's `terminal/*`, which runs with the Supacode
+ * through `session/request_permission`, which Supaterm answers by policy. The one
+ * client-mediated path left is Devin's `terminal/*`, which runs with the Supaterm
  * server's own privileges; it resolves through {@link acpOperationDisposition}
  * so a client terminal can never do more than an execute permission request.
  */
@@ -110,7 +110,7 @@ function isAcpReadKind(toolKind: string): boolean {
 
 /**
  * Reads follow the sandbox alone and never ask. Approval policy governs writes
- * and commands, as it does for Codex and Claude, and every sandbox Supacode knows
+ * and commands, as it does for Codex and Claude, and every sandbox Supaterm knows
  * lets the agent read. That includes no explicit sandbox, since the strictest
  * runtime mode (approval-required) implies a read-only one. Unknown sandbox
  * types still fail closed.
@@ -249,7 +249,7 @@ export function acpMcpToolApprovalElicitationDisposition(
   ) {
     return undefined;
   }
-  // This request comes from Supacode's authenticated, scope-checked MCP endpoint,
+  // This request comes from Supaterm's authenticated, scope-checked MCP endpoint,
   // not an arbitrary provider command. Let explicit approval mode surface it
   // to the user and otherwise allow the endpoint to enforce its own policy.
   return acpPolicyRequiresApproval(runtimePolicy) ? "ask" : "allow";

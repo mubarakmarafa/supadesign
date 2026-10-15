@@ -1,6 +1,6 @@
-import type { DesktopBridge } from "@supacode/contracts";
+import type { DesktopBridge } from "@supaterm/contracts";
 
-export const DESKTOP_PASTE_AS_TEXT_EVENT = "supacode:paste-as-text";
+export const DESKTOP_PASTE_AS_TEXT_EVENT = "supaterm:paste-as-text";
 
 /** Arm composer paste handling before Electron delivers the native clipboard event. */
 export function installDesktopPasteAsText(

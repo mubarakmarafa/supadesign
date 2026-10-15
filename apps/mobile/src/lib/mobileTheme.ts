@@ -1,19 +1,19 @@
 import {
   BUILT_IN_THEMES,
-  SUPACODE_CHAT_THEME,
-  SUPACODE_LIGHT_THEME_COLORS,
-  SUPACODE_DARK_THEME_COLORS,
+  SUPATERM_CHAT_THEME,
+  SUPATERM_LIGHT_THEME_COLORS,
+  SUPATERM_DARK_THEME_COLORS,
   getThemeColorsForAppearance,
   MOBILE_DEFAULT_THEME_ID,
   MOBILE_THEME_IDS as SHARED_MOBILE_THEME_IDS,
   type MobileThemeId as SharedMobileThemeId,
   type ThemeAppearance,
   type ThemeColors,
-} from "@supacode/shared/themePalettes";
+} from "@supaterm/shared/themePalettes";
 import {
   STANDARD_THEME_PREVIEW_COLORS,
   type ThemePreviewColors,
-} from "@supacode/shared/themePreview";
+} from "@supaterm/shared/themePreview";
 
 export const DEFAULT_MOBILE_THEME_ID = MOBILE_DEFAULT_THEME_ID;
 export const MOBILE_THEME_IDS = [...SHARED_MOBILE_THEME_IDS, "material-you"] as const;
@@ -26,7 +26,7 @@ export const MOBILE_THEME_OPTIONS: ReadonlyArray<{
   readonly id: MobileThemeId;
   readonly label: string;
 }> = [
-  { id: DEFAULT_MOBILE_THEME_ID, label: "Supacode" },
+  { id: DEFAULT_MOBILE_THEME_ID, label: "Supaterm" },
   { id: "material-you", label: "Material You" },
   ...BUILT_IN_THEMES.map((theme) => ({ id: theme.id as MobileThemeId, label: theme.label })),
 ];
@@ -369,7 +369,7 @@ export function createMobileThemeVariables(
 }
 
 export const MOBILE_THEME_VARIABLE_NAMES = Object.keys(
-  createMobileThemeVariables(SUPACODE_CHAT_THEME.colors, "light"),
+  createMobileThemeVariables(SUPATERM_CHAT_THEME.colors, "light"),
 ) as ReadonlyArray<MobileThemeVariable>;
 
 export function getMobileThemeColors(
@@ -377,10 +377,10 @@ export function getMobileThemeColors(
   appearance: MobileThemeAppearance,
 ): ThemeColors {
   if (themeId === DEFAULT_MOBILE_THEME_ID) {
-    return appearance === "dark" ? SUPACODE_DARK_THEME_COLORS : SUPACODE_LIGHT_THEME_COLORS;
+    return appearance === "dark" ? SUPATERM_DARK_THEME_COLORS : SUPATERM_LIGHT_THEME_COLORS;
   }
   const theme =
-    BUILT_IN_THEMES.find((candidate) => candidate.id === themeId) ?? SUPACODE_CHAT_THEME;
+    BUILT_IN_THEMES.find((candidate) => candidate.id === themeId) ?? SUPATERM_CHAT_THEME;
   return getThemeColorsForAppearance(theme, appearance) ?? theme.colors;
 }
 
@@ -397,7 +397,7 @@ export function getMobileThemeVariables(
       ? appearance === "light"
         ? colors.toolbarControlHover
         : colors.sidebarRowActive
-      : themeId === "supacode-chat"
+      : themeId === "supaterm-chat"
         ? appearance === "light"
           ? colors.toolbarControl
           : colors.surface
@@ -406,9 +406,9 @@ export function getMobileThemeVariables(
     colors,
     appearance,
     groupedCard,
-    themeId === "supacode-chat" && appearance === "dark"
+    themeId === "supaterm-chat" && appearance === "dark"
       ? [colors.messageActionForeground, colors.messageAction]
-      : themeId !== DEFAULT_MOBILE_THEME_ID && themeId !== "supacode-chat"
+      : themeId !== DEFAULT_MOBILE_THEME_ID && themeId !== "supaterm-chat"
         ? [colors.messageAction, colors.messageActionForeground]
         : undefined,
   );
@@ -430,7 +430,7 @@ export function getMobileThemePreviewColors(
     };
   }
   const theme =
-    BUILT_IN_THEMES.find((candidate) => candidate.id === themeId) ?? SUPACODE_CHAT_THEME;
+    BUILT_IN_THEMES.find((candidate) => candidate.id === themeId) ?? SUPATERM_CHAT_THEME;
   const colors = getThemeColorsForAppearance(theme, appearance) ?? theme.colors;
   return {
     canvas: themeColorToNativeColor(colors.canvas),

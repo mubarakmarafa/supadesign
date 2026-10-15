@@ -1,4 +1,4 @@
-import type { SnapShotShortcut } from "@supacode/contracts";
+import type { SnapShotShortcut } from "@supaterm/contracts";
 import { snapShotShortcutKeyLabels } from "../../lib/snapShotShortcut";
 import { Kbd, KbdGroup } from "../ui/kbd";
 

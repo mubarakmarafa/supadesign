@@ -11,7 +11,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -29,11 +29,11 @@ import * as CodexInstallation from "../provider/CodexInstallation.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ModelManifest from "../provider/ModelManifest.ts";
 import * as ProviderInstanceRegistryHydration from "../provider/ProviderInstanceRegistryHydration.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as OpenCodeRuntime from "@supacode/provider-opencode/server/OpenCodeRuntime";
-import * as OpenCodeServerLedger from "@supacode/provider-opencode/server/OpenCodeServerLedger";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as OpenCodeRuntime from "@supaterm/provider-opencode/server/OpenCodeRuntime";
+import * as OpenCodeServerLedger from "@supaterm/provider-opencode/server/OpenCodeServerLedger";
 import * as ServerSettings from "../serverSettings.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
 import * as VcsProcess from "../vcs/VcsProcess.ts";
@@ -51,7 +51,7 @@ const layerPlatformTest = Layer.merge(
 );
 
 const layerServerConfig = ServerConfig.layerTest(process.cwd(), {
-  prefix: "supacode-grok-v2-live-",
+  prefix: "supaterm-grok-v2-live-",
 });
 
 const layerVcsDriverRegistry = VcsDriverRegistry.layer.pipe(
@@ -144,7 +144,7 @@ const waitForIdle = Effect.fn("GrokOrchestratorV2Live.waitForIdle")(function* (t
   return yield* Effect.die(new Error(`Timed out waiting for Grok thread ${threadId}.`));
 });
 
-describe.runIf(process.env.SUPACODE_GROK_LIVE_ORCHESTRATOR === "1")(
+describe.runIf(process.env.SUPATERM_GROK_LIVE_ORCHESTRATOR === "1")(
   "Grok V2 live orchestrator",
   () => {
     it.live(

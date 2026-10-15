@@ -1,4 +1,4 @@
-import type { DesktopUpdateState } from "@supacode/contracts";
+import type { DesktopUpdateState } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import {

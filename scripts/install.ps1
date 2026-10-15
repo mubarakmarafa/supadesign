@@ -1,28 +1,28 @@
-# Installs the Supacode CLI from a GitHub Release archive on Windows. Needs
+# Installs the Supaterm CLI from a GitHub Release archive on Windows. Needs
 # only PowerShell 5.1+; no Node, npm, or compiler.
 #
-#   irm https://next.supacode.sh/install.ps1 | iex
+#   irm https://supaterm.com/install.ps1 | iex
 #
 # Environment:
-#   SUPACODE_CHANNEL           release train to follow: stable, nightly, or preview
+#   SUPATERM_CHANNEL           release train to follow: stable, nightly, or preview
 #                            (default: stable; preview is a maintainers' test train)
-#   SUPACODE_VERSION           exact version to install (overrides SUPACODE_CHANNEL)
-#   SUPACODE_HOME              Supacode home directory (default: ~\.supacode)
-#   SUPACODE_INSTALL_BIN_DIR   where supacode.cmd is written (default: ~\.local\bin)
-#   SUPACODE_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
+#   SUPATERM_VERSION           exact version to install (overrides SUPATERM_CHANNEL)
+#   SUPATERM_HOME              Supaterm home directory (default: ~\.supaterm)
+#   SUPATERM_INSTALL_BIN_DIR   where supaterm.cmd is written (default: ~\.local\bin)
+#   SUPATERM_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
 #
-# The archive is unpacked into $SUPACODE_HOME\runtime\versions\<version>, the
-# same layout `supacode service install` uses, so the service reuses this download.
+# The archive is unpacked into $SUPATERM_HOME\runtime\versions\<version>, the
+# same layout `supaterm service install` uses, so the service reuses this download.
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $repo = "supabitapp/supacode-next"
-$baseUrl = if ($env:SUPACODE_RELEASE_BASE_URL) { $env:SUPACODE_RELEASE_BASE_URL.TrimEnd("/") } else { "https://github.com/$repo/releases/download" }
-$supacodeHome = if ($env:SUPACODE_HOME) { $env:SUPACODE_HOME } else { Join-Path $HOME ".supacode" }
-$binDir = if ($env:SUPACODE_INSTALL_BIN_DIR) { $env:SUPACODE_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }
+$baseUrl = if ($env:SUPATERM_RELEASE_BASE_URL) { $env:SUPATERM_RELEASE_BASE_URL.TrimEnd("/") } else { "https://github.com/$repo/releases/download" }
+$supatermHome = if ($env:SUPATERM_HOME) { $env:SUPATERM_HOME } else { Join-Path $HOME ".supaterm" }
+$binDir = if ($env:SUPATERM_INSTALL_BIN_DIR) { $env:SUPATERM_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }
 
 function Fail([string] $message) {
-  Write-Error "supacode install: $message"
+  Write-Error "supaterm install: $message"
   exit 1
 }
 
@@ -99,7 +99,7 @@ function Fetch([string] $uri, [string] $destination, [switch] $progress) {
   }
 }
 if ($interactive) {
-  [Console]::Error.WriteLine("`n  ${bold}Supacode$reset`n  ${muted}CLI installer$reset`n")
+  [Console]::Error.WriteLine("`n  ${bold}Supaterm$reset`n  ${muted}CLI installer$reset`n")
 }
 Step "Finding your release..."
 
@@ -113,8 +113,8 @@ $arch = switch ($rawArch) {
   default { Fail "unsupported architecture $rawArch" }
 }
 
-$channel = if ($env:SUPACODE_CHANNEL) { $env:SUPACODE_CHANNEL } else { "stable" }
-$version = $env:SUPACODE_VERSION
+$channel = if ($env:SUPATERM_CHANNEL) { $env:SUPATERM_CHANNEL } else { "stable" }
+$version = $env:SUPATERM_VERSION
 if (-not $version) {
   # Tags are v<semver>; the channel is the prerelease identifier, or none for
   # stable. Only tags of the requested train are considered, so a stable
@@ -123,23 +123,23 @@ if (-not $version) {
     "stable" { '^v\d+\.\d+\.\d+$' }
     "nightly" { '^v\d+\.\d+\.\d+-nightly\.\d+\.\d+$' }
     "preview" { '^v\d+\.\d+\.\d+-preview\.\d+\.\d+$' }
-    default { Fail "SUPACODE_CHANNEL must be stable, nightly, or preview" }
+    default { Fail "SUPATERM_CHANNEL must be stable, nightly, or preview" }
   }
-  $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases?per_page=100" -Headers @{ "User-Agent" = "supacode-install" }
+  $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases?per_page=100" -Headers @{ "User-Agent" = "supaterm-install" }
   $tag = ($releases | Where-Object { -not $_.draft -and $_.tag_name -match $tagPattern } | Select-Object -First 1).tag_name
-  if (-not $tag) { Fail "could not find a $channel release; set SUPACODE_VERSION" }
+  if (-not $tag) { Fail "could not find a $channel release; set SUPATERM_VERSION" }
   $version = $tag.Substring(1)
 }
 if ($version -match '-preview\.') {
-  Write-Warning "Supacode $version is a preview build. Preview builds are cut by maintainers from unreleased branches to exercise the release pipeline. They can be broken, receive no fixes, and are never offered as updates. Set SUPACODE_CHANNEL=stable (the default) for a supported build."
-  if ($channel -ne "preview" -and -not $env:SUPACODE_VERSION) {
+  Write-Warning "Supaterm $version is a preview build. Preview builds are cut by maintainers from unreleased branches to exercise the release pipeline. They can be broken, receive no fixes, and are never offered as updates. Set SUPATERM_CHANNEL=stable (the default) for a supported build."
+  if ($channel -ne "preview" -and -not $env:SUPATERM_VERSION) {
     Fail "refusing a preview build that was not explicitly requested"
   }
 }
 
-$stem = "supacode-$version-win32-$arch"
+$stem = "supaterm-$version-win32-$arch"
 $archive = "$stem.zip"
-$versionsDir = Join-Path $supacodeHome "runtime\versions"
+$versionsDir = Join-Path $supatermHome "runtime\versions"
 $targetDir = Join-Path $versionsDir $version
 $marker = Join-Path $targetDir ".install-complete"
 
@@ -151,14 +151,14 @@ if ((Test-Path $marker) -and ((Get-Content $marker -Raw).Trim() -eq $version)) {
   New-Item -ItemType Directory -Path $staging | Out-Null
   try {
     if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
-    [Console]::Error.WriteLine("  ${muted}Installing$reset Supacode $bold$version$reset`n")
+    [Console]::Error.WriteLine("  ${muted}Installing$reset Supaterm $bold$version$reset`n")
     Step "Downloading..."
     try {
       Fetch "$baseUrl/v$version/SHA256SUMS" (Join-Path $staging "SHA256SUMS")
     } catch {
       $status = $_.Exception.Response.StatusCode.value__
       if ($status -eq 404) {
-        Fail "Supacode $version has no release archive for win32-$arch; releases before the self-contained CLI can only be installed with 'npm install -g supacode@$version'"
+        Fail "Supaterm $version has no release archive for win32-$arch; releases before the self-contained CLI can only be installed with 'npm install -g supaterm@$version'"
       }
       throw
     }
@@ -172,7 +172,7 @@ if ((Test-Path $marker) -and ((Get-Content $marker -Raw).Trim() -eq $version)) {
     $actual = (Get-FileHash -Algorithm SHA256 (Join-Path $staging $archive)).Hash.ToLowerInvariant()
     if ($actual -ne $expected) { Fail "checksum mismatch for $archive" }
 
-    Step "Extracting Supacode..."
+    Step "Extracting Supaterm..."
     # The archive module reads the global preference, not the caller's local scope.
     $savedProgress = $global:ProgressPreference
     try {
@@ -183,7 +183,7 @@ if ((Test-Path $marker) -and ((Get-Content $marker -Raw).Trim() -eq $version)) {
     Get-ChildItem (Join-Path $staging $stem) | Move-Item -Destination $staging
     Remove-Item (Join-Path $staging $stem), (Join-Path $staging $archive), (Join-Path $staging "SHA256SUMS") -Recurse -Force
 
-    & (Join-Path $staging "supacode.exe") --version | Out-Null
+    & (Join-Path $staging "supaterm.exe") --version | Out-Null
     if ($LASTEXITCODE -ne 0) { Fail "the downloaded executable does not run" }
     Set-Content -Path (Join-Path $staging ".install-complete") -Value $version -NoNewline
 
@@ -195,16 +195,16 @@ if ((Test-Path $marker) -and ((Get-Content $marker -Raw).Trim() -eq $version)) {
   }
 }
 
-Step "Setting up the supacode command..."
+Step "Setting up the supaterm command..."
 New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-$shim = Join-Path $binDir "supacode.cmd"
+$shim = Join-Path $binDir "supaterm.cmd"
 # UTF-8 without a BOM: cmd.exe reads the shim as-is, and ASCII would corrupt
 # non-ASCII characters in the user's home path.
-[System.IO.File]::WriteAllText($shim, "@echo off`r`n`"$(Join-Path $targetDir 'supacode.exe')`" %*", (New-Object System.Text.UTF8Encoding $false))
+[System.IO.File]::WriteAllText($shim, "@echo off`r`n`"$(Join-Path $targetDir 'supaterm.exe')`" %*", (New-Object System.Text.UTF8Encoding $false))
 if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
-[Console]::Error.WriteLine("  ${green}Installed Supacode $version$reset`n")
+[Console]::Error.WriteLine("  ${green}Installed Supaterm $version$reset`n")
 if (($env:PATH -split ";") -notcontains $binDir) {
-  Write-Host "  Add $binDir to your PATH, then run ${bold}supacode$reset.`n"
+  Write-Host "  Add $binDir to your PATH, then run ${bold}supaterm$reset.`n"
 } else {
-  Write-Host "  Run ${bold}supacode$reset to get started.`n"
+  Write-Host "  Run ${bold}supaterm$reset to get started.`n"
 }

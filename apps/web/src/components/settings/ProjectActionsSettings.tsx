@@ -1,14 +1,14 @@
 import { useScopedSettingsWriteAllowed } from "./useScopedSettings";
-import { AuthSettingsWriteScope } from "@supacode/contracts";
-import { EnvironmentId, type SupacodeProjectFileScript } from "@supacode/contracts";
+import { AuthSettingsWriteScope } from "@supaterm/contracts";
+import { EnvironmentId, type SupatermProjectFileScript } from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+} from "@supaterm/client-runtime/state/runtime";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { useSupacodeProjectFileState } from "../../hooks/useSupacodeProjectFileScripts";
+import { useSupatermProjectFileState } from "../../hooks/useSupatermProjectFileScripts";
 import { useEnvironments } from "../../state/environments";
 import {
   EMPTY_PROJECT_SCRIPT_INPUT,
@@ -88,16 +88,16 @@ export function ProjectActionsSettings() {
     }),
   );
 
-  // A project's supacode.json can declare actions to import. Read it from the
+  // A project's supaterm.json can declare actions to import. Read it from the
   // representative checkout; the imported action still fans out.
   const representativeMember = target?.projectId ? memberById.get(target.projectId) : undefined;
-  const supacodeFile = useSupacodeProjectFileState(
+  const supatermFile = useSupatermProjectFileState(
     representativeMember?.environmentId ?? EnvironmentId.make("none"),
     representativeMember?.workspaceRoot ?? null,
   );
   const importableScripts = useMemo(
     () =>
-      supacodeFile.scripts.filter(
+      supatermFile.scripts.filter(
         (fileScript) =>
           !scripts.some(
             (script) =>
@@ -105,10 +105,10 @@ export function ProjectActionsSettings() {
               script.name.toLowerCase() === fileScript.name.toLowerCase(),
           ),
       ),
-    [scripts, supacodeFile.scripts],
+    [scripts, supatermFile.scripts],
   );
   const importFileScript = useCallback(
-    async (fileScript: SupacodeProjectFileScript) => {
+    async (fileScript: SupatermProjectFileScript) => {
       const payload: NewProjectScriptInput = {
         name: fileScript.name,
         command: fileScript.command,
@@ -162,7 +162,7 @@ export function ProjectActionsSettings() {
                 </MenuTrigger>
                 <MenuPopup align="end">
                   <MenuGroup>
-                    <MenuGroupLabel>Import from supacode.json</MenuGroupLabel>
+                    <MenuGroupLabel>Import from supaterm.json</MenuGroupLabel>
                     <p className="px-2 pb-2 text-pretty text-sm text-muted-foreground">
                       Add actions declared by this checkout without editing them first.
                     </p>
@@ -210,10 +210,10 @@ export function ProjectActionsSettings() {
           onEdit={(script) => setRequest(editorRequestForScript(script, keybindings))}
         />
       )}
-      {supacodeFile.status === "invalid" ? (
+      {supatermFile.status === "invalid" ? (
         <SettingsRow
-          title="supacode.json is invalid"
-          description="A supacode.json exists in this checkout but fails to parse, so every action and icon it declares is ignored. Check the JSON syntax and icon values."
+          title="supaterm.json is invalid"
+          description="A supaterm.json exists in this checkout but fails to parse, so every action and icon it declares is ignored. Check the JSON syntax and icon values."
           className="text-warning"
         />
       ) : null}

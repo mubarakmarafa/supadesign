@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 
 import type { ReviewRenderableLineRow } from "./reviewModel";
 

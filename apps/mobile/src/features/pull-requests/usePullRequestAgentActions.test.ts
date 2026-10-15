@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { PullRequestDetail } from "@supacode/contracts";
+import type { PullRequestDetail } from "@supaterm/contracts";
 import { usePullRequestAgentActions } from "./usePullRequestAgentActions";
 
 const state = vi.hoisted(() => ({

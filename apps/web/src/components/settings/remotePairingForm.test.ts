@@ -1,5 +1,5 @@
-import { EnvironmentId } from "@supacode/contracts";
-import { buildPairingUrl, resolveRemotePairingTarget } from "@supacode/shared/remote";
+import { EnvironmentId } from "@supaterm/contracts";
+import { buildPairingUrl, resolveRemotePairingTarget } from "@supaterm/shared/remote";
 import { describe, expect, it } from "vite-plus/test";
 import {
   emptyRemotePairingForm,

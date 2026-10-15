@@ -2,7 +2,7 @@ import {
   isActiveSubagentStatus,
   isTerminalSubagentStatus,
   type RuntimeSubagent,
-} from "@supacode/client-runtime/state/subagentRuntime";
+} from "@supaterm/client-runtime/state/subagentRuntime";
 
 /** Summarize observed states without treating idle or missing agents as completed. */
 export function deriveAgentSpawnSummary({

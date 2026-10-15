@@ -27,7 +27,7 @@ export const prepareMacTouchIdSigning = Effect.fn("prepareMacTouchIdSigning")(fu
   readonly appId: string;
 }) {
   if (input.platform !== "mac" || !input.signed) return;
-  const provisioningProfile = yield* Config.String("SUPACODE_MACOS_PROVISIONING_PROFILE").pipe(
+  const provisioningProfile = yield* Config.String("SUPATERM_MACOS_PROVISIONING_PROFILE").pipe(
     Config.option,
   );
   if (Option.isNone(provisioningProfile) || provisioningProfile.value.trim().length === 0) return;

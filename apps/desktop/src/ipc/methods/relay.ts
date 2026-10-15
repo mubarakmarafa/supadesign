@@ -1,4 +1,4 @@
-import { RelayServerUrl } from "@supacode/contracts";
+import { RelayServerUrl } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { DesktopRelayGateway } from "../../relay/DesktopRelayGateway.ts";

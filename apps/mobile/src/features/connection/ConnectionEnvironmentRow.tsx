@@ -1,9 +1,9 @@
 import { ConnectionTraceId } from "./ConnectionTraceId";
 import { SymbolView } from "../../components/AppSymbol";
-import { connectionAddressLabel, connectionStatusText } from "@supacode/client-runtime/connection";
-import { relayName } from "@supacode/shared/relay/name";
-import type { AtomCommandResult } from "@supacode/client-runtime/state/runtime";
-import { type EnvironmentId, resolveEnvironmentMachineKind } from "@supacode/contracts";
+import { connectionAddressLabel, connectionStatusText } from "@supaterm/client-runtime/connection";
+import { relayName } from "@supaterm/shared/relay/name";
+import type { AtomCommandResult } from "@supaterm/client-runtime/state/runtime";
+import { type EnvironmentId, resolveEnvironmentMachineKind } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
@@ -106,7 +106,7 @@ export function ConnectionEnvironmentRow(props: {
               tintColorClassName="accent-foreground-muted"
             />
             <Text
-              className="min-w-0 flex-shrink text-base font-supacode-bold leading-snug text-foreground"
+              className="min-w-0 flex-shrink text-base font-supaterm-bold leading-snug text-foreground"
               numberOfLines={1}
             >
               {props.environment.environmentLabel}
@@ -220,7 +220,7 @@ export function ConnectionEnvironmentRow(props: {
                   tintColorClassName="accent-primary-foreground"
                   type="monochrome"
                 />
-                <Text className="text-xs font-supacode-bold tracking-[0.8px] uppercase text-primary-foreground">
+                <Text className="text-xs font-supaterm-bold tracking-[0.8px] uppercase text-primary-foreground">
                   Save
                 </Text>
               </Pressable>

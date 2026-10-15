@@ -17,7 +17,7 @@ import {
   TurnItemId,
   type OrchestrationV2ProjectedTurnItem,
   type OrchestrationV2ThreadShell,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as TestClock from "effect/testing/TestClock";
 import * as Layer from "effect/Layer";
@@ -67,11 +67,11 @@ const declaredFailure = (result: McpSchema.CallToolResult) => {
 import { PullRequestsToolkit } from "./pullRequests/tools.ts";
 import { HtmlToolkit } from "./html/tools.ts";
 import {
-  resolveSupacodeMcpToolDefinition,
-  resolveSupacodeMcpToolPresentation,
-  resolveSupacodeMcpToolSummaryAction,
-} from "@supacode/shared/supacodeMcpToolPresentation";
-import { htmlRenderFromToolItem } from "@supacode/shared/toolOutput";
+  resolveSupatermMcpToolDefinition,
+  resolveSupatermMcpToolPresentation,
+  resolveSupatermMcpToolSummaryAction,
+} from "@supaterm/shared/supatermMcpToolPresentation";
+import { htmlRenderFromToolItem } from "@supaterm/shared/toolOutput";
 
 const decodeMcpAttachmentInput = Schema.decodeUnknownEffect(McpAttachmentInput);
 const decodeThreadReadResult = Schema.decodeUnknownEffect(OrchestratorMcpThreadReadResult);
@@ -105,20 +105,20 @@ it("publishes unique tool names with reference-free object-root inputs", () => {
       // The published tool catalog must also work with providers without $ref support.
       expect(JSON.stringify(schema), tool.name).not.toContain('"$ref"');
       // Every published tool must have labels for its lifecycle, branding, and a summary.
-      const definition = resolveSupacodeMcpToolDefinition(tool.name);
+      const definition = resolveSupatermMcpToolDefinition(tool.name);
       expect(definition, tool.name).not.toBeNull();
       expect(
         definition?.labels.every((label) => label.trim().length > 0),
         tool.name,
       ).toBe(true);
-      for (const name of [tool.name, `mcp__supacode__${tool.name}`, `Supacode.${tool.name}`]) {
-        expect(resolveSupacodeMcpToolPresentation(name)?.logo, name).toBe("supacode");
-        expect(resolveSupacodeMcpToolSummaryAction(name), name).not.toBeNull();
+      for (const name of [tool.name, `mcp__supaterm__${tool.name}`, `Supaterm.${tool.name}`]) {
+        expect(resolveSupatermMcpToolPresentation(name)?.logo, name).toBe("supaterm");
+        expect(resolveSupatermMcpToolSummaryAction(name), name).not.toBeNull();
       }
     }
   }
-  expect(names.has("supacode_thread_launch")).toBe(true);
-  expect(names.has("supacode_thread_start")).toBe(false);
+  expect(names.has("supaterm_thread_launch")).toBe(true);
+  expect(names.has("supaterm_thread_start")).toBe(false);
 });
 
 const threadId = ThreadId.make("mcp-core-thread");
@@ -150,9 +150,9 @@ const client = McpSchema.McpServerClient.of({
 it.effect("checks capability through the production registration", () =>
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
-    expect(server.tools.some(({ tool }) => tool.name === "supacode_thread_organize")).toBe(true);
+    expect(server.tools.some(({ tool }) => tool.name === "supaterm_thread_organize")).toBe(true);
     const result = yield* server
-      .callTool({ name: "supacode_thread_organize", arguments: { action: "pin" } })
+      .callTool({ name: "supaterm_thread_organize", arguments: { action: "pin" } })
       .pipe(
         Effect.provideService(McpInvocationContext.McpInvocationContext, {
           ...scope,
@@ -178,7 +178,7 @@ it.effect("returns a bounded public failure without serializing storage causes",
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
     const result = yield* server
-      .callTool({ name: "supacode_thread_organize", arguments: { action: "pin" } })
+      .callTool({ name: "supaterm_thread_organize", arguments: { action: "pin" } })
       .pipe(
         Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
         Effect.provideService(McpSchema.McpServerClient, client),
@@ -195,7 +195,7 @@ it.effect("returns a bounded public failure without serializing storage causes",
         text: '{"_tag":"OrchestratorMcpFailure","code":"orchestration_error","message":"The operation could not be completed."}',
       },
     ]);
-    const definition = server.tools.find(({ tool }) => tool.name === "supacode_thread_organize");
+    const definition = server.tools.find(({ tool }) => tool.name === "supaterm_thread_organize");
     expect(definition?.tool.outputSchema).toBeDefined();
     const validate = new AjvJsonSchemaValidator().getValidator(
       definition!.tool.outputSchema! as JsonSchemaType,
@@ -274,12 +274,12 @@ it.effect("returns an HTML render reference that Codex and Claude tool rows both
         Effect.provideService(McpSchema.McpServerClient, client),
       );
     const reference = htmlRenderFromToolItem({
-      toolName: "supacode.html_render",
+      toolName: "supaterm.html_render",
       output: result.structuredContent,
     });
     expect(reference).toMatchObject({ title: "Revenue", height: 240 });
     expect(
-      htmlRenderFromToolItem({ toolName: "mcp__supacode__html_render", output: result.content }),
+      htmlRenderFromToolItem({ toolName: "mcp__supaterm__html_render", output: result.content }),
     ).toEqual(reference);
   }).pipe(
     Effect.provide(
@@ -287,7 +287,7 @@ it.effect("returns an HTML render reference that Codex and Claude tool rows both
         Layer.provideMerge(McpServer.McpServer.layer),
         Layer.provide(PreviewBrowser.layer),
         Layer.provide(
-          ServerConfig.layerTest(process.cwd(), { prefix: "supacode-mcp-html-render-" }),
+          ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-mcp-html-render-" }),
         ),
         Layer.provide(NodeServices.layer),
         // The preview browser is not installed in a fresh home, so nothing downloads.
@@ -314,7 +314,7 @@ it.effect("returns invalid parameter errors through the production registration"
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
     const error = yield* server
-      .callTool({ name: "supacode_thread_organize", arguments: { action: "invalid" } })
+      .callTool({ name: "supaterm_thread_organize", arguments: { action: "invalid" } })
       .pipe(
         Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
         Effect.provideService(McpSchema.McpServerClient, client),
@@ -336,7 +336,7 @@ it.effect("keeps unexpected handler defects private through the production regis
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
     const result = yield* server
-      .callTool({ name: "supacode_thread_organize", arguments: { action: "pin" } })
+      .callTool({ name: "supaterm_thread_organize", arguments: { action: "pin" } })
       .pipe(
         Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
         Effect.provideService(McpSchema.McpServerClient, client),
@@ -439,14 +439,14 @@ it.effect("a client caller targets any thread within its ceiling and cannot act 
         );
 
     const untargeted = yield* call(
-      "supacode_thread_organize",
+      "supaterm_thread_organize",
       { action: "pin" },
       clientScope("auto"),
     );
     expect(declaredFailure(untargeted)).toMatchObject({ code: "target_required" });
 
     const pinned = yield* call(
-      "supacode_thread_organize",
+      "supaterm_thread_organize",
       { action: "pin", threadId: "other-project-thread" },
       clientScope("auto"),
     );
@@ -454,7 +454,7 @@ it.effect("a client caller targets any thread within its ceiling and cannot act 
     expect(pinned.structuredContent).toMatchObject({ sequence: 7 });
 
     const aboveCeiling = yield* call(
-      "supacode_thread_organize",
+      "supaterm_thread_organize",
       { action: "pin", threadId: "other-project-thread" },
       clientScope("approval-required"),
     );
@@ -463,7 +463,7 @@ it.effect("a client caller targets any thread within its ceiling and cannot act 
     });
 
     const forked = yield* call(
-      "supacode_thread_fork",
+      "supaterm_thread_fork",
       { sourcePoint: { type: "latest_stable" } },
       clientScope("auto"),
     );
@@ -509,20 +509,20 @@ it.effect("a read-only client reads threads and is refused every write before it
           Effect.provideService(McpSchema.McpServerClient, client),
         );
 
-    const configuration = yield* call("supacode_thread_configuration", {
+    const configuration = yield* call("supaterm_thread_configuration", {
       threadId: "other-project-thread",
     });
     expect(configuration.isError).toBe(false);
     expect(configuration.structuredContent).toMatchObject({ runtimeMode: "auto" });
 
-    const pinned = yield* call("supacode_thread_organize", {
+    const pinned = yield* call("supaterm_thread_organize", {
       action: "pin",
       threadId: "other-project-thread",
     });
     expect(declaredFailure(pinned)).toMatchObject({ code: "capability_denied" });
     expect(dispatched).toEqual([]);
 
-    const configure = yield* call("supacode_thread_configure", {
+    const configure = yield* call("supaterm_thread_configure", {
       threadId: "other-project-thread",
       modelSelection: { instanceId: "codex", model: "gpt-5" },
     });
@@ -675,7 +675,7 @@ function scheduledTask(id: string, runtimeMode: "auto" | "full-access"): never {
   } as never;
 }
 
-it.effect.each(["supacode_thread_interrupt", "supacode_workflow_stop"])(
+it.effect.each(["supaterm_thread_interrupt", "supaterm_workflow_stop"])(
   "a caller cannot use %s on a thread that runs above its own modes",
   (toolName) =>
     Effect.gen(function* () {
@@ -685,7 +685,7 @@ it.effect.each(["supacode_thread_interrupt", "supacode_workflow_stop"])(
           name: toolName,
           arguments: {
             threadId: "full-access-thread",
-            ...(toolName === "supacode_workflow_stop"
+            ...(toolName === "supaterm_workflow_stop"
               ? { subagentId: "workflow-coordinator" }
               : {}),
           },
@@ -774,7 +774,7 @@ it.effect("discovers workflow stop targets and requires orchestration capability
     const server = yield* McpServer.McpServer;
     const scope = clientScope("full-access");
     const read = yield* server
-      .callTool({ name: "supacode_thread_read", arguments: { threadId, view: "activity" } })
+      .callTool({ name: "supaterm_thread_read", arguments: { threadId, view: "activity" } })
       .pipe(
         Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
         Effect.provideService(McpSchema.McpServerClient, client),
@@ -785,7 +785,7 @@ it.effect("discovers workflow stop targets and requires orchestration capability
     const call = (invocation: McpInvocationContext.McpInvocationScope) =>
       server
         .callTool({
-          name: "supacode_workflow_stop",
+          name: "supaterm_workflow_stop",
           arguments: { threadId, subagentId: result.items[0]?.subagentId },
         })
         .pipe(
@@ -840,7 +840,7 @@ it.effect("only the caller that prepared a pending upload can discard it", () =>
           Effect.provideService(McpSchema.McpServerClient, client),
         );
     const prepared = yield* call(
-      "supacode_attachment_prepare_upload",
+      "supaterm_attachment_prepare_upload",
       { upload: { name: "shot.png", mimeType: "image/png", sizeBytes: 4 } },
       scope,
     );
@@ -851,18 +851,18 @@ it.effect("only the caller that prepared a pending upload can discard it", () =>
       thread: { ...scope.thread!, threadId: ThreadId.make("other-thread") },
     };
 
-    const refused = yield* call("supacode_attachment_discard", { attachmentId }, otherThread);
+    const refused = yield* call("supaterm_attachment_discard", { attachmentId }, otherThread);
     expect(declaredFailure(refused)).toMatchObject({ code: "invalid_request" });
 
     yield* TestClock.adjust(24 * 60 * 60 * 1000 + 5 * 60_000);
     yield* call(
-      "supacode_attachment_prepare_upload",
+      "supaterm_attachment_prepare_upload",
       { upload: { name: "later.png", mimeType: "image/png", sizeBytes: 4 } },
       scope,
     );
 
     const discarded = yield* call(
-      "supacode_attachment_discard",
+      "supaterm_attachment_discard",
       { attachmentId },
       { ...scope, requestNamespace: "mcp-core-session-2" },
     );
@@ -874,7 +874,7 @@ it.effect("only the caller that prepared a pending upload can discard it", () =>
         Layer.provide(McpToolAccessTestkit.liveThreadsLayer),
         Layer.provide(ServerSecretStore.layer),
         Layer.provide(
-          ServerConfig.layerTest(process.cwd(), { prefix: "supacode-mcp-attachment-" }),
+          ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-mcp-attachment-" }),
         ),
         Layer.provide(NodeServices.layer),
       ),

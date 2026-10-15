@@ -1,15 +1,15 @@
 import { useThreadListV2Layout } from "./use-thread-list-v2-layout";
 import { useAndroidControlSizing } from "../../components/useAndroidControlSizing";
-import { resolveScratchProjectScopeKey } from "@supacode/client-runtime/state/project-grouping";
+import { resolveScratchProjectScopeKey } from "@supaterm/client-runtime/state/project-grouping";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/shell";
 import {
   threadSearchMatchKey,
   type EnvironmentThreadSearchMatch,
-} from "@supacode/client-runtime/state/thread-search";
+} from "@supaterm/client-runtime/state/thread-search";
 import { AnimatedLegendList } from "@legendapp/list/reanimated";
 import Animated from "react-native-reanimated";
 import { useThreadListMotion } from "./use-thread-list-motion";

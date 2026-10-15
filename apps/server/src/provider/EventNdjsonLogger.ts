@@ -8,10 +8,10 @@
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 
-import type { ThreadId } from "@supacode/contracts";
-import type * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import { RotatingFileSink } from "@supacode/shared/logging";
-import { errorTag } from "@supacode/shared/observability";
+import type { ThreadId } from "@supaterm/contracts";
+import type * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import { RotatingFileSink } from "@supaterm/shared/logging";
+import { errorTag } from "@supaterm/shared/observability";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";

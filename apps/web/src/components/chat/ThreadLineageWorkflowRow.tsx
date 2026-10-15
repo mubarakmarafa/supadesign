@@ -1,8 +1,8 @@
 import type {
   SubagentWorkflowGroup,
   RuntimeSubagent,
-} from "@supacode/client-runtime/state/subagentRuntime";
-import type { ProviderDriverKind, ProviderInstanceId, ServerProvider } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/subagentRuntime";
+import type { ProviderDriverKind, ProviderInstanceId, ServerProvider } from "@supaterm/contracts";
 import { LoaderCircleIcon, SquareIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 

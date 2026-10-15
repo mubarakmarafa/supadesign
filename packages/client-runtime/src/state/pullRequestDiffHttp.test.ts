@@ -1,4 +1,4 @@
-import { EnvironmentId, ProjectId } from "@supacode/contracts";
+import { EnvironmentId, ProjectId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 
@@ -109,7 +109,7 @@ describe("fetchEnvironmentPullRequestDiff", () => {
         traceId: "trace-auth-test",
       });
       expect(error.message).toBe(
-        "This environment session is no longer valid (invalid_credential). Refresh the page or quit and reopen Supacode.",
+        "This environment session is no longer valid (invalid_credential). Refresh the page or quit and reopen Supaterm.",
       );
     }),
   );

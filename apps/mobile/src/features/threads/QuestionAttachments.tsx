@@ -2,7 +2,7 @@ import { TextInputWrapper } from "expo-paste-input";
 import { AppTextInput as TextInput } from "../../components/AppText";
 import { useNativePaste } from "../../lib/useNativePaste";
 import { convertPastedImagesToAttachments } from "../../lib/composerImages";
-import { PROVIDER_SEND_TURN_MAX_ATTACHMENTS, type UserInputQuestion } from "@supacode/contracts";
+import { PROVIDER_SEND_TURN_MAX_ATTACHMENTS, type UserInputQuestion } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { Alert, View } from "react-native";
 import { useEffect, useRef, useState } from "react";

@@ -35,7 +35,7 @@ const window = {
   clientBounds: { x: -1920, y: 20, width: 800, height: 600 },
 };
 beforeEach(async () => {
-  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-hypr-test-"));
+  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-hypr-test-"));
   paths = {
     bundle: NodePath.join(directory, "bundle"),
     dataHome: NodePath.join(directory, "user data"),
@@ -121,14 +121,14 @@ it.each([true, false])("uses the active config syntax and user bindings (Lua: %s
     NodePath.join(config, lua ? "bindings.lua" : "bindings.conf"),
     "custom bindings",
   );
-  const result = await hyprlandCaptureShortcut("com.supaterm.supacode", "/home/test", directory);
+  const result = await hyprlandCaptureShortcut("com.supaterm.desktop", "/home/test", directory);
   expect(result.shortcutConfigPath).toBe(
     NodePath.join(config, lua ? "bindings.lua" : "bindings.conf"),
   );
   expect(result.shortcutBinding).toBe(
     lua
-      ? 'hl.bind("CTRL + SHIFT + 2", hl.dsp.global("com.supaterm.supacode:capture-window"))'
-      : "bind = CTRL SHIFT, 2, global, com.supaterm.supacode:capture-window",
+      ? 'hl.bind("CTRL + SHIFT + 2", hl.dsp.global("com.supaterm.desktop:capture-window"))'
+      : "bind = CTRL SHIFT, 2, global, com.supaterm.desktop:capture-window",
   );
   expect(await NodeFSP.readFile(result.shortcutConfigPath, "utf8")).toBe("custom bindings");
 });
@@ -137,10 +137,10 @@ it("captures exact-window metadata for accessibility and focuses only through th
   const result = await captureHyprlandWindow(paths);
   expect(result.png).toEqual(png);
   expect(result.window).toEqual(window);
-  await result.feedback?.activate("Supacode destination");
+  await result.feedback?.activate("Supaterm destination");
   expect(execute.mock.calls.find(([, args]) => args[0] === "activate")?.slice(0, 2)).toEqual([
     hyprlandCaptureExecutable(paths),
-    ["activate", String(process.pid), "Supacode destination"],
+    ["activate", String(process.pid), "Supaterm destination"],
   ]);
   const captureDirectory = execute.mock.calls.find(([, args]) => args[0] === "capture")![1][1];
   await expect(NodeFSP.stat(captureDirectory)).rejects.toMatchObject({ code: "ENOENT" });

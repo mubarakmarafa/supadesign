@@ -4,7 +4,7 @@ import {
   AuthPreviewOperateScope,
   type PreviewAnnotationPayload,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import type { ComposerImageAttachment } from "~/composerDraftStore";
 import { usePreviewAvailable } from "~/browser/previewRuntime";
@@ -41,7 +41,7 @@ export function PreviewPanel({
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
           <p className="max-w-sm text-sm text-muted-foreground">
             {canOperatePreview
-              ? "Preview is only available in the Supacode desktop app."
+              ? "Preview is only available in the Supaterm desktop app."
               : "Pair this client again with preview access to control browser previews."}
           </p>
         </div>

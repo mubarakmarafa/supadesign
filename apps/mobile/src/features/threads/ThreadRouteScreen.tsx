@@ -2,7 +2,7 @@ import { useOpenPullRequest } from "../../native/useOpenPullRequest";
 import { makeTurnCommandMetadata } from "../../lib/commandMetadata";
 import { buildProjectThreadStartTurnInput } from "../../lib/projectThreadStartTurn";
 import { useWorktreeSetup } from "./use-worktree-setup";
-import { worktreeSetupAgentStarted } from "@supacode/client-runtime/worktree-setup";
+import { worktreeSetupAgentStarted } from "@supaterm/client-runtime/worktree-setup";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import {
   StackActions,
@@ -29,12 +29,12 @@ import {
   EnvironmentId,
   ThreadId,
   type ProjectScript,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   projectScriptCwd,
   projectScriptRuntimeEnv,
   resolveProjectScripts,
-} from "@supacode/shared/projectScripts";
+} from "@supaterm/shared/projectScripts";
 import { Alert, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useConnectionsReady } from "../../state/workspace";
@@ -79,8 +79,8 @@ import { useSelectedThreadGitState } from "../../state/use-selected-thread-git-s
 import { useSelectedThreadRequests } from "../../state/use-selected-thread-requests";
 import { useSelectedThreadWorktree } from "../../state/use-selected-thread-worktree";
 import { useThreadComposerState } from "../../state/use-thread-composer-state";
-import { resolveMergeBackTargetThreadId } from "@supacode/client-runtime/state/thread-relationships";
-import { resolveLatestMergeBackRun } from "@supacode/client-runtime/state/thread-workflows";
+import { resolveMergeBackTargetThreadId } from "@supaterm/client-runtime/state/thread-relationships";
+import { resolveLatestMergeBackRun } from "@supaterm/client-runtime/state/thread-workflows";
 import { threadEnvironment } from "../../state/threads";
 import { projectThreadContentPresentation } from "./threadContentPresentation";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";

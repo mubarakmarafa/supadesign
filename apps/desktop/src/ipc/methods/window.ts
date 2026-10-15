@@ -13,10 +13,10 @@ import {
   SystemSettingsPaneSchema,
   type DesktopEnvironmentBootstrap,
   type PickedThemeFile,
-} from "@supacode/contracts";
-import { PROJECT_FAVICON_EXTENSIONS } from "@supacode/shared/projectFavicon";
-import { resolveEditorCommand } from "@supacode/shared/editor";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import { PROJECT_FAVICON_EXTENSIONS } from "@supaterm/shared/projectFavicon";
+import { resolveEditorCommand } from "@supaterm/shared/editor";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Effect from "effect/Effect";

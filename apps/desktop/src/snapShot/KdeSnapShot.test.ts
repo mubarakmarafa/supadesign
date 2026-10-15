@@ -36,7 +36,7 @@ const window = {
 };
 
 beforeEach(async () => {
-  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-kde-test-"));
+  directory = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-kde-test-"));
   paths = {
     bundle: NodePath.join(directory, "bundled-helper"),
     dataHome: NodePath.join(directory, "user data"),
@@ -186,7 +186,7 @@ it("refuses symlink destinations and unrelated desktop entries", async () => {
   expect(await NodeFSP.readFile(paths.bundle, "utf8")).toBe("bundled executable");
 });
 
-it("captures with verified identity, cleans private files, and activates only the owning Supacode PID/title", async () => {
+it("captures with verified identity, cleans private files, and activates only the owning Supaterm PID/title", async () => {
   await setup.perform("install-kde-helper");
   const capture = await captureKdeWindow(paths);
   expect(capture.png).toEqual(png);

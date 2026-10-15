@@ -1,6 +1,6 @@
-import { isActiveSubagentStatus } from "@supacode/client-runtime/state/subagentRuntime";
-import type { OrchestrationV2Subagent } from "@supacode/contracts";
-import { formatDuration } from "@supacode/shared/orchestrationTiming";
+import { isActiveSubagentStatus } from "@supaterm/client-runtime/state/subagentRuntime";
+import type { OrchestrationV2Subagent } from "@supaterm/contracts";
+import { formatDuration } from "@supaterm/shared/orchestrationTiming";
 import * as DateTime from "effect/DateTime";
 
 export function subagentCardDetail(detail: string | null): string | null {

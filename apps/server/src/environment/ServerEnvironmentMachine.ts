@@ -1,5 +1,5 @@
-import type { EnvironmentMachineKind } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { EnvironmentMachineKind } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 

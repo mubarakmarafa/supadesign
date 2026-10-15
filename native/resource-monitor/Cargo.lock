@@ -164,7 +164,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "supacode-resource-monitor"
+name = "supaterm-resource-monitor"
 version = "0.1.0"
 dependencies = [
  "serde",

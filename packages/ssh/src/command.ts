@@ -1,5 +1,5 @@
-import type { DesktopSshEnvironmentTarget } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { DesktopSshEnvironmentTarget } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Crypto from "effect/Crypto";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";

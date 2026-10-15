@@ -1,4 +1,4 @@
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import {
   CommonActions,
   StackActions,

@@ -2,8 +2,8 @@ import {
   type ModelCapabilities,
   ProviderDriverKind,
   type ProviderOptionDescriptor,
-} from "@supacode/contracts";
-import { type CustomModelDefinition, createModelCapabilities } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { type CustomModelDefinition, createModelCapabilities } from "@supaterm/shared/model";
 
 /** Editable mirror of a `ProviderOptionChoice`. `key` is only a React key. */
 export interface EditorChoice {

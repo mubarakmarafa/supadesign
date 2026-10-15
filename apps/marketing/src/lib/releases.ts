@@ -24,7 +24,7 @@ export interface Release {
 }
 
 function cacheKey(channel: ReleaseChannel) {
-  return `supacode-${channel}-release`;
+  return `supaterm-${channel}-release`;
 }
 
 async function fetchStable(): Promise<Release> {

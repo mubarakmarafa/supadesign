@@ -5,7 +5,7 @@ import {
   TurnItemId,
   type OrchestrationV2Run,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 

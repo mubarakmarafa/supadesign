@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { BUILT_IN_THEMES, getThemeColorsForAppearance } from "@supacode/shared/themePalettes";
+import { BUILT_IN_THEMES, getThemeColorsForAppearance } from "@supaterm/shared/themePalettes";
 
 import { themeColorToNativeColor } from "../../lib/mobileTheme";
 
@@ -7,7 +7,7 @@ import { buildGhosttyThemeConfig, getMobileTerminalTheme } from "./terminalTheme
 
 describe("getMobileTerminalTheme", () => {
   it("uses the shared default light terminal colors", () => {
-    expect(getMobileTerminalTheme("supacode", "light")).toMatchObject({
+    expect(getMobileTerminalTheme("supaterm", "light")).toMatchObject({
       background: "#ffffff",
       foreground: "#2b2c31",
       cursorForeground: "#26272b",
@@ -16,7 +16,7 @@ describe("getMobileTerminalTheme", () => {
   });
 
   it("uses the shared default dark terminal colors", () => {
-    expect(getMobileTerminalTheme("supacode", "dark")).toMatchObject({
+    expect(getMobileTerminalTheme("supaterm", "dark")).toMatchObject({
       background: "#1d1e22",
       foreground: "#dcdde2",
       cursorForeground: "#e3e4e8",
@@ -24,7 +24,7 @@ describe("getMobileTerminalTheme", () => {
     });
   });
   it("applies the selected palette without replacing ANSI status colors", () => {
-    const standard = getMobileTerminalTheme("supacode", "dark");
+    const standard = getMobileTerminalTheme("supaterm", "dark");
     const ocean = getMobileTerminalTheme("ocean", "dark");
 
     expect(ocean.background).not.toBe(standard.background);
@@ -45,7 +45,7 @@ describe("getMobileTerminalTheme", () => {
 
 describe("buildGhosttyThemeConfig", () => {
   it("serializes theme colors into a ghostty config file", () => {
-    const config = buildGhosttyThemeConfig(getMobileTerminalTheme("supacode", "dark"));
+    const config = buildGhosttyThemeConfig(getMobileTerminalTheme("supaterm", "dark"));
 
     expect(config).toContain("background = #1d1e22");
     expect(config).toContain("foreground = #dcdde2");

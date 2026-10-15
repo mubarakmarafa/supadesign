@@ -11,4 +11,4 @@ export {
   type ProjectGroupingSettings,
   type ProjectGroup,
   type ProjectGroupMember,
-} from "@supacode/client-runtime/state/project-grouping";
+} from "@supaterm/client-runtime/state/project-grouping";

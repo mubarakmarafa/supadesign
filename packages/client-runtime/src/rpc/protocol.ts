@@ -1,4 +1,4 @@
-import { WsRpcGroup } from "@supacode/contracts";
+import { WsRpcGroup } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import { RpcClient } from "effect/rpc";
 

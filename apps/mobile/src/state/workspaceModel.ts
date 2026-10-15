@@ -1,15 +1,15 @@
-import { type EnvironmentShellSummary } from "@supacode/client-runtime/state/shell";
-import type { EnvironmentId, ServerConfig } from "@supacode/contracts";
+import { type EnvironmentShellSummary } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId, ServerConfig } from "@supaterm/contracts";
 
 import {
   type EnvironmentConnectionPhase,
   type NetworkStatus,
-} from "@supacode/client-runtime/connection";
+} from "@supaterm/client-runtime/connection";
 
-import type { EnvironmentConnectionSummary as WorkspaceEnvironment } from "@supacode/client-runtime/state/presentation";
+import type { EnvironmentConnectionSummary as WorkspaceEnvironment } from "@supaterm/client-runtime/state/presentation";
 
-export { projectEnvironmentConnectionSummary as projectWorkspaceEnvironment } from "@supacode/client-runtime/state/presentation";
-export type { EnvironmentConnectionSummary as WorkspaceEnvironment } from "@supacode/client-runtime/state/presentation";
+export { projectEnvironmentConnectionSummary as projectWorkspaceEnvironment } from "@supaterm/client-runtime/state/presentation";
+export type { EnvironmentConnectionSummary as WorkspaceEnvironment } from "@supaterm/client-runtime/state/presentation";
 
 export interface WorkspaceConnectionState {
   readonly isLoadingConnections: boolean;

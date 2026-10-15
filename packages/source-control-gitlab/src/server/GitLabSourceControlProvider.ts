@@ -1,11 +1,11 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import { SourceControlProviderError, type ChangeRequest } from "@supacode/contracts";
+import { SourceControlProviderError, type ChangeRequest } from "@supaterm/contracts";
 
 import * as GitLabCli from "./GitLabCli.ts";
-import * as SourceControlProvider from "@supacode/source-control-core/server/SourceControlProvider";
+import * as SourceControlProvider from "@supaterm/source-control-core/server/SourceControlProvider";
 import {
   combinedAuthOutput,
   firstSafeAuthLine,
@@ -15,7 +15,7 @@ import {
   type SourceControlAuthProbeInput,
   type SourceControlCliDiscoverySpec,
   type SourceControlUnknownRemoteRefinementInput,
-} from "@supacode/source-control-core/server/discovery";
+} from "@supaterm/source-control-core/server/discovery";
 import { findAuthenticatedGitLabHost, parseGitLabAuthStatusHosts } from "./gitLabAuthStatus.ts";
 
 const decodeLinkSubject = Schema.decodeUnknownEffect(

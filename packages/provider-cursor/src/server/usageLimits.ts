@@ -1,7 +1,7 @@
-import type { ServerProviderUsageWindow } from "@supacode/contracts";
+import type { ServerProviderUsageWindow } from "@supaterm/contracts";
 import type { CursorSettings } from "../settings.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { CURSOR_USAGE_WINDOWS } from "@supacode/shared/usageLimits";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { CURSOR_USAGE_WINDOWS } from "@supaterm/shared/usageLimits";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -15,7 +15,7 @@ import {
   clampPercent,
   makeUnavailableUsageLimits,
   makeUsageLimits,
-} from "@supacode/provider-core/server/usageLimits";
+} from "@supaterm/provider-core/server/usageLimits";
 import * as CursorKeychain from "./CursorKeychain.ts";
 
 const CursorCredentials = Schema.Struct({ accessToken: Schema.optional(Schema.String) });
@@ -94,7 +94,7 @@ export const readCursorUsageLimits = Effect.fn("readCursorUsageLimits")(function
         return makeUnavailableUsageLimits({
           checkedAt,
           reason: "unsupported",
-          message: "Enable Cursor account usage in Supacode to read its Keychain login.",
+          message: "Enable Cursor account usage in Supaterm to read its Keychain login.",
         });
       }
       if (endpoint !== DEFAULT_CURSOR_API_ENDPOINT) {

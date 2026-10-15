@@ -1,4 +1,4 @@
-import { removeAgentCredits } from "@supacode/source-control-core/server/mergeMessage";
+import { removeAgentCredits } from "@supaterm/source-control-core/server/mergeMessage";
 import { KnownWorkflowRuns, makeChecksRevalidator } from "./gitHubConditionalChecks.ts";
 import { runGitHubStackAction, type GitHubStackActionError } from "./githubStackActions.ts";
 import * as Cause from "effect/Cause";
@@ -40,12 +40,12 @@ import {
   type PullRequestThreadCommentsResult,
   type PullRequestUpdateMethod,
   type PullRequestPreview,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import * as GitHubApi from "./GitHubApi.ts";
 import { readGraphQlPages } from "./githubGraphQl.ts";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 import {
   ACTOR_AVATARS_GRAPHQL_QUERY,
   ADD_REACTION_GRAPHQL_MUTATION,
@@ -131,7 +131,7 @@ import {
 import type {
   ProviderChangeRequestSummary,
   ProviderListCursor,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 
 /**
  * Names the read that produced unusable output, so a failure reports the call it came from
@@ -791,7 +791,7 @@ export class GitHubPullRequestApi extends Context.Service<
       readonly body: string;
     }) => Effect.Effect<void, GitHubPullRequestApiError>;
   }
->()("@supacode/source-control-github/server/GitHubPullRequestApi") {}
+>()("@supaterm/source-control-github/server/GitHubPullRequestApi") {}
 
 /**
  * The GraphQL API takes owner and name as separate arguments, so `owner/repo` is split here.

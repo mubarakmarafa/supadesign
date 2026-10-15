@@ -2,8 +2,8 @@ import {
   scopedProjectKey,
   scopedThreadKey,
   scopeProjectRef,
-} from "@supacode/client-runtime/environment";
-import type { DesktopPreviewFavicon, ScopedProjectRef, ScopedThreadRef } from "@supacode/contracts";
+} from "@supaterm/client-runtime/environment";
+import type { DesktopPreviewFavicon, ScopedProjectRef, ScopedThreadRef } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { useMemo } from "react";
 import { create } from "zustand";
@@ -26,7 +26,7 @@ import {
 } from "./browserFaviconLogic";
 import { createMemoryStorage, type StateStorage } from "./lib/storage";
 
-const BROWSER_FAVICON_STORAGE_KEY = "supacode:browser-favicons:v1";
+const BROWSER_FAVICON_STORAGE_KEY = "supaterm:browser-favicons:v1";
 const MAX_PENDING_ORIGINS_PER_THREAD = 10;
 const MAX_PENDING_THREADS = 20;
 const MAX_REGISTERED_THREADS = 100;

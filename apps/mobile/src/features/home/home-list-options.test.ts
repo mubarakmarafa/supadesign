@@ -1,5 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { AtomRegistry } from "effect/reactivity";
 import { act, createElement, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";

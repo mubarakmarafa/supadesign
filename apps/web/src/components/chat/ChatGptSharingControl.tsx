@@ -1,5 +1,5 @@
-import { usesChatGptSharing } from "@supacode/shared/usageLimits";
-import type { ServerProvider } from "@supacode/contracts";
+import { usesChatGptSharing } from "@supaterm/shared/usageLimits";
+import type { ServerProvider } from "@supaterm/contracts";
 import { OpenAI } from "../Icons";
 import { ChatGptUsageButton } from "../settings/ChatGptUsageButton";
 

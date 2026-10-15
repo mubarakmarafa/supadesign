@@ -3,8 +3,8 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ProviderInstanceConfig,
-} from "@supacode/contracts";
-import { getBackgroundActivityPresetSettings } from "@supacode/shared/backgroundActivitySettings";
+} from "@supaterm/contracts";
+import { getBackgroundActivityPresetSettings } from "@supaterm/shared/backgroundActivitySettings";
 import * as Duration from "effect/Duration";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -199,7 +199,7 @@ describe("buildProviderInstanceUpdatePatch", () => {
     const nextInstance = {
       driver: ProviderDriverKind.make("codex"),
       enabled: true,
-      config: { binaryPath: "/opt/supacode/codex" },
+      config: { binaryPath: "/opt/supaterm/codex" },
     } satisfies ProviderInstanceConfig;
 
     const patch = buildProviderInstanceUpdatePatch({

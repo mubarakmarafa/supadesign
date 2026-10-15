@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { ProviderDriverKind, type ProviderReplayEntry } from "@supacode/contracts";
+import { ProviderDriverKind, type ProviderReplayEntry } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -10,7 +10,7 @@ import {
   ClaudeOrchestratorReplayHarness,
   makeClaudeRestartReplayHarness,
 } from "../Adapters/ClaudeAdapterV2.testkit.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as EffectWorker from "../EffectWorker.ts";
 import * as SqlitePersistence from "../../persistence/Sqlite.ts";
 import { provideDeterministicTestRuntime } from "./DeterministicRuntime.ts";
@@ -23,15 +23,15 @@ import {
 import { runOrchestratorV2ProviderReplayScenario } from "./ProviderReplayHarness.ts";
 import * as ProviderReplayHarness from "./ProviderReplayHarness.ts";
 import { runOrchestratorV2Scenario } from "./OrchestratorScenario.ts";
-import { checkpointWorkspace } from "@supacode/provider-testing/replayWorkspace";
-import { readProviderReplayTranscript } from "@supacode/provider-testing/replayTranscript";
+import { checkpointWorkspace } from "@supaterm/provider-testing/replayWorkspace";
+import { readProviderReplayTranscript } from "@supaterm/provider-testing/replayTranscript";
 
 const SCENARIO = "claude_background_subagent_after_root";
 const SESSION_ID = "cca274e4-25ae-4171-b972-bbb31118517e";
 const FIRST_AFTER_RESTART = "Is the background subagent done yet?";
 const SECOND_AFTER_RESTART = "Thanks. Anything else?";
 const NOTE = [
-  "Note: the Supacode server restarted, and this background work was cancelled before it finished. It will not report back:",
+  "Note: the Supaterm server restarted, and this background work was cancelled before it finished. It will not report back:",
   "- subagent: Background subagent test",
 ].join("\n");
 
@@ -39,7 +39,7 @@ const NOTE = [
  * The recorded background-subagent session cut by a restart right after the
  * root turn settled: the subagent's frames never arrive. A fresh runtime then
  * resumes the native session; each prompt frame it sends is pinned, so these
- * resumed turns are the provider's view of what Supacode told it.
+ * resumed turns are the provider's view of what Supaterm told it.
  */
 const readRestartTranscript = Effect.fn("readRestartTranscript")(function* (
   resumedPrompts: ReadonlyArray<string>,
@@ -141,7 +141,7 @@ const runRestart = Effect.fn("runRestart")(function* (input: {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const tempDir = yield* Effect.acquireRelease(
-    fs.makeTempDirectory({ prefix: "supacode-orchestration-v2-restart-note-" }),
+    fs.makeTempDirectory({ prefix: "supaterm-orchestration-v2-restart-note-" }),
     (directory) => fs.remove(directory, { recursive: true, force: true }).pipe(Effect.orDie),
   );
   const materialized = yield* materializeFixtureInput({

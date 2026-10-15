@@ -18,7 +18,7 @@ import {
 
 describe("shouldBundleCliDependency", () => {
   it("bundles ordinary runtime dependencies", () => {
-    for (const id of ["effect", "@effect/platform", "hono", "@supacode/shared/HostProcess"]) {
+    for (const id of ["effect", "@effect/platform", "hono", "@supaterm/shared/HostProcess"]) {
       assert.strictEqual(shouldBundleCliDependency(id), true, id);
     }
   });

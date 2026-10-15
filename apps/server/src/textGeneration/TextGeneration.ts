@@ -1,12 +1,12 @@
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import type { ProviderInstanceId } from "@supacode/contracts";
-import type { ProviderTextGeneration } from "@supacode/provider-core/server/textGeneration";
-import { TextGenerationError } from "@supacode/contracts";
+import type { ProviderInstanceId } from "@supaterm/contracts";
+import type { ProviderTextGeneration } from "@supaterm/provider-core/server/textGeneration";
+import { TextGenerationError } from "@supaterm/contracts";
 
 import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
-import type { ProviderInstance } from "@supacode/provider-core/server/driver";
+import type { ProviderInstance } from "@supaterm/provider-core/server/driver";
 import * as SourceControlProviderRegistry from "../sourceControl/SourceControlProviderRegistry.ts";
 import * as ThreadTitleLinks from "./ThreadTitleLinks.ts";
 
@@ -21,13 +21,13 @@ export type {
   ReviewGuideGenerationResult,
   ThreadTitleGenerationInput,
   ThreadTitleGenerationResult,
-} from "@supacode/provider-core/server/textGeneration";
+} from "@supaterm/provider-core/server/textGeneration";
 
 /**
  * TextGeneration - Service tag for commit and change request text generation.
  */
 export class TextGeneration extends Context.Service<TextGeneration, ProviderTextGeneration>()(
-  "supacode/textGeneration/TextGeneration",
+  "supaterm/textGeneration/TextGeneration",
 ) {}
 
 type TextGenerationOp =

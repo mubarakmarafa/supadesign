@@ -4,7 +4,7 @@ import { formatStartupCrashReport, parseStartupCrashRecords } from "./crash-log-
 
 // Verbatim shape of the entry expo-updates wrote for the build 56 launch crash.
 const BUNDLE =
-  "/Users/expo/workingdir/build/apps/mobile/ios/build/Build/Intermediates.noindex/ArchiveIntermediates/Supacode/BuildProductsPath/Release-iphoneos/main.jsbundle";
+  "/Users/expo/workingdir/build/apps/mobile/ios/build/Build/Intermediates.noindex/ArchiveIntermediates/Supaterm/BuildProductsPath/Release-iphoneos/main.jsbundle";
 const FATAL = {
   timestamp: 1789277752000,
   level: "error",
@@ -61,14 +61,14 @@ describe("formatStartupCrashReport", () => {
       version: "1.1.1",
       build: "56",
     });
-    expect(report.startsWith("Supacode 1.1.1 (56)\n")).toBe(true);
+    expect(report.startsWith("Supaterm 1.1.1 (56)\n")).toBe(true);
     expect(report).toContain("2026-09-13T05:35:52.000Z");
     expect(report).toContain("at NewTaskFlowProvider");
   });
 
   it("says so when nothing was recorded", () => {
     expect(formatStartupCrashReport([], { version: "1.1.1", build: "56" })).toBe(
-      "Supacode 1.1.1 (56)\nNo startup crashes recorded.",
+      "Supaterm 1.1.1 (56)\nNo startup crashes recorded.",
     );
   });
 });

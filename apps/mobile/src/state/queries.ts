@@ -1,23 +1,23 @@
-import { filterComposerPullRequestMatches } from "@supacode/shared/composerPullRequestMatches";
-import { resolveFilesystemReadAccess } from "@supacode/client-runtime/state/filesystem";
+import { filterComposerPullRequestMatches } from "@supaterm/shared/composerPullRequestMatches";
+import { resolveFilesystemReadAccess } from "@supaterm/client-runtime/state/filesystem";
 import { environmentSession } from "./session";
 import { useEnvironmentPresentation } from "./presentation";
-import type { VcsRefTarget } from "@supacode/client-runtime/state/vcs";
+import type { VcsRefTarget } from "@supaterm/client-runtime/state/vcs";
 import type {
   EnvironmentId,
   OrchestrationV2ProjectedTurnItem,
   ProjectId,
   VcsListRefsResult,
   VcsRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   createThreadSearchResultsAtomFamily,
   makeThreadSearchKey,
   type EnvironmentThreadSearchMatch,
-} from "@supacode/client-runtime/state/thread-search";
+} from "@supaterm/client-runtime/state/thread-search";
 import { useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
-import { turnItemDetailRevision } from "@supacode/client-runtime/work-log/item-detail";
+import { turnItemDetailRevision } from "@supaterm/client-runtime/work-log/item-detail";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useCallback, useEffect, useMemo, useState } from "react";

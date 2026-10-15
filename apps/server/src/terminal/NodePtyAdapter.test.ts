@@ -3,7 +3,7 @@ import * as NodeNet from "node:net";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -14,7 +14,7 @@ import * as Scheduler from "effect/Scheduler";
 import { expect, vi } from "vite-plus/test";
 
 import * as NodePtyAdapter from "./NodePtyAdapter.ts";
-import * as PtyAdapter from "@supacode/shared/PtyAdapter";
+import * as PtyAdapter from "@supaterm/shared/PtyAdapter";
 
 function makeNativeProcess(pid = 42) {
   const events = new NodeEvents.EventEmitter();

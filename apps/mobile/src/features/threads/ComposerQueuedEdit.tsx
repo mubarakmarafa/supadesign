@@ -1,4 +1,4 @@
-import type { ChatAttachment, EnvironmentId } from "@supacode/contracts";
+import type { ChatAttachment, EnvironmentId } from "@supaterm/contracts";
 import { Image } from "expo-image";
 import { Pressable, ScrollView, View } from "react-native";
 import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
@@ -30,7 +30,7 @@ export function ComposerQueuedEditBanner(props: {
         hitSlop={8}
         className="min-h-8 justify-center px-1 active:opacity-70 disabled:opacity-40"
       >
-        <Text className="font-supacode-medium text-xs text-primary">Cancel</Text>
+        <Text className="font-supaterm-medium text-xs text-primary">Cancel</Text>
       </Pressable>
     </View>
   );

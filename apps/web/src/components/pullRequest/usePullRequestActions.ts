@@ -5,8 +5,8 @@ import { useAtomCommand } from "~/state/use-atom-command";
  * running two copies of "merge" or "resolve in a thread" would drift apart one fix at a time;
  * these hooks are where that behavior lives, and the panels are only where it is rendered.
  */
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import type {
   EnvironmentId,
   ProjectId,
@@ -14,9 +14,9 @@ import type {
   PullRequestDetail,
   PullRequestMergeMethod,
   PullRequestRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useCallback, useRef, useState } from "react";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import { useClientSettings, useEnvironmentSettings } from "~/hooks/useSettings";
 import {
   deriveLogicalProjectKeyFromSettings,

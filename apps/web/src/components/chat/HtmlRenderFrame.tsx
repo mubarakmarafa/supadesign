@@ -1,10 +1,10 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import {
   HTML_RENDER_COLUMN_WIDTH,
   htmlRenderFileName,
   htmlRenderFrameHeight,
   type HtmlRenderReference,
-} from "@supacode/shared/htmlRender";
+} from "@supaterm/shared/htmlRender";
 import { Maximize2Icon } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 

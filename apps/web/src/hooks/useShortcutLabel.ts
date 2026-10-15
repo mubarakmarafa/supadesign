@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { KeybindingCommand } from "@supacode/contracts";
+import type { KeybindingCommand } from "@supaterm/contracts";
 
 import { shortcutLabelForCommand, type ResolvedShortcutLabelOptions } from "../keybindings";
 import { primaryServerKeybindingsAtom } from "../state/server";

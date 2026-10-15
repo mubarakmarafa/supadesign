@@ -1,12 +1,12 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
-import { ProviderInstanceId } from "@supacode/contracts";
+import { ProviderInstanceId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import * as TestProviderHost from "@supacode/provider-testing/TestProviderHost";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
 import * as Layer from "effect/Layer";
 import { makeCursorCredentialStore } from "./credentialStore.ts";
 

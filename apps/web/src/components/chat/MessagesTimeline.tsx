@@ -3,14 +3,14 @@ import {
   createThreadHistoryPrefetcher,
   THREAD_HISTORY_PREFETCH_VIEWPORTS,
   type ThreadHistoryControls,
-} from "@supacode/client-runtime/thread-history-prefetch";
-import { shouldPreserveAssistantLineBreaks } from "@supacode/shared/markdownPipeline";
+} from "@supaterm/client-runtime/thread-history-prefetch";
+import { shouldPreserveAssistantLineBreaks } from "@supaterm/shared/markdownPipeline";
 import { MarkdownFindContext, useFindRevealRef } from "./markdownFindContext";
 import { useChatCanvas } from "./ChatCanvasContext";
 import { ThreadTimelineLoading } from "./ThreadTimelineLoading";
 import { WorkLogBlock, WorkLogButton, WorkLogDetails, WorkLogList, WorkLogRow } from "./WorkLog";
 import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
-import type { WorktreeSetupSnapshot } from "@supacode/contracts";
+import type { WorktreeSetupSnapshot } from "@supaterm/contracts";
 import { ReadOnlySourcePreview } from "../files/AttachmentFilePreview";
 import { useRightPanelStore } from "~/rightPanelStore";
 import {
@@ -18,7 +18,7 @@ import {
   getQuestionAnswerText,
   getQuestionTextPreview,
   hasQuestionAnswer,
-} from "@supacode/client-runtime/work-log/user-input";
+} from "@supaterm/client-runtime/work-log/user-input";
 import {
   deriveTimelineMinimapItems,
   resolveTimelineMinimapPreview,
@@ -38,15 +38,15 @@ import {
   type RunId,
   ThreadId,
   type ToolActivityIcon,
-} from "@supacode/contracts";
-import { parseScopedThreadKey, scopeThreadRef } from "@supacode/client-runtime/environment";
+} from "@supaterm/contracts";
+import { parseScopedThreadKey, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import { useAtomValue } from "@effect/atom-react";
 import { environmentThreadDetails } from "../../state/threads";
-import { resolveUserMessagePresentation } from "@supacode/client-runtime/user-message";
+import { resolveUserMessagePresentation } from "@supaterm/client-runtime/user-message";
 import { Link } from "@tanstack/react-router";
-import { canForkProjectedAssistantItem } from "@supacode/client-runtime/state/thread-workflows";
-import { notificationChildThreadId } from "@supacode/client-runtime/state/thread-execution";
-import { replaceComposerContextReferences } from "@supacode/shared/composerContextReferences";
+import { canForkProjectedAssistantItem } from "@supaterm/client-runtime/state/thread-workflows";
+import { notificationChildThreadId } from "@supaterm/client-runtime/state/thread-execution";
+import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 import {
   liveThoughtLine,
   resolveWorkEntryToolPresentation,
@@ -54,27 +54,27 @@ import {
   type ToolGroupImage,
   workEntryViewedImagePath,
   type ViewedImageAsset,
-} from "@supacode/client-runtime/work-log/presentation";
-import { resolveWorkGroupScrollAnchor } from "@supacode/client-runtime/work-log/scroll-anchor";
+} from "@supaterm/client-runtime/work-log/presentation";
+import { resolveWorkGroupScrollAnchor } from "@supaterm/client-runtime/work-log/scroll-anchor";
 import {
   turnItemHasDetail,
   turnItemNeedsDetailFetch,
-} from "@supacode/client-runtime/work-log/item-detail";
-import { formatAttachmentSize } from "@supacode/client-runtime/state/attachments";
+} from "@supaterm/client-runtime/work-log/item-detail";
+import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
 import {
   subagentGroupSummary,
   summarizeSubagentStatuses,
-} from "@supacode/client-runtime/state/subagent-display";
+} from "@supaterm/client-runtime/state/subagent-display";
 import { observeResize } from "~/lib/observeResize";
 
 const NOOP_USE_ARTIFACT_TEMPLATE = () => {};
 const NOOP_OPEN_ATTACHMENT = (_attachment: ChatFileAttachment) => {};
 
-import { resolveChatListAnchoredEndSpace } from "@supacode/shared/chatList";
-import { toolActivityFaviconUrl } from "@supacode/shared/favicon";
-import { formatDuration } from "@supacode/shared/orchestrationTiming";
-import { getProjectFaviconCacheKey } from "@supacode/shared/projectFavicon";
-import { claudeSkillInvocation, isJavaScriptReplTool } from "@supacode/shared/toolActivity";
+import { resolveChatListAnchoredEndSpace } from "@supaterm/shared/chatList";
+import { toolActivityFaviconUrl } from "@supaterm/shared/favicon";
+import { formatDuration } from "@supaterm/shared/orchestrationTiming";
+import { getProjectFaviconCacheKey } from "@supaterm/shared/projectFavicon";
+import { claudeSkillInvocation, isJavaScriptReplTool } from "@supaterm/shared/toolActivity";
 import { observeVisibleAnimation } from "../../lib/visibleAnimation";
 import {
   createContext,
@@ -107,7 +107,7 @@ import {
   workEntrySignalsSevereFailure,
   workLogEntryIsToolLike,
 } from "../../session-logic";
-import type { CodexArtifactTemplate } from "@supacode/shared/codexArtifactTemplates";
+import type { CodexArtifactTemplate } from "@supaterm/shared/codexArtifactTemplates";
 import {
   type ChatMessage,
   type ChatFileAttachment,
@@ -127,7 +127,7 @@ import ChatMarkdown, { ChatMarkdownAssetImage } from "../ChatMarkdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Root, RootContent } from "mdast";
-import { SupacodeMark } from "../SupacodeMark";
+import { SupatermMark } from "../SupatermMark";
 import { ThreadContextChip } from "../ThreadContextChip";
 import {
   BotIcon,
@@ -164,7 +164,7 @@ import type {
   ComposerContextId,
   ComposerContextRecord,
   KnownComposerContextRecord,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Button, InlineButton } from "../ui/button";
 import { MorphIcon } from "~/components/MorphIcon";
 import { useAssetUrlRefresh, useAssetUrls, useAssetUrlState } from "../../assets/assetUrls";
@@ -267,12 +267,12 @@ import {
 import {
   collectComposerContextReferences,
   formatComposerContextReference,
-} from "@supacode/shared/composerContextReferences";
+} from "@supaterm/shared/composerContextReferences";
 import {
   COMPOSER_CONTEXT_CLIPBOARD_MIME,
   encodeComposerContextClipboardHtml,
   encodeComposerContextFragment,
-} from "@supacode/shared/composerContextClipboard";
+} from "@supaterm/shared/composerContextClipboard";
 import { chatMarkdownClipboardPayload } from "../../markdown-clipboard";
 import { ContextChip, ContextChipLabel, type ContextChipKind } from "../ContextChip";
 import { createContextPresentationRegistry } from "../contextPresentationRegistry";
@@ -282,7 +282,7 @@ import type { ChatMarkdownContextReference } from "../ChatMarkdown";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
 import { cn } from "~/lib/utils";
 import { useUiStateStore } from "~/uiStateStore";
-import { type TimestampFormat } from "@supacode/contracts/settings";
+import { type TimestampFormat } from "@supaterm/contracts/settings";
 import {
   formatChatTimestampTooltip,
   formatDayAwareTimestamp,
@@ -2495,12 +2495,12 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
             "Sent by automation"
           )}
         </p>
-      ) : userMessage.attribution === "supacode" ? (
+      ) : userMessage.attribution === "supaterm" ? (
         <p
           className="me-1 text-2xs text-muted-foreground/70"
-          data-user-message-attribution="supacode"
+          data-user-message-attribution="supaterm"
         >
-          Sent by Supacode
+          Sent by Supaterm
         </p>
       ) : userMessage.attribution === "agent" ? (
         <p className="me-1 text-2xs text-muted-foreground/70" data-user-message-attribution="agent">
@@ -2873,7 +2873,7 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
   return (
     <>
       <div className="relative min-w-0 px-1 py-0.5">
-        <MessageAuthorHeading>Supacode</MessageAuthorHeading>
+        <MessageAuthorHeading>Supaterm</MessageAuthorHeading>
         <div data-thread-find-text="true">
           <AssistantCitationSource
             messageId={row.message.id}
@@ -4214,7 +4214,7 @@ function toolGroupSummaryIconName(
     case "command":
       return "terminal";
     case "thread-create":
-      return "supacode";
+      return "supaterm";
     case "browser":
       return "browser";
     case "device":
@@ -5150,7 +5150,7 @@ type WorkEntryIconName =
   | "square-pen"
   | "terminal"
   | "pull-request"
-  | "supacode"
+  | "supaterm"
   | "wrench"
   | "x"
   | "zap";
@@ -5343,8 +5343,8 @@ function WorkEntryIcon({ name, className }: { name: WorkEntryIconName; className
       return <Code2Icon className={className} aria-hidden />;
     case "device":
       return <SmartphoneIcon className={className} aria-hidden />;
-    case "supacode":
-      return <SupacodeMark className={className} aria-hidden />;
+    case "supaterm":
+      return <SupatermMark className={className} aria-hidden />;
     case "check":
       return <CheckIcon className={className} aria-hidden />;
     case "circle-alert":
@@ -5484,7 +5484,7 @@ function workEntryIconName(workEntry: TimelineWorkEntry): WorkEntryIconName {
       case "background_task":
         return "zap";
       case "system":
-        return "supacode";
+        return "supaterm";
       default:
         source satisfies never;
         return "zap";
@@ -6023,7 +6023,7 @@ function WorkEntryLogDetails({
 function QuestionAnswerHistory({
   answer,
 }: {
-  answer: import("@supacode/contracts").UserInputAttachmentAnswerPayload;
+  answer: import("@supaterm/contracts").UserInputAttachmentAnswerPayload;
 }) {
   const { activeThreadEnvironmentId } = use(TimelineRowCtx);
   const attachments = useMemo(() => Object.values(answer.attachmentsByQuestionId).flat(), [answer]);

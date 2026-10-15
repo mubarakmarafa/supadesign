@@ -1,5 +1,5 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
-import type { RepositoryIdentity, SourceControlProviderInfo } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
+import type { RepositoryIdentity, SourceControlProviderInfo } from "@supaterm/contracts";
 
 export interface ChangeRequestPresentation {
   readonly icon:

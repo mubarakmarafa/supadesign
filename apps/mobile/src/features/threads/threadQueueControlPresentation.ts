@@ -1,4 +1,4 @@
-import type { EnvironmentId, RunId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentId, RunId, ThreadId } from "@supaterm/contracts";
 
 export const REMOVE_QUEUED_MESSAGE_ACCESSIBILITY_LABEL = "Remove queued message";
 

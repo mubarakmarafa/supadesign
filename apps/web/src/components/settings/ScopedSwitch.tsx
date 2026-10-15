@@ -1,4 +1,4 @@
-import type { ServerSettings } from "@supacode/contracts";
+import type { ServerSettings } from "@supaterm/contracts";
 import type { ComponentProps } from "react";
 
 import { Switch } from "../ui/switch";

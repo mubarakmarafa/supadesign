@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { ProviderInstanceId, type ProviderOptionSelection } from "@supacode/contracts";
+import { ProviderInstanceId, type ProviderOptionSelection } from "@supaterm/contracts";
 
 import type { ModelOption } from "../../lib/modelOptions";
 import {

@@ -1,4 +1,4 @@
-import type { AuthClientPresentationMetadata } from "@supacode/contracts";
+import type { AuthClientPresentationMetadata } from "@supaterm/contracts";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 
@@ -7,7 +7,7 @@ export function authClientMetadata(appVersion?: string): AuthClientPresentationM
   const deviceModel = Device.modelName?.trim();
 
   return {
-    label: "Supacode Mobile",
+    label: "Supaterm Mobile",
     deviceType:
       Device.deviceType === Device.DeviceType.TABLET
         ? "tablet"

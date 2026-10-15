@@ -1,9 +1,9 @@
-import type { ConnectionTarget } from "@supacode/client-runtime/connection";
+import type { ConnectionTarget } from "@supaterm/client-runtime/connection";
 import {
   PRIMARY_LOCAL_ENVIRONMENT_ID,
   type DesktopBridge,
   type DesktopEnvironmentBootstrap,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 /**
  * Desktop-local secondary backends (e.g. a parallel WSL backend) are registered

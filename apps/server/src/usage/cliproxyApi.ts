@@ -4,7 +4,7 @@ import {
   type ProviderConsumeResetCreditResult,
   type UsageLimitSourceAccount,
   type UsageLimitSourceConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -15,7 +15,7 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
 import { codexPlanLabel } from "../provider/CodexProvider.ts";
 import { codexRateLimitsToLimits } from "../provider/codexUsageLimits.ts";
 import { claudeUsageResponseToLimits } from "../provider/claudeUsageLimits.ts";
-import { makeUnavailableUsageLimits } from "@supacode/provider-core/server/usageLimits";
+import { makeUnavailableUsageLimits } from "@supaterm/provider-core/server/usageLimits";
 
 const AuthFile = Schema.Struct({
   id: Schema.String,
@@ -104,7 +104,7 @@ const CREDIT_REDEEM_NAMESPACE = new Uint8Array([
   0x6f, 0x1c, 0x2a, 0x9e, 0x2d, 0x4b, 0x4c, 0x1e, 0x9a, 0x7f, 0x3b, 0x8d, 0x5e, 0x0c, 0x1a, 0x42,
 ]);
 
-// UUIDv5 per account and credit also deduplicates retries across Supacode environments.
+// UUIDv5 per account and credit also deduplicates retries across Supaterm environments.
 const creditRedeemRequestId = Effect.fn("CliproxyApi.creditRedeemRequestId")(function* (
   accountId: string,
   creditId: string,

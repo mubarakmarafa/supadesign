@@ -1,5 +1,5 @@
 import { Spinner } from "~/components/ui/spinner";
-import { AuthFilesystemReadScope, type ProjectContentMatch } from "@supacode/contracts";
+import { AuthFilesystemReadScope, type ProjectContentMatch } from "@supaterm/contracts";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 

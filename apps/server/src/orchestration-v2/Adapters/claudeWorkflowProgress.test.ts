@@ -4,7 +4,7 @@ import {
   WORKFLOW_MAX_PHASES,
   WORKFLOW_PATH_MAX_LENGTH,
   WORKFLOW_TEXT_MAX_LENGTH,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";
 

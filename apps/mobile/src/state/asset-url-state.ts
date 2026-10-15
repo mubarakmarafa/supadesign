@@ -1,5 +1,5 @@
-import type { EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
-import type { AssetUrlState as SharedAssetUrlState } from "@supacode/client-runtime/state/assets";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
+import type { AssetUrlState as SharedAssetUrlState } from "@supaterm/client-runtime/state/assets";
 
 export type AssetUrlFailureReason = "disconnected" | "failed";
 

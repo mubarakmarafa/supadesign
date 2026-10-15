@@ -11,7 +11,7 @@ import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as TestClock from "effect/testing/TestClock";
 import { vi } from "vite-plus/test";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import {
   BootstrapEnvelopeDecodeError,
@@ -81,7 +81,7 @@ it.layer(NodeServices.layer)("readBootstrapEnvelope", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const filePath = yield* fs.makeTempFileScoped({
-        prefix: "supacode-bootstrap-",
+        prefix: "supaterm-bootstrap-",
         suffix: ".ndjson",
       });
 
@@ -103,7 +103,7 @@ it.layer(NodeServices.layer)("readBootstrapEnvelope", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const filePath = yield* fs.makeTempFileScoped({
-        prefix: "supacode-bootstrap-",
+        prefix: "supaterm-bootstrap-",
         suffix: ".ndjson",
       });
 
@@ -136,7 +136,7 @@ it.layer(NodeServices.layer)("readBootstrapEnvelope", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const filePath = yield* fs.makeTempFileScoped({
-        prefix: "supacode-bootstrap-",
+        prefix: "supaterm-bootstrap-",
         suffix: ".ndjson",
       });
       const fd = yield* Effect.acquireRelease(
@@ -205,7 +205,7 @@ it.layer(NodeServices.layer)("readBootstrapEnvelope", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const filePath = yield* fs.makeTempFileScoped({
-        prefix: "supacode-bootstrap-",
+        prefix: "supaterm-bootstrap-",
         suffix: ".ndjson",
       });
       yield* fs.writeFileString(filePath, '{"mode":42}\n');
@@ -231,7 +231,7 @@ it.layer(NodeServices.layer)("readBootstrapEnvelope", (it) => {
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
-        const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-bootstrap-" });
+        const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-bootstrap-" });
         const fifoPath = NodePath.join(tempDir, "bootstrap.pipe");
 
         yield* Effect.sync(() => NodeChildProcess.execFileSync("mkfifo", [fifoPath]));

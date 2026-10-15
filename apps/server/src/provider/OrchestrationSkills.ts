@@ -1,7 +1,7 @@
 // @effect-diagnostics-next-line nodeBuiltinImport:off - Effect symlink has no type argument; Windows needs directory junctions without elevation.
 import * as NodeFSP from "node:fs/promises";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { OrchestrationSkillsError, type OrchestrationSkillsStatus } from "@supacode/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { OrchestrationSkillsError, type OrchestrationSkillsStatus } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -10,7 +10,7 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Semaphore from "effect/Semaphore";
 import * as ServerConfig from "../config.ts";
-import { writeFileStringAtomically } from "@supacode/shared/atomicWrite";
+import { writeFileStringAtomically } from "@supaterm/shared/atomicWrite";
 import * as ProviderInstanceRegistry from "./ProviderInstanceRegistry.ts";
 import * as ProviderRegistry from "./ProviderRegistry.ts";
 import {
@@ -25,7 +25,7 @@ export class OrchestrationSkills extends Context.Service<
     readonly install: Effect.Effect<OrchestrationSkillsStatus, OrchestrationSkillsError>;
     readonly uninstall: Effect.Effect<OrchestrationSkillsStatus, OrchestrationSkillsError>;
   }
->()("supacode/provider/OrchestrationSkills") {}
+>()("supaterm/provider/OrchestrationSkills") {}
 
 const notFound = <A, E extends { readonly reason: { readonly _tag: string } }, R>(
   effect: Effect.Effect<A, E, R>,

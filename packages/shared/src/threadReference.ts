@@ -1,4 +1,4 @@
-import type { ThreadPullRequestLink } from "@supacode/contracts";
+import type { ThreadPullRequestLink } from "@supaterm/contracts";
 
 import { resolveThreadCurrentPullRequestLink } from "./threadPullRequests.ts";
 

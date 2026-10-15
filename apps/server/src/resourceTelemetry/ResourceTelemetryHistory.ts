@@ -6,7 +6,7 @@ import type {
   ResourceTelemetryHistoryBucket,
   ResourceTelemetryProcess,
   ResourceTelemetryProcessSummary,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 
@@ -236,9 +236,9 @@ export function buildResourceTelemetryHistory(
     );
     aggregateSamples.push({
       sampledAtMs: snapshot.sampledAtUnixMs,
-      cpuPercent: merged.groups.allSupacode.currentCpuPercent,
-      rssBytes: merged.groups.allSupacode.currentRssBytes,
-      processCount: merged.groups.allSupacode.processCount,
+      cpuPercent: merged.groups.allSupaterm.currentCpuPercent,
+      rssBytes: merged.groups.allSupaterm.currentRssBytes,
+      processCount: merged.groups.allSupaterm.processCount,
       ioReadBytes: deltas.reduce((total, process) => total + process.ioReadBytes, 0),
       ioWriteBytes: deltas.reduce((total, process) => total + process.ioWriteBytes, 0),
     });

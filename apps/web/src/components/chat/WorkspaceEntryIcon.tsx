@@ -1,5 +1,5 @@
-import type { EnvironmentId } from "@supacode/contracts";
-import { formatAttachmentSize } from "@supacode/client-runtime/state/attachments";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
 
 import { useFileMetadata } from "../../hooks/useFileMetadata";
 import { PierreEntryIcon } from "./PierreEntryIcon";

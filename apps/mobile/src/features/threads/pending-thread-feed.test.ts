@@ -6,7 +6,7 @@ import {
   MessageId,
   ThreadId,
   TurnItemId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { deriveThreadFeedPresentation, type ThreadFeedEntry } from "../../lib/threadActivity";
 import type { QueuedThreadMessage } from "../../state/thread-outbox-model";
 import {
@@ -71,7 +71,7 @@ describe("pending timeline messages", () => {
       path: "src/Checkout.tsx",
     };
     const context = { version: 1 as const, records: [record] };
-    const text = "[Checkout.tsx](supacode-context://v1/mention/setup-file)";
+    const text = "[Checkout.tsx](supaterm-context://v1/mention/setup-file)";
     const entries = appendPendingThreadMessages([], [], [{ ...pending("context"), text, context }]);
     const entry = entries[0];
     expect(entry?.type).toBe("message");

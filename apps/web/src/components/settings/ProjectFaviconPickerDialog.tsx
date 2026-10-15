@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId } from "@supacode/contracts";
-import { isWindowsAbsolutePath } from "@supacode/shared/path";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { isWindowsAbsolutePath } from "@supaterm/shared/path";
 import { useMemo, useState } from "react";
 
 import { primaryServerKeybindingsAtom } from "~/state/server";

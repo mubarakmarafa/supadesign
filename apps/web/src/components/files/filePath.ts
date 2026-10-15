@@ -1,5 +1,5 @@
-import type { ProjectEntry } from "@supacode/contracts";
-import { isWindowsAbsolutePath, isAbsolutePath } from "@supacode/shared/path";
+import type { ProjectEntry } from "@supaterm/contracts";
+import { isWindowsAbsolutePath, isAbsolutePath } from "@supaterm/shared/path";
 
 export interface FileBreadcrumb {
   label: string;

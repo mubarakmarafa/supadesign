@@ -9,21 +9,21 @@ import {
   resolveProjectProviderInstanceEnabled,
   type ResolvedServerSettings,
   type ServerSettings,
-  type SupacodeProjectFile,
+  type SupatermProjectFile,
   type ThreadEnvMode,
   type WorktreeCleanupRules,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { normalizeProjectPathForComparison } from "./path.ts";
 import { fallbackTextGenerationModelSelection } from "./serverSettings.ts";
 
 /**
  * Where a project-scoped value came from. The order is the priority order:
  * a project override, then the environment value, then the repository's
- * supacode.json for keys in `PROJECT_FILE_BACKED_SETTINGS`, then the built-in
+ * supaterm.json for keys in `PROJECT_FILE_BACKED_SETTINGS`, then the built-in
  * default (reported as "environment", since that is what the environment
  * value is when nothing set it).
  */
-export type ProjectSettingSource = "environment" | "project" | "supacode.json";
+export type ProjectSettingSource = "environment" | "project" | "supaterm.json";
 
 export type ProjectSettingSources = Readonly<
   Record<ProjectScopedServerSettingKey, ProjectSettingSource>
@@ -80,7 +80,7 @@ export function resolveProjectSettings(
   project?: LegacyProjectSettingsFields | null,
 ): ResolvedProjectSettings;
 /**
- * With the checkout's decoded supacode.json (or null for a missing or invalid
+ * With the checkout's decoded supaterm.json (or null for a missing or invalid
  * one), every file-backed key resolves to a concrete value: the file fills
  * keys whose project and environment tiers are both unset, and the built-in
  * default fills what is left.
@@ -89,13 +89,13 @@ export function resolveProjectSettings(
   settings: ServerSettings,
   projectId: ProjectId | null,
   project: LegacyProjectSettingsFields | null | undefined,
-  projectFile: SupacodeProjectFile | null,
+  projectFile: SupatermProjectFile | null,
 ): ResolvedProjectSettings<ResolvedServerSettings>;
 export function resolveProjectSettings(
   settings: ServerSettings,
   projectId: ProjectId | null,
   project?: LegacyProjectSettingsFields | null,
-  projectFile?: SupacodeProjectFile | null,
+  projectFile?: SupatermProjectFile | null,
 ): ResolvedProjectSettings {
   const resolved = resolveProjectOverrides(settings, projectId, project);
   return projectFile === undefined ? resolved : applyProjectFile(resolved, projectFile);
@@ -103,7 +103,7 @@ export function resolveProjectSettings(
 
 function applyProjectFile(
   resolved: ResolvedProjectSettings,
-  projectFile: SupacodeProjectFile | null,
+  projectFile: SupatermProjectFile | null,
 ): ResolvedProjectSettings {
   let effective: Record<string, unknown> | null = null;
   let sources: Record<ProjectScopedServerSettingKey, ProjectSettingSource> | null = null;
@@ -125,13 +125,13 @@ function applyProjectFile(
 /**
  * The file and built-in tiers for one key, given the project-over-environment
  * value (`null` when neither is set). For callers that hold the settings tier
- * but only see the file later, such as the git driver reading the supacode.json of
+ * but only see the file later, such as the git driver reading the supaterm.json of
  * the checkout it just created. Same chain as `resolveProjectSettings`.
  */
 export function resolveProjectFileBackedSetting<K extends ProjectFileBackedSettingKey>(
   key: K,
   setting: ServerSettings[K],
-  projectFile: SupacodeProjectFile | null,
+  projectFile: SupatermProjectFile | null,
 ): { value: ResolvedServerSettings[K]; source: ProjectSettingSource } {
   if (setting !== null) {
     return { value: setting as ResolvedServerSettings[K], source: "environment" };
@@ -140,7 +140,7 @@ export function resolveProjectFileBackedSetting<K extends ProjectFileBackedSetti
   const fromFile = projectFile?.[field] as ResolvedServerSettings[K] | undefined;
   return fromFile === undefined
     ? { value: builtIn as ResolvedServerSettings[K], source: "environment" }
-    : { value: fromFile, source: "supacode.json" };
+    : { value: fromFile, source: "supaterm.json" };
 }
 
 function resolveProjectOverrides(
@@ -212,8 +212,8 @@ function resolveProjectOverrides(
  * has only its first commit, so until it has a thread, a new thread works in
  * the project checkout even when the environment default is a new worktree.
  * Only that environment default is replaced: a project override still wins,
- * and so does a supacode.json when the environment sets no default (the usual
- * precedence; the scaffold writes no supacode.json).
+ * and so does a supaterm.json when the environment sets no default (the usual
+ * precedence; the scaffold writes no supaterm.json).
  */
 export function resolveNewThreadEnvMode(input: {
   readonly projectSettings: ResolvedProjectSettings<ResolvedServerSettings>;

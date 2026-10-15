@@ -39,8 +39,8 @@ function SubscriptionUsage(
   const monochrome =
     environment.widgetRenderingMode !== "fullColor" || environment.isLuminanceReduced;
   const providers = props.providers ?? [
-    { name: "Codex", detail: "Open Supacode to connect", windows: [], expiresAt: 0 },
-    { name: "Claude", detail: "Open Supacode to connect", windows: [], expiresAt: 0 },
+    { name: "Codex", detail: "Open Supaterm to connect", windows: [], expiresAt: 0 },
+    { name: "Claude", detail: "Open Supaterm to connect", windows: [], expiresAt: 0 },
   ];
   const columns = providers.map((provider) => {
     const stale = provider.windows.length > 0 && now >= provider.expiresAt;
@@ -73,7 +73,7 @@ function SubscriptionUsage(
               ].slice(0, limit)
             : windows.slice(0, limit);
     const detail = stale
-      ? "Open Supacode to refresh"
+      ? "Open Supaterm to refresh"
       : period !== "auto" && windows.length === 0 && provider.windows.length > 0
         ? `No ${period} limit reported`
         : provider.detail;
@@ -121,7 +121,7 @@ function SubscriptionUsage(
                 ? `${tightest.remaining}% left`
                 : period !== "auto" && !stale && provider.windows.length > 0
                   ? "N/A"
-                  : "Open Supacode"}
+                  : "Open Supaterm"}
             </Text>
           </HStack>
           {tightest ? (
@@ -223,7 +223,7 @@ function SubscriptionUsage(
           >
             {(period === "auto" ? (provider.totalWindows ?? windows.length) : windows.length) -
               limit}{" "}
-            more in Supacode
+            more in Supaterm
           </Text>
         ) : null}
       </VStack>
@@ -255,7 +255,7 @@ function SubscriptionUsage(
         >
           {props.checkedAt
             ? `As of ${new Date(props.checkedAt).toLocaleString(undefined, { hour: "numeric", minute: "2-digit", month: "short", day: "numeric" })}`
-            : "Tap to connect in Supacode"}
+            : "Tap to connect in Supaterm"}
         </Text>
       ) : null}
     </VStack>

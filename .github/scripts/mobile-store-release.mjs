@@ -9,7 +9,7 @@ export function validateStoreBuild(build) {
     !["ios", "android"].includes(build.platform) ||
     !/^[a-f0-9]{40}$/.test(build.sha) ||
     !/^\d+\.\d+\.\d+$/.test(build.version) ||
-    build.identifier !== "com.supaterm.supacode" ||
+    build.identifier !== "com.supaterm.mobile" ||
     build.projectFullName !== "@supabitapp/supacode"
   ) {
     throw new Error("Invalid production mobile build manifest.");

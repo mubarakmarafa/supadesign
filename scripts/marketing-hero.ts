@@ -10,7 +10,7 @@
  * the hero thread with its turn diff at 1440x900 @2x in headless Chromium, in
  * the light appearance the marketing site wears. The production build is
  * deliberate: it leaves the sidebar header clear, where the dev client draws
- * its blueprint. Nothing touches ~/.supacode: all state lives in a temp
+ * its blueprint. Nothing touches ~/.supaterm: all state lives in a temp
  * directory.
  *
  * Projection rows are written directly, which is fine for a visual fixture but
@@ -38,7 +38,7 @@ import {
   OrchestrationV2RunJson,
   OrchestrationV2RuntimeRequestJson,
   OrchestrationV2TurnItemJson,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import { chromium, type Page } from "playwright-core";
 import sharp from "sharp";
@@ -57,7 +57,7 @@ const REPO_ROOT = NodePath.resolve(import.meta.dirname, "..");
 const SERVER_BIN = NodePath.join(REPO_ROOT, "apps/server/src/bin.ts");
 const DEFAULT_OUTPUT = NodePath.join(REPO_ROOT, "apps/marketing/src/assets/app-desktop.webp");
 const VIEWPORT = { width: 1440, height: 900 };
-const CHECKPOINT_REFS_PREFIX = "refs/supacode/orchestration-v2/checkpoints";
+const CHECKPOINT_REFS_PREFIX = "refs/supaterm/orchestration-v2/checkpoints";
 
 const NOW = Date.now();
 const isoMinutesAgo = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString();
@@ -813,13 +813,13 @@ function startServer(
 
 /** Builds the web client the server serves, with no origin or channel from a developer's `.env`. */
 function buildWebClient(): Promise<void> {
-  return run("vp", ["run", "--filter", "@supacode/web", "build"], {
+  return run("vp", ["run", "--filter", "@supaterm/web", "build"], {
     ...NodeProcess.env,
     VITE_HTTP_URL: "",
     VITE_WS_URL: "",
     VITE_HOSTED_APP_CHANNEL: "",
     VITE_DEV_SERVER_URL: "",
-    SUPACODE_WEB_SOURCEMAP: "0",
+    SUPATERM_WEB_SOURCEMAP: "0",
   });
 }
 
@@ -920,7 +920,7 @@ async function main(): Promise<void> {
   await installChromium();
 
   const root = await NodeFSP.realpath(
-    await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supacode-marketing-hero-")),
+    await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "supaterm-marketing-hero-")),
   );
   const home = NodePath.join(root, "home");
   const workspace = await createWorkspace(root);
@@ -953,7 +953,7 @@ async function main(): Promise<void> {
     });
     const png = await capture(await context.newPage(), startupPairingUrl, environmentId);
     // The full-quality PNG outlives the temp directory for PR before/after evidence.
-    const pngPath = NodePath.join(NodeOS.tmpdir(), "supacode-marketing-hero.png");
+    const pngPath = NodePath.join(NodeOS.tmpdir(), "supaterm-marketing-hero.png");
     await NodeFSP.writeFile(pngPath, png);
     await sharp(png).webp({ quality: 90, effort: 6, smartSubsample: true }).toFile(values.out);
     NodeProcess.stdout.write(

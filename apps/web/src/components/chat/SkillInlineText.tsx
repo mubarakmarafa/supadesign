@@ -1,6 +1,6 @@
-import { formatProviderSkillDisplayName } from "@supacode/shared/inlineSkills";
+import { formatProviderSkillDisplayName } from "@supaterm/shared/inlineSkills";
 import { Children, cloneElement, isValidElement, type ReactNode } from "react";
-import { matchInlineSkills, type InlineSkill } from "@supacode/shared/inlineSkills";
+import { matchInlineSkills, type InlineSkill } from "@supaterm/shared/inlineSkills";
 
 import { SKILL_CHIP_ICON_SVG } from "../composerInlineChip";
 import { ContextChip, ContextChipLabel } from "../ContextChip";

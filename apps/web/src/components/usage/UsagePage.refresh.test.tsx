@@ -1,7 +1,7 @@
-import { EnvironmentId, ProviderInstanceId, USAGE_CONTRACT_VERSION } from "@supacode/contracts";
-import { mergeUsage } from "@supacode/shared/usageMerge";
+import { EnvironmentId, ProviderInstanceId, USAGE_CONTRACT_VERSION } from "@supaterm/contracts";
+import { mergeUsage } from "@supaterm/shared/usageMerge";
 import { StrictMode, act } from "react";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
 

@@ -1,7 +1,7 @@
 import { FolderClosedIcon } from "lucide-react";
 import { FileExplorerIcon, FinderIcon } from "../Icons";
 import { resolveOpenInOptions } from "./OpenInPicker";
-import { EnvironmentId } from "@supacode/contracts";
+import { EnvironmentId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { shouldShowOpenInPicker } from "./OpenInPicker.logic";

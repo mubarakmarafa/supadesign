@@ -19,7 +19,7 @@ const key = { threadId: "thread-1", tabId: "tab-1" };
 
 Effect.gen(function* () {
   const base = yield* ServerConfig.ServerConfig.pipe(
-    Effect.provide(ServerConfig.layerTest(process.cwd(), { prefix: "supacode-pipe-lifecycle-" })),
+    Effect.provide(ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-pipe-lifecycle-" })),
   );
   const context = yield* Layer.build(
     Layer.merge(DesktopBrowserChannel.layer, DesktopTelemetryReceiver.layer).pipe(

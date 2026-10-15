@@ -4,8 +4,8 @@ import {
   ProviderInstanceId,
   type ServerProvider,
   type ServerProviderUpdateState,
-} from "@supacode/contracts";
-import { ServerProviderUpdateError } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { ServerProviderUpdateError } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
@@ -20,17 +20,17 @@ import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { ChildProcessSpawner } from "effect/process";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { SpawnExecutableResolution } from "@supacode/shared/shell";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { SpawnExecutableResolution } from "@supaterm/shared/shell";
 
 import * as ProviderRegistry from "./ProviderRegistry.ts";
 import * as ModelManifest from "./ModelManifest.ts";
 import * as ProviderMaintenanceRunner from "./providerMaintenanceRunner.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
 import {
   makeProviderMaintenanceCapabilities,
   type ProviderMaintenanceCapabilities,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 const isServerProviderUpdateError = Schema.is(ServerProviderUpdateError);
 
 const CODEX_DRIVER = ProviderDriverKind.make("codex");
@@ -221,7 +221,7 @@ const makeTestRunner = (
     currentModels: {},
     compatibility: [CODEX_DRIVER, OPENCODE_DRIVER].map((driver) => ({
       driver,
-      supacodeRange: ">=0.0.42",
+      supatermRange: ">=0.0.42",
       ranges: [],
     })),
   },
@@ -1001,7 +1001,7 @@ it.effect("refuses incompatible latest versions and unapproved or unpinnable tar
     compatibility: [
       {
         driver: "codex",
-        supacodeRange: ">=0.0.42",
+        supatermRange: ">=0.0.42",
         recommendedVersion: "2.0.0",
         ranges: [
           { range: "=2.0.0", status: "supported" },

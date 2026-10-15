@@ -3,7 +3,7 @@
 // reload picks up the fresh index.html. A sessionStorage flag keeps a
 // persistent failure from becoming a reload loop, and a successful boot clears
 // it so the next stale deploy gets its own single reload.
-const CHUNK_RELOAD_GUARD_KEY = "supacode:chunk-load-reloaded";
+const CHUNK_RELOAD_GUARD_KEY = "supaterm:chunk-load-reloaded";
 
 /**
  * Called from the `vite:preloadError` listener. Reloads at most once per

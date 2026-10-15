@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { deriveThreadCheckpointSummaries } from "@supacode/client-runtime/state/thread-checkpoints";
-import type { OrchestrationV2ThreadProjection } from "@supacode/contracts";
+import { deriveThreadCheckpointSummaries } from "@supaterm/client-runtime/state/thread-checkpoints";
+import type { OrchestrationV2ThreadProjection } from "@supaterm/contracts";
 import { inferCheckpointTurnCountByRunId } from "../session-logic";
 import type { TurnDiffSummary } from "../types";
 

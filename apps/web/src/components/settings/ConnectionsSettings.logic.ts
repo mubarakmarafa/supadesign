@@ -8,9 +8,9 @@ import {
   type RelayConnectionInfo,
   type ServerSettings,
   normalizeRelayServerUrl,
-} from "@supacode/contracts";
-import { createAdvertisedEndpoint } from "@supacode/shared/advertisedEndpoint";
-import type { PairingRouteHints } from "@supacode/shared/remote";
+} from "@supaterm/contracts";
+import { createAdvertisedEndpoint } from "@supaterm/shared/advertisedEndpoint";
+import type { PairingRouteHints } from "@supaterm/shared/remote";
 
 export function createRelayPairingEndpoint(relayEndpoint: string) {
   return createAdvertisedEndpoint({

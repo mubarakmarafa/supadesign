@@ -1,4 +1,4 @@
-import type { PreviewViewportSetting } from "@supacode/contracts";
+import type { PreviewViewportSetting } from "@supaterm/contracts";
 
 type BrowserViewportHandler = (setting: PreviewViewportSetting) => Promise<void>;
 

@@ -2,7 +2,7 @@
 import * as NodeChildProcess from "node:child_process";
 
 import { describe, expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import { signalProcessGroup } from "./processGroup.ts";
 

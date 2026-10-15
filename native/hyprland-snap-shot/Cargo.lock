@@ -338,7 +338,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "supacode-hyprland-snap-shot"
+name = "supaterm-hyprland-snap-shot"
 version = "0.1.0"
 dependencies = [
  "bitflags",

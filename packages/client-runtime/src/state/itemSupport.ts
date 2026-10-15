@@ -1,4 +1,4 @@
-import type { OrchestrationV2ThreadProjection, TurnItemId } from "@supacode/contracts";
+import type { OrchestrationV2ThreadProjection, TurnItemId } from "@supaterm/contracts";
 
 type Projection = OrchestrationV2ThreadProjection;
 

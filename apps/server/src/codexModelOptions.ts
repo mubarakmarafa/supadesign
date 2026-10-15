@@ -1,8 +1,8 @@
-import type { ModelSelection } from "@supacode/contracts";
+import type { ModelSelection } from "@supaterm/contracts";
 import {
   getModelSelectionBooleanOptionValue,
   getModelSelectionStringOptionValue,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 
 export function getCodexServiceTierOptionValue(
   modelSelection: ModelSelection | null | undefined,

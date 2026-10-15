@@ -36,7 +36,7 @@ import {
   VOICE_RECORDING_LIMIT_SECONDS,
   voiceInputBlocksSubmission,
   type VoiceInputState,
-} from "@supacode/client-runtime/voice-input";
+} from "@supaterm/client-runtime/voice-input";
 import { createLazyVoiceRecorder } from "./lazyVoiceRecorder";
 import { normalizeVoiceInputDecibels, VOICE_WAVEFORM_SAMPLE_COUNT } from "./voiceInputMetering";
 import { VoiceInputSession } from "./voiceInputSession";

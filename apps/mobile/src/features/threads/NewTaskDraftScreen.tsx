@@ -1,12 +1,12 @@
 import { useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
-import { clampFileAttachmentUploadBytes } from "@supacode/client-runtime/state/attachments";
+import { clampFileAttachmentUploadBytes } from "@supaterm/client-runtime/state/attachments";
 import {
   nextPastedTextFileName,
   pastedTextDisposition,
   replaceTextSelection,
-} from "@supacode/client-runtime/text-paste";
+} from "@supaterm/client-runtime/text-paste";
 import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
 import { HeaderHeightContext } from "@react-navigation/elements";
 import {
@@ -44,7 +44,7 @@ import {
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
   PROVIDER_SEND_TURN_MAX_INPUT_CHARS,
   resolveEnvironmentMachineKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import {
   ComposerEditor,
@@ -79,7 +79,7 @@ import { ComposerModelControl } from "./ComposerModelControl";
 import { resolveProviderOptionDescriptors } from "../../lib/providerOptions";
 import { SymbolView } from "../../components/AppSymbol";
 import { AppText as Text } from "../../components/AppText";
-import { hasProviderUsageLimits, isUsageLimitsCommand } from "@supacode/shared/usageLimits";
+import { hasProviderUsageLimits, isUsageLimitsCommand } from "@supaterm/shared/usageLimits";
 import { COMPOSER_LAYOUT_TRANSITION } from "../../components/composerLayoutTransition";
 import { ComposerSurface } from "./ThreadComposer";
 import { ComposerCommandPopover } from "./ComposerCommandPopover";
@@ -547,7 +547,7 @@ export function NewTaskDraftScreen(props: {
   useHardwareKeyboardCommand(cycleEnvironmentCommands, cycleEnvironment);
   // Also guard while a submit is in flight: an Android back press or iOS
   // Cancel would otherwise abandon the screen while the task still starts.
-  // Supacode owns /usage-limits only where Limits has data for the selected provider.
+  // Supaterm owns /usage-limits only where Limits has data for the selected provider.
   const offersUsageLimits =
     flow.selectedProviderStatus !== null &&
     hasProviderUsageLimits(
@@ -1353,7 +1353,7 @@ export function NewTaskDraftScreen(props: {
       Alert.alert(title, detail);
       return;
     }
-    // Supacode's own limits command is answered by the thread composer; a new task would
+    // Supaterm's own limits command is answered by the thread composer; a new task would
     // send it to the agent. A provider's same-named command, or a prompt carrying
     // attachments, goes through as usual.
     if (
@@ -1605,7 +1605,7 @@ export function NewTaskDraftScreen(props: {
   // like web, and puts the project picker beside the machine as a control.
   const hero = flow.isScratchDraft ? (
     <View className="items-center gap-2 px-6" testID="new-task-hero">
-      <Text className="text-center text-2xl font-supacode-medium tracking-tight text-foreground">
+      <Text className="text-center text-2xl font-supaterm-medium tracking-tight text-foreground">
         What should we work on?
       </Text>
       {/* Wraps onto two lines only when a long machine name leaves no room. */}
@@ -1625,7 +1625,7 @@ export function NewTaskDraftScreen(props: {
   ) : (
     <View className="items-center gap-6 px-6" testID="new-task-hero">
       <View className="w-full items-center gap-1.5">
-        <Text className="text-center text-2xl font-supacode-medium tracking-tight text-foreground">
+        <Text className="text-center text-2xl font-supaterm-medium tracking-tight text-foreground">
           What should we build
         </Text>
         <Pressable
@@ -1636,9 +1636,9 @@ export function NewTaskDraftScreen(props: {
           onPress={chooseProject}
           className="max-w-full active:opacity-65"
         >
-          <Text className="text-center text-2xl font-supacode-medium tracking-tight text-foreground">
+          <Text className="text-center text-2xl font-supaterm-medium tracking-tight text-foreground">
             in{" "}
-            <Text className="font-supacode-medium underline">
+            <Text className="font-supaterm-medium underline">
               {selectedProjectLabel ?? selectedProject.title}
             </Text>
             ?

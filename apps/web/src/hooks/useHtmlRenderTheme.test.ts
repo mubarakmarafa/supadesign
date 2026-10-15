@@ -1,5 +1,5 @@
-import { HTML_RENDER_DEFAULT_FONTS, type HtmlRenderTheme } from "@supacode/shared/htmlRender";
-import { BUILT_IN_THEME_IDS } from "@supacode/shared/themePalettes";
+import { HTML_RENDER_DEFAULT_FONTS, type HtmlRenderTheme } from "@supaterm/shared/htmlRender";
+import { BUILT_IN_THEME_IDS } from "@supaterm/shared/themePalettes";
 import { act, createElement, useEffect } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

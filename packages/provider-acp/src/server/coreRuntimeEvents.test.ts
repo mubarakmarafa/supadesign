@@ -1,4 +1,4 @@
-import { ProviderDriverKind, RuntimeRequestId, TurnId } from "@supacode/contracts";
+import { ProviderDriverKind, RuntimeRequestId, TurnId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

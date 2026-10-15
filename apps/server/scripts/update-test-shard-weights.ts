@@ -25,7 +25,7 @@ interface VitestJsonReport {
 const serverDir = NodeURL.fileURLToPath(new URL("..", import.meta.url));
 const weightsPath = NodePath.join(serverDir, "src/testUtils/shardWeights.json");
 const reportDir = NodeFS.mkdtempSync(
-  NodePath.join(NodeOS.tmpdir(), "supacode-server-test-report-"),
+  NodePath.join(NodeOS.tmpdir(), "supaterm-server-test-report-"),
 );
 const reportPath = NodePath.join(reportDir, "report.json");
 

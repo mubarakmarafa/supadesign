@@ -2,4 +2,4 @@ export {
   CodexAuthCallbackError,
   cancelCodexAuthCallback,
   receiveCodexAuthCallback,
-} from "@supacode/shared/codexAuthCallback";
+} from "@supaterm/shared/codexAuthCallback";

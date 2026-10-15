@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, it, describe } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Cause from "effect/Cause";
@@ -22,13 +22,13 @@ import type {
   VcsStatusRemoteResult,
   VcsStatusResult,
   VcsStatusStreamEvent,
-} from "@supacode/contracts";
-import { GitManagerError } from "@supacode/contracts";
+} from "@supaterm/contracts";
+import { GitManagerError } from "@supaterm/contracts";
 
 import * as VcsStatusBroadcaster from "./VcsStatusBroadcaster.ts";
 import * as BackgroundPolicy from "../background/BackgroundPolicy.ts";
 import * as GitWorkflowService from "../git/GitWorkflowService.ts";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 
 const TEST_EPOCH = DateTime.makeUnsafe("1970-01-01T00:00:00.000Z");
 
@@ -196,10 +196,10 @@ describe("VcsStatusBroadcaster", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const realDir = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-vcs-auto-pull-real-",
+          prefix: "supaterm-vcs-auto-pull-real-",
         });
         const linkParent = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-vcs-auto-pull-link-",
+          prefix: "supaterm-vcs-auto-pull-link-",
         });
         configuredWorkspaceRoot = path.join(linkParent, "repo-link");
         yield* fileSystem.symlink(realDir, configuredWorkspaceRoot);
@@ -575,10 +575,10 @@ describe("VcsStatusBroadcaster", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const realDir = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-vcs-status-real-",
+          prefix: "supaterm-vcs-status-real-",
         });
         const linkParent = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "supacode-vcs-status-link-",
+          prefix: "supaterm-vcs-status-link-",
         });
         const linkDir = path.join(linkParent, "repo-link");
         yield* fileSystem.symlink(realDir, linkDir);

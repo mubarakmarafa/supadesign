@@ -3,8 +3,8 @@ import {
   ORCHESTRATION_THREAD_CACHE_SCHEMA_VERSION,
   StoredOrchestrationThreadSnapshot,
   Persistence,
-} from "@supacode/client-runtime/platform";
-import { type EnvironmentId, ServerConfig, VcsListRefsResult } from "@supacode/contracts";
+} from "@supaterm/client-runtime/platform";
+import { type EnvironmentId, ServerConfig, VcsListRefsResult } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";

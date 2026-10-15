@@ -1,12 +1,12 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 
-import { NonNegativeInt, TextGenerationError } from "@supacode/contracts";
+import { NonNegativeInt, TextGenerationError } from "@supaterm/contracts";
 import type { OpenCodeSettings } from "../settings.ts";
-import { getModelSelectionStringOptionValue } from "@supacode/shared/model";
+import { getModelSelectionStringOptionValue } from "@supaterm/shared/model";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import * as TextGenerationOperations from "@supacode/provider-core/server/textGenerationOperations";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import * as TextGenerationOperations from "@supaterm/provider-core/server/textGenerationOperations";
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
 import * as OpenCodeServerOwner from "./OpenCodeServerOwner.ts";
 
@@ -188,7 +188,7 @@ export const makeOpenCodeTextGeneration = Effect.fn("makeOpenCodeTextGeneration"
         const session = yield* Effect.tryPromise({
           try: () =>
             client.session.create({
-              title: `supacode ${input.operation}`,
+              title: `supaterm ${input.operation}`,
               permission: [{ permission: "*", pattern: "*", action: "deny" }],
             }),
           catch: (cause) =>

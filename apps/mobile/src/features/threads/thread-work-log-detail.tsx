@@ -1,17 +1,17 @@
 import type { ReactNode } from "react";
 import { ScrollView, View } from "react-native";
-import type { EnvironmentId } from "@supacode/contracts";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
-import { isJavaScriptReplTool } from "@supacode/shared/toolActivity";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
+import { isJavaScriptReplTool } from "@supaterm/shared/toolActivity";
 import {
   toolCallLines,
   turnItemOutputImages,
   turnItemOutputText,
-} from "@supacode/client-runtime/work-log/item-detail";
+} from "@supaterm/client-runtime/work-log/item-detail";
 import {
   toolGroupAction,
   workEntryViewedImagePath,
-} from "@supacode/client-runtime/work-log/presentation";
+} from "@supaterm/client-runtime/work-log/presentation";
 
 import { AppText as Text } from "../../components/AppText";
 import type { FilePreviewSource } from "../../components/FilePreviewModal";

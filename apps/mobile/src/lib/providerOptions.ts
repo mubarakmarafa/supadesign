@@ -2,11 +2,11 @@ import type {
   ModelCapabilities,
   ProviderOptionDescriptor,
   ProviderOptionSelection,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   buildProviderOptionSelectionsFromDescriptors,
   getProviderOptionDescriptors,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 
 export function resolveProviderOptionDescriptors(input: {
   readonly capabilities: ModelCapabilities | null | undefined;

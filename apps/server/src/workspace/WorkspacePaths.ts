@@ -14,8 +14,8 @@ import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 export class WorkspaceRootNotExistsError extends Schema.TaggedError<WorkspaceRootNotExistsError>()(
   "WorkspaceRootNotExistsError",
@@ -117,7 +117,7 @@ export class WorkspacePaths extends Context.Service<
       WorkspacePathOutsideRootError
     >;
   }
->()("supacode/workspace/WorkspacePaths") {}
+>()("supaterm/workspace/WorkspacePaths") {}
 
 function toPosixRelativePath(input: string): string {
   return input.replaceAll("\\", "/");

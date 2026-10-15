@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";
@@ -8,30 +8,30 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { ChildProcessSpawner } from "effect/process";
-import { VcsProcessSpawnError } from "@supacode/contracts";
+import { VcsProcessSpawnError } from "@supaterm/contracts";
 
 import * as ServerSettings from "../serverSettings.ts";
 import * as ServerConfig from "../config.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
 import * as VcsProcess from "../vcs/VcsProcess.ts";
-import * as AzureDevOpsCli from "@supacode/source-control-azure-devops/server/AzureDevOpsCli";
-import * as AzureDevOpsPullRequestCli from "@supacode/source-control-azure-devops/server/AzureDevOpsPullRequestCli";
-import * as BitbucketApi from "@supacode/source-control-bitbucket/server/BitbucketApi";
-import * as BitbucketPullRequestApi from "@supacode/source-control-bitbucket/server/BitbucketPullRequestApi";
-import * as GitHubApi from "@supacode/source-control-github/server/GitHubApi";
-import * as GitHubCredentials from "@supacode/source-control-github/server/GitHubCredentials";
-import * as GitHubPullRequestApi from "@supacode/source-control-github/server/GitHubPullRequestApi";
-import * as GitLabCli from "@supacode/source-control-gitlab/server/GitLabCli";
-import * as GitLabPullRequestCli from "@supacode/source-control-gitlab/server/GitLabPullRequestCli";
-import * as ForgejoCli from "@supacode/source-control-forgejo/server/ForgejoCli";
-import * as GitCafeApi from "@supacode/source-control-gitcafe/server/GitCafeApi";
-import * as GitCafeCredentials from "@supacode/source-control-gitcafe/server/GitCafeCredentials";
-import * as ForgejoSourceControlProvider from "@supacode/source-control-forgejo/server/ForgejoSourceControlProvider";
+import * as AzureDevOpsCli from "@supaterm/source-control-azure-devops/server/AzureDevOpsCli";
+import * as AzureDevOpsPullRequestCli from "@supaterm/source-control-azure-devops/server/AzureDevOpsPullRequestCli";
+import * as BitbucketApi from "@supaterm/source-control-bitbucket/server/BitbucketApi";
+import * as BitbucketPullRequestApi from "@supaterm/source-control-bitbucket/server/BitbucketPullRequestApi";
+import * as GitHubApi from "@supaterm/source-control-github/server/GitHubApi";
+import * as GitHubCredentials from "@supaterm/source-control-github/server/GitHubCredentials";
+import * as GitHubPullRequestApi from "@supaterm/source-control-github/server/GitHubPullRequestApi";
+import * as GitLabCli from "@supaterm/source-control-gitlab/server/GitLabCli";
+import * as GitLabPullRequestCli from "@supaterm/source-control-gitlab/server/GitLabPullRequestCli";
+import * as ForgejoCli from "@supaterm/source-control-forgejo/server/ForgejoCli";
+import * as GitCafeApi from "@supaterm/source-control-gitcafe/server/GitCafeApi";
+import * as GitCafeCredentials from "@supaterm/source-control-gitcafe/server/GitCafeCredentials";
+import * as ForgejoSourceControlProvider from "@supaterm/source-control-forgejo/server/ForgejoSourceControlProvider";
 import * as SourceControlDiscovery from "./SourceControlDiscovery.ts";
 import * as SourceControlProviderRegistry from "./SourceControlProviderRegistry.ts";
 import * as ServerSourceControlHost from "./ServerSourceControlHost.ts";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 
 const layerSourceControlProviderRegistryTest = (input: {
   readonly bitbucket: Partial<BitbucketApi.BitbucketApi["Service"]>;
@@ -41,7 +41,7 @@ const layerSourceControlProviderRegistryTest = (input: {
     Layer.provide(
       Layer.mergeAll(
         ServerConfig.layerTest(process.cwd(), {
-          prefix: "supacode-source-control-registry-test-",
+          prefix: "supaterm-source-control-registry-test-",
         }).pipe(Layer.provide(NodeServices.layer)),
         Layer.mock(AzureDevOpsCli.AzureDevOpsCli)({}),
         Layer.mock(AzureDevOpsPullRequestCli.AzureDevOpsPullRequestCli)({}),
@@ -133,7 +133,7 @@ it.effect("reports implemented tools separately from locally available executabl
   const layerTest = SourceControlDiscovery.layer.pipe(
     Layer.provide(
       ServerConfig.layerTest(process.cwd(), {
-        prefix: "supacode-source-control-discovery-",
+        prefix: "supaterm-source-control-discovery-",
       }),
     ),
     Layer.provide(Layer.mock(VcsProcess.VcsProcess)(processMock)),
@@ -146,7 +146,7 @@ it.effect("reports implemented tools separately from locally available executabl
             account: Option.none(),
             host: Option.some("bitbucket.org"),
             detail: Option.some(
-              "Add a Bitbucket token in Settings → Source Control, or set the SUPACODE_BITBUCKET_* environment variables on the server.",
+              "Add a Bitbucket token in Settings → Source Control, or set the SUPATERM_BITBUCKET_* environment variables on the server.",
             ),
           }),
         },
@@ -301,7 +301,7 @@ Logged in to gitlab.com as gitlab-user
   const layerTest = SourceControlDiscovery.layer.pipe(
     Layer.provide(
       ServerConfig.layerTest(process.cwd(), {
-        prefix: "supacode-source-control-auth-discovery-",
+        prefix: "supaterm-source-control-auth-discovery-",
       }),
     ),
     Layer.provide(Layer.mock(VcsProcess.VcsProcess)(processMock)),
@@ -381,7 +381,7 @@ it.effect(
       const fs = yield* FileSystem.FileSystem;
       const git = yield* VcsProcess.VcsProcess;
       const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-fj-checkout-" });
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-fj-checkout-" });
       const source = path.join(root, "source");
       const cwd = path.join(root, "checkout");
       yield* fs.makeDirectory(source);

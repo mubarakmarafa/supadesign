@@ -1,4 +1,4 @@
-import { normalizeProjectPathForComparison } from "@supacode/shared/path";
+import { normalizeProjectPathForComparison } from "@supaterm/shared/path";
 
 export type FirstRunDecision = "pending" | "app" | "wizard";
 

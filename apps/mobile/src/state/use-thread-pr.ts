@@ -1,10 +1,10 @@
 import { useAtomValue } from "@effect/atom-react";
-import { scopedThreadKey, scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
+import { scopedThreadKey, scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import {
   createLinkedPullRequestSummaryAtomFamily,
   pullRequestDetailToVcsStatus,
-} from "@supacode/client-runtime/state/pull-requests";
+} from "@supaterm/client-runtime/state/pull-requests";
 import { Atom } from "effect/reactivity";
 import { useCallback, useEffect, useMemo } from "react";
 

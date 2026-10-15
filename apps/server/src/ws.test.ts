@@ -8,8 +8,8 @@ import {
   type OrchestrationProjectShell,
   type ServerConfig,
   type ServerConfigStreamEvent,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
@@ -184,7 +184,7 @@ const makeParkedWindowsLauncher = Effect.gen(function* () {
       Effect.provide(
         ConfigProvider.layer(
           ConfigProvider.fromEnv({
-            env: { PATH: "C:\\supacode-late-editors-test", PATHEXT: ".EXE" },
+            env: { PATH: "C:\\supaterm-late-editors-test", PATHEXT: ".EXE" },
           }),
         ),
       ),
@@ -260,7 +260,7 @@ const relayEnvironment: ServerConfig["environment"] = {
 };
 
 const relayAdvertisement = {
-  relayEndpoint: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`,
+  relayEndpoint: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
   relayUrl: "wss://relay.example.test",
 };
 

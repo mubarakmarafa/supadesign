@@ -1,4 +1,4 @@
-import type { VoiceRecorder } from "@supacode/client-runtime/voice-input";
+import type { VoiceRecorder } from "@supaterm/client-runtime/voice-input";
 
 type Subscription = { remove(): void };
 

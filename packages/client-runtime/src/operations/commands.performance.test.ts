@@ -9,7 +9,7 @@ import {
   type OrchestrationV2ProjectedTurnItem,
   type OrchestrationV2ThreadProjection,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";

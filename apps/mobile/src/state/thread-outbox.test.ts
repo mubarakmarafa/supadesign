@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
-import { EnvironmentNotRegisteredError } from "@supacode/client-runtime/connection";
-import { isTransportConnectionErrorMessage } from "@supacode/client-runtime/errors";
-import { EnvironmentRpcUnavailableError } from "@supacode/client-runtime/rpc";
+import { EnvironmentNotRegisteredError } from "@supaterm/client-runtime/connection";
+import { isTransportConnectionErrorMessage } from "@supaterm/client-runtime/errors";
+import { EnvironmentRpcUnavailableError } from "@supaterm/client-runtime/rpc";
 import {
   CommandId,
   ComposerContextId,
@@ -12,7 +12,7 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { AtomRegistry } from "effect/reactivity";
 import * as RpcClientError from "effect/rpc/RpcClientError";
 import * as Socket from "effect/socket/Socket";
@@ -118,7 +118,7 @@ describe("thread outbox", () => {
   it("retains structured context through a persisted offline queue round trip", () => {
     const message: QueuedThreadMessage = {
       ...queuedMessage({ messageId: "context-message", createdAt: "2026-09-06T12:00:00.000Z" }),
-      text: "[Build](supacode-context://v1/terminal/build-output)",
+      text: "[Build](supaterm-context://v1/terminal/build-output)",
       context: {
         version: 1,
         records: [
@@ -378,8 +378,8 @@ describe("thread outbox", () => {
           name: "photo.png",
           mimeType: "image/png",
           sizeBytes: 3,
-          fileUri: "file:///documents/supacode-composer-attachments/photo.png",
-          previewUri: "file:///documents/supacode-composer-attachments/photo.png",
+          fileUri: "file:///documents/supaterm-composer-attachments/photo.png",
+          previewUri: "file:///documents/supaterm-composer-attachments/photo.png",
           uploadedAttachmentId: "pending-photo-png",
           uploadEnvironmentId: EnvironmentId.make("environment-1"),
         },
@@ -1452,8 +1452,8 @@ describe("thread outbox", () => {
             name: "photo.png",
             mimeType: "image/png",
             sizeBytes: 3,
-            fileUri: "file:///documents/supacode-composer-attachments/photo.png",
-            previewUri: "file:///documents/supacode-composer-attachments/photo.png",
+            fileUri: "file:///documents/supaterm-composer-attachments/photo.png",
+            previewUri: "file:///documents/supaterm-composer-attachments/photo.png",
             uploadedAttachmentId: "pending-photo-png",
             uploadEnvironmentId: EnvironmentId.make("environment-1"),
           },

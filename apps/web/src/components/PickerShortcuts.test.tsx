@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { EnvironmentId } from "@supacode/contracts";
-import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supacode/shared/keybindings";
+import { EnvironmentId } from "@supaterm/contracts";
+import { DEFAULT_RESOLVED_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { act, Fragment, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

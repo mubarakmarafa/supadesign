@@ -10,9 +10,9 @@ import {
   type AuthEnvironmentScope,
   type AuthPairingCredentialResult,
   type RelayConnectionInfo,
-} from "@supacode/contracts";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
-import { AUTH_SCOPE_OPTIONS } from "@supacode/shared/authScopeOptions";
+} from "@supaterm/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import { AUTH_SCOPE_OPTIONS } from "@supaterm/shared/authScopeOptions";
 import { LinkIcon, PlusIcon } from "lucide-react";
 import { type RefObject, useId, useRef, useState } from "react";
 

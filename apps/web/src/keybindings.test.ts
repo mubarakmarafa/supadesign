@@ -3,14 +3,14 @@ import {
   compileResolvedKeybindingsConfig,
   DEFAULT_RESOLVED_KEYBINDINGS,
   mergeWithDefaultKeybindings,
-} from "@supacode/shared/keybindings";
+} from "@supaterm/shared/keybindings";
 
 import {
   type KeybindingCommand,
   type KeybindingShortcut,
   type KeybindingWhenNode,
   type ResolvedKeybindingsConfig,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   effectiveShortcutsForCommand,
   formatShortcutLabel,

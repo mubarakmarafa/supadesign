@@ -2,12 +2,12 @@ import type {
   AtomCommand,
   AtomCommandOptions,
   AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   AuthOrchestrationOperateScope,
   EnvironmentAuthorizationError,
   type EnvironmentId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 import { useCallback } from "react";

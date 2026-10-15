@@ -1,5 +1,5 @@
-import type { ComposerContextRecord, EnvironmentId } from "@supacode/contracts";
-import { imageMimeType } from "@supacode/shared/image";
+import type { ComposerContextRecord, EnvironmentId } from "@supaterm/contracts";
+import { imageMimeType } from "@supaterm/shared/image";
 import type { FilePreviewItem } from "../components/FilePreviewModal.types";
 import { composerImageGallery } from "./composerImageGallery";
 import type { DraftComposerAttachment } from "./composerImages";

@@ -5,11 +5,11 @@ import {
   ProviderInstanceId,
   type ServerSettings,
   type ServerSettingsPatch,
-} from "@supacode/contracts";
-import { DEFAULT_CLIENT_SETTINGS } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import { DEFAULT_CLIENT_SETTINGS } from "@supaterm/contracts/settings";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
-import { applyServerSettingsPatch } from "@supacode/shared/serverSettings";
+import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
 import { act } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";

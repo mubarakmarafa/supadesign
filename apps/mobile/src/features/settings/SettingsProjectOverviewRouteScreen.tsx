@@ -1,9 +1,9 @@
-import { connectionAddressLabel } from "@supacode/client-runtime/connection";
+import { connectionAddressLabel } from "@supaterm/client-runtime/connection";
 import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
 import { AppText as Text, AppTextInput } from "../../components/AppText";
 import { ProjectFavicon } from "../../components/ProjectFavicon";
-import { deriveProjectGroupLabel } from "@supacode/client-runtime/state/project-grouping";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+import { deriveProjectGroupLabel } from "@supaterm/client-runtime/state/project-grouping";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import { useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -104,7 +104,7 @@ function ProjectOverviewContent(props: {
           size={48}
         />
         <View className="min-w-0 flex-1">
-          <Text className="text-xl font-supacode-semibold text-foreground" numberOfLines={2}>
+          <Text className="text-xl font-supaterm-semibold text-foreground" numberOfLines={2}>
             {displayName}
           </Text>
           <Text className="text-sm text-foreground-muted">
@@ -115,7 +115,7 @@ function ProjectOverviewContent(props: {
 
       <SettingsSection title="Project">
         <View className="gap-3 p-4">
-          <Text className="text-sm font-supacode-medium text-foreground-muted">Name</Text>
+          <Text className="text-sm font-supaterm-medium text-foreground-muted">Name</Text>
           <View className="flex-row items-center gap-3">
             <AppTextInput
               accessibilityLabel="Project name"
@@ -133,7 +133,7 @@ function ProjectOverviewContent(props: {
                 onPress={saveName}
                 className="rounded-full bg-subtle-strong px-4 py-2 active:opacity-70"
               >
-                <Text className="text-sm font-supacode-medium text-foreground">Save</Text>
+                <Text className="text-sm font-supaterm-medium text-foreground">Save</Text>
               </Pressable>
             ) : null}
           </View>

@@ -8,7 +8,7 @@ import { makeComponentLogger } from "./DesktopObservability.ts";
 
 const { logInfo, logWarning } = makeComponentLogger("desktop-cli-shim");
 
-export const MARKER = "Written by Supacode: runs the desktop app's bundled supacode CLI.";
+export const MARKER = "Written by Supaterm: runs the desktop app's bundled supaterm CLI.";
 
 const SERVER_ENTRY = "apps/server/dist/bin.mjs";
 
@@ -17,7 +17,7 @@ const shellWord = (value: string) => `'${value.replaceAll("'", `'"'"'`)}'`;
 const cmdText = (value: string) => value.replaceAll("%", "%%");
 const cmdWord = (value: string) => `"${cmdText(value)}"`;
 
-const MOVED = "Supacode has moved or been removed. Open the app once to update this command.";
+const MOVED = "Supaterm has moved or been removed. Open the app once to update this command.";
 
 export type CliShimTarget =
   | { readonly kind: "appimage"; readonly appImage: string; readonly executableName: string }
@@ -27,14 +27,14 @@ export type CliShimTarget =
 export const renderCliShim = (input: {
   readonly target: CliShimTarget;
   readonly shimPath: string;
-  readonly supacodeHome: string;
+  readonly supatermHome: string;
 }) => {
   const { target } = input;
   if (target.kind === "windows") {
-    const utf8 = [target.executable, target.entry, input.shimPath, input.supacodeHome].some(
+    const utf8 = [target.executable, target.entry, input.shimPath, input.supatermHome].some(
       (value) => [...value].some((character) => character.codePointAt(0)! > 0x7f),
     );
-    const restore = utf8 ? ["chcp %supacode_codepage% >nul"] : [];
+    const restore = utf8 ? ["chcp %supaterm_codepage% >nul"] : [];
     return [
       "@echo off",
       `rem ${MARKER}`,
@@ -43,12 +43,12 @@ export const renderCliShim = (input: {
 
       ...(utf8
         ? [
-            `for /f "tokens=2 delims=:." %%c in ('chcp') do set "supacode_codepage=%%c"`,
+            `for /f "tokens=2 delims=:." %%c in ('chcp') do set "supaterm_codepage=%%c"`,
             "chcp 65001 >nul",
           ]
         : []),
-      `set "SUPACODE_CLI_PATH=${cmdText(input.shimPath)}"`,
-      `if not defined SUPACODE_HOME set "SUPACODE_HOME=${cmdText(input.supacodeHome)}"`,
+      `set "SUPATERM_CLI_SHIM_PATH=${cmdText(input.shimPath)}"`,
+      `if not defined SUPATERM_HOME set "SUPATERM_HOME=${cmdText(input.supatermHome)}"`,
       'set "ELECTRON_RUN_AS_NODE=1"',
 
       `if exist ${cmdWord(target.executable)} goto run`,
@@ -57,18 +57,18 @@ export const renderCliShim = (input: {
       "exit /b 127",
       ":run",
       `${cmdWord(target.executable)} ${cmdWord(target.entry)} %*`,
-      'set "supacode_exit=%ERRORLEVEL%"',
+      'set "supaterm_exit=%ERRORLEVEL%"',
       ...restore,
-      "exit /b %supacode_exit%",
+      "exit /b %supaterm_exit%",
       "",
     ].join("\r\n");
   }
   const header = [
     "#!/bin/sh",
     `# ${MARKER}`,
-    `export SUPACODE_CLI_PATH=${shellWord(input.shimPath)}`,
-    `home=${shellWord(input.supacodeHome)}`,
-    'export SUPACODE_HOME="${SUPACODE_HOME:-$home}"',
+    `export SUPATERM_CLI_SHIM_PATH=${shellWord(input.shimPath)}`,
+    `home=${shellWord(input.supatermHome)}`,
+    'export SUPATERM_HOME="${SUPATERM_HOME:-$home}"',
     "export ELECTRON_RUN_AS_NODE=1",
     `app=${shellWord(target.kind === "appimage" ? target.appImage : target.executable)}`,
     'if [ ! -x "$app" ]; then',
@@ -112,7 +112,7 @@ export const launcherPath = (environment: DesktopEnvironment.DesktopEnvironment[
   environment.path.join(
     environment.baseDir,
     "bin",
-    environment.platform === "win32" ? "supacode.cmd" : "supacode",
+    environment.platform === "win32" ? "supaterm.cmd" : "supaterm",
   );
 
 export const install = Effect.gen(function* () {
@@ -134,12 +134,12 @@ export const install = Effect.gen(function* () {
 
         onNone: () => ({ kind: "direct" as const, executable: process.execPath, entry }),
       });
-  const content = renderCliShim({ target, shimPath, supacodeHome: environment.baseDir });
+  const content = renderCliShim({ target, shimPath, supatermHome: environment.baseDir });
 
   return yield* Effect.gen(function* () {
     const existing = yield* fs.readFileString(shimPath).pipe(Effect.option);
     if (Option.isSome(existing) && !existing.value.includes(MARKER)) {
-      yield* logWarning("leaving a supacode launcher the app did not write", { shimPath });
+      yield* logWarning("leaving a supaterm launcher the app did not write", { shimPath });
       return Option.none<string>();
     }
     if (Option.getOrUndefined(existing) !== content) {
@@ -147,18 +147,18 @@ export const install = Effect.gen(function* () {
 
       const stagingDirectory = yield* fs.makeTempDirectoryScoped({
         directory: path.dirname(shimPath),
-        prefix: ".supacode-cli-",
+        prefix: ".supaterm-cli-",
       });
       const staging = path.join(stagingDirectory, path.basename(shimPath));
       yield* fs.writeFileString(staging, content, { mode: 0o755 });
       yield* fs.rename(staging, shimPath);
-      yield* logInfo("installed supacode launcher", { shimPath });
+      yield* logInfo("installed supaterm launcher", { shimPath });
     }
     return Option.some(shimPath);
   }).pipe(
     Effect.scoped,
     Effect.catchCause((cause) =>
-      logWarning("could not install supacode launcher", {
+      logWarning("could not install supaterm launcher", {
         shimPath,
         cause: Cause.pretty(cause),
       }).pipe(Effect.as(Option.none<string>())),

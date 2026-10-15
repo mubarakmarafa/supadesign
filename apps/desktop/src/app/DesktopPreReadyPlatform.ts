@@ -9,7 +9,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
 import * as Electron from "electron";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 import * as DesktopEarlyElectronStartup from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopAppBranding } from "./DesktopEnvironment.ts";
@@ -51,7 +51,7 @@ export class DesktopPreReadyElectronOptions extends Context.Service<
     readonly linux: DesktopEarlyElectronStartup.EarlyLinuxElectronOptions | null;
     readonly linuxPasswordStoreCommandLine: string | null;
   }
->()("@supacode/desktop/app/DesktopPreReadyPlatform/DesktopPreReadyElectronOptions") {}
+>()("@supaterm/desktop/app/DesktopPreReadyPlatform/DesktopPreReadyElectronOptions") {}
 
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {

@@ -7,7 +7,7 @@ import {
   withPiBuiltinSlashCommands,
 } from "./commands.ts";
 
-it("maps current Pi skill metadata to Supacode's user and project skill scopes", () => {
+it("maps current Pi skill metadata to Supaterm's user and project skill scopes", () => {
   expect(
     parsePiDiscoveredCommands({
       commands: [
@@ -53,7 +53,7 @@ it("maps current Pi skill metadata to Supacode's user and project skill scopes",
   });
 });
 
-it("maps Pi global location and interface labels onto Supacode skill fields", () => {
+it("maps Pi global location and interface labels onto Supaterm skill fields", () => {
   expect(
     parsePiDiscoveredCommands({
       commands: [

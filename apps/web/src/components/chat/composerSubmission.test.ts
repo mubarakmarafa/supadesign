@@ -4,11 +4,11 @@ import {
   MessageId,
   PROVIDER_SEND_TURN_MAX_INPUT_CHARS,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   expandAssistantCitationsForProvider,
   serializeAssistantCitation,
-} from "@supacode/shared/assistantCitations";
+} from "@supaterm/shared/assistantCitations";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import { submitComposerDraft } from "./composerSubmission";

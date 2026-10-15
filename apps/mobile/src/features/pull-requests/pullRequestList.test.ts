@@ -4,7 +4,7 @@ import {
   SourceControlProviderKind,
   type PullRequestListEntry,
   type PullRequestListResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   appendPullRequestListPage,
   DEFAULT_PR_LIST_CONTROLS,

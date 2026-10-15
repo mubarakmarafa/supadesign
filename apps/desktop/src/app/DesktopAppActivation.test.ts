@@ -9,9 +9,9 @@ import {
   ThreadId,
   type DesktopAppActivationRequest,
   type DesktopAppActivationResponse,
-} from "@supacode/contracts";
-import { resolveDesktopAppControlAddress } from "@supacode/shared/desktopAppControl";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/contracts";
+import { resolveDesktopAppControlAddress } from "@supaterm/shared/desktopAppControl";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { afterEach, describe, expect } from "vite-plus/test";
@@ -87,7 +87,7 @@ describe("desktop app control server", () => {
       const userId = yield* HostProcess.UserId;
       yield* Effect.promise(async () => {
         const root = await NodeFSP.mkdtemp(
-          NodePath.join(NodeOS.tmpdir(), "supacode-app-control-test-"),
+          NodePath.join(NodeOS.tmpdir(), "supaterm-app-control-test-"),
         );
         const target = makeTarget(NodePath.join(root, "userdata"), platform, userId);
         const received: DesktopAppActivationRequest[] = [];
@@ -129,7 +129,7 @@ describe("desktop app control server", () => {
       const userId = yield* HostProcess.UserId;
       yield* Effect.promise(async () => {
         const root = await NodeFSP.mkdtemp(
-          NodePath.join(NodeOS.tmpdir(), "supacode-app-cancel-test-"),
+          NodePath.join(NodeOS.tmpdir(), "supaterm-app-cancel-test-"),
         );
         const target = makeTarget(NodePath.join(root, "userdata"), platform, userId);
         let resolveCanceled: (requestId: string) => void = () => undefined;
@@ -171,7 +171,7 @@ describe("desktop app control server", () => {
       if (platform === "win32") return;
       yield* Effect.promise(async () => {
         const root = await NodeFSP.mkdtemp(
-          NodePath.join(NodeOS.tmpdir(), "supacode-app-takeover-test-"),
+          NodePath.join(NodeOS.tmpdir(), "supaterm-app-takeover-test-"),
         );
         const target = makeTarget(NodePath.join(root, "userdata"), platform, userId);
         const older = await startOkServer(target, userId);
@@ -194,7 +194,7 @@ describe("desktop app control server", () => {
       if (platform === "win32") return;
       yield* Effect.promise(async () => {
         const root = await NodeFSP.mkdtemp(
-          NodePath.join(NodeOS.tmpdir(), "supacode-app-reclaim-test-"),
+          NodePath.join(NodeOS.tmpdir(), "supaterm-app-reclaim-test-"),
         );
         const target = makeTarget(NodePath.join(root, "userdata"), platform, userId);
         const server = await startOkServer(target, userId);

@@ -4,8 +4,8 @@
  *
  * @module usageChartData
  */
-import type { UsageProviderKind } from "@supacode/contracts";
-import type { DailyTotals } from "@supacode/shared/usageMerge";
+import type { UsageProviderKind } from "@supaterm/contracts";
+import type { DailyTotals } from "@supaterm/shared/usageMerge";
 
 import { PROVIDER_ORDER } from "./usageProviders";
 

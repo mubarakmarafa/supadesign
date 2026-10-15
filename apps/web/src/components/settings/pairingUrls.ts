@@ -1,5 +1,5 @@
 import { buildHostedPairingUrl } from "../../hostedPairing";
-import { buildPairingUrl, type PairingRouteHints } from "@supacode/shared/remote";
+import { buildPairingUrl, type PairingRouteHints } from "@supaterm/shared/remote";
 import { isLoopbackHostname } from "../../environments/primary/target";
 
 export function resolvePairingShareValue(

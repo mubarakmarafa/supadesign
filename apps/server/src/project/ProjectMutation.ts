@@ -1,4 +1,4 @@
-import { type ProjectMutation } from "@supacode/contracts";
+import { type ProjectMutation } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 import { type ProjectService } from "./ProjectService.ts";

@@ -1,4 +1,4 @@
-import type { ProjectId, ProjectScript, ServerSettings } from "@supacode/contracts";
+import type { ProjectId, ProjectScript, ServerSettings } from "@supaterm/contracts";
 
 type ProjectScriptSettings = Pick<
   ServerSettings,
@@ -59,10 +59,10 @@ export function projectScriptRuntimeEnv(
   input: ProjectScriptRuntimeEnvInput,
 ): Record<string, string> {
   const env: Record<string, string> = {
-    SUPACODE_PROJECT_ROOT: input.project.cwd,
+    SUPATERM_PROJECT_ROOT: input.project.cwd,
   };
   if (input.worktreePath) {
-    env.SUPACODE_WORKTREE_PATH = input.worktreePath;
+    env.SUPATERM_WORKTREE_PATH = input.worktreePath;
   }
   if (input.extraEnv) {
     return { ...env, ...input.extraEnv };

@@ -1,4 +1,4 @@
-import type { ActiveTurnComposerAction } from "@supacode/client-runtime/state/composer-dispatch";
+import type { ActiveTurnComposerAction } from "@supaterm/client-runtime/state/composer-dispatch";
 
 /**
  * What the send button does while a turn is already running: `queue` waits for

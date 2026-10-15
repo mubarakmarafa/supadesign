@@ -1,8 +1,8 @@
-import type { ComposerContextRecord } from "@supacode/contracts";
+import type { ComposerContextRecord } from "@supaterm/contracts";
 import { contextChipPresentation } from "./composerChipPresentation";
 import type { MarkdownFileIcon } from "./markdownLinks";
 import type { SelectableMarkdownSkill } from "../native/SelectableMarkdownText.types";
-import { parseComposerContextHref } from "@supacode/shared/composerContextReferences";
+import { parseComposerContextHref } from "@supaterm/shared/composerContextReferences";
 
 const CONTEXT_ICONS: Readonly<Record<string, MarkdownFileIcon>> = {
   photo: "image",

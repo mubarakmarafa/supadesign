@@ -1,4 +1,4 @@
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import {
   CommandId,
   DEFAULT_PROVIDER_INTERACTION_MODE,
@@ -6,13 +6,13 @@ import {
   MessageId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import type { QueuedThreadMessage } from "../../state/thread-outbox-model";
 
 export const SHOWCASE_PENDING_TASK_DEFINITIONS = [
   {
-    projectId: "supacode",
+    projectId: "supaterm",
     id: "offline-state-test",
     text: "Add a test for the signed-out state",
     branch: "feat/offline-tests",

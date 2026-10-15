@@ -1,4 +1,4 @@
-import { createAttachmentEnvironmentAtoms } from "@supacode/client-runtime/state/attachments";
+import { createAttachmentEnvironmentAtoms } from "@supaterm/client-runtime/state/attachments";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 

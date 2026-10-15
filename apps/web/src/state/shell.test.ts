@@ -1,10 +1,10 @@
 import {
   BearerConnectionTarget,
   PrimaryConnectionTarget,
-} from "@supacode/client-runtime/connection";
-import type { EnvironmentCatalogState } from "@supacode/client-runtime/state/connections";
-import type { EnvironmentShellState } from "@supacode/client-runtime/state/shell";
-import { EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/connection";
+import type { EnvironmentCatalogState } from "@supaterm/client-runtime/state/connections";
+import type { EnvironmentShellState } from "@supaterm/client-runtime/state/shell";
+import { EnvironmentId } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { Atom, AtomRegistry } from "effect/reactivity";
 import { describe, expect, it } from "vite-plus/test";

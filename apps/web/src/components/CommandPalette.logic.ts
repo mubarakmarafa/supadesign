@@ -1,13 +1,13 @@
-import { threadPullRequestSearchTerms } from "@supacode/shared/threadPullRequests";
+import { threadPullRequestSearchTerms } from "@supaterm/shared/threadPullRequests";
 import type { CommandPaletteLinkedThreads } from "../commandPaletteBus";
 import {
   type EnvironmentId,
   type FilesystemBrowseEntry,
   type KeybindingCommand,
   THREAD_JUMP_KEYBINDING_COMMANDS,
-} from "@supacode/contracts";
-import { filterFilesystemBrowseEntries } from "@supacode/client-runtime/state/filesystem";
-import type { SidebarThreadSortOrder } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import { filterFilesystemBrowseEntries } from "@supaterm/client-runtime/state/filesystem";
+import type { SidebarThreadSortOrder } from "@supaterm/contracts/settings";
 import * as Arr from "effect/Array";
 import * as Result from "effect/Result";
 import { type ReactNode } from "react";

@@ -1,10 +1,10 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 /**
  * The Azure DevOps driver: repository operations, discovery, and pull requests through `az`.
  *
  * @module source-control-azure-devops/server/driver
  */
-import { defineSourceControlDriver } from "@supacode/source-control-core/server/driver";
+import { defineSourceControlDriver } from "@supaterm/source-control-core/server/driver";
 import * as Effect from "effect/Effect";
 
 import * as AzureDevOpsPullRequestProvider from "./AzureDevOpsPullRequestProvider.ts";

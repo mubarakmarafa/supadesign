@@ -2,7 +2,7 @@ import type {
   GitRunStackedActionInput,
   GitStackedAction,
   VcsStatusResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export type GitActionIconName = "commit" | "push" | "pr";
 

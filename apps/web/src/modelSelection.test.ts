@@ -3,10 +3,10 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerProvider,
-} from "@supacode/contracts";
-import { DEFAULT_UNIFIED_SETTINGS, type UnifiedSettings } from "@supacode/contracts/settings";
+} from "@supaterm/contracts";
+import { DEFAULT_UNIFIED_SETTINGS, type UnifiedSettings } from "@supaterm/contracts/settings";
 import { describe, expect, it } from "vite-plus/test";
-import { createModelSelection } from "@supacode/shared/model";
+import { createModelSelection } from "@supaterm/shared/model";
 import { deriveEffectiveComposerModelState } from "./composerDraftStore";
 import { getComposerProviderState } from "./components/chat/composerProviderState";
 import { deriveProviderInstanceEntries, NO_PROVIDER_MODEL_SELECTION } from "./providerInstances";

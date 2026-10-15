@@ -1,7 +1,7 @@
 import * as WorktreeSetupTracker from "../project/WorktreeSetupTracker.ts";
 import * as ProjectCloneTracker from "../project/ProjectCloneTracker.ts";
 import * as TerminalManager from "../terminal/Manager.ts";
-import { resolveProjectSettings } from "@supacode/shared/projectSettings";
+import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import {
   branchNamingChoiceOf,
   CommandId,
@@ -19,7 +19,7 @@ import {
   type RuntimeMode,
   type ScheduledTaskId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -35,7 +35,7 @@ import {
   isTemporaryWorktreeBranch,
   repositoryBranchPrefix,
   WORKTREE_BRANCH_PREFIX,
-} from "@supacode/shared/git";
+} from "@supaterm/shared/git";
 
 import * as GitWorkflow from "../git/GitWorkflowService.ts";
 import * as ProjectService from "../project/ProjectService.ts";
@@ -46,10 +46,10 @@ import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import * as CommandReceiptStore from "./CommandReceiptStore.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import type * as Orchestrator from "./Orchestrator.ts";
-import { makeProviderFailure } from "@supacode/provider-core/server/failure";
-import { randomUuidV4 } from "@supacode/provider-core/server/randomUuid";
+import { makeProviderFailure } from "@supaterm/provider-core/server/failure";
+import { randomUuidV4 } from "@supaterm/provider-core/server/randomUuid";
 import * as ThreadManagement from "./ThreadManagementService.ts";
 
 export type ThreadLaunchWorkspaceStrategy =
@@ -72,7 +72,7 @@ export interface ThreadLaunchInitialMessage {
   readonly senderThreadId?: ThreadId;
   readonly text: string;
   readonly attachments: ReadonlyArray<ChatAttachment>;
-  readonly context?: import("@supacode/contracts").OrchestrationMessageContext | undefined;
+  readonly context?: import("@supaterm/contracts").OrchestrationMessageContext | undefined;
 }
 
 export interface ThreadLaunchInput {
@@ -191,7 +191,7 @@ export class ThreadLaunchService extends Context.Service<
       | ThreadManagement.ThreadManagementProviderInstanceDisabledError
     >;
   }
->()("supacode/orchestration-v2/ThreadLaunchService") {}
+>()("supaterm/orchestration-v2/ThreadLaunchService") {}
 
 const isThreadLaunchError = Schema.is(ThreadLaunchError);
 
@@ -386,7 +386,7 @@ const make = Effect.gen(function* () {
         });
 
       // The server owns worktree naming: without an explicit branch, provision
-      // under a temporary `supacode/<hash>` name so the worktree never waits on
+      // under a temporary `supaterm/<hash>` name so the worktree never waits on
       // name generation, then rename in the background below.
       const requestedBranch = input.workspaceStrategy.branch;
       let branch: string | null;

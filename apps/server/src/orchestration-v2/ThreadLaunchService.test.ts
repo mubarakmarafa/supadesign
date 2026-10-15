@@ -25,7 +25,7 @@ import {
   ScheduledTaskId,
   type ServerProvider,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Deferred from "effect/Deferred";
 import * as DateTime from "effect/DateTime";
@@ -53,13 +53,13 @@ import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import { CodexProviderCapabilitiesV2 } from "./Adapters/CodexAdapterV2.ts";
 import * as CommandReceiptStore from "./CommandReceiptStore.ts";
 import * as EffectOutbox from "./EffectOutbox.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
 import * as ThreadLaunch from "./ThreadLaunchService.ts";
 import * as ThreadManagement from "./ThreadManagementService.ts";
 import * as ThreadTitleRegeneration from "./ThreadTitleRegenerationService.ts";
 import * as ProviderReplayHarness from "./testkit/ProviderReplayHarness.ts";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 const projectId = ProjectId.make("project:launch-test");
 const otherProjectId = ProjectId.make("project:launch-other");
@@ -1125,7 +1125,7 @@ it.effect("names the worktree itself when the client provides no branch", () =>
       yield* waitUntil(() => Effect.sync(() => harness.createWorktree.mock.calls.length === 1));
       assert.match(
         harness.createWorktree.mock.calls[0]?.[0]?.newRefName ?? "",
-        /^supacode\/[0-9a-f]{8}$/u,
+        /^supaterm\/[0-9a-f]{8}$/u,
       );
       yield* waitUntil(() =>
         threads
@@ -1172,7 +1172,7 @@ it.effect("prefixes generated branches with a fork's own repository name", () =>
   }),
 );
 
-it.effect("renames a temporary supacode/<hash> branch off the provisioning critical path", () =>
+it.effect("renames a temporary supaterm/<hash> branch off the provisioning critical path", () =>
   Effect.gen(function* () {
     const branchNameStarted = yield* Deferred.make<void>();
     const allowBranchName = yield* Deferred.make<void>();
@@ -1195,11 +1195,11 @@ it.effect("renames a temporary supacode/<hash> branch off the provisioning criti
           command: "command:launch:temp-branch",
           thread: "thread:launch:temp-branch",
           message: "Build the feature",
-          workspace: { type: "worktree", baseRef: "main", branch: "supacode/abcd1234" },
+          workspace: { type: "worktree", baseRef: "main", branch: "supaterm/abcd1234" },
         }),
       );
       yield* Deferred.await(branchNameStarted);
-      assert.equal(harness.createWorktree.mock.calls[0]?.[0]?.newRefName, "supacode/abcd1234");
+      assert.equal(harness.createWorktree.mock.calls[0]?.[0]?.newRefName, "supaterm/abcd1234");
       yield* waitUntil(() =>
         threads
           .getThreadProjection(launched.threadId)
@@ -1207,7 +1207,7 @@ it.effect("renames a temporary supacode/<hash> branch off the provisioning criti
       );
       assert.equal(
         (yield* threads.getThreadProjection(launched.threadId)).thread.branch,
-        "supacode/abcd1234",
+        "supaterm/abcd1234",
       );
       yield* Deferred.succeed(allowBranchName, undefined);
       yield* waitUntil(() =>
@@ -1217,17 +1217,17 @@ it.effect("renames a temporary supacode/<hash> branch off the provisioning criti
       );
       assert.deepEqual(harness.renameBranch.mock.calls[0]?.[0], {
         cwd: "/repo-worktrees/temp",
-        oldBranch: "supacode/abcd1234",
+        oldBranch: "supaterm/abcd1234",
         newBranch: "generated-branch",
       });
     }).pipe(Effect.provide(harness.layer));
   }),
 );
 
-it.effect("provisions under supacode-<hash> when a plain supacode branch blocks supacode/*", () =>
+it.effect("provisions under supaterm-<hash> when a plain supaterm branch blocks supaterm/*", () =>
   Effect.gen(function* () {
     const harness = makeHarness({
-      hasCommit: (input) => Effect.succeed(input.refName === "refs/heads/supacode"),
+      hasCommit: (input) => Effect.succeed(input.refName === "refs/heads/supaterm"),
       createWorktree: (input) =>
         Effect.succeed({
           worktree: { path: "/repo-worktrees/temp", refName: input.newRefName, headSha: "abc" },
@@ -1241,7 +1241,7 @@ it.effect("provisions under supacode-<hash> when a plain supacode branch blocks 
           command: "command:launch:blocked-namespace",
           thread: "thread:launch:blocked-namespace",
           message: "Build the feature",
-          workspace: { type: "worktree", baseRef: "main", branch: "supacode/abcd1234" },
+          workspace: { type: "worktree", baseRef: "main", branch: "supaterm/abcd1234" },
         }),
       );
       yield* waitUntil(() =>
@@ -1249,8 +1249,8 @@ it.effect("provisions under supacode-<hash> when a plain supacode branch blocks 
           .getThreadProjection(launched.threadId)
           .pipe(Effect.map((projection) => projection.thread.branch === "generated-branch")),
       );
-      assert.equal(harness.createWorktree.mock.calls[0]?.[0]?.newRefName, "supacode-abcd1234");
-      assert.equal(harness.renameBranch.mock.calls[0]?.[0]?.oldBranch, "supacode-abcd1234");
+      assert.equal(harness.createWorktree.mock.calls[0]?.[0]?.newRefName, "supaterm-abcd1234");
+      assert.equal(harness.renameBranch.mock.calls[0]?.[0]?.oldBranch, "supaterm-abcd1234");
     }).pipe(Effect.provide(harness.layer));
   }),
 );
@@ -1292,11 +1292,11 @@ it.effect("keeps the temporary branch when branch generation fails", () =>
           command: "command:launch:branch-fallback",
           thread: "thread:launch:branch-fallback",
           message: "Build the feature",
-          workspace: { type: "worktree", baseRef: "main", branch: "supacode/abcd1234" },
+          workspace: { type: "worktree", baseRef: "main", branch: "supaterm/abcd1234" },
         }),
       );
       yield* waitUntil(() => Effect.sync(() => harness.generateBranchName.mock.calls.length === 1));
-      assert.equal(harness.createWorktree.mock.calls[0]?.[0]?.newRefName, "supacode/abcd1234");
+      assert.equal(harness.createWorktree.mock.calls[0]?.[0]?.newRefName, "supaterm/abcd1234");
       yield* waitUntil(() =>
         threads
           .getThreadProjection(launched.threadId)
@@ -1305,7 +1305,7 @@ it.effect("keeps the temporary branch when branch generation fails", () =>
       assert.equal(harness.renameBranch.mock.calls.length, 0);
       assert.equal(
         (yield* threads.getThreadProjection(launched.threadId)).thread.branch,
-        "supacode/abcd1234",
+        "supaterm/abcd1234",
       );
     }).pipe(Effect.provide(harness.layer));
   }),
@@ -1324,8 +1324,8 @@ it.effect("renames a temporary branch on an existing worktree to a generated nam
           message: "Build the feature",
           workspace: {
             type: "existing_worktree",
-            worktreePath: "/repo-worktrees/supacode-abcd1234",
-            branch: "supacode/abcd1234",
+            worktreePath: "/repo-worktrees/supaterm-abcd1234",
+            branch: "supaterm/abcd1234",
           },
         }),
       );
@@ -1335,8 +1335,8 @@ it.effect("renames a temporary branch on an existing worktree to a generated nam
           .pipe(Effect.map((projection) => projection.thread.branch === "generated-branch")),
       );
       assert.deepEqual(harness.renameBranch.mock.calls[0]?.[0], {
-        cwd: "/repo-worktrees/supacode-abcd1234",
-        oldBranch: "supacode/abcd1234",
+        cwd: "/repo-worktrees/supaterm-abcd1234",
+        oldBranch: "supaterm/abcd1234",
         newBranch: "generated-branch",
       });
     }).pipe(Effect.provide(harness.layer));
@@ -2235,7 +2235,7 @@ it.effect("creates a strong provider-thread mapping for an imported native sessi
 it.effect("shared intake preserves durable attachment bytes after a lost launch result", () => {
   const harness = makeHarness();
   const layerFiles = ServerConfig.layerTest(process.cwd(), {
-    prefix: "supacode-message-intake-",
+    prefix: "supaterm-message-intake-",
   }).pipe(Layer.provideMerge(NodeServices.layer));
   return Effect.gen(function* () {
     const config = yield* ServerConfig.ServerConfig;
@@ -2262,7 +2262,7 @@ it.effect("shared intake preserves durable attachment bytes after a lost launch 
       ...launchInput({ command: "intake-launch", thread: "intake-thread" }),
       initialMessage: {
         messageId: MessageId.make("intake-first"),
-        text: "First [file](supacode-context://v1/file/intake-file)",
+        text: "First [file](supaterm-context://v1/file/intake-file)",
         context: {
           version: 1 as const,
           records: [
@@ -2543,10 +2543,10 @@ it.effect.each([0, 1])("releases an async setup before its completion with exit 
 );
 
 it.effect.each([
-  { name: "is missing", baseRef: "supacode/renamed", startFromOrigin: false, origin: true },
+  { name: "is missing", baseRef: "supaterm/renamed", startFromOrigin: false, origin: true },
   {
     name: "has no origin to come from",
-    baseRef: "supacode/renamed",
+    baseRef: "supaterm/renamed",
     startFromOrigin: true,
     origin: false,
   },
@@ -2646,7 +2646,7 @@ it.effect.each([
 
 it.effect("replays an accepted send after the project disables the instance", () => {
   const harness = makeHarness();
-  const layerFiles = ServerConfig.layerTest(process.cwd(), { prefix: "supacode-send-retry-" }).pipe(
+  const layerFiles = ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-send-retry-" }).pipe(
     Layer.provideMerge(NodeServices.layer),
   );
   return Effect.gen(function* () {
@@ -2695,7 +2695,7 @@ it.effect("replays an accepted send after the project disables the instance", ()
 it.effect("replays an accepted message.dispatch after the project disables the instance", () => {
   const harness = makeHarness();
   const layerFiles = ServerConfig.layerTest(process.cwd(), {
-    prefix: "supacode-dispatch-retry-",
+    prefix: "supaterm-dispatch-retry-",
   }).pipe(Layer.provideMerge(NodeServices.layer));
   return Effect.gen(function* () {
     const launches = yield* ThreadLaunch.ThreadLaunchService;

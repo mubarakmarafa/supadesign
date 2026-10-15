@@ -17,7 +17,7 @@ import {
   VcsProcessSpawnError,
   VcsProcessStdinWriteError,
   VcsProcessTimeoutError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as ProcessRunner from "../processRunner.ts";
 
 export interface VcsProcessInput {
@@ -52,7 +52,7 @@ export class VcsProcess extends Context.Service<
   {
     readonly run: (input: VcsProcessInput) => Effect.Effect<VcsProcessOutput, VcsError>;
   }
->()("supacode/vcs/VcsProcess") {}
+>()("supaterm/vcs/VcsProcess") {}
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 1_000_000;

@@ -11,7 +11,7 @@ import {
   ProviderInstanceId,
   ThreadId,
   type OrchestrationV2ThreadProjection,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -29,11 +29,11 @@ import * as CodexInstallation from "../provider/CodexInstallation.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ModelManifest from "../provider/ModelManifest.ts";
 import * as ProviderInstanceRegistryHydration from "../provider/ProviderInstanceRegistryHydration.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
-import * as OpenCodeRuntime from "@supacode/provider-opencode/server/OpenCodeRuntime";
-import * as OpenCodeServerLedger from "@supacode/provider-opencode/server/OpenCodeServerLedger";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
+import * as OpenCodeRuntime from "@supaterm/provider-opencode/server/OpenCodeRuntime";
+import * as OpenCodeServerLedger from "@supaterm/provider-opencode/server/OpenCodeServerLedger";
 import * as ServerSettings from "../serverSettings.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
 import * as VcsProcess from "../vcs/VcsProcess.ts";
@@ -52,7 +52,7 @@ const layerPlatformTest = Layer.merge(
 );
 
 const layerServerConfig = ServerConfig.layerTest(process.cwd(), {
-  prefix: "supacode-cursor-v2-live-",
+  prefix: "supaterm-cursor-v2-live-",
 });
 
 const layerVcsDriverRegistry = VcsDriverRegistry.layer.pipe(
@@ -147,7 +147,7 @@ const waitForIdle = Effect.fn("CursorOrchestratorV2Live.waitForIdle")(function* 
   return yield* Effect.die(new Error(`Timed out waiting for Cursor thread ${threadId}.`));
 });
 
-describe.runIf(process.env.SUPACODE_CURSOR_LIVE_ORCHESTRATOR === "1")(
+describe.runIf(process.env.SUPATERM_CURSOR_LIVE_ORCHESTRATOR === "1")(
   "Cursor V2 live orchestrator",
   () => {
     it.live(

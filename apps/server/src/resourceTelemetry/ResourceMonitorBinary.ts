@@ -1,4 +1,4 @@
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -56,10 +56,10 @@ export class ResourceMonitorBinary extends Context.Service<
   {
     readonly resolve: Effect.Effect<string, ResourceMonitorBinaryError>;
   }
->()("supacode/resourceTelemetry/ResourceMonitorBinary") {}
+>()("supaterm/resourceTelemetry/ResourceMonitorBinary") {}
 
 function binaryName(platform: NodeJS.Platform): string {
-  return platform === "win32" ? "supacode-resource-monitor.exe" : "supacode-resource-monitor";
+  return platform === "win32" ? "supaterm-resource-monitor.exe" : "supaterm-resource-monitor";
 }
 
 export type ResourceMonitorLinuxLibc = "gnu" | "musl";
@@ -80,7 +80,7 @@ function detectResourceMonitorLinuxLibc(): ResourceMonitorLinuxLibc {
 }
 
 export const ResourceMonitorHostLinuxLibc = Context.Reference<ResourceMonitorLinuxLibc>(
-  "supacode/resourceTelemetry/ResourceMonitorHostLinuxLibc",
+  "supaterm/resourceTelemetry/ResourceMonitorHostLinuxLibc",
   {
     defaultValue: detectResourceMonitorLinuxLibc,
   },
@@ -143,7 +143,7 @@ export const make = Effect.fn("resourceTelemetry.resourceMonitorBinary.make")(fu
   const platformKey = resourceMonitorPlatformKey(platform, architecture);
   const rustTarget = resourceMonitorRustTarget(platform, architecture, linuxLibc);
   const overrideCandidates = [
-    environment.SUPACODE_RESOURCE_MONITOR_PATH,
+    environment.SUPATERM_RESOURCE_MONITOR_PATH,
     config.resourceMonitorPath,
   ].filter((candidate): candidate is string => Boolean(candidate));
   const bundledCandidates =

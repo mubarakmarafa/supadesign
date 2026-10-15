@@ -5,7 +5,7 @@ import {
   ProviderInstanceId,
   ThreadId,
   type OrchestrationV2ThreadShell,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -54,7 +54,7 @@ it.effect("updates preferences for a thread caller through the /mcp registration
     const server = yield* McpServer.McpServer;
     const result = yield* server
       .callTool({
-        name: "supacode_environment_preferences_update",
+        name: "supaterm_environment_preferences_update",
         arguments: { newWorktreesStartFromOrigin: true },
       })
       .pipe(
@@ -146,7 +146,7 @@ it.effect("refuses a preferences update when the caller's turn ends while it wai
         .pipe(Effect.forkChild);
       yield* Deferred.await(held);
       const update = yield* toolkit
-        .handle("supacode_environment_preferences_update", { newWorktreesStartFromOrigin: true })
+        .handle("supaterm_environment_preferences_update", { newWorktreesStartFromOrigin: true })
         .pipe(Stream.unwrap, Stream.runCollect, Effect.forkChild);
       // The update passed its first check and waits for the lock; the turn then ends.
       yield* Deferred.await(checked);

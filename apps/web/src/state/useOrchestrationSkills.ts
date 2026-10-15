@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { AuthProvidersManageScope } from "@supacode/contracts";
-import type { createServerEnvironmentAtoms } from "@supacode/client-runtime/state/server";
+import { AuthProvidersManageScope } from "@supaterm/contracts";
+import type { createServerEnvironmentAtoms } from "@supaterm/client-runtime/state/server";
 import { useAtomCommand } from "./use-atom-command";
 import { readEnvironmentScope, useEnvironmentsWithScope } from "./session";
 import {
   orchestrationSkillsView,
   runOrchestrationSkillsAction,
   type OrchestrationSkillsEnvironment,
-} from "@supacode/client-runtime/orchestrationSkills";
+} from "@supaterm/client-runtime/orchestrationSkills";
 
 /** The caller keys this component by selection, isolating in-flight results after a scope change. */
 export function useOrchestrationSkills(

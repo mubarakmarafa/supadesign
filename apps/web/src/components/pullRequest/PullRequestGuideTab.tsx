@@ -2,7 +2,7 @@ import type {
   EnvironmentId,
   PullRequestRef,
   PullRequestReviewGuideStop,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo } from "react";
 

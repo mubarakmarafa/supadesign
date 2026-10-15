@@ -1,6 +1,6 @@
 import { it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import * as NetService from "@supacode/shared/Net";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import * as NetService from "@supaterm/shared/Net";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Sink from "effect/Sink";

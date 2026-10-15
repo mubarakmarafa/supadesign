@@ -1,4 +1,4 @@
-import type { PreviewAnnotationPayload } from "@supacode/contracts";
+import type { PreviewAnnotationPayload } from "@supaterm/contracts";
 
 import type { ComposerFileAttachment, ComposerImageAttachment } from "../../composerDraftStore";
 import { fileContextReference, previewAnnotationContextId } from "../../lib/composerContextRecords";

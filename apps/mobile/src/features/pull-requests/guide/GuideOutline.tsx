@@ -1,5 +1,5 @@
-import type { PullRequestReviewGuide } from "@supacode/contracts";
-import { stopFilePaths } from "@supacode/client-runtime/review-guide-tour";
+import type { PullRequestReviewGuide } from "@supaterm/contracts";
+import { stopFilePaths } from "@supaterm/client-runtime/review-guide-tour";
 import { Pressable, View } from "react-native";
 import { AppText as Text } from "../../../components/AppText";
 import { SymbolView } from "../../../components/AppSymbol";
@@ -24,7 +24,7 @@ export function GuideOutline({
     <View>
       <View className="mb-5 flex-row items-center justify-between">
         <View className="flex-row items-baseline gap-2">
-          <Text className="text-base font-supacode-semibold">{guide.stops.length} stops</Text>
+          <Text className="text-base font-supaterm-semibold">{guide.stops.length} stops</Text>
           <Text className="text-sm text-foreground-muted">
             through {files.size} {files.size === 1 ? "file" : "files"}
           </Text>
@@ -76,14 +76,14 @@ export function GuideOutline({
           >
             <View className="w-8 items-center">
               <View className="h-8 w-8 items-center justify-center rounded-full border border-border bg-grouped-card">
-                <Text className="text-sm font-supacode-medium tabular-nums">{position + 1}</Text>
+                <Text className="text-sm font-supaterm-medium tabular-nums">{position + 1}</Text>
               </View>
               {position < guide.stops.length - 1 ? (
                 <View className="min-h-5 w-px flex-1 bg-border-subtle" />
               ) : null}
             </View>
             <View className="min-w-0 flex-1 gap-2 pb-7 pt-0.5">
-              <Text className="text-base leading-6 font-supacode-medium">{stop.title}</Text>
+              <Text className="text-base leading-6 font-supaterm-medium">{stop.title}</Text>
               <View className="flex-row items-center gap-1.5">
                 {stop.attention ? (
                   <SymbolView name="eye" size={14} tintColorClassName="accent-warning-foreground" />
@@ -106,7 +106,7 @@ export function GuideOutline({
           onPress={() => onOpen(0)}
           className="min-h-11 flex-row items-center justify-end gap-2 active:opacity-60"
         >
-          <Text className="text-sm font-supacode-medium">Start tour</Text>
+          <Text className="text-sm font-supaterm-medium">Start tour</Text>
           <SymbolView name="arrow.right" size={17} tintColorClassName="accent-foreground" />
         </Pressable>
       ) : null}

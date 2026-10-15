@@ -1,4 +1,4 @@
-import type { EnvironmentId, PullRequestRef } from "@supacode/contracts";
+import type { EnvironmentId, PullRequestRef } from "@supaterm/contracts";
 import { useMemo } from "react";
 import {
   savedPullRequestStack,

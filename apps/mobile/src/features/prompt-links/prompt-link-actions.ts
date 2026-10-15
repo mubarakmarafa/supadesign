@@ -1,4 +1,4 @@
-import { buildNewThreadLink, type LinkedPrompt } from "@supacode/shared/promptLinks";
+import { buildNewThreadLink, type LinkedPrompt } from "@supaterm/shared/promptLinks";
 import { Alert } from "react-native";
 
 import { tryCopyTextWithHaptic } from "../../lib/copyTextWithHaptic";

@@ -3,13 +3,13 @@ import type {
   OrchestrationV2ContextHandoff,
   OrchestrationV2ThreadProjection,
   OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   compactDynamicToolOutput,
   omitToolOutputImageData,
   toolOutputImages,
   toolOutputIndicatesFailure,
-} from "@supacode/shared/toolOutput";
+} from "@supaterm/shared/toolOutput";
 
 const MAX_DETAIL_STRING_BYTES = 32_768;
 const MAX_DYNAMIC_VALUE_BYTES = 16_384;

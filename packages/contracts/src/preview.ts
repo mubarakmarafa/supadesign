@@ -187,7 +187,7 @@ export type PreviewBrowserBacking = typeof PreviewBrowserBacking.Type;
  */
 export const PreviewStreamHostSetup = Schema.Struct({
   need: Schema.Literals(["sandbox", "libraries"]),
-  /** For example `sudo npx supacode browser setup`, matching how the server was launched. */
+  /** For example `sudo npx supaterm browser setup`, matching how the server was launched. */
   command: Schema.String,
 });
 export type PreviewStreamHostSetup = typeof PreviewStreamHostSetup.Type;

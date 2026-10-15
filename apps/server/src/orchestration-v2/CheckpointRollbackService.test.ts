@@ -8,12 +8,12 @@ import {
   ProviderSessionId,
   ProviderThreadId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Option from "effect/Option";
-import { symlinksSupported } from "@supacode/shared/testing/symlinks";
+import { symlinksSupported } from "@supaterm/shared/testing/symlinks";
 import * as Layer from "effect/Layer";
 
 import { resolveCodexRollbackTurnCount } from "./Adapters/CodexAdapterV2.ts";
@@ -21,18 +21,18 @@ import { isCheckpointRestoreIsolated } from "./CheckpointRestoreSafety.ts";
 import * as CheckpointService from "./CheckpointService.ts";
 import * as CheckpointRollbackService from "./CheckpointRollbackService.ts";
 import * as ThreadCommandExecutor from "./ThreadCommandExecutor.ts";
-import * as KeyedLock from "@supacode/shared/KeyedLock";
+import * as KeyedLock from "@supaterm/shared/KeyedLock";
 import * as EventSink from "./EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ProjectStore from "./ProjectStore.ts";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProviderSessionManager from "./ProviderSessionManager.ts";
 import * as RuntimePolicy from "./RuntimePolicy.ts";
 
 // A root that does not exist never overlaps, so other owners decide isolation.
 const unrelatedProject = Option.some({
-  workspaceRoot: "/nonexistent/supacode-rollback-project",
+  workspaceRoot: "/nonexistent/supaterm-rollback-project",
 } as never);
 const layerCheckpointRollbackService = CheckpointRollbackService.layer.pipe(
   Layer.provide(
@@ -492,7 +492,7 @@ it.effect.skipIf(!symlinksSupported)(
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cwd = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-restore-isolation-",
+        prefix: "supaterm-restore-isolation-",
       });
       const path = yield* Path.Path;
       const alias = path.join(cwd, "alias");

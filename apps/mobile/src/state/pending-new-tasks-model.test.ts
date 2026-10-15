@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { CommandId, EnvironmentId, MessageId, ProjectId, ThreadId } from "@supacode/contracts";
+import { CommandId, EnvironmentId, MessageId, ProjectId, ThreadId } from "@supaterm/contracts";
 
 import type { QueuedThreadMessage } from "./thread-outbox-model";
 import type { ComposerDraft } from "./use-composer-drafts";

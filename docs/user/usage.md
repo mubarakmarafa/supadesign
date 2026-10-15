@@ -17,14 +17,14 @@ Totals depend on the history available on each server. Grok turns without a save
 record are missing from the totals.
 
 OpenCode reads its SQLite database and older JSON history. Antigravity reads local conversation
-databases, including Supacode-managed profiles. Set `OPENCODE_DATA_DIR` or `ANTIGRAVITY_DATA_DIR` on the
+databases, including Supaterm-managed profiles. Set `OPENCODE_DATA_DIR` or `ANTIGRAVITY_DATA_DIR` on the
 server to read a different data directory; comma-separated paths read multiple directories.
 
 Cursor reads account usage from Cursor's dashboard API using the CLI login saved on the server.
-This includes headless Supacode sessions and desktop usage across machines; the same account counts
-once across connected environments. Without an accessible CLI login, Supacode shows a
-notice instead of incomplete local totals. Supacode does not estimate missing tokens from conversation text.
-On macOS, choose **Enable Cursor usage** on Usage to allow Supacode to read your existing CLI login
+This includes headless Supaterm sessions and desktop usage across machines; the same account counts
+once across connected environments. Without an accessible CLI login, Supaterm shows a
+notice instead of incomplete local totals. Supaterm does not estimate missing tokens from conversation text.
+On macOS, choose **Enable Cursor usage** on Usage to allow Supaterm to read your existing CLI login
 from Keychain. You can turn it off in **Settings → Providers → Usage providers**. macOS may ask
 you to allow access on the server Mac.
 
@@ -110,7 +110,7 @@ Settings → Appearance. It reads the same snapshot and hides with the context s
 composer is collapsed.
 
 OpenCode Go reports its session, weekly, and monthly allowance when OpenCode runs locally in
-the environment. Supacode cannot report limits for external OpenCode servers because their credentials
+the environment. Supaterm cannot report limits for external OpenCode servers because their credentials
 belong to the remote server. Limits need an OpenCode Go API key. A Console sign-in alone
 does not report them. Add your Go API key as `OPENCODE_API_KEY` in the OpenCode instance's
 **Environment variables**, then refresh provider status. Cursor reports
@@ -141,9 +141,9 @@ settings section when you no longer need it.
 ## Subscription usage widget
 
 Add **Subscription usage** from your iOS or Android widget gallery to see remaining Codex and
-Claude quotas. Tap it to open **Usage → Limits**; on Android this works while Supacode is running in
+Claude quotas. Tap it to open **Usage → Limits**; on Android this works while Supaterm is running in
 the background, otherwise open the app from the launcher. On iOS, use **Edit Widget** to choose
-Session, Weekly, or both for each provider. Reopen Supacode to refresh expired readings.
+Session, Weekly, or both for each provider. Reopen Supaterm to refresh expired readings.
 
 ## Keyboard shortcuts
 

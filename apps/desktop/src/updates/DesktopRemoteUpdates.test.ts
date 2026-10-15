@@ -4,7 +4,7 @@ import type {
   DesktopTelemetryCommitDesktopUpdate,
   DesktopTelemetryCancelDesktopUpdate,
   DesktopUpdateStatusReport,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -820,7 +820,7 @@ describe("DesktopRemoteUpdates", () => {
   });
 
   it.effect("fails fast with the disabled reason when updates are off", () => {
-    const harness = makeHarness({ env: { SUPACODE_DISABLE_AUTO_UPDATE: "true" } });
+    const harness = makeHarness({ env: { SUPATERM_DISABLE_AUTO_UPDATE: "true" } });
 
     return runRemoteUpdatesTest(harness, ({ reports, requests }) =>
       Effect.gen(function* () {
@@ -832,7 +832,7 @@ describe("DesktopRemoteUpdates", () => {
         assert.equal(terminals[0]?.outcome, "failed");
         assert.equal(
           terminals[0]?.reason,
-          "Automatic updates are disabled by the SUPACODE_DISABLE_AUTO_UPDATE setting.",
+          "Automatic updates are disabled by the SUPATERM_DISABLE_AUTO_UPDATE setting.",
         );
         assert.equal(harness.quitAndInstalls(), 0);
       }),

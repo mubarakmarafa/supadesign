@@ -1,4 +1,4 @@
-import { connectionAddressLabel } from "@supacode/client-runtime/connection";
+import { connectionAddressLabel } from "@supaterm/client-runtime/connection";
 import { useAtomValue } from "@effect/atom-react";
 import type {
   AgentSessionProjectCandidate,
@@ -8,12 +8,12 @@ import type {
   ScopedProjectRef,
   ServerConfig,
   ServerProvider,
-} from "@supacode/contracts";
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
+} from "@supaterm/contracts";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   AuthTerminalOperateScope,
   CommandId,
@@ -21,7 +21,7 @@ import {
   AuthOrchestrationOperateScope,
   ProviderDriverKind,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import {
   ArrowRightIcon,
@@ -57,7 +57,7 @@ import { readProjects, useProjects } from "../../state/entities";
 import { useEnvironments, usePrimaryEnvironment } from "../../state/environments";
 import { resolveOnboardingSetup } from "../../onboarding/targetEnvironment.logic";
 import { useProjectScans } from "../../onboarding/useProjectScans";
-import { SupacodeMark } from "../SupacodeMark";
+import { SupatermMark } from "../SupatermMark";
 import { projectEnvironment } from "../../state/projects";
 import { serverEnvironment } from "../../state/server";
 import {
@@ -224,10 +224,10 @@ export function WelcomeWizard({
         initialFocus={() => document.getElementById("onboarding-pairing-url") ?? true}
       >
         <WizardHeader
-          title="Set up Supacode"
+          title="Set up Supaterm"
           identity={
-            <div className="flex items-baseline gap-1.5" role="img" aria-label="Supacode">
-              <SupacodeMark className="h-7 w-auto text-muted-foreground" aria-hidden />
+            <div className="flex items-baseline gap-1.5" role="img" aria-label="Supaterm">
+              <SupatermMark className="h-7 w-auto text-muted-foreground" aria-hidden />
             </div>
           }
         >
@@ -394,7 +394,7 @@ function ConnectionStep({
       ) : null}
       <div className="mt-6 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <p className="min-w-0 text-xs leading-relaxed text-muted-foreground">
-          Supacode collects usage data with a hashed account or installation identifier to help us
+          Supaterm collects usage data with a hashed account or installation identifier to help us
           improve it. To read more about how your data is used and how to opt out, see our{" "}
           <a
             className="underline underline-offset-2 hover:text-foreground"
@@ -524,9 +524,9 @@ function PairingForm({
             <p className="pt-3 text-sm text-muted-foreground">
               Run this on the computer with your code.
             </p>
-            <CommandBlock command="supacode pair" className="mt-2" />
+            <CommandBlock command="supaterm pair" className="mt-2" />
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Start Supacode first, or run <code className="font-mono">supacode serve</code>. Add{" "}
+              Start Supaterm first, or run <code className="font-mono">supaterm serve</code>. Add{" "}
               <code className="font-mono">--tailscale</code> to use your tailnet.
             </p>
           </CollapsiblePanel>

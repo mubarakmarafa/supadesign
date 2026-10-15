@@ -14,16 +14,16 @@
  * @module provider/Drivers/ClaudeSkills
  */
 
-import type { ClaudeSettings, ServerProviderSkill } from "@supacode/contracts";
+import type { ClaudeSettings, ServerProviderSkill } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { fromLenientJson } from "@supacode/shared/schemaJson";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { fromLenientJson } from "@supaterm/shared/schemaJson";
 import { parse as parseYamlDocument } from "yaml";
 
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 
 type ClaudeSkillScope = "user" | "project";
 

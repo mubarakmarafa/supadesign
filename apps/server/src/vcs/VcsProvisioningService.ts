@@ -7,7 +7,7 @@ import {
   type VcsError,
   type VcsInitInput,
   VcsUnsupportedOperationError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as VcsDriverRegistry from "./VcsDriverRegistry.ts";
 
 export class VcsProvisioningService extends Context.Service<
@@ -15,7 +15,7 @@ export class VcsProvisioningService extends Context.Service<
   {
     readonly initRepository: (input: VcsInitInput) => Effect.Effect<void, VcsError>;
   }
->()("supacode/vcs/VcsProvisioningService") {}
+>()("supaterm/vcs/VcsProvisioningService") {}
 
 function resolveRequestedKind(
   kind: VcsDriverKind | undefined,

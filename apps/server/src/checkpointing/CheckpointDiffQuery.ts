@@ -13,7 +13,7 @@ import {
   type OrchestrationGetTurnDiffInput,
   type OrchestrationGetTurnDiffResult as OrchestrationGetTurnDiffResultType,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -79,7 +79,7 @@ export class CheckpointDiffQuery extends Context.Service<
       input: OrchestrationGetFullThreadDiffInput,
     ) => Effect.Effect<OrchestrationGetFullThreadDiffResult, CheckpointServiceError>;
   }
->()("supacode/checkpointing/CheckpointDiffQuery") {}
+>()("supaterm/checkpointing/CheckpointDiffQuery") {}
 
 const isTurnDiffResult = Schema.is(OrchestrationGetTurnDiffResult);
 

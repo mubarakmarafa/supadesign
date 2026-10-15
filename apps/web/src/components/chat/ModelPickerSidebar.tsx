@@ -1,5 +1,5 @@
 import { Toolbar } from "@base-ui/react/toolbar";
-import { type ProviderInstanceId } from "@supacode/contracts";
+import { type ProviderInstanceId } from "@supaterm/contracts";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { SparklesIcon, StarIcon } from "lucide-react";
 import { ProviderInstanceIcon } from "./ProviderInstanceIcon";

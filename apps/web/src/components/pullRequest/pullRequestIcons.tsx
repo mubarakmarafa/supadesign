@@ -8,7 +8,7 @@ import {
   Unlink2Icon,
   TriangleAlertIcon,
 } from "lucide-react";
-import type { PullRequestState } from "@supacode/contracts";
+import type { PullRequestState } from "@supaterm/contracts";
 
 export const PullRequestGlyph = {
   pullRequest: GitPullRequestArrowIcon,

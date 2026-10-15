@@ -1,0 +1,10 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["SupatermReviewDiffModule"],
+    "podspecPath": "SupatermReviewDiffNative.podspec"
+  },
+  "android": {
+    "modules": ["expo.modules.supatermreviewdiff.SupatermReviewDiffModule"]
+  }
+}

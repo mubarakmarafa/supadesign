@@ -5,8 +5,8 @@ import {
   type OrchestrationV2ThreadProjection,
   type OrchestrationV2ThreadStreamItem,
   type ThreadId as ThreadIdType,
-} from "@supacode/contracts";
-import { boundedSnapshotProjection } from "@supacode/shared/orchestrationV2BoundedSnapshot";
+} from "@supaterm/contracts";
+import { boundedSnapshotProjection } from "@supaterm/shared/orchestrationV2BoundedSnapshot";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";

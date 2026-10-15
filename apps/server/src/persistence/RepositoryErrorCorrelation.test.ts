@@ -1,4 +1,4 @@
-import { AuthSessionId, ThreadId, type AuthEnvironmentScope } from "@supacode/contracts";
+import { AuthSessionId, ThreadId, type AuthEnvironmentScope } from "@supaterm/contracts";
 import { assert, describe, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";

@@ -3,7 +3,7 @@ import type {
   DesktopPreviewBridge,
   DesktopPreviewWebviewConfig,
   EnvironmentId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";

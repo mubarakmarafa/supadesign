@@ -13,7 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import { useParams } from "@tanstack/react-router";
-import { type ScopedThreadRef, type ThreadId } from "@supacode/contracts";
+import { type ScopedThreadRef, type ThreadId } from "@supaterm/contracts";
 import { CircleAlertIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { Check, ChevronDown, ChevronUp, Copy } from "lucide";
 

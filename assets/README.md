@@ -6,7 +6,7 @@ The three shared Icon Composer projects are the source of truth for exported app
 - `nightly/app-icon.icon`
 - `prod/app-icon.icon`
 
-Each project uses `text.svg` for the Supacode mark and `background.svg` for the artwork behind it. Additional layers use semantic names that describe their role and placement.
+Each project uses `text.svg` for the Supaterm mark and `background.svg` for the artwork behind it. Additional layers use semantic names that describe their role and placement.
 
 Run `vp run icons:export` from the repository root to regenerate the tracked iOS, Linux, Windows, and web assets. The development web exports are also copied to `apps/web/public` for the browser favicon and splash screen. Run `vp run icons:check` to verify that the generated assets and public copies match their sources without changing files.
 

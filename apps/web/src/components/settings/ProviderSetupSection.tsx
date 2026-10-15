@@ -2,14 +2,14 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   ANTIGRAVITY_AUTH_METHODS,
   type AntigravityAuthMethod,
   type EnvironmentId,
   type ProviderInstanceId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useRef, useState } from "react";
 import { Trash2Icon } from "lucide-react";
 

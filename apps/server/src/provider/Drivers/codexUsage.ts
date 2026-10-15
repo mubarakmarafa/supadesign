@@ -4,7 +4,7 @@
  *
  * @module provider/Drivers/codexUsage
  */
-import type { CodexSettings } from "@supacode/contracts";
+import type { CodexSettings } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
@@ -17,8 +17,8 @@ import {
   type TranscriptUsageFormat,
   type UsageRecord,
   type UsageSpeed,
-} from "@supacode/provider-core/server/usage";
-import type { UsageTokenTotals } from "@supacode/contracts";
+} from "@supaterm/provider-core/server/usage";
+import type { UsageTokenTotals } from "@supaterm/contracts";
 
 import { resolveCodexHomeLayout } from "./CodexHomeLayout.ts";
 

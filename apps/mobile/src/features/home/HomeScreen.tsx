@@ -8,12 +8,12 @@ import { useThreadListMotion } from "../threads/use-thread-list-motion";
 import {
   type EnvironmentProject,
   type EnvironmentThreadShell,
-} from "@supacode/client-runtime/state/shell";
+} from "@supaterm/client-runtime/state/shell";
 import {
   threadSearchMatchKey,
   type EnvironmentThreadSearchMatch,
-} from "@supacode/client-runtime/state/thread-search";
-import { type EnvironmentId, type SidebarProjectGroupingMode } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/thread-search";
+import { type EnvironmentId, type SidebarProjectGroupingMode } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { HeaderHeightContext } from "@react-navigation/elements";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";

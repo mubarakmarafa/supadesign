@@ -1,4 +1,4 @@
-import { COMPOSER_CONTEXT_KINDS, type KnownComposerContextKind } from "@supacode/contracts";
+import { COMPOSER_CONTEXT_KINDS, type KnownComposerContextKind } from "@supaterm/contracts";
 
 export interface ContextPresentationCapability {
   details: "none" | "tooltip" | "popover";

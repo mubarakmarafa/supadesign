@@ -1,4 +1,4 @@
-import { CommandId, EnvironmentId, MessageId, ThreadId } from "@supacode/contracts";
+import { CommandId, EnvironmentId, MessageId, ThreadId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import type { QueuedThreadMessage } from "./thread-outbox-model";

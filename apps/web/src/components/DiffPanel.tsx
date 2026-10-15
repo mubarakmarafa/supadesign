@@ -5,9 +5,9 @@ import { useParams } from "@tanstack/react-router";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
-import { safeErrorLogAttributes } from "@supacode/client-runtime/errors";
-import type { ScopedThreadRef, RunId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import { safeErrorLogAttributes } from "@supaterm/client-runtime/errors";
+import type { ScopedThreadRef, RunId } from "@supaterm/contracts";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -96,7 +96,7 @@ import { DiffFileStatus } from "./diffs/DiffFileStatus";
 
 type DiffThemeType = "light" | "dark";
 const AUTOMATIC_BASE_REF = "__automatic_base_ref__";
-const DIFF_FILE_TREE_STORAGE_KEY = "supacode.diffFileTreeOpen";
+const DIFF_FILE_TREE_STORAGE_KEY = "supaterm.diffFileTreeOpen";
 const fileEntryCache = new WeakMap<
   FileDiffMetadata,
   { fileDiff: FileDiffMetadata; fileKey: string; fileVersion: number }

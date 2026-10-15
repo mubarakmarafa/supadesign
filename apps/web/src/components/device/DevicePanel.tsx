@@ -4,7 +4,7 @@ import type {
   DeviceServiceState,
   DeviceSummary,
   ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { Smartphone, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 

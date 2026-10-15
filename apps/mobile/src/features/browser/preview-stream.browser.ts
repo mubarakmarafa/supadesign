@@ -7,7 +7,7 @@ import {
   type PreviewStreamInput,
   type PreviewStreamPointer,
   type PreviewStreamViewport,
-} from "@supacode/client-runtime/preview/server-browser-stream";
+} from "@supaterm/client-runtime/preview/server-browser-stream";
 
 import type { PreviewStreamConfiguration, PreviewStreamMessage } from "./preview-stream-document";
 

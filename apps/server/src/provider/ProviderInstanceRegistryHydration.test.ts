@@ -4,7 +4,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { deriveProviderInstanceConfigMap } from "./ProviderInstanceRegistryHydration.ts";

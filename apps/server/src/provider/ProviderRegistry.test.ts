@@ -31,13 +31,13 @@ import {
   type ServerProvider,
   type ServerProviderSlashCommand,
   type ServerSettings as ContractServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as PlatformError from "effect/PlatformError";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { ChildProcessSpawner } from "effect/process";
-import { deepMerge } from "@supacode/shared/Struct";
-import { createModelCapabilities } from "@supacode/shared/model";
-import { applyServerSettingsPatch } from "@supacode/shared/serverSettings";
+import { deepMerge } from "@supaterm/shared/Struct";
+import { createModelCapabilities } from "@supaterm/shared/model";
+import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
 
 import { checkCodexProviderStatus, type CodexAppServerProviderSnapshot } from "./CodexProvider.ts";
 import { checkClaudeProviderStatus } from "./ClaudeProvider.ts";
@@ -46,11 +46,11 @@ import * as AntigravityInstallation from "./AntigravityInstallation.ts";
 import * as ModelManifest from "./ModelManifest.ts";
 import { applyProviderCompatibility } from "./providerCompatibility.ts";
 import * as ResetCreditCoordinator from "./resetCreditCoordinator.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as OpenCodeRuntime from "@supacode/provider-opencode/server/OpenCodeRuntime";
-import * as OpenCodeServerLedger from "@supacode/provider-opencode/server/OpenCodeServerLedger";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as OpenCodeRuntime from "@supaterm/provider-opencode/server/OpenCodeRuntime";
+import * as OpenCodeServerLedger from "@supaterm/provider-opencode/server/OpenCodeServerLedger";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import * as ProviderInstanceRegistryHydration from "./ProviderInstanceRegistryHydration.ts";
 import * as ServerConfig from "../config.ts";
 import * as ServerSettingsModule from "../serverSettings.ts";
@@ -59,14 +59,14 @@ import {
   resolveProviderStatusCachePath,
   writeProviderStatusCache,
 } from "./providerStatusCache.ts";
-import { COMPACT_SLASH_COMMAND } from "@supacode/provider-core/server/snapshotProbe";
+import { COMPACT_SLASH_COMMAND } from "@supaterm/provider-core/server/snapshotProbe";
 import type {
   ProviderInstance,
   ProviderWorkspaceSnapshot,
-} from "@supacode/provider-core/server/driver";
+} from "@supaterm/provider-core/server/driver";
 import * as ProviderInstanceRegistry from "./ProviderInstanceRegistry.ts";
 import * as ProviderRegistry from "./ProviderRegistry.ts";
-import { makeManualOnlyProviderMaintenanceCapabilities } from "@supacode/provider-core/server/maintenanceResolver";
+import { makeManualOnlyProviderMaintenanceCapabilities } from "@supaterm/provider-core/server/maintenanceResolver";
 const decodeServerSettings = Schema.decodeSync(ServerSettings);
 const encodeServerSettings = Schema.encodeSync(ServerSettings);
 const encodedDefaultServerSettings = encodeServerSettings(DEFAULT_SERVER_SETTINGS);
@@ -88,7 +88,7 @@ const disabledCodexSettings: CodexSettings = Schema.decodeSync(CodexSettings)({
   enabled: false,
 });
 
-process.env.SUPACODE_CURSOR_ENABLED = "1";
+process.env.SUPATERM_CURSOR_ENABLED = "1";
 
 // ── Test helpers ────────────────────────────────────────────────────
 
@@ -1275,7 +1275,7 @@ it.layer(
         }).pipe(
           Effect.provide(
             ServerConfig.layerTest(process.cwd(), {
-              prefix: "supacodex-retired-model-cache-",
+              prefix: "supatermx-retired-model-cache-",
             }).pipe(Layer.provideMerge(NodeServices.layer)),
           ),
         ),
@@ -1625,7 +1625,7 @@ it.layer(
             Layer.provideMerge(layerInstanceRegistry),
             Layer.provideMerge(
               ServerConfig.layerTest(process.cwd(), {
-                prefix: "supacode-provider-registry-background-refresh-",
+                prefix: "supaterm-provider-registry-background-refresh-",
               }),
             ),
             Layer.provideMerge(NodeServices.layer),
@@ -1764,7 +1764,7 @@ it.layer(
             Layer.provideMerge(layerInstanceRegistry),
             Layer.provideMerge(
               ServerConfig.layerTest(process.cwd(), {
-                prefix: "supacode-provider-registry-workspace-snapshot-",
+                prefix: "supaterm-provider-registry-workspace-snapshot-",
               }),
             ),
             Layer.provideMerge(NodeServices.layer),
@@ -2029,7 +2029,7 @@ it.layer(
             Layer.provideMerge(layerInstanceRegistry),
             Layer.provideMerge(
               ServerConfig.layerTest(process.cwd(), {
-                prefix: "supacode-provider-registry-reconnect-refresh-",
+                prefix: "supaterm-provider-registry-reconnect-refresh-",
               }),
             ),
             Layer.provideMerge(NodeServices.layer),
@@ -2205,7 +2205,7 @@ it.layer(
             Layer.provideMerge(instanceRegistryLayer),
             Layer.provideMerge(
               ServerConfig.layerTest(process.cwd(), {
-                prefix: "supacode-provider-registry-shared-refresh-",
+                prefix: "supaterm-provider-registry-shared-refresh-",
               }),
             ),
             Layer.provideMerge(NodeServices.layer),
@@ -2311,7 +2311,7 @@ it.layer(
             Layer.provideMerge(layerInstanceRegistry),
             Layer.provideMerge(
               ServerConfig.layerTest(process.cwd(), {
-                prefix: "supacode-provider-registry-merged-persist-",
+                prefix: "supaterm-provider-registry-merged-persist-",
               }),
             ),
             Layer.provideMerge(layerBackgroundPolicyAlwaysRun),
@@ -2439,7 +2439,7 @@ it.layer(
               Layer.provideMerge(layerInstanceRegistry),
               Layer.provideMerge(
                 ServerConfig.layerTest(process.cwd(), {
-                  prefix: "supacode-provider-registry-opencode-authoritative-persist-",
+                  prefix: "supaterm-provider-registry-opencode-authoritative-persist-",
                 }),
               ),
               Layer.provideMerge(NodeServices.layer),
@@ -2542,7 +2542,7 @@ it.layer(
             Layer.provideMerge(layerInstanceRegistry),
             Layer.provideMerge(
               ServerConfig.layerTest(process.cwd(), {
-                prefix: "supacode-provider-registry-refresh-failure-",
+                prefix: "supaterm-provider-registry-refresh-failure-",
               }),
             ),
             Layer.provideMerge(layerBackgroundPolicyAlwaysRun),
@@ -2658,7 +2658,7 @@ it.layer(
             Layer.provideMerge(layerInstanceRegistry),
             Layer.provideMerge(
               ServerConfig.layerTest(process.cwd(), {
-                prefix: "supacode-provider-registry-sync-failure-",
+                prefix: "supaterm-provider-registry-sync-failure-",
               }),
             ),
             Layer.provideMerge(layerBackgroundPolicyAlwaysRun),
@@ -2709,7 +2709,7 @@ it.layer(
     // assertions below fail.
     it.effect("propagates real Codex probe failures to the aggregator at boot", () =>
       Effect.gen(function* () {
-        const missingBinary = `supacode_codex_missing_`;
+        const missingBinary = `supaterm_codex_missing_`;
         const serverSettings = yield* makeMutableServerSettingsService(
           decodeServerSettings(
             deepMerge(encodedDefaultServerSettings, {
@@ -2725,7 +2725,7 @@ it.layer(
                 // test environment stays isolated from the dev
                 // machine's PATH.
                 ...disabledDefaultSlots("codex", "claudeAgent", "cursor", "grok", "opencode"),
-                // Matches the shape the user had in `.supacode/dev/settings.json`
+                // Matches the shape the user had in `.supaterm/dev/settings.json`
                 // when the bug was reported: a custom enabled Codex instance
                 // pointing at a binary the server has to actually spawn.
                 codex_personal: {
@@ -2752,7 +2752,7 @@ it.layer(
           Layer.provideMerge(ServerSecretStore.layer),
           Layer.provideMerge(
             ServerConfig.layerTest(process.cwd(), {
-              prefix: "supacode-provider-registry-",
+              prefix: "supaterm-provider-registry-",
             }),
           ),
           Layer.provideMerge(layerTestHttpClient),
@@ -2818,8 +2818,8 @@ it.layer(
     // A binary path change must rebuild Codex and publish its new probe result.
     it.effect("re-probes when settings change the codex binaryPath", () =>
       Effect.gen(function* () {
-        const firstMissing = `supacode_codex_first_`;
-        const secondMissing = `supacode_codex_second_`;
+        const firstMissing = `supaterm_codex_first_`;
+        const secondMissing = `supaterm_codex_second_`;
         const spawnedCommands: Array<string> = [];
         const secondProbeStarted = yield* Deferred.make<void>();
         const releaseSecondProbe = yield* Deferred.make<void>();
@@ -2857,7 +2857,7 @@ it.layer(
           Layer.provideMerge(ServerSecretStore.layer),
           Layer.provideMerge(
             ServerConfig.layerTest(process.cwd(), {
-              prefix: "supacode-provider-registry-",
+              prefix: "supaterm-provider-registry-",
             }),
           ),
           Layer.provideMerge(layerTestHttpClient),
@@ -2977,7 +2977,7 @@ it.layer(
           Layer.provideMerge(ServerSecretStore.layer),
           Layer.provideMerge(
             ServerConfig.layerTest(process.cwd(), {
-              prefix: "supacode-provider-registry-",
+              prefix: "supaterm-provider-registry-",
             }),
           ),
           Layer.provideMerge(layerTestHttpClient),
@@ -3037,7 +3037,7 @@ it.layer(
             Layer.provideMerge(ServerSecretStore.layer),
             Layer.provideMerge(
               ServerConfig.layerTest(process.cwd(), {
-                prefix: "supacode-provider-registry-",
+                prefix: "supaterm-provider-registry-",
               }),
             ),
             Layer.provideMerge(layerTestHttpClient),
@@ -3105,7 +3105,7 @@ it.layer(
             ]);
             assert.strictEqual(cursorProvider?.enabled, false);
             assert.strictEqual(cursorProvider?.status, "disabled");
-            assert.strictEqual(cursorProvider?.message, "Cursor is disabled in Supacode settings.");
+            assert.strictEqual(cursorProvider?.message, "Cursor is disabled in Supaterm settings.");
             const museProvider = providers.find((provider) => provider.driver === "muse");
             assert.strictEqual(museProvider?.enabled, false);
             assert.strictEqual(museProvider?.status, "disabled");
@@ -3122,7 +3122,7 @@ it.layer(
         assert.strictEqual(status.enabled, false);
         assert.strictEqual(status.status, "disabled");
         assert.strictEqual(status.installed, false);
-        assert.strictEqual(status.message, "Codex is disabled in Supacode settings.");
+        assert.strictEqual(status.message, "Codex is disabled in Supaterm settings.");
       }),
     );
   });
@@ -3399,7 +3399,7 @@ it.layer(
     );
 
     it.effect("runs Claude status probes with the configured CLAUDE_CONFIG_DIR", () => {
-      const claudeConfigDir = "/tmp/supacode-claude-home";
+      const claudeConfigDir = "/tmp/supaterm-claude-home";
       const recorded = recordingMockSpawnerLayer((args) => {
         const joined = args.join(" ");
         if (joined === "--version") return { stdout: "1.0.0\n", stderr: "", code: 0 };

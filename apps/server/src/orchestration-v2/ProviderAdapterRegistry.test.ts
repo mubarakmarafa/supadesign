@@ -7,7 +7,7 @@ import {
   ThreadId,
   ProviderSetupError,
   type ProviderInstanceConfigMap,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -18,16 +18,16 @@ import * as Schema from "effect/Schema";
 import type * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 
-import * as ProviderAuthFlow from "@supacode/provider-core/server/providerAuthFlow";
+import * as ProviderAuthFlow from "@supaterm/provider-core/server/providerAuthFlow";
 import type { ProviderAuthController } from "../provider/ProviderAuthService.ts";
-import type { ProviderInstance } from "@supacode/provider-core/server/driver";
+import type { ProviderInstance } from "@supaterm/provider-core/server/driver";
 import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
 import {
   ProviderAdapterDriverCreateError,
   type ProviderAdapterDriver,
-} from "@supacode/provider-core/server/adapterDriver";
+} from "@supaterm/provider-core/server/adapterDriver";
 import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 const driver = ProviderDriverKind.make("codex");
 const personalId = ProviderInstanceId.make("codex_personal");

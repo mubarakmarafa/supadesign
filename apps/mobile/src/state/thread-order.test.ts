@@ -1,5 +1,5 @@
-import type { EnvironmentThreadShell } from "@supacode/client-runtime/state/shell";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import type { Atom } from "effect/reactivity";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 

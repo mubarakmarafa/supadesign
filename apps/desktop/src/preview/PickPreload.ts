@@ -12,7 +12,7 @@ import type {
   PreviewAnnotationStrokeTarget,
   PreviewAnnotationStyleChange,
   PreviewAnnotationSubmission,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 import { resolveAnnotationSubmission } from "./AnnotationKeyboard.ts";
 import { previewAnnotationStyles } from "./AnnotationStyles.generated.ts";
@@ -33,10 +33,10 @@ import {
   RECORDING_CONTROLLER_CHANNEL,
   START_PICK_CHANNEL,
 } from "./GuestProtocol.ts";
-const OVERLAY_ATTRIBUTE = "data-supacode-annotation-ui";
+const OVERLAY_ATTRIBUTE = "data-supaterm-annotation-ui";
 const Z_INDEX_OVERLAY = 2147483646;
-const PRIMARY = "var(--supacode-primary)";
-const PRIMARY_FILL = "color-mix(in srgb, var(--supacode-primary) 10%, transparent)";
+const PRIMARY = "var(--supaterm-primary)";
+const PRIMARY_FILL = "color-mix(in srgb, var(--supaterm-primary) 10%, transparent)";
 const MAX_MARQUEE_ELEMENTS = 20;
 /** Upper bound on one element's React context lookup during submit. */
 const ELEMENT_CONTEXT_TIMEOUT_MS = 5_000;
@@ -144,22 +144,22 @@ const applyAnnotationTheme = (
   if (!theme) return;
   host.style.colorScheme = theme.colorScheme;
   const variables = {
-    "--supacode-radius": theme.radius,
-    "--supacode-background": theme.background,
-    "--supacode-foreground": theme.foreground,
-    "--supacode-popover": theme.popover,
-    "--supacode-popover-foreground": theme.popoverForeground,
-    "--supacode-primary": theme.primary,
-    "--supacode-primary-foreground": theme.primaryForeground,
-    "--supacode-muted": theme.muted,
-    "--supacode-muted-foreground": theme.mutedForeground,
-    "--supacode-accent": theme.accent,
-    "--supacode-accent-foreground": theme.accentForeground,
-    "--supacode-border": theme.border,
-    "--supacode-input": theme.input,
-    "--supacode-ring": theme.ring,
-    "--supacode-font-sans": theme.fontSans,
-    "--supacode-font-mono": theme.fontMono,
+    "--supaterm-radius": theme.radius,
+    "--supaterm-background": theme.background,
+    "--supaterm-foreground": theme.foreground,
+    "--supaterm-popover": theme.popover,
+    "--supaterm-popover-foreground": theme.popoverForeground,
+    "--supaterm-primary": theme.primary,
+    "--supaterm-primary-foreground": theme.primaryForeground,
+    "--supaterm-muted": theme.muted,
+    "--supaterm-muted-foreground": theme.mutedForeground,
+    "--supaterm-accent": theme.accent,
+    "--supaterm-accent-foreground": theme.accentForeground,
+    "--supaterm-border": theme.border,
+    "--supaterm-input": theme.input,
+    "--supaterm-ring": theme.ring,
+    "--supaterm-font-sans": theme.fontSans,
+    "--supaterm-font-mono": theme.fontMono,
   };
   for (const [name, value] of Object.entries(variables)) {
     host.style.setProperty(name, value);
@@ -569,7 +569,7 @@ function startAnnotation(sendEnabled: boolean): void {
   root.style.cssText = "pointer-events:none";
   const cursorStyle = document.createElement("style");
   cursorStyle.setAttribute(OVERLAY_ATTRIBUTE, "");
-  cursorStyle.textContent = `html[data-supacode-annotation-tool] body, html[data-supacode-annotation-tool] body * { cursor: crosshair !important; } [${OVERLAY_ATTRIBUTE}], [${OVERLAY_ATTRIBUTE}] * { cursor: default !important; } [${OVERLAY_ATTRIBUTE}] input[type=number]::-webkit-inner-spin-button, [${OVERLAY_ATTRIBUTE}] input[type=number]::-webkit-outer-spin-button { appearance:none; margin:0; }`;
+  cursorStyle.textContent = `html[data-supaterm-annotation-tool] body, html[data-supaterm-annotation-tool] body * { cursor: crosshair !important; } [${OVERLAY_ATTRIBUTE}], [${OVERLAY_ATTRIBUTE}] * { cursor: default !important; } [${OVERLAY_ATTRIBUTE}] input[type=number]::-webkit-inner-spin-button, [${OVERLAY_ATTRIBUTE}] input[type=number]::-webkit-outer-spin-button { appearance:none; margin:0; }`;
   document.documentElement.appendChild(cursorStyle);
   shadowRoot.appendChild(root);
 
@@ -693,7 +693,7 @@ function startAnnotation(sendEnabled: boolean): void {
     }
     if (tool !== "select") hoverOutline.style.display = "none";
     if (tool !== "marquee") marqueeBox.style.display = "none";
-    document.documentElement.setAttribute("data-supacode-annotation-tool", tool);
+    document.documentElement.setAttribute("data-supaterm-annotation-tool", tool);
   };
 
   const removeSelected = (target: SelectedElement): void => {
@@ -1307,7 +1307,7 @@ function startAnnotation(sendEnabled: boolean): void {
           regions.push(region);
           const regionBox = createBox(
             PRIMARY,
-            "color-mix(in srgb, var(--supacode-primary) 6%, transparent)",
+            "color-mix(in srgb, var(--supaterm-primary) 6%, transparent)",
           );
           regionBox.setAttribute("data-region-id", region.id);
           positionBox(regionBox, rect);
@@ -1369,7 +1369,7 @@ function startAnnotation(sendEnabled: boolean): void {
     if (editorLayoutFrame !== null) window.cancelAnimationFrame(editorLayoutFrame);
     ipcRenderer.off(CANCEL_PICK_CHANNEL, onCancel);
     ipcRenderer.off(ANNOTATION_CAPTURED_CHANNEL, onCaptured);
-    document.documentElement.removeAttribute("data-supacode-annotation-tool");
+    document.documentElement.removeAttribute("data-supaterm-annotation-tool");
     cursorStyle.remove();
     host.remove();
     activeSession = null;

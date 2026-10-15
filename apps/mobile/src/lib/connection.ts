@@ -1,5 +1,5 @@
-import { EnvironmentId } from "@supacode/contracts";
-import { type EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
+import { EnvironmentId } from "@supaterm/contracts";
+import { type EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
 
 export interface SavedRemoteConnection {
   readonly environmentId: EnvironmentId;

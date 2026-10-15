@@ -5,8 +5,8 @@ import {
   AuthOrchestrationReadScope,
   type EnvironmentId,
   type ServerProvider,
-} from "@supacode/contracts";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/contracts";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
 import { useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
@@ -113,7 +113,7 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
       return;
     Alert.alert(
       `Update ${environment?.environmentLabel ?? "environment"}?`,
-      `Install Supacode ${targetVersion}. ${capabilities.serverSelfUpdate === "desktop-managed" ? "The desktop app will close and relaunch." : "The server will restart and reconnect."} Running threads may be interrupted.`,
+      `Install Supaterm ${targetVersion}. ${capabilities.serverSelfUpdate === "desktop-managed" ? "The desktop app will close and relaunch." : "The server will restart and reconnect."} Running threads may be interrupted.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -228,7 +228,7 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
             {notice ? <Text className="px-2 text-sm text-foreground-muted">{notice}</Text> : null}
             {config ? (
               <>
-                <SettingsSection title="Supacode">
+                <SettingsSection title="Supaterm">
                   <View className="gap-1 p-4">
                     <Text className="text-base text-foreground">Version {version}</Text>
                     {running ? (
@@ -253,7 +253,7 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                       <Text className="text-sm text-foreground-muted">
                         {capabilities?.serverSelfUpdate === "desktop-managed"
                           ? "Update the desktop app on this machine."
-                          : "Update and restart Supacode on this machine."}
+                          : "Update and restart Supaterm on this machine."}
                       </Text>
                     ) : null}
                   </View>
@@ -319,7 +319,7 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                         <View className="gap-1 p-4">
                           <View className="flex-row items-center gap-2">
                             <ProviderIcon provider={provider.driver} size={18} />
-                            <Text className="min-w-0 flex-1 text-base font-supacode-medium text-foreground">
+                            <Text className="min-w-0 flex-1 text-base font-supaterm-medium text-foreground">
                               {provider.displayName ?? provider.driver}
                             </Text>
                           </View>

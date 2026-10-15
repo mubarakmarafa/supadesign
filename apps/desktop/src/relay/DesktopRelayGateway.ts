@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off - native loopback endpoint for Electron's HTTP loaders.
 import * as NodeCrypto from "node:crypto";
-import { createLoopbackRelayPool } from "@supacode/shared/relay/loopbackPool";
-import { openLoopbackRelay } from "@supacode/shared/relay/tunnelNode";
+import { createLoopbackRelayPool } from "@supaterm/shared/relay/loopbackPool";
+import { openLoopbackRelay } from "@supaterm/shared/relay/tunnelNode";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -21,7 +21,7 @@ export class DesktopRelayGateway extends Context.Service<
     readonly start: (address: string, relayUrl: string) => Effect.Effect<string, DesktopRelayError>;
     readonly stop: (address: string) => Effect.Effect<void, DesktopRelayError>;
   }
->()("@supacode/desktop/relay/DesktopRelayGateway") {}
+>()("@supaterm/desktop/relay/DesktopRelayGateway") {}
 
 const OWNER = "desktop";
 

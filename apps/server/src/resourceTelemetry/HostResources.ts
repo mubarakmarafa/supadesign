@@ -1,6 +1,6 @@
 import * as NodeOS from "node:os";
-import type { HostResourcesSnapshot } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import type { HostResourcesSnapshot } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Cache from "effect/Cache";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
@@ -12,7 +12,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 export class HostResources extends Context.Service<
   HostResources,
   { readonly read: Effect.Effect<HostResourcesSnapshot> }
->()("supacode/resourceTelemetry/HostResources") {}
+>()("supaterm/resourceTelemetry/HostResources") {}
 
 function readCpu() {
   const cpus = NodeOS.cpus();

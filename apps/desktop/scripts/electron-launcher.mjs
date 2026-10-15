@@ -1,4 +1,4 @@
-// This file mostly exists because we want dev mode to say "Supacode (Dev)" instead of "electron"
+// This file mostly exists because we want dev mode to say "Supaterm (Dev)" instead of "electron"
 
 import * as NodeChildProcess from "node:child_process";
 import * as NodeFS from "node:fs";
@@ -15,11 +15,11 @@ const repoRoot = NodePath.resolve(desktopDir, "..", "..");
 const devBundleIdSuffix = NodePath.basename(repoRoot)
   .toLowerCase()
   .replaceAll(/[^a-z0-9]+/g, "");
-const APP_DISPLAY_NAME = isDevelopment ? "Supacode (Dev)" : "Supacode";
+const APP_DISPLAY_NAME = isDevelopment ? "Supaterm (Dev)" : "Supaterm";
 const APP_BUNDLE_ID = isDevelopment
-  ? `com.supaterm.supacode.dev.${devBundleIdSuffix || "local"}`
-  : "com.supaterm.supacode";
-const APP_PROTOCOL_SCHEMES = isDevelopment ? ["supacode-dev"] : ["supacode"];
+  ? `com.supaterm.desktop.dev.${devBundleIdSuffix || "local"}`
+  : "com.supaterm.desktop";
+const APP_PROTOCOL_SCHEMES = isDevelopment ? ["supaterm-dev"] : ["supaterm"];
 const LAUNCHER_VERSION = 19;
 const developmentMacIconPngPath = NodePath.join(
   repoRoot,
@@ -28,7 +28,7 @@ const developmentMacIconPngPath = NodePath.join(
   "blueprint-macos-1024.png",
 );
 const productionMacIconPngPath = NodePath.join(repoRoot, "assets", "prod", "black-macos-1024.png");
-// oxlint-disable-next-line supacode/no-global-process-runtime -- Standalone launcher script has no Effect runtime.
+// oxlint-disable-next-line supaterm/no-global-process-runtime -- Standalone launcher script has no Effect runtime.
 const hostPlatform = NodeOS.platform();
 
 function setPlistString(plistPath, key, value) {
@@ -111,14 +111,14 @@ function shellSingleQuote(value) {
 export function makeDevelopmentEnvironmentScript(environment) {
   const envEntries = [
     ["VITE_DEV_SERVER_URL", environment.VITE_DEV_SERVER_URL],
-    ["SUPACODE_PORT", environment.SUPACODE_PORT],
-    ["SUPACODE_HOME", environment.SUPACODE_HOME],
-    ["SUPACODE_COMMIT_HASH", environment.SUPACODE_COMMIT_HASH],
-    ["SUPACODE_OTLP_TRACES_URL", environment.SUPACODE_OTLP_TRACES_URL],
-    ["SUPACODE_OTLP_EXPORT_INTERVAL_MS", environment.SUPACODE_OTLP_EXPORT_INTERVAL_MS],
-    ["SUPACODE_OTLP_HEADERS", environment.SUPACODE_OTLP_HEADERS],
-    ["SUPACODE_OTLP_PROTOCOL", environment.SUPACODE_OTLP_PROTOCOL],
-    ["SUPACODE_DESKTOP_APP_USER_MODEL_ID", APP_BUNDLE_ID],
+    ["SUPATERM_PORT", environment.SUPATERM_PORT],
+    ["SUPATERM_HOME", environment.SUPATERM_HOME],
+    ["SUPATERM_COMMIT_HASH", environment.SUPATERM_COMMIT_HASH],
+    ["SUPATERM_OTLP_TRACES_URL", environment.SUPATERM_OTLP_TRACES_URL],
+    ["SUPATERM_OTLP_EXPORT_INTERVAL_MS", environment.SUPATERM_OTLP_EXPORT_INTERVAL_MS],
+    ["SUPATERM_OTLP_HEADERS", environment.SUPATERM_OTLP_HEADERS],
+    ["SUPATERM_OTLP_PROTOCOL", environment.SUPATERM_OTLP_PROTOCOL],
+    ["SUPATERM_DESKTOP_APP_USER_MODEL_ID", APP_BUNDLE_ID],
   ].filter((entry) => typeof entry[1] === "string" && entry[1].trim().length > 0);
   return [
     ...envEntries.map(
@@ -138,7 +138,7 @@ export function makeDevelopmentLauncherScript({
   return [
     "#!/bin/sh",
     `if [ -f ${shellSingleQuote(environmentFilePath)} ]; then . ${shellSingleQuote(environmentFilePath)}; fi`,
-    `exec ${shellSingleQuote(electronBinaryPath)} --supacode-dev-root=${shellSingleQuote(desktopRoot)} ${shellSingleQuote(mainEntryPath)} "$@"`,
+    `exec ${shellSingleQuote(electronBinaryPath)} --supaterm-dev-root=${shellSingleQuote(desktopRoot)} ${shellSingleQuote(mainEntryPath)} "$@"`,
     "",
   ].join("\n");
 }
@@ -270,8 +270,8 @@ export function resolveMacBundleInfoPlistStrings(executableName) {
     CFBundleExecutable: executableName,
     CFBundleIconFile: "icon.icns",
     NSScreenCaptureUsageDescription:
-      "Supacode captures the active window when you use the snapshot shortcut.",
-    NSDocumentsFolderUsageDescription: "Supacode reads project files you open in the desktop app.",
+      "Supaterm captures the active window when you use the snapshot shortcut.",
+    NSDocumentsFolderUsageDescription: "Supaterm reads project files you open in the desktop app.",
   };
 }
 
@@ -402,7 +402,7 @@ function buildMacLauncher(electronBinaryPath) {
   if (isDevelopment) {
     // Keep Electron's native executable inside the branded bundle. Launching the
     // node_modules copy makes macOS associate the process (and Dock label) with
-    // Electron.app even though this bundle's Info.plist has the Supacode name.
+    // Electron.app even though this bundle's Info.plist has the Supaterm name.
     // Its conventional executable name also keeps Electron's default-app runtime
     // in development mode instead of making app.isPackaged report true.
     writeDevelopmentEnvironmentScript();

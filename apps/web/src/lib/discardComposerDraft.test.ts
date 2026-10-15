@@ -1,5 +1,5 @@
-import { EnvironmentId, ProjectId, ThreadId } from "@supacode/contracts";
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
+import { EnvironmentId, ProjectId, ThreadId } from "@supaterm/contracts";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { toastManager } from "../components/ui/toast";

@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as PartitionedSemaphore from "effect/PartitionedSemaphore";
 import { Atom, type AtomRegistry } from "effect/reactivity";

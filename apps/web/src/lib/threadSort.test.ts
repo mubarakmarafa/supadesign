@@ -5,7 +5,7 @@ import {
   ProjectId,
   ProviderInstanceId,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import type { Thread } from "../types";
 import { makeThreadFixture, type ThreadFixtureOverrides } from "../test-fixtures";
 import { getLatestThreadForProject, sortThreads } from "./threadSort";

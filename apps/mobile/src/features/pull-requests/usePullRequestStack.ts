@@ -1,6 +1,6 @@
-import { threadPullRequestLinkMode } from "@supacode/client-runtime/thread-pull-request-compatibility";
-import type { PullRequestDetail } from "@supacode/contracts";
-import { parseChangeRequestUrl } from "@supacode/shared/changeRequestUrl";
+import { threadPullRequestLinkMode } from "@supaterm/client-runtime/thread-pull-request-compatibility";
+import type { PullRequestDetail } from "@supaterm/contracts";
+import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 import { useMemo } from "react";
 import { useEnvironmentServerConfig, useNavigationThreadShells } from "../../state/entities";
 import { pullRequestStackAtom } from "../../state/pull-requests";

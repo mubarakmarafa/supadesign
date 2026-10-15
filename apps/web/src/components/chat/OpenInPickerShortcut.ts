@@ -1,4 +1,4 @@
-import type { EditorId, EnvironmentId, ResolvedKeybindingsConfig } from "@supacode/contracts";
+import type { EditorId, EnvironmentId, ResolvedKeybindingsConfig } from "@supaterm/contracts";
 import { useEffect } from "react";
 
 import { usePreferredEditor } from "../../editorPreferences";

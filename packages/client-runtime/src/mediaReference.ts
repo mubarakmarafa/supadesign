@@ -1,6 +1,6 @@
-import { isWindowsAbsolutePath } from "@supacode/shared/path";
+import { isWindowsAbsolutePath } from "@supaterm/shared/path";
 
-import { safeDecodeURIComponent } from "@supacode/shared/markdownLinks";
+import { safeDecodeURIComponent } from "@supaterm/shared/markdownLinks";
 
 /** The authored media location, never the temporary URL used to load its bytes. */
 export type MediaReference =

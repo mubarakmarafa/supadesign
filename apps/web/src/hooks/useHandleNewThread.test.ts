@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import type { RuntimeMode } from "@supacode/contracts";
+import type { RuntimeMode } from "@supaterm/contracts";
 
 const testState = vi.hoisted(() => {
   let completeProjectFileRead: (value: null) => void = () => undefined;
@@ -88,16 +88,16 @@ vi.mock("@effect/atom-react", () => ({
           ["environment-ssh", { settings: testState.targetSettings }],
         ]),
 }));
-vi.mock("@supacode/client-runtime/environment", () => ({
+vi.mock("@supaterm/client-runtime/environment", () => ({
   scopedProjectKey: () => "remote-project",
   scopeProjectRef: (environmentId: string, projectId: string) => ({ environmentId, projectId }),
   scopeThreadRef: (environmentId: string, threadId: string) => ({ environmentId, threadId }),
 }));
-vi.mock("@supacode/contracts", () => ({
+vi.mock("@supaterm/contracts", () => ({
   DEFAULT_RUNTIME_MODE: "default",
   DEFAULT_SERVER_SETTINGS: {},
 }));
-vi.mock("@supacode/shared/projectSettings", () => ({
+vi.mock("@supaterm/shared/projectSettings", () => ({
   // Environment settings pass through; the tests set project fields on the
   // project record, which the hook still honors until the server folds them.
   // With a file argument the env mode resolves like the real chain.
@@ -147,8 +147,8 @@ vi.mock("../lib/chatThreadActions", async (importOriginal) => ({
   hasExplicitComposerModelSelection: () => false,
   resolveNewThreadModelSelectionOverride: () => null,
 }));
-vi.mock("../lib/supacodeProjectFileDefaults", () => ({
-  readSupacodeProjectFile: () => testState.projectFileRead,
+vi.mock("../lib/supatermProjectFileDefaults", () => ({
+  readSupatermProjectFile: () => testState.projectFileRead,
 }));
 vi.mock("../lib/utils", () => ({
   newDraftId: () => "draft-delayed",

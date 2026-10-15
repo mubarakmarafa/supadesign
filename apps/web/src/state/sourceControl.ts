@@ -1,4 +1,4 @@
-import { createSourceControlEnvironmentAtoms } from "@supacode/client-runtime/state/source-control";
+import { createSourceControlEnvironmentAtoms } from "@supaterm/client-runtime/state/source-control";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 

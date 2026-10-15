@@ -6,7 +6,7 @@ import {
   type ClientGuardedRpcTag,
   ORCHESTRATION_V2_WS_METHODS,
   WS_METHODS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
@@ -38,7 +38,7 @@ export class EnvironmentRpcRequestObserver extends Context.Reference<{
   readonly observe: (
     request: EnvironmentRpcRequestObservation,
   ) => Effect.Effect<Effect.Effect<void>>;
-}>("@supacode/client-runtime/rpc/EnvironmentRpcRequestObserver", {
+}>("@supaterm/client-runtime/rpc/EnvironmentRpcRequestObserver", {
   defaultValue: () => ({
     observe: () => Effect.succeed(Effect.void),
   }),
@@ -94,7 +94,7 @@ export class EnvironmentRpcSubscriptionObserver extends Context.Reference<{
   readonly observe: (
     subscription: EnvironmentRpcSubscriptionObservation,
   ) => Effect.Effect<Effect.Effect<void>>;
-}>("@supacode/client-runtime/rpc/EnvironmentRpcSubscriptionObserver", {
+}>("@supaterm/client-runtime/rpc/EnvironmentRpcSubscriptionObserver", {
   defaultValue: () => ({
     observe: () => Effect.succeed(Effect.void),
   }),
@@ -160,7 +160,7 @@ export class RpcPermissionGuard extends Context.Reference<{
     method: string,
     input: unknown,
   ) => Effect.Effect<void, EnvironmentAuthorizationError>;
-}>("@supacode/client-runtime/rpc/RpcPermissionGuard", {
+}>("@supaterm/client-runtime/rpc/RpcPermissionGuard", {
   defaultValue: () => ({
     authorize: (_environmentId, method, input) => {
       const scope = clientRpcRequiredScopes(method, input)[0];

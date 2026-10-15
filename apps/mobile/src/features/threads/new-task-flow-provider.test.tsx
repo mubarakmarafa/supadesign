@@ -1,5 +1,5 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import {
   AuthFilesystemReadScope,
   CommandId,
@@ -11,7 +11,7 @@ import {
   ProviderInstanceId,
   ThreadId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useLayoutEffect } from "react";
 import { Alert } from "react-native";

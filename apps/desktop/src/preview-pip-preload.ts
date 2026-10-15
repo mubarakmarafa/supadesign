@@ -1,4 +1,4 @@
-import type { DesktopPreviewRecordingFrame } from "@supacode/contracts";
+import type { DesktopPreviewRecordingFrame } from "@supaterm/contracts";
 import { contextBridge, ipcRenderer } from "electron";
 
 import { PREVIEW_PICTURE_IN_PICTURE_FRAME_CHANNEL } from "./ipc/channels.ts";

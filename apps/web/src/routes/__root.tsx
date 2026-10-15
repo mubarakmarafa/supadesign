@@ -1,6 +1,6 @@
 import { PermissionUpdateNotice } from "../components/PermissionUpdateNotice";
-import { type ServerLifecycleWelcomePayload } from "@supacode/contracts";
-import { scopedProjectKey, scopeProjectRef } from "@supacode/client-runtime/environment";
+import { type ServerLifecycleWelcomePayload } from "@supaterm/contracts";
+import { scopedProjectKey, scopeProjectRef } from "@supaterm/client-runtime/environment";
 import {
   Outlet,
   Link,

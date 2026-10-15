@@ -5,7 +5,7 @@ import {
   type RelayConnectionInfo,
   type RelayHostStatus,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Equal from "effect/Equal";
@@ -32,7 +32,7 @@ export class RelayAccess extends Context.Service<
     readonly advertisements: Stream.Stream<RelayConnectionInfo | null>;
     readonly advertisement: Effect.Effect<Pick<RelayHostStatus, "relayEndpoint" | "relayUrl">>;
   }
->()("supacode/relay/RelayAccess") {}
+>()("supaterm/relay/RelayAccess") {}
 
 const make = Effect.gen(function* () {
   const identity = yield* RelayIdentity.RelayIdentity;

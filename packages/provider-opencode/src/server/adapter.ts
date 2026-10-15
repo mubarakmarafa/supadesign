@@ -9,9 +9,9 @@ import type {
   Todo as OpenCodeTodo,
   ToolPart,
 } from "@opencode-ai/sdk/v2";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { getModelSelectionStringOptionValue } from "@supacode/shared/model";
-import { causeErrorTag } from "@supacode/shared/observability";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { getModelSelectionStringOptionValue } from "@supaterm/shared/model";
+import { causeErrorTag } from "@supaterm/shared/observability";
 import {
   defaultInstanceIdForDriver,
   type ModelSelection,
@@ -35,7 +35,7 @@ import {
   type ProviderSessionId,
   type RuntimeRequestId,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { OpenCodeSettings } from "../settings.ts";
 import * as Cause from "effect/Cause";
 import * as DateTime from "effect/DateTime";
@@ -53,32 +53,32 @@ import * as Semaphore from "effect/Semaphore";
 import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
-import { mcpToolPresentation } from "@supacode/provider-core/server/mcpToolPresentation";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
+import { mcpToolPresentation } from "@supaterm/provider-core/server/mcpToolPresentation";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import {
   structuralProtocolMethod,
   summarizeNativeProtocolPayload,
-} from "@supacode/provider-core/server/nativeProtocolLogging";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
-import { supacodeOrchestrationSystemPrompt } from "@supacode/provider-core/server/orchestrationInstructions";
-import { buildRuntimeInstructions } from "@supacode/provider-core/server/runtimeInstructions";
+} from "@supaterm/provider-core/server/nativeProtocolLogging";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
+import { supatermOrchestrationSystemPrompt } from "@supaterm/provider-core/server/orchestrationInstructions";
+import { buildRuntimeInstructions } from "@supaterm/provider-core/server/runtimeInstructions";
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import { makeProviderFailure } from "@supacode/provider-core/server/failure";
-import { turnScopedSelectionTransition } from "@supacode/provider-core/server/selectionTransition";
-import { providerMessageTextWithAttachmentPaths } from "@supacode/provider-core/server/attachmentPrompt";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import { makeProviderFailure } from "@supaterm/provider-core/server/failure";
+import { turnScopedSelectionTransition } from "@supaterm/provider-core/server/selectionTransition";
+import { providerMessageTextWithAttachmentPaths } from "@supaterm/provider-core/server/attachmentPrompt";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import {
   ProviderAdapterDriverCreateError,
   type ProviderAdapterDriver,
   type ProviderAdapterDriverCreateInput,
-} from "@supacode/provider-core/server/adapterDriver";
+} from "@supaterm/provider-core/server/adapterDriver";
 import {
   makeSubagentChildThread,
   subagentThreadTitle,
-} from "@supacode/provider-core/server/subagentProjection";
+} from "@supaterm/provider-core/server/subagentProjection";
 import { openCodeToolTurnItem } from "./toolItems.ts";
 
 export { openCodeToolProjectionKind } from "./toolItems.ts";
@@ -968,12 +968,12 @@ export const makeOpenCodeAdapterV2 = Effect.fn("makeOpenCodeAdapterV2")(function
         });
 
         const mcpSession = yield* mcpSessions.read(input.threadId);
-        const hasSupacodeMcp = mcpSession !== undefined && !connection.external;
-        const orchestrationSystemPrompt = supacodeOrchestrationSystemPrompt(hasSupacodeMcp);
-        if (hasSupacodeMcp) {
+        const hasSupatermMcp = mcpSession !== undefined && !connection.external;
+        const orchestrationSystemPrompt = supatermOrchestrationSystemPrompt(hasSupatermMcp);
+        if (hasSupatermMcp) {
           yield* OpenCodeRuntime.runOpenCodeSdk("mcp.add", () =>
             client.mcp.add({
-              name: "supacode",
+              name: "supaterm",
               config: {
                 type: "remote",
                 url: mcpSession.endpoint,

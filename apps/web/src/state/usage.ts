@@ -15,14 +15,14 @@ import {
   type UsageSummary,
   type UsageProviderKind,
   type UsageSummaryInput,
-} from "@supacode/contracts";
-import { needsCursorKeychainAccess, refreshUsage } from "@supacode/client-runtime/state/usage";
-import { resolveUsageAccess } from "@supacode/client-runtime/state/usage-access";
+} from "@supaterm/contracts";
+import { needsCursorKeychainAccess, refreshUsage } from "@supaterm/client-runtime/state/usage";
+import { resolveUsageAccess } from "@supaterm/client-runtime/state/usage-access";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useCallback, useMemo, useState } from "react";
 
-import { mergeUsage, type EnvironmentUsage, type MergedUsage } from "@supacode/shared/usageMerge";
+import { mergeUsage, type EnvironmentUsage, type MergedUsage } from "@supaterm/shared/usageMerge";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { environmentPresentations } from "./presentation";
 import { serverEnvironment } from "./server";

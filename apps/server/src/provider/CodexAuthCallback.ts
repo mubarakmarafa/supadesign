@@ -1,8 +1,8 @@
-import { ProviderSetupError, type CodexAuthCallbackInput } from "@supacode/contracts";
-import { receiveCodexAuthCallback } from "@supacode/shared/codexAuthCallback";
-import { codexAuthorizationRequest } from "@supacode/shared/codexAuthHandoff";
-import { providerAuthReturnUrl } from "@supacode/shared/providerAuthReturnUrl";
-import { isLoopbackHost } from "@supacode/shared/preview";
+import { ProviderSetupError, type CodexAuthCallbackInput } from "@supaterm/contracts";
+import { receiveCodexAuthCallback } from "@supaterm/shared/codexAuthCallback";
+import { codexAuthorizationRequest } from "@supaterm/shared/codexAuthHandoff";
+import { providerAuthReturnUrl } from "@supaterm/shared/providerAuthReturnUrl";
+import { isLoopbackHost } from "@supaterm/shared/preview";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -24,7 +24,7 @@ export function subscribeCodexAuthCallback(input: CodexAuthCallbackInput) {
           codexAuthorizationRequest(input.authorizationUrl);
           const destination = providerAuthReturnUrl(input.returnUrl);
           if (!destination || !isLoopbackHost(new URL(destination).hostname))
-            throw new Error("The local sign-in receiver needs a local Supacode return address.");
+            throw new Error("The local sign-in receiver needs a local Supaterm return address.");
           return destination;
         },
         catch: failure,

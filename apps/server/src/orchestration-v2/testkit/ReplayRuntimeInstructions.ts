@@ -1,6 +1,6 @@
-import type { ProviderDriverKind, ProviderReplayTranscript } from "@supacode/contracts";
+import type { ProviderDriverKind, ProviderReplayTranscript } from "@supaterm/contracts";
 
-import { buildRuntimeInstructions } from "@supacode/provider-core/server/runtimeInstructions";
+import { buildRuntimeInstructions } from "@supaterm/provider-core/server/runtimeInstructions";
 
 export function materializeReplayTranscriptRuntimeInstructions(
   transcript: ProviderReplayTranscript,

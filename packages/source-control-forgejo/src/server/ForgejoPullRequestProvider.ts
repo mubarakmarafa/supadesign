@@ -1,17 +1,17 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as Result from "effect/Result";
-import type { PullRequestCapabilities, PullRequestViewerPermissions } from "@supacode/contracts";
-import { decodeJsonResult } from "@supacode/shared/schemaJson";
+import type { PullRequestCapabilities, PullRequestViewerPermissions } from "@supaterm/contracts";
+import { decodeJsonResult } from "@supaterm/shared/schemaJson";
 import * as ForgejoCli from "./ForgejoCli.ts";
-import { parseDiffFileRevisions } from "@supacode/source-control-core/server/diffFileRevisions";
+import { parseDiffFileRevisions } from "@supaterm/source-control-core/server/diffFileRevisions";
 import {
   PullRequestProviderError,
   type ProviderChangeRequestDetail,
   type ProviderRepositoryRef,
   type PullRequestProviderApi,
-} from "@supacode/source-control-core/server/PullRequestProvider";
+} from "@supaterm/source-control-core/server/PullRequestProvider";
 import {
   ForgejoPullRequest,
   ForgejoRepository,

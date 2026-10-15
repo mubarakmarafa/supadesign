@@ -24,12 +24,12 @@ import {
   type ServerProviderModel,
   type ServerSettings,
   type ServerProviderState,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   normalizeProviderAccentColor,
   resolveProviderInstanceDisplayName,
   shouldShowInstanceBadge,
-} from "@supacode/client-runtime/state/provider-instance-display";
+} from "@supaterm/client-runtime/state/provider-instance-display";
 
 export { normalizeProviderAccentColor, shouldShowInstanceBadge };
 
@@ -39,7 +39,7 @@ export { normalizeProviderAccentColor, shouldShowInstanceBadge };
  * send until a live provider replaces it.
  */
 export const NO_PROVIDER_MODEL_SELECTION: ModelSelection = {
-  instanceId: ProviderInstanceId.make("supacode_no_provider"),
+  instanceId: ProviderInstanceId.make("supaterm_no_provider"),
   model: "",
 };
 

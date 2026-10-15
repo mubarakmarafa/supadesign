@@ -1,5 +1,5 @@
-import type { EnvironmentThread } from "@supacode/client-runtime/state/models";
-import type { ScopedThreadRef } from "@supacode/contracts";
+import type { EnvironmentThread } from "@supaterm/client-runtime/state/models";
+import type { ScopedThreadRef } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 import type { QueuedThreadMessage } from "./thread-outbox-model";
 

@@ -5,7 +5,7 @@ import {
   EnvironmentId,
   ThreadId,
   type OrchestrationV2SearchThreadResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   ThreadFind,
   ThreadFindProvider,

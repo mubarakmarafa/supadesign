@@ -1,4 +1,4 @@
-import type { EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
 
 /**
  * What the floating pill says. Connection, syncing, and working share one

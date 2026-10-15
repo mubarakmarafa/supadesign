@@ -1,14 +1,14 @@
 import {
   resolveProviderSkillSourceKind,
   type ProviderSkillSourceKind,
-} from "@supacode/client-runtime/providerSkills";
+} from "@supaterm/client-runtime/providerSkills";
 import type {
   PullRequestContextMetadata,
   ScopedThreadRef,
   ServerProviderSkill,
   ServerProviderSlashCommand,
-} from "@supacode/contracts";
-import type { ComposerTriggerKind } from "@supacode/shared/composerTrigger";
+} from "@supaterm/contracts";
+import type { ComposerTriggerKind } from "@supaterm/shared/composerTrigger";
 import { memo } from "react";
 import { Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 
@@ -172,7 +172,7 @@ const CommandRow = memo(function CommandRow(props: {
           type="monochrome"
         />
       ) : null}
-      <Text className="shrink-0 text-base font-supacode-medium text-foreground" numberOfLines={1}>
+      <Text className="shrink-0 text-base font-supaterm-medium text-foreground" numberOfLines={1}>
         {props.isCommandMenuSkill && props.item.type === "skill" ? (
           <>
             <Text className="text-foreground-muted">skill:</Text>
@@ -200,7 +200,7 @@ export const ComposerCommandPopover = memo(function ComposerCommandPopover(
     <PopoverSurface>
       {label ? (
         <View className="px-3.5 pt-2.5 pb-1">
-          <Text className="text-3xs font-supacode-bold tracking-[0.8px] uppercase text-foreground-muted">
+          <Text className="text-3xs font-supaterm-bold tracking-[0.8px] uppercase text-foreground-muted">
             {label}
           </Text>
         </View>

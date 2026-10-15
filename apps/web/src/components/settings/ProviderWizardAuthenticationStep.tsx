@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId, ProviderInstanceId } from "@supacode/contracts";
+import type { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 
 import { useEnvironmentQuery } from "../../state/query";
 import { EMPTY_SERVER_PROVIDERS, serverEnvironment } from "../../state/server";

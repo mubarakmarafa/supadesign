@@ -482,13 +482,13 @@ describe("GhosttyTerminalSurface visibility", () => {
       expect(openLink).toHaveBeenCalledOnce();
 
       vi.advanceTimersByTime(501);
-      surface.resetAndWrite("https://next.supacode.sh");
+      surface.resetAndWrite("https://supaterm.com");
       harness.flushFrame();
       harness.pointer("pointermove", 5, 0, modifiers);
       expect(surface.canvas.style.cursor).toBe("pointer");
       harness.pointer("pointerdown", 5, 1, modifiers);
       harness.pointer("pointerup", 5, 0, modifiers);
-      expect(openLink).toHaveBeenLastCalledWith("https://next.supacode.sh", expect.any(Event));
+      expect(openLink).toHaveBeenLastCalledWith("https://supaterm.com", expect.any(Event));
     },
   );
 
@@ -894,7 +894,7 @@ describe("terminalLinkAtPositionWithRange", () => {
     const cells = [
       cell("🙂"),
       cell(""),
-      ...Array.from("https://next.supacode.sh", (character) => cell(character)),
+      ...Array.from("https://supaterm.com", (character) => cell(character)),
     ];
     const row: GhosttyRow = {
       cells,
@@ -906,9 +906,9 @@ describe("terminalLinkAtPositionWithRange", () => {
       wrapsToNext: false,
     };
 
-    expect(terminalLinkAtPositionWithRange([row], 0, 2)?.text).toBe("https://next.supacode.sh");
+    expect(terminalLinkAtPositionWithRange([row], 0, 2)?.text).toBe("https://supaterm.com");
     expect(terminalLinkAtPositionWithRange([row], 0, cells.length - 1)?.text).toBe(
-      "https://next.supacode.sh",
+      "https://supaterm.com",
     );
     expect(terminalLinkAtPositionWithRange([row], 0, 0)).toBeNull();
     expect(terminalLinkAtPositionWithRange([row], 0, 8)?.range).toEqual({
@@ -955,20 +955,20 @@ describe("terminalLinkAtPositionWithRange", () => {
     const headCut = [row("ple.com/missing", true), row("head", true)];
     expect(terminalLinkAtPositionWithRange(headCut, 0, 4)).toBeNull();
     // The bottom row soft-wraps on below the viewport.
-    const tailCut = [row("https://next.supacode.sh", false, true)];
+    const tailCut = [row("https://supaterm.com", false, true)];
     expect(terminalLinkAtPositionWithRange(tailCut, 0, 8)).toBeNull();
     // A partial bottom row is provably complete and still resolves.
-    const complete = [row("https://next.supacode.sh", false), row("", false)];
-    expect(terminalLinkAtPositionWithRange(complete, 0, 8)?.text).toBe("https://next.supacode.sh");
+    const complete = [row("https://supaterm.com", false), row("", false)];
+    expect(terminalLinkAtPositionWithRange(complete, 0, 8)?.text).toBe("https://supaterm.com");
     // A wide grapheme earlier in the row must not break truncation detection:
     // the soft-wrap flag decides, not string-length-versus-cell-count.
     const wideFull: GhosttyRow = {
       cells: [
         { ...cell("🙂"), wide: 1 },
         { ...cell(""), wide: 2 },
-        ...Array.from("https://supacode.s", (character) => cell(character)),
+        ...Array.from("https://supaterm.s", (character) => cell(character)),
       ],
-      text: "🙂 https://supacode.s",
+      text: "🙂 https://supaterm.s",
       isWrapContinuation: false,
       wrapsToNext: true,
     };
@@ -976,16 +976,16 @@ describe("terminalLinkAtPositionWithRange", () => {
     // Unwritten trailing cells prove the bottom row is complete.
     const unwrittenTail: GhosttyRow = {
       cells: [
-        ...Array.from("https://next.supacode.sh", (character) => cell(character)),
+        ...Array.from("https://supaterm.com", (character) => cell(character)),
         cell(""),
         cell(""),
       ],
-      text: "https://next.supacode.sh",
+      text: "https://supaterm.com",
       isWrapContinuation: false,
       wrapsToNext: false,
     };
     expect(terminalLinkAtPositionWithRange([unwrittenTail], 0, 8)?.text).toBe(
-      "https://next.supacode.sh",
+      "https://supaterm.com",
     );
   });
 });

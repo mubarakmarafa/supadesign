@@ -1,9 +1,9 @@
 import {
   createVcsActionManager,
   createVcsEnvironmentAtoms,
-} from "@supacode/client-runtime/state/vcs";
-import { createEnvironmentRpcCommand } from "@supacode/client-runtime/state/runtime";
-import { WS_METHODS } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/vcs";
+import { createEnvironmentRpcCommand } from "@supaterm/client-runtime/state/runtime";
+import { WS_METHODS } from "@supaterm/contracts";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 

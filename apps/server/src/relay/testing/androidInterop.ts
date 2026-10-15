@@ -13,7 +13,7 @@ const child = NodeChildProcess.spawn(
   [
     "-cp",
     process.env.KOTLIN_CLASSPATH!,
-    "expo.modules.supacoderelaytunnel.core.MainKt",
+    "expo.modules.supatermrelaytunnel.core.MainKt",
     fixture.config.relayUrl,
     fixture.config.address,
   ],
@@ -34,7 +34,7 @@ try {
     NodeAssert.ok(response.ok, `HTTP ${response.status} ${path}`);
     return response;
   };
-  NodeAssert.equal((await get("/.well-known/supacode/environment")).status, 200);
+  NodeAssert.equal((await get("/.well-known/supaterm/environment")).status, 200);
   NodeAssert.equal((await fetch(origin + "/api/auth/session")).status, 401);
   const exchange = await get("/oauth/token", {
     method: "POST",

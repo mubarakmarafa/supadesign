@@ -5,7 +5,7 @@ import * as Semaphore from "effect/Semaphore";
 import * as Stream from "effect/Stream";
 import type * as AcpSchema from "effect-acp/compat";
 
-import { responsePayloads } from "@supacode/shared/mcpResponsePayloads";
+import { responsePayloads } from "@supaterm/shared/mcpResponsePayloads";
 
 const MAX_CONNECTIONS = 16;
 const MAX_MESSAGE_BYTES = 8 * 1024 * 1024;
@@ -79,7 +79,7 @@ export interface AcpMcpOverAcpBridge {
   readonly dispose: Effect.Effect<void>;
 }
 
-/** Bridges the unstable ACP transport to Supacode's authenticated streamable-HTTP MCP endpoint. */
+/** Bridges the unstable ACP transport to Supaterm's authenticated streamable-HTTP MCP endpoint. */
 export const makeAcpMcpOverAcpBridge = Effect.fn("AcpMcpOverAcpBridge.make")(
   (options: AcpMcpOverAcpBridgeOptions): Effect.Effect<AcpMcpOverAcpBridge> =>
     Effect.sync(() => {
@@ -135,7 +135,7 @@ export const makeAcpMcpOverAcpBridge = Effect.fn("AcpMcpOverAcpBridge.make")(
               );
               return yield* Effect.fail(
                 new AcpMcpOverAcpError(
-                  `Supacode MCP endpoint responded with HTTP ${response.status}.`,
+                  `Supaterm MCP endpoint responded with HTTP ${response.status}.`,
                 ),
               );
             }
@@ -175,7 +175,7 @@ export const makeAcpMcpOverAcpBridge = Effect.fn("AcpMcpOverAcpBridge.make")(
             if (!response.ok && response.status !== 404) {
               return yield* Effect.fail(
                 new AcpMcpOverAcpError(
-                  `Supacode MCP endpoint rejected disconnect with HTTP ${response.status}.`,
+                  `Supaterm MCP endpoint rejected disconnect with HTTP ${response.status}.`,
                 ),
               );
             }
@@ -189,7 +189,7 @@ export const makeAcpMcpOverAcpBridge = Effect.fn("AcpMcpOverAcpBridge.make")(
       return {
         connect: (request) =>
           Effect.gen(function* () {
-            if (request.serverId !== "supacode") {
+            if (request.serverId !== "supaterm") {
               return yield* Effect.fail(
                 new AcpMcpOverAcpError(`Unknown ACP MCP server "${request.serverId}".`),
               );

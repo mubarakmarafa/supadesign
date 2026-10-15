@@ -1,6 +1,6 @@
-import { filterComposerPullRequestMatches } from "@supacode/shared/composerPullRequestMatches";
+import { filterComposerPullRequestMatches } from "@supaterm/shared/composerPullRequestMatches";
 import { describe, expect, it } from "@effect/vitest";
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 
 import { buildCheckpointDiffTargets, normalizeComposerPathSearchQuery } from "./queryTargets";
 

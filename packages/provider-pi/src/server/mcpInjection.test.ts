@@ -1,26 +1,26 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { EnvironmentId, ProviderInstanceId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ProviderInstanceId, ThreadId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 
 import {
-  PI_SUPACODE_MCP_EXTENSION_FILENAME,
-  SUPACODE_MCP_BEARER_ENV,
-  SUPACODE_MCP_URL_ENV,
-  SUPACODE_PI_RUNTIME_MODE_ENV,
-  SUPACODE_PI_MCP_EXTENSION_PATH_ENV,
+  PI_SUPATERM_MCP_EXTENSION_FILENAME,
+  SUPATERM_MCP_BEARER_ENV,
+  SUPATERM_MCP_URL_ENV,
+  SUPATERM_PI_RUNTIME_MODE_ENV,
+  SUPATERM_PI_MCP_EXTENSION_PATH_ENV,
 } from "./mcpExtensionSource.ts";
 import {
   buildPiRpcLaunch,
-  materializePiSupacodeMcpExtension,
+  materializePiSupatermMcpExtension,
   resolvePiLaunchArgs,
 } from "./mcpInjection.ts";
 
-const threadId = ThreadId.make("thread-pi-supacode-mcp");
+const threadId = ThreadId.make("thread-pi-supaterm-mcp");
 
 const mcpSession = {
-  environmentId: EnvironmentId.make("environment-pi-supacode-mcp"),
+  environmentId: EnvironmentId.make("environment-pi-supaterm-mcp"),
   threadId,
   providerSessionId: "mcp-session-pi",
   providerInstanceId: ProviderInstanceId.make("pi"),
@@ -29,7 +29,7 @@ const mcpSession = {
   browserToolsAvailable: true,
 };
 
-describe("pi Supacode MCP injection", () => {
+describe("pi Supaterm MCP injection", () => {
   it("always adds the permission bridge and configures MCP when available", () => {
     const resolvedArgs = resolvePiLaunchArgs(
       "--extension=/home/user/.pi/agent/extensions/demo.ts --session-dir=/tmp/pi-sessions --provider=anthropic --model=claude-sonnet --tools='' --name=-review --extension-flag=kept",
@@ -40,7 +40,7 @@ describe("pi Supacode MCP injection", () => {
       launchArgs: resolvedArgs.args,
       environment: { PATH: "/usr/bin" },
       mcpSession,
-      extensionPath: "/tmp/cache/pi-supacode-mcp-extension.ts",
+      extensionPath: "/tmp/cache/pi-supaterm-mcp-extension.ts",
       runtimeMode: "approval-required",
     });
     assert.deepEqual(launch.args, [
@@ -60,41 +60,41 @@ describe("pi Supacode MCP injection", () => {
       "-review",
       "--extension-flag=kept",
       "--extension",
-      "/tmp/cache/pi-supacode-mcp-extension.ts",
+      "/tmp/cache/pi-supaterm-mcp-extension.ts",
     ]);
     assert.notInclude(launch.args, "--no-extensions");
-    assert.equal(launch.env[SUPACODE_MCP_URL_ENV], "http://127.0.0.1:43123/mcp");
-    assert.equal(launch.env[SUPACODE_MCP_BEARER_ENV], "secret-pi-token");
-    assert.equal(launch.env[SUPACODE_PI_RUNTIME_MODE_ENV], "approval-required");
+    assert.equal(launch.env[SUPATERM_MCP_URL_ENV], "http://127.0.0.1:43123/mcp");
+    assert.equal(launch.env[SUPATERM_MCP_BEARER_ENV], "secret-pi-token");
+    assert.equal(launch.env[SUPATERM_PI_RUNTIME_MODE_ENV], "approval-required");
     assert.equal(
-      launch.env[SUPACODE_PI_MCP_EXTENSION_PATH_ENV],
-      "/tmp/cache/pi-supacode-mcp-extension.ts",
+      launch.env[SUPATERM_PI_MCP_EXTENSION_PATH_ENV],
+      "/tmp/cache/pi-supaterm-mcp-extension.ts",
     );
 
     const permissionOnly = buildPiRpcLaunch({
       launchArgs: [],
       environment: {
-        [SUPACODE_MCP_URL_ENV]: "http://127.0.0.1:9999/stale",
-        [SUPACODE_MCP_BEARER_ENV]: "stale-token",
-        [SUPACODE_PI_MCP_EXTENSION_PATH_ENV]: "/stale/extension.ts",
+        [SUPATERM_MCP_URL_ENV]: "http://127.0.0.1:9999/stale",
+        [SUPATERM_MCP_BEARER_ENV]: "stale-token",
+        [SUPATERM_PI_MCP_EXTENSION_PATH_ENV]: "/stale/extension.ts",
       },
       mcpSession: undefined,
-      extensionPath: "/tmp/cache/pi-supacode-mcp-extension.ts",
+      extensionPath: "/tmp/cache/pi-supaterm-mcp-extension.ts",
       runtimeMode: "auto-accept-edits",
     });
     assert.deepEqual(permissionOnly.args, [
       "--mode",
       "rpc",
       "--extension",
-      "/tmp/cache/pi-supacode-mcp-extension.ts",
+      "/tmp/cache/pi-supaterm-mcp-extension.ts",
     ]);
-    assert.isFalse(permissionOnly.hasSupacodeMcp);
-    assert.isUndefined(permissionOnly.env[SUPACODE_MCP_URL_ENV]);
-    assert.isUndefined(permissionOnly.env[SUPACODE_MCP_BEARER_ENV]);
-    assert.equal(permissionOnly.env[SUPACODE_PI_RUNTIME_MODE_ENV], "auto-accept-edits");
+    assert.isFalse(permissionOnly.hasSupatermMcp);
+    assert.isUndefined(permissionOnly.env[SUPATERM_MCP_URL_ENV]);
+    assert.isUndefined(permissionOnly.env[SUPATERM_MCP_BEARER_ENV]);
+    assert.equal(permissionOnly.env[SUPATERM_PI_RUNTIME_MODE_ENV], "auto-accept-edits");
     assert.equal(
-      permissionOnly.env[SUPACODE_PI_MCP_EXTENSION_PATH_ENV],
-      "/tmp/cache/pi-supacode-mcp-extension.ts",
+      permissionOnly.env[SUPATERM_PI_MCP_EXTENSION_PATH_ENV],
+      "/tmp/cache/pi-supaterm-mcp-extension.ts",
     );
   });
 
@@ -103,11 +103,11 @@ describe("pi Supacode MCP injection", () => {
       launchArgs: [],
       environment: {},
       mcpSession: undefined,
-      extensionPath: "/tmp/cache/pi-supacode-mcp-extension.ts",
+      extensionPath: "/tmp/cache/pi-supaterm-mcp-extension.ts",
       runtimeMode: "auto",
     });
 
-    assert.equal(launch.env[SUPACODE_PI_RUNTIME_MODE_ENV], "approval-required");
+    assert.equal(launch.env[SUPATERM_PI_RUNTIME_MODE_ENV], "approval-required");
   });
 
   it("forces tools and user extensions off for unattended text generation", () => {
@@ -123,7 +123,7 @@ describe("pi Supacode MCP injection", () => {
       ],
       environment: {},
       mcpSession,
-      extensionPath: "/tmp/cache/pi-supacode-mcp-extension.ts",
+      extensionPath: "/tmp/cache/pi-supaterm-mcp-extension.ts",
       ephemeral: true,
       disableExtensions: true,
       disableTools: true,
@@ -137,10 +137,10 @@ describe("pi Supacode MCP injection", () => {
       "--no-extensions",
       "--no-tools",
     ]);
-    assert.isFalse(launch.hasSupacodeMcp);
+    assert.isFalse(launch.hasSupatermMcp);
     assert.deepInclude(resolvePiLaunchArgs("--mode text"), {
       ok: false,
-      message: "Pi launch argument '--mode' is controlled by Supacode and cannot be overridden.",
+      message: "Pi launch argument '--mode' is controlled by Supaterm and cannot be overridden.",
     });
     assert.deepInclude(resolvePiLaunchArgs("--session old.jsonl"), { ok: false });
     assert.deepInclude(resolvePiLaunchArgs("prompt pi immediately"), { ok: false });
@@ -161,17 +161,17 @@ describe("pi Supacode MCP injection", () => {
   it.effect("materializes the MCP bridge with namespaced tool registration", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-pi-extensions-" });
-      const mcpDest = yield* materializePiSupacodeMcpExtension(cacheDir);
-      assert.isTrue(mcpDest.endsWith(PI_SUPACODE_MCP_EXTENSION_FILENAME));
+      const cacheDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-pi-extensions-" });
+      const mcpDest = yield* materializePiSupatermMcpExtension(cacheDir);
+      assert.isTrue(mcpDest.endsWith(PI_SUPATERM_MCP_EXTENSION_FILENAME));
       const mcpSource = yield* fs.readFileString(mcpDest);
-      assert.include(mcpSource, "export default async function supacodeMcpExtension");
+      assert.include(mcpSource, "export default async function supatermMcpExtension");
       assert.include(mcpSource, "before_agent_start");
       assert.include(mcpSource, 'pi.on("tool_call"');
       assert.include(mcpSource, "Allow ${event.toolName}?");
       assert.include(mcpSource, '"mcp-protocol-version"');
       assert.include(mcpSource, '"tools/call"');
-      assert.include(mcpSource, "mcp__supacode__");
+      assert.include(mcpSource, "mcp__supaterm__");
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
 });

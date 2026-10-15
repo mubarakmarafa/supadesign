@@ -2,11 +2,11 @@ import type {
   DesktopDiscoveredSshHost,
   DesktopSshEnvironmentBootstrap,
   DesktopSshEnvironmentTarget,
-} from "@supacode/contracts";
-import * as NetService from "@supacode/shared/Net";
-import * as SshAuth from "@supacode/ssh/auth";
-import { resolveSshTarget } from "@supacode/ssh/command";
-import { discoverSshHosts } from "@supacode/ssh/config";
+} from "@supaterm/contracts";
+import * as NetService from "@supaterm/shared/Net";
+import * as SshAuth from "@supaterm/ssh/auth";
+import { resolveSshTarget } from "@supaterm/ssh/command";
+import { discoverSshHosts } from "@supaterm/ssh/config";
 import {
   SshCommandError,
   SshHostDiscoveryError,
@@ -15,8 +15,8 @@ import {
   SshPairingError,
   SshPasswordPromptError,
   SshReadinessError,
-} from "@supacode/ssh/errors";
-import * as SshTunnel from "@supacode/ssh/tunnel";
+} from "@supaterm/ssh/errors";
+import * as SshTunnel from "@supaterm/ssh/tunnel";
 import * as Context from "effect/Context";
 import type * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -64,10 +64,10 @@ export class DesktopSshEnvironment extends Context.Service<
       target: DesktopSshEnvironmentTarget,
     ) => Effect.Effect<void, DesktopSshEnvironmentOperationError>;
   }
->()("@supacode/desktop/ssh/DesktopSshEnvironment") {}
+>()("@supaterm/desktop/ssh/DesktopSshEnvironment") {}
 
 export interface DesktopSshEnvironmentLayerOptions {
-  readonly resolveCliRunner?: Effect.Effect<SshTunnel.RemoteSupacodeRunnerOptions>;
+  readonly resolveCliRunner?: Effect.Effect<SshTunnel.RemoteSupatermRunnerOptions>;
 }
 
 function discoverDesktopSshHostsEffect(input?: { readonly homeDir?: string }) {
@@ -97,7 +97,7 @@ export function toSshPasswordPromptError(
       break;
     case "DesktopSshPromptWindowUnavailableError":
     case "DesktopSshPromptPresentationError":
-      message = "Supacode window is not available for SSH authentication.";
+      message = "Supaterm window is not available for SSH authentication.";
       break;
     case "DesktopSshPromptTimedOutError":
       message = `SSH authentication timed out for ${cause.destination}.`;

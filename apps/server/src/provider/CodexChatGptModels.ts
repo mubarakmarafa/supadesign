@@ -1,4 +1,4 @@
-import type { ServerProviderModel } from "@supacode/contracts";
+import type { ServerProviderModel } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { HttpClient, HttpClientRequest } from "effect/http";

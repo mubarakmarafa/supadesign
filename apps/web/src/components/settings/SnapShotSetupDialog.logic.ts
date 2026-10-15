@@ -1,4 +1,4 @@
-import type { DesktopSnapShotState } from "@supacode/contracts";
+import type { DesktopSnapShotState } from "@supaterm/contracts";
 
 export type CaptureSetupStep = "access" | "shortcut";
 

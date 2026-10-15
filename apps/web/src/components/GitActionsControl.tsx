@@ -5,11 +5,11 @@ import {
   AuthSourceControlWriteScope,
   SourceControlProviderKind,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import type {
   GitRunStackedActionResult,
   GitStackedAction,
@@ -18,7 +18,7 @@ import type {
   SourceControlPublishRepositoryResult,
   SourceControlRepositoryVisibility,
   VcsStatusResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import * as Option from "effect/Option";
 import {
@@ -116,7 +116,7 @@ import { threadEnvironment } from "~/state/threads";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { vcsActionManager, vcsEnvironment } from "~/state/vcs";
 import { randomUUID } from "~/lib/utils";
-import { resolvePathLinkTarget } from "@supacode/shared/fileLinks";
+import { resolvePathLinkTarget } from "@supaterm/shared/fileLinks";
 import { type DraftId, useComposerDraftStore } from "~/composerDraftStore";
 import {
   THREAD_DETAILS_PANEL_CHEVRON_CLASS,
@@ -125,8 +125,8 @@ import {
   THREAD_DETAILS_PANEL_SPLIT_SEPARATOR_CLASS,
 } from "./chat/threadDetailsPanelStyles";
 import { getSourceControlPresentation, sourceControlIcon } from "~/sourceControlPresentation";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
-import { formatDiffCount } from "@supacode/client-runtime/diff-count";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
+import { formatDiffCount } from "@supaterm/client-runtime/diff-count";
 import { useOpenLink } from "~/browser/useOpenLink";
 
 interface GitActionsControlProps {

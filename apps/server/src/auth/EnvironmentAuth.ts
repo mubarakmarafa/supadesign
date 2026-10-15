@@ -22,9 +22,9 @@ import {
   type ServerAuthDescriptor,
   type ServerAuthSessionMethod,
   type AuthWebSocketTicketResult,
-} from "@supacode/contracts";
-import { encodeOAuthScope } from "@supacode/shared/oauthScope";
-import { buildPairingUrl } from "@supacode/shared/remote";
+} from "@supaterm/contracts";
+import { encodeOAuthScope } from "@supaterm/shared/oauthScope";
+import { buildPairingUrl } from "@supaterm/shared/remote";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -68,7 +68,7 @@ export interface IssuedBearerSession {
 }
 
 /**
- * Sessions an MCP client (an agent Supacode did not launch) obtains through
+ * Sessions an MCP client (an agent Supaterm did not launch) obtains through
  * OAuth. They are accepted only by `/mcp`, where every action is capped by the
  * access the user approved; the HTTP API and WebSocket reject them so an agent
  * token cannot reach the full RPC surface around that cap.
@@ -446,7 +446,7 @@ export class EnvironmentAuth extends Context.Service<
     /**
      * Spends a one-time pairing code as approval for an MCP client with the
      * given access; the code must hold every scope that access grants.
-     * Proof-bound codes (Supacode Connect) are refused without being spent, and
+     * Proof-bound codes (Supaterm Connect) are refused without being spent, and
      * desktop bootstrap grants never qualify.
      */
     readonly consumeMcpApprovalCode: (
@@ -458,7 +458,7 @@ export class EnvironmentAuth extends Context.Service<
       request: HttpServerRequest.HttpServerRequest,
     ) => Effect.Effect<AuthenticatedSession, ServerAuthCredentialError | ServerAuthInternalError>;
   }
->()("supacode/auth/EnvironmentAuth") {}
+>()("supaterm/auth/EnvironmentAuth") {}
 
 type BootstrapExchangeResult = {
   readonly response: AuthBrowserSessionResult;
@@ -1143,7 +1143,7 @@ export const make = Effect.gen(function* () {
     code,
     access,
   ) =>
-    // No proof key: a code bound to a Supacode Connect client's key fails without being spent.
+    // No proof key: a code bound to a Supaterm Connect client's key fails without being spent.
     resolveBootstrapGrant(code.trim()).pipe(
       Effect.catchTags({
         ServerAuthInvalidCredentialError: () =>

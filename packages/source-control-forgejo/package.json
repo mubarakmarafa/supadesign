@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/source-control-forgejo",
+  "name": "@supaterm/source-control-forgejo",
   "private": true,
   "type": "module",
   "exports": {
@@ -37,15 +37,15 @@
     "test": "vp test run --config ../../vite.config.ts --dir ."
   },
   "dependencies": {
-    "@supacode/contracts": "workspace:*",
-    "@supacode/provider-core": "workspace:*",
-    "@supacode/shared": "workspace:*",
-    "@supacode/source-control-core": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/provider-core": "workspace:*",
+    "@supaterm/shared": "workspace:*",
+    "@supaterm/source-control-core": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",
-    "@supacode/source-control-testing": "workspace:*",
+    "@supaterm/source-control-testing": "workspace:*",
     "@types/node": "catalog:",
     "vite-plus": "catalog:"
   }

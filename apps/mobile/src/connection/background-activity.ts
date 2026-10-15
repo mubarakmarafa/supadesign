@@ -1,11 +1,11 @@
-import { EnvironmentRegistry } from "@supacode/client-runtime/connection";
-import { EnvironmentRpcSubscriptionObserver, request } from "@supacode/client-runtime/rpc";
+import { EnvironmentRegistry } from "@supaterm/client-runtime/connection";
+import { EnvironmentRpcSubscriptionObserver, request } from "@supaterm/client-runtime/rpc";
 import {
   type BackgroundScope,
   type ClientActivityReportInput,
   type EnvironmentId,
   WS_METHODS,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";

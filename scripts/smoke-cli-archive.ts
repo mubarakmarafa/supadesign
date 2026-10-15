@@ -21,8 +21,8 @@ import * as Stream from "effect/Stream";
 import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-import * as NetService from "@supacode/shared/Net";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as NetService from "@supaterm/shared/Net";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { windowsSystemTar } from "./build-cli-archive.ts";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 
@@ -74,8 +74,8 @@ const smokeCliArchive = Effect.fn("smokeCliArchive")(function* (input: {
   const path = yield* Path.Path;
   const platform = yield* HostProcess.Platform;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-  const scratch = yield* fs.makeTempDirectory({ prefix: "supacode-cli-smoke-" });
-  // Windows can keep supacode.exe locked (EBUSY) for a moment after the server
+  const scratch = yield* fs.makeTempDirectory({ prefix: "supaterm-cli-smoke-" });
+  // Windows can keep supaterm.exe locked (EBUSY) for a moment after the server
   // exits. A leftover scratch directory on a CI runner is harmless, so
   // cleanup retries briefly and never fails a smoke test that passed.
   yield* Effect.addFinalizer(() =>
@@ -107,7 +107,7 @@ const smokeCliArchive = Effect.fn("smokeCliArchive")(function* (input: {
     });
   }
   const contentDir = path.join(scratch, root);
-  const executable = path.join(contentDir, platform === "win32" ? "supacode.exe" : "supacode");
+  const executable = path.join(contentDir, platform === "win32" ? "supaterm.exe" : "supaterm");
   for (const required of [executable, path.join(contentDir, "client/index.html")]) {
     if (!(yield* fs.exists(required))) {
       return yield* new CliArchiveSmokeError({
@@ -144,7 +144,7 @@ const smokeCliArchive = Effect.fn("smokeCliArchive")(function* (input: {
           USERPROFILE: home,
           TMPDIR: scratch,
           TEMP: scratch,
-          SUPACODE_HOME: home,
+          SUPATERM_HOME: home,
         },
         extendEnv: false,
       },

@@ -1,4 +1,4 @@
-import type { EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
 import {
   AuthProvidersManageScope,
   type EnvironmentId,
@@ -9,7 +9,7 @@ import {
   sessionGrantsScope,
   type ServerSettings,
   type SessionGrantInput,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export interface ProviderEnvironmentOptionLike {
   readonly environmentId: EnvironmentId;

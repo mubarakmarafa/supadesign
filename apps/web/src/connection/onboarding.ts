@@ -1,9 +1,9 @@
-import { ConnectionOnboarding } from "@supacode/client-runtime/connection";
+import { ConnectionOnboarding } from "@supaterm/client-runtime/connection";
 import {
   createAtomCommandScheduler,
   createRuntimeCommand,
-} from "@supacode/client-runtime/state/runtime";
-import type { DesktopSshEnvironmentTarget, EnvironmentId } from "@supacode/contracts";
+} from "@supaterm/client-runtime/state/runtime";
+import type { DesktopSshEnvironmentTarget, EnvironmentId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 import { connectionAtomRuntime } from "./runtime";

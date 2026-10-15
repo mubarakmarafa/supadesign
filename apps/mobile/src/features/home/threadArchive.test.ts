@@ -1,7 +1,7 @@
-import { ProviderInstanceId, RunId } from "@supacode/contracts";
+import { ProviderInstanceId, RunId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import type { ThreadRuntimeSummary } from "@supacode/client-runtime/state/models";
+import type { ThreadRuntimeSummary } from "@supaterm/client-runtime/state/models";
 import { threadCanArchive } from "./threadArchive";
 
 function runtime(

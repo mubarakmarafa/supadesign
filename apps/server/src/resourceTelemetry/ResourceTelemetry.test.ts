@@ -2,7 +2,7 @@ import type {
   DesktopHostTelemetrySnapshot,
   ResourceMonitorProcessSample,
   ResourceMonitorSnapshotEvent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
@@ -76,8 +76,8 @@ function nativeSnapshot(input: {
       pid: 9_000,
       ppid: process.pid,
       startTimeMs: 400,
-      name: "supacode-resource-monitor",
-      command: "supacode-resource-monitor",
+      name: "supaterm-resource-monitor",
+      command: "supaterm-resource-monitor",
       cpuTimeMs: input.sequence * 5,
     }),
   ];

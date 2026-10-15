@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { TerminalSummary } from "@supacode/contracts";
-import { DEFAULT_TERMINAL_ID, TerminalOpenInput } from "@supacode/contracts";
+import type { TerminalSummary } from "@supaterm/contracts";
+import { DEFAULT_TERMINAL_ID, TerminalOpenInput } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 
 import { getTerminalLabel, nextTerminalId, resolveTerminalSessionLabel } from "./terminalLabels.ts";

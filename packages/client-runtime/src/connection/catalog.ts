@@ -1,4 +1,4 @@
-import { DesktopSshEnvironmentTargetSchema, EnvironmentId } from "@supacode/contracts";
+import { DesktopSshEnvironmentTargetSchema, EnvironmentId } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 

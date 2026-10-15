@@ -9,7 +9,7 @@ describe("native device stream document", () => {
     const configuration = JSON.stringify({ deviceId, ticket: "<ticket>" });
     const html = deviceStreamDocument(
       configuration,
-      "var SupacodeDeviceStream={start(input){return input}};",
+      "var SupatermDeviceStream={start(input){return input}};",
     );
     const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1];
     expect(html.match(/<script>/g)).toHaveLength(1);
@@ -27,7 +27,7 @@ describe("native device stream document", () => {
     const postMessage = vi.fn();
     const html = deviceStreamDocument(
       "{}",
-      'var SupacodeDeviceStream={start(){throw new Error("startup")}};',
+      'var SupatermDeviceStream={start(){throw new Error("startup")}};',
     );
     NodeVM.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)![1]!, {
       window: { addEventListener() {}, ReactNativeWebView: { postMessage } },
@@ -42,7 +42,7 @@ describe("native device stream document", () => {
   it.each(["error", "unhandledrejection"])("reports later %s failures to native", (event) => {
     const postMessage = vi.fn();
     const listeners = new Map<string, () => void>();
-    const html = deviceStreamDocument("{}", "var SupacodeDeviceStream={start(){}};");
+    const html = deviceStreamDocument("{}", "var SupatermDeviceStream={start(){}};");
     NodeVM.runInNewContext(html.match(/<script>([\s\S]*)<\/script>/)![1]!, {
       window: {
         addEventListener: (name: string, callback: () => void) => listeners.set(name, callback),

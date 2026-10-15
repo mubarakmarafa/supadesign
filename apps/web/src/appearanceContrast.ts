@@ -1,4 +1,4 @@
-import type { AppearanceContrast } from "@supacode/contracts/settings";
+import type { AppearanceContrast } from "@supaterm/contracts/settings";
 
 export function applyAppearanceContrast(root: HTMLElement, contrast: AppearanceContrast): void {
   root.style.setProperty("--appearance-contrast-base", `${Math.min(contrast, 100)}%`);

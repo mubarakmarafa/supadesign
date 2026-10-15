@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, expect, it } from "@effect/vitest";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Duration from "effect/Duration";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -18,7 +18,7 @@ import {
   VcsProcessExitError,
   VcsProcessSpawnError,
   VcsProcessTimeoutError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as ProcessRunner from "../processRunner.ts";
 import * as VcsProcess from "./VcsProcess.ts";
 
@@ -419,7 +419,7 @@ describe("VcsProcess.run", () => {
       const secretArgument = "--token=super-secret-token";
       const error = yield* run({
         operation: "test.spawn",
-        command: "definitely-not-a-supacode-executable",
+        command: "definitely-not-a-supaterm-executable",
         args: [secretArgument],
         cwd: process.cwd(),
       }).pipe(Effect.flip);
@@ -427,7 +427,7 @@ describe("VcsProcess.run", () => {
       expect(error).toBeInstanceOf(VcsProcessSpawnError);
       expect(error).toMatchObject({
         operation: "test.spawn",
-        command: "definitely-not-a-supacode-executable",
+        command: "definitely-not-a-supaterm-executable",
         argumentCount: 1,
       });
       expect(error).toHaveProperty("cause");

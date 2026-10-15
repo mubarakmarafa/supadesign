@@ -5,8 +5,8 @@ import {
   type KeybindingShortcut,
   type SnapShotModifier,
   type SnapShotShortcut,
-} from "@supacode/contracts";
-import { parseKeybindingShortcut } from "@supacode/shared/keybindings";
+} from "@supaterm/contracts";
+import { parseKeybindingShortcut } from "@supaterm/shared/keybindings";
 
 import { formatShortcutKeyLabel, formatShortcutLabel, shortcutConflictKey } from "../keybindings";
 import { isMacPlatform, isWindowsPlatform } from "./utils";

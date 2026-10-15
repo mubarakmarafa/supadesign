@@ -1,6 +1,6 @@
-import type { ServerUpdateState } from "@supacode/client-runtime/state/server";
-import type { EnvironmentId, ServerConfig } from "@supacode/contracts";
-import { cliReleaseChannelOf } from "@supacode/shared/cliRelease";
+import type { ServerUpdateState } from "@supaterm/client-runtime/state/server";
+import type { EnvironmentId, ServerConfig } from "@supaterm/contracts";
+import { cliReleaseChannelOf } from "@supaterm/shared/cliRelease";
 
 import {
   resolveServerSelfUpdateCapability,

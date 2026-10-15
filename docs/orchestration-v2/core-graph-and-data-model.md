@@ -16,7 +16,7 @@ Project
 
 The central separation is:
 
-- `AppThread`: the user-visible conversation in Supacode.
+- `AppThread`: the user-visible conversation in Supaterm.
 - `Run`: a counted user-visible turn on an app thread.
 - `ExecutionNode`: a unit of provider/runtime work inside a run.
 - `ProviderThread`: a provider-native conversation handle.

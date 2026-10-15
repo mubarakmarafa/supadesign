@@ -1,4 +1,4 @@
-import type { PreviewNavStatus } from "@supacode/contracts";
+import type { PreviewNavStatus } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { shouldShowFloatingBrowser } from "./floatingBrowser.ts";

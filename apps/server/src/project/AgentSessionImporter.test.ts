@@ -4,14 +4,14 @@ import {
   ProviderInstanceId,
   ThreadId,
   type OrchestrationV2DomainEvent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
 
 import * as EventSink from "../orchestration-v2/EventSink.ts";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as Orchestrator from "../orchestration-v2/Orchestrator.ts";
 import * as ProviderSessionRuntime from "../persistence/ProviderSessionRuntime.ts";
 import * as AgentSessionImporter from "./AgentSessionImporter.ts";

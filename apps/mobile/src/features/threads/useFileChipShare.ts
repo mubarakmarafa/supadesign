@@ -1,5 +1,5 @@
-import { resolveAssetUrl } from "@supacode/client-runtime/state/assets";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { Alert } from "react-native";

@@ -1,5 +1,5 @@
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
-import { EnvironmentId, ProjectId, ProviderInstanceId } from "@supacode/contracts";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
+import { EnvironmentId, ProjectId, ProviderInstanceId } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 
 import {
@@ -10,9 +10,9 @@ import {
 const projects: ReadonlyArray<EnvironmentProject> = [
   {
     environmentId: EnvironmentId.make("studio-laptop"),
-    id: ProjectId.make("supacode"),
-    title: "supacode",
-    workspaceRoot: "/workspace/supacode",
+    id: ProjectId.make("supaterm"),
+    title: "supaterm",
+    workspaceRoot: "/workspace/supaterm",
     repositoryIdentity: null,
     defaultModelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.4" },
     scripts: [],
@@ -47,8 +47,8 @@ it("builds sendable-looking pending tasks against real showcase projects", () =>
     [
       {
         environmentId: "studio-laptop",
-        projectId: "supacode",
-        title: "supacode",
+        projectId: "supaterm",
+        title: "supaterm",
         branch: "feat/offline-tests",
         createdAt: "2026-07-16T08:52:00.000Z",
       },

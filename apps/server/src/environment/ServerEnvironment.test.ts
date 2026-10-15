@@ -1,5 +1,5 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ORCHESTRATION_PROTOCOL_VERSION } from "@supacode/contracts";
+import { ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
 import { expect, it } from "@effect/vitest";
 import * as Crypto from "effect/Crypto";
 import * as Deferred from "effect/Deferred";
@@ -9,9 +9,9 @@ import * as Layer from "effect/Layer";
 import * as PlatformError from "effect/PlatformError";
 import * as Schema from "effect/Schema";
 
-import { DEFAULT_SIGNAL_EXPORT } from "@supacode/shared/observability";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
+import { DEFAULT_SIGNAL_EXPORT } from "@supaterm/shared/observability";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 
 import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "./ServerEnvironment.ts";
@@ -65,15 +65,15 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const baseDir = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
       const prefix = `${baseDir}/node`;
-      const entry = `${prefix}/lib/node_modules/supacode/dist/bin.mjs`;
-      yield* fs.makeDirectory(`${prefix}/lib/node_modules/supacode/dist`, { recursive: true });
+      const entry = `${prefix}/lib/node_modules/supaterm/dist/bin.mjs`;
+      yield* fs.makeDirectory(`${prefix}/lib/node_modules/supaterm/dist`, { recursive: true });
       yield* fs.makeDirectory(`${prefix}/bin`, { recursive: true });
       yield* fs.writeFileString(entry, "");
       yield* fs.writeFileString(
-        `${prefix}/lib/node_modules/supacode/package.json`,
-        '{"name":"supacode","version":"0.0.45","bin":{"supacode":"./dist/bin.mjs"}}',
+        `${prefix}/lib/node_modules/supaterm/package.json`,
+        '{"name":"supaterm","version":"0.0.45","bin":{"supaterm":"./dist/bin.mjs"}}',
       );
-      yield* fs.symlink(entry, `${prefix}/bin/supacode`);
+      yield* fs.symlink(entry, `${prefix}/bin/supaterm`);
       const config = yield* makeServerConfig(baseDir);
       yield* fs.makeDirectory(config.stateDir, { recursive: true });
       for (const mode of ["web", "desktop"] as const) {
@@ -107,7 +107,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       const fileSystem = yield* FileSystem.FileSystem;
       const crypto = yield* Crypto.Crypto;
       const baseDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-server-environment-concurrent-test-",
+        prefix: "supaterm-server-environment-concurrent-test-",
       });
       const serverConfig = yield* makeServerConfig(baseDir);
       yield* fileSystem.makeDirectory(serverConfig.stateDir, { recursive: true });
@@ -173,7 +173,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const baseDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-server-environment-test-",
+        prefix: "supaterm-server-environment-test-",
       });
 
       const first = yield* Effect.gen(function* () {
@@ -208,7 +208,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const baseDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-server-environment-desktop-update-test-",
+        prefix: "supaterm-server-environment-desktop-update-test-",
       });
       const serverConfig = yield* makeServerConfig(baseDir);
       yield* fileSystem.makeDirectory(serverConfig.stateDir, { recursive: true });
@@ -248,7 +248,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const baseDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "supacode-server-environment-error-test-",
+        prefix: "supaterm-server-environment-error-test-",
       });
       const serverConfig = yield* makeServerConfig(baseDir);
       const environmentIdPath = serverConfig.environmentIdPath;

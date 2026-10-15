@@ -5,8 +5,8 @@ import {
   EnvironmentId,
   ThreadId,
   sessionGrantsScope,
-} from "@supacode/contracts";
-import { type KnownTerminalSession } from "@supacode/client-runtime/state/terminal";
+} from "@supaterm/contracts";
+import { type KnownTerminalSession } from "@supaterm/client-runtime/state/terminal";
 import { SymbolView } from "../../components/AppSymbol";
 import { ScreenHeader } from "../../components/ScreenHeader";
 import { useNativeColumnLayoutMetrics } from "../../native/native-layout-metrics";

@@ -1,5 +1,5 @@
 import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
-import { availableScratchWorkspaceRoot } from "@supacode/client-runtime/operations/projects";
+import { availableScratchWorkspaceRoot } from "@supaterm/client-runtime/operations/projects";
 import Constants from "expo-constants";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
@@ -27,7 +27,7 @@ export function SettingsAboutRouteScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <SettingsScreen title="About Supacode">
+    <SettingsScreen title="About Supaterm">
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}

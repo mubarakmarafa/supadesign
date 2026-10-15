@@ -1,4 +1,4 @@
-import { AcpRegistryOperationError, ProviderInstanceId } from "@supacode/contracts";
+import { AcpRegistryOperationError, ProviderInstanceId } from "@supaterm/contracts";
 import { AcpRegistrySettings } from "../settings.ts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";

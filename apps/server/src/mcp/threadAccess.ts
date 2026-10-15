@@ -7,7 +7,7 @@ import {
   type RuntimeMode,
   type ThreadId,
   type OrchestrationV2ThreadShell,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 
@@ -51,7 +51,7 @@ export interface CallerLimits {
 export interface Caller {
   readonly scope: McpInvocationContext.McpInvocationScope;
   readonly threads: ThreadManagement.ThreadManagementService["Service"];
-  /** The calling thread, absent for a client signed in from outside Supacode. */
+  /** The calling thread, absent for a client signed in from outside Supaterm. */
   readonly caller: OrchestrationV2ThreadShell | undefined;
   readonly limits: CallerLimits;
 }
@@ -155,7 +155,7 @@ export const resolveProjectId = (context: Caller, projectId: ProjectId | undefin
       : Effect.fail(
           new OrchestratorMcpFailure({
             code: "target_required",
-            message: "Pass projectId: this MCP client is not running inside a Supacode thread.",
+            message: "Pass projectId: this MCP client is not running inside a Supaterm thread.",
           }),
         );
 
@@ -168,7 +168,7 @@ const resolveThreadId = (context: Caller, threadId: ThreadId | undefined) =>
       : Effect.fail(
           new OrchestratorMcpFailure({
             code: "target_required",
-            message: "Pass threadId: this MCP client is not running inside a Supacode thread.",
+            message: "Pass threadId: this MCP client is not running inside a Supaterm thread.",
           }),
         );
 

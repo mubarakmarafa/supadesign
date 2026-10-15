@@ -1,4 +1,4 @@
-declare module "@supacode/mobile-preview-stream" {
+declare module "@supaterm/mobile-preview-stream" {
   const script: string;
   export default script;
 }

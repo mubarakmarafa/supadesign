@@ -9,8 +9,8 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-import { buildRemoteNodeEnvScript } from "@supacode/ssh/tunnel";
-import { satisfiesSemverRange } from "@supacode/shared/semver";
+import { buildRemoteNodeEnvScript } from "@supaterm/ssh/tunnel";
+import { satisfiesSemverRange } from "@supaterm/shared/semver";
 
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import { parseWslDistroList, type WslDistro } from "./wslPathParsing.ts";
@@ -121,7 +121,7 @@ export class DesktopWslEnvironment extends Context.Service<
     readonly pruneRuntimes: (distro: string | null, runtimeId: string) => Effect.Effect<void>;
     // Marks a staged runtime as unusable so the next launch reinstalls it.
     readonly invalidateRuntime: (distro: string | null, runtimeId: string) => Effect.Effect<void>;
-    // Proves a staged self-contained runtime can run (`<root>/supacode --version`)
+    // Proves a staged self-contained runtime can run (`<root>/supaterm --version`)
     // and resolves the user's PATH, including version-managed Node for provider
     // CLIs. Node is optional; the mounted tree still requires ensureNodePty.
     readonly probeRuntime: (
@@ -134,7 +134,7 @@ export class DesktopWslEnvironment extends Context.Service<
       options?: EnsureWslNodePtyOptions,
     ) => Effect.Effect<EnsureWslNodePtyResult>;
   }
->()("@supacode/desktop/wsl/DesktopWslEnvironment") {}
+>()("@supaterm/desktop/wsl/DesktopWslEnvironment") {}
 
 const buildDistroArgs = (distro: string | null): ReadonlyArray<string> =>
   distro ? ["-d", distro] : [];
@@ -276,12 +276,12 @@ const runWslShell = (
 
 const shellQuote = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`;
 
-// Holds the sha256 of the runtime's `supacode` executable, written when the install
+// Holds the sha256 of the runtime's `supaterm` executable, written when the install
 // promotes a verified tree. Presence alone only says an install once finished
 // here; the digest is what lets a later launch prove the entry still is what
 // that install wrote.
-const WSL_RUNTIME_READY_MARKER = ".supacode-wsl-runtime-ready";
-const WSL_RUNTIME_SELECTED_MARKER = ".supacode-wsl-runtime-selected";
+const WSL_RUNTIME_READY_MARKER = ".supaterm-wsl-runtime-ready";
+const WSL_RUNTIME_SELECTED_MARKER = ".supaterm-wsl-runtime-selected";
 const WSL_RUNTIME_SELECTION_GRACE_MINUTES = 5;
 
 const sanitizeWslRuntimeId = (value: string): string => value.replace(/[^A-Za-z0-9._-]/g, "_");
@@ -297,24 +297,24 @@ export const buildWslRuntimeInstallScript = (
   const safeRuntimeId = sanitizeWslRuntimeId(runtimeId);
   return [
     "set -eu",
-    'runtime_parent="$HOME/.supacode/wsl-runtime"',
+    'runtime_parent="$HOME/.supaterm/wsl-runtime"',
     `runtime_root="$runtime_parent/${safeRuntimeId}"`,
     `ready_marker="$runtime_root/${WSL_RUNTIME_READY_MARKER}"`,
-    // The runtime is a self-contained `supacode` executable with Node inside, so the
+    // The runtime is a self-contained `supaterm` executable with Node inside, so the
     // readiness proof is the same one the SSH runner and the CLI installers
-    // use: the file is executable and `supacode --version` exits 0. That covers the
+    // use: the file is executable and `supaterm --version` exits 0. That covers the
     // truncated-binary and wrong-arch cases without a separate native probe.
     "runtime_entry_runs() {",
-    '  [ -x "$1/supacode" ] && "$1/supacode" --version >/dev/null 2>&1',
+    '  [ -x "$1/supaterm" ] && "$1/supaterm" --version >/dev/null 2>&1',
     "}",
-    // Hashing the entry is what tells a working cache from one whose `supacode` was
+    // Hashing the entry is what tells a working cache from one whose `supaterm` was
     // swapped or half-written after install: the file is still there and may
     // even still run, and launch then picks an executable that is not what
     // this install verified. Hashing the executable measures in tens of
     // milliseconds inside the distro, once per launch, against a cold
     // reinstall of a few hundred megabytes.
     "runtime_server_entry_digest() {",
-    `  sha256sum "$1/supacode" 2>/dev/null | cut -d ' ' -f 1`,
+    `  sha256sum "$1/supaterm" 2>/dev/null | cut -d ' ' -f 1`,
     "}",
     "runtime_is_ready() {",
     '  [ -f "$ready_marker" ] &&',
@@ -381,14 +381,14 @@ export const buildWslRuntimeInstallScript = (
     `runtime_tmp=$(mktemp -d "$runtime_parent/.${safeRuntimeId}.tmp.XXXXXX")`,
     'cleanup_runtime_install() { rm -rf "$runtime_tmp"; }',
     "trap cleanup_runtime_install EXIT",
-    // The release archive has one top-level `supacode-<version>-linux-<arch>/`
-    // directory; strip it so the executable lands at `$runtime_root/supacode`.
+    // The release archive has one top-level `supaterm-<version>-linux-<arch>/`
+    // directory; strip it so the executable lands at `$runtime_root/supaterm`.
     `tar -xzf ${shellQuote(linuxArchivePath)} -C "$runtime_tmp" --strip-components=1`,
     // Never write the ready marker over a tree whose executable does not run.
     // Failing here drops out to the mounted-tree fallback, which is
     // recoverable; promoting it would mark the defect ready and cache it.
     'if ! runtime_entry_runs "$runtime_tmp"; then',
-    "  printf 'WSL runtime archive does not contain a working supacode executable\\n' >&2",
+    "  printf 'WSL runtime archive does not contain a working supaterm executable\\n' >&2",
     "  exit 1",
     "fi",
     // The archive's bytes were verified against archiveSha256 above, so the
@@ -422,7 +422,7 @@ export const buildWslRuntimePruneScript = (runtimeId: string): string => {
   const safeRuntimeId = sanitizeWslRuntimeId(runtimeId);
   return [
     "set -eu",
-    'runtime_parent="$HOME/.supacode/wsl-runtime"',
+    'runtime_parent="$HOME/.supaterm/wsl-runtime"',
     `current_runtime="$runtime_parent/${safeRuntimeId}"`,
     '[ -d "$runtime_parent" ] || exit 0',
     // Serialize the whole retention decision so two backends cannot select
@@ -486,7 +486,7 @@ export const buildWslRuntimeInvalidateScript = (runtimeId: string): string => {
   const safeRuntimeId = sanitizeWslRuntimeId(runtimeId);
   return [
     "set -eu",
-    `rm -f "$HOME/.supacode/wsl-runtime/${safeRuntimeId}/${WSL_RUNTIME_READY_MARKER}"`,
+    `rm -f "$HOME/.supaterm/wsl-runtime/${safeRuntimeId}/${WSL_RUNTIME_READY_MARKER}"`,
   ].join("\n");
 };
 
@@ -505,7 +505,7 @@ const NODE_PTY_BINARY_MISSING_EXIT_CODE = 4;
 
 const formatNodePtyProbeFailureReason = (exitCode: number): string | null =>
   exitCode === NODE_PTY_BINARY_MISSING_EXIT_CODE
-    ? "WSL support is missing from this Supacode build: the packaged Linux node-pty binary was not included. Install a build that includes WSL support."
+    ? "WSL support is missing from this Supaterm build: the packaged Linux node-pty binary was not included. Install a build that includes WSL support."
     : null;
 
 // Captures the login-shell PATH as `resolvedPath:` so the launch can forward the
@@ -551,7 +551,7 @@ NODE`;
 export const buildWslRuntimeProbeScript = (linuxAppRoot: string) =>
   [
     `bash -lc ${shellQuote(`${buildWslNodeEnvPreamble()}${RESOLVED_PATH_LINE}`)} 2>/dev/null || ${RESOLVED_PATH_LINE}`,
-    `${shellQuote(`${linuxAppRoot}/supacode`)} --version >/dev/null 2>&1`,
+    `${shellQuote(`${linuxAppRoot}/supaterm`)} --version >/dev/null 2>&1`,
   ].join("\n");
 
 const TOOLCHAIN_CHECK_SCRIPT = [
@@ -694,7 +694,7 @@ const probeWslRuntimeImpl = (
       const trimmedTail = probe.stderr.trim().slice(-500);
       return {
         ok: false,
-        reason: `${linuxAppRoot}/supacode --version failed (exit ${probe.exitCode})${trimmedTail ? `: ${trimmedTail}` : ""}`,
+        reason: `${linuxAppRoot}/supaterm --version failed (exit ${probe.exitCode})${trimmedTail ? `: ${trimmedTail}` : ""}`,
       } as const;
     }
     const resolvedPath = parseResolvedPath(probe.stdout);

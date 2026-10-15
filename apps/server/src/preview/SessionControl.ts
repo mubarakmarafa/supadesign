@@ -1,4 +1,4 @@
-import type { PreviewAutomationControlReason } from "@supacode/contracts";
+import type { PreviewAutomationControlReason } from "@supaterm/contracts";
 
 export class BrowserControlInterrupted extends Error {
   readonly reason: PreviewAutomationControlReason;

@@ -1,4 +1,4 @@
-import { ProjectId, ThreadId } from "@supacode/contracts";
+import { ProjectId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import {
   planThreadPullRequestMutation,

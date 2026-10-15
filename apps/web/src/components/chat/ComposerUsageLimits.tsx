@@ -1,5 +1,5 @@
-import type { EnvironmentId, UsageLimitsReport } from "@supacode/contracts";
-import { limitsNotice } from "@supacode/shared/usageLimits";
+import type { EnvironmentId, UsageLimitsReport } from "@supaterm/contracts";
+import { limitsNotice } from "@supaterm/shared/usageLimits";
 import { GaugeIcon } from "lucide-react";
 
 import { ensureLocalApi } from "../../localApi";

@@ -3,8 +3,8 @@ import * as NodePath from "node:path";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { it } from "@effect/vitest";
-import { ThreadId, type VcsError } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { ThreadId, type VcsError } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -20,7 +20,7 @@ import * as VcsProcess from "../vcs/VcsProcess.ts";
 import * as ServerConfig from "../config.ts";
 
 const layerServerConfig = ServerConfig.ServerConfig.layerTest(process.cwd(), {
-  prefix: "supacode-checkpoint-store-test-",
+  prefix: "supaterm-checkpoint-store-test-",
 });
 const layerVcsProcessTest = VcsProcess.layer.pipe(Layer.provide(NodeServices.layer));
 const layerVcsDriverTest = VcsDriverRegistry.layer.pipe(Layer.provide(layerVcsProcessTest));

@@ -1,4 +1,4 @@
-import { DEFAULT_SERVER_SETTINGS, ProjectId, type ServerSettings } from "@supacode/contracts";
+import { DEFAULT_SERVER_SETTINGS, ProjectId, type ServerSettings } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { findOrphanedProjectIds } from "./ProjectSettingsOverrideSweep.ts";

@@ -1,4 +1,4 @@
-import type { ScopedThreadRef, ThreadId } from "@supacode/contracts";
+import type { ScopedThreadRef, ThreadId } from "@supaterm/contracts";
 
 /**
  * Base UI toast updates omit `undefined` fields, so callers that need to remove

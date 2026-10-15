@@ -1,4 +1,4 @@
-import type { PreviewSessionSnapshot } from "@supacode/contracts";
+import type { PreviewSessionSnapshot } from "@supaterm/contracts";
 
 /** The tab the agent touched last, the default when nothing is selected. */
 export function latestBrowserTab(tabs: ReadonlyArray<PreviewSessionSnapshot>) {

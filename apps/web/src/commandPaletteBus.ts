@@ -1,4 +1,4 @@
-import type { EnvironmentId, PullRequestLinkedThreadsResult } from "@supacode/contracts";
+import type { EnvironmentId, PullRequestLinkedThreadsResult } from "@supaterm/contracts";
 
 export interface CommandPaletteLinkedThreads {
   readonly environmentId: EnvironmentId;
@@ -7,7 +7,7 @@ export interface CommandPaletteLinkedThreads {
 
 // Tiny event bus allowing components to programmatically open the command palette
 // without owning its React state.
-const COMMAND_PALETTE_OPEN_EVENT = "supacode:open-command-palette";
+const COMMAND_PALETTE_OPEN_EVENT = "supaterm:open-command-palette";
 
 export interface CommandPaletteOpenDetail {
   readonly open?: "add-project" | "new-thread-in";

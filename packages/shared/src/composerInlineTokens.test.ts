@@ -176,10 +176,10 @@ describe("collectComposerInlineTokens", () => {
 
   it("leaves a context reference link alone", () => {
     expect(
-      collectComposerInlineTokens("see [checkout.png](supacode-context://v1/image/ctx_abc) ok"),
+      collectComposerInlineTokens("see [checkout.png](supaterm-context://v1/image/ctx_abc) ok"),
     ).toEqual([]);
     expect(
-      collectComposerInlineTokens("see ![ctx_abc](supacode-context://v1/image/ctx_abc) ok"),
+      collectComposerInlineTokens("see ![ctx_abc](supaterm-context://v1/image/ctx_abc) ok"),
     ).toEqual([]);
   });
 

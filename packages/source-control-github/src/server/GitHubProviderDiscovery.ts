@@ -5,10 +5,10 @@ import * as Schema from "effect/Schema";
 import {
   type SourceControlProviderDiscoveryItem,
   SourceControlProviderKind,
-} from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
-import { readSourceControlHostSettings } from "@supacode/source-control-core/client/definition";
-import * as SourceControlHost from "@supacode/source-control-core/server/SourceControlHost";
+} from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
+import { readSourceControlHostSettings } from "@supaterm/source-control-core/client/definition";
+import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 import * as GitHubClient from "../client/definition.ts";
 import * as GitHubApi from "./GitHubApi.ts";
 import * as GitHubCredentials from "./GitHubCredentials.ts";
@@ -26,7 +26,7 @@ import {
   type SourceControlAuthProbeInput,
   type SourceControlCliDiscoverySpec,
   type SourceControlManagedCliDiscoverySpec,
-} from "@supacode/source-control-core/server/discovery";
+} from "@supaterm/source-control-core/server/discovery";
 
 function authAccounts(accounts: ReadonlyArray<GitHubAuthStatusAccount>) {
   return accounts.map((entry) => ({

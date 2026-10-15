@@ -1,4 +1,4 @@
-import { parseChangeRequestUrl } from "@supacode/shared/changeRequestUrl";
+import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 import { useAtomValue } from "@effect/atom-react";
 import { usePullRequestStack } from "~/state/usePullRequestStack";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
@@ -6,8 +6,8 @@ import {
   scopedThreadKey,
   scopeProjectRef,
   scopeThreadRef,
-} from "@supacode/client-runtime/environment";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/environment";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
@@ -20,7 +20,7 @@ import {
   type PullRequestReviewGuideStop,
   resolveEnvironmentMachineKind,
   type ScopedThreadRef,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   ArrowDownUpIcon,
   ArrowLeftIcon,
@@ -92,7 +92,7 @@ import {
 } from "~/state/pullRequests";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { PullRequestStackMenu } from "./PullRequestStackMenu";
-import { sourceControlClients } from "@supacode/client-runtime/source-control-clients";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import { PullRequestThreadLinks } from "./PullRequestThreadLinks";
 import { vcsEnvironment } from "~/state/vcs";
 import { formatRelativeTimeLabel } from "~/timestampFormat";

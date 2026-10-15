@@ -1,6 +1,6 @@
-import { formatAttachmentSize } from "@supacode/client-runtime/state/attachments";
-import { imageMimeType } from "@supacode/shared/image";
-import { videoMimeType } from "@supacode/shared/video";
+import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
+import { imageMimeType } from "@supaterm/shared/image";
+import { videoMimeType } from "@supaterm/shared/video";
 /**
  * Every accent shares a lightness so no kind reads heavier than another; only hue carries
  * identity. These are the sRGB form of the same OKLCH set web uses, so a chip looks the

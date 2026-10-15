@@ -1,5 +1,5 @@
 {
-  "name": "@supacode/provider-testing",
+  "name": "@supaterm/provider-testing",
   "private": true,
   "type": "module",
   "exports": {
@@ -30,9 +30,9 @@
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",
-    "@supacode/contracts": "workspace:*",
-    "@supacode/provider-core": "workspace:*",
-    "@supacode/shared": "workspace:*",
+    "@supaterm/contracts": "workspace:*",
+    "@supaterm/provider-core": "workspace:*",
+    "@supaterm/shared": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ import type {
   TerminalSessionSnapshot,
   TerminalSummary,
   ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   appendOutput,
   DEFAULT_MAX_TERMINAL_BUFFER_BYTES,

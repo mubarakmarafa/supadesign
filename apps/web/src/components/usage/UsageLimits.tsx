@@ -7,7 +7,7 @@ import {
   ServerProviderResetCredits,
   ServerProviderUsageWindow,
   UsageProviderKind,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import {
   elapsedShare,
@@ -16,7 +16,7 @@ import {
   type LimitPace,
   paceOf,
   remainingPercent,
-} from "@supacode/shared/usageLimits";
+} from "@supaterm/shared/usageLimits";
 import { GaugeIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 

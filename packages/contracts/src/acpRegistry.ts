@@ -280,7 +280,7 @@ export const AcpRegistryProbeResult = Schema.Struct({
   authMethods: Schema.Array(AcpRegistryProbeAuthMethod).check(Schema.isMaxLength(32)),
   models: Schema.Array(AcpRegistryProbeModel).check(Schema.isMaxLength(256)),
   currentModelId: Schema.NullOr(AcpRegistryProbeText),
-  // Non-model session config options and session modes, pre-mapped onto Supacode's
+  // Non-model session config options and session modes, pre-mapped onto Supaterm's
   // provider option descriptors so model capabilities can carry them directly.
   configOptions: Schema.Array(ProviderOptionDescriptor).check(Schema.isMaxLength(16)),
   sessionManagement: Schema.Struct({

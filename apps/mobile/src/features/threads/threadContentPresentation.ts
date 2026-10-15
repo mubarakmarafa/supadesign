@@ -1,4 +1,4 @@
-import { type EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
+import { type EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
 
 export type ThreadContentPresentation =
   | { readonly kind: "ready" }

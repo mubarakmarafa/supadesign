@@ -1,11 +1,11 @@
-import { AuthFilesystemReadScope } from "@supacode/contracts";
+import { AuthFilesystemReadScope } from "@supaterm/contracts";
 import { readEnvironmentScope } from "../../state/session";
-import { executeAtomQuery } from "@supacode/client-runtime/state/runtime";
-import type { EnvironmentId } from "@supacode/contracts";
+import { executeAtomQuery } from "@supaterm/client-runtime/state/runtime";
+import type { EnvironmentId } from "@supaterm/contracts";
 import {
   isWorkspaceBrowserPreviewPath,
   isWorkspaceImagePreviewPath,
-} from "@supacode/shared/filePreview";
+} from "@supaterm/shared/filePreview";
 
 import { appAtomRegistry } from "../../state/atom-registry";
 import { projectEnvironment } from "../../state/projects";

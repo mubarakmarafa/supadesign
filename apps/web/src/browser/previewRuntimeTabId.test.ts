@@ -1,4 +1,4 @@
-import { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { isCurrentPreviewRuntimeTab, previewRuntimeTabId } from "./previewRuntimeTabId";

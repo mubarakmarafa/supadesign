@@ -1,5 +1,5 @@
 import * as OrchestrationSkills from "./provider/OrchestrationSkills.ts";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import * as StorageCleanup from "./storageCleanup.ts";
 import * as PullRequestSyncReactor from "./orchestration-v2/PullRequestSyncReactor.ts";
 import * as PullRequestWatchReactor from "./orchestration-v2/PullRequestWatchReactor.ts";
@@ -8,7 +8,7 @@ import * as NodeHttp from "node:http";
 
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { EnvironmentHttpApi, type RepositoryIdentity } from "@supacode/contracts";
+import { EnvironmentHttpApi, type RepositoryIdentity } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -40,12 +40,12 @@ import * as ProviderEventIngestor from "./orchestration-v2/ProviderEventIngestor
 import * as ModelManifest from "./provider/ModelManifest.ts";
 import * as ResetCreditCoordinator from "./provider/resetCreditCoordinator.ts";
 import * as EventNdjsonLogger from "./provider/EventNdjsonLogger.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as OpenCodeRuntime from "@supacode/provider-opencode/server/OpenCodeRuntime";
-import * as OpenCodeServerLedger from "@supacode/provider-opencode/server/OpenCodeServerLedger";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as OpenCodeRuntime from "@supaterm/provider-opencode/server/OpenCodeRuntime";
+import * as OpenCodeServerLedger from "@supaterm/provider-opencode/server/OpenCodeServerLedger";
 import * as ProviderHostLive from "./provider/ProviderHostLive.ts";
-import * as AcpRegistrySupport from "@supacode/provider-acp-registry/server/AcpRegistrySupport";
+import * as AcpRegistrySupport from "@supaterm/provider-acp-registry/server/AcpRegistrySupport";
 import * as CheckpointDiffQuery from "./checkpointing/CheckpointDiffQuery.ts";
 import * as CheckpointStore from "./checkpointing/CheckpointStore.ts";
 import * as SourceControlBuiltInDrivers from "./sourceControl/builtInDrivers.ts";
@@ -80,7 +80,7 @@ import * as ProviderRegistry from "./provider/ProviderRegistry.ts";
 import * as ProviderUsageLimitsIngestion from "./provider/ProviderUsageLimitsIngestion.ts";
 import * as UsageLimitSources from "./usage/UsageLimitSources.ts";
 import * as ProjectFaviconResolver from "./project/ProjectFaviconResolver.ts";
-import * as SupacodeProjectFileLoader from "./project/SupacodeProjectFileLoader.ts";
+import * as SupatermProjectFileLoader from "./project/SupatermProjectFileLoader.ts";
 import * as RepositoryIdentityResolver from "./project/RepositoryIdentityResolver.ts";
 import * as WorkspaceEntries from "./workspace/WorkspaceEntries.ts";
 import * as WorkspaceFileSystem from "./workspace/WorkspaceFileSystem.ts";
@@ -96,7 +96,7 @@ import * as GitWorkflowService from "./git/GitWorkflowService.ts";
 import * as ReviewService from "./review/ReviewService.ts";
 import * as SourceControlProviderRegistry from "./sourceControl/SourceControlProviderRegistry.ts";
 import * as PullRequestReadCache from "./pullRequest/PullRequestReadCache.ts";
-import * as SourceControlRateLimit from "@supacode/source-control-core/server/SourceControlRateLimit";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 import * as SourceControlRepositoryService from "./sourceControl/SourceControlRepositoryService.ts";
 import * as WorktreeSetupTracker from "./project/WorktreeSetupTracker.ts";
 import * as Observability from "./observability/Observability.ts";
@@ -108,7 +108,7 @@ import * as RelayAccess from "./relay/RelayAccess.ts";
 import * as RelayHttp from "./relay/RelayHttp.ts";
 import * as RelayIdentity from "./relay/RelayIdentity.ts";
 import * as RelayIngress from "./relay/RelayIngress.ts";
-import { TunnelSocket } from "@supacode/shared/relay/tunnelNode";
+import { TunnelSocket } from "@supaterm/shared/relay/tunnelNode";
 import * as RemoteOpenTargets from "./environment/RemoteOpenTargets.ts";
 import * as AuthHttp from "./auth/http.ts";
 import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
@@ -128,9 +128,9 @@ import * as ResourceAttribution from "./resourceTelemetry/ResourceAttribution.ts
 import * as ResourceMonitorBinary from "./resourceTelemetry/ResourceMonitorBinary.ts";
 import * as ResourceTelemetry from "./resourceTelemetry/ResourceTelemetry.ts";
 import * as AntigravityUsage from "./provider/Drivers/AntigravityUsage.ts";
-import * as CursorAccountReader from "@supacode/provider-cursor/server/CursorAccountReader";
-import * as CursorKeychain from "@supacode/provider-cursor/server/CursorKeychain";
-import * as CursorUsageAccounts from "@supacode/provider-cursor/server/CursorUsageAccounts";
+import * as CursorAccountReader from "@supaterm/provider-cursor/server/CursorAccountReader";
+import * as CursorKeychain from "@supaterm/provider-cursor/server/CursorKeychain";
+import * as CursorUsageAccounts from "@supaterm/provider-cursor/server/CursorUsageAccounts";
 import * as UsageService from "./usage/UsageService.ts";
 import * as RuntimeLayer from "./orchestration-v2/runtimeLayer.ts";
 import * as ProjectStore from "./orchestration-v2/ProjectStore.ts";
@@ -147,8 +147,8 @@ import {
 } from "./serverRuntimeState.ts";
 import * as OrchestrationHttp from "./orchestration-v2/http.ts";
 import * as ProjectHttp from "./project/http.ts";
-import * as NetService from "@supacode/shared/Net";
-import { disableTailscaleServe, ensureTailscaleServe } from "@supacode/tailscale";
+import * as NetService from "@supaterm/shared/Net";
+import { disableTailscaleServe, ensureTailscaleServe } from "@supaterm/tailscale";
 import * as ServerActivation from "./serverActivation.ts";
 
 // MCP handoff thread IDs include escaped provenance and can exceed find-my-way's
@@ -158,7 +158,7 @@ const HTTP_ROUTER_CONFIG = {
 } as const;
 
 // Effect's default preemptive shutdown waits 20s before finalizing request scopes.
-// Supacode's primary transport is long-lived WebSocket RPC, whose Effect scope finalizer
+// Supaterm's primary transport is long-lived WebSocket RPC, whose Effect scope finalizer
 // already closes the websocket gracefully. Do not add an artificial drain before
 // those finalizers get a chance to run.
 const HTTP_PREEMPTIVE_SHUTDOWN_GRACE_MS = 0;
@@ -407,7 +407,7 @@ const layerWorkspace = Layer.mergeAll(
 
 const layerProjectFaviconResolver = ProjectFaviconResolver.layer.pipe(
   Layer.provide(WorkspacePaths.layer),
-  Layer.provide(SupacodeProjectFileLoader.layer),
+  Layer.provide(SupatermProjectFileLoader.layer),
 );
 
 const layerRelayAccess = RelayAccess.layer.pipe(

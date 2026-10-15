@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { PullRequestDiffResult } from "@supacode/contracts";
+import type { PullRequestDiffResult } from "@supaterm/contracts";
 import type { ReviewParsedDiff } from "../review/reviewModel";
 import { combinePullRequestDiffPages, retainPullRequestDiffPage } from "./pullRequestDiffPages";
 

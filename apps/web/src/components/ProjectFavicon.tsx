@@ -1,8 +1,8 @@
-import type { EnvironmentProject } from "@supacode/client-runtime/state/shell";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import {
   getProjectFaviconResourceKey,
   isProjectFaviconFallbackUrl,
-} from "@supacode/shared/projectFavicon";
+} from "@supaterm/shared/projectFavicon";
 import { FolderCodeIcon } from "lucide-react";
 import type { IconName } from "lucide-react/dynamic";
 import type { ComponentType } from "react";

@@ -6,7 +6,7 @@ import {
   ProviderInstanceId,
   type ModelSelection,
   type ProjectScript,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Result from "effect/Result";
 

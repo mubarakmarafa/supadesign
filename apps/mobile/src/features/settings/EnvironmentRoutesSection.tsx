@@ -8,9 +8,9 @@ import {
   connectionRouteLabel,
   connectionRoutes,
   isLearned,
-} from "@supacode/client-runtime/connection";
-import { type EnvironmentId, sessionGrantsScope } from "@supacode/contracts";
-import { AUTH_SCOPE_OPTIONS } from "@supacode/shared/authScopeOptions";
+} from "@supaterm/client-runtime/connection";
+import { type EnvironmentId, sessionGrantsScope } from "@supaterm/contracts";
+import { AUTH_SCOPE_OPTIONS } from "@supaterm/shared/authScopeOptions";
 import { AsyncResult } from "effect/reactivity";
 import * as Option from "effect/Option";
 import * as Haptics from "expo-haptics";

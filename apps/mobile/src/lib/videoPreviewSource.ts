@@ -1,5 +1,5 @@
-import type { AssetResource, ChatFileAttachment, EnvironmentId } from "@supacode/contracts";
-import { videoMimeType } from "@supacode/shared/video";
+import type { AssetResource, ChatFileAttachment, EnvironmentId } from "@supaterm/contracts";
+import { videoMimeType } from "@supaterm/shared/video";
 
 import type { DraftComposerFileAttachment } from "./composerImages";
 import type { MediaActionsSource } from "./mediaActionsSource";

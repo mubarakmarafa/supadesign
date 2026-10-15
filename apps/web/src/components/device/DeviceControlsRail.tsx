@@ -1,4 +1,4 @@
-import type { DevicePlatform } from "@supacode/contracts";
+import type { DevicePlatform } from "@supaterm/contracts";
 import {
   Camera,
   ChevronLeft,

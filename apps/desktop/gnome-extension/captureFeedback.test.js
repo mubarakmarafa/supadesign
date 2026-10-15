@@ -107,7 +107,7 @@ function begin(animate = true) {
 function target(pid = 42) {
   return {
     get_pid: () => pid,
-    get_title: () => "Supacode",
+    get_title: () => "Supaterm",
     get_window_type: () => 0,
     get_frame_rect: () => bounds,
     frame_rect_to_client_rect: (rect) => rect,
@@ -119,7 +119,7 @@ it("activates the caller, flies its frozen capture, and retains the landed image
   shell.windows = [target(99), window];
   const { feedback, started } = begin();
   expect(started).toBe(true);
-  await feedback.activate(":1.23", "Supacode");
+  await feedback.activate(":1.23", "Supaterm");
   expect(shell.activate).toHaveBeenCalledWith(window, 123);
   const flight = feedback.animate(":1.23", { x: 0.1, y: 0.8, width: 0.2, height: 0.1 });
   const actor = shell.actors[0];
@@ -134,9 +134,9 @@ it("activates the caller, flies its frozen capture, and retains the landed image
   expect(shell.timers.size).toBe(0);
 });
 
-it("waits for Supacode to remap and cancels that wait when disabled", async () => {
+it("waits for Supaterm to remap and cancels that wait when disabled", async () => {
   const { feedback } = begin();
-  const activation = feedback.activate(":1.23", "Supacode");
+  const activation = feedback.activate(":1.23", "Supaterm");
   expect(shell.activate).not.toHaveBeenCalled();
   shell.windows = [target()];
   for (const mapped of shell.mapped.values()) mapped();
@@ -145,19 +145,19 @@ it("waits for Supacode to remap and cancels that wait when disabled", async () =
   feedback.dispose();
   shell.windows = [];
   const next = begin().feedback;
-  const cancelled = next.activate(":1.23", "Supacode");
+  const cancelled = next.activate(":1.23", "Supaterm");
   next.dispose();
   await expect(cancelled).rejects.toThrow("No active capture");
   expect(shell.mapped.size).toBe(0);
 });
 
-it("does not animate under reduced motion but still activates Supacode", async () => {
+it("does not animate under reduced motion but still activates Supaterm", async () => {
   shell.animations = false;
   shell.windows = [target()];
   const { feedback, started } = begin();
   expect(started).toBe(false);
   expect(shell.actors).toHaveLength(0);
-  await feedback.activate(":1.23", "Supacode");
+  await feedback.activate(":1.23", "Supaterm");
   expect(shell.activate).toHaveBeenCalledOnce();
   feedback.dispose();
 });
@@ -165,9 +165,9 @@ it("does not animate under reduced motion but still activates Supacode", async (
 it("rejects another sender and locked-session activation", async () => {
   shell.windows = [target()];
   const { feedback } = begin();
-  await expect(feedback.activate(":1.99", "Supacode")).rejects.toThrow("No active capture");
+  await expect(feedback.activate(":1.99", "Supaterm")).rejects.toThrow("No active capture");
   shell.locked = true;
-  await expect(feedback.activate(":1.23", "Supacode")).rejects.toThrow("No active capture");
+  await expect(feedback.activate(":1.23", "Supaterm")).rejects.toThrow("No active capture");
   expect(shell.activate).not.toHaveBeenCalled();
   feedback.dispose();
 });
@@ -175,7 +175,7 @@ it("rejects another sender and locked-session activation", async () => {
 it("disposes an abandoned flight and resolves its pending response", async () => {
   shell.windows = [target()];
   const { feedback } = begin();
-  await feedback.activate(":1.23", "Supacode");
+  await feedback.activate(":1.23", "Supaterm");
   const flight = feedback.animate(":1.23", { x: 0.1, y: 0.8, width: 0.2, height: 0.1 });
   const callbacks = [...shell.timers.values()];
   shell.timers.clear();

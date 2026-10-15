@@ -5,7 +5,7 @@ import {
   RunId,
   TurnItemId,
   type OrchestrationV2ThreadStreamItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { it } from "@effect/vitest";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";

@@ -6,7 +6,7 @@ import type {
   ResourceTelemetryAggregate,
   ResourceTelemetryProcess,
   ResourceTelemetryProcessCategory,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Option from "effect/Option";
 
@@ -30,7 +30,7 @@ export interface TelemetryCounters {
   readonly backend: GroupCounters;
   readonly electron: GroupCounters;
   readonly monitor: GroupCounters;
-  readonly allSupacode: GroupCounters;
+  readonly allSupaterm: GroupCounters;
 }
 
 export interface ProcessDelta {
@@ -63,7 +63,7 @@ export interface MergeProcessesResult {
     readonly backend: ResourceTelemetryAggregate;
     readonly electron: ResourceTelemetryAggregate;
     readonly monitor: ResourceTelemetryAggregate;
-    readonly allSupacode: ResourceTelemetryAggregate;
+    readonly allSupaterm: ResourceTelemetryAggregate;
   };
   readonly deltas: ReadonlyArray<ProcessDelta>;
 }
@@ -80,7 +80,7 @@ export const emptyTelemetryCounters = (): TelemetryCounters => ({
   backend: emptyGroupCounters(),
   electron: emptyGroupCounters(),
   monitor: emptyGroupCounters(),
-  allSupacode: emptyGroupCounters(),
+  allSupaterm: emptyGroupCounters(),
 });
 
 export function processIdentityKey(pid: number, startTimeMs: number): string {
@@ -292,7 +292,7 @@ function applyLifecycleCounters(input: {
   let backend = input.counters.backend;
   let electron = input.counters.electron;
   let monitor = input.counters.monitor;
-  let allSupacode = input.counters.allSupacode;
+  let allSupaterm = input.counters.allSupaterm;
   for (const processDelta of input.deltas) {
     const group = categoryGroup(processDelta.category);
     switch (group) {
@@ -306,7 +306,7 @@ function applyLifecycleCounters(input: {
         monitor = incrementCounters(monitor, processDelta);
         break;
     }
-    allSupacode = incrementCounters(allSupacode, processDelta);
+    allSupaterm = incrementCounters(allSupaterm, processDelta);
   }
 
   for (const [identityKey, current] of input.current) {
@@ -323,7 +323,7 @@ function applyLifecycleCounters(input: {
         monitor = incrementCounters(monitor, { processStarts: 1 });
         break;
     }
-    allSupacode = incrementCounters(allSupacode, { processStarts: 1 });
+    allSupaterm = incrementCounters(allSupaterm, { processStarts: 1 });
   }
 
   for (const [identityKey, previous] of input.previous) {
@@ -340,10 +340,10 @@ function applyLifecycleCounters(input: {
         monitor = incrementCounters(monitor, { processExits: 1 });
         break;
     }
-    allSupacode = incrementCounters(allSupacode, { processExits: 1 });
+    allSupaterm = incrementCounters(allSupaterm, { processExits: 1 });
   }
 
-  return { backend, electron, monitor, allSupacode };
+  return { backend, electron, monitor, allSupaterm };
 }
 
 function aggregate(
@@ -601,7 +601,7 @@ export function mergeProcesses(input: MergeProcessesInput): MergeProcessesResult
       backend: aggregate(backendProcesses, counters.backend),
       electron: aggregate(electronProcesses, counters.electron),
       monitor: aggregate(monitorProcesses, counters.monitor),
-      allSupacode: aggregate(ordered, counters.allSupacode),
+      allSupaterm: aggregate(ordered, counters.allSupaterm),
     },
     deltas: processDeltas,
   };

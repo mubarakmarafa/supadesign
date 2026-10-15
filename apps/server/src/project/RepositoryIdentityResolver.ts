@@ -1,9 +1,9 @@
-import type { RepositoryIdentity, SourceControlProviderError } from "@supacode/contracts";
+import type { RepositoryIdentity, SourceControlProviderError } from "@supaterm/contracts";
 import {
   detectSourceControlProviderFromGitRemoteUrl,
   normalizeGitRemoteUrl,
   parseGitRemoteFetchUrls,
-} from "@supacode/shared/git";
+} from "@supaterm/shared/git";
 import * as Cache from "effect/Cache";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
@@ -38,7 +38,7 @@ export class RepositoryIdentityResolver extends Context.Service<
       options?: { readonly refresh?: boolean },
     ) => Effect.Effect<RepositoryIdentity | null>;
   }
->()("supacode/project/RepositoryIdentityResolver") {}
+>()("supaterm/project/RepositoryIdentityResolver") {}
 
 function pickPrimaryRemote(
   remotes: ReadonlyMap<string, string>,

@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Effect from "effect/Effect";
@@ -320,7 +320,7 @@ it.effect.skipIf(HostProcess.Platform.defaultValue() === "win32")(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const home = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-remote-editors-" });
+      const home = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-remote-editors-" });
       for (const app of ["Cursor", "Visual Studio Code", "WebStorm"]) {
         const executable = path.join(
           home,

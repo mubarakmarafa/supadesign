@@ -6,7 +6,7 @@ import {
   TurnItemId,
   type OrchestrationV2ProjectedTurnItem,
   type OrchestrationV2TurnItem,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 

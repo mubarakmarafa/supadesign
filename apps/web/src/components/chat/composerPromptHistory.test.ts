@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { ATTACHMENT_ONLY_BOOTSTRAP_PROMPT } from "@supacode/shared/composerContextReferences";
+import { ATTACHMENT_ONLY_BOOTSTRAP_PROMPT } from "@supaterm/shared/composerContextReferences";
 import { buildPlanImplementationPrompt } from "../../proposedPlan";
 import {
   buildComposerPromptHistoryEntries,
@@ -87,9 +87,9 @@ describe("recallableComposerPrompt", () => {
 
   it("removes canonical references without restoring dangling chips", () => {
     const sent =
-      "Look at [Terminal](supacode-context://v1/terminal/term-1) please\n    indented  code\n![image](supacode-context://v1/image/img-1)";
+      "Look at [Terminal](supaterm-context://v1/terminal/term-1) please\n    indented  code\n![image](supaterm-context://v1/image/img-1)";
     expect(recallableComposerPrompt(sent)).toBe("Look at please\n    indented  code");
-    expect(recallableComposerPrompt("![image](supacode-context://v1/image/img-1)")).toBe("");
+    expect(recallableComposerPrompt("![image](supaterm-context://v1/image/img-1)")).toBe("");
   });
 
   it("returns an empty string for app-composed sends", () => {

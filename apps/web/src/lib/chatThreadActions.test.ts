@@ -1,10 +1,10 @@
-import { scopeProjectRef } from "@supacode/client-runtime/environment";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 import {
   EnvironmentId,
   ProjectId,
   ProviderInstanceId,
   type ModelSelection,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   resolveThreadActionProjectRef,

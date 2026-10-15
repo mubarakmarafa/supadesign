@@ -6,7 +6,7 @@ import {
   type ProviderOptionSelection,
   type ScopedThreadRef,
   type ServerProviderModel,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   applyClaudePromptEffortPrefix,
   buildProviderOptionSelectionsFromDescriptors,
@@ -15,13 +15,13 @@ import {
   getProviderOptionDescriptors,
   isClaudeUltrathinkPrompt,
   normalizeModelSlug,
-} from "@supacode/shared/model";
+} from "@supaterm/shared/model";
 import {
   getSpeedToggle,
   getSpeedToggleNextValue,
   SPEED_TOGGLE_LABELS,
   type SpeedToggle,
-} from "@supacode/client-runtime/provider-speed-toggle";
+} from "@supaterm/client-runtime/provider-speed-toggle";
 import { memo, useCallback } from "react";
 import { BrainIcon, ZapIcon } from "lucide-react";
 import { UltrafastIcon } from "../Icons";

@@ -12,7 +12,7 @@
  *
  * @module provider/Drivers/ClaudeDriver
  */
-import { ClaudeSettings, ProviderDriverKind } from "@supacode/contracts";
+import { ClaudeSettings, ProviderDriverKind } from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -22,11 +22,11 @@ import { HttpClient } from "effect/http";
 import { ChildProcessSpawner } from "effect/process";
 
 import { makeClaudeTextGeneration } from "../../textGeneration/ClaudeTextGeneration.ts";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import * as ServerConfig from "../../config.ts";
-import { expandHomePath } from "@supacode/provider-core/server/pathExpansion";
-import * as ProviderEventLoggers from "@supacode/provider-core/server/ProviderEventLoggers";
+import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
+import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import {
   createClaudeAdapterV2,
   type ClaudeAdapterV2DriverEnv,
@@ -43,34 +43,34 @@ import {
   probeClaudeCapabilities,
   probeClaudeWorkspaceSnapshot,
 } from "../ClaudeProvider.ts";
-import { makeManagedServerProvider } from "@supacode/provider-core/server/managedProvider";
-import * as ModelCatalog from "@supacode/provider-core/server/ModelCatalog";
+import { makeManagedServerProvider } from "@supaterm/provider-core/server/managedProvider";
+import * as ModelCatalog from "@supaterm/provider-core/server/ModelCatalog";
 import { resolveClaudeModelCatalog } from "../ClaudeModelCatalog.ts";
 import {
   defaultProviderContinuationIdentity,
   type ProviderDriver,
   type ProviderInstance,
-} from "@supacode/provider-core/server/driver";
-import { withInstanceIdentity } from "@supacode/provider-core/server/instanceIdentity";
-import { mergeProviderInstanceEnvironment } from "@supacode/provider-core/server/instanceEnvironment";
+} from "@supaterm/provider-core/server/driver";
+import { withInstanceIdentity } from "@supaterm/provider-core/server/instanceIdentity";
+import { mergeProviderInstanceEnvironment } from "@supaterm/provider-core/server/instanceEnvironment";
 import {
   enrichProviderSnapshotWithVersionAdvisory,
   makeCachedProviderMaintenanceResolution,
   makePackageManagedProviderMaintenanceResolver,
   normalizeCommandPath,
   resolveProviderMaintenanceCapabilitiesEffect,
-} from "@supacode/provider-core/server/maintenanceResolver";
+} from "@supaterm/provider-core/server/maintenanceResolver";
 import {
   haveProviderSnapshotSettingsChanged,
   makeProviderSnapshotSettingsSource,
   type ProviderSnapshotSettings,
-} from "@supacode/provider-core/server/snapshotSettings";
+} from "@supaterm/provider-core/server/snapshotSettings";
 import {
   makeClaudeCapabilitiesCacheKey,
   makeClaudeContinuationGroupKey,
   resolveClaudeHomePath,
 } from "./ClaudeHome.ts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 const decodeClaudeSettings = Schema.decodeSync(ClaudeSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("claudeAgent");

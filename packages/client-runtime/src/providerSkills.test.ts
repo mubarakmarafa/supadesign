@@ -3,8 +3,8 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerProvider,
-} from "@supacode/contracts";
-import { formatProviderSkillDisplayName } from "@supacode/shared/inlineSkills";
+} from "@supaterm/contracts";
+import { formatProviderSkillDisplayName } from "@supaterm/shared/inlineSkills";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

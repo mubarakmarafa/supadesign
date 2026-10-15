@@ -1,5 +1,5 @@
-import type { ScopedThreadRef } from "@supacode/contracts";
-import { isAtomCommandInterrupted } from "@supacode/client-runtime/state/runtime";
+import type { ScopedThreadRef } from "@supaterm/contracts";
+import { isAtomCommandInterrupted } from "@supaterm/client-runtime/state/runtime";
 import * as Schema from "effect/Schema";
 
 import {

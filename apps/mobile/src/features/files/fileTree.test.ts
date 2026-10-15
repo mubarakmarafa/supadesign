@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { ProjectEntry } from "@supacode/contracts";
+import type { ProjectEntry } from "@supaterm/contracts";
 
 import { buildFileTree, defaultExpandedTreePaths, flattenFileTree } from "./fileTree";
 

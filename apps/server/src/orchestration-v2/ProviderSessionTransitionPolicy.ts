@@ -4,11 +4,11 @@ import type {
   ProviderDriverKind,
   ProviderInteractionMode,
   RuntimeMode,
-} from "@supacode/contracts";
-import { modelSelectionsEqual } from "@supacode/shared/model";
+} from "@supaterm/contracts";
+import { modelSelectionsEqual } from "@supaterm/shared/model";
 
-import type { ProviderContinuationIdentity } from "@supacode/provider-core/server/driver";
-import type { ProviderSelectionTransitionPlan } from "@supacode/provider-core/server/selectionTransition";
+import type { ProviderContinuationIdentity } from "@supaterm/provider-core/server/driver";
+import type { ProviderSelectionTransitionPlan } from "@supaterm/provider-core/server/selectionTransition";
 
 export type ProviderSessionTransition =
   | { readonly type: "reuse" }

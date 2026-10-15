@@ -6,11 +6,11 @@ import * as Schema from "effect/Schema";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import type * as EffectAcpErrors from "effect-acp/errors";
 
-import { TextGenerationError } from "@supacode/contracts";
+import { TextGenerationError } from "@supaterm/contracts";
 import type { GrokSettings } from "../settings.ts";
-import { getModelSelectionStringOptionValue } from "@supacode/shared/model";
+import { getModelSelectionStringOptionValue } from "@supaterm/shared/model";
 
-import * as TextGenerationOperations from "@supacode/provider-core/server/textGenerationOperations";
+import * as TextGenerationOperations from "@supaterm/provider-core/server/textGenerationOperations";
 import {
   applyGrokAcpModelSelection,
   currentGrokModelIdFromSessionSetup,
@@ -38,7 +38,7 @@ export const makeGrokTextGeneration = Effect.fn("makeGrokTextGeneration")(functi
         grokSettings,
         environment,
         cwd,
-        clientInfo: { name: "supacode-git-text", version: "0.0.0" },
+        clientInfo: { name: "supaterm-git-text", version: "0.0.0" },
       }).pipe(
         Effect.provideService(Crypto.Crypto, crypto),
         Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, commandSpawner),

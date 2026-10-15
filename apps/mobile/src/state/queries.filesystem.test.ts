@@ -1,4 +1,4 @@
-import { AuthFilesystemReadScope, EnvironmentId, type AuthSessionState } from "@supacode/contracts";
+import { AuthFilesystemReadScope, EnvironmentId, type AuthSessionState } from "@supaterm/contracts";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 
 const state = vi.hoisted(() => ({

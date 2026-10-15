@@ -5,7 +5,7 @@ import type {
   AdvertisedEndpointReachability,
   AdvertisedEndpointSource,
   AdvertisedEndpointStatus,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 
 export interface CreateAdvertisedEndpointInput {
   readonly id: string;

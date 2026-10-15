@@ -1,4 +1,4 @@
-import type { EnvironmentId, ProjectId } from "@supacode/contracts";
+import type { EnvironmentId, ProjectId } from "@supaterm/contracts";
 
 import { deriveThreadTitleFromPrompt } from "../lib/projectThreadStartTurn";
 import type { QueuedThreadCreation, QueuedThreadMessage } from "./thread-outbox-model";

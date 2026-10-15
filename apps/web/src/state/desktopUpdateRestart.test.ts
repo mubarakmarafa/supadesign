@@ -1,4 +1,4 @@
-import type { DesktopUpdateActionResult, DesktopUpdateState } from "@supacode/contracts";
+import type { DesktopUpdateActionResult, DesktopUpdateState } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import { createDesktopUpdateRestartController } from "./desktopUpdateRestart";

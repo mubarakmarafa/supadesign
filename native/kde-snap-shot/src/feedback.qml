@@ -38,7 +38,7 @@ Item {
         next.call();
     }
 
-    // A cached, bounded PNG is shared by each output. Nothing repaints while waiting for Supacode.
+    // A cached, bounded PNG is shared by each output. Nothing repaints while waiting for Supaterm.
     Image {
         id: snapshot
         visible: false

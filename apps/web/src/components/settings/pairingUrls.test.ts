@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { EnvironmentId } from "@supacode/contracts";
-import { resolveRemotePairingTarget } from "@supacode/shared/remote";
+import { EnvironmentId } from "@supaterm/contracts";
+import { resolveRemotePairingTarget } from "@supaterm/shared/remote";
 
 import {
   resolveDesktopPairingUrl,
@@ -9,7 +9,7 @@ import {
 } from "./pairingUrls";
 
 describe("settings pairing URL helpers", () => {
-  it.each(["supacode://app", "file:///Applications/Supacode/index.html"])(
+  it.each(["supaterm://app", "file:///Applications/Supaterm/index.html"])(
     "shows the code instead of creating a remote link from %s",
     (origin) => {
       expect(resolvePairingShareValue("PAIRCODE", origin)).toEqual({
@@ -26,7 +26,7 @@ describe("settings pairing URL helpers", () => {
   });
   it("shows a relay link and a scannable QR before access-list updates arrive", () => {
     const relayUrl = "wss://custom-relay.invalid";
-    const host = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supacode.invalid/`;
+    const host = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
     const result = resolvePairingShareValue("PAIRCODE", host, {
       environmentId: EnvironmentId.make("machine"),
       relayUrl,
@@ -85,10 +85,10 @@ describe("settings pairing URL helpers", () => {
   });
 
   it("uses hosted pairing URLs for HTTPS endpoints", () => {
-    vi.stubEnv("VITE_HOSTED_APP_URL", "https://preview.next.supacode.sh");
+    vi.stubEnv("VITE_HOSTED_APP_URL", "https://preview.supaterm.com");
 
     expect(resolveHostedPairingUrl("https://host.tailnet.example.ts.net:3773", "PAIRCODE")).toBe(
-      "https://preview.next.supacode.sh/pair?host=https%3A%2F%2Fhost.tailnet.example.ts.net%3A3773#token=PAIRCODE",
+      "https://preview.supaterm.com/pair?host=https%3A%2F%2Fhost.tailnet.example.ts.net%3A3773#token=PAIRCODE",
     );
   });
 });

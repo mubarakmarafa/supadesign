@@ -1,4 +1,4 @@
-import type { ProjectIconColor } from "@supacode/contracts";
+import type { ProjectIconColor } from "@supaterm/contracts";
 import { projectIconColorClassName } from "../projectIconColors";
 import { cn } from "~/lib/utils";
 

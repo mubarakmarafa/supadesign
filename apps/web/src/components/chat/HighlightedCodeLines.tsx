@@ -1,5 +1,5 @@
 import type { DiffsHighlighter } from "@pierre/diffs";
-import { withOccurrenceKeys } from "@supacode/shared/occurrenceKeys";
+import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import { toHtml } from "hast-util-to-html";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import { cloneElement, isValidElement, memo, type DOMAttributes } from "react";

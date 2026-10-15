@@ -1,10 +1,10 @@
-import { AuthDiagnosticsReadScope } from "@supacode/contracts";
-import { AuthEnvironmentMaintainScope } from "@supacode/contracts";
+import { AuthDiagnosticsReadScope } from "@supaterm/contracts";
+import { AuthEnvironmentMaintainScope } from "@supaterm/contracts";
 import type {
   EnvironmentId,
   ResourceTelemetryHistoryInput,
   ResourceTelemetrySnapshot,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { useCallback } from "react";
 

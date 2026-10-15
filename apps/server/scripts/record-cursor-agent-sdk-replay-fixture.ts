@@ -11,13 +11,13 @@ import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";
 import { Command, Flag } from "effect/cli";
-import * as CursorSdk from "@supacode/provider-cursor/server/CursorSdk";
+import * as CursorSdk from "@supaterm/provider-cursor/server/CursorSdk";
 
 import {
   recordCursorAgentSdkReplayTranscript,
   type CursorAgentSdkReplayTranscript,
 } from "../src/orchestration-v2/Adapters/CursorAdapterV2.testkit.ts";
-import { checkpointWorkspace } from "@supacode/provider-testing/replayWorkspace";
+import { checkpointWorkspace } from "@supaterm/provider-testing/replayWorkspace";
 import {
   CURSOR_MODEL_SELECTION,
   MESSAGE_STEERING_INITIAL_PROMPT,
@@ -148,10 +148,10 @@ const recordScenario = Effect.fn("recordScenario")(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const apiKey = yield* Config.Redacted("CURSOR_API_KEY");
-  const model = yield* Config.NonEmptyString("SUPACODE_CURSOR_REPLAY_MODEL").pipe(
+  const model = yield* Config.NonEmptyString("SUPATERM_CURSOR_REPLAY_MODEL").pipe(
     Config.withDefault(CURSOR_MODEL_SELECTION.model),
   );
-  const configuredCwd = yield* Config.NonEmptyString("SUPACODE_CURSOR_REPLAY_CWD").pipe(
+  const configuredCwd = yield* Config.NonEmptyString("SUPATERM_CURSOR_REPLAY_CWD").pipe(
     Config.option,
   );
   const recording = RECORDINGS[scenario];
@@ -207,8 +207,8 @@ const recordCursorReplayCommand = Command.make(
   "record-cursor-agent-sdk-replay-fixture",
   {
     scenario: Flag.Literals("scenario", RECORDING_NAMES).pipe(
-      Flag.withDescription("Scenario to record (or SUPACODE_CURSOR_REPLAY_SCENARIO)."),
-      Flag.withFallbackConfig(Config.Literals(RECORDING_NAMES, "SUPACODE_CURSOR_REPLAY_SCENARIO")),
+      Flag.withDescription("Scenario to record (or SUPATERM_CURSOR_REPLAY_SCENARIO)."),
+      Flag.withFallbackConfig(Config.Literals(RECORDING_NAMES, "SUPATERM_CURSOR_REPLAY_SCENARIO")),
     ),
     out: Flag.String("out").pipe(
       Flag.optional,
@@ -218,7 +218,7 @@ const recordCursorReplayCommand = Command.make(
   ({ scenario, out }) => recordScenario(scenario, Option.getOrUndefined(out)),
 ).pipe(
   Command.withDescription(
-    "Record a Cursor Agent SDK replay fixture live. Reads CURSOR_API_KEY, plus optional SUPACODE_CURSOR_REPLAY_MODEL and SUPACODE_CURSOR_REPLAY_CWD.",
+    "Record a Cursor Agent SDK replay fixture live. Reads CURSOR_API_KEY, plus optional SUPATERM_CURSOR_REPLAY_MODEL and SUPATERM_CURSOR_REPLAY_CWD.",
   ),
 );
 

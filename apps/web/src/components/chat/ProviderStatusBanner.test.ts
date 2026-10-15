@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { ProviderDriverKind, ProviderInstanceId, type ServerProvider } from "@supacode/contracts";
+import { ProviderDriverKind, ProviderInstanceId, type ServerProvider } from "@supaterm/contracts";
 import {
   getProviderStatusBannerKey,
   getProviderStatusMessage,

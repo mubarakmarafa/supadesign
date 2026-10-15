@@ -1,4 +1,4 @@
-import type { OrchestrationSkillsEnvironment } from "@supacode/client-runtime/orchestrationSkills";
+import type { OrchestrationSkillsEnvironment } from "@supaterm/client-runtime/orchestrationSkills";
 import { useOrchestrationSkills } from "../../../state/useOrchestrationSkills";
 import { serverEnvironment } from "../../../state/server";
 import { AppText as Text } from "../../../components/AppText";
@@ -15,7 +15,7 @@ export function OrchestrationSkillsSection({
   return (
     <SettingsSection title="Orchestration skills">
       <Text className="p-4 text-sm text-foreground-muted">
-        Install supacode-commitee and supacode-advisor skills.
+        Install supaterm-commitee and supaterm-advisor skills.
       </Text>
       <SettingsRow
         icon="arrow.down.circle"

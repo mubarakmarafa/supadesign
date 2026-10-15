@@ -1,10 +1,10 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 /**
  * The GitLab driver: repository operations, discovery, and merge requests through `glab`.
  *
  * @module source-control-gitlab/server/driver
  */
-import { defineSourceControlDriver } from "@supacode/source-control-core/server/driver";
+import { defineSourceControlDriver } from "@supaterm/source-control-core/server/driver";
 import * as Effect from "effect/Effect";
 
 import * as GitLabPullRequestProvider from "./GitLabPullRequestProvider.ts";

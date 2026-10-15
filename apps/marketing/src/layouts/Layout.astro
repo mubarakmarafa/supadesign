@@ -3,7 +3,7 @@ import { getImage, Image } from "astro:assets";
 import appIcon from "../assets/icon.webp";
 import socialCard from "../assets/social-card.webp";
 import dmSansLatinUrl from "../assets/fonts/dm-sans-latin.woff2?url";
-import { SUPACODE_LIGHT_THEME_COLORS as theme } from "@supacode/shared/themePalettes";
+import { SUPATERM_LIGHT_THEME_COLORS as theme } from "@supaterm/shared/themePalettes";
 import "../styles/fonts.css";
 import { GITHUB_REPOSITORY_URL } from "../lib/site";
 
@@ -14,8 +14,8 @@ interface Props {
 }
 
 const {
-  title = "Supacode",
-  description = "Supacode. The open-source control plane for coding agents.",
+  title = "Supaterm",
+  description = "Supaterm. The open-source control plane for coding agents.",
   pageClass,
 } = Astro.props;
 
@@ -31,7 +31,7 @@ const socialImage = await getImage({
 });
 const socialImageUrl = new URL(socialImage.src, Astro.site);
 const socialImageAlt =
-  "Supacode: the open-source control plane for coding agents, with Claude Code, Codex, Cursor, OpenCode, Grok and Antigravity.";
+  "Supaterm: the open-source control plane for coding agents, with Claude Code, Codex, Cursor, OpenCode, Grok and Antigravity.";
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 
 // Site colors come from the app's default light palette.
@@ -61,7 +61,7 @@ const themeStyle = {
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Supacode" />
+    <meta property="og:site_name" content="Supaterm" />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -91,8 +91,8 @@ const themeStyle = {
     <div class:list={["page", pageClass]}>
       <nav class="nav">
         <div class="nav-inner">
-          <a href="/" class="nav-brand" aria-label="Supacode home">
-            <span class="nav-brand-name">Supacode</span>
+          <a href="/" class="nav-brand" aria-label="Supaterm home">
+            <span class="nav-brand-name">Supaterm</span>
           </a>
           <div class="nav-right">
             <a class="nav-link" href="/download">Download</a>
@@ -101,7 +101,7 @@ const themeStyle = {
               href={GITHUB_REPOSITORY_URL}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Star Supacode on GitHub"
+              aria-label="Star Supaterm on GitHub"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 2.3l2.9 5.88 6.49.94-4.7 4.58 1.11 6.47L12 17.12l-5.8 3.05 1.11-6.47-4.7-4.58 6.49-.94L12 2.3z"/>
@@ -130,7 +130,7 @@ const themeStyle = {
               loading="lazy"
               decoding="async"
             />
-            <span>&copy; {new Date().getFullYear()} Supacode Inc · MIT licensed</span>
+            <span>&copy; {new Date().getFullYear()} Supaterm Limited · MIT licensed</span>
           </div>
           <div class="footer-links">
             <a href={GITHUB_REPOSITORY_URL} target="_blank" rel="noopener noreferrer">GitHub</a>

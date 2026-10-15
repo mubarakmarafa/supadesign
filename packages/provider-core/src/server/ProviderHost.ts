@@ -3,7 +3,7 @@ import type {
   ChatAttachment,
   ServerSettings,
   ServerSettingsError,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import type * as Effect from "effect/Effect";
 import type * as Option from "effect/Option";
@@ -25,7 +25,7 @@ export interface ProviderHostPaths {
 }
 
 export interface ProviderCredentials {
-  readonly binding: { readonly owner: "supacode"; readonly key: string };
+  readonly binding: { readonly owner: "supaterm"; readonly key: string };
   readonly get: Effect.Effect<Option.Option<Uint8Array>, ProviderCredentialError>;
   readonly set: (credentials: Uint8Array) => Effect.Effect<void, ProviderCredentialError>;
   readonly remove: Effect.Effect<void, ProviderCredentialError>;
@@ -56,4 +56,4 @@ export class ProviderHost extends Context.Service<
       bindingId: string,
     ) => Effect.Effect<ProviderCredentials>;
   }
->()("@supacode/provider-core/server/ProviderHost") {}
+>()("@supaterm/provider-core/server/ProviderHost") {}

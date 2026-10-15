@@ -1,4 +1,4 @@
-import { DEFAULT_CLIENT_SETTINGS } from "@supacode/contracts";
+import { DEFAULT_CLIENT_SETTINGS } from "@supaterm/contracts";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
 import { reactHookHarness as hooks } from "../../test/reactHookHarness";
 import { useSnapShotShortcutRecorder } from "./useSnapShotShortcutRecorder";

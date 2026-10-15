@@ -1,4 +1,4 @@
-import type { PullRequestActor } from "@supacode/contracts";
+import type { PullRequestActor } from "@supaterm/contracts";
 import { Image } from "expo-image";
 import { ActivityIndicator, View } from "react-native";
 
@@ -36,7 +36,7 @@ export function PullRequestAvatar(props: {
       style={{ width: size, height: size }}
     >
       <Text
-        className="font-supacode-medium text-foreground-muted"
+        className="font-supaterm-medium text-foreground-muted"
         style={{ fontSize: size * 0.45 }}
       >
         {props.actor?.login.slice(0, 1).toUpperCase() ?? "?"}
@@ -57,14 +57,14 @@ export function PullRequestDiffStats(props: {
         <Text
           className={cn(
             textSize,
-            "font-supacode-medium tabular-nums text-adaptive-emerald-600-400",
+            "font-supaterm-medium tabular-nums text-adaptive-emerald-600-400",
           )}
         >
           +{props.additions.toLocaleString()}
         </Text>
       ) : null}
       {!props.compact || props.deletions > 0 ? (
-        <Text className={cn(textSize, "font-supacode-medium tabular-nums text-danger-foreground")}>
+        <Text className={cn(textSize, "font-supaterm-medium tabular-nums text-danger-foreground")}>
           −{props.deletions.toLocaleString()}
         </Text>
       ) : null}

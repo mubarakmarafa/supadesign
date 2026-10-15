@@ -1,4 +1,4 @@
-import { PROVIDER_SEND_TURN_MAX_ATTACHMENTS } from "@supacode/contracts";
+import { PROVIDER_SEND_TURN_MAX_ATTACHMENTS } from "@supaterm/contracts";
 import { scopedThreadKey } from "../lib/scopedEntities";
 import { appAtomRegistry } from "./atom-registry";
 import {

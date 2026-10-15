@@ -1,4 +1,4 @@
-import { SourceControlProviderKind } from "@supacode/contracts";
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import * as Stream from "effect/Stream";
 import {
   EventId,
@@ -19,7 +19,7 @@ import {
   type ThreadPullRequestKey,
   type ThreadPullRequestLink,
   type ThreadPullRequestSnapshot,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { assert, describe, it } from "@effect/vitest";
 import * as Clock from "effect/Clock";
 import * as Crypto from "effect/Crypto";
@@ -33,7 +33,7 @@ import * as Ref from "effect/Ref";
 import * as Struct from "effect/Struct";
 import { TestClock } from "effect/testing";
 
-import { PullRequestProviderError } from "@supacode/source-control-core/server/PullRequestProvider";
+import { PullRequestProviderError } from "@supaterm/source-control-core/server/PullRequestProvider";
 import * as GitManager from "../git/GitManager.ts";
 import * as PullRequestService from "../pullRequest/PullRequestService.ts";
 import * as ServerActivation from "../serverActivation.ts";

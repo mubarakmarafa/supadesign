@@ -1,4 +1,4 @@
-import { ASSISTANT_CITATION_CONTEXT_LENGTH, type AssistantCitation } from "@supacode/contracts";
+import { ASSISTANT_CITATION_CONTEXT_LENGTH, type AssistantCitation } from "@supaterm/contracts";
 
 export type AssistantTextSelector = {
   readonly text: string;

@@ -1,4 +1,4 @@
-import { unquoteGitPatchPath } from "@supacode/shared/gitPatchPath";
+import { unquoteGitPatchPath } from "@supaterm/shared/gitPatchPath";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

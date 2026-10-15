@@ -2,10 +2,10 @@
 // move exact directory entries with rename, which the FileSystem service does
 // not expose atomically.
 /**
- * `supacode theme` - inspect and set the environment's theme. Connected web and
+ * `supaterm theme` - inspect and set the environment's theme. Connected web and
  * desktop clients switch when it is set; mobile keeps its own appearance
  * settings. Each client applies one set once, so a theme the user picks in
- * Settings afterwards sticks until the next `supacode theme set`.
+ * Settings afterwards sticks until the next `supaterm theme set`.
  *
  * Writes `defaultTheme` (and `defaultThemeSetAt`, so a re-set of the same
  * value still acts) into the environment's `settings.json`. A running server
@@ -22,8 +22,8 @@ import {
   EnvironmentThemeFile,
   EnvironmentThemeId,
   environmentThemeFileHasColors,
-} from "@supacode/contracts";
-import { BUILT_IN_THEME_IDS, UNPUBLISHABLE_THEME_IDS } from "@supacode/shared/themePalettes";
+} from "@supaterm/contracts";
+import { BUILT_IN_THEME_IDS, UNPUBLISHABLE_THEME_IDS } from "@supaterm/shared/themePalettes";
 import * as Console from "effect/Console";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -63,7 +63,7 @@ export class ThemeFileInvalidError extends Schema.TaggedError<ThemeFileInvalidEr
   { filePath: Schema.String, cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return `${this.filePath} is not a valid theme file. Use a theme exported from Supacode, or a seeded file with name, appearance, canvas, and accent.`;
+    return `${this.filePath} is not a valid theme file. Use a theme exported from Supaterm, or a seeded file with name, appearance, canvas, and accent.`;
   }
 }
 
@@ -130,7 +130,7 @@ export class ThemeTargetMissingError extends Schema.TaggedError<ThemeTargetMissi
   {},
 ) {
   override get message(): string {
-    return "Provide a theme id or file, or run `supacode theme clear` to remove the theme.";
+    return "Provide a theme id or file, or run `supaterm theme clear` to remove the theme.";
   }
 }
 
@@ -358,7 +358,7 @@ const themeSetCommand = Command.make("set", {
       // a well-formed id, so a typo cannot be written as a theme no client
       // will ever resolve.
       // Path-shaped first, existence second. Deciding on existence alone would
-      // make `supacode theme set ocean` publish ./ocean whenever the cwd happens to
+      // make `supaterm theme set ocean` publish ./ocean whenever the cwd happens to
       // hold a file by that name, instead of selecting the built-in.
       const looksLikePath =
         target.endsWith(".json") ||

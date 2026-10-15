@@ -1,14 +1,14 @@
-import { ComposerContextId } from "@supacode/contracts";
+import { ComposerContextId } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
 import { useNavigation } from "@react-navigation/native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
-import type { EnvironmentId } from "@supacode/contracts";
-import { encodeComposerContextFragment } from "@supacode/shared/composerContextClipboard";
-import { collectComposerContextReferences } from "@supacode/shared/composerContextReferences";
-import { ComposerEditor as NativeComposerEditor } from "../native/SupacodeComposerEditor";
-import type { ComposerEditorProps as NativeComposerEditorProps } from "../native/SupacodeComposerEditor";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { encodeComposerContextFragment } from "@supaterm/shared/composerContextClipboard";
+import { collectComposerContextReferences } from "@supaterm/shared/composerContextReferences";
+import { ComposerEditor as NativeComposerEditor } from "../native/SupatermComposerEditor";
+import type { ComposerEditorProps as NativeComposerEditorProps } from "../native/SupatermComposerEditor";
 import {
   appendComposerDraftAttachments,
   createComposerDraftContextHistory,
@@ -278,4 +278,4 @@ export type {
   ComposerEditorHandle,
   ComposerEditorSelection,
   ComposerTextPaste,
-} from "../native/SupacodeComposerEditor";
+} from "../native/SupatermComposerEditor";

@@ -10,7 +10,7 @@ export function ErrorBanner(props: { readonly message: string }) {
       collapsable={false}
       className="rounded-2xl border border-danger-border bg-danger px-3.5 py-3"
     >
-      <Text className="font-supacode-medium text-sm text-danger-foreground">{props.message}</Text>
+      <Text className="font-supaterm-medium text-sm text-danger-foreground">{props.message}</Text>
     </Animated.View>
   );
 }

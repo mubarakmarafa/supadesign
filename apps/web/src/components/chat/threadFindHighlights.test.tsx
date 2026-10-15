@@ -15,7 +15,7 @@ let host: HTMLElement;
 let container: HTMLElement;
 const onActiveRange = vi.fn();
 const activeRanges = () => [
-  ...(CSS.highlights.get("supacode-thread-find-active") as unknown as Set<Range>),
+  ...(CSS.highlights.get("supaterm-thread-find-active") as unknown as Set<Range>),
 ];
 
 beforeEach(() => {
@@ -68,12 +68,12 @@ describe("find highlight caching", () => {
     };
     try {
       await act(async () => root.render(<Probe {...props} />));
-      const inactive = CSS.highlights.get("supacode-thread-find");
+      const inactive = CSS.highlights.get("supaterm-thread-find");
       const first = activeRanges()[0];
       bounds.mockClear();
       await act(async () => root.render(<Probe {...props} activeOccurrence={1} />));
       expect(bounds).toHaveBeenCalledTimes(2);
-      expect(CSS.highlights.get("supacode-thread-find")).toBe(inactive);
+      expect(CSS.highlights.get("supaterm-thread-find")).toBe(inactive);
       expect(inactive?.size).toBe(1499);
       expect(inactive?.has(first!)).toBe(true);
       expect(activeRanges()[0]?.startOffset).toBe(5);
@@ -135,7 +135,7 @@ describe("find highlight caching", () => {
     expect(folds[0]?.hasAttribute("hidden")).toBe(false);
     expect(folds[1]?.hasAttribute("hidden")).toBe(true);
     expect(activeRanges()[0]?.toString()).toBe("COD4");
-    expect(CSS.highlights.get("supacode-thread-find")?.size).toBe(1);
+    expect(CSS.highlights.get("supaterm-thread-find")?.size).toBe(1);
     const scanned = createRange.mock.calls.length;
     await act(async () =>
       root.render(
@@ -239,9 +239,9 @@ describe("find highlight caching", () => {
     });
     expect(activeRanges()).toHaveLength(0);
     expect(onActiveRange).toHaveBeenLastCalledWith(null);
-    expect(CSS.highlights.get("supacode-thread-find")?.size).toBe(2);
+    expect(CSS.highlights.get("supaterm-thread-find")?.size).toBe(2);
     await act(async () => root.render(<Probe {...props} query="missing" />));
-    expect(CSS.highlights.get("supacode-thread-find")?.size).toBe(0);
+    expect(CSS.highlights.get("supaterm-thread-find")?.size).toBe(0);
   });
 });
 

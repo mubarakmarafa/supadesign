@@ -1,5 +1,5 @@
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentId, ThreadId } from "@supacode/contracts";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import {
   type ReactNode,
   type Ref,

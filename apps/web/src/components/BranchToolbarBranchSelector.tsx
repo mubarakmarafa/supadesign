@@ -1,13 +1,13 @@
 import { ThreadDetailsControl } from "./chat/ThreadDetailsControl";
 import { ComposerContextLabel } from "./ComposerContextLabel";
 import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
-import { resolveThreadCurrentPullRequestLink } from "@supacode/shared/threadPullRequests";
+import { resolveThreadCurrentPullRequestLink } from "@supaterm/shared/threadPullRequests";
 import { useRightPanelStore } from "../rightPanelStore";
-import { scopeProjectRef, scopeThreadRef } from "@supacode/client-runtime/environment";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
@@ -15,7 +15,7 @@ import {
   type EnvironmentId,
   type VcsRef,
   type ThreadId,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { ChevronDownIcon, GitBranchIcon } from "lucide-react";
 import {
   useCallback,

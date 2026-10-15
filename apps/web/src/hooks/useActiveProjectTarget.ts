@@ -1,5 +1,5 @@
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
-import type { EnvironmentId, ScopedThreadRef } from "@supacode/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import type { EnvironmentId, ScopedThreadRef } from "@supaterm/contracts";
 
 import { useProjects } from "~/state/entities";
 

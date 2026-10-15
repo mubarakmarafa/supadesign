@@ -4,12 +4,12 @@ import {
   AuthProvidersManageScope,
   type EnvironmentId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
   type AtomCommandResult,
-} from "@supacode/client-runtime/state/runtime";
+} from "@supaterm/client-runtime/state/runtime";
 
 import { cn } from "~/lib/utils";
 import { serverEnvironment } from "~/state/server";

@@ -1,6 +1,6 @@
-import type { ProviderDriverKind, ProviderInstanceId, ServerProvider } from "@supacode/contracts";
+import type { ProviderDriverKind, ProviderInstanceId, ServerProvider } from "@supaterm/contracts";
 import type * as Stream from "effect/Stream";
-import type { ManagedServerProvider } from "@supacode/provider-core/server/snapshot";
+import type { ManagedServerProvider } from "@supaterm/provider-core/server/snapshot";
 
 export type ProviderSnapshotSource = {
   readonly supportsReviewGuides?: boolean;

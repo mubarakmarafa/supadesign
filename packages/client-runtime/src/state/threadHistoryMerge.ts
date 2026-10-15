@@ -1,8 +1,8 @@
 import type {
   OrchestrationV2ProjectedTurnItem,
   OrchestrationV2ThreadProjection,
-} from "@supacode/contracts";
-import { isOrchestrationV2TurnItemVisible } from "@supacode/shared/orchestrationV2Timeline";
+} from "@supaterm/contracts";
+import { isOrchestrationV2TurnItemVisible } from "@supaterm/shared/orchestrationV2Timeline";
 
 export type ThreadHistoryMeta = {
   readonly historyCursor: string | null;

@@ -7,7 +7,7 @@ import {
   MessageId,
   ThreadId,
   type AssistantCitation,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import {
   assistantCitationsToPlainText,
   collectAssistantCitations,
@@ -32,7 +32,7 @@ const citation: AssistantCitation = {
 };
 
 const legacyHref =
-  "supacode-citation://v1/a/b/c?text=A+quote+%26+a+newline.%0A&start=0&end=21&prefix=&suffix=+Next.";
+  "supaterm-citation://v1/a/b/c?text=A+quote+%26+a+newline.%0A&start=0&end=21&prefix=&suffix=+Next.";
 const legacyCitation: AssistantCitation = {
   version: 1,
   environmentId: EnvironmentId.make("a"),
@@ -63,7 +63,7 @@ describe("assistant citation references", () => {
     const href = formatAssistantCitationHref(citation);
     expect(parseAssistantCitationHref(href)).toEqual(citation);
     expect(href).toMatch(
-      /^supacode-citation:\/\/v1\/environment%2Fremote\/thread%3Aone\/assistant%3Fone\?/,
+      /^supaterm-citation:\/\/v1\/environment%2Fremote\/thread%3Aone\/assistant%3Fone\?/,
     );
     expect(href).not.toContain("localhost");
     const marker = serializeAssistantCitation(citation);
@@ -90,21 +90,21 @@ describe("assistant citation references", () => {
 
   it.each([
     "https://example.com/quote",
-    "supacode-citation://v2/a/b/c?text=quote&start=0&end=5&prefix=&suffix=",
-    "supacode-citation://v1/%ZZ/b/c?text=quote&start=0&end=5&prefix=&suffix=",
-    "supacode-citation://v1/a/b/c?text=quote&start=NaN&end=5&prefix=&suffix=",
-    "supacode-citation://v1/a/b/c?text=quote&start=5&end=0&prefix=&suffix=",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=9007199254740992&prefix=&suffix=",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&text=other",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&unknown=value",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&comment=note&unknown=value",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&comment=one&comment=two",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&comment=&comment=",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&comment=one&%63omment=two",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&comment=note",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&text=other&comment=note",
-    "supacode-citation://v1/a/b/c?text=&start=0&end=5&prefix=&suffix=",
-    "supacode-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=#unexpected",
+    "supaterm-citation://v2/a/b/c?text=quote&start=0&end=5&prefix=&suffix=",
+    "supaterm-citation://v1/%ZZ/b/c?text=quote&start=0&end=5&prefix=&suffix=",
+    "supaterm-citation://v1/a/b/c?text=quote&start=NaN&end=5&prefix=&suffix=",
+    "supaterm-citation://v1/a/b/c?text=quote&start=5&end=0&prefix=&suffix=",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=9007199254740992&prefix=&suffix=",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&text=other",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&unknown=value",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&comment=note&unknown=value",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&comment=one&comment=two",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&comment=&comment=",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&comment=one&%63omment=two",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&comment=note",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=&text=other&comment=note",
+    "supaterm-citation://v1/a/b/c?text=&start=0&end=5&prefix=&suffix=",
+    "supaterm-citation://v1/a/b/c?text=quote&start=0&end=5&prefix=&suffix=#unexpected",
   ])("leaves invalid or unsupported references unchanged: %s", (href) => {
     expect(parseAssistantCitationHref(href)).toBeNull();
     const prompt = `[Assistant quote](${href})`;
@@ -264,7 +264,7 @@ describe("assistant citation references", () => {
     expect(expanded).toContain("citation.comment is a user-authored request or comment");
     expect(expanded.match(/<\/assistant_citations>/g)).toHaveLength(1);
     expect(expanded).not.toContain("<other>");
-    expect(expanded).not.toContain("supacode-citation://");
+    expect(expanded).not.toContain("supaterm-citation://");
   });
 
   it("gives multiple quotes distinct inline references", () => {
@@ -316,7 +316,7 @@ describe("assistant citation references", () => {
     const rendered = renderAssistantCitationsAsText(serializeAssistantCitation(citation));
     expect(rendered).toContain("> Assistant quote:");
     expect(rendered).toContain("日本語 🚀");
-    expect(rendered).not.toContain("supacode-citation:");
+    expect(rendered).not.toContain("supaterm-citation:");
     expect(rendered).not.toContain("</assistant_citations>");
   });
 

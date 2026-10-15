@@ -9,14 +9,14 @@ import {
   relayEndpointId,
   relayPublicKey,
   signRelayChallenge,
-} from "@supacode/shared/relay/protocol";
+} from "@supaterm/shared/relay/protocol";
 import {
   createTunnelSession,
   TUNNEL_MAX_PLAIN_BYTES,
   type TunnelSession,
   type TunnelStream,
-} from "@supacode/shared/relay/tunnel";
-import { after, every } from "@supacode/shared/relay/timer";
+} from "@supaterm/shared/relay/tunnel";
+import { after, every } from "@supaterm/shared/relay/timer";
 
 const ControlEvent = Schema.Union([
   Schema.Struct({ type: Schema.Literal("challenge"), nonce: Schema.String }),

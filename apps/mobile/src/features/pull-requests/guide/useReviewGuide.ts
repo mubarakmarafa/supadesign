@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { useFocusEffect } from "@react-navigation/native";
-import { squashAtomCommandFailure } from "@supacode/client-runtime/state/runtime";
+import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import { useCallback, useRef, useState } from "react";
 import { usePullRequestConnected } from "../usePullRequestConnected";
 import { composerPullRequests } from "../../../state/pull-requests";

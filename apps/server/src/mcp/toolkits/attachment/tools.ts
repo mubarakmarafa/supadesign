@@ -8,7 +8,7 @@ import {
   ThreadId,
   OrchestrationV2RunStatus,
   OrchestratorMcpFailure,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as FileSystem from "effect/FileSystem";
 import * as Schema from "effect/Schema";
@@ -30,21 +30,21 @@ const shared = {
     Crypto.Crypto,
   ],
 };
-const AttachmentUploadTool = Tool.make("supacode_attachment_prepare_upload", {
+const AttachmentUploadTool = Tool.make("supaterm_attachment_prepare_upload", {
   ...shared,
   description:
-    "Create the app's signed upload URL. POST the exact bytes to relativeUrl on this MCP server's HTTP origin, then pass the attachment metadata and returned ID to supacode_thread_send_attachments. Upload is separate from sending; provider attachment support is decided by its adapter.",
+    "Create the app's signed upload URL. POST the exact bytes to relativeUrl on this MCP server's HTTP origin, then pass the attachment metadata and returned ID to supaterm_thread_send_attachments. Upload is separate from sending; provider attachment support is decided by its adapter.",
   parameters: Schema.Struct({ upload: AttachmentCreateUploadUrlInput }),
   success: AttachmentCreateUploadUrlResult,
 }).annotate(Tool.Destructive, true);
-const AttachmentDiscardTool = Tool.make("supacode_attachment_discard", {
+const AttachmentDiscardTool = Tool.make("supaterm_attachment_discard", {
   ...shared,
   description:
     "Discard a pending upload. Already-delivered thread attachments are never deleted by this operation.",
   parameters: AttachmentDeleteInput,
   success: Schema.Struct({}),
 }).annotate(Tool.Destructive, true);
-const AttachmentSendTool = Tool.make("supacode_thread_send_attachments", {
+const AttachmentSendTool = Tool.make("supaterm_thread_send_attachments", {
   ...shared,
   description:
     "Send uploaded attachments to this thread or any other thread in this environment. Each call is a new message, without a retry key. Acceptance does not mean the provider can consume the attachment or has finished the turn. The target cannot have broader permission modes than the caller; failures retain claimed files when dispatch outcome is uncertain.",

@@ -4,9 +4,9 @@ import {
   resolveV2ItemSupport,
   v2ItemSupportEqual,
   type V2ItemSupport,
-} from "@supacode/client-runtime/state/item-support";
-import type { EnvironmentId, ThreadId, TurnItemId } from "@supacode/contracts";
-import { scopeThreadRef } from "@supacode/client-runtime/environment";
+} from "@supaterm/client-runtime/state/item-support";
+import type { EnvironmentId, ThreadId, TurnItemId } from "@supaterm/contracts";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import { Atom } from "effect/reactivity";
 
 import { environmentThreadDetails } from "./threads";

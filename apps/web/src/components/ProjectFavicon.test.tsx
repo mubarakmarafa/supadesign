@@ -1,7 +1,7 @@
 import type { ComponentType, Dispatch, ReactElement, SetStateAction } from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { EnvironmentId } from "@supacode/contracts";
-import { PROJECT_FAVICON_FALLBACK_MARKER } from "@supacode/shared/projectFavicon";
+import type { EnvironmentId } from "@supaterm/contracts";
+import { PROJECT_FAVICON_FALLBACK_MARKER } from "@supaterm/shared/projectFavicon";
 
 const testState = vi.hoisted(() => ({
   faviconUrl: "https://environment.test/api/assets/token-a/v1-20-favicon.svg",

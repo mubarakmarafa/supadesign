@@ -1,4 +1,4 @@
-import type { VcsListRefsResult } from "@supacode/contracts";
+import type { VcsListRefsResult } from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { describe, expect, it } from "vite-plus/test";
 

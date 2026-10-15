@@ -1,4 +1,4 @@
-import { legacyThreadPullRequestKey } from "@supacode/shared/threadPullRequests";
+import { legacyThreadPullRequestKey } from "@supaterm/shared/threadPullRequests";
 import * as Effect from "effect/Effect";
 import * as SqlClient from "effect/sql/SqlClient";
 

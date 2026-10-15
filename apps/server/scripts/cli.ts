@@ -11,7 +11,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 import { DEVELOPMENT_ICON_OVERRIDES } from "../../../scripts/lib/brand-assets.ts";
 import { findEsmImportsOfExternalPackages } from "../../../scripts/lib/cli-executable-imports.ts";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import {
   ServerCliBuildAssetMissingError,
   ServerCliCommandExitError,
@@ -132,10 +132,10 @@ const buildExeCmd = Command.make(
           cwd: serverDir,
           env: {
             ...process.env,
-            SUPACODE_PACK_EXE: "1",
+            SUPATERM_PACK_EXE: "1",
             ...Option.match(config.target, {
               onNone: () => ({}),
-              onSome: (target) => ({ SUPACODE_PACK_EXE_TARGET: target }),
+              onSome: (target) => ({ SUPATERM_PACK_EXE_TARGET: target }),
             }),
           },
           stdout: config.verbose ? "inherit" : "ignore",
@@ -153,7 +153,7 @@ const buildExeCmd = Command.make(
         return yield* new ServerCliExecutableImportError({ bundlePath, specifiers });
       }
       yield* Effect.log(
-        "[cli] Built dist-exe/supacode (expects client/, resource-monitor/, and the runtime-external node_modules beside it; scripts/build-cli-archive.ts assembles that tree)",
+        "[cli] Built dist-exe/supaterm (expects client/, resource-monitor/, and the runtime-external node_modules beside it; scripts/build-cli-archive.ts assembles that tree)",
       );
     }),
 ).pipe(
@@ -168,7 +168,7 @@ const buildExeCmd = Command.make(
 
 /**
  * Publishes the tarballs scripts/build-npm-platform-packages.ts produced:
- * every `@supabitapp/supacode-<platform>.tgz` first, `supacode.tgz` (the launcher) last, so
+ * every `@supabitapp/supaterm-<platform>.tgz` first, `supaterm.tgz` (the launcher) last, so
  * the launcher is never installable before the executables it depends on.
  * Tarballs rather than directories because `npm publish <dir>` strips the
  * `node_modules/` the executable loads its native addons from.
@@ -193,16 +193,16 @@ const publishCmd = Command.make(
       // resolved once here rather than joined twice.
       const packagesDir = path.resolve(config.packagesDir);
       const scopeDir = path.join(packagesDir, "@supabitapp");
-      const launcherTarball = path.join(packagesDir, "supacode.tgz");
+      const launcherTarball = path.join(packagesDir, "supaterm.tgz");
       const platformTarballs = (yield* fs
         .readDirectory(scopeDir)
         .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => [])))
-        .filter((entry) => entry.startsWith("supacode-") && entry.endsWith(".tgz"))
+        .filter((entry) => entry.startsWith("supaterm-") && entry.endsWith(".tgz"))
         .sort()
         .map((entry) => path.join(scopeDir, entry));
       if (platformTarballs.length === 0) {
         return yield* new ServerCliBuildAssetMissingError({
-          assetPath: path.join(scopeDir, "supacode-<platform>.tgz"),
+          assetPath: path.join(scopeDir, "supaterm-<platform>.tgz"),
         });
       }
       if (!(yield* fs.exists(launcherTarball))) {
@@ -231,7 +231,7 @@ const publishCmd = Command.make(
     }),
 ).pipe(
   Command.withDescription(
-    "Publish the @supabitapp/supacode-<platform> tarballs and then the supacode launcher to npm.",
+    "Publish the @supabitapp/supaterm-<platform> tarballs and then the supaterm launcher to npm.",
   ),
 );
 
@@ -240,7 +240,7 @@ const publishCmd = Command.make(
 // ---------------------------------------------------------------------------
 
 const cli = Command.make("cli").pipe(
-  Command.withDescription("Supacode server build & publish CLI."),
+  Command.withDescription("Supaterm server build & publish CLI."),
   Command.withSubcommands([buildCmd, buildExeCmd, publishCmd]),
 );
 

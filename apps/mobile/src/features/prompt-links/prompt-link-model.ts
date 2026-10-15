@@ -1,4 +1,4 @@
-import type { PromptLinkRepository } from "@supacode/shared/promptLinks";
+import type { PromptLinkRepository } from "@supaterm/shared/promptLinks";
 
 /** The query keys a prompt link adds to the `new` and thread routes. */
 export const PROMPT_LINK_PARAM_KEYS = ["prompt", "repo", "pr", "provider", "model"] as const;

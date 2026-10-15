@@ -1,4 +1,4 @@
-import type { DuoPose } from "@supacode/client-runtime/device/duo-control";
+import type { DuoPose } from "@supaterm/client-runtime/device/duo-control";
 import { cn } from "~/lib/utils";
 
 // Fold outlines follow Simulator's Duo toolbar; the rounded stance contours are

@@ -19,7 +19,7 @@ export class ConnectionWakeups extends Context.Service<
     readonly changes: Stream.Stream<ConnectionWakeup>;
     readonly isBackgrounded?: Effect.Effect<boolean>;
   }
->()("@supacode/client-runtime/connection/wakeups/ConnectionWakeups") {}
+>()("@supaterm/client-runtime/connection/wakeups/ConnectionWakeups") {}
 
 const make = (service: ConnectionWakeups["Service"]) => ConnectionWakeups.of(service);
 

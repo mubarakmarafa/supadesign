@@ -1,6 +1,6 @@
 import type { CSSProperties, SVGProps } from "react";
 
-import type { ProviderIcon } from "@supacode/provider-core/client";
+import type { ProviderIcon } from "@supaterm/provider-core/client";
 
 import { cn } from "~/lib/utils";
 

@@ -1,4 +1,4 @@
-import type { ProjectIconColor, ProjectIconOverride } from "@supacode/contracts";
+import type { ProjectIconColor, ProjectIconOverride } from "@supaterm/contracts";
 
 export type ProjectIconGlyph =
   | { readonly kind: "emoji"; readonly emoji: string }

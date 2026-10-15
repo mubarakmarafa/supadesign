@@ -30,10 +30,10 @@ import {
   type RuntimeRequestId,
   type ThreadTokenUsageSnapshot,
   type ThreadId,
-} from "@supacode/contracts";
-import { AgentScope, AgentScopeThreadId } from "@supacode/shared/AgentScope";
-import { modelSelectionsEqual } from "@supacode/shared/model";
-import { type SelfInvocation, selfInvocationArgs } from "@supacode/shared/nodeRuntime";
+} from "@supaterm/contracts";
+import { AgentScope, AgentScopeThreadId } from "@supaterm/shared/AgentScope";
+import { modelSelectionsEqual } from "@supaterm/shared/model";
+import { type SelfInvocation, selfInvocationArgs } from "@supaterm/shared/nodeRuntime";
 import { FILE_HEADERS_ONLY, formatPatch, structuredPatch } from "diff";
 import * as Cause from "effect/Cause";
 import * as Crypto from "effect/Crypto";
@@ -56,12 +56,12 @@ import * as EffectAcpErrors from "effect-acp/errors";
 import type * as EffectAcpProtocol from "effect-acp/protocol";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
-import { formatReadToolLabel, formatSearchToolLabel } from "@supacode/shared/toolActivity";
-import * as ProviderHost from "@supacode/provider-core/server/ProviderHost";
+import { formatReadToolLabel, formatSearchToolLabel } from "@supaterm/shared/toolActivity";
+import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import { makeAcpMcpOverAcpBridge, type AcpMcpOverAcpBridge } from "./mcpOverAcpBridge.ts";
-import { mcpToolPresentation } from "@supacode/provider-core/server/mcpToolPresentation";
-import * as McpProviderSessions from "@supacode/provider-core/server/McpProviderSessions";
-import * as McpProviderSession from "@supacode/provider-core/server/mcpSession";
+import { mcpToolPresentation } from "@supaterm/provider-core/server/mcpToolPresentation";
+import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as McpProviderSession from "@supaterm/provider-core/server/mcpSession";
 import {
   applyAcpAgentTerminalUpdate,
   acpContentBlockDisplayText,
@@ -92,32 +92,32 @@ import {
 import { ACP_SESSION_MODE_OPTION_ID } from "./sessionConfig.ts";
 import * as AcpSessionRuntime from "./AcpSessionRuntime.ts";
 import {
-  supacodeAcpPromptWithInstructions,
-  type SupacodeAcpInstructionState,
-} from "@supacode/provider-core/server/orchestrationInstructions";
-import { buildRuntimeInstructions } from "@supacode/provider-core/server/runtimeInstructions";
-import * as IdAllocator from "@supacode/provider-core/server/IdAllocator";
-import type * as ProviderContinuationRequests from "@supacode/provider-core/server/ProviderContinuationRequests";
+  supatermAcpPromptWithInstructions,
+  type SupatermAcpInstructionState,
+} from "@supaterm/provider-core/server/orchestrationInstructions";
+import { buildRuntimeInstructions } from "@supaterm/provider-core/server/runtimeInstructions";
+import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
+import type * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import {
   type BackgroundWork,
   type BackgroundWorkReport,
   backgroundWorkNotification,
-} from "@supacode/provider-core/server/notification";
+} from "@supaterm/provider-core/server/notification";
 import {
   makeProviderFailure,
   makeProviderRetryTurnItem,
-} from "@supacode/provider-core/server/failure";
-import { acpSelectionTransition } from "@supacode/provider-core/server/selectionTransition";
+} from "@supaterm/provider-core/server/failure";
+import { acpSelectionTransition } from "@supaterm/provider-core/server/selectionTransition";
 import {
   isProviderNativeImageAttachment,
   providerMessageTextWithAttachmentPaths,
-} from "@supacode/provider-core/server/attachmentPrompt";
+} from "@supaterm/provider-core/server/attachmentPrompt";
 import {
   makeSubagentChildThread,
   makeSubagentConversationArtifacts,
   subagentThreadTitle,
-} from "@supacode/provider-core/server/subagentProjection";
-import * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+} from "@supaterm/provider-core/server/subagentProjection";
+import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 export const ACP_PROTOCOL = "acp.ndjson-jsonrpc" as const;
 
@@ -291,9 +291,9 @@ export interface AcpAdapterV2Flavor {
       }
     | undefined;
   /**
-   * Replaces Supacode's runtime-policy answer to a permission request. Grok's Auto
+   * Replaces Supaterm's runtime-policy answer to a permission request. Grok's Auto
    * mode only asks about what its own classifier refused, so those must reach
-   * the user instead of being approved by Supacode's policy.
+   * the user instead of being approved by Supaterm's policy.
    */
   readonly permissionDisposition?: (
     policy: ProviderAdapter.ProviderAdapterV2RuntimePolicy,
@@ -329,7 +329,7 @@ export interface AcpAdapterV2Flavor {
   /**
    * Optional plan-file sniffing (#8358): providers that write their proposed
    * plan to a file mid-turn (Grok plan.md) return its markdown from a tool
-   * call so Supacode can show the proposed-plan card while plan mode is active.
+   * call so Supaterm can show the proposed-plan card while plan mode is active.
    */
   readonly extractProposedPlanMarkdown?: (toolCall: AcpToolCallState) => string | undefined;
   /**
@@ -376,7 +376,7 @@ export interface AcpAdapterV2Flavor {
   readonly isPersistentBackgroundTool?: (toolCall: AcpToolCallState) => boolean;
   /**
    * Whether a root-session frame belongs to a turn the agent started itself
-   * after background work ended (Grok `task-completed-*`), not to Supacode's prompt.
+   * after background work ended (Grok `task-completed-*`), not to Supaterm's prompt.
    * Such frames never project into a root turn held open for that work; they
    * take the post-settle wake path once the held turn finalizes.
    */
@@ -612,7 +612,7 @@ export const AcpProviderCapabilitiesV2 = {
     appCanCheckpointFilesystem: true,
     supportsNestedCheckpointScopes: true,
     // ACP defines no conversation truncation, so rollback resets the provider
-    // conversation: Supacode restores checkpointed state and the next turn starts a
+    // conversation: Supaterm restores checkpointed state and the next turn starts a
     // fresh agent session without the rolled-back context.
     providerCanRollbackConversation: true,
     providerRollbackReturnsSnapshot: true,
@@ -625,7 +625,7 @@ export const AcpProviderCapabilitiesV2 = {
     nativeRequestIds: "weak",
   },
   runtimePolicy: {
-    // ACP agents run their own tools; Supacode only answers their permission
+    // ACP agents run their own tools; Supaterm only answers their permission
     // requests by policy.
     enforcement: "client-boundary",
   },
@@ -656,7 +656,7 @@ function negotiatedCapabilities(
     },
     tools: {
       ...base.tools,
-      // The stdio bridge (`supacode acp-mcp-bridge`) makes the supacode MCP toolkit
+      // The stdio bridge (`supaterm acp-mcp-bridge`) makes the supaterm MCP toolkit
       // available regardless of the agent's optional http/sse MCP support.
       supportsMcpTools: true,
     },
@@ -685,30 +685,30 @@ function acpMcpContext(
   // Stdio is ACP's required baseline MCP transport. Agents that advertise
   // optional http support still routinely fail to wire injected http servers
   // through to their backend (codex-acp 1.2.0 and pi-acp both drop them), so
-  // every ACP session gets the `supacode acp-mcp-bridge` stdio server, which
-  // forwards JSON-RPC to Supacode's authenticated MCP endpoint. The credential
+  // every ACP session gets the `supaterm acp-mcp-bridge` stdio server, which
+  // forwards JSON-RPC to Supaterm's authenticated MCP endpoint. The credential
   // travels via environment variables, never the command line.
   return {
     servers: [
       {
-        name: "supacode",
+        name: "supaterm",
         command: self.command,
         args: [...selfInvocationArgs(self, ["acp-mcp-bridge"])],
         env: [
           { name: "ELECTRON_RUN_AS_NODE", value: "1" },
-          { name: "SUPACODE_ACP_MCP_ENDPOINT", value: session.endpoint },
-          { name: "SUPACODE_ACP_MCP_AUTHORIZATION", value: session.authorizationHeader },
+          { name: "SUPATERM_ACP_MCP_ENDPOINT", value: session.endpoint },
+          { name: "SUPATERM_ACP_MCP_AUTHORIZATION", value: session.authorizationHeader },
         ],
       },
     ],
-    acpServers: [{ type: "acp", name: "supacode", serverId: "supacode" }],
+    acpServers: [{ type: "acp", name: "supaterm", serverId: "supaterm" }],
     endpoint: session.endpoint,
     authorization: session.authorizationHeader,
     processEnvironment: {
-      SUPACODE_ACP_MCP_ENDPOINT: session.endpoint,
-      SUPACODE_ACP_MCP_AUTHORIZATION: session.authorizationHeader,
-      SUPACODE_ACP_MCP_NODE: self.command,
-      ...(self.entrypoint === undefined ? {} : { SUPACODE_ACP_MCP_ENTRYPOINT: self.entrypoint }),
+      SUPATERM_ACP_MCP_ENDPOINT: session.endpoint,
+      SUPATERM_ACP_MCP_AUTHORIZATION: session.authorizationHeader,
+      SUPATERM_ACP_MCP_NODE: self.command,
+      ...(self.entrypoint === undefined ? {} : { SUPATERM_ACP_MCP_ENTRYPOINT: self.entrypoint }),
     },
   };
 }
@@ -1672,7 +1672,7 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
               agentTerminalsById.get(sessionScopedId(sessionId, terminalId))?.command;
             return command === undefined ? [] : [command];
           });
-        // Client terminals (Devin) run with the Supacode server's privileges, so they
+        // Client terminals (Devin) run with the Supaterm server's privileges, so they
         // are policy-checked against the active turn policy; a command the user
         // already approved satisfies an "ask" disposition.
         const clientPolicyGrants = makeAcpClientPolicyGrants();
@@ -1690,7 +1690,7 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
         const providerThreadByNativeSessionId = yield* Ref.make(
           new Map<string, OrchestrationV2ProviderThread>(),
         );
-        // Supacode only owns the temporary Plan override. Remember the agent's
+        // Supaterm only owns the temporary Plan override. Remember the agent's
         // effective native configuration on entry and restore it on Build.
         const nativeBuildConfigurationBySessionId = new Map<string, AcpNativeBuildConfiguration>();
         const initialSessionActivationFailure = yield* Ref.make<{
@@ -1702,7 +1702,7 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
         const activeSelection = yield* Ref.make<ModelSelection | null>(null);
         const activeInteractionMode = yield* Ref.make<ProviderInteractionMode | null>(null);
         const promptInstructionStates = yield* Ref.make(
-          new Map<string, SupacodeAcpInstructionState>(),
+          new Map<string, SupatermAcpInstructionState>(),
         );
         const runtimeRestartRequired = yield* Ref.make(false);
         const runtimeTeardownState = yield* Ref.make<AcpRuntimeTeardownState>({ _tag: "Idle" });
@@ -2116,7 +2116,7 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
               elicitation: { form: {}, ...(flavor.onUrlElicitation ? { url: {} } : {}) },
               ...(flavor.clientCapabilitiesMeta ? { _meta: flavor.clientCapabilitiesMeta } : {}),
             },
-            clientInfo: { name: "supacode", version: "0.0.0" },
+            clientInfo: { name: "supaterm", version: "0.0.0" },
             onTermination,
             onOutgoingResponseFailure: (requestId, error) =>
               Ref.modify(nativeResponseAcknowledgements, (current) => {
@@ -3318,7 +3318,7 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
           const projectAsCommandExecution = inputVariant === "monitor" || outputIsBashResult;
           // ACP has no typed MCP item, so recover MCP identity from the
           // agent-specific shape and project the same branded dynamic_tool
-          // item native providers produce (e.g. the Supacode orchestration tools).
+          // item native providers produce (e.g. the Supaterm orchestration tools).
           const mcpIdentity = extractMcpToolCallIdentity(toolCall, {
             embeddedTerminalCommands: embeddedTerminalCommands(
               context.nativeThreadId,
@@ -5529,8 +5529,8 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
               Effect.fail(
                 EffectAcpErrors.AcpRequestError.internalError(
                   disposition === "ask"
-                    ? `The active Supacode runtime policy requires approval for ${operation}. Request permission with session/request_permission before retrying.`
-                    : `The active Supacode runtime policy does not allow ${operation}.`,
+                    ? `The active Supaterm runtime policy requires approval for ${operation}. Request permission with session/request_permission before retrying.`
+                    : `The active Supaterm runtime policy does not allow ${operation}.`,
                 ),
               ),
             ),
@@ -6780,15 +6780,15 @@ export const makeAcpAdapterV2 = Effect.fn("makeAcpAdapterV2")(function* (
           const prompt: Array<EffectAcpSchema.ContentBlock> = [];
           const instructionState = {
             interactionMode: turnInput.runtimePolicy.interactionMode,
-            hasSupacodeMcp: (yield* readMcpContext(turnInput.threadId)).servers.length > 0,
-          } satisfies SupacodeAcpInstructionState;
+            hasSupatermMcp: (yield* readMcpContext(turnInput.threadId)).servers.length > 0,
+          } satisfies SupatermAcpInstructionState;
           const previousInstructionState = (yield* Ref.get(promptInstructionStates)).get(sessionId);
           const messageText = providerMessageTextWithAttachmentPaths({
             text: turnInput.message.text,
             attachments: turnInput.message.attachments,
             resolveAttachmentPath: host.resolveAttachmentPath,
           });
-          const text = supacodeAcpPromptWithInstructions({
+          const text = supatermAcpPromptWithInstructions({
             prompt: messageText,
             state: instructionState,
             ...(previousInstructionState === undefined

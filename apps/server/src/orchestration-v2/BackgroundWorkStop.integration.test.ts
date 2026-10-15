@@ -14,7 +14,7 @@ import {
   ThreadId,
   TurnItemId,
   type OrchestrationV2DomainEvent,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -27,8 +27,8 @@ import * as Orchestrator from "./Orchestrator.ts";
 import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
 import * as ProviderSessionManager from "./ProviderSessionManager.ts";
 import * as ProviderReplayHarness from "./testkit/ProviderReplayHarness.ts";
-import { checkpointWorkspace } from "@supacode/provider-testing/replayWorkspace";
-import type * as ProviderAdapter from "@supacode/provider-core/server/ProviderAdapter";
+import { checkpointWorkspace } from "@supaterm/provider-testing/replayWorkspace";
+import type * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 
 const driver = ProviderDriverKind.make("codex");
 const instanceId = ProviderInstanceId.make("codex");

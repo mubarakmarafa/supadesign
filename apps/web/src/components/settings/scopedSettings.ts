@@ -8,17 +8,17 @@ import {
   type ProjectScopedServerSettingKey,
   type ProjectSettingsOverrides,
   ServerSettings,
-  type SupacodeProjectFile,
+  type SupatermProjectFile,
   type ServerSettingsPatch,
-} from "@supacode/contracts";
-import type { EnvironmentConnectionPhase } from "@supacode/client-runtime/connection";
+} from "@supaterm/contracts";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
 import {
   clearProjectSettingsOverrides,
   projectSettingsOverridesForWrite,
   resolveProjectSettings,
   resolveWorktreeCleanup,
   type ProjectSettingSource,
-} from "@supacode/shared/projectSettings";
+} from "@supaterm/shared/projectSettings";
 import * as Equal from "effect/Equal";
 import * as Cause from "effect/Cause";
 
@@ -89,9 +89,9 @@ export interface ScopedSettingsTarget {
 export function resolveScopedSettingsTargets(
   scope: ResolvedSettingsScope,
   connectedEnvironments: readonly ScopedSettingsEnvironment[],
-  // Each member's decoded supacode.json, keyed by physical project key, once read.
+  // Each member's decoded supaterm.json, keyed by physical project key, once read.
   // A member absent here has no file tier yet; null is a missing or invalid file.
-  projectFiles?: ReadonlyMap<string, SupacodeProjectFile | null>,
+  projectFiles?: ReadonlyMap<string, SupatermProjectFile | null>,
 ): readonly ScopedSettingsTarget[] {
   const byId = new Map(
     connectedEnvironments.map((environment) => [environment.environmentId, environment]),
@@ -158,8 +158,8 @@ export function scopedSettingsSource(
     ? "mixed"
     : sources.has("project")
       ? "project"
-      : sources.has("supacode.json")
-        ? "supacode.json"
+      : sources.has("supaterm.json")
+        ? "supaterm.json"
         : "environment";
 }
 

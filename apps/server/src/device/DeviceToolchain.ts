@@ -1,4 +1,4 @@
-import type { DeviceToolVersions } from "@supacode/contracts";
+import type { DeviceToolVersions } from "@supaterm/contracts";
 /**
  * Pinned installs of the two external tools device support is built on.
  *

@@ -1,5 +1,5 @@
-import { StoredOrchestrationShellSnapshot } from "@supacode/client-runtime/platform";
-import { deferPullRequests, detachPullRequests } from "@supacode/client-runtime/state/shell";
+import { StoredOrchestrationShellSnapshot } from "@supaterm/client-runtime/platform";
+import { deferPullRequests, detachPullRequests } from "@supaterm/client-runtime/state/shell";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";

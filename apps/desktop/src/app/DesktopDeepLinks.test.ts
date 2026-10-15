@@ -1,8 +1,8 @@
 // @effect-diagnostics nodeBuiltinImport:off globalFetchInEffect:off - Hosted handoff test uses a real localhost listener without an OpenAI account.
 import * as NodeHttp from "node:http";
-import { codexAuthHandoffUrl, readCodexAuthDelivery } from "@supacode/shared/codexAuthHandoff";
-import { EnvironmentId, ProviderInstanceId } from "@supacode/contracts";
-import * as HostProcess from "@supacode/shared/HostProcess";
+import { codexAuthHandoffUrl, readCodexAuthDelivery } from "@supaterm/shared/codexAuthHandoff";
+import { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -45,11 +45,11 @@ const makeDesktopDeepLinksLayer = ({
 } = {}) => {
   const environment = DesktopEnvironment.DesktopEnvironment.of({
     platform,
-    stateDir: "/tmp/supacode-state",
+    stateDir: "/tmp/supaterm-state",
     isDevelopment,
     appDataDirectory: "/tmp/app-data",
-    userDataDirName: isDevelopment ? "supacode-dev" : "supacode",
-    legacyUserDataDirName: isDevelopment ? "Supacode (Dev)" : "Supacode (Alpha)",
+    userDataDirName: isDevelopment ? "supaterm-dev" : "supaterm",
+    legacyUserDataDirName: isDevelopment ? "Supaterm (Dev)" : "Supaterm (Alpha)",
     path: { join: (...parts: ReadonlyArray<string>) => parts.join("/") },
   } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]);
 
@@ -112,9 +112,9 @@ describe("DesktopDeepLinks", () => {
       yield* Effect.scoped(Layer.build(makeDesktopDeepLinksLayer({ events })));
 
       assert.deepEqual(events, [
-        "setPath:userData:/tmp/app-data/supacode-dev",
+        "setPath:userData:/tmp/app-data/supaterm-dev",
         "requestSingleInstanceLock",
-        "setAsDefaultProtocolClient:supacode-dev",
+        "setAsDefaultProtocolClient:supaterm-dev",
       ]);
     });
   });
@@ -135,8 +135,8 @@ describe("DesktopDeepLinks", () => {
       );
 
       assert.deepEqual(events, [
-        "setPath:userData:/tmp/app-data/supacode-v2",
-        "setAsDefaultProtocolClient:supacode",
+        "setPath:userData:/tmp/app-data/supaterm-v2",
+        "setAsDefaultProtocolClient:supaterm",
       ]);
     });
   });
@@ -158,7 +158,7 @@ describe("DesktopDeepLinks", () => {
 
       assert.isTrue(Exit.hasInterrupts(exit));
       assert.deepEqual(events, [
-        "setPath:userData:/tmp/app-data/supacode-dev",
+        "setPath:userData:/tmp/app-data/supaterm-dev",
         "requestSingleInstanceLock",
         "quit",
       ]);
@@ -214,7 +214,7 @@ describe("DesktopDeepLinks", () => {
         Effect.provide(earlyEventsLayer),
         Effect.provideService(DesktopWebLinks.DesktopWebLinks, ignoreWebLinks),
       );
-      listeners.get("second-instance")!({}, ["supacode", "--some-flag"]);
+      listeners.get("second-instance")!({}, ["supaterm", "--some-flag"]);
 
       assert.strictEqual(yield* Effect.promise(() => revealed.promise), window);
       assert.equal(window.loadURL.mock.calls.length, 0);
@@ -243,19 +243,19 @@ describe("DesktopDeepLinks", () => {
         Effect.provideService(DesktopWebLinks.DesktopWebLinks, ignoreWebLinks),
       );
       const event = { preventDefault: vi.fn() };
-      listeners.get("open-url")!(event, "supacode-dev://app/auth/callback?code=unrelated-code");
-      listeners.get("open-url")!(event, "supacode://app/welcome");
+      listeners.get("open-url")!(event, "supaterm-dev://app/auth/callback?code=unrelated-code");
+      listeners.get("open-url")!(event, "supaterm://app/welcome");
       assert.equal(loadURL.mock.calls.length, 0);
       assert.equal(event.preventDefault.mock.calls.length, 0);
       listeners.get("second-instance")!({}, [
-        "supacode",
-        "supacode-dev://app/settings/providers?instanceId=work&code=never-forward",
+        "supaterm",
+        "supaterm-dev://app/settings/providers?instanceId=work&code=never-forward",
       ]);
       yield* Effect.promise(() => revealed.promise);
       assert.deepEqual(loadURL.mock.calls, [
-        ["supacode-dev://app/settings/providers?instanceId=work"],
+        ["supaterm-dev://app/settings/providers?instanceId=work"],
       ]);
-      listeners.get("open-url")!(event, "supacode-dev://app/welcome#agents:machine-id");
+      listeners.get("open-url")!(event, "supaterm-dev://app/welcome#agents:machine-id");
       assert.equal(event.preventDefault.mock.calls.length, 1);
     }).pipe(
       Effect.scoped,
@@ -288,7 +288,7 @@ describe("DesktopDeepLinks", () => {
         }).toString();
         const request = {
           authorizationUrl: authorize.toString(),
-          returnUrl: "https://app.next.supacode.sh/welcome#agents:remote-one",
+          returnUrl: "https://app.supaterm.com/welcome#agents:remote-one",
           environmentId: EnvironmentId.make("remote-one"),
           instanceId: ProviderInstanceId.make("work"),
           flowId: "flow-one",
@@ -333,7 +333,7 @@ describe("DesktopDeepLinks", () => {
           Effect.provide(makeDesktopDeepLinksLayer({ shell })),
           Effect.provideService(
             HostProcess.Arguments,
-            entry === "startup" ? ["supacode", link] : ["supacode"],
+            entry === "startup" ? ["supaterm", link] : ["supaterm"],
           ),
           Effect.provideService(ElectronApp.ElectronApp, makeListenerApp(listeners)),
           Effect.provideService(
@@ -362,8 +362,8 @@ it.effect("queues web, file, prompt and thread links and leaves other schemes al
       for (const url of [
         "https://example.com/page",
         "http://localhost:3000",
-        "supacode://new?prompt=hi",
-        "supacode://threads/env/thread",
+        "supaterm://new?prompt=hi",
+        "supaterm://threads/env/thread",
         "mailto:hi@example.com",
       ]) {
         const event = { preventDefault: vi.fn() };
@@ -377,8 +377,8 @@ it.effect("queues web, file, prompt and thread links and leaves other schemes al
         "https://example.com/start",
         "https://example.com/page",
         "http://localhost:3000",
-        "supacode://new?prompt=hi",
-        "supacode://threads/env/thread",
+        "supaterm://new?prompt=hi",
+        "supaterm://threads/env/thread",
         "file:///tmp/a%20page.html",
       ]);
       assert.equal(event.preventDefault.mock.calls.length, 1);
@@ -390,7 +390,7 @@ it.effect("queues web, file, prompt and thread links and leaves other schemes al
         {} as ElectronWindow.ElectronWindow["Service"],
       ),
       Effect.provideService(DesktopWebLinks.DesktopWebLinks, webLinks),
-      Effect.provideService(HostProcess.Arguments, ["supacode", "https://example.com/start"]),
+      Effect.provideService(HostProcess.Arguments, ["supaterm", "https://example.com/start"]),
     );
   }).pipe(Effect.scoped),
 );

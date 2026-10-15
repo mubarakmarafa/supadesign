@@ -1,6 +1,6 @@
 const appVariant = process.env.EXPO_PUBLIC_APP_VARIANT;
 
-export const SUPACODE_BRAND_MARK_SOURCE =
+export const SUPATERM_BRAND_MARK_SOURCE =
   appVariant === "development"
     ? require("../../../../assets/dev/blueprint-ios-1024.png")
     : appVariant === "preview"

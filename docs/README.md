@@ -1,8 +1,8 @@
-# Supacode docs
+# Supaterm docs
 
-## Using Supacode
+## Using Supaterm
 
-- [Install Supacode](./user/install.md)
+- [Install Supaterm](./user/install.md)
 - [Messages and context](./user/composer.md)
 - [Working with threads](./user/thread-sidebar.md)
 - [Automations](./user/automations.md)
@@ -21,12 +21,12 @@
 - [Remote access](./user/remote-access.md)
 - [Outside agents (MCP)](./user/outside-agents.md)
 - [Running in the background](./user/background-service.md)
-- [Updating Supacode](./user/updating.md)
+- [Updating Supaterm](./user/updating.md)
 - Provider guides: [Codex](./user/providers-codex.md) · [Claude](./user/providers-claude.md) · [OpenCode](./user/providers-opencode.md) · [Antigravity](./user/providers-antigravity.md) · [Pi](./user/providers-pi.md) · [Muse Code](./user/providers-muse.md)
 
 ---
 
-## Working on Supacode
+## Working on Supaterm
 
 Start with the [development runbook](./operations/development.md) and
 [contribution policy](../CONTRIBUTING.md).

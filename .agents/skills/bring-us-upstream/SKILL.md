@@ -1,6 +1,6 @@
 ---
 name: bring-us-upstream
-description: Review and port t3code upstream changes, defaulting to compatible work while preserving Supacode's deliberate fork differences.
+description: Review and port t3code upstream changes, defaulting to compatible work while preserving Supaterm's deliberate fork differences.
 ---
 
 # Bring upstream changes
@@ -15,7 +15,7 @@ Before editing:
 - Read the PRs and its content of every PRs that are merged during the range to get a sense of what's been added.
 - Default to bringing compatible upstream work, including new capabilities and architectural changes. Size, implementation effort, new dependencies, and routine branding or integration work belong in the port plan.
 - Classify every change:
-  - **Bring:** compatible with Supacode's goals, including changes that need adaptation, migrations, or additional tests.
+  - **Bring:** compatible with Supaterm's goals, including changes that need adaptation, migrations, or additional tests.
   - **Skip:** already present, tied to an intentionally absent subsystem, outside the requested range, or contrary to a deliberate fork decision. Name the evidence for the exclusion.
   - **Decide:** a concrete conflict or consequential choice that cannot be resolved from the user's instructions and existing fork behavior. State the alternatives, consequences, and recommendation.
 - Highlight compatibility consequences inside the proposed port. Reserve separate decisions for unresolved choices, such as whether existing users must re-pair or which conflicting local behavior to retain.

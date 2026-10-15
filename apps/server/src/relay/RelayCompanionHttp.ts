@@ -1,7 +1,7 @@
 import {
   RELAY_COMPANION_META_NAME,
   RELAY_COMPANION_REQUEST_LIMIT,
-} from "@supacode/shared/relay/protocol";
+} from "@supaterm/shared/relay/protocol";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -10,7 +10,7 @@ import * as Queue from "effect/Queue";
 import * as Schema from "effect/Schema";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RelayCompanion } from "./RelayCompanion.ts";
-import { RelayCompanionRequest, RelayCompanionReply } from "@supacode/contracts";
+import { RelayCompanionRequest, RelayCompanionReply } from "@supaterm/contracts";
 
 const decodeInput = Schema.decodeUnknownEffect(Schema.fromJsonString(RelayCompanionRequest));
 const encodeReply = Schema.encodeEffect(Schema.fromJsonString(RelayCompanionReply));

@@ -1,4 +1,4 @@
-import { EnvironmentId, ProviderInstanceId, ScheduledTaskId } from "@supacode/contracts";
+import { EnvironmentId, ProviderInstanceId, ScheduledTaskId } from "@supaterm/contracts";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -17,9 +17,9 @@ import {
 } from "../automations/automations.logic";
 
 const checkoutSearch = {
-  project: "repository:supacode",
+  project: "repository:supaterm",
   machine: "remote-server",
-  checkout: "remote-server:/home/user/supacode",
+  checkout: "remote-server:/home/user/supaterm",
 };
 
 function createSettingsRouter(initialEntry = "/settings/general") {
@@ -136,7 +136,7 @@ describe("settings scope navigation", () => {
       const router = createSettingsRouter();
       await router.navigate({ to, search: checkoutSearch });
 
-      const regroupedCheckout = { ...checkoutSearch, project: "separate:supacode" };
+      const regroupedCheckout = { ...checkoutSearch, project: "separate:supaterm" };
       await router.navigate({
         from: "/settings",
         to: router.state.location.pathname,

@@ -1,5 +1,5 @@
-import * as OtelEnvironment from "@supacode/shared/otelEnvironment";
-import { DEFAULT_SIGNAL_EXPORT } from "@supacode/shared/observability";
+import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
+import { DEFAULT_SIGNAL_EXPORT } from "@supaterm/shared/observability";
 // @effect-diagnostics nodeBuiltinImport:off - CLI integration uses temporary Node paths.
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
@@ -15,8 +15,8 @@ import {
   ThreadId,
   type OrchestrationV2AppThread,
   type ProjectId,
-} from "@supacode/contracts";
-import * as NetService from "@supacode/shared/Net";
+} from "@supaterm/contracts";
+import * as NetService from "@supaterm/shared/Net";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -37,7 +37,7 @@ import * as ProjectEnrichmentService from "../project/ProjectEnrichmentService.t
 import * as ProjectFaviconResolver from "../project/ProjectFaviconResolver.ts";
 import * as ProjectService from "../project/ProjectService.ts";
 import * as RepositoryIdentityResolver from "../project/RepositoryIdentityResolver.ts";
-import * as SupacodeProjectFileLoader from "../project/SupacodeProjectFileLoader.ts";
+import * as SupatermProjectFileLoader from "../project/SupatermProjectFileLoader.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 import {
@@ -93,7 +93,7 @@ const readProjects = (baseDir: string) =>
       Layer.provideMerge(ProjectEnrichmentService.layer),
       Layer.provideMerge(RepositoryIdentityResolver.layer),
       Layer.provideMerge(ProjectFaviconResolver.layer),
-      Layer.provideMerge(SupacodeProjectFileLoader.layer),
+      Layer.provideMerge(SupatermProjectFileLoader.layer),
       Layer.provideMerge(WorkspacePaths.layer),
       Layer.provideMerge(ServerSettings.layer.pipe(Layer.provide(ServerSecretStore.layer))),
       Layer.provideMerge(SqlitePersistence.layerConfig),
@@ -137,9 +137,9 @@ it("preserves unexpected server failures without deriving the message from them"
 
 it.effect("adds, renames, and removes projects through the V2 project CLI domain", () =>
   Effect.gen(function* () {
-    const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supacode-v2-project-cli-"));
+    const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-v2-project-cli-"));
     const workspaceRoot = NodeFS.mkdtempSync(
-      NodePath.join(NodeOS.tmpdir(), "supacode-v2-project-workspace-"),
+      NodePath.join(NodeOS.tmpdir(), "supaterm-v2-project-workspace-"),
     );
 
     yield* runCli(["project", "add", workspaceRoot, "--title", "Alpha", "--base-dir", baseDir]);
@@ -157,7 +157,7 @@ it.effect("adds, renames, and removes projects through the V2 project CLI domain
 
 const makeProjectLookupFixture = Effect.fn("ProjectCliTest.makeProjectLookupFixture")(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const root = yield* fs.makeTempDirectoryScoped({ prefix: "supacode-v2-project-lookup-" });
+  const root = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-v2-project-lookup-" });
   const baseDir = NodePath.join(root, "state");
   const workspaceRoot = NodePath.join(root, "workspace");
   yield* fs.makeDirectory(workspaceRoot);
@@ -392,7 +392,7 @@ it.layer(NodeServices.layer)("project lookup with unavailable workspaces", (it) 
       const { baseDir, workspaceRoot, project } = yield* makeProjectLookupFixture();
       yield* fs.rename(workspaceRoot, `${workspaceRoot}-removed`);
       const replacementDir = yield* fs.makeTempDirectoryScoped({
-        prefix: "supacode-v2-project-empty-",
+        prefix: "supaterm-v2-project-empty-",
       });
       const error = yield* runCli([
         "project",

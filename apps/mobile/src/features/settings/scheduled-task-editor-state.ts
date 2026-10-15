@@ -1,4 +1,4 @@
-import type { EnvironmentId } from "@supacode/contracts";
+import type { EnvironmentId } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
 
 import { appAtomRegistry } from "../../state/atom-registry";

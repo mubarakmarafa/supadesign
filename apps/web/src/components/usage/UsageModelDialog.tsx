@@ -1,5 +1,5 @@
-import { formatPercent, formatTokens, formatUsd } from "@supacode/shared/usageFormat";
-import { isModelCostUnknown, type ModelTotals } from "@supacode/shared/usageMerge";
+import { formatPercent, formatTokens, formatUsd } from "@supaterm/shared/usageFormat";
+import { isModelCostUnknown, type ModelTotals } from "@supaterm/shared/usageMerge";
 import { useMemo } from "react";
 
 import { mergeAnsweredUsage, type EnvironmentUsageStatus } from "../../state/usage";

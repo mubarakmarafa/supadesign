@@ -1,4 +1,4 @@
-import type { ServerProviderUsageWindow } from "@supacode/contracts";
+import type { ServerProviderUsageWindow } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -12,8 +12,8 @@ import {
   clampPercent,
   makeUnavailableUsageLimits,
   makeUsageLimits,
-} from "@supacode/provider-core/server/usageLimits";
-import * as HostProcess from "@supacode/shared/HostProcess";
+} from "@supaterm/provider-core/server/usageLimits";
+import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const GrokCredentials = Schema.Record(
   Schema.String,
@@ -75,7 +75,7 @@ export function grokUsageResponseToLimits(
 const readGrokCredential = Effect.fn("readGrokCredential")(function* (
   environment: NodeJS.ProcessEnv,
 ) {
-  // Supacode's ACP adapter explicitly selects API-key auth when this variable is set.
+  // Supaterm's ACP adapter explicitly selects API-key auth when this variable is set.
   if (environment.XAI_API_KEY?.trim()) return undefined;
   // Alternate auth deployments can select another scope or account from the same file.
   if (

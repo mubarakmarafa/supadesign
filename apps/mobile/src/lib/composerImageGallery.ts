@@ -1,4 +1,4 @@
-import { imageMimeType } from "@supacode/shared/image";
+import { imageMimeType } from "@supaterm/shared/image";
 import type { FilePreviewItem } from "../components/FilePreviewModal.types";
 import { isFileBackedComposerAttachment, type DraftComposerAttachment } from "./composerImages";
 

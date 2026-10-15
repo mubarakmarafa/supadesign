@@ -17,7 +17,7 @@ type SnapShotAnimationDetails = {
 
 export type SnapShotAnimationDestination = {
   readonly frame: Electron.Rectangle;
-  /** Unit coordinates in Supacode's content area; GNOME supplies the real compositor origin. */
+  /** Unit coordinates in Supaterm's content area; GNOME supplies the real compositor origin. */
   readonly relativeFrame?: Electron.Rectangle | undefined;
   readonly backgroundColor: string;
   readonly borderColor: string;
@@ -114,7 +114,7 @@ function createWindow(
     resizable: false,
     show: false,
     skipTaskbar: true,
-    title: "Supacode Snapshot Animation",
+    title: "Supaterm Snapshot Animation",
     transparent: true,
     webPreferences: {
       backgroundThrottling: false,
@@ -306,7 +306,7 @@ export class SnapShotTransition {
         }
       }
       if (this.waitForCompositorFrame) {
-        // Cover the source with a composited snapshot before the caller reveals Supacode.
+        // Cover the source with a composited snapshot before the caller reveals Supaterm.
         // Decoding and renderer animation frames alone can leave a transparent gap.
         await Promise.all(
           overlays.map(async (overlay) => {

@@ -7,7 +7,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerProvider,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 
 import type {

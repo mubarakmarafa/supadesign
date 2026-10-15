@@ -2,8 +2,8 @@ import type {
   OtlpEndpointCheckInput,
   OtlpEndpointCheckResult,
   OtlpSignal,
-} from "@supacode/contracts";
-import { layerOtlpSerialization } from "@supacode/shared/observability";
+} from "@supaterm/contracts";
+import { layerOtlpSerialization } from "@supaterm/shared/observability";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -27,7 +27,7 @@ export class OtlpEndpointCheck extends Context.Service<
      */
     readonly check: (input: OtlpEndpointCheckInput) => Effect.Effect<OtlpEndpointCheckResult>;
   }
->()("supacode/observability/OtlpEndpointCheck") {}
+>()("supaterm/observability/OtlpEndpointCheck") {}
 
 const emptyExport = (
   serialization: OtlpSerialization.OtlpSerialization["Service"],

@@ -4,7 +4,7 @@ import {
   parseThreadLinkPrompt,
   promptLinkAppPath,
   promptLinkDeepLink,
-} from "@supacode/shared/promptLinks";
+} from "@supaterm/shared/promptLinks";
 import { useLocation } from "@tanstack/react-router";
 import * as Schema from "effect/Schema";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -19,9 +19,9 @@ import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { StandalonePage, StandalonePageHeader } from "../ui/standalone-page";
 
-const OPENER_STORAGE_KEY = "supacode:prompt-link-opener";
+const OPENER_STORAGE_KEY = "supaterm:prompt-link-opener";
 const Opener = Schema.NullOr(Schema.Literals(["app", "browser"]));
-const DOWNLOAD_URL = "https://next.supacode.sh/download";
+const DOWNLOAD_URL = "https://supaterm.com/download";
 
 interface LinkSummary {
   readonly prompt: LinkedPrompt | null;
@@ -61,8 +61,8 @@ function summarize(
 }
 
 /**
- * On app.next.supacode.sh a prompt link first asks where to open: the installed desktop or mobile app
- * (through `supacode://`), this browser when it is connected to a machine, or the download page.
+ * On app.supaterm.com a prompt link first asks where to open: the installed desktop or mobile app
+ * (through `supaterm://`), this browser when it is connected to a machine, or the download page.
  * Returns that page, or null when the link should open in this browser as usual.
  */
 export function useHostedPromptLinkLanding(enabled: boolean): ReactNode | null {
@@ -146,7 +146,7 @@ function HostedPromptLinkLanding({
         <Alert className="mt-5" variant="error">
           <AlertTitle>This prompt had hidden characters, it may be malicious</AlertTitle>
           <AlertDescription>
-            Supacode removed {prompt.hiddenCharacters} hidden character
+            Supaterm removed {prompt.hiddenCharacters} hidden character
             {prompt.hiddenCharacters === 1 ? "" : "s"}. Read the prompt before you send it.
           </AlertDescription>
         </Alert>
@@ -167,7 +167,7 @@ function HostedPromptLinkLanding({
           </Button>
         ) : null}
         <Button variant="ghost" render={<a href={DOWNLOAD_URL} />}>
-          Get Supacode
+          Get Supaterm
         </Button>
       </div>
       <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">

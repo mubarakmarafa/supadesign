@@ -1,4 +1,4 @@
-import { layerRemoteHttpClient } from "@supacode/client-runtime/rpc";
+import { layerRemoteHttpClient } from "@supaterm/client-runtime/rpc";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";

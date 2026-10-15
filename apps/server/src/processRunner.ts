@@ -9,12 +9,12 @@ import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import {
   collectUint8StreamText,
   decodeUtf8,
   type CollectedUint8StreamText,
-} from "@supacode/provider-core/server/collectStreamText";
+} from "@supaterm/provider-core/server/collectStreamText";
 
 export interface ProcessRunInput {
   readonly command: string;
@@ -143,12 +143,12 @@ export class ProcessRunner extends Context.Service<
   {
     readonly run: (input: ProcessRunInput) => Effect.Effect<ProcessRunOutput, ProcessRunError>;
   }
->()("supacode/processRunner") {}
+>()("supaterm/processRunner") {}
 
 const DEFAULT_TIMEOUT = "60 seconds";
 const DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 
-export { isWindowsCommandNotFound } from "@supacode/provider-core/server/snapshotProbe";
+export { isWindowsCommandNotFound } from "@supaterm/provider-core/server/snapshotProbe";
 
 // Untraced: no attributes, and its time is the runProcessCore span. Errors fail that span.
 const collectText = Effect.fnUntraced(function* (input: {

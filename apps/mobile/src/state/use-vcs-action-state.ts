@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { type VcsActionState, type VcsActionTarget } from "@supacode/client-runtime/state/vcs";
+import { type VcsActionState, type VcsActionTarget } from "@supaterm/client-runtime/state/vcs";
 import { Atom } from "effect/reactivity";
 import { useCallback, useEffect, useRef, useState } from "react";
 

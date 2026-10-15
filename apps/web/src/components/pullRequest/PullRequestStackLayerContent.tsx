@@ -1,4 +1,4 @@
-import type { PullRequestStack } from "@supacode/contracts";
+import type { PullRequestStack } from "@supaterm/contracts";
 import { cn } from "~/lib/utils";
 import { resolvePullRequestState } from "./pullRequestPresentation";
 

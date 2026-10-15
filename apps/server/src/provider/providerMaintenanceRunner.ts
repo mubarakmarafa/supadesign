@@ -6,8 +6,8 @@ import {
   type ServerProvider,
   type ServerProviderUpdatedPayload,
   type ServerProviderUpdateState,
-} from "@supacode/contracts";
-import { resolveSpawnCommand } from "@supacode/shared/shell";
+} from "@supaterm/contracts";
+import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Data from "effect/Data";
@@ -33,10 +33,10 @@ import {
   makeTargetedProviderUpdateAction,
   resolveLatestProviderVersion,
   type ProviderMaintenanceCommandAction,
-} from "@supacode/provider-core/server/maintenanceResolver";
-import * as ProviderLatestVersions from "@supacode/provider-core/server/ProviderLatestVersions";
-import type { ProviderMaintenanceCapabilities } from "@supacode/provider-core/server/maintenanceResolver";
-import { collectUint8StreamText } from "@supacode/provider-core/server/collectStreamText";
+} from "@supaterm/provider-core/server/maintenanceResolver";
+import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
+import type { ProviderMaintenanceCapabilities } from "@supaterm/provider-core/server/maintenanceResolver";
+import { collectUint8StreamText } from "@supaterm/provider-core/server/collectStreamText";
 const isServerProviderUpdateError = Schema.is(ServerProviderUpdateError);
 
 const UPDATE_TIMEOUT_MS = 5 * 60_000;
@@ -71,7 +71,7 @@ export interface ProviderMaintenanceRunnerShape {
 export class ProviderMaintenanceRunner extends Context.Service<
   ProviderMaintenanceRunner,
   ProviderMaintenanceRunnerShape
->()("supacode/provider/providerMaintenanceRunner") {}
+>()("supaterm/provider/providerMaintenanceRunner") {}
 
 class ProviderMaintenanceCommandError extends Data.TaggedError("ProviderMaintenanceCommandError")<{
   readonly message: string;
@@ -485,7 +485,7 @@ export const make = Effect.fn("ProviderMaintenanceRunner.make")(function* () {
                   message:
                     targetVersion !== undefined
                       ? "This version is no longer recommended or this installer cannot install a specific version. Refresh provider settings."
-                      : "The latest provider version is incompatible with this Supacode release. Review provider settings.",
+                      : "The latest provider version is incompatible with this Supaterm release. Review provider settings.",
                 }),
               );
             }
@@ -537,9 +537,9 @@ export const make = Effect.fn("ProviderMaintenanceRunner.make")(function* () {
                 startedAt,
                 finishedAt,
                 message: couldNotVerify
-                  ? "Update command completed, but Supacode could not verify the provider version."
+                  ? "Update command completed, but Supaterm could not verify the provider version."
                   : stillOutdated
-                    ? "Update command completed, but Supacode still detects an outdated provider version."
+                    ? "Update command completed, but Supaterm still detects an outdated provider version."
                     : "Provider updated.",
                 output: commandOutput(result),
               }),

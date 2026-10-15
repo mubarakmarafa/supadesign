@@ -3,7 +3,7 @@ import {
   type EnvironmentId,
   type ProjectId,
   type ServerSettings,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { SettingsTarget } from "./settings-environment-filter";

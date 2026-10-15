@@ -4,7 +4,7 @@ import type {
   PullRequestComment,
   PullRequestDetail,
   PullRequestViewerPermissions,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {

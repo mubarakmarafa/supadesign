@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { IsoDateTime, type PullRequestActivity, type PullRequestActor } from "@supacode/contracts";
+import { IsoDateTime, type PullRequestActivity, type PullRequestActor } from "@supaterm/contracts";
 import { DEFAULT_ACTIVITY_FILTER, filterPullRequestActivity } from "./pullRequestActivityFilter";
 
 const date = IsoDateTime.make("2026-10-11T00:00:00.000Z");

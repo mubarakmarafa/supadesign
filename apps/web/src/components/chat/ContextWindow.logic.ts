@@ -1,8 +1,8 @@
-import type { ProviderDriverKind, ProviderInstanceId } from "@supacode/contracts";
+import type { ProviderDriverKind, ProviderInstanceId } from "@supaterm/contracts";
 import {
   CLAUDE_RESUME_COMPACTION_NEVER_ANSWER,
   isClaudeResumeCompactionQuestion,
-} from "@supacode/shared/claudeCompaction";
+} from "@supaterm/shared/claudeCompaction";
 import {
   resolveSelectableProviderInstanceEntry,
   type ProviderInstanceEntry,

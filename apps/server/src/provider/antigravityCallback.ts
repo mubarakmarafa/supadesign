@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off - node:http sends the one-shot loopback callback with no proxy, redirect handling, or response logging.
 import * as NodeHttp from "node:http";
 
-import { ProviderSetupError, type ProviderInstanceId } from "@supacode/contracts";
+import { ProviderSetupError, type ProviderInstanceId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 
 export interface AntigravityPendingCallback {

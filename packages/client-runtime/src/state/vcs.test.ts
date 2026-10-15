@@ -5,7 +5,7 @@ import {
   WS_METHODS,
   type VcsListRefsInput,
   type VcsListRefsResult,
-} from "@supacode/contracts";
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";

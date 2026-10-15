@@ -1,5 +1,5 @@
-import type { ChatAttachment } from "@supacode/contracts";
-import { assistantCitationsToPlainText } from "@supacode/shared/assistantCitations";
+import type { ChatAttachment } from "@supaterm/contracts";
+import { assistantCitationsToPlainText } from "@supaterm/shared/assistantCitations";
 
 export type ThreadTitleMessage = {
   readonly role: "user" | "assistant" | "system" | "reasoning";

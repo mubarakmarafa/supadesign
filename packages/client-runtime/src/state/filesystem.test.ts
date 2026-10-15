@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AuthFilesystemReadScope, AuthOrchestrationReadScope } from "@supacode/contracts";
+import { AuthFilesystemReadScope, AuthOrchestrationReadScope } from "@supaterm/contracts";
 
 import {
   canPreloadBrowsePath,
@@ -130,10 +130,10 @@ describe("filesystem read access", () => {
 
 describe("filesystem browse model", () => {
   it("derives the browse target and navigation state", () => {
-    expect(getFilesystemBrowsePath("~/projects/supacode")).toEqual({
+    expect(getFilesystemBrowsePath("~/projects/supaterm")).toEqual({
       isBrowsing: true,
       directoryPath: "~/projects/",
-      filterQuery: "supacode",
+      filterQuery: "supaterm",
       parentPath: "~/",
       canBrowseUp: true,
     });

@@ -1,4 +1,4 @@
-const THREAD_FIND_OPEN_EVENT = "supacode:thread-find-open";
+const THREAD_FIND_OPEN_EVENT = "supaterm:thread-find-open";
 
 export function requestThreadFindOpen(): void {
   window.dispatchEvent(new Event(THREAD_FIND_OPEN_EVENT));

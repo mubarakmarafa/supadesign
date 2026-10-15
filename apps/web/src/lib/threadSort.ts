@@ -4,4 +4,4 @@ export {
   sortThreads,
   toSortableTimestamp,
   type ThreadSortInput,
-} from "@supacode/client-runtime/state/thread-sort";
+} from "@supaterm/client-runtime/state/thread-sort";

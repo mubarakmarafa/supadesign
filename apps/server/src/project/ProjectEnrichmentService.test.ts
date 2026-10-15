@@ -1,5 +1,5 @@
 import { assert, it } from "@effect/vitest";
-import type { RepositoryIdentity } from "@supacode/contracts";
+import type { RepositoryIdentity } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
