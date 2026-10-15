@@ -1433,6 +1433,25 @@ describe("buildThreadListV2ListItems", () => {
     ]);
   });
 
+  it("puts Drafts above Active when nothing is pinned", () => {
+    const items = buildThreadListV2ListItems({
+      items: layout.items,
+      pendingTasks: [makeDraftTask("draft"), makePendingTask("queued")],
+      doneCount: layout.doneCount,
+      doneShelfHeaderIndex: layout.doneShelfHeaderIndex,
+    });
+
+    expect(
+      items.map((item) =>
+        item.type === "v2-thread"
+          ? item.item.thread.id
+          : item.type === "v2-pending"
+            ? item.pendingTask.title
+            : item.type,
+      ),
+    ).toEqual(["draft", "v2-active-header", "active", "queued", "v2-done-shelf", "done"]);
+  });
+
   it("places Done below Active when nothing is queued", () => {
     const items = buildThreadListV2ListItems({
       items: layout.items,
@@ -2677,7 +2696,7 @@ describe("Working section", () => {
     });
     const items = buildThreadListV2ListItems({
       items: layout.items,
-      pendingTasks: [makeDraftTask("draft"), makePendingTask("queued")],
+      pendingTasks: [makePendingTask("queued")],
       workingCount: layout.workingCount,
       workingShelfExpanded: true,
       workingShelfHeaderIndex: layout.workingShelfHeaderIndex,
@@ -2696,7 +2715,6 @@ describe("Working section", () => {
             : item.type,
       ),
     ).toEqual([
-      "draft",
       "v2-active-header",
       "active",
       "queued",
