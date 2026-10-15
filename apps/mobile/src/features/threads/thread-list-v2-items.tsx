@@ -41,6 +41,8 @@ import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { useEnvironmentScope } from "../../state/session";
 import type { PendingNewTask } from "../../state/use-pending-new-tasks";
 import { useThreadPr } from "../../state/use-thread-pr";
+import { useThreadHasUnsentDraft } from "../../state/use-thread-has-unsent-draft";
+import { scopedThreadKey } from "../../lib/scopedEntities";
 import { useSwipeRowDormant } from "../home/swipe-row-activation";
 import { ThreadSwipeable, type ThreadSwipeAction } from "../home/thread-swipe-actions";
 import { buildThreadTitleRegenerationMenuItems } from "./thread-title-regeneration-menu";
@@ -55,6 +57,7 @@ import {
   resolveThreadListV2SwipeActions,
 } from "./threadListV2";
 import { QueuedMessageIcon } from "./queued-message-icon";
+import { UnsentDraftIcon } from "./unsent-draft-icon";
 import { shouldRecedeThreadRow } from "./thread-row-emphasis";
 import { ThreadSearchMatchExcerpt } from "./thread-search-match";
 import { DisclosureChevron } from "../../components/DisclosureChevron";
@@ -393,12 +396,7 @@ export const ThreadListV2PendingRow = memo(function ThreadListV2PendingRow(props
         </Text>
         {isDraft ? (
           <View className="flex-row items-center gap-1">
-            <SymbolView
-              name="square.and.pencil"
-              size={10}
-              tintColorClassName="accent-adaptive-amber-700-300"
-              type="monochrome"
-            />
+            <UnsentDraftIcon size={10} />
             <Text className="text-xs text-adaptive-amber-700-300">Draft</Text>
           </View>
         ) : (
@@ -682,6 +680,16 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const sidebarPane = props.pane === "sidebar";
   const selected = props.selected === true;
   const rowAppearance = getThreadListV2RowAppearance(theme, sidebarPane, selected);
+  const threadKey = scopedThreadKey(thread.environmentId, thread.id);
+  // The selected thread shows its own composer in the detail pane.
+  const hasUnsentDraft = useThreadHasUnsentDraft(threadKey) && !selected;
+  const rowAccessibilityLabel = [
+    thread.title,
+    hasUnsentDraft ? "unsent draft" : null,
+    props.hasQueuedMessages ? "messages queued to send" : null,
+  ]
+    .filter((part) => part !== null)
+    .join(", ");
 
   const status = resolveThreadListV2Status(thread);
   // "Done" marks a completion the user has not opened yet — same emerald
@@ -739,10 +747,9 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   // opened for one thread survives the thread's removal/reorder and its
   // submit snoozes whichever thread the cell was reassigned to. (ThreadSwipeable
   // enforces the same contract on the swipe layer with its resetKey.)
-  const rowIdentity = `${thread.environmentId}:${thread.id}`;
-  const [boundIdentity, setBoundIdentity] = useState(rowIdentity);
-  if (boundIdentity !== rowIdentity) {
-    setBoundIdentity(rowIdentity);
+  const [boundIdentity, setBoundIdentity] = useState(threadKey);
+  if (boundIdentity !== threadKey) {
+    setBoundIdentity(threadKey);
     setCustomSnoozeOpen(false);
   }
   const handleSnooze = useCallback(
@@ -1063,6 +1070,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         >
           {props.projectTitle ?? props.project?.title ?? ""}
         </Text>
+        {hasUnsentDraft ? <UnsentDraftIcon /> : null}
         {props.hasQueuedMessages ? <QueuedMessageIcon selected={selected} /> : null}
         {pinnedRow ? (
           <SymbolView
@@ -1262,14 +1270,12 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const rowContent = (close: () => void) =>
     variant === "card" ? (
       <RowPressable
-        key={`${thread.environmentId}:${thread.id}`}
+        key={threadKey}
         interactionClassName={rowAppearance.interactionClassName}
         interactionOpacity={rowAppearance.interactionOpacity}
         className={rowAppearance.className}
         accessibilityHint={swipeAccessibilityHint}
-        accessibilityLabel={
-          props.hasQueuedMessages ? `${thread.title}, messages queued to send` : thread.title
-        }
+        accessibilityLabel={rowAccessibilityLabel}
         accessibilityRole="button"
         accessibilityState={{ selected }}
         onPress={() => {
@@ -1302,13 +1308,11 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
       </RowPressable>
     ) : (
       <RowPressable
-        key={`${thread.environmentId}:${thread.id}`}
+        key={threadKey}
         interactionClassName={rowAppearance.interactionClassName}
         interactionOpacity={rowAppearance.interactionOpacity}
         accessibilityHint={swipeAccessibilityHint}
-        accessibilityLabel={
-          props.hasQueuedMessages ? `${thread.title}, messages queued to send` : thread.title
-        }
+        accessibilityLabel={rowAccessibilityLabel}
         accessibilityRole="button"
         accessibilityState={{ selected }}
         className={rowAppearance.className}
@@ -1359,6 +1363,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
               />
             ) : null}
           </View>
+          {hasUnsentDraft ? <UnsentDraftIcon /> : null}
           {props.hasQueuedMessages ? <QueuedMessageIcon selected={selected} /> : null}
           <Text
             className={cn(
@@ -1388,7 +1393,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
       )}
       <ThreadSwipeable
         dormant={dormant}
-        threadKey={`${thread.environmentId}:${thread.id}`}
+        threadKey={threadKey}
         backgroundColor={rowAppearance.swipeBackgroundColor}
         compactActions={variant === "slim"}
         containerStyle={rowAppearance.swipeContainerStyle}
@@ -1402,7 +1407,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         onSwipeableWillOpen={props.onSwipeableWillOpen}
         primaryAction={primaryAction}
         secondaryAction={secondaryAction}
-        resetKey={`${thread.environmentId}:${thread.id}:${variant}:${snoozedRow}:${thread.doneAt}:${thread.reopenedAt}:${thread.snoozedUntil}`}
+        resetKey={`${threadKey}:${variant}:${snoozedRow}:${thread.doneAt}:${thread.reopenedAt}:${thread.snoozedUntil}`}
         simultaneousWith={props.simultaneousSwipeGesture}
         threadTitle={thread.title}
       >
