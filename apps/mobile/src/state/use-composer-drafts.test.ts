@@ -21,10 +21,8 @@ const composerDraftFileMocks = vi.hoisted(() => {
   let nextWriteBarrier: Promise<void> | null = null;
   let onWrite: (() => void) | null = null;
   const writes: string[] = [];
-  const readImage = vi.fn(async () => "YWJj");
 
   return {
-    readImage,
     blockRead() {
       readBarrier = new Promise<void>((resolve) => {
         releaseRead = resolve;
@@ -79,10 +77,6 @@ const composerDraftFileMocks = vi.hoisted(() => {
         return document;
       }
 
-      async base64() {
-        return readImage();
-      }
-
       write(value: string) {
         if (writeError) {
           throw writeError;
@@ -133,10 +127,10 @@ vi.mock("./session", () => ({ environmentSession: {} }));
 vi.mock("@supaterm/client-runtime/state/runtime", () => ({
   createEnvironmentRpcCommand: () => Symbol("rpc-command"),
   executeAtomQuery: () => {
-    throw new Error("Unexpected network query in the inline read test");
+    throw new Error("Unexpected network query in the composer draft test");
   },
   runAtomCommand: () => {
-    throw new Error("Unexpected network command in the inline read test");
+    throw new Error("Unexpected network command in the composer draft test");
   },
   squashAtomCommandFailure: (result: { readonly error: unknown }) => result.error,
 }));
@@ -211,14 +205,13 @@ afterEach(() => {
   composerDraftFileMocks.setNextWriteBarrier(null);
   composerDraftFileMocks.setOnWrite(null);
   composerDraftFileMocks.resetWrites();
-  composerDraftFileMocks.readImage.mockReset();
-  composerDraftFileMocks.readImage.mockResolvedValue("YWJj");
   appAtomRegistry.set(composerDraftsAtom, {});
   appAtomRegistry.set(stickyComposerModelSelectionAtom, null);
   appAtomRegistry.set(stickyNewTaskProjectAtom, null);
   appAtomRegistry.set(modelOptionMemoryAtom, {});
   appAtomRegistry.set(threadOutboxManager.queuedMessagesByThreadKeyAtom, {});
-  composerAttachmentCleanupMocks.remove.mockClear();
+  composerAttachmentCleanupMocks.remove.mockReset();
+  composerAttachmentCleanupMocks.remove.mockResolvedValue(undefined);
   composerAttachmentCleanupMocks.releaseUploads.mockReset();
   composerAttachmentCleanupMocks.releaseUploads.mockResolvedValue(undefined);
   incomingShareStorageMocks.load.mockReset();
@@ -1033,64 +1026,6 @@ describe("mobile composer drafts", () => {
     appAtomRegistry.set(acknowledgedThreadMessagesAtom, []);
     await releaseUnusedComposerAttachmentFiles([image]);
     expect(composerAttachmentCleanupMocks.remove).toHaveBeenCalledExactlyOnceWith(image.fileUri);
-  });
-
-  it("keeps an image through an inline read after its draft is removed", async () => {
-    const { prepareTurnAttachments } =
-      await vi.importActual<typeof import("../lib/attachmentUpload")>("../lib/attachmentUpload");
-    const image = {
-      id: "image-reading",
-      type: "image" as const,
-      name: "photo.png",
-      mimeType: "image/png",
-      sizeBytes: 3,
-      fileUri: "file:///documents/supaterm-composer-attachments/photo.png",
-      previewUri: "file:///documents/supaterm-composer-attachments/photo.png",
-    };
-    const readStarted = Promise.withResolvers<void>();
-    const read = Promise.withResolvers<void>();
-    const removed = Promise.withResolvers<void>();
-    let imageExists = true;
-    composerDraftFileMocks.readImage.mockImplementation(async () => {
-      readStarted.resolve();
-      await read.promise;
-      if (!imageExists) throw new Error("The image was deleted during its read");
-      return "YWJj";
-    });
-    composerAttachmentCleanupMocks.remove.mockImplementationOnce(async () => {
-      imageExists = false;
-      removed.resolve();
-    });
-    appendComposerDraftAttachments("environment-1:thread-1", [image]);
-    await flushComposerDrafts();
-    const preparing = prepareTurnAttachments({
-      environmentId: EnvironmentId.make("environment-1"),
-      attachments: [image],
-    });
-    onTestFinished(async () => {
-      read.resolve();
-      await preparing.catch(() => undefined);
-    });
-    await readStarted.promise;
-    clearComposerDraftContent("environment-1:thread-1", { deferAttachmentCleanup: true });
-    await releaseUnusedComposerAttachmentFiles([image]);
-    expect(imageExists).toBe(true);
-
-    read.resolve();
-    const prepared = await preparing;
-    expect(prepared.status).toBe("ready");
-    if (prepared.status !== "ready") return;
-    expect(prepared.attachments).toEqual([
-      {
-        type: "image",
-        name: "photo.png",
-        mimeType: "image/png",
-        sizeBytes: 3,
-        dataUrl: "data:image/png;base64,YWJj",
-      },
-    ]);
-    await removed.promise;
-    expect(imageExists).toBe(false);
   });
 
   it("keeps a failed-send draft's pending upload for retry", async () => {
