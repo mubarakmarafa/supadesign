@@ -63,6 +63,7 @@ import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
   CalendarClockIcon,
+  KanbanIcon,
   ChartNoAxesColumnIcon,
   CheckIcon,
   ChevronRightIcon,
@@ -179,6 +180,7 @@ import {
 } from "../lib/utils";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../terminalUiStateStore";
 import { buildThreadRouteParams, resolveThreadRouteTarget } from "../threadRoutes";
+import { useOpenProjectBoard } from "./board/boardNavigation";
 import { useAvailableSettingsSearchItems } from "./settings/useAvailableSettingsSearchItems";
 import {
   applyWslEnvironmentConfiguration,
@@ -674,6 +676,7 @@ function OpenCommandPaletteDialog(props: {
     reportFailure: false,
   });
   const { environments } = useEnvironments();
+  const openProjectBoard = useOpenProjectBoard();
   const desktopLocalBootstraps = useDesktopLocalBootstraps();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const availableSettingsSearchItems = useAvailableSettingsSearchItems();
@@ -2364,6 +2367,24 @@ function OpenCommandPaletteDialog(props: {
       await navigate({ to: "/automations" });
     },
   });
+
+  if (
+    environments.some(
+      (environment) => environment.serverConfig?.environment.capabilities.projectBoard === true,
+    )
+  ) {
+    actionItems.push({
+      kind: "action",
+      value: "action:board",
+      searchTerms: ["board", "kanban", "project board", "columns", "cards", "plan"],
+      title: "Open board",
+      icon: <KanbanIcon className={ITEM_ICON_CLASS} />,
+      shortcutCommand: "board.open",
+      run: async () => {
+        openProjectBoard(contextualProjectRef);
+      },
+    });
+  }
 
   actionItems.push({
     kind: "action",

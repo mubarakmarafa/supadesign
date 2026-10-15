@@ -77,6 +77,7 @@ import {
   ClockIcon,
   FolderIcon,
   GitBranchIcon,
+  KanbanIcon,
   ListFilterIcon,
   MessageCircleQuestionIcon,
   PinIcon,
@@ -283,6 +284,7 @@ import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { SidebarPrimaryNavigation } from "./sidebar/SidebarPrimaryNavigation";
+import { useAnyProjectBoardSupported, useOpenProjectBoard } from "./board/boardNavigation";
 import { SidebarPinButton } from "./sidebar/SidebarPinButton";
 import { SidebarSnoozeButton } from "./sidebar/SidebarSnoozeButton";
 import { Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -2224,6 +2226,8 @@ export default function Sidebar() {
   );
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
+  const boardSupported = useAnyProjectBoardSupported();
+  const openProjectBoard = useOpenProjectBoard();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const confirmThreadDelete = useClientSettings((s) => s.confirmThreadDelete);
   const confirmThreadArchive = useClientSettings((s) => s.confirmThreadArchive);
@@ -4730,7 +4734,14 @@ export default function Sidebar() {
           // header and would otherwise paint across its rows.
           <SidebarGroup className="z-[1]">
             <div className="flex flex-col gap-2">
-              <SidebarPrimaryNavigation projectGroupCount={projectGroups.length} />
+              <SidebarPrimaryNavigation
+                projectGroupCount={projectGroups.length}
+                boardProjectRef={
+                  scopedProjectGroup
+                    ? scopeProjectRef(scopedProjectGroup.environmentId, scopedProjectGroup.id)
+                    : null
+                }
+              />
               {projectGroups.length > 0 ? (
                 <SidebarThreadHeader
                   rowRef={threadHeaderRef}
@@ -4867,6 +4878,31 @@ export default function Sidebar() {
                                     }}
                                   >
                                     <SettingsIcon className="size-3.5" />
+                                  </Button>
+                                ) : null}
+                                {project && boardSupported ? (
+                                  <Button
+                                    size="icon-xs"
+                                    variant="ghost-muted"
+                                    tabIndex={-1}
+                                    aria-hidden="true"
+                                    title={`Open board for ${project.displayName}`}
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      suppressNextScopeChangeRef.current = true;
+                                      dispatchProjectScopeMenu({
+                                        type: "open-changed",
+                                        open: false,
+                                      });
+                                      if (isMobile) setOpenMobile(false);
+                                      openProjectBoard(
+                                        scopeProjectRef(project.environmentId, project.id),
+                                      );
+                                    }}
+                                  >
+                                    <KanbanIcon className="size-3.5" />
                                   </Button>
                                 ) : null}
                               </ComboboxItem>

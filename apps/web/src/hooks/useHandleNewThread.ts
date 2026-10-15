@@ -439,7 +439,7 @@ export function useNewThreadHandler() {
 }
 
 /** The first project in the user's sidebar order, where a new thread lands without other context. */
-function firstOrderedProjectRef(
+export function firstOrderedProjectRef(
   projects: ReturnType<typeof readProjects>,
   projectOrder: readonly string[],
 ): ScopedProjectRef | null {
