@@ -15,6 +15,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import * as DesktopAssets from "./DesktopAssets.ts";
 import * as DesktopLinuxUrlHandler from "./DesktopLinuxUrlHandler.ts";
+import { APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 
 interface RecordedRegistration {
   readonly directories: string[];
@@ -226,7 +227,7 @@ describe("DesktopLinuxUrlHandler", () => {
           recorded.files[0]?.content,
           'Exec="/home/alice/Applications/Supaterm.AppImage" %U',
         );
-        assert.include(recorded.files[0]?.content, "MimeType=x-scheme-handler/supaterm;");
+        assert.include(recorded.files[0]?.content, `MimeType=x-scheme-handler/${APP_URL_SCHEME};`);
         assert.deepEqual(recorded.commands, [
           {
             command: "update-desktop-database",
@@ -234,7 +235,7 @@ describe("DesktopLinuxUrlHandler", () => {
           },
           {
             command: "xdg-mime",
-            args: ["default", "com.supaterm.desktop.desktop", "x-scheme-handler/supaterm"],
+            args: ["default", "com.supaterm.desktop.desktop", `x-scheme-handler/${APP_URL_SCHEME}`],
           },
         ]);
       });
@@ -262,7 +263,7 @@ describe("DesktopLinuxUrlHandler", () => {
         existingEntry: DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
           displayName: "Supaterm",
           execTarget: "/home/alice/Applications/Supaterm.AppImage",
-          scheme: "supaterm",
+          scheme: APP_URL_SCHEME,
           iconPath: "/home/alice/.local/share/icons/com.supaterm.desktop.desktop.png",
         }),
       });
@@ -276,7 +277,7 @@ describe("DesktopLinuxUrlHandler", () => {
         },
         {
           command: "xdg-mime",
-          args: ["default", "com.supaterm.desktop.desktop", "x-scheme-handler/supaterm"],
+          args: ["default", "com.supaterm.desktop.desktop", `x-scheme-handler/${APP_URL_SCHEME}`],
         },
       ]);
     });
@@ -291,7 +292,7 @@ describe("DesktopLinuxUrlHandler", () => {
         existingEntry: DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
           displayName: "Supaterm",
           execTarget: "/home/alice/Applications/Supaterm.AppImage",
-          scheme: "supaterm",
+          scheme: APP_URL_SCHEME,
           iconPath,
         }),
       });

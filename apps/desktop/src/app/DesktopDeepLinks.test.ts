@@ -18,6 +18,7 @@ import * as DesktopWebLinks from "./DesktopWebLinks.ts";
 import * as DesktopOpenEvents from "./DesktopOpenEvents.ts";
 import * as DesktopDeepLinks from "./DesktopDeepLinks.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
+import { APP_DEV_URL_SCHEME, APP_SLUG, APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 
 const ignoreWebLinks = DesktopWebLinks.DesktopWebLinks.of({
   receive: () => Effect.void,
@@ -112,9 +113,9 @@ describe("DesktopDeepLinks", () => {
       yield* Effect.scoped(Layer.build(makeDesktopDeepLinksLayer({ events })));
 
       assert.deepEqual(events, [
-        "setPath:userData:/tmp/app-data/supaterm-dev",
+        `setPath:userData:/tmp/app-data/${APP_SLUG}-dev`,
         "requestSingleInstanceLock",
-        "setAsDefaultProtocolClient:supaterm-dev",
+        `setAsDefaultProtocolClient:${APP_DEV_URL_SCHEME}`,
       ]);
     });
   });
@@ -135,8 +136,8 @@ describe("DesktopDeepLinks", () => {
       );
 
       assert.deepEqual(events, [
-        "setPath:userData:/tmp/app-data/supaterm-v2",
-        "setAsDefaultProtocolClient:supaterm",
+        `setPath:userData:/tmp/app-data/${APP_SLUG}-v2`,
+        `setAsDefaultProtocolClient:${APP_URL_SCHEME}`,
       ]);
     });
   });
@@ -158,7 +159,7 @@ describe("DesktopDeepLinks", () => {
 
       assert.isTrue(Exit.hasInterrupts(exit));
       assert.deepEqual(events, [
-        "setPath:userData:/tmp/app-data/supaterm-dev",
+        `setPath:userData:/tmp/app-data/${APP_SLUG}-dev`,
         "requestSingleInstanceLock",
         "quit",
       ]);
@@ -243,19 +244,22 @@ describe("DesktopDeepLinks", () => {
         Effect.provideService(DesktopWebLinks.DesktopWebLinks, ignoreWebLinks),
       );
       const event = { preventDefault: vi.fn() };
-      listeners.get("open-url")!(event, "supaterm-dev://app/auth/callback?code=unrelated-code");
-      listeners.get("open-url")!(event, "supaterm://app/welcome");
+      listeners.get("open-url")!(
+        event,
+        `${APP_DEV_URL_SCHEME}://app/auth/callback?code=unrelated-code`,
+      );
+      listeners.get("open-url")!(event, `${APP_URL_SCHEME}://app/welcome`);
       assert.equal(loadURL.mock.calls.length, 0);
       assert.equal(event.preventDefault.mock.calls.length, 0);
       listeners.get("second-instance")!({}, [
         "supaterm",
-        "supaterm-dev://app/settings/providers?instanceId=work&code=never-forward",
+        `${APP_DEV_URL_SCHEME}://app/settings/providers?instanceId=work&code=never-forward`,
       ]);
       yield* Effect.promise(() => revealed.promise);
       assert.deepEqual(loadURL.mock.calls, [
-        ["supaterm-dev://app/settings/providers?instanceId=work"],
+        [`${APP_DEV_URL_SCHEME}://app/settings/providers?instanceId=work`],
       ]);
-      listeners.get("open-url")!(event, "supaterm-dev://app/welcome#agents:machine-id");
+      listeners.get("open-url")!(event, `${APP_DEV_URL_SCHEME}://app/welcome#agents:machine-id`);
       assert.equal(event.preventDefault.mock.calls.length, 1);
     }).pipe(
       Effect.scoped,
@@ -362,8 +366,8 @@ it.effect("queues web, file, prompt and thread links and leaves other schemes al
       for (const url of [
         "https://example.com/page",
         "http://localhost:3000",
-        "supaterm://new?prompt=hi",
-        "supaterm://threads/env/thread",
+        `${APP_URL_SCHEME}://new?prompt=hi`,
+        `${APP_URL_SCHEME}://threads/env/thread`,
         "mailto:hi@example.com",
       ]) {
         const event = { preventDefault: vi.fn() };
@@ -377,8 +381,8 @@ it.effect("queues web, file, prompt and thread links and leaves other schemes al
         "https://example.com/start",
         "https://example.com/page",
         "http://localhost:3000",
-        "supaterm://new?prompt=hi",
-        "supaterm://threads/env/thread",
+        `${APP_URL_SCHEME}://new?prompt=hi`,
+        `${APP_URL_SCHEME}://threads/env/thread`,
         "file:///tmp/a%20page.html",
       ]);
       assert.equal(event.preventDefault.mock.calls.length, 1);

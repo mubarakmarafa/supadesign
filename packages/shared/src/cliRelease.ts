@@ -1,3 +1,4 @@
+import { APP_REPOSITORY } from "./appIdentity.ts";
 /**
  * Naming shared by the release workflow, the runtime installers, and
  * install scripts for the per-platform CLI archives attached to GitHub
@@ -5,7 +6,7 @@
  * platform key, so a rename here is a release-breaking change.
  */
 
-const CLI_RELEASE_REPOSITORY = "supabitapp/supacode-next";
+const CLI_RELEASE_REPOSITORY = APP_REPOSITORY;
 export const CLI_RELEASE_CHECKSUMS_FILE = "SHA256SUMS";
 /** Overrides the download origin for mirrors and air-gapped installs. */
 export const CLI_RELEASE_BASE_URL_ENV = "SUPATERM_RELEASE_BASE_URL";

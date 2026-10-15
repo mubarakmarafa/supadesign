@@ -1,4 +1,5 @@
 import { DEFAULT_HOSTED_APP_URL } from "./remote.ts";
+import { APP_URL_SCHEME } from "./appIdentity.ts";
 
 /**
  * Prompt links open Supaterm from outside it with a prompt ready to send. They never send it:
@@ -212,7 +213,7 @@ export function buildNewThreadLink(input: {
   return url.toString();
 }
 
-const APP_SCHEME = /^supaterm(?:-[a-z]+)?:$/;
+const APP_SCHEME = new RegExp(`^${APP_URL_SCHEME}(?:-[a-z]+)?:$`);
 const THREAD_PATH = /^\/([^/]+)\/([^/]+)\/?$/;
 
 /**
@@ -242,7 +243,7 @@ export function promptLinkAppPath(
 }
 
 /** The `supaterm://` link that hands an in-app path to an installed desktop or mobile app. */
-export function promptLinkDeepLink(appPath: string, scheme = "supaterm"): string {
+export function promptLinkDeepLink(appPath: string, scheme = APP_URL_SCHEME): string {
   const url = new URL(appPath, "https://app.invalid");
   const host = url.pathname === "/new" ? "new" : `threads${url.pathname}`;
   return `${scheme}://${host}${url.search}`;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "./appIdentity.ts";
 
 import {
   buildNewThreadLink,
@@ -107,20 +108,23 @@ describe("link round trips", () => {
   });
 
   it("maps app scheme and hosted links to in-app paths, and nothing else", () => {
-    expect(promptLinkAppPath("supaterm://new?prompt=hi")).toBe("/new?prompt=hi");
-    expect(promptLinkAppPath("supaterm-dev://threads/env-1/thread-1")).toBe("/env-1/thread-1");
+    expect(promptLinkAppPath(`${APP_URL_SCHEME}://new?prompt=hi`)).toBe("/new?prompt=hi");
+    expect(promptLinkAppPath(`${APP_DEV_URL_SCHEME}://threads/env-1/thread-1`)).toBe(
+      "/env-1/thread-1",
+    );
     expect(promptLinkAppPath("https://app.supaterm.com/env-1/thread-1?prompt=go")).toBe(
       "/env-1/thread-1?prompt=go",
     );
     expect(promptLinkAppPath("https://app.supaterm.com/settings/general")).toBeNull();
     expect(promptLinkAppPath("https://evil.test/new?prompt=hi")).toBeNull();
-    expect(promptLinkAppPath("supaterm://app/index.html")).toBeNull();
+    expect(promptLinkAppPath(`${APP_URL_SCHEME}://app/index.html`)).toBeNull();
+    expect(promptLinkAppPath("supaterm://new?prompt=hi")).toBeNull();
   });
 
   it("hands an in-app path to the installed app", () => {
-    expect(promptLinkDeepLink("/new?prompt=hi")).toBe("supaterm://new?prompt=hi");
+    expect(promptLinkDeepLink("/new?prompt=hi")).toBe(`${APP_URL_SCHEME}://new?prompt=hi`);
     expect(promptLinkDeepLink("/env-1/thread-1?prompt=hi")).toBe(
-      "supaterm://threads/env-1/thread-1?prompt=hi",
+      `${APP_URL_SCHEME}://threads/env-1/thread-1?prompt=hi`,
     );
   });
 });

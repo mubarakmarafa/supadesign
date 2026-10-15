@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NetService from "@supaterm/shared/Net";
 import * as HostProcess from "@supaterm/shared/HostProcess";
+import { APP_HOME_DIRECTORY_NAME, APP_REPOSITORY } from "@supaterm/shared/appIdentity";
 import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -105,11 +106,11 @@ describe("ssh tunnel scripts", () => {
     assert.include(script, "SUPATERM_NODE_SCRIPT_PATH=''");
     assert.include(
       script,
-      "SUPATERM_RELEASE_BASE_URL='https://github.com/supabitapp/supacode-next/releases/download'",
+      `SUPATERM_RELEASE_BASE_URL='https://github.com/${APP_REPOSITORY}/releases/download'`,
     );
     assert.include(
       script,
-      'SUPATERM_RUNTIME_DIR="$HOME/.supaterm/runtime/versions/$SUPATERM_ARCHIVE_VERSION"',
+      `SUPATERM_RUNTIME_DIR="$HOME/${APP_HOME_DIRECTORY_NAME}/runtime/versions/$SUPATERM_ARCHIVE_VERSION"`,
     );
     assert.include(
       script,
@@ -125,7 +126,7 @@ describe("ssh tunnel scripts", () => {
     // the completion marker after acquiring it.
     assert.include(
       script,
-      'SUPATERM_LOCK="$HOME/.supaterm/runtime/versions/.$SUPATERM_ARCHIVE_VERSION.install.lock"',
+      `SUPATERM_LOCK="$HOME/${APP_HOME_DIRECTORY_NAME}/runtime/versions/.$SUPATERM_ARCHIVE_VERSION.install.lock"`,
     );
     // mkdir is the exclusive create; the pid follows atomically. A dead owner
     // is reclaimed at once, a never-published owner after a short grace.
@@ -788,7 +789,7 @@ describe("archive runner script", () => {
           assert.equal(result.exitCode, 0, result.stderr);
           assert.include(result.stdout, `supaterm v${archiveVersion}`);
         }
-        const versionsDir = `${home}/.supaterm/runtime/versions`;
+        const versionsDir = `${home}/${APP_HOME_DIRECTORY_NAME}/runtime/versions`;
         assert.deepEqual(yield* fs.readDirectory(versionsDir), [archiveVersion]);
         assert.equal(
           (yield* fs.readFileString(`${versionsDir}/${archiveVersion}/.install-complete`)).trim(),

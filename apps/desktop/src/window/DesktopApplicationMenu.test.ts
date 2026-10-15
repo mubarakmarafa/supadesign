@@ -14,6 +14,7 @@ import * as DesktopConfig from "../app/DesktopConfig.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
+import { APP_PRODUCT_NAME } from "@supaterm/shared/appIdentity";
 
 const environmentInput = {
   dirname: "/repo/apps/desktop/dist-electron",
@@ -29,7 +30,7 @@ const environmentInput = {
 
 const layerElectronApp = Layer.succeed(ElectronApp.ElectronApp, {
   metadata: Effect.die("unexpected metadata read"),
-  name: Effect.succeed("Supaterm"),
+  name: Effect.succeed(APP_PRODUCT_NAME),
   systemLocale: Effect.succeed("en-US"),
   environmentMachineIcons: Effect.succeed({}),
   whenReady: Effect.void,
@@ -144,21 +145,21 @@ describe("DesktopApplicationMenu", () => {
       const template = yield* Deferred.await(applicationMenuTemplate);
       const applicationMenu = template[0];
       assert.isDefined(applicationMenu);
-      assert.equal(applicationMenu.label, "Supaterm (Nightly)");
+      assert.equal(applicationMenu.label, `${APP_PRODUCT_NAME} (Nightly)`);
       if (!Array.isArray(applicationMenu.submenu)) {
         throw new Error("Expected application menu submenu to be an array.");
       }
       assert.equal(
         applicationMenu.submenu.find((item) => item.role === "about")?.label,
-        "About Supaterm (Nightly)",
+        `About ${APP_PRODUCT_NAME} (Nightly)`,
       );
       assert.equal(
         applicationMenu.submenu.find((item) => item.role === "hide")?.label,
-        "Hide Supaterm (Nightly)",
+        `Hide ${APP_PRODUCT_NAME} (Nightly)`,
       );
       assert.equal(
         applicationMenu.submenu.find((item) => item.role === "quit")?.label,
-        "Quit Supaterm (Nightly)",
+        `Quit ${APP_PRODUCT_NAME} (Nightly)`,
       );
     }),
   );

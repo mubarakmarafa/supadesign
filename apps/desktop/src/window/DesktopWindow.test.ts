@@ -55,6 +55,7 @@ import {
 import * as DesktopServerExposure from "../backend/DesktopServerExposure.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
 import * as PreviewManager from "../preview/Manager.ts";
+import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 
 const environmentInput = {
   dirname: "/repo/apps/desktop/dist-electron",
@@ -76,7 +77,7 @@ function makeFakeBrowserWindow() {
     copyImageAt: vi.fn(),
     focus: vi.fn(),
     isDestroyed: vi.fn(() => false),
-    getURL: vi.fn(() => "supaterm-dev://app/"),
+    getURL: vi.fn(() => `${APP_DEV_URL_SCHEME}://app/`),
     getZoomLevel: vi.fn(() => zoomLevel),
     getZoomFactor: vi.fn(() => 1.2 ** zoomLevel),
     setZoomLevel: vi.fn((level: number) => {
@@ -596,19 +597,19 @@ describe("DesktopWindow", () => {
   it("recognizes only same-origin renderer navigations", () => {
     assert.isTrue(
       DesktopWindow.isSameOriginRendererNavigation({
-        applicationUrl: "supaterm://app/",
-        navigationUrl: "supaterm://app/settings/connections",
+        applicationUrl: `${APP_URL_SCHEME}://app/`,
+        navigationUrl: `${APP_URL_SCHEME}://app/settings/connections`,
       }),
     );
     assert.isFalse(
       DesktopWindow.isSameOriginRendererNavigation({
-        applicationUrl: "supaterm://app/",
+        applicationUrl: `${APP_URL_SCHEME}://app/`,
         navigationUrl: "https://accounts.microsoft.com/oauth",
       }),
     );
     assert.isFalse(
       DesktopWindow.isSameOriginRendererNavigation({
-        applicationUrl: "supaterm://app/",
+        applicationUrl: `${APP_URL_SCHEME}://app/`,
         navigationUrl: "not a url",
       }),
     );
@@ -641,7 +642,7 @@ describe("DesktopWindow", () => {
         assert.isTrue(createdWindowOptions[0]?.disableAutoHideCursor);
         assert.isFalse(createdWindowOptions[0]?.webPreferences?.backgroundThrottling);
         assert.deepEqual(fakeWindow.setAutoHideCursor.mock.calls, [[false]]);
-        assert.deepEqual(fakeWindow.loadURL.mock.calls[0], ["supaterm-dev://app/"]);
+        assert.deepEqual(fakeWindow.loadURL.mock.calls[0], [`${APP_DEV_URL_SCHEME}://app/`]);
         assert.equal(fakeWindow.openDevTools.mock.calls.length, 1);
       }).pipe(Effect.provide(layer));
     }),
@@ -1349,17 +1350,17 @@ describe("DesktopWindow", () => {
           return yield* Effect.die("renderer load listeners were not registered");
         }
 
-        didFailLoad({}, -9, "ERR_UNEXPECTED", "supaterm-dev://app/", true);
+        didFailLoad({}, -9, "ERR_UNEXPECTED", `${APP_DEV_URL_SCHEME}://app/`, true);
         assert.equal(fakeWindow.loadURL.mock.calls.length, 1);
 
         yield* TestClock.adjust(100);
         assert.deepEqual(fakeWindow.loadURL.mock.calls, [
-          ["supaterm-dev://app/"],
-          ["supaterm-dev://app/"],
+          [`${APP_DEV_URL_SCHEME}://app/`],
+          [`${APP_DEV_URL_SCHEME}://app/`],
         ]);
         assert.equal(fakeWindow.reload.mock.calls.length, 0);
 
-        didFailLoad({}, -9, "ERR_UNEXPECTED", "supaterm-dev://app/", true);
+        didFailLoad({}, -9, "ERR_UNEXPECTED", `${APP_DEV_URL_SCHEME}://app/`, true);
         didFinishLoad();
         yield* TestClock.adjust(250);
         assert.equal(fakeWindow.loadURL.mock.calls.length, 2);
@@ -1371,23 +1372,23 @@ describe("DesktopWindow", () => {
   it("retries only transient failures for the development renderer", () => {
     assert.isTrue(
       DesktopWindow.isRetryableDevelopmentRendererLoadFailure({
-        applicationUrl: "supaterm-dev://app/",
+        applicationUrl: `${APP_DEV_URL_SCHEME}://app/`,
         errorCode: -102,
         isMainFrame: true,
-        validatedUrl: "supaterm-dev://app/",
+        validatedUrl: `${APP_DEV_URL_SCHEME}://app/`,
       }),
     );
     assert.isFalse(
       DesktopWindow.isRetryableDevelopmentRendererLoadFailure({
-        applicationUrl: "supaterm-dev://app/",
+        applicationUrl: `${APP_DEV_URL_SCHEME}://app/`,
         errorCode: -3,
         isMainFrame: true,
-        validatedUrl: "supaterm-dev://app/",
+        validatedUrl: `${APP_DEV_URL_SCHEME}://app/`,
       }),
     );
     assert.isFalse(
       DesktopWindow.isRetryableDevelopmentRendererLoadFailure({
-        applicationUrl: "supaterm-dev://app/",
+        applicationUrl: `${APP_DEV_URL_SCHEME}://app/`,
         errorCode: -102,
         isMainFrame: true,
         validatedUrl: "https://example.com/",

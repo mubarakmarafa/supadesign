@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { APP_REPOSITORY } from "./appIdentity.ts";
 
 import {
   cliArchiveFileName,
@@ -33,7 +34,7 @@ describe("cliRelease", () => {
 
   it("resolves download URLs under the tagged release, honoring a mirror", () => {
     expect(cliReleaseDownloadBaseUrl("1.2.3")).toBe(
-      "https://github.com/supabitapp/supacode-next/releases/download/v1.2.3",
+      `https://github.com/${APP_REPOSITORY}/releases/download/v1.2.3`,
     );
     expect(cliReleaseDownloadBaseUrl("1.2.3", "https://mirror.example/supaterm/")).toBe(
       "https://mirror.example/supaterm/v1.2.3",
@@ -87,7 +88,7 @@ describe("cliRelease", () => {
 
   it("pages through the release index at the largest page GitHub allows", () => {
     expect(cliReleaseIndexPageUrl(1)).toBe(
-      "https://api.github.com/repos/supabitapp/supacode-next/releases?per_page=100&page=1",
+      `https://api.github.com/repos/${APP_REPOSITORY}/releases?per_page=100&page=1`,
     );
     expect(cliReleaseIndexPageUrl(3)).toContain("page=3");
   });

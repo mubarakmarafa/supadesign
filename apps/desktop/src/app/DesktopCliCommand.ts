@@ -16,6 +16,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as DesktopCliShim from "./DesktopCliShim.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import { makeComponentLogger } from "./DesktopObservability.ts";
+import { APP_CLI_COMMAND } from "@supaterm/shared/appIdentity";
 
 const { logWarning } = makeComponentLogger("desktop-cli-command");
 
@@ -128,7 +129,7 @@ export const make = Effect.gen(function* () {
     );
 
   const firstOnPath = Effect.suspend(() =>
-    resolveCommandPath("supaterm", { env: process.env }).pipe(
+    resolveCommandPath(APP_CLI_COMMAND, { env: process.env }).pipe(
       Effect.provideService(HostProcess.Platform, environment.platform),
       Effect.provideService(FileSystem.FileSystem, fs),
       Effect.provideService(Path.Path, path),
@@ -154,7 +155,7 @@ export const make = Effect.gen(function* () {
         : Option.none<string>();
     }
     for (const directory of unixCandidates(environment.homeDirectory, environment.platform)) {
-      const link = path.join(directory, "supaterm");
+      const link = path.join(directory, APP_CLI_COMMAND);
       if (yield* isOurLink(link)) return Option.some(link);
     }
     return Option.none<string>();
@@ -225,7 +226,7 @@ export const make = Effect.gen(function* () {
       ...candidates.filter((candidate) => onPath.includes(candidate)),
       ...candidates.filter((candidate) => !onPath.includes(candidate)),
     ]) {
-      const link = path.join(directory, "supaterm");
+      const link = path.join(directory, APP_CLI_COMMAND);
       const created = (yield* exists(directory))
         ? yield* writableDirectory(directory)
         : yield* fs.makeDirectory(directory, { recursive: true }).pipe(
@@ -292,7 +293,7 @@ export const make = Effect.gen(function* () {
       return yield* state;
     }
     for (const directory of unixCandidates(environment.homeDirectory, environment.platform)) {
-      const link = path.join(directory, "supaterm");
+      const link = path.join(directory, APP_CLI_COMMAND);
       if (yield* isOurLink(link)) {
         yield* fs.remove(link).pipe(Effect.mapError(() => fail(`Could not remove ${link}.`)));
       }

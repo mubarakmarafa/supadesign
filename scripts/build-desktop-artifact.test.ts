@@ -14,6 +14,13 @@ import * as Path from "effect/Path";
 import * as Sink from "effect/Sink";
 import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import {
+  APP_DEV_URL_SCHEME,
+  APP_ID,
+  APP_PRODUCT_NAME,
+  APP_SLUG,
+  APP_URL_SCHEME,
+} from "@supaterm/shared/appIdentity";
 
 import {
   BundleNotSelfContainedError,
@@ -257,8 +264,11 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
   });
 
   it("switches desktop packaging product names to nightly for nightly builds", () => {
-    assert.equal(resolveDesktopProductName("0.0.17"), "Supaterm");
-    assert.equal(resolveDesktopProductName("0.0.17-nightly.20260413.42"), "Supaterm (Nightly)");
+    assert.equal(resolveDesktopProductName("0.0.17"), APP_PRODUCT_NAME);
+    assert.equal(
+      resolveDesktopProductName("0.0.17-nightly.20260413.42"),
+      `${APP_PRODUCT_NAME} (Nightly)`,
+    );
   });
 
   it("switches desktop packaging icons to the nightly artwork for nightly versions", () => {
@@ -620,7 +630,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         "**/*.map",
       ]);
       assert.deepStrictEqual(mac.dmg, {
-        title: "Supaterm 1.2.3 Installer",
+        title: `${APP_PRODUCT_NAME} 1.2.3 Installer`,
         background: "dmg/dmg-background-latest.png",
         window: { width: 640, height: 432 },
         contents: [
@@ -633,10 +643,17 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       // A Linux AppImage build also emits the .deb from the same run.
       assert.deepStrictEqual((linux.linux as Record<string, unknown>).target, ["AppImage", "deb"]);
       // Linux must register the renderer schemes so the generated .desktop
-      // entry advertises MimeType=x-scheme-handler/supaterm; for OAuth deep links.
+      // entry advertises MimeType=x-scheme-handler/supadesign; for OAuth deep links.
       assert.deepStrictEqual((linux.linux as Record<string, unknown>).protocols, [
-        { name: "Supaterm", schemes: ["supaterm", "supaterm-dev"] },
+        { name: APP_PRODUCT_NAME, schemes: [APP_URL_SCHEME, APP_DEV_URL_SCHEME] },
       ]);
+      assert.equal((linux.linux as Record<string, unknown>).executableName, APP_SLUG);
+      assert.deepStrictEqual((linux.linux as Record<string, unknown>).desktop, {
+        entry: { StartupWMClass: APP_SLUG },
+      });
+      for (const config of [mac, linux, win]) {
+        assert.equal(config.artifactName, `${APP_SLUG}-\${version}-\${arch}.\${ext}`);
+      }
       assert.deepStrictEqual(linux.toolsets, { appimage: "1.0.3" });
       assert.notProperty(mac, "toolsets");
       assert.notProperty(win, "toolsets");
@@ -648,7 +665,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       assert.propertyVal(
         (mac.mac as Record<string, unknown>).extendInfo as Record<string, unknown>,
         "NSLocalNetworkUsageDescription",
-        "Supaterm connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
+        "Supadesign connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
       );
       for (const config of [linux, win]) {
         assert.deepStrictEqual(config.electronLanguages, DESKTOP_ELECTRON_LANGUAGES);
@@ -1868,12 +1885,12 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       const config = yield* createBuildConfig("mac", "dmg", "1.2.3", true, false, undefined);
 
       const mac = config.mac as Record<string, unknown>;
-      assert.equal(config.appId, "com.supaterm.desktop");
+      assert.equal(config.appId, APP_ID);
       assert.notProperty(mac, "entitlements");
       assert.notProperty(mac, "provisioningProfile");
       assert.match(String(mac.sign), /[\\/]scripts[\\/]sign-macos\.ts$/);
       assert.deepStrictEqual(mac.protocols, [
-        { name: "Supaterm", schemes: ["supaterm", "supaterm-dev"] },
+        { name: APP_PRODUCT_NAME, schemes: [APP_URL_SCHEME, APP_DEV_URL_SCHEME] },
         { name: "Web links", schemes: ["http", "https"], role: "Viewer" },
       ]);
     }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} })))),

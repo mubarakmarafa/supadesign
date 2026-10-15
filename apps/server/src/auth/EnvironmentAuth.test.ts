@@ -5,6 +5,7 @@ import {
   AuthStandardClientScopes,
 } from "@supaterm/contracts";
 import { expect, it } from "@effect/vitest";
+import { APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
@@ -675,7 +676,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         origin: "https://box.tail1234.ts.net",
         "x-forwarded-host": "box.tail1234.ts.net",
       });
-      yield* upgrade({ origin: "supaterm://app" });
+      yield* upgrade({ origin: `${APP_URL_SCHEME}://app` });
       yield* upgrade({ origin: "http://localhost:5733" });
       yield* upgrade({});
 

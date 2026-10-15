@@ -1,5 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
+import { APP_ID, APP_SLUG } from "@supaterm/shared/appIdentity";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Duration from "effect/Duration";
@@ -19,6 +20,9 @@ import {
   SERVICE_RESTART_PENDING_FILE,
   serviceStateHasPendingUpdate,
 } from "./serviceProtocol.ts";
+
+const BOOT_SERVICE_UNIT = `${APP_SLUG}.service`;
+const BOOT_SERVICE_LABEL = `${APP_ID}.service`;
 
 const linuxRuntime = "/home/theo/.supaterm/runtime/versions/1.2.3/supaterm";
 const linuxPlan = {
@@ -176,11 +180,13 @@ const makeHarness = Effect.fn("test.make_boot_service_harness")(function* (
       const failed = command === control.failCommand;
       if (!failed && command === "loginctl enable-linger --no-ask-password 501")
         control.linger = "yes";
-      if (!failed && command === "systemctl --user enable supaterm.service") control.enabled = true;
-      if (!failed && command === "systemctl --user restart supaterm.service") control.active = true;
+      if (!failed && command === `systemctl --user enable ${BOOT_SERVICE_UNIT}`)
+        control.enabled = true;
+      if (!failed && command === `systemctl --user restart ${BOOT_SERVICE_UNIT}`)
+        control.active = true;
       if (
         control.stateAfterStop !== undefined &&
-        (command === "systemctl --user stop supaterm.service" ||
+        (command === `systemctl --user stop ${BOOT_SERVICE_UNIT}` ||
           command.startsWith("launchctl bootout --wait "))
       ) {
         yield* fs.writeFileString(statePath, control.stateAfterStop).pipe(Effect.orDie);
@@ -308,7 +314,7 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
         );
         expect(yield* fs.readFileString(statePath)).toBe(before);
         expect(yield* fs.readFileString(plan.unitPath)).toBe(unit);
-        expect(commands).not.toContain("systemctl --user stop supaterm.service");
+        expect(commands).not.toContain(`systemctl --user stop ${BOOT_SERVICE_UNIT}`);
       }),
   );
 
@@ -382,7 +388,7 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
       expect((yield* service.status).installed).toBe(false);
       // The stop can block up to systemd's 90s TimeoutStopSec; the runner's
       // 60s default would cancel it mid-shutdown.
-      expect(timeouts.get("systemctl --user disable --now supaterm.service")).toEqual(
+      expect(timeouts.get(`systemctl --user disable --now ${BOOT_SERVICE_UNIT}`)).toEqual(
         Duration.seconds(120),
       );
     }),
@@ -455,11 +461,11 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
         ).toEqual(
           platform === "linux"
             ? [
-                "systemctl --user stop supaterm.service",
-                "systemctl --user restart supaterm.service",
+                `systemctl --user stop ${BOOT_SERVICE_UNIT}`,
+                `systemctl --user restart ${BOOT_SERVICE_UNIT}`,
               ]
             : [
-                "launchctl bootout --wait gui/501/com.supaterm.desktop.service",
+                `launchctl bootout --wait gui/501/${BOOT_SERVICE_LABEL}`,
                 `launchctl bootstrap gui/501 ${plan.unitPath}`,
               ],
         );
@@ -586,10 +592,10 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
           (command) => command.startsWith("systemctl ") && !command.includes("show-environment"),
         ),
       ).toEqual([
-        "systemctl --user stop supaterm.service",
+        `systemctl --user stop ${BOOT_SERVICE_UNIT}`,
         "systemctl --user daemon-reload",
-        "systemctl --user enable supaterm.service",
-        "systemctl --user restart supaterm.service",
+        `systemctl --user enable ${BOOT_SERVICE_UNIT}`,
+        `systemctl --user restart ${BOOT_SERVICE_UNIT}`,
       ]);
     }),
   );
@@ -622,9 +628,9 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
           (command) => command.startsWith("systemctl ") && !command.includes("show-environment"),
         ),
       ).toEqual([
-        "systemctl --user stop supaterm.service",
+        `systemctl --user stop ${BOOT_SERVICE_UNIT}`,
         "systemctl --user daemon-reload",
-        "systemctl --user restart supaterm.service",
+        `systemctl --user restart ${BOOT_SERVICE_UNIT}`,
       ]);
     }),
   );
@@ -643,9 +649,9 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
           (command) => command.startsWith("systemctl ") && !command.includes("show-environment"),
         ),
       ).toEqual([
-        "systemctl --user stop supaterm.service",
+        `systemctl --user stop ${BOOT_SERVICE_UNIT}`,
         "systemctl --user daemon-reload",
-        "systemctl --user restart supaterm.service",
+        `systemctl --user restart ${BOOT_SERVICE_UNIT}`,
       ]);
     }),
   );
@@ -677,8 +683,8 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
             (command) => command.startsWith("systemctl ") && !command.includes("show-environment"),
           ),
         ).toEqual([
-          "systemctl --user stop supaterm.service",
-          "systemctl --user restart supaterm.service",
+          `systemctl --user stop ${BOOT_SERVICE_UNIT}`,
+          `systemctl --user restart ${BOOT_SERVICE_UNIT}`,
         ]);
       }
     }),
@@ -699,9 +705,7 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
       const plan = yield* service.install();
 
       expect(
-        plan.unitPath.endsWith(
-          path.join("Library", "LaunchAgents", "com.supaterm.desktop.service.plist"),
-        ),
+        plan.unitPath.endsWith(path.join("Library", "LaunchAgents", `${BOOT_SERVICE_LABEL}.plist`)),
       ).toBe(true);
       expect(yield* fs.readFileString(plan.unitPath)).toContain(
         `    <key>PATH</key>\n    <string>${macInstallerPath}:/usr/local/bin:/usr/sbin:/sbin</string>`,
@@ -722,7 +726,7 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
       expect(commands.some((command) => command.startsWith("systemctl "))).toBe(false);
       // A bootout can block up to the plist's 90s ExitTimeOut; the runner's
       // 60s default would cancel it and let bootstrap race a loaded job.
-      expect(timeouts.get("launchctl bootout --wait gui/501/com.supaterm.desktop.service")).toEqual(
+      expect(timeouts.get(`launchctl bootout --wait gui/501/${BOOT_SERVICE_LABEL}`)).toEqual(
         Duration.seconds(120),
       );
     }),
@@ -739,8 +743,8 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
       const error = yield* service.install().pipe(Effect.flip);
       expect(error._tag).toBe("BootServiceCommandError");
       expect(commands.filter((command) => command.startsWith("launchctl "))).toEqual([
-        "launchctl bootout --wait gui/501/com.supaterm.desktop.service",
-        "launchctl enable gui/501/com.supaterm.desktop.service",
+        `launchctl bootout --wait gui/501/${BOOT_SERVICE_LABEL}`,
+        `launchctl enable gui/501/${BOOT_SERVICE_LABEL}`,
         `launchctl bootstrap gui/501 ${plistPath}`,
         `launchctl bootstrap gui/501 ${plistPath}`,
       ]);
@@ -802,7 +806,7 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
     Effect.gen(function* () {
       const { service, control } = yield* makeHarness("darwin");
       yield* service.install();
-      control.failCommand = "launchctl bootout --wait gui/501/com.supaterm.desktop.service";
+      control.failCommand = `launchctl bootout --wait gui/501/${BOOT_SERVICE_LABEL}`;
 
       yield* service.install();
       expect((yield* service.status).current).toBe(true);
@@ -833,7 +837,7 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
         );
         expect(serviceStateHasPendingUpdate(yield* fs.readFileString(statePath))).toBe(true);
         expect(commands.filter((command) => command.startsWith("launchctl "))).toEqual([
-          "launchctl bootout --wait gui/501/com.supaterm.desktop.service",
+          `launchctl bootout --wait gui/501/${BOOT_SERVICE_LABEL}`,
           `launchctl bootstrap gui/501 ${plistPath}`,
         ]);
       }

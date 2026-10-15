@@ -1,4 +1,4 @@
-// This file mostly exists because we want dev mode to say "Supaterm (Dev)" instead of "electron"
+// This file mostly exists because we want dev mode to say "Supadesign (Dev)" instead of "electron"
 
 import * as NodeChildProcess from "node:child_process";
 import * as NodeFS from "node:fs";
@@ -6,6 +6,12 @@ import * as NodeModule from "node:module";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
+import {
+  APP_DEV_URL_SCHEME,
+  APP_ID,
+  APP_PRODUCT_NAME,
+  APP_URL_SCHEME,
+} from "@supaterm/shared/appIdentity";
 import { ensureElectronRuntime } from "./ensure-electron-runtime.mjs";
 
 const isDevelopment = Boolean(process.env.VITE_DEV_SERVER_URL);
@@ -15,11 +21,9 @@ const repoRoot = NodePath.resolve(desktopDir, "..", "..");
 const devBundleIdSuffix = NodePath.basename(repoRoot)
   .toLowerCase()
   .replaceAll(/[^a-z0-9]+/g, "");
-const APP_DISPLAY_NAME = isDevelopment ? "Supaterm (Dev)" : "Supaterm";
-const APP_BUNDLE_ID = isDevelopment
-  ? `com.supaterm.desktop.dev.${devBundleIdSuffix || "local"}`
-  : "com.supaterm.desktop";
-const APP_PROTOCOL_SCHEMES = isDevelopment ? ["supaterm-dev"] : ["supaterm"];
+const APP_DISPLAY_NAME = isDevelopment ? `${APP_PRODUCT_NAME} (Dev)` : APP_PRODUCT_NAME;
+const APP_BUNDLE_ID = isDevelopment ? `${APP_ID}.dev.${devBundleIdSuffix || "local"}` : APP_ID;
+const APP_PROTOCOL_SCHEMES = isDevelopment ? [APP_DEV_URL_SCHEME] : [APP_URL_SCHEME];
 const LAUNCHER_VERSION = 19;
 const developmentMacIconPngPath = NodePath.join(
   repoRoot,

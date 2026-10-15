@@ -55,9 +55,17 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import {
+  APP_ID,
+  APP_PRODUCT_NAME,
+  APP_SLUG,
+  APP_URL_SCHEME,
+  APP_DEV_URL_SCHEME,
+  APP_REPOSITORY,
+} from "@supaterm/shared/appIdentity";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
-const DESKTOP_APP_ID = "com.supaterm.desktop";
+const DESKTOP_APP_ID = APP_ID;
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
 const BuildArch = Schema.Literals(["arm64", "x64", "universal"]);
@@ -2312,8 +2320,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 
 export function resolveDesktopProductName(version: string): string {
   return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "Supaterm (Nightly)"
-    : (desktopPackageJson.productName ?? "Supaterm");
+    ? `${APP_PRODUCT_NAME} (Nightly)`
+    : (desktopPackageJson.productName ?? APP_PRODUCT_NAME);
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2336,7 +2344,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     appId: DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
-    artifactName: "supaterm-${version}-${arch}.${ext}",
+    artifactName: `${APP_SLUG}-\${version}-\${arch}.\${ext}`,
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
@@ -2387,9 +2395,9 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       category: "public.app-category.developer-tools",
       extendInfo: {
         NSLocalNetworkUsageDescription:
-          "Supaterm connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
+          "Supadesign connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
         NSScreenCaptureUsageDescription:
-          "Supaterm captures the active window when you use the window capture shortcut.",
+          "Supadesign captures the active window when you use the window capture shortcut.",
         CFBundleDocumentTypes: [
           {
             CFBundleTypeName: "Web page",
@@ -2401,8 +2409,8 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       },
       protocols: [
         {
-          name: "Supaterm",
-          schemes: ["supaterm", "supaterm-dev"],
+          name: APP_PRODUCT_NAME,
+          schemes: [APP_URL_SCHEME, APP_DEV_URL_SCHEME],
         },
         { name: "Web links", schemes: ["http", "https"], role: "Viewer" },
       ],
@@ -2451,7 +2459,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       // resources/package-type into the .deb only, so electron-updater updates
       // each install in its own format.
       target: target === "AppImage" ? [target, "deb"] : [target],
-      executableName: "supaterm",
+      executableName: APP_SLUG,
       icon: "icons",
       category: "Development",
       synopsis: "Desktop GUI for coding agents",
@@ -2462,13 +2470,13 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       // supaterm:// OAuth callbacks to the app.
       protocols: [
         {
-          name: "Supaterm",
-          schemes: ["supaterm", "supaterm-dev"],
+          name: APP_PRODUCT_NAME,
+          schemes: [APP_URL_SCHEME, APP_DEV_URL_SCHEME],
         },
       ],
       desktop: {
         entry: {
-          StartupWMClass: "supaterm",
+          StartupWMClass: APP_SLUG,
         },
       },
     };
@@ -3399,7 +3407,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       "Supaterm is an open-source desktop app for coding agents. Work with your existing agent subscriptions, review code changes, and run commands in your projects. Connect from desktop, web, or mobile to continue working remotely.",
     license: "MIT",
     // Required by the .deb control file.
-    homepage: "https://github.com/supabitapp/supacode-next",
+    homepage: `https://github.com/${APP_REPOSITORY}`,
     author: "Supaterm",
     main: "apps/desktop/dist-electron/boot.cjs",
     build: yield* createBuildConfig(

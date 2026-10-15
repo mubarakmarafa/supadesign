@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./appIdentity": {
+      "types": "./src/appIdentity.ts",
+      "import": "./src/appIdentity.ts"
+    },
     "./githubMarkdownLinks": {
       "types": "./src/githubMarkdownLinks.ts",
       "import": "./src/githubMarkdownLinks.ts"

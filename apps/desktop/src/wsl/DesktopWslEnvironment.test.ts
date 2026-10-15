@@ -25,6 +25,7 @@ import {
   parseWslRuntimeRoot,
   probeWslDistros,
 } from "./DesktopWslEnvironment.ts";
+import { APP_HOME_DIRECTORY_NAME } from "@supaterm/shared/appIdentity";
 
 const encoder = new TextEncoder();
 
@@ -187,7 +188,7 @@ describe("WSL runtime cache", () => {
       "b".repeat(64),
     );
 
-    expect(script).toContain('runtime_parent="$HOME/.supaterm/wsl-runtime"');
+    expect(script).toContain(`runtime_parent="$HOME/${APP_HOME_DIRECTORY_NAME}/wsl-runtime"`);
     expect(script).toContain('  [ -f "$ready_marker" ] &&');
     expect(script).toContain('    runtime_entry_runs "$runtime_root" &&');
     expect(script).toContain("if runtime_is_ready; then");
@@ -406,7 +407,7 @@ describe("WSL runtime cache", () => {
     // Readiness is a presence check, so a tree whose pty.node is present but
     // unloadable stays ready forever unless the probe can revoke the marker.
     expect(script).toContain(
-      'rm -f "$HOME/.supaterm/wsl-runtime/1.2.3_x64/.supaterm-wsl-runtime-ready"',
+      `rm -f "$HOME/${APP_HOME_DIRECTORY_NAME}/wsl-runtime/1.2.3_x64/.supaterm-wsl-runtime-ready"`,
     );
     // Deleting the tree here would pull it out from under any backend still
     // running from it; the next install moves an unready root aside instead.
@@ -463,9 +464,9 @@ describe.skipIf(posixShellRunner === null)("WSL runtime install script (executed
       archivePath,
       archiveSha,
       runtimeId,
-      runtimeParent: `${work}/home/.supaterm/wsl-runtime`,
-      runtimeRoot: `${work}/home/.supaterm/wsl-runtime/${runtimeId}`,
-      serverEntry: `${work}/home/.supaterm/wsl-runtime/${runtimeId}/supaterm`,
+      runtimeParent: `${work}/home/${APP_HOME_DIRECTORY_NAME}/wsl-runtime`,
+      runtimeRoot: `${work}/home/${APP_HOME_DIRECTORY_NAME}/wsl-runtime/${runtimeId}`,
+      serverEntry: `${work}/home/${APP_HOME_DIRECTORY_NAME}/wsl-runtime/${runtimeId}/supaterm`,
       installScript,
       install: (archive?: string, sha?: string) => runShell(installScript(archive, sha)),
     };
@@ -757,7 +758,7 @@ describe.skipIf(posixShellRunner === null)("WSL runtime install script (executed
         "set -eu",
         "work=$(mktemp -d)",
         'home="$work/home"',
-        'runtime_parent="$home/.supaterm/wsl-runtime"',
+        `runtime_parent="$home/${APP_HOME_DIRECTORY_NAME}/wsl-runtime"`,
         'mkdir -p "$runtime_parent"',
         'make_ready() { mkdir -p "$runtime_parent/$1"; printf ready > "$runtime_parent/$1/.supaterm-wsl-runtime-ready"; }',
         "make_ready sha256-current",

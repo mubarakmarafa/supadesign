@@ -17,6 +17,7 @@ import { resolveLinuxDesktopEntryName } from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopBaseDir, resolveDesktopStateDir } from "./DesktopStatePaths.ts";
 import { isNightlyDesktopVersion } from "../updates/updateChannels.ts";
 import type { OtlpProtocol } from "@supaterm/shared/observability";
+import { APP_ID, APP_PRODUCT_NAME, APP_SLUG } from "@supaterm/shared/appIdentity";
 
 export interface MakeDesktopEnvironmentInput {
   readonly dirname: string;
@@ -93,7 +94,7 @@ export class DesktopEnvironment extends Context.Service<
   }
 >()("@supaterm/desktop/app/DesktopEnvironment") {}
 
-const APP_BASE_NAME = "Supaterm";
+const APP_BASE_NAME = APP_PRODUCT_NAME;
 
 function resolveDesktopAppStageLabel(input: {
   readonly isDevelopment: boolean;
@@ -236,10 +237,10 @@ const make = Effect.fn("desktop.environment.make")(function* (
     branding,
     displayName,
     appUserModelId: Option.getOrElse(config.appUserModelIdOverride, () =>
-      isDevelopment ? "com.supaterm.desktop.dev" : "com.supaterm.desktop",
+      isDevelopment ? `${APP_ID}.dev` : APP_ID,
     ),
     linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment),
-    linuxWmClass: isDevelopment ? "supaterm-dev" : "supaterm",
+    linuxWmClass: isDevelopment ? `${APP_SLUG}-dev` : APP_SLUG,
     linuxApplicationsDir,
     appImagePath: config.appImagePath,
     defaultDesktopSettings: DesktopAppSettings.resolveDefaultDesktopSettings(input.appVersion),

@@ -7,6 +7,7 @@ import * as NodePath from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { it } from "@effect/vitest";
 import type { DesktopAppActivationRequest } from "@supaterm/contracts";
+import { APP_HOME_DIRECTORY_NAME } from "@supaterm/shared/appIdentity";
 import { resolveDesktopAppControlAddress } from "@supaterm/shared/desktopAppControl";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as NetService from "@supaterm/shared/Net";
@@ -285,7 +286,7 @@ describe("supaterm app", () => {
   it.effect("prefers the installed desktop app when a dev desktop is also running", () =>
     withTempDirectory("supaterm-app-preferred-test-", (root) =>
       Effect.gen(function* () {
-        const baseDir = NodePath.join(root, ".supaterm");
+        const baseDir = NodePath.join(root, APP_HOME_DIRECTORY_NAME);
         const desktop = yield* fakeDesktop({ baseDir });
         const development = yield* fakeDesktop({ baseDir, stateSubdirectory: "dev" });
 
@@ -300,7 +301,7 @@ describe("supaterm app", () => {
   it.effect("finds the dev desktop when the default desktop socket is absent", () =>
     withTempDirectory("supaterm-app-dev-test-", (root) =>
       Effect.gen(function* () {
-        const baseDir = NodePath.join(root, ".supaterm");
+        const baseDir = NodePath.join(root, APP_HOME_DIRECTORY_NAME);
         const development = yield* fakeDesktop({ baseDir, stateSubdirectory: "dev" });
 
         yield* runCli(["app"]);
@@ -315,7 +316,7 @@ describe("supaterm app", () => {
   it.effect("never searches a dev state directory for an explicit Supaterm home", () =>
     withTempDirectory("supaterm-app-explicit-test-", (root) =>
       Effect.gen(function* () {
-        const baseDir = NodePath.join(root, ".supaterm");
+        const baseDir = NodePath.join(root, APP_HOME_DIRECTORY_NAME);
         const development = yield* fakeDesktop({ baseDir, stateSubdirectory: "dev" });
 
         const flagError = yield* runCli(["app", "--base-dir", baseDir]).pipe(Effect.flip);
@@ -333,7 +334,7 @@ describe("supaterm app", () => {
     (responseKind) =>
       withTempDirectory("supaterm-app-response-test-", (root) =>
         Effect.gen(function* () {
-          const baseDir = NodePath.join(root, ".supaterm");
+          const baseDir = NodePath.join(root, APP_HOME_DIRECTORY_NAME);
           const desktop = yield* fakeDesktop({
             baseDir,
             reply: (request) =>

@@ -11,6 +11,7 @@ import * as KeyedLock from "@supaterm/shared/KeyedLock";
 import * as NetService from "@supaterm/shared/Net";
 import { extractJsonObject, fromLenientJson } from "@supaterm/shared/schemaJson";
 import { satisfiesSemverRange } from "@supaterm/shared/semver";
+import { APP_HOME_DIRECTORY_NAME } from "@supaterm/shared/appIdentity";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -446,16 +447,16 @@ fi
 # Self-contained release archive: no Node, npm, or compiler on the remote.
 # Unpacked into the pinned-runtime layout so \`supaterm service install\` reuses it.
 SUPATERM_RELEASE_BASE_URL=@@SUPATERM_RELEASE_BASE_URL@@
-SUPATERM_RUNTIME_DIR="$HOME/.supaterm/runtime/versions/$SUPATERM_ARCHIVE_VERSION"
+SUPATERM_RUNTIME_DIR="$HOME/${APP_HOME_DIRECTORY_NAME}/runtime/versions/$SUPATERM_ARCHIVE_VERSION"
 supaterm_runtime_ready() {
   [ -x "$SUPATERM_RUNTIME_DIR/supaterm" ] && [ "$(cat "$SUPATERM_RUNTIME_DIR/.install-complete" 2>/dev/null)" = "$SUPATERM_ARCHIVE_VERSION" ]
 }
 if ! supaterm_runtime_ready; then
-  mkdir -p "$HOME/.supaterm/runtime/versions"
+  mkdir -p "$HOME/${APP_HOME_DIRECTORY_NAME}/runtime/versions"
   # Concurrent launches (two clients, a retry racing a slow first run) must
   # not both install: mkdir is the atomic lock and the ready check repeats
   # under it.
-  SUPATERM_LOCK="$HOME/.supaterm/runtime/versions/.$SUPATERM_ARCHIVE_VERSION.install.lock"
+  SUPATERM_LOCK="$HOME/${APP_HOME_DIRECTORY_NAME}/runtime/versions/.$SUPATERM_ARCHIVE_VERSION.install.lock"
   # mkdir is the only portable atomic exclusive create (mv would silently
   # nest a candidate inside an existing lock). The owner publishes its pid
   # right after, so a lock with a live owner is never reclaimed however
@@ -502,7 +503,7 @@ if ! supaterm_runtime_ready; then
     *) printf 'Remote host %s has no Supaterm release archive.\\n' "$(uname -m)" >&2; exit 1 ;;
   esac
   SUPATERM_ARCHIVE="supaterm-$SUPATERM_ARCHIVE_VERSION-$SUPATERM_PLATFORM-$SUPATERM_ARCH.tar.gz"
-  SUPATERM_STAGING="$(mktemp -d "$HOME/.supaterm/runtime/versions/.staging-XXXXXX")"
+  SUPATERM_STAGING="$(mktemp -d "$HOME/${APP_HOME_DIRECTORY_NAME}/runtime/versions/.staging-XXXXXX")"
   trap 'rm -rf "$SUPATERM_STAGING" "$SUPATERM_LOCK"' EXIT
   supaterm_fetch() {
     if command -v curl >/dev/null 2>&1; then curl -fsSL --connect-timeout 30 --max-time "$3" "$1" -o "$2"
@@ -542,8 +543,8 @@ exec "$SUPATERM_RUNTIME_DIR/supaterm" "$@"
 const REMOTE_LAUNCH_SCRIPT = `set -eu
 @@SUPATERM_NODE_ENV_SCRIPT@@
 STATE_KEY="$1"
-STATE_DIR="$HOME/.supaterm/ssh-launch/$STATE_KEY"
-DEFAULT_SERVER_HOME="$HOME/.supaterm"
+STATE_DIR="$HOME/${APP_HOME_DIRECTORY_NAME}/ssh-launch/$STATE_KEY"
+DEFAULT_SERVER_HOME="$HOME/${APP_HOME_DIRECTORY_NAME}"
 DEFAULT_RUNTIME_FILE="$DEFAULT_SERVER_HOME/userdata/server-runtime.json"
 PORT_FILE="$STATE_DIR/port"
 PID_FILE="$STATE_DIR/pid"
@@ -721,8 +722,8 @@ printf '{"remotePort":%s,"serverKind":"%s"}\\n' "$REMOTE_PORT" "\${REMOTE_MANAGE
 `;
 
 const REMOTE_PAIRING_SCRIPT = `set -eu
-STATE_DIR="$HOME/.supaterm/ssh-launch/@@SUPATERM_STATE_KEY@@"
-DEFAULT_SERVER_HOME="$HOME/.supaterm"
+STATE_DIR="$HOME/${APP_HOME_DIRECTORY_NAME}/ssh-launch/@@SUPATERM_STATE_KEY@@"
+DEFAULT_SERVER_HOME="$HOME/${APP_HOME_DIRECTORY_NAME}"
 RUNNER_FILE="$STATE_DIR/run-supaterm.sh"
 mkdir -p "$STATE_DIR"
 cat >"$RUNNER_FILE" <<'SH'
@@ -734,7 +735,7 @@ PAIRING_BASE_DIR="$DEFAULT_SERVER_HOME"
 `;
 
 const REMOTE_STOP_SCRIPT = `set -eu
-STATE_DIR="$HOME/.supaterm/ssh-launch/@@SUPATERM_STATE_KEY@@"
+STATE_DIR="$HOME/${APP_HOME_DIRECTORY_NAME}/ssh-launch/@@SUPATERM_STATE_KEY@@"
 PID_FILE="$STATE_DIR/pid"
 PORT_FILE="$STATE_DIR/port"
 MANAGED_FILE="$STATE_DIR/managed"
@@ -757,7 +758,7 @@ printf '{"stopped":true}\\n'
 `;
 
 const REMOTE_LOG_TAIL_SCRIPT = `set -eu
-STATE_DIR="$HOME/.supaterm/ssh-launch/@@SUPATERM_STATE_KEY@@"
+STATE_DIR="$HOME/${APP_HOME_DIRECTORY_NAME}/ssh-launch/@@SUPATERM_STATE_KEY@@"
 LOG_FILE="$STATE_DIR/server.log"
 if [ -f "$LOG_FILE" ]; then
   tail -n 80 "$LOG_FILE" 2>/dev/null || true
