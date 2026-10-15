@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import * as NodeChildProcess from "node:child_process";
 
 const preservedPaths = [
   "**/node_modules/",
@@ -21,4 +21,4 @@ const preservedPaths = [
 
 const args = ["clean", "-fdX", ...preservedPaths.flatMap((path) => ["-e", `!${path}`])];
 
-execFileSync("git", args, { stdio: "inherit" });
+NodeChildProcess.execFileSync("git", args, { stdio: "inherit" });
