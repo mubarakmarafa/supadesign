@@ -20,9 +20,10 @@
     },
     "scripts": {
       // Knip loads its preprocessor through a CLI option; native verification and
-      // worktree setup (from supaterm.json) run directly.
+      // worktree setup and cleanup (from supaterm.json) run directly.
       "entry": [
         "check-commit-message.ts",
+        "clean-worktree.ts",
         "knip-schemas.ts",
         "mobile-native-client.ts",
         "setup-worktree.ts",
