@@ -1375,11 +1375,24 @@ describe("buildThreadListV2ListItems", () => {
     expect(items.map((item) => item.type)).toEqual(["v2-active-header", "v2-thread", "v2-pending"]);
   });
 
-  it("puts Drafts just above Done while queued tasks stay in Active", () => {
+  it("puts Drafts between Pinned and Active while queued tasks stay in Active", () => {
+    const pinnedLayout = buildThreadListV2Items({
+      threads: [
+        makeThread({ id: ThreadId.make("pinned"), title: "pinned", pinnedAt: NOW }),
+        makeThread({ id: ThreadId.make("active"), title: "active" }),
+        makeThread({
+          id: ThreadId.make("done"),
+          title: "done",
+          doneOverride: "done",
+          doneAt: NOW,
+        }),
+      ],
+      environmentId: null,
+      searchQuery: "",
+      now: NOW,
+    });
     const items = buildThreadListV2ListItems({
-      items: layout.items,
-      doneCount: layout.doneCount,
-      doneShelfHeaderIndex: layout.doneShelfHeaderIndex,
+      ...pinnedLayout,
       pendingTasks: [
         makeDraftTask("draft-1"),
         makeDraftTask("draft-2"),
@@ -1397,12 +1410,14 @@ describe("buildThreadListV2ListItems", () => {
             : item.type,
       ),
     ).toEqual([
+      "v2-pinned-shelf",
+      "pinned",
+      "draft-1",
+      "draft-2",
       "v2-active-header",
       "active",
       "queued-1",
       "queued-2",
-      "draft-1",
-      "draft-2",
       "v2-done-shelf",
       "done",
     ]);
@@ -1411,10 +1426,10 @@ describe("buildThreadListV2ListItems", () => {
         .filter((item) => item.type === "v2-pending")
         .map((item) => [item.pendingTask.kind, item.showPendingDivider, item.showTrailingDivider]),
     ).toEqual([
-      ["pending", true, true],
-      ["pending", false, false],
       ["draft", true, true],
       ["draft", false, false],
+      ["pending", true, true],
+      ["pending", false, false],
     ]);
   });
 
@@ -2681,6 +2696,7 @@ describe("Working section", () => {
             : item.type,
       ),
     ).toEqual([
+      "draft",
       "v2-active-header",
       "active",
       "queued",
@@ -2688,7 +2704,6 @@ describe("Working section", () => {
       "working",
       "v2-snoozed-shelf",
       "snoozed",
-      "draft",
       "v2-done-shelf",
       "done",
     ]);
