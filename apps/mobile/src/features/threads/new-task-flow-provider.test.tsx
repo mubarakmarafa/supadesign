@@ -54,6 +54,9 @@ vi.mock("@react-navigation/native", () => ({
   }),
   useIsFocused: () => true,
 }));
+vi.mock("../layout/AdaptiveWorkspaceLayout", () => ({
+  useAdaptiveWorkspaceLayout: () => ({ panes: { primarySidebarVisible: false } }),
+}));
 vi.mock("../../state/shell", () => ({ environmentShell: {} }));
 vi.mock("../../state/entities", () => ({
   useProjects: () => useAtomValue(projectsAtom),

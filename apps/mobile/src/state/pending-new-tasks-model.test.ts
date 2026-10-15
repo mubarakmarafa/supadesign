@@ -3,7 +3,7 @@ import { CommandId, EnvironmentId, MessageId, ProjectId, ThreadId } from "@supat
 
 import type { QueuedThreadMessage } from "./thread-outbox-model";
 import type { ComposerDraft } from "./use-composer-drafts";
-import { buildPendingNewTasks, freezeOpenDraftTask } from "./pending-new-tasks-model";
+import { applyHeldNewTaskDraft, buildPendingNewTasks } from "./pending-new-tasks-model";
 
 const environmentId = EnvironmentId.make("env-1");
 const projectId = ProjectId.make("project-1");
@@ -119,52 +119,64 @@ describe("buildPendingNewTasks", () => {
   });
 });
 
-describe("freezeOpenDraftTask", () => {
-  const build = (drafts: Record<string, ComposerDraft>) =>
+describe("applyHeldNewTaskDraft", () => {
+  const otherProjectId = ProjectId.make("project-2");
+  const tasks = (drafts: Record<string, ComposerDraft>) =>
     buildPendingNewTasks({
-      queuedMessages: [queuedCreation("a", "2026-09-05T10:00:00.000Z")],
+      queuedMessages: [],
       drafts: { "new-task:other": draft("other idea", "2026-09-05T08:00:00.000Z"), ...drafts },
     });
-  const titles = (tasks: ReturnType<typeof build>) => tasks.map((task) => task.title);
+  const titles = (drafts: Record<string, ComposerDraft>) => tasks(drafts).map((task) => task.title);
+  const held = { draftKey: "new-task:open", content: { text: "first words", attachments: [] } };
 
-  it("keeps the open draft's row as it was when the draft opened", () => {
-    const opened = build({ "new-task:open": draft("first words", "2026-09-05T09:00:00.000Z") });
-    const typed = build({
-      "new-task:open": draft("first words and more", "2026-09-05T09:00:00.000Z"),
-    });
-    const openDraft = {
-      draftKey: "new-task:open",
-      task: opened.find((task) => task.kind === "draft" && task.draftKey === "new-task:open"),
+  it("keeps the held text while the user types", () => {
+    const drafts = { "new-task:open": draft("first words and more", "2026-09-05T09:00:00.000Z") };
+
+    expect(titles(applyHeldNewTaskDraft(drafts, held))).toEqual(["first words", "other idea"]);
+  });
+
+  it("keeps the row while the user clears the text", () => {
+    const drafts = { "new-task:open": draft("", "2026-09-05T09:00:00.000Z") };
+
+    expect(titles(applyHeldNewTaskDraft(drafts, held))).toEqual(["first words", "other idea"]);
+  });
+
+  it("files the row under the draft's current project", () => {
+    const drafts = {
+      "new-task:open": draft("first words and more", "2026-09-05T09:00:00.000Z", {
+        project: {
+          environmentId,
+          projectId: otherProjectId,
+          createdAt: "2026-09-05T09:00:00.000Z",
+        },
+      }),
     };
 
-    expect(titles(freezeOpenDraftTask(typed, openDraft))).toEqual([
-      "first words",
-      "other idea",
-      "queued a",
+    expect(
+      tasks(applyHeldNewTaskDraft(drafts, held)).map((task) => [task.title, task.projectId]),
+    ).toEqual([
+      ["first words", otherProjectId],
+      ["other idea", projectId],
     ]);
   });
 
   it("hides a draft that had no row when it opened", () => {
-    const typed = build({ "new-task:open": draft("fresh idea", "2026-09-05T09:00:00.000Z") });
+    const drafts = { "new-task:open": draft("fresh idea", "2026-09-05T09:00:00.000Z") };
 
     expect(
-      titles(freezeOpenDraftTask(typed, { draftKey: "new-task:open", task: undefined })),
-    ).toEqual(["other idea", "queued a"]);
+      titles(applyHeldNewTaskDraft(drafts, { draftKey: "new-task:open", content: null })),
+    ).toEqual(["other idea"]);
   });
 
-  it("removes the frozen row once the draft is sent or discarded", () => {
-    const opened = build({ "new-task:open": draft("first words", "2026-09-05T09:00:00.000Z") });
-    const openDraft = {
-      draftKey: "new-task:open",
-      task: opened.find((task) => task.kind === "draft" && task.draftKey === "new-task:open"),
-    };
+  it("drops the row once the draft is sent or discarded", () => {
+    const drafts = { "new-task:open": { text: "", attachments: [] } };
 
-    expect(titles(freezeOpenDraftTask(build({}), openDraft))).toEqual(["other idea", "queued a"]);
+    expect(titles(applyHeldNewTaskDraft(drafts, held))).toEqual(["other idea"]);
   });
 
-  it("leaves the list alone when no draft is open", () => {
-    const tasks = build({ "new-task:open": draft("idea", "2026-09-05T09:00:00.000Z") });
+  it("leaves the drafts alone when nothing is held", () => {
+    const drafts = { "new-task:open": draft("idea", "2026-09-05T09:00:00.000Z") };
 
-    expect(freezeOpenDraftTask(tasks, null)).toBe(tasks);
+    expect(applyHeldNewTaskDraft(drafts, null)).toBe(drafts);
   });
 });

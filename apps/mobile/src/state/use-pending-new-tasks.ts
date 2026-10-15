@@ -1,10 +1,12 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Atom } from "effect/reactivity";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { appAtomRegistry } from "./atom-registry";
 import {
+  applyHeldNewTaskDraft,
   buildPendingNewTasks,
-  freezeOpenDraftTask,
-  type OpenDraftTask,
+  pendingDraftTask,
+  type HeldNewTaskDraft,
   type PendingNewTask,
 } from "./pending-new-tasks-model";
 import { flattenQueuedThreadMessages } from "./thread-outbox-model";
@@ -17,33 +19,38 @@ export type {
   PendingQueuedTask,
 } from "./pending-new-tasks-model";
 
-export const openNewTaskDraftKeyAtom = Atom.make<string | null>(null).pipe(
+const heldNewTaskDraftAtom = Atom.make<HeldNewTaskDraft | null>(null).pipe(
   Atom.keepAlive,
-  Atom.withLabel("mobile:open-new-task-draft-key"),
+  Atom.withLabel("mobile:held-new-task-draft"),
 );
+
+export function holdNewTaskDraft(draftKey: string): () => void {
+  const draft = appAtomRegistry.get(composerDraftsAtom)[draftKey];
+  const held: HeldNewTaskDraft = {
+    draftKey,
+    content:
+      draft !== undefined && pendingDraftTask(draftKey, draft) !== null
+        ? { text: draft.text, attachments: draft.attachments }
+        : null,
+  };
+  appAtomRegistry.set(heldNewTaskDraftAtom, held);
+  return () => {
+    if (appAtomRegistry.get(heldNewTaskDraftAtom) === held) {
+      appAtomRegistry.set(heldNewTaskDraftAtom, null);
+    }
+  };
+}
 
 export function usePendingNewTasks(): ReadonlyArray<PendingNewTask> {
   const queuedMessagesByThreadKey = useThreadOutboxMessages();
   const drafts = useAtomValue(composerDraftsAtom);
-  const openDraftKey = useAtomValue(openNewTaskDraftKeyAtom);
-  const tasks = useMemo(
+  const heldDraft = useAtomValue(heldNewTaskDraftAtom);
+  return useMemo(
     () =>
       buildPendingNewTasks({
         queuedMessages: flattenQueuedThreadMessages(queuedMessagesByThreadKey),
-        drafts,
+        drafts: applyHeldNewTaskDraft(drafts, heldDraft),
       }),
-    [queuedMessagesByThreadKey, drafts],
+    [queuedMessagesByThreadKey, drafts, heldDraft],
   );
-  const [openDraft, setOpenDraft] = useState<OpenDraftTask | null>(null);
-  if ((openDraft?.draftKey ?? null) !== openDraftKey) {
-    setOpenDraft(
-      openDraftKey === null
-        ? null
-        : {
-            draftKey: openDraftKey,
-            task: tasks.find((task) => task.kind === "draft" && task.draftKey === openDraftKey),
-          },
-    );
-  }
-  return useMemo(() => freezeOpenDraftTask(tasks, openDraft), [tasks, openDraft]);
 }

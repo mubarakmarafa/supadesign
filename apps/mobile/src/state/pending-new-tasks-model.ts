@@ -58,6 +58,25 @@ function draftTitle(draft: ComposerDraft): string {
   return count === 1 ? "1 attachment" : `${count} attachments`;
 }
 
+export function pendingDraftTask(draftKey: string, draft: ComposerDraft): PendingDraftTask | null {
+  if (!isNewTaskDraftKey(draftKey) || !draft.project || !composerDraftHasUserContent(draft)) {
+    return null;
+  }
+  return {
+    kind: "draft",
+    key: `draft-task:${draftKey}`,
+    environmentId: draft.project.environmentId,
+    projectId: draft.project.projectId,
+    projectTitle: undefined,
+    projectCwd: undefined,
+    branch: draft.workspaceSelection?.branch ?? null,
+    title: draftTitle(draft),
+    createdAt: draft.project.createdAt,
+    draftKey,
+    draft,
+  };
+}
+
 export function buildPendingNewTasks(input: {
   readonly queuedMessages: ReadonlyArray<QueuedThreadMessage>;
   readonly drafts: Readonly<Record<string, ComposerDraft>>;
@@ -82,22 +101,8 @@ export function buildPendingNewTasks(input: {
     });
   }
   for (const [draftKey, draft] of Object.entries(input.drafts)) {
-    if (!isNewTaskDraftKey(draftKey) || !draft.project || !composerDraftHasUserContent(draft)) {
-      continue;
-    }
-    tasks.push({
-      kind: "draft",
-      key: `draft-task:${draftKey}`,
-      environmentId: draft.project.environmentId,
-      projectId: draft.project.projectId,
-      projectTitle: undefined,
-      projectCwd: undefined,
-      branch: draft.workspaceSelection?.branch ?? null,
-      title: draftTitle(draft),
-      createdAt: draft.project.createdAt,
-      draftKey,
-      draft,
-    });
+    const task = pendingDraftTask(draftKey, draft);
+    if (task) tasks.push(task);
   }
   // Drafts are what the user is writing now, so they lead; within each kind,
   // newest first.
@@ -110,18 +115,23 @@ export function buildPendingNewTasks(input: {
   return tasks;
 }
 
-export interface OpenDraftTask {
+export interface HeldNewTaskDraft {
   readonly draftKey: string;
-  readonly task: PendingNewTask | undefined;
+  readonly content: Pick<ComposerDraft, "text" | "attachments"> | null;
 }
 
-export function freezeOpenDraftTask(
-  tasks: ReadonlyArray<PendingNewTask>,
-  openDraft: OpenDraftTask | null,
-): ReadonlyArray<PendingNewTask> {
-  if (openDraft === null) return tasks;
-  return tasks.flatMap((task) => {
-    if (task.kind !== "draft" || task.draftKey !== openDraft.draftKey) return [task];
-    return openDraft.task === undefined ? [] : [openDraft.task];
-  });
+export function applyHeldNewTaskDraft(
+  drafts: Readonly<Record<string, ComposerDraft>>,
+  held: HeldNewTaskDraft | null,
+): Readonly<Record<string, ComposerDraft>> {
+  if (held === null) return drafts;
+  const live = drafts[held.draftKey];
+  if (live === undefined) return drafts;
+  const next = { ...drafts };
+  if (held.content === null || !live.project) {
+    delete next[held.draftKey];
+  } else {
+    next[held.draftKey] = { ...live, ...held.content };
+  }
+  return next;
 }
