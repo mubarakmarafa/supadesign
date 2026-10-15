@@ -1,4 +1,5 @@
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentId, LiveEnvironmentSnapshot } from "@supaterm/contracts";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { EllipsisIcon } from "lucide-react";
@@ -7,6 +8,7 @@ import { memo, type KeyboardEvent, type MouseEvent } from "react";
 import { cn } from "~/lib/utils";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { Button } from "../ui/button";
+import { LiveEnvironmentCardStatus } from "./LiveEnvironmentStatus";
 
 export interface BoardCardHandlers {
   readonly onOpen: (threadId: string) => void;
@@ -48,11 +50,14 @@ const CARD_CLASS =
 
 export const BoardCard = memo(function BoardCard({
   thread,
+  live,
   tabbable,
   canDrag,
   handlers,
 }: {
   thread: EnvironmentThreadShell;
+  /** The card's live environment, when it has one. */
+  live: LiveEnvironmentSnapshot | undefined;
   /** Roving tabindex: exactly one card on the board is in the tab order. */
   tabbable: boolean;
   canDrag: boolean;
@@ -101,6 +106,12 @@ export const BoardCard = memo(function BoardCard({
         }}
       >
         <BoardCardFace thread={thread} />
+        {live ? (
+          <LiveEnvironmentCardStatus
+            environmentId={thread.environmentId as EnvironmentId}
+            snapshot={live}
+          />
+        ) : null}
         <Button
           size="icon-xs"
           variant="ghost-muted"

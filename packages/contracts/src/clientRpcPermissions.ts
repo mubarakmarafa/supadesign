@@ -38,6 +38,11 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.projectCloneRetry]: AuthSourceControlWriteScope,
   [WS_METHODS.vcsPull]: AuthSourceControlWriteScope,
   [WS_METHODS.gitRunStackedAction]: AuthSourceControlWriteScope,
+  // A live environment runs the project's setup and dev server scripts.
+  [WS_METHODS.liveEnvironmentActivate]: AuthOrchestrationOperateScope,
+  [WS_METHODS.liveEnvironmentStop]: AuthOrchestrationOperateScope,
+  [WS_METHODS.liveEnvironmentRetry]: AuthOrchestrationOperateScope,
+  [WS_METHODS.liveEnvironmentSaveDevScript]: AuthSettingsWriteScope,
   [WS_METHODS.gitPreparePullRequestThread]: AuthSourceControlWriteScope,
   [WS_METHODS.vcsCreateWorktree]: AuthSourceControlWriteScope,
   [WS_METHODS.vcsRemoveWorktree]: AuthSourceControlWriteScope,

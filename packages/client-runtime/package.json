@@ -287,6 +287,10 @@
       "types": "./src/state/threadSort.ts",
       "default": "./src/state/threadSort.ts"
     },
+    "./state/live-environment": {
+      "types": "./src/state/liveEnvironment.ts",
+      "default": "./src/state/liveEnvironment.ts"
+    },
     "./state/project-board": {
       "types": "./src/state/projectBoardMove.ts",
       "default": "./src/state/projectBoardMove.ts"

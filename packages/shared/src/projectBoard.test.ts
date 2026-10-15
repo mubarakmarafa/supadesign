@@ -7,7 +7,12 @@ import {
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
-import { type BoardThread, liveCard, resolveBoardColumns } from "./projectBoard.ts";
+import {
+  type BoardThread,
+  desiredLiveCardId,
+  liveCard,
+  resolveBoardColumns,
+} from "./projectBoard.ts";
 
 const col = BoardColumnId.make;
 
@@ -120,5 +125,33 @@ describe("liveCard", () => {
     const threads = [thread("t", { board: { columnId: col("testing"), orderKey: "g" } })];
     expect(liveCard(board, resolveBoardColumns(board, threads))).toBeNull();
     expect(liveCard(null, resolveBoardColumns(null, []))).toBeNull();
+  });
+});
+
+describe("desiredLiveCardId", () => {
+  const testing = (orderKey: string) => ({ columnId: col("testing"), orderKey });
+  const threads = [
+    thread("top", { board: testing("a") }),
+    thread("second", { board: testing("b") }),
+    thread("elsewhere"),
+  ];
+  const resolved = resolveBoardColumns(null, threads);
+
+  it("is the live column's top card on the board", () => {
+    expect(desiredLiveCardId(null, resolved, null)).toBe("top");
+  });
+
+  it("is a card opened from the live column", () => {
+    expect(desiredLiveCardId(null, resolved, "second")).toBe("second");
+  });
+
+  it("leaves things alone for a thread outside the live column", () => {
+    expect(desiredLiveCardId(null, resolved, "elsewhere")).toBeUndefined();
+  });
+
+  it("is nothing when the board has no live column", () => {
+    const board = { ...DEFAULT_PROJECT_BOARD, liveColumnId: null };
+    expect(desiredLiveCardId(board, resolveBoardColumns(board, threads), null)).toBeNull();
+    expect(desiredLiveCardId(board, resolveBoardColumns(board, threads), "top")).toBeUndefined();
   });
 });

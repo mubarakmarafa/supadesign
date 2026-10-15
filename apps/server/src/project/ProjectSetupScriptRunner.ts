@@ -69,6 +69,8 @@ export interface ProjectSetupScriptRunnerInput {
   readonly preferredTerminalId?: string;
   /** Which project script to run. Defaults to the worktree setup script. */
   readonly trigger?: "setup" | "settle";
+  /** Runs this project script instead of the one `trigger` selects. */
+  readonly scriptId?: string;
   readonly project?: {
     readonly id: ProjectId;
     readonly workspaceRoot: string;
@@ -381,7 +383,11 @@ export const make = Effect.gen(function* () {
     const trigger = input.trigger ?? "setup";
     const scripts = resolveProjectScripts(settings, project);
     const script =
-      trigger === "settle" ? settleProjectScript(scripts) : setupProjectScript(scripts);
+      input.scriptId !== undefined
+        ? scripts.find((candidate) => candidate.id === input.scriptId)
+        : trigger === "settle"
+          ? settleProjectScript(scripts)
+          : setupProjectScript(scripts);
     if (!script) {
       return {
         status: "no-script",

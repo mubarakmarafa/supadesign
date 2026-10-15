@@ -152,6 +152,14 @@ import {
 } from "./review.ts";
 import { KeybindingsConfigError } from "./keybindings.ts";
 import {
+  LiveEnvironmentActivateInput,
+  LiveEnvironmentError,
+  LiveEnvironmentList,
+  LiveEnvironmentProjectInput,
+  LiveEnvironmentSaveDevScriptInput,
+  LiveEnvironmentThreadInput,
+} from "./liveEnvironment.ts";
+import {
   OrchestrationSearchThreadsError,
   OrchestrationSearchThreadsInput,
   OrchestrationSearchThreadsResult,
@@ -426,6 +434,13 @@ export const WS_METHODS = {
   gitRunStackedAction: "git.runStackedAction",
   gitResolvePullRequest: "git.resolvePullRequest",
   gitPreparePullRequestThread: "git.preparePullRequestThread",
+
+  // Live environment methods
+  liveEnvironmentActivate: "liveEnvironment.activate",
+  liveEnvironmentStop: "liveEnvironment.stop",
+  liveEnvironmentRetry: "liveEnvironment.retry",
+  liveEnvironmentSaveDevScript: "liveEnvironment.saveDevScript",
+  subscribeLiveEnvironments: "subscribeLiveEnvironments",
 
   // Review methods
   reviewGetDiffPreview: "review.getDiffPreview",
@@ -1546,6 +1561,33 @@ const WsSubscribePreviewEventsRpc = Rpc.make(WS_METHODS.subscribePreviewEvents, 
   stream: true,
 });
 
+const WsLiveEnvironmentActivateRpc = Rpc.make(WS_METHODS.liveEnvironmentActivate, {
+  payload: LiveEnvironmentActivateInput,
+  error: Schema.Union([LiveEnvironmentError, EnvironmentAuthorizationError]),
+});
+
+const WsLiveEnvironmentStopRpc = Rpc.make(WS_METHODS.liveEnvironmentStop, {
+  payload: LiveEnvironmentThreadInput,
+  error: Schema.Union([LiveEnvironmentError, EnvironmentAuthorizationError]),
+});
+
+const WsLiveEnvironmentRetryRpc = Rpc.make(WS_METHODS.liveEnvironmentRetry, {
+  payload: LiveEnvironmentThreadInput,
+  error: Schema.Union([LiveEnvironmentError, EnvironmentAuthorizationError]),
+});
+
+const WsLiveEnvironmentSaveDevScriptRpc = Rpc.make(WS_METHODS.liveEnvironmentSaveDevScript, {
+  payload: LiveEnvironmentSaveDevScriptInput,
+  error: Schema.Union([LiveEnvironmentError, EnvironmentAuthorizationError]),
+});
+
+const WsSubscribeLiveEnvironmentsRpc = Rpc.make(WS_METHODS.subscribeLiveEnvironments, {
+  payload: LiveEnvironmentProjectInput,
+  success: LiveEnvironmentList,
+  error: EnvironmentAuthorizationError,
+  stream: true,
+});
+
 const WsSubscribeDiscoveredLocalServersRpc = Rpc.make(WS_METHODS.subscribeDiscoveredLocalServers, {
   payload: Schema.Struct({
     configuredUrls: Schema.optional(ConfiguredLocalServerUrls),
@@ -1980,6 +2022,11 @@ export const WsRpcGroup = RpcGroup.make(
   WsGitRunStackedActionRpc,
   WsGitResolvePullRequestRpc,
   WsGitPreparePullRequestThreadRpc,
+  WsLiveEnvironmentActivateRpc,
+  WsLiveEnvironmentStopRpc,
+  WsLiveEnvironmentRetryRpc,
+  WsLiveEnvironmentSaveDevScriptRpc,
+  WsSubscribeLiveEnvironmentsRpc,
   WsVcsListRefsRpc,
   WsVcsCreateWorktreeRpc,
   WsVcsRemoveWorktreeRpc,

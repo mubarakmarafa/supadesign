@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { isCommandPaletteOpen, openCommandPalette } from "../commandPaletteBus";
 import { ThreadRouteView } from "../components/ThreadRouteView";
 import { BoardShortcuts } from "../components/board/BoardShortcuts";
+import { LiveEnvironmentDriver } from "../components/board/LiveEnvironmentDriver";
 import { ThreadLinkPrompt } from "../components/promptLinks/ThreadLinkPrompt";
 import { resolveThreadRouteTarget } from "../threadRoutes";
 import { isPreviewAvailableFor } from "../browser/previewRuntime";
@@ -217,6 +218,7 @@ function ChatRouteLayout() {
       <ChatRouteGlobalShortcuts />
       {/* After the global shortcuts, so their Escape handling (selection) runs first. */}
       <BoardShortcuts />
+      <LiveEnvironmentDriver />
       {threadTarget?.kind === "server" ? (
         <ThreadLinkPrompt threadRef={threadTarget.threadRef} />
       ) : null}

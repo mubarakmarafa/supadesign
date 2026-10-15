@@ -98,6 +98,7 @@ import {
   type TerminalAttachStreamEvent,
   type TerminalError,
   type TerminalEvent,
+  type LiveEnvironmentList,
   type TerminalMetadataStreamEvent,
   type PullRequestRef,
   WS_METHODS,
@@ -184,6 +185,7 @@ import * as ServerBrowser from "./preview/ServerBrowser.ts";
 import * as DeviceService from "./device/DeviceService.ts";
 import { remoteSshDeviceHosts } from "./device/localSshDeviceHost.ts";
 import * as PreviewManager from "./preview/Manager.ts";
+import * as LiveEnvironment from "./liveEnvironment/LiveEnvironmentService.ts";
 import { issueAssetUrl } from "./assets/AssetAccess.ts";
 import {
   attachmentRelativePath,
@@ -1307,6 +1309,7 @@ const layerWsRpc = (
       const vcsStatusBroadcaster = yield* VcsStatusBroadcaster.VcsStatusBroadcaster;
       const terminalManager = yield* TerminalManager.TerminalManager;
       const previewManager = yield* PreviewManager.PreviewManager;
+      const liveEnvironments = yield* LiveEnvironment.LiveEnvironmentService;
       const portDiscovery = yield* PortScanner.PortDiscovery;
       const providerRegistry = yield* ProviderRegistry.ProviderRegistry;
       const orchestrationSkills = yield* OrchestrationSkills.OrchestrationSkills;
@@ -2914,6 +2917,17 @@ const layerWsRpc = (
         [WS_METHODS.previewReportProfiles]: (input) => serverBrowser.reportProfiles(input),
         [WS_METHODS.previewReportStatus]: (input) => previewManager.reportStatus(input),
         [WS_METHODS.subscribePreviewEvents]: (_input) => previewManager.events,
+        [WS_METHODS.liveEnvironmentActivate]: (input) => liveEnvironments.activate(input),
+        [WS_METHODS.liveEnvironmentStop]: (input) => liveEnvironments.stop(input.threadId),
+        [WS_METHODS.liveEnvironmentRetry]: (input) => liveEnvironments.retry(input.threadId),
+        [WS_METHODS.liveEnvironmentSaveDevScript]: (input) => liveEnvironments.saveDevScript(input),
+        [WS_METHODS.subscribeLiveEnvironments]: (input) =>
+          Stream.callback<LiveEnvironmentList>((queue) =>
+            Effect.acquireRelease(
+              liveEnvironments.subscribe(input.projectId, (list) => Queue.offer(queue, list)),
+              (unsubscribe) => Effect.sync(unsubscribe),
+            ),
+          ),
         [WS_METHODS.deviceConfigure]: (input) => deviceService.configure(input),
         [WS_METHODS.deviceTestHost]: (input) => deviceService.testHost(input),
         [WS_METHODS.deviceList]: (input) =>
