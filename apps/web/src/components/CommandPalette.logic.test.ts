@@ -330,7 +330,6 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
     interactionMode: "default",
     runtime: null,
     messages: [],
-    proposedPlans: [],
     createdAt: "2026-03-01T00:00:00.000Z",
     archivedAt: null,
     settledOverride: null,

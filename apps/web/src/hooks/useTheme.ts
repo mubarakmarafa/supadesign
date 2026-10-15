@@ -14,7 +14,6 @@ import {
   resolveThemeHalf,
   THEME_PREVIEW_ID,
   THEME_APPEARANCE_MODE_STORAGE_KEY,
-  THEME_FOLLOW_SYSTEM_STORAGE_KEY,
   THEME_HALVES_STORAGE_KEY,
   ThemePreference,
   type ThemeAppearance,
@@ -151,20 +150,6 @@ function getSystemDark() {
   );
 }
 
-function readStoredFollowSystem(theme: Theme): boolean {
-  if (typeof window === "undefined") return theme === "system";
-
-  try {
-    const raw = window.localStorage.getItem(THEME_FOLLOW_SYSTEM_STORAGE_KEY);
-    if (raw === "true") return true;
-    if (raw === "false") return false;
-  } catch {
-    // Fall back to the legacy theme value when the separate preference is unavailable.
-  }
-
-  return theme === "system";
-}
-
 function isThemePreferenceMode(value: string | null): value is ThemePreferenceMode {
   return value === "light" || value === "dark" || value === "system";
 }
@@ -175,19 +160,17 @@ export function readAppearanceModePreference(theme: Theme): ThemePreferenceMode 
       const raw = window.localStorage.getItem(THEME_APPEARANCE_MODE_STORAGE_KEY);
       if (isThemePreferenceMode(raw)) return raw;
     } catch {
-      // Fall back to the legacy preference below when storage is unavailable.
+      // Infer the mode from the theme below when storage is unavailable.
     }
   }
 
-  if (readStoredFollowSystem(theme)) return "system";
+  if (theme === "system") return "system";
   return getThemePreferenceMode(theme) ?? "light";
 }
 
 function writeAppearanceModePreference(appearanceMode: ThemePreferenceMode): void {
   if (typeof window === "undefined") return;
   try {
-    // The legacy follow-system flag is read-only migration input now; the
-    // mode key is the single source of truth.
     window.localStorage.setItem(THEME_APPEARANCE_MODE_STORAGE_KEY, appearanceMode);
   } catch (cause) {
     throw new ThemeStorageError({
@@ -463,9 +446,6 @@ function handleSystemAppearanceChange() {
 function handleStorageChange(e: StorageEvent) {
   if (e.key === STORAGE_KEY) {
     themeStorageReadFailure = null;
-    applyTheme(getStored(), { suppressTransitions: true });
-    emitChange();
-  } else if (e.key === THEME_FOLLOW_SYSTEM_STORAGE_KEY) {
     applyTheme(getStored(), { suppressTransitions: true });
     emitChange();
   } else if (e.key === THEME_APPEARANCE_MODE_STORAGE_KEY || e.key === THEME_HALVES_STORAGE_KEY) {

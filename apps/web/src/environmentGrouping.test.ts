@@ -17,7 +17,6 @@ import {
   getSidebarProjectSettingsKey,
 } from "./sidebarProjectGrouping";
 import { orderItemsByPreferredIds } from "./components/Sidebar.logic";
-import { legacyProjectCwdPreferenceKey } from "./uiStateStore";
 import type { Project } from "./types";
 
 const primaryEnvironmentId = EnvironmentId.make("env-primary");
@@ -583,10 +582,6 @@ describe("environment grouping", () => {
       items: [primary, remote, separate],
       preferredIds: [getProjectOrderKey(separate), getProjectOrderKey(primary)],
       getId: getProjectOrderKey,
-      getPreferenceIds: (project) => [
-        getProjectOrderKey(project),
-        legacyProjectCwdPreferenceKey(project.workspaceRoot),
-      ],
     });
 
     const groups = buildSidebarProjectSnapshots({

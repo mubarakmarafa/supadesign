@@ -639,8 +639,6 @@ export function ThemeLibrary({
   const baseCardId = getThemeDefinition(theme)?.id ?? null;
   const lightThemeId = themeHalves?.light ?? baseCardId;
   const darkThemeId = themeHalves?.dark ?? baseCardId;
-  const lightOwner = lightThemeId === "graphite" ? null : lightThemeId;
-  const darkOwner = darkThemeId === "graphite" ? null : darkThemeId;
 
   const assignHalf = useCallback(
     (appearance: ThemeAppearance, cardId: string | null) => {
@@ -680,7 +678,7 @@ export function ThemeLibrary({
   // "Create theme" starts from whatever is on screen for the appearance being
   // edited, so tuning the theme you already use never means rebuilding it.
   const activeThemeForAppearance =
-    getThemeDefinition((initialAppearance === "light" ? lightOwner : darkOwner) ?? "") ?? null;
+    getThemeDefinition((initialAppearance === "light" ? lightThemeId : darkThemeId) ?? "") ?? null;
 
   const cardDefById = (id: string | null): ThemeCardDefinition => {
     if (id === null) return STANDARD_THEME_CARDS[0]!;
@@ -708,13 +706,13 @@ export function ThemeLibrary({
   // shows Supaterm selected instead of nothing.
   const pickedModesFor = (cardId: string | null): ThemeMode[] => {
     const rings: ThemeMode[] = [];
-    if (lightOwner === cardId) rings.push("light");
-    if (darkOwner === cardId) rings.push("dark");
+    if (lightThemeId === cardId) rings.push("light");
+    if (darkThemeId === cardId) rings.push("dark");
     return rings;
   };
 
   const wireframeColors = (appearance: ThemeAppearance) =>
-    pickColors(appearance === "light" ? lightOwner : darkOwner, appearance);
+    pickColors(appearance === "light" ? lightThemeId : darkThemeId, appearance);
 
   const renderWireframe = (mode: ThemeMode) => (
     <ThemeWireframe

@@ -224,12 +224,7 @@ export interface HostedPairingRequest {
 
 export const getPairingTokenFromUrl = (url: URL): string | null => {
   const hashToken = readHashParams(url).get(PAIRING_TOKEN_PARAM)?.trim() ?? "";
-  if (hashToken.length > 0) {
-    return hashToken;
-  }
-
-  const searchToken = url.searchParams.get(PAIRING_TOKEN_PARAM)?.trim() ?? "";
-  return searchToken.length > 0 ? searchToken : null;
+  return hashToken.length > 0 ? hashToken : null;
 };
 
 export const stripPairingTokenFromUrl = (url: URL): URL => {
@@ -246,7 +241,6 @@ export const stripPairingTokenFromUrl = (url: URL): URL => {
     hashParams.delete(PAIRING_RELAY_PARAM);
     next.hash = hashParams.toString();
   }
-  next.searchParams.delete(PAIRING_TOKEN_PARAM);
   return next;
 };
 
@@ -256,7 +250,6 @@ export const setPairingTokenOnUrl = (
   hints: PairingRouteHints = {},
 ): URL => {
   const next = new URL(url.toString());
-  next.searchParams.delete(PAIRING_TOKEN_PARAM);
   next.hash = new URLSearchParams([[PAIRING_TOKEN_PARAM, credential]]).toString();
   const mainOrigin = new URL(next.searchParams.get(HOSTED_PAIRING_HOST_PARAM) ?? next.href).origin;
   if (

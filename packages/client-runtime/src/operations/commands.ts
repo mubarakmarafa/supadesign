@@ -183,8 +183,6 @@ export interface StartThreadTurnInput extends ThreadCommandInput {
 export interface InterruptThreadTurnInput extends ThreadCommandInput {
   readonly runId?: RunId;
   readonly subagentId?: NodeId;
-  /** Temporary caller compatibility while UI naming moves from turns to runs. */
-  readonly turnId?: string;
 }
 
 export interface RespondToThreadApprovalInput extends ThreadCommandInput {
@@ -790,7 +788,7 @@ export const interruptThreadTurn = Effect.fn("EnvironmentCommands.interruptThrea
       subagentId: subagent.id,
     });
   }
-  let runId = input.runId ?? (input.turnId as RunId | undefined);
+  let runId = input.runId;
   if (runId === undefined) {
     const projection = yield* getProjection(input.threadId);
     runId = projection.runs.findLast(

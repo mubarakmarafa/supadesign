@@ -51,7 +51,7 @@ export type ServerAuthPolicy = typeof ServerAuthPolicy.Type;
  * - `desktop-bootstrap`: a trusted local desktop handoff, used so the desktop
  *   shell can pair the renderer without a login screen
  * - `one-time-token`: a short-lived pairing token, suitable for manual pairing
- *   flows such as `/pair?token=...`
+ *   flows such as `/pair#token=...`
  */
 export const ServerAuthBootstrapMethod = Schema.Literals(["desktop-bootstrap", "one-time-token"]);
 export type ServerAuthBootstrapMethod = typeof ServerAuthBootstrapMethod.Type;

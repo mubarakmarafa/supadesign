@@ -46,11 +46,9 @@ export const fetchEnvironmentBoundedThreadSnapshot = Effect.fn(
 
 /**
  * Shared ThreadSnapshotLoader for clients that render progressive history.
- * Seeds from the bounded HTTP snapshot when available. Older servers that lack
- * the bounded route (plain/generic 404) fall back to the existing full HTTP
- * thread snapshot. Structured EnvironmentResourceNotFoundError from either
- * endpoint still means missing. Transient failures report `unavailable` so the
- * socket path remains a last resort for connectivity issues.
+ * Seeds from the bounded HTTP snapshot. A structured
+ * EnvironmentResourceNotFoundError means missing. Other failures report
+ * `unavailable` so the socket path remains a last resort for connectivity issues.
  */
 export const layer: Layer.Layer<
   ThreadSnapshotLoader.ThreadSnapshotLoader,
@@ -62,38 +60,6 @@ export const layer: Layer.Layer<
     const httpClient = yield* HttpClient.HttpClient;
     return ThreadSnapshotLoader.ThreadSnapshotLoader.of({
       load: (prepared: PreparedConnection, threadId: ThreadId) => {
-        const loadFullFallback = ThreadSnapshotLoader.fetchEnvironmentThreadSnapshot({
-          prepared,
-          threadId,
-        }).pipe(
-          Effect.map((snapshot): ThreadSnapshotLoader.ThreadSnapshotLoadResult => ({
-            _tag: "present",
-            snapshot,
-          })),
-          Effect.provideService(HttpClient.HttpClient, httpClient),
-          Effect.catchTags({
-            EnvironmentResourceNotFoundError: () =>
-              Effect.logDebug(
-                "Full thread snapshot not found over HTTP after bounded fallback; treating the thread as deleted.",
-              ).pipe(
-                Effect.annotateLogs({ threadId }),
-                Effect.as({
-                  _tag: "missing",
-                } satisfies ThreadSnapshotLoader.ThreadSnapshotLoadResult),
-              ),
-          }),
-          Effect.catchCause((cause) =>
-            Effect.logWarning(
-              "Could not load the full thread snapshot over HTTP after bounded fallback; using the socket snapshot instead.",
-            ).pipe(
-              Effect.annotateLogs({ threadId, cause: Cause.pretty(cause) }),
-              Effect.as({
-                _tag: "unavailable",
-              } satisfies ThreadSnapshotLoader.ThreadSnapshotLoadResult),
-            ),
-          ),
-        );
-
         return fetchEnvironmentBoundedThreadSnapshot({
           prepared,
           threadId,
@@ -122,19 +88,6 @@ export const layer: Layer.Layer<
                   _tag: "missing",
                 } satisfies ThreadSnapshotLoader.ThreadSnapshotLoadResult),
               ),
-            RemoteEnvironmentAuthInvalidJsonError: (error) =>
-              Effect.logDebug(
-                "Bounded thread snapshot returned an invalid response; trying the full HTTP thread snapshot for an older server.",
-              ).pipe(
-                Effect.annotateLogs({ threadId, cause: error.message }),
-                Effect.andThen(loadFullFallback),
-              ),
-            RemoteEnvironmentAuthUndeclaredStatusError: (error) =>
-              error.status === 404
-                ? Effect.logDebug(
-                    "Bounded thread snapshot route was not found; trying the full HTTP thread snapshot for an older server.",
-                  ).pipe(Effect.annotateLogs({ threadId }), Effect.andThen(loadFullFallback))
-                : Effect.fail(error),
           }),
           Effect.catchCause((cause) =>
             Effect.logWarning(

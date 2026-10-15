@@ -24,7 +24,6 @@ function makeThread(overrides: ThreadFixtureOverrides = {}): Thread {
     interactionMode: "default",
     runtime: null,
     messages: [],
-    proposedPlans: [],
     createdAt: "2026-03-09T10:00:00.000Z",
     archivedAt: null,
     settledOverride: null,

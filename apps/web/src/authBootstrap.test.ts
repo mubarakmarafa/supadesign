@@ -342,18 +342,9 @@ describe("resolveInitialServerAuthGateState", () => {
     expect(testWindow.location.searchParams.get("token")).toBeNull();
   });
 
-  it("accepts query-string pairing tokens as a backward-compatible fallback", async () => {
-    const testWindow = installTestBrowser("http://localhost/?token=pairing-token");
-    const { takePairingTokenFromUrl } = await import("./environments/primary");
-
-    expect(takePairingTokenFromUrl()).toBe("pairing-token");
-    expect(testWindow.location.searchParams.get("token")).toBeNull();
-  });
-
   it.each([
     { suffix: "#token=replacement-token", cached: false },
     { suffix: "#token=replacement-token", cached: true },
-    { suffix: "?token=replacement-token", cached: true },
     { suffix: "/#token=replacement-token", cached: true },
   ])(
     "re-pairs an authenticated browser with $suffix when cached=$cached",

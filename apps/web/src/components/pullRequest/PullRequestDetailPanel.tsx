@@ -72,7 +72,7 @@ import {
   type ShortcutMatchContext,
 } from "~/keybindings";
 import { primaryServerKeybindingsAtom } from "~/state/server";
-import { usePullRequestDefaultMergeMethodResolver } from "./usePullRequestActions";
+import { usePullRequestDefaultMergeMethod } from "./usePullRequestActions";
 import { changeRequestRepositoryUrl, gitHubPullRequestBrowserUrl } from "~/lib/openPullRequestLink";
 import { usePreparePullRequestThreadAction } from "~/lib/sourceControlActions";
 import { cn } from "~/lib/utils";
@@ -643,13 +643,9 @@ export function PullRequestDetailPanel({
   }, [condensed, tab]);
   const lastSelectedMergeMethod = useUiStateStore((state) => state.pullRequestMergeMethod);
   const setLastSelectedMergeMethod = useUiStateStore((state) => state.setPullRequestMergeMethod);
-  const resolveProjectDefaultMergeMethod = usePullRequestDefaultMergeMethodResolver(
+  const projectDefaultMergeMethod = usePullRequestDefaultMergeMethod(
     environmentId,
     reference.projectId,
-  );
-  const projectDefaultMergeMethod = useMemo(
-    () => resolveProjectDefaultMergeMethod(),
-    [resolveProjectDefaultMergeMethod],
   );
   const [mergeMethodSelection, setMergeMethodSelection] = useState<{
     readonly pullRequestKey: string;

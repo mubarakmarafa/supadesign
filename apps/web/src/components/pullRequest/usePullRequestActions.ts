@@ -17,15 +17,7 @@ import type {
 } from "@supaterm/contracts";
 import { useCallback, useRef, useState } from "react";
 import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
-import { useClientSettings, useEnvironmentSettings } from "~/hooks/useSettings";
-import {
-  deriveLogicalProjectKeyFromSettings,
-  derivePhysicalProjectKey,
-  selectProjectGroupingSettings,
-} from "~/logicalProject";
-import { buildPhysicalToLogicalProjectKeyMap } from "~/sidebarProjectGrouping";
-import { useProjects } from "~/state/entities";
-import { usePrimaryEnvironmentId } from "~/state/environments";
+import { useEnvironmentSettings } from "~/hooks/useSettings";
 
 import { type DraftId, useComposerDraftStore } from "~/composerDraftStore";
 import { useNewThreadHandler } from "~/hooks/useHandleNewThread";
@@ -37,44 +29,16 @@ import { toastManager } from "../ui/toast";
 import { handoffPrompt, handoffReviewComments, readableFailure } from "./pullRequestDetail.logic";
 import { pullRequestEntryKey, type EnvironmentPullRequestEntry } from "./pullRequestList.logic";
 
-/** Resolve on demand so hidden quick actions do not rebuild the legacy project grouping. */
-export function usePullRequestDefaultMergeMethodResolver(
+export function usePullRequestDefaultMergeMethod(
   environmentId: EnvironmentId,
   projectId: ProjectId,
 ) {
-  const projectDefault = useEnvironmentSettings(
-    environmentId,
-    (settings) => resolveProjectSettings(settings, projectId).settings.pullRequestMergeMethod,
+  return (
+    useEnvironmentSettings(
+      environmentId,
+      (settings) => resolveProjectSettings(settings, projectId).settings.pullRequestMergeMethod,
+    ) ?? undefined
   );
-  const legacyOverrides = useClientSettings((settings) => settings.pullRequestMergeMethodOverrides);
-  const grouping = useClientSettings(selectProjectGroupingSettings);
-  const projects = useProjects();
-  const primaryEnvironmentId = usePrimaryEnvironmentId();
-  return useCallback(() => {
-    if (projectDefault != null) return projectDefault;
-    if (Object.keys(legacyOverrides).length === 0) return undefined;
-    const project = projects.find(
-      (candidate) => candidate.environmentId === environmentId && candidate.id === projectId,
-    );
-    if (!project) return undefined;
-    // Duplicate sidebar rows borrow their logical group key from their siblings.
-    const key =
-      buildPhysicalToLogicalProjectKeyMap({
-        projects,
-        settings: grouping,
-        primaryEnvironmentId,
-      }).get(derivePhysicalProjectKey(project)) ??
-      deriveLogicalProjectKeyFromSettings(project, grouping);
-    return legacyOverrides[key];
-  }, [
-    projectDefault,
-    projects,
-    environmentId,
-    projectId,
-    grouping,
-    primaryEnvironmentId,
-    legacyOverrides,
-  ]);
 }
 
 const ACTION_SUCCESS_LABELS: Record<PullRequestAction, string> = {

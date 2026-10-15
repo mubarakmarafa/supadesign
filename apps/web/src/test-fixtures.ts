@@ -20,8 +20,6 @@ const DEFAULT_TIMESTAMP = "2026-01-01T00:00:00.000Z";
 export type ThreadFixtureOverrides = Partial<Thread> & {
   /** Test-only fallback data for the generic thread-sort contract. */
   readonly messages?: ReadonlyArray<ChatMessage>;
-  /** Accepted while older unit cases are migrated; never consumed by production code. */
-  readonly proposedPlans?: ReadonlyArray<unknown>;
 };
 
 export function makeThreadProjectionFixture(): OrchestrationV2ThreadProjection {

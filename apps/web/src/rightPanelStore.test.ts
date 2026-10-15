@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { useClosedViewStore } from "./closedViewStore";
 import {
-  migratePersistedRightPanelState,
   pullRequestSurface,
   pullRequestSurfaceId,
   selectActiveRightPanel,
@@ -18,6 +17,8 @@ import {
 
 const refA = scopeThreadRef("env-1" as EnvironmentId, ThreadId.make("thread-A"));
 const refB = scopeThreadRef("env-1" as EnvironmentId, ThreadId.make("thread-B"));
+const persistedSlice = () =>
+  useRightPanelStore.persist.getOptions().partialize?.(useRightPanelStore.getState());
 
 beforeEach(() => {
   useClosedViewStore.setState({ entries: [] });
@@ -192,7 +193,7 @@ describe("rightPanelStore", () => {
       const persisted = JSON.parse(
         JSON.stringify({ byThreadKey: useRightPanelStore.getState().byThreadKey }),
       );
-      useRightPanelStore.setState(migratePersistedRightPanelState(persisted));
+      useRightPanelStore.setState(persisted);
       store.openDevice(refA, target, true);
       expect(
         selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).surfaces.some(
@@ -337,232 +338,33 @@ describe("rightPanelStore", () => {
     expect(store.getUserActionRevision(refA)).toBe(revision);
   });
 
-  it("restores a saved maximized panel during migration", () => {
-    const migrated = migratePersistedRightPanelState({
-      byThreadKey: {
-        "env-1:thread-A": {
-          isOpen: true,
-          activeSurfaceId: "browser:new",
-          surfaces: [{ id: "browser:new", kind: "preview", resourceId: null }],
-          maximized: true,
-        },
-      },
-    });
-    expect(selectThreadRightPanelState(migrated.byThreadKey, refA).maximized).toBe(true);
-  });
-
-  it("drops the legacy singleton terminal surface during migration", () => {
-    expect(
-      migratePersistedRightPanelState({
-        byThreadKey: {
-          "env-1:thread-A": {
-            activeSurfaceId: "terminal",
-            surfaces: [
-              { id: "browser:tab-a", kind: "preview", resourceId: "tab-a" },
-              { id: "terminal", kind: "terminal" },
-            ],
-          },
-        },
-      }),
-    ).toEqual({
-      byThreadKey: {
-        "env-1:thread-A": {
-          isOpen: false,
-          activeSurfaceId: null,
-          surfaces: [{ id: "browser:tab-a", kind: "preview", resourceId: "tab-a" }],
-        },
-      },
-      threadPanelVisibilityByThreadKey: {},
-    });
-  });
-
-  it("upgrades saved single-session terminal surfaces to split-capable surfaces", () => {
-    expect(
-      migratePersistedRightPanelState({
-        byThreadKey: {
-          "env-1:thread-A": {
-            isOpen: true,
-            activeSurfaceId: "terminal:term-1",
-            surfaces: [{ id: "terminal:term-1", kind: "terminal", resourceId: "term-1" }],
-          },
-        },
-      }),
-    ).toEqual({
-      byThreadKey: {
-        "env-1:thread-A": {
-          isOpen: true,
-          activeSurfaceId: "terminal:term-1",
-          surfaces: [
-            {
-              id: "terminal:term-1",
-              kind: "terminal",
-              resourceId: "term-1",
-              terminalIds: ["term-1"],
-              activeTerminalId: "term-1",
-            },
-          ],
-        },
-      },
-      threadPanelVisibilityByThreadKey: {},
-    });
-  });
-
-  it("upgrades saved file surfaces with neutral reveal state", () => {
-    expect(
-      migratePersistedRightPanelState({
-        byThreadKey: {
-          "env-1:thread-A": {
-            isOpen: true,
-            activeSurfaceId: "file:src/index.ts",
-            surfaces: [{ id: "file:src/index.ts", kind: "file", relativePath: "src/index.ts" }],
-          },
-        },
-      }),
-    ).toEqual({
-      byThreadKey: {
-        "env-1:thread-A": {
-          isOpen: true,
-          activeSurfaceId: "file:src/index.ts",
-          surfaces: [
-            {
-              id: "file:src/index.ts",
-              kind: "file",
-              relativePath: "src/index.ts",
-              revealLine: null,
-              revealRequestId: 0,
-            },
-          ],
-        },
-      },
-      threadPanelVisibilityByThreadKey: {},
-    });
-  });
-
-  it("upgrades the legacy singleton pull request surface to a reference-keyed tab", () => {
-    const id = pullRequestSurfaceId({
-      projectId: "project-a",
-      repository: "supabitapp/supacode-next",
-      number: 4909,
-    });
-    expect(
-      migratePersistedRightPanelState({
-        byThreadKey: {
-          "env-1:thread-A": {
-            isOpen: true,
-            activeSurfaceId: "pull-request",
-            surfaces: [
-              {
-                id: "pull-request",
-                kind: "pull-request",
-                projectId: "project-a",
-                repository: "supabitapp/supacode-next",
-                number: 4909,
-              },
-            ],
-          },
-        },
-      }),
-    ).toEqual({
-      byThreadKey: {
-        "env-1:thread-A": {
-          isOpen: true,
-          activeSurfaceId: id,
-          surfaces: [
-            {
-              id,
-              kind: "pull-request",
-              projectId: "project-a",
-              repository: "supabitapp/supacode-next",
-              number: 4909,
-            },
-          ],
-        },
-      },
-      threadPanelVisibilityByThreadKey: {},
-    });
-  });
-
   it("drops the pull-request list's shared panel so a restart opens the page fresh", () => {
-    const id = pullRequestSurfaceId({
+    const surface = pullRequestSurface({
       projectId: "project-a",
       repository: "supabitapp/supacode-next",
       number: 4909,
     });
-    const panelState = {
-      isOpen: true,
-      activeSurfaceId: id,
-      surfaces: [
-        {
-          id,
-          kind: "pull-request" as const,
-          projectId: "project-a",
-          repository: "supabitapp/supacode-next",
-          number: 4909,
-        },
-      ],
-    };
-    expect(
-      migratePersistedRightPanelState({
-        byThreadKey: {
-          "env-1:pull-requests-panel": panelState,
-          "env-1:thread-A": panelState,
-        },
-      }),
-    ).toEqual({
+    const panelState = { isOpen: true, activeSurfaceId: surface.id, surfaces: [surface] };
+    useRightPanelStore.setState({
+      byThreadKey: {
+        "env-1:pull-requests-panel": panelState,
+        "env-1:thread-A": panelState,
+      },
+    });
+    expect(persistedSlice()).toEqual({
       byThreadKey: { "env-1:thread-A": panelState },
       threadPanelVisibilityByThreadKey: {},
     });
   });
 
-  it.each([
-    { kind: "plan", isOpen: true },
-    { kind: "agents", isOpen: true },
-    { kind: "agents", isOpen: false },
-  ])("drops $kind with isOpen=$isOpen and falls back", ({ kind, isOpen }) => {
-    expect(
-      migratePersistedRightPanelState({
-        byThreadKey: {
-          "env-1:thread-A": {
-            isOpen,
-            activeSurfaceId: kind,
-            surfaces: [{ id: kind, kind }],
-          },
-          "env-1:thread-B": {
-            isOpen,
-            activeSurfaceId: kind,
-            surfaces: [
-              { id: kind, kind },
-              { id: "diff", kind: "diff" },
-            ],
-          },
-        },
-      }),
-    ).toEqual({
-      byThreadKey: {
-        "env-1:thread-A": {
-          isOpen: false,
-          activeSurfaceId: null,
-          surfaces: [],
-        },
-        "env-1:thread-B": {
-          isOpen,
-          activeSurfaceId: "diff",
-          surfaces: [{ id: "diff", kind: "diff" }],
-        },
-      },
-      threadPanelVisibilityByThreadKey: {},
-    });
-  });
-
   it("persists inline preference without restoring an open popover", () => {
-    expect(
-      migratePersistedRightPanelState({
-        threadPanelVisibilityByThreadKey: {
-          "env-1:thread-A": { inlineOpen: false, popoverOpen: true },
-          "env-1:thread-B": { inlineOpen: true, popoverOpen: true },
-        },
-      }),
-    ).toEqual({
+    useRightPanelStore.setState({
+      threadPanelVisibilityByThreadKey: {
+        "env-1:thread-A": { inlineOpen: false, popoverOpen: true },
+        "env-1:thread-B": { inlineOpen: true, popoverOpen: true },
+      },
+    });
+    expect(persistedSlice()).toEqual({
       byThreadKey: {},
       threadPanelVisibilityByThreadKey: {
         "env-1:thread-A": { inlineOpen: false, popoverOpen: false },

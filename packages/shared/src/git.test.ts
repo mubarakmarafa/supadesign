@@ -385,6 +385,37 @@ describe("sanitizeFeatureBranchName", () => {
 });
 
 describe("resolveAutoFeatureBranchName", () => {
+  it("uses semantic preferred ref names when available", () => {
+    expect(resolveAutoFeatureBranchName(["main", "feature/other"], "fix toast copy")).toBe(
+      "feature/fix-toast-copy",
+    );
+  });
+
+  it("normalizes preferred names that already include a ref namespace", () => {
+    expect(resolveAutoFeatureBranchName(["main"], "feature/refine-toolbar-actions")).toBe(
+      "feature/refine-toolbar-actions",
+    );
+  });
+
+  it("increments suffix when the preferred ref name already exists", () => {
+    expect(
+      resolveAutoFeatureBranchName(
+        ["main", "feature/fix-toast-copy", "feature/fix-toast-copy-2"],
+        "fix toast copy",
+      ),
+    ).toBe("feature/fix-toast-copy-3");
+  });
+
+  it("treats existing ref names as case-insensitive for collision checks", () => {
+    expect(resolveAutoFeatureBranchName(["Feature/Ticket-1"], "feature/ticket-1")).toBe(
+      "feature/ticket-1-2",
+    );
+  });
+
+  it("falls back to feature/update when no preferred name is provided", () => {
+    expect(resolveAutoFeatureBranchName(["main"])).toBe("feature/update");
+  });
+
   it("resolves case-insensitive collisions within the generated namespace", () => {
     expect(
       resolveAutoFeatureBranchName(
