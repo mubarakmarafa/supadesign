@@ -1,7 +1,7 @@
 name: Mobile Preview
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize]
 
 permissions:
@@ -12,25 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  trust:
-    name: Check PR author trust
-    runs-on: depot-ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      status: ${{ steps.vouch.outputs.status }}
-    steps:
-      - id: vouch
-        uses: mitchellh/vouch/action/check-user@d66fa29a64600490892131ad87597c30c91fcac4
-        with:
-          user: ${{ github.event.pull_request.user.login }}
-          allow-fail: true
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
   preview:
     name: Mobile preview ${{ matrix.platform }}
-    needs: trust
-    if: contains(fromJSON('["bot", "collaborator", "vouched"]'), needs.trust.outputs.status)
+    # A same-repo head means the author can push here; fork PRs get no secrets on pull_request.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -67,7 +52,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-          allow-unsafe-pr-checkout: true
       - uses: ./.github/actions/setup-mobile-release
         if: steps.expo-token.outputs.present == 'true'
         with:
@@ -164,7 +148,7 @@ jobs:
           script: |
             const platform = process.env.MOBILE_PLATFORM;
             const marker = `### Mobile preview: ${platform}`;
-            const body = `${marker}\n\n[Install the development build](${process.env.MOBILE_BUILD_URL}), then open the PR update from the [update page](https://expo.dev/accounts/supabitapp/projects/supacode/updates/${process.env.MOBILE_UPDATE_GROUP}).\n\nBuilt on Depot for ${process.env.PR_HEAD_SHA}. New commits generate previews automatically for trusted authors.`;
+            const body = `${marker}\n\n[Install the development build](${process.env.MOBILE_BUILD_URL}), then open the PR update from the [update page](https://expo.dev/accounts/supabitapp/projects/supacode/updates/${process.env.MOBILE_UPDATE_GROUP}).\n\nBuilt on Depot for ${process.env.PR_HEAD_SHA}. New commits generate previews automatically.`;
             const comments = await github.paginate(github.rest.issues.listComments, {
               ...context.repo, issue_number: context.issue.number, per_page: 100,
             });

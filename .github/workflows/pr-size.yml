@@ -128,7 +128,7 @@ jobs:
       # git data. Do not add dependency installs, build/test scripts, or cache
       # actions here; use pull_request plus workflow_run for that pattern instead.
       - name: Checkout base repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Sync PR size label

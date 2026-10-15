@@ -7,3 +7,9 @@ self-hosted-runner:
     - depot-ubuntu-24.04-32
     - depot-ubuntu-24.04-arm-16
     - depot-windows-2025-8
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      # actionlint 1.7.12 predates create-github-app-token v3's client-id input.
+      - 'input "client-id" is not defined in action "actions/create-github-app-token@v3"'
+      - 'missing input "app-id" which is required by action "actions/create-github-app-token@v3"'
