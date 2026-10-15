@@ -2,6 +2,7 @@ import type { AuthSessionState, EnvironmentId, ServerConfig } from "@supaterm/co
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Schedule from "effect/Schedule";
 import * as Stream from "effect/Stream";
 import * as SubscriptionRef from "effect/SubscriptionRef";
 import { HttpClient } from "effect/http";
@@ -9,6 +10,7 @@ import { AsyncResult, Atom } from "effect/reactivity";
 
 import * as EnvironmentRegistry from "../connection/registry.ts";
 import type { ConnectionRoute } from "../connection/catalog.ts";
+import { mapRemoteEnvironmentError } from "../connection/errors.ts";
 import {
   connectionRouteLatencyLabel,
   measureConnectionRouteLatency,
@@ -41,7 +43,8 @@ function initialConfigOption<E>(
 }
 
 // Bounded so a wedged environment cannot pin the permissions check (and with it
-// the settings UI) in a loading state for long.
+// the settings UI) in a loading state for long: with the transient retries in
+// sessionStateAtom, it settles within about half a minute.
 const DEFAULT_SESSION_STATE_TIMEOUT_MS = 6_000;
 
 /**
@@ -123,7 +126,9 @@ function makeEnvironmentSessionAtoms<R, E>(
 
   // Keyed on the prepared connection's identity: a reconnect (new credential,
   // new base URL) swaps the prepared value, which re-runs the fetch, so scope
-  // changes from re-pairing are picked up without an explicit refresh.
+  // changes from re-pairing are picked up without an explicit refresh. Nothing
+  // else re-reads it while the connection stays up, and clients treat a failed
+  // read as missing grants, so a transient failure retries before it settles.
   const sessionStateAtom = Atom.family((environmentId: EnvironmentId) =>
     runtime
       .atom((get) => {
@@ -135,6 +140,12 @@ function makeEnvironmentSessionAtoms<R, E>(
           const client = yield* Effect.serviceOption(HttpClient.HttpClient);
           if (Option.isNone(client)) return yield* new SessionHttpClientUnavailable();
           return yield* fetchEnvironmentSessionState({ prepared }).pipe(
+            Effect.retry({
+              while: (error) =>
+                mapRemoteEnvironmentError(error)._tag === "ConnectionTransientError",
+              schedule: Schedule.exponential("1 second"),
+              times: 3,
+            }),
             Effect.provideService(HttpClient.HttpClient, client.value),
           );
         });

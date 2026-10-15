@@ -1,13 +1,16 @@
-import { EnvironmentId, type ServerConfig } from "@supaterm/contracts";
+import { type AuthSessionState, EnvironmentId, type ServerConfig } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
+import * as Clock from "effect/Clock";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Queue from "effect/Queue";
 import * as Stream from "effect/Stream";
 import * as SubscriptionRef from "effect/SubscriptionRef";
-import { HttpClient, HttpClientResponse } from "effect/http";
+import { HttpClient, HttpClientError, HttpClientResponse } from "effect/http";
 import { Atom, AtomRegistry } from "effect/reactivity";
+import * as TestClock from "effect/testing/TestClock";
 
 import { BearerConnectionProfile, type ConnectionRoute } from "../connection/catalog.ts";
 import {
@@ -47,7 +50,7 @@ function directRoute(id: string): ConnectionRoute {
 }
 
 const makeHarness = Effect.fn("RouteLatencyTest.makeHarness")(function* (options?: {
-  readonly reply?: (url: string) => Effect.Effect<Response>;
+  readonly reply?: (url: string) => Effect.Effect<Response, "connection reset">;
   readonly activeRoute?: ConnectionRoute;
 }) {
   const session: RpcSession = {
@@ -86,12 +89,19 @@ const makeHarness = Effect.fn("RouteLatencyTest.makeHarness")(function* (options
   const httpClient = HttpClient.make((request) =>
     (options?.reply?.(request.url) ?? Effect.succeed(Response.json(descriptor))).pipe(
       Effect.map((response) => HttpClientResponse.fromWeb(request, response)),
+      Effect.mapError(
+        (cause) =>
+          new HttpClientError.HttpClientError({
+            reason: new HttpClientError.TransportError({ request, cause }),
+          }),
+      ),
     ),
   );
   const runtime = Atom.runtime(
     Layer.mergeAll(
       Layer.succeed(EnvironmentRegistry.EnvironmentRegistry, environments),
       Layer.succeed(HttpClient.HttpClient, httpClient),
+      Layer.succeed(Clock.Clock, yield* Clock.Clock),
     ),
   );
   const atoms = createEnvironmentSessionAtoms(runtime);
@@ -207,6 +217,70 @@ describe("route latency state", () => {
         Stream.runHead,
       );
       expect(probes()).toBe(2);
+    }),
+  );
+});
+
+const grantedSession = {
+  authenticated: true,
+  auth: {
+    policy: "remote-reachable",
+    bootstrapMethods: ["one-time-token"],
+    sessionMethods: ["bearer-access-token"],
+    sessionCookieName: "supaterm_session",
+  },
+  scopes: ["orchestration:read", "orchestration:operate"],
+} satisfies AuthSessionState;
+
+describe("session state", () => {
+  it.effect("retries an unreachable environment before settling its grants", () =>
+    Effect.gen(function* () {
+      const failed = yield* Deferred.make<void>();
+      let requests = 0;
+      const { atoms, registry, supervisor } = yield* makeHarness({
+        reply: () =>
+          Effect.suspend(() => {
+            requests += 1;
+            return requests === 1
+              ? Deferred.succeed(failed, undefined).pipe(
+                  Effect.andThen(Effect.fail("connection reset" as const)),
+                )
+              : Effect.succeed(Response.json(grantedSession));
+          }),
+      });
+      const atom = atoms.sessionStateAtom(environmentId);
+      registry.mount(atom);
+      yield* SubscriptionRef.set(supervisor.prepared, Option.some(prepared(directRoute("lan"))));
+      yield* Deferred.await(failed);
+      yield* TestClock.adjust("1 second");
+      expect(
+        yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }),
+      ).toMatchObject({ scopes: grantedSession.scopes });
+      expect(requests).toBe(2);
+    }),
+  );
+
+  it.effect("settles on the failure once the retries run out", () =>
+    Effect.gen(function* () {
+      const failures = yield* Queue.unbounded<void>();
+      const { atoms, registry, supervisor } = yield* makeHarness({
+        reply: () =>
+          Queue.offer(failures, undefined).pipe(
+            Effect.andThen(Effect.fail("connection reset" as const)),
+          ),
+      });
+      const atom = atoms.sessionStateAtom(environmentId);
+      registry.mount(atom);
+      yield* SubscriptionRef.set(supervisor.prepared, Option.some(prepared(directRoute("lan"))));
+      for (const backoff of ["1 second", "2 seconds", "4 seconds"] as const) {
+        yield* Queue.take(failures);
+        yield* TestClock.adjust(backoff);
+      }
+      const result = yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }).pipe(
+        Effect.flip,
+      );
+      expect(result).toMatchObject({ _tag: "RemoteEnvironmentAuthFetchError" });
+      expect(yield* Queue.size(failures)).toBe(1);
     }),
   );
 });
