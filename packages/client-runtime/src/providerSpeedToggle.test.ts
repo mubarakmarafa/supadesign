@@ -54,6 +54,7 @@ describe("getSpeedToggle", () => {
       level: "off",
       onValue: "priority",
       offValue: "default",
+      ultrafastValue: "ultrafast",
       coversDescriptor: false,
     });
     expect(getSpeedToggle(CODEX, [serviceTierDescriptor("priority")])?.level).toBe("fast");
@@ -86,6 +87,47 @@ describe("getSpeedToggle", () => {
     expect(fast && getSpeedToggleNextValue(fast)).toBe("default");
     expect(ultrafast && getSpeedToggleNextValue(ultrafast)).toBe("default");
     expect(off && getSpeedToggleNextValue(off)).toBe("priority");
+  });
+
+  it.each(["default", "priority", "ultrafast", "flex"] as const)(
+    "enables Ultrafast from %s when requested",
+    (currentValue) => {
+      const toggle = getSpeedToggle(CODEX, [serviceTierDescriptor(currentValue)]);
+      expect(toggle && getSpeedToggleNextValue(toggle, true)).toBe("ultrafast");
+    },
+  );
+
+  it.each(["default", "priority"] as const)(
+    "keeps the normal toggle behavior from %s when Ultrafast is unavailable",
+    (currentValue) => {
+      const descriptor = serviceTierDescriptor(currentValue);
+      const toggle = getSpeedToggle(CODEX, [
+        { ...descriptor, options: descriptor.options.filter(({ id }) => id !== "ultrafast") },
+      ]);
+      expect(toggle?.ultrafastValue).toBeUndefined();
+      expect(toggle && getSpeedToggleNextValue(toggle, true)).toBe(
+        currentValue === "default" ? "priority" : "default",
+      );
+    },
+  );
+
+  it.each([false, true])("keeps boolean Fast mode toggling from %s", (currentValue) => {
+    const toggle = getSpeedToggle("claudeAgent", [fastModeDescriptor(currentValue)]);
+    expect(toggle?.ultrafastValue).toBeUndefined();
+    expect(toggle && getSpeedToggleNextValue(toggle, true)).toBe(!currentValue);
+  });
+
+  it("selects the provider's Ultrafast tier ID", () => {
+    const descriptor = serviceTierDescriptor("default");
+    const toggle = getSpeedToggle(CODEX, [
+      {
+        ...descriptor,
+        options: descriptor.options.map((option) =>
+          option.label === "Ultrafast" ? { ...option, id: "ultra-priority" } : option,
+        ),
+      },
+    ]);
+    expect(toggle && getSpeedToggleNextValue(toggle, true)).toBe("ultra-priority");
   });
 
   it("has no toggle for service tiers without a speed tier", () => {
