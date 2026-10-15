@@ -107,6 +107,28 @@ const watch = (threadId: ThreadId, number: number) =>
     });
   });
 
+const watchRun = (threadId: ThreadId, runId: number) =>
+  Effect.gen(function* () {
+    const orchestrator = yield* Orchestrator.OrchestratorV2;
+    yield* orchestrator.dispatch({
+      type: "thread.workflow-run-watch.start",
+      commandId: CommandId.make(`watch-run:${threadId}:${runId}`),
+      threadId,
+      host: "github.com",
+      repository: "supabitapp/supacode-next",
+      runId,
+      name: "CI",
+      url: null,
+    });
+  });
+
+const watchedRuns = (threadId: ThreadId) =>
+  Effect.gen(function* () {
+    const orchestrator = yield* Orchestrator.OrchestratorV2;
+    const { thread } = yield* orchestrator.getThreadProjection(threadId);
+    return (thread.workflowRunWatches ?? []).map((watch) => watch.runId);
+  });
+
 const send = (threadId: ThreadId, text: string, type: "start_immediately" | "queue_after_active") =>
   Effect.gen(function* () {
     const orchestrator = yield* Orchestrator.OrchestratorV2;
@@ -232,6 +254,8 @@ it.effect(
       const orchestrator = yield* Orchestrator.OrchestratorV2;
       const threadId = ThreadId.make("thread:stop-idle");
       yield* createWatchingThread(threadId, 3);
+      yield* watchRun(threadId, 42);
+      assert.deepEqual(yield* watchedRuns(threadId), [42]);
 
       yield* orchestrator.dispatch({
         type: "thread.stop",
@@ -239,6 +263,7 @@ it.effect(
         threadId,
       });
       assert.deepEqual(yield* threadState(threadId), { runs: [], watched: [] });
+      assert.deepEqual(yield* watchedRuns(threadId), []);
 
       const again = yield* orchestrator.dispatch({
         type: "thread.stop",
@@ -304,6 +329,7 @@ it.effect("a run Stop reached cannot delegate or start a watch, even after it en
 
     assert.isTrue(Exit.isFailure(yield* Effect.exit(delegate(threadId, "late task"))));
     assert.isTrue(Exit.isFailure(yield* Effect.exit(watch(threadId, 5))));
+    assert.isTrue(Exit.isFailure(yield* Effect.exit(watchRun(threadId, 43))));
 
     // A slow watch_pull_request call can land after the stopped run ended.
     yield* projections.apply({

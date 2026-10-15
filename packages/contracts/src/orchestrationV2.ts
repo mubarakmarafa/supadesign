@@ -361,6 +361,26 @@ export const OrchestrationV2LimitRecoveryUpdate = Schema.Struct({
 );
 export type OrchestrationV2LimitRecoveryUpdate = typeof OrchestrationV2LimitRecoveryUpdate.Type;
 
+/** A GitHub Actions run, by the repository it belongs to. */
+export const ThreadWorkflowRunKey = Schema.Struct({
+  host: TrimmedNonEmptyString,
+  repository: TrimmedNonEmptyString,
+  runId: PositiveInt,
+});
+export type ThreadWorkflowRunKey = typeof ThreadWorkflowRunKey.Type;
+
+/**
+ * A GitHub Actions run the server watches for the thread's agent, which it wakes once when the
+ * run completes. Ends then, on unwatch, Stop, settle or archive, and after reads keep failing.
+ */
+export const ThreadWorkflowRunWatch = Schema.Struct({
+  ...ThreadWorkflowRunKey.fields,
+  name: TrimmedNonEmptyString,
+  url: Schema.NullOr(TrimmedNonEmptyString),
+  startedAt: IsoDateTime,
+});
+export type ThreadWorkflowRunWatch = typeof ThreadWorkflowRunWatch.Type;
+
 export const OrchestrationV2AppThread = Schema.Struct({
   ...OrchestrationV2CreationFields,
   id: ThreadId,
@@ -376,6 +396,7 @@ export const OrchestrationV2AppThread = Schema.Struct({
       pre-linking servers still decode. */
   linkedPullRequest: Schema.optional(Schema.NullOr(ThreadLinkedPullRequest)),
   pullRequests: Schema.optional(Schema.Array(ThreadPullRequestLink)),
+  workflowRunWatches: Schema.optional(Schema.Array(ThreadWorkflowRunWatch)),
   /** Pull request discovered from the thread's current branch. */
   branchPullRequest: Schema.optional(Schema.NullOr(ThreadLinkedPullRequest)),
   activeProviderThreadId: Schema.NullOr(ProviderThreadId),
@@ -1774,6 +1795,7 @@ export const OrchestrationV2DomainEvent = Schema.Union([
       "thread.marked-unread",
       "thread.metadata-updated",
       "thread.pull-request-synced",
+      "thread.workflow-run-watch-synced",
       "thread.runtime-mode-updated",
       "thread.interaction-mode-updated",
       "thread.model-selection-updated",
@@ -2592,6 +2614,7 @@ export const OrchestrationV2DomainEventJson = Schema.Union([
       "thread.visited",
       "thread.marked-unread",
       "thread.pull-request-synced",
+      "thread.workflow-run-watch-synced",
       "thread.metadata-updated",
       "thread.runtime-mode-updated",
       "thread.interaction-mode-updated",
@@ -2892,6 +2915,13 @@ export const OrchestrationV2Command = Schema.Union([
     link: Schema.optional(
       Schema.Struct({ url: TrimmedNonEmptyString, source: ThreadPullRequestLinkSource }),
     ),
+  }),
+  /** Stop the server watching a GitHub Actions run for this thread's agent. */
+  Schema.Struct({
+    type: Schema.Literal("thread.workflow-run.unwatch"),
+    commandId: CommandId,
+    threadId: ThreadId,
+    ...ThreadWorkflowRunKey.fields,
   }),
   Schema.Struct({
     type: Schema.Literal("thread.pull-request.sync"),
@@ -3208,6 +3238,34 @@ const OrchestrationV2InternalCommand = Schema.Union([
       }),
     ),
   }),
+  /** Watch a GitHub Actions run for the thread's agent, which only agents start. */
+  Schema.Struct({
+    type: Schema.Literal("thread.workflow-run-watch.start"),
+    commandId: CommandId,
+    threadId: ThreadId,
+    ...ThreadWorkflowRunKey.fields,
+    name: TrimmedNonEmptyString,
+    url: Schema.NullOr(TrimmedNonEmptyString),
+  }),
+  /**
+   * Ends the workflow run watch started at `startedAt`, waking the agent in the same transaction
+   * when `wake` is set. Rejected once that watch has ended, and a wake is rejected on a settled
+   * or archived thread, so a read that raced either changes nothing.
+   */
+  Schema.Struct({
+    type: Schema.Literal("thread.workflow-run-watch.end"),
+    commandId: CommandId,
+    threadId: ThreadId,
+    ...ThreadWorkflowRunKey.fields,
+    startedAt: IsoDateTime,
+    wake: Schema.optional(
+      Schema.Struct({
+        messageId: MessageId,
+        text: Schema.String,
+        notification: OrchestrationV2Notification,
+      }),
+    ),
+  }),
   /** Records that the provider rollback `requestId` failed for good. */
   Schema.Struct({
     type: Schema.Literal("checkpoint.rollback.fail"),
@@ -3244,7 +3302,7 @@ const OrchestrationV2InternalCommand = Schema.Union([
   }),
   /**
    * Stop for one thread, whatever it is doing: interrupts its running turn, holds its queue,
-   * ends its pull request watches, and drops pending delegated-task wakes. Nothing to stop is
+   * ends its pull request and workflow run watches, and drops pending delegated-task wakes. Nothing to stop is
    * an accepted no-op. Delegated tasks under the thread get their own `thread.stop`.
    */
   Schema.Struct({

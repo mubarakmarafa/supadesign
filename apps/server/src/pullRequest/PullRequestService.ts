@@ -53,6 +53,8 @@ import {
   type PullRequestProviderSummary,
   type PullRequestReactionInput,
   type PullRequestRef,
+  type PullRequestWorkflowRun,
+  type PullRequestWorkflowRunRef,
   type PullRequestRoutingResult,
   type PullRequestRoutingIdentityInput,
   type PullRequestRoutingIdentityResult,
@@ -161,6 +163,8 @@ const detailTimeToLive = (state: PullRequestState | undefined) =>
  * page and a watched pull request's change reaches its watch.
  */
 const CHECKS_CACHE_TTL = Duration.seconds(15);
+/** A run's watch reads it every minute and a client showing it twice, so they share a read. */
+const WORKFLOW_RUN_CACHE_TTL = Duration.seconds(30);
 /** How long a repeated reported state is skipped, so a wrong one cannot hide a real change for long. */
 const REPORTED_STATE_DEDUPE_MS = 5 * 60 * 1_000;
 const DIFF_CACHE_TTL = Duration.seconds(60);
@@ -195,6 +199,16 @@ const FILES_VIEWED_CACHE_CAPACITY = 128;
 const VIEWER_CACHE_CAPACITY = 32;
 
 export type PullRequestError = PullRequestUnavailableError | PullRequestOperationError;
+
+/** A rate limit is the host asking to wait, not a sign the read cannot succeed. */
+export const isRateLimited = (cause: Cause.Cause<PullRequestError>): boolean =>
+  Option.match(Cause.findErrorOption(cause), {
+    onNone: () => false,
+    onSome: (error) =>
+      error._tag === "PullRequestOperationError" &&
+      isPullRequestProviderError(error.cause) &&
+      error.cause.reason === "rate-limited",
+  });
 
 const routingCredential = Context.Reference<{
   readonly credentialFingerprint: string;
@@ -265,6 +279,14 @@ export class PullRequestService extends Context.Service<
     readonly checks: (
       input: PullRequestRef,
     ) => Effect.Effect<PullRequestChecks | null, PullRequestError>;
+    /**
+     * A CI run and its jobs as checks, or null where the project's host has no runs to read.
+     * Shared between the watch and every client showing it; `fresh` skips the cached answer.
+     */
+    readonly workflowRun: (
+      input: PullRequestWorkflowRunRef,
+      options?: { readonly fresh?: boolean },
+    ) => Effect.Effect<PullRequestWorkflowRun | null, PullRequestError>;
     /**
      * What a pull request watch compares between passes, so it reads detail and activity only
      * when something moved. Null when the host has no fingerprint or gave none for this one.
@@ -637,6 +659,9 @@ function withRateLimitBackoff(
     ...(api.getChangeRequestChecks === undefined
       ? {}
       : { getChangeRequestChecks: wrap("getChangeRequestChecks", api.getChangeRequestChecks) }),
+    ...(api.getWorkflowRun === undefined
+      ? {}
+      : { getWorkflowRun: wrap("getWorkflowRun", api.getWorkflowRun) }),
     ...(api.getChangeRequestSummary === undefined
       ? {}
       : {
@@ -908,7 +933,9 @@ export const make = Effect.gen(function* () {
    * targeting can also use the selected project's directory for supported public hosts.
    * Azure derives its organization from the checkout, so it requires a matching repository.
    */
-  const requireProject = (ref: PullRequestRef): Effect.Effect<SupportedProject, PullRequestError> =>
+  const requireProject = (
+    ref: Pick<PullRequestRef, "projectId" | "host" | "repository">,
+  ): Effect.Effect<SupportedProject, PullRequestError> =>
     listWorkspaceProjects({ projectId: ref.projectId }).pipe(
       Effect.flatMap(({ supported }): Effect.Effect<SupportedProject, PullRequestError> => {
         const own = supported[0];
@@ -3067,6 +3094,48 @@ export const make = Effect.gen(function* () {
     },
   );
 
+  /**
+   * A run named without a repository is read from the project's checkout, which picks the
+   * repository the way `gh` does there rather than by the project's identity: a fork's identity
+   * is its `upstream`, while `gh run watch` follows `gh repo set-default`. One named without a
+   * host is on the project's host.
+   */
+  const workflowRunCache = yield* Cache.makeWith(
+    (key: string) => {
+      const input = JSON.parse(key) as PullRequestWorkflowRunRef;
+      return listWorkspaceProjects({ projectId: input.projectId }).pipe(
+        Effect.flatMap(({ supported: [own] }) => {
+          if (input.repository === undefined) return Effect.succeed(own ?? null);
+          const host = input.host ?? own?.host;
+          return requireProject({
+            projectId: input.projectId,
+            repository: input.repository,
+            ...(host === undefined ? {} : { host }),
+          });
+        }),
+        Effect.flatMap((project) =>
+          project?.api.getWorkflowRun === undefined
+            ? Effect.succeed(null)
+            : project.api
+                .getWorkflowRun({
+                  cwd: project.project.workspaceRoot,
+                  host: project.host,
+                  runId: input.runId,
+                  ...(input.repository === undefined ? {} : { repository: project.repository }),
+                })
+                .pipe(
+                  Effect.map((run) => ({ ...run, host: project.host })),
+                  Effect.mapError(toPullRequestError("workflowRun")),
+                ),
+        ),
+      );
+    },
+    {
+      capacity: DETAIL_CACHE_CAPACITY,
+      timeToLive: (exit) => (Exit.isSuccess(exit) ? WORKFLOW_RUN_CACHE_TTL : Duration.zero),
+    },
+  );
+
   const watchFingerprintCache = yield* Cache.makeWith(
     (key: string) => {
       const input = refOfCacheKey(key);
@@ -3563,6 +3632,19 @@ export const make = Effect.gen(function* () {
     refreshAfterTurn,
     detail: credentialCached(detail),
     checks: credentialCached((input) => Cache.get(checksCache, refCacheKey(input))),
+    workflowRun: (input, options) => {
+      const key = JSON.stringify({
+        projectId: input.projectId,
+        host: input.host?.toLowerCase(),
+        repository: input.repository?.toLowerCase(),
+        runId: input.runId,
+      });
+      return options?.fresh
+        ? Cache.invalidate(workflowRunCache, key).pipe(
+            Effect.andThen(Cache.get(workflowRunCache, key)),
+          )
+        : Cache.get(workflowRunCache, key);
+    },
     watchFingerprint: credentialCached((input) =>
       Cache.get(watchFingerprintCache, refCacheKey(input)),
     ),

@@ -23,13 +23,9 @@ import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schedule from "effect/Schedule";
-import * as Schema from "effect/Schema";
 import type * as Scope from "effect/Scope";
 
-import {
-  type ProviderChangeRequestWatchFingerprint,
-  PullRequestProviderError,
-} from "@supaterm/source-control-core/server/PullRequestProvider";
+import type { ProviderChangeRequestWatchFingerprint } from "@supaterm/source-control-core/server/PullRequestProvider";
 import * as PullRequestService from "../pullRequest/PullRequestService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as Orchestrator from "./Orchestrator.ts";
@@ -54,18 +50,6 @@ const QUIET_REREAD_MS = 10 * 60_000;
  * does not see edits to comments inside review threads.
  */
 const FINGERPRINT_REREAD_MS = 30 * 60_000;
-
-const isProviderError = Schema.is(PullRequestProviderError);
-
-/** A rate limit is the host asking us to wait, not a sign the pull request cannot be read. */
-const isRateLimited = (cause: Cause.Cause<PullRequestService.PullRequestError>) =>
-  Option.match(Cause.findErrorOption(cause), {
-    onNone: () => false,
-    onSome: (error) =>
-      error._tag === "PullRequestOperationError" &&
-      isProviderError(error.cause) &&
-      error.cause.reason === "rate-limited",
-  });
 
 const logFailure =
   (message: string, fields: Record<string, unknown>) =>
@@ -457,7 +441,7 @@ export const make = Effect.gen(function* () {
         (cause): Effect.Effect<ProviderChangeRequestWatchFingerprint | null | "paused"> =>
           Cause.hasInterruptsOnly(cause)
             ? Effect.interrupt
-            : isRateLimited(cause)
+            : PullRequestService.isRateLimited(cause)
               ? Effect.succeed("paused")
               : // The snapshot-gated reads report a host that cannot be read, and count toward
                 // giving up.
@@ -495,7 +479,7 @@ export const make = Effect.gen(function* () {
       if (Cause.hasInterruptsOnly(read.cause)) return yield* Effect.failCause(read.cause);
       lastReads.delete(group.key);
       // The host's pause refuses later reads without a request, so waiting it out is free.
-      if (isRateLimited(read.cause)) return;
+      if (PullRequestService.isRateLimited(read.cause)) return;
       const failures = (readFailures.get(group.key) ?? 0) + 1;
       readFailures.set(group.key, failures);
       // The count stays until every stop lands, so a failed stop is tried again on the next

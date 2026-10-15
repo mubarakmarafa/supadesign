@@ -21,6 +21,8 @@ export interface ComposerBannerStackItem {
   readonly variant: ComposerBannerVariant;
   readonly priority?: "urgent" | "activity" | "notice";
   readonly icon: ReactNode;
+  /** The icon holds a control, so it stays in the accessibility tree. */
+  readonly iconInteractive?: boolean;
   readonly title: ReactNode;
   readonly description?: ReactNode;
   readonly children?: ReactNode;
@@ -458,7 +460,10 @@ function ComposerBannerStackAlert({
       {...presence}
     >
       <ComposerBanner.Row layout="wrap-actions">
-        <ComposerBanner.Icon className="h-(--composer-banner-icon-column) self-start">
+        <ComposerBanner.Icon
+          className="h-(--composer-banner-icon-column) self-start"
+          aria-hidden={item.iconInteractive ? undefined : true}
+        >
           {item.icon}
         </ComposerBanner.Icon>
         <ComposerBanner.Content className="whitespace-nowrap">

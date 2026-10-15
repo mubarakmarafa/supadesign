@@ -347,6 +347,12 @@ export function pullRequestChecksStatePresentation(state: PullRequestChecksState
   return CHECKS_STATE_PRESENTATION[state];
 }
 
+/** The ring's own color for a rollup, for an indicator that stands in for the ring. */
+export function pullRequestChecksStateRingToneClassName(state: PullRequestChecksState): string {
+  const status = state === "passing" ? "success" : state === "failing" ? "failure" : "pending";
+  return CHECK_STATUS_PRESENTATION[status].toneClassName;
+}
+
 /**
  * The same rollup the server sends with a listing row, worked out here from the checks a detail
  * already holds — so the header shows the icon without a second field travelling with it.

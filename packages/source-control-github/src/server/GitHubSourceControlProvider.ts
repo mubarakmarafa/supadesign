@@ -30,7 +30,7 @@ import {
   parseFetchRemotes,
   parseGitHubRepositorySelector,
   parsePullRequestReference,
-  resolveGitHubRepository,
+  readCheckoutGitHubRepository,
   type GitHubRepositoryLocator,
 } from "./gitHubRepositoryResolution.ts";
 import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
@@ -240,13 +240,10 @@ export const make = Effect.gen(function* () {
         const locator = parseGitHubRepositorySelector(envRepository, defaultHost);
         if (locator !== null) return locator;
       }
-      const [remotes, resolved] = yield* Effect.all([
-        gitRead(input.cwd, ["remote", "-v"]),
-        gitRead(input.cwd, ["config", "--get-regexp", "^remote\\..*\\.gh-resolved$"]),
-      ]).pipe(Effect.orElseSucceed(() => [null, null] as const));
-      const { host, locator } = resolveGitHubRepository({
-        remotes: remotes?.exitCode === 0 ? remotes.stdout : "",
-        resolved: resolved?.exitCode === 0 ? resolved.stdout : "",
+      const { host, locator } = yield* readCheckoutGitHubRepository({
+        process,
+        operation: "GitHubSourceControlProvider.resolveRepository",
+        cwd: input.cwd,
         hostHint,
         defaultHost,
       });

@@ -8,7 +8,10 @@ import {
   type OrchestrationProjectShell,
   type PullRequestRef,
   type PullRequestReviewGuideResult,
+  type PullRequestWorkflowRun,
+  type PullRequestWorkflowRunRef,
   type ThreadPullRequestLink,
+  type ThreadWorkflowRunWatch,
 } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Crypto from "effect/Crypto";
@@ -26,6 +29,7 @@ import {
 } from "../../../orchestration-v2/testkit/pullRequestFixtures.ts";
 import * as ProjectService from "../../../project/ProjectService.ts";
 import * as PullRequestReviewGuideService from "../../../pullRequest/PullRequestReviewGuideService.ts";
+import * as PullRequestService from "../../../pullRequest/PullRequestService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import * as McpToolAccessTestkit from "../../McpToolAccess.testkit.ts";
@@ -136,6 +140,10 @@ function makeLink(
 
 interface HarnessOptions {
   readonly thread?: PullRequestTestThread | null;
+  /** The thread's workflow run watches, as the orchestrator holds them. */
+  readonly workflowRunWatches?: ReadonlyArray<ThreadWorkflowRunWatch>;
+  /** What the pull request service reads for a workflow run. */
+  readonly workflowRun?: (input: PullRequestWorkflowRunRef) => PullRequestWorkflowRun | null;
   readonly project?: OrchestrationProjectShell | null;
   /** A rejection the orchestrator reports as the dispatch error's cause. */
   readonly reject?: (command: OrchestrationCommand) => string | null;
@@ -194,9 +202,16 @@ const makeHarness = Effect.fn("makePullRequestsToolkitHarness")(function* (
           ),
         ),
     }),
+    Layer.mock(PullRequestService.PullRequestService)({
+      workflowRun: (input) => Effect.sync(() => options.workflowRun?.(input) ?? null),
+    }),
     Layer.mock(Orchestrator.OrchestratorV2)({
       getThreadShell: (id) =>
         Effect.succeed(id === THREAD_ID && thread ? v2PullRequestThread(thread) : null),
+      getThreadRecords: () =>
+        Effect.succeed({
+          thread: { workflowRunWatches: options.workflowRunWatches ?? [] },
+        } as never),
       dispatch,
     }),
     Layer.succeed(Crypto.Crypto, testCrypto),
@@ -284,6 +299,93 @@ describe("pull request toolkit handlers", () => {
           watching: true,
           link: { url: "https://github.com/supabitapp/supacode-next/pull/9", source: "agent" },
         },
+      ]);
+    }),
+  );
+
+  const workflowRun = (input: PullRequestWorkflowRunRef, status: "pending" | "success") => ({
+    host: input.host ?? "github.com",
+    repository: input.repository ?? "supabitapp/supacode-next",
+    name: "Release",
+    url: "https://github.com/supabitapp/supacode-next/actions/runs/42",
+    status,
+    checks: [],
+  });
+
+  it.effect("watches a run named by URL, read first for its name", () =>
+    Effect.gen(function* () {
+      const reads: Array<PullRequestWorkflowRunRef> = [];
+      const harness = yield* makeHarness({
+        workflowRun: (input) => {
+          reads.push(input);
+          return workflowRun(input, "pending");
+        },
+      });
+      const result = yield* harness.call("watch_workflow_run", {
+        url: "https://github.com/acme/web/actions/runs/42/job/7",
+      });
+      expect(reads).toEqual([
+        { projectId: PROJECT_ID, host: "github.com", repository: "acme/web", runId: 42 },
+      ]);
+      expect(result).toMatchObject({ repository: "acme/web", runId: 42, status: "pending" });
+      expect(yield* Ref.get(harness.commands)).toMatchObject([
+        {
+          type: "thread.workflow-run-watch.start",
+          host: "github.com",
+          repository: "acme/web",
+          runId: 42,
+          name: "Release",
+          url: "https://github.com/supabitapp/supacode-next/actions/runs/42",
+        },
+      ]);
+    }),
+  );
+
+  it.effect("reports a run that already completed instead of watching it", () =>
+    Effect.gen(function* () {
+      const reads: Array<PullRequestWorkflowRunRef> = [];
+      const harness = yield* makeHarness({
+        workflowRun: (input) => {
+          reads.push(input);
+          return workflowRun(input, "success");
+        },
+      });
+      const result = yield* harness.call("watch_workflow_run", { runId: 42 });
+      // A bare id is resolved by the checkout, so nothing but the id is passed on.
+      expect(reads).toEqual([{ projectId: PROJECT_ID, runId: 42 }]);
+      expect(result).toMatchObject({
+        repository: "supabitapp/supacode-next",
+        status: "success",
+        watching: false,
+      });
+      expect(yield* Ref.get(harness.commands)).toEqual([]);
+    }),
+  );
+
+  it.effect("stops the watch on the run an id names", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness({
+        workflowRunWatches: [
+          {
+            host: "github.com",
+            repository: "acme/web",
+            runId: 42,
+            name: "Release",
+            url: null,
+            startedAt: "2026-08-20T00:00:00.000Z",
+          },
+        ],
+      });
+      const result = yield* harness.call("unwatch_workflow_run", { runId: 42 });
+      expect(result).toEqual({
+        host: "github.com",
+        repository: "acme/web",
+        runId: 42,
+        watching: false,
+        wasWatching: true,
+      });
+      expect(yield* Ref.get(harness.commands)).toMatchObject([
+        { type: "thread.workflow-run.unwatch", repository: "acme/web", runId: 42 },
       ]);
     }),
   );
