@@ -31,7 +31,6 @@ const DesktopSettingsPatch = Schema.Struct({
   updateChannel: Schema.optionalKey(Schema.Literals(["latest", "nightly"])),
   updateChannelConfiguredByUser: Schema.optionalKey(Schema.Boolean),
   wslBackendEnabled: Schema.optionalKey(Schema.Boolean),
-  wslMode: Schema.optionalKey(Schema.Literals(["local", "wsl"])),
   wslDistro: Schema.optionalKey(Schema.NullOr(Schema.String)),
   wslOnly: Schema.optionalKey(Schema.Boolean),
 });
@@ -385,34 +384,6 @@ describe("DesktopSettings", () => {
     ),
   );
 
-  it.effect("migrates legacy implicit update channels to the runtime default", () =>
-    withSettings(
-      Effect.gen(function* () {
-        const settings = yield* DesktopAppSettings.DesktopAppSettings;
-        yield* writeSettingsPatch({
-          serverExposureMode: "local-only",
-          updateChannel: "latest",
-        });
-
-        assert.deepEqual(yield* settings.load, {
-          linuxPasswordStore: "auto",
-          localEnvironmentEnabled: true,
-          mainWindowBounds: null,
-          mainWindowMaximized: false,
-          serverExposureMode: "local-only",
-          tailscaleServeEnabled: false,
-          tailscaleServePort: 443,
-          updateChannel: "nightly",
-          updateChannelConfiguredByUser: false,
-          wslBackendEnabled: false,
-          wslOnly: false,
-          wslDistro: null,
-        } satisfies DesktopAppSettings.DesktopSettings);
-      }),
-      { appVersion: "0.0.17-nightly.20260415.1" },
-    ),
-  );
-
   it.effect("preserves explicit stable update channel on nightly builds", () =>
     withSettings(
       Effect.gen(function* () {
@@ -525,21 +496,6 @@ describe("DesktopSettings", () => {
         const diskReload = yield* settings.load;
         assert.equal(diskReload.wslBackendEnabled, true);
         assert.equal(diskReload.wslOnly, true);
-      }),
-    ),
-  );
-
-  it.effect("migrates legacy wslMode=wsl to wslBackendEnabled on load", () =>
-    withSettings(
-      Effect.gen(function* () {
-        const settings = yield* DesktopAppSettings.DesktopAppSettings;
-        yield* writeSettingsPatch({
-          wslMode: "wsl",
-          wslDistro: "Ubuntu-22.04",
-        });
-        const loaded = yield* settings.load;
-        assert.equal(loaded.wslBackendEnabled, true);
-        assert.equal(loaded.wslDistro, "Ubuntu-22.04");
       }),
     ),
   );

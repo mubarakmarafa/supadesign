@@ -6,9 +6,7 @@ import * as HostProcess from "@supaterm/shared/HostProcess";
 import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
-import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
-import * as NodePath from "@effect/platform-node/NodePath";
 import { vi } from "vite-plus/test";
 
 import * as ElectronApp from "../electron/ElectronApp.ts";
@@ -48,8 +46,6 @@ const makeDesktopDeepLinksLayer = ({
     stateDir: "/tmp/supaterm-state",
     isDevelopment,
     appDataDirectory: "/tmp/app-data",
-    userDataDirName: isDevelopment ? "supaterm-dev" : "supaterm",
-    legacyUserDataDirName: isDevelopment ? "Supaterm (Dev)" : "Supaterm (Alpha)",
     path: { join: (...parts: ReadonlyArray<string>) => parts.join("/") },
   } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]);
 
@@ -78,8 +74,6 @@ const makeDesktopDeepLinksLayer = ({
         Layer.succeed(DesktopEnvironment.DesktopEnvironment, environment),
         Layer.succeed(ElectronApp.ElectronApp, electronApp),
         Layer.succeed(ElectronShell.ElectronShell, shell),
-        FileSystem.layerNoop({ exists: () => Effect.succeed(false) }),
-        NodePath.layerPosix,
       ),
     ),
     Layer.provideMerge(Layer.succeed(DesktopEnvironment.DesktopEnvironment, environment)),

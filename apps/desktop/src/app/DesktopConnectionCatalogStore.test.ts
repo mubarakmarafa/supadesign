@@ -1,33 +1,20 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
-import { ConnectionCatalogDocument } from "@supaterm/client-runtime/platform";
-import { EnvironmentId, type PersistedSavedEnvironmentRecord } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
-import * as Base64 from "effect/encoding/Base64";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as PlatformError from "effect/PlatformError";
 import * as Ref from "effect/Ref";
-import * as Schema from "effect/Schema";
 
 import * as ElectronSafeStorage from "../electron/ElectronSafeStorage.ts";
-import * as DesktopSavedEnvironments from "../settings/DesktopSavedEnvironments.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
 import * as DesktopConnectionCatalogStore from "./DesktopConnectionCatalogStore.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 
 const textDecoder = new TextDecoder();
 const textEncoder = new TextEncoder();
-const decodeConnectionCatalog = Schema.decodeEffect(
-  Schema.fromJsonString(ConnectionCatalogDocument),
-);
-const encodeLegacySavedEnvironments = Schema.encodeEffect(
-  Schema.fromJsonString(
-    Schema.Struct({ version: Schema.Literal(1), records: Schema.Array(Schema.Unknown) }),
-  ),
-);
 function layerSafeStorageFor(available: boolean, failDecrypt: Ref.Ref<boolean> | null = null) {
   return Layer.succeed(ElectronSafeStorage.ElectronSafeStorage, {
     isEncryptionAvailable: Effect.succeed(available),
@@ -78,14 +65,7 @@ function layerFor(
     NodeServices.layer,
     fileSystemLayer,
   );
-  const layerSavedEnvironments = DesktopSavedEnvironments.layer.pipe(
-    Layer.provideMerge(layerDependencies),
-  );
-
-  return DesktopConnectionCatalogStore.layer.pipe(
-    Layer.provideMerge(layerSavedEnvironments),
-    Layer.provideMerge(layerDependencies),
-  );
+  return DesktopConnectionCatalogStore.layer.pipe(Layer.provideMerge(layerDependencies));
 }
 
 const withStore = <A, E, R>(
@@ -125,125 +105,6 @@ describe("DesktopConnectionCatalogStore", () => {
       }),
       false,
     ),
-  );
-
-  it.effect(
-    "drops legacy relay records and migrates SSH, bearer profile, and credential data",
-    () =>
-      withStore(
-        Effect.gen(function* () {
-          const store = yield* DesktopConnectionCatalogStore.DesktopConnectionCatalogStore;
-          const environment = yield* DesktopEnvironment.DesktopEnvironment;
-          const fileSystem = yield* FileSystem.FileSystem;
-          const legacyRelayRecord = {
-            environmentId: "relay-environment",
-            label: "Relay",
-            httpBaseUrl: "https://relay.example.com/",
-            wsBaseUrl: "wss://relay.example.com/",
-            createdAt: "2026-06-01T00:00:00.000Z",
-            lastConnectedAt: null,
-            relayManaged: { relayUrl: "https://relay-control.example.com/" },
-          };
-          const records: readonly PersistedSavedEnvironmentRecord[] = [
-            {
-              environmentId: EnvironmentId.make("ssh-environment"),
-              label: "SSH",
-              httpBaseUrl: "http://127.0.0.1:41773/",
-              wsBaseUrl: "ws://127.0.0.1:41773/",
-              createdAt: "2026-06-02T00:00:00.000Z",
-              lastConnectedAt: null,
-              desktopSsh: {
-                alias: "devbox",
-                hostname: "devbox.example.com",
-                username: "julius",
-                port: 22,
-              },
-            },
-            {
-              environmentId: EnvironmentId.make("bearer-environment"),
-              label: "Bearer",
-              httpBaseUrl: "https://bearer.example.com/",
-              wsBaseUrl: "wss://bearer.example.com/",
-              createdAt: "2026-06-03T00:00:00.000Z",
-              lastConnectedAt: null,
-            },
-          ];
-          yield* fileSystem.makeDirectory(environment.stateDir, { recursive: true });
-          yield* fileSystem.writeFileString(
-            environment.savedEnvironmentRegistryPath,
-            yield* encodeLegacySavedEnvironments({
-              version: 1,
-              records: [
-                legacyRelayRecord,
-                ...records.map((record) =>
-                  record.environmentId === "bearer-environment"
-                    ? {
-                        ...record,
-                        encryptedBearerToken: Base64.encode(
-                          textEncoder.encode("encrypted:legacy-token"),
-                        ),
-                      }
-                    : record,
-                ),
-              ],
-            }),
-          );
-
-          const migrated = yield* store.get;
-          assert.isTrue(Option.isSome(migrated));
-          if (Option.isNone(migrated)) {
-            return;
-          }
-          const catalog = yield* decodeConnectionCatalog(migrated.value);
-
-          assert.equal(catalog.targets.length, 2);
-          assert.deepInclude(catalog.targets[0], {
-            _tag: "SshConnectionTarget",
-            environmentId: EnvironmentId.make("ssh-environment"),
-            label: "SSH",
-            connectionId: "ssh:ssh-environment",
-          });
-          assert.deepInclude(catalog.targets[1], {
-            _tag: "BearerConnectionTarget",
-            environmentId: EnvironmentId.make("bearer-environment"),
-            label: "Bearer",
-            connectionId: "bearer:bearer-environment",
-          });
-          assert.equal(catalog.profiles.length, 2);
-          assert.deepInclude(catalog.profiles[0], {
-            _tag: "SshConnectionProfile",
-            connectionId: "ssh:ssh-environment",
-            environmentId: EnvironmentId.make("ssh-environment"),
-            label: "SSH",
-            target: {
-              alias: "devbox",
-              hostname: "devbox.example.com",
-              username: "julius",
-              port: 22,
-            },
-          });
-          assert.deepInclude(catalog.profiles[1], {
-            _tag: "BearerConnectionProfile",
-            connectionId: "bearer:bearer-environment",
-            environmentId: EnvironmentId.make("bearer-environment"),
-            label: "Bearer",
-            httpBaseUrl: "https://bearer.example.com/",
-            wsBaseUrl: "wss://bearer.example.com/",
-          });
-          assert.equal(catalog.credentials.length, 1);
-          assert.equal(catalog.credentials[0]?.connectionId, "bearer:bearer-environment");
-          assert.equal(catalog.credentials[0]?.credential._tag, "BearerConnectionCredential");
-          if (catalog.credentials[0]?.credential._tag === "BearerConnectionCredential") {
-            assert.equal(catalog.credentials[0].credential.token, "legacy-token");
-          }
-
-          yield* fileSystem.writeFileString(
-            environment.savedEnvironmentRegistryPath,
-            '{"version":1,"records":[]}',
-          );
-          assert.deepEqual(yield* store.get, migrated);
-        }),
-      ),
   );
 
   it.effect("surfaces malformed catalog documents without deleting them", () =>
@@ -344,39 +205,6 @@ describe("DesktopConnectionCatalogStore", () => {
       );
       assert.notEqual(error.message, permissionError.message);
     }).pipe(Effect.provide(NodeServices.layer), Effect.scoped),
-  );
-
-  it.effect("reports the legacy migration stage", () =>
-    withStore(
-      Effect.gen(function* () {
-        const path = yield* Path.Path;
-        const environment = yield* DesktopEnvironment.DesktopEnvironment;
-        const fileSystem = yield* FileSystem.FileSystem;
-        const store = yield* DesktopConnectionCatalogStore.DesktopConnectionCatalogStore;
-        yield* fileSystem.makeDirectory(environment.stateDir, { recursive: true });
-        yield* fileSystem.writeFileString(environment.savedEnvironmentRegistryPath, "{not-json");
-
-        const error = yield* store.get.pipe(Effect.flip);
-        assert.instanceOf(
-          error,
-          DesktopConnectionCatalogStore.DesktopConnectionCatalogStoreMigrationError,
-        );
-        assert.equal(error.operation, "read-legacy-registry");
-        assert.equal(error.catalogPath, path.join(environment.stateDir, "connection-catalog.json"));
-        assert.instanceOf(
-          error.cause,
-          DesktopSavedEnvironments.DesktopSavedEnvironmentsDocumentDecodeError,
-        );
-        const registryError =
-          error.cause as DesktopSavedEnvironments.DesktopSavedEnvironmentsDocumentDecodeError;
-        assert.exists(registryError.cause);
-        assert.equal(
-          error.message,
-          `Legacy desktop saved-environment migration failed during read-legacy-registry into ${path.join(environment.stateDir, "connection-catalog.json")}.`,
-        );
-        assert.notEqual(error.message, registryError.message);
-      }),
-    ),
   );
 
   it.effect("reports invalid encrypted catalog data without exposing it", () =>

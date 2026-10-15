@@ -269,31 +269,6 @@ describe("DesktopClientSettings", () => {
     ),
   );
 
-  it.effect("loads legacy wrapped client settings documents", () =>
-    withClientSettings(
-      Effect.gen(function* () {
-        const environment = yield* DesktopEnvironment.DesktopEnvironment;
-        const fileSystem = yield* FileSystem.FileSystem;
-        const settings = yield* DesktopClientSettings.DesktopClientSettings;
-        yield* fileSystem.makeDirectory(environment.stateDir, { recursive: true });
-        yield* fileSystem.writeFileString(
-          environment.clientSettingsPath,
-          `{
-            "settings": {
-              "timestampFormat": "12-hour"
-            }
-          }\n`,
-        );
-
-        const persisted = yield* settings.get;
-        assert.isTrue(Option.isSome(persisted));
-        if (Option.isSome(persisted)) {
-          assert.equal(persisted.value.timestampFormat, "12-hour");
-        }
-      }),
-    ),
-  );
-
   it.effect("loads defaults from empty client settings documents", () =>
     withClientSettings(
       Effect.gen(function* () {
@@ -311,7 +286,6 @@ describe("DesktopClientSettings", () => {
   it.effect.each([
     { label: "malformed JSON", contents: "{not-json" },
     { label: "invalid direct settings", contents: '{"fontSizeCode":"large"}' },
-    { label: "invalid legacy settings", contents: '{"settings":{"fontSizeCode":"large"}}' },
   ])("reports $label without treating the settings file as absent", (document) =>
     withClientSettings(
       Effect.gen(function* () {

@@ -18,8 +18,7 @@
 //     stop it cleanly without tearing down the pool. The primary's id
 //     refuses unregister.
 //   - Settings: `wslBackendEnabled: boolean` + `wslDistro: string | null`.
-//     The legacy `wslMode: "local" | "wsl"` swap setting is migrated on
-//     load. IPC surface is `setWslBackendEnabled(boolean)` +
+//     IPC surface is `setWslBackendEnabled(boolean)` +
 //     `setWslDistro(string | null)`; both persist and then call the
 //     orchestrator's reconcile. No swap, no rollback, primary stays up.
 //   - `getLocalEnvironmentBootstraps()` (plural) returns one entry per

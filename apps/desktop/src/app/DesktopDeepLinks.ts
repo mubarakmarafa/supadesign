@@ -41,8 +41,7 @@ export const make = Effect.gen(function* () {
   const electronApp = yield* ElectronApp.ElectronApp;
   const shell = yield* ElectronShell.ElectronShell;
 
-  const userDataPath = yield* DesktopUserData.resolveUserDataPath(environment);
-  yield* electronApp.setPath("userData", userDataPath);
+  yield* electronApp.setPath("userData", DesktopUserData.userDataPath(environment));
 
   const isPrimaryInstance =
     environment.platform === "darwin" || (yield* electronApp.requestSingleInstanceLock);
