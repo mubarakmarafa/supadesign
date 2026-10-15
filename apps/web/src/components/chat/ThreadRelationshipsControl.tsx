@@ -21,7 +21,6 @@ import {
   orderWebThreadLineageRows,
   resolveMergeBackTargetThreadId,
   type ThreadRelationshipEdge,
-  type ThreadRelationshipKind,
   type ThreadRelationshipWalkRow,
 } from "@supaterm/client-runtime/state/thread-relationships";
 import {
@@ -49,7 +48,7 @@ import {
   SquareIcon,
   UnplugIcon,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 
 import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { buildThreadRouteParams } from "../../threadRoutes";
@@ -93,6 +92,7 @@ export function resolveThreadLineageWindow<Row>(
 }
 
 export function ThreadLineageRowList(props: {
+  readonly label?: string;
   readonly hiddenCount: number;
   readonly onShowMore: () => void;
   readonly children: ReactNode;
@@ -110,7 +110,7 @@ export function ThreadLineageRowList(props: {
         its tree is open.
       */}
       <ul
-        aria-label="Related threads"
+        aria-label={props.label ?? "Related threads"}
         className="m-0 max-h-[13.5rem] list-none overflow-y-auto overscroll-contain p-0 has-data-workflow-expanded:max-h-[min(28rem,55dvh)]"
       >
         {props.children}
@@ -126,36 +126,41 @@ export function ThreadLineageRowList(props: {
 }
 
 function ThreadLineageGroup(props: {
-  readonly label: string | null;
+  readonly label: string;
   readonly rows: ReadonlyArray<ThreadRelationshipWalkRow>;
   readonly expanded: boolean;
+  readonly runningCount?: number;
+  readonly pendingCount?: number;
   readonly children: (rows: ReadonlyArray<ThreadRelationshipWalkRow>) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState(props.expanded);
   const [visibleCount, setVisibleCount] = useState(THREAD_LINEAGE_INITIAL_COUNT);
+  const panelId = useId();
   const { visibleRows, hiddenCount } = resolveThreadLineageWindow(props.rows, visibleCount);
+  const count = props.rows.length + (props.pendingCount ?? 0);
+  const label = props.runningCount ? `${props.label} · ${props.runningCount} running` : props.label;
   const failedCount = props.rows.filter(
     ({ edge }) => edge.status === "failed" || edge.status === "error",
   ).length;
-  if (props.rows.length === 0) return null;
+  if (count === 0) return null;
   return (
     <Collapsible open={expanded}>
-      {props.label ? (
-        <CollapsibleSectionHeader
-          size="sm"
-          variant="panel"
-          expanded={expanded}
-          onClick={() => setExpanded(!expanded)}
-          accessory={
-            failedCount > 0 ? <SectionHeaderStatus>{failedCount} failed</SectionHeaderStatus> : null
-          }
-        >
-          {props.label}
-          {!expanded && ` (${props.rows.length})`}
-        </CollapsibleSectionHeader>
-      ) : null}
-      <CollapsiblePanel>
+      <CollapsibleSectionHeader
+        size="sm"
+        variant="panel"
+        expanded={expanded}
+        aria-controls={panelId}
+        onClick={() => setExpanded(!expanded)}
+        accessory={
+          failedCount > 0 ? <SectionHeaderStatus>{failedCount} failed</SectionHeaderStatus> : null
+        }
+      >
+        {label}
+        {!expanded && ` (${count})`}
+      </CollapsibleSectionHeader>
+      <CollapsiblePanel id={panelId}>
         <ThreadLineageRowList
+          label={props.label}
           hiddenCount={hiddenCount}
           onShowMore={() => setVisibleCount((count) => count + THREAD_LINEAGE_PAGE_COUNT)}
         >
@@ -164,22 +169,6 @@ function ThreadLineageGroup(props: {
       </CollapsiblePanel>
     </Collapsible>
   );
-}
-
-const THREAD_LINEAGE_TITLE_PARTS = [
-  ["parent", "parent"],
-  ["fork", "forks"],
-  ["subagent", "subagents"],
-  ["transfer", "transfers"],
-] as const;
-
-export function threadLineageTitle(kinds: ReadonlySet<ThreadRelationshipKind>) {
-  const parts = THREAD_LINEAGE_TITLE_PARTS.flatMap(([kind, part]) =>
-    kinds.has(kind) ? [part] : [],
-  );
-  const last = parts.pop() ?? "";
-  const title = parts.length === 0 ? last : `${parts.join(", ")} & ${last}`;
-  return title.charAt(0).toUpperCase() + title.slice(1);
 }
 
 function relationshipLabel(edge: ThreadRelationshipEdge, currentThreadId: ThreadId) {
@@ -317,9 +306,8 @@ export function ThreadRelationshipsPanel(props: {
             ? subagentsByThreadId.get(row.threadId)
             : undefined;
         const workflowGroup = agent === undefined ? undefined : workflowGroupsById.get(agent.id);
-        return workflowGroup === undefined
-          ? row
-          : { ...row, edge: { ...row.edge, status: workflowGroup.workflow.status } };
+        const status = workflowGroup?.workflow.status ?? threadRelationshipRowStatus(graph, row);
+        return status === row.edge.status ? row : { ...row, edge: { ...row.edge, status } };
       }),
     [graph, mergeTargetThreadId, props.threadId, subagentsByThreadId, workflowGroupsById],
   );
@@ -327,23 +315,21 @@ export function ThreadRelationshipsPanel(props: {
   const canDetach = projection ? canDetachThreadProviderSession(projection) : false;
 
   const {
-    related = [],
+    parent = [],
+    forks = [],
+    transfers = [],
     active = [],
     previous = [],
   } = groupBy(relationshipRows, ({ edge }) => {
-    if (edge.kind !== "subagent" || isParentThreadRelationship(edge, props.threadId))
-      return "related";
+    if (isParentThreadRelationship(edge, props.threadId)) return "parent";
+    if (edge.kind === "fork") return "forks";
+    if (edge.kind === "transfer") return "transfers";
     return ["completed", "failed", "error", "cancelled", "interrupted", "idle"].includes(
       edge.status ?? "",
     )
       ? "previous"
       : "active";
   });
-  const groups = [
-    { id: "related", label: null, rows: related, expanded: true },
-    { id: "active", label: null, rows: active, expanded: true },
-    { id: "previous", label: "Previous agents", rows: previous, expanded: false },
-  ];
   // Subagents without a child thread yet have no row, so count them separately.
   const pendingRunningCount =
     projection?.subagents.filter(
@@ -351,18 +337,24 @@ export function ThreadRelationshipsPanel(props: {
     ).length ?? 0;
   const runningCount =
     pendingRunningCount + active.filter(({ edge }) => edge.status === "running").length;
+  const groups = [
+    { id: "parent", label: "Parent", rows: parent, expanded: true },
+    { id: "forks", label: "Forks", rows: forks, expanded: true },
+    { id: "transfers", label: "Context transfers", rows: transfers, expanded: true },
+    {
+      id: "active",
+      label: "Subagents",
+      rows: active,
+      expanded: true,
+      runningCount,
+      pendingCount: pendingRunningCount,
+    },
+    { id: "previous", label: "Previous agents", rows: previous, expanded: false },
+  ];
 
   if (relationshipRows.length === 0 && runningCount === 0) {
     return null;
   }
-
-  const kinds = new Set(
-    relationshipRows.map(({ edge }) =>
-      isParentThreadRelationship(edge, props.threadId) ? "parent" : edge.kind,
-    ),
-  );
-  if (pendingRunningCount > 0) kinds.add("subagent");
-  const title = threadLineageTitle(kinds);
 
   const openThread = (threadId: ThreadId) => {
     void navigate({
@@ -436,7 +428,7 @@ export function ThreadRelationshipsPanel(props: {
   return (
     <ThreadDetailsSection
       headingId="thread-details-lineage-heading"
-      title={runningCount > 0 ? `${title} · ${runningCount} running` : title}
+      title="Related threads"
       data-thread-relationships-panel
       actions={
         canDetach ? (

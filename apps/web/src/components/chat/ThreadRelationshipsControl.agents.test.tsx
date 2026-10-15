@@ -83,6 +83,22 @@ import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
 
 let renderer: ReactTestRenderer;
 
+function renderedText(node: ReactTestInstance) {
+  return node
+    .findAll((child) => typeof child.type === "string")
+    .flatMap((child) => child.children.filter((value) => typeof value === "string"))
+    .join("");
+}
+
+function groupHeader(label: string) {
+  return renderer.root.find(
+    (node) =>
+      node.type === "button" &&
+      typeof node.props["aria-controls"] === "string" &&
+      renderedText(node).startsWith(label),
+  );
+}
+
 afterEach(async () => {
   await act(async () => renderer?.unmount());
   vi.unstubAllGlobals();
@@ -96,6 +112,104 @@ afterEach(async () => {
   state.workflowCommand.mockReset().mockResolvedValue({ _tag: "Success" });
   state.toast.mockClear();
   state.projection = null;
+});
+
+it("separates relationship kinds and collapses each group independently", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  const environmentId = EnvironmentId.make("test");
+  const current = {
+    id: "current",
+    status: "failed",
+    activeProviderThreadId: null,
+    lineage: { parentThreadId: "parent", relationshipToParent: "fork" },
+  };
+  const agent = {
+    id: "worker",
+    childThreadId: "worker-chat",
+    driver: "codex",
+    providerInstanceId: "codex",
+    title: "Active worker",
+    status: "running",
+    startedAt: DateTime.makeUnsafe("2026-09-21T12:00:00Z"),
+    completedAt: null,
+    updatedAt: DateTime.makeUnsafe("2026-09-21T12:00:00Z"),
+  };
+  const projection = {
+    thread: current,
+    runs: [],
+    providerThreads: [],
+    providerSessions: [],
+    contextTransfers: [
+      { sourceThreadId: "current", targetThreadId: "transfer", status: "resolved_portable" },
+    ],
+    subagents: [
+      agent,
+      {
+        ...agent,
+        id: "finished",
+        childThreadId: "finished-chat",
+        title: "Finished worker",
+        status: "completed",
+        completedAt: DateTime.makeUnsafe("2026-09-21T12:10:00Z"),
+      },
+    ],
+  };
+  state.projection = projection;
+  state.shells = [
+    current,
+    {
+      id: "parent",
+      title: "Parent conversation",
+      status: "running",
+      lineage: { parentThreadId: null, relationshipToParent: null },
+    },
+    {
+      id: "fork",
+      title: "Forked conversation",
+      status: "completed",
+      lineage: { parentThreadId: "current", relationshipToParent: "fork" },
+    },
+  ].map((source) => ({ environmentId, source }));
+  const panel = (
+    <ThreadRelationshipsPanel environmentId={environmentId} threadId={ThreadId.make("current")} />
+  );
+  await act(async () => {
+    renderer = create(panel);
+  });
+  const rows = (label: string) =>
+    renderedText(
+      renderer.root.find((node) => node.type === "ul" && node.props["aria-label"] === label),
+    );
+  expect(rows("Parent")).toContain("Parent conversation");
+  expect(rows("Parent")).not.toContain("Forked conversation");
+  expect(renderedText(groupHeader("Parent"))).not.toContain("failed");
+  expect(rows("Forks")).toContain("Forked conversation");
+  expect(rows("Forks")).not.toContain("Active worker");
+  expect(rows("Context transfers")).toContain("Resolved (portable)");
+  expect(rows("Subagents")).toContain("Active worker");
+  expect(renderedText(renderer.root)).not.toContain("Finished worker");
+
+  await act(async () => groupHeader("Forks").props.onClick());
+  expect(renderedText(renderer.root)).not.toContain("Forked conversation");
+  expect(rows("Parent")).toContain("Parent conversation");
+  expect(rows("Subagents")).toContain("Active worker");
+  await act(async () => groupHeader("Previous agents").props.onClick());
+  expect(rows("Previous agents")).toContain("Finished worker");
+  expect(rows("Previous agents")).not.toContain("Active worker");
+
+  await act(async () => groupHeader("Forks").props.onClick());
+  expect(rows("Forks")).toContain("Forked conversation");
+  await act(async () => groupHeader("Previous agents").props.onClick());
+  state.projection = {
+    ...projection,
+    subagents: projection.subagents.map((subagent) => ({ ...subagent, status: "completed" })),
+  };
+  await act(async () => renderer.update(cloneElement(panel)));
+  expect(renderedText(renderer.root)).not.toContain("Active worker");
+  expect(renderedText(groupHeader("Previous agents"))).toContain("(2)");
+  await act(async () => groupHeader("Previous agents").props.onClick());
+  expect(rows("Previous agents")).toContain("Active worker");
+  expect(rows("Previous agents")).toContain("Finished worker");
 });
 
 it("stops the entire native workflow through its parent without changing state before acknowledgement", async () => {
@@ -185,12 +299,12 @@ it("stops the entire native workflow through its parent without changing state b
     true,
   );
   expect(renderer.root.findByProps({ "aria-label": "Open Checker chat" })).toBeDefined();
-  expect(renderer.root.findByType("h3").children).toEqual(["Subagents · 2 running"]);
+  expect(renderedText(groupHeader("Subagents"))).toBe("Subagents · 2 running");
   await act(async () => {
     acknowledge({ _tag: "Success" });
   });
   expect(stopButton().props.disabled).toBe(false);
-  expect(renderer.root.findByType("h3").children).toEqual(["Subagents · 2 running"]);
+  expect(renderedText(groupHeader("Subagents"))).toBe("Subagents · 2 running");
   state.workflowCommand.mockResolvedValueOnce({ _tag: "Failure" });
   await act(async () => {
     stopButton().props.onClick();
@@ -469,14 +583,14 @@ it("groups and counts a workflow by its run status instead of its coordinator ch
       .findAll((node) => typeof node.type === "string")
       .flatMap((node) => node.children.filter((child) => typeof child === "string"))
       .join("");
-  expect(renderer.root.findByType("h3").children).toEqual(["Subagents · 1 running"]);
+  expect(renderedText(groupHeader("Subagents"))).toBe("Subagents · 1 running");
   await act(async () =>
     renderer.root.findByProps({ "aria-label": "Expand Checkout review" }).props.onClick(),
   );
   expect(renderer.root.findByProps({ "aria-label": "Open Checker chat" })).toBeDefined();
   state.shells = [{ environmentId: "test", source: { ...child, activityRunStatus: "waiting" } }];
   await act(async () => renderer.update(cloneElement(panel)));
-  expect(renderer.root.findByType("h3").children).toEqual(["Subagents · 1 running"]);
+  expect(renderedText(groupHeader("Subagents"))).toBe("Subagents · 1 running");
   expect(text()).toContain("Inspecting the checkout workflow");
   state.projection = {
     ...projection,
@@ -489,7 +603,7 @@ it("groups and counts a workflow by its run status instead of its coordinator ch
     ],
   };
   await act(async () => renderer.update(cloneElement(panel)));
-  expect(renderer.root.findByType("h3").children).toEqual(["Subagents"]);
+  expect(renderer.root.findByType("h3").children).toEqual(["Related threads"]);
   expect(text()).toContain("Previous agents");
   expect(renderer.root.findAllByProps({ "aria-label": "Open Checker chat" })).toHaveLength(0);
   await act(async () =>
@@ -693,7 +807,7 @@ it("shows the matching child agent details and refreshes them when the agent set
   expect(text()).not.toContain("tok");
   expect(text()).not.toContain("Unlinked agent");
   expect(text()).not.toContain("Active agents");
-  expect(renderer.root.findAllByProps({ type: "button", "aria-expanded": true })).toHaveLength(0);
+  expect(renderer.root.findAllByProps({ type: "button", "aria-expanded": true })).toHaveLength(1);
 
   state.projection = {
     ...projection,
@@ -708,7 +822,7 @@ it("shows the matching child agent details and refreshes them when the agent set
     ],
   };
   await act(async () => renderer.update(cloneElement(panel)));
-  expect(renderer.root.findByType("h3").children).toEqual(["Subagents"]);
+  expect(renderer.root.findByType("h3").children).toEqual(["Related threads"]);
   expect(text()).toContain("Previous agents (1)");
   expect(text()).not.toContain("Checker");
   await act(async () =>
@@ -769,6 +883,8 @@ it("shows the matching child agent details and refreshes them when the agent set
   };
   await act(async () => renderer.update(cloneElement(panel)));
   expect(text()).toContain("Subagents · 1 running");
+  await act(async () => groupHeader("Subagents").props.onClick());
+  expect(renderedText(groupHeader("Subagents"))).toBe("Subagents · 1 running (1)");
 });
 
 it("shows readable models and only differing workspace details in agent tooltips", async () => {
