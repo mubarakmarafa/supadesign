@@ -309,9 +309,9 @@ export const resolveServerConfig = (
         onSome: (value) => Effect.succeed(value),
         onNone: () => {
           if (mode === "desktop") {
-            return Effect.succeed(ServerConfig.DEFAULT_PORT);
+            return Effect.succeed(NetService.DEFAULT_SERVER_PORT);
           }
-          return findAvailablePort(ServerConfig.DEFAULT_PORT);
+          return findAvailablePort(NetService.DEFAULT_SERVER_PORT);
         },
       },
     );

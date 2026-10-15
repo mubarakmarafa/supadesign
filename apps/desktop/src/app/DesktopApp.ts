@@ -36,7 +36,6 @@ import * as DesktopSnapShot from "../snapShot/DesktopSnapShot.ts";
 import * as DesktopWslBackend from "../wsl/DesktopWslBackend.ts";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 
-const DEFAULT_DESKTOP_BACKEND_PORT = 7373;
 const MAX_TCP_PORT = 65_535;
 const DESKTOP_BACKEND_PORT_PROBE_HOSTS = ["127.0.0.1", "0.0.0.0", "::"] as const;
 
@@ -84,7 +83,7 @@ const resolveDesktopBackendPort = Effect.fn("resolveDesktopBackendPort")(functio
   }
 
   const net = yield* NetService.NetService;
-  for (let port = DEFAULT_DESKTOP_BACKEND_PORT; port <= MAX_TCP_PORT; port += 1) {
+  for (let port = NetService.DEFAULT_SERVER_PORT; port <= MAX_TCP_PORT; port += 1) {
     let availableOnEveryHost = true;
 
     for (const host of DESKTOP_BACKEND_PORT_PROBE_HOSTS) {
@@ -103,7 +102,7 @@ const resolveDesktopBackendPort = Effect.fn("resolveDesktopBackendPort")(functio
   }
 
   return yield* new DesktopBackendPortUnavailableError({
-    startPort: DEFAULT_DESKTOP_BACKEND_PORT,
+    startPort: NetService.DEFAULT_SERVER_PORT,
     maxPort: MAX_TCP_PORT,
     hosts: DESKTOP_BACKEND_PORT_PROBE_HOSTS,
   });
@@ -209,7 +208,7 @@ const bootstrap = Effect.gen(function* () {
       : "using configured backend port",
     {
       port: backendPort,
-      ...(backendPortSelection.selectedByScan ? { startPort: DEFAULT_DESKTOP_BACKEND_PORT } : {}),
+      ...(backendPortSelection.selectedByScan ? { startPort: NetService.DEFAULT_SERVER_PORT } : {}),
     },
   );
 

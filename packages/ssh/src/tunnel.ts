@@ -46,7 +46,6 @@ import {
   SshReadinessError,
 } from "./errors.ts";
 
-const DEFAULT_REMOTE_PORT = 7373;
 const REMOTE_PORT_SCAN_WINDOW = 200;
 const SSH_READY_TIMEOUT_MS = 20_000;
 const SSH_READY_PROBE_TIMEOUT_MS = 1_000;
@@ -832,7 +831,7 @@ export function buildRemoteLaunchScript(input?: RemoteSupatermRunnerOptions): st
     SUPATERM_RUNNER_SCRIPT: stripTrailingNewlines(buildRemoteSupatermRunnerScript(input)),
     SUPATERM_PICK_PORT_SCRIPT: stripTrailingNewlines(REMOTE_PICK_PORT_SCRIPT),
     SUPATERM_WAIT_READY_SCRIPT: stripTrailingNewlines(REMOTE_WAIT_READY_SCRIPT),
-    SUPATERM_DEFAULT_REMOTE_PORT: String(DEFAULT_REMOTE_PORT),
+    SUPATERM_DEFAULT_REMOTE_PORT: String(NetService.DEFAULT_SERVER_PORT),
     SUPATERM_REMOTE_PORT_SCAN_WINDOW: String(REMOTE_PORT_SCAN_WINDOW),
     SUPATERM_READY_TIMEOUT_MS: String(REMOTE_READY_TIMEOUT_MS),
     SUPATERM_REUSE_READY_TIMEOUT_MS: String(REMOTE_REUSE_READY_TIMEOUT_MS),
