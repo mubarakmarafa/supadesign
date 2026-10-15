@@ -31,6 +31,17 @@ describe("selectGitHubBaseRepository", () => {
       select({ remotes: fork, resolved: "remote.origin.gh-resolved acme/other" }),
       { owner: "acme", name: "other" },
     );
+    assert.deepStrictEqual(
+      select({
+        remotes: remotes(
+          ["origin", "git@github.com:me/web.git"],
+          ["upstream", "https://github.com/acme/web.git"],
+          ["mirror", "git@gitlab.com:me/web.git"],
+        ),
+        resolved: "remote.origin.gh-resolved base",
+      }),
+      { owner: "me", name: "web" },
+    );
 
     assert.deepStrictEqual(
       select({
@@ -68,6 +79,13 @@ describe("selectGitHubBaseRepository", () => {
           ["upstream", "git@github.com:acme/web.git"],
         ),
         resolved: "remote.origin.gh-resolved base\nremote.upstream.gh-resolved base",
+      },
+      {
+        remotes: remotes(
+          ["origin", "git@github-work:me/web.git"],
+          ["upstream", "git@github.com:acme/web.git"],
+        ),
+        resolved: "remote.origin.gh-resolved base",
       },
     ]) {
       assert.strictEqual(select(input), null);

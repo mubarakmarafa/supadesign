@@ -1,7 +1,9 @@
 import type { RepositoryIdentity, SourceControlProviderError } from "@supaterm/contracts";
 import {
   detectSourceControlProviderFromGitRemoteUrl,
+  GH_RESOLVED_CONFIG_ARGS,
   normalizeGitRemoteUrl,
+  parseGhResolvedRemotes,
   parseGitRemoteFetchUrls,
 } from "@supaterm/shared/git";
 import * as Cache from "effect/Cache";
@@ -122,6 +124,29 @@ const resolveRepositoryIdentityCacheKey = Effect.fn("RepositoryIdentityResolver.
   },
 );
 
+/** The remote `gh repo set-default` made the base, where this checkout's pull requests go. */
+const readGhBaseRemote = Effect.fn("RepositoryIdentityResolver.readGhBaseRemote")(function* (
+  cacheKey: string,
+  remotes: ReadonlyMap<string, string>,
+) {
+  if (remotes.size < 2) return null;
+  const processRunner = yield* ProcessRunner.ProcessRunner;
+  const result = yield* processRunner
+    .run({
+      command: "git",
+      args: ["-C", cacheKey, ...GH_RESOLVED_CONFIG_ARGS],
+      timeoutBehavior: "timedOutResult",
+    })
+    .pipe(Effect.option);
+  if (result._tag === "None" || result.value.code !== 0) return null;
+  const [mark, ...others] = parseGhResolvedRemotes(result.value.stdout).filter(({ remoteName }) =>
+    remotes.has(remoteName),
+  );
+  if (mark?.resolution !== "base" || others.length > 0) return null;
+  const remoteUrl = remotes.get(mark.remoteName);
+  return remoteUrl === undefined ? null : { remoteName: mark.remoteName, remoteUrl };
+});
+
 const resolveRepositoryIdentityFromCacheKey = Effect.fn(
   "RepositoryIdentityResolver.resolveFromCacheKey",
 )(function* (
@@ -140,7 +165,7 @@ const resolveRepositoryIdentityFromCacheKey = Effect.fn(
   }
 
   const remotes = parseGitRemoteFetchUrls(remoteResult.value.stdout);
-  const remote = pickPrimaryRemote(remotes);
+  const remote = (yield* readGhBaseRemote(cacheKey, remotes)) ?? pickPrimaryRemote(remotes);
   return remote
     ? buildRepositoryIdentity({ ...remote, originUrl: remotes.get("origin"), rootPath: cacheKey })
     : null;

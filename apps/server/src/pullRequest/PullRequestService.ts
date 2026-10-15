@@ -3096,9 +3096,9 @@ export const make = Effect.gen(function* () {
 
   /**
    * A run named without a repository is read from the project's checkout, which picks the
-   * repository the way `gh` does there rather than by the project's identity: a fork's identity
-   * is its `upstream`, while `gh run watch` follows `gh repo set-default`. One named without a
-   * host is on the project's host.
+   * repository the way `gh` does there rather than by the project's identity, which only follows
+   * a `gh repo set-default` that chose one of the checkout's remotes. One named without a host is
+   * on the project's host.
    */
   const workflowRunCache = yield* Cache.makeWith(
     (key: string) => {

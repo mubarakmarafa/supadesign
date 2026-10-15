@@ -180,7 +180,7 @@ const make = Effect.gen(function* () {
     runId: string,
   ) {
     // The pull request was matched to the repository this remote names. In a checkout of a fork
-    // that is `upstream`, and the fork's own `origin` may be stale or lack the change.
+    // that is usually `upstream`, and the fork's own `origin` may be stale or lack the change.
     const remote = identityRemote ?? (yield* git.resolvePrimaryRemoteName(workspaceRoot));
     const fetch = (args: ReadonlyArray<string>) =>
       git.execute({

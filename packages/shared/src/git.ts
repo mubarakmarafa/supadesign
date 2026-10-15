@@ -285,6 +285,26 @@ export function parseGitRemoteFetchUrls(output: string): ReadonlyMap<string, str
   return fetchUrls;
 }
 
+/** `git config` arguments that list the remotes `gh repo set-default` marked. */
+export const GH_RESOLVED_CONFIG_ARGS = [
+  "config",
+  "--get-regexp",
+  "^remote\\..*\\.gh-resolved$",
+] as const;
+
+/**
+ * Parses `GH_RESOLVED_CONFIG_ARGS` output. A `base` resolution makes that remote's repository the
+ * base; any other resolution names the base repository as `owner/name`.
+ */
+export function parseGhResolvedRemotes(
+  output: string,
+): ReadonlyArray<{ readonly remoteName: string; readonly resolution: string }> {
+  return output.split("\n").flatMap((line) => {
+    const match = /^remote\.(.+)\.gh-resolved\s+(\S+)$/u.exec(line.trim());
+    return match ? [{ remoteName: match[1]!, resolution: match[2]! }] : [];
+  });
+}
+
 /**
  * Unquote a git config value: strip an inline `#` or `;` comment outside
  * quotes, then drop surrounding quotes and backslash escapes.

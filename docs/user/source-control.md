@@ -154,6 +154,10 @@ Open **Pull requests** to review changes and comments, request reviewers, check 
 or merge. You can edit review titles and descriptions and your own comments where the host allows it.
 GitLab calls these merge requests.
 
+A GitHub checkout with an `upstream` remote lists the upstream repository's pull requests. To list
+your own repository's instead, run `gh repo set-default` in the checkout and choose it. The list
+follows within about 15 minutes.
+
 On mobile, **Pull requests** lists reviews across your connected environments. Open a review
 to read its description, activity, commits, and changed files. Line comments stay as drafts
 until you submit the review. **Work on PR** opens a chat with the review attached; sending

@@ -347,6 +347,57 @@ it.layer(NodeServices.layer)("RepositoryIdentityResolverLive", (it) => {
     }).pipe(Effect.provide(RepositoryIdentityResolver.layer)),
   );
 
+  it.effect("follows the remote gh repo set-default made the base", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const cwd = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "supaterm-repository-identity-gh-base-test-",
+      });
+
+      yield* git(cwd, ["init"]);
+      yield* git(cwd, ["remote", "add", "origin", "git@github.com:julius/supaterm-fork.git"]);
+      yield* git(cwd, ["remote", "add", "upstream", "git@github.com:supabitapp/supacode-next.git"]);
+      yield* git(cwd, ["config", "remote.origin.gh-resolved", "base"]);
+
+      const resolver = yield* RepositoryIdentityResolver.RepositoryIdentityResolver;
+      const identity = yield* resolver.resolve(cwd);
+
+      expect(identity?.canonicalKey).toBe("github.com/julius/supaterm-fork");
+      expect(identity?.locator.remoteName).toBe("origin");
+      expect(identity?.origin).toBeUndefined();
+    }).pipe(Effect.provide(RepositoryIdentityResolver.layer)),
+  );
+
+  it.effect.each([
+    ["names another repository", [["origin", "acme/other"]]],
+    [
+      "marks several remotes",
+      [
+        ["origin", "base"],
+        ["upstream", "base"],
+      ],
+    ],
+  ] as const)("keeps upstream when gh repo set-default %s", ([, marks]) =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const cwd = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "supaterm-repository-identity-gh-fallback-test-",
+      });
+
+      yield* git(cwd, ["init"]);
+      yield* git(cwd, ["remote", "add", "origin", "git@github.com:julius/supaterm-fork.git"]);
+      yield* git(cwd, ["remote", "add", "upstream", "git@github.com:supabitapp/supacode-next.git"]);
+      for (const [remote, resolution] of marks)
+        yield* git(cwd, ["config", `remote.${remote}.gh-resolved`, resolution]);
+
+      const resolver = yield* RepositoryIdentityResolver.RepositoryIdentityResolver;
+      const identity = yield* resolver.resolve(cwd);
+
+      expect(identity?.canonicalKey).toBe("github.com/supabitapp/supacode-next");
+      expect(identity?.locator.remoteName).toBe("upstream");
+    }).pipe(Effect.provide(RepositoryIdentityResolver.layer)),
+  );
+
   it.effect("uses the last remote path segment as the repository name for nested groups", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
