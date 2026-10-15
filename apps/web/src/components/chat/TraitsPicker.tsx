@@ -36,9 +36,9 @@ import {
 } from "../ui/menu";
 import { useComposerDraftStore, DraftId } from "../../composerDraftStore";
 import { getProviderModelCapabilities } from "../../providerModels";
-import { cn } from "~/lib/utils";
+import { cn, isMacPlatform } from "~/lib/utils";
 import { Badge } from "../ui/badge";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, TooltipPopup, TooltipShortcutLabel, TooltipTrigger } from "../ui/tooltip";
 import {
   ComposerControl,
   ComposerControlChevron,
@@ -603,13 +603,13 @@ export const TraitsPicker = memo(function TraitsPicker({
             aria-pressed={speedOn}
             aria-label="Fast mode"
             disabled={disabled}
-            onClick={() =>
+            onClick={(event) =>
               updateModelOptions(
                 buildProviderOptionSelectionsFromDescriptors(
                   replaceDescriptorCurrentValue(
                     descriptors,
                     speedToggle.descriptorId,
-                    getSpeedToggleNextValue(speedToggle),
+                    getSpeedToggleNextValue(speedToggle, event.altKey),
                   ),
                 ),
               )
@@ -623,7 +623,20 @@ export const TraitsPicker = memo(function TraitsPicker({
           className={speedOn ? "fill-current text-fast-mode" : undefined}
         />
       </TooltipTrigger>
-      <TooltipPopup side="top">{SPEED_TOGGLE_LABELS[speedToggle.level]}</TooltipPopup>
+      <TooltipPopup side="top">
+        {speedToggle.ultrafastValue !== undefined ? (
+          <div className="grid gap-1.5 py-0.5">
+            <span className="font-medium">{SPEED_TOGGLE_LABELS[speedToggle.level]}</span>
+            <TooltipShortcutLabel
+              shortcut={isMacPlatform(navigator.platform) ? "⌥ Click" : "Alt+Click"}
+            >
+              Enable ultrafast
+            </TooltipShortcutLabel>
+          </div>
+        ) : (
+          SPEED_TOGGLE_LABELS[speedToggle.level]
+        )}
+      </TooltipPopup>
     </Tooltip>
   ) : null;
 
