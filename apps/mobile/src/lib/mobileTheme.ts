@@ -47,38 +47,23 @@ export function normalizeMobileThemeMode(value: unknown): MobileThemeMode {
 }
 
 export function resolveMobileThemeIds(preferences: {
-  readonly themeId?: unknown;
   readonly lightThemeId?: unknown;
   readonly darkThemeId?: unknown;
 }): MobileThemeIds {
-  const legacyThemeId = normalizeMobileThemeId(preferences.themeId);
   return {
-    light:
-      preferences.lightThemeId === undefined
-        ? legacyThemeId
-        : normalizeMobileThemeId(preferences.lightThemeId),
-    dark:
-      preferences.darkThemeId === undefined
-        ? legacyThemeId
-        : normalizeMobileThemeId(preferences.darkThemeId),
+    light: normalizeMobileThemeId(preferences.lightThemeId),
+    dark: normalizeMobileThemeId(preferences.darkThemeId),
   };
 }
 
 export function createMobileThemeSelectionPatch(
   themeIds: MobileThemeIds,
-  activeAppearance: MobileThemeAppearance,
   selectedAppearance: MobileThemeAppearance,
   value: MobileThemeId,
 ) {
-  const nextThemeIds: MobileThemeIds = {
-    light: selectedAppearance === "light" ? value : themeIds.light,
-    dark: selectedAppearance === "dark" ? value : themeIds.dark,
-  };
   return {
-    lightThemeId: nextThemeIds.light,
-    darkThemeId: nextThemeIds.dark,
-    // Keep older OTA bundles on the theme for the appearance currently in use.
-    themeId: nextThemeIds[activeAppearance],
+    lightThemeId: selectedAppearance === "light" ? value : themeIds.light,
+    darkThemeId: selectedAppearance === "dark" ? value : themeIds.dark,
   };
 }
 
@@ -86,7 +71,6 @@ export function createMobileThemePairPatch(value: MobileThemeId) {
   return {
     lightThemeId: value,
     darkThemeId: value,
-    themeId: value,
   };
 }
 

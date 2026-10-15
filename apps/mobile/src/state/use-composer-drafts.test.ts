@@ -174,7 +174,6 @@ import {
   flushComposerDrafts,
   getComposerDraftSnapshot,
   mergeComposerDraftContentState,
-  migrateLegacyNewTaskDraft,
   modelOptionMemoryAtom,
   releaseUnusedComposerAttachmentFiles,
   removeComposerDraftsForEnvironment,
@@ -1576,7 +1575,7 @@ describe("mobile composer drafts", () => {
       decodePersistedComposerState({
         schemaVersion: 1,
         drafts: {
-          "new-task:environment-1:project-1": {
+          "new-task:draft-1": {
             text: "",
             attachments: [],
             modelSelection: {
@@ -1591,14 +1590,18 @@ describe("mobile composer drafts", () => {
               branch: "main",
               worktreePath: null,
             },
+            project: {
+              environmentId: "environment-1",
+              projectId: "project-1",
+              createdAt: "2026-09-05T12:00:00.000Z",
+            },
           },
         },
       }).drafts,
     );
     expect(hydrated).toHaveLength(1);
     const [key, draft] = hydrated[0]!;
-    // Legacy project keys are rewritten to id keys on load.
-    expect(key).toMatch(/^new-task:[0-9a-z-]+$/);
+    expect(key).toBe("new-task:draft-1");
     expect(draft).toEqual({
       text: "",
       attachments: [],
@@ -1617,11 +1620,11 @@ describe("mobile composer drafts", () => {
       project: {
         environmentId: "environment-1",
         projectId: "project-1",
-        createdAt: expect.any(String),
+        createdAt: "2026-09-05T12:00:00.000Z",
       },
     });
   });
-  it("keeps legacy content-only drafts and rejects invalid selector state", () => {
+  it("keeps content-only drafts and rejects invalid selector state", () => {
     expect(
       decodePersistedComposerState({
         schemaVersion: 1,
@@ -1651,6 +1654,11 @@ describe("mobile composer drafts", () => {
       text: "",
       attachments: [],
       importedShareIds: ["share-1"],
+      project: {
+        environmentId: EnvironmentId.make("environment-1"),
+        projectId: ProjectId.make("project-1"),
+        createdAt: "2026-09-05T12:00:00.000Z",
+      },
     };
     // The stale-model strip must not touch receipt-bearing drafts, and the
     // empty filter must keep them — or the same share would re-import after
@@ -1659,7 +1667,7 @@ describe("mobile composer drafts", () => {
       decodePersistedComposerState({
         schemaVersion: 1,
         drafts: {
-          "new-task:environment-1:project-1": {
+          "new-task:draft-1": {
             ...receiptDraft,
             modelSelection: {
               instanceId: "codex",
@@ -1681,75 +1689,11 @@ describe("mobile composer drafts", () => {
     const kept = Object.values(
       decodePersistedComposerState({
         schemaVersion: 1,
-        drafts: { "new-task:environment-1:project-1": receiptDraft },
+        drafts: { "new-task:draft-1": receiptDraft },
       }).drafts,
     );
     expect(kept).toHaveLength(1);
     expect(kept[0]).toMatchObject(receiptDraft);
-  });
-
-  it("decodes draft files that still carry a retired sign-out archive", () => {
-    const decoded = decodePersistedComposerState({
-      schemaVersion: 1,
-      drafts: { "environment-1:thread-1": DRAFT },
-      cloudAccountId: "account-1",
-      signedOutDrafts: {
-        "account-1": {
-          drafts: { "environment-2:thread-2": { text: "archived", attachments: [] } },
-          queuedMessages: [],
-        },
-      },
-    });
-    expect(decoded).toEqual({
-      drafts: { "environment-1:thread-1": DRAFT },
-      modelOptionMemory: {},
-      stickyModelSelection: null,
-      stickyNewTaskProject: null,
-    });
-  });
-
-  it("migrates project-keyed new-task drafts to id keys with the project stamped in", () => {
-    const now = "2026-09-05T12:00:00.000Z";
-    const [key, draft] = migrateLegacyNewTaskDraft(
-      "new-task:environment-1:project-1",
-      { text: "keep me", attachments: [] },
-      now,
-    );
-    // The new key has no colon after the prefix, so it can never be
-    // mistaken for the legacy shape on the next load.
-    expect(key).toMatch(/^new-task:[0-9a-z-]+$/);
-    expect(draft).toEqual({
-      text: "keep me",
-      attachments: [],
-      project: {
-        environmentId: EnvironmentId.make("environment-1"),
-        projectId: ProjectId.make("project-1"),
-        createdAt: now,
-      },
-    });
-
-    // Already-migrated, thread, and pending-task keys pass through untouched.
-    const stamped: ComposerDraft = {
-      text: "x",
-      attachments: [],
-      project: {
-        environmentId: EnvironmentId.make("environment-1"),
-        projectId: ProjectId.make("project-1"),
-        createdAt: now,
-      },
-    };
-    expect(migrateLegacyNewTaskDraft("new-task:some-id", stamped, now)).toEqual([
-      "new-task:some-id",
-      stamped,
-    ]);
-    expect(migrateLegacyNewTaskDraft("environment-1:thread-1", DRAFT, now)).toEqual([
-      "environment-1:thread-1",
-      DRAFT,
-    ]);
-    expect(migrateLegacyNewTaskDraft("pending-task:message-1", DRAFT, now)).toEqual([
-      "pending-task:message-1",
-      DRAFT,
-    ]);
   });
 
   it("keeps a freshly minted new-task draft bound until content arrives, then lists it per project", () => {

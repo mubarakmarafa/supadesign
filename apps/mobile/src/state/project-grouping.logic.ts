@@ -12,22 +12,13 @@ export function resolveMobileProjectGroupingSettings(
   preferences: Preferences,
 ): ProjectGroupingSettings {
   return {
-    sidebarProjectGroupingMode:
-      preferences.projectGroupingMode ??
-      (preferences.projectGroupingEnabled === false ? "separate" : "repository"),
+    sidebarProjectGroupingMode: preferences.projectGroupingMode ?? "repository",
     sidebarProjectGroupingOverrides: {},
   };
 }
 
-/**
- * Dual-writes the legacy boolean for one release so an OTA rollback to an
- * older mobile bundle preserves the user's grouping choice.
- */
 export function mobileProjectGroupingModePatch(
   mode: SidebarProjectGroupingMode,
 ): Partial<Preferences> {
-  return {
-    projectGroupingMode: mode,
-    projectGroupingEnabled: mode !== "separate",
-  };
+  return { projectGroupingMode: mode };
 }

@@ -1,7 +1,6 @@
 import { EnvironmentId, type ServerConfig } from "@supaterm/contracts";
 import { clampFileAttachmentUploadBytes } from "@supaterm/client-runtime/state/attachments";
 
-import { parseLegacyNewTaskDraftKey } from "../state/new-task-draft-key";
 import type { DraftComposerAttachment } from "./composerImages";
 
 export interface ComposerAttachmentUploadRequest {
@@ -24,8 +23,7 @@ export function composerAttachmentUploadKey(
 /**
  * Which environment a composer draft belongs to. Thread drafts carry it in
  * the key; pending-task editor drafts borrow it from the queued message;
- * new-task drafts carry it in their project stamp (legacy project-keyed
- * new-task drafts still parse from the key until they are migrated on load).
+ * new-task drafts carry it in their project stamp.
  */
 export function composerDraftEnvironmentId(
   draftKey: string,
@@ -42,11 +40,7 @@ export function composerDraftEnvironmentId(
     );
   }
   if (draftKey.startsWith("new-task:")) {
-    if (draft?.project) {
-      return draft.project.environmentId;
-    }
-    const legacy = parseLegacyNewTaskDraftKey(draftKey);
-    return legacy === null ? null : EnvironmentId.make(legacy.environmentId);
+    return draft?.project?.environmentId ?? null;
   }
   const separator = draftKey.lastIndexOf(":");
   return separator > 0 ? EnvironmentId.make(draftKey.slice(0, separator)) : null;

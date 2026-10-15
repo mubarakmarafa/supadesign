@@ -24,18 +24,6 @@ public final class SupatermNativeControlsModule: Module {
       Events("onMetricsChange")
     }
 
-    View(SupatermWorkspaceDockView.self) {
-      ViewName("WorkspaceDock")
-      Events("onTabSelected", "onCompose", "onFilterAction", "onHeightChange")
-      Prop("selectedTab") { (view: SupatermWorkspaceDockView, value: String) in view.selectedTab = value }
-      Prop("showTabs") { (view: SupatermWorkspaceDockView, value: Bool) in view.showTabs = value }
-      Prop("filterCustomized") { (view: SupatermWorkspaceDockView, value: Bool) in view.filterCustomized = value }
-      Prop("filterLabel") { (view: SupatermWorkspaceDockView, value: String) in view.filterLabel = value }
-      Prop("filterTitle") { (view: SupatermWorkspaceDockView, value: String) in view.filterTitle = value }
-      Prop("filterActions") { (view: SupatermWorkspaceDockView, value: [[String: Any]]) in view.filterActions = value }
-      Prop("appearance") { (view: SupatermWorkspaceDockView, value: String) in view.appearance = value }
-    }
-
     AsyncFunction("presentVideo") { (url: URL, title: String, sourceIdentifier: String, identifier: String, promise: Promise) in
       try self.presentVideo(
         url: url,

@@ -55,13 +55,11 @@ const isPullRequestListPreferences = Schema.is(PullRequestListPreferences);
 export interface Preferences {
   readonly pullRequestHideTestFiles?: boolean;
   readonly pullRequestMergeMethod?: PullRequestMergeMethod;
-  readonly themeId?: MobileThemeId;
   readonly lightThemeId?: MobileThemeId;
   readonly darkThemeId?: MobileThemeId;
   readonly themeMode?: MobileThemeMode;
   readonly baseFontSize?: number;
   readonly terminalFontSize?: number | null;
-  readonly markdownFontSize?: number;
   readonly codeFontSize?: number | null;
   readonly codeWordBreak?: boolean;
   readonly collapsedProjectGroups?: readonly string[];
@@ -75,8 +73,6 @@ export interface Preferences {
   readonly followUpBehavior?: FollowUpBehavior;
   /** Microphone kinds and remembered devices, most preferred first. iOS only. */
   readonly microphones?: ReadonlyArray<MicrophoneEntry>;
-  /** @deprecated Kept temporarily so older OTA bundles retain the selected mode. */
-  readonly projectGroupingEnabled?: boolean;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
   /** @deprecated Retained to migrate favorites to the connected environment. */
   readonly modelFavorites?: ReadonlyArray<{
@@ -134,13 +130,11 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   const preferences: {
     pullRequestHideTestFiles?: boolean;
     pullRequestMergeMethod?: PullRequestMergeMethod;
-    themeId?: MobileThemeId;
     lightThemeId?: MobileThemeId;
     darkThemeId?: MobileThemeId;
     themeMode?: MobileThemeMode;
     baseFontSize?: number;
     terminalFontSize?: number | null;
-    markdownFontSize?: number;
     codeFontSize?: number | null;
     codeWordBreak?: boolean;
     collapsedProjectGroups?: readonly string[];
@@ -148,7 +142,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     showSkillsInSlashMenu?: boolean;
     followUpBehavior?: FollowUpBehavior;
     microphones?: ReadonlyArray<MicrophoneEntry>;
-    projectGroupingEnabled?: boolean;
     projectGroupingMode?: SidebarProjectGroupingMode;
     modelFavorites?: Preferences["modelFavorites"];
     threadListPinnedShelfExpanded?: boolean;
@@ -173,12 +166,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
 
   if (
-    typeof parsed.themeId === "string" &&
-    (MOBILE_THEME_IDS as readonly string[]).includes(parsed.themeId)
-  ) {
-    preferences.themeId = parsed.themeId as MobileThemeId;
-  }
-  if (
     typeof parsed.lightThemeId === "string" &&
     (MOBILE_THEME_IDS as readonly string[]).includes(parsed.lightThemeId)
   ) {
@@ -200,9 +187,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   if (typeof parsed.baseFontSize === "number") preferences.baseFontSize = parsed.baseFontSize;
   if (typeof parsed.terminalFontSize === "number" || parsed.terminalFontSize === null) {
     preferences.terminalFontSize = parsed.terminalFontSize;
-  }
-  if (typeof parsed.markdownFontSize === "number") {
-    preferences.markdownFontSize = parsed.markdownFontSize;
   }
   if (typeof parsed.codeFontSize === "number" || parsed.codeFontSize === null) {
     preferences.codeFontSize = parsed.codeFontSize;
@@ -230,9 +214,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
         ? [{ kind: entry.kind, uid: entry.uid, name: entry.name }]
         : [];
     });
-  }
-  if (typeof parsed.projectGroupingEnabled === "boolean") {
-    preferences.projectGroupingEnabled = parsed.projectGroupingEnabled;
   }
   if (
     parsed.projectGroupingMode === "repository" ||
@@ -415,24 +396,6 @@ export const make = Effect.fn("MobilePreferencesStore.make")(function* () {
           .pipe(
             Effect.catch((error) =>
               Effect.logWarning("Could not remove a stale mobile preferences fallback.").pipe(
-                Effect.annotateLogs({ error }),
-              ),
-            ),
-          );
-      }
-    }
-
-    if (parsed === null) {
-      const legacyJson = yield* secureStorage.getItem(PREFERENCES_KEY);
-      const legacyPreferences = parsePayload(legacyJson);
-      parsed = legacyPreferences;
-      if (legacyJson !== null && legacyPreferences !== null && databaseAvailable) {
-        yield* saveJson(legacyJson);
-        yield* secureStorage
-          .removeItem(PREFERENCES_KEY)
-          .pipe(
-            Effect.catch((error) =>
-              Effect.logWarning("Could not remove migrated mobile preferences.").pipe(
                 Effect.annotateLogs({ error }),
               ),
             ),

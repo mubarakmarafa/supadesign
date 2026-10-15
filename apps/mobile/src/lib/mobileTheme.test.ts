@@ -15,7 +15,6 @@ import {
 import { getMobileThemeRuntimeVariables } from "./mobileThemeVariables";
 
 import {
-  createMobileThemePairPatch,
   createMobileThemeSelectionPatch,
   createMobileThemeVariables,
   DEFAULT_MOBILE_THEME_ID,
@@ -359,7 +358,6 @@ describe("mobile themes", () => {
   });
 
   it("normalizes persisted theme preferences", () => {
-    expect(normalizeMobileThemeId("graphite")).toBe(DEFAULT_MOBILE_THEME_ID);
     expect(normalizeMobileThemeId("zenbones")).toBe("zenbones");
     expect(normalizeMobileThemeId("ocean")).toBe("ocean");
     expect(normalizeMobileThemeId("missing-theme")).toBe(DEFAULT_MOBILE_THEME_ID);
@@ -367,39 +365,26 @@ describe("mobile themes", () => {
     expect(normalizeMobileThemeMode("sepia")).toBe("system");
   });
 
-  it("migrates one theme choice to both appearances and preserves independent choices", () => {
-    expect(resolveMobileThemeIds({ themeId: "grove" })).toEqual({
-      light: "grove",
-      dark: "grove",
+  it("resolves independent appearance themes and falls back to the default", () => {
+    expect(resolveMobileThemeIds({ lightThemeId: "iris", darkThemeId: "ocean" })).toEqual({
+      light: "iris",
+      dark: "ocean",
     });
-    expect(
-      resolveMobileThemeIds({ themeId: "grove", lightThemeId: "iris", darkThemeId: "ocean" }),
-    ).toEqual({ light: "iris", dark: "ocean" });
-    expect(resolveMobileThemeIds({ themeId: "grove", lightThemeId: "missing" })).toEqual({
+    expect(resolveMobileThemeIds({ lightThemeId: "missing" })).toEqual({
       light: DEFAULT_MOBILE_THEME_ID,
-      dark: "grove",
+      dark: DEFAULT_MOBILE_THEME_ID,
     });
   });
 
-  it("changes either theme without switching the active appearance", () => {
+  it("changes one appearance theme and keeps the other", () => {
     const themeIds = { light: "supaterm-chat", dark: "grove" } as const;
-    expect(createMobileThemeSelectionPatch(themeIds, "light", "dark", "ocean")).toEqual({
+    expect(createMobileThemeSelectionPatch(themeIds, "dark", "ocean")).toEqual({
       lightThemeId: "supaterm-chat",
       darkThemeId: "ocean",
-      themeId: "supaterm-chat",
     });
-    expect(createMobileThemeSelectionPatch(themeIds, "light", "light", "iris")).toEqual({
+    expect(createMobileThemeSelectionPatch(themeIds, "light", "iris")).toEqual({
       lightThemeId: "iris",
       darkThemeId: "grove",
-      themeId: "iris",
-    });
-  });
-
-  it("changes both appearance themes from the card action", () => {
-    expect(createMobileThemePairPatch("ember")).toEqual({
-      lightThemeId: "ember",
-      darkThemeId: "ember",
-      themeId: "ember",
     });
   });
 
