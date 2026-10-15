@@ -1,9 +1,4 @@
-import {
-  scopeProjectRef,
-  scopedThreadKey,
-  scopeThreadRef,
-} from "@supaterm/client-runtime/environment";
-import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
+import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 
 import { pullRequestDetailToVcsStatus } from "@supaterm/client-runtime/state/pull-requests";
 import {
@@ -45,11 +40,9 @@ import { useEnvironmentQuery } from "../state/query";
 import { linkedPullRequestDetailAtom, useSharedPullRequestSummary } from "../state/pullRequests";
 import { useThreadRunningTerminalIds } from "../state/terminalSessions";
 import { vcsEnvironment } from "../state/vcs";
-import { useUiStateStore } from "../uiStateStore";
 import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import {
   pullRequestMatchesSearchQuery,
-  resolveThreadLastVisitedAt,
   resolveThreadStatusPill,
   type ThreadStatusPill,
   useRetainedValue,
@@ -90,21 +83,17 @@ export interface LinkedThreadPullRequestStatus {
   readonly sourceControlProvider: NonNullable<VcsStatusResult["sourceControlProvider"]>;
 }
 
-/** Linked badges use persisted snapshots; only branch and legacy fallbacks lease summary reads. */
 export function useLinkedThreadPullRequest(
   environmentId: EnvironmentId | null,
-  linkedPullRequest: ThreadLinkedPullRequest | null | undefined,
-  enabled = true,
-  pullRequests?: ReadonlyArray<ThreadPullRequestLink>,
+  pullRequests: ReadonlyArray<ThreadPullRequestLink> | undefined,
   branchPullRequest?: ThreadLinkedPullRequest | null,
+  enabled = true,
 ): LinkedThreadPullRequestStatus | null {
-  const supportsLinks = useSupportsMultiplePullRequests(environmentId);
   const current = useMemo(
-    () => (supportsLinks ? resolveThreadCurrentPullRequestLink(pullRequests ?? []) : null),
-    [pullRequests, supportsLinks],
+    () => resolveThreadCurrentPullRequestLink(pullRequests ?? []),
+    [pullRequests],
   );
-  const fallback =
-    current === null ? ((!supportsLinks ? linkedPullRequest : null) ?? branchPullRequest) : null;
+  const fallback = current === null ? branchPullRequest : null;
   // Stable per link: the shared summary effect keys on this object, and a sidebar row must not
   // touch the cache on every render.
   const reference = useMemo(() => {
@@ -927,11 +916,7 @@ export function ThreadRowLeadingStatus({
     (node: HTMLSpanElement | null) => rowRef(node?.parentElement ?? null),
     [rowRef],
   );
-  const threadRef = scopeThreadRef(thread.environmentId, thread.id);
-  const localLastVisitedAt = useUiStateStore(
-    (state) => state.threadLastVisitedAtById[scopedThreadKey(threadRef)],
-  );
-  const lastVisitedAt = resolveThreadLastVisitedAt(thread.lastVisitedAt, localLastVisitedAt);
+  const lastVisitedAt = thread.lastVisitedAt ?? undefined;
   const threadProject = useProject(
     useMemo(
       () => scopeProjectRef(thread.environmentId, thread.projectId),
@@ -942,7 +927,8 @@ export function ThreadRowLeadingStatus({
   const gitCwd = thread.worktreePath ?? threadProjectCwd;
   const linkedPullRequest = useLinkedThreadPullRequest(
     thread.environmentId,
-    thread.linkedPullRequest,
+    thread.pullRequests,
+    thread.branchPullRequest,
     leaseLiveStatus,
   );
   const gitStatus = useEnvironmentQuery(
@@ -978,11 +964,7 @@ export function ThreadRowLeadingStatus({
     },
   });
 
-  const supportsMultiplePullRequests = useSupportsMultiplePullRequests(thread.environmentId);
-  const pendingLink =
-    pr === null && supportsMultiplePullRequests
-      ? resolveThreadCurrentPullRequestLink(thread.pullRequests)
-      : null;
+  const pendingLink = pr === null ? resolveThreadCurrentPullRequestLink(thread.pullRequests) : null;
 
   return (
     <span
@@ -1127,24 +1109,20 @@ export function ThreadSearchPullRequestNumber({
   const matchedLink = visibleThreadPullRequests(thread.pullRequests).find((pr) =>
     pullRequestMatchesSearchQuery({ pullRequests: [pr] }, query),
   );
-  const fallbackCandidates =
-    thread.pullRequests.length === 0
-      ? [thread.linkedPullRequest, thread.branchPullRequest]
-      : [thread.branchPullRequest];
-  const legacyReference = matchedLink
-    ? undefined
-    : fallbackCandidates.find(
-        (pr) => pr != null && pullRequestMatchesSearchQuery({ linkedPullRequest: pr }, query),
-      );
-  const legacyStatus = useLinkedThreadPullRequest(
+  const branchReference =
+    matchedLink == null &&
+    thread.branchPullRequest != null &&
+    pullRequestMatchesSearchQuery({ branchPullRequest: thread.branchPullRequest }, query)
+      ? thread.branchPullRequest
+      : undefined;
+  const branchStatus = useLinkedThreadPullRequest(
     thread.environmentId,
-    legacyReference,
-    enabled,
     undefined,
-    legacyReference,
+    branchReference,
+    enabled,
   );
-  const reference = matchedLink ?? legacyReference;
-  const linked = matchedLink ? linkedPullRequestSnapshotStatus(matchedLink) : legacyStatus;
+  const reference = matchedLink ?? branchReference;
+  const linked = matchedLink ? linkedPullRequestSnapshotStatus(matchedLink) : branchStatus;
   const status = prStatusIndicator(linked?.pr ?? null, linked?.sourceControlProvider);
   return reference ? (
     <ThreadPullRequestNumber

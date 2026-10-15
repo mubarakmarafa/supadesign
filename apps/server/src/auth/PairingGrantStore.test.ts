@@ -1,4 +1,4 @@
-import { AuthAdministrativeScopes, AuthStandardClientScopes } from "@supaterm/contracts";
+import { AuthStandardClientScopes } from "@supaterm/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
 import * as Duration from "effect/Duration";
@@ -123,54 +123,6 @@ it.layer(NodeServices.layer)("PairingGrantStore.layer", (it) => {
         expect(failure.failure.message).toContain("Unknown bootstrap credential");
       }
     }).pipe(Effect.provide(layerPairingGrantStore())),
-  );
-
-  it.effect("seeds the desktop bootstrap credential as a reusable grant", () =>
-    Effect.gen(function* () {
-      const bootstrapCredentials = yield* PairingGrantStore.PairingGrantStore;
-      const first = yield* bootstrapCredentials.consume("desktop-bootstrap-token");
-      const second = yield* bootstrapCredentials.consume("desktop-bootstrap-token");
-      const third = yield* bootstrapCredentials.consume("desktop-bootstrap-token");
-
-      expect(first.method).toBe("desktop-bootstrap");
-      expect(first.scopes).toEqual(AuthAdministrativeScopes);
-      expect(first.subject).toBe("desktop-bootstrap");
-      expect(second.method).toBe("desktop-bootstrap");
-      expect(third.method).toBe("desktop-bootstrap");
-    }).pipe(
-      Effect.provide(
-        layerPairingGrantStore({
-          desktopBootstrapToken: "desktop-bootstrap-token",
-        }),
-      ),
-    ),
-  );
-
-  it.effect("reports seeded desktop bootstrap credentials as expired after their ttl", () =>
-    Effect.gen(function* () {
-      const bootstrapCredentials = yield* PairingGrantStore.PairingGrantStore;
-
-      // The desktop-bootstrap grant lives for 24h. Within that window
-      // it stays reusable.
-      yield* TestClock.adjust(Duration.hours(12));
-      const stillValid = yield* bootstrapCredentials.consume("desktop-bootstrap-token");
-      expect(stillValid.method).toBe("desktop-bootstrap");
-
-      yield* TestClock.adjust(Duration.hours(13));
-      const expired = yield* Effect.flip(bootstrapCredentials.consume("desktop-bootstrap-token"));
-
-      expect(expired._tag).toBe("ExpiredBootstrapCredentialError");
-      expect(expired.message).toContain("Bootstrap credential expired");
-    }).pipe(
-      Effect.provide(
-        Layer.merge(
-          layerPairingGrantStore({
-            desktopBootstrapToken: "desktop-bootstrap-token",
-          }),
-          TestClock.layer(),
-        ),
-      ),
-    ),
   );
 
   it.effect("accepts rotating desktop bootstrap tokens derived from the desktop secret", () =>

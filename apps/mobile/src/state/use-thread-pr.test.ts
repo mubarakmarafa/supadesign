@@ -157,71 +157,36 @@ describe("presentThreadLinkedPullRequests", () => {
 });
 
 describe("resolveThreadPrSource compatibility", () => {
-  const legacyRef = {
-    projectId: ProjectId.make("project"),
-    repository: "supabitapp/supacode-next",
-    number: 1,
-    url: "https://github.com/supabitapp/supacode-next/pull/1",
-  };
   const branchRef = {
-    ...legacyRef,
+    projectId: ProjectId.make("project"),
+    repository: "example/repo",
     number: 2,
-    url: "https://github.com/supabitapp/supacode-next/pull/2",
+    url: "https://github.com/example/repo/pull/2",
   };
 
-  it("polls the legacy reference when only the older linking capability exists", () => {
+  it("uses persisted snapshots without polling", () => {
     expect(
-      resolveThreadPrSource(
-        { pullRequests: [], linkedPullRequest: legacyRef, branchPullRequest: branchRef },
-        { threadPullRequestLinking: true },
-      ),
-    ).toEqual({ linkedPresentation: null, pullRequestRef: legacyRef });
-  });
-
-  it("keeps the legacy reference for a server without either capability", () => {
-    expect(resolveThreadPrSource({ pullRequests: [], linkedPullRequest: legacyRef }, {})).toEqual({
-      linkedPresentation: null,
-      pullRequestRef: legacyRef,
-    });
-  });
-
-  it("ignores stale snapshots after reconnecting to a server without array support", () => {
-    expect(
-      resolveThreadPrSource(
-        { pullRequests: [linkedPr(3)], linkedPullRequest: legacyRef },
-        { threadPullRequestLinking: true, threadPullRequests: false },
-      ),
-    ).toEqual({ linkedPresentation: null, pullRequestRef: legacyRef });
-  });
-
-  it("uses snapshots without polling when both capabilities are advertised", () => {
-    expect(
-      resolveThreadPrSource(
-        { pullRequests: [linkedPr(3)], linkedPullRequest: legacyRef, branchPullRequest: branchRef },
-        { threadPullRequestLinking: true, threadPullRequests: true },
-      ),
+      resolveThreadPrSource({ pullRequests: [linkedPr(3)], branchPullRequest: branchRef }),
     ).toMatchObject({ linkedPresentation: { number: 3 }, pullRequestRef: null });
   });
 
-  it("does not revive a removed modern link from the compatibility reference", () => {
-    expect(
-      resolveThreadPrSource(
-        { pullRequests: [], linkedPullRequest: legacyRef, branchPullRequest: branchRef },
-        { threadPullRequests: true },
-      ),
-    ).toEqual({ linkedPresentation: null, pullRequestRef: branchRef });
+  it("uses the branch reference when no linked pull requests remain", () => {
+    expect(resolveThreadPrSource({ pullRequests: [], branchPullRequest: branchRef })).toEqual({
+      linkedPresentation: null,
+      pullRequestRef: branchRef,
+    });
+    expect(resolveThreadPrSource({ pullRequests: [], branchPullRequest: null })).toEqual({
+      linkedPresentation: null,
+      pullRequestRef: null,
+    });
   });
 
-  it("does not poll when a modern link is waiting for its first snapshot", () => {
+  it("does not poll when a link is waiting for its first snapshot", () => {
     expect(
-      resolveThreadPrSource(
-        {
-          pullRequests: [linkedPr(3, { snapshot: null })],
-          linkedPullRequest: legacyRef,
-          branchPullRequest: branchRef,
-        },
-        { threadPullRequests: true },
-      ),
+      resolveThreadPrSource({
+        pullRequests: [linkedPr(3, { snapshot: null })],
+        branchPullRequest: branchRef,
+      }),
     ).toMatchObject({ linkedPresentation: { number: 3, state: null }, pullRequestRef: null });
   });
 });

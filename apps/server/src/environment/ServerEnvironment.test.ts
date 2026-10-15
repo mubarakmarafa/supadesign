@@ -65,13 +65,13 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const baseDir = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
       const prefix = `${baseDir}/node`;
-      const entry = `${prefix}/lib/node_modules/supaterm/dist/bin.mjs`;
-      yield* fs.makeDirectory(`${prefix}/lib/node_modules/supaterm/dist`, { recursive: true });
+      const entry = `${prefix}/lib/node_modules/supaterm/bin/supaterm.js`;
+      yield* fs.makeDirectory(`${prefix}/lib/node_modules/supaterm/bin`, { recursive: true });
       yield* fs.makeDirectory(`${prefix}/bin`, { recursive: true });
       yield* fs.writeFileString(entry, "");
       yield* fs.writeFileString(
         `${prefix}/lib/node_modules/supaterm/package.json`,
-        '{"name":"supaterm","version":"0.0.45","bin":{"supaterm":"./dist/bin.mjs"}}',
+        '{"name":"supaterm","version":"0.0.45","bin":{"supaterm":"./bin/supaterm.js"}}',
       );
       yield* fs.symlink(entry, `${prefix}/bin/supaterm`);
       const config = yield* makeServerConfig(baseDir);
@@ -187,20 +187,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
 
       expect(first.environmentId).toBe(second.environmentId);
       expect(first.orchestrationProtocolVersion).toBe(ORCHESTRATION_PROTOCOL_VERSION);
-      expect(second.capabilities.repositoryIdentity).toBe(true);
-      expect(second.capabilities.connectionProbe).toBe(true);
-      expect(second.capabilities.attachmentUploads).toBe(true);
       expect(second.capabilities.fileAttachments).toEqual({ maxUploadBytes: 50 * 1024 * 1024 });
-      expect(second.capabilities.pullRequests).toBe(true);
-      expect(second.capabilities.requiredWorktreeBootstrap).toBe(true);
-      expect(second.capabilities.usagePriceOverrides).toBe(true);
-      expect(second.capabilities.threadActiveReorder).toBe(true);
-      expect(second.capabilities.threadTitleRegeneration).toBe(true);
-      expect(second.capabilities.threadPullRequests).toBe(true);
-      expect(second.capabilities.threadPullRequestLinking).toBe(true);
-      expect(second.capabilities.serverResolvedCommandContext).toBe(true);
-      expect(second.capabilities.projectProviderInstanceOverrides).toBe(true);
-      expect(second.capabilities.modelPreferences).toBe(true);
     }),
   );
 
@@ -231,13 +218,11 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       expect(withFd.capabilities.serverSelfUpdateProgress).toBe(true);
       // v2 recovery terminalizes running runs on restart, so continuation
       // stays unadvertised until the v2 runtime carries the markers.
-      expect(withFd.capabilities.serverUpdateThreadContinuation).toBeUndefined();
 
       const withoutFd = yield* describeWith({ mode: "desktop" });
       expect(withoutFd.capabilities.serverSelfUpdate).toBe("desktop-managed");
       expect(withoutFd.capabilities.desktopAppUpdate).toBeUndefined();
       expect(withoutFd.capabilities.serverSelfUpdateProgress).toBeUndefined();
-      expect(withoutFd.capabilities.serverUpdateThreadContinuation).toBeUndefined();
 
       const web = yield* describeWith({ mode: "web", desktopTelemetryControlFd: 5 });
       expect(web.capabilities.desktopAppUpdate).toBeUndefined();

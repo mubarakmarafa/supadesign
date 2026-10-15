@@ -53,6 +53,7 @@ const makeDesktopBootstrap = (
   supatermHome: "/tmp/supaterm-bootstrap-home",
   host: "127.0.0.1",
   desktopBootstrapToken: "desktop-bootstrap-token",
+  desktopBootstrapSecret: "desktop-secret",
   tailscaleServeEnabled: false,
   tailscaleServePort: 443,
   ...overrides,
@@ -441,6 +442,12 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
         noBrowser: false,
         startupPresentation: "browser",
         desktopBootstrapToken: "desktop-bootstrap-token",
+        desktopBootstrapSecret: "desktop-secret",
+        desktopTelemetryFd: undefined,
+        desktopTelemetryControlFd: undefined,
+        desktopBrowserFd: undefined,
+        desktopBrowserControlFd: undefined,
+        resourceMonitorPath: undefined,
         autoBootstrapProjectFromCwd: false,
         logWebSocketEvents: false,
         tailscaleServeEnabled: false,
@@ -505,6 +512,9 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
       );
 
       expect(resolved).toEqual({
+        desktopBootstrapSecret: "desktop-secret",
+        desktopBrowserFd: undefined,
+        desktopBrowserControlFd: undefined,
         logLevel: "Info",
         ...defaultObservabilityConfig,
         otlpTracesUrl: "http://localhost:4318/v1/traces",
@@ -672,6 +682,12 @@ it.layer(NodeServices.layer)("cli config resolution", (it) => {
       );
 
       expect(resolved).toEqual({
+        desktopTelemetryFd: undefined,
+        desktopTelemetryControlFd: undefined,
+        resourceMonitorPath: undefined,
+        desktopBootstrapSecret: "desktop-secret",
+        desktopBrowserFd: undefined,
+        desktopBrowserControlFd: undefined,
         logLevel: "Debug",
         ...defaultObservabilityConfig,
         mode: "web",

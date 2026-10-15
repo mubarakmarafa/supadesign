@@ -220,18 +220,14 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
     });
   };
   const supportsProjectOverrides = targets.every(
-    (target) =>
-      target.environment.serverConfig.environment.capabilities.projectSettingsOverrides === true,
+    (target) => target.environment.serverConfig != null,
   );
   const disabled =
     !canWriteSettings ||
     pendingWrites > 0 ||
     !hasConnectedSelection ||
     (projectSelected && !supportsProjectOverrides);
-  const supportsContinuation = targets.every(
-    (target) =>
-      target.environment.serverConfig.environment.capabilities.threadRestartContinuation === true,
-  );
+  const supportsContinuation = targets.every((target) => target.environment.serverConfig != null);
   const disabledFor = (key: string) =>
     disabled ||
     (projectSelected &&

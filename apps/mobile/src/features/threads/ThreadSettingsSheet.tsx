@@ -1,9 +1,4 @@
 import { createV5StackNavigator as createNativeStackNavigator } from "../../native/createV5StackNavigator";
-import { DEFAULT_SERVER_SETTINGS } from "@supaterm/contracts";
-import {
-  modelPreferencesMigrationPatch,
-  resolveModelPreferences,
-} from "@supaterm/shared/serverSettings";
 import type {
   EnvironmentId,
   ModelSelection,
@@ -15,7 +10,7 @@ import type {
   ServerSettings,
 } from "@supaterm/contracts";
 import type { LegendListRenderItemProps } from "@legendapp/list/react-native";
-import { RegistryContext, useAtomSet, useAtomValue } from "@effect/atom-react";
+import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { AnimatedLegendList } from "@legendapp/list/reanimated";
 import { DisclosureChevron } from "../../components/DisclosureChevron";
 import { useThreadListMotion } from "./use-thread-list-motion";
@@ -80,7 +75,6 @@ import {
 import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
 import { ChatGptSharingStatus } from "./ChatGptSharingStatus";
 import { environmentServerConfigsAtom, serverEnvironment } from "../../state/server";
-import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useNewTaskFlow } from "./new-task-flow-provider";
 import { MaterialScreenContent } from "../../components/MaterialScreenContent";
@@ -321,7 +315,6 @@ type ThreadSettingsSessionValue = {
   readonly pendingHiddenKeys: ReadonlySet<string>;
   readonly manageHidden: boolean;
   readonly setManageHidden: (value: boolean) => void;
-  /** Older servers do not store hidden models, so nothing can be hidden on them. */
   readonly canManageHidden: boolean;
   readonly runtimeMode: RuntimeMode;
   readonly runtimeModeChoices: ReturnType<typeof runtimeModeChoicesForSupportedModes>;
@@ -353,13 +346,9 @@ function ThreadSettingsSessionProvider(
   props: ThreadSettingsSessionProps & { readonly children: ReactNode },
 ) {
   const registry = use(RegistryContext);
-  const preferences = useAtomValue(mobilePreferencesAtom);
   const configs = useAtomValue(environmentServerConfigsAtom);
   const config = props.environmentId ? configs.get(props.environmentId) : undefined;
   const settings = config?.settings;
-  // Older servers drop model preference writes, so favorites stay on this device for them.
-  const storesPreferences = config?.environment.capabilities.modelPreferences === true;
-  const savePreferences = useAtomSet(updateMobilePreferencesAtom);
   const [manageHidden, setManageHidden] = useState(false);
   const pendingHidden = useRef(new Set<string>());
   const pendingFavorites = useRef(
@@ -388,33 +377,9 @@ function ThreadSettingsSessionProvider(
     props.lockedProviderInstanceId,
     props.projectId,
   ]);
-  const legacyFavorites = AsyncResult.isSuccess(preferences)
-    ? (preferences.value.modelFavorites ?? EMPTY_MODEL_FAVORITES)
-    : EMPTY_MODEL_FAVORITES;
-  const favoritesLoaded =
-    settings !== undefined && (settings.favorites !== null || AsyncResult.isSuccess(preferences));
-  const modelFavorites = resolveModelPreferences(settings ?? DEFAULT_SERVER_SETTINGS, {
-    favorites: legacyFavorites,
-  }).favorites;
+  const favoritesLoaded = settings !== undefined;
+  const modelFavorites = settings?.favorites ?? EMPTY_MODEL_FAVORITES;
   const saveSettings = useAtomCommand(serverEnvironment.updateSettings, "model favorites update");
-  useEffect(() => {
-    if (
-      !props.environmentId ||
-      !settings ||
-      !storesPreferences ||
-      !AsyncResult.isSuccess(preferences)
-    )
-      return;
-    const patch = modelPreferencesMigrationPatch(settings, { favorites: legacyFavorites });
-    if (patch) void saveSettings({ environmentId: props.environmentId, input: { patch } });
-  }, [
-    legacyFavorites,
-    preferences,
-    props.environmentId,
-    saveSettings,
-    settings,
-    storesPreferences,
-  ]);
   const favoriteKeys = useMemo(
     () =>
       new Set(
@@ -425,30 +390,11 @@ function ThreadSettingsSessionProvider(
   const toggleFavorite = useCallback(
     async (option: ModelOption) => {
       if (!favoritesLoaded || !props.environmentId) return;
-      if (!storesPreferences) {
-        void Haptics.selectionAsync();
-        const { instanceId: provider, model } = option.selection;
-        savePreferences({
-          transform: (current) => {
-            const favorites = current.modelFavorites ?? EMPTY_MODEL_FAVORITES;
-            const isOption = (favorite: (typeof favorites)[number]) =>
-              favorite.provider === provider && favorite.model === model;
-            return {
-              modelFavorites: favorites.some(isOption)
-                ? favorites.filter((favorite) => !isOption(favorite))
-                : [...favorites, { provider, model }],
-            };
-          },
-        });
-        return;
-      }
       const currentSettings = registry
         .get(environmentServerConfigsAtom)
         .get(props.environmentId)?.settings;
       if (!currentSettings) return;
-      const favorites = resolveModelPreferences(currentSettings, {
-        favorites: legacyFavorites,
-      }).favorites;
+      const favorites = currentSettings.favorites;
       const key = JSON.stringify([
         props.environmentId,
         option.selection.instanceId,
@@ -477,9 +423,6 @@ function ThreadSettingsSessionProvider(
                 favorite: pending.favorite,
               },
             ],
-            ...(currentSettings.favorites === null
-              ? { migrateModelPreferences: { favorites } }
-              : {}),
           },
         },
       });
@@ -507,15 +450,7 @@ function ThreadSettingsSessionProvider(
         }
       }
     },
-    [
-      favoritesLoaded,
-      legacyFavorites,
-      props.environmentId,
-      registry,
-      savePreferences,
-      saveSettings,
-      storesPreferences,
-    ],
+    [favoritesLoaded, props.environmentId, registry, saveSettings],
   );
   const toggleHidden = useCallback(
     (option: ModelOption) => {
@@ -673,7 +608,7 @@ function ThreadSettingsSessionProvider(
       providerGroups,
       manageHidden,
       setManageHidden,
-      canManageHidden: storesPreferences,
+      canManageHidden: favoritesLoaded,
       toggleHidden,
       pendingHiddenKeys,
       runtimeMode: compatibleRuntimeMode,
@@ -723,7 +658,6 @@ function ThreadSettingsSessionProvider(
       providerGroups,
       manageHidden,
       setManageHidden,
-      storesPreferences,
       toggleHidden,
       pendingHiddenKeys,
       runtimeModeChoices,

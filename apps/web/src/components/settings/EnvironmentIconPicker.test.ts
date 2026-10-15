@@ -3,10 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { resolveEnvironmentIconPickerLock } from "./EnvironmentIconPicker";
 
-const config = (environmentIcon: boolean | undefined) =>
-  ({
-    environment: { capabilities: environmentIcon === undefined ? {} : { environmentIcon } },
-  }) as unknown as ServerConfig;
+const config = { environment: { capabilities: {} } } as unknown as ServerConfig;
 
 describe("resolveEnvironmentIconPickerLock", () => {
   it("locks until the environment is connected", () => {
@@ -15,27 +12,18 @@ describe("resolveEnvironmentIconPickerLock", () => {
     ).toMatch(/Connect/);
   });
 
-  it("locks on servers that predate the setting, before looking at permissions", () => {
-    expect(
-      resolveEnvironmentIconPickerLock({
-        serverConfig: config(undefined),
-        operateAccess: "denied",
-      }),
-    ).toMatch(/too old/);
-  });
-
   it("locks when the session cannot operate the environment", () => {
     expect(
-      resolveEnvironmentIconPickerLock({ serverConfig: config(true), operateAccess: "denied" }),
+      resolveEnvironmentIconPickerLock({ serverConfig: config, operateAccess: "denied" }),
     ).toMatch(/cannot change/);
   });
 
   it("waits for a settings grant before allowing changes", () => {
     expect(
-      resolveEnvironmentIconPickerLock({ serverConfig: config(true), operateAccess: "pending" }),
+      resolveEnvironmentIconPickerLock({ serverConfig: config, operateAccess: "pending" }),
     ).toMatch(/cannot change/);
     expect(
-      resolveEnvironmentIconPickerLock({ serverConfig: config(true), operateAccess: "granted" }),
+      resolveEnvironmentIconPickerLock({ serverConfig: config, operateAccess: "granted" }),
     ).toBeNull();
   });
 });

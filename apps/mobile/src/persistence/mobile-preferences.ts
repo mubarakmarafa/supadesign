@@ -10,7 +10,6 @@ import {
   PullRequestInvolvement,
   PullRequestListFilters,
   PullRequestListState,
-  type ProviderInstanceId,
   type PullRequestMergeMethod,
   type SidebarProjectGroupingMode,
 } from "@supaterm/contracts";
@@ -74,11 +73,6 @@ export interface Preferences {
   /** Microphone kinds and remembered devices, most preferred first. iOS only. */
   readonly microphones?: ReadonlyArray<MicrophoneEntry>;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
-  /** @deprecated Retained to migrate favorites to the connected environment. */
-  readonly modelFavorites?: ReadonlyArray<{
-    readonly provider: ProviderInstanceId;
-    readonly model: string;
-  }>;
   readonly threadListPinnedShelfExpanded?: boolean;
   readonly threadListActiveShelfExpanded?: boolean;
   readonly threadListSettledShelfExpanded?: boolean;
@@ -143,7 +137,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     followUpBehavior?: FollowUpBehavior;
     microphones?: ReadonlyArray<MicrophoneEntry>;
     projectGroupingMode?: SidebarProjectGroupingMode;
-    modelFavorites?: Preferences["modelFavorites"];
     threadListPinnedShelfExpanded?: boolean;
     threadListActiveShelfExpanded?: boolean;
     threadListSettledShelfExpanded?: boolean;
@@ -221,17 +214,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     parsed.projectGroupingMode === "separate"
   ) {
     preferences.projectGroupingMode = parsed.projectGroupingMode;
-  }
-  if (Array.isArray(parsed.modelFavorites)) {
-    preferences.modelFavorites = parsed.modelFavorites.filter(
-      (favorite) =>
-        typeof favorite === "object" &&
-        favorite !== null &&
-        typeof favorite.provider === "string" &&
-        favorite.provider.length > 0 &&
-        typeof favorite.model === "string" &&
-        favorite.model.trim().length > 0,
-    );
   }
   if (typeof parsed.threadListPinnedShelfExpanded === "boolean") {
     preferences.threadListPinnedShelfExpanded = parsed.threadListPinnedShelfExpanded;

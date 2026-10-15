@@ -46,7 +46,7 @@ describe("SSH environment IPC", () => {
           platform: { os: "linux", arch: "x64" },
           serverVersion: "1.2.3",
           orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-          capabilities: { repositoryIdentity: true },
+          capabilities: {},
         });
       }),
     );
@@ -62,7 +62,7 @@ describe("SSH environment IPC", () => {
         platform: { os: "linux", arch: "x64" },
         serverVersion: "1.2.3",
         orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-        capabilities: { repositoryIdentity: true },
+        capabilities: {},
       });
       assert.deepEqual(requestUrls, ["http://127.0.0.1:41773/.well-known/supaterm/environment"]);
     }).pipe(Effect.provide(layer));

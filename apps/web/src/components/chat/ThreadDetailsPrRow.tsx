@@ -99,8 +99,7 @@ export function ThreadDetailsPrRow({
   onStopWatching?: (() => void) | undefined;
 }) {
   const serverConfigs = useServerConfigs();
-  const supportsPullRequests =
-    serverConfigs.get(environmentId)?.environment.capabilities.pullRequests === true;
+  const supportsPullRequests = serverConfigs.has(environmentId);
   const repository = sourceControlRepositorySelector(project?.repositoryIdentity);
   const reference: PullRequestRef | null =
     supportsPullRequests && project !== null
@@ -118,8 +117,7 @@ export function ThreadDetailsPrRow({
           input: { ...reference, allowStale: false },
         }),
   );
-  const supportsChecks =
-    serverConfigs.get(environmentId)?.environment.capabilities.pullRequestChecks === true;
+  const supportsChecks = serverConfigs.has(environmentId);
   const checksQuery = useEnvironmentQuery(
     supportsChecks && reference !== null && detailQuery.data !== null
       ? pullRequestEnvironment.checks({ environmentId, input: reference })

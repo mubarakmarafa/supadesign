@@ -16,7 +16,10 @@ vi.mock("../../state/server", () => ({
   },
 }));
 vi.mock("../../state/use-atom-command", () => ({
-  useAtomCommand: (command: unknown) => (command === "updateSettings" ? updateSettings : vi.fn()),
+  useAtomCommand: (command: unknown) =>
+    command === "updateSettings"
+      ? updateSettings
+      : vi.fn(async () => ({ _tag: "Success", value: { status: "reachable" } })),
 }));
 vi.mock("./SettingsScopeContext", () => ({
   useSettingsScope: () => ({

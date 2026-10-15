@@ -52,26 +52,9 @@ export function rememberEnabledProjectGroupingMode(mode: SidebarProjectGroupingM
 }
 
 export function hasChangedBackgroundActivitySettings(
-  settings: Pick<
-    UnifiedSettings,
-    | "backgroundActivity"
-    | "backgroundActivityProfile"
-    | "automaticGitFetchInterval"
-    | "providerHealthRefreshInterval"
-  >,
+  settings: Pick<UnifiedSettings, "backgroundActivity">,
 ): boolean {
-  return (
-    !Equal.equals(settings.backgroundActivity, DEFAULT_UNIFIED_SETTINGS.backgroundActivity) ||
-    settings.backgroundActivityProfile !== DEFAULT_UNIFIED_SETTINGS.backgroundActivityProfile ||
-    !Equal.equals(
-      settings.automaticGitFetchInterval,
-      DEFAULT_UNIFIED_SETTINGS.automaticGitFetchInterval,
-    ) ||
-    !Equal.equals(
-      settings.providerHealthRefreshInterval,
-      DEFAULT_UNIFIED_SETTINGS.providerHealthRefreshInterval,
-    )
-  );
+  return !Equal.equals(settings.backgroundActivity, DEFAULT_UNIFIED_SETTINGS.backgroundActivity);
 }
 
 type TypographySettings = Pick<

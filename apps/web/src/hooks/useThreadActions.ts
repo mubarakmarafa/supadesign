@@ -37,18 +37,11 @@ import { refreshArchivedThreadsForEnvironment } from "../lib/archivedThreadsStat
 import { releaseComposerDraftUploads } from "../lib/composerDraftUploads";
 import { readLocalApi } from "../localApi";
 import {
-  readEnvironmentSupportsAutoSettleOptOut,
-  readEnvironmentSupportsPinning,
-  readEnvironmentSupportsPinReorder,
-  readEnvironmentSupportsSettlement,
-  readEnvironmentSupportsSnooze,
-  readEnvironmentSupportsVisitedTracking,
   readEnvironmentThreadRefs,
   readProject,
   readThreadShell,
   readThreadShells,
 } from "../state/entities";
-import { useUiStateStore } from "../uiStateStore";
 import { clearThreadPreviewState } from "../previewStateStore";
 import { useTerminalUiStateStore } from "../terminalUiStateStore";
 import { buildThreadRouteParams, resolveThreadRouteRef } from "../threadRoutes";
@@ -70,30 +63,6 @@ export class ThreadArchiveBlockedError extends Schema.TaggedError<ThreadArchiveB
 ) {
   override get message(): string {
     return "Cannot archive while the provider is active.";
-  }
-}
-
-export class ThreadSettlementUnsupportedError extends Schema.TaggedError<ThreadSettlementUnsupportedError>()(
-  "ThreadSettlementUnsupportedError",
-  {
-    environmentId: EnvironmentId,
-    threadId: ThreadId,
-  },
-) {
-  override get message(): string {
-    return "This environment's server does not support settling yet. Update the server to use Settle.";
-  }
-}
-
-export class ThreadSnoozeUnsupportedError extends Schema.TaggedError<ThreadSnoozeUnsupportedError>()(
-  "ThreadSnoozeUnsupportedError",
-  {
-    environmentId: EnvironmentId,
-    threadId: ThreadId,
-  },
-) {
-  override get message(): string {
-    return "This environment's server does not support snoozing yet. Update the server to use Snooze.";
   }
 }
 
@@ -119,42 +88,6 @@ function topOfPinnedRunOrderKey(): string | undefined {
     if (firstKey === null || shell.pinOrderKey < firstKey) firstKey = shell.pinOrderKey;
   }
   return pinOrderKeyBetween(null, firstKey) ?? undefined;
-}
-
-export class ThreadAutoSettleOptOutUnsupportedError extends Schema.TaggedError<ThreadAutoSettleOptOutUnsupportedError>()(
-  "ThreadAutoSettleOptOutUnsupportedError",
-  {
-    environmentId: EnvironmentId,
-    threadId: ThreadId,
-  },
-) {
-  override get message(): string {
-    return "This environment's server does not support turning auto-settle off per thread yet. Update the server to use it.";
-  }
-}
-
-export class ThreadPinningUnsupportedError extends Schema.TaggedError<ThreadPinningUnsupportedError>()(
-  "ThreadPinningUnsupportedError",
-  {
-    environmentId: EnvironmentId,
-    threadId: ThreadId,
-  },
-) {
-  override get message(): string {
-    return "This environment's server does not support pinning yet. Update the server to use Pin.";
-  }
-}
-
-export class ThreadPinReorderUnsupportedError extends Schema.TaggedError<ThreadPinReorderUnsupportedError>()(
-  "ThreadPinReorderUnsupportedError",
-  {
-    environmentId: EnvironmentId,
-    threadId: ThreadId,
-  },
-) {
-  override get message(): string {
-    return "This environment's server does not support reordering pinned threads yet. Update the server to reorder pins.";
-  }
 }
 
 export async function requestThreadUnpinConfirmation(input: {
@@ -193,52 +126,39 @@ export async function navigateAfterThreadDeletion(navigate: () => Promise<void>)
 }
 
 /**
- * Marks a thread unread. Servers with visited tracking own the unread marker
- * (thread.mark-unread rewinds the server-side visited watermark, syncing the
- * marker to every device); older servers keep the browser-local marker.
+ * Marks a thread unread. thread.mark-unread rewinds the server-side visited
+ * watermark, syncing the marker to every device.
  */
 function useMarkThreadUnread() {
   const markThreadUnreadMutation = useAtomCommand(threadEnvironment.markUnread, {
     reportFailure: false,
   });
-  const markThreadUnreadLocal = useUiStateStore((state) => state.markThreadUnread);
   return useCallback(
     (target: ScopedThreadRef) => {
-      if (readEnvironmentSupportsVisitedTracking(target.environmentId)) {
-        void markThreadUnreadMutation({
-          environmentId: target.environmentId,
-          input: { threadId: target.threadId },
-        });
-        return;
-      }
-      const thread = readThreadShell(target);
-      markThreadUnreadLocal(scopedThreadKey(target), thread?.latestRun?.completedAt);
+      void markThreadUnreadMutation({
+        environmentId: target.environmentId,
+        input: { threadId: target.threadId },
+      });
     },
-    [markThreadUnreadLocal, markThreadUnreadMutation],
+    [markThreadUnreadMutation],
   );
 }
 
 /**
  * Clears a thread's Woke marker by recording a visit at the wake time.
- * Servers with visited tracking own the watermark (thread.visit keeps the
- * later of the stored and supplied values, so this syncs to every device);
- * older servers keep the browser-local watermark.
+ * thread.visit keeps the later of the stored and supplied values, so this
+ * syncs to every device.
  */
 export function useAcknowledgeThreadWoke() {
   const visitThreadMutation = useAtomCommand(threadEnvironment.visit, { reportFailure: false });
-  const markThreadVisited = useUiStateStore((state) => state.markThreadVisited);
   return useCallback(
     (target: ScopedThreadRef, wokeAt: string) => {
-      if (readEnvironmentSupportsVisitedTracking(target.environmentId)) {
-        void visitThreadMutation({
-          environmentId: target.environmentId,
-          input: { threadId: target.threadId, visitedAt: wokeAt },
-        });
-        return;
-      }
-      markThreadVisited(scopedThreadKey(target), wokeAt);
+      void visitThreadMutation({
+        environmentId: target.environmentId,
+        input: { threadId: target.threadId, visitedAt: wokeAt },
+      });
     },
-    [markThreadVisited, visitThreadMutation],
+    [visitThreadMutation],
   );
 }
 
@@ -308,7 +228,7 @@ export function useThreadActions() {
     (store) => store.clearProjectDraftThreadById,
   );
   const clearTerminalUiState = useTerminalUiStateStore((state) => state.clearTerminalUiState);
-  const markThreadVisited = useUiStateStore((state) => state.markThreadVisited);
+  const acknowledgeThreadWoke = useAcknowledgeThreadWoke();
   const router = useRouter();
   const handleNewThread = useNewThreadHandler();
   // Keep a ref so archiveThread can call handleNewThread without appearing in
@@ -389,7 +309,7 @@ export function useThreadActions() {
       }
       const wokeAt = threadWokeAt(thread, { now: new Date().toISOString() });
       if (wokeAt !== null) {
-        markThreadVisited(scopedThreadKey(threadRef), wokeAt);
+        acknowledgeThreadWoke(threadRef, wokeAt);
       }
       refreshArchivedThreadsForEnvironment(threadRef.environmentId);
       opts.onArchived?.();
@@ -416,7 +336,7 @@ export function useThreadActions() {
     [
       archiveThreadMutation,
       getCurrentRouteThreadRef,
-      markThreadVisited,
+      acknowledgeThreadWoke,
       resolveThreadTarget,
       unarchiveThread,
     ],
@@ -642,16 +562,6 @@ export function useThreadActions() {
 
   const unsettleThread = useCallback(
     async (target: ScopedThreadRef) => {
-      if (!readEnvironmentSupportsSettlement(target.environmentId)) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadSettlementUnsupportedError({
-              environmentId: target.environmentId,
-              threadId: target.threadId,
-            }),
-          ),
-        );
-      }
       ThreadUndo.invalidate("settle", scopedThreadKey(target));
       // reason "user" pins the thread active: auto-settle (PR merged /
       // inactivity) stays suppressed until real activity clears the pin.
@@ -666,16 +576,6 @@ export function useThreadActions() {
   /** Turns automatic settlement (inactivity, merged PR) on or off for one thread. */
   const setThreadAutoSettle = useCallback(
     async (target: ScopedThreadRef, enabled: boolean) => {
-      if (!readEnvironmentSupportsAutoSettleOptOut(target.environmentId)) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadAutoSettleOptOutUnsupportedError({
-              environmentId: target.environmentId,
-              threadId: target.threadId,
-            }),
-          ),
-        );
-      }
       return setThreadAutoSettleMutation({
         environmentId: target.environmentId,
         input: { threadId: target.threadId, enabled },
@@ -686,33 +586,15 @@ export function useThreadActions() {
 
   const pinThread = useCallback(
     async (target: ScopedThreadRef, opts: { orderKey?: string } = {}) => {
-      // Version skew: never send the command to a server that predates it.
-      if (!readEnvironmentSupportsPinning(target.environmentId)) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadPinningUnsupportedError({
-              environmentId: target.environmentId,
-              threadId: target.threadId,
-            }),
-          ),
-        );
-      }
       // Every pin path places the thread at the top of the arranged run:
       // callers with a better anchor (the sidebar, which knows the displayed
       // order) pass their own key; everyone else (chat header, context menus)
       // gets the default so the same action never places differently.
-      // orderKey rides only to servers that decode it; pre-reorder servers
-      // get the bare pin they understand and the thread stays keyless.
-      const orderKey = readEnvironmentSupportsPinReorder(target.environmentId)
-        ? (opts.orderKey ?? topOfPinnedRunOrderKey())
-        : undefined;
+      const orderKey = opts.orderKey ?? topOfPinnedRunOrderKey();
       ThreadUndo.invalidate("pin", scopedThreadKey(target));
       return pinThreadMutation({
         environmentId: target.environmentId,
-        input: {
-          threadId: target.threadId,
-          ...(orderKey !== undefined ? { orderKey } : {}),
-        },
+        input: { threadId: target.threadId, ...(orderKey !== undefined ? { orderKey } : {}) },
       });
     },
     [pinThreadMutation],
@@ -720,16 +602,6 @@ export function useThreadActions() {
 
   const unpinThread = useCallback(
     async (target: ScopedThreadRef) => {
-      if (!readEnvironmentSupportsPinning(target.environmentId)) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadPinningUnsupportedError({
-              environmentId: target.environmentId,
-              threadId: target.threadId,
-            }),
-          ),
-        );
-      }
       const thread = readThreadShell(target);
       const orderKey = thread?.pinOrderKey ?? undefined;
       const action = ThreadUndo.begin("pin", scopedThreadKey(target));
@@ -754,18 +626,6 @@ export function useThreadActions() {
 
   const settleThread = useCallback(
     async (target: ScopedThreadRef) => {
-      // Version skew: never send the command to a server that predates it —
-      // the raw protocol rejection would read as a random failure.
-      if (!readEnvironmentSupportsSettlement(target.environmentId)) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadSettlementUnsupportedError({
-              environmentId: target.environmentId,
-              threadId: target.threadId,
-            }),
-          ),
-        );
-      }
       const resolved = resolveThreadTarget(target);
       const wokeAt = resolved
         ? threadWokeAt(resolved.thread, { now: new Date().toISOString() })
@@ -789,7 +649,7 @@ export function useThreadActions() {
         return result;
       }
       if (wokeAt !== null) {
-        markThreadVisited(scopedThreadKey(target), wokeAt);
+        acknowledgeThreadWoke(target, wokeAt);
       }
       showThreadUndoNotice({
         action: "Settled",
@@ -817,7 +677,7 @@ export function useThreadActions() {
       return result;
     },
     [
-      markThreadVisited,
+      acknowledgeThreadWoke,
       pinThread,
       resolveThreadTarget,
       settleThreadMutation,
@@ -850,19 +710,6 @@ export function useThreadActions() {
 
   const reorderPinnedThread = useCallback(
     async (target: ScopedThreadRef, orderKey: string) => {
-      // Callers (the sidebar drag handler) only enable dragging on
-      // reorder-capable environments; this guard covers races around
-      // capability changes mid-drag.
-      if (!readEnvironmentSupportsPinReorder(target.environmentId)) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadPinReorderUnsupportedError({
-              environmentId: target.environmentId,
-              threadId: target.threadId,
-            }),
-          ),
-        );
-      }
       ThreadUndo.invalidate("pin", scopedThreadKey(target));
       return reorderPinnedThreadMutation({
         environmentId: target.environmentId,
@@ -874,16 +721,6 @@ export function useThreadActions() {
 
   const unsnoozeThread = useCallback(
     async (target: ScopedThreadRef) => {
-      if (!readEnvironmentSupportsSnooze(target.environmentId)) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadSnoozeUnsupportedError({
-              environmentId: target.environmentId,
-              threadId: target.threadId,
-            }),
-          ),
-        );
-      }
       ThreadUndo.invalidate("snooze", scopedThreadKey(target));
       return unsnoozeThreadMutation({
         environmentId: target.environmentId,
@@ -895,17 +732,6 @@ export function useThreadActions() {
 
   const snoozeThread = useCallback(
     async (target: ScopedThreadRef, snoozedUntil: string) => {
-      // Version skew: never send the command to a server that predates it.
-      if (!readEnvironmentSupportsSnooze(target.environmentId)) {
-        return AsyncResult.failure(
-          Cause.fail(
-            new ThreadSnoozeUnsupportedError({
-              environmentId: target.environmentId,
-              threadId: target.threadId,
-            }),
-          ),
-        );
-      }
       const resolved = resolveThreadTarget(target);
       // Blocked-on-you work and queued turns can't be snoozed away —
       // client-side twin of the server invariants so the UI rejects before

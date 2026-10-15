@@ -49,7 +49,6 @@ import { type DeepPartial, deepMerge } from "@supaterm/shared/Struct";
 import { fromJsonStringPretty, fromLenientJson } from "@supaterm/shared/schemaJson";
 import {
   applyServerSettingsPatch,
-  deriveLegacyProjectOverrides,
   fallbackTextGenerationModelSelection,
   isModelSelectionProviderEnabled,
 } from "@supaterm/shared/serverSettings";
@@ -123,7 +122,6 @@ const normalizeServerSettings = (
   encodeServerSettings(settings).pipe(
     Effect.flatMap(decodeServerSettings),
     Effect.map(foldProviderInstanceEnabledFlags),
-    Effect.map((next) => ({ ...next, ...deriveLegacyProjectOverrides(next) })),
     Effect.mapError(
       (cause) =>
         new ServerSettingsError({
@@ -220,18 +218,9 @@ export class ServerSettingsService extends Context.Service<
 
 const makeTest = (overrides: DeepPartial<ServerSettings> = {}) =>
   Effect.gen(function* () {
-    const { automaticGitFetchInterval, providerHealthRefreshInterval, ...overridesForMerge } =
-      overrides;
-    const merged = deepMerge(DEFAULT_SERVER_SETTINGS, overridesForMerge);
-    const initialSettings = yield* normalizeServerSettings({
-      ...merged,
-      ...(automaticGitFetchInterval !== undefined
-        ? { automaticGitFetchInterval: automaticGitFetchInterval as Duration.Duration }
-        : {}),
-      ...(providerHealthRefreshInterval !== undefined
-        ? { providerHealthRefreshInterval: providerHealthRefreshInterval as Duration.Duration }
-        : {}),
-    });
+    const initialSettings = yield* normalizeServerSettings(
+      deepMerge(DEFAULT_SERVER_SETTINGS, overrides),
+    );
     const currentSettingsRef = yield* Ref.make<ServerSettings>(initialSettings);
     const writeSemaphore = yield* Semaphore.make(1);
     const getSettings = Ref.get(currentSettingsRef).pipe(Effect.map(resolveTextGenerationProvider));
@@ -376,9 +365,8 @@ interface LegacyProjectSettingsRow {
 }
 
 /**
- * One-time fold of the legacy per-project fields into `projectSettingsOverrides`:
- * the three `project*Overrides` maps and the settings columns on the project
- * aggregate. Keys already present in the generic record win. Marked with
+ * One-time fold of the settings columns on the project aggregate into
+ * `projectSettingsOverrides`. Keys already present in the generic record win. Marked with
  * `projectSettingsFolded` so a later reset in the UI survives restarts.
  */
 function foldLegacyProjectSettings(
@@ -388,14 +376,7 @@ function foldLegacyProjectSettings(
   if (settings.projectSettingsFolded) return settings;
   // Nothing to fold yet (fresh install): leave the marker off so the file
   // stays sparse, and check again on the next load.
-  if (
-    rows.length === 0 &&
-    Object.keys(settings.projectAgentBrowserAccessOverrides).length === 0 &&
-    Object.keys(settings.projectAutoPullOverrides).length === 0 &&
-    Object.keys(settings.projectScriptOverrides).length === 0
-  ) {
-    return settings;
-  }
+  if (rows.length === 0) return settings;
   const entries: Record<string, ProjectSettingsOverrides> = {
     ...settings.projectSettingsOverrides,
   };
@@ -409,19 +390,6 @@ function foldLegacyProjectSettings(
     if (Object.hasOwn(entry, key)) return;
     entries[projectId] = { ...entry, [key]: value };
   };
-  for (const [projectId, value] of Object.entries(settings.projectAgentBrowserAccessOverrides)) {
-    set(projectId, "enableAgentBrowserAccess", value);
-  }
-  for (const [projectId, value] of Object.entries(settings.projectAutoPullOverrides)) {
-    set(projectId, "defaultAutoPull", value);
-  }
-  // A stored null meant "reset to machine defaults", which is now plain
-  // inheritance; the project's own aggregate scripts must not resurface.
-  const resetScripts = new Set<string>();
-  for (const [projectId, value] of Object.entries(settings.projectScriptOverrides)) {
-    if (value === null) resetScripts.add(projectId);
-    else set(projectId, "defaultProjectScripts", value);
-  }
   for (const row of rows) {
     const model = decodeModelSelectionJson(row.defaultModelSelection ?? "null");
     if (Option.isSome(model) && model.value !== null) {
@@ -432,7 +400,7 @@ function foldLegacyProjectSettings(
     }
     if (row.autoPull === 1) set(row.projectId, "defaultAutoPull", true);
     const scripts = decodeProjectScriptsJson(row.scripts);
-    if (Option.isSome(scripts) && scripts.value.length > 0 && !resetScripts.has(row.projectId)) {
+    if (Option.isSome(scripts) && scripts.value.length > 0) {
       set(row.projectId, "defaultProjectScripts", scripts.value);
     }
   }
@@ -443,7 +411,6 @@ function foldLegacyProjectSettings(
     ...settings,
     projectSettingsOverrides,
     projectSettingsFolded: true,
-    ...deriveLegacyProjectOverrides({ projectSettingsOverrides }),
   };
 }
 

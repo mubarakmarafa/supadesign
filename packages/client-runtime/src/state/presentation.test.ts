@@ -25,10 +25,10 @@ function entry(environmentId: EnvironmentId, label = environmentId as string) {
     profile: Option.none(),
   };
 }
-function config(pullRequests = false, cwd = "/workspace"): ServerConfig {
+function config(cwd = "/workspace"): ServerConfig {
   return {
     cwd,
-    environment: { capabilities: { pullRequests }, platform: { machine: "desktop" } },
+    environment: { capabilities: {}, platform: { machine: "desktop" } },
   } as ServerConfig;
 }
 function harness() {
@@ -81,7 +81,7 @@ describe("environment summary subscriptions", () => {
         states(FIRST),
         AsyncResult.success({ ...AVAILABLE_CONNECTION_STATE, phase: "connecting" }),
       );
-      h.registry.set(h.configs(FIRST), config(false, "/updated-config"));
+      h.registry.set(h.configs(FIRST), config("/updated-config"));
       expect(changes).toEqual({ first: 0, second: 0 });
 
       h.registry.set(
@@ -140,14 +140,14 @@ describe("environment summary subscriptions", () => {
     const initialLabels = h.registry.get(h.identitiesAtom);
     try {
       for (let i = 0; i < 20; i++) {
-        const next = config(false, `/workspace-${i}`);
+        const next = config(`/workspace-${i}`);
         h.registry.set(h.configs(FIRST), next);
         expect(h.registry.get(h.full.presentationsAtom).get(FIRST)?.serverConfig).toBe(next);
         expect(h.registry.get(h.environmentIdsAtom)).toBe(initialIds);
         expect(h.registry.get(h.identitiesAtom)).toBe(initialLabels);
         h.registry.get(h.environmentsAtom);
         expect(h.registry.get(h.machineByIdAtom).get(FIRST)).toBe("desktop");
-        expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(false);
+        expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(true);
       }
       expect(counts).toEqual({
         full: 20,
@@ -194,7 +194,7 @@ describe("environment summary subscriptions", () => {
       const connectionChanges = changes;
       expect(connectionChanges).toBeGreaterThan(0);
       for (let index = 0; index < 20; index++) {
-        h.registry.set(h.configs(FIRST), config(false, `/workspace-${index}`));
+        h.registry.set(h.configs(FIRST), config(`/workspace-${index}`));
         expect(h.registry.get(h.connectedEnvironmentIdsAtom)).toBe(connected);
       }
       expect(changes).toBe(connectionChanges);
@@ -228,15 +228,17 @@ describe("environment summary subscriptions", () => {
     }
   });
 
-  it("tracks capabilities across environments, config loss and removal", () => {
+  it("tracks loaded configs across environments, config loss and removal", () => {
     const h = harness();
     const stop = h.registry.subscribe(h.pullRequestsSupportedAtom, () => {});
     try {
+      h.registry.set(h.configs(FIRST), null);
+      h.registry.set(h.configs(SECOND), null);
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(false);
-      h.registry.set(h.configs(FIRST), config(true));
+      h.registry.set(h.configs(FIRST), config());
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(true);
-      // The first true result short-circuits: the second must be read when the first stops supporting it.
-      h.registry.set(h.configs(SECOND), config(true));
+      // The first true result short-circuits: the second must be read when the first loses its config.
+      h.registry.set(h.configs(SECOND), config());
       h.registry.set(h.configs(FIRST), null);
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(true);
       h.registry.set(h.catalog, { isReady: true, entries: new Map([[FIRST, entry(FIRST)]]) });
@@ -252,7 +254,7 @@ describe("environment summary subscriptions", () => {
       });
       expect(h.registry.get(h.environmentIdsAtom)).toEqual([SECOND, FIRST]);
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(true);
-      h.registry.set(h.configs(SECOND), config(false));
+      h.registry.set(h.configs(SECOND), null);
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(false);
       h.registry.set(h.catalog, { isReady: true, entries: new Map() });
       expect(h.registry.get(h.environmentIdsAtom)).toEqual([]);

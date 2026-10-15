@@ -83,7 +83,7 @@ export function usePullRequestPreviewTarget(environmentId: EnvironmentId | null,
       resolvePullRequestPreviewTarget({
         environmentId,
         projects,
-        pullRequestsEnabled: serverConfig?.environment.capabilities.pullRequests === true,
+        pullRequestsEnabled: serverConfig != null,
         url,
       }),
     [environmentId, projects, serverConfig, url],
@@ -153,9 +153,7 @@ export function useOpenChangeRequestLink(
       const resolvedPanelRef = panelRef ?? resolvedThreadRef;
       const parsed = parseChangeRequestUrl(targetUrl);
       if (parsed === null) return false;
-      const reads = (environmentId: string) =>
-        serverConfigs.get(environmentId as EnvironmentId)?.environment.capabilities.pullRequests ===
-        true;
+      const reads = (environmentId: string) => serverConfigs.has(environmentId as EnvironmentId);
       // Beside a thread the panel reads on that thread's environment, so a project from another
       // one could not be read there whatever its remote says: two environments can hold the same
       // repository, and handing the panel the wrong one's id opens a surface that never loads.
@@ -178,20 +176,14 @@ export function useOpenChangeRequestLink(
         exactProject ??
         (resolvedPanelRef
           ? findProjectOnChangeRequestHost(
-              projects.filter(
-                (candidate) =>
-                  serverConfigs.get(candidate.environmentId)?.environment.capabilities
-                    .threadPullRequests === true,
-              ),
+              projects.filter((candidate) => serverConfigs.has(candidate.environmentId)),
               parsed,
             )
           : undefined);
       if (project === undefined || !reads(project.environmentId)) return false;
-      const repository =
-        serverConfigs.get(project.environmentId)?.environment.capabilities.threadPullRequests ===
-        true
-          ? parsed.repository
-          : (sourceControlRepositorySelector(project.repositoryIdentity) ?? parsed.repository);
+      const repository = serverConfigs.has(project.environmentId)
+        ? parsed.repository
+        : (sourceControlRepositorySelector(project.repositoryIdentity) ?? parsed.repository);
       event.preventDefault();
       event.stopPropagation();
       if (resolvedPanelRef) {
@@ -201,8 +193,7 @@ export function useOpenChangeRequestLink(
             ? {}
             : { environmentId: project.environmentId }),
           projectId: project.id,
-          ...(serverConfigs.get(project.environmentId)?.environment.capabilities
-            .threadPullRequests === true
+          ...(serverConfigs.has(project.environmentId)
             ? { host: parsed.authority ?? parsed.host }
             : {}),
           repository,

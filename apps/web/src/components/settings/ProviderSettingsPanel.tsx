@@ -583,9 +583,7 @@ export function EnvironmentProviderSettings({
   // Older servers decode an unknown providerInstances key away, so sending
   // a project override patch would silently do nothing. Hide the switch
   // instead of offering a control that can never take effect.
-  const supportsProjectProviderOverrides =
-    useServerConfigs().get(environmentId)?.environment.capabilities
-      .projectProviderInstanceOverrides === true;
+  const supportsProjectProviderOverrides = useServerConfigs().has(environmentId);
   const refreshServerProviders = useAtomCommand(serverEnvironment.refreshProviders, {
     reportFailure: false,
   });
@@ -919,7 +917,7 @@ export function EnvironmentProviderSettings({
       hiddenModels: [],
       modelOrder: [],
     };
-    const favoriteModels = Arr.filterMap(settings.favorites ?? [], (favorite) =>
+    const favoriteModels = Arr.filterMap(settings.favorites, (favorite) =>
       favorite.provider === row.instanceId ? Result.succeed(favorite.model) : Result.failVoid,
     );
     const resetLabel = driverOption?.label ?? String(row.driver);

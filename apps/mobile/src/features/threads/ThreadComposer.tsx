@@ -488,9 +488,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
     threadShells: useThreadShells(),
     currentThreadId: props.selectedThread.id,
     projectCwd: props.projectCwd,
-    pullRequestProjectId: props.serverConfig?.environment.capabilities.pullRequests
-      ? (project?.id ?? null)
-      : null,
+    pullRequestProjectId: props.serverConfig != null ? (project?.id ?? null) : null,
     pullRequestRepository: project?.repositoryIdentity?.displayName ?? null,
     selectedProviderStatus,
     hasThread: true,
@@ -982,10 +980,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                     composerMenu.onSelectionChange(selection);
                   };
                   const capabilities = props.serverConfig?.environment.capabilities;
-                  const advertisedMax =
-                    capabilities?.attachmentUploads === true
-                      ? capabilities.fileAttachments?.maxUploadBytes
-                      : undefined;
+                  const advertisedMax = capabilities?.fileAttachments?.maxUploadBytes;
                   const maxBytes =
                     advertisedMax === undefined
                       ? null

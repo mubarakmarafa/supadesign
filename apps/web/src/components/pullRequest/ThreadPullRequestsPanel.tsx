@@ -328,11 +328,11 @@ function LinkRow({
 
 export function ThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
   const configs = useServerConfigs();
-  if (configs.get(threadRef.environmentId)?.environment.capabilities.threadPullRequests !== true) {
+  if (!configs.has(threadRef.environmentId)) {
     return (
       <PullRequestsUnavailableState
         title="Linked pull requests unavailable"
-        error="This environment does not support multiple linked pull requests."
+        error="This environment is not connected."
       />
     );
   }
@@ -357,8 +357,7 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
   const openLinkDialog = useCallback(() => openLinkPullRequestDialog(threadRef), [threadRef]);
   const unlink = useAtomCommand(threadEnvironment.unlinkPullRequest, { reportFailure: true });
   const watch = useAtomCommand(threadEnvironment.watchPullRequest, { reportFailure: true });
-  const capabilities = useServerConfigs().get(threadRef.environmentId)?.environment.capabilities;
-  const supportsWatch = capabilities?.threadPullRequestWatch === true;
+  const loaded = useServerConfigs().has(threadRef.environmentId);
   const links = useMemo(() => visibleThreadPullRequests(thread?.pullRequests ?? []), [thread]);
   const lines = useMemo(() => pullRequestListLines(resolveThreadPullRequestChains(links)), [links]);
   const handleUnlink = useCallback(
@@ -430,7 +429,7 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
               line={line}
               threadRef={threadRef}
               projectId={
-                capabilities?.pullRequests === true
+                loaded
                   ? (findProjectForChangeRequest(environmentProjects, line.link)?.id ??
                     thread?.projectId ??
                     null)
@@ -438,7 +437,7 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
               }
               speedMode={speedMode}
               onUnlink={handleUnlink}
-              onSetWatching={supportsWatch ? handleSetWatching : null}
+              onSetWatching={loaded ? handleSetWatching : null}
             />
           ))}
         </div>

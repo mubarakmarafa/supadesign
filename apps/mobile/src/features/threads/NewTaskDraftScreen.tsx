@@ -570,9 +570,8 @@ export function NewTaskDraftScreen(props: {
     ownerKey: flow.draftKey,
     environmentId: selectedProject?.environmentId ?? null,
     threadShells: useThreadShells(),
-    pullRequestProjectId: selectedEnvironmentServerConfig?.environment.capabilities.pullRequests
-      ? (selectedProject?.id ?? null)
-      : null,
+    pullRequestProjectId:
+      selectedEnvironmentServerConfig != null ? (selectedProject?.id ?? null) : null,
     pullRequestRepository: selectedProject?.repositoryIdentity?.displayName ?? null,
     projectCwd: composerWorkspaceCwd,
     selectedProviderStatus: flow.selectedProviderStatus,
@@ -1151,10 +1150,7 @@ export function NewTaskDraftScreen(props: {
         flow.draftKey && insertion
           ? countComposerDraftAttachmentsAfterSelection(flow.draftKey, insertion)
           : flow.attachments.length,
-      maxVideoBytes:
-        capabilities?.attachmentUploads === true
-          ? capabilities.fileAttachments?.maxUploadBytes
-          : undefined,
+      maxVideoBytes: capabilities?.fileAttachments?.maxUploadBytes,
     });
     const rejectedCount =
       result.attachments.length > 0 ? flow.appendAttachments(result.attachments, insertion) : 0;
@@ -1239,10 +1235,7 @@ export function NewTaskDraftScreen(props: {
         composerMenu.onSelectionChange(selection);
       };
       const capabilities = selectedEnvironmentServerConfig?.environment.capabilities;
-      const advertisedMax =
-        capabilities?.attachmentUploads === true
-          ? capabilities.fileAttachments?.maxUploadBytes
-          : undefined;
+      const advertisedMax = capabilities?.fileAttachments?.maxUploadBytes;
       const maxBytes =
         advertisedMax === undefined ? null : clampFileAttachmentUploadBytes(advertisedMax);
       const wouldExceedInputLimit =

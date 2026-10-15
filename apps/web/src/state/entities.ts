@@ -232,85 +232,15 @@ export async function waitForSidebarThreadShell(
   return resolved && appAtomRegistry.get(atom) === "ready";
 }
 
-/** Whether the environment hosts preview tabs in its own browser (`runtime: "server"`),
+/** Whether the environment can host preview tabs in its own browser (`runtime: "server"`),
     so clients without Electron can still use the Browser panel. */
 export function useEnvironmentSupportsServerBrowser(environmentId: EnvironmentId | null): boolean {
   const configs = useServerConfigs();
-  return (
-    environmentId !== null &&
-    configs.get(environmentId)?.environment.capabilities.serverBrowser === true
-  );
+  return environmentId !== null && configs.has(environmentId);
 }
 
 export function readEnvironmentSupportsServerBrowser(environmentId: EnvironmentId): boolean {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .serverBrowser === true
-  );
-}
-
-export function readEnvironmentSupportsTitleRegeneration(environmentId: EnvironmentId): boolean {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadTitleRegeneration === true
-  );
-}
-
-/** Whether the environment's server understands thread.pin/unpin.
-    Same version-skew contract as settlement. */
-export function readEnvironmentSupportsPinning(environmentId: EnvironmentId): boolean {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadPinning === true
-  );
-}
-
-/** Whether the environment's server understands thread.pin.reorder (and
-    orderKey on thread.pin). Same version-skew contract as settlement. */
-export function readEnvironmentSupportsPinReorder(environmentId: EnvironmentId): boolean {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadPinReorder === true
-  );
-}
-
-/** Whether the environment's server understands thread.auto-settle.set.
-    Same version-skew contract as settlement. */
-export function readEnvironmentSupportsAutoSettleOptOut(environmentId: EnvironmentId): boolean {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadAutoSettleOptOut === true
-  );
-}
-
-/** Whether the environment's server understands thread.settle/unsettle.
-    False for pre-settlement servers (capability defaults false on decode),
-    so clients under version skew fall back instead of erroring. */
-export function readEnvironmentSupportsSettlement(environmentId: EnvironmentId): boolean {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadSettlement === true
-  );
-}
-
-/** Whether the environment's server understands thread.snooze/unsnooze.
-    Same version-skew contract as settlement. */
-export function readEnvironmentSupportsSnooze(environmentId: EnvironmentId): boolean {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadSnooze === true
-  );
-}
-
-/** Whether the environment's server understands thread.visit/mark-unread and
-    projects lastVisitedAt on thread shells. Same version-skew contract as
-    settlement: against older servers, clients keep the browser-local visited
-    state instead. */
-export function readEnvironmentSupportsVisitedTracking(environmentId: EnvironmentId): boolean {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadVisitedTracking === true
-  );
+  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
 }
 
 export function readEnvironmentThreadRefs(

@@ -219,11 +219,12 @@ it.layer(NodeServices.layer)("server settings", (it) => {
             .providerModelPreferences,
           shown.providerModelPreferences,
         );
-        yield* service.updateSettings({ favorites: [], providerModelPreferences: {} });
-        // An older device's delayed seed cannot undo a clear, even after persistence.
-        const migrated = yield* service.updateSettings({ migrateModelPreferences: patch });
-        assert.deepEqual(migrated.favorites, []);
-        assert.deepEqual(migrated.providerModelPreferences, {});
+        const cleared = yield* service.updateSettings({
+          favorites: [],
+          providerModelPreferences: {},
+        });
+        assert.deepEqual(cleared.favorites, []);
+        assert.deepEqual(cleared.providerModelPreferences, {});
       }),
     ).pipe(Effect.provide(layerServerSettings())),
   );
@@ -423,26 +424,6 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         },
       );
     }),
-  );
-
-  it.effect(
-    "decodes legacy object-shaped textGenerationModelSelection.options from settings.json",
-    () =>
-      Effect.gen(function* () {
-        const decoded = yield* decodeServerSettings({
-          textGenerationModelSelection: {
-            provider: ProviderDriverKind.make("codex"),
-            model: "gpt-5.4-mini",
-            options: { reasoningEffort: "low" },
-          },
-        });
-
-        assert.deepEqual(decoded.textGenerationModelSelection, {
-          instanceId: ProviderInstanceId.make("codex"),
-          model: "gpt-5.4-mini",
-          options: [{ id: "reasoningEffort", value: "low" }],
-        });
-      }),
   );
 
   it.effect("deep merges nested settings updates without dropping siblings", () =>
@@ -1836,7 +1817,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
     },
   );
 
-  it.effect("folds legacy project overrides into projectSettingsOverrides once", () =>
+  it.effect("folds aggregate project settings into projectSettingsOverrides once", () =>
     Effect.gen(function* () {
       const serverConfig = yield* ServerConfig.ServerConfig;
       const fileSystem = yield* FileSystem.FileSystem;
@@ -1855,8 +1836,6 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       const modelJson = yield* encodeModelSelectionJson(model);
       const scriptsJson = yield* encodeProjectScriptsJson([script]);
       for (const [projectId, modelColumn, envMode, autoPull, scripts] of [
-        // The legacy project also carries aggregate scripts, but its stored
-        // null override reset them; the fold must not bring them back.
         [legacyProject, modelJson, "worktree", 1, scriptsJson],
         [scriptedProject, null, null, 0, scriptsJson],
       ] as const) {
@@ -1874,7 +1853,12 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       }
       yield* fileSystem.writeFileString(
         serverConfig.settingsPath,
-        `{"projectAgentBrowserAccessOverrides":{"${legacyProject}":false},"projectAutoPullOverrides":{"${scriptedProject}":true},"projectScriptOverrides":{"${legacyProject}":null}}`,
+        JSON.stringify({
+          projectSettingsOverrides: {
+            [legacyProject]: { enableAgentBrowserAccess: false, defaultProjectScripts: [] },
+            [scriptedProject]: { defaultAutoPull: true },
+          },
+        }),
       );
 
       const settings = yield* serverSettings.getSettings;
@@ -1884,6 +1868,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         {
           [legacyProject]: {
             enableAgentBrowserAccess: false,
+            defaultProjectScripts: [],
             defaultModelSelection: model,
             defaultThreadEnvMode: "worktree",
             defaultAutoPull: true,
@@ -1891,18 +1876,6 @@ it.layer(NodeServices.layer)("server settings", (it) => {
           [scriptedProject]: { defaultAutoPull: true, defaultProjectScripts: [script] },
         },
       );
-      // Derived legacy views keep older clients reading the same values.
-      assert.deepEqual<ServerSettings["projectAutoPullOverrides"]>(
-        settings.projectAutoPullOverrides,
-        {
-          [legacyProject]: true,
-          [scriptedProject]: true,
-        },
-      );
-      assert.deepEqual<ServerSettings["projectScriptOverrides"]>(settings.projectScriptOverrides, {
-        [scriptedProject]: [script],
-      });
-
       // A reset survives the next load: the fold does not run again.
       yield* serverSettings.updateSettings({
         projectSettingsOverrides: { [legacyProject]: null },

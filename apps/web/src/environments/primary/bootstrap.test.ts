@@ -28,9 +28,7 @@ const BASE_ENVIRONMENT = {
   },
   serverVersion: "0.0.0-test",
   orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-  capabilities: {
-    repositoryIdentity: true,
-  },
+  capabilities: {},
 } satisfies ExecutionEnvironmentDescriptor;
 
 let disposeHttpTest: (() => Promise<void>) | undefined;
@@ -94,9 +92,7 @@ describe("environmentBootstrap", () => {
       },
       serverVersion: "0.0.0-test",
       orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-      capabilities: {
-        repositoryIdentity: true,
-      },
+      capabilities: {},
     });
 
     expect(getPrimaryKnownEnvironment()).toEqual({

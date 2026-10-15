@@ -22,9 +22,7 @@ const DESCRIPTOR = {
   },
   serverVersion: "0.0.0-test",
   orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-  capabilities: {
-    repositoryIdentity: true,
-  },
+  capabilities: {},
 };
 
 type RecordedResponse = Response | ((init: RequestInit) => Response);

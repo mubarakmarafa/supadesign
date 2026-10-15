@@ -573,19 +573,9 @@ export function HomeScreen(props: HomeScreenProps) {
       return () => clearInterval(id);
     }, []),
   );
-  // Threads on servers without the settlement capability never classify as
-  // settled (the user could neither un-settle nor pin them).
   const listEnvironments = useAtomValue(threadListEnvironmentsAtom);
-  const {
-    providersByEnvironmentId,
-    machineByEnvironmentId,
-    settlementEnvironmentIds,
-    snoozeEnvironmentIds,
-    pinningEnvironmentIds,
-    autoSettleOptOutEnvironmentIds,
-    pinReorderEnvironmentIds,
-    titleRegenerationEnvironmentIds,
-  } = listEnvironments;
+  const { providersByEnvironmentId, machineByEnvironmentId, loadedEnvironmentIds } =
+    listEnvironments;
   const resolveProviderInstance = useThreadRowProviderInstanceResolver(providersByEnvironmentId);
   const pendingOrder = usePendingThreadOrder(nowMinute, snoozeWakeTick);
   const { threadListV2Layout } = useThreadListV2Layout({
@@ -595,8 +585,6 @@ export function HomeScreen(props: HomeScreenProps) {
     searchQuery: props.searchQuery,
     matchedThreadKeys,
     pendingOrder,
-    settlementEnvironmentIds,
-    snoozeEnvironmentIds,
     queuedThreadKeys,
     settledLimit: settledVisibleCount,
     now: listClock.now,
@@ -652,7 +640,7 @@ export function HomeScreen(props: HomeScreenProps) {
         snoozedShelfExpanded,
         settledShelfExpanded,
         snoozeLabelNow: `${nowMinute}:00.000Z`,
-        snoozeEnvironmentIds,
+        loadedEnvironmentIds,
         queuedThreadKeys,
         shelfPreferencesLoading: !shelfPreferencesLoaded,
       }),
@@ -662,7 +650,7 @@ export function HomeScreen(props: HomeScreenProps) {
       settledShelfExpanded,
       shelfPreferencesLoaded,
       snoozedShelfExpanded,
-      snoozeEnvironmentIds,
+      loadedEnvironmentIds,
       threadListV2Layout,
       v2PendingTasks,
       pinnedShelfExpanded,
@@ -812,13 +800,13 @@ export function HomeScreen(props: HomeScreenProps) {
           onArchiveThread={props.onArchiveThread}
           onRenameThread={handleRenameThread}
           onRegenerateThreadTitle={handleRegenerateThreadTitle}
-          titleRegenerationSupported={titleRegenerationEnvironmentIds.has(thread.environmentId)}
-          settlementSupported={settlementEnvironmentIds.has(thread.environmentId)}
+          titleRegenerationSupported={loadedEnvironmentIds.has(thread.environmentId)}
+          settlementSupported={loadedEnvironmentIds.has(thread.environmentId)}
           onSettleThread={handleSettleThread}
-          snoozeSupported={snoozeEnvironmentIds.has(thread.environmentId)}
-          pinningSupported={pinningEnvironmentIds.has(thread.environmentId)}
-          autoSettleOptOutSupported={autoSettleOptOutEnvironmentIds.has(thread.environmentId)}
-          arrangeSupported={pinReorderEnvironmentIds.has(thread.environmentId)}
+          snoozeSupported={loadedEnvironmentIds.has(thread.environmentId)}
+          pinningSupported={loadedEnvironmentIds.has(thread.environmentId)}
+          autoSettleOptOutSupported={loadedEnvironmentIds.has(thread.environmentId)}
+          arrangeSupported={loadedEnvironmentIds.has(thread.environmentId)}
           onSnoozeThread={handleSnoozeThread}
           onUnsnoozeThread={handleUnsnoozeThread}
           onUnsettleThread={handleUnsettleThread}
@@ -846,11 +834,8 @@ export function HomeScreen(props: HomeScreenProps) {
       handleUnsettleThread,
       handleSetThreadAutoSettle,
       homeScrollGesture,
-      autoSettleOptOutEnvironmentIds,
-      pinningEnvironmentIds,
-      autoSettleOptOutEnvironmentIds,
+      loadedEnvironmentIds,
       machineByEnvironmentId,
-      pinReorderEnvironmentIds,
       projectByKey,
       props.onArchiveThread,
       props.onDeletePendingTask,
@@ -863,10 +848,7 @@ export function HomeScreen(props: HomeScreenProps) {
       props.savedConnectionsById,
       resolveProviderInstance,
       providersByEnvironmentId,
-      settlementEnvironmentIds,
-      snoozeEnvironmentIds,
       threadSearchMatchByKey,
-      titleRegenerationEnvironmentIds,
       showMoreSettled,
       toggleSettledShelf,
       prepareListMotion,

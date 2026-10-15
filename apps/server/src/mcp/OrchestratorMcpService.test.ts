@@ -84,10 +84,18 @@ describe("OrchestratorMcpService", () => {
             completedAt: DateTime.makeUnsafe("2026-10-03T10:05:00Z"),
           },
         ],
-        contextTransfers: [],
+        contextTransfers: [
+          {
+            type: "subagent_spawn",
+            sourceThreadId: parentThreadId,
+            targetThreadId: childThreadId,
+            targetRunId: childRunId,
+          },
+        ],
         messages: [],
         subagents: [],
         providerThreads: [],
+        turnItems: [],
       } as unknown as OrchestrationV2ThreadProjection;
       let hasNestedWork = true;
       const layerDependencies = Layer.mergeAll(

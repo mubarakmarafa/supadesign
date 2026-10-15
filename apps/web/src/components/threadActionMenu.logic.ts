@@ -90,14 +90,6 @@ export interface ThreadActionMenuState {
   readonly isRegeneratingTitle: boolean;
   /** Archive rejects a thread with an attached provider, so disable it here rather than let the action fail. */
   readonly isRunning: boolean;
-  readonly supports: {
-    readonly settlement: boolean;
-    /** Server understands thread.auto-settle.set. */
-    readonly autoSettleOptOut: boolean;
-    readonly snooze: boolean;
-    readonly pinning: boolean;
-    readonly titleRegeneration: boolean;
-  };
   readonly snoozePresets: ReadonlyArray<SnoozePreset>;
 }
 
@@ -116,7 +108,7 @@ export function threadActionRequiresOperate(action: ThreadActionMenuId): boolean
 
 /**
  * Single source for the per-thread action menu: the sidebar row's right-click
- * menu and the chat header menu share labels, ordering, and capability gating.
+ * menu and the chat header menu share labels and ordering.
  * Each surface supplies state for the actions it supports.
  */
 export function buildThreadActionMenuItems(
@@ -132,53 +124,37 @@ export function buildThreadActionMenuItems(
           },
         ]
       : []),
-    ...(state.supports.pinning
-      ? [
-          state.isPinned
-            ? { id: "unpin" as const, label: "Unpin thread", icon: "pin-off" }
-            : { id: "pin" as const, label: "Pin thread", icon: "pin" },
-        ]
-      : []),
+    state.isPinned
+      ? { id: "unpin" as const, label: "Unpin thread", icon: "pin-off" }
+      : { id: "pin" as const, label: "Pin thread", icon: "pin" },
     // Both lifecycle actions stay available on pinned threads: settling
     // clears the pin ("done" beats "keep on top"), and snoozing hides the
     // card until wake with the pin intact.
-    ...(state.supports.settlement
-      ? [
-          state.isSettled
-            ? { id: "unsettle" as const, label: "Un-settle thread", icon: "circle-check" }
-            : { id: "settle" as const, label: "Settle thread", icon: "circle-check" },
-        ]
-      : []),
-    ...(state.supports.snooze
-      ? [
-          state.isSnoozed
-            ? { id: "unsnooze" as const, label: "Wake thread", icon: "clock" }
-            : {
-                id: "snooze" as const,
-                label: "Snooze",
-                icon: "clock",
-                disabled: !state.canSnoozeNow,
-                children: [
-                  ...state.snoozePresets.map((preset) => ({
-                    id: `snooze:${preset.id}` as const,
-                    label: `${preset.label} (${preset.whenLabel})`,
-                  })),
-                  { id: "snooze:custom" as const, label: "Custom…", separatorBefore: true },
-                ],
-              },
-        ]
-      : []),
+    state.isSettled
+      ? { id: "unsettle" as const, label: "Un-settle thread", icon: "circle-check" }
+      : { id: "settle" as const, label: "Settle thread", icon: "circle-check" },
+    state.isSnoozed
+      ? { id: "unsnooze" as const, label: "Wake thread", icon: "clock" }
+      : {
+          id: "snooze" as const,
+          label: "Snooze",
+          icon: "clock",
+          disabled: !state.canSnoozeNow,
+          children: [
+            ...state.snoozePresets.map((preset) => ({
+              id: `snooze:${preset.id}` as const,
+              label: `${preset.label} (${preset.whenLabel})`,
+            })),
+            { id: "snooze:custom" as const, label: "Custom…", separatorBefore: true },
+          ],
+        },
     { id: "rename", label: "Rename thread", icon: "pencil", separatorBefore: true },
-    ...(state.supports.titleRegeneration
-      ? [
-          {
-            id: "regenerate-title" as const,
-            label: state.isRegeneratingTitle ? "Regenerating…" : "Regenerate title",
-            icon: "refresh-cw",
-            disabled: state.isRegeneratingTitle,
-          },
-        ]
-      : []),
+    {
+      id: "regenerate-title",
+      label: state.isRegeneratingTitle ? "Regenerating…" : "Regenerate title",
+      icon: "refresh-cw",
+      disabled: state.isRegeneratingTitle,
+    },
     { id: "mark-unread", label: "Mark unread", icon: "mail-open" },
     ...(state.projectFilter
       ? [
@@ -195,27 +171,15 @@ export function buildThreadActionMenuItems(
     // this is a setting, and it sits with the other per-thread settings
     // rather than the lifecycle verbs above. Disabled keeps long-running
     // threads out of the settled shelf no matter how quiet they get.
-    ...(state.supports.autoSettleOptOut
-      ? [
-          {
-            id: "auto-settle" as const,
-            label: "Auto-settle behavior",
-            icon: "timer",
-            children: [
-              {
-                id: "auto-settle:enabled" as const,
-                label: "Enabled",
-                checked: state.autoSettleEnabled,
-              },
-              {
-                id: "auto-settle:disabled" as const,
-                label: "Disabled",
-                checked: !state.autoSettleEnabled,
-              },
-            ],
-          },
-        ]
-      : []),
+    {
+      id: "auto-settle",
+      label: "Auto-settle behavior",
+      icon: "timer",
+      children: [
+        { id: "auto-settle:enabled", label: "Enabled", checked: state.autoSettleEnabled },
+        { id: "auto-settle:disabled", label: "Disabled", checked: !state.autoSettleEnabled },
+      ],
+    },
     {
       id: "copy",
       label: "Copy",

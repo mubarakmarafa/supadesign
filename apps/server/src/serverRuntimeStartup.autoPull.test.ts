@@ -136,7 +136,7 @@ it.effect("parks automatic pull until activation without delaying command readin
             platform: { os: "darwin", arch: "arm64" },
             serverVersion: "0.0.0-test",
             orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-            capabilities: { repositoryIdentity: true },
+            capabilities: {},
           }),
         }),
         Layer.mock(ProjectStore.ProjectStoreV2)({

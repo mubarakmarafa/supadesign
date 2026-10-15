@@ -68,8 +68,7 @@ function TelemetryExportForm() {
     serverEnvironment.checkOtlpEndpoint.permissionAtom(environmentId ?? null),
   );
   // Servers from before endpoint checks keep the editor without Test.
-  const canCheck =
-    canEdit && environment?.serverConfig?.environment.capabilities.otlpEndpointCheck === true;
+  const canCheck = canEdit && environment?.serverConfig != null;
   // Saved endpoints open as pending; the effect below sends their checks.
   const [checks, setChecks] = useState<Partial<Record<SignalKey, EndpointCheck>>>(() =>
     Object.fromEntries(

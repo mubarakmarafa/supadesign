@@ -122,7 +122,7 @@ const makeDependencies = Effect.fn("TestConnectionResolver.makeDependencies")((o
           serverVersion: "0.0.0-test",
           orchestrationProtocolVersion:
             options?.descriptorProtocolVersion ?? ORCHESTRATION_PROTOCOL_VERSION,
-          capabilities: { repositoryIdentity: true },
+          capabilities: {},
         }),
       )) satisfies typeof fetch),
     Layer.succeed(

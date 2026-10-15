@@ -17,7 +17,7 @@ it.effect(
         platform: { os: "darwin" as const, arch: "arm64" as const },
         serverVersion: "0.0.0-test",
         orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-        capabilities: { repositoryIdentity: true },
+        capabilities: {},
       };
 
       const welcome = yield* lifecycleEvents

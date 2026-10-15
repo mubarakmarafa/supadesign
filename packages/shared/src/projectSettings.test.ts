@@ -353,49 +353,6 @@ describe("projectSettingsOverrides patches", () => {
     expect(hasProjectSettingsOverrides(DEFAULT_SERVER_SETTINGS)).toBe(false);
   });
 
-  it("derives the legacy per-key maps from the generic record", () => {
-    const settings = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
-      projectSettingsOverrides: {
-        [projectId]: { defaultAutoPull: true, enableAgentBrowserAccess: false },
-        [otherProjectId]: { defaultProjectScripts: [] },
-      },
-    });
-    expect(settings.projectAutoPullOverrides).toEqual({ [projectId]: true });
-    expect(settings.projectAgentBrowserAccessOverrides).toEqual({ [projectId]: false });
-    expect(settings.projectScriptOverrides).toEqual({ [otherProjectId]: [] });
-  });
-
-  it("translates legacy per-key patches into the generic record", () => {
-    const written = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
-      projectAutoPullOverrides: { [projectId]: true },
-      projectAgentBrowserAccessOverrides: { [projectId]: false, [otherProjectId]: true },
-    });
-    expect(written.projectSettingsOverrides).toEqual({
-      [projectId]: { defaultAutoPull: true, enableAgentBrowserAccess: false },
-      [otherProjectId]: { enableAgentBrowserAccess: true },
-    });
-    const cleared = applyServerSettingsPatch(written, {
-      projectAgentBrowserAccessOverrides: { [projectId]: null, [otherProjectId]: null },
-    });
-    expect(cleared.projectSettingsOverrides).toEqual({ [projectId]: { defaultAutoPull: true } });
-  });
-
-  it("lets a canonical entry win over a legacy map for the same project", () => {
-    const current = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
-      projectSettingsOverrides: { [projectId]: { defaultAutoPull: true } },
-    });
-    // The canonical entry omits defaultAutoPull to clear it; the stale legacy
-    // map in the same patch must not put it back.
-    const next = applyServerSettingsPatch(current, {
-      projectSettingsOverrides: { [projectId]: { defaultThreadEnvMode: "local" } },
-      projectAutoPullOverrides: { [projectId]: true, [otherProjectId]: false },
-    });
-    expect(next.projectSettingsOverrides).toEqual({
-      [projectId]: { defaultThreadEnvMode: "local" },
-      [otherProjectId]: { defaultAutoPull: false },
-    });
-  });
-
   it("edits a project's other overrides without its provider switches or their grant", () => {
     const providerInstances = { [ProviderInstanceId.make("codex_work")]: { enabled: false } };
     const settings = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {

@@ -211,10 +211,7 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
     }
     // Only a tracked clone opens a draft the prompt can ride into; older servers do not.
     const prompt =
-      request.pullRequest === null &&
-      serverConfigs.get(environmentId)?.environment.capabilities.projectCloneTracking === true
-        ? request.prompt
-        : null;
+      request.pullRequest === null && serverConfigs.has(environmentId) ? request.prompt : null;
     const name = promptLinkRepositoryName(repository);
     navigation.dispatch(
       StackActions.push("AddProjectDestination", {

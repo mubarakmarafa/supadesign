@@ -77,7 +77,6 @@ export function useComposerAttachmentUploadWorker() {
           const result = await prepareTurnAttachments({
             environmentId,
             attachments: [attachment],
-            supportsImageUploads: true,
             signal,
             onUploadProgress: (_, progress) => onProgress(progress),
             persistUploadedReferences: async ([uploaded]) => {

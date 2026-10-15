@@ -265,15 +265,11 @@ export function connectionRouteAddress(route: ConnectionRoute): string | null {
 export function advertisedConnectionRoutes(
   config: Pick<ServerConfig, "environment" | "directEndpoints">,
 ) {
-  const { relayEndpoint, relayUrl, capabilities } = config.environment;
+  const { relayEndpoint, relayUrl } = config.environment;
   let relayAdvertisement: RelayConnectionInfo | null | undefined;
   if (relayEndpoint !== undefined && relayUrl !== undefined) {
     relayAdvertisement = { relayEndpoint, relayUrl };
-  } else if (
-    relayEndpoint === undefined &&
-    relayUrl === undefined &&
-    capabilities.relayAdvertisement === true
-  ) {
+  } else if (relayEndpoint === undefined && relayUrl === undefined) {
     relayAdvertisement = null;
   }
   return { reported: config.directEndpoints, relayAdvertisement };

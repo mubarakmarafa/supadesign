@@ -62,9 +62,7 @@ function makeBridge(
         },
         serverVersion: "0.0.0-test",
         orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-        capabilities: {
-          repositoryIdentity: true,
-        },
+        capabilities: {},
       };
     },
     bootstrapSshBearerSession: async () => {

@@ -46,6 +46,7 @@ const readyWslConfig: DesktopBackendManager.DesktopBackendStartConfig = {
     port: 3774,
     host: "0.0.0.0",
     desktopBootstrapToken: "bootstrap-token",
+    desktopBootstrapSecret: "desktop-secret",
     tailscaleServeEnabled: false,
     tailscaleServePort: 443,
   },
@@ -97,7 +98,7 @@ describe("getLocalEnvironmentBootstraps", () => {
           runningDistro: "Ubuntu",
           httpBaseUrl: "http://127.0.0.1:3774/",
           wsBaseUrl: "ws://127.0.0.1:3774/",
-          bootstrapToken: "bootstrap-token",
+          bootstrapToken: "current-window-token",
         },
       ]);
     }).pipe(Effect.provide(bootstrapsLayer([defaultWslInstance]))),

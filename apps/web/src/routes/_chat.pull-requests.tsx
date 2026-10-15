@@ -375,9 +375,7 @@ function PullRequestsRouteView() {
   const capableEnvironments = useMemo(
     () =>
       environments
-        .filter(
-          (environment) => environment.serverConfig?.environment.capabilities.pullRequests === true,
-        )
+        .filter((environment) => environment.serverConfig != null)
         .toSorted((left, right) => left.environmentId.localeCompare(right.environmentId)),
     [environments],
   );

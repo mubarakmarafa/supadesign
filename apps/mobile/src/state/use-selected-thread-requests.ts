@@ -138,7 +138,7 @@ export function useSelectedThreadRequests() {
   const canPauseUserInputAutoDismiss =
     questionTimerPermission &&
     questionTimerConfig?.settings.autoDismissQuestions !== false &&
-    questionTimerConfig?.environment.capabilities.questionAutoDismissPause === true;
+    questionTimerConfig != null;
   const attachmentDrafts = useAtomValue(composerDraftsAtom);
   const preparationCounts = useAtomValue(questionAttachmentPreparationAtom);
   const uploadStates = useAtomValue(composerAttachmentUploadsAtom);
@@ -203,8 +203,7 @@ export function useSelectedThreadRequests() {
                 attachmentsPreparing,
                 attachmentsBlocked:
                   (attachments.length > 0 &&
-                    questionServerConfigs.get(selectedThreadShell.environmentId)?.environment
-                      .capabilities.questionAttachments !== true) ||
+                    !questionServerConfigs.has(selectedThreadShell.environmentId)) ||
                   attachmentsPreparing ||
                   composerAttachmentsStillUploading(uploadInput) ||
                   composerAttachmentUploadBlockReason({

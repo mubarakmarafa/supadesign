@@ -1,4 +1,3 @@
-import { upgradeLegacyContextMessage } from "@supaterm/shared/composerContextLegacy";
 import { buildProjectThreadStartTurnInput } from "./projectThreadStartTurn";
 import {
   ProjectId,
@@ -207,16 +206,16 @@ describe("mobile composer context", () => {
   });
 });
 
-describe("host context compatibility", () => {
+describe("composer wire context", () => {
   it("sends an image-only prompt as the attachment-only prompt and keeps the image", () => {
     const context: OrchestrationMessageContext = { version: 1, records: [image] };
     const reference = formatComposerContextReference(image);
-    expect(serializeComposerMessageForServer(reference, context, true)).toEqual({
+    expect(serializeComposerMessageForServer(reference, context)).toEqual({
       text: ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
       context,
     });
     const withProse = `${reference} what is this?`;
-    expect(serializeComposerMessageForServer(withProse, context, true)).toEqual({
+    expect(serializeComposerMessageForServer(withProse, context)).toEqual({
       text: withProse,
       context,
     });
@@ -254,7 +253,7 @@ describe("host context compatibility", () => {
     expect(composerContextSendBlockReason({ version: 1, records: [large] })).toBeNull();
   });
 
-  it.each(["existing-thread", "new-task"])("serializes %s sends for an older host", (path) => {
+  it.each(["existing-thread", "new-task"])("preserves inline context in %s sends", (path) => {
     const pr = pullRequestComposerContext(
       {
         number: 42,
@@ -277,8 +276,7 @@ describe("host context compatibility", () => {
     };
     const context: OrchestrationMessageContext = { version: 1, records: [terminal, review, pr] };
     const text = context.records.map(formatComposerContextReference).join(" ");
-    // Missing capability on an old host is treated like false by both dispatch paths.
-    const wire = serializeComposerMessageForServer(text, context, false);
+    const wire = serializeComposerMessageForServer(text, context);
     const message =
       path === "existing-thread"
         ? wire
@@ -300,21 +298,8 @@ describe("host context compatibility", () => {
             startFromOrigin: false,
             worktreeBranchName: "unused",
           }).message;
-    expect(message).not.toHaveProperty("context");
-    expect(message.text).not.toContain("supaterm-context://");
-    expect(
-      upgradeLegacyContextMessage(message.text).records.find(
-        (record) => record.kind === "terminal",
-      ),
-    ).toMatchObject({
-      text: terminal.text,
-      lineStart: terminal.lineStart,
-      lineEnd: terminal.lineEnd,
-    });
-    expect(message.text).toContain(review.text);
-    expect(message.text).toContain(review.diff);
-    expect(message.text).toContain(pr.pullRequest!.url);
-    expect(serializeComposerMessageForServer(text, context, true)).toEqual({ text, context });
+    expect(message).toMatchObject({ text, context });
+    expect(serializeComposerMessageForServer(text, context)).toEqual({ text, context });
     expect(context.records).toEqual([terminal, review, pr]);
   });
 });

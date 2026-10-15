@@ -152,7 +152,7 @@ describe("resolveInitialServerAuthGateState", () => {
             platform: { os: "linux", arch: "x64" },
             serverVersion: "test",
             orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-            capabilities: { repositoryIdentity: true },
+            capabilities: {},
           }),
         session: sequence(authenticatedSession(LOOPBACK_AUTH), authenticatedSession(LOOPBACK_AUTH)),
         browserSession: () => Effect.succeed(browserSession(["orchestration:read"])),

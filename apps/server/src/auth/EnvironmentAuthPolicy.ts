@@ -1,4 +1,4 @@
-import { AuthEnvironmentMaintainScope, type ServerAuthDescriptor } from "@supaterm/contracts";
+import type { ServerAuthDescriptor } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -40,7 +40,6 @@ export const make = Effect.gen(function* () {
     policy,
     bootstrapMethods,
     sessionMethods: ["browser-session-cookie", "bearer-access-token"],
-    serverUpdateScope: AuthEnvironmentMaintainScope,
     sessionCookieName: resolveSessionCookieName({
       mode: config.mode,
       port: config.port,

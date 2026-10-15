@@ -123,7 +123,6 @@ import {
   submitCodexFeedback,
   type CodexFeedbackSubmission,
 } from "@supaterm/client-runtime/state/threads";
-import { resolveThreadLastVisitedAt } from "./Sidebar.logic";
 import { derivePendingThreadRequests } from "@supaterm/client-runtime/state/thread-requests";
 import {
   parseScopedThreadKey,
@@ -225,7 +224,6 @@ import {
   type PendingUserInputDraftAnswer,
 } from "../pendingUserInput";
 import { seedUserInputDraftAnswers } from "@supaterm/client-runtime/state/thread-requests";
-import { useUiStateStore } from "../uiStateStore";
 import { useWorkspaceMutationRefresh } from "../hooks/useWorkspaceMutationRefresh";
 import {
   DEFAULT_INTERACTION_MODE,
@@ -610,7 +608,6 @@ import {
   resolveServerSelfUpdateCapability,
   serverUpdateGuidance,
   supportsDesktopAppUpdate,
-  supportsServerUpdateThreadContinuation,
 } from "../versionSkew";
 import { useAssetUrls } from "../assets/assetUrls";
 import { ATTACHMENT_ONLY_BOOTSTRAP_PROMPT } from "@supaterm/shared/composerContextReferences";
@@ -1717,7 +1714,7 @@ export default function ChatView(props: ChatViewProps) {
   const canPauseUserInputAutoDismiss =
     questionTimerPermission &&
     questionTimerConfig?.settings.autoDismissQuestions !== false &&
-    questionTimerConfig?.environment.capabilities.questionAutoDismissPause === true;
+    questionTimerConfig != null;
   const revertThreadCheckpoint = useOrchestrationCommand(threadEnvironment.revertCheckpoint, {
     reportFailure: false,
   });
@@ -1850,10 +1847,6 @@ export default function ChatView(props: ChatViewProps) {
     }
     return ids;
   }, [committedServerMessageIds, serverProjection]);
-  const markThreadVisited = useUiStateStore((store) => store.markThreadVisited);
-  const activeThreadLocalLastVisitedAt = useUiStateStore(
-    (store) => store.threadLastVisitedAtById[routeThreadKey],
-  );
   const visitThreadMutation = useAtomCommand(threadEnvironment.visit, { reportFailure: false });
   const lastDispatchedVisitRef = useRef<string | null>(null);
   const lastVisitDispatchAtRef = useRef(0);
@@ -3013,60 +3006,47 @@ export default function ChatView(props: ChatViewProps) {
   );
 
   useEffect(() => {
-    if (!serverThread?.id) return;
+    if (!serverThread?.id || serverThread.lastVisitedAt === undefined) return;
     const threadUpdatedAt = Date.parse(serverThread.updatedAt);
     if (Number.isNaN(threadUpdatedAt)) return;
-    const effectiveLastVisitedAt = resolveThreadLastVisitedAt(
-      serverThread.lastVisitedAt,
-      activeThreadLocalLastVisitedAt,
-    );
-    const lastVisitedAt = effectiveLastVisitedAt ? Date.parse(effectiveLastVisitedAt) : NaN;
+    const lastVisitedAt = serverThread.lastVisitedAt ? Date.parse(serverThread.lastVisitedAt) : NaN;
     if (!Number.isNaN(lastVisitedAt) && lastVisitedAt >= threadUpdatedAt) return;
 
-    if (serverThread.lastVisitedAt !== undefined) {
-      // Server-tracked visited state: record the watermark server-side so it
-      // syncs across every device connected to the environment. Dedupe per
-      // watermark — the effect re-runs before the command's echo lands. The
-      // dedupe also keeps a mark-unread on the open thread sticky: the rewind
-      // leaves updatedAt untouched, so the already-dispatched key skips a
-      // fresh visit until new activity lands or the thread is reopened.
-      const dispatchKey = `${routeThreadKey}:${serverThread.updatedAt}`;
-      if (lastDispatchedVisitRef.current === dispatchKey) return;
-      const dispatch = () => {
-        lastDispatchedVisitRef.current = dispatchKey;
-        lastVisitDispatchAtRef.current = Date.now();
-        void visitThreadMutation({
-          environmentId: serverThread.environmentId,
-          input: { threadId: serverThread.id, visitedAt: serverThread.updatedAt },
-        });
-      };
-      // Unread prominence only flips on run completions (hasUnseenCompletion),
-      // so an unseen completion publishes immediately; mid-turn activity bumps
-      // — several per second while a turn streams — ride a trailing throttle,
-      // each rerun swapping the timer so the trailing dispatch carries the
-      // newest watermark.
-      const latestRunCompletedAtMs = serverThread.latestRun?.completedAt
-        ? Date.parse(serverThread.latestRun.completedAt)
-        : NaN;
-      const hasUnseenCompletion =
-        !Number.isNaN(latestRunCompletedAtMs) &&
-        (Number.isNaN(lastVisitedAt) || latestRunCompletedAtMs > lastVisitedAt);
-      const elapsed = Date.now() - lastVisitDispatchAtRef.current;
-      if (hasUnseenCompletion || elapsed >= VISIT_DISPATCH_THROTTLE_MS) {
-        dispatch();
-        return;
-      }
-      const timer = setTimeout(dispatch, VISIT_DISPATCH_THROTTLE_MS - elapsed);
-      return () => clearTimeout(timer);
+    // Server-tracked visited state: record the watermark server-side so it
+    // syncs across every device connected to the environment. Dedupe per
+    // watermark — the effect re-runs before the command's echo lands. The
+    // dedupe also keeps a mark-unread on the open thread sticky: the rewind
+    // leaves updatedAt untouched, so the already-dispatched key skips a
+    // fresh visit until new activity lands or the thread is reopened.
+    const dispatchKey = `${routeThreadKey}:${serverThread.updatedAt}`;
+    if (lastDispatchedVisitRef.current === dispatchKey) return;
+    const dispatch = () => {
+      lastDispatchedVisitRef.current = dispatchKey;
+      lastVisitDispatchAtRef.current = Date.now();
+      void visitThreadMutation({
+        environmentId: serverThread.environmentId,
+        input: { threadId: serverThread.id, visitedAt: serverThread.updatedAt },
+      });
+    };
+    // Unread prominence only flips on run completions (hasUnseenCompletion),
+    // so an unseen completion publishes immediately; mid-turn activity bumps
+    // — several per second while a turn streams — ride a trailing throttle,
+    // each rerun swapping the timer so the trailing dispatch carries the
+    // newest watermark.
+    const latestRunCompletedAtMs = serverThread.latestRun?.completedAt
+      ? Date.parse(serverThread.latestRun.completedAt)
+      : NaN;
+    const hasUnseenCompletion =
+      !Number.isNaN(latestRunCompletedAtMs) &&
+      (Number.isNaN(lastVisitedAt) || latestRunCompletedAtMs > lastVisitedAt);
+    const elapsed = Date.now() - lastVisitDispatchAtRef.current;
+    if (hasUnseenCompletion || elapsed >= VISIT_DISPATCH_THROTTLE_MS) {
+      dispatch();
+      return;
     }
-
-    markThreadVisited(
-      scopedThreadKey(scopeThreadRef(serverThread.environmentId, serverThread.id)),
-      serverThread.updatedAt,
-    );
+    const timer = setTimeout(dispatch, VISIT_DISPATCH_THROTTLE_MS - elapsed);
+    return () => clearTimeout(timer);
   }, [
-    activeThreadLocalLastVisitedAt,
-    markThreadVisited,
     routeThreadKey,
     serverThread?.environmentId,
     serverThread?.id,
@@ -3095,13 +3075,11 @@ export default function ChatView(props: ChatViewProps) {
     supportsProviderSwitchingViaHandoff,
   });
   const pullRequestsCapabilityKnown = serverConfig !== null;
-  const supportsPullRequests = serverConfig?.environment.capabilities.pullRequests === true;
+  const supportsPullRequests = serverConfig != null;
   const attachmentEnvironmentConfig = environmentById.get(environmentId)?.serverConfig ?? null;
   const attachmentUploadsCapabilityKnown = attachmentEnvironmentConfig !== null;
-  const supportsQuestionAttachments =
-    attachmentEnvironmentConfig?.environment.capabilities.questionAttachments === true;
-  const supportsAttachmentUploads =
-    attachmentEnvironmentConfig?.environment.capabilities.attachmentUploads === true;
+  const supportsQuestionAttachments = attachmentEnvironmentConfig != null;
+  const supportsAttachmentUploads = attachmentEnvironmentConfig != null;
   const advertisedFileAttachmentBytes =
     attachmentEnvironmentConfig?.environment.capabilities.fileAttachments?.maxUploadBytes ?? null;
   const maxFileAttachmentBytes =
@@ -3155,7 +3133,6 @@ export default function ChatView(props: ChatViewProps) {
   const versionMismatchSelfUpdate = resolveServerSelfUpdateCapability(serverConfig);
   const versionMismatchInstallation = serverConfig?.environment.capabilities.serverInstallation;
   const versionMismatchDesktopAppUpdate = supportsDesktopAppUpdate(serverConfig);
-  const versionMismatchThreadContinuation = supportsServerUpdateThreadContinuation(serverConfig);
   const serverUpdateState = useAtomValue(
     serverEnvironment.updateStateAtom(serverUpdateEnvironmentId),
   );
@@ -3277,7 +3254,6 @@ export default function ChatView(props: ChatViewProps) {
             selfUpdate={versionMismatchSelfUpdate}
             installation={versionMismatchInstallation}
             desktopAppUpdate={versionMismatchDesktopAppUpdate}
-            threadContinuation={versionMismatchThreadContinuation}
             targetVersion={versionMismatch.clientVersion}
             label={updateFailed ? "Retry" : "Update"}
             variant="ghost"
@@ -3319,7 +3295,6 @@ export default function ChatView(props: ChatViewProps) {
     versionMismatchSelfUpdate,
     versionMismatchInstallation,
     versionMismatchDesktopAppUpdate,
-    versionMismatchThreadContinuation,
     versionMismatchServerLabel,
   ]);
   const providerInstanceEntries = useMemo(
@@ -5292,9 +5267,6 @@ export default function ChatView(props: ChatViewProps) {
     );
   }, []);
 
-  const supportsProjectSettingsOverrides =
-    environmentById.get(environmentId)?.serverConfig?.environment.capabilities
-      .projectSettingsOverrides === true;
   const persistProjectScripts = useCallback(
     async (input: {
       projectId: ProjectId;
@@ -5336,22 +5308,14 @@ export default function ChatView(props: ChatViewProps) {
         await updateProjectScriptSettings({
           environmentId,
           input: {
-            // The canonical key on servers that understand it; the legacy
-            // per-project map is still translated on older ones.
-            patch: supportsProjectSettingsOverrides
-              ? {
-                  projectSettingsOverrides: {
-                    [input.projectId]: {
-                      ...projectSettingsOverridesForWrite(settings, input.projectId),
-                      defaultProjectScripts: input.nextScripts,
-                    },
-                  },
-                }
-              : {
-                  projectScriptOverrides: {
-                    [input.projectId]: input.nextScripts,
-                  },
+            patch: {
+              projectSettingsOverrides: {
+                [input.projectId]: {
+                  ...projectSettingsOverridesForWrite(settings, input.projectId),
+                  defaultProjectScripts: input.nextScripts,
                 },
+              },
+            },
           },
         }),
         () => undefined,
@@ -5432,7 +5396,6 @@ export default function ChatView(props: ChatViewProps) {
       environmentId,
       removeKeybinding,
       settings,
-      supportsProjectSettingsOverrides,
       updateProjectScriptSettings,
       upsertKeybinding,
     ],
@@ -5597,14 +5560,11 @@ export default function ChatView(props: ChatViewProps) {
     if (!activeThreadRef || !activeProject) return;
     useRightPanelStore.getState().open(activeThreadRef, "files");
   }, [activeProject, activeThreadRef]);
-  const supportsThreadPullRequests =
-    serverConfig?.environment.capabilities.threadPullRequests === true;
   const visiblePullRequests = visibleThreadPullRequests(
     (activeThreadShell ?? activeThread)?.pullRequests ?? [],
   );
   const visiblePullRequestCount = visiblePullRequests.length;
-  const pullRequestsSurfaceAvailable =
-    isServerThread && supportsThreadPullRequests && visiblePullRequestCount > 0;
+  const pullRequestsSurfaceAvailable = isServerThread && visiblePullRequestCount > 0;
   const addPullRequestsSurface = useCallback(() => {
     if (!activeThreadRef || !pullRequestsSurfaceAvailable) return;
     useRightPanelStore.getState().open(activeThreadRef, "pull-requests");
@@ -5756,7 +5716,8 @@ export default function ChatView(props: ChatViewProps) {
   );
   const persistedLinkedThreadPullRequestStatus = useLinkedThreadPullRequest(
     activeThreadRef?.environmentId ?? null,
-    persistedLinkedThreadPullRequest,
+    activeThreadShell?.pullRequests,
+    activeThreadShell?.branchPullRequest,
   );
   const replacementLinkedThreadPullRequest = useMemo(() => {
     const detected = gitStatusQuery.data?.pr;
@@ -7300,9 +7261,9 @@ export default function ChatView(props: ChatViewProps) {
     useRightPanelStore.getState().openPullRequest(activeThreadRef, pullRequestPanelTarget);
   };
   const pullRequestSurfaceAvailable = supportsPullRequests && pullRequestPanelTarget !== null;
-  const supportsSettlement = serverConfig?.environment.capabilities.threadSettlement === true;
-  const supportsSnooze = serverConfig?.environment.capabilities.threadSnooze === true;
-  const supportsPinning = serverConfig?.environment.capabilities.threadPinning === true;
+  const supportsSettlement = serverConfig != null;
+  const supportsSnooze = serverConfig != null;
+  const supportsPinning = serverConfig != null;
   const activeThreadPinned = supportsPinning && activeThreadShell?.pinnedAt != null;
   const activeThreadSnoozed =
     activeThreadShell !== null &&
@@ -7340,13 +7301,7 @@ export default function ChatView(props: ChatViewProps) {
   }, [acknowledgeThreadWoke, activeThreadRef, activeThreadWokeAt]);
   // Mirror of the sidebar's Woke pill for the open thread. Same watermark as
   // the sidebar, so an acknowledgement from any device hides it.
-  const activeThreadLocalVisitedAt = useUiStateStore((store) =>
-    activeThreadKey === null ? undefined : store.threadLastVisitedAtById[activeThreadKey],
-  );
-  const activeThreadLastVisitedAt = resolveThreadLastVisitedAt(
-    activeThreadShell?.lastVisitedAt,
-    activeThreadLocalVisitedAt,
-  );
+  const activeThreadLastVisitedAt = activeThreadShell?.lastVisitedAt;
   const activeLatestRunCompletedAt = activeLatestRun?.completedAt;
   const activeThreadWokeVisible = useMemo(() => {
     if (activeThreadWokeAt === null) return false;
@@ -9003,11 +8958,11 @@ export default function ChatView(props: ChatViewProps) {
       return;
     }
     const multipleModelSelections = sendCtx.multipleModelSelections;
-    if (
-      multipleModelSelections !== null &&
-      serverConfig?.environment.capabilities.requiredWorktreeBootstrap !== true
-    ) {
-      setThreadError(activeThread.id, "Update this server before starting multiple models.");
+    if (multipleModelSelections !== null && serverConfig == null) {
+      setThreadError(
+        activeThread.id,
+        "Connect to this environment before starting multiple models.",
+      );
       return;
     }
     if (
@@ -9126,8 +9081,7 @@ export default function ChatView(props: ChatViewProps) {
               const reason = fileAttachmentCapabilityBlockReason({
                 files,
                 attachmentUploadsCapabilityKnown: config !== null,
-                supportsAttachmentUploads:
-                  config?.environment.capabilities.attachmentUploads === true,
+                supportsAttachmentUploads: config != null,
                 maxFileAttachmentBytes:
                   config?.environment.capabilities.fileAttachments?.maxUploadBytes ?? null,
               });
@@ -10942,10 +10896,7 @@ export default function ChatView(props: ChatViewProps) {
                                   multipleModelSelections={
                                     outboxEditor.editing ? null : multipleModelSelections
                                   }
-                                  supportsMultipleModels={
-                                    serverConfig?.environment.capabilities
-                                      .requiredWorktreeBootstrap === true
-                                  }
+                                  supportsMultipleModels={serverConfig != null}
                                   onMultipleModelSelectionsChange={setMultipleModelSelections}
                                   composerRef={composerRef}
                                   composerDraftTarget={composerDraftTarget}
@@ -11028,8 +10979,7 @@ export default function ChatView(props: ChatViewProps) {
                                   pendingUserInputs={outboxEditor.editing ? [] : pendingUserInputs}
                                   supportsQuestionAutoDismiss={
                                     questionTimerConfig?.settings.autoDismissQuestions !== false &&
-                                    questionTimerConfig?.environment.capabilities
-                                      .questionAutoDismiss === true
+                                    questionTimerConfig != null
                                   }
                                   activePendingProgress={
                                     outboxEditor.editing ? null : activePendingProgress

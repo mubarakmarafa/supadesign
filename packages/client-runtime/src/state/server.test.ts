@@ -61,7 +61,7 @@ const CONFIG = {
   settings: {},
   // Capabilities drive version-skew behaviour in the projection, so the
   // fixture carries them rather than leaving the field absent.
-  environment: { capabilities: { environmentThemes: true } },
+  environment: { capabilities: {} },
 } as unknown as ServerConfig;
 
 const snapshotEvent = (config: ServerConfig): ServerConfigStreamEvent => ({
@@ -490,18 +490,6 @@ describe("server state projection", () => {
       config: CONFIG,
     });
     expect(Option.getOrThrow(afterReconnect).config.environmentThemes).toEqual(themes);
-
-    // A server that predates the feature never sends another theme event, so
-    // carrying the set forward would leave a palette nothing can update.
-    const downgraded = applyServerConfigProjection(withThemes, {
-      version: 1,
-      type: "snapshot",
-      config: {
-        ...CONFIG,
-        environment: { capabilities: {} },
-      } as unknown as ServerConfig,
-    });
-    expect(Option.getOrThrow(downgraded).config.environmentThemes).toBeUndefined();
   });
 
   it("keeps a current welcome on ready and rejects a buffered welcome from the old session", () => {

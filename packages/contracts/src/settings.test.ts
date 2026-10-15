@@ -1148,14 +1148,11 @@ describe("server model preferences", () => {
       decodeServerSettingsPatch({ setModelsHidden: [{ provider: "codex_work", model: "sol" }] }),
     ).toThrow();
   });
-  it("distinguishes unmigrated lists from deliberately cleared lists", () => {
+  it("defaults to empty lists", () => {
     expect(decodeServerSettings({})).toMatchObject({
-      favorites: null,
-      providerModelPreferences: null,
+      favorites: [],
+      providerModelPreferences: {},
     });
-    const input = { favorites: [], providerModelPreferences: {} };
-    expect(encodeServerSettings(decodeServerSettings(input))).toMatchObject(input);
-    expect(decodeServerSettingsPatch(input)).toEqual(input);
   });
 
   it("round trips favorites and hidden models keyed by provider instance", () => {
@@ -1165,8 +1162,5 @@ describe("server model preferences", () => {
     };
     expect(encodeServerSettings(decodeServerSettings(input))).toMatchObject(input);
     expect(decodeServerSettingsPatch(input)).toEqual(input);
-    expect(decodeServerSettingsPatch({ migrateModelPreferences: input })).toEqual({
-      migrateModelPreferences: input,
-    });
   });
 });

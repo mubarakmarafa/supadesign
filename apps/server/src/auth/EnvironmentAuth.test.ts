@@ -6,6 +6,8 @@ import {
 } from "@supaterm/contracts";
 import { expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
+import * as Clock from "effect/Clock";
+import { currentDesktopBootstrapToken } from "@supaterm/shared/desktopBootstrapToken";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
@@ -213,10 +215,6 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       expect(secondSession.subject).toBe("reusable-dev-token-child");
       expect((yield* sessions.verify(token)).subject).toBe("reusable-dev-token");
       const before = yield* serverAuth.listClientSessions(firstSession.sessionId);
-      const denied = yield* serverAuth
-        .exchangeBootstrapCredentialForAccessToken(token, ["review:write"], requestMetadata)
-        .pipe(Effect.flip);
-      expect(denied._tag).toBe("ServerAuthScopeNotGrantedError");
       const empty = yield* serverAuth
         .exchangeBootstrapCredentialForAccessToken(token, [], requestMetadata)
         .pipe(Effect.flip);
@@ -440,11 +438,11 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     }).pipe(Effect.provide(layerEnvironmentAuth())),
   );
 
-  it.effect("narrows seeded desktop grants to the requested scopes", () =>
+  it.effect("narrows rotating desktop grants to the requested scopes", () =>
     Effect.gen(function* () {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
       const token = yield* serverAuth.exchangeBootstrapCredentialForAccessToken(
-        "desktop-bootstrap-token",
+        currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
         ["orchestration:read"],
         requestMetadata,
       );
@@ -454,9 +452,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
 
       expect(token.scope).toBe("orchestration:read");
       expect(session.scopes).toEqual(["orchestration:read"]);
-    }).pipe(
-      Effect.provide(layerEnvironmentAuth({ desktopBootstrapToken: "desktop-bootstrap-token" })),
-    ),
+    }).pipe(Effect.provide(layerEnvironmentAuth({ desktopBootstrapSecret: "desktop-secret" }))),
   );
 
   it.effect("rotates desktop bearer sessions without accumulating authorized clients", () =>
@@ -464,7 +460,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
       const sessions = yield* SessionStore.SessionStore;
       const browser = yield* serverAuth.createBrowserSession(
-        "desktop-bootstrap-token",
+        currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
         requestMetadata,
       );
       const browserSession = yield* serverAuth.authenticateHttpRequest(
@@ -480,7 +476,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         { ...requestMetadata, label: "Supaterm Desktop" },
       );
       const first = yield* serverAuth.exchangeBootstrapCredentialForAccessToken(
-        "desktop-bootstrap-token",
+        currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
         undefined,
         requestMetadata,
       );
@@ -488,7 +484,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         makeBearerRequest(first.access_token),
       );
       const second = yield* serverAuth.exchangeBootstrapCredentialForAccessToken(
-        "desktop-bootstrap-token",
+        currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
         undefined,
         requestMetadata,
       );
@@ -518,7 +514,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     }).pipe(
       Effect.provide(
         layerEnvironmentAuth({
-          desktopBootstrapToken: "desktop-bootstrap-token",
+          desktopBootstrapSecret: "desktop-secret",
         }),
       ),
     ),
@@ -577,7 +573,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         const sessions = yield* SessionStore.SessionStore;
 
         const administrativeExchange = yield* serverAuth.createBrowserSession(
-          "desktop-bootstrap-token",
+          currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
           requestMetadata,
         );
         const administrativeSession = yield* serverAuth.authenticateHttpRequest(
@@ -636,7 +632,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       }).pipe(
         Effect.provide(
           layerEnvironmentAuth({
-            desktopBootstrapToken: "desktop-bootstrap-token",
+            desktopBootstrapSecret: "desktop-secret",
           }),
         ),
       ),

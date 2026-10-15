@@ -166,7 +166,6 @@ import {
   resolveServerConfigVersionMismatch,
   resolveServerSelfUpdateCapability,
   supportsDesktopAppUpdate,
-  supportsServerUpdateThreadContinuation,
 } from "~/versionSkew";
 import { authEnvironment } from "~/state/auth";
 import { environmentCatalog } from "~/connection/catalog";
@@ -397,7 +396,7 @@ function sortDesktopClientSessions(sessions: ReadonlyArray<ServerClientSessionRe
 function toDesktopPairingLinkRecord(pairingLink: AuthPairingLink): ServerPairingLinkRecord {
   return {
     ...pairingLink,
-    scopes: pairingLink.permissions ?? pairingLink.scopes,
+    scopes: pairingLink.scopes,
     createdAt: DateTime.formatIso(pairingLink.createdAt),
     expiresAt: DateTime.formatIso(pairingLink.expiresAt),
   };
@@ -406,7 +405,7 @@ function toDesktopPairingLinkRecord(pairingLink: AuthPairingLink): ServerPairing
 function toDesktopClientSessionRecord(clientSession: AuthClientSession): ServerClientSessionRecord {
   return {
     ...clientSession,
-    scopes: clientSession.permissions ?? clientSession.scopes,
+    scopes: clientSession.scopes,
     issuedAt: DateTime.formatIso(clientSession.issuedAt),
     expiresAt: DateTime.formatIso(clientSession.expiresAt),
     lastConnectedAt:
@@ -1518,7 +1517,6 @@ function SavedBackendListRow({
             selfUpdate={resolveServerSelfUpdateCapability(environment.serverConfig)}
             installation={environment.serverConfig?.environment.capabilities.serverInstallation}
             desktopAppUpdate={supportsDesktopAppUpdate(environment.serverConfig)}
-            threadContinuation={supportsServerUpdateThreadContinuation(environment.serverConfig)}
             targetVersion={versionMismatch.clientVersion}
             label={serverUpdateState.status === "failed" ? "Retry update" : "Update"}
             appearance="icon"
@@ -1636,7 +1634,7 @@ export function ConnectionsSettings() {
   const primaryEnvironmentId = primaryEnvironment?.environmentId ?? null;
   const primarySessionState = usePrimarySessionState();
   const currentSessionScopes = primarySessionState.data?.authenticated
-    ? (primarySessionState.data.permissions ?? primarySessionState.data.scopes ?? null)
+    ? (primarySessionState.data.scopes ?? null)
     : null;
   const currentAuthPolicy = desktopBridge ? null : (primarySessionState.data?.auth.policy ?? null);
   // Catalog order is the order the machines were added; rows never jump when
@@ -1696,9 +1694,6 @@ export function ConnectionsSettings() {
             selfUpdate,
             installation: environment.serverConfig?.environment.capabilities.serverInstallation,
             desktopAppUpdate,
-            threadContinuation: supportsServerUpdateThreadContinuation(environment.serverConfig),
-            continueThreadsAfterServerUpdate:
-              environment.serverConfig?.settings.continueThreadsAfterServerUpdate ?? false,
             targetVersion: mismatch.clientVersion,
           },
         ];
@@ -3312,9 +3307,6 @@ export function ConnectionsSettings() {
                         primaryServerConfig?.environment.capabilities.serverInstallation
                       }
                       desktopAppUpdate={supportsDesktopAppUpdate(primaryServerConfig)}
-                      threadContinuation={supportsServerUpdateThreadContinuation(
-                        primaryServerConfig,
-                      )}
                       targetVersion={primaryVersionMismatch.clientVersion}
                       label={
                         primaryServerUpdateState.status === "failed"

@@ -33,7 +33,7 @@ describe("ProviderSessionStartInput", () => {
       provider: "codex",
       cwd: "/tmp/workspace",
       modelSelection: {
-        provider: "codex",
+        instanceId: "codex",
         model: "gpt-5.3-codex",
         options: [
           { id: "reasoningEffort", value: "high" },
@@ -64,7 +64,7 @@ describe("ProviderSessionStartInput", () => {
       provider: "claudeAgent",
       cwd: "/tmp/workspace",
       modelSelection: {
-        provider: "claudeAgent",
+        instanceId: "claudeAgent",
         model: "claude-sonnet-4-6",
         options: [
           { id: "thinking", value: true },
@@ -90,7 +90,7 @@ describe("ProviderSessionStartInput", () => {
       cwd: "/tmp/workspace",
       runtimeMode: "full-access",
       modelSelection: {
-        provider: "cursor",
+        instanceId: "cursor",
         model: "composer-2",
         options: [{ id: "fastMode", value: true }],
       },
@@ -176,7 +176,7 @@ describe("ProviderSendTurnInput", () => {
     const parsed = decodeProviderSendTurnInput({
       threadId: "thread-1",
       modelSelection: {
-        provider: "codex",
+        instanceId: "codex",
         model: "gpt-5.3-codex",
         options: [
           { id: "reasoningEffort", value: "xhigh" },
@@ -195,7 +195,7 @@ describe("ProviderSendTurnInput", () => {
     const parsed = decodeProviderSendTurnInput({
       threadId: "thread-1",
       modelSelection: {
-        provider: "claudeAgent",
+        instanceId: "claudeAgent",
         model: "claude-sonnet-4-6",
         options: [
           { id: "effort", value: "ultrathink" },

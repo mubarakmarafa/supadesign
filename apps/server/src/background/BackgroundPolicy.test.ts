@@ -329,7 +329,11 @@ describe("BackgroundPolicy", () => {
 
         assert.equal(yield* policy.shouldRunScopeWork({ type: "vcs-status", cwd: "/repo" }), true);
       }).pipe(
-        Effect.provide(layerFor(nominalHostPower, { backgroundActivityProfile: "performance" })),
+        Effect.provide(
+          layerFor(nominalHostPower, {
+            backgroundActivity: { schemaVersion: 1, profile: "performance", overrides: {} },
+          }),
+        ),
       ),
   );
 
@@ -351,7 +355,7 @@ describe("BackgroundPolicy", () => {
             onBattery: "true",
             stale: false,
           },
-          { backgroundActivityProfile: "battery-saver" },
+          { backgroundActivity: { schemaVersion: 1, profile: "battery-saver", overrides: {} } },
         ),
       ),
     ),
@@ -378,7 +382,7 @@ describe("BackgroundPolicy", () => {
             thermalState: "critical",
             stale: true,
           },
-          { backgroundActivityProfile: "battery-saver" },
+          { backgroundActivity: { schemaVersion: 1, profile: "battery-saver", overrides: {} } },
         ),
       ),
     ),

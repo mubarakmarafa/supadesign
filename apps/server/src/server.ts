@@ -425,11 +425,7 @@ const layerServerEnvironment = Layer.effect(
       getDescriptor: Effect.zipWith(
         environment.getDescriptor,
         relay.advertisement,
-        (descriptor, advertised) => ({
-          ...descriptor,
-          ...advertised,
-          capabilities: { ...descriptor.capabilities, relayAdvertisement: true },
-        }),
+        (descriptor, advertised) => ({ ...descriptor, ...advertised }),
       ),
     });
   }),

@@ -78,8 +78,7 @@ function GitOverviewSheetContent(props: GitOverviewSheetProps) {
   const threadId = ThreadId.make(props.route.params.threadId);
   const { selectedThread, selectedEnvironmentRuntime } = useThreadSelection();
   const { selectedThreadCwd, selectedThreadWorktreePath } = useSelectedThreadWorktree();
-  const supportsLinkedPrSnapshots =
-    selectedEnvironmentRuntime?.serverConfig?.environment.capabilities.threadPullRequests === true;
+  const supportsLinkedPrSnapshots = selectedEnvironmentRuntime?.serverConfig != null;
   const linkedPrChains = useMemo(
     () =>
       resolveThreadPullRequestChains(

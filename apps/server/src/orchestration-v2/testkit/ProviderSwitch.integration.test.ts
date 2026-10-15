@@ -44,6 +44,9 @@ import {
 import { AcpProviderCapabilitiesV2 } from "@supaterm/provider-acp/server/adapter";
 import { CursorProviderCapabilitiesV2 } from "@supaterm/provider-cursor/testing";
 import * as EventSink from "../EventSink.ts";
+import * as EventStore from "../EventStore.ts";
+import * as ProjectionMaintenance from "../ProjectionMaintenance.ts";
+import * as ProjectionStore from "../ProjectionStore.ts";
 import * as Orchestrator from "../Orchestrator.ts";
 import * as EffectWorker from "../EffectWorker.ts";
 import * as EffectOutbox from "../EffectOutbox.ts";
@@ -2444,6 +2447,313 @@ describe("orchestration v2 provider switching", () => {
         );
       }),
     ),
+  );
+
+  const importedFailureScenario = (queueBeforeFailure: boolean) =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const importedThreadId = ThreadId.make("thread:provider-switch:imported-history");
+        const importedProjectId = ProjectId.make("project:provider-switch:imported-history");
+        const failedPrompt = "This first provider attempt should fail.";
+        const recoveryPrompt = "What was the imported release marker?";
+        const cwd = yield* checkpointWorkspace("provider-switch-imported-history");
+        const capturedTurns = yield* Ref.make<ReadonlyArray<CapturedTurn>>([]);
+        const firstTurnStarted = yield* Deferred.make<void>();
+        const releaseFirstTurn = yield* Deferred.make<void>();
+        const layerRegistry = ProviderAdapterRegistry.layerFromAdapters([
+          makeTestAdapter({
+            instanceId: ProviderInstanceId.make("codex"),
+            driver: CODEX_DRIVER,
+            capabilities: CodexProviderCapabilitiesV2,
+            modelSelection: CODEX_MODEL_SELECTION,
+            responseByRunOrdinal: {},
+            capturedTurns,
+            failedRunOrdinals: new Set([1]),
+            ...(queueBeforeFailure ? { holdFirstTurn: firstTurnStarted, releaseFirstTurn } : {}),
+          }),
+          makeTestAdapter({
+            instanceId: ProviderInstanceId.make("claudeAgent"),
+            driver: CLAUDE_DRIVER,
+            capabilities: ClaudeProviderCapabilitiesV2,
+            modelSelection: CLAUDE_MODEL_SELECTION,
+            responseByRunOrdinal: { 2: "The imported release marker is violet." },
+            capturedTurns,
+          }),
+        ]);
+        const layerDatabase = SqlitePersistence.layerMemory;
+        const layerEventStoreProvided = EventStore.layer.pipe(Layer.provideMerge(layerDatabase));
+        const layerProjectionStoreProvided = ProjectionStore.layer.pipe(
+          Layer.provideMerge(layerDatabase),
+        );
+        const layerStoresProvided = Layer.mergeAll(
+          layerDatabase,
+          layerEventStoreProvided,
+          layerProjectionStoreProvided,
+        );
+        const layerMaintenanceProvided = ProjectionMaintenance.layer.pipe(
+          Layer.provide(layerStoresProvided),
+        );
+        const layerOrchestratorProvided = ProviderReplayHarness.layerWithRegistry(
+          {
+            name: "provider-switch-imported-history",
+            runtimePolicyOverride: {
+              cwd,
+              approvalPolicy: "never",
+              sandboxPolicy: {
+                type: "readOnly",
+                access: { type: "fullAccess" },
+                networkAccess: false,
+              },
+            },
+          },
+          layerRegistry,
+          { databaseLayer: layerDatabase },
+        );
+        const layerTest = Layer.mergeAll(
+          layerStoresProvided,
+          layerMaintenanceProvided,
+          layerOrchestratorProvided,
+        );
+
+        const projection = yield* Effect.gen(function* () {
+          const maintenance = yield* ProjectionMaintenance.ProjectionMaintenanceV2;
+          const orchestrator = yield* Orchestrator.OrchestratorV2;
+          const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
+
+          const eventSink = yield* EventSink.EventSinkV2;
+          const at = DateTime.makeUnsafe("2026-01-01T00:00:00.000Z");
+          yield* eventSink.write({
+            events: [
+              {
+                id: EventId.make("event:provider-switch:imported:created"),
+                type: "thread.created",
+                threadId: importedThreadId,
+                providerInstanceId: CODEX_MODEL_SELECTION.instanceId,
+                occurredAt: at,
+                payload: {
+                  createdBy: "system",
+                  creationSource: "server",
+                  id: importedThreadId,
+                  projectId: importedProjectId,
+                  title: "Imported provider switch thread",
+                  providerInstanceId: CODEX_MODEL_SELECTION.instanceId,
+                  modelSelection: CODEX_MODEL_SELECTION,
+                  runtimeMode: "full-access",
+                  interactionMode: "default",
+                  branch: "main",
+                  worktreePath: cwd,
+                  activeProviderThreadId: null,
+                  historyOrigin: "v1_import",
+                  lineage: {
+                    parentThreadId: null,
+                    relationshipToParent: null,
+                    rootThreadId: importedThreadId,
+                  },
+                  forkedFrom: null,
+                  createdAt: at,
+                  updatedAt: at,
+                  archivedAt: null,
+                  settledOverride: null,
+                  settledAt: null,
+                  lastVisitedAt: null,
+                  deletedAt: null,
+                },
+              },
+            ],
+          });
+          const importedMessages = [
+            { role: "user", text: "Remember that the imported release marker is violet." },
+            { role: "assistant", text: "I will remember violet." },
+          ] as const;
+          for (const [index, message] of importedMessages.entries()) {
+            const messageId = MessageId.make(`message:provider-switch:imported:${index}`);
+            yield* eventSink.write({
+              events: [
+                {
+                  id: EventId.make(`event:provider-switch:imported:message:${index}`),
+                  type: "message.updated",
+                  threadId: importedThreadId,
+                  occurredAt: at,
+                  payload: {
+                    createdBy: message.role === "user" ? "user" : "agent",
+                    creationSource: "server",
+                    id: messageId,
+                    threadId: importedThreadId,
+                    runId: null,
+                    nodeId: null,
+                    role: message.role,
+                    text: message.text,
+                    attachments: [],
+                    streaming: false,
+                    createdAt: at,
+                    updatedAt: at,
+                  },
+                },
+                {
+                  id: EventId.make(`event:provider-switch:imported:item:${index}`),
+                  type: "turn-item.updated",
+                  threadId: importedThreadId,
+                  occurredAt: at,
+                  payload: {
+                    id: TurnItemId.make(`turn-item:provider-switch:imported:${index}`),
+                    threadId: importedThreadId,
+                    runId: null,
+                    nodeId: null,
+                    providerThreadId: null,
+                    providerTurnId: null,
+                    nativeItemRef: null,
+                    parentItemId: null,
+                    ordinal: index + 1,
+                    status: "completed",
+                    title: null,
+                    startedAt: at,
+                    completedAt: at,
+                    updatedAt: at,
+                    ...(message.role === "user"
+                      ? {
+                          type: "user_message",
+                          createdBy: "user",
+                          creationSource: "server",
+                          messageId,
+                          inputIntent: "turn_start",
+                          text: message.text,
+                          attachments: [],
+                        }
+                      : {
+                          type: "assistant_message",
+                          messageId,
+                          text: message.text,
+                          streaming: false,
+                        }),
+                  },
+                },
+              ],
+            });
+          }
+          const awaitRun = (ordinal: number, status: "failed" | "completed") =>
+            orchestrator
+              .streamStoredEventsFrom({
+                threadId: importedThreadId,
+                afterSequence: 0,
+                eventType: "run.updated",
+              })
+              .pipe(
+                Stream.filter(
+                  ({ event }) =>
+                    event.type === "run.updated" &&
+                    event.payload.ordinal === ordinal &&
+                    event.payload.status === status,
+                ),
+                Stream.runHead,
+                Effect.andThen(worker.drain()),
+              );
+
+          yield* orchestrator.dispatch({
+            type: "message.dispatch",
+            createdBy: "user",
+            creationSource: "web",
+            commandId: CommandId.make("command:provider-switch:imported-history:failed"),
+            threadId: importedThreadId,
+            messageId: MessageId.make("message:provider-switch:imported-history:failed"),
+            text: failedPrompt,
+            attachments: [],
+            modelSelection: CODEX_MODEL_SELECTION,
+            dispatchMode: { type: "start_immediately" },
+          });
+          if (queueBeforeFailure) {
+            yield* Deferred.await(firstTurnStarted);
+          } else {
+            yield* awaitRun(1, "failed");
+          }
+          yield* orchestrator.dispatch({
+            type: "message.dispatch",
+            createdBy: "user",
+            creationSource: "web",
+            commandId: CommandId.make("command:provider-switch:imported-history:recovery"),
+            threadId: importedThreadId,
+            messageId: MessageId.make("message:provider-switch:imported-history:recovery"),
+            text: recoveryPrompt,
+            attachments: [],
+            modelSelection: CLAUDE_MODEL_SELECTION,
+            dispatchMode: {
+              type: queueBeforeFailure ? "queue_after_active" : "start_immediately",
+            },
+          });
+          if (queueBeforeFailure) {
+            const queued = yield* orchestrator.getThreadProjection(importedThreadId);
+            assert.deepEqual(
+              queued.runs.map((run) => run.status),
+              ["running", "queued"],
+            );
+            assert.deepEqual(
+              queued.contextHandoffs.map((handoff) => handoff.targetRunId),
+              [queued.runs[0]?.id],
+            );
+            yield* Deferred.succeed(releaseFirstTurn, undefined);
+          }
+          yield* awaitRun(2, "completed");
+          const beforeRebuild = yield* orchestrator.getThreadProjection(importedThreadId);
+          for (const attempt of beforeRebuild.attempts) {
+            const nativeId = beforeRebuild.providerThreads.find(
+              (thread) => thread.id === attempt.providerThreadId,
+            )?.nativeThreadRef?.nativeId;
+            assert.isDefined(nativeId);
+            assert.equal(attempt.nativeThreadId, nativeId);
+          }
+          yield* maintenance.rebuild;
+          const rebuilt = yield* orchestrator.getThreadProjection(importedThreadId);
+          assert.deepEqual(rebuilt.attempts, beforeRebuild.attempts);
+          return rebuilt;
+        }).pipe(Effect.provide(layerTest));
+
+        const turns = yield* Ref.get(capturedTurns);
+        assert.deepEqual(
+          projection.runs.map((run) => [run.providerInstanceId, run.status]),
+          [
+            ["codex", "failed"],
+            ["claudeAgent", "completed"],
+          ],
+        );
+        assert.sameDeepMembers(
+          projection.contextHandoffs.map((handoff) => [
+            handoff.targetRunId,
+            handoff.strategy,
+            handoff.status,
+          ]),
+          [
+            [projection.runs[0]?.id, "manual_context", "ready"],
+            [projection.runs[1]?.id, "manual_context", "ready"],
+            [projection.runs[1]?.id, "full_thread_summary", "ready"],
+          ],
+        );
+        const recoveryHandoff = projection.contextHandoffs.find(
+          (handoff) => handoff.id === projection.runs[1]?.contextHandoffId,
+        );
+        assert.equal(recoveryHandoff?.strategy, "full_thread_summary");
+        assert.include(recoveryHandoff?.summaryText ?? "", failedPrompt);
+        if (queueBeforeFailure) {
+          const handoffItem = projection.turnItems.find(
+            (item) => item.type === "handoff" && item.runId === projection.runs[1]?.id,
+          );
+          assert.equal(
+            handoffItem?.type === "handoff" ? handoffItem.contextHandoffId : null,
+            recoveryHandoff?.id,
+          );
+        }
+        assert.include(turns[1]?.text ?? "", "Context handoff (manual_context):");
+        assert.include(turns[1]?.text ?? "", "imported release marker is violet");
+        assert.include(turns[1]?.text ?? "", "I will remember violet.");
+        assert.include(turns[1]?.text ?? "", recoveryPrompt);
+        assert.include(turns[1]?.text ?? "", failedPrompt);
+      }),
+    );
+
+  it.live("reissues imported context when switching after the first provider fails", () =>
+    importedFailureScenario(false),
+  );
+  it.live(
+    "reissues imported context when a queued provider starts after the first provider fails",
+    () => importedFailureScenario(true),
   );
 
   it.live("uses portable fallback when native resume fails after a provider switch", () =>

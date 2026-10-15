@@ -39,7 +39,7 @@ const descriptor = (protocol: number, serverVersion: string) =>
     platform: { os: "darwin", arch: "arm64" },
     serverVersion,
     orchestrationProtocolVersion: protocol,
-    capabilities: { repositoryIdentity: true, serverSelfUpdate: "boot-service" },
+    capabilities: { serverSelfUpdate: "boot-service" },
   }) satisfies ExecutionEnvironmentDescriptor;
 
 const RpcRequest = Schema.TaggedStruct("Request", {
@@ -265,7 +265,7 @@ describe("updateOutdatedHost", () => {
     Effect.gen(function* () {
       const manual = {
         ...descriptor(1, "0.0.45"),
-        capabilities: { repositoryIdentity: true },
+        capabilities: {},
       };
       let opened = false;
       const error = yield* Effect.flip(

@@ -1,4 +1,3 @@
-import { threadPullRequestLinkMode } from "@supaterm/client-runtime/thread-pull-request-compatibility";
 import type { PullRequestDetail } from "@supaterm/contracts";
 import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 import { useMemo } from "react";
@@ -12,9 +11,7 @@ export function usePullRequestStack(params: PullRequestParams, pr: PullRequestDe
   const target = pullRequestTarget(params);
   const config = useEnvironmentServerConfig(target.environmentId);
   const threads = useNavigationThreadShells();
-  const supported =
-    threadPullRequestLinkMode(config?.environment.capabilities) === "multiple" &&
-    pr?.capabilities.stacks === true;
+  const supported = config != null && pr?.capabilities.stacks === true;
   const reference = useMemo(
     () => ({
       ...pullRequestTarget(params).input,
@@ -40,10 +37,7 @@ export function usePullRequestStack(params: PullRequestParams, pr: PullRequestDe
     ...query,
     stack,
     isFresh: supported && query.isSuccess && !query.isPending,
-    supportsStackActions:
-      supported &&
-      pr?.capabilities.stackActions === true &&
-      config?.environment.capabilities.pullRequestStackActions === true,
+    supportsStackActions: supported && pr?.capabilities.stackActions === true,
   };
 }
 

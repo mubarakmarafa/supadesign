@@ -1,15 +1,12 @@
 import type {
-  RepositoryIdentity,
-  SourceControlProviderKind,
   ThreadLinkedPullRequest,
   ThreadPullRequestKey,
   ThreadPullRequestLink,
 } from "@supaterm/contracts";
 
-import { pullRequestHostOf } from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import { parseChangeRequestUrl } from "./changeRequestUrl.ts";
-import { canonicalRepositoryKey, sourceControlRepositorySelector } from "./sourceControl.ts";
+import { canonicalRepositoryKey } from "./sourceControl.ts";
 
 type ThreadPullRequestKeySource = ThreadPullRequestKey & {
   readonly authority?: string;
@@ -140,64 +137,12 @@ export function resolveThreadCurrentPullRequest(
   return { kind: "single", link: terminal[0]! };
 }
 
-/** The one link a legacy `linkedPullRequest` consumer should see, or null. */
 export function resolveThreadCurrentPullRequestLink(
   links: ReadonlyArray<ThreadPullRequestLink>,
 ): ThreadPullRequestLink | null {
   const current = resolveThreadCurrentPullRequest(links);
   if (current === null) return null;
   return current.kind === "single" ? current.link : current.top;
-}
-
-/** Legacy clients can only route links belonging to the thread's own repository. */
-export function legacyLinkedPullRequestOf(
-  links: ReadonlyArray<ThreadPullRequestLink>,
-  projectId: ThreadLinkedPullRequest["projectId"],
-  identity: RepositoryIdentity | null | undefined,
-): ThreadLinkedPullRequest | null {
-  if (!identity) return null;
-  // A local-path remote has no host segment and no provider, so there is no host to match.
-  const host = pullRequestHostOf(identity, identity.provider as SourceControlProviderKind);
-  if (typeof host !== "string") return null;
-  const repository = sourceControlRepositorySelector(identity);
-  if (repository === null) return null;
-  const azureKey =
-    identity.provider === "azure-devops"
-      ? canonicalRepositoryKey(identity.canonicalKey.toLowerCase())
-      : null;
-  const link = resolveThreadCurrentPullRequestLink(
-    links.filter((link) => {
-      if (azureKey !== null) {
-        const key = legacyThreadPullRequestKey(link, link.host);
-        return canonicalRepositoryKey(`${key.host}/${key.repository}`) === azureKey;
-      }
-      const parsed = parseChangeRequestUrl(link.url);
-      if (parsed?.authority !== undefined) {
-        try {
-          const remote = new URL(identity.locator.remoteUrl);
-          if (remote.protocol === "http:" || remote.protocol === "https:") {
-            return (
-              parsed.authority === remote.host && parsed.repository === repository.toLowerCase()
-            );
-          }
-        } catch {
-          // SSH web ports are resolved by the provider's configured login.
-        }
-        return parsed.host === host && parsed.repository === repository.toLowerCase();
-      }
-      return (
-        link.host.toLowerCase() === host.toLowerCase() &&
-        link.repository.toLowerCase() === repository.toLowerCase()
-      );
-    }),
-  );
-  if (link === null) return null;
-  return {
-    projectId,
-    repository: azureKey === null ? link.repository : repository,
-    number: link.number,
-    url: link.url,
-  };
 }
 
 export interface ThreadPullRequestChain {
@@ -307,49 +252,26 @@ export function resolveThreadPullRequestBadge(
   return { kind: "pull-request", others: visible.length - 1, state };
 }
 
-/** Search terms for visible PR links, the legacy projection, and the branch PR. */
 export function threadPullRequestSearchTerms(thread: {
   readonly pullRequests?: ReadonlyArray<ThreadPullRequestLink> | undefined;
-  readonly linkedPullRequest?: ThreadLinkedPullRequest | null | undefined;
   readonly branchPullRequest?: ThreadLinkedPullRequest | null | undefined;
 }): string[] {
   const branch = thread.branchPullRequest;
   const terms = branch
     ? [`#${branch.number}`, `${branch.repository}#${branch.number}`, branch.url]
     : [];
-  if (thread.pullRequests !== undefined && thread.pullRequests.length > 0) {
-    return terms.concat(
-      visibleThreadPullRequests(thread.pullRequests).flatMap((link) => [
-        `#${link.number}`,
-        `${link.repository}#${link.number}`,
-        link.url,
-        link.snapshot?.title ?? "",
-      ]),
-    );
-  }
-  const legacy = thread.linkedPullRequest;
-  return legacy
-    ? terms.concat([`#${legacy.number}`, `${legacy.repository}#${legacy.number}`, legacy.url])
-    : terms;
+  return terms.concat(
+    visibleThreadPullRequests(thread.pullRequests ?? []).flatMap((link) => [
+      `#${link.number}`,
+      `${link.repository}#${link.number}`,
+      link.url,
+      link.snapshot?.title ?? "",
+    ]),
+  );
 }
 
-/** Older V2 event payloads stored one link; an explicit empty array means it was unlinked. */
 export function threadPullRequestsOf(thread: {
   readonly pullRequests?: ReadonlyArray<ThreadPullRequestLink> | undefined;
-  readonly linkedPullRequest?: ThreadLinkedPullRequest | null | undefined;
 }): ReadonlyArray<ThreadPullRequestLink> {
-  if (thread.pullRequests !== undefined) return thread.pullRequests;
-  const linked = thread.linkedPullRequest;
-  return linked == null
-    ? []
-    : [
-        {
-          ...legacyThreadPullRequestKey(linked),
-          url: linked.url,
-          source: "manual",
-          linkedAt: "1970-01-01T00:00:00.000Z",
-          snapshot: null,
-          stack: null,
-        },
-      ];
+  return thread.pullRequests ?? [];
 }

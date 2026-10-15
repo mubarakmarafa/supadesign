@@ -172,9 +172,7 @@ describe("versionSkew", () => {
           },
           serverVersion: "0.0.33",
           orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-          capabilities: {
-            repositoryIdentity: true,
-          },
+          capabilities: {},
         },
       }),
     ).toMatchObject({
@@ -223,7 +221,6 @@ describe("versionSkew", () => {
           serverVersion: "9.9.9",
           orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
           capabilities: {
-            repositoryIdentity: true,
             serverSelfUpdate: "desktop-managed",
           },
         },
@@ -241,7 +238,6 @@ describe("versionSkew", () => {
         serverVersion: "9.9.9",
         orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
         capabilities: {
-          repositoryIdentity: true,
           serverSelfUpdate: "desktop-managed" as const,
           ...(desktopAppUpdate === undefined ? {} : { desktopAppUpdate }),
         },

@@ -178,10 +178,7 @@ const makeSupervisor = Effect.fn("CommandPerformance.makeSupervisor")(function* 
     client,
     initialConfig: Effect.succeed({
       environment: {
-        capabilities: {
-          repositoryIdentity: true,
-          serverResolvedCommandContext: true,
-        },
+        capabilities: {},
       },
     } as never),
     configChanges: Stream.empty,

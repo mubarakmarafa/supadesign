@@ -118,7 +118,7 @@ const testDescriptor = {
   platform: { os: "linux", arch: "x64" },
   serverVersion: "0.0.1",
   orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-  capabilities: { repositoryIdentity: true },
+  capabilities: {},
 };
 
 const withDescriptorServer = <A, E, R>(

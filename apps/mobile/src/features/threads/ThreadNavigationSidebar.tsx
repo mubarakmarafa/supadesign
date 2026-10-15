@@ -347,19 +347,9 @@ function ThreadNavigationSidebarPane(
   if (listClock.nowMinute !== nowMinute || listClock.snoozeWakeTick !== snoozeWakeTick) {
     setListClock({ nowMinute, snoozeWakeTick, now: new Date().toISOString() });
   }
-  // Threads on servers without the settlement capability never classify as
-  // settled (the user could neither un-settle nor pin them).
   const listEnvironments = useAtomValue(threadListEnvironmentsAtom);
-  const {
-    providersByEnvironmentId,
-    machineByEnvironmentId,
-    settlementEnvironmentIds,
-    snoozeEnvironmentIds,
-    pinningEnvironmentIds,
-    autoSettleOptOutEnvironmentIds,
-    pinReorderEnvironmentIds,
-    titleRegenerationEnvironmentIds,
-  } = listEnvironments;
+  const { providersByEnvironmentId, machineByEnvironmentId, loadedEnvironmentIds } =
+    listEnvironments;
   const resolveProviderInstance = useThreadRowProviderInstanceResolver(providersByEnvironmentId);
   const pendingOrder = usePendingThreadOrder(nowMinute, snoozeWakeTick);
   const { threadListV2Layout } = useThreadListV2Layout({
@@ -369,8 +359,6 @@ function ThreadNavigationSidebarPane(
     searchQuery: props.searchQuery,
     matchedThreadKeys,
     pendingOrder,
-    settlementEnvironmentIds,
-    snoozeEnvironmentIds,
     queuedThreadKeys,
     settledLimit: settledVisibleCount,
     now: listClock.now,
@@ -422,7 +410,7 @@ function ThreadNavigationSidebarPane(
       snoozedShelfExpanded,
       settledShelfExpanded,
       snoozeLabelNow: `${nowMinute}:00.000Z`,
-      snoozeEnvironmentIds,
+      loadedEnvironmentIds,
       queuedThreadKeys,
       shelfPreferencesLoading: !shelfPreferencesLoaded,
     });
@@ -437,7 +425,7 @@ function ThreadNavigationSidebarPane(
     settledShelfExpanded,
     shelfPreferencesLoaded,
     snoozedShelfExpanded,
-    snoozeEnvironmentIds,
+    loadedEnvironmentIds,
     threadListV2Layout,
     pinnedShelfExpanded,
     activeShelfExpanded,
@@ -701,13 +689,13 @@ function ThreadNavigationSidebarPane(
               onArchiveThread={archiveThread}
               onRenameThread={renameThread}
               onRegenerateThreadTitle={regenerateThreadTitle}
-              titleRegenerationSupported={titleRegenerationEnvironmentIds.has(thread.environmentId)}
-              settlementSupported={settlementEnvironmentIds.has(thread.environmentId)}
+              titleRegenerationSupported={loadedEnvironmentIds.has(thread.environmentId)}
+              settlementSupported={loadedEnvironmentIds.has(thread.environmentId)}
               onSettleThread={settleThread}
-              snoozeSupported={snoozeEnvironmentIds.has(thread.environmentId)}
-              pinningSupported={pinningEnvironmentIds.has(thread.environmentId)}
-              autoSettleOptOutSupported={autoSettleOptOutEnvironmentIds.has(thread.environmentId)}
-              arrangeSupported={pinReorderEnvironmentIds.has(thread.environmentId)}
+              snoozeSupported={loadedEnvironmentIds.has(thread.environmentId)}
+              pinningSupported={loadedEnvironmentIds.has(thread.environmentId)}
+              autoSettleOptOutSupported={loadedEnvironmentIds.has(thread.environmentId)}
+              arrangeSupported={loadedEnvironmentIds.has(thread.environmentId)}
               onSnoozeThread={snoozeThread}
               onUnsnoozeThread={unsnoozeThread}
               onUnsettleThread={unsettleThread}
@@ -792,11 +780,8 @@ function ThreadNavigationSidebarPane(
       handleSwipeableWillOpen,
       machineByEnvironmentId,
       openPendingTask,
-      pinReorderEnvironmentIds,
+      loadedEnvironmentIds,
       pinThread,
-      pinningEnvironmentIds,
-      autoSettleOptOutEnvironmentIds,
-      autoSettleOptOutEnvironmentIds,
       setThreadAutoSettle,
       projectByKey,
       projectTitleByProjectKey,
@@ -810,12 +795,9 @@ function ThreadNavigationSidebarPane(
       resolveProviderInstance,
       providersByEnvironmentId,
       threadSearchMatchByKey,
-      titleRegenerationEnvironmentIds,
       settleThread,
-      settlementEnvironmentIds,
       showMoreSettled,
       sidebarScrollGesture,
-      snoozeEnvironmentIds,
       snoozeThread,
       toggleSettledShelf,
       prepareListMotion,

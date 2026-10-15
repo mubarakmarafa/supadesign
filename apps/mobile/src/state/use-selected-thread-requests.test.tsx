@@ -39,8 +39,6 @@ vi.mock("./entities", () => ({
           settings: {},
           environment: {
             capabilities: {
-              questionAttachments: true,
-              attachmentUploads: true,
               fileAttachments: { maxUploadBytes: 20_000_000 },
             },
           },

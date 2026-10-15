@@ -31,43 +31,10 @@ import {
   getBackgroundActivityBaseProfile,
   normalizeBackgroundActivitySettings,
   normalizeServerBackgroundActivitySettings,
-  resolveBackgroundActivitySettings,
 } from "./backgroundActivitySettings.ts";
 
 const ServerSettingsJson = fromLenientJson(ServerSettings);
 const decodeServerSettingsJson = Schema.decodeUnknownOption(ServerSettingsJson);
-
-/** @deprecated Read `resolveProjectSettings(...).settings.enableAgentBrowserAccess`. */
-export function resolveProjectAgentBrowserAccess(
-  settings: Pick<
-    ServerSettings,
-    "enableAgentBrowserAccess" | "projectAgentBrowserAccessOverrides" | "projectSettingsOverrides"
-  >,
-  projectId: ProjectId,
-): boolean {
-  return (
-    settings.projectSettingsOverrides[projectId]?.enableAgentBrowserAccess ??
-    settings.projectAgentBrowserAccessOverrides[projectId] ??
-    settings.enableAgentBrowserAccess
-  );
-}
-
-/** @deprecated Read `resolveProjectSettings(...).settings.defaultAutoPull`. */
-export function resolveProjectAutoPull(
-  settings: Pick<
-    ServerSettings,
-    "defaultAutoPull" | "projectAutoPullOverrides" | "projectSettingsOverrides"
-  >,
-  projectId: ProjectId,
-  legacyAutoPull: boolean | undefined,
-): boolean {
-  // Existing opt-ins stay enabled until explicitly overridden or reset.
-  return (
-    settings.projectSettingsOverrides[projectId]?.defaultAutoPull ??
-    settings.projectAutoPullOverrides[projectId] ??
-    (legacyAutoPull === true || settings.defaultAutoPull)
-  );
-}
 
 export function isModelSelectionProviderEnabled(
   settings: ServerSettings,
@@ -334,98 +301,12 @@ function mergeProjectSettingsOverridesPatch(
   return Object.fromEntries(next);
 }
 
-/**
- * Derived views of `projectSettingsOverrides` for clients that still read
- * the legacy per-key maps. Recomputed on every patch and load so they
- * cannot drift from the generic record.
- */
-export function deriveLegacyProjectOverrides(
-  settings: Pick<ServerSettings, "projectSettingsOverrides">,
-): Pick<
-  ServerSettings,
-  "projectAgentBrowserAccessOverrides" | "projectAutoPullOverrides" | "projectScriptOverrides"
-> {
-  const projectAgentBrowserAccessOverrides: Record<string, boolean> = {};
-  const projectAutoPullOverrides: Record<string, boolean> = {};
-  const projectScriptOverrides: Record<string, ServerSettings["defaultProjectScripts"] | null> = {};
-  for (const [projectId, entry] of Object.entries(settings.projectSettingsOverrides)) {
-    if (entry.enableAgentBrowserAccess !== undefined) {
-      projectAgentBrowserAccessOverrides[projectId] = entry.enableAgentBrowserAccess;
-    }
-    if (entry.defaultAutoPull !== undefined) {
-      projectAutoPullOverrides[projectId] = entry.defaultAutoPull;
-    }
-    if (entry.defaultProjectScripts !== undefined) {
-      projectScriptOverrides[projectId] = entry.defaultProjectScripts;
-    }
-  }
-  return { projectAgentBrowserAccessOverrides, projectAutoPullOverrides, projectScriptOverrides };
-}
-
-/**
- * Rewrite a patch that still uses the legacy per-key project maps into
- * entries of `projectSettingsOverrides`, so older clients keep editing the
- * values the server actually reads. `null` in a legacy map clears that one
- * override.
- */
-function translateLegacyProjectOverridePatch(
-  current: Pick<ServerSettings, "projectSettingsOverrides">,
-  patch: ServerSettingsPatch,
-): ServerSettingsPatch {
-  const {
-    projectAgentBrowserAccessOverrides,
-    projectAutoPullOverrides,
-    projectScriptOverrides,
-    ...rest
-  } = patch;
-  if (
-    projectAgentBrowserAccessOverrides === undefined &&
-    projectAutoPullOverrides === undefined &&
-    projectScriptOverrides === undefined
-  ) {
-    return patch;
-  }
-  const currentEntries: Readonly<Record<string, ProjectSettingsOverrides>> =
-    current.projectSettingsOverrides;
-  const entries = new Map<string, ProjectSettingsOverrides | null>();
-  // A canonical entry in the same patch is the newer representation; a legacy
-  // map must not resurrect a key that entry deliberately omits.
-  const canonicalProjectIds = new Set(Object.keys(rest.projectSettingsOverrides ?? {}));
-  const applyKey = <K extends ProjectScopedServerSettingKey>(
-    map: Readonly<Record<string, ProjectSettingsOverrides[K] | null>> | undefined,
-    key: K,
-  ) => {
-    if (map === undefined) return;
-    for (const [projectId, value] of Object.entries(map)) {
-      if (canonicalProjectIds.has(projectId)) continue;
-      const entry: ProjectSettingsOverrides = {
-        ...(entries.get(projectId) ?? currentEntries[projectId]),
-      };
-      if (value === null || value === undefined) {
-        delete entry[key];
-      } else {
-        entry[key] = value;
-      }
-      entries.set(projectId, Object.keys(entry).length === 0 ? null : entry);
-    }
-  };
-  applyKey(projectAgentBrowserAccessOverrides, "enableAgentBrowserAccess");
-  applyKey(projectAutoPullOverrides, "defaultAutoPull");
-  applyKey(projectScriptOverrides, "defaultProjectScripts");
-  return {
-    ...rest,
-    projectSettingsOverrides: { ...rest.projectSettingsOverrides, ...Object.fromEntries(entries) },
-  } as ServerSettingsPatch;
-}
-
 export function applyServerSettingsPatch(
   current: ServerSettings,
-  rawPatch: ServerSettingsPatch,
+  patch: ServerSettingsPatch,
 ): ServerSettings {
-  const patch = translateLegacyProjectOverridePatch(current, rawPatch);
   const selectionPatch = patch.textGenerationModelSelection;
   const {
-    migrateModelPreferences,
     setModelFavorites,
     setModelsHidden,
     setProviderModelOrder,
@@ -443,11 +324,6 @@ export function applyServerSettingsPatch(
     // Entry replacement: deepMerge would keep keys the client meant to clear.
     projectSettingsOverrides: projectSettingsOverridesPatch,
     projectSettingsOverrideRemovals,
-    // Already translated into `projectSettingsOverrides` above; the legacy
-    // maps are derived views and must never be merged directly.
-    projectAgentBrowserAccessOverrides: _legacyBrowserAccess,
-    projectAutoPullOverrides: _legacyAutoPull,
-    projectScriptOverrides: _legacyScripts,
     ...patchForMerge
   } = patch;
   const currentBackgroundActivity = normalizeServerBackgroundActivitySettings(current);
@@ -485,11 +361,10 @@ export function applyServerSettingsPatch(
             },
           }
         : undefined;
-  const initialFavorites =
-    patch.favorites ?? current.favorites ?? migrateModelPreferences?.favorites ?? null;
+  const initialFavorites = patch.favorites ?? current.favorites;
   let favorites = initialFavorites;
   if (setModelFavorites !== undefined) {
-    let edited = [...(initialFavorites ?? [])];
+    let edited = [...initialFavorites];
     for (const change of setModelFavorites) {
       const matches = (favorite: ModelPreferences["favorites"][number]) =>
         favorite.provider === change.provider && favorite.model === change.model;
@@ -501,11 +376,7 @@ export function applyServerSettingsPatch(
     }
     favorites = edited;
   }
-  const initialModelPreferences =
-    providerModelPreferences ??
-    current.providerModelPreferences ??
-    migrateModelPreferences?.providerModelPreferences ??
-    null;
+  const initialModelPreferences = providerModelPreferences ?? current.providerModelPreferences;
   let nextModelPreferences = initialModelPreferences;
   if ((setModelsHidden?.length ?? 0) > 0 || setProviderModelOrder !== undefined) {
     const edited: Record<
@@ -649,22 +520,13 @@ export function applyServerSettingsPatch(
     ...(patch.reviewGuideModelSelection !== undefined
       ? { reviewGuideModelSelection: patch.reviewGuideModelSelection }
       : {}),
-    ...(automaticGitFetchInterval !== undefined ? { automaticGitFetchInterval } : {}),
-    ...(providerHealthRefreshInterval !== undefined ? { providerHealthRefreshInterval } : {}),
   };
   const normalizedBackgroundActivity = normalizeBackgroundActivitySettings(
     nextWithReplacementsBase.backgroundActivity,
   );
-  const resolvedBackgroundActivity = resolveBackgroundActivitySettings(
-    normalizedBackgroundActivity,
-  );
   const nextWithReplacements = {
     ...nextWithReplacementsBase,
-    ...deriveLegacyProjectOverrides(nextWithReplacementsBase),
     backgroundActivity: normalizedBackgroundActivity,
-    automaticGitFetchInterval: resolvedBackgroundActivity.automaticGitFetchInterval,
-    providerHealthRefreshInterval: resolvedBackgroundActivity.providerHealthRefreshInterval,
-    backgroundActivityProfile: resolvedBackgroundActivity.profile,
   };
   if (!selectionPatch) {
     return nextWithReplacements;
@@ -683,40 +545,4 @@ export function applyServerSettingsPatch(
     ...nextWithReplacements,
     textGenerationModelSelection: createModelSelection(instanceId, model, options),
   };
-}
-
-/** Resolve legacy local preferences only until the environment has a saved value. */
-export function resolveModelPreferences(
-  settings: Pick<ServerSettings, "favorites" | "providerModelPreferences">,
-  legacy: Partial<ModelPreferences> = {},
-): ModelPreferences {
-  return {
-    favorites: settings.favorites ?? legacy.favorites ?? [],
-    providerModelPreferences:
-      settings.providerModelPreferences ?? legacy.providerModelPreferences ?? {},
-  };
-}
-
-/** Empty legacy values do not claim ownership before another client can migrate its saved list. */
-export function modelPreferencesMigrationPatch(
-  settings: Pick<ServerSettings, "favorites" | "providerModelPreferences">,
-  legacy: Partial<ModelPreferences>,
-): ServerSettingsPatch | null {
-  const favorites =
-    settings.favorites === null && (legacy.favorites?.length ?? 0) > 0
-      ? legacy.favorites
-      : undefined;
-  const providerModelPreferences =
-    settings.providerModelPreferences === null &&
-    Object.keys(legacy.providerModelPreferences ?? {}).length > 0
-      ? legacy.providerModelPreferences
-      : undefined;
-  return favorites === undefined && providerModelPreferences === undefined
-    ? null
-    : {
-        migrateModelPreferences: {
-          ...(favorites === undefined ? {} : { favorites }),
-          ...(providerModelPreferences === undefined ? {} : { providerModelPreferences }),
-        },
-      };
 }

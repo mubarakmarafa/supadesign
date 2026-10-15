@@ -115,17 +115,6 @@ describe("filesystem read access", () => {
       }),
     ).toEqual({ canReadFiles: false, isPending: false, error: null });
   });
-
-  it("falls back to the orchestration grant on a server that predates filesystem:read", () => {
-    expect(
-      resolveFilesystemReadAccess({
-        isCatalogReady: true,
-        connection: { phase: "connected", error: null },
-        session: { authenticated: true, scopes: [AuthOrchestrationReadScope], auth: {} },
-        sessionError: null,
-      }),
-    ).toEqual({ canReadFiles: true, isPending: false, error: null });
-  });
 });
 
 describe("filesystem browse model", () => {

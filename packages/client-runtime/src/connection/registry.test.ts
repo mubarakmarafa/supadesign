@@ -1756,7 +1756,7 @@ it.effect(
           platform: { os: "linux", arch: "x64" },
           serverVersion: "test",
           orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-          capabilities: { repositoryIdentity: true, relayAdvertisement: true },
+          capabilities: {},
         },
         auth: {
           policy: "loopback-browser",

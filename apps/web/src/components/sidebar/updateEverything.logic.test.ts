@@ -30,7 +30,6 @@ function machine(
         serverVersion,
         orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
         capabilities: {
-          repositoryIdentity: true,
           ...(selfUpdate ? { serverSelfUpdate: selfUpdate } : {}),
           ...(selfUpdate === "desktop-managed" ? { desktopAppUpdate: true } : {}),
         },
@@ -83,7 +82,6 @@ describe("collectRestartingMachines", () => {
             ...base.serverConfig!.environment,
             capabilities: {
               ...base.serverConfig!.environment.capabilities,
-              threadRestartContinuation: true,
             },
           },
           settings: { continueThreadsAfterServerUpdate: enabled },

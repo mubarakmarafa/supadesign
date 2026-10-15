@@ -47,7 +47,7 @@ const layerEnvironment = Layer.mock(Environment.ServerEnvironment)({
     platform: { os: "linux", arch: "x64" },
     serverVersion: "0.0.0",
     orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-    capabilities: { repositoryIdentity: false },
+    capabilities: {},
   }),
 });
 
@@ -126,7 +126,7 @@ it.effect("refuses a preferences update when the caller's turn ends while it wai
           platform: { os: "linux", arch: "x64" },
           serverVersion: "0.0.0",
           orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-          capabilities: { repositoryIdentity: false },
+          capabilities: {},
         }),
       }),
       Layer.mock(Settings.ServerSettingsService)({

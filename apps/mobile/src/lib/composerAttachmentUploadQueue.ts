@@ -48,10 +48,7 @@ export function composerDraftEnvironmentId(
 
 type UploadServerConfig = {
   readonly environment: {
-    readonly capabilities: Pick<
-      ServerConfig["environment"]["capabilities"],
-      "attachmentUploads" | "fileAttachments"
-    >;
+    readonly capabilities: Pick<ServerConfig["environment"]["capabilities"], "fileAttachments">;
   };
 };
 
@@ -59,13 +56,12 @@ export function canUploadComposerAttachment(
   attachment: DraftComposerAttachment,
   config: UploadServerConfig | null | undefined,
 ): boolean {
-  const capabilities = config?.environment.capabilities;
+  if (config == null) return false;
+  const { fileAttachments } = config.environment.capabilities;
   return (
-    capabilities?.attachmentUploads === true &&
-    (attachment.type === "image" ||
-      (capabilities.fileAttachments !== undefined &&
-        attachment.sizeBytes <=
-          clampFileAttachmentUploadBytes(capabilities.fileAttachments.maxUploadBytes)))
+    attachment.type === "image" ||
+    (fileAttachments !== undefined &&
+      attachment.sizeBytes <= clampFileAttachmentUploadBytes(fileAttachments.maxUploadBytes))
   );
 }
 

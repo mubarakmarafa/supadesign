@@ -241,9 +241,7 @@ describe("remote environment authorization", () => {
             },
             serverVersion: "0.0.0-test",
             orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-            capabilities: {
-              repositoryIdentity: true,
-            },
+            capabilities: {},
           },
           { status: 200 },
         ),
@@ -256,12 +254,7 @@ describe("remote environment authorization", () => {
               sessionMethods: ["browser-session-cookie", "bearer-access-token"],
               sessionCookieName: "supaterm_session",
             },
-            scopes: [
-              "orchestration:read",
-              "orchestration:operate",
-              "terminal:operate",
-              "review:write",
-            ],
+            scopes: ["orchestration:read", "orchestration:operate", "terminal:operate"],
             sessionMethod: "bearer-access-token",
             expiresAt: "2026-05-01T12:00:00.000Z",
           },
@@ -290,7 +283,7 @@ describe("remote environment authorization", () => {
       }).pipe(provideRemoteHttp(fetch.fetchFn));
       expect(session).toMatchObject({
         authenticated: true,
-        scopes: ["orchestration:read", "orchestration:operate", "terminal:operate", "review:write"],
+        scopes: ["orchestration:read", "orchestration:operate", "terminal:operate"],
       });
 
       const ticket = yield* issueRemoteWebSocketTicket({
