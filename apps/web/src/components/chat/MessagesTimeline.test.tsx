@@ -2674,7 +2674,7 @@ describe("MessagesTimeline", () => {
       />,
     );
 
-    expect(markup).toContain('viewBox="25.69 37.17 76.40 52.95"');
+    expect(markup).toContain('viewBox="0 0 12 19"');
     expect(markup).toContain("Read a Supaterm thread");
     expect(markup).not.toContain("mcp__supaterm__supaterm_thread_read");
   });
