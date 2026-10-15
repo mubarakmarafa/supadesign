@@ -5,7 +5,7 @@ import * as Fiber from "effect/Fiber";
 import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
 
-import { EnvironmentAuthInvalidError } from "@supaterm/contracts";
+import { EnvironmentAuthInvalidError, ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
 import {
   appendClientConnectionParams,
   bootstrapRemoteBearerSession,
@@ -240,6 +240,7 @@ describe("remote environment authorization", () => {
               arch: "x64",
             },
             serverVersion: "0.0.0-test",
+            orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
             capabilities: {
               repositoryIdentity: true,
             },

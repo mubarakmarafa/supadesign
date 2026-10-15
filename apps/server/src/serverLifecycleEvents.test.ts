@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supaterm/contracts";
+import { EnvironmentId, ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import { assertTrue } from "@effect/vitest/utils";
 import * as Effect from "effect/Effect";
@@ -16,6 +16,7 @@ it.effect(
         label: "Test environment",
         platform: { os: "darwin" as const, arch: "arm64" as const },
         serverVersion: "0.0.0-test",
+        orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
         capabilities: { repositoryIdentity: true },
       };
 

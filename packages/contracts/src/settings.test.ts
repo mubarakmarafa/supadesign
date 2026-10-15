@@ -538,20 +538,6 @@ describe("ClientSettings quit confirmation", () => {
     expect(decodeClientSettings({ confirmQuit: mode }).confirmQuit).toBe(mode);
     expect(decodeClientSettingsPatch({ confirmQuit: mode }).confirmQuit).toBe(mode);
   });
-
-  it.each([
-    [true, "hold"],
-    [false, "direct"],
-  ] as const)("migrates the legacy %s value to %s", (legacyValue, mode) => {
-    const settings = decodeClientSettings({ confirmQuit: legacyValue });
-
-    expect(settings.confirmQuit).toBe(mode);
-    expect(encodeClientSettings(settings).confirmQuit).toBe(mode);
-  });
-
-  it("rejects legacy booleans at the patch boundary", () => {
-    expect(() => decodeClientSettingsPatch({ confirmQuit: true })).toThrow();
-  });
 });
 
 describe("ClientSettings browser recording frame rate", () => {

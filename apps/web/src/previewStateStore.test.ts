@@ -169,7 +169,7 @@ describe("previewStateStore (single-tab)", () => {
       createdAt: "2026-01-01T00:00:01.000Z",
       snapshot: {
         ...background,
-        viewport: { _tag: "preset", presetId: "pixel-8", width: 412, height: 915 },
+        viewport: { _tag: "preset", presetId: "pixel-7", width: 412, height: 915 },
         updatedAt: "2026-01-01T00:00:01.000Z",
       },
     });
@@ -178,7 +178,7 @@ describe("previewStateStore (single-tab)", () => {
     expect(state.activeTabId).toBe(active.tabId);
     expect(state.sessions[background.tabId]?.viewport).toEqual({
       _tag: "preset",
-      presetId: "pixel-8",
+      presetId: "pixel-7",
       width: 412,
       height: 915,
     });

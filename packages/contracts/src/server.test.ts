@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";
 
-import { ExecutionEnvironmentDescriptor } from "./environment.ts";
+import { ExecutionEnvironmentDescriptor, ORCHESTRATION_PROTOCOL_VERSION } from "./environment.ts";
 import {
   OtlpEndpointCheckInput,
   resolveEnvironmentMachineKind,
@@ -248,6 +248,7 @@ describe("resolveEnvironmentMachineKind", () => {
       label: "Box",
       platform: { os: "linux", arch: "x64", ...platform },
       serverVersion: "1.0.0",
+      orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
       capabilities: {},
     });
 

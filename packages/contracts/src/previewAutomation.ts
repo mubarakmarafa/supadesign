@@ -25,8 +25,7 @@ const OptionalTimeoutMs = Schema.optional(
     .annotate({ description: "Maximum wait in milliseconds. Defaults to 15000; maximum 60000." }),
 ).annotate({ description: "Maximum wait in milliseconds. Defaults to 15000; maximum 60000." });
 
-/** Operations understood by desktop hosts predating viewport resizing. */
-export const PREVIEW_AUTOMATION_V1_OPERATIONS = [
+export const PREVIEW_AUTOMATION_SERVER_OPERATIONS = [
   "status",
   "open",
   "navigate",
@@ -39,17 +38,8 @@ export const PREVIEW_AUTOMATION_V1_OPERATIONS = [
   "waitFor",
   "recordingStart",
   "recordingStop",
-] as const;
-
-/** Advertised by current desktop hosts for mixed-version routing. */
-const PREVIEW_AUTOMATION_OPERATIONS = [
-  ...PREVIEW_AUTOMATION_V1_OPERATIONS,
   "resize",
   "setColorScheme",
-] as const;
-
-export const PREVIEW_AUTOMATION_SERVER_OPERATIONS = [
-  ...PREVIEW_AUTOMATION_OPERATIONS,
   "dialog",
   "close",
   "upload",
@@ -168,12 +158,6 @@ export const PreviewAutomationOpenInput = Schema.Struct({
     Schema.Boolean.annotate({
       description:
         "Whether to open the thread-bound inline preview for the human. Defaults to true; set false for background-only automation.",
-    }),
-  ),
-  show: Schema.optional(
-    Schema.Boolean.annotate({
-      description:
-        "Deprecated alias for open. Whether to reveal the thread-bound inline preview to the human.",
     }),
   ),
   reuseExistingTab: Schema.optional(
@@ -769,11 +753,7 @@ export type PreviewAutomationHostIdentity = typeof PreviewAutomationHostIdentity
 
 export const PreviewAutomationHost = Schema.Struct({
   ...PreviewAutomationHostIdentity.fields,
-  /**
-   * Missing means the pre-capability-negotiation V1 operation set. This lets
-   * a newer server safely coexist with an older desktop during rollout.
-   */
-  supportedOperations: Schema.optional(Schema.Array(PreviewAutomationOperation)),
+  supportedOperations: Schema.Array(PreviewAutomationOperation),
 });
 export type PreviewAutomationHost = typeof PreviewAutomationHost.Type;
 

@@ -64,10 +64,8 @@ const OrchestratorMcpSchedule = Schema.Union([
 });
 
 /**
- * Shorthand `{ id: value }` record form for target model options. Unlike the
- * legacy-tolerant `ProviderOptionSelections` persistence schema, this decodes
- * strictly: a value that is not a string or boolean fails the request rather
- * than being silently dropped.
+ * Shorthand `{ id: value }` record form for target model options. A value
+ * that is not a string or boolean fails the request.
  */
 const OrchestratorMcpTargetOptionsFromRecord = Schema.Record(
   Schema.String,

@@ -282,7 +282,7 @@ describe("server state projection", () => {
   it.effect("resumes after the progress stream disconnects following completion", () => {
     const result = {
       targetVersion: "0.0.31",
-      method: "respawn" as const,
+      method: "boot-service" as const,
     };
     const disconnect = new RpcClientError.RpcClientError({
       reason: new Socket.SocketCloseError({ code: 1006 }),
@@ -319,7 +319,7 @@ describe("server state projection", () => {
     expect(
       serverUpdateStateForProgressEvent("0.0.30", "0.0.31", {
         type: "complete",
-        result: { targetVersion: "0.0.31", method: "respawn" },
+        result: { targetVersion: "0.0.31", method: "boot-service" },
       }),
     ).toEqual({
       status: "running",

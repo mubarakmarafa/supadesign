@@ -70,11 +70,10 @@ export type WorktreeSubmodules = typeof WorktreeSubmodules.Type;
 export type ExecutionEnvironmentPlatform = typeof ExecutionEnvironmentPlatform.Type;
 
 /** How a server can replace itself with another version when asked over RPC.
-    New servers only advertise the stable launcher-backed "boot-service" path;
-    "respawn" remains decodable for compatibility with older servers.
+    "boot-service" restarts through the launcher-backed boot service.
     "desktop-app" means the supervising desktop app updated and relaunched
     itself, bringing the server back with it. */
-export const ServerSelfUpdateMethod = Schema.Literals(["boot-service", "respawn", "desktop-app"]);
+export const ServerSelfUpdateMethod = Schema.Literals(["boot-service", "desktop-app"]);
 export type ServerSelfUpdateMethod = typeof ServerSelfUpdateMethod.Type;
 
 /** Proven ownership for a manual update; unknown installs omit this descriptor. */
@@ -88,11 +87,7 @@ export type ServerInstallation = typeof ServerInstallation.Type;
     self-update methods above, or "desktop-managed" when the backend's
     version belongs to the Supaterm desktop app supervising it — updating the
     app on that machine is the only way to update the server. */
-export const ServerSelfUpdateCapability = Schema.Literals([
-  "boot-service",
-  "respawn",
-  "desktop-managed",
-]);
+export const ServerSelfUpdateCapability = Schema.Literals(["boot-service", "desktop-managed"]);
 export type ServerSelfUpdateCapability = typeof ServerSelfUpdateCapability.Type;
 
 export const ExecutionEnvironmentCapabilities = Schema.Struct({
@@ -229,8 +224,7 @@ export const ExecutionEnvironmentDescriptor = Schema.Struct({
   label: TrimmedNonEmptyString,
   platform: ExecutionEnvironmentPlatform,
   serverVersion: TrimmedNonEmptyString,
-  /** Absent on hosts from before explicit orchestration protocol negotiation. */
-  orchestrationProtocolVersion: Schema.optionalKey(Schema.Int),
+  orchestrationProtocolVersion: Schema.Int,
   relayEndpoint: Schema.optionalKey(Schema.String),
   relayUrl: Schema.optionalKey(Schema.String),
   capabilities: ExecutionEnvironmentCapabilities,

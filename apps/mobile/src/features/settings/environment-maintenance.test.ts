@@ -105,7 +105,7 @@ describe("environment maintenance access", () => {
 
   it("requires remote desktop update support for desktop hosts", () => {
     expect(supportsEnvironmentUpdate({})).toBe(false);
-    expect(supportsEnvironmentUpdate({ serverSelfUpdate: "respawn" })).toBe(true);
+    expect(supportsEnvironmentUpdate({ serverSelfUpdate: "boot-service" })).toBe(true);
     expect(supportsEnvironmentUpdate({ serverSelfUpdate: "desktop-managed" })).toBe(false);
     expect(
       supportsEnvironmentUpdate({ serverSelfUpdate: "desktop-managed", desktopAppUpdate: true }),

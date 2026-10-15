@@ -9,6 +9,7 @@ import {
   PreviewTabId,
   ProviderInstanceId,
   ThreadId,
+  PREVIEW_AUTOMATION_SERVER_OPERATIONS,
 } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -36,6 +37,8 @@ import * as McpToolAccessTestkit from "./McpToolAccess.testkit.ts";
 import * as McpInvocationContext from "./McpInvocationContext.ts";
 import * as McpSessionRegistry from "./McpSessionRegistry.ts";
 import * as PreviewAutomationBroker from "./PreviewAutomationBroker.ts";
+
+const supportedOperations = PREVIEW_AUTOMATION_SERVER_OPERATIONS;
 
 const environmentId = EnvironmentId.make("environment-mcp-test");
 const threadId = ThreadId.make("thread-mcp-test");
@@ -114,7 +117,7 @@ const serveSnapshots = (clientId: string, result: unknown) =>
     const broker = yield* PreviewAutomationBroker.PreviewAutomationBroker;
     const connected = yield* Deferred.make<void>();
     const inputs: Array<unknown> = [];
-    const events = yield* broker.connect({ clientId, environmentId });
+    const events = yield* broker.connect({ clientId, environmentId, supportedOperations });
     yield* Stream.runForEach(events, (event) => {
       if (event.type === "connected") return Deferred.succeed(connected, undefined);
       inputs.push(event.request.input);
@@ -163,6 +166,7 @@ it.effect.each([{}, { includeImage: false }])(
         const events = yield* broker.connect({
           clientId: "mcp-failure-client",
           environmentId,
+          supportedOperations,
         });
         yield* Stream.runForEach(events, (event) =>
           event.type === "connected"
@@ -216,7 +220,11 @@ it.effect.each([
     Effect.gen(function* () {
       const broker = yield* PreviewAutomationBroker.PreviewAutomationBroker;
       const connected = yield* Deferred.make<void>();
-      const events = yield* broker.connect({ clientId: "mcp-no-tab-client", environmentId });
+      const events = yield* broker.connect({
+        clientId: "mcp-no-tab-client",
+        environmentId,
+        supportedOperations,
+      });
       yield* Stream.runForEach(events, (event) =>
         event.type === "connected"
           ? Deferred.succeed(connected, undefined)
@@ -290,7 +298,11 @@ it.effect.each([
       };
       const screenshot = { mimeType: "image/png", width: 1, height: 1 };
       let requests = 0;
-      const events = yield* broker.connect({ clientId: "mcp-image-option-client", environmentId });
+      const events = yield* broker.connect({
+        clientId: "mcp-image-option-client",
+        environmentId,
+        supportedOperations,
+      });
       yield* Stream.runForEach(events, (event) => {
         if (event.type === "connected") return Deferred.succeed(connected, undefined);
         requests += 1;
@@ -846,6 +858,7 @@ it.effect("registers annotated tools and preserves authenticated request context
       const events = yield* broker.connect({
         clientId: "mcp-test-client",
         environmentId,
+        supportedOperations,
       });
       yield* Stream.runForEach(events, (event) => {
         if (event.type === "connected") return Effect.void;

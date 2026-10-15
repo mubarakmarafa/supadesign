@@ -4,6 +4,7 @@ import {
   MessageId,
   type OrchestrationV2DomainEvent,
   type OrchestrationV2ThreadProjection,
+  ORCHESTRATION_PROTOCOL_VERSION,
 } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import { HttpClient, HttpClientResponse } from "effect/http";
@@ -48,6 +49,7 @@ const responses = {
     label: target.label,
     platform: { os: "linux", arch: "x64" },
     serverVersion: "0.0.0-test",
+    orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
     capabilities: { repositoryIdentity: true },
   },
   "/api/auth/websocket-ticket": { ticket: "test-ticket", expiresAt: timestamp },

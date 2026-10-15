@@ -41,9 +41,25 @@ const scope = {
   issuedAt: 1,
 };
 
+const BASIC_OPERATIONS = [
+  "status",
+  "open",
+  "navigate",
+  "snapshot",
+  "click",
+  "type",
+  "press",
+  "scroll",
+  "evaluate",
+  "waitFor",
+  "recordingStart",
+  "recordingStop",
+] as const;
+
 const makeHost = (overrides: Partial<PreviewAutomationHost> = {}): PreviewAutomationHost => ({
   clientId: "client-1",
   environmentId: scope.environmentId,
+  supportedOperations: BASIC_OPERATIONS,
   ...overrides,
 });
 

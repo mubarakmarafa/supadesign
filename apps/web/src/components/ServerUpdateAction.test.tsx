@@ -354,7 +354,7 @@ describe("ServerUpdatesAction", () => {
     {
       environmentId: "batch-b" as EnvironmentId,
       serverLabel: "Office",
-      selfUpdate: "respawn",
+      selfUpdate: "boot-service",
       targetVersion: "0.0.31",
       threadContinuation: true,
       continueThreadsAfterServerUpdate: false,

@@ -62,7 +62,7 @@ const makeDependencies = Effect.fn("TestConnectionResolver.makeDependencies")((o
   readonly authorizeBearer?: RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization["Service"]["authorizeBearer"];
   readonly primaryBearerToken?: string;
   readonly prepareSsh?: ClientCapabilities.SshEnvironmentGateway["Service"]["prepare"];
-  readonly descriptorProtocolVersion?: number | null | undefined;
+  readonly descriptorProtocolVersion?: number | undefined;
 }) => {
   const profiles = new Map(
     (options?.profiles ?? []).map((profile) => [profile.connectionId, profile]),
@@ -120,11 +120,8 @@ const makeDependencies = Effect.fn("TestConnectionResolver.makeDependencies")((o
           label: "Compatible environment",
           platform: { os: "linux", arch: "x64" },
           serverVersion: "0.0.0-test",
-          ...(options?.descriptorProtocolVersion === undefined
-            ? { orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION }
-            : options.descriptorProtocolVersion === null
-              ? {}
-              : { orchestrationProtocolVersion: options.descriptorProtocolVersion }),
+          orchestrationProtocolVersion:
+            options?.descriptorProtocolVersion ?? ORCHESTRATION_PROTOCOL_VERSION,
           capabilities: { repositoryIdentity: true },
         }),
       )) satisfies typeof fetch),
@@ -155,7 +152,9 @@ const makeDependencies = Effect.fn("TestConnectionResolver.makeDependencies")((o
 describe("ConnectionResolver", () => {
   it.effect("blocks an old host during discovery before opening orchestration RPC", () =>
     Effect.gen(function* () {
-      const layerBroker = yield* makeDependencies({ descriptorProtocolVersion: null });
+      const layerBroker = yield* makeDependencies({
+        descriptorProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION - 1,
+      });
       const broker = yield* ConnectionResolver.ConnectionResolver.pipe(Effect.provide(layerBroker));
       const target = new PrimaryConnectionTarget({
         environmentId: ENVIRONMENT_ID,

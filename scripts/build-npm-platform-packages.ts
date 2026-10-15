@@ -19,7 +19,6 @@
  * bundleDependencies needs an arborist tree these flattened installs are
  * not), whereas `npm publish <tarball>` uploads the bytes as given.
  */
-import { legacyCliLauncherScript } from "@supaterm/shared/legacyCliLauncher";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";
@@ -180,7 +179,7 @@ export function npmLauncherPackageManifest(
     license: serverPackageJson.license,
     repository: serverPackageJson.repository,
     bin: { supaterm: "./bin/supaterm.js" },
-    files: ["bin", "dist"],
+    files: ["bin"],
     optionalDependencies: Object.fromEntries(
       platformKeys.map((key) => [npmPlatformPackageName(key), version]),
     ),
@@ -386,10 +385,6 @@ const stageLauncherPackage = Effect.fn("stageLauncherPackage")(function* (input:
   const launcherScript = path.join(stageDir, "bin/supaterm.js");
   yield* fs.writeFileString(launcherScript, NPM_LAUNCHER_SCRIPT);
   yield* fs.chmod(launcherScript, 0o755);
-  // Older service updaters and launchers run this exact path with Node.
-  // Keep it in the package so they can preflight and start the new executable.
-  yield* fs.makeDirectory(path.join(stageDir, "dist"));
-  yield* fs.writeFileString(path.join(stageDir, "dist/bin.mjs"), legacyCliLauncherScript());
   const readme = yield* path.fromFileUrl(new URL("../apps/server/README.md", import.meta.url));
   if (yield* fs.exists(readme)) {
     yield* fs.copyFile(readme, path.join(stageDir, "README.md"));

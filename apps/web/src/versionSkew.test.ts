@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supaterm/contracts";
+import { EnvironmentId, ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
 import type { ServerUpdateState } from "@supaterm/client-runtime/state/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import serverPackage from "../../server/package.json" with { type: "json" };
@@ -171,6 +171,7 @@ describe("versionSkew", () => {
             arch: "arm64",
           },
           serverVersion: "0.0.33",
+          orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
           capabilities: {
             repositoryIdentity: true,
           },
@@ -220,6 +221,7 @@ describe("versionSkew", () => {
           label: "Desktop",
           platform: { os: "darwin", arch: "arm64" },
           serverVersion: "9.9.9",
+          orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
           capabilities: {
             repositoryIdentity: true,
             serverSelfUpdate: "desktop-managed",
@@ -237,6 +239,7 @@ describe("versionSkew", () => {
         label: "Desktop",
         platform: { os: "darwin", arch: "arm64" } as const,
         serverVersion: "9.9.9",
+        orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
         capabilities: {
           repositoryIdentity: true,
           serverSelfUpdate: "desktop-managed" as const,
@@ -252,7 +255,7 @@ describe("versionSkew", () => {
   });
 
   it("matches version-drift guidance to the advertised update path", () => {
-    expect(serverUpdateGuidance("respawn")).toBe("Update to stay in sync");
+    expect(serverUpdateGuidance("boot-service")).toBe("Update to stay in sync");
     expect(serverUpdateGuidance("desktop-managed")).toBe("Update the desktop app");
   });
 });

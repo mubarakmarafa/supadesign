@@ -208,7 +208,6 @@ effectIt.effect("project monograms validate text and palette colors", () =>
   }),
 );
 
-const decodeStoredIcon = Schema.decodeUnknownEffect(StoredProjectIcon);
 const encodeStoredIcon = Schema.encodeEffect(StoredProjectIcon);
 const decodeReceivedIcon = Schema.decodeUnknownEffect(ReceivedProjectIcon);
 const encodeReceivedIcon = Schema.encodeEffect(ReceivedProjectIcon);
@@ -224,20 +223,6 @@ effectIt.effect("sends and stores icons in their plain shape", () =>
       assert.deepEqual(yield* encodeReceivedIcon(icon), icon);
       assert.deepEqual(yield* encodeStoredIcon(icon), icon);
       assert.deepEqual(yield* decodeReceivedIcon(icon), icon);
-    }
-  }),
-);
-
-effectIt.effect("reads monograms stored in the pre-v2 fallback shape", () =>
-  Effect.gen(function* () {
-    const monogram = { kind: "monogram", text: "T3", color: "violet" } as const;
-    const fallback = { kind: "lucide", name: "folder-code", color: "violet" } as const;
-    for (const legacy of [
-      { ...fallback, monogramText: "T3" },
-      { ...fallback, monogram: "T3" },
-    ]) {
-      assert.deepEqual(yield* decodeStoredIcon(legacy), monogram);
-      assert.deepEqual(yield* decodeReceivedIcon(legacy), monogram);
     }
   }),
 );

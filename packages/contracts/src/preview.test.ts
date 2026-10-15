@@ -37,10 +37,6 @@ describe("PreviewAutomationOpenInput", () => {
   it("accepts the inline preview visibility flag", () => {
     expect(decodeOpenInput({ open: false })).toEqual({ open: false });
   });
-
-  it("retains the legacy show visibility alias", () => {
-    expect(decodeOpenInput({ show: false })).toEqual({ show: false });
-  });
 });
 
 describe("PreviewNavStatus", () => {
@@ -111,11 +107,11 @@ describe("PreviewViewportSetting", () => {
     expect(
       decodeViewport({
         _tag: "preset",
-        presetId: "iphone-15-pro",
-        width: 393,
-        height: 852,
+        presetId: "iphone-14-pro-max",
+        width: 430,
+        height: 932,
       }),
-    ).toMatchObject({ _tag: "preset", presetId: "iphone-15-pro" });
+    ).toMatchObject({ _tag: "preset", presetId: "iphone-14-pro-max" });
   });
 
   it("rejects unsafe dimensions and oversized render areas", () => {
@@ -161,14 +157,13 @@ describe("preview automation tab targeting", () => {
 });
 
 describe("PreviewAutomationHost", () => {
-  it("accepts legacy hosts and current operation advertisements", () => {
-    expect(decodeAutomationHost({ clientId: "legacy", environmentId: "environment-1" })).toEqual({
-      clientId: "legacy",
-      environmentId: "environment-1",
-    });
+  it("requires an operation advertisement", () => {
+    expect(() =>
+      decodeAutomationHost({ clientId: "host", environmentId: "environment-1" }),
+    ).toThrow();
     expect(
       decodeAutomationHost({
-        clientId: "current",
+        clientId: "host",
         environmentId: "environment-1",
         supportedOperations: ["status", "resize"],
       }).supportedOperations,
@@ -218,7 +213,7 @@ describe("PreviewAutomationStatus", () => {
     expect(
       decodeAutomationStatus({
         ...base,
-        viewportSetting: { _tag: "preset", presetId: "pixel-8", width: 412, height: 915 },
+        viewportSetting: { _tag: "preset", presetId: "pixel-7", width: 412, height: 915 },
         viewport: { width: 412, height: 915 },
       }).viewport,
     ).toEqual({ width: 412, height: 915 });

@@ -1,4 +1,8 @@
-import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supaterm/contracts";
+import {
+  DEFAULT_PUBLIC_RELAY_URL,
+  EnvironmentId,
+  ORCHESTRATION_PROTOCOL_VERSION,
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Option from "effect/Option";
 
@@ -369,6 +373,7 @@ describe("relay route advertisements", () => {
       label: "Test",
       platform: { os: "linux", arch: "x64" } as const,
       serverVersion: "test",
+      orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
       capabilities: { repositoryIdentity: true },
     };
     expect(advertisedConnectionRoutes({ environment }).relayAdvertisement).toBeUndefined();

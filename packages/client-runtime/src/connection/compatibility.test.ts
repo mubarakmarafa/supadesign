@@ -10,12 +10,12 @@ import {
   orchestrationProtocolCompatibilityError,
 } from "./compatibility.ts";
 
-const descriptor = (orchestrationProtocolVersion?: number): ExecutionEnvironmentDescriptor => ({
+const descriptor = (orchestrationProtocolVersion: number): ExecutionEnvironmentDescriptor => ({
   environmentId: EnvironmentId.make("environment-remote"),
   label: "Build Mac",
   platform: { os: "darwin", arch: "arm64" },
   serverVersion: "9.0.0",
-  ...(orchestrationProtocolVersion === undefined ? {} : { orchestrationProtocolVersion }),
+  orchestrationProtocolVersion,
   capabilities: { repositoryIdentity: true },
 });
 
@@ -33,15 +33,6 @@ describe("orchestration protocol compatibility", () => {
     );
     expect(socketUrl.searchParams.get("wsTicket")).toBe("secret");
     expect(socketUrl.searchParams.get("connectionMethod")).toBe("ssh");
-  });
-
-  it("treats missing metadata as protocol 1", () => {
-    const error = orchestrationProtocolCompatibilityError(descriptor());
-    if (Number(ORCHESTRATION_PROTOCOL_VERSION) === 1) {
-      expect(error).toBeNull();
-    } else {
-      expect(error).toMatchObject({ reason: "unsupported" });
-    }
   });
 
   it("blocks a different protocol before connecting", () => {

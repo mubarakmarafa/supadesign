@@ -1,6 +1,11 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { expect, it } from "@effect/vitest";
-import { DEFAULT_SERVER_SETTINGS, EnvironmentId, ProjectId } from "@supaterm/contracts";
+import {
+  DEFAULT_SERVER_SETTINGS,
+  EnvironmentId,
+  ProjectId,
+  ORCHESTRATION_PROTOCOL_VERSION,
+} from "@supaterm/contracts";
 import { DEFAULT_SIGNAL_EXPORT } from "@supaterm/shared/observability";
 import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 import * as Deferred from "effect/Deferred";
@@ -130,6 +135,7 @@ it.effect("parks automatic pull until activation without delaying command readin
             label: "Test environment",
             platform: { os: "darwin", arch: "arm64" },
             serverVersion: "0.0.0-test",
+            orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
             capabilities: { repositoryIdentity: true },
           }),
         }),

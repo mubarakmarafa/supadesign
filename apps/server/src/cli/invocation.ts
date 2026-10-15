@@ -61,7 +61,7 @@ export const resolveServerInstallation = Effect.gen(function* () {
   const platform = yield* HostProcess.Platform;
   const entry = yield* fs.realPath(executable ? executablePath : (args[1] ?? ""));
   const match =
-    /^(.*)\/lib\/node_modules\/supaterm\/(?:dist\/bin\.mjs|bin\/supaterm\.js|node_modules\/@supabitapp\/supaterm-[^/]+\/supaterm)$/.exec(
+    /^(.*)\/lib\/node_modules\/supaterm\/(?:bin\/supaterm\.js|node_modules\/@supabitapp\/supaterm-[^/]+\/supaterm)$/.exec(
       entry,
     );
   if (!match) {
