@@ -85,10 +85,11 @@ import { ComposerSurface } from "./ThreadComposer";
 import { ComposerCommandPopover } from "./ComposerCommandPopover";
 import { useComposerCommandMenu } from "./use-composer-command-menu";
 import {
+  ComposerDictationConfirmAction,
   ComposerDictationLeadingAction,
-  ComposerDictationPrimaryAction,
   ComposerDictationStatus,
   ComposerDictationToolbar,
+  ComposerDictationTrailingActions,
 } from "../voice-input/ComposerDictationControl";
 import { useVoiceInputController } from "../voice-input/useVoiceInputController";
 import { resolveVoiceComposerPresentation } from "../voice-input/voiceInputPresentation";
@@ -581,13 +582,14 @@ export function NewTaskDraftScreen(props: {
     enabled: isComposerFocused && !isComposerInteractionLocked,
     onChangeDraftMessage: flow.setPrompt,
   });
+  const dictationDisabled = isIncomingShareTransferPending || isImportingShare || flow.submitting;
   const voiceInput = useVoiceInputController({
     ownerKey: flow.draftKey,
     label: selectedProjectLabel ? `New task in ${selectedProjectLabel}` : "New task",
     readDraftMessage: () => (flow.draftKey ? getComposerDraftSnapshot(flow.draftKey).text : null),
     subscribeToDraftChanges: (onChange) => appAtomRegistry.subscribe(composerDraftsAtom, onChange),
     selection: composerMenu.selection,
-    disabled: isIncomingShareTransferPending || isImportingShare || flow.submitting,
+    disabled: dictationDisabled,
     onChangeDraftMessage: flow.setPrompt,
     onChangeSelection: composerMenu.onSelectionChange,
     onSubmit: () => {
@@ -599,6 +601,10 @@ export function NewTaskDraftScreen(props: {
     voiceInput.elapsedSeconds,
   );
   const isVoiceInputPresented = voicePresentation.statusLabel !== null;
+  const startDictation = () => {
+    promptInputRef.current?.blur();
+    voiceInput.start();
+  };
   const preventRemove =
     (isIncomingShareTransferPending && !isProjectPickerReturnActive) ||
     isCancellingShareImport ||
@@ -645,6 +651,22 @@ export function NewTaskDraftScreen(props: {
     !isImportingShare &&
     pendingPastedTextAttachmentCount === 0;
   const canStart = canSubmitDraft && hasContent && !voiceInput.blocksSubmission;
+  const startTaskLabel =
+    taskPermissionReason ??
+    attachmentBlockReason ??
+    (cloneBlocksStart
+      ? projectClone === null || projectClone.phase === "running"
+        ? "Cloning repository"
+        : "Repository not cloned"
+      : pendingPastedTextAttachmentCount > 0
+        ? "Attaching pasted text"
+        : flow.submitting
+          ? "Starting task"
+          : attachmentsUploading
+            ? "Queue task, sends when uploads finish"
+            : environmentConnected
+              ? "Start task"
+              : "Queue task");
   const appliedInitialProjectKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (cancelledIncomingShareId === props.incomingShareId) {
@@ -1853,50 +1875,34 @@ export function NewTaskDraftScreen(props: {
                   />
                 </>
               )}
-              {voicePresentation.showsSend && (hasContent || !voiceInput.isAvailable) ? (
-                <ComposerActionButton
-                  accessibilityLabel={
-                    taskPermissionReason ??
-                    attachmentBlockReason ??
-                    (cloneBlocksStart
-                      ? projectClone === null || projectClone.phase === "running"
-                        ? "Cloning repository"
-                        : "Repository not cloned"
-                      : pendingPastedTextAttachmentCount > 0
-                        ? "Attaching pasted text"
-                        : flow.submitting
-                          ? "Starting task"
-                          : attachmentsUploading
-                            ? "Queue task, sends when uploads finish"
-                            : environmentConnected
-                              ? "Start task"
-                              : "Queue task")
-                  }
-                  disabled={!canStart}
-                  icon={queuesInsteadOfStarting ? "tray.and.arrow.up" : "arrow.up"}
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    void handleStart();
-                  }}
-                  variant="primary"
-                />
-              ) : (
-                <ComposerDictationPrimaryAction
+              {voicePresentation.showsSend ? (
+                <ComposerDictationTrailingActions
                   state={voiceInput.state}
-                  presentation={voicePresentation}
                   isAvailable={voiceInput.isAvailable}
-                  disabled={
-                    voiceInput.isBusy
-                      ? !canSubmitDraft
-                      : isIncomingShareTransferPending || isImportingShare || flow.submitting
-                  }
-                  onStart={() => {
-                    promptInputRef.current?.blur();
-                    voiceInput.start();
-                  }}
+                  disabled={dictationDisabled}
+                  reservesSendWidth
+                  onStart={startDictation}
+                  onCancel={voiceInput.cancel}
+                >
+                  {hasContent || !voiceInput.isAvailable ? (
+                    <ComposerActionButton
+                      accessibilityLabel={startTaskLabel}
+                      disabled={!canStart}
+                      icon={queuesInsteadOfStarting ? "tray.and.arrow.up" : "arrow.up"}
+                      onPress={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        void handleStart();
+                      }}
+                      variant="primary"
+                    />
+                  ) : null}
+                </ComposerDictationTrailingActions>
+              ) : (
+                <ComposerDictationConfirmAction
+                  presentation={voicePresentation}
+                  disabled={!canSubmitDraft}
                   onConfirm={voiceInput.stopAndSubmit}
                   submitsMessage
-                  onCancel={voiceInput.cancel}
                 />
               )}
             </ComposerToolbarRow>

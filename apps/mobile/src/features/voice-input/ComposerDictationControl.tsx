@@ -446,6 +446,29 @@ export function ComposerDictationLeadingAction(props: {
   );
 }
 
+export function ComposerDictationConfirmAction(props: {
+  readonly presentation: VoiceComposerPresentation;
+  readonly disabled?: boolean;
+  readonly onConfirm: () => void;
+  readonly submitsMessage?: boolean;
+}) {
+  const confirmationLabel = props.submitsMessage ? "Transcribe and send" : "Finish dictation";
+  return (
+    <SessionCapsuleButton
+      accessibilityLabel={
+        props.presentation.confirmationEnabled
+          ? confirmationLabel
+          : (props.presentation.statusLabel ?? "Preparing voice input")
+      }
+      disabled={props.disabled || !props.presentation.confirmationEnabled}
+      icon={props.submitsMessage ? "arrow.up" : "checkmark"}
+      loading={!props.presentation.confirmationEnabled}
+      onPress={props.onConfirm}
+      variant="primary"
+    />
+  );
+}
+
 export function ComposerDictationPrimaryAction(props: {
   readonly state: VoiceInputState;
   readonly presentation: VoiceComposerPresentation;
@@ -453,28 +476,39 @@ export function ComposerDictationPrimaryAction(props: {
   readonly disabled?: boolean;
   readonly onStart: () => void;
   readonly onConfirm: () => void;
-  readonly submitsMessage?: boolean;
   readonly onCancel: () => void;
 }) {
   if (props.presentation.trailingAction === "confirm") {
-    const confirmationLabel = props.submitsMessage ? "Transcribe and send" : "Finish dictation";
-    return (
-      <SessionCapsuleButton
-        accessibilityLabel={
-          props.presentation.confirmationEnabled
-            ? confirmationLabel
-            : (props.presentation.statusLabel ?? "Preparing voice input")
-        }
-        disabled={props.disabled || !props.presentation.confirmationEnabled}
-        icon={props.submitsMessage ? "arrow.up" : "checkmark"}
-        loading={!props.presentation.confirmationEnabled}
-        onPress={props.onConfirm}
-        variant="primary"
-      />
-    );
+    return <ComposerDictationConfirmAction {...props} />;
   }
 
   return <ComposerDictationStartAction {...props} />;
+}
+
+/**
+ * The dictation button beside a composer's send or stop button. `reservesSendWidth` keeps room
+ * for both while the draft is empty, so the first keystroke never shifts the toolbar.
+ */
+export function ComposerDictationTrailingActions(props: {
+  readonly children?: ReactNode;
+  readonly state: VoiceInputState;
+  readonly isAvailable: boolean;
+  readonly disabled?: boolean;
+  readonly reservesSendWidth?: boolean;
+  readonly onStart: () => void;
+  readonly onCancel: () => void;
+}) {
+  return (
+    <View
+      className="shrink-0 flex-row items-center justify-end"
+      style={
+        props.reservesSendWidth && props.isAvailable ? { minWidth: TOOLBAR_HEIGHT * 2 } : undefined
+      }
+    >
+      <ComposerDictationStartAction {...props} />
+      {props.children}
+    </View>
+  );
 }
 
 export function ComposerDictationStartAction(props: {
