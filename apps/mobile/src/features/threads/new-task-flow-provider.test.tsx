@@ -52,6 +52,7 @@ vi.mock("@react-navigation/native", () => ({
     goBack: transport.goBack,
     canGoBack: () => true,
   }),
+  useIsFocused: () => true,
 }));
 vi.mock("../../state/shell", () => ({ environmentShell: {} }));
 vi.mock("../../state/entities", () => ({

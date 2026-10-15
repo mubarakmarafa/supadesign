@@ -3,6 +3,7 @@ import { useEnvironmentPresentation } from "../../state/presentation";
 import { environmentSession } from "../../state/session";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 
 import type {
   EnvironmentId,
@@ -69,6 +70,7 @@ import {
   useComposerDraft,
   useStickyComposerModelSelection,
 } from "../../state/use-composer-drafts";
+import { openNewTaskDraftKeyAtom } from "../../state/use-pending-new-tasks";
 import {
   capturePendingTaskEditorWriteBaseline,
   flushPendingTaskEditorWrite,
@@ -538,6 +540,12 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
       }),
     );
   }, [activeDraftKey, editingPendingTask, selectedProject]);
+  const focused = useIsFocused();
+  const openDraftKey = focused && editingPendingTask === null ? activeDraftKey : null;
+  useEffect(() => {
+    appAtomRegistry.set(openNewTaskDraftKeyAtom, openDraftKey);
+  }, [openDraftKey]);
+  useEffect(() => () => appAtomRegistry.set(openNewTaskDraftKeyAtom, null), []);
   const selectedProjectDraft = useComposerDraft(selectedProjectDraftKey);
   const prompt = selectedProjectDraft.text;
   const attachments = selectedProjectDraft.attachments;

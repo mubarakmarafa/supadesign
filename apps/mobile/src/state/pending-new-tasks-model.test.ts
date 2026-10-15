@@ -3,7 +3,7 @@ import { CommandId, EnvironmentId, MessageId, ProjectId, ThreadId } from "@supat
 
 import type { QueuedThreadMessage } from "./thread-outbox-model";
 import type { ComposerDraft } from "./use-composer-drafts";
-import { buildPendingNewTasks } from "./pending-new-tasks-model";
+import { buildPendingNewTasks, freezeOpenDraftTask } from "./pending-new-tasks-model";
 
 const environmentId = EnvironmentId.make("env-1");
 const projectId = ProjectId.make("project-1");
@@ -116,5 +116,55 @@ describe("buildPendingNewTasks", () => {
     });
 
     expect(tasks.map((task) => task.title)).toEqual(["queued new", "queued old"]);
+  });
+});
+
+describe("freezeOpenDraftTask", () => {
+  const build = (drafts: Record<string, ComposerDraft>) =>
+    buildPendingNewTasks({
+      queuedMessages: [queuedCreation("a", "2026-09-05T10:00:00.000Z")],
+      drafts: { "new-task:other": draft("other idea", "2026-09-05T08:00:00.000Z"), ...drafts },
+    });
+  const titles = (tasks: ReturnType<typeof build>) => tasks.map((task) => task.title);
+
+  it("keeps the open draft's row as it was when the draft opened", () => {
+    const opened = build({ "new-task:open": draft("first words", "2026-09-05T09:00:00.000Z") });
+    const typed = build({
+      "new-task:open": draft("first words and more", "2026-09-05T09:00:00.000Z"),
+    });
+    const openDraft = {
+      draftKey: "new-task:open",
+      task: opened.find((task) => task.kind === "draft" && task.draftKey === "new-task:open"),
+    };
+
+    expect(titles(freezeOpenDraftTask(typed, openDraft))).toEqual([
+      "first words",
+      "other idea",
+      "queued a",
+    ]);
+  });
+
+  it("hides a draft that had no row when it opened", () => {
+    const typed = build({ "new-task:open": draft("fresh idea", "2026-09-05T09:00:00.000Z") });
+
+    expect(
+      titles(freezeOpenDraftTask(typed, { draftKey: "new-task:open", task: undefined })),
+    ).toEqual(["other idea", "queued a"]);
+  });
+
+  it("removes the frozen row once the draft is sent or discarded", () => {
+    const opened = build({ "new-task:open": draft("first words", "2026-09-05T09:00:00.000Z") });
+    const openDraft = {
+      draftKey: "new-task:open",
+      task: opened.find((task) => task.kind === "draft" && task.draftKey === "new-task:open"),
+    };
+
+    expect(titles(freezeOpenDraftTask(build({}), openDraft))).toEqual(["other idea", "queued a"]);
+  });
+
+  it("leaves the list alone when no draft is open", () => {
+    const tasks = build({ "new-task:open": draft("idea", "2026-09-05T09:00:00.000Z") });
+
+    expect(freezeOpenDraftTask(tasks, null)).toBe(tasks);
   });
 });

@@ -109,3 +109,19 @@ export function buildPendingNewTasks(input: {
   });
   return tasks;
 }
+
+export interface OpenDraftTask {
+  readonly draftKey: string;
+  readonly task: PendingNewTask | undefined;
+}
+
+export function freezeOpenDraftTask(
+  tasks: ReadonlyArray<PendingNewTask>,
+  openDraft: OpenDraftTask | null,
+): ReadonlyArray<PendingNewTask> {
+  if (openDraft === null) return tasks;
+  return tasks.flatMap((task) => {
+    if (task.kind !== "draft" || task.draftKey !== openDraft.draftKey) return [task];
+    return openDraft.task === undefined ? [] : [openDraft.task];
+  });
+}
