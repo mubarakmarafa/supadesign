@@ -123,13 +123,15 @@ vi.mock("../../state/pending-task-editor-writes", () => ({
 }));
 vi.mock("../../state/thread-outbox-removal", () => ({
   removeThreadOutboxMessage: transport.removePendingTask,
+  removePendingThreadCreation: transport.removePendingTask,
 }));
-vi.mock("../../state/thread-outbox", () => ({
+vi.mock("../../state/thread-outbox", async () => ({
   get threadOutboxManager() {
     return { queuedMessagesByThreadKeyAtom: queueAtom };
   },
   flattenQueuedThreadMessages: (messages: Record<string, ReadonlyArray<QueuedThreadMessage>>) =>
     Object.values(messages).flat(),
+  hasQueuedFollowUps: (await import("../../state/thread-outbox-model")).hasQueuedFollowUps,
 }));
 vi.mock("../../state/use-thread-outbox", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../state/use-thread-outbox")>()),

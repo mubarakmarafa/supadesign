@@ -1595,6 +1595,7 @@ export function NewTaskDraftScreen(props: {
     />
   );
 
+  const canPickEnvironment = flow.environments.length > 1 && !flow.environmentPinned;
   const environmentControl = (
     <ComposerInlineControl
       accessibilityLabel={`Environment: ${selectedEnvironmentLabel}`}
@@ -1609,11 +1610,9 @@ export function NewTaskDraftScreen(props: {
       )}
       label={`on ${selectedEnvironmentLabel}`}
       maxWidth={flow.isScratchDraft ? 170 : 260}
-      onPress={
-        flow.environments.length > 1 ? () => openContextPicker("NewTaskEnvironment") : undefined
-      }
-      showChevron={flow.environments.length > 1}
-      static={flow.environments.length <= 1}
+      onPress={canPickEnvironment ? () => openContextPicker("NewTaskEnvironment") : undefined}
+      showChevron={canPickEnvironment}
+      static={!canPickEnvironment}
     />
   );
   // A thread without a project has no project to name, so it asks plainly,

@@ -13,6 +13,7 @@ import {
   useComposerDraftStore,
 } from "../../composerDraftStore";
 import {
+  cancelThreadOutboxTurn,
   useThreadOutbox,
   webThreadOutbox,
   replaceThreadOutboxTurn,
@@ -182,8 +183,7 @@ export function ThreadOutboxControl(props: {
                         disabled={busy || !canChange}
                         onClick={() => {
                           void act(async () => {
-                            if (!(await webThreadOutbox.cancel(entry.id)))
-                              throw new Error("Delivery has already started.");
+                            await cancelThreadOutboxTurn(entry);
                             if (entry.payload.draftId) {
                               const draftId = DraftId.make(entry.payload.draftId);
                               const draft = useComposerDraftStore

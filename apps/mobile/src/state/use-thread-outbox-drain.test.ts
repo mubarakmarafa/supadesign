@@ -768,6 +768,165 @@ describe("thread outbox delivered creation recovery", () => {
   });
 });
 
+describe("thread outbox follow-ups behind a rejected creation", () => {
+  it("folds them into the task draft the rejected creation is restored into", async () => {
+    const creation: QueuedThreadMessage = {
+      ...queuedMessage({ messageId: "rejected-creation", text: "Original prompt" }),
+      modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.6-sol" },
+      creation: {
+        projectId: ProjectId.make("project-1"),
+        workspaceMode: "local",
+        branch: null,
+        worktreePath: null,
+      },
+    };
+    const followUp = {
+      ...queuedMessage({
+        messageId: "follow-up",
+        text: "Also cover the empty state",
+        fileUri: "file:///documents/supaterm-composer-attachments/follow-up.pdf",
+      }),
+      createdAt: "2026-08-24T12:01:00.000Z",
+    };
+    await harness.manager.enqueue(creation);
+    await harness.manager.enqueue(followUp);
+
+    await expect(restoreRejectedQueuedMessage(creation, "rejected by server")).resolves.toBe(
+      "restored",
+    );
+
+    expect(
+      composerDrafts.getComposerDraftSnapshot("new-task:restored-rejected-creation"),
+    ).toMatchObject({
+      text: "Original prompt\n\nAlso cover the empty state",
+      attachments: followUp.attachments,
+    });
+    expect(remainingMessages()).toEqual([]);
+    expect(harness.removePersistedFile).not.toHaveBeenCalled();
+  });
+
+  it("takes folded follow-ups back out with the task when its removal fails", async () => {
+    const creation: QueuedThreadMessage = {
+      ...queuedMessage({ messageId: "rejected-creation-retry", text: "Original prompt" }),
+      modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.6-sol" },
+      creation: {
+        projectId: ProjectId.make("project-1"),
+        workspaceMode: "local",
+        branch: null,
+        worktreePath: null,
+      },
+    };
+    const followUp = {
+      ...queuedMessage({ messageId: "follow-up-retry", text: "Also cover the empty state" }),
+      createdAt: "2026-08-24T12:01:00.000Z",
+    };
+    await harness.manager.enqueue(creation);
+    await harness.manager.enqueue(followUp);
+    const removeSpy = vi
+      .spyOn(harness.manager, "remove")
+      .mockRejectedValueOnce(new Error("storage unavailable"));
+
+    try {
+      await expect(restoreRejectedQueuedMessage(creation, "rejected by server")).resolves.toBe(
+        "retry",
+      );
+      expect(remainingMessages().map((message) => message.messageId)).toEqual([
+        creation.messageId,
+        followUp.messageId,
+      ]);
+      expect(appAtomRegistry.get(pendingThreadCreationOutcomesAtom)).toEqual({});
+
+      await expect(restoreRejectedQueuedMessage(creation, "rejected by server")).resolves.toBe(
+        "restored",
+      );
+      expect(
+        composerDrafts.getComposerDraftSnapshot("new-task:restored-rejected-creation-retry").text,
+      ).toBe("Original prompt\n\nAlso cover the empty state");
+      expect(remainingMessages()).toEqual([]);
+    } finally {
+      removeSpy.mockRestore();
+    }
+  });
+
+  it("keeps a follow-up's content in the draft when it cannot leave the queue", async () => {
+    const creation: QueuedThreadMessage = {
+      ...queuedMessage({ messageId: "rejected-creation-stuck", text: "Original prompt" }),
+      creation: {
+        projectId: ProjectId.make("project-1"),
+        workspaceMode: "local",
+        branch: null,
+        worktreePath: null,
+      },
+    };
+    const followUp = {
+      ...queuedMessage({ messageId: "follow-up-stuck", text: "Also cover the empty state" }),
+      createdAt: "2026-08-24T12:01:00.000Z",
+    };
+    await harness.manager.enqueue(creation);
+    await harness.manager.enqueue(followUp);
+    const remove = harness.manager.remove.bind(harness.manager);
+    const removeSpy = vi
+      .spyOn(harness.manager, "remove")
+      .mockImplementation((message, ...rest) =>
+        message.messageId === followUp.messageId
+          ? Promise.reject(new Error("storage unavailable"))
+          : remove(message, ...rest),
+      );
+
+    try {
+      await expect(restoreRejectedQueuedMessage(creation, "rejected by server")).resolves.toBe(
+        "restored",
+      );
+      expect(
+        composerDrafts.getComposerDraftSnapshot("new-task:restored-rejected-creation-stuck").text,
+      ).toBe("Original prompt\n\nAlso cover the empty state");
+      expect(remainingMessages().map((message) => message.messageId)).toEqual([followUp.messageId]);
+    } finally {
+      removeSpy.mockRestore();
+    }
+  });
+  it("folds a follow-up queued while the restore runs", async () => {
+    const creation: QueuedThreadMessage = {
+      ...queuedMessage({ messageId: "rejected-creation-late", text: "Original prompt" }),
+      creation: {
+        projectId: ProjectId.make("project-1"),
+        workspaceMode: "local",
+        branch: null,
+        worktreePath: null,
+      },
+    };
+    const followUp = {
+      ...queuedMessage({ messageId: "follow-up-early", text: "Also cover the empty state" }),
+      createdAt: "2026-08-24T12:01:00.000Z",
+    };
+    const lateFollowUp = {
+      ...queuedMessage({ messageId: "follow-up-late", text: "And the error state" }),
+      createdAt: "2026-08-24T12:02:00.000Z",
+    };
+    await harness.manager.enqueue(creation);
+    await harness.manager.enqueue(followUp);
+    const remove = harness.manager.remove.bind(harness.manager);
+    const removeSpy = vi
+      .spyOn(harness.manager, "remove")
+      .mockImplementation(async (message, ...rest) => {
+        if (message.messageId === creation.messageId) await harness.manager.enqueue(lateFollowUp);
+        return remove(message, ...rest);
+      });
+
+    try {
+      await expect(restoreRejectedQueuedMessage(creation, "rejected by server")).resolves.toBe(
+        "restored",
+      );
+      expect(
+        composerDrafts.getComposerDraftSnapshot("new-task:restored-rejected-creation-late").text,
+      ).toBe("Original prompt\n\nAlso cover the empty state\n\nAnd the error state");
+      expect(remainingMessages()).toEqual([]);
+    } finally {
+      removeSpy.mockRestore();
+    }
+  });
+});
+
 describe("thread outbox recovery rollback", () => {
   it("preserves inline context from setup edits when reopening a failed task", async () => {
     const message = queuedMessage({ messageId: "failed-context", text: "Original prompt" });

@@ -81,6 +81,7 @@ import { useDebouncedValue, usePaginatedBranches } from "../../state/queries";
 import { vcsEnvironment } from "../../state/vcs";
 import {
   flattenQueuedThreadMessages,
+  hasQueuedFollowUps,
   threadOutboxManager,
   type QueuedThreadMessage,
 } from "../../state/thread-outbox";
@@ -137,6 +138,27 @@ function findQueuedPendingTask(messageId: string): QueuedThreadMessage | null {
     appAtomRegistry.get(threadOutboxManager.queuedMessagesByThreadKeyAtom),
   ).find((candidate) => candidate.messageId === messageId);
   return message?.creation !== undefined ? message : null;
+}
+
+function canMoveEditedPendingTask(
+  editing: QueuedThreadMessage | null,
+  environmentId: EnvironmentId,
+): boolean {
+  if (
+    editing === null ||
+    editing.environmentId === environmentId ||
+    !hasQueuedFollowUps(
+      appAtomRegistry.get(threadOutboxManager.queuedMessagesByThreadKeyAtom),
+      editing,
+    )
+  ) {
+    return true;
+  }
+  Alert.alert(
+    "Messages are queued behind this task",
+    "They wait on this machine, so the task stays here until they send.",
+  );
+  return false;
 }
 
 export function branchBadgeLabel(input: {
@@ -214,6 +236,8 @@ type NewTaskFlowContextValue = {
   readonly switchEnvironment: (environmentId: EnvironmentId) => Promise<boolean>;
   /** The machine a switch in progress is heading to. */
   readonly switchingToEnvironmentId: EnvironmentId | null;
+  /** An edited pending task with follow-ups queued behind it stays on its machine. */
+  readonly environmentPinned: boolean;
   readonly setSelectedModelKey: (
     key: string | null,
     options?: ReadonlyArray<ProviderOptionSelection>,
@@ -828,6 +852,7 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
 
   const setProject = useCallback(
     (project: EnvironmentProject) => {
+      if (!canMoveEditedPendingTask(editingPendingTaskRef.current, project.environmentId)) return;
       cancelEnvironmentSwitch();
       carryDraftContentTo(project);
       setStickyNewTaskProject({ environmentId: project.environmentId, projectId: project.id });
@@ -885,6 +910,7 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
   const switchEnvironment = useCallback(
     async (environmentId: EnvironmentId): Promise<boolean> => {
       if (submittingRef.current) return false;
+      if (!canMoveEditedPendingTask(editingPendingTaskRef.current, environmentId)) return false;
       if (environmentId === selectedEnvironmentId) {
         cancelEnvironmentSwitch();
         return true;
@@ -1252,6 +1278,9 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
   // flush must not resurrect it, and the composer should fall back to the
   // regular per-project draft.
   const queuedMessagesByThreadKey = useThreadOutboxMessages();
+  const environmentPinned =
+    editingPendingTask !== null &&
+    hasQueuedFollowUps(queuedMessagesByThreadKey, editingPendingTask);
   useEffect(() => {
     const editing = editingPendingTaskRef.current;
     if (!editing) {
@@ -1379,6 +1408,7 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
       selectEnvironment,
       switchEnvironment,
       switchingToEnvironmentId,
+      environmentPinned,
       setSelectedModelKey,
       setWorkspaceMode,
       selectBranch,
@@ -1413,6 +1443,7 @@ export function NewTaskFlowProvider(props: React.PropsWithChildren) {
       currentCheckoutBranchName,
       defaultBaseBranchName,
       editingPendingTask,
+      environmentPinned,
       environments,
       expandedProvider,
       filteredBranches,

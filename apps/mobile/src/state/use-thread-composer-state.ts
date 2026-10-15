@@ -545,11 +545,9 @@ export function useThreadComposerState() {
       if (!selectedThreadShell) {
         return null;
       }
-      // The server has not created this thread yet. Queuing a follow-up against
-      // its id would strand the message: if the creation is rejected the thread
-      // never appears and the drain drops the orphan. The composer disables its
-      // send button too; this guard also covers the editor's submit key.
-      if (selectedThreadCreation !== null) {
+      // A rejected creation never made the thread; its failure card owns the
+      // next step. A pending one takes follow-ups queued behind it.
+      if (selectedThreadCreation?.outcome?.kind === "failed") {
         return null;
       }
 
@@ -665,13 +663,15 @@ export function useThreadComposerState() {
         alternateModifier: followUpOverride !== undefined && followUpOverride !== followUpBehavior,
         activeTurnDefault: followUpBehavior,
       });
-      // A send while the worktree is still being set up waits behind that setup,
-      // so the server can hold it if the setup ends without a worktree.
-      // Before detail loads, the shell's latest run can be a queued follow-up
-      // while its runtime still reports the setup.
-      const setupRunning = [selectedThreadActivityRun?.status, selectedThreadRuntime?.status].some(
-        (status) => status === "preparing" || status === "starting",
-      );
+      // A send while the thread is still being created or its worktree set up
+      // waits behind that work, so the server can hold it if the setup ends
+      // without a worktree. Before detail loads, the shell's latest run can be
+      // a queued follow-up while its runtime still reports the setup.
+      const setupRunning =
+        selectedThreadCreation !== null ||
+        [selectedThreadActivityRun?.status, selectedThreadRuntime?.status].some(
+          (status) => status === "preparing" || status === "starting",
+        );
       const followUpDispatchMode = setupRunning
         ? "queue"
         : followUpAction === "auto"

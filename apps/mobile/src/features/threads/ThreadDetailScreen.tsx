@@ -1548,17 +1548,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                         canStopThread={props.canStopThread}
                         environmentId={props.environmentId}
                         projectCwd={props.threadCwd ?? props.projectWorkspaceRoot}
-                        // Follow-ups typed before the server creates the thread wait in
-                        // the draft: queueing them against a thread id the server may
-                        // still reject would strand them in the outbox.
-                        sendBlockedReason={
-                          clientCreation
-                            ? pendingThreadCreationLabel({
-                                connected: props.connectionStateLabel === "connected",
-                                preparingWorktree: clientCreation.preparingWorktree,
-                              })
-                            : null
-                        }
+                        awaitingCreation={clientCreation !== null}
                         draftKey={props.composerDraftKey ?? undefined}
                         followUpBehavior={props.followUpBehavior}
                         canSteerActiveTurn={props.canSteerActiveTurn}

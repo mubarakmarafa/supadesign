@@ -364,28 +364,41 @@ export function enqueueThreadOutboxTurns(
   return webThreadOutbox.enqueueMany(targets.map(prepareThreadOutboxTurn));
 }
 
+/** Cancelling a pending task also cancels the follow-ups queued behind it. */
+export async function cancelThreadOutboxTurn(entry: PendingThreadTurn) {
+  const cancelled = entry.payload.input.bootstrap?.createThread
+    ? await webThreadOutbox.cancelWithFollowing(entry.id)
+    : await webThreadOutbox.cancel(entry.id);
+  if (!cancelled) throw new Error("Delivery has already started.");
+}
+
 /** Rejected thread creation needs fresh identifiers; uncertain sends cannot be edited. */
 export async function replaceThreadOutboxTurn(entry: PendingThreadTurn, payload: OutboxTurn) {
   const threadId =
     entry.status === "failed" && payload.input.bootstrap?.createThread
       ? newThreadId()
       : payload.input.threadId;
+  const scope = scopedThreadKey(scopeThreadRef(payload.environmentId, threadId));
   const compactBeforeSend =
     payload.compactBeforeSend === true &&
     threadId === entry.payload.input.threadId &&
     payload.input.modelSelection?.instanceId === entry.payload.input.modelSelection?.instanceId &&
     payload.input.message.text.trim().toLowerCase() !== "/compact";
   const { compactAccepted, ...payloadWithoutCompactAccepted } = payload;
-  const changed = await webThreadOutbox.edit(
-    entry.id,
-    decodeTurn({
-      ...payloadWithoutCompactAccepted,
-      compactBeforeSend,
-      ...(compactBeforeSend && compactAccepted === true ? { compactAccepted: true } : {}),
-      input: { ...payload.input, threadId, commandId: CommandId.make(randomUUID()) },
-    }),
-    scopedThreadKey(scopeThreadRef(payload.environmentId, threadId)),
-  );
+  const edited = decodeTurn({
+    ...payloadWithoutCompactAccepted,
+    compactBeforeSend,
+    ...(compactBeforeSend && compactAccepted === true ? { compactAccepted: true } : {}),
+    input: { ...payload.input, threadId, commandId: CommandId.make(randomUUID()) },
+  });
+  // Follow-ups queued behind a rejected task move with it to its new thread.
+  const changed =
+    scope === entry.scope
+      ? await webThreadOutbox.edit(entry.id, edited, scope)
+      : await webThreadOutbox.editWithFollowing(entry.id, edited, scope, (followUp) => ({
+          ...followUp,
+          input: { ...followUp.input, threadId },
+        }));
   if (!changed) throw new Error("Delivery has already started. Reconnect to confirm the message.");
   if (threadId !== entry.payload.input.threadId && payload.draftId) {
     const draftId = DraftId.make(payload.draftId);

@@ -1306,6 +1306,7 @@ describe("thread outbox", () => {
         shellStatus: "synchronizing",
         environmentConnected: true,
         threadBusy: false,
+        awaitingCreatedThread: false,
       }),
     ).toBe("wait");
     expect(
@@ -1315,6 +1316,7 @@ describe("thread outbox", () => {
         shellStatus: "live",
         environmentConnected: true,
         threadBusy: false,
+        awaitingCreatedThread: false,
       }),
     ).toBe("remove");
     expect(
@@ -1324,8 +1326,22 @@ describe("thread outbox", () => {
         shellStatus: "live",
         environmentConnected: true,
         threadBusy: false,
+        awaitingCreatedThread: false,
       }),
     ).toBe("send");
+  });
+
+  it("holds a follow-up while its delivered creation's shell is on the way", () => {
+    expect(
+      resolveThreadOutboxDeliveryAction({
+        isCreation: false,
+        threadExists: false,
+        shellStatus: "live",
+        environmentConnected: true,
+        threadBusy: false,
+        awaitingCreatedThread: true,
+      }),
+    ).toBe("wait");
   });
 
   it("sends existing-thread messages whenever connected so queued messages can steer", () => {
@@ -1336,6 +1352,7 @@ describe("thread outbox", () => {
         shellStatus: "live",
         environmentConnected: true,
         threadBusy: true,
+        awaitingCreatedThread: false,
       }),
     ).toBe("send");
     expect(
@@ -1345,6 +1362,7 @@ describe("thread outbox", () => {
         shellStatus: "live",
         environmentConnected: false,
         threadBusy: true,
+        awaitingCreatedThread: false,
       }),
     ).toBe("wait");
   });
@@ -1357,6 +1375,7 @@ describe("thread outbox", () => {
         shellStatus: "cached",
         environmentConnected: false,
         threadBusy: false,
+        awaitingCreatedThread: false,
       }),
     ).toBe("wait");
     // Connected but not yet synchronized: a previously delivered creation may
@@ -1368,6 +1387,7 @@ describe("thread outbox", () => {
         shellStatus: "synchronizing",
         environmentConnected: true,
         threadBusy: false,
+        awaitingCreatedThread: false,
       }),
     ).toBe("wait");
     expect(
@@ -1377,6 +1397,7 @@ describe("thread outbox", () => {
         shellStatus: "live",
         environmentConnected: true,
         threadBusy: false,
+        awaitingCreatedThread: false,
       }),
     ).toBe("send");
     expect(
@@ -1386,6 +1407,7 @@ describe("thread outbox", () => {
         shellStatus: "live",
         environmentConnected: true,
         threadBusy: true,
+        awaitingCreatedThread: false,
       }),
     ).toBe("remove");
   });

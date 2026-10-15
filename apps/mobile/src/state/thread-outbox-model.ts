@@ -162,6 +162,19 @@ export function groupQueuedThreadMessages(
 
 export const flattenQueuedThreadMessages = flattenThreadOutboxMessages<QueuedThreadMessage>;
 
+/**
+ * Whether follow-ups wait behind a pending task. They are queued on the task's
+ * machine, so the task cannot move to another one without stranding them.
+ */
+export function hasQueuedFollowUps(
+  queues: Readonly<Record<string, ReadonlyArray<QueuedThreadMessage>>>,
+  creation: QueuedThreadMessage,
+): boolean {
+  return (queues[`${creation.environmentId}:${creation.threadId}`] ?? []).some(
+    (message) => message.creation === undefined,
+  );
+}
+
 export function isQueuedThreadCreationSendable(message: QueuedThreadMessage): boolean {
   if (!message.creation) {
     return false;

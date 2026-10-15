@@ -168,8 +168,8 @@ export interface ThreadComposerProps {
   readonly canStopThread: boolean;
   readonly environmentId: EnvironmentId;
   readonly projectCwd: string | null;
-  /** Why sending is blocked right now (shown as the send button's label), or null. */
-  readonly sendBlockedReason?: string | null;
+  /** The thread is still being created; sends queue behind its creation. */
+  readonly awaitingCreation: boolean;
   /** Where the composer's content lives. Defaults to this thread's own draft. */
   readonly draftKey?: string;
   /**
@@ -420,7 +420,10 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
     canSteer: props.canSteerActiveTurn,
     followUpBehavior: props.followUpBehavior,
     deliveryDeferred:
-      props.connectionState !== "connected" || props.queueCount > 0 || attachmentsUploading,
+      props.connectionState !== "connected" ||
+      props.queueCount > 0 ||
+      attachmentsUploading ||
+      props.awaitingCreation,
   });
   const sendLabel = sendPresentation.label;
   const currentModelSelection = props.selectedThread.modelSelection;
@@ -530,7 +533,6 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
   const contextImports = useAtomValue(composerContextImportsAtom);
   const sendBlockedReason =
     (queuedEdit?.saving === true ? "Saving…" : null) ??
-    props.sendBlockedReason ??
     (pendingPastedTextAttachmentCount > 0 ? "Attaching pasted text" : null) ??
     attachmentBlockReason;
   const canSubmitDraft =

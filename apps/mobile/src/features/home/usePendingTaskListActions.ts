@@ -5,7 +5,7 @@ import { Alert } from "react-native";
 
 import { withThreadDismissal } from "./thread-dismissal";
 import { appAtomRegistry } from "../../state/atom-registry";
-import { removeThreadOutboxMessage } from "../../state/thread-outbox-removal";
+import { removePendingThreadCreation } from "../../state/thread-outbox-removal";
 import { clearComposerDraftContent } from "../../state/use-composer-drafts";
 import type { PendingNewTask } from "../../state/use-pending-new-tasks";
 import {
@@ -88,9 +88,8 @@ export function usePendingTaskListActions(): {
               void withThreadDismissal(
                 pendingTask.key,
                 async () => {
-                  const removed = await removeThreadOutboxMessage(
+                  const removed = await removePendingThreadCreation(
                     pendingTask.message,
-                    undefined,
                     () => appAtomRegistry.get(dispatchingQueuedMessageIdAtom) !== messageId,
                   );
                   releaseDeletingQueuedMessage(messageId, removed);

@@ -80,6 +80,10 @@ them. You can queue messages in an existing thread or start a new task in a proj
 you have already opened. Pending messages and their attachments survive app restarts
 and send automatically after reconnecting.
 
+Messages sent into a task that has not started yet wait behind it and follow once it
+starts. They stay with the task if it fails to start, and cancelling or deleting the
+task removes them too.
+
 Edit or cancel a pending message before delivery starts. If a connection drops during
 sending, Supaterm keeps that message until it can confirm delivery. Approvals and
 question answers require a live connection.
