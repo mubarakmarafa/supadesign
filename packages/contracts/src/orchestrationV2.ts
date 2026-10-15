@@ -37,6 +37,7 @@ import {
   TurnItemId,
 } from "./baseSchemas.ts";
 import { ChatAttachment } from "./chatAttachment.ts";
+import { BoardColumnId, ThreadBoardPlacement } from "./projectBoard.ts";
 import {
   OrchestrationGetFullThreadDiffInput,
   OrchestrationGetFullThreadDiffResult,
@@ -414,6 +415,8 @@ export const OrchestrationV2AppThread = Schema.Struct({
   pinOrderKey: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
   /** Fractional-index slot in the user-arranged active order. */
   activeOrderKey: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
+  /** Slot on the project board; absent/null means the inbox column. */
+  board: Schema.optional(Schema.NullOr(ThreadBoardPlacement)),
   lastVisitedAt: Schema.NullOr(Schema.DateTimeUtc).pipe(
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
@@ -1770,6 +1773,7 @@ export const OrchestrationV2DomainEvent = Schema.Union([
       "thread.unpinned",
       "thread.pin-reordered",
       "thread.active-reordered",
+      "thread.board-placed",
       "thread.visited",
       "thread.marked-unread",
       "thread.metadata-updated",
@@ -2017,6 +2021,8 @@ export const OrchestrationV2ThreadShell = Schema.Struct({
   pinOrderKey: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
   /** Slot in the user-arranged active order; omitted by pre-reorder servers. */
   activeOrderKey: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
+  /** Slot on the project board; omitted by servers without project boards. */
+  board: Schema.optional(Schema.NullOr(ThreadBoardPlacement)),
   /**
    * Omitted by servers that predate server-side visited tracking; clients fall
    * back to their local visited state when the field is absent.
@@ -2589,6 +2595,7 @@ export const OrchestrationV2DomainEventJson = Schema.Union([
       "thread.unpinned",
       "thread.pin-reordered",
       "thread.active-reordered",
+      "thread.board-placed",
       "thread.visited",
       "thread.marked-unread",
       "thread.pull-request-synced",
@@ -2826,6 +2833,16 @@ export const OrchestrationV2Command = Schema.Union([
     commandId: CommandId,
     threadId: ThreadId,
     orderKey: TrimmedNonEmptyString,
+  }),
+  // Writes the thread's whole board placement. Archived threads accept it so
+  // Done can be reordered and a return column recorded before archiving.
+  Schema.Struct({
+    type: Schema.Literal("thread.board.place"),
+    commandId: CommandId,
+    threadId: ThreadId,
+    columnId: BoardColumnId,
+    orderKey: TrimmedNonEmptyString,
+    returnColumnId: Schema.optional(Schema.NullOr(BoardColumnId)),
   }),
   Schema.Struct({
     type: Schema.Literal("thread.visit"),

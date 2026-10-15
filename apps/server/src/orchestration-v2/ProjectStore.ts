@@ -1,5 +1,6 @@
 import {
   type ApplicationProjectEvent,
+  type ProjectBoard,
   IsoDateTime,
   ModelSelection,
   type OrchestrationProjectShell,
@@ -15,6 +16,8 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/sql/SqlClient";
 import * as SqlSchema from "effect/sql/SqlSchema";
+
+import * as ProjectBoardStore from "../project/ProjectBoardStore.ts";
 
 export class ProjectStoreV2Error extends Schema.TaggedError<ProjectStoreV2Error>()(
   "ProjectStoreV2Error",
@@ -54,7 +57,7 @@ const ProjectDbRow = Schema.Struct({
 });
 
 /** Shell fields without workspace-derived enrichment such as repository identity. */
-function toShell(row: ProjectRow): OrchestrationProjectShell {
+function toShell(row: ProjectRow, board: ProjectBoard | null): OrchestrationProjectShell {
   return {
     id: row.projectId,
     title: row.title,
@@ -65,6 +68,7 @@ function toShell(row: ProjectRow): OrchestrationProjectShell {
     autoPull: row.autoPull,
     faviconPath: row.faviconPath,
     projectIcon: row.projectIcon,
+    board,
     scripts: row.scripts,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -102,6 +106,7 @@ export class ProjectStoreV2 extends Context.Service<
 /** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
+  const boards = yield* ProjectBoardStore.ProjectBoardStore;
   const encodeRow = Schema.encodeEffect(ProjectDbRow);
 
   const selectRows = SqlSchema.findAll({
@@ -267,12 +272,24 @@ export const make = Effect.gen(function* () {
     get,
     list,
     findActiveByWorkspaceRoot,
-    getShell: (projectId) => get(projectId).pipe(Effect.map(Option.map(toShell))),
-    listShells: (options) =>
-      list(options?.projectIds === undefined ? undefined : { projectIds: options.projectIds }).pipe(
-        Effect.map((rows) => rows.map(toShell)),
-      ),
+    getShell: Effect.fn("ProjectStoreV2.getShell")(function* (projectId) {
+      const row = yield* get(projectId);
+      if (Option.isNone(row)) return Option.none();
+      const board = yield* boards.get(projectId).pipe(mapError("getShell"));
+      return Option.some(toShell(row.value, board));
+    }),
+    listShells: Effect.fn("ProjectStoreV2.listShells")(function* (options) {
+      const rows = yield* list(
+        options?.projectIds === undefined ? undefined : { projectIds: options.projectIds },
+      );
+      const boardsById = yield* boards
+        .getMany(rows.map((row) => row.projectId))
+        .pipe(mapError("listShells"));
+      return rows.map((row) => toShell(row, boardsById.get(row.projectId) ?? null));
+    }),
   });
 });
 
-export const layer = Layer.effect(ProjectStoreV2, make);
+export const layer = Layer.effect(ProjectStoreV2, make).pipe(
+  Layer.provide(ProjectBoardStore.layer),
+);

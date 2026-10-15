@@ -44,6 +44,7 @@ import {
   type PinThreadInput,
   type ReorderPinnedThreadInput,
   type ReorderActiveThreadInput,
+  type PlaceThreadOnBoardInput,
   type SetThreadAutoSettleInput,
   type SettleThreadInput,
   type SnoozeThreadInput,
@@ -80,6 +81,7 @@ import {
   pinThread,
   reorderPinnedThread,
   reorderActiveThread,
+  placeThreadOnBoard,
   setThreadAutoSettle,
   settleThread,
   snoozeThread,
@@ -125,6 +127,7 @@ export type {
   PinThreadInput,
   ReorderPinnedThreadInput,
   ReorderActiveThreadInput,
+  PlaceThreadOnBoardInput,
   SetThreadAutoSettleInput,
   SettleThreadInput,
   SnoozeThreadInput,
@@ -227,6 +230,12 @@ export function createThreadEnvironmentAtoms<R, E>(
     reorderActive: createEnvironmentCommand(runtime, {
       label: "environment-data:commands:thread:reorder-active",
       execute: (input: ReorderActiveThreadInput) => reorderActiveThread(input),
+      scheduler,
+      concurrency,
+    }),
+    placeOnBoard: createEnvironmentCommand(runtime, {
+      label: "environment-data:commands:thread:place-on-board",
+      execute: (input: PlaceThreadOnBoardInput) => placeThreadOnBoard(input),
       scheduler,
       concurrency,
     }),
@@ -503,6 +512,14 @@ export function createThreadEnvironmentAtoms<R, E>(
     reorderActive: optimistic.wrap(commands.reorderActive, (thread, input) => ({
       ...thread,
       activeOrderKey: input.orderKey,
+    })),
+    placeOnBoard: optimistic.wrap(commands.placeOnBoard, (thread, input) => ({
+      ...thread,
+      board: {
+        columnId: input.columnId,
+        orderKey: input.orderKey,
+        ...(input.returnColumnId == null ? {} : { returnColumnId: input.returnColumnId }),
+      },
     })),
   };
 }

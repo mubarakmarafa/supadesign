@@ -1,6 +1,7 @@
 import { remapComposerContextAttachments } from "@supaterm/shared/composerContextReferences";
 import {
   type ThreadLinkedPullRequest,
+  type BoardColumnId,
   CommandId,
   ORCHESTRATION_V2_WS_METHODS,
   OrchestrationV2CheckpointUnavailableError,
@@ -12,6 +13,7 @@ import {
   type OrchestrationV2Command,
   type OrchestrationV2CreationSource,
   type PlanId,
+  type ProjectBoard,
   type ProjectId,
   type ProjectIconOverride,
   type ProjectScript,
@@ -58,6 +60,8 @@ export interface UpdateProjectInput extends CommandMetadata {
   readonly faviconPath?: string | null;
   readonly defaultThreadEnvMode?: ThreadEnvMode | null;
   readonly scripts?: ReadonlyArray<ProjectScript>;
+  /** Replaces the whole board; null resets it to the default layout. */
+  readonly board?: ProjectBoard | null;
 }
 
 export interface DeleteProjectInput extends CommandMetadata {
@@ -103,6 +107,14 @@ export interface ReorderPinnedThreadInput extends ThreadCommandInput {
 export interface ReorderActiveThreadInput extends ThreadCommandInput {
   /** Fractional-index key that sorts between the drop position's neighbors. */
   readonly orderKey: string;
+}
+
+export interface PlaceThreadOnBoardInput extends ThreadCommandInput {
+  readonly columnId: BoardColumnId;
+  /** Fractional-index key that sorts between the drop position's neighbors. */
+  readonly orderKey: string;
+  /** Column to return to when a card placed in done is unarchived. */
+  readonly returnColumnId?: BoardColumnId | null;
 }
 
 export interface SnoozeThreadInput extends ThreadCommandInput {
@@ -374,6 +386,7 @@ export const updateProject = Effect.fn("EnvironmentCommands.updateProject")(func
       ? {}
       : { defaultThreadEnvMode: input.defaultThreadEnvMode }),
     ...(input.scripts === undefined ? {} : { scripts: input.scripts }),
+    ...(input.board === undefined ? {} : { board: input.board }),
   });
 });
 
@@ -492,6 +505,19 @@ export const reorderActiveThread = Effect.fn("EnvironmentCommands.reorderActiveT
     commandId: yield* allocateCommandId(input),
     threadId: input.threadId,
     orderKey: input.orderKey,
+  });
+});
+
+export const placeThreadOnBoard = Effect.fn("EnvironmentCommands.placeThreadOnBoard")(function* (
+  input: PlaceThreadOnBoardInput,
+) {
+  return yield* dispatch({
+    type: "thread.board.place",
+    commandId: yield* allocateCommandId(input),
+    threadId: input.threadId,
+    columnId: input.columnId,
+    orderKey: input.orderKey,
+    ...(input.returnColumnId == null ? {} : { returnColumnId: input.returnColumnId }),
   });
 });
 

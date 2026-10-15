@@ -207,6 +207,10 @@
       "types": "./src/threadPullRequests.ts",
       "import": "./src/threadPullRequests.ts"
     },
+    "./projectBoard": {
+      "types": "./src/projectBoard.ts",
+      "import": "./src/projectBoard.ts"
+    },
     "./changeRequestUrl": {
       "types": "./src/changeRequestUrl.ts",
       "import": "./src/changeRequestUrl.ts"
