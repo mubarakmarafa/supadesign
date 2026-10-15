@@ -121,14 +121,19 @@ it.layer(layerTest)("CodexDriver", (it) => {
       yield* Effect.gen(function* () {
         const store = yield* ProviderCredentialStore.make("codex-chatgpt", instanceId);
         const json = yield* encodeCredentials({
-          clientId: "oaiapp_test",
-          accessToken: "dummy-owned-access",
-          refreshToken: "dummy-refresh",
-          expiresAt: Number.MAX_SAFE_INTEGER,
-          earliestRefreshAt: null,
-          scopes: ["chatgpt.tokens.use.direct"],
-          subject: "test-user",
-          email: "account@example.test",
+          activeClientId: "oaiapp_test",
+          sessions: [
+            {
+              clientId: "oaiapp_test",
+              accessToken: "dummy-owned-access",
+              refreshToken: "dummy-refresh",
+              expiresAt: Number.MAX_SAFE_INTEGER,
+              earliestRefreshAt: null,
+              scopes: ["chatgpt.tokens.use.direct"],
+              subject: "test-user",
+              email: "account@example.test",
+            },
+          ],
         });
         yield* store.set(new TextEncoder().encode(json));
         const executable = {

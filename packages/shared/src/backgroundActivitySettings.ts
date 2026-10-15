@@ -75,7 +75,7 @@ export function getBackgroundActivityBaseProfile(
   return backgroundActivity.profile;
 }
 
-export function resolveBackgroundActivitySettings(
+function resolveBackgroundActivitySettings(
   backgroundActivity: BackgroundActivitySettings,
 ): ResolvedBackgroundActivitySettings {
   const baseProfile = getBackgroundActivityBaseProfile(backgroundActivity);

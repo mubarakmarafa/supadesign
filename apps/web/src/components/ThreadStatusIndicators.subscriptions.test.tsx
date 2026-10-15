@@ -9,7 +9,6 @@ import { makeThreadFixture } from "../test-fixtures";
 const state = vi.hoisted(() => ({ queries: [] as string[] }));
 
 vi.mock("../state/entities", () => ({ useProject: () => null, useServerConfigs: () => new Map() }));
-vi.mock("../uiStateStore", () => ({ useUiStateStore: () => undefined }));
 vi.mock("../state/vcs", async () => {
   const { AsyncResult, Atom } = await import("effect/reactivity");
   const statuses = Atom.family((cwd: string) =>
@@ -87,7 +86,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("leases only visible palette results while retaining observed and cached PR badges", async () => {
+it("leases visible worktree results while retaining persisted and cached PR badges", async () => {
   const observers: Array<{ setVisible: (visible: boolean) => void }> = [];
   const scrollRoot = {};
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -106,6 +105,29 @@ it("leases only visible palette results while retaining observed and cached PR b
       id: ThreadId.make(`palette-thread-${index}`),
       branch: "feature/test",
       worktreePath: `/test/worktree-${index}`,
+      pullRequests:
+        index % 2 === 0
+          ? []
+          : [
+              {
+                host: "github.com",
+                repository: "example/repo",
+                number: index,
+                url: `https://github.com/example/repo/pull/${index}`,
+                source: "manual",
+                linkedAt: "2026-09-04T00:00:00.000Z",
+                snapshot: {
+                  state: "open",
+                  title: "Persisted linked PR",
+                  headBranch: "feature/test",
+                  baseBranch: "main",
+                  isDraft: false,
+                  updatedAt: "2026-09-04T00:00:00.000Z",
+                  syncedAt: "2026-09-04T00:00:00.000Z",
+                },
+                stack: null,
+              },
+            ],
       linkedPullRequest:
         index % 2 === 0
           ? null
@@ -158,22 +180,22 @@ it("leases only visible palette results while retaining observed and cached PR b
       ).length;
     expect(observers).toHaveLength(128);
     expect(state.queries).toEqual([]);
-    expect(badgeCount()).toBe(1);
+    expect(badgeCount()).toBe(65);
 
     await act(async () => {
       for (const observer of observers.slice(0, 8)) observer.setVisible(true);
     });
-    expect(state.queries).toHaveLength(8);
+    expect(state.queries).toHaveLength(4);
     expect(state.queries.filter((key) => key.startsWith("vcs:"))).toHaveLength(4);
-    expect(state.queries.filter((key) => key.startsWith("pr:"))).toHaveLength(4);
-    expect(badgeCount()).toBe(9);
+    expect(state.queries.filter((key) => key.startsWith("pr:"))).toHaveLength(0);
+    expect(badgeCount()).toBe(69);
 
     await act(async () => {
       for (const observer of observers.slice(0, 8)) observer.setVisible(false);
       for (const observer of observers.slice(8, 16)) observer.setVisible(true);
     });
-    expect(state.queries).toHaveLength(16);
-    expect(badgeCount()).toBe(17);
+    expect(state.queries).toHaveLength(8);
+    expect(badgeCount()).toBe(73);
   } finally {
     await act(async () => renderer?.unmount());
   }
