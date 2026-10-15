@@ -919,7 +919,7 @@ it.effect("does not wake a snoozed or settled thread, but continues once a snooz
     const live = makeProjection();
     for (const held of [
       { snoozedUntil: DateTime.add(now, { days: 1 }) },
-      { settledOverride: "settled" as const },
+      { doneOverride: "done" as const },
     ]) {
       const thread = { ...live.thread, ...held };
       assert.isUndefined(restartContinuationRun({ ...live, thread }, now));

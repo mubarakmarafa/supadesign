@@ -64,7 +64,7 @@ const request: ProjectScriptEditorRequest = {
     icon: "test",
     runOnWorktreeCreate: false,
     waitForSetup: false,
-    runOnSettle: false,
+    runOnDone: false,
     keybinding: "mod+k",
     previewUrl: null,
     autoOpenPreview: false,

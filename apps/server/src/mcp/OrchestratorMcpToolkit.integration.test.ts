@@ -728,12 +728,14 @@ describe("orchestrator MCP toolkit", () => {
             const invoke = (name: string, args: Record<string, unknown>) =>
               invokeAs(invocation, name, args);
 
-            const deferredSettle = yield* invoke("supaterm_thread_organize", { action: "settle" });
-            expect(deferredSettle.isError).toBe(false);
-            expect(deferredSettle.structuredContent).toEqual({ settlesWhenTurnEnds: true });
-            const afterDeferredSettle = yield* orchestrator.getThreadProjection(parentThreadId);
-            expect(afterDeferredSettle.thread.settledOverride).not.toBe("settled");
-            expect(afterDeferredSettle.runs.find((run) => run.id === parentRun?.id)?.status).toBe(
+            const deferredMarkDone = yield* invoke("supaterm_thread_organize", {
+              action: "mark_done",
+            });
+            expect(deferredMarkDone.isError).toBe(false);
+            expect(deferredMarkDone.structuredContent).toEqual({ marksDoneWhenTurnEnds: true });
+            const afterDeferredMarkDone = yield* orchestrator.getThreadProjection(parentThreadId);
+            expect(afterDeferredMarkDone.thread.doneOverride).not.toBe("done");
+            expect(afterDeferredMarkDone.runs.find((run) => run.id === parentRun?.id)?.status).toBe(
               "running",
             );
 
@@ -2069,43 +2071,43 @@ describe("orchestrator MCP toolkit", () => {
             ).toMatchObject({
               title: "Metadata-managed thread",
               linkedPullRequest: linked.linkedPullRequest,
-              settled: false,
-              settledAt: null,
+              done: false,
+              doneAt: null,
             });
-            expect(metadataRead.thread).toMatchObject({ settled: false, settledAt: null });
+            expect(metadataRead.thread).toMatchObject({ done: false, doneAt: null });
 
             yield* orchestrator.dispatch({
-              type: "thread.settle",
-              commandId: CommandId.make("command:mcp-empty:settle"),
+              type: "thread.mark-done",
+              commandId: CommandId.make("command:mcp-empty:mark-done"),
               threadId: emptyThread.threadId,
-              settledAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+              doneAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
             });
-            const settledReadCall = yield* invoke("supaterm_thread_read", {
+            const doneReadCall = yield* invoke("supaterm_thread_read", {
               threadId: emptyThread.threadId,
             });
-            const settledRead = yield* decodeThreadReadResult(
-              settledReadCall.structuredContent,
-            ).pipe(Effect.orDie);
-            expect(settledRead.thread).toMatchObject({
-              settled: true,
-              settledAt: "2026-01-01T00:00:00.000Z",
+            const doneRead = yield* decodeThreadReadResult(doneReadCall.structuredContent).pipe(
+              Effect.orDie,
+            );
+            expect(doneRead.thread).toMatchObject({
+              done: true,
+              doneAt: "2026-01-01T00:00:00.000Z",
             });
-            const settledListCall = yield* invoke("supaterm_thread_list", {
-              settled: true,
+            const doneListCall = yield* invoke("supaterm_thread_list", {
+              done: true,
               limit: 100,
             });
-            const settledList = yield* decodeThreadListResult(
-              settledListCall.structuredContent,
-            ).pipe(Effect.orDie);
-            expect(settledList.threads.map((thread) => thread.threadId)).toEqual([
+            const doneList = yield* decodeThreadListResult(doneListCall.structuredContent).pipe(
+              Effect.orDie,
+            );
+            expect(doneList.threads.map((thread) => thread.threadId)).toEqual([
               emptyThread.threadId,
             ]);
-            expect(settledList.threads[0]).toMatchObject({
-              settled: true,
-              settledAt: "2026-01-01T00:00:00.000Z",
+            expect(doneList.threads[0]).toMatchObject({
+              done: true,
+              doneAt: "2026-01-01T00:00:00.000Z",
             });
             const activeListCall = yield* invoke("supaterm_thread_list", {
-              settled: false,
+              done: false,
               limit: 100,
             });
             const activeList = yield* decodeThreadListResult(activeListCall.structuredContent).pipe(
@@ -2115,8 +2117,8 @@ describe("orchestrator MCP toolkit", () => {
               activeList.threads.some((thread) => thread.threadId === emptyThread.threadId),
             ).toBe(false);
             yield* orchestrator.dispatch({
-              type: "thread.unsettle",
-              commandId: CommandId.make("command:mcp-empty:unsettle"),
+              type: "thread.reopen",
+              commandId: CommandId.make("command:mcp-empty:reopen"),
               threadId: emptyThread.threadId,
               reason: "user",
             });

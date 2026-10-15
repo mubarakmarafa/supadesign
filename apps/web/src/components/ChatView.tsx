@@ -99,7 +99,7 @@ import {
 import { type EnvironmentConnectionPresentation } from "@supaterm/client-runtime/connection";
 import { readPastedComposerContext } from "./composerInlineTokenPaste";
 import { isPasteAsTextShortcut } from "@supaterm/client-runtime/text-paste";
-import { effectiveSnoozed, threadWokeAt } from "@supaterm/client-runtime/state/thread-settled";
+import { effectiveSnoozed, threadWokeAt } from "@supaterm/client-runtime/state/thread-snooze";
 import { useAcknowledgeThreadWoke, useThreadActions } from "../hooks/useThreadActions";
 import {
   deriveProviderSubagentStatus,
@@ -1632,7 +1632,7 @@ export default function ChatView(props: ChatViewProps) {
   const canReadTerminal = useEnvironmentScope(environmentId, AuthTerminalReadScope);
   const draftId = routeKind === "draft" ? props.draftId : null;
   const handleNewThread = useNewThreadHandler();
-  const { settleThread, pinThread, confirmAndUnpinThread } = useThreadActions();
+  const { markThreadDone, pinThread, confirmAndUnpinThread } = useThreadActions();
   const routeThreadRef = useMemo(
     () => scopeThreadRef(environmentId, threadId),
     [environmentId, threadId],
@@ -7234,7 +7234,7 @@ export default function ChatView(props: ChatViewProps) {
     useRightPanelStore.getState().openPullRequest(activeThreadRef, pullRequestPanelTarget);
   };
   const pullRequestSurfaceAvailable = supportsPullRequests && pullRequestPanelTarget !== null;
-  const supportsSettlement = serverConfig != null;
+  const supportsMarkDone = serverConfig != null;
   const supportsSnooze = serverConfig != null;
   const supportsPinning = serverConfig != null;
   const activeThreadPinned = supportsPinning && activeThreadShell?.pinnedAt != null;
@@ -7278,7 +7278,7 @@ export default function ChatView(props: ChatViewProps) {
   const activeLatestRunCompletedAt = activeLatestRun?.completedAt;
   const activeThreadWokeVisible = useMemo(() => {
     if (activeThreadWokeAt === null) return false;
-    if (activeThreadShell?.settledOverride === "settled") return false;
+    if (activeThreadShell?.doneOverride === "done") return false;
     const wokeAtMs = Date.parse(activeThreadWokeAt);
     if (Number.isNaN(wokeAtMs)) return false;
     // Having the thread open counts as a visit at completedAt (the effect
@@ -7299,44 +7299,44 @@ export default function ChatView(props: ChatViewProps) {
     activeThreadShell,
     activeThreadWokeAt,
   ]);
-  const activeThreadSettled =
-    supportsSettlement && !activeThreadSnoozed && activeThreadShell?.settledOverride === "settled";
-  const unsettleThreadMutation = useOrchestrationCommand(threadEnvironment.unsettle, {
+  const activeThreadDone =
+    supportsMarkDone && !activeThreadSnoozed && activeThreadShell?.doneOverride === "done";
+  const reopenThreadMutation = useOrchestrationCommand(threadEnvironment.reopen, {
     reportFailure: false,
   });
   // Keyed by thread, not a boolean: the pending state must follow the thread
   // it belongs to across navigation, and a request resolving for thread A
   // must never clear (or re-enable) thread B's button.
-  const [unsettlingThreadKey, setUnsettlingThreadKey] = useState<string | null>(null);
-  const isUnsettling = unsettlingThreadKey !== null && unsettlingThreadKey === activeThreadKey;
-  const handleUnsettleActiveThread = useCallback(async () => {
+  const [reopeningThreadKey, setReopeningThreadKey] = useState<string | null>(null);
+  const isReopening = reopeningThreadKey !== null && reopeningThreadKey === activeThreadKey;
+  const handleReopenActiveThread = useCallback(async () => {
     if (
       !activeThreadRef ||
       !readEnvironmentScope(activeThreadRef.environmentId, AuthOrchestrationOperateScope)
     )
       return;
     const threadKey = scopedThreadKey(activeThreadRef);
-    setUnsettlingThreadKey(threadKey);
-    const unsettleRequest = unsettleThreadMutation({
+    setReopeningThreadKey(threadKey);
+    const reopenRequest = reopenThreadMutation({
       environmentId: activeThreadRef.environmentId,
       input: { threadId: activeThreadRef.threadId, reason: "user" },
     });
     try {
-      const result = await unsettleRequest;
+      const result = await reopenRequest;
       if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
         const error = squashAtomCommandFailure(result);
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Failed to un-settle thread",
+            title: "Failed to reopen thread",
             description: error instanceof Error ? error.message : "An error occurred.",
           }),
         );
       }
     } finally {
-      setUnsettlingThreadKey((current) => (current === threadKey ? null : current));
+      setReopeningThreadKey((current) => (current === threadKey ? null : current));
     }
-  }, [activeThreadRef, unsettleThreadMutation]);
+  }, [activeThreadRef, reopenThreadMutation]);
   const unsnoozeThreadMutation = useOrchestrationCommand(threadEnvironment.unsnooze, {
     reportFailure: false,
   });
@@ -7714,14 +7714,14 @@ export default function ChatView(props: ChatViewProps) {
     onOpenRelatedThread,
     serverProjection?.thread.workflowRunWatches,
   ]);
-  // Settled, snoozed, and woke are thread state, not composer actions: each
+  // Done, snoozed, and woke are thread state, not composer actions: each
   // gets one quiet line after the last message instead of a banner. A woken
   // thread announces itself here, not just in the sidebar pill. Dismissing
   // marks the wake as seen (same acknowledgment as the pill); sending a
   // message clears it as a side effect of the send path.
   // Memoized: it is the timeline's list footer, and a new element re-renders that footer.
   // nowMinute keeps the relative time fresh.
-  const activeSettledAt = activeThreadShell?.settledAt;
+  const activeDoneAt = activeThreadShell?.doneAt;
   const activeSnoozedUntil = activeThreadShell?.snoozedUntil;
   const threadStatusLine = useMemo(() => {
     const nowMs = Date.parse(`${nowMinute}:00.000Z`);
@@ -7737,15 +7737,13 @@ export default function ChatView(props: ChatViewProps) {
         actionDisabled={!canOperateThread || isUnsnoozing}
         onAction={() => void handleUnsnoozeActiveThread()}
       />
-    ) : activeThreadSettled ? (
+    ) : activeThreadDone ? (
       <ThreadStatusLine
         icon={<CheckCircle2Icon />}
-        label={
-          activeSettledAt ? `Settled ${formatRelativeTimeLabel(activeSettledAt, nowMs)}` : "Settled"
-        }
-        actionLabel={isUnsettling ? "Un-settling..." : "Un-settle"}
-        actionDisabled={!canOperateThread || isUnsettling}
-        onAction={() => void handleUnsettleActiveThread()}
+        label={activeDoneAt ? `Done ${formatRelativeTimeLabel(activeDoneAt, nowMs)}` : "Done"}
+        actionLabel={isReopening ? "Reopening..." : "Reopen"}
+        actionDisabled={!canOperateThread || isReopening}
+        onAction={() => void handleReopenActiveThread()}
       />
     ) : activeThreadWokeVisible ? (
       <ThreadStatusLine
@@ -7757,15 +7755,15 @@ export default function ChatView(props: ChatViewProps) {
     ) : null;
   }, [
     acknowledgeActiveThreadWoke,
-    activeThreadSettled,
-    activeSettledAt,
+    activeThreadDone,
+    activeDoneAt,
     activeSnoozedUntil,
     activeThreadSnoozed,
     activeThreadWokeVisible,
     canOperateThread,
-    handleUnsettleActiveThread,
+    handleReopenActiveThread,
     handleUnsnoozeActiveThread,
-    isUnsettling,
+    isReopening,
     isUnsnoozing,
     nowMinute,
   ]);
@@ -8136,23 +8134,23 @@ export default function ChatView(props: ChatViewProps) {
         return;
       }
 
-      if (command === "thread.settle") {
+      if (command === "thread.mark-done") {
         if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) return;
         event.preventDefault();
         event.stopPropagation();
-        if (!isServerThread || !activeThreadRef || !supportsSettlement) return;
-        if (activeThreadSettled) {
-          void handleUnsettleActiveThread();
+        if (!isServerThread || !activeThreadRef || !supportsMarkDone) return;
+        if (activeThreadDone) {
+          void handleReopenActiveThread();
           return;
         }
 
-        void settleThread(activeThreadRef).then((result) => {
+        void markThreadDone(activeThreadRef).then((result) => {
           if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return;
           const error = squashAtomCommandFailure(result);
           toastManager.add(
             stackedThreadToast({
               type: "error",
-              title: "Failed to settle thread",
+              title: "Failed to mark thread as done",
               description: error instanceof Error ? error.message : "An error occurred.",
             }),
           );
@@ -8424,7 +8422,7 @@ export default function ChatView(props: ChatViewProps) {
     addTerminalSurface,
     activeThreadRef,
     activeThreadPinned,
-    activeThreadSettled,
+    activeThreadDone,
     canInterruptRunningThread,
     terminalUiState.terminalOpen,
     terminalUiState.activeTerminalId,
@@ -8439,15 +8437,15 @@ export default function ChatView(props: ChatViewProps) {
     splitPanelTerminal,
     keybindings,
     scriptKeybindings,
-    handleUnsettleActiveThread,
+    handleReopenActiveThread,
     isServerThread,
     serverConfig?.threadFind,
     onInterrupt,
     onToggleDiff,
     pinThread,
-    settleThread,
+    markThreadDone,
     supportsPinning,
-    supportsSettlement,
+    supportsMarkDone,
     confirmAndUnpinThread,
     copyActiveThreadReference,
     forkDisabled,

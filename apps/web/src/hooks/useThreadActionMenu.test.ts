@@ -47,9 +47,9 @@ vi.mock("../state/session", () => ({
     scope === AuthOrchestrationOperateScope && state.granted.has(environmentId),
 }));
 vi.mock("../state/entities", () => ({
-  readEnvironmentSupportsAutoSettleOptOut: () => true,
+  readEnvironmentSupportsAutoMarkDoneOptOut: () => true,
   readEnvironmentSupportsPinning: () => true,
-  readEnvironmentSupportsSettlement: () => true,
+  readEnvironmentSupportsMarkDone: () => true,
   readEnvironmentSupportsSnooze: () => true,
   readEnvironmentSupportsTitleRegeneration: () => true,
   readThreadShell: () => ({
@@ -126,8 +126,8 @@ vi.mock("./useThreadActions", () => ({
     Object.fromEntries(
       [
         "markThreadUnread",
-        "settleThread",
-        "unsettleThread",
+        "markThreadDone",
+        "reopenThread",
         "snoozeThread",
         "unsnoozeThread",
         "pinThread",
@@ -193,7 +193,7 @@ describe("thread menu permissions", () => {
     );
   });
 
-  it.each(["rename", "regenerate-title", "delete", "pin", "settle", "archive"] as const)(
+  it.each(["rename", "regenerate-title", "delete", "pin", "mark-done", "archive"] as const)(
     "%s rechecks after the native menu closes",
     async (action) => {
       state.granted.add("secondary");

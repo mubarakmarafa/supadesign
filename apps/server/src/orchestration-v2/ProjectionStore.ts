@@ -162,7 +162,7 @@ export type ProjectionLimitRecoveryCandidate = Pick<
   | "latestRunId"
   | "usageLimitResetAt"
   | "archivedAt"
-  | "settledOverride"
+  | "doneOverride"
   | "pendingRuntimeRequest"
   | "latestRunCompletedAt"
   | "updatedAt"
@@ -173,7 +173,7 @@ export type ProjectionLimitRecoveryCandidate = Pick<
 /** The thread fields pull request sync reads, for a thread with at least one link. */
 export type ProjectionThreadPullRequests = Pick<
   OrchestrationV2AppThread,
-  "id" | "projectId" | "lineage" | "settledOverride" | "settledAt" | "pullRequests"
+  "id" | "projectId" | "lineage" | "doneOverride" | "doneAt" | "pullRequests"
 >;
 
 /** The thread fields a workflow run watch reads, for a thread watching at least one run. */
@@ -185,10 +185,10 @@ export type ProjectionThreadWorkflowRunWatches = Pick<
 };
 
 /**
- * Thread activity needed by settlement, without transcript or fork history.
- * Settlement always loads `latestUserAuthoredMessageAt`, so it is required here.
+ * Thread activity needed to mark threads done, without transcript or fork history.
+ * Automatic completion always loads `latestUserAuthoredMessageAt`, so it is required here.
  */
-export type ProjectionSettlementCandidate = Pick<
+export type ProjectionDoneCandidate = Pick<
   OrchestrationV2ThreadShell,
   | "id"
   | "projectId"
@@ -200,9 +200,9 @@ export type ProjectionSettlementCandidate = Pick<
   | "createdAt"
   | "updatedAt"
   | "archivedAt"
-  | "settledOverride"
+  | "doneOverride"
   | "pinnedAt"
-  | "autoSettleDisabledAt"
+  | "autoMarkDoneDisabledAt"
   | "snoozedUntil"
   | "snoozedAt"
   | "latestRunId"
@@ -348,7 +348,7 @@ export interface ShellSnapshotOptions {
    */
   readonly projectId?: ProjectId;
 
-  readonly unsettledOnly?: boolean;
+  readonly openOnly?: boolean;
 }
 
 export interface ProjectionStoreV2Shape {
@@ -414,9 +414,9 @@ export interface ProjectionStoreV2Shape {
     createdBefore: DateTime.Utc,
   ) => Effect.Effect<ReadonlyArray<ProjectionQuestionAutoDismissCandidate>, ProjectionStoreV2Error>;
   /** Every candidate, or only `threadId` when a sweep checks one thread. */
-  readonly getSettlementCandidates: (
+  readonly getAutoMarkDoneCandidates: (
     threadId?: ThreadId,
-  ) => Effect.Effect<ReadonlyArray<ProjectionSettlementCandidate>, ProjectionStoreV2Error>;
+  ) => Effect.Effect<ReadonlyArray<ProjectionDoneCandidate>, ProjectionStoreV2Error>;
   /**
    * Active (not deleted, not archived) threads with at least one pull request
    * link, in shell snapshot order, or only `threadId` when given. Skips run,
@@ -738,11 +738,11 @@ export function applyToProjection(
     case "thread.archived":
     case "thread.unarchived":
     case "thread.deleted":
-    case "thread.settled":
-    case "thread.unsettled":
+    case "thread.marked-done":
+    case "thread.reopened":
     case "thread.snoozed":
     case "thread.unsnoozed":
-    case "thread.auto-settle-set":
+    case "thread.auto-mark-done-set":
     case "thread.pinned":
     case "thread.unpinned":
     case "thread.pin-reordered":
@@ -1018,7 +1018,7 @@ type ShellRunRow = {
   readonly ordinal: number;
 };
 
-type SettlementThreadRow = Pick<
+type DoneThreadRow = Pick<
   ShellThreadRow,
   | "thread_id"
   | "payload_json"
@@ -1509,14 +1509,14 @@ export function threadShellFromProjection(
     createdAt: projection.thread.createdAt,
     updatedAt: projection.updatedAt,
     archivedAt: projection.thread.archivedAt,
-    settledOverride: projection.thread.settledOverride,
-    settledAt: projection.thread.settledAt,
-    unsettledAt: projection.thread.unsettledAt ?? null,
+    doneOverride: projection.thread.doneOverride,
+    doneAt: projection.thread.doneAt,
+    reopenedAt: projection.thread.reopenedAt ?? null,
     snoozedUntil: projection.thread.snoozedUntil ?? null,
     snoozedAt: projection.thread.snoozedAt ?? null,
     pinnedAt: projection.thread.pinnedAt ?? null,
 
-    autoSettleDisabledAt: projection.thread.autoSettleDisabledAt ?? null,
+    autoMarkDoneDisabledAt: projection.thread.autoMarkDoneDisabledAt ?? null,
     pinOrderKey: projection.thread.pinOrderKey ?? null,
     lastVisitedAt: projection.thread.lastVisitedAt,
     titleRegeneration: projection.thread.titleRegeneration ?? null,
@@ -1764,14 +1764,14 @@ function shellFromState(input: {
     createdAt: input.state.thread.createdAt,
     updatedAt: input.state.updatedAt,
     archivedAt: input.state.thread.archivedAt,
-    settledOverride: input.state.thread.settledOverride,
-    settledAt: input.state.thread.settledAt,
-    unsettledAt: input.state.thread.unsettledAt ?? null,
+    doneOverride: input.state.thread.doneOverride,
+    doneAt: input.state.thread.doneAt,
+    reopenedAt: input.state.thread.reopenedAt ?? null,
     snoozedUntil: input.state.thread.snoozedUntil ?? null,
     snoozedAt: input.state.thread.snoozedAt ?? null,
     pinnedAt: input.state.thread.pinnedAt ?? null,
 
-    autoSettleDisabledAt: input.state.thread.autoSettleDisabledAt ?? null,
+    autoMarkDoneDisabledAt: input.state.thread.autoMarkDoneDisabledAt ?? null,
     pinOrderKey: input.state.thread.pinOrderKey ?? null,
     lastVisitedAt: input.state.thread.lastVisitedAt,
     titleRegeneration: input.state.thread.titleRegeneration ?? null,
@@ -1806,11 +1806,11 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           case "thread.archived":
           case "thread.unarchived":
           case "thread.deleted":
-          case "thread.settled":
-          case "thread.unsettled":
+          case "thread.marked-done":
+          case "thread.reopened":
           case "thread.snoozed":
           case "thread.unsnoozed":
-          case "thread.auto-settle-set":
+          case "thread.auto-mark-done-set":
           case "thread.pinned":
           case "thread.unpinned":
           case "thread.pin-reordered":
@@ -2639,11 +2639,11 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           event.type !== "thread.archived" &&
           event.type !== "thread.unarchived" &&
           event.type !== "thread.deleted" &&
-          event.type !== "thread.settled" &&
-          event.type !== "thread.unsettled" &&
+          event.type !== "thread.marked-done" &&
+          event.type !== "thread.reopened" &&
           event.type !== "thread.snoozed" &&
           event.type !== "thread.unsnoozed" &&
-          event.type !== "thread.auto-settle-set" &&
+          event.type !== "thread.auto-mark-done-set" &&
           event.type !== "thread.pinned" &&
           event.type !== "thread.unpinned" &&
           event.type !== "thread.pin-reordered" &&
@@ -3492,7 +3492,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           )
           WHERE t.deleted_at IS NULL
             AND json_extract(t.payload_json, '$.archivedAt') IS NULL
-            AND json_extract(t.payload_json, '$.settledOverride') IS NOT 'settled'
+            AND json_extract(t.payload_json, '$.doneOverride') IS NOT 'done'
             AND json_extract(item.payload_json, '$.failure.class') = 'usage_limit'
             AND json_extract(item.payload_json, '$.failure.resetAt') IS NOT NULL
             AND julianday(json_extract(item.payload_json, '$.failure.resetAt')) > julianday(COALESCE(r.completed_at, json_extract(t.payload_json, '$.updatedAt')))
@@ -3543,7 +3543,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               row.completed_at === null ? null : DateTime.makeUnsafe(row.completed_at),
             updatedAt: thread.updatedAt,
             archivedAt: thread.archivedAt,
-            settledOverride: thread.settledOverride,
+            doneOverride: thread.doneOverride,
             pendingRuntimeRequest: null,
             limitRecovery: thread.limitRecovery ?? null,
             snoozedUntil: thread.snoozedUntil ?? null,
@@ -5169,7 +5169,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
 
     const selectShellThreadRows = (
       threadId?: ThreadId,
-      { location, projectId, unsettledOnly = false }: ShellSnapshotOptions = {},
+      { location, projectId, openOnly = false }: ShellSnapshotOptions = {},
     ) =>
       sql<ShellThreadRow>`
             SELECT
@@ -5341,8 +5341,8 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                   ? sql` AND json_extract(t.payload_json, '$.archivedAt') IS NOT NULL`
                   : sql``
             }${
-              unsettledOnly
-                ? sql` AND json_extract(t.payload_json, '$.settledAt') IS NULL AND json_extract(t.payload_json, '$.settledOverride') IS NOT 'settled'`
+              openOnly
+                ? sql` AND json_extract(t.payload_json, '$.doneAt') IS NULL AND json_extract(t.payload_json, '$.doneOverride') IS NOT 'done'`
                 : sql``
             }
             ORDER BY t.updated_at ASC, t.thread_id ASC
@@ -5470,14 +5470,16 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         return { providerThreadsByThreadId, pendingTurnItemsByThreadId };
       });
 
-    const getSettlementCandidates: ProjectionStoreV2Shape["getSettlementCandidates"] = (threadId) =>
+    const getAutoMarkDoneCandidates: ProjectionStoreV2Shape["getAutoMarkDoneCandidates"] = (
+      threadId,
+    ) =>
       sql
         .withTransaction(
           Effect.gen(function* () {
-            // Settlement needs activity timestamps, not item counts, run history,
+            // Automatic completion needs activity timestamps, not item counts, run history,
             // provider sessions or inherited fork rows. Reject parked and busy
             // threads before loading the remaining candidates' background work.
-            const rows = yield* sql<SettlementThreadRow>`
+            const rows = yield* sql<DoneThreadRow>`
             SELECT t.thread_id, t.payload_json,
               r.run_id AS latest_run_id,
               r.status AS latest_run_status,
@@ -5508,9 +5510,9 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             )
             WHERE t.deleted_at IS NULL${threadId === undefined ? sql`` : sql` AND t.thread_id = ${threadId}`}
               AND json_extract(t.payload_json, '$.archivedAt') IS NULL
-              AND json_extract(t.payload_json, '$.settledOverride') IS NULL
+              AND json_extract(t.payload_json, '$.doneOverride') IS NULL
               AND json_extract(t.payload_json, '$.pinnedAt') IS NULL
-              AND json_extract(t.payload_json, '$.autoSettleDisabledAt') IS NULL
+              AND json_extract(t.payload_json, '$.autoMarkDoneDisabledAt') IS NULL
               AND NOT EXISTS (
                 SELECT 1 FROM orchestration_v2_projection_runs active
                 WHERE active.thread_id = t.thread_id
@@ -5539,7 +5541,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                   ...thread,
                   pinnedAt: thread.pinnedAt ?? null,
 
-                  autoSettleDisabledAt: thread.autoSettleDisabledAt ?? null,
+                  autoMarkDoneDisabledAt: thread.autoMarkDoneDisabledAt ?? null,
                   snoozedUntil: thread.snoozedUntil ?? null,
                   snoozedAt: thread.snoozedAt ?? null,
                   status,
@@ -5579,7 +5581,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                     pullRequests: thread.pullRequests,
                     workflowRunWatches: thread.workflowRunWatches,
                   }),
-                } satisfies ProjectionSettlementCandidate;
+                } satisfies ProjectionDoneCandidate;
               }),
             );
           }),
@@ -5604,8 +5606,8 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               id: thread.id,
               projectId: thread.projectId,
               lineage: thread.lineage,
-              settledOverride: thread.settledOverride,
-              settledAt: thread.settledAt,
+              doneOverride: thread.doneOverride,
+              doneAt: thread.doneAt,
               pullRequests: thread.pullRequests ?? [],
             })),
           ),
@@ -5965,7 +5967,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       readShellSnapshot,
       getThreadShell,
       getThread,
-      getSettlementCandidates,
+      getAutoMarkDoneCandidates,
       getThreadsWithPullRequests,
       getThreadsWithWorkflowRunWatches,
       getThreadProjection,
@@ -6042,9 +6044,8 @@ export const layerMemory: Layer.Layer<ProjectionStoreV2> = Layer.effect(
               return [];
             }
             if (
-              options?.unsettledOnly &&
-              (projection.thread.settledAt !== null ||
-                projection.thread.settledOverride === "settled")
+              options?.openOnly &&
+              (projection.thread.doneAt !== null || projection.thread.doneOverride === "done")
             ) {
               return [];
             }
@@ -6090,7 +6091,7 @@ export const layerMemory: Layer.Layer<ProjectionStoreV2> = Layer.effect(
           }
           return projection.thread;
         }),
-      getSettlementCandidates: (threadId) =>
+      getAutoMarkDoneCandidates: (threadId) =>
         Effect.gen(function* () {
           const projections = (yield* Ref.get(replayState)).projections;
           return [...projections.values()]
@@ -6100,9 +6101,9 @@ export const layerMemory: Layer.Layer<ProjectionStoreV2> = Layer.effect(
                 (threadId !== undefined && thread.id !== threadId) ||
                 thread.deletedAt !== null ||
                 thread.archivedAt !== null ||
-                thread.settledOverride !== null ||
+                thread.doneOverride !== null ||
                 thread.pinnedAt != null ||
-                thread.autoSettleDisabledAt != null ||
+                thread.autoMarkDoneDisabledAt != null ||
                 runs.some(isActivityRunForShell) ||
                 runtimeRequests.some((request) => request.status === "pending")
               )
@@ -6143,8 +6144,8 @@ export const layerMemory: Layer.Layer<ProjectionStoreV2> = Layer.effect(
                 id: thread.id,
                 projectId: thread.projectId,
                 lineage: thread.lineage,
-                settledOverride: thread.settledOverride,
-                settledAt: thread.settledAt,
+                doneOverride: thread.doneOverride,
+                doneAt: thread.doneAt,
                 pullRequests: thread.pullRequests ?? [],
               })),
           ),
@@ -6180,7 +6181,7 @@ export const layerMemory: Layer.Layer<ProjectionStoreV2> = Layer.effect(
                 const { thread } = projection;
                 return thread.deletedAt === null &&
                   thread.archivedAt === null &&
-                  thread.settledOverride !== "settled"
+                  thread.doneOverride !== "done"
                   ? [threadShellFromProjection(projection)]
                   : [];
               })

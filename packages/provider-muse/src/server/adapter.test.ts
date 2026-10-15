@@ -296,8 +296,8 @@ const turnInput = Effect.fnUntraced(function* (
     createdAt: now,
     updatedAt: now,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     deletedAt: null,
   };

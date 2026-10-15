@@ -1,5 +1,5 @@
 import type { ContextMenuItem } from "@supaterm/contracts";
-import type { SnoozePreset } from "@supaterm/client-runtime/state/thread-settled";
+import type { SnoozePreset } from "@supaterm/client-runtime/state/thread-snooze";
 
 /**
  * Ids for the per-thread action menu. Snooze presets are dispatched as
@@ -12,11 +12,11 @@ export type ThreadActionMenuId =
   | "project-settings"
   | "pin"
   | "unpin"
-  | "settle"
-  | "unsettle"
-  | "auto-settle"
-  | "auto-settle:enabled"
-  | "auto-settle:disabled"
+  | "mark-done"
+  | "reopen"
+  | "auto-mark-done"
+  | "auto-mark-done:enabled"
+  | "auto-mark-done:disabled"
   | "snooze"
   | `snooze:${string}`
   | "unsnooze"
@@ -82,9 +82,9 @@ export interface ThreadActionMenuState {
     readonly isActive: boolean;
   } | null;
   readonly isPinned: boolean;
-  readonly isSettled: boolean;
+  readonly isDone: boolean;
   /** False while the user has turned automatic settlement off for this thread. */
-  readonly autoSettleEnabled: boolean;
+  readonly autoMarkDoneEnabled: boolean;
   readonly isSnoozed: boolean;
   readonly canSnoozeNow: boolean;
   readonly isRegeneratingTitle: boolean;
@@ -130,9 +130,9 @@ export function buildThreadActionMenuItems(
     // Both lifecycle actions stay available on pinned threads: settling
     // clears the pin ("done" beats "keep on top"), and snoozing hides the
     // card until wake with the pin intact.
-    state.isSettled
-      ? { id: "unsettle" as const, label: "Un-settle thread", icon: "circle-check" }
-      : { id: "settle" as const, label: "Settle thread", icon: "circle-check" },
+    state.isDone
+      ? { id: "reopen" as const, label: "Reopen thread", icon: "circle-check" }
+      : { id: "mark-done" as const, label: "Mark thread as done", icon: "circle-check" },
     state.isSnoozed
       ? { id: "unsnooze" as const, label: "Wake thread", icon: "clock" }
       : {
@@ -170,14 +170,14 @@ export function buildThreadActionMenuItems(
     // A submenu with the current option checked, not a one-shot action:
     // this is a setting, and it sits with the other per-thread settings
     // rather than the lifecycle verbs above. Disabled keeps long-running
-    // threads out of the settled shelf no matter how quiet they get.
+    // threads out of the done shelf no matter how quiet they get.
     {
-      id: "auto-settle",
-      label: "Auto-settle behavior",
+      id: "auto-mark-done",
+      label: "Automatic completion",
       icon: "timer",
       children: [
-        { id: "auto-settle:enabled", label: "Enabled", checked: state.autoSettleEnabled },
-        { id: "auto-settle:disabled", label: "Disabled", checked: !state.autoSettleEnabled },
+        { id: "auto-mark-done:enabled", label: "Enabled", checked: state.autoMarkDoneEnabled },
+        { id: "auto-mark-done:disabled", label: "Disabled", checked: !state.autoMarkDoneEnabled },
       ],
     },
     {
@@ -195,8 +195,8 @@ export function buildThreadActionMenuItems(
     },
     { id: "project-settings", label: "Project settings", icon: "settings" },
     // Archive removes the thread from the sidebar while keeping its
-    // conversation under Settings > Archived threads — distinct from Settle
-    // (stays visible in the Settled shelf) and Delete (clears history for
+    // conversation under Settings > Archived threads — distinct from Mark as done
+    // (stays visible in the Done shelf) and Delete (clears history for
     // good), so it sits beside Delete without borrowing its destructive
     // styling.
     {

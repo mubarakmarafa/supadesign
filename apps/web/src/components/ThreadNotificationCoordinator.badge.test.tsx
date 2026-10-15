@@ -118,8 +118,8 @@ function toV2ThreadShell(input: typeof thread) {
       ? DateTime.makeUnsafe(latestTurn.completedAt)
       : undefined,
     archivedAt: input.archivedAt ? DateTime.makeUnsafe(input.archivedAt) : null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     deletedAt: null,
   };

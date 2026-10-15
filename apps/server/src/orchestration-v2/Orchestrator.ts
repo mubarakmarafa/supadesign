@@ -446,12 +446,12 @@ function commandThreadId(command: OrchestrationV2ServerCommand): ThreadId {
     case "thread.archive":
     case "thread.unarchive":
     case "thread.delete":
-    case "thread.settle":
-    case "thread.auto-settle":
-    case "thread.unsettle":
+    case "thread.mark-done":
+    case "thread.auto-mark-done":
+    case "thread.reopen":
     case "thread.snooze":
     case "thread.unsnooze":
-    case "thread.auto-settle.set":
+    case "thread.auto-mark-done.set":
     case "thread.pin":
     case "thread.unpin":
     case "thread.pin.reorder":
@@ -557,8 +557,8 @@ function hasLiveRun(projection: Pick<OrchestrationV2ThreadProjection, "runs">): 
 function takesNoWakes(thread: OrchestrationV2AppThread): boolean {
   return (
     thread.archivedAt !== null ||
-    thread.settledOverride === "settled" ||
-    thread.settledAt !== null ||
+    thread.doneOverride === "done" ||
+    thread.doneAt !== null ||
     isProviderNativeSubagentThread(thread)
   );
 }
@@ -2268,8 +2268,8 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       createdAt: now,
       updatedAt: now,
       archivedAt: null,
-      settledOverride: null,
-      settledAt: null,
+      doneOverride: null,
+      doneAt: null,
       snoozedUntil: null,
       snoozedAt: null,
       lastVisitedAt: null,
@@ -2389,7 +2389,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       return yield* new OrchestratorDispatchError({
         commandId: command.commandId,
         commandType: command.type,
-        cause: "The watch ended or its thread settled while it was read.",
+        cause: "The watch ended or its thread was marked done while it was read.",
       });
     }
     yield* dispatchThreadMutation(command, events, effects);
@@ -2419,11 +2419,11 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         readonly type:
           | "thread.archive"
           | "thread.unarchive"
-          | "thread.settle"
-          | "thread.unsettle"
+          | "thread.mark-done"
+          | "thread.reopen"
           | "thread.snooze"
           | "thread.unsnooze"
-          | "thread.auto-settle.set"
+          | "thread.auto-mark-done.set"
           | "thread.pin"
           | "thread.unpin"
           | "thread.pin.reorder"
@@ -2476,14 +2476,12 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     }
     if (
       startsWatch &&
-      (thread.settledOverride === "settled" ||
-        thread.settledAt !== null ||
-        thread.archivedAt !== null)
+      (thread.doneOverride === "done" || thread.doneAt !== null || thread.archivedAt !== null)
     ) {
       return yield* new OrchestratorDispatchError({
         commandId: command.commandId,
         commandType: command.type,
-        cause: `Thread ${command.threadId} is settled or archived and cannot start a watch.`,
+        cause: `Thread ${command.threadId} is done or archived and cannot start a watch.`,
       });
     }
     // A subagent or delegated task reports to its parent thread, which owns the pull request
@@ -2556,11 +2554,11 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       });
     }
     if (
-      (command.type === "thread.settle" ||
-        command.type === "thread.unsettle" ||
+      (command.type === "thread.mark-done" ||
+        command.type === "thread.reopen" ||
         command.type === "thread.snooze" ||
         command.type === "thread.unsnooze" ||
-        command.type === "thread.auto-settle.set" ||
+        command.type === "thread.auto-mark-done.set" ||
         command.type === "thread.pin" ||
         command.type === "thread.unpin" ||
         command.type === "thread.pin.reorder" ||
@@ -2586,7 +2584,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     }
     if (
       command.type === "thread.active.reorder" &&
-      (thread.pinnedAt != null || thread.settledOverride === "settled")
+      (thread.pinnedAt != null || thread.doneOverride === "done")
     ) {
       return yield* new OrchestratorDispatchError({
         commandId: command.commandId,
@@ -2629,7 +2627,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         });
       }
     }
-    if (command.type === "thread.settle") {
+    if (command.type === "thread.mark-done") {
       const projection = yield* loadProjectionForCommand(
         command,
         ["runs", "runtimeRequests", "messages"],
@@ -2664,11 +2662,11 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       );
       // The reason is shown to the user, so it names what to clear first.
       const blocker = blockingRequestExists
-        ? "is waiting on an approval or question. Answer it before settling."
+        ? "is waiting on an approval or question. Answer it before marking it as done."
         : runningRunExists
-          ? "is still running. Stop it before settling."
+          ? "is still running. Stop it before marking it as done."
           : queuedMessageExists
-            ? "has a queued message. Send it or remove it from the queue before settling."
+            ? "has a queued message. Send it or remove it from the queue before marking it as done."
             : null;
       if (blocker !== null) {
         return yield* new OrchestratorDispatchError({
@@ -2679,7 +2677,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       }
 
       // Message-capable async questions do not keep provider callbacks alive.
-      // Resolve them in the settle transaction so a settled thread never has
+      // Resolve them in the mark-done transaction so a done thread never has
       // an actionable question attached to it.
       for (const request of pendingRequests) {
         yield* dispatchRuntimeRequestRespond(
@@ -2712,7 +2710,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       command.type === "thread.model-selection.set" ||
       command.type === "provider.switch" ||
       command.type === "thread.archive" ||
-      command.type === "thread.settle" ||
+      command.type === "thread.mark-done" ||
       (command.type === "thread.metadata.update" &&
         command.worktreePath !== undefined &&
         command.worktreePath !== thread.worktreePath);
@@ -2768,7 +2766,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       if (
         !Number.isFinite(resetMs) ||
         thread.archivedAt !== null ||
-        thread.settledOverride === "settled" ||
+        thread.doneOverride === "done" ||
         run?.id !== command.limitRecovery.runId ||
         failure?.class !== "usage_limit" ||
         failure.resetAt !== command.limitRecovery.resetAt ||
@@ -2830,7 +2828,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     const updatedThread: OrchestrationV2AppThread = (() => {
       switch (command.type) {
         case "thread.archive":
-          // An archived thread takes no wakes, so its watches end like a settled thread's.
+          // An archived thread takes no wakes, so its watches end like a done thread's.
           return {
             ...withoutWatches(thread),
             archivedAt: now,
@@ -2839,30 +2837,30 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           };
         case "thread.unarchive":
           return { ...thread, archivedAt: null, updatedAt: now };
-        case "thread.settle": {
+        case "thread.mark-done": {
           const wasPinned = thread.pinnedAt != null;
-          const alreadySettled =
-            thread.settledOverride === "settled" && thread.settledAt !== null && !wasPinned;
+          const alreadyDone =
+            thread.doneOverride === "done" && thread.doneAt !== null && !wasPinned;
           return {
             ...withoutWatches(thread),
-            settledOverride: "settled",
-            settledAt: alreadySettled ? thread.settledAt : (command.settledAt ?? now),
-            unsettledAt: null,
+            doneOverride: "done",
+            doneAt: alreadyDone ? thread.doneAt : (command.doneAt ?? now),
+            reopenedAt: null,
             pinnedAt: null,
             pinOrderKey: null,
             activeOrderKey: null,
             snoozedUntil: null,
             snoozedAt: null,
-            updatedAt: alreadySettled ? thread.updatedAt : now,
+            updatedAt: alreadyDone ? thread.updatedAt : now,
           };
         }
-        case "thread.unsettle": {
-          const alreadyPinnedActive = thread.settledOverride === "active";
+        case "thread.reopen": {
+          const alreadyPinnedActive = thread.doneOverride === "active";
           return {
             ...thread,
-            settledOverride: "active",
-            settledAt: null,
-            unsettledAt: alreadyPinnedActive ? (thread.unsettledAt ?? null) : now,
+            doneOverride: "active",
+            doneAt: null,
+            reopenedAt: alreadyPinnedActive ? (thread.reopenedAt ?? null) : now,
             updatedAt: alreadyPinnedActive ? thread.updatedAt : now,
           };
         }
@@ -2890,20 +2888,20 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
             updatedAt: alreadyAwake ? thread.updatedAt : now,
           };
         }
-        case "thread.auto-settle.set": {
-          const unchanged = command.enabled === (thread.autoSettleDisabledAt == null);
+        case "thread.auto-mark-done.set": {
+          const unchanged = command.enabled === (thread.autoMarkDoneDisabledAt == null);
           return {
             ...thread,
-            autoSettleDisabledAt: command.enabled ? null : (thread.autoSettleDisabledAt ?? now),
+            autoMarkDoneDisabledAt: command.enabled ? null : (thread.autoMarkDoneDisabledAt ?? now),
             updatedAt: unchanged ? thread.updatedAt : now,
           };
         }
         case "thread.pin": {
           // Pinning is a promotion: it clears the parked states rather than
-          // silently outranking them — an explicit settle is un-settled and a
+          // silently outranking them — an explicitly done thread is reopened and a
           // snooze's return ticket is spent (the thread is on top NOW).
           const alreadyPinned = thread.pinnedAt != null;
-          const promotes = thread.settledOverride === "settled" || thread.snoozedUntil != null;
+          const promotes = thread.doneOverride === "done" || thread.snoozedUntil != null;
           return {
             ...thread,
             pinnedAt: alreadyPinned ? thread.pinnedAt : now,
@@ -2913,9 +2911,8 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
             ...(alreadyPinned || command.orderKey === undefined
               ? {}
               : { pinOrderKey: command.orderKey }),
-            settledOverride:
-              thread.settledOverride === "settled" ? "active" : thread.settledOverride,
-            settledAt: thread.settledOverride === "settled" ? null : thread.settledAt,
+            doneOverride: thread.doneOverride === "done" ? "active" : thread.doneOverride,
+            doneAt: thread.doneOverride === "done" ? null : thread.doneAt,
             snoozedUntil: null,
             snoozedAt: null,
             lastSnoozeWakeAt: thread.snoozedUntil == null ? thread.lastSnoozeWakeAt : now,
@@ -2934,7 +2931,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           };
         }
         case "thread.pin.reorder": {
-          // Idempotent by re-emission (see thread.settle): a duplicate drop on
+          // Idempotent by re-emission (see thread.mark-done): a duplicate drop on
           // the same slot keeps the existing updatedAt so it projects as a
           // no-op.
           const keyUnchanged = thread.pinOrderKey === command.orderKey;
@@ -3274,16 +3271,16 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           return "thread.archived" as const;
         case "thread.unarchive":
           return "thread.unarchived" as const;
-        case "thread.settle":
-          return "thread.settled" as const;
-        case "thread.unsettle":
-          return "thread.unsettled" as const;
+        case "thread.mark-done":
+          return "thread.marked-done" as const;
+        case "thread.reopen":
+          return "thread.reopened" as const;
         case "thread.snooze":
           return "thread.snoozed" as const;
         case "thread.unsnooze":
           return "thread.unsnoozed" as const;
-        case "thread.auto-settle.set":
-          return "thread.auto-settle-set" as const;
+        case "thread.auto-mark-done.set":
+          return "thread.auto-mark-done-set" as const;
         case "thread.pin":
           return "thread.pinned" as const;
         case "thread.unpin":
@@ -3402,15 +3399,15 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       });
     }
 
-    // Settle joins archive here: both mean "done with this
+    // Marking done joins archive here: both mean "done with this
     // thread", so a live provider session must not keep running background
     // work (PR monitors, dev servers, subagent fleets) after any of them
-    // lands. The settle guard above already rejects active or blocked runs,
-    // so for settle this only ever stops an idle session; commands are
+    // lands. The mark-done guard above already rejects active or blocked runs,
+    // so marking done here only ever stops an idle session; commands are
     // decided serially against the projection, so a turn start that
     // re-engages the thread cannot race this detach.
     const detachSessionIds = new Set(
-      command.type === "thread.archive" || command.type === "thread.settle"
+      command.type === "thread.archive" || command.type === "thread.mark-done"
         ? (providerContext?.providerSessions ?? []).map((session) => session.id)
         : command.type === "thread.metadata.update" &&
             command.worktreePath !== undefined &&
@@ -3450,8 +3447,8 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                 reason:
                   command.type === "thread.archive"
                     ? "Thread archived."
-                    : command.type === "thread.settle"
-                      ? "Thread settled."
+                    : command.type === "thread.mark-done"
+                      ? "Thread marked done."
                       : command.type === "thread.metadata.update"
                         ? "Workspace changed."
                         : command.type === "thread.runtime-mode.set"
@@ -3469,8 +3466,8 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                 detail:
                   command.type === "thread.archive"
                     ? "Thread archived."
-                    : command.type === "thread.settle"
-                      ? "Thread settled."
+                    : command.type === "thread.mark-done"
+                      ? "Thread marked done."
                       : command.type === "thread.metadata.update"
                         ? "Workspace changed."
                         : command.type === "thread.runtime-mode.set"
@@ -4597,7 +4594,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           Date.parse(recovery.resetAt) > DateTime.toEpochMillis(now) ||
           projection.thread.archivedAt !== null ||
           projection.thread.deletedAt !== null ||
-          projection.thread.settledOverride === "settled" ||
+          projection.thread.doneOverride === "done" ||
           projection.thread.providerInstanceId !== run.providerInstanceId ||
           projection.runtimeRequests.some((request) => request.status === "pending") ||
           (projection.thread.snoozedUntil != null &&
@@ -4659,15 +4656,15 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         (run) => run.id === command.restartContinuationOfRunId,
       )?.delegatedTaskId;
 
-      if (projection.thread.settledOverride !== null) {
+      if (projection.thread.doneOverride !== null) {
         const now = yield* DateTime.now;
         const thread: OrchestrationV2AppThread = {
           ...projection.thread,
-          settledOverride: null,
-          settledAt: null,
-          unsettledAt:
-            projection.thread.settledOverride === "active"
-              ? (projection.thread.unsettledAt ?? null)
+          doneOverride: null,
+          doneAt: null,
+          reopenedAt:
+            projection.thread.doneOverride === "active"
+              ? (projection.thread.reopenedAt ?? null)
               : now,
           updatedAt: now,
         };
@@ -4675,7 +4672,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           events,
           command,
         )({
-          type: "thread.unsettled",
+          type: "thread.reopened",
           threadId: command.threadId,
           providerInstanceId: thread.providerInstanceId,
           occurredAt: now,
@@ -10719,11 +10716,11 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       case "thread.visit":
         yield* dispatchThreadVisit(command, events);
         break;
-      case "thread.auto-settle": {
-        // Automatic settlement (#8600): the sweep evaluated a shell snapshot,
-        // so re-check against the live thread before settling. Any change
+      case "thread.auto-mark-done": {
+        // Automatic completion: the sweep evaluated a shell snapshot,
+        // so re-check against the live thread before marking it as done. Any change
         // after the snapshot — or any explicit override, including the
-        // un-settle button's "active" — wins over the sweep.
+        // reopen button's "active" — wins over the sweep.
         const thread = yield* projectionStore
           .getThread(command.threadId)
           .pipe(
@@ -10732,21 +10729,21 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
             ),
           );
         if (
-          thread.settledOverride !== null ||
+          thread.doneOverride !== null ||
           DateTime.toEpochMillis(thread.updatedAt) > DateTime.toEpochMillis(command.snapshotAt)
         ) {
           return yield* new OrchestratorDispatchError({
             commandId: command.commandId,
             commandType: command.type,
-            cause: `Thread ${command.threadId} changed before automatic settlement.`,
+            cause: `Thread ${command.threadId} changed before automatic completion.`,
           });
         }
         yield* dispatchThreadMutation(
           {
-            type: "thread.settle",
+            type: "thread.mark-done",
             commandId: command.commandId,
             threadId: command.threadId,
-            ...(command.settledAt === undefined ? {} : { settledAt: command.settledAt }),
+            ...(command.doneAt === undefined ? {} : { doneAt: command.doneAt }),
           },
           events,
           effects,
@@ -10782,11 +10779,11 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       }
       case "thread.archive":
       case "thread.unarchive":
-      case "thread.settle":
-      case "thread.unsettle":
+      case "thread.mark-done":
+      case "thread.reopen":
       case "thread.snooze":
       case "thread.unsnooze":
-      case "thread.auto-settle.set":
+      case "thread.auto-mark-done.set":
       case "thread.pin":
       case "thread.unpin":
       case "thread.pin.reorder":

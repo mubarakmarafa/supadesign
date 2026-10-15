@@ -125,18 +125,16 @@ describe("animateSidebarLayoutChanges", () => {
 
 describe("resolveSidebarThreadSection", () => {
   it("keeps a pinned thread in the pinned shelf", () => {
-    expect(resolveSidebarThreadSection({ snoozed: false, settled: false, pinned: true })).toBe(
+    expect(resolveSidebarThreadSection({ snoozed: false, done: false, pinned: true })).toBe(
       "pinned",
     );
   });
 
   it("keeps lifecycle shelves authoritative over a stale pin", () => {
-    expect(resolveSidebarThreadSection({ snoozed: true, settled: true, pinned: true })).toBe(
+    expect(resolveSidebarThreadSection({ snoozed: true, done: true, pinned: true })).toBe(
       "snoozed",
     );
-    expect(resolveSidebarThreadSection({ snoozed: false, settled: true, pinned: true })).toBe(
-      "settled",
-    );
+    expect(resolveSidebarThreadSection({ snoozed: false, done: true, pinned: true })).toBe("done");
   });
 });
 
@@ -1040,7 +1038,7 @@ describe("resolveSidebarV2DurationStartedAt", () => {
     ).toBe("2026-03-09T09:55:00.000Z");
   });
 
-  it("falls back to request time when the settled run has no valid start", () => {
+  it("falls back to request time when the done run has no valid start", () => {
     expect(
       resolveSidebarV2DurationStartedAt({
         ...thread,
@@ -1345,8 +1343,8 @@ function makeThread(overrides: ThreadFixtureOverrides = {}): Thread {
     messages: [],
     createdAt: "2026-03-09T10:00:00.000Z",
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     deletedAt: null,
     updatedAt: "2026-03-09T10:00:00.000Z",
     latestRun: null,
@@ -1866,25 +1864,25 @@ describe("sortPinnedThreadsForSidebar", () => {
 
 describe("resolveSidebarSweepKeys", () => {
   const ordered = ["a", "b", "c", "d", "blocked"];
-  const canSettle = (key: string) => key !== "blocked";
+  const canMarkDone = (key: string) => key !== "blocked";
 
   it("covers every row between the pressed row and the pointer, in either direction", () => {
-    expect(resolveSidebarSweepKeys(ordered, "b", "b", canSettle)).toEqual(["b"]);
-    expect(resolveSidebarSweepKeys(ordered, "b", "d", canSettle)).toEqual(["b", "c", "d"]);
-    expect(resolveSidebarSweepKeys(ordered, "d", "a", canSettle)).toEqual(["a", "b", "c", "d"]);
+    expect(resolveSidebarSweepKeys(ordered, "b", "b", canMarkDone)).toEqual(["b"]);
+    expect(resolveSidebarSweepKeys(ordered, "b", "d", canMarkDone)).toEqual(["b", "c", "d"]);
+    expect(resolveSidebarSweepKeys(ordered, "d", "a", canMarkDone)).toEqual(["a", "b", "c", "d"]);
   });
 
   it("leaves out rows that cannot settle and rows that left the list", () => {
-    expect(resolveSidebarSweepKeys(ordered, "c", "blocked", canSettle)).toEqual(["c", "d"]);
-    expect(resolveSidebarSweepKeys(ordered, "gone", "a", canSettle)).toEqual([]);
+    expect(resolveSidebarSweepKeys(ordered, "c", "blocked", canMarkDone)).toEqual(["c", "d"]);
+    expect(resolveSidebarSweepKeys(ordered, "gone", "a", canMarkDone)).toEqual([]);
   });
 });
 
 describe("navigation after parking a thread", () => {
   it.each([
-    ["settle", "settled", null, "thread", true],
-    ["settle", "active", null, "thread", false],
-    ["settle", "settled", null, "other-thread", false],
+    ["mark-done", "done", null, "thread", true],
+    ["mark-done", "active", null, "thread", false],
+    ["mark-done", "done", null, "other-thread", false],
     ["snooze", null, "2099-01-01T00:00:00.000Z", "thread", true],
     ["snooze", null, null, "thread", false],
     ["snooze", null, "2026-09-12T09:00:00.000Z", "thread", false],
@@ -1894,7 +1892,7 @@ describe("navigation after parking a thread", () => {
     "%s with state %s / %s on %s navigates: %s",
     (
       action,
-      settledOverride,
+      doneOverride,
       snoozedUntil,
       currentThreadKey,
       expected,
@@ -1907,7 +1905,7 @@ describe("navigation after parking a thread", () => {
           action,
           now: "2026-09-12T10:00:00.000Z",
           thread: {
-            settledOverride,
+            doneOverride,
             snoozedUntil,
             snoozedAt: null,
             session: null,
@@ -1923,7 +1921,7 @@ describe("navigation after parking a thread", () => {
 
 describe("unseen completion with background work", () => {
   it.each([
-    { kind: "command", status: "ready", topStatus: "done", receded: false, pill: "Completed" },
+    { kind: "command", status: "ready", topStatus: "ready", receded: false, pill: "Completed" },
     { kind: "monitor", status: "waiting", topStatus: "waiting", receded: true, pill: "Waiting" },
   ] as const)("presents a completed thread with a $kind roster", (expected) => {
     const thread = presentThreadShell(localEnvironmentId, {
@@ -1998,12 +1996,12 @@ describe("Working shelf", () => {
   describe("sortInboxThreadsByReturn", () => {
     const thread = (
       id: string,
-      input: { createdAt: string; completedAt?: string | null; unsettledAt?: string },
+      input: { createdAt: string; completedAt?: string | null; reopenedAt?: string },
     ) => ({
       id: ThreadId.make(id),
       environmentId: localEnvironmentId,
       createdAt: input.createdAt,
-      unsettledAt: input.unsettledAt ?? null,
+      reopenedAt: input.reopenedAt ?? null,
       latestRun:
         input.completedAt === undefined
           ? null
@@ -2019,7 +2017,7 @@ describe("Working shelf", () => {
         }),
         thread("reopened", {
           createdAt: "2026-03-02T09:00:00.000Z",
-          unsettledAt: "2026-03-09T11:30:00.000Z",
+          reopenedAt: "2026-03-09T11:30:00.000Z",
         }),
       ]);
       expect(sorted.map((entry) => entry.id)).toEqual(["new", "reopened", "old-finished-now"]);
@@ -2053,7 +2051,7 @@ describe("Working shelf", () => {
       key,
       section,
     });
-    // Pinned p1 | Active a1 a2 | Working w1 | Settled s1
+    // Pinned p1 | Active a1 a2 | Working w1 | Done s1
     const items: readonly SidebarListItem[] = [
       marker("pinned-header"),
       row("p1", "pinned"),
@@ -2062,8 +2060,8 @@ describe("Working shelf", () => {
       row("a2", "active"),
       marker("working-header"),
       row("w1", "working"),
-      marker("settled-header"),
-      row("s1", "settled"),
+      marker("done-header"),
+      row("s1", "done"),
     ];
 
     it("never drops into the Working shelf, and keeps it out of the inbox order", () => {
@@ -2139,7 +2137,7 @@ describe("Working shelf", () => {
       ).toEqual({
         kind: "move-active",
         unpin: true,
-        unsettle: false,
+        reopen: false,
         unsnooze: false,
       });
       const intoActive = { section: "active", pinnedOrder: ["p1"], activeOrder: ["a1"] } as const;
@@ -2147,10 +2145,10 @@ describe("Working shelf", () => {
         planSidebarThreadDrop({
           ...base,
           activeKey: "s1",
-          activeSection: "settled",
+          activeSection: "done",
           target: intoActive,
         }),
-      ).toEqual({ kind: "move-active", unpin: false, unsettle: true, unsnooze: false });
+      ).toEqual({ kind: "move-active", unpin: false, reopen: true, unsnooze: false });
       // A snoozed thread keeps its pin beneath the shelf; Active clears both.
       expect(
         planSidebarThreadDrop({
@@ -2160,7 +2158,7 @@ describe("Working shelf", () => {
           activePinned: true,
           target: intoActive,
         }),
-      ).toEqual({ kind: "move-active", unpin: true, unsettle: false, unsnooze: true });
+      ).toEqual({ kind: "move-active", unpin: true, reopen: false, unsnooze: true });
     });
   });
 });

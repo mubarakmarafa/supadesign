@@ -197,7 +197,7 @@ describe("thread relationships", () => {
     [null, "completed", "completed"],
     [null, "rolled_back", "interrupted"],
   ])(
-    "shows child activity %s and latest status %s as %s after its delegated task settled",
+    "shows child activity %s and latest status %s as %s after its delegated task done",
     (childActivity, childStatus, expected) => {
       const parent = ThreadId.make("thread-parent");
       const child = ThreadId.make("thread-child");

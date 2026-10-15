@@ -7,7 +7,7 @@ import type {
 import type { SidebarSweepAction } from "../Sidebar.logic";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
-/** Icon button on a snoozed or settled row. Pressing it and dragging sweeps
+/** Icon button on a snoozed or done row. Pressing it and dragging sweeps
     the same action across neighboring rows in that shelf. */
 export function SidebarParkedActionButton(props: {
   action: SidebarSweepAction;

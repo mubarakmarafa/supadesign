@@ -6,7 +6,7 @@ import {
   settlePromise,
   squashAtomCommandFailure,
 } from "@supaterm/client-runtime/state/runtime";
-import { canSnooze, effectiveSnoozed } from "@supaterm/client-runtime/state/thread-settled";
+import { canSnooze, effectiveSnoozed } from "@supaterm/client-runtime/state/thread-snooze";
 import {
   AuthOrchestrationOperateScope,
   type ScopedThreadRef,
@@ -51,12 +51,12 @@ function failureToast(title: string, error: unknown) {
 }
 
 /**
- * The per-thread action menu (pin, settle, snooze, rename, copy, delete…) as
+ * The per-thread action menu (pin, mark done, snooze, rename, copy, delete…) as
  * a self-contained hook, for surfaces other than the sidebar row — today the
  * chat header. Renders through the native context-menu bridge and dispatches
  * through the same mutations the sidebar uses.
  *
- * Unlike the sidebar, settle and snooze here never navigate away: the caller
+ * Unlike the sidebar, marking done and snoozing here never navigate away: the caller
  * is acting on the thread they are reading, and ChatView's parked-thread
  * banner already offers the way back.
  */
@@ -81,13 +81,13 @@ export function useThreadActionMenu(input: {
     [primaryEnvironmentId, projectGroupingSettings, projects],
   );
   const {
-    settleThread,
-    unsettleThread,
+    markThreadDone,
+    reopenThread,
     snoozeThread,
     unsnoozeThread,
     pinThread,
     confirmAndUnpinThread,
-    setThreadAutoSettle,
+    setThreadAutoMarkDone,
     archiveThread,
     deleteThread,
     markThreadUnread,
@@ -138,8 +138,8 @@ export function useThreadActionMenu(input: {
           branch: thread.branch ?? null,
           projectFilter: null,
           isPinned: thread.pinnedAt != null,
-          isSettled: !isSnoozed && thread.settledOverride === "settled",
-          autoSettleEnabled: thread.autoSettleDisabledAt == null,
+          isDone: !isSnoozed && thread.doneOverride === "done",
+          autoMarkDoneEnabled: thread.autoMarkDoneDisabledAt == null,
           isSnoozed,
           canSnoozeNow: canSnooze(thread, { now: now.toISOString() }),
           isRegeneratingTitle,
@@ -213,11 +213,11 @@ export function useThreadActionMenu(input: {
             }
             return;
           }
-          case "settle":
-            await reportFailure("Failed to settle thread", () => settleThread(threadRef));
+          case "mark-done":
+            await reportFailure("Failed to mark thread as done", () => markThreadDone(threadRef));
             return;
-          case "unsettle":
-            await reportFailure("Failed to un-settle thread", () => unsettleThread(threadRef));
+          case "reopen":
+            await reportFailure("Failed to reopen thread", () => reopenThread(threadRef));
             return;
           case "unsnooze":
             await reportFailure("Failed to wake thread", () => unsnoozeThread(threadRef));
@@ -229,10 +229,10 @@ export function useThreadActionMenu(input: {
             await reportFailure("Failed to unpin thread", () => confirmAndUnpinThread(threadRef));
             return;
           }
-          case "auto-settle:enabled":
-          case "auto-settle:disabled":
-            await reportFailure("Failed to update auto-settle", () =>
-              setThreadAutoSettle(threadRef, action === "auto-settle:enabled"),
+          case "auto-mark-done:enabled":
+          case "auto-mark-done:disabled":
+            await reportFailure("Failed to update auto-mark-done", () =>
+              setThreadAutoMarkDone(threadRef, action === "auto-mark-done:enabled"),
             );
             return;
           case "rename":
@@ -343,12 +343,12 @@ export function useThreadActionMenu(input: {
       projectGroupingSettings,
       projects,
       router,
-      setThreadAutoSettle,
-      settleThread,
+      setThreadAutoMarkDone,
+      markThreadDone,
       snoozeThread,
       threadRef,
       timestampFormat,
-      unsettleThread,
+      reopenThread,
       unsnoozeThread,
       updateThreadMetadata,
     ],

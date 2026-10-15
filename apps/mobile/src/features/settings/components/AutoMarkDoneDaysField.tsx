@@ -1,18 +1,18 @@
 import { useState } from "react";
 import {
-  MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
-  MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
+  MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
+  MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
 } from "@supaterm/contracts";
 
 import { AppTextInput } from "../../../components/AppText";
 
-export interface AutoSettleDaysFieldProps {
+export interface AutoMarkDoneDaysFieldProps {
   readonly value: number;
   readonly onValueChange: (value: number) => void;
   readonly disabled?: boolean;
 }
 
-export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
+export function AutoMarkDoneDaysField(props: AutoMarkDoneDaysFieldProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const commit = () => {
     if (props.disabled) {
@@ -25,8 +25,8 @@ export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
     const parsed = /^\d+$/.test(text) ? Number(text) : Number.NaN;
     if (
       Number.isInteger(parsed) &&
-      parsed >= MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS &&
-      parsed <= MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS &&
+      parsed >= MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS &&
+      parsed <= MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS &&
       parsed !== props.value
     ) {
       props.onValueChange(parsed);
@@ -41,7 +41,7 @@ export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
       onChangeText={setDraft}
       onBlur={commit}
       onSubmitEditing={commit}
-      accessibilityLabel="Days before auto-settle"
+      accessibilityLabel="Days before auto-mark-done"
       editable={!props.disabled}
     />
   );

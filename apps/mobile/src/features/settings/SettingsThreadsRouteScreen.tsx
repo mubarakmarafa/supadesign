@@ -1,6 +1,6 @@
 import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { readEnvironmentScope, useEnvironmentsWithScope } from "../../state/session";
-import { AutoSettleDaysField } from "./components/AutoSettleDaysField";
+import { AutoMarkDoneDaysField } from "./components/AutoMarkDoneDaysField";
 import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { useRef, useState } from "react";
@@ -21,7 +21,10 @@ import {
   AndroidSettingsEnvironmentFilter,
   SettingsEnvironmentFilterHeader,
 } from "./components/SettingsEnvironmentFilterHeader";
-import { planAutoSettleSettingsSync, type AutoSettleSettings } from "./autoSettleSettingsSync";
+import {
+  planAutoMarkDoneSettingsSync,
+  type AutoMarkDoneSettings,
+} from "./autoMarkDoneSettingsSync";
 import { useSettingsEnvironmentFilter } from "./settings-environment-filter";
 import {
   planMobileScopedSettingsClear,
@@ -53,7 +56,7 @@ export function SettingsThreadsRouteScreen() {
   );
 }
 
-const AUTO_SETTLE_DEFAULT_DAYS = DEFAULT_SERVER_SETTINGS.sidebarAutoSettleAfterDays ?? 3;
+const AUTO_MARK_DONE_DEFAULT_DAYS = DEFAULT_SERVER_SETTINGS.sidebarAutoMarkDoneAfterDays ?? 3;
 
 function ThreadBehaviorSettingsRows() {
   const { selectedTargets, projectGroups, selectedProjectKey } = useSettingsEnvironmentFilter();
@@ -88,7 +91,7 @@ function ThreadBehaviorSettingsRows() {
   }
 
   const writeToAll = (
-    patch: Partial<AutoSettleSettings> & {
+    patch: Partial<AutoMarkDoneSettings> & {
       autoResumeLimitedThreads?: boolean;
       snoozeLimitedThreads?: boolean;
     },
@@ -116,7 +119,7 @@ function ThreadBehaviorSettingsRows() {
     });
   };
 
-  const { patch: autoSettlePatch, mismatches } = planAutoSettleSettingsSync(
+  const { patch: autoMarkDonePatch, mismatches } = planAutoMarkDoneSettingsSync(
     {
       environmentId: reference.environment.environmentId,
       projectId: reference.projectId,
@@ -139,8 +142,8 @@ function ThreadBehaviorSettingsRows() {
     projectSelected &&
     syncTargets.some(
       (target) =>
-        target.sources.sidebarAutoSettleOnMerge === "project" ||
-        target.sources.sidebarAutoSettleAfterDays === "project",
+        target.sources.sidebarAutoMarkDoneOnMerge === "project" ||
+        target.sources.sidebarAutoMarkDoneAfterDays === "project",
     );
   const clearProjectOverrides = () => {
     if (
@@ -151,8 +154,8 @@ function ThreadBehaviorSettingsRows() {
     )
       return;
     const writes = planMobileScopedSettingsClear(syncTargets, [
-      "sidebarAutoSettleOnMerge",
-      "sidebarAutoSettleAfterDays",
+      "sidebarAutoMarkDoneOnMerge",
+      "sidebarAutoMarkDoneAfterDays",
     ]);
     if (writes.length === 0) return;
     writeInFlight.current = true;
@@ -169,7 +172,7 @@ function ThreadBehaviorSettingsRows() {
     });
   };
 
-  const afterDays = referenceSettings.sidebarAutoSettleAfterDays;
+  const afterDays = referenceSettings.sidebarAutoMarkDoneAfterDays;
 
   return (
     <View className="gap-6">
@@ -201,31 +204,31 @@ function ThreadBehaviorSettingsRows() {
           />
         </SettingsSection>
       ) : null}
-      <SettingsSection title="Auto-settle">
+      <SettingsSection title="Automatically mark as done">
         <SettingsSwitchRow
           icon="arrow.triangle.branch"
-          label="Auto-settle merged threads"
-          value={referenceSettings.sidebarAutoSettleOnMerge}
+          label="Automatically mark merged threads as done"
+          value={referenceSettings.sidebarAutoMarkDoneOnMerge}
           disabled={disabled}
-          onValueChange={(value) => writeToAll({ sidebarAutoSettleOnMerge: value })}
+          onValueChange={(value) => writeToAll({ sidebarAutoMarkDoneOnMerge: value })}
         />
         <SettingsSwitchRow
           icon="clock"
-          label="Auto-settle inactive threads"
+          label="Automatically mark inactive threads as done"
           value={afterDays !== null}
           disabled={disabled}
           onValueChange={(value) =>
-            writeToAll({ sidebarAutoSettleAfterDays: value ? AUTO_SETTLE_DEFAULT_DAYS : null })
+            writeToAll({ sidebarAutoMarkDoneAfterDays: value ? AUTO_MARK_DONE_DEFAULT_DAYS : null })
           }
         />
         {afterDays !== null ? (
           <View className="flex-row items-center gap-4 px-4 py-4 android:min-h-14 android:py-3">
             <View className="w-[22px] android:w-6" />
             <Text className="flex-1 text-foreground text-lg android:text-base">Inactive days</Text>
-            <AutoSettleDaysField
+            <AutoMarkDoneDaysField
               value={afterDays}
               disabled={disabled}
-              onValueChange={(value) => writeToAll({ sidebarAutoSettleAfterDays: value })}
+              onValueChange={(value) => writeToAll({ sidebarAutoMarkDoneAfterDays: value })}
             />
           </View>
         ) : null}
@@ -233,18 +236,20 @@ function ThreadBehaviorSettingsRows() {
       {pendingWrites === 0 && mismatches.length > 0 ? (
         <SettingsSection title="Across environments">
           <View className="gap-3 p-4">
-            <Text className="text-base text-foreground">Auto-settle defaults differ</Text>
+            <Text className="text-base text-foreground">
+              Automatically mark as done defaults differ
+            </Text>
             <Text className="text-sm text-foreground-muted">
               {mismatches.map((mismatch) => mismatch.label).join(", ")}
             </Text>
             <Pressable
               accessibilityRole="button"
               disabled={disabled}
-              onPress={() => writeToAll(autoSettlePatch)}
+              onPress={() => writeToAll(autoMarkDonePatch)}
               className="self-start rounded-full bg-subtle px-4 py-2 active:opacity-70"
             >
               <Text className="text-sm font-supaterm-medium text-foreground">
-                Apply auto-settle defaults
+                Apply auto-mark-done defaults
               </Text>
             </Pressable>
           </View>

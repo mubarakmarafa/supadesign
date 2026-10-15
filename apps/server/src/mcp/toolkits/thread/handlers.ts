@@ -294,9 +294,9 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
     Effect.gen(function* () {
       const { threads, projection, caller } = yield* readThread(input.threadId);
       const common = { commandId: yield* newCommandId(), threadId: projection.thread.id };
-      if (input.action === "settle") {
+      if (input.action === "mark_done") {
         return yield* threads
-          .settleThread({ ...common, byOwnAgent: caller?.id === projection.thread.id })
+          .markThreadDone({ ...common, byOwnAgent: caller?.id === projection.thread.id })
           .pipe(Effect.mapError(dispatchFailure));
       }
       let command: OrchestrationV2Command;
@@ -311,7 +311,7 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
           command = { ...common, type: "thread.snooze", snoozedUntil: input.snoozedUntil };
           break;
         case "unsnooze":
-        case "unsettle":
+        case "reopen":
           command = { ...common, type: `thread.${input.action}`, reason: "user" };
           break;
         case "mark_unread":

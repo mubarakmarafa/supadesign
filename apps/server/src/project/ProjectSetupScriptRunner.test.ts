@@ -69,7 +69,7 @@ it.effect("resolves setup scripts through the standalone project service", () =>
         command: "cargo clean",
         icon: "build" as const,
         runOnWorktreeCreate: false,
-        runOnSettle: true,
+        runOnDone: true,
       },
     ],
     createdAt: "2026-06-20T00:00:00.000Z",
@@ -137,38 +137,38 @@ it.effect("resolves setup scripts through the standalone project service", () =>
     assert.deepEqual(lines, ["Downloading 10%", "Downloading 20%", "Done"]);
     yield* listener({ type: "closed", threadId: "thread-1", terminalId: "setup-setup" });
 
-    const settle = yield* runner.runForThread({
+    const done = yield* runner.runForThread({
       threadId: "thread-1",
       projectId,
       worktreePath: "/repo-worktree",
-      trigger: "settle",
+      trigger: "done",
     });
-    const settleTerminalId = settle.status === "started" ? settle.terminalId : "";
-    assert.match(settleTerminalId, /^settle-clean-/);
+    const doneTerminalId = done.status === "started" ? done.terminalId : "";
+    assert.match(doneTerminalId, /^done-clean-/);
     assert.equal(write.mock.calls.at(-1)?.[0].data, "cargo clean\r");
 
     // A clean run closes its shell once the prompt is back, not at the
     // sentinel, so the prompt redraw is not taken for new activity.
-    const observedSettle = yield* runner.runForThread({
+    const observedDone = yield* runner.runForThread({
       threadId: "thread-1",
       projectId,
       worktreePath: "/repo-worktree",
-      trigger: "settle",
+      trigger: "done",
       observeCompletion: {},
     });
-    const observedTerminalId = observedSettle.status === "started" ? observedSettle.terminalId : "";
-    // Each settle gets its own shell, so a busy one is never typed into.
-    assert.notEqual(observedTerminalId, settleTerminalId);
+    const observedTerminalId = observedDone.status === "started" ? observedDone.terminalId : "";
+    // Each completion gets its own shell, so a busy one is never typed into.
+    assert.notEqual(observedTerminalId, doneTerminalId);
     const token = /__SUPATERM_SETUP_DONE___(\w+):/.exec(
       write.mock.calls.at(-1)?.[0].data ?? "",
     )?.[1];
-    const settleListener = listeners.at(-1)!;
+    const doneListener = listeners.at(-1)!;
     const completion = yield* Effect.forkChild(
-      observedSettle.status === "started" && observedSettle.completion
-        ? observedSettle.completion
+      observedDone.status === "started" && observedDone.completion
+        ? observedDone.completion
         : Effect.die("no completion"),
     );
-    yield* settleListener({
+    yield* doneListener({
       type: "output",
       threadId: "thread-1",
       terminalId: observedTerminalId,
@@ -176,7 +176,7 @@ it.effect("resolves setup scripts through the standalone project service", () =>
     });
     yield* Effect.yieldNow;
     assert.equal(closeIdle.mock.calls.length, 0);
-    yield* settleListener({
+    yield* doneListener({
       type: "output",
       threadId: "thread-1",
       terminalId: observedTerminalId,
@@ -193,7 +193,7 @@ it.effect("resolves setup scripts through the standalone project service", () =>
       threadId: "thread-1",
       projectId,
       worktreePath: "/repo-worktree",
-      trigger: "settle",
+      trigger: "done",
       withCommandWriteGuard: () => Effect.succeed(false),
     });
     const skippedTerminalId = open.mock.calls.at(-1)![0].terminalId;
@@ -210,7 +210,7 @@ it.effect("resolves setup scripts through the standalone project service", () =>
         threadId: "thread-1",
         projectId,
         worktreePath: "/repo-worktree",
-        trigger: "settle",
+        trigger: "done",
         observeCompletion: {},
         withCommandWriteGuard: () => Effect.die("projection read failed"),
       }),
@@ -231,7 +231,7 @@ it.effect("resolves setup scripts through the standalone project service", () =>
         threadId: "thread-1",
         projectId,
         worktreePath: "/repo-worktree",
-        trigger: "settle",
+        trigger: "done",
         observeCompletion: {},
         withCommandWriteGuard: () =>
           Deferred.succeed(guardEntered, undefined).pipe(Effect.andThen(Effect.never)),

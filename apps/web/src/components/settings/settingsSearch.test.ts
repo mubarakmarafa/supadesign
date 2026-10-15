@@ -4,7 +4,7 @@ import { EnvironmentId } from "@supaterm/contracts";
 import {
   filterAvailableSettingsSearchItems,
   getSettingsSearchTargetScope,
-  getThreadAutoSettlementSearchAvailability,
+  getThreadAutoMarkDoneSearchAvailability,
   isSettingsOverviewVisible,
   isSettingsSearchScopeAvailable,
   searchableSetting,
@@ -179,7 +179,7 @@ describe("searchSettings", () => {
       hasMacProviderSettingsEnvironment: false,
       canManageLocalBackend: false,
       isWslSettingsRowVisible: false,
-      hasThreadAutoSettlement: false,
+      hasThreadAutoMarkDone: false,
     });
 
     const gatedIds = new Set<string>([
@@ -194,9 +194,9 @@ describe("searchSettings", () => {
       "source-control-writing-style",
       "tailscale-https",
       "wsl-backend",
-      "auto-settle-inactive-threads",
-      "auto-settle-merged-threads",
-      "days-before-auto-settle",
+      "auto-mark-done-inactive-threads",
+      "auto-mark-done-merged-threads",
+      "days-before-auto-mark-done",
     ]);
     expect(available.map((item) => item.id).filter((id) => gatedIds.has(id))).toEqual([]);
   });
@@ -208,7 +208,7 @@ describe("searchSettings", () => {
       hasMacProviderSettingsEnvironment: false,
       canManageLocalBackend: false,
       isWslSettingsRowVisible: false,
-      hasThreadAutoSettlement: false,
+      hasThreadAutoMarkDone: false,
     };
     const itemIds = (macAvailable: boolean) =>
       filterAvailableSettingsSearchItems({
@@ -226,13 +226,13 @@ describe("searchSettings", () => {
       hasMacProviderSettingsEnvironment: false,
       canManageLocalBackend: false,
       isWslSettingsRowVisible: false,
-      hasThreadAutoSettlement: true,
+      hasThreadAutoMarkDone: true,
     });
 
-    expect(searchSettings("auto-settle", available).map((item) => item.id)).toEqual([
-      "auto-settle-merged-threads",
-      "auto-settle-inactive-threads",
-      "days-before-auto-settle",
+    expect(searchSettings("auto-mark-done", available).map((item) => item.id)).toEqual([
+      "auto-mark-done-merged-threads",
+      "auto-mark-done-inactive-threads",
+      "days-before-auto-mark-done",
     ]);
   });
 
@@ -351,10 +351,10 @@ describe("searchSettings", () => {
       hasMacProviderSettingsEnvironment: false,
       canManageLocalBackend: false,
       isWslSettingsRowVisible: false,
-      hasThreadAutoSettlement: true,
+      hasThreadAutoMarkDone: true,
     });
     expect(searchSettings("writing style", available)[0]?.id).toBe("source-control-writing-style");
-    expect(searchSettings("auto-settle", available)).toHaveLength(3);
+    expect(searchSettings("auto-mark-done", available)).toHaveLength(3);
   });
 });
 
@@ -369,13 +369,13 @@ describe("settings search targets", () => {
     expect(isSettingsSearchScopeAvailable(target.scope, "environment")).toBe(true);
   });
   it.each([
-    "auto-settle-inactive-threads",
-    "auto-settle-merged-threads",
-    "days-before-auto-settle",
+    "auto-mark-done-inactive-threads",
+    "auto-mark-done-merged-threads",
+    "days-before-auto-mark-done",
   ])("retains the capability requirement for %s", (targetId) => {
     expect(getSettingsSearchTargetScope(targetId)).toMatchObject({
       scope: "project-defaults",
-      requiresThreadAutoSettlement: true,
+      requiresThreadAutoMarkDone: true,
     });
   });
 
@@ -425,7 +425,7 @@ describe("settings search targets", () => {
   });
 });
 
-describe("auto-settlement search availability", () => {
+describe("auto-mark-done search availability", () => {
   function environment(id: string, { connected = true, loaded = true } = {}) {
     return {
       environmentId: EnvironmentId.make(id),
@@ -440,7 +440,7 @@ describe("auto-settlement search availability", () => {
   const environments = [capable, offline, loading];
 
   it("keeps results discoverable when one connected environment supports them", () => {
-    const availability = getThreadAutoSettlementSearchAvailability(environments);
+    const availability = getThreadAutoMarkDoneSearchAvailability(environments);
     expect(availability.eligibleEnvironmentIds).toEqual([capable.environmentId]);
     const items = filterAvailableSettingsSearchItems({
       hasEnvironment: true,
@@ -448,18 +448,18 @@ describe("auto-settlement search availability", () => {
       hasMacProviderSettingsEnvironment: false,
       canManageLocalBackend: false,
       isWslSettingsRowVisible: false,
-      hasThreadAutoSettlement: availability.eligibleEnvironmentIds.length > 0,
+      hasThreadAutoMarkDone: availability.eligibleEnvironmentIds.length > 0,
     });
-    expect(searchSettings("auto-settle", items).map((item) => item.id)).toEqual([
-      "auto-settle-merged-threads",
-      "auto-settle-inactive-threads",
-      "days-before-auto-settle",
+    expect(searchSettings("auto-mark-done", items).map((item) => item.id)).toEqual([
+      "auto-mark-done-merged-threads",
+      "auto-mark-done-inactive-threads",
+      "days-before-auto-mark-done",
     ]);
   });
 
   it("offers connected environments when other targets are unavailable", () => {
     expect(
-      getThreadAutoSettlementSearchAvailability(environments, {
+      getThreadAutoMarkDoneSearchAvailability(environments, {
         kind: "all",
         environmentIds: environments.map((entry) => entry.environmentId),
       }),
@@ -468,7 +468,7 @@ describe("auto-settlement search availability", () => {
 
   it("allows a capable named environment regardless of other environments' capabilities", () => {
     expect(
-      getThreadAutoSettlementSearchAvailability(environments, {
+      getThreadAutoMarkDoneSearchAvailability(environments, {
         kind: "environment",
         environmentIds: [capable.environmentId],
       }).isTargetAvailable,
@@ -479,7 +479,7 @@ describe("auto-settlement search availability", () => {
     "does not render the target on $environmentId or silently fall back",
     (selected) => {
       expect(
-        getThreadAutoSettlementSearchAvailability(environments, {
+        getThreadAutoMarkDoneSearchAvailability(environments, {
           kind: "environment",
           environmentIds: [selected.environmentId],
         }),
@@ -489,7 +489,7 @@ describe("auto-settlement search availability", () => {
 
   it("offers a capable environment instead of a dead target at an unavailable scope", () => {
     expect(
-      getThreadAutoSettlementSearchAvailability(environments, {
+      getThreadAutoMarkDoneSearchAvailability(environments, {
         kind: "unavailable",
         environmentIds: [capable.environmentId],
       }),
@@ -499,7 +499,7 @@ describe("auto-settlement search availability", () => {
   it("ignores offline and unloaded targets when all connected targets support the setting", () => {
     const selected = [capable, offline, loading];
     expect(
-      getThreadAutoSettlementSearchAvailability(selected, {
+      getThreadAutoMarkDoneSearchAvailability(selected, {
         kind: "all",
         environmentIds: selected.map((entry) => entry.environmentId),
       }).isTargetAvailable,
@@ -509,12 +509,12 @@ describe("auto-settlement search availability", () => {
   it("offers no unavailable environments when none can render the setting", () => {
     const selected = [offline, loading];
     expect(
-      getThreadAutoSettlementSearchAvailability(selected, {
+      getThreadAutoMarkDoneSearchAvailability(selected, {
         kind: "all",
         environmentIds: selected.map((entry) => entry.environmentId),
       }),
     ).toEqual({ eligibleEnvironmentIds: [], isTargetAvailable: false });
-    expect(getThreadAutoSettlementSearchAvailability([]).eligibleEnvironmentIds).toEqual([]);
+    expect(getThreadAutoMarkDoneSearchAvailability([]).eligibleEnvironmentIds).toEqual([]);
   });
 });
 

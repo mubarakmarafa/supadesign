@@ -84,16 +84,16 @@ capture workspace state without adding commits to the user's branch. A revert mu
 workspace state with the provider conversation. A provider that cannot roll back its conversation
 must reject that operation before changing the filesystem.
 
-Thread settlement is server-owned. The
-[settlement service](../../apps/server/src/orchestration-v2/ThreadSettlementService.ts) evaluates PR
+Thread completion is server-owned. The
+[thread completion service](../../apps/server/src/orchestration-v2/ThreadDoneService.ts) evaluates PR
 and inactivity settings without a connected client. Merge notifications invalidate cached PR state
 and trigger a check. A merge outside Supaterm, such as an agent running `gh pr merge`, sends no
 notification, so the [PR sync reactor](../../apps/server/src/orchestration-v2/PullRequestSyncReactor.ts)
 re-reads a thread's open links when a run that ran a merge or close command ends. The guarded
-`thread.auto-settle` command rejects newer activity, explicit settlement overrides, and live or
+`thread.auto-mark-done` command rejects newer activity, explicit done overrides, and live or
 blocked work. It records the activity timestamp for stable
 sorting and detaches idle provider sessions. Clients render the persisted result; they do not
-derive settlement from their own clocks or PR caches.
+decide when threads are done from their own clocks or PR caches.
 
 ## Waiting for asynchronous work
 

@@ -12,20 +12,20 @@ import {
   tag,
 } from "@expo/ui/swift-ui/modifiers";
 import {
-  MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
-  MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
+  MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
+  MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
 } from "@supaterm/contracts";
 import { useState } from "react";
 
 import { useAppearancePreferences } from "../appearance/AppearancePreferencesProvider";
-import type { AutoSettleDaysFieldProps } from "./AutoSettleDaysField";
+import type { AutoMarkDoneDaysFieldProps } from "./AutoMarkDoneDaysField";
 
 const days = Array.from(
-  { length: MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS - MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS + 1 },
-  (_, index) => MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS + index,
+  { length: MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS - MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS + 1 },
+  (_, index) => MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS + index,
 );
 
-export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
+export function AutoMarkDoneDaysField(props: AutoMarkDoneDaysFieldProps) {
   const { themeAppearance, themeVariables: colors, appearance } = useAppearancePreferences();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(props.value);
@@ -42,7 +42,7 @@ export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
             modifiers={[
               buttonStyle("bordered"),
               disabled(props.disabled),
-              accessibilityLabel(`Days before auto-settle: ${props.value}`),
+              accessibilityLabel(`Days before auto-mark-done: ${props.value}`),
               frame({ minWidth: 64, minHeight: 44 }),
               foregroundStyle(colors["--color-primary-text"]),
               font({ size: appearance.baseFontSize }),
@@ -60,7 +60,7 @@ export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
             ]}
           >
             <Picker
-              label="Days before auto-settle"
+              label="Days before auto-mark-done"
               selection={draft}
               onSelectionChange={setDraft}
               modifiers={[pickerStyle("wheel"), frame({ height: 180 })]}

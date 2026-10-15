@@ -137,7 +137,7 @@ import * as RuntimeLayer from "./orchestration-v2/runtimeLayer.ts";
 import * as ProjectStore from "./orchestration-v2/ProjectStore.ts";
 import * as ThreadSearch from "./orchestration-v2/ThreadSearch.ts";
 import * as ResourceCleanupService from "./orchestration-v2/ResourceCleanupService.ts";
-import * as ThreadSettlementService from "./orchestration-v2/ThreadSettlementService.ts";
+import * as ThreadDoneService from "./orchestration-v2/ThreadDoneService.ts";
 import * as ThreadPullRequestService from "./orchestration-v2/ThreadPullRequestService.ts";
 import * as RunFinalizationService from "./orchestration-v2/RunFinalizationService.ts";
 import * as ProjectionStoreV2 from "./orchestration-v2/ProjectionStore.ts";
@@ -456,11 +456,11 @@ const layerOrchestrationApplication = CheckpointDiffQuery.layer.pipe(
   Layer.provideMerge(layerOrchestrationV2Runtime),
 );
 
-// Automatic thread settlement (#8600): a server-owned sweep evaluates
-// inactivity and merged pull requests, then settles through the orchestrator
+// Automatic thread completion: a server-owned sweep evaluates
+// inactivity and merged pull requests, then marks done through the orchestrator
 // so every client sees the same shelf.
-const layerThreadSettlementWorker = Layer.effectDiscard(
-  ThreadSettlementService.make.pipe(Effect.flatMap((service) => service.start())),
+const layerThreadDoneWorker = Layer.effectDiscard(
+  ThreadDoneService.make.pipe(Effect.flatMap((service) => service.start())),
 ).pipe(Layer.provide(layerPullRequestService), Layer.provide(ProjectionStoreV2.layer));
 
 const layerThreadPullRequestWorker = Layer.effectDiscard(
@@ -500,7 +500,7 @@ const layerProviderInstallationRefresh = Layer.effectDiscard(
 );
 
 const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
-  layerThreadSettlementWorker,
+  layerThreadDoneWorker,
   StorageCleanup.layer.pipe(Layer.provide(ProjectionStoreV2.layer)),
   layerThreadPullRequestWorker,
   Layer.effectDiscard(

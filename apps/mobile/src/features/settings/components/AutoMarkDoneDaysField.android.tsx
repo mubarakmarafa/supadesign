@@ -1,19 +1,19 @@
 import {
-  MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
-  MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
+  MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
+  MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
 } from "@supaterm/contracts";
 import { View } from "react-native";
 
 import { AppText } from "../../../components/AppText";
 import { MaterialIconButton } from "../../../components/MaterialIconButton";
-import type { AutoSettleDaysFieldProps } from "./AutoSettleDaysField";
+import type { AutoMarkDoneDaysFieldProps } from "./AutoMarkDoneDaysField";
 
-export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
+export function AutoMarkDoneDaysField(props: AutoMarkDoneDaysFieldProps) {
   const adjust = (amount: number) => {
     if (props.disabled) return;
     const next = Math.max(
-      MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
-      Math.min(MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS, props.value + amount),
+      MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
+      Math.min(MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS, props.value + amount),
     );
     if (next !== props.value) props.onValueChange(next);
   };
@@ -28,22 +28,22 @@ export function AutoSettleDaysField(props: AutoSettleDaysFieldProps) {
       />
       <MaterialIconButton
         icon="minus"
-        accessibilityLabel="Decrease days before auto-settle"
-        disabled={props.disabled || props.value <= MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS}
+        accessibilityLabel="Decrease days before auto-mark-done"
+        disabled={props.disabled || props.value <= MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS}
         onPress={() => adjust(-1)}
       />
       <AppText
         className="min-w-8 text-center text-base"
         style={{ fontVariant: ["tabular-nums"] }}
-        accessibilityLabel={`${props.value} ${props.value === 1 ? "day" : "days"} before auto-settle`}
+        accessibilityLabel={`${props.value} ${props.value === 1 ? "day" : "days"} before auto-mark-done`}
         accessibilityLiveRegion="polite"
       >
         {props.value}
       </AppText>
       <MaterialIconButton
         icon="plus"
-        accessibilityLabel="Increase days before auto-settle"
-        disabled={props.disabled || props.value >= MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS}
+        accessibilityLabel="Increase days before auto-mark-done"
+        disabled={props.disabled || props.value >= MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS}
         onPress={() => adjust(1)}
       />
     </View>

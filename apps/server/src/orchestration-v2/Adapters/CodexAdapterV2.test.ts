@@ -1568,8 +1568,8 @@ function makeCodexTestAppThread(input: {
     createdAt: input.now,
     updatedAt: input.now,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     deletedAt: null,
   };
@@ -9023,7 +9023,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
         const childThreadId = "goal-race-child-thread";
         const childTurnId = "goal-race-child-turn";
         const transcript = makeCodexReplayTranscript({
-          scenario: "goal-stop-run-settles-during-pause",
+          scenario: "goal-stop-rreopens-during-pause",
           entries: [
             ...codexReplayPreamble({ nativeThreadId, nativeTurnId: "goal-turn-a", prompt }),
             notification("subagent started", "item/completed", {

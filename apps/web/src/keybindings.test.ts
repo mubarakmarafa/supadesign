@@ -176,7 +176,7 @@ const DEFAULT_BINDINGS = compile([
   },
   {
     shortcut: modShortcut("s", { shiftKey: true }),
-    command: "thread.settle",
+    command: "thread.mark-done",
     whenAst: whenNot(whenIdentifier("terminalFocus")),
   },
   { shortcut: modShortcut("1"), command: "thread.jump.1" },
@@ -258,14 +258,14 @@ describe("isTerminalToggleShortcut", () => {
   });
 });
 
-describe("settle thread shortcut", () => {
+describe("mark thread as done shortcut", () => {
   it("resolves outside the terminal", () => {
     assert.equal(
       resolveShortcutCommand(event({ key: "s", metaKey: true, shiftKey: true }), DEFAULT_BINDINGS, {
         platform: "MacIntel",
         context: { terminalFocus: false },
       }),
-      "thread.settle",
+      "thread.mark-done",
     );
   });
 
@@ -1663,7 +1663,7 @@ describe("composer and pull request shortcuts", () => {
 
   for (const platform of ["MacIntel", "Win32", "Linux"]) {
     it.each([
-      ["s", "thread.settle"],
+      ["s", "thread.mark-done"],
       ["p", "thread.pin"],
     ])(`preserves the existing %s shortcut on ${platform}`, (key, command) => {
       assert.strictEqual(

@@ -46,7 +46,7 @@ import sharp from "sharp";
 import {
   HERO_THREAD,
   SCENE_PROJECTS,
-  SETTLED_THREADS,
+  DONE_THREADS,
   SIDEBAR_THREADS,
   type SceneModel,
   type ScenePullRequest,
@@ -241,7 +241,7 @@ function seed(db: NodeSqlite.DatabaseSync, workspace: Workspace): void {
     readonly createdAt: string;
     readonly updatedAt: string;
     readonly pullRequest?: ScenePullRequest;
-    readonly settled?: boolean;
+    readonly done?: boolean;
   }) => {
     const payload = {
       createdBy: "user",
@@ -264,8 +264,8 @@ function seed(db: NodeSqlite.DatabaseSync, workspace: Workspace): void {
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
       archivedAt: null,
-      settledOverride: input.settled ? "settled" : null,
-      settledAt: input.settled ? input.updatedAt : null,
+      doneOverride: input.done ? "done" : null,
+      doneAt: input.done ? input.updatedAt : null,
       snoozedUntil: null,
       snoozedAt: null,
       lastVisitedAt: input.updatedAt,
@@ -643,7 +643,7 @@ function seed(db: NodeSqlite.DatabaseSync, workspace: Workspace): void {
   }
 
   // Sidebar threads: thread rows, plus a run for the ones shown mid-flight.
-  const insertSidebarThread = (thread: SceneSidebarThread, settled: boolean) => {
+  const insertSidebarThread = (thread: SceneSidebarThread, done: boolean) => {
     const id = NodeCrypto.randomUUID();
     const at = isoMinutesAgo(thread.minutesAgo);
     insertThread({
@@ -652,10 +652,10 @@ function seed(db: NodeSqlite.DatabaseSync, workspace: Workspace): void {
       title: thread.title,
       model: thread.model,
       branch: thread.branch,
-      worktreePath: settled ? null : workspace.worktreeFor(thread),
+      worktreePath: done ? null : workspace.worktreeFor(thread),
       createdAt: isoMinutesAgo(thread.minutesAgo + 30),
       updatedAt: at,
-      settled,
+      done,
       ...(thread.pullRequest ? { pullRequest: thread.pullRequest } : {}),
     });
     if (!thread.live) return;
@@ -707,7 +707,7 @@ function seed(db: NodeSqlite.DatabaseSync, workspace: Workspace): void {
     });
   };
   for (const thread of SIDEBAR_THREADS) insertSidebarThread(thread, false);
-  for (const thread of SETTLED_THREADS) insertSidebarThread(thread, true);
+  for (const thread of DONE_THREADS) insertSidebarThread(thread, true);
 }
 
 function pullRequestLink(title: string, branch: string, pullRequest: ScenePullRequest, at: string) {

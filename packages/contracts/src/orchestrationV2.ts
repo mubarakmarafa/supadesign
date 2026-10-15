@@ -371,7 +371,7 @@ export type ThreadWorkflowRunKey = typeof ThreadWorkflowRunKey.Type;
 
 /**
  * A GitHub Actions run the server watches for the thread's agent, which it wakes once when the
- * run completes. Ends then, on unwatch, Stop, settle or archive, and after reads keep failing.
+ * run completes. Ends then, on unwatch, Stop, marking done or archiving, and after reads keep failing.
  */
 export const ThreadWorkflowRunWatch = Schema.Struct({
   ...ThreadWorkflowRunKey.fields,
@@ -416,20 +416,18 @@ export const OrchestrationV2AppThread = Schema.Struct({
   createdAt: Schema.DateTimeUtc,
   updatedAt: Schema.DateTimeUtc,
   archivedAt: Schema.NullOr(Schema.DateTimeUtc),
-  settledOverride: Schema.NullOr(Schema.Literals(["settled", "active"])).pipe(
+  doneOverride: Schema.NullOr(Schema.Literals(["done", "active"])).pipe(
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
-  settledAt: Schema.NullOr(Schema.DateTimeUtc).pipe(
-    Schema.withDecodingDefault(Effect.succeed(null)),
-  ),
-  unsettledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
+  doneAt: Schema.NullOr(Schema.DateTimeUtc).pipe(Schema.withDecodingDefault(Effect.succeed(null))),
+  reopenedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   snoozedUntil: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   snoozedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   /** Manual wakes restart inactivity without changing the sidebar's sort position. */
   lastSnoozeWakeAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   limitRecovery: Schema.optional(Schema.NullOr(OrchestrationV2LimitRecovery)),
   pinnedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
-  autoSettleDisabledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
+  autoMarkDoneDisabledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   // Fractional-index slot in the user-arranged pinned order. Optional so
   // payloads from pre-reorder servers still decode.
   pinOrderKey: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
@@ -1782,12 +1780,12 @@ export const OrchestrationV2DomainEvent = Schema.Union([
       "thread.archived",
       "thread.unarchived",
       "thread.deleted",
-      "thread.settled",
-      "thread.unsettled",
+      "thread.marked-done",
+      "thread.reopened",
       "thread.snoozed",
       "thread.unsnoozed",
       "thread.pinned",
-      "thread.auto-settle-set",
+      "thread.auto-mark-done-set",
       "thread.unpinned",
       "thread.pin-reordered",
       "thread.active-reordered",
@@ -2026,15 +2024,15 @@ export const OrchestrationV2ThreadShell = Schema.Struct({
   createdAt: Schema.DateTimeUtc,
   updatedAt: Schema.DateTimeUtc,
   archivedAt: Schema.NullOr(Schema.DateTimeUtc),
-  settledOverride: Schema.NullOr(Schema.Literals(["settled", "active"])),
-  settledAt: Schema.NullOr(Schema.DateTimeUtc),
-  unsettledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
+  doneOverride: Schema.NullOr(Schema.Literals(["done", "active"])),
+  doneAt: Schema.NullOr(Schema.DateTimeUtc),
+  reopenedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   snoozedUntil: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   snoozedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   limitRecovery: Schema.optional(Schema.NullOr(OrchestrationV2LimitRecovery)),
   /** Omitted by servers that predate thread pinning. */
   pinnedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
-  autoSettleDisabledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
+  autoMarkDoneDisabledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtc)),
   /** Slot in the user-arranged pinned order; omitted by pre-reorder servers. */
   pinOrderKey: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
   /** Slot in the user-arranged active order; omitted by pre-reorder servers. */
@@ -2122,15 +2120,15 @@ export const OrchestrationV2AppThreadJson = OrchestrationV2AppThread.mapFields((
   createdAt: Schema.DateTimeUtcFromString,
   updatedAt: Schema.DateTimeUtcFromString,
   archivedAt: Schema.NullOr(Schema.DateTimeUtcFromString),
-  settledAt: Schema.NullOr(Schema.DateTimeUtcFromString).pipe(
+  doneAt: Schema.NullOr(Schema.DateTimeUtcFromString).pipe(
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
-  unsettledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
+  reopenedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   snoozedUntil: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   snoozedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   lastSnoozeWakeAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   pinnedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
-  autoSettleDisabledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
+  autoMarkDoneDisabledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   lastVisitedAt: Schema.NullOr(Schema.DateTimeUtcFromString).pipe(
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
@@ -2549,12 +2547,12 @@ export const OrchestrationV2ThreadShellJson = OrchestrationV2ThreadShell.mapFiel
   createdAt: Schema.DateTimeUtcFromString,
   updatedAt: Schema.DateTimeUtcFromString,
   archivedAt: Schema.NullOr(Schema.DateTimeUtcFromString),
-  settledAt: Schema.NullOr(Schema.DateTimeUtcFromString),
-  unsettledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
+  doneAt: Schema.NullOr(Schema.DateTimeUtcFromString),
+  reopenedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   snoozedUntil: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   snoozedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   pinnedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
-  autoSettleDisabledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
+  autoMarkDoneDisabledAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   lastVisitedAt: Schema.optional(Schema.NullOr(Schema.DateTimeUtcFromString)),
   titleRegeneration: Schema.optional(
     Schema.NullOr(
@@ -2602,12 +2600,12 @@ export const OrchestrationV2DomainEventJson = Schema.Union([
       "thread.archived",
       "thread.unarchived",
       "thread.deleted",
-      "thread.settled",
-      "thread.unsettled",
+      "thread.marked-done",
+      "thread.reopened",
       "thread.snoozed",
       "thread.unsnoozed",
       "thread.pinned",
-      "thread.auto-settle-set",
+      "thread.auto-mark-done-set",
       "thread.unpinned",
       "thread.pin-reordered",
       "thread.active-reordered",
@@ -2778,26 +2776,26 @@ export const OrchestrationV2Command = Schema.Union([
     threadId: ThreadId,
   }),
   Schema.Struct({
-    type: Schema.Literal("thread.settle"),
+    type: Schema.Literal("thread.mark-done"),
     commandId: CommandId,
     threadId: ThreadId,
-    settledAt: Schema.optional(Schema.DateTimeUtc),
+    doneAt: Schema.optional(Schema.DateTimeUtc),
   }),
   /**
-   * Server-internal settlement (#8600): dispatched by the settlement sweep,
+   * Server-internal completion: dispatched by the automatic completion sweep,
    * never by clients. Rejected when the thread changed after `snapshotAt` or
-   * carries any explicit settled override, so automatic settlement can never
-   * race a user action or clobber an explicit un-settle.
+   * carries any explicit done override, so automatic completion can never
+   * race a user action or clobber an explicit reopen.
    */
   Schema.Struct({
-    type: Schema.Literal("thread.auto-settle"),
+    type: Schema.Literal("thread.auto-mark-done"),
     commandId: CommandId,
     threadId: ThreadId,
     snapshotAt: Schema.DateTimeUtc,
-    settledAt: Schema.optional(Schema.DateTimeUtc),
+    doneAt: Schema.optional(Schema.DateTimeUtc),
   }),
   Schema.Struct({
-    type: Schema.Literal("thread.unsettle"),
+    type: Schema.Literal("thread.reopen"),
     commandId: CommandId,
     threadId: ThreadId,
     reason: Schema.Literal("user"),
@@ -2815,7 +2813,7 @@ export const OrchestrationV2Command = Schema.Union([
     reason: Schema.Literal("user"),
   }),
   Schema.Struct({
-    type: Schema.Literal("thread.auto-settle.set"),
+    type: Schema.Literal("thread.auto-mark-done.set"),
     commandId: CommandId,
     threadId: ThreadId,
     enabled: Schema.Boolean,
@@ -3220,7 +3218,7 @@ const OrchestrationV2InternalCommand = Schema.Union([
   /**
    * Records what a pull request watch saw, and wakes the agent in the same transaction when
    * `wake` is set. Rejected once the watch started at `startedAt` has ended, and a wake is
-   * rejected on a settled or archived thread, so a read that raced either changes nothing.
+   * rejected on a done or archived thread, so a read that raced either changes nothing.
    */
   Schema.Struct({
     type: Schema.Literal("thread.pull-request-watch.sync"),
@@ -3249,7 +3247,7 @@ const OrchestrationV2InternalCommand = Schema.Union([
   }),
   /**
    * Ends the workflow run watch started at `startedAt`, waking the agent in the same transaction
-   * when `wake` is set. Rejected once that watch has ended, and a wake is rejected on a settled
+   * when `wake` is set. Rejected once that watch has ended, and a wake is rejected on a done
    * or archived thread, so a read that raced either changes nothing.
    */
   Schema.Struct({

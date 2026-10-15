@@ -1,7 +1,7 @@
 // @effect-diagnostics globalDate:off -- UI snooze presets use local calendar boundaries and Intl labels.
 import * as DateTime from "effect/DateTime";
 
-interface SettlementRunLike {
+interface SnoozeRunLike {
   readonly turnId?: unknown;
   readonly assistantMessageId?: unknown;
   readonly status?: string;
@@ -11,7 +11,7 @@ interface SettlementRunLike {
   readonly completedAt?: string | null;
 }
 
-interface SettlementRuntimeLike {
+interface SnoozeRuntimeLike {
   readonly threadId?: unknown;
   readonly providerName?: unknown;
   readonly runtimeMode?: unknown;
@@ -23,10 +23,10 @@ interface SettlementRuntimeLike {
 
 interface QueuedThreadShell {
   readonly latestUserMessageAt?: string | null;
-  readonly latestTurn?: SettlementRunLike | null;
-  readonly latestRun?: SettlementRunLike | null;
-  readonly session?: SettlementRuntimeLike | null;
-  readonly runtime?: SettlementRuntimeLike | null;
+  readonly latestTurn?: SnoozeRunLike | null;
+  readonly latestRun?: SnoozeRunLike | null;
+  readonly session?: SnoozeRuntimeLike | null;
+  readonly runtime?: SnoozeRuntimeLike | null;
 }
 
 /**
@@ -34,7 +34,7 @@ interface QueuedThreadShell {
  * seconds, so a user message still unadopted after the grace window is a
  * failed start (or stale data — shells from older servers can carry user
  * messages with no latestTurn at all), not pending work. Without this bound
- * such threads would be permanently unsettleable.
+ * such threads would be permanently unable to be marked done.
  */
 export const QUEUED_TURN_START_GRACE_MS = 2 * 60 * 1_000;
 const DAY_MS = 24 * 60 * 60 * 1_000;
@@ -130,7 +130,7 @@ export function threadRaisedHandWhileSnoozed(shell: ThreadSnoozeShell): boolean 
  * A thread may be snoozed unless the agent is blocked on the user: hiding a
  * pending approval or user-input request defeats the request, and a queued
  * turn start (a message no turn has adopted yet) is invisible pending work
- * the same way it is for settle. A running session IS snoozable — snooze
+ * the same way it is for marking done. A running session IS snoozable — snooze
  * only affects visibility, never the agent. Client-side twin of the server
  * invariants so the UI can reject before a round trip.
  */

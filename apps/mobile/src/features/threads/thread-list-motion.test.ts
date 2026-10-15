@@ -6,8 +6,8 @@ const base = {
   previousScope: "all",
   scope: "all",
   searching: false,
-  previousSettledLimit: 10,
-  settledLimit: 10,
+  previousDoneLimit: 10,
+  doneLimit: 10,
 };
 
 const rows = (...keys: string[]) => keys.map((key) => ({ key }));
@@ -17,8 +17,8 @@ describe("thread list motion", () => {
     expect(
       shouldAnimateThreadList({
         ...base,
-        previousItems: rows("working", "settled"),
-        items: rows("working", "a", "b", "settled"),
+        previousItems: rows("working", "done"),
+        items: rows("working", "a", "b", "done"),
       }),
     ).toBe(true);
     expect(
@@ -58,9 +58,9 @@ describe("thread list motion", () => {
   });
 
   it.each([25, 100])("animates expanding and collapsing a shelf with %i rows", (count) => {
-    const collapsed = [{ key: "settled", expanded: false }];
+    const collapsed = [{ key: "done", expanded: false }];
     const expanded = [
-      { key: "settled", expanded: true },
+      { key: "done", expanded: true },
       ...rows(...Array.from({ length: count }, (_, index) => `thread-${index}`)),
     ];
     expect(shouldAnimateThreadList({ ...base, previousItems: collapsed, items: expanded })).toBe(
@@ -72,8 +72,8 @@ describe("thread list motion", () => {
   });
 
   it("keeps shelf toggles immediate during hydration, search, and scope changes", () => {
-    const collapsed = [{ key: "settled", expanded: false }];
-    const expanded = [{ key: "settled", expanded: true }, ...rows("thread")];
+    const collapsed = [{ key: "done", expanded: false }];
+    const expanded = [{ key: "done", expanded: true }, ...rows("thread")];
     expect(shouldAnimateThreadList({ ...base, previousItems: [], items: expanded })).toBe(false);
     expect(
       shouldAnimateThreadList({
@@ -100,7 +100,7 @@ describe("thread list motion", () => {
         previousItems: rows("active"),
         items: [
           ...rows("active"),
-          { key: "settled", expanded: true },
+          { key: "done", expanded: true },
           ...rows(...Array.from({ length: 25 }, (_, index) => `thread-${index}`)),
         ],
       }),
@@ -108,21 +108,19 @@ describe("thread list motion", () => {
   });
 
   it.each([false, true])(
-    "animates settled pagination when the show-more button disappears: %s",
+    "animates done pagination when the show-more button disappears: %s",
     (lastPage) => {
       const previousItems = [
-        { key: "settled", expanded: true },
+        { key: "done", expanded: true },
         ...rows(...Array.from({ length: 10 }, (_, index) => `thread-${index}`)),
         ...rows("show-more"),
       ];
       const items = [
-        { key: "settled", expanded: true },
+        { key: "done", expanded: true },
         ...rows(...Array.from({ length: 35 }, (_, index) => `thread-${index}`)),
         ...rows(...(lastPage ? [] : ["show-more"])),
       ];
-      expect(shouldAnimateThreadList({ ...base, previousItems, items, settledLimit: 35 })).toBe(
-        true,
-      );
+      expect(shouldAnimateThreadList({ ...base, previousItems, items, doneLimit: 35 })).toBe(true);
       expect(shouldAnimateThreadList({ ...base, previousItems, items })).toBe(false);
     },
   );
@@ -130,9 +128,9 @@ describe("thread list motion", () => {
   it("keeps pagination immediate during hydration, search, and scope changes", () => {
     const pagination = {
       ...base,
-      previousItems: rows("settled", "show-more"),
-      items: rows("settled", ...Array.from({ length: 25 }, (_, index) => `thread-${index}`)),
-      settledLimit: 35,
+      previousItems: rows("done", "show-more"),
+      items: rows("done", ...Array.from({ length: 25 }, (_, index) => `thread-${index}`)),
+      doneLimit: 35,
     };
     expect(shouldAnimateThreadList({ ...pagination, previousItems: [] })).toBe(false);
     expect(shouldAnimateThreadList({ ...pagination, searching: true })).toBe(false);

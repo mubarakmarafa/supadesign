@@ -121,14 +121,14 @@ export const make = Effect.gen(function* () {
   /**
    * A sweep for one thread reads only that thread's shell, not every thread's.
    * Finished runs and checkpoints queue one of these each. A sweep over all
-   * threads reads only active, unsettled ones, since discovery skips the rest;
-   * backfill looks up settled threads, so its passes read every active thread.
+   * threads reads only active, open ones, since discovery skips the rest;
+   * backfill looks up done threads, so its passes read every active thread.
    */
   const readThreadSnapshot = ({ threadId, backfill }: RefreshRequest) =>
     threadId === null
       ? orchestrator.getShellSnapshot({
           location: "active",
-          unsettledOnly: !(backfill || pendingBackfill.size > 0),
+          openOnly: !(backfill || pendingBackfill.size > 0),
         })
       : Effect.gen(function* () {
           // Read the sequence first. The thread is then at least this new, so a
@@ -149,7 +149,7 @@ export const make = Effect.gen(function* () {
     if (request.backfill) {
       for (const thread of threadSnapshot.threads) {
         if (
-          (thread.settledOverride === "settled" || thread.settledAt !== null) &&
+          (thread.doneOverride === "done" || thread.doneAt !== null) &&
           thread.branchPullRequest == null
         ) {
           pendingBackfill.set(thread.id, BACKFILL_ATTEMPTS);
@@ -169,7 +169,7 @@ export const make = Effect.gen(function* () {
     const threads = threadSnapshot.threads.filter(
       (thread) =>
         thread.archivedAt === null &&
-        ((thread.settledOverride !== "settled" && thread.settledAt === null) ||
+        ((thread.doneOverride !== "done" && thread.doneAt === null) ||
           request.threadId !== null ||
           pendingBackfill.has(thread.id)) &&
         (thread.branch !== null || thread.branchPullRequest != null),
@@ -371,7 +371,7 @@ export const make = Effect.gen(function* () {
       case "thread.unarchived":
       case "thread.metadata-updated":
         return worker.enqueue({ threadId: event.threadId, refresh: false });
-      case "thread.unsettled":
+      case "thread.reopened":
       case "checkpoint.captured":
         return worker.enqueue({ threadId: event.threadId, refresh: true });
       case "run.updated":

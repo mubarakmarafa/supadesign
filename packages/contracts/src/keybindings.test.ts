@@ -165,12 +165,12 @@ it.effect("parses keybinding rules", () =>
     });
     assert.strictEqual(parsedThreadPrevious.command, "thread.previous");
 
-    const parsedThreadSettle = yield* decode(KeybindingRule, {
+    const parsedThreadMarkDone = yield* decode(KeybindingRule, {
       key: "mod+shift+s",
-      command: "thread.settle",
+      command: "thread.mark-done",
       when: "!terminalFocus",
     });
-    assert.strictEqual(parsedThreadSettle.command, "thread.settle");
+    assert.strictEqual(parsedThreadMarkDone.command, "thread.mark-done");
 
     const parsedThreadCopyReference = yield* decode(KeybindingRule, {
       key: "mod+shift+c",

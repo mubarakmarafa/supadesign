@@ -333,22 +333,22 @@ it("seeds a playful multi-environment project spectrum", () => {
   for (const thread of snoozedThreads) {
     assert.equal(thread.response !== null, true, `${thread.title} is not completed`);
     assert.equal("state" in thread, false, `${thread.title} is blocked or working`);
-    assert.equal("settled" in thread, false, `${thread.title} is settled`);
+    assert.equal("done" in thread, false, `${thread.title} is done`);
     assert.equal(thread.snoozeMinutes > 60, true, `${thread.title} wakes too soon`);
   }
   const primaryThread = SHOWCASE_THREADS.find((thread) => thread.id === "offline-reason");
   assert.equal(primaryThread !== undefined && !("snoozeMinutes" in primaryThread), true);
-  // Every project contributes to both the active block and the settled tail,
+  // Every project contributes to both the active block and the done tail,
   // so each list scope screenshots with the same two-part structure.
   for (const project of SHOWCASE_PROJECTS) {
     const projectThreads = SHOWCASE_THREADS.filter((thread) => thread.projectId === project.id);
     assert.equal(
-      projectThreads.some((thread) => "settled" in thread && thread.settled),
+      projectThreads.some((thread) => "done" in thread && thread.done),
       true,
-      `${project.title} has no settled thread`,
+      `${project.title} has no done thread`,
     );
     assert.equal(
-      projectThreads.some((thread) => !("settled" in thread && thread.settled)),
+      projectThreads.some((thread) => !("done" in thread && thread.done)),
       true,
       `${project.title} has no active thread`,
     );

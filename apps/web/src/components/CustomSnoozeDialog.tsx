@@ -5,7 +5,7 @@ import {
   localSnoozeTime,
   resolveCustomSnooze,
   type CustomSnoozeInput,
-} from "@supaterm/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/thread-snooze";
 import { Button } from "./ui/button";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "./ui/calendar";

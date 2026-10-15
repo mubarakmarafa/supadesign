@@ -218,8 +218,8 @@ const rootIsVisible = (sql: SqlClient.SqlClient) => sql`
   root.deleted_at IS NULL
   AND json_extract(root.payload_json, '$.deletedAt') IS NULL
   AND json_extract(root.payload_json, '$.archivedAt') IS NULL
-  AND json_extract(root.payload_json, '$.settledAt') IS NULL
-  AND json_extract(root.payload_json, '$.settledOverride') IS NOT 'settled'`;
+  AND json_extract(root.payload_json, '$.doneAt') IS NULL
+  AND json_extract(root.payload_json, '$.doneOverride') IS NOT 'done'`;
 
 /**
  * Build the snapshot from this checkout's schema, then copy the visible
@@ -310,7 +310,7 @@ const pruneSnapshot = Effect.fn("pruneDevDbSnapshot")(function* (input: RunMigra
 
   // Forks and subagents read history and results through their lineage, so
   // a thread family is cloned or dropped as a whole. A family is stopped when
-  // its root is visible and unsettled and none of its threads is live.
+  // its root is visible and open and none of its threads is live.
   yield* sql`CREATE TEMP TABLE thread_families AS
     SELECT thread_id, updated_at,
       COALESCE(json_extract(payload_json, '$.lineage.rootThreadId'), thread_id) AS root_id

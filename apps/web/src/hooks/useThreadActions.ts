@@ -9,7 +9,7 @@ import {
   canSnooze,
   effectiveSnoozed,
   threadWokeAt,
-} from "@supaterm/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/thread-snooze";
 import { threadRuntimeCanArchive } from "@supaterm/client-runtime/state/models";
 import {
   AuthOrchestrationOperateScope,
@@ -189,10 +189,10 @@ export function useThreadActions() {
   const deleteThreadMutation = useOrchestrationCommand(threadEnvironment.delete, {
     reportFailure: false,
   });
-  const settleThreadMutation = useOrchestrationCommand(threadEnvironment.settle, {
+  const markThreadDoneMutation = useOrchestrationCommand(threadEnvironment.markDone, {
     reportFailure: false,
   });
-  const unsettleThreadMutation = useOrchestrationCommand(threadEnvironment.unsettle, {
+  const reopenThreadMutation = useOrchestrationCommand(threadEnvironment.reopen, {
     reportFailure: false,
   });
   const pinThreadMutation = useOrchestrationCommand(threadEnvironment.pin, {
@@ -201,7 +201,7 @@ export function useThreadActions() {
   const unpinThreadMutation = useOrchestrationCommand(threadEnvironment.unpin, {
     reportFailure: false,
   });
-  const setThreadAutoSettleMutation = useOrchestrationCommand(threadEnvironment.setAutoSettle, {
+  const setThreadAutoMarkDoneMutation = useOrchestrationCommand(threadEnvironment.setAutoMarkDone, {
     reportFailure: false,
   });
   const reorderPinnedThreadMutation = useOrchestrationCommand(threadEnvironment.reorderPin, {
@@ -564,28 +564,28 @@ export function useThreadActions() {
     ],
   );
 
-  const unsettleThread = useCallback(
+  const reopenThread = useCallback(
     async (target: ScopedThreadRef) => {
-      ThreadUndo.invalidate("settle", scopedThreadKey(target));
-      // reason "user" pins the thread active: auto-settle (PR merged /
+      ThreadUndo.invalidate("mark-done", scopedThreadKey(target));
+      // reason "user" pins the thread active: auto-mark-done (PR merged /
       // inactivity) stays suppressed until real activity clears the pin.
-      return unsettleThreadMutation({
+      return reopenThreadMutation({
         environmentId: target.environmentId,
         input: { threadId: target.threadId, reason: "user" },
       });
     },
-    [unsettleThreadMutation],
+    [reopenThreadMutation],
   );
 
-  /** Turns automatic settlement (inactivity, merged PR) on or off for one thread. */
-  const setThreadAutoSettle = useCallback(
+  /** Turns automatic completion (inactivity, merged PR) on or off for one thread. */
+  const setThreadAutoMarkDone = useCallback(
     async (target: ScopedThreadRef, enabled: boolean) => {
-      return setThreadAutoSettleMutation({
+      return setThreadAutoMarkDoneMutation({
         environmentId: target.environmentId,
         input: { threadId: target.threadId, enabled },
       });
     },
-    [setThreadAutoSettleMutation],
+    [setThreadAutoMarkDoneMutation],
   );
 
   const pinThread = useCallback(
@@ -628,26 +628,26 @@ export function useThreadActions() {
     [pinThread, unpinThreadMutation],
   );
 
-  const settleThread = useCallback(
+  const markThreadDone = useCallback(
     async (target: ScopedThreadRef) => {
       const resolved = resolveThreadTarget(target);
       const now = new Date().toISOString();
       const wokeAt = resolved ? threadWokeAt(resolved.thread, { now }) : null;
-      // Settling also drops the pin and the snooze server-side, so Undo
+      // Marking done also drops the pin and the snooze server-side, so Undo
       // has to put those back as well.
       const pinOrderKey = resolved?.thread.pinnedAt != null ? resolved.thread.pinOrderKey : null;
       const wasPinned = resolved?.thread.pinnedAt != null;
-      const wasSettled = resolved?.thread.settledOverride === "settled";
+      const wasDone = resolved?.thread.doneOverride === "done";
       const snoozedUntil =
         resolved && effectiveSnoozed(resolved.thread, { now })
           ? (resolved.thread.snoozedUntil ?? null)
           : null;
       // An older unpin/snooze Undo would re-pin or re-snooze, and the server
-      // treats either as a promotion that un-settles; settling supersedes them.
+      // treats either as a promotion that reopens; marking done supersedes them.
       ThreadUndo.invalidate("pin", scopedThreadKey(target));
       ThreadUndo.invalidate("snooze", scopedThreadKey(target));
-      const action = ThreadUndo.begin("settle", scopedThreadKey(target));
-      const result = await settleThreadMutation({
+      const action = ThreadUndo.begin("mark-done", scopedThreadKey(target));
+      const result = await markThreadDoneMutation({
         environmentId: target.environmentId,
         input: { threadId: target.threadId },
       });
@@ -659,17 +659,17 @@ export function useThreadActions() {
         acknowledgeThreadWoke(target, wokeAt);
       }
       showThreadUndoNotice({
-        action: "Settled",
+        action: "Done",
         claim: action,
         undo: async () => {
-          if (wasSettled && snoozedUntil !== null) {
+          if (wasDone && snoozedUntil !== null) {
             return snoozeThreadMutation({
               environmentId: target.environmentId,
               input: { threadId: target.threadId, snoozedUntil },
             });
           }
-          const unsettled = await unsettleThread(target);
-          if (unsettled._tag !== "Success") return unsettled;
+          const reopened = await reopenThread(target);
+          if (reopened._tag !== "Success") return reopened;
           if (wasPinned) {
             const pinned = await pinThread(
               target,
@@ -683,9 +683,9 @@ export function useThreadActions() {
               input: { threadId: target.threadId, snoozedUntil },
             });
           }
-          return unsettled;
+          return reopened;
         },
-        failureTitle: "Failed to undo settle",
+        failureTitle: "Failed to undo marking as done",
       });
       return result;
     },
@@ -693,9 +693,9 @@ export function useThreadActions() {
       acknowledgeThreadWoke,
       pinThread,
       resolveThreadTarget,
-      settleThreadMutation,
+      markThreadDoneMutation,
       snoozeThreadMutation,
-      unsettleThread,
+      reopenThread,
     ],
   );
 
@@ -817,8 +817,8 @@ export function useThreadActions() {
       unarchiveThread,
       deleteThread,
       confirmAndDeleteThread,
-      settleThread,
-      unsettleThread,
+      markThreadDone,
+      reopenThread,
       snoozeThread,
       unsnoozeThread,
       pinThread,
@@ -826,7 +826,7 @@ export function useThreadActions() {
       confirmAndUnpinThread,
       reorderPinnedThread,
       markThreadUnread,
-      setThreadAutoSettle,
+      setThreadAutoMarkDone,
     }),
     [
       archiveThread,
@@ -836,12 +836,12 @@ export function useThreadActions() {
       markThreadUnread,
       pinThread,
       reorderPinnedThread,
-      setThreadAutoSettle,
-      settleThread,
+      setThreadAutoMarkDone,
+      markThreadDone,
       snoozeThread,
       unarchiveThread,
       unpinThread,
-      unsettleThread,
+      reopenThread,
       unsnoozeThread,
     ],
   );

@@ -9,22 +9,22 @@ import {
   pinOrderKeyBetween,
   planPinnedMove,
   planPinnedReorder,
-  resolveSettledThreadTimestamp,
+  resolveDoneThreadTimestamp,
   sortActiveThreadsByOrderKey,
   sortPinnedThreadsByOrderKey,
-  sortSettledThreads,
+  sortDoneThreads,
   sortSnoozedThreadsByWake,
   sortThreads,
-  type SettledThreadTimestampInput,
+  type DoneThreadTimestampInput,
   type ThreadSortInput,
 } from "./threadSort.ts";
 
 describe("activeThreadAnchorTimestampMs", () => {
-  it("uses the later unsettle time when an old thread re-enters the active list", () => {
+  it("uses the later reopen time when an old thread re-enters the active list", () => {
     expect(
       activeThreadAnchorTimestampMs({
         createdAt: "2026-01-01T00:00:00.000Z",
-        unsettledAt: "2026-08-01T00:00:00.000Z",
+        reopenedAt: "2026-08-01T00:00:00.000Z",
       }),
     ).toBe(Date.parse("2026-08-01T00:00:00.000Z"));
   });
@@ -43,11 +43,11 @@ function makeThread(overrides: Partial<TestThread> = {}): TestThread {
   };
 }
 
-describe("resolveSettledThreadTimestamp", () => {
-  it("prefers the persisted settlement stamp over later activity", () => {
+describe("resolveDoneThreadTimestamp", () => {
+  it("prefers the persisted completion stamp over later activity", () => {
     expect(
-      resolveSettledThreadTimestamp({
-        settledAt: "2026-03-09T10:00:00.000Z",
+      resolveDoneThreadTimestamp({
+        doneAt: "2026-03-09T10:00:00.000Z",
         latestUserMessageAt: "2026-03-09T11:00:00.000Z",
         latestRun: null,
         updatedAt: "2026-03-09T12:00:00.000Z",
@@ -57,16 +57,16 @@ describe("resolveSettledThreadTimestamp", () => {
 
   it("falls back to the latest activity when the stamp is missing or malformed", () => {
     expect(
-      resolveSettledThreadTimestamp({
-        settledAt: "invalid",
+      resolveDoneThreadTimestamp({
+        doneAt: "invalid",
         latestUserMessageAt: "2026-03-09T11:00:00.000Z",
         latestRun: null,
         updatedAt: "2026-03-09T12:00:00.000Z",
       }),
     ).toBe("2026-03-09T11:00:00.000Z");
     expect(
-      resolveSettledThreadTimestamp({
-        settledAt: null,
+      resolveDoneThreadTimestamp({
+        doneAt: null,
         latestUserMessageAt: null,
         latestRun: null,
         updatedAt: "2026-03-09T12:00:00.000Z",
@@ -75,55 +75,55 @@ describe("resolveSettledThreadTimestamp", () => {
   });
 });
 
-describe("sortSettledThreads", () => {
-  const settled = (input: {
+describe("sortDoneThreads", () => {
+  const done = (input: {
     id: string;
-    settledAt?: string | null;
+    doneAt?: string | null;
     latestUserMessageAt?: string | null;
-    latestRun?: SettledThreadTimestampInput["latestRun"];
+    latestRun?: DoneThreadTimestampInput["latestRun"];
     updatedAt?: string;
   }) => ({
     id: input.id,
-    settledAt: input.settledAt ?? null,
+    doneAt: input.doneAt ?? null,
     latestUserMessageAt: input.latestUserMessageAt ?? null,
     latestRun: input.latestRun ?? null,
     updatedAt: input.updatedAt ?? "2026-03-09T09:00:00.000Z",
   });
 
-  it("orders by settle time, most recently settled last", () => {
-    const sorted = sortSettledThreads([
-      settled({
-        id: "settled-first",
-        settledAt: "2026-03-09T10:00:00.000Z",
-        // Created/active later than the other thread: settle time must win.
+  it("orders by mark done time, most recently done last", () => {
+    const sorted = sortDoneThreads([
+      done({
+        id: "done-first",
+        doneAt: "2026-03-09T10:00:00.000Z",
+        // Created/active later than the other thread: mark done time must win.
         latestUserMessageAt: "2026-03-09T09:59:00.000Z",
       }),
-      settled({
-        id: "settled-last",
-        settledAt: "2026-03-09T12:00:00.000Z",
+      done({
+        id: "done-last",
+        doneAt: "2026-03-09T12:00:00.000Z",
         latestUserMessageAt: "2026-03-09T08:00:00.000Z",
       }),
     ]);
 
-    expect(sorted.map((thread) => thread.id)).toEqual(["settled-first", "settled-last"]);
+    expect(sorted.map((thread) => thread.id)).toEqual(["done-first", "done-last"]);
   });
 
-  it("falls back to last activity for auto-settled threads without a settledAt stamp", () => {
-    const sorted = sortSettledThreads([
-      settled({ id: "auto-old", latestUserMessageAt: "2026-03-09T08:00:00.000Z" }),
-      settled({ id: "explicit", settledAt: "2026-03-09T10:00:00.000Z" }),
-      settled({ id: "auto-recent", latestUserMessageAt: "2026-03-09T11:00:00.000Z" }),
+  it("falls back to last activity for auto-done threads without a doneAt stamp", () => {
+    const sorted = sortDoneThreads([
+      done({ id: "auto-old", latestUserMessageAt: "2026-03-09T08:00:00.000Z" }),
+      done({ id: "explicit", doneAt: "2026-03-09T10:00:00.000Z" }),
+      done({ id: "auto-recent", latestUserMessageAt: "2026-03-09T11:00:00.000Z" }),
     ]);
 
     expect(sorted.map((thread) => thread.id)).toEqual(["auto-old", "explicit", "auto-recent"]);
   });
 
-  it("counts a turn completion as activity for auto-settled threads", () => {
+  it("counts a turn completion as activity for auto-done threads", () => {
     // The message came in before the other thread's, but its turn finished
     // after: completion time is the real "work ended" moment.
-    const sorted = sortSettledThreads([
-      settled({ id: "message-only", latestUserMessageAt: "2026-03-09T10:04:00.000Z" }),
-      settled({
+    const sorted = sortDoneThreads([
+      done({ id: "message-only", latestUserMessageAt: "2026-03-09T10:04:00.000Z" }),
+      done({
         id: "completed-later",
         latestUserMessageAt: "2026-03-09T10:00:00.000Z",
         latestRun: {
@@ -141,9 +141,9 @@ describe("sortSettledThreads", () => {
   });
 
   it("breaks timestamp ties by id so the order is stable", () => {
-    const sorted = sortSettledThreads([
-      settled({ id: "b", settledAt: "2026-03-09T10:00:00.000Z" }),
-      settled({ id: "a", settledAt: "2026-03-09T10:00:00.000Z" }),
+    const sorted = sortDoneThreads([
+      done({ id: "b", doneAt: "2026-03-09T10:00:00.000Z" }),
+      done({ id: "a", doneAt: "2026-03-09T10:00:00.000Z" }),
     ]);
 
     expect(sorted.map((thread) => thread.id)).toEqual(["a", "b"]);
@@ -151,8 +151,8 @@ describe("sortSettledThreads", () => {
 
   it("matches the per-comparison order on a shuffled list with ties", () => {
     const stamps = [
-      { settledAt: "2026-03-09T10:00:00.000Z" },
-      { settledAt: "invalid", latestUserMessageAt: "2026-03-09T10:00:00.000Z" },
+      { doneAt: "2026-03-09T10:00:00.000Z" },
+      { doneAt: "invalid", latestUserMessageAt: "2026-03-09T10:00:00.000Z" },
       { latestUserMessageAt: "2026-03-09T11:00:00.000Z" },
       { updatedAt: "2026-03-09T09:00:00.000Z" },
       { updatedAt: "invalid" },
@@ -161,18 +161,18 @@ describe("sortSettledThreads", () => {
     // on the id, and on both. (index * 7) % 30 scrambles the input order.
     const threads = Array.from({ length: 30 }, (_, index) => {
       const row = (index * 7) % 30;
-      return { ...settled({ id: `thread-${row % 3}`, ...stamps[row % 5] }), row };
+      return { ...done({ id: `thread-${row % 3}`, ...stamps[row % 5] }), row };
     });
     // The comparator this sort replaced: it resolved both keys on every call.
-    const timestampMs = (thread: SettledThreadTimestampInput) => {
-      const timestamp = resolveSettledThreadTimestamp(thread);
+    const timestampMs = (thread: DoneThreadTimestampInput) => {
+      const timestamp = resolveDoneThreadTimestamp(thread);
       return timestamp === null ? 0 : Date.parse(timestamp);
     };
     const expected = threads.toSorted(
       (left, right) => timestampMs(left) - timestampMs(right) || left.id.localeCompare(right.id),
     );
 
-    expect(sortSettledThreads(threads).map((thread) => thread.row)).toEqual(
+    expect(sortDoneThreads(threads).map((thread) => thread.row)).toEqual(
       expected.map((thread) => thread.row),
     );
   });
@@ -481,13 +481,13 @@ describe("sortActiveThreadsByOrderKey", () => {
       {
         id: "arranged-last",
         createdAt: "2026-03-09T12:00:00.000Z",
-        unsettledAt: "2026-03-09T13:00:00.000Z",
+        reopenedAt: "2026-03-09T13:00:00.000Z",
         activeOrderKey: "t",
       },
       {
         id: "reopened",
         createdAt: "2026-03-01T09:00:00.000Z",
-        unsettledAt: "2026-03-09T12:00:00.000Z",
+        reopenedAt: "2026-03-09T12:00:00.000Z",
       },
     ]);
     expect(sorted.map((thread) => thread.id)).toEqual([

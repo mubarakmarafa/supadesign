@@ -51,7 +51,7 @@ describe("buildSupatermProjectFileJsonSchema", () => {
       "icon",
       "name",
       "previewUrl",
-      "runOnSettle",
+      "runOnDone",
       "runOnWorktreeCreate",
     ]);
   });

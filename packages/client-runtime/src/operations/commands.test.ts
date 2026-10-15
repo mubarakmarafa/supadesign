@@ -51,9 +51,9 @@ import {
   reorderActiveThread,
   reorderQueuedRun,
   revertThreadCheckpoint,
-  settleThread,
+  markThreadDone,
   startThreadTurn,
-  unsettleThread,
+  reopenThread,
   updateProject,
   updateThreadMetadata,
 } from "./commands.ts";
@@ -781,30 +781,30 @@ describe("V2 environment commands", () => {
     );
   });
 
-  it.effect("dispatches settle and unsettle commands without timestamps", () =>
+  it.effect("dispatches settle and reopen commands without timestamps", () =>
     Effect.gen(function* () {
       const dispatched: OrchestrationV2Command[] = [];
       const supervisor = yield* makeSupervisor({ commands: dispatched, projects: [] });
 
-      yield* settleThread({
+      yield* markThreadDone({
         commandId: CommandId.make("settle-command"),
         threadId: ThreadId.make("thread-1"),
       }).pipe(Effect.provideService(EnvironmentSupervisor.EnvironmentSupervisor, supervisor));
-      yield* unsettleThread({
-        commandId: CommandId.make("unsettle-command"),
+      yield* reopenThread({
+        commandId: CommandId.make("reopen-command"),
         threadId: ThreadId.make("thread-1"),
         reason: "user",
       }).pipe(Effect.provideService(EnvironmentSupervisor.EnvironmentSupervisor, supervisor));
 
       expect(dispatched).toEqual([
         {
-          type: "thread.settle",
+          type: "thread.mark-done",
           commandId: "settle-command",
           threadId: "thread-1",
         },
         {
-          type: "thread.unsettle",
-          commandId: "unsettle-command",
+          type: "thread.reopen",
+          commandId: "reopen-command",
           threadId: "thread-1",
           reason: "user",
         },

@@ -359,19 +359,19 @@ export interface ThreadManagementServiceShape {
     input: ThreadManagementWaitInput,
   ) => Effect.Effect<ThreadManagementWaitResult, ThreadManagementError>;
 
-  readonly settleAfterRun: (input: {
+  readonly markDoneAfterRun: (input: {
     readonly projectId: ProjectId;
     readonly threadId: ThreadId;
     readonly runId: RunId;
   }) => Effect.Effect<void, ThreadManagementFailure>;
 
-  readonly settleThread: (input: {
+  readonly markThreadDone: (input: {
     readonly threadId: ThreadId;
     readonly commandId: CommandId;
     readonly byOwnAgent: boolean;
   }) => Effect.Effect<
-    { readonly sequence: number } | { readonly settlesWhenTurnEnds: true },
-    // Dispatches thread.settle, a command the enablement chokepoint never
+    { readonly sequence: number } | { readonly marksDoneWhenTurnEnds: true },
+    // Dispatches thread.mark-done, a command the enablement chokepoint never
     // gates; the type stays accurate anyway.
     Orchestrator.OrchestratorV2Error | ThreadManagementProviderInstanceDisabledError
   >;
@@ -463,7 +463,7 @@ function latestSteerableRun(
     .toSorted((left, right) => right.ordinal - left.ordinal)[0];
 }
 
-const SETTLE_AFTER_RUN_WAIT_MS = 24 * 60 * 60 * 1_000;
+const MARK_DONE_AFTER_RUN_WAIT_MS = 24 * 60 * 60 * 1_000;
 
 const make = Effect.gen(function* () {
   const threadDispatch = yield* ThreadCommandExecutor.ThreadCommandExecutor;
@@ -791,32 +791,32 @@ const make = Effect.gen(function* () {
       return { threadId: input.threadId, run, timedOut: !isTerminalRunStatus(run.status) };
     });
 
-  const settleAfterRun: ThreadManagementServiceShape["settleAfterRun"] = Effect.fn(
-    "orchestrationV2.threadManagement.settleAfterRun",
+  const markDoneAfterRun: ThreadManagementServiceShape["markDoneAfterRun"] = Effect.fn(
+    "orchestrationV2.threadManagement.markDoneAfterRun",
   )(function* (input) {
-    const { run } = yield* waitForThread({ ...input, timeoutMs: SETTLE_AFTER_RUN_WAIT_MS });
+    const { run } = yield* waitForThread({ ...input, timeoutMs: MARK_DONE_AFTER_RUN_WAIT_MS });
     if (run?.status !== "completed") return;
     yield* dispatch({
-      type: "thread.settle",
-      commandId: CommandId.make(`server:settle-after-run:${input.runId}`),
+      type: "thread.mark-done",
+      commandId: CommandId.make(`server:mark-done-after-run:${input.runId}`),
       threadId: input.threadId,
     });
   });
 
-  const settleThread: ThreadManagementServiceShape["settleThread"] = Effect.fn(
-    "orchestrationV2.threadManagement.settleThread",
+  const markThreadDone: ThreadManagementServiceShape["markThreadDone"] = Effect.fn(
+    "orchestrationV2.threadManagement.markThreadDone",
   )(function* (input) {
     const shell = input.byOwnAgent ? yield* orchestrator.getThreadShell(input.threadId) : null;
     if (shell != null && shell.activeRunId !== null) {
-      yield* settleAfterRun({
+      yield* markDoneAfterRun({
         projectId: shell.projectId,
         threadId: shell.id,
         runId: shell.activeRunId,
       }).pipe(Effect.ignoreCause({ log: true }), Effect.forkIn(layerScope));
-      return { settlesWhenTurnEnds: true } as const;
+      return { marksDoneWhenTurnEnds: true } as const;
     }
     const result = yield* dispatch({
-      type: "thread.settle",
+      type: "thread.mark-done",
       commandId: input.commandId,
       threadId: input.threadId,
     });
@@ -1011,8 +1011,8 @@ const make = Effect.gen(function* () {
     isProviderInstanceEnabledForProject,
     hasReceipt,
     waitForThread,
-    settleAfterRun,
-    settleThread,
+    markDoneAfterRun,
+    markThreadDone,
     interruptThread,
     stopDelegatedTasks,
     stopWorkflow,

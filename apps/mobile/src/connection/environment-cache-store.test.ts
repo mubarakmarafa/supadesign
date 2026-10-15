@@ -85,9 +85,9 @@ const SHELL_SNAPSHOT: OrchestrationV2ShellSnapshot = {
       createdAt: NOW,
       updatedAt: NOW,
       archivedAt: null,
-      settledOverride: null,
-      settledAt: NOW,
-      unsettledAt: NOW,
+      doneOverride: null,
+      doneAt: NOW,
+      reopenedAt: NOW,
       lastVisitedAt: null,
       titleRegeneration: {
         requestId: CommandId.make("title-regeneration-1"),
@@ -126,8 +126,8 @@ const THREAD_SNAPSHOT: OrchestrationV2ThreadDetailSnapshot = {
       createdAt: NOW,
       updatedAt: NOW,
       archivedAt: null,
-      settledOverride: null,
-      settledAt: NOW,
+      doneOverride: null,
+      doneAt: NOW,
       lastVisitedAt: null,
       deletedAt: null,
     },
@@ -244,7 +244,7 @@ describe("mobile SQLite environment cache store", () => {
       expect(DateTime.formatIso(shell.threads[0]!.activityRunStartedAt!)).toBe(
         "2026-07-29T12:00:00.000Z",
       );
-      expect(DateTime.formatIso(shell.threads[0]!.unsettledAt!)).toBe("2026-07-29T12:00:00.000Z");
+      expect(DateTime.formatIso(shell.threads[0]!.reopenedAt!)).toBe("2026-07-29T12:00:00.000Z");
       expect(DateTime.formatIso(thread.projection.thread.updatedAt)).toBe(
         "2026-07-29T12:00:00.000Z",
       );
@@ -430,7 +430,7 @@ describe("cooperative shell cache encoding", () => {
         id: ThreadId.make(`thread-${index}`),
         branch: "  main  ",
         activityRunStartedAt: index % 2 === 0 ? NOW : null,
-        unsettledAt: index % 2 === 0 ? NOW : null,
+        reopenedAt: index % 2 === 0 ? NOW : null,
         modelSelection: {
           instanceId: PROVIDER_INSTANCE_ID,
           model: "  gpt-5.4  ",
@@ -469,7 +469,7 @@ describe("cooperative shell cache encoding", () => {
   it.effect("preserves optional fields and dates across chunk boundaries and archived rows", () =>
     Effect.gen(function* () {
       const base = SHELL_SNAPSHOT.threads[0]!;
-      const { titleRegeneration: _, unsettledAt: __, ...withoutOptional } = base;
+      const { titleRegeneration: _, reopenedAt: __, ...withoutOptional } = base;
       const row = (index: number) =>
         index % 3 === 0
           ? { ...withoutOptional, id: ThreadId.make(`row-${index}`) }
@@ -495,7 +495,7 @@ describe("cooperative shell cache encoding", () => {
       const parsed = JSON.parse(actual);
       expect(parsed.snapshot.threads).toHaveLength(65);
       expect(parsed.snapshot.threads[63]).not.toHaveProperty("titleRegeneration");
-      expect(parsed.snapshot.threads[63]).not.toHaveProperty("unsettledAt");
+      expect(parsed.snapshot.threads[63]).not.toHaveProperty("reopenedAt");
       expect(parsed.snapshot.threads[64].snoozedUntil).toBe(
         DateTime.formatIso(DateTime.add(NOW, { minutes: 64 })),
       );

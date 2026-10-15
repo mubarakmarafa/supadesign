@@ -77,7 +77,7 @@ import {
   type DispatchModeRefusal,
 } from "../orchestration-v2/DispatchModeLimit.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
-import { isSnoozed } from "../orchestration-v2/ThreadSettlementService.ts";
+import { isSnoozed } from "../orchestration-v2/ThreadDoneService.ts";
 import * as ProjectService from "../project/ProjectService.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
@@ -648,13 +648,13 @@ function taskPrompt(input: OrchestratorMcpDelegateTaskInput): string {
     : `Act as the ${input.role} sub-agent for this task.\n\n${input.task}`;
 }
 
-function threadSettlement(
-  thread: Pick<OrchestrationV2ThreadShell, "settledOverride" | "settledAt">,
-): Pick<OrchestratorMcpThreadListItem, "settled" | "settledAt"> {
-  const settled = thread.settledOverride === "settled";
+function threadDone(
+  thread: Pick<OrchestrationV2ThreadShell, "doneOverride" | "doneAt">,
+): Pick<OrchestratorMcpThreadListItem, "done" | "doneAt"> {
+  const done = thread.doneOverride === "done";
   return {
-    settled,
-    settledAt: settled && thread.settledAt !== null ? DateTime.formatIso(thread.settledAt) : null,
+    done,
+    doneAt: done && thread.doneAt !== null ? DateTime.formatIso(thread.doneAt) : null,
   };
 }
 
@@ -686,7 +686,7 @@ function listItemFromShell(
     runtimeMode: shell.runtimeMode,
     interactionMode: shell.interactionMode,
     linkedPullRequest: shell.linkedPullRequest ?? null,
-    ...threadSettlement(shell),
+    ...threadDone(shell),
     ...threadSnooze(shell, nowMs),
     parentThreadId: shell.lineage.parentThreadId,
     relationshipToParent: shell.lineage.relationshipToParent,
@@ -736,7 +736,7 @@ function threadDetail(
       (request) => request.status === "pending",
     ).length,
     archived: projection.thread.archivedAt !== null,
-    ...threadSettlement(projection.thread),
+    ...threadDone(projection.thread),
 
     ...threadSnooze(shell, nowMs),
     createdAt: DateTime.formatIso(projection.thread.createdAt),
@@ -2205,10 +2205,7 @@ const make = Effect.gen(function* () {
             (thread) =>
               statuses === null || statuses.has(thread.activityRunStatus ?? thread.status),
           )
-          .filter(
-            (thread) =>
-              input.settled === undefined || threadSettlement(thread).settled === input.settled,
-          )
+          .filter((thread) => input.done === undefined || threadDone(thread).done === input.done)
           .filter(
             (thread) => input.snoozed === undefined || isSnoozed(thread, nowMs) === input.snoozed,
           )

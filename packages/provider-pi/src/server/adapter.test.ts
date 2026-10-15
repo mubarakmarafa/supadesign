@@ -406,8 +406,8 @@ const makeAppThread = Effect.fnUntraced(function* (model: string, threadId = THR
     createdAt: now,
     updatedAt: now,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     deletedAt: null,
   } satisfies OrchestrationV2AppThread;

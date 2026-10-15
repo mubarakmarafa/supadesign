@@ -27,14 +27,12 @@ const NOW = DateTime.makeUnsafe("2026-06-20T00:00:00.000Z");
 const THREAD_ID = ThreadId.make("thread-perf");
 const PROVIDER_INSTANCE_ID = ProviderInstanceId.make("codex");
 
-// Recorded before bounded WebSocket fallback at 91b193653ec. Keep this number
-// here so later transport changes retain a direct, reproducible comparison.
-const HISTORICAL_FULL_SNAPSHOT_APPLICATION_BYTES = 10_375_079;
+const FULL_SNAPSHOT_APPLICATION_BYTES = 10_375_073;
 // Contract encoding plus the Effect RPC Chunk envelope adds 42 bytes to both
 // snapshot variants. WebSocket framing and compression are intentionally out
 // of scope for this deterministic pre-compression measurement.
-const FULL_SNAPSHOT_RPC_JSON_BYTES = 10_375_121;
-const PRE_OMISSION_BOUNDED_SNAPSHOT_RPC_JSON_BYTES = 1_038_647;
+const FULL_SNAPSHOT_RPC_JSON_BYTES = 10_375_115;
+const PRE_OMISSION_BOUNDED_SNAPSHOT_RPC_JSON_BYTES = 1_038_641;
 // The first payload-omitting projection measured 67,412 bytes.
 const MAX_PROJECTED_BOUNDED_SNAPSHOT_RPC_JSON_BYTES = 131_072;
 const PRE_OMISSION_COMMAND_EVENT_RPC_JSON_BYTES = 8_790;
@@ -120,8 +118,8 @@ function makeProjection(): OrchestrationV2ThreadProjection {
       updatedAt: NOW,
       archivedAt: null,
       deletedAt: null,
-      settledOverride: null,
-      settledAt: null,
+      doneOverride: null,
+      doneAt: null,
       lastVisitedAt: null,
     },
     runs: [],
@@ -157,7 +155,7 @@ function makeTurnItemEvent(item: OrchestrationV2TurnItem): OrchestrationV2Domain
 describe("thread transport payload budget", () => {
   it("records full, bounded, and payload-omitting snapshot improvements", () => {
     const projection = makeProjection();
-    const historicalFullSnapshot: OrchestrationV2ThreadStreamItem = {
+    const fullSnapshot: OrchestrationV2ThreadStreamItem = {
       kind: "snapshot",
       snapshotSequence: SNAPSHOT_SEQUENCE,
       projection,
@@ -180,14 +178,14 @@ describe("thread transport payload budget", () => {
       snapshotSequence: SNAPSHOT_SEQUENCE,
     });
 
-    const historicalApplicationBytes = encodedBytes(historicalFullSnapshot);
-    const fullRpcJsonBytes = encodedThreadStreamChunkBytes(historicalFullSnapshot);
+    const fullApplicationBytes = encodedBytes(fullSnapshot);
+    const fullRpcJsonBytes = encodedThreadStreamChunkBytes(fullSnapshot);
     const preOmissionBoundedRpcJsonBytes = encodedThreadStreamChunkBytes(
       preOmissionBoundedSnapshot,
     );
     const projectedBoundedRpcJsonBytes = encodedThreadStreamChunkBytes(projectedBoundedSnapshot);
 
-    expect(historicalApplicationBytes).toBe(HISTORICAL_FULL_SNAPSHOT_APPLICATION_BYTES);
+    expect(fullApplicationBytes).toBe(FULL_SNAPSHOT_APPLICATION_BYTES);
     expect(fullRpcJsonBytes).toBe(FULL_SNAPSHOT_RPC_JSON_BYTES);
     expect(preOmissionBoundedRpcJsonBytes).toBe(PRE_OMISSION_BOUNDED_SNAPSHOT_RPC_JSON_BYTES);
     expect(projectedBoundedRpcJsonBytes).toBeLessThanOrEqual(

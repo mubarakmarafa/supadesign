@@ -68,7 +68,7 @@ export interface SettingsSearchItem {
    * surfaces, so "model" must still lead with Default model, not Model Picker.
    */
   readonly secondary?: boolean;
-  readonly requiresThreadAutoSettlement?: boolean;
+  readonly requiresThreadAutoMarkDone?: boolean;
 }
 
 export interface SettingsSearchAvailability {
@@ -77,7 +77,7 @@ export interface SettingsSearchAvailability {
   readonly hasMacProviderSettingsEnvironment: boolean;
   readonly canManageLocalBackend: boolean;
   readonly isWslSettingsRowVisible: boolean;
-  readonly hasThreadAutoSettlement: boolean;
+  readonly hasThreadAutoMarkDone: boolean;
 }
 
 /**
@@ -292,28 +292,28 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["usage quota rate limit reset wake recover continue"],
   },
   {
-    id: "auto-settle-merged-threads",
-    title: "Auto-settle merged threads",
+    id: "auto-mark-done-merged-threads",
+    title: "Automatically mark merged threads as done",
     to: "/settings/general",
-    searchTerms: ["pull request merge closed automatically sidebar"],
-    requiresThreadAutoSettlement: true,
+    searchTerms: ["auto-mark-done", "pull request merge closed automatically sidebar"],
+    requiresThreadAutoMarkDone: true,
     scope: "project-defaults",
   },
   {
-    id: "auto-settle-inactive-threads",
-    title: "Auto-settle inactive threads",
+    id: "auto-mark-done-inactive-threads",
+    title: "Automatically mark inactive threads as done",
     to: "/settings/general",
-    searchTerms: ["sidebar inactivity days no activity automatically"],
-    requiresThreadAutoSettlement: true,
+    searchTerms: ["auto-mark-done", "sidebar inactivity days no activity automatically"],
+    requiresThreadAutoMarkDone: true,
     scope: "project-defaults",
   },
   {
-    id: "days-before-auto-settle",
-    title: "Days of inactivity before auto-settle",
+    id: "days-before-auto-mark-done",
+    title: "Days of inactivity before marking done",
     to: "/settings/general",
-    targetId: "auto-settle-inactive-threads",
-    searchTerms: ["thread timeout activity sidebar"],
-    requiresThreadAutoSettlement: true,
+    targetId: "auto-mark-done-inactive-threads",
+    searchTerms: ["auto-mark-done", "thread timeout activity sidebar"],
+    requiresThreadAutoMarkDone: true,
     scope: "project-defaults",
   },
   {
@@ -969,19 +969,19 @@ export function getSettingsSearchTargetScope(targetId: string) {
     ? {
         title: item.title,
         scope: item.scope ?? SETTINGS_CATEGORY_SCOPES[item.to],
-        ...(item.requiresThreadAutoSettlement ? { requiresThreadAutoSettlement: true } : {}),
+        ...(item.requiresThreadAutoMarkDone ? { requiresThreadAutoMarkDone: true } : {}),
       }
     : null;
 }
 
-interface AutoSettlementSearchEnvironment {
+interface AutoMarkDoneSearchEnvironment {
   readonly environmentId: EnvironmentId;
   readonly connection: { readonly phase: EnvironmentConnectionPhase };
   readonly serverConfig: object | null;
 }
 
-export function getThreadAutoSettlementSearchAvailability(
-  environments: readonly AutoSettlementSearchEnvironment[],
+export function getThreadAutoMarkDoneSearchAvailability(
+  environments: readonly AutoMarkDoneSearchEnvironment[],
   scope?: Pick<ResolvedSettingsScope, "kind" | "environmentIds">,
 ) {
   const connected = environments.filter(
@@ -1059,7 +1059,7 @@ export function filterAvailableSettingsSearchItems(
       (!item.macProviderSettingsOnly || availability.hasMacProviderSettingsEnvironment) &&
       (!item.localBackendManagementOnly || availability.canManageLocalBackend) &&
       (!item.wslAvailableOnly || availability.isWslSettingsRowVisible) &&
-      (!item.requiresThreadAutoSettlement || availability.hasThreadAutoSettlement),
+      (!item.requiresThreadAutoMarkDone || availability.hasThreadAutoMarkDone),
   );
 }
 

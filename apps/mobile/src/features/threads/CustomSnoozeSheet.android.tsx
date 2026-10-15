@@ -24,7 +24,7 @@ import {
   localSnoozeTime,
   resolveCustomSnooze,
   type CustomSnoozeInput,
-} from "@supaterm/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/thread-snooze";
 import { requireNativeModule } from "expo";
 import { useEffect, useState } from "react";
 import { AppState, useWindowDimensions } from "react-native";

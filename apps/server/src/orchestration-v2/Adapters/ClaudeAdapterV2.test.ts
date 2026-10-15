@@ -165,8 +165,8 @@ function makeClaudeTestAppThread(input: {
     createdAt: input.now,
     updatedAt: input.now,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     deletedAt: null,
   };
@@ -1885,8 +1885,8 @@ describe("ClaudeAdapterV2 native fork", () => {
             createdAt: now,
             updatedAt: now,
             archivedAt: null,
-            settledOverride: null,
-            settledAt: null,
+            doneOverride: null,
+            doneAt: null,
             lastVisitedAt: null,
             deletedAt: null,
           },
@@ -4818,14 +4818,14 @@ describe("ClaudeAdapterV2 background wake turns", () => {
         yield* Queue.offer(harness.sdkMessages, wakeTaskStarted);
         yield* Queue.offer(harness.sdkMessages, turnOneResult);
         yield* awaitUntil(() => harness.terminalEvents().length === 1, "first turn terminal");
-        const settledThread = providerThreadRosterEvents(harness.events).at(-1)?.providerThread;
-        assert.equal(settledThread?.pendingBackgroundTasks?.[0]?.taskId, WAKE_TASK_ID);
+        const doneThread = providerThreadRosterEvents(harness.events).at(-1)?.providerThread;
+        assert.equal(doneThread?.pendingBackgroundTasks?.[0]?.taskId, WAKE_TASK_ID);
         assert.isTrue(yield* harness.hasPendingBackgroundWork);
 
         // The Waiting strip's Stop reaches the adapter as an interrupt of the
         // settled turn with requestRuntimeRestart.
         yield* harness.runtime.interruptTurn({
-          providerThread: settledThread ?? harness.providerThread,
+          providerThread: doneThread ?? harness.providerThread,
           providerTurnId: harness.terminalEvents()[0]!.providerTurnId,
           requestRuntimeRestart: true,
         });
@@ -4868,15 +4868,15 @@ describe("ClaudeAdapterV2 background wake turns", () => {
         yield* Queue.offer(harness.sdkMessages, wakeTaskStarted);
         yield* Queue.offer(harness.sdkMessages, turnOneResult);
         yield* awaitUntil(() => harness.terminalEvents().length === 1, "first turn terminal");
-        const settledThread = providerThreadRosterEvents(harness.events).at(-1)?.providerThread;
-        assert.equal(settledThread?.pendingBackgroundTasks?.[0]?.taskId, WAKE_TASK_ID);
+        const doneThread = providerThreadRosterEvents(harness.events).at(-1)?.providerThread;
+        assert.equal(doneThread?.pendingBackgroundTasks?.[0]?.taskId, WAKE_TASK_ID);
 
         yield* Queue.shutdown(harness.sdkMessages);
         let quietYields = 0;
         yield* awaitUntil(() => quietYields++ >= 50, "query exit");
 
         yield* harness.runtime.interruptTurn({
-          providerThread: settledThread ?? harness.providerThread,
+          providerThread: doneThread ?? harness.providerThread,
           providerTurnId: harness.terminalEvents()[0]!.providerTurnId,
           requestRuntimeRestart: true,
         });
@@ -4990,13 +4990,13 @@ describe("ClaudeAdapterV2 background wake turns", () => {
         yield* Queue.offer(processQueues[0]!, wakeTaskStarted);
         yield* Queue.offer(processQueues[0]!, turnOneResult);
         yield* awaitUntil(() => terminals().length === 1, "first turn terminal");
-        const settledThread = providerThreadRosterEvents(events).at(-1)?.providerThread;
+        const doneThread = providerThreadRosterEvents(events).at(-1)?.providerThread;
         const settledTurn = terminals()[0];
-        assert.equal(settledThread?.pendingBackgroundTasks?.[0]?.taskId, WAKE_TASK_ID);
+        assert.equal(doneThread?.pendingBackgroundTasks?.[0]?.taskId, WAKE_TASK_ID);
 
         const stop = yield* runtime
           .interruptTurn({
-            providerThread: settledThread ?? providerThread,
+            providerThread: doneThread ?? providerThread,
             providerTurnId: settledTurn!.providerTurnId,
             requestRuntimeRestart: true,
           })
@@ -10386,7 +10386,7 @@ describe("ClaudeAdapterV2 background wake turns", () => {
         const secondProcess = processQueues[1]!;
         yield* Queue.offer(secondProcess, wakeNotification);
         let settleYields = 0;
-        yield* awaitUntil(() => settleYields++ >= 50, "stale notification settle");
+        yield* awaitUntil(() => settleYields++ >= 50, "stale notification done");
         assert.lengthOf(continuationRequests, 0);
 
         yield* Queue.offer(

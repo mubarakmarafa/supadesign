@@ -35,7 +35,7 @@ export function isThreadWorking(thread: WorkingThreadInput): boolean {
 
 type InboxThreadInput = Pick<
   EnvironmentThreadShell,
-  "id" | "environmentId" | "createdAt" | "unsettledAt" | "latestRun"
+  "id" | "environmentId" | "createdAt" | "reopenedAt" | "latestRun"
 >;
 
 export function sortInboxThreadsByReturn<T extends InboxThreadInput>(
@@ -47,7 +47,7 @@ export function sortInboxThreadsByReturn<T extends InboxThreadInput>(
       thread,
       Math.max(
         toSortableTimestamp(thread.createdAt) ?? 0,
-        toSortableTimestamp(thread.unsettledAt ?? undefined) ?? 0,
+        toSortableTimestamp(thread.reopenedAt ?? undefined) ?? 0,
         toSortableTimestamp(thread.latestRun?.requestedAt ?? undefined) ?? 0,
         toSortableTimestamp(thread.latestRun?.completedAt ?? undefined) ?? 0,
         observedReturnAt?.(thread) ?? 0,

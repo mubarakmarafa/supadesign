@@ -71,11 +71,11 @@ The focused regression coverage lives in `OrchestrationEventStore.sequence.test.
 
 ## Background work and navigation
 
-The settlement worker reads active, unpinned threads without explicit settlement overrides from
-`ProjectionStore.getSettlementCandidates`. It reads the latest run and user-message timestamps,
+The thread completion worker reads active, unpinned threads without explicit done overrides from
+`ProjectionStore.getAutoMarkDoneCandidates`. It reads the latest run and user-message timestamps,
 rejects active runs and pending requests, and checks background work using the same derivation as
 the shell. It does not load archived histories, fork ancestry, transcript counts, or provider
-sessions. The orchestrator still validates the current thread before applying settlement.
+sessions. The orchestrator still validates the current thread before marking it done.
 
 Read receipts use `ProjectionStore.getThread` to load only canonical thread metadata. A visit
 advances `lastVisitedAt` monotonically without changing `updatedAt` or decoding history. Shell
@@ -99,6 +99,6 @@ relevant event resets the budget; successful publication, disabling, or unlinkin
 After the budget is exhausted, publication waits for another relevant event instead of generating
 continuous traffic during an outage.
 
-Focused coverage: `ProjectionSettlement.test.ts`, `ThreadSettlementService.test.ts`,
+Focused coverage: `ProjectionDone.test.ts`, `ThreadDoneService.test.ts`,
 `runtimeLayer.test.ts`, `AgentAwarenessRelay.test.ts`, `GitVcsDriverCore.test.ts`,
 `ThreadStatusIndicators.subscriptions.test.tsx`, and `desktopLocal.test.ts`.

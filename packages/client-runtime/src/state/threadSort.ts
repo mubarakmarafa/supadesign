@@ -18,16 +18,16 @@ export function toSortableTimestamp(iso: string | undefined): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
-export type SettledThreadTimestampInput = Pick<
+export type DoneThreadTimestampInput = Pick<
   EnvironmentThreadShell,
-  "settledAt" | "latestUserMessageAt" | "latestRun" | "updatedAt"
+  "doneAt" | "latestUserMessageAt" | "latestRun" | "updatedAt"
 >;
 
-/** The timestamp a settled row sorts and labels by on every client: settledAt
+/** The timestamp a done row sorts and labels by on every client: doneAt
     when stamped, otherwise the latest message or turn stamp, then updatedAt. */
-export function resolveSettledThreadTimestamp(thread: SettledThreadTimestampInput): string | null {
-  if (thread.settledAt != null && toSortableTimestamp(thread.settledAt) !== null) {
-    return thread.settledAt;
+export function resolveDoneThreadTimestamp(thread: DoneThreadTimestampInput): string | null {
+  if (thread.doneAt != null && toSortableTimestamp(thread.doneAt) !== null) {
+    return thread.doneAt;
   }
 
   let latest: string | null = null;
@@ -48,12 +48,12 @@ export function resolveSettledThreadTimestamp(thread: SettledThreadTimestampInpu
   return toSortableTimestamp(thread.updatedAt) === null ? null : thread.updatedAt;
 }
 
-export function sortSettledThreads<T extends SettledThreadTimestampInput & { readonly id: string }>(
+export function sortDoneThreads<T extends DoneThreadTimestampInput & { readonly id: string }>(
   threads: readonly T[],
 ): T[] {
   return threads
     .map((thread) => {
-      const timestamp = resolveSettledThreadTimestamp(thread);
+      const timestamp = resolveDoneThreadTimestamp(thread);
       return { thread, timestampMs: timestamp === null ? 0 : Date.parse(timestamp) };
     })
     .sort(
@@ -141,19 +141,19 @@ export function getThreadSortTimestamp(
 
 /**
  * Sort anchor for the active thread list: creation time, re-anchored to
- * unsettledAt when the thread last re-entered the active list (an explicit
- * un-settle, or a settled thread waking on activity). The list stays static
- * between lifecycle transitions, but an un-settled thread surfaces at the
+ * reopenedAt when the thread last re-entered the active list (an explicit
+ * reopen, or a done thread waking on activity). The list stays static
+ * between lifecycle transitions, but an un-done thread surfaces at the
  * top instead of sinking back to its creation-order slot. Shared by web and
  * mobile so both render the same order. Malformed timestamps sink to 0.
  */
 export function activeThreadAnchorTimestampMs(thread: {
   readonly createdAt: string;
-  readonly unsettledAt?: string | null | undefined;
+  readonly reopenedAt?: string | null | undefined;
 }): number {
   return Math.max(
     toSortableTimestamp(thread.createdAt) ?? 0,
-    toSortableTimestamp(thread.unsettledAt ?? undefined) ?? 0,
+    toSortableTimestamp(thread.reopenedAt ?? undefined) ?? 0,
   );
 }
 
@@ -365,7 +365,7 @@ export function sortActiveThreadsByOrderKey<
   T extends {
     readonly id: string;
     readonly createdAt: string;
-    readonly unsettledAt?: string | null | undefined;
+    readonly reopenedAt?: string | null | undefined;
     readonly activeOrderKey?: string | null | undefined;
     readonly environmentId?: string | undefined;
   },

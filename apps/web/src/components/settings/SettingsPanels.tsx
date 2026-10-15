@@ -29,14 +29,14 @@ import {
   MAX_GLASS_OPACITY,
   MAX_INTERFACE_FONT_SIZE,
   MAX_PROMPT_FONT_SIZE,
-  MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
+  MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
   MAX_TERMINAL_FONT_SIZE,
   MIN_CODE_FONT_SIZE,
   MIN_APPEARANCE_CONTRAST,
   MIN_GLASS_OPACITY,
   MIN_INTERFACE_FONT_SIZE,
   MIN_PROMPT_FONT_SIZE,
-  MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
+  MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS,
   type ResponseStreamingMode,
   MIN_TERMINAL_FONT_SIZE,
   type QuitConfirmationMode,
@@ -529,12 +529,13 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.sidebarProjectSortOrder !== DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder
         ? ["Project order"]
         : []),
-      ...(settings.sidebarAutoSettleAfterDays !==
-      DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays
-        ? ["Auto-settle inactive threads"]
+      ...(settings.sidebarAutoMarkDoneAfterDays !==
+      DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneAfterDays
+        ? ["Automatically mark inactive threads as done"]
         : []),
-      ...(settings.sidebarAutoSettleOnMerge !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge
-        ? ["Auto-settle merged threads"]
+      ...(settings.sidebarAutoMarkDoneOnMerge !==
+      DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneOnMerge
+        ? ["Automatically mark merged threads as done"]
         : []),
       ...(settings.autoResumeLimitedThreads !== DEFAULT_UNIFIED_SETTINGS.autoResumeLimitedThreads
         ? ["Auto-resume limited threads"]
@@ -699,8 +700,8 @@ export function useSettingsRestore(onRestored?: () => void) {
       sidebarThreadPreviewCount: DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount,
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarProjectSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder,
-      sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
-      sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
+      sidebarAutoMarkDoneAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneAfterDays,
+      sidebarAutoMarkDoneOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneOnMerge,
       autoResumeLimitedThreads: DEFAULT_UNIFIED_SETTINGS.autoResumeLimitedThreads,
       snoozeLimitedThreads: DEFAULT_UNIFIED_SETTINGS.snoozeLimitedThreads,
       responseStreamingMode: DEFAULT_UNIFIED_SETTINGS.responseStreamingMode,
@@ -1810,7 +1811,7 @@ function FontFamilySettingsRow({
   );
 }
 
-const AUTO_SETTLE_DEFAULT_DAYS = DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays ?? 3;
+const AUTO_MARK_DONE_DEFAULT_DAYS = DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneAfterDays ?? 3;
 
 export function GeneralSettingsPanel() {
   const modifierLabel = isMacPlatform(navigator.platform) ? "⌘" : "Ctrl";
@@ -1841,7 +1842,7 @@ export function GeneralSettingsPanel() {
     readLastEnabledProjectGroupingMode(),
   );
   const serverProviders = environment?.serverConfig?.providers ?? EMPTY_SERVER_PROVIDERS;
-  const supportsAutoSettlement =
+  const supportsAutoMarkDone =
     connectedEnvironments.length > 0 &&
     connectedEnvironments.every((target) => target.serverConfig != null);
   const supportsRestartContinuation =
@@ -1996,20 +1997,21 @@ export function GeneralSettingsPanel() {
             />
           }
         />
-        {supportsAutoSettlement ? (
+        {supportsAutoMarkDone ? (
           <>
             <SettingsRow
               serverScoped
-              settingKeys={["sidebarAutoSettleOnMerge"]}
-              {...searchableSetting("auto-settle-merged-threads")}
+              settingKeys={["sidebarAutoMarkDoneOnMerge"]}
+              {...searchableSetting("auto-mark-done-merged-threads")}
               resetAction={
-                settings.sidebarAutoSettleOnMerge !==
-                DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge ? (
+                settings.sidebarAutoMarkDoneOnMerge !==
+                DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneOnMerge ? (
                   <SettingResetButton
-                    label="auto-settle on merge"
+                    label="auto-mark-done on merge"
                     onClick={() =>
                       updateSettings({
-                        sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
+                        sidebarAutoMarkDoneOnMerge:
+                          DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneOnMerge,
                       })
                     }
                   />
@@ -2017,30 +2019,30 @@ export function GeneralSettingsPanel() {
               }
               control={
                 <ScopedSwitch
-                  settingKeys={["sidebarAutoSettleOnMerge"]}
-                  checked={settings.sidebarAutoSettleOnMerge}
+                  settingKeys={["sidebarAutoMarkDoneOnMerge"]}
+                  checked={settings.sidebarAutoMarkDoneOnMerge}
                   onCheckedChange={(checked) =>
-                    updateSettings({ sidebarAutoSettleOnMerge: Boolean(checked) })
+                    updateSettings({ sidebarAutoMarkDoneOnMerge: Boolean(checked) })
                   }
-                  aria-label="Auto-settle merged threads"
+                  aria-label="Automatically mark merged threads as done"
                 />
               }
             />
 
             <SettingsRow
               serverScoped
-              settingKeys={["sidebarAutoSettleAfterDays"]}
-              {...searchableSetting("auto-settle-inactive-threads")}
-              description="Settle threads with no recent activity."
+              settingKeys={["sidebarAutoMarkDoneAfterDays"]}
+              {...searchableSetting("auto-mark-done-inactive-threads")}
+              description="Mark threads with no recent activity as done."
               resetAction={
-                settings.sidebarAutoSettleAfterDays !==
-                DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays ? (
+                settings.sidebarAutoMarkDoneAfterDays !==
+                DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneAfterDays ? (
                   <SettingResetButton
-                    label="auto-settle"
+                    label="auto-mark-done"
                     onClick={() =>
                       updateSettings({
-                        sidebarAutoSettleAfterDays:
-                          DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
+                        sidebarAutoMarkDoneAfterDays:
+                          DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneAfterDays,
                       })
                     }
                   />
@@ -2048,24 +2050,24 @@ export function GeneralSettingsPanel() {
               }
               control={
                 <>
-                  {settings.sidebarAutoSettleAfterDays !== null ? (
+                  {settings.sidebarAutoMarkDoneAfterDays !== null ? (
                     <DaysField
-                      label="Auto-settle inactive threads"
-                      min={MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS}
-                      max={MAX_SIDEBAR_AUTO_SETTLE_AFTER_DAYS}
-                      value={settings.sidebarAutoSettleAfterDays}
-                      onCommit={(days) => updateSettings({ sidebarAutoSettleAfterDays: days })}
+                      label="Automatically mark inactive threads as done"
+                      min={MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS}
+                      max={MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS}
+                      value={settings.sidebarAutoMarkDoneAfterDays}
+                      onCommit={(days) => updateSettings({ sidebarAutoMarkDoneAfterDays: days })}
                     />
                   ) : null}
                   <ScopedSwitch
-                    settingKeys={["sidebarAutoSettleAfterDays"]}
-                    checked={settings.sidebarAutoSettleAfterDays !== null}
+                    settingKeys={["sidebarAutoMarkDoneAfterDays"]}
+                    checked={settings.sidebarAutoMarkDoneAfterDays !== null}
                     onCheckedChange={(checked) =>
                       updateSettings({
-                        sidebarAutoSettleAfterDays: checked ? AUTO_SETTLE_DEFAULT_DAYS : null,
+                        sidebarAutoMarkDoneAfterDays: checked ? AUTO_MARK_DONE_DEFAULT_DAYS : null,
                       })
                     }
-                    aria-label="Auto-settle inactive threads"
+                    aria-label="Automatically mark inactive threads as done"
                   />
                 </>
               }

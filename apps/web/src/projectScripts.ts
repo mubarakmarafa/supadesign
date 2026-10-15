@@ -13,7 +13,7 @@ export interface ProjectScriptInput {
   readonly icon: ProjectScript["icon"];
   readonly runOnWorktreeCreate: ProjectScript["runOnWorktreeCreate"];
   readonly waitForSetup: boolean;
-  readonly runOnSettle: boolean;
+  readonly runOnDone: boolean;
   readonly previewUrl: Exclude<ProjectScript["previewUrl"], undefined> | null;
   readonly autoOpenPreview: boolean;
 }
@@ -26,7 +26,7 @@ export function buildProjectScript(id: string, input: ProjectScriptInput): Proje
     icon: input.icon,
     runOnWorktreeCreate: input.runOnWorktreeCreate,
     ...(input.runOnWorktreeCreate && input.waitForSetup ? { async: false } : {}),
-    ...(input.runOnSettle ? { runOnSettle: true } : {}),
+    ...(input.runOnDone ? { runOnDone: true } : {}),
     ...(input.previewUrl === null
       ? {}
       : {
@@ -37,7 +37,7 @@ export function buildProjectScript(id: string, input: ProjectScriptInput): Proje
 }
 
 /**
- * A project runs at most one setup script and one settle script, so saving a
+ * A project runs at most one setup script and one done script, so saving a
  * script that claims either role takes it from the script that held it.
  */
 export function releaseClaimedRoles(
@@ -45,12 +45,12 @@ export function releaseClaimedRoles(
   saved: ProjectScriptInput,
 ): ProjectScript {
   const releaseSetup = saved.runOnWorktreeCreate && script.runOnWorktreeCreate;
-  const releaseSettle = saved.runOnSettle && script.runOnSettle === true;
-  if (!releaseSetup && !releaseSettle) return script;
+  const releaseDone = saved.runOnDone && script.runOnDone === true;
+  if (!releaseSetup && !releaseDone) return script;
   return {
     ...script,
     ...(releaseSetup ? { runOnWorktreeCreate: false } : {}),
-    ...(releaseSettle ? { runOnSettle: false } : {}),
+    ...(releaseDone ? { runOnDone: false } : {}),
   };
 }
 
@@ -107,6 +107,6 @@ export function nextProjectScriptId(name: string, existingIds: Iterable<string>)
 }
 
 export function primaryProjectScript(scripts: ReadonlyArray<ProjectScript>): ProjectScript | null {
-  const regular = scripts.find((script) => !script.runOnWorktreeCreate && !script.runOnSettle);
-  return regular ?? scripts.find((script) => !script.runOnSettle) ?? null;
+  const regular = scripts.find((script) => !script.runOnWorktreeCreate && !script.runOnDone);
+  return regular ?? scripts.find((script) => !script.runOnDone) ?? null;
 }

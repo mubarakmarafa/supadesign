@@ -46,7 +46,7 @@ const createFixtureSource = Effect.fn("createMigrateDevDbFixtureSource")(functio
         ["stopped-thread", "project-kept", "completed", "{}", "2026-08-01"],
         ["fork-thread", "project-kept", "completed", forkPayload, "2026-08-02"],
         ["running-thread", "project-kept", "running", "{}", "2026-08-05"],
-        ["settled-thread", "project-kept", "completed", '{"settledAt":"2026-08-01"}', "2026-08-05"],
+        ["done-thread", "project-kept", "completed", '{"doneAt":"2026-08-01"}', "2026-08-05"],
         [
           "limit-thread",
           "project-kept",
@@ -79,7 +79,7 @@ const createFixtureSource = Effect.fn("createMigrateDevDbFixtureSource")(functio
         VALUES ('session-shared', 'running-thread'), ('session-shared', 'stopped-thread')`;
       yield* sql`INSERT INTO orchestration_v2_projection_context_transfers
         (context_transfer_id, source_thread_id, target_thread_id, type, status, updated_at, payload_json)
-        VALUES ('transfer-1', 'settled-thread', 'stopped-thread', 'provider_handoff', 'completed', '2026-08-01', '{}')`;
+        VALUES ('transfer-1', 'done-thread', 'stopped-thread', 'provider_handoff', 'completed', '2026-08-01', '{}')`;
       yield* sql`INSERT INTO scheduled_tasks
         (task_id, title, prompt, enabled, schedule_json, project_id, workspace_strategy_json,
           model_selection_json, runtime_mode, interaction_mode, created_by, creation_source,
@@ -142,7 +142,7 @@ it.layer(NodeServices.layer)("migrate-dev-db", (it) => {
     }),
   );
 
-  it.effect("never copies a settled thread's rows, and new events append after the source's", () =>
+  it.effect("never copies a done thread's rows, and new events append after the source's", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const sourceDir = yield* fs.makeTempDirectoryScoped({ prefix: "migrate-dev-db-slice-" });
@@ -166,17 +166,17 @@ it.layer(NodeServices.layer)("migrate-dev-db", (it) => {
         result.databasePath,
         Effect.gen(function* () {
           const sql = yield* SqlClient.SqlClient;
-          const [settledRows] = yield* sql<{ count: number }>`
+          const [doneRows] = yield* sql<{ count: number }>`
             SELECT
-              (SELECT COUNT(*) FROM orchestration_v2_projection_runs WHERE thread_id = 'settled-thread')
-              + (SELECT COUNT(*) FROM orchestration_events WHERE stream_id = 'settled-thread')
+              (SELECT COUNT(*) FROM orchestration_v2_projection_runs WHERE thread_id = 'done-thread')
+              + (SELECT COUNT(*) FROM orchestration_events WHERE stream_id = 'done-thread')
               AS count`;
           const [sequence] = yield* sql<{ seq: number }>`
             SELECT seq FROM sqlite_sequence WHERE name = 'orchestration_events'`;
-          return { settledRows: settledRows?.count, sequence: sequence?.seq };
+          return { doneRows: doneRows?.count, sequence: sequence?.seq };
         }),
       );
-      assert.equal(copied.settledRows, 0);
+      assert.equal(copied.doneRows, 0);
       assert.equal(copied.sequence, sourceSequence?.seq);
     }),
   );

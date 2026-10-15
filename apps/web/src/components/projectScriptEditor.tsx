@@ -85,7 +85,7 @@ export interface NewProjectScriptInput {
   runOnWorktreeCreate: boolean;
   /** Setup scripts only: hold the agent until the script exits. */
   waitForSetup: boolean;
-  runOnSettle: boolean;
+  runOnDone: boolean;
   /** Omit to preserve the current shortcut when the form did not edit it. */
   keybinding?: string | null;
   /** Optional URL to open in the in-app preview when this script runs. */
@@ -102,7 +102,7 @@ export const EMPTY_PROJECT_SCRIPT_INPUT: NewProjectScriptInput = {
   icon: "play",
   runOnWorktreeCreate: false,
   waitForSetup: false,
-  runOnSettle: false,
+  runOnDone: false,
   keybinding: null,
   previewUrl: null,
   autoOpenPreview: false,
@@ -128,7 +128,7 @@ export function editorRequestForScript(
       icon: script.icon,
       runOnWorktreeCreate: script.runOnWorktreeCreate,
       waitForSetup: script.runOnWorktreeCreate && script.async === false,
-      runOnSettle: script.runOnSettle ?? false,
+      runOnDone: script.runOnDone ?? false,
       keybinding: keybindingValueForCommand(keybindings, commandForProjectScript(script.id)),
       previewUrl: script.previewUrl ?? null,
       autoOpenPreview: script.autoOpenPreview ?? false,
@@ -171,7 +171,7 @@ export function ProjectScriptEditorDialog({
   const [iconPickerOpen, setIconPickerOpen] = useComposerMenuState(!canEditActions);
   const [runOnWorktreeCreate, setRunOnWorktreeCreate] = useState(false);
   const [waitForSetup, setWaitForSetup] = useState(false);
-  const [runOnSettle, setRunOnSettle] = useState(false);
+  const [runOnDone, setRunOnDone] = useState(false);
   const [keybinding, setKeybinding] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [autoOpenPreview, setAutoOpenPreview] = useState(false);
@@ -204,7 +204,7 @@ export function ProjectScriptEditorDialog({
       setIconPickerOpen(false);
       setRunOnWorktreeCreate(request.initial.runOnWorktreeCreate);
       setWaitForSetup(request.initial.waitForSetup);
-      setRunOnSettle(request.initial.runOnSettle);
+      setRunOnDone(request.initial.runOnDone);
       setKeybinding(request.initial.keybinding ?? "");
       setPreviewUrl(request.initial.previewUrl ?? "");
       setAutoOpenPreview(request.initial.autoOpenPreview);
@@ -279,7 +279,7 @@ export function ProjectScriptEditorDialog({
         icon,
         runOnWorktreeCreate,
         waitForSetup: runOnWorktreeCreate && waitForSetup,
-        runOnSettle,
+        runOnDone,
         ...((request.scriptId === null && canChangeKeybinding) || changesKeybinding
           ? { keybinding: keybindingRule?.key ?? null }
           : {}),
@@ -444,10 +444,10 @@ export function ProjectScriptEditorDialog({
                 />
               </label>
               <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-                <span>Run in the thread's worktree when the thread settles</span>
+                <span>Run in the thread's worktree when the thread is marked done</span>
                 <Switch
-                  checked={runOnSettle}
-                  onCheckedChange={(checked) => setRunOnSettle(Boolean(checked))}
+                  checked={runOnDone}
+                  onCheckedChange={(checked) => setRunOnDone(Boolean(checked))}
                 />
               </label>
               <label

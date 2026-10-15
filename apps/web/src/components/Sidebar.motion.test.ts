@@ -115,8 +115,8 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("sidebar list motion", () => {
   it("does not reuse unrelated clicks for synchronized shelf changes after scrolling", () => {
-    const header = new TestRow("Settled", 32);
-    const rows = Array.from({ length: 100 }, (_, index) => new TestRow(`settled-${index}`, 36));
+    const header = new TestRow("Done", 32);
+    const rows = Array.from({ length: 100 }, (_, index) => new TestRow(`done-${index}`, 36));
     const { motion, layout, parent } = fixture([header], 240);
     motion.update(false);
     parent.dispatchEvent(new Event("click"));
@@ -128,8 +128,8 @@ describe("sidebar list motion", () => {
 
   it("keeps departing rows in their visual boxes when collapse clamps a scrolled list", () => {
     const active = new TestRow("Active", 200);
-    const header = new TestRow("Settled", 32);
-    const rows = Array.from({ length: 100 }, (_, index) => new TestRow(`settled-${index}`, 36));
+    const header = new TestRow("Done", 32);
+    const rows = Array.from({ length: 100 }, (_, index) => new TestRow(`done-${index}`, 36));
     const { motion, layout, parent } = fixture([active, header, ...rows], 240);
     motion.update(false);
 
@@ -147,8 +147,8 @@ describe("sidebar list motion", () => {
   });
 
   it("animates large shelf toggles without fading offscreen history", () => {
-    const header = new TestRow("Settled", 32);
-    const rows = Array.from({ length: 100 }, (_, index) => new TestRow(`settled-${index}`, 36));
+    const header = new TestRow("Done", 32);
+    const rows = Array.from({ length: 100 }, (_, index) => new TestRow(`done-${index}`, 36));
     const { motion, layout } = fixture([header], 240);
     motion.update(false);
 
@@ -166,8 +166,8 @@ describe("sidebar list motion", () => {
   });
 
   it("keeps keyboard shelf toggles immediate", () => {
-    const header = new TestRow("Settled", 32);
-    const row = new TestRow("settled", 36);
+    const header = new TestRow("Done", 32);
+    const row = new TestRow("done", 36);
     const { motion, layout, parent } = fixture([header], 240);
     motion.update(false);
     motion.prepare();
@@ -183,38 +183,38 @@ describe("sidebar list motion", () => {
     (modifier) => {
       const header = new TestRow("Working", 32);
       const row = new TestRow("working", 48);
-      const settled = new TestRow("Settled", 32);
-      const { motion, layout, parent } = fixture([header, row, settled]);
+      const done = new TestRow("Done", 32);
+      const { motion, layout, parent } = fixture([header, row, done]);
       motion.update(true);
       parent.dispatchEvent(Object.assign(new Event("keydown"), { [modifier]: true }));
-      layout([header, settled]);
+      layout([header, done]);
       motion.update(true);
       expect(row.clones).toHaveLength(1);
-      expectMove(settled, 49);
+      expectMove(done, 49);
       motion.dispose();
     },
   );
 
-  it("moves a retained Active row into Settled with its displaced peers", () => {
+  it("moves a retained Active row into Done with its displaced peers", () => {
     const pinnedHeader = new TestRow("Pinned", 0);
     const pinned = new TestRow("pin");
     const divider = new TestRow("Active", 0);
     const a = new TestRow("a");
     const b = new TestRow("b");
-    const settledHeader = new TestRow("Settled", 32);
-    const settled = new TestRow("settled", 36);
-    const rows = [pinnedHeader, pinned, divider, a, b, settledHeader, settled];
+    const doneHeader = new TestRow("Done", 32);
+    const done = new TestRow("done", 36);
+    const rows = [pinnedHeader, pinned, divider, a, b, doneHeader, done];
     const { motion, layout } = fixture(rows);
     motion.update(true);
     expect(rows.every((row) => row.animations.length === 0)).toBe(true);
 
     a.offsetHeight = 36;
-    layout([pinnedHeader, pinned, divider, b, settledHeader, settled, a]);
+    layout([pinnedHeader, pinned, divider, b, doneHeader, done, a]);
     motion.update(true);
     expectMove(a, -153);
     expectMove(b, 83);
-    expectMove(settledHeader, 83);
-    expectMove(settled, 83);
+    expectMove(doneHeader, 83);
+    expectMove(done, 83);
     expect(pinned.animate).not.toHaveBeenCalled();
     expect(divider.animate).not.toHaveBeenCalled();
   });

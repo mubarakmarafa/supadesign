@@ -244,16 +244,16 @@ it.effect(
       });
       for (const enabled of [false, true]) {
         yield* orchestrator.dispatch({
-          type: "thread.auto-settle.set",
+          type: "thread.auto-mark-done.set",
           commandId: CommandId.make(`auto-settle-${enabled}`),
           threadId,
           enabled,
         });
         const updated = yield* projections.getThreadProjection(threadId);
-        assert.equal(updated.thread.autoSettleDisabledAt == null, enabled);
+        assert.equal(updated.thread.autoMarkDoneDisabledAt == null, enabled);
         const shell = yield* projections.getThreadShell(threadId);
         assert.ok(shell);
-        assert.equal(shell.autoSettleDisabledAt == null, enabled);
+        assert.equal(shell.autoMarkDoneDisabledAt == null, enabled);
       }
       yield* sql`INSERT INTO orchestration_v2_projection_messages
       (message_id, thread_id, run_id, node_id, role, streaming, created_at, updated_at, payload_json)
@@ -664,11 +664,11 @@ it.effect("settles only the stopped run's background work, once", () =>
 
     // A settle that found nothing to end replays as a no-op, even after work
     // it would match appears: its receipt is recorded with no events.
-    const emptySettle = {
+    const emptyMarkDone = {
       ...settle,
       commandId: CommandId.make("stop-run-1-again:background-work-settled"),
     };
-    const first = yield* orchestrator.dispatch(emptySettle);
+    const first = yield* orchestrator.dispatch(emptyMarkDone);
     assert.lengthOf(first.storedEvents, 0);
     yield* projections.apply({
       id: EventId.make("settle-binding:item:late"),
@@ -695,7 +695,7 @@ it.effect("settles only the stopped run's background work, once", () =>
         input: "sleep 3",
       },
     });
-    const replayed = yield* orchestrator.dispatch(emptySettle);
+    const replayed = yield* orchestrator.dispatch(emptyMarkDone);
     assert.lengthOf(replayed.storedEvents, 0);
     assert.deepEqual(yield* itemStatuses, [
       `${commandItem(1)}:interrupted`,

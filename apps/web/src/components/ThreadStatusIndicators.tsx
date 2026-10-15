@@ -489,7 +489,7 @@ export function resolveThreadPr(input: {
 }
 
 /**
- * Parent-held PR snapshot for Sidebar V2. Rows remount when settlement
+ * Parent-held PR snapshot for Sidebar V2. Rows remount when completion
  * partitions move them, so terminal PR metadata must live above the row.
  */
 export interface ThreadChangeRequestSnapshot {
@@ -1081,7 +1081,7 @@ function ThreadPullRequestNumber({
   );
 }
 
-function settledPrHoverColorClass(state: NonNullable<ThreadPr>["state"], isDraft = false): string {
+function donePrHoverColorClass(state: NonNullable<ThreadPr>["state"], isDraft = false): string {
   switch (state) {
     case "open":
       if (isDraft) {
@@ -1099,12 +1099,12 @@ export function ThreadSearchPullRequestNumber({
   thread,
   query,
   enabled = true,
-  settled = false,
+  done = false,
 }: {
   thread: SidebarThreadSummary;
   query: string;
   enabled?: boolean;
-  settled?: boolean;
+  done?: boolean;
 }) {
   const matchedLink = visibleThreadPullRequests(thread.pullRequests).find((pr) =>
     pullRequestMatchesSearchQuery({ pullRequests: [pr] }, query),
@@ -1128,10 +1128,10 @@ export function ThreadSearchPullRequestNumber({
     <ThreadPullRequestNumber
       number={reference.number}
       className={
-        settled
+        done
           ? cn(
               "text-secondary-label transition-colors",
-              linked?.pr && settledPrHoverColorClass(linked.pr.state, linked.pr.isDraft),
+              linked?.pr && donePrHoverColorClass(linked.pr.state, linked.pr.isDraft),
             )
           : (status?.colorClass ?? "text-secondary-label")
       }

@@ -1278,22 +1278,22 @@ it.layer(layerTest)("OrchestrationV2LayerLive", (it) => {
       );
       assert.lengthOf(dismissedProjection.messages, 0);
 
-      const settled = yield* seedQuestion("runtime-settle-question");
+      const done = yield* seedQuestion("runtime-mark-done-question");
       yield* orchestrator.dispatch({
-        type: "thread.settle",
-        commandId: CommandId.make("runtime-settle-question-command"),
-        threadId: settled.threadId,
+        type: "thread.mark-done",
+        commandId: CommandId.make("runtime-mark-done-question-command"),
+        threadId: done.threadId,
       });
-      const settledProjection = yield* orchestrator.getThreadProjection(settled.threadId);
-      assert.equal(settledProjection.thread.settledOverride, "settled");
-      assert.equal(settledProjection.runtimeRequests[0]?.status, "resolved");
-      assert.equal(settledProjection.runtimeRequests[0]?.decision, "cancel");
+      const doneProjection = yield* orchestrator.getThreadProjection(done.threadId);
+      assert.equal(doneProjection.thread.doneOverride, "done");
+      assert.equal(doneProjection.runtimeRequests[0]?.status, "resolved");
+      assert.equal(doneProjection.runtimeRequests[0]?.decision, "cancel");
       assert.equal(
-        settledProjection.nodes.find((node) => node.id === settled.nodeId)?.status,
+        doneProjection.nodes.find((node) => node.id === done.nodeId)?.status,
         "cancelled",
       );
       assert.equal(
-        settledProjection.turnItems.find((item) => item.id === settled.itemId)?.status,
+        doneProjection.turnItems.find((item) => item.id === done.itemId)?.status,
         "cancelled",
       );
     }),
@@ -1618,70 +1618,70 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       });
       assert.equal((yield* orchestrator.getThreadProjection(threadId)).thread.activeOrderKey, "a0");
 
-      // Automatic settlement (#8600): a stale snapshot loses to any change
-      // made after it, and a fresh one settles like a user settle would.
+      // Automatic completion: a stale snapshot loses to any change
+      // made after it, and a fresh one marks done like a user action would.
       const preAutoProjection = yield* orchestrator.getThreadProjection(threadId);
-      const staleAutoSettle = yield* orchestrator
+      const staleAutoMarkDone = yield* orchestrator
         .dispatch({
-          type: "thread.auto-settle",
-          commandId: CommandId.make("runtime-layer-lifecycle-auto-settle-stale"),
+          type: "thread.auto-mark-done",
+          commandId: CommandId.make("runtime-layer-lifecycle-auto-mark-done-stale"),
           threadId,
           snapshotAt: DateTime.makeUnsafe(
             DateTime.toEpochMillis(preAutoProjection.thread.updatedAt) - 1,
           ),
         })
         .pipe(Effect.flip);
-      assert.instanceOf(staleAutoSettle, Orchestrator.OrchestratorDispatchError);
+      assert.instanceOf(staleAutoMarkDone, Orchestrator.OrchestratorDispatchError);
       yield* orchestrator.dispatch({
-        type: "thread.auto-settle",
-        commandId: CommandId.make("runtime-layer-lifecycle-auto-settle"),
+        type: "thread.auto-mark-done",
+        commandId: CommandId.make("runtime-layer-lifecycle-auto-mark-done"),
         threadId,
         snapshotAt: preAutoProjection.thread.updatedAt,
       });
-      const autoSettledProjection = yield* orchestrator.getThreadProjection(threadId);
-      assert.equal(autoSettledProjection.thread.settledOverride, "settled");
-      assert.isNull(autoSettledProjection.thread.activeOrderKey);
+      const automaticallyDoneProjection = yield* orchestrator.getThreadProjection(threadId);
+      assert.equal(automaticallyDoneProjection.thread.doneOverride, "done");
+      assert.isNull(automaticallyDoneProjection.thread.activeOrderKey);
       yield* orchestrator.dispatch({
-        type: "thread.unsettle",
-        commandId: CommandId.make("runtime-layer-lifecycle-auto-unsettle"),
+        type: "thread.reopen",
+        commandId: CommandId.make("runtime-layer-lifecycle-auto-reopen"),
         threadId,
         reason: "user",
       });
-      // An explicit un-settle outranks the sweep even with a fresh snapshot.
-      const postUnsettleProjection = yield* orchestrator.getThreadProjection(threadId);
-      const overriddenAutoSettle = yield* orchestrator
+      // An explicit reopen outranks the sweep even with a fresh snapshot.
+      const postReopenProjection = yield* orchestrator.getThreadProjection(threadId);
+      const overriddenAutoMarkDone = yield* orchestrator
         .dispatch({
-          type: "thread.auto-settle",
-          commandId: CommandId.make("runtime-layer-lifecycle-auto-settle-overridden"),
+          type: "thread.auto-mark-done",
+          commandId: CommandId.make("runtime-layer-lifecycle-auto-mark-done-overridden"),
           threadId,
-          snapshotAt: postUnsettleProjection.thread.updatedAt,
+          snapshotAt: postReopenProjection.thread.updatedAt,
         })
         .pipe(Effect.flip);
-      assert.instanceOf(overriddenAutoSettle, Orchestrator.OrchestratorDispatchError);
+      assert.instanceOf(overriddenAutoMarkDone, Orchestrator.OrchestratorDispatchError);
 
       yield* orchestrator.dispatch({
-        type: "thread.settle",
-        commandId: CommandId.make("runtime-layer-lifecycle-settle"),
+        type: "thread.mark-done",
+        commandId: CommandId.make("runtime-layer-lifecycle-mark-done"),
         threadId,
       });
-      const settledProjection = yield* orchestrator.getThreadProjection(threadId);
-      assert.equal(settledProjection.thread.settledOverride, "settled");
-      assert.isNotNull(settledProjection.thread.settledAt);
+      const doneProjection = yield* orchestrator.getThreadProjection(threadId);
+      assert.equal(doneProjection.thread.doneOverride, "done");
+      assert.isNotNull(doneProjection.thread.doneAt);
 
       yield* orchestrator.dispatch({
-        type: "thread.unsettle",
-        commandId: CommandId.make("runtime-layer-lifecycle-unsettle"),
+        type: "thread.reopen",
+        commandId: CommandId.make("runtime-layer-lifecycle-reopen"),
         threadId,
         reason: "user",
       });
       const activeProjection = yield* orchestrator.getThreadProjection(threadId);
-      assert.equal(activeProjection.thread.settledOverride, "active");
-      assert.isNull(activeProjection.thread.settledAt);
-      assert.isNotNull(activeProjection.thread.unsettledAt);
+      assert.equal(activeProjection.thread.doneOverride, "active");
+      assert.isNull(activeProjection.thread.doneAt);
+      assert.isNotNull(activeProjection.thread.reopenedAt);
       const activeShell = (yield* orchestrator.getShellSnapshot()).threads.find(
         (thread) => thread.id === threadId,
       );
-      assert.deepEqual(activeShell?.unsettledAt, activeProjection.thread.unsettledAt);
+      assert.deepEqual(activeShell?.reopenedAt, activeProjection.thread.reopenedAt);
 
       const archive = yield* orchestrator.dispatch({
         type: "thread.archive",
@@ -2106,15 +2106,15 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
     Effect.gen(function* () {
       const orchestrator = yield* Orchestrator.OrchestratorV2;
       const maintenance = yield* ProjectionMaintenance.ProjectionMaintenanceV2;
-      const threadId = ThreadId.make(`pr-watch-settle-${mode}`);
+      const threadId = ThreadId.make(`pr-watch-mark-done-${mode}`);
       yield* orchestrator.dispatch({
         type: "thread.create",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make(`pr-watch-settle-create-${mode}`),
+        commandId: CommandId.make(`pr-watch-mark-done-create-${mode}`),
         threadId,
-        projectId: ProjectId.make("pr-watch-settle-project"),
-        title: "Settle watched PRs",
+        projectId: ProjectId.make("pr-watch-mark-done-project"),
+        title: "Mark watched threads done",
         modelSelection,
         runtimeMode: "full-access",
         interactionMode: "default",
@@ -2125,7 +2125,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       for (const number of [7, 8]) {
         yield* orchestrator.dispatch({
           type: "thread.pull-request.watch",
-          commandId: CommandId.make(`pr-watch-settle-start-${mode}-${number}`),
+          commandId: CommandId.make(`pr-watch-mark-done-start-${mode}-${number}`),
           threadId,
           ...key,
           number,
@@ -2139,9 +2139,9 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       if (started === undefined || before === null) return;
       yield* orchestrator.dispatch({
         ...(mode === "manual"
-          ? { type: "thread.settle" as const }
-          : { type: "thread.auto-settle" as const, snapshotAt: before.updatedAt }),
-        commandId: CommandId.make(`pr-watch-settle-${mode}`),
+          ? { type: "thread.mark-done" as const }
+          : { type: "thread.auto-mark-done" as const, snapshotAt: before.updatedAt }),
+        commandId: CommandId.make(`pr-watch-mark-done-${mode}`),
         threadId,
       });
       const expected = before.pullRequests?.map(({ watch: _watch, ...link }) => link);
@@ -2152,7 +2152,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       for (const wake of [
         undefined,
         {
-          messageId: MessageId.make(`pr-watch-settle-late-wake-${mode}`),
+          messageId: MessageId.make(`pr-watch-mark-done-late-wake-${mode}`),
           text: "Update",
           notification: {
             source: { kind: "monitor" as const },
@@ -2164,7 +2164,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
         const late = yield* orchestrator
           .dispatch({
             type: "thread.pull-request-watch.sync",
-            commandId: CommandId.make(`pr-watch-settle-late-${mode}-${wake !== undefined}`),
+            commandId: CommandId.make(`pr-watch-mark-done-late-${mode}-${wake !== undefined}`),
             threadId,
             ...key,
             number: 7,
@@ -2185,20 +2185,20 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       const blocked = yield* orchestrator
         .dispatch({
           ...restart,
-          commandId: CommandId.make(`pr-watch-settle-blocked-${mode}`),
+          commandId: CommandId.make(`pr-watch-mark-done-blocked-${mode}`),
         })
         .pipe(Effect.flip);
       assert.equal(blocked._tag, "OrchestratorDispatchError");
       assert.deepEqual((yield* orchestrator.getThreadRecords(threadId, ["messages"])).messages, []);
       yield* orchestrator.dispatch({
-        type: "thread.unsettle",
-        commandId: CommandId.make(`pr-watch-settle-unsettle-${mode}`),
+        type: "thread.reopen",
+        commandId: CommandId.make(`pr-watch-mark-done-reopen-${mode}`),
         threadId,
         reason: "user",
       });
       yield* orchestrator.dispatch({
         ...restart,
-        commandId: CommandId.make(`pr-watch-settle-restart-${mode}`),
+        commandId: CommandId.make(`pr-watch-mark-done-restart-${mode}`),
       });
       assert.isDefined((yield* orchestrator.getThreadShell(threadId))?.pullRequests?.[0]?.watch);
     }),
@@ -2454,7 +2454,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
     }),
   );
 
-  it.effect("ends a workflow run watch on unwatch and settle, and ignores a late end", () =>
+  it.effect("ends a workflow run watch on unwatch and marking done, and ignores a late end", () =>
     Effect.gen(function* () {
       const orchestrator = yield* Orchestrator.OrchestratorV2;
       const threadId = ThreadId.make("runtime-workflow-run-watch-ends");
@@ -2524,12 +2524,12 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       yield* watching("run-watch-ends-restart", true);
       assert.lengthOf(yield* watches, 1);
       yield* orchestrator.dispatch({
-        type: "thread.settle",
-        commandId: CommandId.make("run-watch-ends-settle"),
+        type: "thread.mark-done",
+        commandId: CommandId.make("run-watch-ends-mark-done"),
         threadId,
       });
       assert.deepEqual(yield* watches, []);
-      const refused = yield* watching("run-watch-ends-settled", true).pipe(Effect.flip);
+      const refused = yield* watching("run-watch-ends-mark-doned", true).pipe(Effect.flip);
       assert.equal(refused._tag, "OrchestratorDispatchError");
     }),
   );
@@ -3401,37 +3401,37 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       }),
   );
 
-  it.effect("rejects settling a thread while a run is active", () =>
+  it.effect("rejects marking a thread done while a run is active", () =>
     Effect.gen(function* () {
       const orchestrator = yield* Orchestrator.OrchestratorV2;
-      const threadId = ThreadId.make("runtime-layer-active-settle-thread");
+      const threadId = ThreadId.make("runtime-layer-active-mark-done-thread");
 
       yield* orchestrator.dispatch({
         type: "thread.create",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("runtime-layer-active-settle-create"),
+        commandId: CommandId.make("runtime-layer-active-mark-done-create"),
         threadId,
-        projectId: ProjectId.make("runtime-layer-active-settle-project"),
-        title: "Active settle",
+        projectId: ProjectId.make("runtime-layer-active-mark-done-project"),
+        title: "Active mark done",
         modelSelection,
         runtimeMode: "full-access",
         interactionMode: "default",
         branch: null,
-        worktreePath: "/tmp/runtime-layer-active-settle",
+        worktreePath: "/tmp/runtime-layer-active-mark-done",
       });
       yield* orchestrator.dispatch({
-        type: "thread.settle",
-        commandId: CommandId.make("runtime-layer-active-settle-initial"),
+        type: "thread.mark-done",
+        commandId: CommandId.make("runtime-layer-active-mark-done-initial"),
         threadId,
       });
       yield* orchestrator.dispatch({
         type: "message.dispatch",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("runtime-layer-active-settle-message"),
+        commandId: CommandId.make("runtime-layer-active-mark-done-message"),
         threadId,
-        messageId: MessageId.make("runtime-layer-active-settle-message"),
+        messageId: MessageId.make("runtime-layer-active-mark-done-message"),
         text: "Keep this run active.",
         attachments: [],
         modelSelection,
@@ -3441,7 +3441,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       const nonEmptyClaim = yield* orchestrator
         .dispatch({
           type: "thread.metadata.update",
-          commandId: CommandId.make("runtime-layer-active-settle-empty-claim"),
+          commandId: CommandId.make("runtime-layer-active-mark-done-empty-claim"),
           threadId,
           worktreePath: "/tmp/reassigned-after-message",
           expectedEmpty: true,
@@ -3451,52 +3451,55 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
 
       const error = yield* orchestrator
         .dispatch({
-          type: "thread.settle",
-          commandId: CommandId.make("runtime-layer-active-settle"),
+          type: "thread.mark-done",
+          commandId: CommandId.make("runtime-layer-active-mark-done"),
           threadId,
         })
         .pipe(Effect.flip);
 
       assert.equal(error._tag, "OrchestratorDispatchError");
-      assert.equal(error.cause, `Thread ${threadId} is still running. Stop it before settling.`);
+      assert.equal(
+        error.cause,
+        `Thread ${threadId} is still running. Stop it before marking it as done.`,
+      );
       const projection = yield* orchestrator.getThreadProjection(threadId);
       assert.equal(projection.runs[0]?.status, "starting");
-      assert.isNull(projection.thread.settledOverride);
-      assert.isNull(projection.thread.settledAt);
-      assert.isNotNull(projection.thread.unsettledAt);
+      assert.isNull(projection.thread.doneOverride);
+      assert.isNull(projection.thread.doneAt);
+      assert.isNotNull(projection.thread.reopenedAt);
     }),
   );
 
-  it.effect("settles a thread its own agent settled once the turn completes", () =>
+  it.effect("marks a thread done at the request of its own agent once the turn completes", () =>
     Effect.gen(function* () {
       const orchestrator = yield* Orchestrator.OrchestratorV2;
       const eventSink = yield* EventSink.EventSinkV2;
       const threadManagement = yield* ThreadManagementService.ThreadManagementService;
-      const projectId = ProjectId.make("runtime-layer-settle-after-run-project");
-      const threadId = ThreadId.make("runtime-layer-settle-after-run-thread");
+      const projectId = ProjectId.make("runtime-layer-mark-done-after-run-project");
+      const threadId = ThreadId.make("runtime-layer-mark-done-after-run-thread");
 
       yield* orchestrator.dispatch({
         type: "thread.create",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("runtime-layer-settle-after-run-create"),
+        commandId: CommandId.make("runtime-layer-mark-done-after-run-create"),
         threadId,
         projectId,
-        title: "Settle after run",
+        title: "Mark done after run",
         modelSelection,
         runtimeMode: "full-access",
         interactionMode: "default",
         branch: null,
-        worktreePath: "/tmp/runtime-layer-settle-after-run",
+        worktreePath: "/tmp/runtime-layer-mark-done-after-run",
       });
       yield* orchestrator.dispatch({
         type: "message.dispatch",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("runtime-layer-settle-after-run-message"),
+        commandId: CommandId.make("runtime-layer-mark-done-after-run-message"),
         threadId,
-        messageId: MessageId.make("runtime-layer-settle-after-run-message"),
-        text: "Fix it and then settle this thread.",
+        messageId: MessageId.make("runtime-layer-mark-done-after-run-message"),
+        text: "Fix it and then mark this thread done.",
         attachments: [],
         modelSelection,
         dispatchMode: { type: "start_immediately" },
@@ -3504,22 +3507,22 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       const run = (yield* orchestrator.getThreadProjection(threadId)).runs[0];
       if (run === undefined) return yield* Effect.die(new Error("Run missing."));
 
-      const settled = yield* orchestrator
-        .streamStoredEventsFrom({ threadId, afterSequence: 0, eventType: "thread.settled" })
+      const done = yield* orchestrator
+        .streamStoredEventsFrom({ threadId, afterSequence: 0, eventType: "thread.marked-done" })
         .pipe(Stream.runHead, Effect.forkChild);
-      const result = yield* threadManagement.settleThread({
+      const result = yield* threadManagement.markThreadDone({
         threadId,
-        commandId: CommandId.make("runtime-layer-settle-after-run-settle"),
+        commandId: CommandId.make("runtime-layer-mark-done-after-run-reopen"),
         byOwnAgent: true,
       });
-      assert.deepEqual(result, { settlesWhenTurnEnds: true });
-      assert.isNull((yield* orchestrator.getThreadProjection(threadId)).thread.settledOverride);
+      assert.deepEqual(result, { marksDoneWhenTurnEnds: true });
+      assert.isNull((yield* orchestrator.getThreadProjection(threadId)).thread.doneOverride);
       const now = yield* DateTime.now;
       yield* eventSink.write({
-        commandId: CommandId.make("runtime-layer-settle-after-run-completed"),
+        commandId: CommandId.make("runtime-layer-mark-done-after-run-completed"),
         events: [
           {
-            id: EventId.make("runtime-layer-settle-after-run-completed"),
+            id: EventId.make("runtime-layer-mark-done-after-run-completed"),
             type: "run.updated",
             threadId,
             runId: run.id,
@@ -3528,40 +3531,40 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
           },
         ],
       });
-      yield* Fiber.join(settled);
+      yield* Fiber.join(done);
 
       const projection = yield* orchestrator.getThreadProjection(threadId);
-      assert.equal(projection.thread.settledOverride, "settled");
+      assert.equal(projection.thread.doneOverride, "done");
     }),
   );
 
-  it.effect("settles past held automatic runs but not held user messages", () =>
+  it.effect("marks done past held automatic runs but not held user messages", () =>
     Effect.gen(function* () {
       const orchestrator = yield* Orchestrator.OrchestratorV2;
       const eventSink = yield* EventSink.EventSinkV2;
-      const threadId = ThreadId.make("runtime-layer-settle-automatic-queued");
+      const threadId = ThreadId.make("runtime-layer-mark-done-automatic-queued");
 
       yield* orchestrator.dispatch({
         type: "thread.create",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("settle-automatic-create"),
+        commandId: CommandId.make("mark-done-automatic-create"),
         threadId,
-        projectId: ProjectId.make("settle-automatic-project"),
-        title: "Settle automatic queued",
+        projectId: ProjectId.make("mark-done-automatic-project"),
+        title: "Mark done with automatic queued work",
         modelSelection,
         runtimeMode: "full-access",
         interactionMode: "default",
         branch: null,
-        worktreePath: "/tmp/runtime-layer-settle-automatic",
+        worktreePath: "/tmp/runtime-layer-mark-done-automatic",
       });
       yield* orchestrator.dispatch({
         type: "message.dispatch",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("settle-automatic-active"),
+        commandId: CommandId.make("mark-done-automatic-active"),
         threadId,
-        messageId: MessageId.make("settle-automatic-active"),
+        messageId: MessageId.make("mark-done-automatic-active"),
         text: "Active",
         attachments: [],
         modelSelection,
@@ -3589,7 +3592,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
           modelSelection,
           dispatchMode: { type: "queue_after_active" },
         });
-      yield* queueMessage("settle-automatic-notification", true);
+      yield* queueMessage("mark-done-automatic-notification", true);
 
       // Simulate a restart: the active run ends and recovery holds the queue.
       const holdQueueAfterRestart = (commandId: string) =>
@@ -3617,21 +3620,21 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
             effects: [],
           });
         });
-      yield* holdQueueAfterRestart("settle-automatic-restart");
+      yield* holdQueueAfterRestart("mark-done-automatic-restart");
 
       yield* orchestrator.dispatch({
-        type: "thread.settle",
-        commandId: CommandId.make("settle-automatic-settle"),
+        type: "thread.mark-done",
+        commandId: CommandId.make("mark-done-automatic-settle"),
         threadId,
       });
-      const settled = yield* orchestrator.getThreadProjection(threadId);
-      assert.isNotNull(settled.thread.settledAt);
-      assert.isTrue(settled.runs.every((run) => run.status === "cancelled"));
+      const done = yield* orchestrator.getThreadProjection(threadId);
+      assert.isNotNull(done.thread.doneAt);
+      assert.isTrue(done.runs.every((run) => run.status === "cancelled"));
 
       // A held message the user typed still blocks settling.
       yield* orchestrator.dispatch({
-        type: "thread.unsettle",
-        commandId: CommandId.make("settle-automatic-unsettle"),
+        type: "thread.reopen",
+        commandId: CommandId.make("mark-done-automatic-reopen"),
         threadId,
         reason: "user",
       });
@@ -3639,27 +3642,27 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
         type: "message.dispatch",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("settle-automatic-active-2"),
+        commandId: CommandId.make("mark-done-automatic-active-2"),
         threadId,
-        messageId: MessageId.make("settle-automatic-active-2"),
+        messageId: MessageId.make("mark-done-automatic-active-2"),
         text: "Active again",
         attachments: [],
         modelSelection,
         dispatchMode: { type: "start_immediately" },
       });
-      yield* queueMessage("settle-automatic-user-queued", false);
-      yield* holdQueueAfterRestart("settle-automatic-restart-2");
+      yield* queueMessage("mark-done-automatic-user-queued", false);
+      yield* holdQueueAfterRestart("mark-done-automatic-restart-2");
       const error = yield* orchestrator
         .dispatch({
-          type: "thread.settle",
-          commandId: CommandId.make("settle-automatic-settle-2"),
+          type: "thread.mark-done",
+          commandId: CommandId.make("mark-done-automatic-settle-2"),
           threadId,
         })
         .pipe(Effect.flip);
       assert.equal(error._tag, "OrchestratorDispatchError");
       assert.equal(
         error.cause,
-        `Thread ${threadId} has a queued message. Send it or remove it from the queue before settling.`,
+        `Thread ${threadId} has a queued message. Send it or remove it from the queue before marking it as done.`,
       );
     }),
   );
@@ -4648,7 +4651,7 @@ it.layer(layerSharedApplicationDataPlaneTest)("snooze projection", (it) => {
       const projections = yield* ProjectionStore.ProjectionStoreV2.pipe(
         Effect.provide(ProjectionStore.layer),
       );
-      const [candidate] = yield* projections.getSettlementCandidates(threadId);
+      const [candidate] = yield* projections.getAutoMarkDoneCandidates(threadId);
       assert.deepEqual(candidate?.lastSnoozeWakeAt, yield* DateTime.now);
       yield* orchestrator.dispatch({
         type: "thread.snooze",
@@ -4679,17 +4682,17 @@ it.layer(layerSharedApplicationDataPlaneTest)("snooze projection", (it) => {
   it.effect("clears snooze state when settling a snoozed thread", () =>
     Effect.gen(function* () {
       const orchestrator = yield* Orchestrator.OrchestratorV2;
-      const threadId = ThreadId.make("runtime-layer-settle-snoozed-thread");
+      const threadId = ThreadId.make("runtime-layer-mark-done-snoozed-thread");
       const snoozedUntil = "2099-07-25T09:00:00.000Z";
 
       yield* orchestrator.dispatch({
         type: "thread.create",
         createdBy: "user",
         creationSource: "web",
-        commandId: CommandId.make("runtime-layer-settle-snoozed-thread-create"),
+        commandId: CommandId.make("runtime-layer-mark-done-snoozed-thread-create"),
         threadId,
-        projectId: ProjectId.make("runtime-layer-settle-snoozed-project"),
-        title: "Settled snoozed thread",
+        projectId: ProjectId.make("runtime-layer-mark-done-snoozed-project"),
+        title: "Done snoozed thread",
         modelSelection,
         runtimeMode: "full-access",
         interactionMode: "default",
@@ -4698,26 +4701,26 @@ it.layer(layerSharedApplicationDataPlaneTest)("snooze projection", (it) => {
       });
       yield* orchestrator.dispatch({
         type: "thread.snooze",
-        commandId: CommandId.make("runtime-layer-settle-snoozed-thread-snooze"),
+        commandId: CommandId.make("runtime-layer-mark-done-snoozed-thread-snooze"),
         threadId,
         snoozedUntil,
       });
       yield* orchestrator.dispatch({
-        type: "thread.settle",
-        commandId: CommandId.make("runtime-layer-settle-snoozed-thread-settle"),
+        type: "thread.mark-done",
+        commandId: CommandId.make("runtime-layer-mark-done-snoozed-thread-settle"),
         threadId,
       });
 
       const projection = yield* orchestrator.getThreadProjection(threadId);
-      assert.equal(projection.thread.settledOverride, "settled");
+      assert.equal(projection.thread.doneOverride, "done");
       assert.isNull(projection.thread.snoozedUntil);
       assert.isNull(projection.thread.snoozedAt);
 
       const shell = yield* orchestrator.getShellSnapshot();
-      const settled = shell.threads.find((thread) => thread.id === threadId);
-      assert.isDefined(settled);
-      assert.isNull(settled.snoozedUntil);
-      assert.isNull(settled.snoozedAt);
+      const done = shell.threads.find((thread) => thread.id === threadId);
+      assert.isDefined(done);
+      assert.isNull(done.snoozedUntil);
+      assert.isNull(done.snoozedAt);
     }),
   );
 });
@@ -5067,7 +5070,7 @@ it.layer(layerTest)("usage-limit recovery", (it) => {
     "snooze-race",
     "new-message",
     "archive",
-    "settle",
+    "mark-done",
     "replacement",
     "manual-snooze",
     "manual-snooze-after-recovery",
@@ -5446,9 +5449,9 @@ it.layer(layerTest)("usage-limit recovery", (it) => {
           createdBy: "user",
           creationSource: "web",
         });
-      if (scenario === "settle")
+      if (scenario === "mark-done")
         yield* orchestrator.dispatch({
-          type: "thread.settle",
+          type: "thread.mark-done",
           commandId: CommandId.make(`recovery:settle:${scenario}`),
           threadId,
         });

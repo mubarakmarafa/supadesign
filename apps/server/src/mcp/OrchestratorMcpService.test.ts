@@ -269,8 +269,8 @@ describe("OrchestratorMcpService", () => {
         // Acknowledging the cut run would suppress the real result's wake.
         assert.equal(yield* Ref.get(dispatched), 0);
         awaitsRestart = false;
-        const settled = yield* service.taskStatus(scope, taskId);
-        assert.equal(settled.status, "cancelled");
+        const done = yield* service.taskStatus(scope, taskId);
+        assert.equal(done.status, "cancelled");
         assert.equal(yield* Ref.get(dispatched), 1);
       }).pipe(Effect.provide(OrchestratorMcpService.layer.pipe(Layer.provide(layerDependencies))));
     }),

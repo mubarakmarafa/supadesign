@@ -88,15 +88,15 @@ export function HomeRouteScreen() {
   const {
     archiveThread,
     confirmDeleteThread,
-    settleThread,
+    markThreadDone,
     snoozeThread,
     unsnoozeThread,
     pinThread,
     unpinThread,
-    setThreadAutoSettle,
+    setThreadAutoMarkDone,
     renameThread,
     regenerateThreadTitle,
-    unsettleThread,
+    reopenThread,
   } = useThreadListActions();
   const pendingTasks = usePendingNewTasks();
   const { openPendingTask, confirmDeletePendingTask } = usePendingTaskListActions();
@@ -267,13 +267,13 @@ export function HomeRouteScreen() {
           }
           onArchiveThread={archiveThread}
           onDeleteThread={confirmDeleteThread}
-          onSettleThread={settleThread}
+          onMarkThreadDone={markThreadDone}
           onSnoozeThread={snoozeThread}
           onUnsnoozeThread={unsnoozeThread}
-          onUnsettleThread={unsettleThread}
+          onReopenThread={reopenThread}
           onPinThread={pinThread}
           onUnpinThread={unpinThread}
-          onSetThreadAutoSettle={setThreadAutoSettle}
+          onSetThreadAutoMarkDone={setThreadAutoMarkDone}
           onRenameThread={renameThread}
           onRegenerateThreadTitle={regenerateThreadTitle}
           onEnvironmentChange={setSelectedEnvironmentId}

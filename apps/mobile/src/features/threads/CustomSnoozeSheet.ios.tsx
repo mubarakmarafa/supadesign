@@ -26,7 +26,7 @@ import {
   localSnoozeTime,
   resolveCustomSnooze,
   type CustomSnoozeInput,
-} from "@supaterm/client-runtime/state/thread-settled";
+} from "@supaterm/client-runtime/state/thread-snooze";
 import { useState, type ReactNode } from "react";
 import { NavigationContainer, NavigationIndependentTree } from "@react-navigation/native";
 import { createV5StackNavigator as createNativeStackNavigator } from "../../native/createV5StackNavigator";

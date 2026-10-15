@@ -36,15 +36,15 @@ describe("thread undo notice", () => {
     const { add, undo, options } = setup();
     showThreadUndoNotice({
       ...options,
-      action: "Settled",
-      claim: ThreadUndo.begin("settle", "env/a"),
+      action: "Done",
+      claim: ThreadUndo.begin("mark-done", "env/a"),
     });
     showThreadUndoNotice({
       ...options,
-      action: "Settled",
-      claim: ThreadUndo.begin("settle", "env/b"),
+      action: "Done",
+      claim: ThreadUndo.begin("mark-done", "env/b"),
     });
-    expect(notice()).toMatchObject({ action: "Settled", count: 2 });
+    expect(notice()).toMatchObject({ action: "Done", count: 2 });
     expect(add).not.toHaveBeenCalled();
     const group = notice();
     await group.undo();
@@ -131,9 +131,9 @@ describe("thread undo notice", () => {
     const newer = vi.fn(async () => AsyncResult.success(undefined));
     showThreadUndoNotice({
       ...options,
-      action: "Settled",
+      action: "Done",
       undo: older,
-      claim: ThreadUndo.begin("settle", "env/a"),
+      claim: ThreadUndo.begin("mark-done", "env/a"),
     });
     showThreadUndoNotice({
       ...options,
@@ -144,7 +144,7 @@ describe("thread undo notice", () => {
     expect(undoLatestThreadAction()).toBe(true);
     expect(newer).toHaveBeenCalledOnce();
     expect(older).not.toHaveBeenCalled();
-    expect(notice().action).toBe("Settled");
+    expect(notice().action).toBe("Done");
     await notice().undo();
     expect(older).toHaveBeenCalledOnce();
     expect(undoLatestThreadAction()).toBe(false);

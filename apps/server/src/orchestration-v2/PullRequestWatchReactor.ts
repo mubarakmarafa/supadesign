@@ -99,14 +99,14 @@ const watchKey = ({ thread, watch }: WatchTarget) => `${thread.id} ${watch.start
 
 /**
  * Why a watch ended. `stopped` is anything outside this reactor: the agent unwatched, the user
- * pressed Stop, or the thread settled, archived, or was deleted between passes.
+ * pressed Stop, or the thread was marked done, archived, or was deleted between passes.
  */
 type WatchEndReason =
   | "merged"
   | "closed"
   | "unreadable"
   | "comment-limit"
-  | "settled"
+  | "done"
   | "subagent"
   | "stopped";
 
@@ -396,8 +396,8 @@ export const make = Effect.gen(function* () {
     // cannot start one; a watch left from before those rules ends here.
     link.snapshot?.state === "merged"
       ? "merged"
-      : thread.settledOverride === "settled" || thread.settledAt !== null
-        ? "settled"
+      : thread.doneOverride === "done" || thread.doneAt !== null
+        ? "done"
         : thread.lineage.relationshipToParent === "subagent"
           ? "subagent"
           : undefined;

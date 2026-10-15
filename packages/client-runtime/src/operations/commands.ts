@@ -82,9 +82,9 @@ export interface ThreadCommandInput extends CommandMetadata {
 export type DeleteThreadInput = ThreadCommandInput;
 export type ArchiveThreadInput = ThreadCommandInput;
 export type UnarchiveThreadInput = ThreadCommandInput;
-export type SettleThreadInput = ThreadCommandInput;
+export type MarkThreadDoneInput = ThreadCommandInput;
 
-export interface UnsettleThreadInput extends ThreadCommandInput {
+export interface ReopenThreadInput extends ThreadCommandInput {
   readonly reason: "user";
 }
 
@@ -402,7 +402,7 @@ function simpleThreadCommand(
     | "thread.delete"
     | "thread.archive"
     | "thread.unarchive"
-    | "thread.settle"
+    | "thread.mark-done"
     | "thread.pin"
     | "thread.unpin",
   input: ThreadCommandInput,
@@ -430,10 +430,10 @@ export const unarchiveThread = Effect.fn("EnvironmentCommands.unarchiveThread")(
   return yield* simpleThreadCommand("thread.unarchive", input);
 });
 
-export const settleThread = Effect.fn("EnvironmentCommands.settleThread")(function* (
-  input: SettleThreadInput,
+export const markThreadDone = Effect.fn("EnvironmentCommands.markThreadDone")(function* (
+  input: MarkThreadDoneInput,
 ) {
-  return yield* simpleThreadCommand("thread.settle", input);
+  return yield* simpleThreadCommand("thread.mark-done", input);
 });
 
 export const pinThread = Effect.fn("EnvironmentCommands.pinThread")(function* (
@@ -448,19 +448,19 @@ export const pinThread = Effect.fn("EnvironmentCommands.pinThread")(function* (
   });
 });
 
-export interface SetThreadAutoSettleInput extends ThreadCommandInput {
+export interface SetThreadAutoMarkDoneInput extends ThreadCommandInput {
   readonly enabled: boolean;
 }
-export const setThreadAutoSettle = Effect.fn("EnvironmentCommands.setThreadAutoSettle")(function* (
-  input: SetThreadAutoSettleInput,
-) {
-  return yield* dispatch({
-    type: "thread.auto-settle.set",
-    commandId: yield* allocateCommandId(input),
-    threadId: input.threadId,
-    enabled: input.enabled,
-  });
-});
+export const setThreadAutoMarkDone = Effect.fn("EnvironmentCommands.setThreadAutoMarkDone")(
+  function* (input: SetThreadAutoMarkDoneInput) {
+    return yield* dispatch({
+      type: "thread.auto-mark-done.set",
+      commandId: yield* allocateCommandId(input),
+      threadId: input.threadId,
+      enabled: input.enabled,
+    });
+  },
+);
 
 export const reorderPinnedThread = Effect.fn("EnvironmentCommands.reorderPinnedThread")(function* (
   input: ReorderPinnedThreadInput,
@@ -491,11 +491,11 @@ export const unpinThread = Effect.fn("EnvironmentCommands.unpinThread")(function
   return yield* simpleThreadCommand("thread.unpin", input);
 });
 
-export const unsettleThread = Effect.fn("EnvironmentCommands.unsettleThread")(function* (
-  input: UnsettleThreadInput,
+export const reopenThread = Effect.fn("EnvironmentCommands.reopenThread")(function* (
+  input: ReopenThreadInput,
 ) {
   return yield* dispatch({
-    type: "thread.unsettle",
+    type: "thread.reopen",
     commandId: yield* allocateCommandId(input),
     threadId: input.threadId,
     reason: input.reason,

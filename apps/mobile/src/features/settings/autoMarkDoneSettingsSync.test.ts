@@ -1,20 +1,20 @@
 import { DEFAULT_SERVER_SETTINGS, EnvironmentId, ProjectId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { planAutoSettleSettingsSync } from "./autoSettleSettingsSync";
+import { planAutoMarkDoneSettingsSync } from "./autoMarkDoneSettingsSync";
 
 const reference = {
   environmentId: EnvironmentId.make("reference"),
   settings: {
     ...DEFAULT_SERVER_SETTINGS,
-    sidebarAutoSettleAfterDays: 7,
-    sidebarAutoSettleOnMerge: true,
+    sidebarAutoMarkDoneAfterDays: 7,
+    sidebarAutoMarkDoneOnMerge: true,
     newWorktreesStartFromOrigin: false,
     continueThreadsAfterServerUpdate: false,
   },
 };
 
-describe("auto-settle settings sync", () => {
+describe("auto-mark-done settings sync", () => {
   it("ignores differences in independently configured environment settings", () => {
     const target = {
       environmentId: EnvironmentId.make("remote"),
@@ -30,23 +30,23 @@ describe("auto-settle settings sync", () => {
       },
     };
 
-    const plan = planAutoSettleSettingsSync(reference, [target]);
+    const plan = planAutoMarkDoneSettingsSync(reference, [target]);
 
     expect(plan.mismatches).toEqual([]);
     expect(plan.patch).toEqual({
-      sidebarAutoSettleAfterDays: 7,
-      sidebarAutoSettleOnMerge: true,
+      sidebarAutoMarkDoneAfterDays: 7,
+      sidebarAutoMarkDoneOnMerge: true,
     });
   });
 
-  it("applies only auto-settle defaults when another environment differs", () => {
+  it("applies only auto-mark-done defaults when another environment differs", () => {
     const target = {
       environmentId: EnvironmentId.make("remote"),
       label: "Remote",
       settings: {
         ...reference.settings,
-        sidebarAutoSettleAfterDays: null,
-        sidebarAutoSettleOnMerge: false,
+        sidebarAutoMarkDoneAfterDays: null,
+        sidebarAutoMarkDoneOnMerge: false,
         newWorktreesStartFromOrigin: true,
         continueThreadsAfterServerUpdate: true,
         sourceControlWritingStyle: {
@@ -56,19 +56,19 @@ describe("auto-settle settings sync", () => {
       },
     };
 
-    const plan = planAutoSettleSettingsSync(reference, [target]);
+    const plan = planAutoMarkDoneSettingsSync(reference, [target]);
     const updated = { ...target.settings, ...plan.patch };
 
     expect(plan.mismatches).toEqual([target]);
-    expect(updated.sidebarAutoSettleAfterDays).toBe(7);
-    expect(updated.sidebarAutoSettleOnMerge).toBe(true);
+    expect(updated.sidebarAutoMarkDoneAfterDays).toBe(7);
+    expect(updated.sidebarAutoMarkDoneOnMerge).toBe(true);
     expect(updated.newWorktreesStartFromOrigin).toBe(true);
     expect(updated.continueThreadsAfterServerUpdate).toBe(true);
     expect(updated.sourceControlWritingStyle).toEqual(target.settings.sourceControlWritingStyle);
   });
 
   it("does not compare the reference or a target without loaded settings", () => {
-    const plan = planAutoSettleSettingsSync(reference, [
+    const plan = planAutoMarkDoneSettingsSync(reference, [
       { ...reference, label: "Reference" },
       { environmentId: EnvironmentId.make("loading"), label: "Loading", settings: null },
     ]);
@@ -82,10 +82,10 @@ describe("auto-settle settings sync", () => {
       environmentId: reference.environmentId,
       projectId: ProjectId.make("two"),
       label: "Other checkout",
-      settings: { ...reference.settings, sidebarAutoSettleAfterDays: null },
+      settings: { ...reference.settings, sidebarAutoMarkDoneAfterDays: null },
     };
 
-    expect(planAutoSettleSettingsSync(projectReference, [otherCheckout]).mismatches).toEqual([
+    expect(planAutoMarkDoneSettingsSync(projectReference, [otherCheckout]).mismatches).toEqual([
       otherCheckout,
     ]);
   });

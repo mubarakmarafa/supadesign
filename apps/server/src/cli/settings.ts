@@ -34,8 +34,11 @@ const SETTABLE_SETTINGS = {
   defaultRuntimeMode: { kind: "string", expected: RuntimeMode.literals.join(" | ") },
   enableAgentDeviceAccess: BOOLEAN_SETTING,
   enableDeviceSupport: BOOLEAN_SETTING,
-  sidebarAutoSettleAfterDays: { kind: "number-or-null", expected: "a number from 1 to 90 or null" },
-  sidebarAutoSettleOnMerge: BOOLEAN_SETTING,
+  sidebarAutoMarkDoneAfterDays: {
+    kind: "number-or-null",
+    expected: "a number from 1 to 90 or null",
+  },
+  sidebarAutoMarkDoneOnMerge: BOOLEAN_SETTING,
   autoResumeLimitedThreads: BOOLEAN_SETTING,
   snoozeLimitedThreads: BOOLEAN_SETTING,
   defaultThreadEnvMode: {

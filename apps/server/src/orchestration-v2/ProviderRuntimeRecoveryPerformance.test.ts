@@ -55,7 +55,7 @@ const providerInstanceId = ProviderInstanceId.make("codex");
 const driver = ProviderDriverKind.make("codex");
 const modelSelection = { instanceId: providerInstanceId, model: "gpt-5.4" };
 const projectId = ProjectId.make("project:recovery-bench");
-const ITEMS_PER_SETTLED_THREAD = 10;
+const ITEMS_PER_DONE_THREAD = 10;
 const OPEN_ITEMS_PER_ACTIVE_THREAD = 3;
 const WAITING_THREADS = 3;
 const SEED_BATCH = 500;
@@ -111,8 +111,8 @@ const seedScenario = Effect.fn(function* (scenario: Scenario) {
         createdAt: now,
         updatedAt: now,
         archivedAt: null,
-        settledOverride: null,
-        settledAt: null,
+        doneOverride: null,
+        doneAt: null,
         lastVisitedAt: null,
         deletedAt: null,
         ...overrides,
@@ -186,11 +186,11 @@ const seedScenario = Effect.fn(function* (scenario: Scenario) {
       },
     });
 
-  const settledThread = Effect.fn(function* (index: number) {
+  const doneThread = Effect.fn(function* (index: number) {
     const threadId = ThreadId.make(`thread:bench:settled:${index}`);
     yield* thread(threadId);
     const runId = yield* run(threadId, 1, "completed");
-    for (let ordinal = 1; ordinal <= ITEMS_PER_SETTLED_THREAD; ordinal += 1) {
+    for (let ordinal = 1; ordinal <= ITEMS_PER_DONE_THREAD; ordinal += 1) {
       yield* commandItem({ threadId, runId, ordinal, status: "completed" });
     }
     // ~5% of threads carry a queued follow-up; half are already held, and an
@@ -357,7 +357,7 @@ const seedScenario = Effect.fn(function* (scenario: Scenario) {
     yield* sql.withTransaction(
       Effect.gen(function* () {
         for (let index = start; index < end; index += 1) {
-          if (yield* settledThread(index)) unheldQueuedThreads += 1;
+          if (yield* doneThread(index)) unheldQueuedThreads += 1;
         }
       }),
     );

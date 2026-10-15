@@ -696,31 +696,31 @@ describe("ClientSettings follow-up behavior", () => {
   });
 });
 
-describe("ServerSettings thread settlement", () => {
-  it("defaults merge settlement off and inactivity settlement to three days", () => {
+describe("ServerSettings thread completion", () => {
+  it("defaults merge completion off and inactivity completion to three days", () => {
     const settings = decodeServerSettings({});
-    expect(settings.sidebarAutoSettleAfterDays).toBe(3);
-    expect(settings.sidebarAutoSettleOnMerge).toBe(false);
+    expect(settings.sidebarAutoMarkDoneAfterDays).toBe(3);
+    expect(settings.sidebarAutoMarkDoneOnMerge).toBe(false);
   });
 
   it("allows both automatic rules to be disabled", () => {
     expect(
       decodeServerSettings({
-        sidebarAutoSettleAfterDays: null,
-        sidebarAutoSettleOnMerge: false,
+        sidebarAutoMarkDoneAfterDays: null,
+        sidebarAutoMarkDoneOnMerge: false,
       }),
-    ).toMatchObject({ sidebarAutoSettleAfterDays: null, sidebarAutoSettleOnMerge: false });
+    ).toMatchObject({ sidebarAutoMarkDoneAfterDays: null, sidebarAutoMarkDoneOnMerge: false });
     expect(
       decodeServerSettingsPatch({
-        sidebarAutoSettleAfterDays: null,
-        sidebarAutoSettleOnMerge: false,
+        sidebarAutoMarkDoneAfterDays: null,
+        sidebarAutoMarkDoneOnMerge: false,
       }),
-    ).toMatchObject({ sidebarAutoSettleAfterDays: null, sidebarAutoSettleOnMerge: false });
+    ).toMatchObject({ sidebarAutoMarkDoneAfterDays: null, sidebarAutoMarkDoneOnMerge: false });
   });
 
-  it.each([-1, 0, 91])("rejects an auto-settle threshold outside 1..90: %s", (value) => {
-    expect(() => decodeServerSettings({ sidebarAutoSettleAfterDays: value })).toThrow();
-    expect(() => decodeServerSettingsPatch({ sidebarAutoSettleAfterDays: value })).toThrow();
+  it.each([-1, 0, 91])("rejects an auto-mark done threshold outside 1..90: %s", (value) => {
+    expect(() => decodeServerSettings({ sidebarAutoMarkDoneAfterDays: value })).toThrow();
+    expect(() => decodeServerSettingsPatch({ sidebarAutoMarkDoneAfterDays: value })).toThrow();
   });
 });
 

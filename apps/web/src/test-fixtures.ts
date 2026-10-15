@@ -45,8 +45,8 @@ export function makeThreadProjectionFixture(): OrchestrationV2ThreadProjection {
       createdAt: now,
       updatedAt: now,
       archivedAt: null,
-      settledOverride: null,
-      settledAt: null,
+      doneOverride: null,
+      doneAt: null,
       lastVisitedAt: null,
       deletedAt: null,
     },
@@ -127,11 +127,11 @@ export function makeThreadFixture(overrides: ThreadFixtureOverrides = {}): Threa
     createdAt,
     updatedAt,
     archivedAt,
-    settledOverride: overrides.settledOverride ?? null,
-    settledAt:
-      overrides.settledAt === null || overrides.settledAt === undefined
+    doneOverride: overrides.doneOverride ?? null,
+    doneAt:
+      overrides.doneAt === null || overrides.doneAt === undefined
         ? null
-        : DateTime.makeUnsafe(overrides.settledAt),
+        : DateTime.makeUnsafe(overrides.doneAt),
     deletedAt,
   });
 

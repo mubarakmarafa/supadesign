@@ -67,15 +67,15 @@ export function setupProjectScript(scripts: readonly ProjectScript[]): ProjectSc
   return scripts.find((script) => script.runOnWorktreeCreate) ?? null;
 }
 
-/** Menu label naming the lifecycle roles a script runs in, e.g. "Clean (on settle)". */
+/** Menu label naming the lifecycle roles a script runs in, e.g. "Clean (on done)". */
 export function projectScriptMenuLabel(script: ProjectScript): string {
   const roles = [
     ...(script.runOnWorktreeCreate ? ["setup"] : []),
-    ...(script.runOnSettle ? ["on settle"] : []),
+    ...(script.runOnDone ? ["on done"] : []),
   ];
   return roles.length === 0 ? script.name : `${script.name} (${roles.join(", ")})`;
 }
 
-export function settleProjectScript(scripts: readonly ProjectScript[]): ProjectScript | null {
-  return scripts.find((script) => script.runOnSettle === true) ?? null;
+export function doneProjectScript(scripts: readonly ProjectScript[]): ProjectScript | null {
+  return scripts.find((script) => script.runOnDone === true) ?? null;
 }

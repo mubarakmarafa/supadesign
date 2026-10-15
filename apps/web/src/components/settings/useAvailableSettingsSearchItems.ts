@@ -12,7 +12,7 @@ import { isProviderSettingsEnvironmentAvailable } from "./ProviderSettingsPanel.
 import type { SettingsScopeSearch } from "./settingsScope";
 import {
   filterAvailableSettingsSearchItems,
-  getThreadAutoSettlementSearchAvailability,
+  getThreadAutoMarkDoneSearchAvailability,
 } from "./settingsSearch";
 
 export function useAvailableSettingsSearchItems(scopeSearch: SettingsScopeSearch = {}) {
@@ -50,8 +50,8 @@ export function useAvailableSettingsSearchItems(scopeSearch: SettingsScopeSearch
           state: desktopWsl.data,
           error: desktopWsl.error,
         }),
-        hasThreadAutoSettlement:
-          getThreadAutoSettlementSearchAvailability(environments).eligibleEnvironmentIds.length > 0,
+        hasThreadAutoMarkDone:
+          getThreadAutoMarkDoneSearchAvailability(environments).eligibleEnvironmentIds.length > 0,
       }),
     [canManageLocalBackend, desktopWsl.data, desktopWsl.error, environments, scopeSearch.machine],
   );

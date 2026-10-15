@@ -122,14 +122,14 @@ export interface EnvironmentThreadShell {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly archivedAt: string | null;
-  readonly settledOverride: "settled" | "active" | null;
-  readonly settledAt: string | null;
-  readonly unsettledAt: string | null;
+  readonly doneOverride: "done" | "active" | null;
+  readonly doneAt: string | null;
+  readonly reopenedAt: string | null;
   readonly snoozedUntil: string | null;
   readonly snoozedAt: string | null;
   readonly limitRecovery?: import("@supaterm/contracts").OrchestrationV2LimitRecovery | null;
   readonly pinnedAt: string | null;
-  readonly autoSettleDisabledAt?: string | null;
+  readonly autoMarkDoneDisabledAt?: string | null;
   /** Slot in the user-arranged pinned order; null for keyless (legacy) pins. */
   readonly pinOrderKey: string | null;
   /** Slot in the user-arranged active order; null for keyless active threads. */
@@ -268,14 +268,14 @@ export function presentThreadShell(
     createdAt: iso(thread.createdAt),
     updatedAt,
     archivedAt: nullableIso(thread.archivedAt),
-    settledOverride: thread.settledOverride,
-    settledAt: nullableIso(thread.settledAt),
-    unsettledAt: nullableIso(thread.unsettledAt ?? null),
+    doneOverride: thread.doneOverride,
+    doneAt: nullableIso(thread.doneAt),
+    reopenedAt: nullableIso(thread.reopenedAt ?? null),
     snoozedUntil: nullableIso(thread.snoozedUntil ?? null),
     snoozedAt: nullableIso(thread.snoozedAt ?? null),
     limitRecovery: thread.limitRecovery ?? null,
     pinnedAt: nullableIso(thread.pinnedAt ?? null),
-    autoSettleDisabledAt: nullableIso(thread.autoSettleDisabledAt ?? null),
+    autoMarkDoneDisabledAt: nullableIso(thread.autoMarkDoneDisabledAt ?? null),
     pinOrderKey: thread.pinOrderKey ?? null,
     activeOrderKey: thread.activeOrderKey ?? null,
     ...(thread.lastVisitedAt === undefined

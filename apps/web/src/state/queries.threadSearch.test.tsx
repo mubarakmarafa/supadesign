@@ -36,7 +36,7 @@ describe("useThreadSearch", () => {
     vi.useRealTimers();
   });
 
-  it("keeps the settled query and matches stable while typing, then reports the settled query", () => {
+  it("keeps the done query and matches stable while typing, then reports the done query", () => {
     const results: ThreadSearch[] = [];
     const render = (query: string) => {
       const element = <Probe query={query} onResult={(result) => results.push(result)} />;
@@ -56,9 +56,9 @@ describe("useThreadSearch", () => {
     act(() => {
       vi.advanceTimersByTime(200);
     });
-    const settled = results.at(-1)!;
-    expect(settled.query).toBe("link");
-    expect(settled.matches).toBe(searchResults.matches);
-    expect(settled.isPending).toBe(false);
+    const done = results.at(-1)!;
+    expect(done.query).toBe("link");
+    expect(done.matches).toBe(searchResults.matches);
+    expect(done.isPending).toBe(false);
   });
 });

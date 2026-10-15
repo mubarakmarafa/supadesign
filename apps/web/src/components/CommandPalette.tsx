@@ -1370,7 +1370,7 @@ function OpenCommandPaletteDialog(props: {
             <ThreadSearchPullRequestNumber
               thread={thread}
               query={threadSearchQuery}
-              settled={thread.settledOverride === "settled"}
+              done={thread.doneOverride === "done"}
             />
             <ThreadRowTrailingStatus thread={thread} />
           </>
@@ -2525,7 +2525,7 @@ function OpenCommandPaletteDialog(props: {
           existing.id,
           clientSettings.sidebarThreadSortOrder,
         );
-        if (latestThread && latestThread.settledOverride !== "settled") {
+        if (latestThread && latestThread.doneOverride !== "done") {
           await navigate({
             to: "/$environmentId/$threadId",
             params: buildThreadRouteParams(

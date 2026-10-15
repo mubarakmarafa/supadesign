@@ -174,23 +174,23 @@ describe("mobile storage", () => {
   it("persists thread list shelf preferences", async () => {
     await expect(
       savePreferencesPatch({
-        threadListSettledShelfExpanded: false,
+        threadListDoneShelfExpanded: false,
         threadListSnoozedShelfExpanded: true,
         threadListWorkingShelfExpanded: true,
       }),
     ).resolves.toEqual({
-      threadListSettledShelfExpanded: false,
+      threadListDoneShelfExpanded: false,
       threadListSnoozedShelfExpanded: true,
       threadListWorkingShelfExpanded: true,
     });
 
     await expect(loadPreferences()).resolves.toEqual({
-      threadListSettledShelfExpanded: false,
+      threadListDoneShelfExpanded: false,
       threadListSnoozedShelfExpanded: true,
       threadListWorkingShelfExpanded: true,
     });
     expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({
-      threadListSettledShelfExpanded: false,
+      threadListDoneShelfExpanded: false,
       threadListSnoozedShelfExpanded: true,
       threadListWorkingShelfExpanded: true,
     });
@@ -200,7 +200,7 @@ describe("mobile storage", () => {
     mocks.setPreferencesJson(
       JSON.stringify({
         baseFontSize: 17,
-        threadListSettledShelfExpanded: "false",
+        threadListDoneShelfExpanded: "false",
         threadListSnoozedShelfExpanded: 1,
       }),
       10,

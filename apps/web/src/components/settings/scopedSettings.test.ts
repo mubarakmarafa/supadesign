@@ -199,7 +199,7 @@ describe("scoped settings writes", () => {
     const persistServer = vi.fn().mockResolvedValue({ _tag: "Success" });
     const persistClient = vi.fn();
     await persistScopedSettingsPatch(
-      planScopedSettingsPatch(named, environments, { sidebarAutoSettleOnMerge: false }),
+      planScopedSettingsPatch(named, environments, { sidebarAutoMarkDoneOnMerge: false }),
       persistServer,
       persistClient,
     );
@@ -207,7 +207,7 @@ describe("scoped settings writes", () => {
       [
         {
           environmentId: server.environmentId,
-          input: { patch: { sidebarAutoSettleOnMerge: false } },
+          input: { patch: { sidebarAutoMarkDoneOnMerge: false } },
         },
       ],
     ]);

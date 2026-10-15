@@ -1,7 +1,7 @@
 import { appAtomRegistry } from "../../state/atom-registry";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
-import { effectiveSnoozed } from "@supaterm/client-runtime/state/thread-settled";
+import { effectiveSnoozed } from "@supaterm/client-runtime/state/thread-snooze";
 import { sortInboxThreadsByReturn } from "@supaterm/client-runtime/state/thread-inbox";
 import {
   type ReactNode,
@@ -42,7 +42,7 @@ import { getThreadListV2OrderedSection, threadListInboxReturns } from "./threadL
 const ROW_HEIGHT = 56;
 const HEADER_HEIGHT = 48;
 const keyOf = (thread: EnvironmentThreadShell) => scopedThreadKey(thread.environmentId, thread.id);
-type Section = "pinned" | "active" | "snoozed" | "settled";
+type Section = "pinned" | "active" | "snoozed" | "done";
 type Destination = Exclude<ThreadMoveDestination, string>;
 type Row = {
   key: string;
@@ -96,8 +96,8 @@ type DragHandleProps = {
   onMove: (translation: number) => void;
   onEnd: (cancelled: boolean) => void;
   onStep: (direction: "up" | "down") => void;
-  sectionActions: readonly { name: "pinned" | "active" | "settled"; label: string }[];
-  onSectionMove: (section: "pinned" | "active" | "settled") => void;
+  sectionActions: readonly { name: "pinned" | "active" | "done"; label: string }[];
+  onSectionMove: (section: "pinned" | "active" | "done") => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
 };
@@ -175,7 +175,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
   const dropBusy = useAtomValue(threadDropBusyAtom);
   const { moveThread } = useThreadListActions();
   const [now, setNow] = useState(() => new Date().toISOString());
-  const [expanded, setExpanded] = useState({ snoozed: false, settled: false });
+  const [expanded, setExpanded] = useState({ snoozed: false, done: false });
   useEffect(() => {
     const wakeAt = Math.min(
       ...threads.flatMap((thread) => {
@@ -208,7 +208,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
       // The inbox is ordered by time; show that order here too.
       active: sortInboxThreadsByReturn(active, threadListInboxReturns.returnedAt),
       snoozed: parked.filter((thread) => effectiveSnoozed(thread, { now })),
-      settled: parked.filter((thread) => !effectiveSnoozed(thread, { now })),
+      done: parked.filter((thread) => !effectiveSnoozed(thread, { now })),
     };
   }, [threads, now, queuedThreadKeys, pendingOrder]);
   // Only Pinned has slots. The inbox is time-ordered, so a drop into Active
@@ -226,11 +226,11 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
   const rows = useMemo(() => {
     const result: Row[] = [];
     let offset = 0;
-    for (const section of ["pinned", "active", "snoozed", "settled"] as const) {
+    for (const section of ["pinned", "active", "snoozed", "done"] as const) {
       if (section === "snoozed" && sections[section].length === 0) continue;
       result.push({ key: section, section, offset, height: HEADER_HEIGHT });
       offset += HEADER_HEIGHT;
-      if ((section === "snoozed" || section === "settled") && !expanded[section]) continue;
+      if ((section === "snoozed" || section === "done") && !expanded[section]) continue;
       for (const thread of sections[section]) {
         result.push({ key: keyOf(thread), section, thread, offset, height: ROW_HEIGHT });
         offset += ROW_HEIGHT;
@@ -290,7 +290,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
       target &&
       y >= 0 &&
       y <= height &&
-      (target.section === "pinned" || target.section === "active" || target.section === "settled")
+      (target.section === "pinned" || target.section === "active" || target.section === "done")
     ) {
       const loaded = configs.has(current.thread.environmentId);
       const candidate: Destination = {
@@ -299,9 +299,9 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
         placement:
           !target.thread || contentY < target.offset + target.height / 2 ? "before" : "after",
       };
-      if (target.section === "settled") {
-        if (current.sourceSection !== "settled" && loaded)
-          destination = { section: "settled", targetId: null, placement: "before" };
+      if (target.section === "done") {
+        if (current.sourceSection !== "done" && loaded)
+          destination = { section: "done", targetId: null, placement: "before" };
       } else if (target.section === "active") {
         if (canMoveThreadToActive(current.sourceSection, loaded))
           destination = { section: "active", targetId: null, placement: "before" };
@@ -396,7 +396,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
             </Pressable>
           </View>
           <Text className="px-5 pb-3 text-sm text-foreground-muted">
-            Drag to reorder, pin, or settle. Changes save when you drop.
+            Drag to reorder, pin, or mark as done. Changes save when you drop.
           </Text>
           <View
             onLayout={(event) => {
@@ -425,14 +425,14 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
                 const planner = item.section === "pinned" ? pinnedPlanner : null;
                 const loaded = thread != null && configs.has(thread.environmentId);
                 const sectionActions = thread
-                  ? (["pinned", "active", "settled"] as const).flatMap<{
-                      name: "pinned" | "active" | "settled";
+                  ? (["pinned", "active", "done"] as const).flatMap<{
+                      name: "pinned" | "active" | "done";
                       label: string;
                     }>((section) => {
                       if (section === item.section) return [];
                       const label = threadDragAction(item.section, section);
                       if (!label) return [];
-                      if (section === "settled") return loaded ? [{ name: section, label }] : [];
+                      if (section === "done") return loaded ? [{ name: section, label }] : [];
                       if (section === "active")
                         return canMoveThreadToActive(item.section, loaded)
                           ? [{ name: section, label }]
@@ -507,7 +507,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
                         className="flex-1 justify-center self-stretch"
                         onPress={() => {
                           const section = item.section;
-                          if (section === "snoozed" || section === "settled")
+                          if (section === "snoozed" || section === "done")
                             setExpanded((value) => ({ ...value, [section]: !value[section] }));
                         }}
                       >

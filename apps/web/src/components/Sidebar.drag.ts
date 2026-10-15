@@ -18,7 +18,7 @@ const isShelfHeader = (item: SidebarListItem | undefined) =>
   item?.kind === "marker" &&
   (item.marker === "working-header" ||
     item.marker === "snoozed-header" ||
-    item.marker === "settled-header");
+    item.marker === "done-header");
 
 /** Keep the lifted card below the Pins label, including when Pins is empty.
  * The container rect follows scrolling; the offset is measured once at pickup. */
@@ -63,7 +63,7 @@ export function createSidebarCollisionDetection(
       if (pointer.x >= boundary.left && pointer.x <= boundary.right) {
         if (pointer.y < previousY && pointer.y <= boundary.bottom) boundarySection = "pinned";
         else if (pointer.y > previousY && pointer.y >= boundary.top) boundarySection = "active";
-        const nextHeader = (["working-header", "snoozed-header", "settled-header"] as const)
+        const nextHeader = (["working-header", "snoozed-header", "done-header"] as const)
           .map((marker) =>
             args.droppableContainers.find((container) => container.id === sidebarMarkerId(marker)),
           )
@@ -102,11 +102,11 @@ export function createSidebarSortingStrategy(input: {
   items: readonly SidebarListItem[];
   /** Suspend the reorder preview while the thread is dragged out as context. */
   enabled?: boolean;
-  settledOrder: readonly string[];
+  doneOrder: readonly string[];
   /** Time-ordered inbox: where the lifted row would land. */
   activeOrder?: readonly string[];
-  settledExpanded: boolean;
-  settledVisibleCount?: number;
+  doneExpanded: boolean;
+  doneVisibleCount?: number;
   routeThreadKey?: string | null;
   snoozedThreadCount?: number;
   cardHeight?: number;
@@ -132,7 +132,7 @@ export function createSidebarSortingStrategy(input: {
       active: [],
       working: [],
       snoozed: [],
-      settled: [],
+      done: [],
     };
     let cardHeight = input.cardHeight;
     let slimHeight = input.slimHeight;
@@ -160,8 +160,8 @@ export function createSidebarSortingStrategy(input: {
     const order =
       target.section === "pinned"
         ? target.pinnedOrder
-        : target.section === "settled"
-          ? input.settledOrder
+        : target.section === "done"
+          ? input.doneOrder
           : (input.activeOrder ?? target.activeOrder);
     const ranks = new Map(order.map((key, index) => [key, index]));
     const rank = ranks.get(active.key) ?? Number.POSITIVE_INFINITY;
@@ -169,19 +169,19 @@ export function createSidebarSortingStrategy(input: {
       (item) => (ranks.get(item.key) ?? Number.POSITIVE_INFINITY) > rank,
     );
     group.splice(index < 0 ? group.length : index, 0, { ...active, section: target.section });
-    const settledOrder = (
-      input.settledOrder.length > 0 ? input.settledOrder : groups.settled.map((item) => item.key)
-    ).filter((key) => key !== active.key || target.section === "settled");
+    const doneOrder = (
+      input.doneOrder.length > 0 ? input.doneOrder : groups.done.map((item) => item.key)
+    ).filter((key) => key !== active.key || target.section === "done");
     const routeKey = input.routeThreadKey;
     const visible = pageRecentThreads(
-      settledOrder,
-      input.settledExpanded ? (input.settledVisibleCount ?? settledOrder.length) : 0,
+      doneOrder,
+      input.doneExpanded ? (input.doneVisibleCount ?? doneOrder.length) : 0,
       routeKey === null ? null : (key) => key === routeKey,
     );
-    groups.settled = visible.map((key) => ({ kind: "thread", key, section: "settled" }));
+    groups.done = visible.map((key) => ({ kind: "thread", key, section: "done" }));
     const projected: SidebarListItem[] = [];
     const marker = (name: SidebarListMarker) => projected.push({ kind: "marker", marker: name });
-    const section = (name: "active" | "settled") => {
+    const section = (name: "active" | "done") => {
       if (groups[name].length > 0) projected.push(...groups[name]);
       else marker(`${name}-placeholder`);
     };
@@ -205,11 +205,11 @@ export function createSidebarSortingStrategy(input: {
       marker("snoozed-header");
       projected.push(...groups.snoozed);
     }
-    marker("settled-header");
-    if (items.some((item) => item.kind === "marker" && item.marker === "settled-more")) {
-      marker("settled-more");
+    marker("done-header");
+    if (items.some((item) => item.kind === "marker" && item.marker === "done-more")) {
+      marker("done-more");
     }
-    section("settled");
+    section("done");
     const heights = projected.map((item) => {
       const index = indices.get(sidebarListItemId(item));
       const rect = index === undefined ? undefined : rects[index];

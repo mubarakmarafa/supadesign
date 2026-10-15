@@ -10,7 +10,7 @@ function thread(id: string, working: boolean) {
     id: ThreadId.make(id),
     environmentId,
     createdAt: "2026-06-01T00:00:00.000Z",
-    unsettledAt: null,
+    reopenedAt: null,
     latestRun: null,
     hasActionableProposedPlan: false,
     hasPendingApprovals: false,

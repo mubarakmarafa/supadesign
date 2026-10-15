@@ -43,10 +43,10 @@ describe("splitSharedServerPatch", () => {
   it("keeps project overrides local: project ids belong to one environment", () => {
     const patch = {
       projectSettingsOverrides: { [ProjectId.make("project")]: { defaultAutoPull: true } },
-      sidebarAutoSettleOnMerge: false,
+      sidebarAutoMarkDoneOnMerge: false,
     };
     expect(splitSharedServerPatch(patch)).toEqual({
-      sharedPatch: { sidebarAutoSettleOnMerge: false },
+      sharedPatch: { sidebarAutoMarkDoneOnMerge: false },
       localPatch: { projectSettingsOverrides: patch.projectSettingsOverrides },
     });
   });
@@ -94,16 +94,16 @@ describe("splitSharedServerPatch", () => {
 
   it("routes preference keys to the shared patch and machine keys to the local patch", () => {
     const { sharedPatch, localPatch } = splitSharedServerPatch({
-      sidebarAutoSettleAfterDays: 7,
-      sidebarAutoSettleOnMerge: false,
+      sidebarAutoMarkDoneAfterDays: 7,
+      sidebarAutoMarkDoneOnMerge: false,
       continueThreadsAfterServerUpdate: true,
       enableAgentBrowserAccess: false,
       defaultThreadEnvMode: "worktree",
       newWorktreesStartFromOrigin: true,
     });
     expect(sharedPatch).toEqual({
-      sidebarAutoSettleAfterDays: 7,
-      sidebarAutoSettleOnMerge: false,
+      sidebarAutoMarkDoneAfterDays: 7,
+      sidebarAutoMarkDoneOnMerge: false,
       continueThreadsAfterServerUpdate: true,
       newWorktreesStartFromOrigin: true,
     });
@@ -120,8 +120,8 @@ describe("pickSharedServerSettings", () => {
       "autoResumeLimitedThreads",
       "continueThreadsAfterServerUpdate",
       "newWorktreesStartFromOrigin",
-      "sidebarAutoSettleAfterDays",
-      "sidebarAutoSettleOnMerge",
+      "sidebarAutoMarkDoneAfterDays",
+      "sidebarAutoMarkDoneOnMerge",
       "snoozeLimitedThreads",
       "sourceControlWritingStyle",
       "textGenerationModelSelection",
@@ -151,14 +151,14 @@ describe("filterSharedServerPatch", () => {
       const patch = {
         textGenerationModelSelection: DEFAULT_SERVER_SETTINGS.textGenerationModelSelection,
         continueThreadsAfterServerUpdate: true,
-        sidebarAutoSettleAfterDays: 7,
+        sidebarAutoMarkDoneAfterDays: 7,
       };
       expect(filterSharedServerPatch(patch, settings, settings, targetIsSource)).toEqual({
         ...(targetIsSource
           ? { textGenerationModelSelection: DEFAULT_SERVER_SETTINGS.textGenerationModelSelection }
           : {}),
         continueThreadsAfterServerUpdate: true,
-        sidebarAutoSettleAfterDays: 7,
+        sidebarAutoMarkDoneAfterDays: 7,
       });
     },
   );
@@ -183,7 +183,7 @@ describe("filterSharedServerPatch", () => {
         ...DEFAULT_SERVER_SETTINGS,
         providerInstances: availability === "missing" ? {} : { [instanceId]: instance },
       };
-      const patch = { sidebarAutoSettleAfterDays: 7, textGenerationModelSelection: selection };
+      const patch = { sidebarAutoMarkDoneAfterDays: 7, textGenerationModelSelection: selection };
       const sourceSettings = {
         ...settings,
         providerInstances: {
@@ -191,7 +191,7 @@ describe("filterSharedServerPatch", () => {
         },
       };
       expect(filterSharedServerPatch(patch, settings, sourceSettings)).toEqual(
-        availability === "enabled" ? patch : { sidebarAutoSettleAfterDays: 7 },
+        availability === "enabled" ? patch : { sidebarAutoMarkDoneAfterDays: 7 },
       );
       const primarySettings = {
         ...sourceSettings,
@@ -211,7 +211,7 @@ describe("filterSharedServerPatch", () => {
 });
 
 describe("findSharedSettingsMismatches", () => {
-  const primarySettings = { ...DEFAULT_SERVER_SETTINGS, sidebarAutoSettleAfterDays: 7 };
+  const primarySettings = { ...DEFAULT_SERVER_SETTINGS, sidebarAutoMarkDoneAfterDays: 7 };
 
   it.each([true, false])(
     "detects remote restart continuation drift when the preference is %s",

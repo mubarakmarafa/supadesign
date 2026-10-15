@@ -30,7 +30,7 @@ import * as McpInvocationContext from "../../McpInvocationContext.ts";
 
 const ThreadOrganizeTool = Tool.make("supaterm_thread_organize", {
   description:
-    "Pin, snooze, settle, archive, or mark a thread unread. Omit threadId for this thread. snooze requires snoozedUntil. Existing thread lifecycle rules apply. Settling this thread takes effect when your turn completes, returning settlesWhenTurnEnds=true; a turn that fails or is interrupted, or a queued message, leaves it active.",
+    "Pin, snooze, mark as done, reopen, archive, or mark a thread unread. Omit threadId for this thread. snooze requires snoozedUntil. Existing thread lifecycle rules apply. Marking this thread as done takes effect when your turn completes, returning marksDoneWhenTurnEnds=true; a turn that fails or is interrupted, or a queued message, leaves it active.",
   parameters: Schema.Struct({
     threadId: Schema.optional(ThreadId),
     action: Schema.Literals([
@@ -38,8 +38,8 @@ const ThreadOrganizeTool = Tool.make("supaterm_thread_organize", {
       "unpin",
       "snooze",
       "unsnooze",
-      "settle",
-      "unsettle",
+      "mark_done",
+      "reopen",
       "archive",
       "unarchive",
       "mark_unread",
@@ -48,7 +48,7 @@ const ThreadOrganizeTool = Tool.make("supaterm_thread_organize", {
   }),
   success: Schema.Union([
     OrchestrationV2DispatchCommandResult,
-    Schema.Struct({ settlesWhenTurnEnds: Schema.Literal(true) }),
+    Schema.Struct({ marksDoneWhenTurnEnds: Schema.Literal(true) }),
   ]),
   failure: OrchestratorMcpFailure,
   failureMode: "return" as const,

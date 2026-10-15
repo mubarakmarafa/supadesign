@@ -505,8 +505,8 @@ export function buildLocalDraftThread(
     createdAt: timestamp,
     updatedAt: timestamp,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     deletedAt: null,
   });
 }

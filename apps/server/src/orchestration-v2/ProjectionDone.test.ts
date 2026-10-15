@@ -23,7 +23,7 @@ import * as Statement from "effect/sql/Statement";
 
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
-import { isAutoSettlementCandidate, resolveAutoSettlementAt } from "./ThreadSettlementService.ts";
+import { isAutoMarkDoneCandidate, resolveAutoMarkDoneAt } from "./ThreadDoneService.ts";
 
 const layerSql = ProjectionStore.layer.pipe(Layer.provideMerge(SqlitePersistence.layerMemory));
 const now = DateTime.makeUnsafe("2026-09-04T12:00:00Z");
@@ -37,12 +37,12 @@ const createThread = Effect.fn(function* (
   overrides: Partial<OrchestrationV2AppThread> = {},
 ) {
   const store = yield* ProjectionStore.ProjectionStoreV2;
-  const threadId = ThreadId.make(`thread:settlement:${name}`);
+  const threadId = ThreadId.make(`thread:done:${name}`);
   const thread: OrchestrationV2AppThread = {
     createdBy: "user",
     creationSource: "web",
     id: threadId,
-    projectId: ProjectId.make("project:settlement"),
+    projectId: ProjectId.make("project:completion"),
     title: name,
     providerInstanceId,
     modelSelection,
@@ -56,8 +56,8 @@ const createThread = Effect.fn(function* (
     createdAt: old,
     updatedAt: old,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     deletedAt: null,
     ...overrides,
@@ -144,7 +144,7 @@ it.effect.each([
   ["sql", layerSql],
   ["memory", ProjectionStore.layerMemory],
 ] as const)(
-  "%s: discovers settlement work with the same activity and background semantics as the shell",
+  "%s: discovers completion work with the same activity and background semantics as the shell",
   ([, testLayer]) =>
     Effect.gen(function* () {
       const store = yield* ProjectionStore.ProjectionStoreV2;
@@ -154,10 +154,10 @@ it.effect.each([
       for (const [name, overrides] of [
         ["archived", { archivedAt: old }],
         ["deleted", { deletedAt: old }],
-        ["settled", { settledOverride: "settled" }],
-        ["unsettled", { settledOverride: "active" }],
+        ["done", { doneOverride: "done" }],
+        ["open", { doneOverride: "active" }],
         ["pinned", { pinnedAt: old }],
-        ["auto-settle-disabled", { autoSettleDisabledAt: old }],
+        ["auto-mark-done-disabled", { autoMarkDoneDisabledAt: old }],
       ] satisfies ReadonlyArray<readonly [string, Partial<OrchestrationV2AppThread>]>) {
         yield* createRun(yield* createThread(name, overrides));
       }
@@ -168,13 +168,13 @@ it.effect.each([
       yield* createRun(queued, "queued");
       const blocked = yield* createThread("blocked");
       yield* store.apply({
-        id: EventId.make("event:settlement:request"),
+        id: EventId.make("event:completion:request"),
         type: "runtime-request.updated",
         threadId: blocked,
         occurredAt: old,
         payload: {
-          id: RuntimeRequestId.make("request:settlement"),
-          nodeId: NodeId.make("node:settlement"),
+          id: RuntimeRequestId.make("request:completion"),
+          nodeId: NodeId.make("node:completion"),
           providerTurnId: null,
           nativeRequestRef: null,
           kind: "user_input",
@@ -187,14 +187,14 @@ it.effect.each([
       const recent = yield* createThread("recent-message");
       yield* createRun(recent);
       yield* store.apply({
-        id: EventId.make("event:settlement:message"),
+        id: EventId.make("event:completion:message"),
         type: "message.updated",
         threadId: recent,
         occurredAt: now,
         payload: {
           createdBy: "user",
           creationSource: "web",
-          id: MessageId.make("message:settlement:recent"),
+          id: MessageId.make("message:completion:recent"),
           threadId: recent,
           runId: null,
           nodeId: null,
@@ -227,12 +227,12 @@ it.effect.each([
       const roster = yield* createThread("provider-roster");
       yield* createRun(roster);
       yield* store.apply({
-        id: EventId.make("event:settlement:roster"),
+        id: EventId.make("event:completion:roster"),
         type: "provider-thread.updated",
         threadId: roster,
         occurredAt: old,
         payload: {
-          id: ProviderThreadId.make("provider-thread:settlement"),
+          id: ProviderThreadId.make("provider-thread:done"),
           appThreadId: roster,
           ownerNodeId: null,
           driver: ProviderDriverKind.make("codex"),
@@ -250,10 +250,10 @@ it.effect.each([
           pendingBackgroundTasks: [{ taskId: "running-task", kind: "subagent" }],
         },
       });
-      const candidates = yield* store.getSettlementCandidates();
+      const candidates = yield* store.getAutoMarkDoneCandidates();
       const shell = yield* store.getShellSnapshot({ location: "active" });
       const eligible = candidates.filter((thread) =>
-        isAutoSettlementCandidate(thread, DateTime.toEpochMillis(now)),
+        isAutoMarkDoneCandidate(thread, DateTime.toEpochMillis(now)),
       );
       assert.deepEqual(
         new Set(eligible.map((thread) => thread.id)),
@@ -263,7 +263,7 @@ it.effect.each([
         new Set(eligible.map((thread) => thread.id)),
         new Set(
           shell.threads
-            .filter((thread) => isAutoSettlementCandidate(thread, DateTime.toEpochMillis(now)))
+            .filter((thread) => isAutoMarkDoneCandidate(thread, DateTime.toEpochMillis(now)))
             .map((thread) => thread.id),
         ),
       );
@@ -273,12 +273,12 @@ it.effect.each([
         const settings = {
           pullRequest: null,
           nowMs: DateTime.toEpochMillis(now),
-          autoSettleAfterDays: 7,
-          autoSettleOnMerge: false,
+          autoMarkDoneAfterDays: 7,
+          autoMarkDoneOnMerge: false,
         };
         assert.deepEqual(
-          resolveAutoSettlementAt({ ...settings, thread: candidate }),
-          resolveAutoSettlementAt({
+          resolveAutoMarkDoneAt({ ...settings, thread: candidate }),
+          resolveAutoMarkDoneAt({
             ...settings,
             thread: {
               ...expected,
@@ -313,14 +313,14 @@ it.effect.each([
       at: DateTime.Utc,
     ) =>
       store.apply({
-        id: EventId.make(`event:settlement:${id}`),
+        id: EventId.make(`event:completion:${id}`),
         type: "message.updated",
         threadId,
         occurredAt: at,
         payload: {
           createdBy,
           creationSource,
-          id: MessageId.make(`message:settlement:${id}`),
+          id: MessageId.make(`message:completion:${id}`),
           threadId,
           runId: null,
           nodeId: null,
@@ -336,7 +336,7 @@ it.effect.each([
     yield* message("written", "user", "web", written);
     yield* message("notification", "agent", "provider", now);
 
-    const [candidate] = yield* store.getSettlementCandidates(threadId);
+    const [candidate] = yield* store.getAutoMarkDoneCandidates(threadId);
     assert.isDefined(candidate);
     assert.equal(DateTime.formatIso(candidate.latestUserMessageAt!), DateTime.formatIso(now));
     assert.equal(
@@ -379,9 +379,9 @@ it.effect.each([
         archivedAt: old,
         pullRequests: [pullRequestLink(1)],
       });
-      const settled = yield* createThread("settled-link", {
-        settledOverride: "settled",
-        settledAt: old,
+      const done = yield* createThread("done-link", {
+        doneOverride: "done",
+        doneAt: old,
         updatedAt: DateTime.subtract(now, { days: 12 }),
         pullRequests: [pullRequestLink(2)],
       });
@@ -391,9 +391,9 @@ it.effect.each([
 
       const threads = yield* store.getThreadsWithPullRequests();
       assert.deepEqual(
-        threads.map((thread) => [thread.id, thread.settledOverride, thread.pullRequests?.length]),
+        threads.map((thread) => [thread.id, thread.doneOverride, thread.pullRequests?.length]),
         [
-          [settled, "settled", 1],
+          [done, "done", 1],
           [open, null, 2],
         ],
       );
@@ -407,16 +407,16 @@ it.effect.each([
 it.effect.each([
   ["sql", layerSql],
   ["memory", ProjectionStore.layerMemory],
-] as const)("%s: an unsettled-only shell read skips settled threads", ([, testLayer]) =>
+] as const)("%s: an reopened-only shell read skips done threads", ([, testLayer]) =>
   Effect.gen(function* () {
     const store = yield* ProjectionStore.ProjectionStoreV2;
-    const open = yield* createThread("unsettled-open");
-    const reopened = yield* createThread("unsettled-reopened", { settledOverride: "active" });
-    yield* createThread("unsettled-manual", { settledOverride: "settled", settledAt: old });
-    yield* createThread("unsettled-auto", { settledAt: old });
-    yield* createThread("unsettled-archived", { archivedAt: old });
+    const open = yield* createThread("reopened-open");
+    const reopened = yield* createThread("reopened-reopened", { doneOverride: "active" });
+    yield* createThread("reopened-manual", { doneOverride: "done", doneAt: old });
+    yield* createThread("reopened-auto", { doneAt: old });
+    yield* createThread("reopened-archived", { archivedAt: old });
 
-    const shell = yield* store.getShellSnapshot({ location: "active", unsettledOnly: true });
+    const shell = yield* store.getShellSnapshot({ location: "active", openOnly: true });
     assert.deepEqual(new Set(shell.threads.map((thread) => thread.id)), new Set([open, reopened]));
     assert.equal(shell.archivedThreads.length, 0);
     const all = yield* store.getShellSnapshot({ location: "active" });
@@ -425,7 +425,7 @@ it.effect.each([
 );
 
 it.effect(
-  "reads settlement candidates and thread metadata without loading historical or archived payloads",
+  "reads completion candidates and thread metadata without loading historical or archived payloads",
   () =>
     Effect.gen(function* () {
       const store = yield* ProjectionStore.ProjectionStoreV2;
@@ -451,7 +451,7 @@ it.effect(
           return statement;
         });
       const candidates = yield* store
-        .getSettlementCandidates()
+        .getAutoMarkDoneCandidates()
         .pipe(Effect.provideService(Statement.CurrentTransformer, record));
       assert.deepEqual(
         candidates.map((thread) => thread.id),

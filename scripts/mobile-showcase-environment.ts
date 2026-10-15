@@ -219,9 +219,9 @@ export const SHOWCASE_THREADS = [
       "The bisect harness records the failing seed and replay command so the next run can stop at the first bad commit.",
     snoozeMinutes: 8 * 60,
   },
-  // Finished work, settled by hand: the list keeps it as a receded tail so
+  // Finished work, done by hand: the list keeps it as a receded tail so
   // the active block above reads as everything still in flight. The active
-  // block stays small enough that the settled tail begins above the fold —
+  // block stays small enough that the done tail begins above the fold —
   // a store screenshot has to show that history exists, not just imply it.
   {
     id: "cold-start-bundle",
@@ -229,7 +229,7 @@ export const SHOWCASE_THREADS = [
     title: "Trim the cold-start bundle",
     branch: "perf/cold-start-bundle",
     minutesAgo: 300,
-    settled: true,
+    done: true,
     request: "Remove the largest cold-start dependency without delaying the first useful screen.",
     response:
       "The startup path now loads the project shell first and defers the optional syntax catalog until the editor opens.",
@@ -240,7 +240,7 @@ export const SHOWCASE_THREADS = [
     title: "Cache forecasts for offline use",
     branch: "feat/offline-forecast-cache",
     minutesAgo: 1680,
-    settled: true,
+    done: true,
     request: "Keep the last forecast available when a field station loses its connection.",
     response:
       "The forecast cache now stores the observation timestamp and renders a quiet stale label until the station reconnects.",
@@ -251,7 +251,7 @@ export const SHOWCASE_THREADS = [
     title: "Explain slow queries in the log",
     branch: "feat/slow-query-log",
     minutesAgo: 2880,
-    settled: true,
+    done: true,
     request: "Show which part of a query waited when a request crosses the slow threshold.",
     response:
       "The structured log now includes planner, storage, and network wait buckets without changing the query response.",
@@ -430,7 +430,7 @@ function seedDatabase(
       if (!workspaceRoot) throw new Error(`Missing workspace root for ${thread.projectId}.`);
       const createdAt = minutesBefore(now, thread.minutesAgo + 120);
       const updatedAt = minutesBefore(now, thread.minutesAgo);
-      const settled = "settled" in thread && thread.settled === true;
+      const done = "done" in thread && thread.done === true;
       const snoozeMinutes = "snoozeMinutes" in thread ? thread.snoozeMinutes : undefined;
       const interactionMode = "state" in thread && thread.state === "plan" ? "plan" : "default";
       insert("orchestration_v2_projection_threads", {
@@ -465,8 +465,8 @@ function seedDatabase(
           createdAt,
           updatedAt,
           archivedAt: null,
-          settledOverride: settled ? "settled" : null,
-          settledAt: settled ? updatedAt : null,
+          doneOverride: done ? "done" : null,
+          doneAt: done ? updatedAt : null,
           snoozedUntil:
             snoozeMinutes === undefined
               ? null

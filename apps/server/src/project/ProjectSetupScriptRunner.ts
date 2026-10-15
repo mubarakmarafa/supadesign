@@ -3,7 +3,7 @@ import * as HostProcess from "@supaterm/shared/HostProcess";
 import {
   projectScriptRuntimeEnv,
   resolveProjectScripts,
-  settleProjectScript,
+  doneProjectScript,
   setupProjectScript,
 } from "@supaterm/shared/projectScripts";
 
@@ -68,7 +68,7 @@ export interface ProjectSetupScriptRunnerInput {
   readonly worktreePath: string;
   readonly preferredTerminalId?: string;
   /** Which project script to run. Defaults to the worktree setup script. */
-  readonly trigger?: "setup" | "settle";
+  readonly trigger?: "setup" | "done";
   readonly project?: {
     readonly id: ProjectId;
     readonly workspaceRoot: string;
@@ -380,20 +380,19 @@ export const make = Effect.gen(function* () {
     );
     const trigger = input.trigger ?? "setup";
     const scripts = resolveProjectScripts(settings, project);
-    const script =
-      trigger === "settle" ? settleProjectScript(scripts) : setupProjectScript(scripts);
+    const script = trigger === "done" ? doneProjectScript(scripts) : setupProjectScript(scripts);
     if (!script) {
       return {
         status: "no-script",
       } as const;
     }
 
-    // A thread settles again after it is resumed, and an earlier settle shell
+    // A thread can be marked done again after it is resumed, and an earlier script shell
     // may still be busy; typing into it would feed its foreground program.
     const terminalId =
       input.preferredTerminalId ??
-      (trigger === "settle"
-        ? `settle-${script.id}-${(yield* crypto.randomUUIDv4.pipe(Effect.orDie)).slice(0, 8)}`
+      (trigger === "done"
+        ? `done-${script.id}-${(yield* crypto.randomUUIDv4.pipe(Effect.orDie)).slice(0, 8)}`
         : `setup-${script.id}`);
     const cwd = input.worktreePath;
     const env = {

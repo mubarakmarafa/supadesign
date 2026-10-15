@@ -101,8 +101,8 @@ function nativeThreadCreated(projectId: ProjectId, threadId: ThreadId) {
     createdAt,
     updatedAt: createdAt,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     deletedAt: null,
   };

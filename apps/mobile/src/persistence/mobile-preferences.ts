@@ -75,7 +75,7 @@ export interface Preferences {
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
   readonly threadListPinnedShelfExpanded?: boolean;
   readonly threadListActiveShelfExpanded?: boolean;
-  readonly threadListSettledShelfExpanded?: boolean;
+  readonly threadListDoneShelfExpanded?: boolean;
   readonly threadListSnoozedShelfExpanded?: boolean;
   readonly threadListWorkingShelfExpanded?: boolean;
   /** Home list filters, restored on the next launch. */
@@ -139,7 +139,7 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     projectGroupingMode?: SidebarProjectGroupingMode;
     threadListPinnedShelfExpanded?: boolean;
     threadListActiveShelfExpanded?: boolean;
-    threadListSettledShelfExpanded?: boolean;
+    threadListDoneShelfExpanded?: boolean;
     threadListSnoozedShelfExpanded?: boolean;
     threadListWorkingShelfExpanded?: boolean;
     threadListFilters?: ThreadListFilters;
@@ -221,8 +221,8 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   if (typeof parsed.threadListActiveShelfExpanded === "boolean") {
     preferences.threadListActiveShelfExpanded = parsed.threadListActiveShelfExpanded;
   }
-  if (typeof parsed.threadListSettledShelfExpanded === "boolean") {
-    preferences.threadListSettledShelfExpanded = parsed.threadListSettledShelfExpanded;
+  if (typeof parsed.threadListDoneShelfExpanded === "boolean") {
+    preferences.threadListDoneShelfExpanded = parsed.threadListDoneShelfExpanded;
   }
   if (typeof parsed.threadListSnoozedShelfExpanded === "boolean") {
     preferences.threadListSnoozedShelfExpanded = parsed.threadListSnoozedShelfExpanded;

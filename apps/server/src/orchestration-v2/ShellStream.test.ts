@@ -233,7 +233,7 @@ describe("archivedShellStreamItemFromThreadShell", () => {
   it("ignores active threads that never touched the archive", () => {
     expect(
       archivedShellStreamItemFromThreadShell({
-        stored: storedThreadEvent(4, "thread-a", { type: "thread.settled" }),
+        stored: storedThreadEvent(4, "thread-a", { type: "thread.marked-done" }),
         shell: shellFixture({ archivedAt: null }),
       }),
     ).toBeNull();
@@ -577,8 +577,8 @@ describe("skipUnchangedThreadShells", () => {
     createdAt: at(0),
     updatedAt: at(0),
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     deletedAt: null,
     ...overrides,
   });

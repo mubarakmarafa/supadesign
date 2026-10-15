@@ -110,8 +110,8 @@ vi.mock("../../state/threads", () => ({
       "archive",
       "unarchive",
       "delete",
-      "settle",
-      "unsettle",
+      "markDone",
+      "reopen",
       "snooze",
       "unsnooze",
       "pin",
@@ -153,8 +153,8 @@ function makeThread(input: Partial<EnvironmentThreadShell> = {}): EnvironmentThr
 
 const mutationCases = [
   ["archiveThread", "archive"],
-  ["settleThread", "settle"],
-  ["unsettleThread", "unsettle"],
+  ["markThreadDone", "markDone"],
+  ["reopenThread", "reopen"],
   ["snoozeThread", "snooze"],
   ["unsnoozeThread", "unsnooze"],
   ["pinThread", "pin"],

@@ -164,8 +164,8 @@ describe("ThreadPullRequestServiceV2 reads", () => {
       createdAt: NOW,
       updatedAt: NOW,
       archivedAt: null,
-      settledOverride: null,
-      settledAt: null,
+      doneOverride: null,
+      doneAt: null,
       lastVisitedAt: null,
       deletedAt: null,
     };
@@ -180,7 +180,7 @@ describe("ThreadPullRequestServiceV2 reads", () => {
         const events = yield* PubSub.unbounded<OrchestrationV2DomainEvent>();
         // Each read: the thread id for a one-thread read, or the full read's options.
         const reads = yield* Queue.unbounded<
-          ThreadId | { readonly location?: string; readonly unsettledOnly?: boolean }
+          ThreadId | { readonly location?: string; readonly openOnly?: boolean }
         >();
         const layerDependencies = Layer.mergeAll(
           Layer.mock(Orchestrator.OrchestratorV2)({
@@ -222,7 +222,7 @@ describe("ThreadPullRequestServiceV2 reads", () => {
           yield* service.start();
           yield* Deferred.succeed(activation, undefined);
           // Startup backfill reads every active thread.
-          expect(yield* Queue.take(reads)).toEqual({ location: "active", unsettledOnly: false });
+          expect(yield* Queue.take(reads)).toEqual({ location: "active", openOnly: false });
           yield* service.drain;
           yield* PubSub.publish(events, {
             type: "thread.metadata-updated",
@@ -247,8 +247,8 @@ describe("ThreadPullRequestServiceV2 reads", () => {
               createdAt: thread.createdAt,
               updatedAt: thread.updatedAt,
               archivedAt: null,
-              settledOverride: null,
-              settledAt: null,
+              doneOverride: null,
+              doneAt: null,
               lastVisitedAt: null,
               deletedAt: null,
             },
@@ -261,19 +261,19 @@ describe("ThreadPullRequestServiceV2 reads", () => {
     ),
   );
 
-  it.effect("periodic sweeps read only unsettled threads once backfill is done", () =>
+  it.effect("periodic sweeps read only open threads once backfill is done", () =>
     Effect.scoped(
       Effect.gen(function* () {
-        const settled = {
-          ...threadShell("settled-thread"),
-          branch: "feature/settled",
-          settledOverride: "settled" as const,
-          settledAt: NOW,
+        const done = {
+          ...threadShell("done-thread"),
+          branch: "feature/done",
+          doneOverride: "done" as const,
+          doneAt: NOW,
         };
         const activation = yield* Deferred.make<void>();
         const reads = yield* Queue.unbounded<{
           readonly location?: string;
-          readonly unsettledOnly?: boolean;
+          readonly openOnly?: boolean;
         }>();
         const layerDependencies = Layer.mergeAll(
           Layer.mock(Orchestrator.OrchestratorV2)({
@@ -283,8 +283,8 @@ describe("ThreadPullRequestServiceV2 reads", () => {
                 Effect.as({
                   schemaVersion: 2,
                   snapshotSequence: 1,
-                  // The fake honors unsettledOnly like the store does.
-                  threads: options?.unsettledOnly ? [] : [settled],
+                  // The fake honors openOnly like the store does.
+                  threads: options?.openOnly ? [] : [done],
                   archivedThreads: [],
                 }),
               ),
@@ -310,12 +310,12 @@ describe("ThreadPullRequestServiceV2 reads", () => {
           const service = yield* ThreadPullRequestService.make;
           yield* service.start();
           yield* Deferred.succeed(activation, undefined);
-          // Backfill finds the settled branch thread and must read it again.
-          expect(yield* Queue.take(reads)).toEqual({ location: "active", unsettledOnly: false });
+          // Backfill finds the done branch thread and must read it again.
+          expect(yield* Queue.take(reads)).toEqual({ location: "active", openOnly: false });
           yield* service.drain;
           // Its project is gone, so backfill finishes it on the first pass.
           yield* TestClock.adjust("1 minute");
-          expect(yield* Queue.take(reads)).toEqual({ location: "active", unsettledOnly: true });
+          expect(yield* Queue.take(reads)).toEqual({ location: "active", openOnly: true });
           yield* service.drain;
         }).pipe(Effect.provide(layerDependencies));
       }),

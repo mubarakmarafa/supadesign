@@ -595,26 +595,26 @@ it.layer(NodeServices.layer)("server settings", (it) => {
         const changes = yield* serverSettings.subscribeChanges;
 
         const next = yield* serverSettings.updateSettings({
-          sidebarAutoSettleAfterDays: null,
-          sidebarAutoSettleOnMerge: false,
+          sidebarAutoMarkDoneAfterDays: null,
+          sidebarAutoMarkDoneOnMerge: false,
         });
         const change = Option.getOrUndefined(yield* Stream.runHead(changes));
         const raw = yield* fileSystem.readFileString(serverConfig.settingsPath);
         // Inspect raw persisted JSON before schema decoding can apply defaults.
         const persisted = JSON.parse(raw) as Record<string, unknown>;
 
-        assert.strictEqual(next.sidebarAutoSettleAfterDays, null);
-        assert.isFalse(next.sidebarAutoSettleOnMerge);
-        assert.strictEqual(change?.sidebarAutoSettleAfterDays, null);
-        assert.isFalse(change?.sidebarAutoSettleOnMerge);
-        assert.strictEqual(persisted.sidebarAutoSettleAfterDays, null);
-        assert.isUndefined(persisted.sidebarAutoSettleOnMerge);
+        assert.strictEqual(next.sidebarAutoMarkDoneAfterDays, null);
+        assert.isFalse(next.sidebarAutoMarkDoneOnMerge);
+        assert.strictEqual(change?.sidebarAutoMarkDoneAfterDays, null);
+        assert.isFalse(change?.sidebarAutoMarkDoneOnMerge);
+        assert.strictEqual(persisted.sidebarAutoMarkDoneAfterDays, null);
+        assert.isUndefined(persisted.sidebarAutoMarkDoneOnMerge);
 
-        yield* serverSettings.updateSettings({ sidebarAutoSettleOnMerge: true });
+        yield* serverSettings.updateSettings({ sidebarAutoMarkDoneOnMerge: true });
         const enabledPersisted = JSON.parse(
           yield* fileSystem.readFileString(serverConfig.settingsPath),
         ) as Record<string, unknown>;
-        assert.isTrue(enabledPersisted.sidebarAutoSettleOnMerge);
+        assert.isTrue(enabledPersisted.sidebarAutoMarkDoneOnMerge);
       }),
     ).pipe(Effect.provide(layerServerSettings())),
   );

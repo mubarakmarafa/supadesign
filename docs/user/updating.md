@@ -38,7 +38,7 @@ Supaterm must start again on that machine;
 the setting does not enable automatic startup. Terminal commands may still be
 interrupted, and threads without saved provider resume state need a new message.
 A thread is not resumed while it waits for your approval, answer, or secret, or
-while it is archived, snoozed, or settled. After three automatic resumes in a row,
+while it is archived, snoozed, or done. After three automatic resumes in a row,
 the thread waits for your next message.
 
 ## When versions don't match
