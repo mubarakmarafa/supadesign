@@ -25,6 +25,7 @@ import * as ServerConfig from "../config.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as PullRequestReviewGuides from "../persistence/PullRequestReviewGuides.ts";
 import * as ProjectService from "../project/ProjectService.ts";
+import * as RepositoryIdentityResolver from "../project/RepositoryIdentityResolver.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
@@ -212,9 +213,14 @@ const makeLayer = (input: {
           Effect.succeedSome({
             id: projectId,
             workspaceRoot: input.workspace,
-            repositoryIdentity: input.identity ?? ACME_APP,
+            repositoryIdentity: null,
           }),
       } as unknown as ProjectService.ProjectService["Service"]),
+    ),
+    Layer.provide(
+      Layer.succeed(RepositoryIdentityResolver.RepositoryIdentityResolver, {
+        resolve: () => Effect.succeed(input.identity ?? ACME_APP),
+      }),
     ),
     Layer.provide(
       Layer.succeed(ProviderRegistry.ProviderRegistry, {

@@ -45,6 +45,7 @@ import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import * as ServerConfig from "../config.ts";
 import * as PullRequestReviewGuides from "../persistence/PullRequestReviewGuides.ts";
 import * as ProjectService from "../project/ProjectService.ts";
+import * as RepositoryIdentityResolver from "../project/RepositoryIdentityResolver.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as TextGeneration from "../textGeneration/TextGeneration.ts";
@@ -89,6 +90,7 @@ const make = Effect.gen(function* () {
   const pullRequests = yield* PullRequestService.PullRequestService;
   const guides = yield* PullRequestReviewGuides.PullRequestReviewGuideRepository;
   const projects = yield* ProjectService.ProjectService;
+  const repositoryIdentities = yield* RepositoryIdentityResolver.RepositoryIdentityResolver;
   const serverSettings = yield* ServerSettings.ServerSettingsService;
   const providerRegistry = yield* ProviderRegistry.ProviderRegistry;
   const textGeneration = yield* TextGeneration.TextGeneration;
@@ -111,14 +113,17 @@ const make = Effect.gen(function* () {
     const project = Option.getOrUndefined(
       yield* projects.getShell(input.projectId).pipe(Effect.orElseSucceed(() => Option.none())),
     );
-    const key = pullRequestSyncKey(input, project?.repositoryIdentity ?? undefined);
+    const identity =
+      project &&
+      (project.repositoryIdentity ?? (yield* repositoryIdentities.resolve(project.workspaceRoot)));
+    const key = pullRequestSyncKey(input, identity);
     if (key === null || project === undefined) {
       return yield* new PullRequestOperationError({
         operation: "reviewGuide",
         detail: "Could not identify this pull request's host.",
       });
     }
-    return { key, workspaceRoot: project.workspaceRoot, identity: project.repositoryIdentity };
+    return { key, workspaceRoot: project.workspaceRoot, identity };
   });
 
   /**

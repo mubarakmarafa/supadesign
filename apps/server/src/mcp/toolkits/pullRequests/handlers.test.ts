@@ -28,6 +28,7 @@ import {
   v2PullRequestThread,
 } from "../../../orchestration-v2/testkit/pullRequestFixtures.ts";
 import * as ProjectService from "../../../project/ProjectService.ts";
+import * as RepositoryIdentityResolver from "../../../project/RepositoryIdentityResolver.ts";
 import * as PullRequestReviewGuideService from "../../../pullRequest/PullRequestReviewGuideService.ts";
 import * as PullRequestService from "../../../pullRequest/PullRequestService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
@@ -149,6 +150,7 @@ interface HarnessOptions {
   readonly reject?: (command: OrchestrationCommand) => string | null;
   /** Every project in the environment; defaults to the thread's own. */
   readonly projects?: ReadonlyArray<OrchestrationProjectShell>;
+  readonly resolvedIdentity?: OrchestrationProjectShell["repositoryIdentity"];
   /** What the guide service answers for a pull request it is asked to write. */
   readonly generate?: (
     input: PullRequestRef,
@@ -183,6 +185,9 @@ const makeHarness = Effect.fn("makePullRequestsToolkitHarness")(function* (
     Layer.mock(ProjectService.ProjectService)({
       getShell: () => Effect.succeed(Option.fromNullishOr(project)),
       listShells: () => Effect.succeed(options.projects ?? (project ? [project] : [])),
+    }),
+    Layer.mock(RepositoryIdentityResolver.RepositoryIdentityResolver)({
+      resolve: () => Effect.succeed(options.resolvedIdentity ?? null),
     }),
     Layer.mock(PullRequestReviewGuideService.PullRequestReviewGuideService)({
       get: () => Effect.succeed(NO_GUIDE),
@@ -482,6 +487,20 @@ describe("pull request toolkit handlers", () => {
     }),
   );
 
+  it.effect("defaults the host from a project whose repository has not been read yet", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness({
+        project: makeProject(null),
+        resolvedIdentity: makeProject().repositoryIdentity,
+      });
+      const result = yield* harness.call("link_pull_request", {
+        repository: "supabitapp/other",
+        number: 7,
+      });
+      expect(result.url).toBe("https://github.com/supabitapp/other/pull/7");
+    }),
+  );
+
   it.effect("builds the URL in the project host's own shape", () =>
     Effect.gen(function* () {
       const harness = yield* makeHarness({
@@ -732,6 +751,19 @@ describe("pull request guide tools", () => {
           [PROJECT_ID, 12],
         ]);
       }),
+  );
+
+  it.effect("matches a project whose repository has not been read in the background yet", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness({
+        projects: [makeProject(null)],
+        resolvedIdentity: makeProject().repositoryIdentity,
+      });
+      const result = yield* harness.call("write_pull_request_guides", {
+        pullRequests: [{ url: "https://github.com/supabitapp/supacode-next/pull/12" }],
+      });
+      expect(result.guides.map((guide) => guide.outcome)).toEqual(["started"]);
+    }),
   );
 
   it.effect("reports a refused run on its own pull request without failing the rest", () =>

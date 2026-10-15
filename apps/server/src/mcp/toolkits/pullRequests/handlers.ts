@@ -27,6 +27,7 @@ import * as Option from "effect/Option";
 import * as Orchestrator from "../../../orchestration-v2/Orchestrator.ts";
 import { sameWorkflowRun } from "../../../orchestration-v2/workflowRunWatch.ts";
 import * as ProjectService from "../../../project/ProjectService.ts";
+import * as RepositoryIdentityResolver from "../../../project/RepositoryIdentityResolver.ts";
 import * as PullRequestReviewGuideService from "../../../pullRequest/PullRequestReviewGuideService.ts";
 import * as PullRequestService from "../../../pullRequest/PullRequestService.ts";
 import { projectForPullRequest } from "../../../pullRequest/pullRequestSyncKey.ts";
@@ -194,7 +195,15 @@ const make = Effect.gen(function* () {
   const pullRequestService = yield* PullRequestService.PullRequestService;
 
   const projects = yield* ProjectService.ProjectService;
+  const repositoryIdentities = yield* RepositoryIdentityResolver.RepositoryIdentityResolver;
   const crypto = yield* Crypto.Crypto;
+
+  const withRepositoryIdentity = (project: OrchestrationProjectShell) =>
+    project.repositoryIdentity != null
+      ? Effect.succeed(project)
+      : repositoryIdentities
+          .resolve(project.workspaceRoot)
+          .pipe(Effect.map((repositoryIdentity) => ({ ...project, repositoryIdentity })));
 
   const commandId = (tag: string, threadId: ThreadId) =>
     crypto.randomUUIDv4.pipe(
@@ -234,8 +243,10 @@ const make = Effect.gen(function* () {
       | typeof PullRequestWatchFailedError,
   ) =>
     projects.getShell(thread.projectId).pipe(
-      Effect.map(Option.getOrUndefined),
       Effect.mapError((cause) => new Failure({ cause })),
+      Effect.flatMap((shell) =>
+        Option.isSome(shell) ? withRepositoryIdentity(shell.value) : Effect.undefined,
+      ),
     );
 
   const dispatchFailure =
@@ -404,9 +415,12 @@ const make = Effect.gen(function* () {
             Effect.orElseSucceed(() => null),
             Effect.map((shell) => shell ?? undefined),
           );
-    const known = yield* projects
-      .listShells()
-      .pipe(Effect.mapError((cause) => new PullRequestListFailedError({ cause })));
+    const known = yield* projects.listShells().pipe(
+      Effect.mapError((cause) => new PullRequestListFailedError({ cause })),
+      Effect.flatMap((shells) =>
+        Effect.forEach(shells, withRepositoryIdentity, { concurrency: 8 }),
+      ),
+    );
     const callerProject = known.find((project) => project.id === callerThread?.projectId);
     // Each target resolves on its own, so one bad URL in a batch is that entry's failure only.
     return yield* Effect.forEach(targets, (input) =>
