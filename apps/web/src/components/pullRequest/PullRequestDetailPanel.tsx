@@ -1602,6 +1602,8 @@ export function PullRequestDetailPanel({
   const armedAutoMergeLabel = armedMergeMethod
     ? `Auto-merge (${PULL_REQUEST_MERGE_METHOD_LABELS[armedMergeMethod].toLowerCase()})`
     : "Auto-merge";
+  const disableAutoMergeLabel =
+    pendingAction === "disable-auto-merge" ? "Disabling..." : "Disable auto-merge";
   const workflowApprovalsRequired =
     detail?.state === "open" ? (detail.workflowApprovalsRequired ?? 0) : 0;
   // Out of date with the base, and still cleanly mergeable — the one pairing an update button
@@ -1641,8 +1643,8 @@ export function PullRequestDetailPanel({
       : latestChecksState;
   // A newer rollup cannot tell us which runs changed or how many passed.
   const checksStale = checksState !== detailChecksState;
-  // The merge state remains in one stable slot from waiting through completion. Conflicts take
-  // the slot while they need a person; the armed badge remains beside them so that state is not lost.
+  // The merge state remains in one stable slot from waiting through completion. Conflicts and
+  // drafts take the slot while they need a person.
   const primaryAction = detail
     ? resolvePullRequestPrimaryControl({
         state: detail.state,
@@ -1665,17 +1667,16 @@ export function PullRequestDetailPanel({
   const showsAutoMerge =
     canMergeSinglePullRequest &&
     detail?.state === "open" &&
-    ((autoMergeArmed && can("disable-auto-merge")) ||
-      (!autoMergeArmed &&
-        primaryAction !== "enable-auto-merge" &&
-        !detail.isDraft &&
-        !conflicting &&
-        can("enable-auto-merge") &&
-        allowedMergeMethods.length > 0));
+    !autoMergeArmed &&
+    primaryAction !== "enable-auto-merge" &&
+    !detail.isDraft &&
+    !conflicting &&
+    can("enable-auto-merge") &&
+    allowedMergeMethods.length > 0;
   const showsMergeNow =
     canMergeSinglePullRequest &&
     detail?.state === "open" &&
-    (primaryAction === "enable-auto-merge" || primaryAction === "auto-merge-armed") &&
+    (primaryAction === "enable-auto-merge" || autoMergeArmed) &&
     can("merge") &&
     !detail.isDraft &&
     !conflicting &&
@@ -1796,6 +1797,49 @@ export function PullRequestDetailPanel({
       </TooltipPopup>
     </Tooltip>
   );
+
+  // The off switch doubles as the indicator, as on the host.
+  const canDisableAutoMerge = can("disable-auto-merge");
+  const armedAutoMergeStatus = `${armedAutoMergeLabel} is enabled: the host will merge this on its own once its requirements are met`;
+  const autoMergeArmedControl = autoMergeArmed ? (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          canDisableAutoMerge ? (
+            <span className="inline-flex shrink-0">
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={actionPending}
+                onClick={() => void perform("disable-auto-merge")}
+                aria-label={disableAutoMergeLabel}
+              >
+                <PullRequestGlyph.merged aria-hidden className="size-3.5" />
+                <span className="@max-[30rem]/pr-header:hidden">{disableAutoMergeLabel}</span>
+              </Button>
+            </span>
+          ) : (
+            <Badge
+              size="control"
+              variant="info"
+              role="img"
+              aria-label={`${armedAutoMergeLabel} enabled`}
+            >
+              <PullRequestGlyph.merged aria-hidden className="size-3.5" />
+              <span className="@max-[30rem]/pr-header:hidden">Auto-merge enabled</span>
+            </Badge>
+          )
+        }
+      />
+      <TooltipPopup side="top">
+        {!canDisableAutoMerge
+          ? armedAutoMergeStatus
+          : pendingAction === "disable-auto-merge"
+            ? "Disabling..."
+            : `${armedAutoMergeStatus}. Click to disable it.`}
+      </TooltipPopup>
+    </Tooltip>
+  ) : null;
 
   // The list already has the pull request's identity and summary. Keep them on screen
   // and let the richer detail read replace the remaining placeholders in place.
@@ -2032,28 +2076,9 @@ export function PullRequestDetailPanel({
                 />
               ) : null}
               {/* Said where the Merge button is, because it is the answer to why nobody has
-                  pressed it: the merge is already asked for, and the host is holding it. */}
-              {autoMergeArmed && primaryAction !== "auto-merge-armed" ? (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Badge
-                        size="control"
-                        variant="info"
-                        role="img"
-                        aria-label={armedAutoMergeLabel}
-                      >
-                        <PullRequestGlyph.merged aria-hidden className="size-3.5" />
-                        <span className="@max-[30rem]/pr-header:hidden">{armedAutoMergeLabel}</span>
-                      </Badge>
-                    }
-                  />
-                  <TooltipPopup side="top">
-                    {armedAutoMergeLabel}: the host will merge this on its own once its requirements
-                    are met
-                  </TooltipPopup>
-                </Tooltip>
-              ) : null}
+                  pressed it: the merge is already asked for, and the host is holding it. It
+                  stays beside conflicts and drafts, which take the slot without disarming it. */}
+              {autoMergeArmedControl}
               {primaryAction === "resolve" ? (
                 resolveConflictsControl
               ) : primaryAction === "ready" ? (
@@ -2121,26 +2146,6 @@ export function PullRequestDetailPanel({
                       : confirm.armed === "enable-auto-merge"
                         ? `Click again to enable auto-merge. The host may merge #${reference.number} right away.`
                         : pendingAutoMergeLabel}
-                  </TooltipPopup>
-                </Tooltip>
-              ) : primaryAction === "auto-merge-armed" ? (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Badge
-                        size="control"
-                        variant="info"
-                        role="img"
-                        aria-label={armedAutoMergeLabel}
-                      >
-                        <PullRequestGlyph.merged aria-hidden className="size-3.5" />
-                        <span className="@max-[30rem]/pr-header:hidden">{armedAutoMergeLabel}</span>
-                      </Badge>
-                    }
-                  />
-                  <TooltipPopup side="top">
-                    {armedAutoMergeLabel}: the host will merge this on its own once its requirements
-                    are met
                   </TooltipPopup>
                 </Tooltip>
               ) : primaryAction === "merge" ? (
@@ -2324,16 +2329,8 @@ export function PullRequestDetailPanel({
                       ) : null}
                       {/* The same merge, left with the host to carry out once its requirements
                           pass. A conflicting branch cannot be armed because nothing the host
-                          waits for will clear the conflict. */}
-                      {autoMergeArmed && can("disable-auto-merge") ? (
-                        <MenuItem
-                          disabled={actionPending}
-                          onClick={() => void perform("disable-auto-merge")}
-                        >
-                          <PullRequestGlyph.merged className="size-3.5" />
-                          Disable auto-merge
-                        </MenuItem>
-                      ) : showsAutoMerge ? (
+                          waits for will clear the conflict. Disarming is the header button. */}
+                      {showsAutoMerge ? (
                         <MenuItem
                           {...confirm.bind(
                             "menu-enable-auto-merge",

@@ -74,12 +74,14 @@ export type PullRequestPrimaryControl =
   | "ready"
   | "merge"
   | "enable-auto-merge"
-  | "auto-merge-armed"
   | "merged"
   | "closed"
   | null;
 
-/** The one merge-area state shown in the header, including terminal and deferred states. */
+/**
+ * The one merge-area state shown in the header, including terminal states. An armed auto-merge
+ * leaves the slot empty: the armed control beside it already says the merge is spoken for.
+ */
 export function resolvePullRequestPrimaryControl(input: {
   readonly state: PullRequestState;
   readonly isDraft: boolean;
@@ -95,7 +97,7 @@ export function resolvePullRequestPrimaryControl(input: {
   if (input.state === "closed") return "closed";
   if (input.mergeability === "conflicting") return "resolve";
   if (input.isDraft) return input.canMarkReady ? "ready" : null;
-  if (input.autoMergeEnabled) return "auto-merge-armed";
+  if (input.autoMergeEnabled) return null;
   if (!input.hasMergeMethod) return null;
   if (
     input.autoMergeEnabled === false &&
