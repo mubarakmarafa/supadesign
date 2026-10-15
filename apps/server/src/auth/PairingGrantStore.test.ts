@@ -7,7 +7,6 @@ import * as Layer from "effect/Layer";
 import * as Stream from "effect/Stream";
 import * as Queue from "effect/Queue";
 import * as TestClock from "effect/testing/TestClock";
-import * as SqlClient from "effect/sql/SqlClient";
 import {
   DESKTOP_BOOTSTRAP_TOKEN_WINDOW_MS,
   currentDesktopBootstrapToken,
@@ -124,30 +123,6 @@ it.layer(NodeServices.layer)("PairingGrantStore.layer", (it) => {
         expect(failure.failure.message).toContain("Unknown bootstrap credential");
       }
     }).pipe(Effect.provide(layerPairingGrantStore())),
-  );
-
-  it.effect("refuses legacy pairing links bound to a proof key", () =>
-    Effect.gen(function* () {
-      const bootstrapCredentials = yield* PairingGrantStore.PairingGrantStore;
-      const sql = yield* SqlClient.SqlClient;
-      const token = yield* bootstrapCredentials.issueOneTimeToken();
-      yield* sql`
-        UPDATE auth_pairing_links
-        SET proof_key_thumbprint = ${"legacy-proof-key-thumbprint"}
-        WHERE id = ${token.id}
-      `;
-
-      const error = yield* Effect.flip(bootstrapCredentials.consume(token.credential));
-
-      expect(error._tag).toBe("UnavailableBootstrapCredentialError");
-    }).pipe(
-      Effect.provide(
-        PairingGrantStore.layer.pipe(
-          Layer.provideMerge(SqlitePersistence.layerMemory),
-          Layer.provide(layerServerConfig()),
-        ),
-      ),
-    ),
   );
 
   it.effect("seeds the desktop bootstrap credential as a reusable grant", () =>

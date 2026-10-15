@@ -69,13 +69,10 @@ export type ServerAuthBootstrapMethod = typeof ServerAuthBootstrapMethod.Type;
  *   app after bootstrap/pairing
  * - `bearer-access-token`: scoped token suitable for non-cookie or
  *   non-browser clients
- * - `dpop-access-token`: retired; decoded only because older servers and
- *   stored sessions may still carry it
  */
 export const ServerAuthSessionMethod = Schema.Literals([
   "browser-session-cookie",
   "bearer-access-token",
-  "dpop-access-token",
 ]);
 export type ServerAuthSessionMethod = typeof ServerAuthSessionMethod.Type;
 

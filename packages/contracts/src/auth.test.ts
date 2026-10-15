@@ -170,7 +170,7 @@ describe("AuthEnvironmentScopes", () => {
       auth: {
         policy: "remote-reachable",
         bootstrapMethods: ["one-time-token"],
-        sessionMethods: ["browser-session-cookie", "bearer-access-token", "dpop-access-token"],
+        sessionMethods: ["browser-session-cookie", "bearer-access-token"],
         sessionCookieName: "supaterm_session",
       },
       sessionMethod: "bearer-access-token",

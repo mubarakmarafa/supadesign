@@ -162,7 +162,6 @@ export const make = Effect.gen(function* () {
           AND revoked_at IS NULL
           AND consumed_at IS NULL
           AND expires_at > ${now}
-          AND proof_key_thumbprint IS NULL
           AND (${requestedScopes === undefined ? 1 : 0} OR EXISTS (
             SELECT 1
             FROM json_each(${JSON.stringify(requestedScopes ?? [])}) AS requested

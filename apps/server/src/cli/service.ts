@@ -137,31 +137,6 @@ const serviceInstallCommand = Command.make("install", serviceReconcileFlags).pip
   ),
 );
 
-// Kept one release for muscle memory and old docs. It did what `supaterm service
-// install` does; the way to move to a newer release is `supaterm update`.
-const serviceUpdateCommand = Command.make("update", serviceReconcileFlags).pipe(
-  Command.withDescription("Deprecated. Run `supaterm update` to move to a newer release."),
-  Command.unlisted,
-  Command.withHandler((flags) =>
-    runServiceCommand(
-      flags,
-      Effect.gen(function* () {
-        yield* Console.log(
-          "`supaterm service update` is deprecated: run `supaterm update` to move to a newer release, or `supaterm service install` to repair the service. Repairing now.",
-        );
-        const result = yield* reconcileService({ allowDowngrade: flags.allowDowngrade });
-        if (!result.changed) {
-          yield* Console.log(`Supaterm service is already using supaterm@${packageJson.version}.`);
-          return;
-        }
-        yield* Console.log(
-          `${result.previouslyInstalled ? "Updated" : "Installed"} Supaterm service with supaterm@${packageJson.version}.\nLogs: ${result.plan.logPath}`,
-        );
-      }),
-    ),
-  ),
-);
-
 const serviceRestartCommand = Command.make("restart", projectLocationFlags).pipe(
   Command.withDescription(
     "Restart the background service. Picks up a version installed by `supaterm update` that was not restarted at the time.",
@@ -219,6 +194,5 @@ export const serviceCommand = Command.make("service").pipe(
     serviceRestartCommand,
     serviceUninstallCommand,
     serviceStatusCommand,
-    serviceUpdateCommand,
   ]),
 );

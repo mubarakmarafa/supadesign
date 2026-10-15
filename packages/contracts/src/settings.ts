@@ -1428,7 +1428,6 @@ export const ServerSettingsOperation = Schema.Literals([
   "check-exists",
   "create-provider-instance",
   "read-file",
-  "read-provider-history",
   "read-project-settings",
   "read-secret",
   "remove-secret",
@@ -1658,7 +1657,7 @@ export function requiredScopesForServerSettingsPatch(
   let changesSettings = false;
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) continue;
-    if (key === "providers" || key === "providerInstances" || key === "usageLimitSources") {
+    if (key === "providerInstances" || key === "usageLimitSources") {
       changesProviders = true;
     } else {
       changesSettings = true;

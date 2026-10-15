@@ -10,7 +10,6 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Queue from "effect/Queue";
 import * as Redacted from "effect/Redacted";
-import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import * as SqlClient from "effect/sql/SqlClient";
@@ -23,7 +22,6 @@ import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as AuthSessions from "../persistence/AuthSessions.ts";
 import * as SessionStore from "./SessionStore.ts";
 import * as ServerSecretStore from "./ServerSecretStore.ts";
-import { base64UrlDecodeUtf8, base64UrlEncode, signPayload } from "./utils.ts";
 
 const layerServerConfig = (overrides?: Partial<ServerConfig.ServerConfig["Service"]>) =>
   Layer.effect(
@@ -54,10 +52,6 @@ const layerSessionStore = (
     Layer.provide(layerServerEnvironment(environmentId)),
     Layer.provide(layerServerConfig(overrides)),
   );
-
-const SessionClaimsJson = Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown));
-const decodeSessionClaimsJson = Schema.decodeUnknownEffect(SessionClaimsJson);
-const encodeSessionClaimsJson = Schema.encodeEffect(SessionClaimsJson);
 
 const shortLivedSessionInput = {
   subject: "short-lived-client",
@@ -353,34 +347,6 @@ it.layer(NodeServices.layer)("SessionStore.layer", (it) => {
       expect((yield* sessions.verify(uncapped.token)).runtimeModeCeiling).toBeUndefined();
     }).pipe(Effect.provide(layerSessionStore())),
   );
-  it.effect("keeps recorded scopes unchanged for both token versions", () =>
-    Effect.gen(function* () {
-      const sessions = yield* SessionStore.SessionStore;
-      const secrets = yield* ServerSecretStore.ServerSecretStore;
-      const legacyScopes = ["orchestration:read", "terminal:operate", "review:write"] as const;
-      const issued = yield* sessions.issue({ subject: "one-time-token", scopes: legacyScopes });
-      // Accept prerelease v2 credentials without widening their recorded grant.
-      const [encodedPayload] = issued.token.split(".");
-      const currentClaims = base64UrlDecodeUtf8(encodedPayload!);
-      expect(currentClaims).toContain('"v":1');
-      const legacyPayload = base64UrlEncode(currentClaims.replace('"v":1', '"v":2'));
-      const secret = yield* secrets.getOrCreateRandom("server-signing-key", 32);
-      const legacyToken = `${legacyPayload}.${signPayload(legacyPayload, secret)}`;
-
-      expect((yield* sessions.verify(issued.token)).scopes).toEqual(legacyScopes);
-      expect((yield* sessions.verify(legacyToken)).scopes).toEqual(legacyScopes);
-    }).pipe(
-      Effect.provide(
-        SessionStore.layer.pipe(
-          Layer.provideMerge(ServerSecretStore.layer),
-          Layer.provide(SqlitePersistence.layerMemory),
-          Layer.provide(layerServerEnvironment(EnvironmentId.make("test-environment"))),
-          Layer.provide(layerServerConfig()),
-        ),
-      ),
-    ),
-  );
-
   it.effect("rejects malformed session tokens", () =>
     Effect.gen(function* () {
       const sessions = yield* SessionStore.SessionStore;
@@ -439,71 +405,6 @@ it.layer(NodeServices.layer)("SessionStore.layer", (it) => {
       expect(verified.subject).toBe("test-clock");
       expect(verified.scopes).toEqual(AuthStandardClientScopes);
     }).pipe(Effect.provide(Layer.merge(layerSessionStore(), TestClock.layer()))),
-  );
-
-  it.effect("rejects session tokens minted for the retired DPoP method", () =>
-    Effect.gen(function* () {
-      const sessions = yield* SessionStore.SessionStore;
-      const secretStore = yield* ServerSecretStore.ServerSecretStore;
-      const issued = yield* sessions.issue({ method: "bearer-access-token" });
-      const [encodedPayload] = issued.token.split(".");
-      const claims = yield* decodeSessionClaimsJson(base64UrlDecodeUtf8(encodedPayload ?? ""));
-      const legacyPayload = base64UrlEncode(
-        yield* encodeSessionClaimsJson({
-          ...claims,
-          method: "dpop-access-token",
-          jkt: "legacy-proof-key-thumbprint",
-        }),
-      );
-      const signingSecret = yield* secretStore.getOrCreateRandom("server-signing-key", 32);
-      const legacyToken = `${legacyPayload}.${signPayload(legacyPayload, signingSecret)}`;
-
-      expect(yield* sessions.verify(issued.token)).toMatchObject({ sessionId: issued.sessionId });
-      expect(yield* Effect.flip(sessions.verify(legacyToken))).toMatchObject({
-        _tag: "InvalidSessionTokenPayloadError",
-      });
-    }).pipe(
-      Effect.provide(
-        SessionStore.layer.pipe(
-          Layer.provide(SqlitePersistence.layerMemory),
-          Layer.provideMerge(ServerSecretStore.layer),
-          Layer.provide(layerServerEnvironment(EnvironmentId.make("test-environment"))),
-          Layer.provide(layerServerConfig()),
-        ),
-      ),
-    ),
-  );
-
-  it.effect("lists stored sessions that carry the retired DPoP method and relay scopes", () =>
-    Effect.gen(function* () {
-      const sessions = yield* SessionStore.SessionStore;
-      const sql = yield* SqlClient.SqlClient;
-      const issued = yield* sessions.issue(shortLivedSessionInput);
-      yield* sql`
-        UPDATE auth_sessions
-        SET method = ${"dpop-access-token"},
-            scopes = ${'["orchestration:read","relay:read","relay:write"]'}
-        WHERE session_id = ${issued.sessionId}
-      `;
-
-      const listed = yield* sessions.listActive();
-
-      expect(listed).toHaveLength(1);
-      expect(listed[0]).toMatchObject({
-        sessionId: issued.sessionId,
-        method: "dpop-access-token",
-        scopes: ["orchestration:read"],
-      });
-    }).pipe(
-      Effect.provide(
-        SessionStore.layer.pipe(
-          Layer.provideMerge(SqlitePersistence.layerMemory),
-          Layer.provide(ServerSecretStore.layer),
-          Layer.provide(layerServerEnvironment(EnvironmentId.make("test-environment"))),
-          Layer.provide(layerServerConfig()),
-        ),
-      ),
-    ),
   );
 
   it.effect("atomically replaces active sessions with the same subject and method", () =>
