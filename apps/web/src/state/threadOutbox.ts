@@ -20,6 +20,7 @@ import { serializeLegacyContextMessage } from "@supaterm/shared/composerContextL
 import { resolveDefaultWorktreeBaseBranch } from "@supaterm/shared/git";
 import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import * as Schema from "effect/Schema";
+import { Atom } from "effect/reactivity";
 import { useCallback, useSyncExternalStore } from "react";
 
 import { appAtomRegistry } from "../rpc/atomRegistry";
@@ -117,6 +118,22 @@ async function uploadAttachment(
   });
 }
 
+function isThreadOutboxDeliverable(
+  environmentId: EnvironmentId,
+  read: <A>(atom: Atom.Atom<A>) => A,
+) {
+  return (
+    read(environmentPresentations.presentationAtom(environmentId))?.connection.phase ===
+      "connected" &&
+    read(environmentShell.stateValueAtom(environmentId)).status === "live" &&
+    read(environmentServerConfigsAtom).has(environmentId)
+  );
+}
+
+export const threadOutboxDeliverableAtom = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make((get) => isThreadOutboxDeliverable(environmentId, get)),
+);
+
 export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
   storage: browserThreadOutboxStorage,
   registry: appAtomRegistry,
@@ -136,17 +153,8 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
       snapshot.archivedThreads.some((thread) => thread.id === entry.payload.input.threadId)
     );
   },
-  canDeliver: (entry) => {
-    const environmentId = entry.payload.environmentId;
-    const presentation = appAtomRegistry.get(
-      environmentPresentations.presentationAtom(environmentId),
-    );
-    return (
-      presentation?.connection.phase === "connected" &&
-      appAtomRegistry.get(environmentShell.stateValueAtom(environmentId)).status === "live" &&
-      appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId)
-    );
-  },
+  canDeliver: (entry) =>
+    isThreadOutboxDeliverable(entry.payload.environmentId, (atom) => appAtomRegistry.get(atom)),
   deliver: async (entry, savePayload) => {
     let payload = { ...entry.payload, localAttachments: [...entry.payload.localAttachments] };
     const { environmentId } = payload;

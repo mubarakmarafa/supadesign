@@ -208,6 +208,22 @@ describe("durable thread outbox", () => {
     expect(h.records.size).toBe(0);
   });
 
+  it("keeps a message sending until its acknowledgement is recorded", async () => {
+    const h = harness();
+    const outbox = h.create();
+    h.connect();
+    await outbox.enqueue(message("prompt"));
+    const write = vi.mocked(h.storage.write).getMockImplementation()!;
+    let sendingWhenAcknowledged: boolean | null = null;
+    vi.mocked(h.storage.write).mockImplementation(async (entry) => {
+      if (entry.status === "delivered") sendingWhenAcknowledged = outbox.isSending(entry.id);
+      return write(entry);
+    });
+    await outbox.drain();
+    expect(sendingWhenAcknowledged).toBe(true);
+    expect(outbox.isSending("prompt")).toBe(false);
+  });
+
   it("pauses delivery during editing and sends the saved text with its attachments", async () => {
     const h = harness();
     const outbox = h.create();
