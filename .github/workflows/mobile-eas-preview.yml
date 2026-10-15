@@ -14,7 +14,7 @@ concurrency:
 jobs:
   preview:
     name: Mobile preview ${{ matrix.platform }}
-    # A same-repo head means the author can push here; fork PRs get no secrets on pull_request.
+    # Only collaborators can push same-repo branches; fork PRs get no secrets on pull_request.
     if: github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
