@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { converter } from "culori/fn";
-import { BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
+import { BUILT_IN_THEME_IDS, BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
 
 import {
   applyThemeColorPreview,
@@ -25,13 +25,10 @@ import {
   subscribeToThemePreview,
   subscribeToCustomThemes,
   themeAllowsSidebarArtwork,
-  SUPATERM_CHAT_THEME,
-  GROVE_THEME,
   updateCustomTheme,
   updateThemeColorFamily,
   CUSTOM_THEMES_STORAGE_KEY,
   createVividThemeColors,
-  getDefaultThemeColors,
   themeColorToHex,
   toCanonicalThemeColor,
   THEME_FILE_VERSION,
@@ -74,6 +71,15 @@ function contrastRatio(first: string, second: string): number {
   const darker = Math.min(luminance(first), luminance(second));
   return (lighter + 0.05) / (darker + 0.05);
 }
+
+const DUAL_THEME = parseThemeFile({
+  version: THEME_FILE_VERSION,
+  id: "harbor",
+  name: "Harbor",
+  appearance: "light",
+  colors: { canvas: "#f8fbff", text: "#10243d", accent: "#2563eb" },
+  variants: { dark: { canvas: "#101827", text: "#eef5ff", accent: "#60a5fa" } },
+});
 
 describe("theme files", () => {
   it("keeps every built-in palette value in canonical OKLCH form", () => {
@@ -124,7 +130,7 @@ describe("theme files", () => {
       colors: { canvas: "#101010" },
     });
     expect(legacy.colors.searchMatchBackground).toBe(
-      getDefaultThemeColors("dark").searchMatchBackground,
+      getStandardThemeColors("dark").searchMatchBackground,
     );
     const theme = parseThemeFile({
       version: THEME_FILE_VERSION,
@@ -146,7 +152,7 @@ describe("theme files", () => {
   it.each(["searchMatchBackground", "searchMatchActiveBackground"] as const)(
     "editing %s derives readable text without changing the other match or warning colours",
     (role) => {
-      const original = getDefaultThemeColors("dark");
+      const original = getStandardThemeColors("dark");
       const foreground =
         role === "searchMatchBackground" ? "searchMatchForeground" : "searchMatchActiveForeground";
       for (const value of ["#ffffff", "#000000", "#33669980"]) {
@@ -172,22 +178,6 @@ describe("theme files", () => {
     });
   });
 
-  it("keeps the previous standard palette as the Zenbones built-in", () => {
-    const zenbones = getThemeDefinition("zenbones")!;
-    expect(BUILT_IN_THEMES).toContain(zenbones);
-    expect(zenbones.label).toBe("Zenbones");
-    expectThemeColors(getThemeColorsForMode(zenbones, "light")!, {
-      canvas: "#f0edec",
-      sidebar: "#e7e2e0",
-      messageSurface: "#e1dad7",
-    });
-    expectThemeColors(getThemeColorsForMode(zenbones, "dark")!, {
-      canvas: "#1c1917",
-      sidebar: "#171412",
-      messageSurface: "#302b29",
-    });
-  });
-
   it.each(["light", "dark"] as const)(
     "restores the standard %s palette after switching themes",
     (appearance) => {
@@ -199,7 +189,7 @@ describe("theme files", () => {
           style: { setProperty: (name: string, value: string) => variables.set(name, value) },
         },
       });
-      applyThemePalette("ocean", appearance);
+      applyThemePalette(appearance === "dark" ? "dracula" : "catppuccin-latte", appearance);
       applyThemePalette("system", appearance);
       expect(dataset.themeId).toBe("__default");
       expect(variables.get("--app-theme-canvas")).toBe(getStandardThemeColors(appearance).canvas);
@@ -318,7 +308,7 @@ describe("theme files", () => {
       colors: {
         canvas: canonical("#07152f"),
         accent: canonical("#67c2ff"),
-        placeholder: canonical("#968d9f"),
+        placeholder: getStandardThemeColors("dark").placeholder,
       },
     });
   });
@@ -397,13 +387,13 @@ describe("theme files", () => {
 
   it("canonicalizes the explicitly exported theme", () => {
     const serialized = serializeThemeFile({
-      ...SUPATERM_CHAT_THEME,
-      colors: { ...SUPATERM_CHAT_THEME.colors, accent: "hsl(263 70% 58%)" },
+      ...DUAL_THEME,
+      colors: { ...DUAL_THEME.colors, accent: "hsl(263 70% 58%)" },
     });
     expect(JSON.parse(serialized)).toMatchObject({
       version: THEME_FILE_VERSION,
-      id: SUPATERM_CHAT_THEME.id,
-      name: SUPATERM_CHAT_THEME.label,
+      id: DUAL_THEME.id,
+      name: DUAL_THEME.label,
       appearance: "light",
       colors: { accent: canonical("hsl(263 70% 58%)") },
     });
@@ -455,15 +445,15 @@ describe("theme files", () => {
       },
     });
 
-    applyThemeColorPreview(SUPATERM_CHAT_THEME.colors, "light");
+    applyThemeColorPreview(DUAL_THEME.colors, "light");
     expect(getThemePreviewAppearance()).toBe("light");
     expect(listener).toHaveBeenCalledTimes(1);
 
-    applyThemeColorPreview(SUPATERM_CHAT_THEME.variants!.dark!, "dark");
+    applyThemeColorPreview(DUAL_THEME.variants!.dark!, "dark");
     expect(getThemePreviewAppearance()).toBe("dark");
     expect(listener).toHaveBeenCalledTimes(2);
 
-    applyThemeColorPreview(SUPATERM_CHAT_THEME.variants!.dark!, "dark");
+    applyThemeColorPreview(DUAL_THEME.variants!.dark!, "dark");
     expect(listener).toHaveBeenCalledTimes(2);
 
     applyThemePalette("system");
@@ -491,99 +481,51 @@ describe("theme files", () => {
       canvas: canonical("#101827"),
       text: canonical("#eef5ff"),
     });
-    expect(getThemeModes(SUPATERM_CHAT_THEME)).toEqual(["light", "dark"]);
-    expect(resolveThemeAppearance(SUPATERM_CHAT_THEME.id, true, true)).toBe("dark");
-    expect(resolveDesktopTheme(SUPATERM_CHAT_THEME.id, true)).toBe("system");
-    expect(resolveThemeAppearance(SUPATERM_CHAT_THEME.id, false, false, "dark")).toBe("dark");
-    expect(resolveDesktopTheme(SUPATERM_CHAT_THEME.id, false, "dark")).toBe("dark");
+    expect(getThemeModes(getThemeDefinition("dracula")!)).toEqual(["dark"]);
+    expect(resolveThemeAppearance("dracula", false, true)).toBe("dark");
+    expect(resolveDesktopTheme("dracula", true)).toBe("dark");
+    expect(resolveThemeAppearance("catppuccin-latte", true, true)).toBe("light");
+    expect(resolveDesktopTheme("catppuccin-latte", false, "dark")).toBe("light");
     expect(JSON.parse(serializeThemeFile(theme)).variants.dark).toMatchObject({
       canvas: canonical("#101827"),
       text: canonical("#eef5ff"),
     });
   });
 
-  it("pins the Supaterm Chat palette and keeps it readable", () => {
-    expectThemeColors(SUPATERM_CHAT_THEME.colors, {
-      canvas: "#fdf7fd",
-      chrome: "#fdf7fd",
-      toolbarBorder: "#efbdeb",
-      toolbarControl: "#f3e6f5",
-      toolbarControlHover: "#eccfe3",
-      surfaceRaised: "#fdfafd",
-      input: "#e7c1dc",
-      focus: "#db2777",
-      messageSurface: "#f7def2",
-      codeBackground: "#f5ecf9",
-      codeForeground: "#673c8b",
-      accentSurface: "#f3e6f5",
-      sidebar: "#f2e1f4",
-    });
-    expectThemeColors(SUPATERM_CHAT_THEME.variants!.dark!, {
-      canvas: "#1f1a24",
-      chrome: "#1f1a24",
-      surface: "#29232d",
-      surfaceRaised: "#2c2631",
-      input: "#302029",
-      focus: "#db2777",
-      messageSurface: "#2b2431",
-      codeBackground: "#1f1a24",
-      sidebar: "#171018",
-      sidebarBorder: "#322028",
-    });
-
-    for (const mode of ["light", "dark"] as const) {
-      const colors = getThemeColorsForMode(SUPATERM_CHAT_THEME, mode)!;
-      expect(contrastRatio(colors.text, colors.canvas)).toBeGreaterThanOrEqual(7);
+  it("ships each popular theme as a readable single-appearance built-in", () => {
+    expect(BUILT_IN_THEMES.map((theme) => theme.id)).toEqual([...BUILT_IN_THEME_IDS]);
+    for (const theme of BUILT_IN_THEMES) {
+      expect(getThemeDefinition(theme.id)).toBe(theme);
+      expect(getThemeModes(theme)).toEqual([theme.appearance]);
+      expect(themeAllowsSidebarArtwork(theme.id)).toBe(false);
+      const colors = theme.colors;
+      expect(contrastRatio(colors.text, colors.canvas)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(colors.textMuted, colors.canvas)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.accentForeground, colors.accent)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(colors.toolbarControlForeground, colors.toolbarControl),
+      ).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(colors.messageForeground, colors.messageSurface)).toBeGreaterThanOrEqual(
         4.5,
       );
-      expect(contrastRatio(colors.secondaryForeground, colors.secondary)).toBeGreaterThanOrEqual(
-        4.5,
-      );
-      expect(contrastRatio(colors.sidebarForeground, colors.sidebar)).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(colors.accentForeground, colors.accent)).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  it("includes the dual-mode maintainer themes", () => {
-    for (const theme of BUILT_IN_THEMES) {
-      expect(getThemeDefinition(theme.id)).toBe(theme);
-      expect(getThemeModes(theme)).toEqual(["light", "dark"]);
-      expect(themeAllowsSidebarArtwork(theme.id)).toBe(theme.sidebarArtwork === true);
-      expect(theme.colors.accent).toMatch(/^oklch\(/);
-      expect(theme.variants?.dark?.accent).toMatch(/^oklch\(/);
-
-      for (const mode of ["light", "dark"] as const) {
-        const colors = getThemeColorsForMode(theme, mode);
-        expect(colors).not.toBeNull();
-        expect(contrastRatio(colors!.text, colors!.canvas)).toBeGreaterThanOrEqual(4.5);
-        expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeGreaterThanOrEqual(4.5);
-        if (theme !== SUPATERM_CHAT_THEME) {
-          expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeLessThan(5.5);
-          expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeCloseTo(
-            mode === "dark" ? 5.082 : 4.705,
-            1,
-          );
-        }
-        expect(contrastRatio(colors!.accentForeground, colors!.accent)).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(colors!.toolbarControlForeground, colors!.toolbarControl),
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(colors!.messageForeground, colors!.messageSurface),
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(colors!.messageActionForeground, colors!.messageAction),
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(colors!.messageActionForeground, colors!.messageActionHover),
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(contrastRatio(colors!.mutedForeground, colors!.muted)).toBeGreaterThanOrEqual(4.5);
-        expect(contrastRatio(colors!.placeholder, colors!.surfaceRaised)).toBeGreaterThanOrEqual(
-          4.5,
-        );
+      expect(
+        contrastRatio(colors.messageActionForeground, colors.messageAction),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(colors.messageActionForeground, colors.messageActionHover),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(colors.accentSurfaceForeground, colors.accentSurface),
+      ).toBeGreaterThanOrEqual(4.5);
+      for (const surface of [
+        colors.sidebarRowHover,
+        colors.sidebarRowActive,
+        colors.sidebarRowSelected,
+      ]) {
+        expect(contrastRatio(colors.sidebarForeground, surface)).toBeGreaterThanOrEqual(4.5);
       }
+      expect(contrastRatio(colors.mutedForeground, colors.muted)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.placeholder, colors.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
     }
     expect(themeAllowsSidebarArtwork("my-custom-theme")).toBe(false);
   });
@@ -656,10 +598,10 @@ describe("theme files", () => {
       [
         CUSTOM_THEMES_STORAGE_KEY,
         JSON.stringify([
-          { id: "ocean-custom", label: "Ocean Tweak", appearance: "dark", colors: {} },
+          { id: "dracula-custom", label: "Dracula Tweak", appearance: "dark", colors: {} },
           {
-            id: "ocean",
-            label: "My Ocean",
+            id: "dracula",
+            label: "My Dracula",
             appearance: "dark",
             colors: { canvas: "#1d1e22" },
           },
@@ -675,15 +617,15 @@ describe("theme files", () => {
 
     invalidateCustomThemes();
     expect(getCustomThemes().map((theme) => [theme.id, theme.label])).toEqual([
-      ["ocean-custom", "Ocean Tweak"],
-      ["ocean-custom-2", "My Ocean"],
+      ["dracula-custom", "Dracula Tweak"],
+      ["dracula-custom-2", "My Dracula"],
     ]);
-    expect(getThemeDefinition("ocean")?.label).toBe("Ocean");
+    expect(getThemeDefinition("dracula")?.label).toBe("Dracula");
 
-    removeCustomTheme("ocean-custom-2");
+    removeCustomTheme("dracula-custom-2");
 
     expect(JSON.parse(stored.get(CUSTOM_THEMES_STORAGE_KEY)!)).toEqual([
-      { id: "ocean-custom", label: "Ocean Tweak", appearance: "dark", colors: {} },
+      { id: "dracula-custom", label: "Dracula Tweak", appearance: "dark", colors: {} },
     ]);
     invalidateCustomThemes();
     vi.unstubAllGlobals();
@@ -696,15 +638,15 @@ describe("theme files", () => {
           key === CUSTOM_THEMES_STORAGE_KEY
             ? JSON.stringify([
                 {
-                  id: "github-dark",
-                  label: "GitHub Dark",
+                  id: "github-night",
+                  label: "GitHub Night",
                   appearance: "dark",
                   colors: { canvas: "#0d1117" },
                   collection: { id: "open-vsx:github.github-vscode-theme", label: "GitHub Theme" },
                 },
                 {
-                  id: "github-light",
-                  label: "GitHub Light",
+                  id: "github-day",
+                  label: "GitHub Day",
                   appearance: "light",
                   colors: { canvas: "#ffffff" },
                   collection: { id: "bad collection id", label: "GitHub Theme" },
@@ -717,7 +659,7 @@ describe("theme files", () => {
     invalidateCustomThemes();
     expect(getCustomThemes()).toMatchObject([
       { collection: { id: "open-vsx:github.github-vscode-theme", label: "GitHub Theme" } },
-      { id: "github-light" },
+      { id: "github-day" },
     ]);
     expect(getCustomThemes()[1]).not.toHaveProperty("collection");
 
@@ -1122,8 +1064,8 @@ describe("stored theme preferences", () => {
     // Light-only base: without halves, dark requests fall back to light.
     const lightOnly = parseThemeFile({
       version: THEME_FILE_VERSION,
-      id: "paper",
-      name: "Paper",
+      id: "parchment",
+      name: "Parchment",
       appearance: "light",
       colors: { canvas: "#f8fbff" },
     });
@@ -1135,11 +1077,11 @@ describe("stored theme preferences", () => {
     });
     invalidateCustomThemes();
     try {
-      expect(resolveThemeAppearance("paper", true, true)).toBe("light");
-      const halves = { dark: GROVE_THEME.id };
-      expect(resolveThemeAppearance("paper", true, true, undefined, halves)).toBe("dark");
-      expect(resolveThemeAppearance("paper", false, false, "dark", halves)).toBe("dark");
-      expect(resolveDesktopTheme("paper", true, undefined, halves)).toBe("system");
+      expect(resolveThemeAppearance("parchment", true, true)).toBe("light");
+      const halves = { dark: "dracula" };
+      expect(resolveThemeAppearance("parchment", true, true, undefined, halves)).toBe("dark");
+      expect(resolveThemeAppearance("parchment", false, false, "dark", halves)).toBe("dark");
+      expect(resolveDesktopTheme("parchment", true, undefined, halves)).toBe("system");
     } finally {
       vi.unstubAllGlobals();
       invalidateCustomThemes();
@@ -1147,10 +1089,11 @@ describe("stored theme preferences", () => {
   });
 
   it("recognizes only preferences the runtime can render", () => {
-    for (const preference of ["light", "dark", "system", SUPATERM_CHAT_THEME.id, GROVE_THEME.id]) {
+    for (const preference of ["light", "dark", "system", "dracula", "catppuccin-latte"]) {
       expect(isKnownThemePreference(preference)).toBe(true);
     }
-    expect(isKnownThemePreference(`${GROVE_THEME.id}:dark`)).toBe(false);
+    expect(isKnownThemePreference("dracula:dark")).toBe(false);
+    expect(isKnownThemePreference("grove")).toBe(false);
     expect(isKnownThemePreference("missing-theme")).toBe(false);
   });
 
@@ -1179,7 +1122,7 @@ describe("stored theme preferences", () => {
     expect(themes).toHaveLength(1);
     expect(themes[0]).toMatchObject({
       id: "aurora",
-      colors: { canvas: canonical("#f8fbff"), accent: getDefaultThemeColors("light").accent },
+      colors: { canvas: canonical("#f8fbff"), accent: getStandardThemeColors("light").accent },
     });
     expect(getThemeModes(themes[0]!)).toEqual(["light", "dark"]);
     expect(getThemeColorsForMode(themes[0]!, "dark")?.canvas).toBe(canonical("rgb(16 24 39)"));
@@ -1197,8 +1140,8 @@ describe("stored theme preferences", () => {
 
 describe("singleAppearanceOf", () => {
   it("reports the only half a theme can claim, and null for a pair", () => {
-    const { variants: _pair, ...base } = SUPATERM_CHAT_THEME;
+    const { variants: _pair, ...base } = DUAL_THEME;
     expect(singleAppearanceOf({ ...base, id: "x", appearance: "dark" })).toBe("dark");
-    expect(singleAppearanceOf(SUPATERM_CHAT_THEME)).toBe(null);
+    expect(singleAppearanceOf(DUAL_THEME)).toBe(null);
   });
 });

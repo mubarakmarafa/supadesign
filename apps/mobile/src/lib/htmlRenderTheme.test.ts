@@ -6,12 +6,12 @@ import { getMobileThemeVariables } from "./mobileTheme";
 describe("mobileHtmlRenderTheme", () => {
   it("paints the page with the feed's own canvas", () => {
     const variables = {
-      ...getMobileThemeVariables("grove", "dark"),
+      ...getMobileThemeVariables("dracula", "dark"),
       "--color-thread-canvas": "#101010",
     };
     const theme = (platform: string) =>
       mobileHtmlRenderTheme({
-        themeId: "grove",
+        themeId: "dracula",
         appearance: "dark",
         variables,
         systemColors: false,

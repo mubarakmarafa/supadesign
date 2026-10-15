@@ -128,7 +128,7 @@ describe("published theme refresh", () => {
 
   it("keeps a draft visible while updating the stored selection underneath it", async () => {
     const { publish, palette, root, styles } = await setupThemeSync();
-    const draft = { ...palette.getDefaultThemeColors("light"), canvas: "#234567" };
+    const draft = { ...palette.getStandardThemeColors("light"), canvas: "#234567" };
     palette.applyThemeColorPreview(draft, "light");
     const canvasVariable = palette.getThemeColorVariable("canvas");
 
@@ -161,12 +161,12 @@ describe("published theme refresh", () => {
   it("keeps a draft visible when default adoption changes the theme and appearance", async () => {
     const { publish, palette, root, readSnapshot } = await setupThemeSync();
     const current = publish([NIGHTFALL_THEME]);
-    palette.applyThemeColorPreview(palette.getDefaultThemeColors("dark"), "dark");
+    palette.applyThemeColorPreview(palette.getStandardThemeColors("dark"), "dark");
 
-    expect(current.setTheme("ocean")).toBe(true);
+    expect(current.setTheme("catppuccin-latte")).toBe(true);
     expect(current.setAppearanceMode("light")).toBe(true);
     expect(readSnapshot()).toMatchObject({
-      theme: "ocean",
+      theme: "catppuccin-latte",
       appearanceMode: "light",
       resolvedTheme: "light",
     });
@@ -174,7 +174,7 @@ describe("published theme refresh", () => {
     expect(root.classList.contains("dark")).toBe(true);
 
     current.refreshTheme();
-    expect(root.dataset.themeId).toBe("ocean");
+    expect(root.dataset.themeId).toBe("catppuccin-latte");
     expect(root.classList.contains("dark")).toBe(false);
     expect(palette.getThemePreviewAppearance()).toBeNull();
   });

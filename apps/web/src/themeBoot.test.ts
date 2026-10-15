@@ -8,13 +8,11 @@ import {
 import indexHtml from "../index.html?raw";
 import {
   CUSTOM_THEMES_STORAGE_KEY,
-  getDefaultThemeColors,
-  getThemeColorsForMode,
+  getStandardThemeColors,
+  getThemeDefinition,
   invalidateCustomThemes,
   isKnownThemePreference,
   resolveThemeAppearance,
-  SUPATERM_CHAT_THEME,
-  GROVE_THEME,
   THEME_APPEARANCE_MODE_STORAGE_KEY,
   toCanonicalThemeColor,
 } from "./themePalette";
@@ -22,7 +20,9 @@ import {
 const THEME_STORAGE_KEY = "supaterm:theme";
 // A custom theme that omits chrome falls back to the runtime default, so the
 // boot copy of that default stays derived from the real palette.
-const DEFAULT_DARK_CHROME = getDefaultThemeColors("dark").chrome;
+const DEFAULT_DARK_CHROME = getStandardThemeColors("dark").chrome;
+const DRACULA = getThemeDefinition("dracula")!;
+const CATPPUCCIN_LATTE = getThemeDefinition("catppuccin-latte")!;
 
 const bootScript = (() => {
   const match = indexHtml.match(/<script>([\s\S]*?)<\/script>/);
@@ -152,39 +152,29 @@ describe("index.html boot script", () => {
   }> = [
     { name: "no stored preference on a dark OS", storage: {}, prefersDark: true },
     {
-      name: "Supaterm Chat follows a dark OS",
+      name: "a dark-only built-in stays dark on a light OS",
+      storage: { [THEME_STORAGE_KEY]: "dracula", [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system" },
+      prefersDark: false,
+    },
+    {
+      name: "an explicit light mode cannot lighten a dark-only built-in",
       storage: {
-        [THEME_STORAGE_KEY]: "supaterm-chat",
+        [THEME_STORAGE_KEY]: "dracula",
+        [THEME_APPEARANCE_MODE_STORAGE_KEY]: "light",
+      },
+      prefersDark: false,
+    },
+    {
+      name: "a light-only built-in stays light on a dark OS",
+      storage: {
+        [THEME_STORAGE_KEY]: "catppuccin-latte",
         [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
       },
       prefersDark: true,
     },
     {
-      name: "an explicit global dark mode applies to Supaterm Chat",
-      storage: {
-        [THEME_STORAGE_KEY]: "supaterm-chat",
-        [THEME_APPEARANCE_MODE_STORAGE_KEY]: "dark",
-      },
-      prefersDark: false,
-    },
-    {
-      name: "Grove follows a dark OS",
+      name: "a retired built-in falls back to system",
       storage: { [THEME_STORAGE_KEY]: "grove", [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system" },
-      prefersDark: true,
-    },
-    {
-      name: "Ocean follows a dark OS",
-      storage: { [THEME_STORAGE_KEY]: "ocean", [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system" },
-      prefersDark: true,
-    },
-    {
-      name: "Ember follows a dark OS",
-      storage: { [THEME_STORAGE_KEY]: "ember", [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system" },
-      prefersDark: true,
-    },
-    {
-      name: "Iris follows a dark OS",
-      storage: { [THEME_STORAGE_KEY]: "iris", [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system" },
       prefersDark: true,
     },
     {
@@ -244,16 +234,13 @@ describe("index.html boot script", () => {
   );
 
   it("marks built-in and custom themes on the document element", () => {
-    const chat = runBootScript({
-      storage: {
-        [THEME_STORAGE_KEY]: "supaterm-chat",
-        [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
-      },
+    const dracula = runBootScript({
+      storage: { [THEME_STORAGE_KEY]: "dracula", [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system" },
       prefersDark: true,
     });
-    expect(chat.themeId).toBe("supaterm-chat");
-    expect(chat.themeSelected).toBe("true");
-    expect(chat.isDark).toBe(true);
+    expect(dracula.themeId).toBe("dracula");
+    expect(dracula.themeSelected).toBe("true");
+    expect(dracula.isDark).toBe(true);
 
     const aurora = runBootScript({
       storage: {
@@ -332,11 +319,9 @@ describe("index.html boot script", () => {
   // palette change breaks this test until the copy in index.html is updated.
   it("keeps every built-in boot splash in sync with the real palettes", () => {
     for (const theme of BUILT_IN_THEMES) {
-      // The boot script resolves every built-in from a light base appearance.
-      expect(theme.appearance).toBe("light");
+      // Every built-in carries one appearance, so it boots in that mode even
+      // when the global mode asks for the other one.
       for (const mode of ["light", "dark"] as const) {
-        const colors = getThemeColorsForMode(theme, mode);
-        expect(colors).not.toBeNull();
         const boot = runBootScript({
           storage: {
             [THEME_STORAGE_KEY]: theme.id,
@@ -345,57 +330,56 @@ describe("index.html boot script", () => {
           prefersDark: mode === "dark",
         });
         expect(boot.themeId).toBe(theme.id);
-        expect(boot.isDark).toBe(mode === "dark");
-        expect(boot.bootVariables["--boot-background"]).toBe(colors!.canvas);
-        expect(boot.bootVariables["--boot-foreground"]).toBe(colors!.text);
-        expect(boot.bootVariables["--boot-accent"]).toBe(colors!.accent);
-        expect(boot.backgroundColor).toBe(colors!.chrome);
-        expect(boot.metaContent).toBe(colors!.chrome);
+        expect(boot.isDark).toBe(theme.appearance === "dark");
+        expect(boot.bootVariables["--boot-background"]).toBe(theme.colors.canvas);
+        expect(boot.bootVariables["--boot-foreground"]).toBe(theme.colors.text);
+        expect(boot.bootVariables["--boot-accent"]).toBe(theme.colors.accent);
+        expect(boot.backgroundColor).toBe(theme.colors.chrome);
+        expect(boot.metaContent).toBe(theme.colors.chrome);
       }
     }
   });
 
   it("applies the matching half of an automatic mix to the splash", () => {
     const storage = {
-      [THEME_STORAGE_KEY]: "supaterm-chat",
+      [THEME_STORAGE_KEY]: "system",
       [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
-      "supaterm:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
+      "supaterm:theme-halves:v1": JSON.stringify({
+        light: CATPPUCCIN_LATTE.id,
+        dark: DRACULA.id,
+      }),
     };
 
     const dark = runBootScript({ storage, prefersDark: true });
     expect(dark.isDark).toBe(true);
-    expect(dark.themeId).toBe(GROVE_THEME.id);
-    expect(dark.bootVariables["--boot-background"]).toBe(
-      getThemeColorsForMode(GROVE_THEME, "dark")!.canvas,
-    );
+    expect(dark.themeId).toBe(DRACULA.id);
+    expect(dark.bootVariables["--boot-background"]).toBe(DRACULA.colors.canvas);
 
     const light = runBootScript({ storage, prefersDark: false });
     expect(light.isDark).toBe(false);
-    expect(light.themeId).toBe("supaterm-chat");
-    expect(light.bootVariables["--boot-background"]).toBe(
-      getThemeColorsForMode(SUPATERM_CHAT_THEME, "light")!.canvas,
-    );
+    expect(light.themeId).toBe(CATPPUCCIN_LATTE.id);
+    expect(light.bootVariables["--boot-background"]).toBe(CATPPUCCIN_LATTE.colors.canvas);
   });
 
   it("lets a dark half go dark when the light-only base cannot", () => {
     const boot = runBootScript({
       storage: {
-        [THEME_STORAGE_KEY]: "paper",
+        [THEME_STORAGE_KEY]: "parchment",
         [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
         [CUSTOM_THEMES_STORAGE_KEY]: JSON.stringify([
           {
-            id: "paper",
-            label: "Paper",
+            id: "parchment",
+            label: "Parchment",
             appearance: "light",
             colors: { canvas: "#f8fbff", text: "#10243d", accent: "#5b6cff" },
           },
         ]),
-        "supaterm:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
+        "supaterm:theme-halves:v1": JSON.stringify({ dark: DRACULA.id }),
       },
       prefersDark: true,
     });
     expect(boot.isDark).toBe(true);
-    expect(boot.themeId).toBe(GROVE_THEME.id);
+    expect(boot.themeId).toBe(DRACULA.id);
   });
 
   it("paints the half's splash when the base theme no longer exists", () => {
@@ -403,28 +387,26 @@ describe("index.html boot script", () => {
       storage: {
         [THEME_STORAGE_KEY]: "gone-theme",
         [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
-        "supaterm:theme-halves:v1": JSON.stringify({ dark: GROVE_THEME.id }),
+        "supaterm:theme-halves:v1": JSON.stringify({ dark: DRACULA.id }),
       },
       prefersDark: true,
     });
     expect(boot.isDark).toBe(true);
-    expect(boot.themeId).toBe(GROVE_THEME.id);
+    expect(boot.themeId).toBe(DRACULA.id);
     expect(boot.themeSelected).toBe("true");
-    expect(boot.bootVariables["--boot-background"]).toBe(
-      getThemeColorsForMode(GROVE_THEME, "dark")!.canvas,
-    );
+    expect(boot.bootVariables["--boot-background"]).toBe(DRACULA.colors.canvas);
   });
 
   it("ignores a mix half that names an unknown theme", () => {
     const boot = runBootScript({
       storage: {
-        [THEME_STORAGE_KEY]: "supaterm-chat",
+        [THEME_STORAGE_KEY]: "dracula",
         [THEME_APPEARANCE_MODE_STORAGE_KEY]: "system",
         "supaterm:theme-halves:v1": JSON.stringify({ dark: "gone-theme" }),
       },
       prefersDark: true,
     });
-    expect(boot.themeId).toBe("supaterm-chat");
+    expect(boot.themeId).toBe("dracula");
     expect(boot.isDark).toBe(true);
   });
 
@@ -446,9 +428,9 @@ describe("index.html boot script", () => {
     });
 
     expect(boot.themeId).toBe("partial");
-    expect(boot.bootVariables["--boot-background"]).toBe(getDefaultThemeColors("dark").canvas);
+    expect(boot.bootVariables["--boot-background"]).toBe(getStandardThemeColors("dark").canvas);
     expect(boot.bootVariables["--boot-foreground"]).toBe("#fffaff");
-    expect(boot.bootVariables["--boot-accent"]).toBe(getDefaultThemeColors("dark").accent);
+    expect(boot.bootVariables["--boot-accent"]).toBe(getStandardThemeColors("dark").accent);
     expect(boot.backgroundColor).toBe(DEFAULT_DARK_CHROME);
     expect(boot.metaContent).toBe(DEFAULT_DARK_CHROME);
   });

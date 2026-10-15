@@ -299,11 +299,15 @@ describe("createNativeReviewDiffTheme", () => {
 
   it("uses the selected app palette for native code surfaces", () => {
     const standard = createNativeReviewDiffTheme("dark", "supaterm", appTheme("supaterm", "dark"));
-    const iris = createNativeReviewDiffTheme("dark", "iris", appTheme("iris", "dark"));
+    const mocha = createNativeReviewDiffTheme(
+      "dark",
+      "catppuccin-mocha",
+      appTheme("catppuccin-mocha", "dark"),
+    );
 
-    expect(iris.background).not.toBe(standard.background);
-    expect(iris.hunkText).not.toBe(standard.hunkText);
-    expect(iris.addBar).toBe(standard.addBar);
-    expect(iris.deleteBar).toBe(standard.deleteBar);
+    expect(mocha.background).not.toBe(standard.background);
+    expect(mocha.hunkText).not.toBe(standard.hunkText);
+    expect(mocha.addBar).toBe(standard.addBar);
+    expect(mocha.deleteBar).toBe(standard.deleteBar);
   });
 });

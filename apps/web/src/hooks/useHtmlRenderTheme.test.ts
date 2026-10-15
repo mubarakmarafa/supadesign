@@ -14,7 +14,7 @@ import {
 import { useHtmlRenderTheme } from "./useHtmlRenderTheme";
 
 const selection = vi.hoisted(() => ({
-  theme: "ocean" as ThemePreference,
+  theme: "dracula" as ThemePreference,
   resolvedTheme: "dark" as ThemeAppearance,
   themeHalves: null as ThemeHalves | null,
 }));

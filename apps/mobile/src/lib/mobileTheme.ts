@@ -1,6 +1,5 @@
 import {
   BUILT_IN_THEMES,
-  SUPATERM_CHAT_THEME,
   SUPATERM_LIGHT_THEME_COLORS,
   SUPATERM_DARK_THEME_COLORS,
   getThemeColorsForAppearance,
@@ -36,6 +35,14 @@ export const MOBILE_THEME_OPTIONS: ReadonlyArray<{
 export type MobileThemeVariable = keyof ReturnType<typeof createMobileThemeVariables>;
 export type MobileThemeVariables = Readonly<Record<MobileThemeVariable, string>>;
 
+export function mobileThemeSupportsAppearance(
+  themeId: MobileThemeId,
+  appearance: MobileThemeAppearance,
+): boolean {
+  const theme = BUILT_IN_THEMES.find((candidate) => candidate.id === themeId);
+  return theme === undefined || getThemeColorsForAppearance(theme, appearance) !== null;
+}
+
 export function normalizeMobileThemeId(value: unknown): MobileThemeId {
   return typeof value === "string" && (MOBILE_THEME_IDS as readonly string[]).includes(value)
     ? (value as MobileThemeId)
@@ -50,9 +57,13 @@ export function resolveMobileThemeIds(preferences: {
   readonly lightThemeId?: unknown;
   readonly darkThemeId?: unknown;
 }): MobileThemeIds {
+  const resolve = (appearance: MobileThemeAppearance, value: unknown) => {
+    const themeId = normalizeMobileThemeId(value);
+    return mobileThemeSupportsAppearance(themeId, appearance) ? themeId : DEFAULT_MOBILE_THEME_ID;
+  };
   return {
-    light: normalizeMobileThemeId(preferences.lightThemeId),
-    dark: normalizeMobileThemeId(preferences.darkThemeId),
+    light: resolve("light", preferences.lightThemeId),
+    dark: resolve("dark", preferences.darkThemeId),
   };
 }
 
@@ -62,15 +73,21 @@ export function createMobileThemeSelectionPatch(
   value: MobileThemeId,
 ) {
   return {
-    lightThemeId: selectedAppearance === "light" ? value : themeIds.light,
-    darkThemeId: selectedAppearance === "dark" ? value : themeIds.dark,
+    lightThemeId:
+      selectedAppearance === "light" && mobileThemeSupportsAppearance(value, "light")
+        ? value
+        : themeIds.light,
+    darkThemeId:
+      selectedAppearance === "dark" && mobileThemeSupportsAppearance(value, "dark")
+        ? value
+        : themeIds.dark,
   };
 }
 
-export function createMobileThemePairPatch(value: MobileThemeId) {
+export function createMobileThemePairPatch(themeIds: MobileThemeIds, value: MobileThemeId) {
   return {
-    lightThemeId: value,
-    darkThemeId: value,
+    lightThemeId: mobileThemeSupportsAppearance(value, "light") ? value : themeIds.light,
+    darkThemeId: mobileThemeSupportsAppearance(value, "dark") ? value : themeIds.dark,
   };
 }
 
@@ -270,7 +287,7 @@ export function createMobileThemeVariables(
       c.border,
       groupedCard === c.surface ? (appearance === "dark" ? 0.46 : 0.54) : 0.8,
     ),
-    "--color-foreground": c.text,
+    "--color-foreground": themeColorWithContrast(c.text, textSurfaces),
     "--color-foreground-secondary": themeColorWithContrast(c.textMuted, textSurfaces),
     "--color-foreground-muted": themeColorWithContrast(c.mutedForeground, textSurfaces),
     "--color-foreground-tertiary": c.secondaryLabel,
@@ -281,7 +298,10 @@ export function createMobileThemeVariables(
     "--color-subtle": c.muted,
     "--color-subtle-strong": c.secondary,
     "--color-inline-skill-background": c.accentSurface,
-    "--color-inline-skill-border": withAlpha(c.accent, 0.42),
+    "--color-inline-skill-border": withAlpha(
+      themeColorWithContrast(c.accent, c.accentSurface, 1.2),
+      0.42,
+    ),
     "--color-inline-skill-foreground": c.accentSurfaceForeground,
     "--color-primary": c.messageAction,
     "--color-prominent-action": themeColorToNativeColor(prominentAction[0]),
@@ -353,19 +373,18 @@ export function createMobileThemeVariables(
 }
 
 export const MOBILE_THEME_VARIABLE_NAMES = Object.keys(
-  createMobileThemeVariables(SUPATERM_CHAT_THEME.colors, "light"),
+  createMobileThemeVariables(SUPATERM_LIGHT_THEME_COLORS, "light"),
 ) as ReadonlyArray<MobileThemeVariable>;
 
 export function getMobileThemeColors(
   themeId: SharedMobileThemeId,
   appearance: MobileThemeAppearance,
 ): ThemeColors {
-  if (themeId === DEFAULT_MOBILE_THEME_ID) {
-    return appearance === "dark" ? SUPATERM_DARK_THEME_COLORS : SUPATERM_LIGHT_THEME_COLORS;
-  }
-  const theme =
-    BUILT_IN_THEMES.find((candidate) => candidate.id === themeId) ?? SUPATERM_CHAT_THEME;
-  return getThemeColorsForAppearance(theme, appearance) ?? theme.colors;
+  const theme = BUILT_IN_THEMES.find((candidate) => candidate.id === themeId);
+  return (
+    (theme ? getThemeColorsForAppearance(theme, appearance) : null) ??
+    (appearance === "dark" ? SUPATERM_DARK_THEME_COLORS : SUPATERM_LIGHT_THEME_COLORS)
+  );
 }
 
 export function getMobileThemeVariables(
@@ -376,25 +395,18 @@ export function getMobileThemeVariables(
   const colors = getMobileThemeColors(themeId, appearance);
   // Mobile groups and floating controls need a tonal fill, rather than the
   // nearly neutral raised surface used by desktop outlined cards.
-  const groupedCard =
-    themeId === DEFAULT_MOBILE_THEME_ID
-      ? appearance === "light"
-        ? colors.toolbarControlHover
-        : colors.sidebarRowActive
-      : themeId === "supaterm-chat"
-        ? appearance === "light"
-          ? colors.toolbarControl
-          : colors.surface
-        : colors.muted;
+  const isStandard =
+    themeId === DEFAULT_MOBILE_THEME_ID || !mobileThemeSupportsAppearance(themeId, appearance);
+  const groupedCard = isStandard
+    ? appearance === "light"
+      ? colors.toolbarControlHover
+      : colors.sidebarRowActive
+    : colors.muted;
   const baseVariables = createMobileThemeVariables(
     colors,
     appearance,
     groupedCard,
-    themeId === "supaterm-chat" && appearance === "dark"
-      ? [colors.messageActionForeground, colors.messageAction]
-      : themeId !== DEFAULT_MOBILE_THEME_ID && themeId !== "supaterm-chat"
-        ? [colors.messageAction, colors.messageActionForeground]
-        : undefined,
+    isStandard ? undefined : [colors.messageAction, colors.messageActionForeground],
   );
 
   // The complete base record guarantees that optional overrides cannot leave a token undefined.
@@ -413,9 +425,7 @@ export function getMobileThemePreviewColors(
       messageAction: themeColorToNativeColor(colors.messageAction),
     };
   }
-  const theme =
-    BUILT_IN_THEMES.find((candidate) => candidate.id === themeId) ?? SUPATERM_CHAT_THEME;
-  const colors = getThemeColorsForAppearance(theme, appearance) ?? theme.colors;
+  const colors = getMobileThemeColors(themeId, appearance);
   return {
     canvas: themeColorToNativeColor(colors.canvas),
     accent: themeColorToNativeColor(colors.accent),

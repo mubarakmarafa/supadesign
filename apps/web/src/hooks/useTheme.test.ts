@@ -70,16 +70,16 @@ describe("theme failure handling", () => {
     }
   });
 
-  it("reads the persisted Supaterm Chat theme preference", async () => {
+  it("reads a persisted built-in theme preference", async () => {
     vi.stubGlobal("window", {
       localStorage: createStorage({
-        getItem: () => "supaterm-chat",
+        getItem: () => "dracula",
       }),
     });
 
     const { readThemePreference } = await import("./useTheme");
 
-    expect(readThemePreference()).toBe("supaterm-chat");
+    expect(readThemePreference()).toBe("dracula");
   });
 
   it("falls back during initial theme application and logs only safe attributes", async () => {

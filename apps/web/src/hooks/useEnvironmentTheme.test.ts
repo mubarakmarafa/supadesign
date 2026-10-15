@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { environmentThemeDefinition, publishedThemeDefinitions } from "./useEnvironmentTheme";
 import {
-  getDefaultThemeColors,
+  getStandardThemeColors,
   getThemeDefinition,
   installCustomTheme,
   invalidateCustomThemes,
@@ -78,18 +78,19 @@ describe("environment themes", () => {
       variants: { light: { canvas: "#eff1f5" } },
     });
 
-    const lightDefaults = getDefaultThemeColors("light");
+    const lightDefaults = getStandardThemeColors("light");
     expect(theme.variants?.light?.text).toBe(lightDefaults.text);
     expect(theme.variants?.light?.canvas).not.toBe(theme.colors.canvas);
   });
 
-  // A published `iris.json` would show its palette on a card that applies
-  // the built-in, and a published `dark.json` would capture everyone whose
-  // stored preference is the stock "dark". Reserved ids never become cards.
+  // A published `dracula.json` would be shadowed by the built-in, a retired
+  // `ocean.json` would capture everyone who still stores that id, and a
+  // published `dark.json` would capture everyone whose stored preference is
+  // the stock "dark". Reserved ids never reach the picker.
   it("drops published themes with reserved ids", () => {
     const definitions = publishedThemeDefinitions([
       NIGHTFALL_THEME,
-      { ...NIGHTFALL_THEME, id: "iris", name: "Impostor Iris" },
+      { ...NIGHTFALL_THEME, id: "dracula", name: "Impostor Dracula" },
       { ...NIGHTFALL_THEME, id: "ocean", name: "Impostor Ocean" },
       { ...NIGHTFALL_THEME, id: "dark", name: "Impostor Dark" },
     ]);

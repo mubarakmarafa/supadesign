@@ -1,15 +1,15 @@
 import { resolveTextScaleVariables } from "./appearancePreferences";
-import { BUILT_IN_THEME_IDS, type BuiltInThemeId } from "@supaterm/shared/themePalettes";
+import type { UniwindConfig } from "uniwind";
+import { BUILT_IN_THEME_IDS } from "@supaterm/shared/themePalettes";
 import {
   DEFAULT_MOBILE_THEME_ID,
+  mobileThemeSupportsAppearance,
   type MobileThemeAppearance,
   type MobileThemeId,
   type MobileThemeMode,
 } from "./mobileTheme";
 
-export type MobileUniwindThemeName =
-  | MobileThemeAppearance
-  | `${BuiltInThemeId}-${MobileThemeAppearance}`;
+export type MobileUniwindThemeName = UniwindConfig["themes"][number];
 
 export interface MobileThemeRuntimeState {
   readonly baseFontSize: number;
@@ -32,19 +32,24 @@ export type MobileThemeRuntimeOperation =
 const UNIWIND_THEME_NAMES: ReadonlyArray<"light" | "dark" | MobileUniwindThemeName> = [
   "light",
   "dark",
-  ...BUILT_IN_THEME_IDS.flatMap((themeId) => [
-    `${themeId}-light` as const,
-    `${themeId}-dark` as const,
-  ]),
+  ...BUILT_IN_THEME_IDS.flatMap((themeId) =>
+    (["light", "dark"] as const).flatMap((appearance) =>
+      mobileThemeSupportsAppearance(themeId, appearance)
+        ? [getMobileUniwindThemeName(themeId, appearance)]
+        : [],
+    ),
+  ),
 ];
 
 export function getMobileUniwindThemeName(
   themeId: MobileThemeId,
   appearance: MobileThemeAppearance,
 ): MobileUniwindThemeName {
-  return themeId === DEFAULT_MOBILE_THEME_ID || themeId === "material-you"
+  return themeId === DEFAULT_MOBILE_THEME_ID ||
+    themeId === "material-you" ||
+    !mobileThemeSupportsAppearance(themeId, appearance)
     ? appearance
-    : `${themeId}-${appearance}`;
+    : (`${themeId}-${appearance}` as MobileUniwindThemeName);
 }
 
 /**

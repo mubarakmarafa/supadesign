@@ -1,11 +1,9 @@
-import { MoonIcon, SunIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 import {
   STANDARD_THEME_PREVIEW_COLORS as SHARED_STANDARD_THEME_PREVIEW_COLORS,
   THEME_PREVIEW_RENDER_SPECS,
 } from "@supaterm/shared/themePreview";
 import { cn } from "../../lib/utils";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
   getThemeColorsForMode,
   getThemeModes,
@@ -155,76 +153,5 @@ export function ThemePreviewCircle({
         }}
       />
     </span>
-  );
-}
-
-/**
- * A theme card's light and dark balls. Clicking a ball assigns that theme to
- * that half of the appearance mix; assigned balls carry a ring and a sun or
- * moon badge.
- */
-export function ThemePreviewCircles({
-  label,
-  activeModes,
-  onSelectMode,
-  previews,
-}: {
-  label: string;
-  activeModes: ReadonlyArray<ThemeMode>;
-  onSelectMode: (mode: ThemeMode) => void;
-  previews: ThemeCardDefinition["previews"];
-}) {
-  return (
-    <div className="flex min-h-16 items-center justify-center gap-2.5 px-3 pt-3">
-      {previews.map((preview) => {
-        const mode = preview.mode;
-        const isPicked = activeModes.includes(mode);
-        return (
-          <Tooltip key={mode}>
-            <TooltipTrigger
-              render={
-                <button
-                  aria-label={`Use ${label} ${mode} mode`}
-                  aria-pressed={isPicked}
-                  className={cn(
-                    "relative flex size-[68px] shrink-0 transform-gpu cursor-pointer items-center justify-center rounded-full p-1 outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
-                    isPicked && "hover:scale-100",
-                  )}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelectMode(mode);
-                  }}
-                  type="button"
-                >
-                  <ThemePreviewCircle colors={preview.colors} mode={mode} />
-                  {isPicked ? (
-                    <>
-                      <span
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 rounded-full"
-                        style={{ boxShadow: "inset 0 0 0 2px var(--ring)" }}
-                      />
-                      <span
-                        aria-hidden
-                        className="pointer-events-none absolute bottom-0.5 right-0.5 flex size-5 items-center justify-center rounded-full border border-border/70 bg-background text-foreground shadow-sm"
-                      >
-                        {mode === "light" ? (
-                          <SunIcon className="size-3" />
-                        ) : (
-                          <MoonIcon className="size-3" />
-                        )}
-                      </span>
-                    </>
-                  ) : null}
-                </button>
-              }
-            />
-            <TooltipPopup>
-              {mode === "light" ? "Use for light mode only" : "Use for dark mode only"}
-            </TooltipPopup>
-          </Tooltip>
-        );
-      })}
-    </div>
   );
 }

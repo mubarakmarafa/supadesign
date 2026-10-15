@@ -15,11 +15,11 @@ describe("mobile theme runtime variables", () => {
   });
 
   it("uses the same shared palette source as generated custom themes", () => {
-    expect(getMobileThemeRuntimeVariables("ocean", "light", "ios")).toEqual(
-      getMobileThemeVariables("ocean", "light"),
+    expect(getMobileThemeRuntimeVariables("one-light", "light", "ios")).toEqual(
+      getMobileThemeVariables("one-light", "light"),
     );
-    expect(getMobileThemeRuntimeVariables("iris", "dark", "ios")).toEqual(
-      getMobileThemeVariables("iris", "dark"),
+    expect(getMobileThemeRuntimeVariables("catppuccin-mocha", "dark", "ios")).toEqual(
+      getMobileThemeVariables("catppuccin-mocha", "dark"),
     );
   });
 

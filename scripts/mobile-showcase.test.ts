@@ -104,8 +104,8 @@ it("rejects unsupported system appearances", () => {
 
 it("parses repeatable and expanded theme filters", () => {
   assert.deepStrictEqual(
-    [...parseShowcaseCliArgs(["--theme", "ocean", "--theme", "ember"]).themes],
-    ["ocean", "ember"],
+    [...parseShowcaseCliArgs(["--theme", "nord", "--theme", "tokyo-night"]).themes],
+    ["nord", "tokyo-night"],
   );
   assert.deepStrictEqual(
     [...parseShowcaseCliArgs(["--theme", "all"]).themes],
@@ -194,9 +194,9 @@ it("expands themes into independent upload-ready directories per appearance", ()
     "--appearance",
     "both",
     "--theme",
-    "ocean",
+    "nord",
     "--theme",
-    "ember",
+    "tokyo-night",
   ]);
 
   assert.deepStrictEqual(
@@ -204,12 +204,22 @@ it("expands themes into independent upload-ready directories per appearance", ()
       showcaseCaptureDirectory("/captures", capture),
     ),
     [
-      NodePath.join("/captures", "apple", "iphone-test", "light", "ocean"),
-      NodePath.join("/captures", "apple", "iphone-test", "light", "ember"),
-      NodePath.join("/captures", "apple", "iphone-test", "dark", "ocean"),
-      NodePath.join("/captures", "apple", "iphone-test", "dark", "ember"),
+      NodePath.join("/captures", "apple", "iphone-test", "dark", "nord"),
+      NodePath.join("/captures", "apple", "iphone-test", "dark", "tokyo-night"),
     ],
   );
+});
+
+it("rejects captures with an unsupported theme appearance", () => {
+  const options = parseShowcaseCliArgs([
+    "--device",
+    "phone",
+    "--appearance",
+    "light",
+    "--theme",
+    "nord",
+  ]);
+  assert.throws(() => planShowcaseCaptures(config, options), /No captures match/u);
 });
 
 it("rejects unknown devices instead of silently capturing another target", () => {

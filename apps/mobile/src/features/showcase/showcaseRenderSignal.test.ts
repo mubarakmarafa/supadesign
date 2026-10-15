@@ -13,26 +13,30 @@ afterEach(clearShowcaseRenderSignal);
 describe("showcase native content readiness", () => {
   it("does not gate scenes whose content is rendered by React Native", () => {
     expect(
-      isShowcaseNativeContentReady({ scene: "environments", themeId: "grove", renderSignal: null }),
+      isShowcaseNativeContentReady({
+        scene: "environments",
+        themeId: "dracula",
+        renderSignal: null,
+      }),
     ).toBe(true);
   });
 
   it("waits for the native review surface to draw the active theme", () => {
     expect(
-      isShowcaseNativeContentReady({ scene: "review", themeId: "grove", renderSignal: null }),
+      isShowcaseNativeContentReady({ scene: "review", themeId: "dracula", renderSignal: null }),
     ).toBe(false);
     expect(
       isShowcaseNativeContentReady({
         scene: "review",
-        themeId: "grove",
-        renderSignal: { scene: "review", themeId: "ocean" },
+        themeId: "dracula",
+        renderSignal: { scene: "review", themeId: "nord" },
       }),
     ).toBe(false);
     expect(
       isShowcaseNativeContentReady({
         scene: "review",
-        themeId: "grove",
-        renderSignal: { scene: "review", themeId: "grove" },
+        themeId: "dracula",
+        renderSignal: { scene: "review", themeId: "dracula" },
       }),
     ).toBe(true);
   });
@@ -41,8 +45,8 @@ describe("showcase native content readiness", () => {
     const listener = vi.fn();
     const unsubscribe = subscribeToShowcaseRenderSignal(listener);
 
-    reportShowcaseSceneRendered({ scene: "review", themeId: "iris" });
-    expect(getShowcaseRenderSignal()).toEqual({ scene: "review", themeId: "iris" });
+    reportShowcaseSceneRendered({ scene: "review", themeId: "catppuccin-latte" });
+    expect(getShowcaseRenderSignal()).toEqual({ scene: "review", themeId: "catppuccin-latte" });
     clearShowcaseRenderSignal();
     expect(getShowcaseRenderSignal()).toBeNull();
     expect(listener).toHaveBeenCalledTimes(2);

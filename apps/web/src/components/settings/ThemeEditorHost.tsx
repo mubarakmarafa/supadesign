@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useSyncExternalStore } from "react";
 import { useTheme } from "../../hooks/useTheme";
 import {
   getThemeDefinition,
+  getThemeModes,
   subscribeToCustomThemes,
   type ThemeAppearance,
   type ThemeDefinition,
@@ -33,7 +34,7 @@ function useThemeDefinition(id: string | null | undefined) {
 export function ThemeEditorHost() {
   const session = useThemeEditorStore((store) => store.session);
   const closeThemeEditor = useThemeEditorStore((store) => store.closeThemeEditor);
-  const { theme, setTheme, themeHalves, refreshTheme } = useTheme();
+  const { theme, setTheme, setThemeHalf, themeHalves, refreshTheme } = useTheme();
   // A saved definition can change without its id changing between sessions.
   const editingTheme = useThemeDefinition(session?.editingThemeId);
   const seedTheme = useThemeDefinition(session?.seedThemeId);
@@ -46,10 +47,8 @@ export function ThemeEditorHost() {
       savedTheme: ThemeDefinition,
       { created, mergedAppearance }: { created: boolean; mergedAppearance?: ThemeAppearance },
     ) => {
-      // A merge completed an existing theme's light/dark pair; activating the
-      // whole theme shows the new palette right away.
       if (mergedAppearance) {
-        if (!setTheme(savedTheme.id)) {
+        if (!setThemeHalf(mergedAppearance, savedTheme.id)) {
           toastManager.add(
             stackedThreadToast({
               type: "error",
@@ -87,7 +86,10 @@ export function ThemeEditorHost() {
         return true;
       }
 
-      if (!setTheme(savedTheme.id)) {
+      const modes = getThemeModes(savedTheme);
+      const didSave =
+        modes.length === 1 ? setThemeHalf(modes[0]!, savedTheme.id) : setTheme(savedTheme.id);
+      if (!didSave) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
@@ -101,12 +103,12 @@ export function ThemeEditorHost() {
         stackedThreadToast({
           type: "success",
           title: `${savedTheme.label} created`,
-          description: "It’s now active.",
+          description: modes.length === 1 ? `It’s now your ${modes[0]} theme.` : "It’s now active.",
         }),
       );
       return true;
     },
-    [refreshTheme, setTheme, theme, themeHalves],
+    [refreshTheme, setTheme, setThemeHalf, theme, themeHalves],
   );
 
   if (!session) return null;

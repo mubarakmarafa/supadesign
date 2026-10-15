@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   getStandardThemeColors,
   getThemeColorsForMode,
+  themeColorDistance,
   themeColorToHex,
   THEME_FILE_VERSION,
 } from "./themePalette";
@@ -320,17 +321,37 @@ describe("VS Code theme import", () => {
       type: "dark",
       colors: {
         "editor.background": "#202020",
-        "editor.findMatchBackground": "#33669980",
+        "editor.findMatchBackground": "#1f5fa8cc",
         "editor.findMatchForeground": "#ffffffcc",
-        "editor.findMatchHighlightBackground": "#ffcc0040",
+        "editor.findMatchHighlightBackground": "#c89b1a80",
         "editor.findMatchHighlightForeground": "#ffffff",
       },
     });
 
-    expect(asHex(colors.searchMatchActiveBackground)).toBe("#2a435d");
-    expect(asHex(colors.searchMatchActiveForeground)).toBe("#d4d9df");
-    expect(asHex(colors.searchMatchBackground)).toBe("#584b18");
+    expect(asHex(colors.searchMatchActiveBackground)).toBe("#1f528d");
+    expect(asHex(colors.searchMatchActiveForeground)).toBe("#d2dce8");
+    expect(asHex(colors.searchMatchBackground)).toBe("#745e1d");
     expect(asHex(colors.searchMatchForeground)).toBe("#ffffff");
+  });
+
+  it("replaces find colours that blend into chat surfaces", () => {
+    // Tokyo Night uses one faint overlay for both find marks.
+    const { colors } = parseVsCodeThemeFile({
+      type: "dark",
+      colors: {
+        "editor.background": "#1a1b26",
+        "editor.findMatchBackground": "#3d59a166",
+        "editor.findMatchHighlightBackground": "#3d59a166",
+      },
+    });
+
+    expect(
+      themeColorDistance(colors.searchMatchBackground, colors.searchMatchActiveBackground),
+    ).toBeGreaterThan(0.14);
+    for (const surface of [colors.muted, colors.messageSurface, colors.codeBackground]) {
+      expect(themeColorDistance(colors.searchMatchBackground, surface)).toBeGreaterThan(0.08);
+      expect(themeColorDistance(colors.searchMatchActiveBackground, surface)).toBeGreaterThan(0.08);
+    }
   });
 
   it("uses editor text when no find foreground is specified", () => {
@@ -339,8 +360,8 @@ describe("VS Code theme import", () => {
       colors: {
         "editor.background": "#101010",
         "editor.foreground": "#eeeeee",
-        "editor.findMatchBackground": "#304050",
-        "editor.findMatchHighlightBackground": "#403020",
+        "editor.findMatchBackground": "#3b6ea5",
+        "editor.findMatchHighlightBackground": "#6b5418",
       },
     });
 
@@ -553,7 +574,8 @@ describe("VS Code theme import", () => {
       { theme: dracula("#22232e"), sourceName: "dracula-soft.json" },
     ]);
     expect(themes.map((theme) => theme.label)).toEqual(["Dracula", "Dracula Soft"]);
-    expect(themes.map((theme) => theme.id)).toEqual(["dracula", "dracula-soft"]);
+    // "dracula" is a built-in, so the import steps aside to its own id.
+    expect(themes.map((theme) => theme.id)).toEqual(["dracula-vscode", "dracula-soft"]);
     // Without file names the second falls back to numbering.
     const numbered = resolveThemeLabelCollisions([
       { theme: dracula("#282a36") },

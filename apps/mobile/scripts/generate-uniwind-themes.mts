@@ -7,6 +7,7 @@ import { BUILT_IN_THEME_IDS, type BuiltInThemeId } from "@supaterm/shared/themeP
 
 import {
   getMobileThemeVariables,
+  mobileThemeSupportsAppearance,
   DEFAULT_MOBILE_THEME_ID,
   type MobileThemeAppearance,
 } from "../src/lib/mobileTheme.ts";
@@ -152,7 +153,9 @@ const ADAPTIVE_COLORS: Readonly<Record<string, readonly [light: string, dark: st
 };
 
 export const customThemeNames = BUILT_IN_THEME_IDS.flatMap((themeId) =>
-  APPEARANCES.map((appearance) => `${themeId}-${appearance}`),
+  APPEARANCES.flatMap((appearance) =>
+    mobileThemeSupportsAppearance(themeId, appearance) ? [`${themeId}-${appearance}`] : [],
+  ),
 );
 
 const adaptiveVariablesFor = (appearance: MobileThemeAppearance) =>
@@ -184,8 +187,10 @@ export const renderUniwindThemesCSS = () => {
       }),
     ),
     ...BUILT_IN_THEME_IDS.flatMap((themeId) =>
-      APPEARANCES.map((appearance) =>
-        renderVariant(`${themeId}-${appearance}`, variablesFor(themeId, appearance)),
+      APPEARANCES.flatMap((appearance) =>
+        mobileThemeSupportsAppearance(themeId, appearance)
+          ? [renderVariant(`${themeId}-${appearance}`, variablesFor(themeId, appearance))]
+          : [],
       ),
     ),
   ];

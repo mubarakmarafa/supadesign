@@ -4,8 +4,6 @@ import "culori/css";
 import { converter, parse } from "culori/fn";
 import {
   BUILT_IN_THEMES,
-  GROVE_THEME,
-  SUPATERM_CHAT_THEME,
   SUPATERM_LIGHT_THEME_COLORS,
   SUPATERM_DARK_THEME_COLORS,
   RESERVED_THEME_IDS,
@@ -17,11 +15,9 @@ import {
   type ThemeVariants,
 } from "@supaterm/shared/themePalettes";
 
-export { GROVE_THEME, SUPATERM_CHAT_THEME, THEME_COLOR_ROLES };
+export { THEME_COLOR_ROLES };
 export type { ThemeAppearance, ThemeColorRole, ThemeColors, ThemeDefinition, ThemeVariants };
 
-export const SUPATERM_CHAT_THEME_ID = "supaterm-chat" as const;
-export const OCEAN_THEME_ID = "ocean" as const;
 export const THEME_FILE_VERSION = 1 as const;
 export const CUSTOM_THEMES_STORAGE_KEY = "supaterm:themes:v1";
 export const THEME_APPEARANCE_MODE_STORAGE_KEY = "supaterm:theme-appearance-mode";
@@ -136,7 +132,7 @@ export function lenientThemeColorOverrides(
 
 function parseStoredThemeColors(value: unknown, appearance: ThemeAppearance): ThemeColors | null {
   if (!isRecord(value)) return null;
-  return { ...getDefaultThemeColors(appearance), ...lenientThemeColorOverrides(value) };
+  return { ...getStandardThemeColors(appearance), ...lenientThemeColorOverrides(value) };
 }
 
 function parseStoredThemeVariants(
@@ -309,10 +305,8 @@ export function subscribeToCustomThemes(listener: () => void): () => void {
 }
 
 /**
- * The standard Supaterm look as a theme palette, for seeding a new theme when
- * no theme is installed. Distinct from {@link getDefaultThemeColors}, which
- * carries the flagship Supaterm Chat palette used to fill roles omitted by theme
- * files.
+ * The standard Supaterm look as a theme palette: what renders when no theme is
+ * installed, the seed for a new theme, and the fill for roles a theme file omits.
  */
 export function getStandardThemeColors(appearance: ThemeAppearance): ThemeColors {
   if (appearance === "dark") {
@@ -479,6 +473,15 @@ function srgbChannelToLinear(channel: number): number {
 function linearChannelToSrgb(channel: number): number {
   const c = channel <= 0.0031308 ? channel * 12.92 : 1.055 * channel ** (1 / 2.4) - 0.055;
   return Math.round(Math.min(1, Math.max(0, c)) * 255);
+}
+
+export function themeColorDistance(first: string, second: string): number {
+  const [a, b] = [first, second].map((value) => {
+    const { L, C, h } = themeRgbToOklch(parseThemeRgbColor(value, { r: 0, g: 0, b: 0 }));
+    const hue = (h * Math.PI) / 180;
+    return { L, a: C * Math.cos(hue), b: C * Math.sin(hue) };
+  });
+  return Math.hypot(a!.L - b!.L, a!.a - b!.a, a!.b - b!.b);
 }
 
 function themeRgbToOklch(color: ThemeRgbColor): ThemeOklch {
@@ -651,7 +654,7 @@ export function createVividThemeColors(
   backgroundValue: string,
   accentValue: string,
 ): ThemeColors {
-  const defaults = getDefaultThemeColors(appearance);
+  const defaults = getStandardThemeColors(appearance);
   const canvasRgb = parseThemeRgbColor(
     backgroundValue,
     appearance === "dark" ? { r: 24, g: 15, b: 27 } : { r: 250, g: 245, b: 250 },
@@ -855,11 +858,6 @@ function standardMutedThemeText(
       ? STANDARD_DARK_MUTED_CONTRAST
       : STANDARD_LIGHT_MUTED_CONTRAST;
   return readableThemeText(background, foreground, 1, target);
-}
-
-/** Theme-file defaults follow the flagship palette for the requested mode. */
-export function getDefaultThemeColors(appearance: ThemeAppearance): ThemeColors {
-  return appearance === "dark" ? SUPATERM_CHAT_THEME.variants!.dark! : SUPATERM_CHAT_THEME.colors;
 }
 
 /**
@@ -1375,7 +1373,7 @@ export function parseThemeFile(value: unknown): ThemeDefinition {
     throw new Error("Theme collections need a valid id and label.");
   }
 
-  const fallback = getDefaultThemeColors(appearance);
+  const fallback = getStandardThemeColors(appearance);
   const variants: Partial<Record<ThemeAppearance, ThemeColors>> = {};
   if (value.variants !== undefined) {
     if (!isRecord(value.variants)) throw new Error("Theme variants must be an object.");
@@ -1386,7 +1384,7 @@ export function parseThemeFile(value: unknown): ThemeDefinition {
       if (variantAppearance === appearance) {
         throw new Error(`Theme variants must not repeat the base appearance "${appearance}".`);
       }
-      const variantFallback = getDefaultThemeColors(variantAppearance);
+      const variantFallback = getStandardThemeColors(variantAppearance);
       variants[variantAppearance] = {
         ...variantFallback,
         ...parseThemeColorOverrides(variantColors),

@@ -6,6 +6,7 @@ import type { EnvironmentId } from "@supaterm/contracts";
 import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
 import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import { DEFAULT_KEYBINDINGS } from "@supaterm/shared/keybindings";
+import { BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
 import { commandLabel } from "./KeybindingsSettings.logic";
 import {
   validateSettingsScopeSearch,
@@ -482,9 +483,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "theme",
     title: "Themes",
     to: "/settings/appearance",
-    searchTerms: ["appearance colors palette custom import"],
-    // Theme cards live directly under the scheme tiles; the section is the
-    // stable scroll destination for both.
+    searchTerms: [
+      "appearance colors palette custom import light dark",
+      BUILT_IN_THEMES.map((theme) => theme.label).join(" "),
+    ],
+    // The light and dark theme pickers sit directly under the scheme tiles;
+    // the section is the stable scroll destination for both.
     targetId: "appearance",
   },
   {

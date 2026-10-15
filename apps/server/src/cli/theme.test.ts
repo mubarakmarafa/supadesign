@@ -51,8 +51,8 @@ describe("supaterm theme", () => {
   it.effect("writes a default theme when no settings file exists yet", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
-      yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]);
-      assert.equal(readSettings(baseDir).defaultTheme, "ocean");
+      yield* runCli(["theme", "set", "nord", "--base-dir", baseDir]);
+      assert.equal(readSettings(baseDir).defaultTheme, "nord");
     }),
   );
 
@@ -66,10 +66,10 @@ describe("supaterm theme", () => {
         somethingFromANewerBuild: { nested: true },
       });
 
-      yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]);
+      yield* runCli(["theme", "set", "nord", "--base-dir", baseDir]);
 
       const settings = readSettings(baseDir);
-      assert.equal(settings.defaultTheme, "ocean");
+      assert.equal(settings.defaultTheme, "nord");
       assert.equal(settings.enableProviderUpdateChecks, false);
       assert.deepEqual(settings.somethingFromANewerBuild, { nested: true });
     }),
@@ -80,7 +80,7 @@ describe("supaterm theme", () => {
       const baseDir = makeBaseDir();
       writeSettings(baseDir, { enableProviderUpdateChecks: false });
 
-      yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]);
+      yield* runCli(["theme", "set", "nord", "--base-dir", baseDir]);
       yield* runCli(["theme", "clear", "--base-dir", baseDir]);
 
       const settings = readSettings(baseDir);
@@ -332,7 +332,7 @@ describe("supaterm theme", () => {
   it.effect("records a set generation and clears it with the theme", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
-      yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]);
+      yield* runCli(["theme", "set", "nord", "--base-dir", baseDir]);
       const setAt = readSettings(baseDir).defaultThemeSetAt;
       assert.equal(typeof setAt, "string");
 
@@ -346,12 +346,12 @@ describe("supaterm theme", () => {
   it.effect("honors SUPATERM_HOME like the rest of the CLI", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
-      yield* runCli(["theme", "set", "ocean"]).pipe(
+      yield* runCli(["theme", "set", "nord"]).pipe(
         Effect.provide(
           ConfigProvider.layer(ConfigProvider.fromEnv({ env: { SUPATERM_HOME: baseDir } })),
         ),
       );
-      assert.equal(readSettings(baseDir).defaultTheme, "ocean");
+      assert.equal(readSettings(baseDir).defaultTheme, "nord");
     }),
   );
 
@@ -363,7 +363,7 @@ describe("supaterm theme", () => {
       writeSettings(baseDir, { enableProviderUpdateChecks: false });
       NodeFS.chmodSync(settingsPathFor(baseDir), 0o000);
 
-      const failure = yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]).pipe(
+      const failure = yield* runCli(["theme", "set", "nord", "--base-dir", baseDir]).pipe(
         Effect.flip,
       );
 
@@ -429,25 +429,25 @@ describe("supaterm theme", () => {
     }),
   );
 
-  // Deciding on existence alone would publish ./ocean instead of selecting the
+  // Deciding on existence alone would publish ./nord instead of selecting the
   // built-in, purely because of what happens to be in the working directory.
   it.effect("treats a bare id as an id even when a file shares its name", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
-      const cwdFile = NodePath.join(baseDir, "ocean");
+      const cwdFile = NodePath.join(baseDir, "nord");
       NodeFS.writeFileSync(cwdFile, NIGHTFALL_THEME_JSON);
 
       const previous = process.cwd();
       process.chdir(baseDir);
       try {
-        yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]);
+        yield* runCli(["theme", "set", "nord", "--base-dir", baseDir]);
       } finally {
         process.chdir(previous);
       }
 
-      assert.equal(readSettings(baseDir).defaultTheme, "ocean");
+      assert.equal(readSettings(baseDir).defaultTheme, "nord");
       assert.equal(
-        NodeFS.existsSync(NodePath.join(baseDir, "userdata", "themes", "ocean.json")),
+        NodeFS.existsSync(NodePath.join(baseDir, "userdata", "themes", "nord.json")),
         false,
       );
     }),
@@ -478,7 +478,7 @@ describe("supaterm theme", () => {
       NodeFS.mkdirSync(NodePath.dirname(settingsPathFor(baseDir)), { recursive: true });
       NodeFS.writeFileSync(settingsPathFor(baseDir), "[1, 2, 3]\n");
 
-      const failure = yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]).pipe(
+      const failure = yield* runCli(["theme", "set", "nord", "--base-dir", baseDir]).pipe(
         Effect.flip,
       );
 

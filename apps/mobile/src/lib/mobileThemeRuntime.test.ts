@@ -20,7 +20,9 @@ describe("mobileThemeRuntime", () => {
   });
 
   it("maps custom palettes and appearances to registered themes", () => {
-    expect(getMobileUniwindThemeName("supaterm-chat", "dark")).toBe("supaterm-chat-dark");
+    expect(getMobileUniwindThemeName("nord", "dark")).toBe("nord-dark");
+    expect(getMobileUniwindThemeName("nord", "light")).toBe("light");
+    expect(getMobileUniwindThemeName("one-light", "dark")).toBe("dark");
   });
 
   it("hydrates text variables and clears the native appearance override", () => {

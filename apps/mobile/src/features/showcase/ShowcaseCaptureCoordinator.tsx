@@ -97,8 +97,9 @@ function EnabledShowcaseCaptureCoordinator(props: { readonly pathname: string })
   const {
     isReady: appearancePreferencesReady,
     themeId,
-    themeIds,
+    themeMode,
     setThemeIdForBothAppearances,
+    setThemeMode,
   } = useAppearancePreferences();
   const workspace = useWorkspaceState();
   const projects = useProjects();
@@ -169,24 +170,34 @@ function EnabledShowcaseCaptureCoordinator(props: { readonly pathname: string })
     return () => clearInterval(interval);
   }, []);
 
-  // Captures pick a palette for both color schemes so the requested theme is
-  // used whichever system appearance the runner set on the device.
   const themeApplied =
-    requestedTheme === null
-      ? themeRequestSettled
-      : themeIds.light === requestedTheme && themeIds.dark === requestedTheme;
+    appearancePreferencesReady &&
+    themeMode === "system" &&
+    (requestedTheme === null ? themeRequestSettled : themeId === requestedTheme);
 
   useEffect(() => {
     if (
-      requestedTheme === null ||
+      !themeRequestSettled ||
       themeApplied ||
       // Writing before stored preferences load would be overwritten by them.
       !appearancePreferencesReady
     ) {
       return;
     }
-    setThemeIdForBothAppearances(requestedTheme);
-  }, [appearancePreferencesReady, requestedTheme, setThemeIdForBothAppearances, themeApplied]);
+    if (themeMode !== "system") {
+      setThemeMode("system");
+      return;
+    }
+    if (requestedTheme !== null) setThemeIdForBothAppearances(requestedTheme);
+  }, [
+    appearancePreferencesReady,
+    requestedTheme,
+    setThemeIdForBothAppearances,
+    setThemeMode,
+    themeApplied,
+    themeMode,
+    themeRequestSettled,
+  ]);
 
   useEffect(() => {
     if (pairingUrls.length === 0) return;

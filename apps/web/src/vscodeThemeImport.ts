@@ -4,6 +4,7 @@ import {
   getThemeModes,
   isReservedThemeId,
   parseThemeFile,
+  themeColorDistance,
   themeColorToHex,
   themeIdFromName,
   THEME_FILE_VERSION,
@@ -275,6 +276,9 @@ export function parseVsCodeThemeFile(value: unknown): ThemeDefinition {
     solidOver(canvas, "terminal.background", "panel.background") ?? derived.terminalBackground;
   const terminal = hexToRgb(terminalHex);
 
+  const isReadableOn = (foreground: string, surface: string) =>
+    contrastRatio(hexToRgb(foreground), hexToRgb(surface)) >= 4.5;
+
   /** Foregrounds only win when they stay readable on the surface they land on;
    *  a theme tuned for its own chrome can be unreadable on ours. */
   const readableOn = (
@@ -283,15 +287,24 @@ export function parseVsCodeThemeFile(value: unknown): ThemeDefinition {
     ...keys: ReadonlyArray<string>
   ): string => {
     const surfaceRgb = hexToRgb(surface);
-    const isReadable = (candidate: string) => contrastRatio(hexToRgb(candidate), surfaceRgb) >= 4.5;
     const specified = solidOver(surfaceRgb, ...keys);
-    if (specified && isReadable(specified)) return specified;
+    if (specified && isReadableOn(specified, surface)) return specified;
     // The derived fallback was solved against the derived surface. When the
     // file replaced that surface (a light sideBar in a dark theme, say), the
     // fallback has to clear the bar there too, or the text falls back to the
     // readable end of the greyscale for the surface actually in play.
-    if (isReadable(fallback)) return fallback;
+    if (isReadableOn(fallback, surface)) return fallback;
     return relativeLuminance(surfaceRgb) < 0.179 ? "#ffffff" : "#000000";
+  };
+
+  const readableSurface = (surface: string, fallback: string, foreground: string) => {
+    const source = hexToRgb(surface);
+    const base = hexToRgb(fallback);
+    for (let step = 20; step > 0; step -= 1) {
+      const candidate = flattenOver({ ...source, a: step / 20 }, base);
+      if (isReadableOn(foreground, candidate)) return candidate;
+    }
+    return fallback;
   };
 
   const surfaceRaisedHex = raisedSurfaceCandidateHex ?? derived.surfaceRaised;
@@ -322,10 +335,28 @@ export function parseVsCodeThemeFile(value: unknown): ThemeDefinition {
     }
   }
 
-  const searchMatchBackground =
-    solidOver(canvas, "editor.findMatchHighlightBackground") ?? derived.searchMatchBackground;
-  const searchMatchActiveBackground =
-    solidOver(canvas, "editor.findMatchBackground") ?? derived.searchMatchActiveBackground;
+  const codeBackground = solidOver(canvas, "textCodeBlock.background") ?? derived.codeBackground;
+  const searchSurfaces = [derived.muted, derived.messageSurface, codeBackground];
+  const searchStandsApart = (background: string, active: string) =>
+    themeColorDistance(background, active) > 0.14 &&
+    searchSurfaces.every(
+      (surface) =>
+        themeColorDistance(background, surface) > 0.08 &&
+        themeColorDistance(active, surface) > 0.08,
+    );
+  const standardColors = getStandardThemeColors(appearance);
+  const searchPairs: ReadonlyArray<readonly [string | null, string | null]> = [
+    [
+      solidOver(canvas, "editor.findMatchHighlightBackground"),
+      solidOver(canvas, "editor.findMatchBackground"),
+    ],
+    [derived.searchMatchBackground, derived.searchMatchActiveBackground],
+    [standardColors.searchMatchBackground, standardColors.searchMatchActiveBackground],
+  ];
+  const [searchMatchBackground, searchMatchActiveBackground] = searchPairs.find(
+    (pair): pair is readonly [string, string] =>
+      pair[0] !== null && pair[1] !== null && searchStandsApart(pair[0], pair[1]),
+  ) ?? [standardColors.searchMatchBackground, standardColors.searchMatchActiveBackground];
 
   const overrides: Partial<Record<ThemeColorRole, string>> = {
     canvas: canvasHex,
@@ -350,7 +381,7 @@ export function parseVsCodeThemeFile(value: unknown): ThemeDefinition {
     accentSurface:
       solidOver(canvas, "list.activeSelectionBackground", "list.hoverBackground") ??
       derived.accentSurface,
-    codeBackground: solidOver(canvas, "textCodeBlock.background") ?? derived.codeBackground,
+    codeBackground,
     searchMatchBackground,
     searchMatchForeground: readableOn(
       searchMatchBackground,
@@ -395,6 +426,20 @@ export function parseVsCodeThemeFile(value: unknown): ThemeDefinition {
     derived.messageActionForeground,
     "button.foreground",
   );
+  overrides.messageActionHover = readableSurface(
+    solidOver(canvas, "button.hoverBackground") ?? derived.messageActionHover,
+    actionHex,
+    overrides.messageActionForeground,
+  );
+  overrides.accentSurfaceForeground = readableOn(
+    overrides.accentSurface!,
+    derived.accentSurfaceForeground,
+    "list.activeSelectionForeground",
+    "list.hoverForeground",
+  );
+  for (const role of ["sidebarRowHover", "sidebarRowActive", "sidebarRowSelected"] as const) {
+    overrides[role] = readableSurface(overrides[role]!, sidebarHex, overrides.sidebarForeground!);
+  }
   overrides.accentForeground = readableOn(accentHex, derived.accentForeground, "button.foreground");
 
   // Reuse the theme-file parser so ids, names, and color values go through the
@@ -449,8 +494,8 @@ export function pairVsCodeThemes(
   const paired: Array<{ theme: ThemeDefinition; order: number }> = [];
   for (const [key, group] of groups) {
     // Ambiguity (two darks for one light) is not guessed at, and a pair
-    // whose stripped name collides with a built-in id ("Grove Light" +
-    // "Grove Dark" -> the reserved "grove") stays two single themes rather
+    // whose stripped name collides with a built-in id ("Nord Light" +
+    // "Nord Dark" -> the reserved "nord") stays two single themes rather
     // than failing the whole batch.
     if (group.light.length === 1 && group.dark.length === 1) {
       try {

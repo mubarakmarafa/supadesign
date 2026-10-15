@@ -138,26 +138,26 @@ describe("mobile storage", () => {
   it("persists independent light and dark theme choices", async () => {
     mocks.setPreferencesJson(
       JSON.stringify({
-        lightThemeId: "iris",
-        darkThemeId: "ocean",
+        lightThemeId: "catppuccin-latte",
+        darkThemeId: "nord",
         themeMode: "system",
       }),
       10,
     );
 
     await expect(loadPreferences()).resolves.toEqual({
-      lightThemeId: "iris",
-      darkThemeId: "ocean",
+      lightThemeId: "catppuccin-latte",
+      darkThemeId: "nord",
       themeMode: "system",
     });
   });
 
   it("persists Material You independently for each appearance", async () => {
-    const themes = { lightThemeId: "material-you", darkThemeId: "ocean" } as const;
+    const themes = { lightThemeId: "material-you", darkThemeId: "nord" } as const;
     await savePreferencesPatch(themes);
     await expect(loadPreferences()).resolves.toEqual(themes);
-    await savePreferencesPatch({ lightThemeId: "supaterm-chat" });
-    await expect(loadPreferences()).resolves.toEqual({ ...themes, lightThemeId: "supaterm-chat" });
+    await savePreferencesPatch({ lightThemeId: "one-light" });
+    await expect(loadPreferences()).resolves.toEqual({ ...themes, lightThemeId: "one-light" });
   });
 
   it("falls back to secure storage when SQLite cannot save preferences", async () => {

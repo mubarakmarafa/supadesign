@@ -25,21 +25,12 @@ describe("generate mobile Uniwind themes", () => {
     ).toEqual([]);
   });
 
-  it("registers every custom palette for both appearances", () => {
-    expect(customThemeNames).toEqual([
-      "supaterm-chat-light",
-      "supaterm-chat-dark",
-      "grove-light",
-      "grove-dark",
-      "ocean-light",
-      "ocean-dark",
-      "ember-light",
-      "ember-dark",
-      "iris-light",
-      "iris-dark",
-      "zenbones-light",
-      "zenbones-dark",
-    ]);
+  it("registers only supported built-in appearances", () => {
+    expect(customThemeNames).toHaveLength(21);
+    expect(customThemeNames).toContain("dracula-dark");
+    expect(customThemeNames).toContain("one-light-light");
+    expect(customThemeNames).not.toContain("dracula-light");
+    expect(customThemeNames).not.toContain("one-light-dark");
 
     const stylesheet = renderUniwindThemesCSS();
     for (const themeName of customThemeNames) {

@@ -35,108 +35,192 @@
         // app colors before React mounts.
         const DEFAULT_THEME_PALETTES = {
           light: {
-            background: "oklch(0.982446 0.010114 325.653)",
-            foreground: "oklch(0.325698 0.116116 325.037)",
-            accent: "oklch(0.591646 0.217985 0.584)",
-            chrome: "oklch(0.982446 0.010114 325.653)",
+            background: "oklch(1 0 0)",
+            foreground: "oklch(0.273326 0.007496 274.683)",
+            accent: "oklch(0.273326 0.007496 274.683)",
+            chrome: "oklch(1 0 0)",
           },
           dark: {
-            background: "oklch(0.22813 0.020366 307.469)",
-            foreground: "oklch(0.980735 0.004092 301.426)",
-            accent: "oklch(0.460685 0.185347 4.099)",
-            chrome: "oklch(0.22813 0.020366 307.469)",
+            background: "oklch(0.235659 0.007789 274.606)",
+            foreground: "oklch(0.919248 0.005502 274.961)",
+            accent: "oklch(0.919248 0.005502 274.961)",
+            chrome: "oklch(0.235659 0.007789 274.606)",
           },
         };
         // Keep this small boot-time copy in sync with the built-in palettes so
         // the selected theme is visible before the app has mounted.
         const BUILT_IN_THEME_PALETTES = {
-          "supaterm-chat": {
-            light: {
-              background: "oklch(0.982446 0.010114 325.653)",
-              foreground: "oklch(0.325698 0.116116 325.037)",
-              accent: "oklch(0.591646 0.217985 0.584)",
-              chrome: "oklch(0.982446 0.010114 325.653)",
-            },
+          midnight: {
             dark: {
-              background: "oklch(0.22813 0.020366 307.469)",
-              foreground: "oklch(0.980735 0.004092 301.426)",
-              accent: "oklch(0.460685 0.185347 4.099)",
-              chrome: "oklch(0.22813 0.020366 307.469)",
+              background: "oklch(0.189059 0.018602 274.759)",
+              foreground: "oklch(0.853047 0.025516 273.456)",
+              accent: "oklch(0.710796 0.150069 269.685)",
+              chrome: "oklch(0.189059 0.018602 274.759)",
             },
           },
-          grove: {
-            light: {
-              background: "oklch(0.972369 0.005497 157.15)",
-              foreground: "oklch(0.222003 0.03479 328.979)",
-              accent: "oklch(0.523295 0.112292 158.089)",
-              chrome: "oklch(0.972369 0.005497 157.15)",
-            },
+          dracula: {
             dark: {
-              background: "oklch(0.260865 0.02152 162.75)",
-              foreground: "oklch(0.990339 0.008411 325.64)",
-              accent: "oklch(0.796228 0.133058 157.319)",
-              chrome: "oklch(0.260865 0.02152 162.75)",
+              background: "oklch(0.288229 0.022103 277.509)",
+              foreground: "oklch(0.977477 0.007913 106.545)",
+              accent: "oklch(0.559814 0.080274 270.086)",
+              chrome: "oklch(0.288229 0.022103 277.509)",
             },
           },
-          ocean: {
-            light: {
-              background: "oklch(0.974199 0.002856 241.597)",
-              foreground: "oklch(0.222003 0.03479 328.979)",
-              accent: "oklch(0.536684 0.120219 247.01)",
-              chrome: "oklch(0.974199 0.002856 241.597)",
-            },
+          "one-dark-pro": {
             dark: {
-              background: "oklch(0.242641 0.024125 250.573)",
-              foreground: "oklch(0.990339 0.008411 325.64)",
-              accent: "oklch(0.758933 0.105833 241.548)",
-              chrome: "oklch(0.242641 0.024125 250.573)",
+              background: "oklch(0.292519 0.015665 264.297)",
+              foreground: "oklch(0.762093 0.020162 262.987)",
+              accent: "oklch(0.386711 0.02514 266.92)",
+              chrome: "oklch(0.292519 0.015665 264.297)",
             },
           },
-          ember: {
-            light: {
-              background: "oklch(0.976527 0.002685 60.725)",
-              foreground: "oklch(0.222003 0.03479 328.979)",
-              accent: "oklch(0.552831 0.129438 44.656)",
-              chrome: "oklch(0.976527 0.002685 60.725)",
-            },
+          "catppuccin-mocha": {
             dark: {
-              background: "oklch(0.245899 0.019144 42.044)",
-              foreground: "oklch(0.990339 0.008411 325.64)",
-              accent: "oklch(0.762174 0.124117 52.082)",
-              chrome: "oklch(0.245899 0.019144 42.044)",
+              background: "oklch(0.242867 0.030357 283.911)",
+              foreground: "oklch(0.87866 0.042552 272.277)",
+              accent: "oklch(0.787146 0.11867 304.769)",
+              chrome: "oklch(0.242867 0.030357 283.911)",
             },
           },
-          iris: {
-            light: {
-              background: "oklch(0.976531 0.003855 303.226)",
-              foreground: "oklch(0.222003 0.03479 328.979)",
-              accent: "oklch(0.525348 0.15373 294.176)",
-              chrome: "oklch(0.976531 0.003855 303.226)",
-            },
+          "tokyo-night": {
             dark: {
-              background: "oklch(0.225975 0.031062 293.741)",
-              foreground: "oklch(0.990339 0.008411 325.64)",
-              accent: "oklch(0.671712 0.169136 293.929)",
-              chrome: "oklch(0.225975 0.031062 293.741)",
+              background: "oklch(0.226288 0.021374 280.487)",
+              foreground: "oklch(0.766586 0.0537 275.492)",
+              accent: "oklch(0.282165 0.029538 278.789)",
+              chrome: "oklch(0.226288 0.021374 280.487)",
             },
           },
-          zenbones: {
-            light: {
-              background: "oklch(0.948141 0.003511 39.483)",
-              foreground: "oklch(0.32609 0.017207 234.391)",
-              accent: "oklch(0.479743 0.082277 236.952)",
-              chrome: "oklch(0.948141 0.003511 39.483)",
-            },
+          nord: {
             dark: {
-              background: "oklch(0.216115 0.006126 56.043)",
-              foreground: "oklch(0.793146 0.01314 236.676)",
-              accent: "oklch(0.659049 0.083617 239.667)",
-              chrome: "oklch(0.216115 0.006126 56.043)",
+              background: "oklch(0.324374 0.022945 264.182)",
+              foreground: "oklch(0.899258 0.016374 262.749)",
+              accent: "oklch(0.379212 0.028973 266.471)",
+              chrome: "oklch(0.324374 0.022945 264.182)",
+            },
+          },
+          "github-dark": {
+            dark: {
+              background: "oklch(0.176285 0.014021 258.357)",
+              foreground: "oklch(0.942539 0.01105 243.657)",
+              accent: "oklch(0.56859 0.202266 259.668)",
+              chrome: "oklch(0.176285 0.014021 258.357)",
+            },
+          },
+          "github-dark-dimmed": {
+            dark: {
+              background: "oklch(0.270762 0.014903 256.796)",
+              foreground: "oklch(0.782896 0.023478 248.128)",
+              accent: "oklch(0.54529 0.157455 259.062)",
+              chrome: "oklch(0.270762 0.014903 256.796)",
+            },
+          },
+          "gruvbox-dark": {
+            dark: {
+              background: "oklch(0.276848 0 0)",
+              foreground: "oklch(0.894146 0.056589 89.24)",
+              accent: "oklch(0.344068 0.006603 48.523)",
+              chrome: "oklch(0.276848 0 0)",
+            },
+          },
+          "solarized-dark": {
+            dark: {
+              background: "oklch(0.267337 0.048612 219.817)",
+              foreground: "oklch(0.65368 0.019724 205.262)",
+              accent: "oklch(0.502849 0.079002 193.783)",
+              chrome: "oklch(0.267337 0.048612 219.817)",
+            },
+          },
+          "rose-pine": {
+            dark: {
+              background: "oklch(0.213355 0.025466 291.131)",
+              foreground: "oklch(0.908787 0.02985 289.969)",
+              accent: "oklch(0.286141 0.029117 290.157)",
+              chrome: "oklch(0.213355 0.025466 291.131)",
+            },
+          },
+          "night-owl": {
+            dark: {
+              background: "oklch(0.192825 0.045151 243.971)",
+              foreground: "oklch(0.898373 0.019791 260.169)",
+              accent: "oklch(0.287142 0.050801 244.428)",
+              chrome: "oklch(0.192825 0.045151 243.971)",
+            },
+          },
+          "kanagawa-wave": {
+            dark: {
+              background: "oklch(0.243319 0.017046 285.064)",
+              foreground: "oklch(0.875521 0.039108 99.086)",
+              accent: "oklch(0.314343 0.046714 257.435)",
+              chrome: "oklch(0.243319 0.017046 285.064)",
+            },
+          },
+          paper: {
+            light: {
+              background: "oklch(0.96751 0.013909 88.683)",
+              foreground: "oklch(0.323657 0.015441 79.617)",
+              accent: "oklch(0.511096 0.086751 61.319)",
+              chrome: "oklch(0.96751 0.013909 88.683)",
+            },
+          },
+          "one-light": {
+            light: {
+              background: "oklch(0.985104 0 0)",
+              foreground: "oklch(0.349645 0.014137 274.503)",
+              accent: "oklch(0.602023 0.215495 270.037)",
+              chrome: "oklch(0.985104 0 0)",
+            },
+          },
+          "catppuccin-latte": {
+            light: {
+              background: "oklch(0.957761 0.005767 264.532)",
+              foreground: "oklch(0.43547 0.043008 279.325)",
+              accent: "oklch(0.55467 0.250346 297.016)",
+              chrome: "oklch(0.957761 0.005767 264.532)",
+            },
+          },
+          "github-light": {
+            light: {
+              background: "oklch(1 0 0)",
+              foreground: "oklch(0.254208 0.011124 254.038)",
+              accent: "oklch(0.539924 0.190584 257.481)",
+              chrome: "oklch(1 0 0)",
+            },
+          },
+          "gruvbox-light": {
+            light: {
+              background: "oklch(0.955523 0.055459 96.155)",
+              foreground: "oklch(0.344068 0.006603 48.523)",
+              accent: "oklch(0.894146 0.056589 89.24)",
+              chrome: "oklch(0.955523 0.055459 96.155)",
+            },
+          },
+          "solarized-light": {
+            light: {
+              background: "oklch(0.973528 0.026053 90.095)",
+              foreground: "oklch(0.201003 0.00837 84.582)",
+              accent: "oklch(0.687168 0.061773 69.024)",
+              chrome: "oklch(0.973528 0.026053 90.095)",
+            },
+          },
+          "rose-pine-dawn": {
+            light: {
+              background: "oklch(0.969872 0.011322 71.9)",
+              foreground: "oklch(0.45974 0.062919 289.556)",
+              accent: "oklch(0.937589 0.008457 56.309)",
+              chrome: "oklch(0.969872 0.011322 71.9)",
+            },
+          },
+          "night-owl-light": {
+            light: {
+              background: "oklch(0.988087 0 0)",
+              foreground: "oklch(0.376922 0.033949 286.939)",
+              accent: "oklch(0.697899 0.015902 196.794)",
+              chrome: "oklch(0.988087 0 0)",
             },
           },
         };
         // Keep the built-in mode list in sync with the runtime so the selected
-        // Supaterm Chat palette is visible before React has mounted.
+        // built-in palette is visible before React has mounted.
         const BUILT_IN_THEME_MODES = Object.fromEntries(
           Object.entries(BUILT_IN_THEME_PALETTES).map(([id, palettes]) => [
             id,
@@ -148,6 +232,13 @@
           "light",
           "dark",
           ...Object.keys(BUILT_IN_THEME_PALETTES),
+          // Retired built-ins, still reserved like the runtime's RESERVED_THEME_IDS.
+          "supaterm-chat",
+          "grove",
+          "ocean",
+          "ember",
+          "iris",
+          "zenbones",
         ];
         // Update every theme-color meta so any element another layer added
         // carries the resolved color too.
@@ -241,7 +332,9 @@
             themeModes !== null;
           const theme = isKnownTheme && storedTheme ? storedTheme : "system";
           const isThemed = isKnownTheme && themeModes !== null;
-          const baseAppearance = customTheme ? customTheme.appearance : "light";
+          const baseAppearance = customTheme
+            ? customTheme.appearance
+            : (builtInModes?.[0] ?? "light");
           const systemMode = prefersDark ? "dark" : "light";
           const storedAppearanceMode = window.localStorage.getItem(
             THEME_APPEARANCE_MODE_STORAGE_KEY,

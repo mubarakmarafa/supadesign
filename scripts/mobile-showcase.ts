@@ -11,6 +11,7 @@ import * as NodeProcess from "node:process";
 import * as NodeURL from "node:url";
 
 import { PNG } from "pngjs";
+import { BUILT_IN_THEMES, getThemeColorsForAppearance } from "@supaterm/shared/themePalettes";
 
 import showcaseConfig, {
   type ShowcaseAppearance,
@@ -401,7 +402,11 @@ export function planShowcaseCaptures(
         })),
       );
     })
-    .filter((capture) => capture.scenes.length > 0);
+    .filter((capture) => {
+      if (capture.scenes.length === 0) return false;
+      const theme = BUILT_IN_THEMES.find((candidate) => candidate.id === capture.theme);
+      return theme === undefined || getThemeColorsForAppearance(theme, capture.appearance) !== null;
+    });
 
   const knownDeviceIds = new Set(config.devices.map((device) => device.id));
   for (const id of options.deviceIds) {
@@ -410,7 +415,9 @@ export function planShowcaseCaptures(
     }
   }
   if (captures.length === 0) {
-    throw new Error("No captures match the selected platform, device, and scene filters.");
+    throw new Error(
+      "No captures match the selected platform, device, scene, theme, and appearance filters.",
+    );
   }
   return captures;
 }
