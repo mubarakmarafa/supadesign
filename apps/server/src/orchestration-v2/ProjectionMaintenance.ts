@@ -219,6 +219,7 @@ export const layer: Layer.Layer<
       "thread.unpinned",
       "thread.pin-reordered",
       "thread.active-reordered",
+      "thread.board-placed",
       "thread.metadata-updated",
       "thread.pull-request-synced",
       "thread.runtime-mode-updated",

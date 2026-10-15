@@ -3,11 +3,13 @@ import {
   type EventId,
   MAX_SCRIPT_ID_LENGTH,
   type ModelSelection,
+  type ProjectBoard,
   type ProjectIconOverride,
   ProjectId,
   type ProjectScript,
   SCRIPT_RUN_COMMAND_PATTERN,
   type ThreadEnvMode,
+  validateProjectBoard,
 } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Result from "effect/Result";
@@ -37,6 +39,7 @@ export interface ProjectMetaUpdateCommand {
   readonly faviconPath?: string | null;
   readonly projectIcon?: ProjectIconOverride | null;
   readonly scripts?: ReadonlyArray<ProjectScript>;
+  readonly board?: ProjectBoard | null;
 }
 
 export interface ProjectDeleteCommand {
@@ -202,6 +205,14 @@ export function planProjectCommand(input: {
           }
         }
       }
+      if (command.board != null) {
+        const issues = validateProjectBoard(command.board);
+        if (issues.length > 0) {
+          return invariant(
+            `Project board is invalid: ${issues.map((issue) => issue.code).join(", ")}.`,
+          );
+        }
+      }
       if (command.workspaceRoot !== undefined) {
         const conflict = requireWorkspaceAvailable(command.workspaceRoot);
         if (conflict !== undefined) return Result.fail(conflict);
@@ -223,6 +234,7 @@ export function planProjectCommand(input: {
           ...(command.faviconPath === undefined ? {} : { faviconPath: command.faviconPath }),
           ...(command.projectIcon === undefined ? {} : { projectIcon: command.projectIcon }),
           ...(command.scripts === undefined ? {} : { scripts: command.scripts }),
+          ...(command.board === undefined ? {} : { board: command.board }),
           updatedAt: occurredAt,
         },
       });

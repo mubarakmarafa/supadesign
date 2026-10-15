@@ -4,6 +4,7 @@ import {
   ProjectId,
   type Project,
   type ProjectCreatePayload,
+  type ProjectBoard,
   type ProjectUpdatePayload,
   type ProjectSnapshot,
   type ThreadId,
@@ -31,6 +32,7 @@ import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ThreadCommandExecutor from "../orchestration-v2/ThreadCommandExecutor.ts";
 import { planThreadDeletion } from "../orchestration-v2/ThreadDeletion.ts";
 import * as ServerSettings from "../serverSettings.ts";
+import * as ProjectBoardStore from "./ProjectBoardStore.ts";
 import * as ProjectEnrichmentService from "./ProjectEnrichmentService.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 
@@ -93,6 +95,7 @@ export class ProjectOperationError extends Schema.TaggedError<ProjectOperationEr
       "list-threads",
       "delete-thread",
       "dispatch-project-command",
+      "read-board",
     ]),
     projectId: Schema.optional(ProjectId),
     workspaceRoot: Schema.optional(Schema.String),
@@ -147,6 +150,7 @@ export class ProjectService extends Context.Service<
 
 export const make = Effect.gen(function* () {
   const projects = yield* ProjectStore.ProjectStoreV2;
+  const boards = yield* ProjectBoardStore.ProjectBoardStore;
   const projectEnrichment = yield* ProjectEnrichmentService.ProjectEnrichmentService;
   const workspacePaths = yield* WorkspacePaths.WorkspacePaths;
   const threadProjections = yield* ProjectionStore.ProjectionStoreV2;
@@ -163,6 +167,7 @@ export const make = Effect.gen(function* () {
   const toProject = (
     row: ProjectStore.ProjectRow,
     enrichment: ProjectEnrichmentService.ProjectEnrichment | null,
+    board: ProjectBoard | null,
   ): Project => ({
     id: row.projectId,
     title: row.title,
@@ -173,18 +178,35 @@ export const make = Effect.gen(function* () {
     defaultThreadEnvMode: row.defaultThreadEnvMode,
     autoPull: row.autoPull,
     projectIcon: row.projectIcon,
+    board,
     scripts: row.scripts,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt,
   });
 
-  const hydrate = Effect.fn("ProjectService.hydrate")(function* (row: ProjectStore.ProjectRow) {
+  const readBoardError =
+    (projectId?: ProjectId) => (cause: ProjectBoardStore.ProjectBoardStoreError) =>
+      new ProjectOperationError({
+        operation: "read-board",
+        ...(projectId === undefined ? {} : { projectId }),
+        cause,
+      });
+
+  /** `board` skips the per-row lookup when the caller batch-read boards already. */
+  const hydrate = Effect.fn("ProjectService.hydrate")(function* (
+    row: ProjectStore.ProjectRow,
+    preloadedBoard?: ProjectBoard | null,
+  ) {
     const enrichment =
       row.deletedAt === null
         ? yield* projectEnrichment.getAvailable(row.workspaceRoot)
         : yield* projectEnrichment.peek(row.workspaceRoot);
-    return toProject(row, enrichment);
+    const board =
+      preloadedBoard !== undefined
+        ? preloadedBoard
+        : yield* boards.get(row.projectId).pipe(Effect.mapError(readBoardError(row.projectId)));
+    return toProject(row, enrichment, board);
   });
 
   const readRow = (projectId: ProjectId, options?: { readonly includeDeleted?: boolean }) =>
@@ -386,6 +408,7 @@ export const make = Effect.gen(function* () {
           ? {}
           : { defaultThreadEnvMode: input.defaultThreadEnvMode }),
         ...(input.scripts === undefined ? {} : { scripts: input.scripts }),
+        ...(input.board === undefined ? {} : { board: input.board }),
       });
       if (workspaceRoot !== previousRoot) {
         yield* projectEnrichment.invalidate([previousRoot, workspaceRoot]);
@@ -569,7 +592,14 @@ export const make = Effect.gen(function* () {
           (cause) => new ProjectOperationError({ operation: "list-projects", cause }),
         ),
       );
-    const hydrated = yield* Effect.forEach(rows, hydrate, { concurrency: 8 });
+    const boardsById = yield* boards
+      .getMany(rows.map((row) => row.projectId))
+      .pipe(Effect.mapError(readBoardError()));
+    const hydrated = yield* Effect.forEach(
+      rows,
+      (row) => hydrate(row, boardsById.get(row.projectId) ?? null),
+      { concurrency: 8 },
+    );
     return {
       projects: hydrated,
       updatedAt: DateTime.formatIso(yield* DateTime.now),
@@ -590,5 +620,5 @@ export const make = Effect.gen(function* () {
 });
 
 export const layer = Layer.effect(ProjectService, make).pipe(
-  Layer.provide(ThreadCommandExecutor.layer),
+  Layer.provide(Layer.merge(ThreadCommandExecutor.layer, ProjectBoardStore.layer)),
 );

@@ -2,6 +2,7 @@ import * as Schema from "effect/Schema";
 import * as SchemaTransformation from "effect/SchemaTransformation";
 import { RepositoryIdentity, ThreadEnvMode } from "./environment.ts";
 import { ModelSelection } from "./modelSelection.ts";
+import { ProjectBoard } from "./projectBoard.ts";
 import {
   CommandId,
   ForwardCompatibleUnion,
@@ -173,6 +174,8 @@ export const Project = Schema.Struct({
   defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
   // Opt-in because background sync performs network I/O and may move the checkout.
   autoPull: Schema.optional(Schema.Boolean),
+  /** Kanban layout; absent on servers without project boards, null when unset. */
+  board: Schema.optional(Schema.NullOr(ProjectBoard)),
   scripts: Schema.Array(ProjectScript),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
@@ -214,6 +217,8 @@ export const ProjectUpdatePayload = Schema.Struct({
   faviconPath: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
   defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
   scripts: Schema.optional(Schema.Array(ProjectScript)),
+  /** Replaces the whole board; null clears it back to the default layout. */
+  board: Schema.optional(Schema.NullOr(ProjectBoard)),
 });
 export type ProjectUpdatePayload = typeof ProjectUpdatePayload.Type;
 

@@ -1,6 +1,12 @@
 import { assert, it } from "@effect/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { CommandId, type Project, ProjectId, ProviderInstanceId } from "@supaterm/contracts";
+import {
+  CommandId,
+  DEFAULT_PROJECT_BOARD,
+  type Project,
+  ProjectId,
+  ProviderInstanceId,
+} from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -21,6 +27,7 @@ import * as ThreadCommandExecutor from "../orchestration-v2/ThreadCommandExecuto
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
+import * as ProjectBoardStore from "./ProjectBoardStore.ts";
 import * as ProjectEnrichmentService from "./ProjectEnrichmentService.ts";
 import * as ProjectFaviconResolver from "./ProjectFaviconResolver.ts";
 import * as ProjectService from "./ProjectService.ts";
@@ -75,6 +82,7 @@ const layerProjectServiceDependencies = Layer.mergeAll(
   ProjectionStore.layer,
   IdAllocator.layer,
   ThreadCommandExecutor.layer,
+  ProjectBoardStore.layer,
 ).pipe(
   Layer.provideMerge(LegacyV1ThreadImporter.layer.pipe(Layer.provide(RuntimeLayer.layerEventSink))),
   Layer.provideMerge(ProjectEnrichmentService.layer),
@@ -344,6 +352,65 @@ it.layer(layerTest)("ProjectService", (it) => {
       `;
       assert.deepEqual(events, []);
       assert.deepEqual(Option.getOrThrow(yield* service.getById(projectId)).scripts, []);
+    }),
+  );
+
+  it.effect("stores a valid board and rejects an invalid one", () =>
+    Effect.gen(function* () {
+      const service = yield* ProjectService.ProjectService;
+      const projectId = ProjectId.make("project:board");
+      yield* TestClock.setTime(Date.parse("2026-06-20T10:00:00.000Z"));
+      const created = yield* service.create({
+        commandId: CommandId.make("command:board:create"),
+        projectId,
+        title: "Board",
+        workspaceRoot: "/work/board",
+      });
+      assert.isNull(created.board);
+
+      const updated = yield* service.update({
+        commandId: CommandId.make("command:board:set"),
+        projectId,
+        board: DEFAULT_PROJECT_BOARD,
+      });
+      assert.deepEqual(updated.board, DEFAULT_PROJECT_BOARD);
+
+      const invalid = yield* service
+        .update({
+          commandId: CommandId.make("command:board:invalid"),
+          projectId,
+          board: { ...DEFAULT_PROJECT_BOARD, inboxColumnId: DEFAULT_PROJECT_BOARD.doneColumnId },
+        })
+        .pipe(Effect.flip);
+      assert.equal(invalid._tag, "ProjectOperationError");
+      assert.include(
+        String(invalid._tag === "ProjectOperationError" && invalid.cause),
+        "done-column-conflict",
+      );
+
+      // An unrelated update keeps the board; the shell carries it too.
+      yield* service.update({
+        commandId: CommandId.make("command:board:rename"),
+        projectId,
+        title: "Renamed board",
+      });
+      assert.deepEqual(
+        Option.getOrThrow(yield* service.getById(projectId)).board,
+        DEFAULT_PROJECT_BOARD,
+      );
+      assert.deepEqual(
+        Option.getOrThrow(yield* service.getShell(projectId)).board,
+        DEFAULT_PROJECT_BOARD,
+      );
+
+      const cleared = yield* service.update({
+        commandId: CommandId.make("command:board:clear"),
+        projectId,
+        board: null,
+      });
+      assert.isNull(cleared.board);
+      const [shell] = yield* service.listShells({ projectIds: [projectId] });
+      assert.isNull(shell?.board);
     }),
   );
 

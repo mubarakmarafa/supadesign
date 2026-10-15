@@ -14,6 +14,7 @@ import type {
   ProjectId,
   ProviderInstanceId,
   RunId,
+  ThreadBoardPlacement,
   ThreadId,
 } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
@@ -134,6 +135,8 @@ export interface EnvironmentThreadShell {
   readonly pinOrderKey: string | null;
   /** Slot in the user-arranged active order; null for keyless active threads. */
   readonly activeOrderKey: string | null;
+  /** Slot on the project board; null/absent means unplaced (the inbox). */
+  readonly board?: ThreadBoardPlacement | null;
   readonly pullRequests: ReadonlyArray<import("@supaterm/contracts").ThreadPullRequestLink>;
   readonly linkedPullRequest?: ThreadLinkedPullRequest | null;
   readonly branchPullRequest?: ThreadLinkedPullRequest | null;
@@ -278,6 +281,7 @@ export function presentThreadShell(
     autoSettleDisabledAt: nullableIso(thread.autoSettleDisabledAt ?? null),
     pinOrderKey: thread.pinOrderKey ?? null,
     activeOrderKey: thread.activeOrderKey ?? null,
+    board: thread.board ?? null,
     ...(thread.lastVisitedAt === undefined
       ? {}
       : { lastVisitedAt: nullableIso(thread.lastVisitedAt) }),

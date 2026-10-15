@@ -7,6 +7,7 @@ import { assert, it } from "@effect/vitest";
 import { vi } from "vite-plus/test";
 import {
   type ApplicationStoredEvent,
+  BoardColumnId,
   CheckpointId,
   CheckpointRef,
   CommandId,
@@ -4768,6 +4769,111 @@ it.layer(layerSharedApplicationDataPlaneTest)("visited projection", (it) => {
         })
         .pipe(Effect.flip);
       assert.instanceOf(invalidVisit, Orchestrator.OrchestratorDispatchError);
+    }),
+  );
+});
+
+it.layer(layerSharedApplicationDataPlaneTest)("board placement projection", (it) => {
+  it.effect("places active and archived threads without counting it as activity", () =>
+    Effect.gen(function* () {
+      const projects = yield* ProjectService.ProjectService;
+      const orchestrator = yield* Orchestrator.OrchestratorV2;
+      const projectId = ProjectId.make("runtime-layer-board-project");
+      const threadId = ThreadId.make("runtime-layer-board-thread");
+
+      yield* projects.create({
+        commandId: CommandId.make("runtime-layer-board-project-create"),
+        projectId,
+        title: "Board placement",
+        workspaceRoot: "/tmp/runtime-layer-board-project",
+      });
+      yield* orchestrator.dispatch({
+        type: "thread.create",
+        createdBy: "user",
+        creationSource: "web",
+        commandId: CommandId.make("runtime-layer-board-thread-create"),
+        threadId,
+        projectId,
+        title: "Board thread",
+        modelSelection,
+        runtimeMode: "full-access",
+        interactionMode: "default",
+        branch: null,
+        worktreePath: null,
+      });
+      const createdUpdatedAt = (yield* orchestrator.getThreadProjection(threadId)).thread.updatedAt;
+
+      yield* TestClock.adjust("1 second");
+      yield* orchestrator.dispatch({
+        type: "thread.board.place",
+        commandId: CommandId.make("runtime-layer-board-place-active"),
+        threadId,
+        columnId: BoardColumnId.make("testing"),
+        orderKey: "n",
+      });
+      const placed = yield* orchestrator.getThreadProjection(threadId);
+      assert.deepEqual(placed.thread.board, {
+        columnId: BoardColumnId.make("testing"),
+        orderKey: "n",
+      });
+      assert.deepEqual(placed.thread.updatedAt, createdUpdatedAt);
+      const placedShell = (yield* orchestrator.getShellSnapshot()).threads.find(
+        (thread) => thread.id === threadId,
+      );
+      assert.deepEqual(placedShell?.board, {
+        columnId: BoardColumnId.make("testing"),
+        orderKey: "n",
+      });
+      assert.deepEqual(placedShell?.updatedAt, createdUpdatedAt);
+
+      // Moving into Done records the return column, then archives.
+      yield* orchestrator.dispatch({
+        type: "thread.board.place",
+        commandId: CommandId.make("runtime-layer-board-place-done"),
+        threadId,
+        columnId: BoardColumnId.make("done"),
+        orderKey: "g",
+        returnColumnId: BoardColumnId.make("testing"),
+      });
+      yield* orchestrator.dispatch({
+        type: "thread.archive",
+        commandId: CommandId.make("runtime-layer-board-archive"),
+        threadId,
+      });
+      const archived = yield* orchestrator.getThreadProjection(threadId);
+      assert.isNotNull(archived.thread.archivedAt);
+      const archivedUpdatedAt = archived.thread.updatedAt;
+
+      // Reordering within Done works on an archived thread.
+      yield* TestClock.adjust("1 second");
+      yield* orchestrator.dispatch({
+        type: "thread.board.place",
+        commandId: CommandId.make("runtime-layer-board-place-archived"),
+        threadId,
+        columnId: BoardColumnId.make("done"),
+        orderKey: "t",
+        returnColumnId: BoardColumnId.make("testing"),
+      });
+      const reordered = yield* orchestrator.getThreadProjection(threadId);
+      assert.deepEqual(reordered.thread.board, {
+        columnId: BoardColumnId.make("done"),
+        orderKey: "t",
+        returnColumnId: BoardColumnId.make("testing"),
+      });
+      assert.deepEqual(reordered.thread.updatedAt, archivedUpdatedAt);
+      const archivedShell = (yield* orchestrator.getShellSnapshot()).archivedThreads.find(
+        (thread) => thread.id === threadId,
+      );
+      assert.deepEqual(archivedShell?.board, reordered.thread.board);
+
+      yield* orchestrator.dispatch({
+        type: "thread.unarchive",
+        commandId: CommandId.make("runtime-layer-board-unarchive"),
+        threadId,
+      });
+      const unarchived = yield* orchestrator.getThreadProjection(threadId);
+      assert.isNull(unarchived.thread.archivedAt);
+      assert.deepEqual(unarchived.thread.board, reordered.thread.board);
     }),
   );
 });

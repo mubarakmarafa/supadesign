@@ -150,6 +150,17 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+f", command: "projectSearch.toggle", when: "!terminalFocus" },
   { key: "mod+.", command: "projectPicker.toggle", when: "!terminalFocus" },
   { key: "mod+u", command: "usage.open", when: "!terminalFocus" },
+  { key: "mod+alt+k", command: "board.open", when: "!terminalFocus" },
+  // Only threads opened from a project board claim Escape (`boardThread`).
+  {
+    key: "escape",
+    command: "board.back",
+    when: "boardThread && !terminalFocus && !previewFocus",
+  },
+  { key: "mod+arrowup", command: "board.card.moveUp", when: "boardCardFocus" },
+  { key: "mod+arrowdown", command: "board.card.moveDown", when: "boardCardFocus" },
+  { key: "mod+arrowleft", command: "board.card.moveLeft", when: "boardCardFocus" },
+  { key: "mod+arrowright", command: "board.card.moveRight", when: "boardCardFocus" },
   { key: "mod+alt+a", command: "theme.select", when: "!terminalFocus" },
   { key: "mod+alt+shift+a", command: "appearance.cycle", when: "!terminalFocus" },
   { key: "mod+alt+shift+t", command: "themeEditor.toggle" },

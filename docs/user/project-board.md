@@ -1,0 +1,47 @@
+# Project board
+
+The board shows one project's threads as cards in columns, so you can see what
+each piece of work is doing and where it stands. Each card is one thread.
+
+## Open a board
+
+On web and desktop, select **Board** at the top of the sidebar, choose **Open
+board** in the command palette, or press `Cmd+Alt+K` (`Ctrl+Alt+K` on Windows
+and Linux). The board opens for the project the sidebar is filtered to, otherwise
+the project of the thread you are viewing. In the sidebar's project filter, the
+board button on a project row opens that project's board.
+
+Boards need an environment running a Supadesign server that supports them. The
+board entries are hidden when no connected environment does.
+
+## Cards
+
+New threads land in the inbox column, marked with an inbox icon. Drag a card to
+reorder it or move it to another column. Order within a column is kept. On
+touch screens and narrow windows, use the card's **…** menu and **Move to**.
+
+Double-click a card or press **Enter** to open its thread. Press **Escape** in
+that thread to return to the board where you left it. Escape does nothing while
+the composer holds a draft, or while a terminal, preview, menu, or dialog has
+focus.
+
+With a card focused, the arrow keys, **Home**, and **End** move between cards.
+`Cmd+Arrow` (`Ctrl+Arrow` on Windows and Linux) moves the focused card up, down,
+or to the neighboring column. Customize `board.open`, `board.back`, and the
+`board.card.move…` commands in **Settings → Keybindings**.
+
+## Done archives
+
+Moving a card into the done column archives its thread, and moving it back out
+unarchives it. A thread that is still working can't be moved to done until you
+stop it. Done is collapsed at first; select **Show archived** to load its cards.
+
+## Columns
+
+Use a column's **…** menu to rename it, move it left or right, or choose which
+column is the inbox or done. Double-click a column's name to rename it, and use
+**Add column** at the end of the board for a new one.
+
+Deleting a column moves its cards to the column on its left, or to the right for
+the first column. The done column can't be deleted, and the inbox must move to
+another column first.
