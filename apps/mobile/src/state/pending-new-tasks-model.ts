@@ -115,33 +115,6 @@ export function buildPendingQueuedTasks(
   return tasks.sort(newestFirst);
 }
 
-export function buildPendingNewTasks(input: {
-  readonly queuedMessages: ReadonlyArray<QueuedThreadMessage>;
-  readonly draftTasks: ReadonlyArray<PendingDraftTask>;
-}): ReadonlyArray<PendingNewTask> {
-  return [...input.draftTasks, ...buildPendingQueuedTasks(input.queuedMessages)];
-}
-
-export function samePendingDraftTasks(
-  left: ReadonlyArray<PendingDraftTask>,
-  right: ReadonlyArray<PendingDraftTask>,
-): boolean {
-  return (
-    left.length === right.length &&
-    left.every((task, index) => {
-      const other = right[index]!;
-      return (
-        task.key === other.key &&
-        task.title === other.title &&
-        task.branch === other.branch &&
-        task.environmentId === other.environmentId &&
-        task.projectId === other.projectId &&
-        task.createdAt === other.createdAt
-      );
-    })
-  );
-}
-
 export interface HeldNewTaskDraft {
   readonly draftKey: string;
   readonly content: Pick<ComposerDraft, "text" | "attachments"> | null;

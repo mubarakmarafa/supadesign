@@ -6,8 +6,7 @@ import type { ComposerDraft } from "./use-composer-drafts";
 import {
   applyHeldNewTaskDraft,
   buildPendingDraftTasks,
-  buildPendingNewTasks,
-  samePendingDraftTasks,
+  buildPendingQueuedTasks,
 } from "./pending-new-tasks-model";
 
 const environmentId = EnvironmentId.make("env-1");
@@ -44,22 +43,18 @@ function draft(
   };
 }
 
-describe("buildPendingNewTasks", () => {
-  it("surfaces every new-task draft with content alongside queued creations", () => {
-    const tasks = buildPendingNewTasks({
-      queuedMessages: [queuedCreation("a", "2026-09-05T10:00:00.000Z")],
-      draftTasks: buildPendingDraftTasks({
-        "new-task:draft-old": draft("first idea", "2026-09-05T09:00:00.000Z", {
-          workspaceSelection: { mode: "worktree", branch: "main", worktreePath: null },
-        }),
-        "new-task:draft-new": draft("second idea", "2026-09-05T11:00:00.000Z"),
+describe("buildPendingDraftTasks", () => {
+  it("surfaces every new-task draft with content, newest first", () => {
+    const tasks = buildPendingDraftTasks({
+      "new-task:draft-old": draft("first idea", "2026-09-05T09:00:00.000Z", {
+        workspaceSelection: { mode: "worktree", branch: "main", worktreePath: null },
       }),
+      "new-task:draft-new": draft("second idea", "2026-09-05T11:00:00.000Z"),
     });
 
-    expect(tasks.map((task) => [task.kind, task.title, task.branch])).toEqual([
-      ["draft", "second idea", null],
-      ["draft", "first idea", "main"],
-      ["pending", "queued a", "main"],
+    expect(tasks.map((task) => [task.title, task.branch])).toEqual([
+      ["second idea", null],
+      ["first idea", "main"],
     ]);
     expect(tasks[1]).toMatchObject({
       key: "draft-task:new-task:draft-old",
@@ -71,17 +66,14 @@ describe("buildPendingNewTasks", () => {
   });
 
   it("hides settings-only drafts, unstamped drafts, and drafts for other surfaces", () => {
-    const tasks = buildPendingNewTasks({
-      queuedMessages: [],
-      draftTasks: buildPendingDraftTasks({
-        "new-task:settings-only": draft("", "2026-09-05T09:00:00.000Z", {
-          modelSelection: { instanceId: "codex" as never, model: "gpt" },
-        }),
-        "new-task:blank": draft("   ", "2026-09-05T09:00:00.000Z"),
-        "new-task:unstamped": { text: "no project", attachments: [] },
-        [`${environmentId}:thread-1`]: { text: "thread composer text", attachments: [] },
-        "pending-task:message-1": { text: "editor copy of a queued task", attachments: [] },
+    const tasks = buildPendingDraftTasks({
+      "new-task:settings-only": draft("", "2026-09-05T09:00:00.000Z", {
+        modelSelection: { instanceId: "codex" as never, model: "gpt" },
       }),
+      "new-task:blank": draft("   ", "2026-09-05T09:00:00.000Z"),
+      "new-task:unstamped": { text: "no project", attachments: [] },
+      [`${environmentId}:thread-1`]: { text: "thread composer text", attachments: [] },
+      "pending-task:message-1": { text: "editor copy of a queued task", attachments: [] },
     });
 
     expect(tasks).toEqual([]);
@@ -98,41 +90,37 @@ describe("buildPendingNewTasks", () => {
       height: 1,
       sizeBytes: 1,
     } as unknown as ComposerDraft["attachments"][number];
-    const tasks = buildPendingNewTasks({
-      queuedMessages: [],
-      draftTasks: buildPendingDraftTasks({
-        "new-task:with-image": draft("", "2026-09-05T09:00:00.000Z", {
-          attachments: [attachment],
-        }),
+    const tasks = buildPendingDraftTasks({
+      "new-task:with-image": draft("", "2026-09-05T09:00:00.000Z", {
+        attachments: [attachment],
       }),
     });
 
     expect(tasks.map((task) => task.title)).toEqual(["1 attachment"]);
   });
+});
 
+describe("buildPendingQueuedTasks", () => {
   it("orders queued creations newest first and skips existing-thread messages", () => {
-    const tasks = buildPendingNewTasks({
-      queuedMessages: [
-        queuedCreation("old", "2026-09-05T08:00:00.000Z"),
-        { ...queuedCreation("follow-up", "2026-09-05T11:00:00.000Z"), creation: undefined },
-        queuedCreation("new", "2026-09-05T10:00:00.000Z"),
-      ],
-      draftTasks: [],
-    });
+    const tasks = buildPendingQueuedTasks([
+      queuedCreation("old", "2026-09-05T08:00:00.000Z"),
+      { ...queuedCreation("follow-up", "2026-09-05T11:00:00.000Z"), creation: undefined },
+      queuedCreation("new", "2026-09-05T10:00:00.000Z"),
+    ]);
 
-    expect(tasks.map((task) => task.title)).toEqual(["queued new", "queued old"]);
+    expect(tasks.map((task) => [task.title, task.branch])).toEqual([
+      ["queued new", "main"],
+      ["queued old", "main"],
+    ]);
   });
 });
 
 describe("applyHeldNewTaskDraft", () => {
   const otherProjectId = ProjectId.make("project-2");
   const tasks = (drafts: Record<string, ComposerDraft>) =>
-    buildPendingNewTasks({
-      queuedMessages: [],
-      draftTasks: buildPendingDraftTasks({
-        "new-task:other": draft("other idea", "2026-09-05T08:00:00.000Z"),
-        ...drafts,
-      }),
+    buildPendingDraftTasks({
+      "new-task:other": draft("other idea", "2026-09-05T08:00:00.000Z"),
+      ...drafts,
     });
   const titles = (drafts: Record<string, ComposerDraft>) => tasks(drafts).map((task) => task.title);
   const held = { draftKey: "new-task:open", content: { text: "first words", attachments: [] } };
@@ -186,65 +174,5 @@ describe("applyHeldNewTaskDraft", () => {
     const drafts = { "new-task:open": draft("idea", "2026-09-05T09:00:00.000Z") };
 
     expect(applyHeldNewTaskDraft(drafts, null)).toBe(drafts);
-  });
-});
-
-describe("samePendingDraftTasks", () => {
-  const rows = (drafts: Record<string, ComposerDraft>) => buildPendingDraftTasks(drafts);
-
-  it("ignores keystrokes that leave every row unchanged", () => {
-    const longText =
-      "Plot the hourly tide forecast for every station along the coast with error bars";
-
-    expect(
-      samePendingDraftTasks(
-        rows({ "new-task:a": draft(longText, "2026-09-05T09:00:00.000Z") }),
-        rows({ "new-task:a": draft(`${longText} and more`, "2026-09-05T09:00:00.000Z") }),
-      ),
-    ).toBe(true);
-  });
-
-  it("notices a new title, branch, project, or row", () => {
-    const before = rows({ "new-task:a": draft("first idea", "2026-09-05T09:00:00.000Z") });
-
-    expect(
-      samePendingDraftTasks(
-        before,
-        rows({ "new-task:a": draft("second idea", "2026-09-05T09:00:00.000Z") }),
-      ),
-    ).toBe(false);
-    expect(
-      samePendingDraftTasks(
-        before,
-        rows({
-          "new-task:a": draft("first idea", "2026-09-05T09:00:00.000Z", {
-            workspaceSelection: { mode: "worktree", branch: "main", worktreePath: null },
-          }),
-        }),
-      ),
-    ).toBe(false);
-    expect(
-      samePendingDraftTasks(
-        before,
-        rows({
-          "new-task:a": draft("first idea", "2026-09-05T09:00:00.000Z", {
-            project: {
-              environmentId,
-              projectId: ProjectId.make("project-2"),
-              createdAt: "2026-09-05T09:00:00.000Z",
-            },
-          }),
-        }),
-      ),
-    ).toBe(false);
-    expect(
-      samePendingDraftTasks(
-        before,
-        rows({
-          "new-task:a": draft("first idea", "2026-09-05T09:00:00.000Z"),
-          "new-task:b": draft("another idea", "2026-09-05T10:00:00.000Z"),
-        }),
-      ),
-    ).toBe(false);
   });
 });
