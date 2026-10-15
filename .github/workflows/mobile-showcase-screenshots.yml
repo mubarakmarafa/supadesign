@@ -60,7 +60,7 @@ jobs:
   ios:
     name: iPhone 6.9, iPhone 6.3, iPhone 6.5, and iPad 13
     if: inputs.platform == 'all' || inputs.platform == 'ios'
-    runs-on: depot-macos-26
+    runs-on: macos-26
     # Capturing every palette multiplies the device matrix, and only the one
     # native build is shared between them.
     timeout-minutes: ${{ inputs.theme == 'all' && 350 || 120 }}
