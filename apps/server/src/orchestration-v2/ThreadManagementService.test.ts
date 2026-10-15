@@ -30,7 +30,6 @@ import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 
-import * as LegacyV1ThreadImporter from "./legacy/LegacyV1ThreadImporter.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as CommandReceiptStore from "./CommandReceiptStore.ts";
@@ -85,130 +84,6 @@ it("leaves commands that do not create durable authored content unchanged", () =
       creationSource: "web",
     }),
   ).toBe(command);
-});
-
-it("identifies every existing thread that must be hydrated before dispatch", () => {
-  const sourceThreadId = ThreadId.make("thread:thread-management:source");
-  const targetThreadId = ThreadId.make("thread:thread-management:target");
-  const parentThreadId = ThreadId.make("thread:thread-management:parent");
-
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "thread.create",
-      createdBy: "user",
-      creationSource: "web",
-      commandId: CommandId.make("command:thread-management:create"),
-      threadId: targetThreadId,
-      projectId: ProjectId.make("project:thread-management"),
-      title: "Created thread",
-      modelSelection: {
-        instanceId: ProviderInstanceId.make("codex"),
-        model: "gpt-5-codex",
-      },
-      runtimeMode: "full-access",
-      interactionMode: "default",
-      branch: null,
-      worktreePath: null,
-    }),
-  ).toEqual([]);
-
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "thread.archive",
-      commandId: CommandId.make("command:thread-management:archive"),
-      threadId: targetThreadId,
-    }),
-  ).toEqual([targetThreadId]);
-
-  // Read-state commands skip transcript hydration entirely: they fire on
-  // every activity bump while a thread is open and never touch messages.
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "thread.visit",
-      commandId: CommandId.make("command:thread-management:visit"),
-      threadId: targetThreadId,
-      visitedAt: "2026-07-30T00:00:00.000Z",
-    }),
-  ).toEqual([]);
-
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "thread.mark-unread",
-      commandId: CommandId.make("command:thread-management:mark-unread"),
-      threadId: targetThreadId,
-    }),
-  ).toEqual([]);
-
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "thread.fork",
-      createdBy: "user",
-      creationSource: "web",
-      commandId: CommandId.make("command:thread-management:fork"),
-      sourceThreadId,
-      targetThreadId,
-      sourcePoint: {
-        type: "run",
-        runId: RunId.make("run:thread-management:source"),
-      },
-    }),
-  ).toEqual([sourceThreadId]);
-
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "thread.merge_back",
-      createdBy: "user",
-      creationSource: "web",
-      commandId: CommandId.make("command:thread-management:merge"),
-      sourceThreadId,
-      targetThreadId,
-      sourcePoint: {
-        type: "run",
-        runId: RunId.make("run:thread-management:source"),
-      },
-    }),
-  ).toEqual([sourceThreadId, targetThreadId]);
-
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "delegated_task.request",
-      createdBy: "agent",
-      creationSource: "provider",
-      commandId: CommandId.make("command:thread-management:delegate"),
-      parentThreadId,
-      parentRunId: RunId.make("run:thread-management:parent"),
-      parentNodeId: NodeId.make("node:thread-management:parent"),
-      task: "Inspect the migration",
-      modelSelection: {
-        instanceId: ProviderInstanceId.make("codex"),
-        model: "gpt-5-codex",
-      },
-      runtimeMode: "full-access",
-      interactionMode: "default",
-    }),
-  ).toEqual([parentThreadId]);
-
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "delegated_task.wake-policy",
-      commandId: CommandId.make("command:thread-management:wake-policy"),
-      parentThreadId,
-      taskId: NodeId.make("node:thread-management:delegated"),
-      completionWake: "always",
-    }),
-  ).toEqual([parentThreadId]);
-
-  expect(
-    ThreadManagementService.existingThreadIdsForCommand({
-      type: "thread.created.record",
-      commandId: CommandId.make("command:thread-management:record"),
-      parentThreadId,
-      parentRunId: RunId.make("run:thread-management:parent"),
-      parentNodeId: NodeId.make("node:thread-management:parent"),
-      targetThreadId,
-      targetRunId: null,
-    }),
-  ).toEqual([parentThreadId, targetThreadId]);
 });
 
 it("derives thread management messages from structural error attributes", () => {
@@ -538,37 +413,6 @@ it.effect("uses thread-not-found only after a projection loads outside the proje
     expect(error).toBeInstanceOf(ThreadManagementService.ThreadManagementThreadNotFoundError);
     expect(error).toMatchObject({ projectId, threadId });
     expect("cause" in error).toBe(false);
-  }).pipe(Effect.provide(layerTest));
-});
-
-it.effect("preserves failed legacy materialization when reading checkpoint context", () => {
-  const threadId = ThreadId.make("thread:thread-management:checkpoint-import-failure");
-  const importError = new LegacyV1ThreadImporter.LegacyV1ThreadImportError({
-    threadId,
-    operation: "hydrate transcript for",
-    cause: new Error("checkpoint import failed"),
-  });
-  const layerTest = ThreadManagementService.layerWithLegacyImporter.pipe(
-    Layer.provide(Layer.mock(ProviderSessionManager.ProviderSessionManagerV2)({})),
-    Layer.provide(
-      Layer.mergeAll(
-        Layer.mock(Orchestrator.OrchestratorV2)({
-          getCheckpointContext: () =>
-            Effect.succeed({ runs: [], checkpointScopes: [], checkpoints: [] }),
-        }),
-        Layer.mock(LegacyV1ThreadImporter.LegacyV1ThreadImporter)({
-          ensureTranscript: () => Effect.fail(importError),
-        }),
-      ),
-    ),
-    Layer.provide(ServerSettings.layerTest()),
-    Layer.provide(layerReceiptsTest),
-  );
-  return Effect.gen(function* () {
-    const service = yield* ThreadManagementService.ThreadManagementService;
-    const error = yield* service.getCheckpointContext(threadId).pipe(Effect.flip);
-    expect(error).toBeInstanceOf(Orchestrator.OrchestratorProjectionError);
-    expect(error).toMatchObject({ threadId, cause: importError });
   }).pipe(Effect.provide(layerTest));
 });
 

@@ -28,7 +28,6 @@ it.effect("starts without scanning or rebuilding projection history", () =>
     const record = (label: string) => Ref.update(calls, (current) => [...current, label]);
 
     const result = yield* ServerRuntimeStartup.runOrderedV2StartupPhases({
-      importLegacyShells: record("import"),
       recover: record("recover").pipe(Effect.as({ closedRequests: 2 })),
       recoverDelegatedTasks: record("delegated"),
       startEffectWorker: record("worker"),
@@ -37,13 +36,7 @@ it.effect("starts without scanning or rebuilding projection history", () =>
 
     // Delegated recovery reads the runs recovery terminalizes, and settles them
     // before the worker runs restart continuations that would otherwise race it.
-    assert.deepEqual(yield* Ref.get(calls), [
-      "import",
-      "recover",
-      "delegated",
-      "worker",
-      "bootstrap",
-    ]);
+    assert.deepEqual(yield* Ref.get(calls), ["recover", "delegated", "worker", "bootstrap"]);
     assert.deepEqual(result, {
       recovery: { closedRequests: 2 },
       bootstrap: { projectId: "project-1" },

@@ -19,7 +19,6 @@ import * as Schema from "effect/Schema";
 
 import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
-import * as LegacyV1ThreadImporter from "../orchestration-v2/legacy/LegacyV1ThreadImporter.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import {
   decodeProjectCommandRejection,
@@ -152,7 +151,6 @@ export const make = Effect.gen(function* () {
   const threadProjections = yield* ProjectionStore.ProjectionStoreV2;
   const eventSink = yield* EventSink.EventSinkV2;
   const idAllocator = yield* IdAllocator.IdAllocatorV2;
-  const legacyImporter = yield* LegacyV1ThreadImporter.LegacyV1ThreadImporter;
   const threadCommands = yield* ThreadCommandExecutor.ThreadCommandExecutor;
   const serverSettings = yield* ServerSettings.ServerSettingsService;
   // Commands for one project run in order. Commands that claim a workspace root
@@ -407,7 +405,6 @@ export const make = Effect.gen(function* () {
     input: ProjectDeleteInput,
     threadId: ThreadId,
   ) {
-    yield* legacyImporter.ensureTranscript(threadId);
     const projection = yield* threadProjections.getThreadRecords(threadId, [
       "runs",
       "attempts",

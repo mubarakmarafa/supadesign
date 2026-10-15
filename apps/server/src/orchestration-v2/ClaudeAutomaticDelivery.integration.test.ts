@@ -33,7 +33,6 @@ import * as EffectWorker from "./EffectWorker.ts";
 import * as EventSink from "./EventSink.ts";
 import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
 import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
-import * as LegacyV1ThreadImporter from "./legacy/LegacyV1ThreadImporter.ts";
 import * as Orchestrator from "./Orchestrator.ts";
 import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
 import * as ThreadLaunchService from "./ThreadLaunchService.ts";
@@ -315,12 +314,6 @@ it.effect.each(["child completion", "scheduled message", "user steering"] as con
                 ScheduledTaskService.layer.pipe(
                   Layer.provide(ThreadManagementService.layer),
                   Layer.provide(ServerSettings.layerTest()),
-                  Layer.provide(
-                    Layer.mock(LegacyV1ThreadImporter.LegacyV1ThreadImporter)({
-                      ensureTranscript: () =>
-                        Effect.succeed({ importedThreadCount: 0, importedMessageCount: 0 }),
-                    }),
-                  ),
                   Layer.provide(Layer.mock(ThreadLaunchService.ThreadLaunchService)({})),
                   Layer.provide(
                     CommandReceiptStore.layer.pipe(Layer.provide(SqlitePersistence.layerMemory)),

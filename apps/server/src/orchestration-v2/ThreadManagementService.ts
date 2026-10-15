@@ -49,7 +49,6 @@ import * as ProviderSessionManager from "./ProviderSessionManager.ts";
 import * as ThreadCommandExecutor from "./ThreadCommandExecutor.ts";
 import { DispatchModeLimit, exceededDispatchModeLimit } from "./DispatchModeLimit.ts";
 import { projectTurnItemForDetail } from "./WireProjection.ts";
-import * as LegacyV1ThreadImporter from "./legacy/LegacyV1ThreadImporter.ts";
 import * as ServerSettings from "../serverSettings.ts";
 
 export type ThreadManagementSendMode = "auto" | "queue" | "steer" | "restart";
@@ -72,39 +71,6 @@ export function withCreationProvenance(
       return { ...command, ...provenance };
     default:
       return command;
-  }
-}
-
-export function existingThreadIdsForCommand(
-  command: OrchestrationV2ServerCommand,
-): ReadonlyArray<ThreadId> {
-  switch (command.type) {
-    case "thread.create":
-      return [];
-    // Read-state commands only rewrite the thread payload's visited/unread
-    // watermark; they never touch messages, so they do not need the imported
-    // v1 transcript hydrated first. Visits fire on every thread-activity bump
-    // while a thread is open, so keeping them off the import path matters.
-    case "thread.visit":
-    case "thread.mark-unread":
-      return [];
-    case "thread.fork":
-      return [command.sourceThreadId];
-    case "thread.merge_back":
-      return command.sourceThreadId === command.targetThreadId
-        ? [command.sourceThreadId]
-        : [command.sourceThreadId, command.targetThreadId];
-    case "delegated_task.request":
-    case "delegated_task.wake-policy":
-    case "delegated_task.completion-delivery.acknowledge":
-    case "delegated_task.completion-delivery.dispose":
-      return [command.parentThreadId];
-    case "thread.created.record":
-      return command.parentThreadId === command.targetThreadId
-        ? [command.parentThreadId]
-        : [command.parentThreadId, command.targetThreadId];
-    default:
-      return [command.threadId];
   }
 }
 
@@ -304,9 +270,6 @@ export interface ThreadManagementServiceShape {
   readonly searchThread: (
     input: OrchestrationV2SearchThreadInput,
   ) => Effect.Effect<OrchestrationV2SearchThreadResult, Orchestrator.OrchestratorV2Error>;
-  readonly ensureLegacyTranscript: (
-    threadId: ThreadId,
-  ) => Effect.Effect<void, LegacyV1ThreadImporter.LegacyV1ThreadImportError>;
   /**
    * The single chokepoint for commands that can start or wake provider work:
    * `message.dispatch` and `delegated_task.request` are refused here when the
@@ -507,7 +470,6 @@ const make = Effect.gen(function* () {
   const orchestrator = yield* Orchestrator.OrchestratorV2;
   const sessions = yield* ProviderSessionManager.ProviderSessionManagerV2;
   const layerScope = yield* Effect.scope;
-  const legacyImporter = yield* LegacyV1ThreadImporter.LegacyV1ThreadImporter;
   const serverSettings = yield* ServerSettings.ServerSettingsService;
   const receipts = yield* CommandReceiptStore.CommandReceiptStoreV2;
 
@@ -547,70 +509,8 @@ const make = Effect.gen(function* () {
       Effect.map(Option.isSome),
     );
 
-  const ensureLegacyTranscript = Effect.fn(
-    "orchestrationV2.threadManagement.ensureLegacyTranscript",
-  )(function* (threadId: ThreadId) {
-    yield* legacyImporter.ensureTranscript(threadId).pipe(
-      Effect.tapError((cause) =>
-        Effect.logWarning("Unable to hydrate migrated v1 thread transcript", {
-          threadId,
-          cause,
-        }),
-      ),
-    );
-  });
-
-  const ensureProjectionTranscript = (threadId: ThreadId) =>
-    ensureLegacyTranscript(threadId).pipe(
-      Effect.mapError(
-        (cause) =>
-          new Orchestrator.OrchestratorProjectionError({
-            threadId,
-            cause,
-          }),
-      ),
-    );
-
-  const ensureCommandTranscripts = Effect.fn(
-    "orchestrationV2.threadManagement.ensureCommandTranscripts",
-  )(function* (command: OrchestrationV2ServerCommand) {
-    yield* Effect.forEach(
-      existingThreadIdsForCommand(command),
-      (threadId) => ensureLegacyTranscript(threadId),
-      { discard: true },
-    ).pipe(
-      Effect.mapError(
-        (cause) =>
-          new Orchestrator.OrchestratorDispatchError({
-            commandId: command.commandId,
-            commandType: command.type,
-            cause,
-          }),
-      ),
-    );
-  });
-
-  const getThreadProjection: ThreadManagementServiceShape["getThreadProjection"] = (threadId) =>
-    ensureProjectionTranscript(threadId).pipe(
-      Effect.andThen(orchestrator.getThreadProjection(threadId)),
-    );
-
-  const getCheckpointContext: ThreadManagementServiceShape["getCheckpointContext"] = (threadId) =>
-    ensureProjectionTranscript(threadId).pipe(
-      Effect.andThen(orchestrator.getCheckpointContext(threadId)),
-    );
-
-  const getThreadSnapshot: ThreadManagementServiceShape["getThreadSnapshot"] = (threadId) =>
-    ensureProjectionTranscript(threadId).pipe(
-      Effect.andThen(orchestrator.getThreadSnapshot(threadId)),
-    );
-  const getThreadSnapshotWindow: ThreadManagementServiceShape["getThreadSnapshotWindow"] = (
-    threadId,
-    options,
-  ) =>
-    ensureProjectionTranscript(threadId).pipe(
-      Effect.andThen(orchestrator.getThreadSnapshotWindow(threadId, options)),
-    );
+  const getThreadProjection: ThreadManagementServiceShape["getThreadProjection"] =
+    orchestrator.getThreadProjection;
 
   // Every path that can start or wake a provider turn funnels through this
   // dispatch, so resolving and checking the target instance here (instead of
@@ -643,10 +543,7 @@ const make = Effect.gen(function* () {
   };
 
   const dispatch: ThreadManagementServiceShape["dispatch"] = (command) =>
-    ensureCommandTranscripts(command).pipe(
-      Effect.andThen(assertDispatchTargetEnabled(command)),
-      Effect.andThen(orchestrator.dispatch(command)),
-    );
+    assertDispatchTargetEnabled(command).pipe(Effect.andThen(orchestrator.dispatch(command)));
 
   const getProjectThread: ThreadManagementServiceShape["getProjectThread"] = (input) =>
     getThreadProjection(input.threadId).pipe(
@@ -675,28 +572,26 @@ const make = Effect.gen(function* () {
     fields,
     filter,
   ) =>
-    ensureProjectionTranscript(input.threadId)
-      .pipe(Effect.andThen(orchestrator.getThreadRecords(input.threadId, fields, filter)))
-      .pipe(
-        Effect.mapError(
-          (cause) =>
-            new ThreadManagementProjectionLoadError({
-              projectId: input.projectId,
-              threadId: input.threadId,
-              cause,
-            }),
-        ),
-        Effect.flatMap((projection) =>
-          projection.thread.projectId === input.projectId && projection.thread.deletedAt === null
-            ? Effect.succeed(projection)
-            : Effect.fail(
-                new ThreadManagementThreadNotFoundError({
-                  projectId: input.projectId,
-                  threadId: input.threadId,
-                }),
-              ),
-        ),
-      );
+    orchestrator.getThreadRecords(input.threadId, fields, filter).pipe(
+      Effect.mapError(
+        (cause) =>
+          new ThreadManagementProjectionLoadError({
+            projectId: input.projectId,
+            threadId: input.threadId,
+            cause,
+          }),
+      ),
+      Effect.flatMap((projection) =>
+        projection.thread.projectId === input.projectId && projection.thread.deletedAt === null
+          ? Effect.succeed(projection)
+          : Effect.fail(
+              new ThreadManagementThreadNotFoundError({
+                projectId: input.projectId,
+                threadId: input.threadId,
+              }),
+            ),
+      ),
+    );
 
   const listProjectThreads: ThreadManagementServiceShape["listProjectThreads"] = (input) =>
     orchestrator.getShellSnapshot({ projectId: input.projectId, location: "active" }).pipe(
@@ -1088,45 +983,23 @@ const make = Effect.gen(function* () {
     });
 
   return ThreadManagementService.of({
-    ensureLegacyTranscript,
-    searchThreadStream: (input) =>
-      Stream.unwrap(
-        ensureProjectionTranscript(input.threadId).pipe(
-          Effect.as(orchestrator.searchThreadStream(input)),
-        ),
-      ),
-    searchThread: (input) =>
-      ensureProjectionTranscript(input.threadId).pipe(
-        Effect.andThen(orchestrator.searchThread(input)),
-      ),
+    searchThreadStream: orchestrator.searchThreadStream,
+    searchThread: orchestrator.searchThread,
     dispatch,
-    getThreadHistoryPage: (threadId, cursor, throughEntryId, conversationOnly) =>
-      ensureProjectionTranscript(threadId).pipe(
-        Effect.andThen(
-          orchestrator.getThreadHistoryPage(threadId, cursor, throughEntryId, conversationOnly),
-        ),
-      ),
-    getTimelinePage: (threadId, options) =>
-      ensureProjectionTranscript(threadId).pipe(
-        Effect.andThen(orchestrator.getTimelinePage(threadId, options)),
-      ),
-    getMessageCount: (threadId) =>
-      ensureProjectionTranscript(threadId).pipe(
-        Effect.andThen(orchestrator.getMessageCount(threadId)),
-      ),
+    getThreadHistoryPage: orchestrator.getThreadHistoryPage,
+    getTimelinePage: orchestrator.getTimelinePage,
+    getMessageCount: orchestrator.getMessageCount,
     getTurnItem: (input) =>
-      ensureProjectionTranscript(input.threadId).pipe(
-        Effect.andThen(orchestrator.getTurnItem(input)),
-        Effect.map((item) => ({ item: item === null ? null : projectTurnItemForDetail(item) })),
-      ),
-    getThreadRecords: (threadId, fields, filter) =>
-      ensureProjectionTranscript(threadId).pipe(
-        Effect.andThen(orchestrator.getThreadRecords(threadId, fields, filter)),
-      ),
+      orchestrator
+        .getTurnItem(input)
+        .pipe(
+          Effect.map((item) => ({ item: item === null ? null : projectTurnItemForDetail(item) })),
+        ),
+    getThreadRecords: orchestrator.getThreadRecords,
     getThreadProjection,
-    getCheckpointContext,
-    getThreadSnapshot,
-    getThreadSnapshotWindow,
+    getCheckpointContext: orchestrator.getCheckpointContext,
+    getThreadSnapshot: orchestrator.getThreadSnapshot,
+    getThreadSnapshotWindow: orchestrator.getThreadSnapshotWindow,
     getProjectThreadRecords,
     getProjectThread,
     getShellSnapshot: orchestrator.getShellSnapshot,
@@ -1152,32 +1025,9 @@ const make = Effect.gen(function* () {
   });
 });
 
-const layerLegacyV1ThreadImporterNoop = Layer.succeed(
-  LegacyV1ThreadImporter.LegacyV1ThreadImporter,
-  LegacyV1ThreadImporter.LegacyV1ThreadImporter.of({
-    pendingThreadCount: Effect.succeed(0),
-    reconcileShells: Effect.succeed({ importedThreadCount: 0, importedMessageCount: 0 }),
-    ensureTranscript: () => Effect.succeed({ importedThreadCount: 0, importedMessageCount: 0 }),
-    importPendingTranscripts: Effect.succeed({ importedThreadCount: 0, importedMessageCount: 0 }),
-  }),
-);
-
 export const layer: Layer.Layer<
   ThreadManagementService,
   never,
-  | Orchestrator.OrchestratorV2
-  | ProviderSessionManager.ProviderSessionManagerV2
-  | ServerSettings.ServerSettingsService
-  | CommandReceiptStore.CommandReceiptStoreV2
-> = Layer.effect(ThreadManagementService, make).pipe(
-  Layer.provide(layerLegacyV1ThreadImporterNoop),
-  Layer.provide(ThreadCommandExecutor.layer),
-);
-
-export const layerWithLegacyImporter: Layer.Layer<
-  ThreadManagementService,
-  never,
-  | LegacyV1ThreadImporter.LegacyV1ThreadImporter
   | Orchestrator.OrchestratorV2
   | ProviderSessionManager.ProviderSessionManagerV2
   | ServerSettings.ServerSettingsService

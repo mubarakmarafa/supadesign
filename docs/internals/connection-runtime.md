@@ -47,6 +47,16 @@ connections by environment. An involuntary disconnect retains the registration
 and cached data. Explicit removal closes the scope and clears credentials,
 projections, and platform-owned state such as drafts.
 
+## Protocol version gate
+
+Clients and servers must agree on `ORCHESTRATION_PROTOCOL_VERSION`. The client runtime appends
+`orchestrationProtocol=<version>` to the socket URL, and the `/ws` route rejects a missing or
+mismatched version with HTTP 426 (`orchestration_protocol_incompatible`) before any RPC or auth
+work runs. The client checks the environment descriptor the same way. Either direction blocks the
+connection as `unsupported` with a message naming the machine to update rather than running
+half-upgraded. See `packages/client-runtime/src/connection/compatibility.ts` and
+`apps/server/src/ws.ts`.
+
 ## HTTP authorization
 
 RPC sessions authenticate at socket upgrade, while HTTP requests need current
