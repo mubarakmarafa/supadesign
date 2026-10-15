@@ -238,4 +238,6 @@ finishes; the call's own result shows its status.
 Choose **Snooze → Custom…** from a thread's menu to pick a date and time in your
 local time zone, or a duration in minutes, hours, or days. Durations start when
 you confirm; one day means 24 hours. On web and desktop, you can also snooze
-several selected threads together. Choose **Wake thread** to bring a thread back early.
+several selected threads together. Choose **Wake thread** to bring a thread back early, or
+**Settle** to move it straight to the settled shelf. On mobile, both appear when you swipe a
+snoozed thread or open its menu.

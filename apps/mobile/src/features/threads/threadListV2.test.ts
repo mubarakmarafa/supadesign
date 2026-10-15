@@ -298,11 +298,20 @@ describe("resolveThreadListV2SwipeActions", () => {
     ).toEqual({ primary: "archive", secondary: null });
   });
 
-  it("offers wake and no snooze on a snoozed row", () => {
+  it("offers wake and settle, but no snooze, on a snoozed row", () => {
     expect(
       resolveThreadListV2SwipeActions({
         variant: "slim",
         settlementSupported: true,
+        snoozeSupported: true,
+        snoozable: true,
+        snoozed: true,
+      }),
+    ).toEqual({ primary: "unsnooze", secondary: "settle" });
+    expect(
+      resolveThreadListV2SwipeActions({
+        variant: "slim",
+        settlementSupported: false,
         snoozeSupported: true,
         snoozable: true,
         snoozed: true,

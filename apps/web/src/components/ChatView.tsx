@@ -7370,7 +7370,7 @@ export default function ChatView(props: ChatViewProps) {
     activeThreadWokeAt,
   ]);
   const activeThreadSettled =
-    supportsSettlement && activeThreadShell?.settledOverride === "settled";
+    supportsSettlement && !activeThreadSnoozed && activeThreadShell?.settledOverride === "settled";
   const unsettleThreadMutation = useOrchestrationCommand(threadEnvironment.unsettle, {
     reportFailure: false,
   });

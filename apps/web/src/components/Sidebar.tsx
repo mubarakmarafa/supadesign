@@ -217,6 +217,7 @@ import {
   resolveSidebarThreadSection,
   resolveSidebarRowAccessibility,
   type SidebarDropVerb,
+  type SidebarSweepAction,
   resolveSidebarThreadStatus,
   resolveSidebarV2DurationStartedAt,
   resolveSidebarV2TopStatus,
@@ -284,6 +285,7 @@ import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrom
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { SidebarPrimaryNavigation } from "./sidebar/SidebarPrimaryNavigation";
 import { SidebarPinButton } from "./sidebar/SidebarPinButton";
+import { SidebarParkedActionButton } from "./sidebar/SidebarParkedActionButton";
 import { SidebarSnoozeButton } from "./sidebar/SidebarSnoozeButton";
 import { Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { MiddleTruncate } from "./ui/middle-truncate";
@@ -310,8 +312,6 @@ const SETTLED_SHELF_EXPANDED_KEY = "supaterm:sidebar:settled-expanded";
 const SNOOZED_SHELF_EXPANDED_KEY = "supaterm:sidebar:snoozed-expanded";
 const WORKING_SHELF_EXPANDED_KEY = "supaterm:sidebar:working-expanded";
 const DRAFTS_SHELF_EXPANDED_KEY = "supaterm:sidebar:drafts-expanded";
-const PARKED_ACTION_BUTTON_CLASS_NAME =
-  "pointer-events-none absolute inset-y-0 right-0 -mr-1 inline-flex cursor-pointer items-center gap-1 rounded-md bg-transparent px-1.5 text-xs text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:pointer-events-auto focus-visible:opacity-100 group-any-hover/sidebar-row:pointer-events-auto group-any-hover/sidebar-row:opacity-100 group-focus-within/sidebar-row:pointer-events-auto group-focus-within/sidebar-row:opacity-100";
 
 // When this client saw each thread leave the Working shelf.
 // Module scope keeps the inbox order across routes that unmount the sidebar.
@@ -758,8 +758,6 @@ function SidebarSectionPlaceholder(props: {
 // Pointer travel before a press on a row starts a drag, or a press on its
 // action button starts a sweep. Shorter presses stay clicks.
 const SIDEBAR_DRAG_DISTANCE = 6;
-
-type SidebarSweepAction = "settle" | "unsettle" | "unsnooze";
 
 // Zero-height markers reserve no label space at rest. During a drag the
 // sorting strategy opens 24px for a 16px label with 4px clearance on each side.
@@ -1337,6 +1335,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
     thread.settledOverride !== "settled";
   const parkedActionSupported =
     variantAction === "unsnooze" ? snoozeSupported : settlementSupported;
+  const snoozedSettleSupported =
+    variantAction === "unsnooze" && snoozeSupported && settlementSupported;
   const replaceTimeOnHover = parkedActionSupported && !isWoke;
   const reserveActionGutter = parkedActionSupported && isWoke;
   const shouldRecede = shouldRecedeSidebarThread({
@@ -1592,14 +1592,18 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
     },
     [onSettle, threadRef],
   );
-  const handleActionPointerDown = useCallback(
-    (event: ReactPointerEvent) => {
+  const handleSweepPointerDown = useCallback(
+    (action: SidebarSweepAction, event: ReactPointerEvent) => {
       if (!event.isPrimary || event.button !== 0) return;
       // Action buttons sweep their section rather than picking up the row.
       event.stopPropagation();
-      onActionSweepStart(threadRef, variantAction, event.nativeEvent);
+      onActionSweepStart(threadRef, action, event.nativeEvent);
     },
-    [onActionSweepStart, threadRef, variantAction],
+    [onActionSweepStart, threadRef],
+  );
+  const handleSettlePointerDown = useCallback(
+    (event: ReactPointerEvent) => handleSweepPointerDown("settle", event),
+    [handleSweepPointerDown],
   );
   const handleUnsettleClick = useCallback(
     (event: ReactMouseEvent) => {
@@ -1908,6 +1912,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                 className={cn(
                   "relative ml-auto flex h-6 min-w-8 shrink-0 items-center justify-end",
                   reserveActionGutter && "pr-6",
+                  snoozedSettleSupported && "min-w-11",
                   props.sweepAction !== null && "hidden",
                 )}
               >
@@ -1954,42 +1959,42 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                     </span>
                   )}
                 </span>
-                {!parkedActionSupported ? null : variantAction === "unsnooze" ? (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <button
-                          type="button"
-                          aria-label="Wake thread now"
+                {!parkedActionSupported ? null : (
+                  <span className="pointer-events-none absolute inset-y-0 right-0 -mr-1 flex">
+                    {variantAction === "unsnooze" ? (
+                      <>
+                        {snoozedSettleSupported ? (
+                          <SidebarParkedActionButton
+                            action="settle"
+                            label="Settle thread"
+                            shortcut={props.settleShortcut}
+                            onClick={handleSettleClick}
+                            onSweepStart={handleSweepPointerDown}
+                          >
+                            <CheckIcon className="mb-px size-3.5" />
+                          </SidebarParkedActionButton>
+                        ) : null}
+                        <SidebarParkedActionButton
+                          action="unsnooze"
+                          label="Wake thread now"
                           onClick={handleUnsnoozeClick}
-                          onPointerDown={handleActionPointerDown}
-                          className={PARKED_ACTION_BUTTON_CLASS_NAME}
-                        />
-                      }
-                    >
-                      <AlarmClockOffIcon className="mb-px size-3" />
-                    </TooltipTrigger>
-                    <TooltipPopup side="top">Wake thread now</TooltipPopup>
-                  </Tooltip>
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <button
-                          type="button"
-                          aria-label="Un-settle thread"
-                          onClick={handleUnsettleClick}
-                          onPointerDown={handleActionPointerDown}
-                          className={PARKED_ACTION_BUTTON_CLASS_NAME}
-                        />
-                      }
-                    >
-                      <Undo2Icon className="mb-px size-3.5" />
-                    </TooltipTrigger>
-                    <TooltipPopup side="top" shortcut={props.settleShortcut}>
-                      Un-settle thread
-                    </TooltipPopup>
-                  </Tooltip>
+                          onSweepStart={handleSweepPointerDown}
+                        >
+                          <AlarmClockOffIcon className="mb-px size-3" />
+                        </SidebarParkedActionButton>
+                      </>
+                    ) : (
+                      <SidebarParkedActionButton
+                        action="unsettle"
+                        label="Un-settle thread"
+                        shortcut={props.settleShortcut}
+                        onClick={handleUnsettleClick}
+                        onSweepStart={handleSweepPointerDown}
+                      >
+                        <Undo2Icon className="mb-px size-3.5" />
+                      </SidebarParkedActionButton>
+                    )}
+                  </span>
                 )}
               </span>
             )}
@@ -2147,7 +2152,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                             type="button"
                             aria-label="Settle thread"
                             onClick={handleSettleClick}
-                            onPointerDown={handleActionPointerDown}
+                            onPointerDown={handleSettlePointerDown}
                             className="inline-flex h-5 shrink-0 cursor-pointer items-center gap-1 rounded-sm text-muted-foreground/65 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                           />
                         }
@@ -3178,16 +3183,17 @@ export default function Sidebar() {
     [planForwardNavigation, settleThread],
   );
   // Post-settle navigation must skip threads settling in this same batch —
-  // they are all leaving the card block together. Rows that are already
-  // explicitly settled are skipped: nothing to do on a valid mixed selection.
-  // Pinned rows ARE included: the decider clears the pin as part of settling,
-  // so they park like the rest.
+  // they are all leaving the card block together. Rows already in the settled
+  // shelf are skipped: nothing to do on a valid mixed selection. Pinned and
+  // snoozed rows ARE included: the decider clears the pin and the snooze as
+  // part of settling, so they park like the rest, even when a snooze hides
+  // an earlier settle.
   const settleThreads = useCallback(
     (threadKeys: readonly string[]) => {
       const coSettlingKeys = new Set(threadKeys);
       for (const threadKey of threadKeys) {
         const thread = threadByKeyRef.current.get(threadKey);
-        if (!thread || thread.settledOverride === "settled") continue;
+        if (!thread || settledThreadKeysRef.current.has(threadKey)) continue;
         attemptSettle(scopeThreadRef(thread.environmentId, thread.id), { coSettlingKeys });
       }
     },
@@ -4034,9 +4040,11 @@ export default function Sidebar() {
         const thread = threadByKeyRef.current.get(threadKey);
         return thread ? [thread] : [];
       });
-      const settlingThreads = selectedThreads.filter(
-        (thread) => thread.settledOverride !== "settled",
-      );
+      const inSettledShelf = (thread: EnvironmentThreadShell) =>
+        settledThreadKeysRef.current.has(
+          scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)),
+        );
+      const settlingThreads = selectedThreads.filter((thread) => !inSettledShelf(thread));
       const canSnoozeSelection = selectedThreads.every(
         (thread) =>
           serverConfigs.get(thread.environmentId)?.environment.capabilities.threadSnooze === true &&
@@ -4131,7 +4139,7 @@ export default function Sidebar() {
                   const current = threadByKeyRef.current.get(
                     scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)),
                   );
-                  return current && current.settledOverride !== "settled" ? [current] : [];
+                  return current && !inSettledShelf(current) ? [current] : [];
                 })
               : selectedThreads;
       if (clicked.value === "settle" && actionTargets.length === 0) return;

@@ -43,6 +43,7 @@ const threadShell = vi.hoisted(() => ({
   pinOrderKey: "a0",
   pinnedAt: null as string | null,
   snoozedUntil: null as string | null,
+  settledOverride: null as "settled" | null,
   projectId: "project",
   environmentId: "undo-env",
   session: null,
@@ -99,6 +100,7 @@ beforeEach(() => {
   router.state.matches[0]!.params = {};
   threadShell.pinnedAt = null;
   threadShell.snoozedUntil = null;
+  threadShell.settledOverride = null;
 });
 afterEach(() => {
   vi.runAllTimers();
@@ -197,6 +199,29 @@ describe("settle and snooze Undo", () => {
       environmentId: target.environmentId,
       input: { threadId: target.threadId, snoozedUntil },
     });
+  });
+
+  it("re-snoozes without un-settling a thread that was settled beneath its snooze", async () => {
+    const snoozedUntil = "2030-01-01T09:00:00.000Z";
+    threadShell.settledOverride = "settled";
+    threadShell.snoozedUntil = snoozedUntil;
+    const actions = useThreadActions();
+    await actions.settleThread(target);
+    await currentUndo()();
+    expect(commands.unsettle).not.toHaveBeenCalled();
+    expect(commands.snooze).toHaveBeenCalledExactlyOnceWith({
+      environmentId: target.environmentId,
+      input: { threadId: target.threadId, snoozedUntil },
+    });
+  });
+
+  it("does not restore a snooze that had already woken", async () => {
+    threadShell.snoozedUntil = "2020-01-01T09:00:00.000Z";
+    const actions = useThreadActions();
+    await actions.settleThread(target);
+    await currentUndo()();
+    expect(commands.unsettle).toHaveBeenCalledOnce();
+    expect(commands.snooze).not.toHaveBeenCalled();
   });
 
   it("expires an older unpin Undo when the thread is settled", async () => {

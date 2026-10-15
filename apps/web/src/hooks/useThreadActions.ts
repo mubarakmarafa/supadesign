@@ -5,7 +5,11 @@ import {
   scopedThreadKey,
 } from "@supaterm/client-runtime/environment";
 import { settlePromise, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
-import { canSnooze, threadWokeAt } from "@supaterm/client-runtime/state/thread-settled";
+import {
+  canSnooze,
+  effectiveSnoozed,
+  threadWokeAt,
+} from "@supaterm/client-runtime/state/thread-settled";
 import { threadRuntimeCanArchive } from "@supaterm/client-runtime/state/models";
 import {
   AuthOrchestrationOperateScope,
@@ -767,14 +771,17 @@ export function useThreadActions() {
         );
       }
       const resolved = resolveThreadTarget(target);
-      const wokeAt = resolved
-        ? threadWokeAt(resolved.thread, { now: new Date().toISOString() })
-        : null;
+      const now = new Date().toISOString();
+      const wokeAt = resolved ? threadWokeAt(resolved.thread, { now }) : null;
       // Settling also drops the pin and the snooze server-side, so Undo
       // has to put those back as well.
       const pinOrderKey = resolved?.thread.pinnedAt != null ? resolved.thread.pinOrderKey : null;
       const wasPinned = resolved?.thread.pinnedAt != null;
-      const snoozedUntil = resolved?.thread.snoozedUntil ?? null;
+      const wasSettled = resolved?.thread.settledOverride === "settled";
+      const snoozedUntil =
+        resolved && effectiveSnoozed(resolved.thread, { now })
+          ? (resolved.thread.snoozedUntil ?? null)
+          : null;
       // An older unpin/snooze Undo would re-pin or re-snooze, and the server
       // treats either as a promotion that un-settles; settling supersedes them.
       ThreadUndo.invalidate("pin", scopedThreadKey(target));
@@ -795,6 +802,12 @@ export function useThreadActions() {
         action: "Settled",
         claim: action,
         undo: async () => {
+          if (wasSettled && snoozedUntil !== null) {
+            return snoozeThreadMutation({
+              environmentId: target.environmentId,
+              input: { threadId: target.threadId, snoozedUntil },
+            });
+          }
           const unsettled = await unsettleThread(target);
           if (unsettled._tag !== "Success") return unsettled;
           if (wasPinned) {

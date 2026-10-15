@@ -261,6 +261,8 @@ export type SidebarThreadDropPlan =
     }
   | { readonly kind: "settle" };
 
+export type SidebarSweepAction = "settle" | "unsettle" | "unsnooze";
+
 /** What dropping in `to` does to a thread lifted from `from`, for the badge
     on the lifted row. Null while reordering inside one section and for the
     working and snoozed shelves, which cannot be drop targets. */
