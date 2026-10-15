@@ -2654,6 +2654,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
 
       yield* reactor.sweep;
       assert.deepEqual(yield* watched, [1, 3]);
+      yield* TestClock.adjust("1 millis");
       for (let pass = 1; pass < 8; pass += 1) yield* reactor.sweep;
       assert.deepEqual(yield* watched, [3]);
       yield* TestClock.adjust("6 hours");
