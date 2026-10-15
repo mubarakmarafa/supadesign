@@ -1,0 +1,89 @@
+name: Supadesign release
+
+# Supadesign fork only: every push to main builds an unsigned Apple Silicon DMG
+# and publishes it as the latest GitHub release, which
+# scripts/install-supadesign.sh downloads. Upstream's release.yml needs Depot
+# runners and signing secrets the fork does not have.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: supadesign-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and publish macOS arm64
+    if: github.repository == 'mubarakmarafa/supadesign'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      # checkout's credential cleanup fails on the orphaned gitlinks in the
+      # vendored .repos tree, so fetch the commit by hand like release.yml.
+      - name: Checkout
+        shell: bash
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+
+      - name: Setup Mise
+        uses: ./.github/actions/setup-mise
+
+      - name: Install desktop dependencies
+        run: vp install --filter=@supaterm/desktop... --filter=supaterm... --filter=@supaterm/web... --filter=@supaterm/scripts...
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Set build version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_version="$(node -p "require('./apps/desktop/package.json').version")"
+          version="${base_version}-design.${GITHUB_RUN_NUMBER}"
+          node scripts/update-release-package-versions.ts "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build DMG
+        run: node scripts/build-desktop-artifact.ts --platform mac --target dmg --arch arm64 --build-version "${{ steps.version.outputs.version }}" --verbose
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          dmgs=(release/*.dmg)
+          if [[ ${#dmgs[@]} -ne 1 ]]; then
+            echo "Expected exactly one DMG, found ${#dmgs[@]}." >&2
+            exit 1
+          fi
+          subject="$(git log -1 --format=%s)"
+          gh release create "v${VERSION}" "${dmgs[0]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Supadesign ${VERSION}" \
+            --notes "Built from ${GITHUB_SHA::9}: ${subject}
+
+          Install or update on an Apple Silicon Mac:
+
+          \`\`\`
+          curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/scripts/install-supadesign.sh | bash
+          \`\`\`" \
+            --latest
