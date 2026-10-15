@@ -25,13 +25,12 @@ import {
   type ThreadEnvMode,
   type UploadChatAttachment,
 } from "@supaterm/contracts";
-import { modelSelectionCommandType } from "@supaterm/shared/model";
 import { derivePendingBackgroundWork } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
 import { visibleThreadPullRequests } from "@supaterm/shared/threadPullRequests";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 
-import { getInitialServerConfig, request } from "../rpc/client.ts";
+import { request } from "../rpc/client.ts";
 
 interface CommandMetadata {
   readonly commandId?: CommandId;
@@ -183,8 +182,6 @@ export interface StartThreadTurnInput extends ThreadCommandInput {
 export interface InterruptThreadTurnInput extends ThreadCommandInput {
   readonly runId?: RunId;
   readonly subagentId?: NodeId;
-  /** Temporary caller compatibility while UI naming moves from turns to runs. */
-  readonly turnId?: string;
 }
 
 export interface RespondToThreadApprovalInput extends ThreadCommandInput {
@@ -269,13 +266,6 @@ const dispatch = (command: OrchestrationV2Command) =>
 
 const getProjection = (threadId: ThreadId) =>
   request(ORCHESTRATION_V2_WS_METHODS.getThreadProjection, { threadId });
-
-const supportsServerResolvedCommandContext = Effect.fn(
-  "EnvironmentCommands.supportsServerResolvedCommandContext",
-)(function* () {
-  const config = yield* getInitialServerConfig();
-  return config.environment.capabilities.serverResolvedCommandContext === true;
-});
 
 const persistAttachments = Effect.fn("EnvironmentCommands.persistAttachments")(function* (
   threadId: ThreadId,
@@ -582,14 +572,8 @@ export const updateThreadMetadata = Effect.fn("EnvironmentCommands.updateThreadM
       });
     }
     if (input.modelSelection !== undefined) {
-      const type = (yield* supportsServerResolvedCommandContext())
-        ? ("thread.model-selection.set" as const)
-        : modelSelectionCommandType(
-            (yield* getProjection(input.threadId)).thread.providerInstanceId,
-            input.modelSelection,
-          );
       result = yield* dispatch({
-        type,
+        type: "thread.model-selection.set",
         commandId: result === null ? commandId : CommandId.make(`${commandId}:model-selection`),
         threadId: input.threadId,
         modelSelection: input.modelSelection,
@@ -707,49 +691,6 @@ export const startThreadTurn = Effect.fn("EnvironmentCommands.startThreadTurn")(
     });
   }
 
-  const serverResolvesCommandContext = yield* supportsServerResolvedCommandContext();
-  const projection = serverResolvesCommandContext ? null : yield* getProjection(input.threadId);
-  const activeRun = projection?.runs.findLast(
-    (run) =>
-      run.status === "preparing" ||
-      run.status === "starting" ||
-      run.status === "running" ||
-      run.status === "waiting",
-  );
-  const activeProviderThread =
-    activeRun === undefined
-      ? undefined
-      : projection?.providerThreads.find((thread) => thread.id === activeRun.providerThreadId);
-  const activeProviderSession =
-    activeProviderThread?.providerSessionId === null ||
-    activeProviderThread?.providerSessionId === undefined
-      ? undefined
-      : projection?.providerSessions.find(
-          (session) => session.id === activeProviderThread.providerSessionId,
-        );
-  const turnCapabilities = activeProviderSession?.capabilities.turns;
-  const dispatchMode = serverResolvesCommandContext
-    ? requestedMode === "queue"
-      ? ({ type: "queue_after_active" } as const)
-      : ({ type: "start_immediately" } as const)
-    : activeRun === undefined
-      ? ({ type: "start_immediately" } as const)
-      : requestedMode === "steer"
-        ? ({ type: "steer_active", targetRunId: activeRun.id } as const)
-        : requestedMode === "restart"
-          ? ({ type: "restart_active", targetRunId: activeRun.id } as const)
-          : requestedMode === "queue"
-            ? ({ type: "queue_after_active" } as const)
-            : turnCapabilities?.supportsActiveSteering === true
-              ? ({ type: "steer_active", targetRunId: activeRun.id } as const)
-              : turnCapabilities?.supportsQueuedMessages === true
-                ? ({ type: "queue_after_active" } as const)
-                : turnCapabilities?.supportsSteeringByInterruptRestart === true
-                  ? ({ type: "restart_active", targetRunId: activeRun.id } as const)
-                  : ({ type: "queue_after_active" } as const);
-  const shouldSendTitleSeed =
-    input.titleSeed !== undefined &&
-    (serverResolvesCommandContext || projection?.messages.length === 0);
   return yield* dispatch({
     type: "message.dispatch",
     commandId,
@@ -760,13 +701,12 @@ export const startThreadTurn = Effect.fn("EnvironmentCommands.startThreadTurn")(
     text: input.message.text,
     ...(context ? { context } : {}),
     attachments,
-    ...(shouldSendTitleSeed ? { titleSeed: input.titleSeed } : {}),
+    ...(input.titleSeed === undefined ? {} : { titleSeed: input.titleSeed }),
     ...(input.modelSelection === undefined ? {} : { modelSelection: input.modelSelection }),
     ...(input.sourceProposedPlan === undefined ? {} : { sourcePlanRef: input.sourceProposedPlan }),
-    ...(serverResolvesCommandContext && requestedMode !== "queue"
-      ? { deliveryIntent: requestedMode }
-      : {}),
-    dispatchMode,
+    ...(requestedMode === "queue" ? {} : { deliveryIntent: requestedMode }),
+    dispatchMode:
+      requestedMode === "queue" ? { type: "queue_after_active" } : { type: "start_immediately" },
   });
 });
 
@@ -790,7 +730,7 @@ export const interruptThreadTurn = Effect.fn("EnvironmentCommands.interruptThrea
       subagentId: subagent.id,
     });
   }
-  let runId = input.runId ?? (input.turnId as RunId | undefined);
+  let runId = input.runId;
   if (runId === undefined) {
     const projection = yield* getProjection(input.threadId);
     runId = projection.runs.findLast(

@@ -12,9 +12,6 @@ const commands = vi.hoisted(() => ({
 }));
 
 vi.mock("../hooks/useShortcutLabel", () => ({ useShortcutLabel: () => null }));
-vi.mock("~/hooks/useSupportsMultiplePullRequests", () => ({
-  useSupportsMultiplePullRequests: () => false,
-}));
 vi.mock(import("../state/session"), async (importOriginal) => ({
   ...(await importOriginal()),
   useEnvironmentScope: () => true,

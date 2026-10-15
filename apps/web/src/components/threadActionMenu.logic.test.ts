@@ -17,13 +17,6 @@ const baseState: ThreadActionMenuState = {
   canSnoozeNow: true,
   isRegeneratingTitle: false,
   isRunning: false,
-  supports: {
-    settlement: true,
-    autoSettleOptOut: true,
-    snooze: true,
-    pinning: true,
-    titleRegeneration: true,
-  },
   snoozePresets: [
     { id: "hour", label: "In 1 hour", whenLabel: "3:00 PM", snoozedUntil: "2026-08-07T15:00:00Z" },
   ],
@@ -91,21 +84,6 @@ describe("buildThreadActionMenuItems", () => {
     expect(allowed.every((item) => !item.disabled)).toBe(true);
   });
 
-  it("hides lifecycle items when the environment lacks the capabilities", () => {
-    expect(
-      ids({
-        ...baseState,
-        supports: {
-          settlement: false,
-          autoSettleOptOut: false,
-          snooze: false,
-          pinning: false,
-          titleRegeneration: false,
-        },
-      }),
-    ).toEqual(["rename", "mark-unread", "copy", "project-settings", "archive", "delete"]);
-  });
-
   it("groups project settings with utility actions before archive", () => {
     const items = buildThreadActionMenuItems(baseState);
     const copyIndex = items.findIndex((item) => item.id === "copy");
@@ -167,9 +145,6 @@ describe("buildThreadActionMenuItems", () => {
     // Sits with the per-thread settings after Mark unread, not the lifecycle verbs.
     const items = buildThreadActionMenuItems(baseState);
     expect(items[items.findIndex((item) => item.id === "mark-unread") + 1]?.id).toBe("auto-settle");
-    expect(
-      ids({ ...baseState, supports: { ...baseState.supports, autoSettleOptOut: false } }),
-    ).not.toContain("auto-settle");
   });
 
   it("disables snooze when the thread cannot snooze, keeping presets visible", () => {
@@ -199,21 +174,6 @@ describe("buildThreadActionMenuItems", () => {
     expect(archiveItem?.separatorBefore).toBe(true);
     expect(archiveItem?.destructive).toBeFalsy();
     expect(items.at(-1)?.id).toBe("delete");
-  });
-
-  it("keeps archive available even when the environment lacks every other capability", () => {
-    expect(
-      ids({
-        ...baseState,
-        supports: {
-          settlement: false,
-          autoSettleOptOut: false,
-          snooze: false,
-          pinning: false,
-          titleRegeneration: false,
-        },
-      }),
-    ).toContain("archive");
   });
 
   it("disables archive while the thread is running", () => {

@@ -11,7 +11,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as ServerConfig from "./config.ts";
 import * as Keybindings from "./keybindings.ts";
-import { KeybindingsConfigError, MAX_KEYBINDINGS_COUNT } from "@supaterm/contracts";
+import { KeybindingsConfigError } from "@supaterm/contracts";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 
 const KeybindingsConfigJson = Schema.fromJsonString(KeybindingsConfig);
@@ -292,76 +292,6 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
           ["threadPanel.toggle", "script.custom-panel.run", "script.custom-composer.run"],
         );
       }).pipe(Effect.provide(layerKeybindings())),
-  );
-
-  it.effect("adds a late default to an existing command once", () =>
-    Effect.gen(function* () {
-      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      const keybindings = yield* Keybindings.Keybindings;
-      const when = "composerFocus && draftThreadRoute";
-      const existing = { key: "mod+alt+enter", command: "composer.sendBackground", when } as const;
-      const backgroundRules = Effect.map(readKeybindingsConfig(keybindingsConfigPath), (rules) =>
-        rules.filter((entry) => entry.command === "composer.sendBackground"),
-      );
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [existing]);
-
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      assert.deepStrictEqual(yield* backgroundRules, [
-        { key: "mod+enter", command: "composer.sendBackground", when },
-        existing,
-      ]);
-
-      // Removing the added rule later must survive the next startup.
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [existing]);
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      assert.deepStrictEqual(yield* backgroundRules, [existing]);
-    }).pipe(Effect.provide(layerKeybindings())),
-  );
-
-  it.effect("leaves a customized command without the late default", () =>
-    Effect.gen(function* () {
-      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      const keybindings = yield* Keybindings.Keybindings;
-      const custom = {
-        key: "alt+b",
-        command: "composer.sendBackground",
-        when: "composerFocus && draftThreadRoute",
-      } as const;
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [custom]);
-
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      const persisted = yield* readKeybindingsConfig(keybindingsConfigPath);
-      assert.deepStrictEqual(
-        persisted.filter((entry) => entry.command === "composer.sendBackground"),
-        [custom],
-      );
-    }).pipe(Effect.provide(layerKeybindings())),
-  );
-
-  it.effect("keeps a late default pending while the config is full", () =>
-    Effect.gen(function* () {
-      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      const keybindings = yield* Keybindings.Keybindings;
-      const when = "composerFocus && draftThreadRoute";
-      const existing = { key: "mod+alt+enter", command: "composer.sendBackground", when } as const;
-      const fillers = Array.from({ length: MAX_KEYBINDINGS_COUNT - 1 }, (_, index) => ({
-        key: "mod+alt+f1",
-        command: `script.filler-${index}.run` as const,
-      }));
-      const hasModEnter = Effect.map(readKeybindingsConfig(keybindingsConfigPath), (rules) =>
-        rules.some(
-          (entry) => entry.command === "composer.sendBackground" && entry.key === "mod+enter",
-        ),
-      );
-
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [existing, ...fillers]);
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      assert.isFalse(yield* hasModEnter);
-
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [existing]);
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      assert.isTrue(yield* hasModEnter);
-    }).pipe(Effect.provide(layerKeybindings())),
   );
 
   it.effect("skips conflicting default keybindings on startup and logs a detailed warning", () => {

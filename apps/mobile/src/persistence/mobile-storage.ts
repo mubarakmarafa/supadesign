@@ -1,4 +1,3 @@
-import { EnvironmentId } from "@supaterm/contracts";
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -6,10 +5,8 @@ import { pipe } from "effect/Function";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 
-import type { SavedRemoteConnection } from "../lib/connection";
 import * as MobileSecureStorage from "./mobile-secure-storage";
 
-const CONNECTIONS_KEY = "supaterm.connections";
 const DEVICE_ID_KEY = "supaterm.agent-awareness.device-id";
 const RECENT_THREAD_SHORTCUTS_KEY = "supaterm.recent-thread-shortcuts";
 
@@ -55,22 +52,6 @@ export interface RecentThreadShortcut {
 export class MobileStorage extends Context.Service<
   MobileStorage,
   {
-    readonly loadSavedConnections: Effect.Effect<
-      ReadonlyArray<SavedRemoteConnection>,
-      MobileSecureStorage.MobileSecureStorageError
-    >;
-    readonly saveConnection: (
-      connection: SavedRemoteConnection,
-    ) => Effect.Effect<
-      void,
-      MobileSecureStorage.MobileSecureStorageError | MobileStorageEncodeError
-    >;
-    readonly clearSavedConnection: (
-      environmentId: EnvironmentId,
-    ) => Effect.Effect<
-      void,
-      MobileSecureStorage.MobileSecureStorageError | MobileStorageEncodeError
-    >;
     readonly loadOrCreateDeviceId: Effect.Effect<
       string,
       MobileSecureStorage.MobileSecureStorageError | MobileDeviceIdGenerationError
@@ -117,43 +98,6 @@ export const make = Effect.fn("MobileStorage.make")(function* () {
     yield* secureStorage.setItem(key, encoded);
   });
 
-  const loadSavedConnections = readJson<{
-    readonly connections?: ReadonlyArray<SavedRemoteConnection>;
-  }>(CONNECTIONS_KEY).pipe(
-    Effect.map((parsed) =>
-      pipe(
-        parsed?.connections ?? [],
-        Arr.filter((connection) => !!connection.environmentId && !!connection.bearerToken?.trim()),
-      ),
-    ),
-  );
-
-  const saveConnection = Effect.fn("MobileStorage.saveConnection")(function* (
-    connection: SavedRemoteConnection,
-  ) {
-    const current = yield* loadSavedConnections;
-    const next = current.some((entry) => entry.environmentId === connection.environmentId)
-      ? pipe(
-          current,
-          Arr.map((entry) =>
-            entry.environmentId === connection.environmentId ? connection : entry,
-          ),
-        )
-      : pipe(current, Arr.append(connection));
-    yield* writeJson(CONNECTIONS_KEY, { connections: next });
-  });
-
-  const clearSavedConnection = Effect.fn("MobileStorage.clearSavedConnection")(function* (
-    environmentId: EnvironmentId,
-  ) {
-    const current = yield* loadSavedConnections;
-    const next = pipe(
-      current,
-      Arr.filter((entry) => entry.environmentId !== environmentId),
-    );
-    yield* writeJson(CONNECTIONS_KEY, { connections: next });
-  });
-
   const loadOrCreateDeviceId = Effect.gen(function* () {
     const existing = yield* secureStorage.getItem(DEVICE_ID_KEY);
     if (existing?.trim()) return existing;
@@ -186,9 +130,6 @@ export const make = Effect.fn("MobileStorage.make")(function* () {
   );
 
   return MobileStorage.of({
-    loadSavedConnections,
-    saveConnection,
-    clearSavedConnection,
     loadOrCreateDeviceId,
     loadRecentThreadShortcuts,
     saveRecentThreadShortcuts: (threads) => writeJson(RECENT_THREAD_SHORTCUTS_KEY, { threads }),

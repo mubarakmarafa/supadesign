@@ -1,4 +1,4 @@
-import { AuthOrchestrationOperateScope, ServerProvider } from "@supaterm/contracts";
+import { AuthEnvironmentMaintainScope, ServerProvider } from "@supaterm/contracts";
 import * as Schema from "effect/Schema";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -33,7 +33,7 @@ const provider = Schema.decodeUnknownSync(ServerProvider)({
 afterEach(() => vi.unstubAllGlobals());
 
 describe("environment maintenance access", () => {
-  it("requires a connected authenticated session with operate permission", () => {
+  it("requires a connected authenticated session with maintenance permission", () => {
     const session = {
       authenticated: true,
       auth: {
@@ -42,7 +42,7 @@ describe("environment maintenance access", () => {
         sessionMethods: [],
         sessionCookieName: "session",
       },
-      scopes: [AuthOrchestrationOperateScope],
+      scopes: [AuthEnvironmentMaintainScope],
     };
     expect(canMaintainEnvironment(session, true)).toBe(true);
     expect(canMaintainEnvironment(session, false)).toBe(false);
@@ -67,7 +67,6 @@ describe("environment maintenance access", () => {
             bootstrapMethods: [],
             sessionMethods: [],
             sessionCookieName: "session",
-            serverUpdateScope: "environment:maintain",
           },
           scopes,
         },
@@ -76,36 +75,9 @@ describe("environment maintenance access", () => {
     ).toBe(expected);
   });
 
-  it.each([
-    { permissions: ["environment:maintain"], expected: true },
-    { permissions: ["providers:manage"], expected: false },
-    { permissions: [], expected: false },
-  ] as const)(
-    "honors exact permissions over legacy scopes: $permissions",
-    ({ permissions, expected }) => {
-      expect(
-        canMaintainEnvironment(
-          {
-            authenticated: true,
-            auth: {
-              policy: "remote-reachable",
-              bootstrapMethods: [],
-              sessionMethods: [],
-              sessionCookieName: "session",
-              serverUpdateScope: "environment:maintain",
-            },
-            scopes: ["orchestration:operate"],
-            permissions,
-          },
-          true,
-        ),
-      ).toBe(expected);
-    },
-  );
-
   it("requires remote desktop update support for desktop hosts", () => {
     expect(supportsEnvironmentUpdate({})).toBe(false);
-    expect(supportsEnvironmentUpdate({ serverSelfUpdate: "respawn" })).toBe(true);
+    expect(supportsEnvironmentUpdate({ serverSelfUpdate: "boot-service" })).toBe(true);
     expect(supportsEnvironmentUpdate({ serverSelfUpdate: "desktop-managed" })).toBe(false);
     expect(
       supportsEnvironmentUpdate({ serverSelfUpdate: "desktop-managed", desktopAppUpdate: true }),

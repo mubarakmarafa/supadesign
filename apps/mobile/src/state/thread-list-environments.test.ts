@@ -98,35 +98,14 @@ describe("thread list environment projection", () => {
     }
   });
 
-  it.each([
-    ["threadSettlement", "settlementEnvironmentIds"],
-    ["threadSnooze", "snoozeEnvironmentIds"],
-    ["threadPinning", "pinningEnvironmentIds"],
-    ["threadPinReorder", "pinReorderEnvironmentIds"],
-    ["threadTitleRegeneration", "titleRegenerationEnvironmentIds"],
-  ] as const)("tracks enabling and removing %s", (capability, collection) => {
+  it("tracks loaded environments for thread actions", () => {
     const h = harness();
     try {
-      h.write({
-        ...config,
-        environment: {
-          ...config.environment,
-          capabilities: { ...config.environment.capabilities, [capability]: true },
-        },
-      });
-      expect([...h.read()[collection]]).toEqual([ID]);
-      h.write({
-        ...config,
-        environment: {
-          ...config.environment,
-          capabilities: { ...config.environment.capabilities, [capability]: false },
-        },
-      });
-      expect(h.read()[collection].size).toBe(0);
-      const disabled = h.read();
-      h.write(config);
-      expect(h.read()).toBe(disabled);
-      expect(h.notifications().list).toBe(2);
+      expect([...h.read().loadedEnvironmentIds]).toEqual([ID, OTHER_ID]);
+      h.registry.set(h.configs, new Map([[ID, config]]));
+      expect([...h.read().loadedEnvironmentIds]).toEqual([ID]);
+      h.registry.set(h.configs, new Map());
+      expect(h.read().loadedEnvironmentIds.size).toBe(0);
     } finally {
       h.registry.dispose();
     }

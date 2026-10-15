@@ -1,8 +1,6 @@
 import { loadExpoFileSystem } from "./expoFileSystem";
 import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import {
-  clampFileAttachmentUploadBytes,
-  fileAttachmentTooLargeMessage,
   isAssetAttachmentNotFoundFailure,
   runAttachmentUploadCycle,
   verifyPersistedAttachmentUpload,
@@ -25,13 +23,7 @@ import { assetEnvironment } from "../state/assets";
 import { attachmentEnvironment } from "../state/attachments";
 import { environmentSession, readEnvironmentScope } from "../state/session";
 import { resolveOwnedComposerAttachmentFileUri } from "./composerAttachmentFiles";
-import { retainComposerAttachmentFileForPreview } from "./composerAttachmentPreviewRetention";
-import {
-  isComposerImageAttachment,
-  isFileBackedComposerAttachment,
-  type DraftComposerAttachment,
-  type DraftComposerImageAttachment,
-} from "./composerImages";
+import { isComposerImageAttachment, type DraftComposerAttachment } from "./composerImages";
 import { imageMimeType } from "@supaterm/shared/image";
 import { uuidv4 } from "./uuid";
 
@@ -49,29 +41,6 @@ export type UploadedMobileAttachment =
   | UploadChatImageAttachment
   | ChatImageAttachment
   | ChatFileAttachment;
-
-export function validateDraftFileAttachments(input: {
-  readonly attachments: ReadonlyArray<DraftComposerAttachment>;
-  readonly serverConfig: {
-    readonly environment: {
-      readonly capabilities: {
-        readonly attachmentUploads?: boolean;
-        readonly fileAttachments?: { readonly maxUploadBytes: number };
-      };
-    };
-  } | null;
-}): string | null {
-  const files = input.attachments.filter((attachment) => attachment.type === "file");
-  if (files.length === 0) return null;
-  if (input.serverConfig === null) return "Server attachment support is still loading.";
-  const capabilities = input.serverConfig.environment.capabilities;
-  if (capabilities.attachmentUploads !== true || capabilities.fileAttachments === undefined) {
-    return "This server does not support file attachments.";
-  }
-  const maxBytes = clampFileAttachmentUploadBytes(capabilities.fileAttachments.maxUploadBytes);
-  const oversized = files.find((attachment) => attachment.sizeBytes > maxBytes);
-  return oversized ? fileAttachmentTooLargeMessage(oversized.name, maxBytes) : null;
-}
 
 /** Keep uploaded ids alongside the local bytes so a later send can reuse them. */
 export function withUploadedMobileAttachmentReferences(input: {
@@ -219,48 +188,6 @@ function attachmentUploadInput(attachment: DraftComposerAttachment) {
     : { type: "file" as const, ...fields, mimeType: attachment.mimeType };
 }
 
-/**
- * Wire shape for startTurn on servers without attachment uploads: pure inline
- * uploads without client draft id / previewUri. File-backed images read their
- * base64 from disk lazily, only when this legacy path is actually taken.
- */
-async function toUploadChatImageAttachments(
-  attachments: ReadonlyArray<DraftComposerImageAttachment>,
-): Promise<ReadonlyArray<UploadChatImageAttachment>> {
-  return Promise.all(
-    attachments.map(async (attachment) => ({
-      type: attachment.type,
-      name: attachment.name,
-      mimeType: attachment.mimeType,
-      sizeBytes: attachment.sizeBytes,
-      dataUrl: await composerImageAttachmentDataUrl(attachment),
-    })),
-  );
-}
-
-/** Inline bytes for one image: legacy drafts carry them, file-backed ones read them from disk. */
-async function composerImageAttachmentDataUrl(
-  attachment: DraftComposerImageAttachment,
-): Promise<string> {
-  if (attachment.dataUrl !== undefined) {
-    return attachment.dataUrl;
-  }
-  if (!isFileBackedComposerAttachment(attachment)) {
-    throw new Error(`'${attachment.name}' is no longer available. Attach the image again.`);
-  }
-  const release = retainComposerAttachmentFileForPreview(attachment);
-  try {
-    const { File, Paths } = await loadExpoFileSystem();
-    const uri =
-      resolveOwnedComposerAttachmentFileUri(attachment.fileUri, Paths.document.uri) ??
-      attachment.fileUri;
-    const base64 = await new File(uri).base64();
-    return `data:${attachment.mimeType};base64,${base64}`;
-  } finally {
-    release();
-  }
-}
-
 async function uploadFileBytes(
   environmentId: EnvironmentId,
   attachment: DraftComposerAttachment,
@@ -325,8 +252,6 @@ async function uploadFileBytes(
 export async function prepareTurnAttachments(input: {
   readonly environmentId: EnvironmentId;
   readonly attachments: ReadonlyArray<DraftComposerAttachment>;
-  /** Older environments continue to receive inline images. */
-  readonly supportsImageUploads?: boolean;
   readonly signal?: AbortSignal;
   readonly onUploadProgress?: (attachmentId: string, progress: number) => void;
   readonly persistUploadedReferences?: (
@@ -335,7 +260,6 @@ export async function prepareTurnAttachments(input: {
 }): Promise<PrepareTurnAttachmentsResult> {
   const { environmentId } = input;
   if (input.signal?.aborted) return { status: "abandoned" };
-  const files = input.attachments.filter((attachment) => attachment.type === "file");
   const ready = (
     attachments: ReadonlyArray<UploadedMobileAttachment>,
     pendingAttachmentIds: ReadonlyArray<string>,
@@ -347,18 +271,7 @@ export async function prepareTurnAttachments(input: {
     pendingAttachmentIds,
   });
 
-  if (input.attachments.length === 0 || (files.length === 0 && !input.supportsImageUploads)) {
-    try {
-      const imageAttachments = await toUploadChatImageAttachments(
-        input.attachments.filter((attachment) => attachment.type === "image"),
-      );
-      if (input.signal?.aborted) return { status: "abandoned" };
-      return ready(imageAttachments, [], input.attachments);
-    } catch (error) {
-      if (input.signal?.aborted) return { status: "abandoned" };
-      throw error;
-    }
-  }
+  if (input.attachments.length === 0) return ready([], [], input.attachments);
 
   const requireUploadAccess = () => {
     if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) {
@@ -384,11 +297,6 @@ export async function prepareTurnAttachments(input: {
     for (const attachment of input.attachments) {
       if (controller.signal.aborted) throw new Error("Upload cancelled.");
       requireUploadAccess();
-      if (attachment.type === "image" && !input.supportsImageUploads) {
-        uploadedAttachments.push(...(await toUploadChatImageAttachments([attachment])));
-        continue;
-      }
-
       // Reuse the bytes from a previous attempt when their pending upload is
       // still alive on this environment.
       if (

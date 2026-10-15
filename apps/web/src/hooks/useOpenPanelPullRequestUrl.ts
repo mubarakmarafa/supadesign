@@ -12,7 +12,6 @@ import { selectActiveRightPanelSurface, useRightPanelStore } from "../rightPanel
 import { useProject } from "../state/entities";
 import { pullRequestEnvironment } from "../state/pullRequests";
 import { useEnvironmentQuery } from "../state/query";
-import { useSupportsMultiplePullRequests } from "./useSupportsMultiplePullRequests";
 
 export function useOpenPanelPullRequestUrl(threadRef: ScopedThreadRef | null) {
   const surface = useRightPanelStore((state) =>
@@ -22,7 +21,6 @@ export function useOpenPanelPullRequestUrl(threadRef: ScopedThreadRef | null) {
   const environmentId = requestedReference?.environmentId
     ? EnvironmentId.make(requestedReference.environmentId)
     : threadRef?.environmentId;
-  const supportsMultiplePullRequests = useSupportsMultiplePullRequests(environmentId ?? null);
   const project = useProject(
     requestedReference && environmentId
       ? scopeProjectRef(environmentId, ProjectId.make(requestedReference.projectId))
@@ -35,16 +33,14 @@ export function useOpenPanelPullRequestUrl(threadRef: ScopedThreadRef | null) {
       repository: requestedReference.repository,
       number: requestedReference.number,
     };
-    return supportsMultiplePullRequests
-      ? resolvePullRequestReferenceHost(
-          {
-            ...input,
-            ...(requestedReference.host === undefined ? {} : { host: requestedReference.host }),
-          },
-          project?.repositoryIdentity,
-        )
-      : input;
-  }, [requestedReference, supportsMultiplePullRequests, project?.repositoryIdentity]);
+    return resolvePullRequestReferenceHost(
+      {
+        ...input,
+        ...(requestedReference.host === undefined ? {} : { host: requestedReference.host }),
+      },
+      project?.repositoryIdentity,
+    );
+  }, [requestedReference, project?.repositoryIdentity]);
   const detail = useEnvironmentQuery(
     reference && environmentId
       ? pullRequestEnvironment.detail({

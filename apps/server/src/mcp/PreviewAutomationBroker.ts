@@ -1,5 +1,4 @@
 import {
-  PREVIEW_AUTOMATION_V1_OPERATIONS,
   PreviewAutomationClientDisconnectedError,
   PreviewAutomationControlInterruptedError,
   PreviewAutomationControlReason,
@@ -409,7 +408,7 @@ export const make = Effect.gen(function* PreviewAutomationBrokerMake() {
       clientId,
       connectionId,
       environmentId: host.environmentId,
-      supportedOperations: new Set(host.supportedOperations ?? PREVIEW_AUTOMATION_V1_OPERATIONS),
+      supportedOperations: new Set(host.supportedOperations),
       focused: false,
       preferred: options?.preferred ?? false,
       liveTabs: [],

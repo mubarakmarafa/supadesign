@@ -239,7 +239,7 @@ describe("RPC scope middleware", () => {
         yield* client[WS_METHODS.serverRetryResourceTelemetry]({}).pipe(Effect.flip),
       ).toMatchObject({
         _tag: "EnvironmentAuthorizationError",
-        requiredPermission: missing,
+        requiredScope: missing,
       });
       expect(handled).toEqual([]);
     }).pipe(Effect.scoped),
@@ -283,7 +283,7 @@ describe("settings mutation authorization", () => {
           patch: { defaultRuntimeMode: "full-access" },
           providerInstanceMutation,
         }).pipe(Effect.flip),
-      ).toMatchObject({ requiredPermission: AuthSettingsWriteScope });
+      ).toMatchObject({ requiredScope: AuthSettingsWriteScope });
       expect(handled).toBe(1);
     }).pipe(Effect.scoped),
   );
@@ -320,13 +320,13 @@ describe("settings mutation authorization", () => {
             },
           },
         }).pipe(Effect.flip),
-      ).toMatchObject({ requiredPermission: AuthProvidersManageScope });
+      ).toMatchObject({ requiredScope: AuthProvidersManageScope });
       expect(handled).toBe(1);
       expect(
         yield* client[WS_METHODS.serverUpdateSettings]({
           patch: { projectSettingsOverrides: { [projectId]: null } },
         }).pipe(Effect.flip),
-      ).toMatchObject({ requiredPermission: AuthProvidersManageScope });
+      ).toMatchObject({ requiredScope: AuthProvidersManageScope });
       expect(handled).toBe(1);
     }).pipe(Effect.scoped),
   );
@@ -352,7 +352,7 @@ describe("settings mutation authorization", () => {
           patch: {},
           providerInstanceMutation,
         }).pipe(Effect.flip),
-      ).toMatchObject({ requiredPermission: AuthProvidersManageScope });
+      ).toMatchObject({ requiredScope: AuthProvidersManageScope });
       expect(handled).toBe(false);
     }).pipe(Effect.scoped),
   );
@@ -390,7 +390,7 @@ it.effect("requires task permission before attaching a prepared worktree to a th
         mode: "worktree",
         threadId: ThreadId.make("thread"),
       }).pipe(Effect.flip),
-    ).toMatchObject({ requiredPermission: AuthOrchestrationOperateScope });
+    ).toMatchObject({ requiredScope: AuthOrchestrationOperateScope });
     expect(handled).toBe(false);
   }).pipe(Effect.scoped),
 );
@@ -430,8 +430,7 @@ it.effect("separates host file URLs from readable attachment URLs", () =>
       expect(
         yield* client[WS_METHODS.assetsCreateUrl]({ resource }).pipe(Effect.flip),
       ).toMatchObject({
-        requiredScope: AuthOrchestrationReadScope,
-        requiredPermission: AuthFilesystemReadScope,
+        requiredScope: AuthFilesystemReadScope,
       });
     }
     expect(handled).toBe(1);
@@ -473,7 +472,7 @@ it.effect("denies manual cleanup before the handler without settings permission"
       ),
     );
     expect(yield* client[WS_METHODS.serverRunStorageCleanup]({}).pipe(Effect.flip)).toMatchObject({
-      requiredPermission: AuthSettingsWriteScope,
+      requiredScope: AuthSettingsWriteScope,
     });
     expect(handled).toBe(false);
   }).pipe(Effect.scoped),
@@ -515,7 +514,7 @@ it.effect("sends OTLP endpoint checks only for connections that can save the end
     ]);
     expect(
       yield* operator[WS_METHODS.serverCheckOtlpEndpoint](input).pipe(Effect.flip),
-    ).toMatchObject({ requiredPermission: AuthSettingsWriteScope });
+    ).toMatchObject({ requiredScope: AuthSettingsWriteScope });
     expect(checked).toEqual([]);
 
     const settingsWriter = yield* makeClient([AuthOrchestrationReadScope, AuthSettingsWriteScope]);
@@ -561,7 +560,7 @@ it.effect("requires settings permission before a project mutation that carries s
         projectId,
         scripts: [],
       }).pipe(Effect.flip),
-    ).toMatchObject({ requiredPermission: AuthSettingsWriteScope });
+    ).toMatchObject({ requiredScope: AuthSettingsWriteScope });
     expect(handled).toEqual([]);
     expect(
       yield* client[WS_METHODS.projectsMutate]({

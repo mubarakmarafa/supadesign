@@ -396,7 +396,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
   const browserTabs = useThreadServerBrowserTabs({
     environmentId: props.environmentId,
     threadId: props.selectedThread.id,
-    enabled: props.serverConfig?.environment.capabilities.serverBrowser === true,
+    enabled: props.serverConfig != null,
   });
   const openBrowserPreview = useCallback(
     (tabId?: string) => {
@@ -1475,8 +1475,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                           onDismiss={props.onDismissUserInput}
                           supportsQuestionAutoDismiss={
                             props.serverConfig?.settings.autoDismissQuestions !== false &&
-                            props.serverConfig?.environment.capabilities.questionAutoDismiss ===
-                              true
+                            props.serverConfig != null
                           }
                         />
                       ) : null}

@@ -9,7 +9,7 @@
  * access is intentionally named as such so environment-sensitive consumers
  * cannot silently read the wrong server's settings.
  */
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore, use } from "react";
+import { useCallback, useMemo, useRef, useSyncExternalStore, use } from "react";
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import {
   DEFAULT_SERVER_SETTINGS,
@@ -47,11 +47,6 @@ import {
   themeAllowsSidebarArtwork,
   type ThemeAppearance,
 } from "~/themePalette";
-import {
-  applyServerSettingsPatch,
-  modelPreferencesMigrationPatch,
-  resolveModelPreferences,
-} from "@supaterm/shared/serverSettings";
 import * as Struct from "effect/Struct";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
@@ -328,60 +323,7 @@ export function mergeEnvironmentSettings(
   return {
     ...clientSettings,
     ...serverSettings,
-    ...resolveModelPreferences(serverSettings, clientSettings),
   };
-}
-
-/** Older servers drop model preference writes, so their clients keep the preferences locally. */
-function useServerStoresModelPreferences(environmentId: EnvironmentId | null): boolean {
-  return (
-    useAtomValue(serverEnvironment.configValueAtom(environmentId))?.environment.capabilities
-      .modelPreferences === true
-  );
-}
-
-/** Applies a model preference patch to this device's copy, for a server that does not store it. */
-function persistLocalModelPreferencesPatch(settings: ServerSettings, patch: ServerSettingsPatch) {
-  return persistClientSettingsUpdate((current) => {
-    const next = applyServerSettingsPatch(
-      { ...settings, ...resolveModelPreferences(settings, current) },
-      patch,
-    );
-    return {
-      ...current,
-      favorites: next.favorites ?? [],
-      providerModelPreferences: next.providerModelPreferences ?? {},
-    };
-  });
-}
-
-const pendingModelPreferencesMigrations = new Set<EnvironmentId>();
-
-/** Seed saved client preferences once without overwriting another client's edits. */
-export function useMigrateModelPreferences(
-  environmentId: EnvironmentId | null,
-  settings: ServerSettings | null,
-) {
-  const clientSettings = useClientSettingsValue();
-  const hydrated = useClientSettingsHydrated();
-  const storesPreferences = useServerStoresModelPreferences(environmentId);
-  const migrate = useAtomCommand(serverEnvironment.updateSettings, { reportFailure: false });
-  useEffect(() => {
-    if (
-      !environmentId ||
-      !settings ||
-      !hydrated ||
-      !storesPreferences ||
-      pendingModelPreferencesMigrations.has(environmentId)
-    )
-      return;
-    const patch = modelPreferencesMigrationPatch(settings, clientSettings);
-    if (!patch) return;
-    pendingModelPreferencesMigrations.add(environmentId);
-    void migrate({ environmentId, input: { patch } }).finally(() =>
-      pendingModelPreferencesMigrations.delete(environmentId),
-    );
-  }, [clientSettings, environmentId, hydrated, migrate, settings, storesPreferences]);
 }
 
 function useMergedSettings<T>(
@@ -439,50 +381,17 @@ export function useEnvironmentIdentificationMode(): EnvironmentIdentificationMod
   });
 }
 
-/** Hydrate legacy preferences before a mutation can claim either server-owned list. */
-export async function prepareModelPreferencesPatch(
-  settings: ServerSettings,
-  patch: ServerSettingsPatch,
-): Promise<ServerSettingsPatch> {
-  if (settings.favorites === null || settings.providerModelPreferences === null) {
-    await ensureClientSettingsHydrated();
-  }
-  return { ...modelPreferencesMigrationPatch(settings, getClientSettings()), ...patch };
-}
-
 export function useUpdateEnvironmentModelPreferences(environmentId: EnvironmentId | null) {
   const settings = useAtomValue(
     environmentId ? serverEnvironment.settingsValueAtom(environmentId) : noEnvironmentSettingsAtom,
   );
-  const storesPreferences = useServerStoresModelPreferences(environmentId);
   const save = useAtomCommand(serverEnvironment.updateSettings, "model preferences update");
   return useCallback(
     async (patch: ServerSettingsPatch) => {
       if (!environmentId || !settings) return;
-      if (!storesPreferences) {
-        await persistLocalModelPreferencesPatch(settings, patch).catch(() =>
-          toastManager.add({
-            type: "error",
-            title: "Model preferences not saved",
-            description: "Could not save model preferences on this device. Try again.",
-          }),
-        );
-        return;
-      }
-      let prepared: ServerSettingsPatch;
-      try {
-        prepared = await prepareModelPreferencesPatch(settings, patch);
-      } catch {
-        toastManager.add({
-          type: "error",
-          title: "Model preferences not saved",
-          description: "Could not load saved model preferences. Try again.",
-        });
-        return;
-      }
-      return save({ environmentId, input: { patch: prepared } });
+      return save({ environmentId, input: { patch } });
     },
-    [environmentId, save, settings, storesPreferences],
+    [environmentId, save, settings],
   );
 }
 
@@ -497,22 +406,9 @@ export function useToggleEnvironmentModelFavorite(environmentId: EnvironmentId |
     async (provider: ProviderInstanceId, model: string) => {
       if (!environmentId) return;
       const settingsAtom = serverEnvironment.settingsValueAtom(environmentId);
-      const settings = registry.get(settingsAtom);
-      if (!settings) return;
-      if (settings.favorites === null) {
-        try {
-          await ensureClientSettingsHydrated();
-        } catch {
-          toastManager.add({
-            type: "error",
-            title: "Favorites not saved",
-            description: "Could not load saved model preferences. Try again.",
-          });
-          return;
-        }
-      }
-      const currentSettings = registry.get(settingsAtom) ?? settings;
-      const favorites = resolveModelPreferences(currentSettings, getClientSettings()).favorites;
+      const currentSettings = registry.get(settingsAtom);
+      if (!currentSettings) return;
+      const favorites = currentSettings.favorites;
       const key = JSON.stringify([environmentId, provider, model]);
       const previous = pendingFavorites.current.get(key);
       // Keep the acknowledged choice until the config stream catches up with the RPC reply.
@@ -565,12 +461,10 @@ export function useEnvironmentModelPreferences(environmentId: EnvironmentId | nu
   const settings = useAtomValue(
     environmentId ? serverEnvironment.settingsValueAtom(environmentId) : noEnvironmentSettingsAtom,
   );
-  const legacy = useClientSettingsValue();
-  useMigrateModelPreferences(environmentId, settings);
-  return useMemo(
-    () => resolveModelPreferences(settings ?? DEFAULT_SERVER_SETTINGS, legacy),
-    [legacy, settings],
-  );
+  return useMemo(() => {
+    const { favorites, providerModelPreferences } = settings ?? DEFAULT_SERVER_SETTINGS;
+    return { favorites, providerModelPreferences };
+  }, [settings]);
 }
 
 /** Read current settings for one environment, merged with client-local preferences. */
@@ -579,7 +473,6 @@ export function useEnvironmentSettings<T = UnifiedSettings>(
   selector?: (settings: UnifiedSettings) => T,
 ): T {
   const serverSettings = useAtomValue(serverEnvironment.settingsValueAtom(environmentId));
-  useMigrateModelPreferences(environmentId, serverSettings);
   return useMergedSettings(serverSettings ?? DEFAULT_SERVER_SETTINGS, selector);
 }
 
@@ -602,12 +495,7 @@ export function usePersistEnvironmentProviderInstanceMutation(environmentId: Env
 export function usePrimarySettings<T = UnifiedSettings>(
   selector?: (settings: UnifiedSettings) => T,
 ): T {
-  const environment = usePrimaryEnvironment();
   const settings = useAtomValue(primaryServerSettingsAtom);
-  useMigrateModelPreferences(
-    environment?.environmentId ?? null,
-    environment?.serverConfig?.settings ?? null,
-  );
   return useMergedSettings(settings, selector);
 }
 
@@ -735,7 +623,6 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
             const target = environments.find((candidate) => candidate.environmentId === targetId);
             const targetPatch = filterSharedServerPatch(
               sharedPatch,
-              target?.serverConfig?.environment.capabilities,
               target?.serverConfig?.settings,
               sourceSettings,
               targetId === environmentId,

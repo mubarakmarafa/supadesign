@@ -1,4 +1,4 @@
-import { RegistryContext, useAtomValue } from "@effect/atom-react";
+import { RegistryContext } from "@effect/atom-react";
 import {
   DEFAULT_SERVER_SETTINGS,
   EnvironmentId,
@@ -6,7 +6,6 @@ import {
   type ServerSettings,
   type ServerSettingsPatch,
 } from "@supaterm/contracts";
-import { DEFAULT_CLIENT_SETTINGS } from "@supaterm/contracts/settings";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { applyServerSettingsPatch } from "@supaterm/shared/serverSettings";
@@ -40,8 +39,6 @@ vi.mock("~/localApi", () => ({
 import {
   __resetClientSettingsPersistenceForTests,
   __setClientSettingsForTests,
-  getClientSettings,
-  useMigrateModelPreferences,
   useToggleEnvironmentModelFavorite,
 } from "./useSettings";
 
@@ -82,27 +79,6 @@ async function mount(environmentId = primaryId) {
   });
 }
 
-function Migrator({ environmentId }: { environmentId: EnvironmentId }) {
-  useMigrateModelPreferences(environmentId, useAtomValue(state.settings.get(environmentId)!));
-  return null;
-}
-
-async function mountMigrator() {
-  await act(() => {
-    renderer = create(
-      <RegistryContext.Provider value={registry}>
-        <Migrator environmentId={primaryId} />
-      </RegistryContext.Provider>,
-    );
-  });
-}
-
-function serverStoresModelPreferences(environmentId: EnvironmentId, stores: boolean) {
-  registry.set(state.configs.get(environmentId)!, {
-    environment: { capabilities: stores ? { modelPreferences: true } : {} },
-  });
-}
-
 function click(): Promise<void> {
   return renderer!.root.findByType("button").props.onClick();
 }
@@ -115,10 +91,7 @@ beforeEach(() => {
   writes = [];
   for (const id of [primaryId, remoteId]) {
     state.settings.set(id, Atom.make<ServerSettings | null>(initialSettings));
-    state.configs.set(
-      id,
-      Atom.make<ServerCapabilities>({ environment: { capabilities: { modelPreferences: true } } }),
-    );
+    state.configs.set(id, Atom.make<ServerCapabilities>({ environment: { capabilities: {} } }));
     durable.set(id, initialSettings);
   }
   state.persist.mockReset().mockImplementation(
@@ -155,44 +128,6 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-describe("model preferences against older servers", () => {
-  const savedFavorites = [{ provider, model }];
-
-  it("never sends the migration to a server that drops it", async () => {
-    __setClientSettingsForTests({ ...DEFAULT_CLIENT_SETTINGS, favorites: savedFavorites });
-    serverStoresModelPreferences(primaryId, false);
-    registry.set(state.settings.get(primaryId)!, DEFAULT_SERVER_SETTINGS);
-    await mountMigrator();
-    // An older server still rewrites and broadcasts its settings after a write it ignores.
-    for (let broadcast = 0; broadcast < 3; broadcast += 1) {
-      await act(() => registry.set(state.settings.get(primaryId)!, { ...DEFAULT_SERVER_SETTINGS }));
-    }
-    expect(writes).toEqual([]);
-  });
-
-  it("migrates saved favorites once to a server that stores them", async () => {
-    __setClientSettingsForTests({ ...DEFAULT_CLIENT_SETTINGS, favorites: savedFavorites });
-    registry.set(state.settings.get(primaryId)!, DEFAULT_SERVER_SETTINGS);
-    durable.set(primaryId, DEFAULT_SERVER_SETTINGS);
-    await mountMigrator();
-    expect(writes.map((write) => write.patch)).toEqual([
-      { migrateModelPreferences: { favorites: savedFavorites } },
-    ]);
-    await act(async () => writes[0]!.finish());
-    await act(() => registry.set(state.settings.get(primaryId)!, durable.get(primaryId)!));
-    expect(writes).toHaveLength(1);
-  });
-
-  it("keeps a favorite on this device when the server drops model preferences", async () => {
-    serverStoresModelPreferences(primaryId, false);
-    registry.set(state.settings.get(primaryId)!, DEFAULT_SERVER_SETTINGS);
-    await mount();
-    await act(() => click());
-    expect(writes).toEqual([]);
-    expect(getClientSettings().favorites).toEqual(savedFavorites);
-  });
-});
-
 describe("environment favorite toggles", () => {
   it.each([false, true])(
     "toggles twice before any server echo when initially favorited=%s",
@@ -204,7 +139,6 @@ describe("environment favorite toggles", () => {
       await mount();
       const first = click();
       const second = click();
-      // Preparing the patch is asynchronous even when migration has already completed.
       await act(async () => {});
       expect(writes.map((write) => write.patch.setModelFavorites?.[0]?.favorite)).toEqual([
         !initiallyFavorited,

@@ -244,7 +244,7 @@ const ready = Effect.gen(function* () {
   const opened = yield* broker.invoke<PreviewAutomationStatus>({
     scope,
     operation: "open",
-    input: { reuseExistingTab: false, show: false },
+    input: { reuseExistingTab: false, open: false },
   });
   const tabId = PreviewTabId.make(opened.tabId!);
   return { browser, broker, tabId };
@@ -418,7 +418,7 @@ it.live("enforces provider ownership and explicit targets when a session has mul
       yield* broker.invoke({
         scope,
         operation: "open",
-        input: { reuseExistingTab: false, show: false },
+        input: { reuseExistingTab: false, open: false },
       });
       const ambiguous = yield* broker
         .invoke<void>({ scope, operation: "evaluate", input: { expression: "ambiguous()" } })
@@ -1216,7 +1216,7 @@ it.live("an agent's tabs stop at the limit until an unwatched idle tab closes", 
       const open = broker.invoke<PreviewAutomationStatus>({
         scope,
         operation: "open",
-        input: { reuseExistingTab: false, show: false },
+        input: { reuseExistingTab: false, open: false },
       });
       for (let count = 1; count < 8; count += 1) yield* open;
       expect(yield* Effect.flip(open)).toMatchObject({
@@ -1227,7 +1227,7 @@ it.live("an agent's tabs stop at the limit until an unwatched idle tab closes", 
       yield* broker.invoke({
         scope: asSession("agent-b"),
         operation: "open",
-        input: { reuseExistingTab: false, show: false },
+        input: { reuseExistingTab: false, open: false },
       });
       const later = (yield* Clock.currentTimeMillis) + 31 * 60 * 1000;
       const clock = vi.spyOn(Date, "now").mockReturnValue(later);
@@ -1501,7 +1501,7 @@ it.live("a session's own tab stays its default while other sessions' tabs are li
       const other = yield* broker.invoke<PreviewAutomationStatus>({
         scope: asSession("agent-b"),
         operation: "open",
-        input: { reuseExistingTab: false, show: false },
+        input: { reuseExistingTab: false, open: false },
       });
       const status = yield* broker.invoke<PreviewAutomationStatus>({
         scope,
@@ -1538,7 +1538,7 @@ it.live(
             operation: "open",
             input: {
               reuseExistingTab: false,
-              show: false,
+              open: false,
               ...(profileId === undefined ? {} : { profileId }),
             },
           });

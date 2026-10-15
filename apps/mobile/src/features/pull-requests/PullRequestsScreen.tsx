@@ -112,8 +112,7 @@ export function PullRequestsScreen(
       environments
         .filter(
           (environment) =>
-            configs.get(environment.environmentId)?.environment.capabilities.pullRequests ===
-              true &&
+            configs.has(environment.environmentId) &&
             (environmentId === null || environment.environmentId === environmentId) &&
             (!controls.projectEnvironmentId ||
               environment.environmentId === controls.projectEnvironmentId),

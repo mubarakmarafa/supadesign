@@ -4,7 +4,6 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { vi } from "vite-plus/test";
-import { ProviderInstanceId } from "@supaterm/contracts";
 import { RegistryContext, useAtomSet } from "@effect/atom-react";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
@@ -127,9 +126,9 @@ describe("mobile preferences state", () => {
     }),
   );
 
-  it.effect("keeps both favorites when the React setter sends updates before a render", () =>
+  it.effect("keeps both updates when the React setter sends them before a render", () =>
     Effect.gen(function* () {
-      let persisted: MobilePreferences.Preferences = { modelFavorites: [] };
+      let persisted: MobilePreferences.Preferences = { collapsedProjectGroups: [] };
       const state = makePreferencesState({
         load: Effect.succeed(persisted),
         savePatch: (patch) =>
@@ -162,37 +161,33 @@ describe("mobile preferences state", () => {
         createElement(RegistryContext.Provider, { value: registry }, createElement(CaptureSetter)),
       );
       const savePreferences = setters[0]!;
-      const provider = ProviderInstanceId.make("codex");
       savePreferences({
         transform: (current) => ({
-          modelFavorites: [...(current.modelFavorites ?? []), { provider, model: "astra" }],
+          collapsedProjectGroups: [...(current.collapsedProjectGroups ?? []), "astra"],
         }),
       });
       savePreferences({
         transform: (current) => ({
-          modelFavorites: [...(current.modelFavorites ?? []), { provider, model: "sol" }],
+          collapsedProjectGroups: [...(current.collapsedProjectGroups ?? []), "sol"],
         }),
       });
       yield* AtomRegistry.getResult(registry, state.updatePreferencesAtom, {
         suspendOnWaiting: true,
       });
 
-      expect(persisted.modelFavorites).toEqual([
-        { provider, model: "astra" },
-        { provider, model: "sol" },
-      ]);
+      expect(persisted.collapsedProjectGroups).toEqual(["astra", "sol"]);
 
       savePreferences({
         transform: (current) => ({
-          modelFavorites: (current.modelFavorites ?? []).filter(
-            (favorite) => favorite.model !== "astra",
+          collapsedProjectGroups: (current.collapsedProjectGroups ?? []).filter(
+            (group) => group !== "astra",
           ),
         }),
       });
       yield* AtomRegistry.getResult(registry, state.updatePreferencesAtom, {
         suspendOnWaiting: true,
       });
-      expect(persisted.modelFavorites).toEqual([{ provider, model: "sol" }]);
+      expect(persisted.collapsedProjectGroups).toEqual(["sol"]);
 
       unmountUpdate();
       unmountPreferences();

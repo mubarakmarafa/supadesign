@@ -2863,7 +2863,7 @@ const CHAT_MARKDOWN_COMPONENTS = {
         ? resolvePullRequestPreviewTarget({
             environmentId,
             projects,
-            pullRequestsEnabled: serverConfig?.environment.capabilities.pullRequests === true,
+            pullRequestsEnabled: serverConfig != null,
             url: pullRequestCandidateUrl,
           })
         : null;

@@ -15,10 +15,11 @@ import {
 describe("remote", () => {
   const environmentId = EnvironmentId.make("paired-environment");
 
-  it("preserves unrelated fragments when removing a pairing token", () => {
-    expect(stripPairingTokenFromUrl(new URL("https://host.test/?token=code#section")).href).toBe(
-      "https://host.test/#section",
-    );
+  it("keeps the query when removing a pairing token", () => {
+    expect(
+      stripPairingTokenFromUrl(new URL(`https://host.test/?view=1#token=code&env=${environmentId}`))
+        .href,
+    ).toBe("https://host.test/?view=1");
   });
 
   it("round-trips identity and eligible routes while keeping tokens in the fragment", () => {
@@ -116,18 +117,6 @@ describe("remote", () => {
     expect(
       resolveRemotePairingTarget({
         pairingUrl: "https://remote.example.com/pair#token=pairing-token",
-      }),
-    ).toEqual({
-      credential: "pairing-token",
-      httpBaseUrl: "https://remote.example.com/",
-      wsBaseUrl: "wss://remote.example.com/",
-    });
-  });
-
-  it("accepts pairing urls that still use a query token", () => {
-    expect(
-      resolveRemotePairingTarget({
-        pairingUrl: "https://remote.example.com/pair?token=pairing-token",
       }),
     ).toEqual({
       credential: "pairing-token",

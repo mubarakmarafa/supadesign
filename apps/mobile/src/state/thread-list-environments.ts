@@ -12,15 +12,6 @@ export type ThreadListProvider = Pick<
   "instanceId" | "driver" | "displayName" | "accentColor" | "iconUrl"
 >;
 
-const capabilityKeys = [
-  "threadSettlement",
-  "threadSnooze",
-  "threadPinning",
-  "threadAutoSettleOptOut",
-  "threadPinReorder",
-  "threadTitleRegeneration",
-] as const;
-
 function selectEnvironment(config: ServerConfig) {
   return {
     providers: config.providers.map(
@@ -33,7 +24,6 @@ function selectEnvironment(config: ServerConfig) {
       }),
     ),
     machineKind: resolveEnvironmentMachineKind(config),
-    capabilities: config.environment.capabilities,
   };
 }
 
@@ -61,31 +51,14 @@ function sameProviders(
 function collectEnvironments(environments: ReadonlyMap<EnvironmentId, ListEnvironment>) {
   const providersByEnvironmentId = new Map<EnvironmentId, ReadonlyArray<ThreadListProvider>>();
   const machineByEnvironmentId = new Map<EnvironmentId, EnvironmentMachineKind>();
-  const settlementEnvironmentIds = new Set<EnvironmentId>();
-  const snoozeEnvironmentIds = new Set<EnvironmentId>();
-  const pinningEnvironmentIds = new Set<EnvironmentId>();
-  const autoSettleOptOutEnvironmentIds = new Set<EnvironmentId>();
-  const pinReorderEnvironmentIds = new Set<EnvironmentId>();
-  const titleRegenerationEnvironmentIds = new Set<EnvironmentId>();
-  for (const [id, { providers, machineKind, capabilities }] of environments) {
+  for (const [id, { providers, machineKind }] of environments) {
     providersByEnvironmentId.set(id, providers);
     machineByEnvironmentId.set(id, machineKind);
-    if (capabilities.threadSettlement === true) settlementEnvironmentIds.add(id);
-    if (capabilities.threadSnooze === true) snoozeEnvironmentIds.add(id);
-    if (capabilities.threadAutoSettleOptOut === true) autoSettleOptOutEnvironmentIds.add(id);
-    if (capabilities.threadPinning === true) pinningEnvironmentIds.add(id);
-    if (capabilities.threadPinReorder === true) pinReorderEnvironmentIds.add(id);
-    if (capabilities.threadTitleRegeneration === true) titleRegenerationEnvironmentIds.add(id);
   }
   return {
     providersByEnvironmentId,
     machineByEnvironmentId,
-    settlementEnvironmentIds,
-    snoozeEnvironmentIds,
-    pinningEnvironmentIds,
-    autoSettleOptOutEnvironmentIds,
-    pinReorderEnvironmentIds,
-    titleRegenerationEnvironmentIds,
+    loadedEnvironmentIds: new Set(environments.keys()),
   };
 }
 
@@ -108,10 +81,7 @@ export function createThreadListEnvironmentsAtom(
       const unchanged =
         prior &&
         prior.providers === selected.providers &&
-        prior.machineKind === selected.machineKind &&
-        capabilityKeys.every(
-          (key) => (prior.capabilities[key] === true) === (selected.capabilities[key] === true),
-        );
+        prior.machineKind === selected.machineKind;
       next.set(id, unchanged ? prior : selected);
       if (!unchanged) changed = true;
     }

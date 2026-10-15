@@ -134,10 +134,6 @@ function EnvironmentDetail({ environmentId }: { readonly environmentId: Environm
                 environmentId,
                 input: {
                   targetVersion,
-                  ...(capabilities.serverUpdateThreadContinuation &&
-                  config?.settings.continueThreadsAfterServerUpdate
-                    ? { continueRunningThreads: true }
-                    : {}),
                 },
               });
               if (AsyncResult.isFailure(result)) throw squashAtomCommandFailure(result);

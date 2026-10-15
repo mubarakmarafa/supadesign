@@ -127,7 +127,6 @@ const makeHarness = Effect.fn("TestProjectCommands.makeHarness")(function* () {
         sessionCookieName: "test",
       },
       scopes: [AuthFilesystemWriteScope],
-      permissions: [AuthFilesystemWriteScope],
     }),
   );
   const openScratch = Effect.promise(() =>

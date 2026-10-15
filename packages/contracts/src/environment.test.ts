@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";
 
-import { ExecutionEnvironmentDescriptor } from "./environment.ts";
+import { ExecutionEnvironmentDescriptor, ORCHESTRATION_PROTOCOL_VERSION } from "./environment.ts";
 
 const decodeDescriptor = Schema.decodeUnknownSync(ExecutionEnvironmentDescriptor);
 
@@ -10,7 +10,8 @@ const descriptor = {
   label: "Local",
   platform: { os: "darwin", arch: "arm64" },
   serverVersion: "0.0.32",
-  capabilities: { repositoryIdentity: true },
+  orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+  capabilities: {},
 } as const;
 
 describe("ExecutionEnvironmentDescriptor", () => {
@@ -33,41 +34,6 @@ describe("ExecutionEnvironmentDescriptor", () => {
       ).toBeUndefined();
     }
   });
-  it("requires an advertised required-worktree bootstrap capability", () => {
-    expect(decodeDescriptor(descriptor).capabilities.requiredWorktreeBootstrap).toBeUndefined();
-    expect(
-      decodeDescriptor({
-        ...descriptor,
-        capabilities: { ...descriptor.capabilities, requiredWorktreeBootstrap: true },
-      }).capabilities.requiredWorktreeBootstrap,
-    ).toBe(true);
-  });
-
-  it("treats a missing pull-request capability as unsupported under version skew", () => {
-    expect(decodeDescriptor(descriptor).capabilities.pullRequests).toBeUndefined();
-  });
-
-  it("preserves an advertised pull-request capability", () => {
-    expect(
-      decodeDescriptor({
-        ...descriptor,
-        capabilities: { ...descriptor.capabilities, pullRequests: true },
-      }).capabilities.pullRequests,
-    ).toBe(true);
-  });
-
-  it("treats a missing attachment upload capability as unsupported", () => {
-    expect(decodeDescriptor(descriptor).capabilities.attachmentUploads).toBeUndefined();
-  });
-
-  it("preserves an advertised attachment upload capability", () => {
-    expect(
-      decodeDescriptor({
-        ...descriptor,
-        capabilities: { ...descriptor.capabilities, attachmentUploads: true },
-      }).capabilities.attachmentUploads,
-    ).toBe(true);
-  });
 
   it("preserves the server's generic attachment upload limit", () => {
     expect(
@@ -79,21 +45,5 @@ describe("ExecutionEnvironmentDescriptor", () => {
         },
       }).capabilities.fileAttachments,
     ).toEqual({ maxUploadBytes: 50 * 1024 * 1024 });
-  });
-
-  it("treats missing server-resolved command context as unsupported", () => {
-    expect(decodeDescriptor(descriptor).capabilities.serverResolvedCommandContext).toBeUndefined();
-  });
-
-  it("preserves advertised server-resolved command context", () => {
-    expect(
-      decodeDescriptor({
-        ...descriptor,
-        capabilities: {
-          ...descriptor.capabilities,
-          serverResolvedCommandContext: true,
-        },
-      }).capabilities.serverResolvedCommandContext,
-    ).toBe(true);
   });
 });

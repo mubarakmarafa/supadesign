@@ -11,7 +11,6 @@ const testState = vi.hoisted(() => ({
   updateServer: vi.fn(),
   toast: vi.fn(),
   clipboard: vi.fn(),
-  continueThreadsAfterServerUpdate: false,
   session: null as AsyncResult.AsyncResult<AuthSessionState, Error> | null,
   sessionAtom: Symbol("session"),
 }));
@@ -23,12 +22,6 @@ vi.mock("~/hooks/useCopyToClipboard", () => ({
       options.onCopy(context);
     },
   }),
-}));
-vi.mock("~/hooks/useSettings", () => ({
-  useEnvironmentSettings: (
-    _environmentId: EnvironmentId,
-    selector: (settings: { continueThreadsAfterServerUpdate: boolean }) => unknown,
-  ) => selector({ continueThreadsAfterServerUpdate: testState.continueThreadsAfterServerUpdate }),
 }));
 vi.mock("@effect/atom-react", () => ({ useAtomValue: () => testState.session }));
 vi.mock("~/rpc/atomRegistry", () => ({
@@ -90,10 +83,7 @@ const legacyAuth = {
 const currentSession = {
   authenticated: true,
   scopes: ["environment:maintain"],
-  auth: {
-    ...legacyAuth,
-    serverUpdateScope: "environment:maintain",
-  },
+  auth: legacyAuth,
 } as const satisfies AuthSessionState;
 
 describe("ServerUpdateAction", () => {
@@ -101,35 +91,17 @@ describe("ServerUpdateAction", () => {
     testState.updateServer.mockReset();
     testState.toast.mockReset();
     testState.clipboard.mockReset();
-    testState.continueThreadsAfterServerUpdate = false;
     testState.session = AsyncResult.success(currentSession);
   });
 
   it.each([
-    { serverUpdateScope: undefined, scopes: ["orchestration:operate"], allowed: true },
-    { serverUpdateScope: undefined, scopes: ["orchestration:read"], allowed: false },
-    {
-      serverUpdateScope: "environment:maintain",
-      scopes: ["orchestration:operate"],
-      allowed: false,
-    },
-    {
-      serverUpdateScope: "environment:maintain",
-      scopes: ["environment:maintain"],
-      allowed: true,
-    },
+    { scopes: ["orchestration:operate"], allowed: false },
+    { scopes: ["environment:maintain"], allowed: true },
   ] as const)(
-    "uses the advertised update scope $serverUpdateScope with grant $scopes",
-    async ({ serverUpdateScope, scopes, allowed }) => {
+    "requires the maintain permission with grant $scopes",
+    async ({ scopes, allowed }) => {
       testState.session = AsyncResult.success(
-        decodeSessionState({
-          ...currentSession,
-          scopes,
-          auth: {
-            ...legacyAuth,
-            ...(serverUpdateScope === undefined ? {} : { serverUpdateScope }),
-          },
-        }),
+        decodeSessionState({ ...currentSession, scopes, auth: legacyAuth }),
       );
       testState.updateServer.mockResolvedValue(
         AsyncResult.success({ targetVersion: "0.0.31", method: "boot-service" as const }),
@@ -295,49 +267,6 @@ describe("ServerUpdateAction", () => {
       description: "Desktop app relaunched on 0.0.34.",
     });
   });
-
-  it("leaves thread continuation off by default", async () => {
-    testState.updateServer.mockResolvedValue(
-      AsyncResult.success({ targetVersion: "0.0.31", method: "boot-service" as const }),
-    );
-    const action = ServerUpdateAction({
-      environmentId: "env-test" as EnvironmentId,
-      serverLabel: "Test server",
-      selfUpdate: "boot-service",
-      threadContinuation: true,
-      targetVersion: "0.0.31",
-    }) as ActionElement;
-
-    action.props.onClick?.();
-    await flushPromises();
-
-    expect(testState.updateServer).toHaveBeenCalledWith({
-      environmentId: "env-test",
-      input: { targetVersion: "0.0.31" },
-    });
-  });
-
-  it("applies the saved thread continuation preference automatically", async () => {
-    testState.updateServer.mockResolvedValue(
-      AsyncResult.success({ targetVersion: "0.0.31", method: "boot-service" as const }),
-    );
-    testState.continueThreadsAfterServerUpdate = true;
-    const action = ServerUpdateAction({
-      environmentId: "env-test" as EnvironmentId,
-      serverLabel: "Test server",
-      selfUpdate: "boot-service",
-      threadContinuation: true,
-      targetVersion: "0.0.31",
-    }) as ActionElement;
-
-    action.props.onClick?.();
-    await flushPromises();
-
-    expect(testState.updateServer).toHaveBeenCalledWith({
-      environmentId: "env-test",
-      input: { targetVersion: "0.0.31", continueRunningThreads: true },
-    });
-  });
 });
 
 describe("ServerUpdatesAction", () => {
@@ -348,16 +277,12 @@ describe("ServerUpdatesAction", () => {
       serverLabel: "Laptop",
       selfUpdate: "boot-service",
       targetVersion: "0.0.31",
-      threadContinuation: true,
-      continueThreadsAfterServerUpdate: true,
     },
     {
       environmentId: "batch-b" as EnvironmentId,
       serverLabel: "Office",
-      selfUpdate: "respawn",
+      selfUpdate: "boot-service",
       targetVersion: "0.0.31",
-      threadContinuation: true,
-      continueThreadsAfterServerUpdate: false,
     },
     {
       environmentId: "batch-c" as EnvironmentId,
@@ -390,7 +315,7 @@ describe("ServerUpdatesAction", () => {
     vi.unstubAllGlobals();
   });
 
-  it("updates both supported machines with their own continuation preference and skips the manual machine", async () => {
+  it("updates both supported machines and skips the manual machine", async () => {
     testState.updateServer.mockResolvedValue(success);
     const button = await mount();
     await act(async () => {
@@ -400,7 +325,7 @@ describe("ServerUpdatesAction", () => {
     expect(testState.updateServer.mock.calls.map(([target]) => target)).toEqual([
       {
         environmentId: "batch-a",
-        input: { targetVersion: "0.0.31", continueRunningThreads: true },
+        input: { targetVersion: "0.0.31" },
       },
       { environmentId: "batch-b", input: { targetVersion: "0.0.31" } },
     ]);

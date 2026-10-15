@@ -12,14 +12,10 @@ export const DesktopBackendBootstrap = Schema.Struct({
   supatermHome: Schema.optional(Schema.String),
   host: Schema.String,
   desktopBootstrapToken: Schema.String,
-  // Present when the desktop rotates the renderer's bootstrap token: the
-  // backend derives the accepted tokens from this secret instead of trusting
-  // `desktopBootstrapToken` for its whole run. See
-  // `@supaterm/shared/desktopBootstrapToken`.
-  desktopBootstrapSecret: Schema.optionalKey(Schema.String),
+  desktopBootstrapSecret: Schema.String,
   // Set only when the desktop already merged the user's shell environment into
   // the environment it hands this backend. Absent means the backend hydrates
-  // PATH itself, which WSL and older desktops rely on.
+  // PATH itself, which WSL relies on.
   shellEnvironmentPrepared: Schema.optionalKey(Schema.Boolean),
   tailscaleServeEnabled: Schema.Boolean,
   tailscaleServePort: PortSchema,

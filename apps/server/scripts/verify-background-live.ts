@@ -31,6 +31,8 @@ import {
   type OrchestrationV2ThreadProjection,
 } from "@supaterm/contracts";
 
+import { currentDesktopBootstrapToken } from "@supaterm/shared/desktopBootstrapToken";
+
 const { values } = NodeUtil.parseArgs({
   options: {
     model: { type: "string", default: "claude-sonnet-4-6" },
@@ -206,7 +208,8 @@ NodeAssert.ok(address && typeof address !== "string");
 await new Promise<void>((done) => reservation.close(() => done()));
 const port = address.port;
 const origin = `http://127.0.0.1:${port}`;
-const bootstrap = NodeCrypto.randomUUID();
+const bootstrapSecret = NodeCrypto.randomBytes(32).toString("hex");
+const bootstrap = currentDesktopBootstrapToken(bootstrapSecret, Date.now());
 function startServer() {
   const server = NodeChildProcess.spawn(
     process.execPath,
@@ -227,6 +230,7 @@ function startServer() {
       supatermHome: home,
       host: "127.0.0.1",
       desktopBootstrapToken: bootstrap,
+      desktopBootstrapSecret: bootstrapSecret,
       tailscaleServeEnabled: false,
       tailscaleServePort: 443,
     }),
@@ -235,7 +239,10 @@ function startServer() {
   let output = "";
   for (const pipe of [server.stdout, server.stderr])
     pipe?.on("data", (data: Buffer) => {
-      const text = data.toString().replaceAll(bootstrap, "[REDACTED]");
+      const text = data
+        .toString()
+        .replaceAll(bootstrap, "[REDACTED]")
+        .replaceAll(bootstrapSecret, "[REDACTED]");
       NodeFS.appendFileSync(NodePath.join(evidence, "server.log"), text);
       output = (output + text).slice(-8192);
       if (output.includes("startup phase: complete")) ready.resolve();
@@ -260,7 +267,7 @@ try {
     method: "POST",
     body: new URLSearchParams({
       grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
-      subject_token: bootstrap,
+      subject_token: currentDesktopBootstrapToken(bootstrapSecret, Date.now()),
       subject_token_type: "urn:supaterm:params:oauth:token-type:environment-bootstrap",
       requested_token_type: "urn:ietf:params:oauth:token-type:access_token",
     }),

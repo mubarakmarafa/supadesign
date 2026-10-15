@@ -72,7 +72,7 @@ import {
   type ShortcutMatchContext,
 } from "~/keybindings";
 import { primaryServerKeybindingsAtom } from "~/state/server";
-import { usePullRequestDefaultMergeMethodResolver } from "./usePullRequestActions";
+import { usePullRequestDefaultMergeMethod } from "./usePullRequestActions";
 import { changeRequestRepositoryUrl, gitHubPullRequestBrowserUrl } from "~/lib/openPullRequestLink";
 import { usePreparePullRequestThreadAction } from "~/lib/sourceControlActions";
 import { cn } from "~/lib/utils";
@@ -520,18 +520,9 @@ export function PullRequestDetailPanel({
       project.id === requestedReference.projectId && project.environmentId === environmentId,
   );
   const repositoryIdentity = project?.repositoryIdentity;
-  const supportsThreadPullRequests =
-    environmentConfigs.get(environmentId)?.environment.capabilities.threadPullRequests === true;
   const reference = useMemo(
-    () =>
-      supportsThreadPullRequests
-        ? resolvePullRequestReferenceHost(requestedReference, repositoryIdentity)
-        : {
-            projectId: requestedReference.projectId,
-            repository: requestedReference.repository,
-            number: requestedReference.number,
-          },
-    [requestedReference, repositoryIdentity, supportsThreadPullRequests],
+    () => resolvePullRequestReferenceHost(requestedReference, repositoryIdentity),
+    [requestedReference, repositoryIdentity],
   );
   const pullRequestKey = `${reference.projectId}:${reference.host ?? ""}:${reference.repository}#${reference.number}`;
   const matchingListEntry =
@@ -643,13 +634,9 @@ export function PullRequestDetailPanel({
   }, [condensed, tab]);
   const lastSelectedMergeMethod = useUiStateStore((state) => state.pullRequestMergeMethod);
   const setLastSelectedMergeMethod = useUiStateStore((state) => state.setPullRequestMergeMethod);
-  const resolveProjectDefaultMergeMethod = usePullRequestDefaultMergeMethodResolver(
+  const projectDefaultMergeMethod = usePullRequestDefaultMergeMethod(
     environmentId,
     reference.projectId,
-  );
-  const projectDefaultMergeMethod = useMemo(
-    () => resolveProjectDefaultMergeMethod(),
-    [resolveProjectDefaultMergeMethod],
   );
   const [mergeMethodSelection, setMergeMethodSelection] = useState<{
     readonly pullRequestKey: string;
@@ -905,19 +892,17 @@ export function PullRequestDetailPanel({
   // pull request nobody can read costs one request rather than two.
   const stackReference = useMemo(
     () =>
-      detail === null || detail.capabilities.stacks !== true || !supportsThreadPullRequests
+      detail === null || detail.capabilities.stacks !== true
         ? null
         : { ...reference, host: reference.host ?? parseChangeRequestUrl(detail.url)?.host },
-    [detail, reference, supportsThreadPullRequests],
+    [detail, reference],
   );
   const nativeStackQuery = usePullRequestStack(environmentId, stackReference);
   const nativeStack = nativeStackQuery.data;
   const supportsStackActions =
-    supportsThreadPullRequests &&
     detail?.capabilities.stacks === true &&
     detail.capabilities.stackActions === true &&
-    environmentConfigs.get(environmentId)?.environment.capabilities.pullRequestStackActions ===
-      true;
+    environmentConfigs.has(environmentId);
   const canMergeSinglePullRequest = allowsSinglePullRequestMerge({
     supportsStackActions,
     hasStack: nativeStack !== null,

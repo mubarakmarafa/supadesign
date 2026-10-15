@@ -160,23 +160,20 @@ jobs:
         if: steps.expo-token.outputs.present == 'true'
         env:
           MOBILE_PLATFORM: ${{ inputs.platform || 'all' }}
-          MOBILE_MODE: ${{ inputs.mode || 'auto' }}
         run: |
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           node --input-type=module -e '
             import fs from "node:fs";
             const include = [
-              { platform: "ios", runner: "depot-macos-26", legacy: false },
-              { platform: "android", runner: "depot-ubuntu-24.04-8", legacy: false },
-              { platform: "ios", runner: "depot-ubuntu-24.04-8", legacy: true },
-            ].filter(({ platform, legacy }) =>
-              (process.env.MOBILE_PLATFORM === "all" || platform === process.env.MOBILE_PLATFORM) &&
-              (!legacy || process.env.MOBILE_MODE !== "build"));
+              { platform: "ios", runner: "depot-macos-26" },
+              { platform: "android", runner: "depot-ubuntu-24.04-8" },
+            ].filter(({ platform }) =>
+              process.env.MOBILE_PLATFORM === "all" || platform === process.env.MOBILE_PLATFORM);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, "matrix=" + JSON.stringify({ include }) + "\n");
           '
 
   production:
-    name: Mobile ${{ matrix.platform }} ${{ matrix.legacy && 'existing binaries' || 'production' }}
+    name: Mobile ${{ matrix.platform }} production
     needs: prepare
     if: needs.prepare.outputs.enabled == 'true'
     strategy:
@@ -224,21 +221,9 @@ jobs:
             });
             core.setOutput('version_exists', Boolean(versionBuild));
             core.setOutput('compatible', Boolean(compatibleBuild));
-      - id: legacy
-        name: Find existing cloud builds during migration
-        if: steps.history.outputs.version_exists != 'true' || steps.history.outputs.compatible != 'true'
-        working-directory: apps/mobile
-        env:
-          MOBILE_VERSION: ${{ steps.config.outputs.version }}
-          MOBILE_FINGERPRINT: ${{ steps.config.outputs.fingerprint }}
-        run: |
-          version_count=$(eas build:list --platform "$MOBILE_PLATFORM" --build-profile production --app-version "$MOBILE_VERSION" --status finished --limit 1 --json --non-interactive | jq 'length')
-          compatible_count=$(eas build:list --platform "$MOBILE_PLATFORM" --build-profile production --status finished --fingerprint-hash "$MOBILE_FINGERPRINT" --limit 1 --json --non-interactive | jq 'length')
-          echo "version_exists=$([[ "$version_count" -gt 0 ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          echo "compatible=$([[ "$compatible_count" -gt 0 ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - id: build
         name: Compile and sign on Depot
-        if: ${{ !matrix.legacy && (inputs.mode == 'build' || (github.event_name == 'push' && steps.history.outputs.version_exists != 'true' && steps.legacy.outputs.version_exists != 'true')) }}
+        if: inputs.mode == 'build' || (github.event_name == 'push' && steps.history.outputs.version_exists != 'true')
         uses: ./.github/actions/build-mobile
         with:
           platform: ${{ matrix.platform }}
@@ -321,10 +306,9 @@ jobs:
           MOBILE_FINGERPRINT: ${{ steps.config.outputs.fingerprint }}
           BUILT_FINGERPRINT: ${{ steps.build.outputs.fingerprint }}
           DEPOT_COMPATIBLE: ${{ steps.history.outputs.compatible }}
-          CLOUD_COMPATIBLE: ${{ steps.legacy.outputs.compatible }}
           UPDATE_MESSAGE: ${{ inputs.message }}
         run: |
-          if [ "$DEPOT_COMPATIBLE" != true ] && [ "$CLOUD_COMPATIBLE" != true ] && [ "$BUILT_FINGERPRINT" != "$MOBILE_FINGERPRINT" ]; then
+          if [ "$DEPOT_COMPATIBLE" != true ] && [ "$BUILT_FINGERPRINT" != "$MOBILE_FINGERPRINT" ]; then
             echo "$MOBILE_PLATFORM: no completed build matches $MOBILE_FINGERPRINT; OTA skipped." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi

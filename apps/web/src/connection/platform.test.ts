@@ -4,6 +4,7 @@ import {
   PRIMARY_LOCAL_ENVIRONMENT_ID,
   type DesktopBridge,
   type DesktopSshEnvironmentTarget,
+  ORCHESTRATION_PROTOCOL_VERSION,
 } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
@@ -60,9 +61,8 @@ function makeBridge(
           arch: "x64",
         },
         serverVersion: "0.0.0-test",
-        capabilities: {
-          repositoryIdentity: true,
-        },
+        orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+        capabilities: {},
       };
     },
     bootstrapSshBearerSession: async () => {

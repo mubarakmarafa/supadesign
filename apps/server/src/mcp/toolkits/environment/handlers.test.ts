@@ -5,6 +5,7 @@ import {
   ProviderInstanceId,
   ThreadId,
   type OrchestrationV2ThreadShell,
+  ORCHESTRATION_PROTOCOL_VERSION,
 } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -45,7 +46,8 @@ const layerEnvironment = Layer.mock(Environment.ServerEnvironment)({
     label: "Test",
     platform: { os: "linux", arch: "x64" },
     serverVersion: "0.0.0",
-    capabilities: { repositoryIdentity: false },
+    orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+    capabilities: {},
   }),
 });
 
@@ -123,7 +125,8 @@ it.effect("refuses a preferences update when the caller's turn ends while it wai
           label: "Test",
           platform: { os: "linux", arch: "x64" },
           serverVersion: "0.0.0",
-          capabilities: { repositoryIdentity: false },
+          orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+          capabilities: {},
         }),
       }),
       Layer.mock(Settings.ServerSettingsService)({

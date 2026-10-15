@@ -19,7 +19,6 @@ const harness = vi.hoisted(() => ({
   verify: vi.fn(),
   marked: vi.fn(),
   finalized: vi.fn(),
-  supportsUploads: false,
   online: false,
   existingThread: false,
   archivedThread: false,
@@ -58,8 +57,6 @@ vi.mock("../rpc/atomRegistry", async () => {
             {
               environment: {
                 capabilities: {
-                  attachmentUploads: harness.supportsUploads,
-                  inlineMessageContext: true,
                   fileAttachments: { maxUploadBytes: 1_000 },
                 },
               },
@@ -178,7 +175,6 @@ beforeEach(() => {
   vi.unstubAllGlobals();
   harness.records.clear();
   harness.online = false;
-  harness.supportsUploads = false;
   harness.existingThread = false;
   harness.archivedThread = false;
   harness.run.mockResolvedValue(AsyncResult.success({ sequence: 1 }));
@@ -187,22 +183,10 @@ beforeEach(() => {
 
 describe("web thread outbox delivery", () => {
   it.each(["default", "current"])(
-    "resolves the %s branch for a restored offline worktree with an attachment",
+    "resolves the %s branch for a restored offline worktree",
     async (branchKind) => {
       const { enqueueThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
-      await enqueueThreadOutboxTurn({
-        ...worktreeTarget(),
-        localAttachments: [
-          {
-            id: "local-image",
-            type: "image",
-            name: "image.png",
-            mimeType: "image/png",
-            sizeBytes: 5,
-            bytes: new Blob(["image"], { type: "image/png" }),
-          },
-        ],
-      });
+      await enqueueThreadOutboxTurn(worktreeTarget());
       await webThreadOutbox.drain();
       expect(harness.run).not.toHaveBeenCalled();
       vi.resetModules();
@@ -238,7 +222,6 @@ describe("web thread outbox delivery", () => {
         message: {
           messageId: "message",
           text: "Saved prompt",
-          attachments: [{ id: "local-image", dataUrl: "data:image/png;base64,aW1hZ2U=" }],
         },
         bootstrap: {
           createThread: { branch: expectedBranch },
@@ -516,45 +499,7 @@ describe("web thread outbox delivery", () => {
     expect(harness.records.size).toBe(0);
   });
 
-  it("retains local image bytes across reload and prepares the legacy upload only at delivery", async () => {
-    const { enqueueThreadOutboxTurn } = await import("./threadOutbox");
-    await enqueueThreadOutboxTurn({
-      ...target(),
-      localAttachments: [
-        {
-          id: "local-image",
-          type: "image",
-          name: "image.png",
-          mimeType: "image/png",
-          sizeBytes: 5,
-          bytes: new Blob(["image"], { type: "image/png" }),
-        },
-      ],
-    });
-    vi.resetModules();
-    harness.online = true;
-    await (await import("./threadOutbox")).webThreadOutbox.drain();
-    expect(harness.run).toHaveBeenCalledWith(
-      expect.anything(),
-      { label: "send" },
-      expect.objectContaining({
-        input: expect.objectContaining({
-          message: expect.objectContaining({
-            attachments: [
-              expect.objectContaining({
-                id: "local-image",
-                dataUrl: "data:image/png;base64,aW1hZ2U=",
-              }),
-            ],
-          }),
-        }),
-      }),
-      expect.anything(),
-    );
-  });
-
   it("persists an uploaded file reference before dispatch and reuses it after a transport failure", async () => {
-    harness.supportsUploads = true;
     harness.online = true;
     const transfer = vi.fn(async () => new Response(null, { status: 200 }));
     vi.stubGlobal("fetch", transfer);
@@ -608,7 +553,6 @@ describe("web thread outbox delivery", () => {
   });
 
   it("retains an oversized attachment as a failed pending message", async () => {
-    harness.supportsUploads = true;
     harness.online = true;
     const { enqueueThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
     await enqueueThreadOutboxTurn({

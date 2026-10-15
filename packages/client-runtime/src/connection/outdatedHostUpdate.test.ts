@@ -32,14 +32,14 @@ const TARGET = new PrimaryConnectionTarget({
   wsBaseUrl: "wss://build.example.test",
 });
 
-const descriptor = (protocol: number | undefined, serverVersion: string) =>
+const descriptor = (protocol: number, serverVersion: string) =>
   ({
     environmentId: TARGET.environmentId,
     label: TARGET.label,
     platform: { os: "darwin", arch: "arm64" },
     serverVersion,
-    ...(protocol === undefined ? {} : { orchestrationProtocolVersion: protocol }),
-    capabilities: { repositoryIdentity: true, serverSelfUpdate: "boot-service" },
+    orchestrationProtocolVersion: protocol,
+    capabilities: { serverSelfUpdate: "boot-service" },
   }) satisfies ExecutionEnvironmentDescriptor;
 
 const RpcRequest = Schema.TaggedStruct("Request", {
@@ -119,11 +119,11 @@ describe("updateOutdatedHost", () => {
     "updates a protocol-1 host and resumes it (fallback route: %s)",
     (useFallback) =>
       Effect.gen(function* () {
-        const blocked = orchestrationProtocolCompatibilityError(descriptor(undefined, "0.0.45"));
+        const blocked = orchestrationProtocolCompatibilityError(descriptor(1, "0.0.45"));
         expect(blocked).toMatchObject({ serverUpdateRequired: true });
 
         const sockets: Array<OutdatedHostSocket> = [];
-        let served: ExecutionEnvironmentDescriptor = descriptor(undefined, "0.0.45");
+        let served: ExecutionEnvironmentDescriptor = descriptor(1, "0.0.45");
         const entries = yield* SubscriptionRef.make<
           ReadonlyMap<EnvironmentId, ConnectionCatalogEntry>
         >(
@@ -264,8 +264,8 @@ describe("updateOutdatedHost", () => {
   it.effect("refuses a host that cannot update itself without opening a socket", () =>
     Effect.gen(function* () {
       const manual = {
-        ...descriptor(undefined, "0.0.45"),
-        capabilities: { repositoryIdentity: true },
+        ...descriptor(1, "0.0.45"),
+        capabilities: {},
       };
       let opened = false;
       const error = yield* Effect.flip(

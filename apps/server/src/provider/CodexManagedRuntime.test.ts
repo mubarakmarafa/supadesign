@@ -103,14 +103,19 @@ it.effect.each(
       yield* Effect.gen(function* () {
         const store = yield* ProviderCredentialStore.make("codex-chatgpt", instanceId);
         const json = yield* encodeJson({
-          clientId: "oaiapp_test",
-          accessToken: "dummy-owned-access",
-          refreshToken: "dummy-refresh",
-          expiresAt: (yield* Clock.currentTimeMillis) + 3_600_000,
-          earliestRefreshAt: null,
-          scopes: ["chatgpt.tokens.use.direct"],
-          subject: "test-user",
-          email: null,
+          activeClientId: "oaiapp_test",
+          sessions: [
+            {
+              clientId: "oaiapp_test",
+              accessToken: "dummy-owned-access",
+              refreshToken: "dummy-refresh",
+              expiresAt: (yield* Clock.currentTimeMillis) + 3_600_000,
+              earliestRefreshAt: null,
+              scopes: ["chatgpt.tokens.use.direct"],
+              subject: "test-user",
+              email: null,
+            },
+          ],
         });
         yield* store.set(new TextEncoder().encode(json));
         const ambient = {

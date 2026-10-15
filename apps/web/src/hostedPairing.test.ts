@@ -13,8 +13,8 @@ describe("hostedPairing", () => {
     vi.unstubAllEnvs();
   });
 
-  it("reads hosted pairing host and query token parameters", () => {
-    const url = new URL("https://app.supaterm.com/pair?host=100.64.1.2:3773&token=ABCD1234");
+  it("reads hosted pairing host and token parameters", () => {
+    const url = new URL("https://app.supaterm.com/pair?host=100.64.1.2:3773#token=ABCD1234");
 
     expect(readHostedPairingRequest(url)).toEqual({
       host: "100.64.1.2:3773",

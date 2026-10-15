@@ -29,6 +29,7 @@ const config = {
     supatermHome: "/tmp/supaterm",
     host: "127.0.0.1",
     desktopBootstrapToken: "desktop-bootstrap-token",
+    desktopBootstrapSecret: "desktop-secret",
     tailscaleServeEnabled: false,
     tailscaleServePort: 443,
   },

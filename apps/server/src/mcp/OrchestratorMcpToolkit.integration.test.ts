@@ -1724,38 +1724,32 @@ describe("orchestrator MCP toolkit", () => {
             const activeChildProjection = yield* orchestrator.getThreadProjection(
               delegated.childThreadId,
             );
-            const legacyChildProjection = {
-              ...activeChildProjection,
-              contextTransfers: activeChildProjection.contextTransfers.filter(
-                (transfer) => transfer.type !== "subagent_spawn",
-              ),
-            };
-            const legacyDelegatedRun = delegatedTaskRun(legacyChildProjection, completedTask!);
-            expect(legacyDelegatedRun?.id).toBe(delegated.childRunId);
-            expect(hasPendingChildRuns(legacyChildProjection, legacyDelegatedRun)).toBe(true);
+            const delegatedRun = delegatedTaskRun(activeChildProjection, completedTask!);
+            expect(delegatedRun?.id).toBe(delegated.childRunId);
+            expect(hasPendingChildRuns(activeChildProjection, delegatedRun)).toBe(true);
             expect(
               hasPendingChildRuns(
                 {
-                  ...legacyChildProjection,
-                  runs: legacyChildProjection.runs.map((run) =>
+                  ...activeChildProjection,
+                  runs: activeChildProjection.runs.map((run) =>
                     run.id === activeChildFollowup.runId ? { ...run, status: "queued" } : run,
                   ),
                 },
-                legacyDelegatedRun,
+                delegatedRun,
               ),
             ).toBe(true);
 
             expect(
               hasPendingChildRuns(
                 {
-                  ...legacyChildProjection,
-                  runs: legacyChildProjection.runs.map((run) =>
+                  ...activeChildProjection,
+                  runs: activeChildProjection.runs.map((run) =>
                     run.id === activeChildFollowup.runId
                       ? { ...run, status: "queued", queueHeld: true }
                       : run,
                   ),
                 },
-                legacyDelegatedRun,
+                delegatedRun,
               ),
             ).toBe(false);
             const completedTaskCancelCall = yield* invoke("task_cancel", {

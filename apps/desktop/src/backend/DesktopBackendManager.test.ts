@@ -51,6 +51,7 @@ const baseConfig: DesktopBackendManager.DesktopBackendStartConfig = {
     supatermHome: "/tmp/supaterm",
     host: "127.0.0.1",
     desktopBootstrapToken: "token",
+    desktopBootstrapSecret: "desktop-secret",
     tailscaleServeEnabled: false,
     tailscaleServePort: 443,
     desktopTelemetryFd: 4,

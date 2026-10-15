@@ -994,10 +994,7 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
   const serverProfileData: ServerProfileData = {
     environmentIds: environments
       .map((environment) => environment.environmentId)
-      .filter(
-        (environmentId) =>
-          serverConfigs.get(environmentId)?.environment.capabilities.serverBrowser === true,
-      ),
+      .filter((environmentId) => serverConfigs.has(environmentId)),
     clear: async (environmentId, profileId) => {
       const result = await runClearServerProfile({ environmentId, input: { profileId } });
       if (result._tag === "Failure") throw squashAtomCommandFailure(result);

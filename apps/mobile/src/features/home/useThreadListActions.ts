@@ -35,49 +35,31 @@ import { resolveThreadTitleRename } from "../threads/thread-title-rename";
 /** Version skew: never send settle/unsettle to a server that predates them
     (capability defaults false on decode for older servers). */
 function environmentSupportsSettlement(environmentId: EnvironmentThreadShell["environmentId"]) {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadSettlement === true
-  );
+  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
 }
 
 function environmentSupportsSnooze(environmentId: EnvironmentThreadShell["environmentId"]) {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadSnooze === true
-  );
+  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
 }
 
 function environmentSupportsPinning(environmentId: EnvironmentThreadShell["environmentId"]) {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadPinning === true
-  );
+  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
 }
 
 function environmentSupportsPinReorder(environmentId: EnvironmentThreadShell["environmentId"]) {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadPinReorder === true
-  );
+  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
 }
 
 function environmentSupportsAutoSettleOptOut(
   environmentId: EnvironmentThreadShell["environmentId"],
 ) {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadAutoSettleOptOut === true
-  );
+  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
 }
 
 function environmentSupportsTitleRegeneration(
   environmentId: EnvironmentThreadShell["environmentId"],
 ) {
-  return (
-    appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-      .threadTitleRegeneration === true
-  );
+  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
 }
 
 type ThreadListAction = "archive" | "unarchive" | "delete" | "settle" | "unsettle";
@@ -633,12 +615,9 @@ export function useThreadListActions(): {
       }
       const configs = appAtomRegistry.get(environmentServerConfigsAtom);
       const supportsReorder = (environmentId: EnvironmentThreadShell["environmentId"]) =>
-        configs.get(environmentId)?.environment.capabilities.threadPinReorder === true;
+        configs.has(environmentId);
       if (!supportsReorder(thread.environmentId)) {
-        Alert.alert(
-          "Could not move thread",
-          "This environment's server does not support reordering these threads. Update the server to arrange them.",
-        );
+        Alert.alert("Could not move thread", "Connect to this environment to arrange its threads.");
         return false;
       }
       const ordered = getThreadListV2OrderedSection({
@@ -646,22 +625,12 @@ export function useThreadListActions(): {
         section,
         now: new Date().toISOString(),
         queuedThreadKeys: appAtomRegistry.get(queuedThreadKeysAtom),
-        settlementEnvironmentIds: new Set(
-          [...configs].flatMap(([id, config]) =>
-            config.environment.capabilities.threadSettlement === true ? [id] : [],
-          ),
-        ),
-        snoozeEnvironmentIds: new Set(
-          [...configs].flatMap(([id, config]) =>
-            config.environment.capabilities.threadSnooze === true ? [id] : [],
-          ),
-        ),
       });
       const assignments = createThreadMovePlanner({
         allThreads: shells,
         ordered,
         section,
-        reorderableEnvironmentIds: new Set([...configs.keys()].filter(supportsReorder)),
+        reorderableEnvironmentIds: new Set(configs.keys()),
       })(scopedThreadKey(thread.environmentId, thread.id), direction);
       if (assignments === null) return false;
       const crossSection = !ordered.some(

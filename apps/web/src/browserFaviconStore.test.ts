@@ -18,7 +18,7 @@ import {
 } from "./browserFaviconStore";
 import {
   BROWSER_FAVICON_MAX_ENTRIES,
-  migratePersistedBrowserFaviconState,
+  sanitizePersistedBrowserFaviconState,
 } from "./browserFaviconLogic";
 
 const environmentId = EnvironmentId.make("env-1");
@@ -91,10 +91,10 @@ describe("browser favicon store", () => {
 
   it("finds a persisted IPv6 environment icon without a live connection", () => {
     recordFaviconForProject(projectRef, favicon("http://[fd00::1]:3000/app", 5), "fd00::1");
-    const migrated = migratePersistedBrowserFaviconState({
+    const sanitized = sanitizePersistedBrowserFaviconState({
       byKey: useBrowserFaviconStore.getState().byKey,
     }).byKey;
-    expect(lookupFavicon(migrated, projectRef, "http://[fd00::1]:3000/app", null)).toBe(PNG);
+    expect(lookupFavicon(sanitized, projectRef, "http://[fd00::1]:3000/app", null)).toBe(PNG);
   });
 
   it("keeps exact host aliases attached to the newest canonical icon", () => {

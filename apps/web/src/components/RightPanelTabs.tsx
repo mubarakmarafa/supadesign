@@ -759,24 +759,18 @@ function PullRequestSurfaceIcon({
       ? pullRequestHostOf(identity, identity.provider as SourceControlProviderKind)
       : null);
   const configs = useServerConfigs();
-  const capabilities =
-    resolvedEnvironmentId === null
-      ? undefined
-      : configs.get(resolvedEnvironmentId)?.environment.capabilities;
-  const linkedSnapshot =
-    capabilities?.threadPullRequests === true
-      ? (resolvePullRequestTabLink(threads, resolvedEnvironmentId, host, surface)?.snapshot ?? null)
-      : null;
+  const loaded = resolvedEnvironmentId !== null && configs.has(resolvedEnvironmentId);
+  const linkedSnapshot = loaded
+    ? (resolvePullRequestTabLink(threads, resolvedEnvironmentId, host, surface)?.snapshot ?? null)
+    : null;
   const detail = useEnvironmentQuery(
-    resolvedEnvironmentId === null || capabilities?.pullRequests !== true || linkedSnapshot !== null
+    resolvedEnvironmentId === null || !loaded || linkedSnapshot !== null
       ? null
       : pullRequestEnvironment.detail({
           environmentId: resolvedEnvironmentId,
           input: {
             projectId: surface.projectId as ProjectId,
-            ...(capabilities?.threadPullRequests === true && surface.host !== undefined
-              ? { host: surface.host }
-              : {}),
+            ...(surface.host !== undefined ? { host: surface.host } : {}),
             repository: surface.repository,
             number: surface.number,
           },

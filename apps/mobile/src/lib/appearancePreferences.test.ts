@@ -22,13 +22,6 @@ describe("appearancePreferences", () => {
     });
   });
 
-  it("migrates the legacy markdownFontSize key to baseFontSize", () => {
-    expect(resolveAppearancePreferences({ markdownFontSize: 18 }).baseFontSize).toBe(18);
-    expect(
-      resolveAppearancePreferences({ baseFontSize: 16, markdownFontSize: 18 }).baseFontSize,
-    ).toBe(16);
-  });
-
   it("keeps explicit overrides and treats missing values as automatic", () => {
     const preferences = resolveAppearancePreferences({ terminalFontSize: 12, codeFontSize: 14 });
     expect(preferences.terminalFontSize).toBe(12);

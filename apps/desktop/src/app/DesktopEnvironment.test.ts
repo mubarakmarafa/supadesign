@@ -96,10 +96,6 @@ describe("DesktopEnvironment", () => {
       assert.equal(environment.stateDir, "/tmp/supaterm/userdata");
       assert.equal(environment.desktopSettingsPath, "/tmp/supaterm/userdata/desktop-settings.json");
       assert.equal(environment.clientSettingsPath, "/tmp/supaterm/userdata/client-settings.json");
-      assert.equal(
-        environment.savedEnvironmentRegistryPath,
-        "/tmp/supaterm/userdata/saved-environments.json",
-      );
       assert.equal(environment.serverSettingsPath, "/tmp/supaterm/userdata/settings.json");
       assert.equal(environment.logDir, "/tmp/supaterm/userdata/logs");
       assert.equal(environment.browserArtifactsDir, "/tmp/supaterm/userdata/browser-artifacts");

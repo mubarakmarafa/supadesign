@@ -51,11 +51,7 @@ import {
 import type { DraftComposerAttachment, FileBackedComposerAttachment } from "../lib/composerImages";
 import { SerializedAsyncQueue } from "../lib/serialized-async-queue";
 import { appAtomRegistry } from "./atom-registry";
-import {
-  isNewTaskDraftKey,
-  newTaskDraftKey,
-  parseLegacyNewTaskDraftKey,
-} from "./new-task-draft-key";
+import { isNewTaskDraftKey, newTaskDraftKey } from "./new-task-draft-key";
 import { flushThreadOutbox, threadOutboxManager } from "./thread-outbox";
 import { composerDraftEnvironmentId } from "../lib/composerAttachmentUploadQueue";
 
@@ -579,34 +575,6 @@ function newDraftId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/**
- * Project-keyed new-task drafts from earlier builds are rewritten on load into
- * id-keyed drafts with the project stamped in, so existing drafts survive the
- * switch to many-per-project.
- */
-export function migrateLegacyNewTaskDraft(
-  key: string,
-  draft: ComposerDraft,
-  now: string,
-): readonly [key: string, draft: ComposerDraft] {
-  const restored = restoreMissingComposerFileReferences(draft);
-  const legacy = draft.project === undefined ? parseLegacyNewTaskDraftKey(key) : null;
-  if (legacy === null) {
-    return [key, restored];
-  }
-  return [
-    newTaskDraftKey(newDraftId()),
-    {
-      ...restored,
-      project: {
-        environmentId: EnvironmentIdSchema.make(legacy.environmentId),
-        projectId: ProjectIdSchema.make(legacy.projectId),
-        createdAt: now,
-      },
-    },
-  ];
-}
-
 export function decodePersistedComposerState(value: unknown): {
   readonly drafts: Record<string, ComposerDraft>;
   readonly stickyModelSelection: ModelSelection | null;
@@ -614,18 +582,16 @@ export function decodePersistedComposerState(value: unknown): {
   readonly modelOptionMemory: ModelOptionMemoryState;
 } {
   const parsed = decodePersistedComposerDraftsDocument(value);
-  const now = new Date().toISOString();
   return {
     drafts: Object.fromEntries(
       Object.entries(parsed.drafts)
-        .map(([key, draft]) =>
-          migrateLegacyNewTaskDraft(
-            key,
-            // Stale new-task drafts left on disk by builds before the
-            // model-precedence fix carry a bare modelSelection with no
-            // other selector settings. Strip it so the next compose pass
-            // re-resolves project → sticky → provider defaults. Drafts
-            // with runtime/interaction/workspace settings or actual text /
+        .map(([key, draft]): readonly [string, ComposerDraft] => [
+          key,
+          restoreMissingComposerFileReferences(
+            // A new-task draft holding only a model choice is not content. Strip
+            // it so the next compose pass re-resolves project → sticky →
+            // provider defaults instead of listing the draft after a restart.
+            // Drafts with runtime/interaction/workspace settings or actual text /
             // attachments were deliberately configured and are left alone.
             isNewTaskDraftKey(key) &&
               draft.modelSelection &&
@@ -636,9 +602,8 @@ export function decodePersistedComposerState(value: unknown): {
               draft.workspaceSelection === undefined
               ? { ...draft, modelSelection: undefined }
               : draft,
-            now,
           ),
-        )
+        ])
         // importedShareIds are share-import receipts: a contentless draft
         // carrying one is not empty, or the same native share would be
         // re-imported after restart.

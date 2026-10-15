@@ -1,3 +1,4 @@
+import { ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
 import { assert, describe, it } from "@effect/vitest";
 import { SshHttpBridgeError } from "@supaterm/ssh/errors";
 import * as Cause from "effect/Cause";
@@ -44,7 +45,8 @@ describe("SSH environment IPC", () => {
           label: "Remote Devbox",
           platform: { os: "linux", arch: "x64" },
           serverVersion: "1.2.3",
-          capabilities: { repositoryIdentity: true },
+          orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+          capabilities: {},
         });
       }),
     );
@@ -59,7 +61,8 @@ describe("SSH environment IPC", () => {
         label: "Remote Devbox",
         platform: { os: "linux", arch: "x64" },
         serverVersion: "1.2.3",
-        capabilities: { repositoryIdentity: true },
+        orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+        capabilities: {},
       });
       assert.deepEqual(requestUrls, ["http://127.0.0.1:41773/.well-known/supaterm/environment"]);
     }).pipe(Effect.provide(layer));

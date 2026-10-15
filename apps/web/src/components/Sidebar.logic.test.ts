@@ -36,7 +36,6 @@ import {
   resolveSidebarThreadStatus,
   resolveSidebarV2DurationStartedAt,
   resolveSidebarV2TopStatus,
-  resolveThreadLastVisitedAt,
   resolveThreadStatusPill,
   pullRequestMatchesSearchQuery,
   shouldClearThreadSelectionOnMouseDown,
@@ -779,25 +778,6 @@ describe("orderItemsByPreferredIds", () => {
       "/work/beta",
     ]);
   });
-
-  it("resolves legacy preference aliases without materializing project state", () => {
-    const ordered = orderItemsByPreferredIds({
-      items: [
-        { id: "physical-a", cwd: "/work/a" },
-        { id: "physical-b", cwd: "/work/b" },
-        { id: "physical-c", cwd: "/work/c" },
-      ],
-      preferredIds: ["legacy:/work/c", "legacy:/work/a"],
-      getId: (project) => project.id,
-      getPreferenceIds: (project) => [project.id, `legacy:${project.cwd}`],
-    });
-
-    expect(ordered.map((project) => project.id)).toEqual([
-      "physical-c",
-      "physical-a",
-      "physical-b",
-    ]);
-  });
 });
 
 describe("resolveAdjacentThreadId", () => {
@@ -1363,7 +1343,6 @@ function makeThread(overrides: ThreadFixtureOverrides = {}): Thread {
     interactionMode: DEFAULT_INTERACTION_MODE,
     runtime: null,
     messages: [],
-    proposedPlans: [],
     createdAt: "2026-03-09T10:00:00.000Z",
     archivedAt: null,
     settledOverride: null,
@@ -1798,30 +1777,6 @@ describe("sortSidebarV2ProjectGroups", () => {
         (project) => project.projectKey,
       ),
     ).toEqual(["logical-newer", "logical-older"]);
-  });
-});
-
-describe("resolveThreadLastVisitedAt", () => {
-  it("uses the local watermark when the server does not track visits", () => {
-    expect(resolveThreadLastVisitedAt(undefined, "2026-07-30T10:00:00.000Z")).toBe(
-      "2026-07-30T10:00:00.000Z",
-    );
-    expect(resolveThreadLastVisitedAt(undefined, undefined)).toBeUndefined();
-  });
-
-  it("keeps the server watermark authoritative when visited tracking exists", () => {
-    // A rewound server value (mark-unread) must win even over a newer local
-    // watermark left behind by earlier viewing on this device.
-    expect(resolveThreadLastVisitedAt("2026-07-30T10:00:00.000Z", "2026-07-30T10:00:05.000Z")).toBe(
-      "2026-07-30T10:00:00.000Z",
-    );
-    expect(resolveThreadLastVisitedAt("2026-07-30T10:00:00.000Z", undefined)).toBe(
-      "2026-07-30T10:00:00.000Z",
-    );
-  });
-
-  it("treats an explicit server-side null as never visited", () => {
-    expect(resolveThreadLastVisitedAt(null, "2026-07-30T10:00:00.000Z")).toBeUndefined();
   });
 });
 

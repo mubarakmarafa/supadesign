@@ -32,8 +32,7 @@ vi.mock("../state/entities", () => ({
       },
     },
   ],
-  useServerConfigs: () =>
-    new Map([["environment-1", { environment: { capabilities: { pullRequests: true } } }]]),
+  useServerConfigs: () => new Map([["environment-1", { environment: { capabilities: {} } }]]),
 }));
 vi.mock("../state/environments", () => ({ usePrimaryEnvironmentId: () => "environment-1" }));
 vi.mock("~/localApi", () => ({

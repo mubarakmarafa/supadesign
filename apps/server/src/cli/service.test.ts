@@ -138,7 +138,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
     }),
   );
 
-  it.effect.each(["install", "update"] as const)(
+  it.effect.each(["install"] as const)(
     "%s refuses a downgrade before changing the service",
     (command) =>
       Effect.gen(function* () {
@@ -168,7 +168,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
       }),
   );
 
-  it.effect.each(["install", "update"] as const)("%s allows an explicit downgrade", (command) =>
+  it.effect.each(["install"] as const)("%s allows an explicit downgrade", (command) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-service-cli-test-" });

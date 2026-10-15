@@ -10,7 +10,6 @@ import {
   PullRequestInvolvement,
   PullRequestListFilters,
   PullRequestListState,
-  type ProviderInstanceId,
   type PullRequestMergeMethod,
   type SidebarProjectGroupingMode,
 } from "@supaterm/contracts";
@@ -55,13 +54,11 @@ const isPullRequestListPreferences = Schema.is(PullRequestListPreferences);
 export interface Preferences {
   readonly pullRequestHideTestFiles?: boolean;
   readonly pullRequestMergeMethod?: PullRequestMergeMethod;
-  readonly themeId?: MobileThemeId;
   readonly lightThemeId?: MobileThemeId;
   readonly darkThemeId?: MobileThemeId;
   readonly themeMode?: MobileThemeMode;
   readonly baseFontSize?: number;
   readonly terminalFontSize?: number | null;
-  readonly markdownFontSize?: number;
   readonly codeFontSize?: number | null;
   readonly codeWordBreak?: boolean;
   readonly collapsedProjectGroups?: readonly string[];
@@ -75,14 +72,7 @@ export interface Preferences {
   readonly followUpBehavior?: FollowUpBehavior;
   /** Microphone kinds and remembered devices, most preferred first. iOS only. */
   readonly microphones?: ReadonlyArray<MicrophoneEntry>;
-  /** @deprecated Kept temporarily so older OTA bundles retain the selected mode. */
-  readonly projectGroupingEnabled?: boolean;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
-  /** @deprecated Retained to migrate favorites to the connected environment. */
-  readonly modelFavorites?: ReadonlyArray<{
-    readonly provider: ProviderInstanceId;
-    readonly model: string;
-  }>;
   readonly threadListPinnedShelfExpanded?: boolean;
   readonly threadListActiveShelfExpanded?: boolean;
   readonly threadListSettledShelfExpanded?: boolean;
@@ -134,13 +124,11 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   const preferences: {
     pullRequestHideTestFiles?: boolean;
     pullRequestMergeMethod?: PullRequestMergeMethod;
-    themeId?: MobileThemeId;
     lightThemeId?: MobileThemeId;
     darkThemeId?: MobileThemeId;
     themeMode?: MobileThemeMode;
     baseFontSize?: number;
     terminalFontSize?: number | null;
-    markdownFontSize?: number;
     codeFontSize?: number | null;
     codeWordBreak?: boolean;
     collapsedProjectGroups?: readonly string[];
@@ -148,9 +136,7 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     showSkillsInSlashMenu?: boolean;
     followUpBehavior?: FollowUpBehavior;
     microphones?: ReadonlyArray<MicrophoneEntry>;
-    projectGroupingEnabled?: boolean;
     projectGroupingMode?: SidebarProjectGroupingMode;
-    modelFavorites?: Preferences["modelFavorites"];
     threadListPinnedShelfExpanded?: boolean;
     threadListActiveShelfExpanded?: boolean;
     threadListSettledShelfExpanded?: boolean;
@@ -173,12 +159,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
 
   if (
-    typeof parsed.themeId === "string" &&
-    (MOBILE_THEME_IDS as readonly string[]).includes(parsed.themeId)
-  ) {
-    preferences.themeId = parsed.themeId as MobileThemeId;
-  }
-  if (
     typeof parsed.lightThemeId === "string" &&
     (MOBILE_THEME_IDS as readonly string[]).includes(parsed.lightThemeId)
   ) {
@@ -200,9 +180,6 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   if (typeof parsed.baseFontSize === "number") preferences.baseFontSize = parsed.baseFontSize;
   if (typeof parsed.terminalFontSize === "number" || parsed.terminalFontSize === null) {
     preferences.terminalFontSize = parsed.terminalFontSize;
-  }
-  if (typeof parsed.markdownFontSize === "number") {
-    preferences.markdownFontSize = parsed.markdownFontSize;
   }
   if (typeof parsed.codeFontSize === "number" || parsed.codeFontSize === null) {
     preferences.codeFontSize = parsed.codeFontSize;
@@ -231,26 +208,12 @@ function sanitizePreferences(parsed: Preferences): Preferences {
         : [];
     });
   }
-  if (typeof parsed.projectGroupingEnabled === "boolean") {
-    preferences.projectGroupingEnabled = parsed.projectGroupingEnabled;
-  }
   if (
     parsed.projectGroupingMode === "repository" ||
     parsed.projectGroupingMode === "repository_path" ||
     parsed.projectGroupingMode === "separate"
   ) {
     preferences.projectGroupingMode = parsed.projectGroupingMode;
-  }
-  if (Array.isArray(parsed.modelFavorites)) {
-    preferences.modelFavorites = parsed.modelFavorites.filter(
-      (favorite) =>
-        typeof favorite === "object" &&
-        favorite !== null &&
-        typeof favorite.provider === "string" &&
-        favorite.provider.length > 0 &&
-        typeof favorite.model === "string" &&
-        favorite.model.trim().length > 0,
-    );
   }
   if (typeof parsed.threadListPinnedShelfExpanded === "boolean") {
     preferences.threadListPinnedShelfExpanded = parsed.threadListPinnedShelfExpanded;
@@ -415,24 +378,6 @@ export const make = Effect.fn("MobilePreferencesStore.make")(function* () {
           .pipe(
             Effect.catch((error) =>
               Effect.logWarning("Could not remove a stale mobile preferences fallback.").pipe(
-                Effect.annotateLogs({ error }),
-              ),
-            ),
-          );
-      }
-    }
-
-    if (parsed === null) {
-      const legacyJson = yield* secureStorage.getItem(PREFERENCES_KEY);
-      const legacyPreferences = parsePayload(legacyJson);
-      parsed = legacyPreferences;
-      if (legacyJson !== null && legacyPreferences !== null && databaseAvailable) {
-        yield* saveJson(legacyJson);
-        yield* secureStorage
-          .removeItem(PREFERENCES_KEY)
-          .pipe(
-            Effect.catch((error) =>
-              Effect.logWarning("Could not remove migrated mobile preferences.").pipe(
                 Effect.annotateLogs({ error }),
               ),
             ),

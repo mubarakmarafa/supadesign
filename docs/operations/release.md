@@ -178,7 +178,6 @@ and pair a reachable server under Settings → Connections.
 - Runs the same desktop quality gates and artifact matrix as the tagged release flow.
 - Publishes a GitHub prerelease only:
   - current tag format: `vX.Y.Z-nightly.YYYYMMDD.<run_number>`
-  - `nightly-v...` is accepted only as a legacy previous-nightly tag
   - release name includes the short commit SHA
   - `make_latest` is always `false`
 - Uses the next stable patch version as the nightly base. For example, `0.0.17` produces nightlies on `0.0.18-nightly.*`.
@@ -207,7 +206,7 @@ connect the new client to a server on the previous version and verify that the u
 reconnects to the matching server. When the release adds database migrations, verify that the
 remote update applies them and reconnects. A failed trial must restore the database snapshot and
 restart the previous server. If the installed launcher does not support the target protocol,
-verify that the update stops before restart and run `npx supaterm@<version> service update` once on the
+verify that the update stops before restart and run `npx supaterm@<version> service install` once on the
 server machine. Also test the manual or desktop-managed guidance when those environments are
 available.
 

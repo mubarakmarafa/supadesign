@@ -15,7 +15,6 @@
         const LIGHT_BACKGROUND = "oklch(1 0 0)";
         const DARK_BACKGROUND = "oklch(0.235659 0.007789 274.606)";
         const CUSTOM_THEMES_STORAGE_KEY = "supaterm:themes:v1";
-        const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "supaterm:theme-follow-system";
         const THEME_APPEARANCE_MODE_STORAGE_KEY = "supaterm:theme-appearance-mode";
         const THEME_HALVES_STORAGE_KEY = "supaterm:theme-halves:v1";
         const SPLASH_COLORS = {
@@ -135,12 +134,6 @@
               chrome: "oklch(0.216115 0.006126 56.043)",
             },
           },
-
-          // Compatibility for saved Graphite selections, including appearance mixes.
-          graphite: {
-            light: { ...SPLASH_COLORS.light, chrome: LIGHT_BACKGROUND },
-            dark: { ...SPLASH_COLORS.dark, chrome: DARK_BACKGROUND },
-          },
         };
         // Keep the built-in mode list in sync with the runtime so the selected
         // Supaterm Chat palette is visible before React has mounted.
@@ -253,19 +246,14 @@
           const storedAppearanceMode = window.localStorage.getItem(
             THEME_APPEARANCE_MODE_STORAGE_KEY,
           );
-          const storedFollowSystem = window.localStorage.getItem(THEME_FOLLOW_SYSTEM_STORAGE_KEY);
           // Mirrors the runtime's getThemePreferenceMode fallback: a bare
           // "light"/"dark" preference names its own mode.
           const preferenceMode = theme === "light" || theme === "dark" ? theme : baseAppearance;
           const appearanceMode = isThemePreferenceMode(storedAppearanceMode)
             ? storedAppearanceMode
-            : storedFollowSystem === "true"
+            : theme === "system"
               ? "system"
-              : storedFollowSystem === "false"
-                ? preferenceMode
-                : theme === "system"
-                  ? "system"
-                  : preferenceMode;
+              : preferenceMode;
           // A valid mix half for the wanted appearance takes over: it decides
           // light vs dark even when the base theme cannot render that mode.
           // Mirrors the runtime's halves-aware resolveThemeAppearance.

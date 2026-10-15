@@ -25,7 +25,6 @@ import * as EffectWorker from "./EffectWorker.ts";
 import * as EventSink from "./EventSink.ts";
 import * as EventStore from "./EventStore.ts";
 import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
-import * as LegacyV1ThreadImporter from "./legacy/LegacyV1ThreadImporter.ts";
 import * as Orchestrator from "./Orchestrator.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ProjectionMaintenance from "./ProjectionMaintenance.ts";
@@ -84,9 +83,6 @@ const layerEventSinkProvided = layerEventSink;
 const layerProjectionMaintenanceProvided = ProjectionMaintenance.layer.pipe(
   Layer.provide(layerStores),
 );
-const layerLegacyV1ThreadImporterProvided = LegacyV1ThreadImporter.layer.pipe(
-  Layer.provide(layerEventSinkProvided),
-);
 
 export const layerProjectService = ProjectService.layer.pipe(
   Layer.provide(
@@ -95,7 +91,6 @@ export const layerProjectService = ProjectService.layer.pipe(
       ProjectionStore.layer,
       layerEventSinkProvided,
       IdAllocator.layer,
-      layerLegacyV1ThreadImporterProvided,
     ),
   ),
 );
@@ -239,11 +234,10 @@ const layerAgentSessionImporterProvided = AgentSessionImporter.layer.pipe(
   ),
 );
 
-const layerThreadManagementProvided = ThreadManagementService.layerWithLegacyImporter.pipe(
+const layerThreadManagementProvided = ThreadManagementService.layer.pipe(
   Layer.provide(
     Layer.mergeAll(
       layerOrchestratorProvided,
-      layerLegacyV1ThreadImporterProvided,
       layerCommandReceiptStoreProvided,
       layerProviderSessionManagerProvided,
     ),
@@ -336,7 +330,6 @@ export const layer = Layer.mergeAll(
   layerProviderAuthServiceProvided,
   layerProviderRuntimeRecoveryProvided,
   layerProjectionMaintenanceProvided,
-  layerLegacyV1ThreadImporterProvided,
 );
 
 export const layerProduction = Layer.mergeAll(

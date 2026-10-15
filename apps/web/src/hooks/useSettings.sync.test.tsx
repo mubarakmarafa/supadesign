@@ -22,7 +22,7 @@ const state = vi.hoisted(() => ({
     label: string;
     connection: { phase: "connected" | "disconnected" };
     serverConfig: {
-      environment: { capabilities: { threadAutoSettlement: boolean } };
+      environment: { capabilities: {} };
       settings: typeof DEFAULT_SERVER_SETTINGS;
     };
   }>,
@@ -105,7 +105,7 @@ beforeEach(() => {
     label: environmentId,
     connection: { phase: "connected" },
     serverConfig: {
-      environment: { capabilities: { threadAutoSettlement: true } },
+      environment: { capabilities: {} },
       settings: DEFAULT_SERVER_SETTINGS,
     },
   }));
@@ -199,12 +199,11 @@ describe("shared settings writes", () => {
     });
   });
 
-  it.each(["disconnected", "unsupported"] as const)(
+  it.each(["disconnected"] as const)(
     "skips a %s remote even with a cold grant",
     async (condition) => {
       const remote = state.environments[1]!;
       if (condition === "disconnected") remote.connection.phase = "disconnected";
-      else remote.serverConfig.environment.capabilities.threadAutoSettlement = false;
       await mountEditor();
       saveSharedSettings();
 

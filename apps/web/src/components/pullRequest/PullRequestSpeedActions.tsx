@@ -10,7 +10,7 @@ import { PullRequestGlyph } from "./pullRequestIcons";
 import { pullRequestQuickActions, type EnvironmentPullRequestEntry } from "./pullRequestList.logic";
 import {
   usePullRequestActionRunner,
-  usePullRequestDefaultMergeMethodResolver,
+  usePullRequestDefaultMergeMethod,
 } from "./usePullRequestActions";
 
 type PullRequestSpeedActionEntry = Pick<
@@ -45,7 +45,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
   const canWrite = useAtomValue(
     pullRequestEnvironment.runAction.permissionAtom(entry.environmentId),
   );
-  const resolveProjectDefault = usePullRequestDefaultMergeMethodResolver(
+  const projectDefaultMergeMethod = usePullRequestDefaultMergeMethod(
     entry.environmentId,
     entry.projectId,
   );
@@ -68,7 +68,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
       return resolvePullRequestMergeMethod(
         allowed,
         null,
-        resolveProjectDefault(),
+        projectDefaultMergeMethod,
         useUiStateStore.getState().pullRequestMergeMethod,
       );
     },

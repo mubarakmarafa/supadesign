@@ -16,7 +16,6 @@ import {
   type ScopedThreadRef,
 } from "@supaterm/contracts";
 import { remapComposerContextAttachments } from "@supaterm/shared/composerContextReferences";
-import { serializeLegacyContextMessage } from "@supaterm/shared/composerContextLegacySend";
 import { resolveDefaultWorktreeBaseBranch } from "@supaterm/shared/git";
 import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import * as Schema from "effect/Schema";
@@ -31,7 +30,6 @@ import {
   restoreFailedBackgroundDraftThread,
   useComposerDraftStore,
 } from "../composerDraftStore";
-import { readFileAsDataUrl } from "../lib/imageCompression";
 import { attachmentEnvironment } from "./attachments";
 import { environmentPresentations } from "./presentation";
 import { environmentShell } from "./shell";
@@ -190,7 +188,6 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
       };
       await savePayload(payload);
     }
-    const supportsUploads = config.environment.capabilities.attachmentUploads === true;
     for (let index = 0; index < payload.localAttachments.length; index++) {
       let attachment = payload.localAttachments[index]!;
       if (attachment.uploaded) {
@@ -207,7 +204,6 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
         payload.localAttachments[index] = attachment;
         await savePayload(payload);
       }
-      if (!supportsUploads) continue;
       if (attachment.type === "file") {
         const step = resolveThreadOutboxDispatchStep({
           deliveryAction: "send",
@@ -226,28 +222,11 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
     const attachments =
       local.length === 0
         ? payload.input.message.attachments
-        : await Promise.all(
-            local.map(async (attachment) => {
-              if (attachment.uploaded) return attachment.uploaded;
-              if (attachment.type !== "image")
-                throw new Error("This server does not support file attachments.");
-              if (attachment.bytes === null)
-                throw new Error(`Attach '${attachment.name}' again before sending.`);
-              return {
-                type: "image" as const,
-                id: attachment.id,
-                name: attachment.name,
-                mimeType: attachment.mimeType,
-                sizeBytes: attachment.sizeBytes,
-                dataUrl: await readFileAsDataUrl(
-                  new File([attachment.bytes], attachment.name, { type: attachment.mimeType }),
-                ),
-                ...(attachment.source && !("_tag" in attachment.source)
-                  ? { source: attachment.source }
-                  : {}),
-              };
-            }),
-          );
+        : local.map((attachment) => {
+            if (!attachment.uploaded)
+              throw new Error(`Attach '${attachment.name}' again before sending.`);
+            return attachment.uploaded;
+          });
     const context =
       local.length === 0
         ? payload.input.message.context
@@ -298,9 +277,8 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
         });
       }
     }
-    const liveConfig = appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId);
-    if (!liveConfig) throw new Error("Environment is not connected.");
-    const supportsContext = liveConfig.environment.capabilities.inlineMessageContext === true;
+    if (!appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId))
+      throw new Error("Environment is not connected.");
     const { context: _, ...message } = payload.input.message;
     if (payload.compactBeforeSend && payload.compactAccepted !== true) {
       // Both IDs survive reconnects and retries, so acknowledgement loss cannot compact twice.
@@ -335,11 +313,7 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
         message: {
           ...message,
           attachments,
-          text:
-            context && !supportsContext
-              ? serializeLegacyContextMessage({ text: message.text, records: context.records })
-              : message.text,
-          ...(context && supportsContext ? { context } : {}),
+          ...(context ? { context } : {}),
         },
       },
     });

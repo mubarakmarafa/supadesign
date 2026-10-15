@@ -202,9 +202,7 @@ export function createEnvironmentSummaryAtoms(input: {
   });
   const pullRequestsSupportedAtom = Atom.make((get) =>
     get(environmentIdsAtom).some(
-      (environmentId) =>
-        get(input.presentationAtom(environmentId))?.serverConfig?.environment.capabilities
-          .pullRequests === true,
+      (environmentId) => get(input.presentationAtom(environmentId))?.serverConfig != null,
     ),
   );
   return {

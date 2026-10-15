@@ -324,16 +324,6 @@ export function createPullRequestRouter() {
         )
         .pipe(Effect.orElseSucceed(() => Option.none()));
       if (Option.isNone(connected)) continue;
-      if (tag === WS_METHODS.pullRequestsChecks) {
-        const supported = yield* connected.value.initialConfig.pipe(
-          Effect.map((config) => config.environment.capabilities.pullRequestChecks === true),
-          Effect.timeout("2 seconds"),
-          Effect.catchCause((cause) =>
-            Cause.hasInterrupts(cause) ? Effect.interrupt : Effect.succeed(false),
-          ),
-        );
-        if (!supported) continue;
-      }
       alternatives.push({ id, local: isLocal(entry) });
     }
     if (alternatives.length === 0) return yield* finish(source);
@@ -413,7 +403,7 @@ export function createPullRequestRouter() {
         if (id !== origin.target.environmentId) {
           if (!(yield* routingAllowed(registry, origin.target.environmentId, id, writes.has(tag))))
             return yield* visit(index + 1);
-          // An older server would discard expectedAccountId. Verify it implements the guard first.
+          // Route only to an environment signed in to the same account on this host.
           const alternateProbe = request(WS_METHODS.pullRequestsRoutingIdentity, {
             host: identity.host,
           }).pipe(

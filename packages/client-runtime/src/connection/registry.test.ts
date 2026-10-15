@@ -5,6 +5,7 @@ import {
   DEFAULT_SERVER_SETTINGS,
   type ServerConfig,
   type OrchestrationV2ShellSnapshot,
+  ORCHESTRATION_PROTOCOL_VERSION,
 } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Context from "effect/Context";
@@ -1754,7 +1755,8 @@ it.effect(
           label: "Test",
           platform: { os: "linux", arch: "x64" },
           serverVersion: "test",
-          capabilities: { repositoryIdentity: true, relayAdvertisement: true },
+          orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+          capabilities: {},
         },
         auth: {
           policy: "loopback-browser",

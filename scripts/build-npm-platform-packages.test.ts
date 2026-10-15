@@ -172,7 +172,7 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
       assert.equal(launcherManifest.name, "supaterm");
       assert.equal(launcherManifest.version, VERSION);
       assert.deepStrictEqual(launcherManifest.bin, { supaterm: "./bin/supaterm.js" });
-      assert.deepStrictEqual(launcherManifest.files, ["bin", "dist"]);
+      assert.deepStrictEqual(launcherManifest.files, ["bin"]);
       assert.deepStrictEqual(launcherManifest.optionalDependencies, {
         "@supabitapp/supaterm-darwin-arm64": VERSION,
         "@supabitapp/supaterm-linux-x64": VERSION,
@@ -220,36 +220,6 @@ it.layer(NodeServices.layer)("build-npm-platform-packages", (it) => {
           `stub ${hostPlatform}-${hostArch} serve --port 1234`,
         );
         assert.equal(passthrough.exitCode, 7);
-
-        // Run the entry point used by already-installed service updaters from
-        // the published tarball, including their preflight arguments.
-        const installedLauncher = path.join(fixture.root, "installed-launcher");
-        yield* fs.makeDirectory(installedLauncher);
-        const unpack = yield* run(
-          "tar",
-          ["-xf", path.join(fixture.outputDir, "supaterm.tgz"), "-C", installedLauncher],
-          {
-            cwd: fixture.root,
-          },
-        );
-        assert.equal(unpack.exitCode, 0, unpack.stderr);
-        const legacy = yield* run(
-          process.execPath,
-          [
-            "dist/bin.mjs",
-            "__service-preflight",
-            "--database-path",
-            "a database.sqlite",
-            "--launcher-protocol",
-            "2",
-          ],
-          { cwd: path.join(installedLauncher, "package"), env },
-        );
-        assert.equal(
-          legacy.stdout.trim(),
-          `stub ${hostPlatform}-${hostArch} __service-preflight --database-path a database.sqlite --launcher-protocol 2`,
-        );
-        assert.equal(legacy.exitCode, 7);
       }
 
       const unsupported = yield* run(process.execPath, ["bin/supaterm.js", "--version"], {

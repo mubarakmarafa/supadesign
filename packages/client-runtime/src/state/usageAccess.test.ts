@@ -42,7 +42,6 @@ describe("resolveUsageAccess", () => {
       session: {
         authenticated: true,
         scopes: [AuthOrchestrationReadScope],
-        auth: { serverUpdateScope: "environment:maintain" },
       },
       hasSessionError: false,
     });

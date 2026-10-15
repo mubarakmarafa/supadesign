@@ -22,7 +22,7 @@ import {
   faviconStorageLocation,
   isStorableFaviconDataUrl,
   isValidFaviconCapturedAt,
-  migratePersistedBrowserFaviconState,
+  sanitizePersistedBrowserFaviconState,
 } from "./browserFaviconLogic";
 import { createMemoryStorage, type StateStorage } from "./lib/storage";
 
@@ -159,7 +159,6 @@ export const useBrowserFaviconStore = create<BrowserFaviconStoreState>()(
       version: 1,
       storage: createJSONStorage(resolveBrowserFaviconStorage),
       partialize: (state) => ({ byKey: state.byKey }),
-      migrate: migratePersistedBrowserFaviconState,
       merge: mergeBrowserFaviconState,
     },
   ),
@@ -171,7 +170,7 @@ export function mergeBrowserFaviconState(
 ): BrowserFaviconStoreState {
   return {
     ...currentState,
-    ...migratePersistedBrowserFaviconState(persistedState),
+    ...sanitizePersistedBrowserFaviconState(persistedState),
   };
 }
 

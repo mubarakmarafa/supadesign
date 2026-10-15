@@ -23,13 +23,8 @@ import { ForwardCompatibleArray, NonNegativeInt, TrimmedNonEmptyString } from ".
  */
 export const USAGE_CONTRACT_VERSION = 6 as const;
 
-/**
- * Oldest {@link UsageSummary} version a current client will still merge.
- *
- * v5/v6 add providers and optional source attribution; v4 Claude/Codex
- * buckets remain valid in mixed-version environments.
- */
-export const USAGE_MERGE_COMPATIBLE_SINCE = 4 as const;
+/** Oldest {@link UsageSummary} version a current client will still merge. */
+export const USAGE_MERGE_COMPATIBLE_SINCE = 6 as const;
 
 export const UsageProviderKind = Schema.Literals([
   "claude",

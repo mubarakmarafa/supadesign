@@ -1,4 +1,8 @@
-import { EnvironmentId, type ServerSelfUpdateCapability } from "@supaterm/contracts";
+import {
+  EnvironmentId,
+  type ServerSelfUpdateCapability,
+  ORCHESTRATION_PROTOCOL_VERSION,
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -24,8 +28,8 @@ function machine(
         label: id,
         platform: { os: "linux", arch: "x64" },
         serverVersion,
+        orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
         capabilities: {
-          repositoryIdentity: true,
           ...(selfUpdate ? { serverSelfUpdate: selfUpdate } : {}),
           ...(selfUpdate === "desktop-managed" ? { desktopAppUpdate: true } : {}),
         },
@@ -78,7 +82,6 @@ describe("collectRestartingMachines", () => {
             ...base.serverConfig!.environment,
             capabilities: {
               ...base.serverConfig!.environment.capabilities,
-              threadRestartContinuation: true,
             },
           },
           settings: { continueThreadsAfterServerUpdate: enabled },

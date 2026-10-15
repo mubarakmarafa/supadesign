@@ -8,9 +8,7 @@ import {
   formatTerminalContextLabel,
   formatTerminalContextReference,
   hasTerminalContextText,
-  INLINE_TERMINAL_CONTEXT_PLACEHOLDER,
   isTerminalContextExpired,
-  migrateLegacyTerminalContextPlaceholders,
   type TerminalContextDraft,
 } from "./terminalContext";
 
@@ -51,16 +49,6 @@ describe("terminalContext", () => {
     expect(formatTerminalContextReference(makeContext())).toBe(
       "[Terminal 1 lines 12-13](supaterm-context://v1/terminal/terminal_context-1)",
     );
-  });
-
-  it("migrates legacy placeholders to references in order and drops extras", () => {
-    const placeholder = INLINE_TERMINAL_CONTEXT_PLACEHOLDER;
-    const first = formatTerminalContextReference(makeContext());
-    const contexts = [makeContext()];
-    expect(
-      migrateLegacyTerminalContextPlaceholders(`a ${placeholder} b ${placeholder}`, contexts),
-    ).toBe(`a ${first} b `);
-    expect(migrateLegacyTerminalContextPlaceholders("plain", contexts)).toBe("plain");
   });
 
   it("marks contexts without snapshot text as expired and filters them from sendable contexts", () => {

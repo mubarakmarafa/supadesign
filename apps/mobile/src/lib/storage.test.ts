@@ -1,4 +1,3 @@
-import { EnvironmentId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const mocks = vi.hoisted(() => {
@@ -41,10 +40,7 @@ const mocks = vi.hoisted(() => {
         (run: (transaction: { execAsync: () => Promise<void> }) => Promise<void>) =>
           run({ execAsync: () => Promise.resolve() }),
       ),
-      getFirstAsync: vi.fn((sql: string) => {
-        if (sql.includes("PRAGMA user_version")) {
-          return Promise.resolve({ user_version: 1 });
-        }
+      getFirstAsync: vi.fn(() => {
         if (loadPreferencesFails) {
           return Promise.reject(new Error("database unavailable"));
         }
@@ -96,89 +92,52 @@ vi.mock("react-native", () => ({
 
 import {
   loadPreferences,
-  loadSavedConnections,
-  saveConnection,
+  loadRecentThreadShortcuts,
   savePreferencesPatch,
 } from "../persistence/imperative";
 
-const bearerConnection = {
-  environmentId: EnvironmentId.make("environment-1"),
-  environmentLabel: "Desktop",
-  pairingUrl: "https://desktop.example/",
-  displayUrl: "https://desktop.example/",
-  httpBaseUrl: "https://desktop.example/",
-  wsBaseUrl: "wss://desktop.example/",
-  bearerToken: "bearer-token",
-} as const;
+const RECENT_THREAD_SHORTCUTS_KEY = "supaterm.recent-thread-shortcuts";
 
-describe("mobile connection storage", () => {
+describe("mobile storage", () => {
   beforeEach(() => {
     mocks.clear();
     vi.clearAllMocks();
-  });
-
-  it("round-trips bearer connections", async () => {
-    await saveConnection(bearerConnection);
-
-    await expect(loadSavedConnections()).resolves.toEqual([bearerConnection]);
-  });
-
-  it("skips stored connections that have no bearer token", async () => {
-    await mocks.setItemAsync(
-      "supaterm.connections",
-      JSON.stringify({
-        connections: [
-          { ...bearerConnection, environmentId: "environment-2", bearerToken: null },
-          bearerConnection,
-        ],
-      }),
-    );
-
-    await expect(loadSavedConnections()).resolves.toEqual([bearerConnection]);
   });
 
   it("preserves secure-storage read failures with operation and key context", async () => {
     const cause = new Error("keychain unavailable");
     mocks.getItemAsync.mockRejectedValueOnce(cause);
 
-    await expect(loadSavedConnections()).rejects.toMatchObject({
+    await expect(loadRecentThreadShortcuts()).rejects.toMatchObject({
       _tag: "MobileSecureStorageError",
       operation: "read",
-      key: "supaterm.connections",
+      key: RECENT_THREAD_SHORTCUTS_KEY,
       cause,
-      message: "Mobile secure storage operation read failed for key supaterm.connections.",
+      message: `Mobile secure storage operation read failed for key ${RECENT_THREAD_SHORTCUTS_KEY}.`,
     });
   });
 
   it("logs structured decode failures before using the empty fallback", async () => {
-    await mocks.setItemAsync("supaterm.connections", "{");
+    await mocks.setItemAsync(RECENT_THREAD_SHORTCUTS_KEY, "{");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
-    await expect(loadSavedConnections()).resolves.toEqual([]);
+    await expect(loadRecentThreadShortcuts()).resolves.toEqual([]);
     expect(warn).toHaveBeenCalledWith(
       "[mobile-storage] ignored invalid JSON",
       expect.objectContaining({
         _tag: "MobileStorageDecodeError",
-        key: "supaterm.connections",
+        key: RECENT_THREAD_SHORTCUTS_KEY,
         cause: expect.any(SyntaxError),
-        message: "Failed to decode mobile storage value for key supaterm.connections.",
+        message: `Failed to decode mobile storage value for key ${RECENT_THREAD_SHORTCUTS_KEY}.`,
       }),
     );
 
     warn.mockRestore();
   });
 
-  it("loads legacy preferences when SQLite is unavailable", async () => {
-    mocks.setDatabaseFailures(true, true);
-    await mocks.setItemAsync("supaterm.preferences", JSON.stringify({ baseFontSize: 17 }));
-
-    await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 17 });
-  });
-
   it("persists independent light and dark theme choices", async () => {
     mocks.setPreferencesJson(
       JSON.stringify({
-        themeId: "grove",
         lightThemeId: "iris",
         darkThemeId: "ocean",
         themeMode: "system",
@@ -187,7 +146,6 @@ describe("mobile connection storage", () => {
     );
 
     await expect(loadPreferences()).resolves.toEqual({
-      themeId: "grove",
       lightThemeId: "iris",
       darkThemeId: "ocean",
       themeMode: "system",
@@ -200,23 +158,6 @@ describe("mobile connection storage", () => {
     await expect(loadPreferences()).resolves.toEqual(themes);
     await savePreferencesPatch({ lightThemeId: "supaterm-chat" });
     await expect(loadPreferences()).resolves.toEqual({ ...themes, lightThemeId: "supaterm-chat" });
-  });
-
-  it.each([true, false])("drops the removed Android layout preference (%s)", async (enabled) => {
-    mocks.setPreferencesJson(
-      JSON.stringify({
-        materialYouStyleLayoutEnabled: enabled,
-        lightThemeId: "supaterm-chat",
-      }),
-      10,
-    );
-    await expect(loadPreferences()).resolves.toEqual({ lightThemeId: "supaterm-chat" });
-  });
-
-  it("drops the removed theme transition preference", async () => {
-    mocks.setPreferencesJson(JSON.stringify({ themeTransition: "circle-bottom-left" }), 10);
-
-    await expect(loadPreferences()).resolves.toEqual({});
   });
 
   it("falls back to secure storage when SQLite cannot save preferences", async () => {
@@ -255,12 +196,10 @@ describe("mobile connection storage", () => {
     });
   });
 
-  it("drops legacy and invalid thread list shelf expansion preferences", async () => {
+  it("drops invalid thread list shelf expansion preferences", async () => {
     mocks.setPreferencesJson(
       JSON.stringify({
         baseFontSize: 17,
-        threadListV2SettledShelfExpanded: true,
-        threadListV2SnoozedShelfExpanded: true,
         threadListSettledShelfExpanded: "false",
         threadListSnoozedShelfExpanded: 1,
       }),
@@ -339,13 +278,5 @@ describe("mobile connection storage", () => {
     expect(mocks.getStoredValue("supaterm.preferences.fallback")).toBeNull();
 
     warn.mockRestore();
-  });
-
-  it("keeps SQLite authoritative when stale legacy preferences remain", async () => {
-    mocks.setPreferencesJson(JSON.stringify({ baseFontSize: 21 }), 30);
-    await mocks.setItemAsync("supaterm.preferences", JSON.stringify({ baseFontSize: 19 }));
-
-    await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 21 });
-    expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({ baseFontSize: 21 });
   });
 });

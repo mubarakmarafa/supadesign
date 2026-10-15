@@ -3,7 +3,6 @@ import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import type { EnvironmentId, PullRequestRef, ScopedThreadRef, ThreadId } from "@supaterm/contracts";
 import { CheckIcon, MessageSquareIcon } from "lucide-react";
 import { useState } from "react";
-import { threadPullRequestLinkMode } from "@supaterm/client-runtime/thread-pull-request-compatibility";
 import { usePullRequestLinking } from "~/hooks/usePullRequestLinking";
 
 import { parseChangeRequestUrl } from "~/lib/openPullRequestLink";
@@ -32,12 +31,7 @@ interface PullRequestThreadLinksProps {
 /** Thread relations belong to the detail environment, including when another environment is active. */
 export function PullRequestThreadLinks(props: PullRequestThreadLinksProps) {
   const configs = useServerConfigs();
-  if (
-    threadPullRequestLinkMode(configs.get(props.environmentId)?.environment.capabilities) ===
-    "unsupported"
-  ) {
-    return null;
-  }
+  if (configs.get(props.environmentId) === undefined) return null;
   return <EnabledPullRequestThreadLinks key={`${props.environmentId}:${props.url}`} {...props} />;
 }
 
@@ -55,7 +49,7 @@ function EnabledPullRequestThreadLinks({
   const linking = usePullRequestLinking(environmentId);
   const linkedHere = linking.isLinked(thread, url);
   const relations = useEnvironmentQuery(
-    linking.mode === "multiple" && display !== "menu-item"
+    display !== "menu-item"
       ? pullRequestEnvironment.linkedThreads({
           environmentId,
           input:
@@ -88,20 +82,17 @@ function EnabledPullRequestThreadLinks({
     } finally {
       setPending(false);
     }
-    if (linking.mode === "multiple") {
-      appAtomRegistry.refresh(
-        pullRequestEnvironment.linkedThreads({
-          environmentId,
-          input: { ...reference, ...normalizeThreadPullRequestKey(parsed) },
-        }),
-      );
-    }
+    appAtomRegistry.refresh(
+      pullRequestEnvironment.linkedThreads({
+        environmentId,
+        input: { ...reference, ...normalizeThreadPullRequestKey(parsed) },
+      }),
+    );
     onPickerOpenChange?.(false);
   };
 
   if (parsed === null || (!linkedHere && !linking.canLink(url))) return null;
-  const linkedThreads =
-    linking.mode === "multiple" ? ((relations.data ?? lastRelations)?.threads ?? []) : [];
+  const linkedThreads = (relations.data ?? lastRelations)?.threads ?? [];
   const linkedThreadsLabel =
     linkedThreads.length > 0
       ? `Linked from ${linkedThreads.length} ${linkedThreads.length === 1 ? "thread" : "threads"}`

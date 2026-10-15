@@ -1,4 +1,3 @@
-import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 
 import {
@@ -70,11 +69,10 @@ export type WorktreeSubmodules = typeof WorktreeSubmodules.Type;
 export type ExecutionEnvironmentPlatform = typeof ExecutionEnvironmentPlatform.Type;
 
 /** How a server can replace itself with another version when asked over RPC.
-    New servers only advertise the stable launcher-backed "boot-service" path;
-    "respawn" remains decodable for compatibility with older servers.
+    "boot-service" restarts through the launcher-backed boot service.
     "desktop-app" means the supervising desktop app updated and relaunched
     itself, bringing the server back with it. */
-export const ServerSelfUpdateMethod = Schema.Literals(["boot-service", "respawn", "desktop-app"]);
+export const ServerSelfUpdateMethod = Schema.Literals(["boot-service", "desktop-app"]);
 export type ServerSelfUpdateMethod = typeof ServerSelfUpdateMethod.Type;
 
 /** Proven ownership for a manual update; unknown installs omit this descriptor. */
@@ -88,139 +86,30 @@ export type ServerInstallation = typeof ServerInstallation.Type;
     self-update methods above, or "desktop-managed" when the backend's
     version belongs to the Supaterm desktop app supervising it — updating the
     app on that machine is the only way to update the server. */
-export const ServerSelfUpdateCapability = Schema.Literals([
-  "boot-service",
-  "respawn",
-  "desktop-managed",
-]);
+export const ServerSelfUpdateCapability = Schema.Literals(["boot-service", "desktop-managed"]);
 export type ServerSelfUpdateCapability = typeof ServerSelfUpdateCapability.Type;
 
 export const ExecutionEnvironmentCapabilities = Schema.Struct({
-  repositoryIdentity: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
-  connectionProbe: Schema.optionalKey(Schema.Boolean),
-  /** Missing on older servers, which still accept inline image attachments. */
-  attachmentUploads: Schema.optionalKey(Schema.Boolean),
-  /** Uploaded files may accompany question answers. */
-  questionAttachments: Schema.optionalKey(Schema.Boolean),
-  /** Missing on servers that only accept image attachments. */
+  /** Largest file a client may upload for a turn. */
   fileAttachments: Schema.optionalKey(
     Schema.Struct({
       maxUploadBytes: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
     }),
   ),
-  /** Server exposes the pull-request list, detail, activity, diff, and mutation APIs. Absent on
-      servers from before the pull-request workspace shipped, so clients must not probe them. */
-  pullRequests: Schema.optionalKey(Schema.Boolean),
-  pullRequestChecks: Schema.optionalKey(Schema.Boolean),
-  /** Server understands canonical inline context links plus their message context records.
-      Absent on servers from before inline context shipped, which drop the records and forward
-      the links as literal text -- so a client must serialize context the legacy way for them. */
-  inlineMessageContext: Schema.optionalKey(Schema.Boolean),
-  /** Server rejects required worktrees instead of falling back to the project checkout. */
-  requiredWorktreeBootstrap: Schema.optionalKey(Schema.Boolean),
-  /** Server understands thread.settle / thread.unsettle commands. Absent on
-      pre-settlement servers, so clients treat missing as unsupported and
-      never send the commands under version skew. */
-  threadSettlement: Schema.optionalKey(Schema.Boolean),
-  /** Server evaluates merge and inactivity settlement without a client. */
-  threadAutoSettlement: Schema.optionalKey(Schema.Boolean),
-  questionAutoDismiss: Schema.optionalKey(Schema.Boolean),
-  questionAutoDismissPause: Schema.optionalKey(Schema.Boolean),
-  storageCleanup: Schema.optionalKey(Schema.Boolean),
-  storageCleanupRun: Schema.optionalKey(Schema.Boolean),
-  /** Server checks OTLP endpoints for the telemetry export settings. */
-  otlpEndpointCheck: Schema.optionalKey(Schema.Boolean),
-  projectWorktreeCleanup: Schema.optionalKey(Schema.Boolean),
-  /** Server honors the `worktreesDirectory` setting. */
-  worktreesDirectory: Schema.optionalKey(Schema.Boolean),
-  /** Server persists the opt-in for continuing interrupted threads after restarts. */
-  threadRestartContinuation: Schema.optionalKey(Schema.Boolean),
-  /** Server resolves `projectSettingsOverrides`; older servers ignore the key. */
-  projectSettingsOverrides: Schema.optionalKey(Schema.Boolean),
-  /** Server resolves a project's `providerInstances` override entry. Older
-      servers decode the key away (unknown fields are stripped, not
-      rejected), so the per-project provider switch would silently do
-      nothing; clients hide it instead of sending a patch that goes nowhere. */
-  projectProviderInstanceOverrides: Schema.optionalKey(Schema.Boolean),
-  /** Server stores model favorites, hidden models and model order. Older servers decode those
-      writes away and still broadcast a settings change, so clients keep the preferences on the
-      device for them and never send the migration. */
-  modelPreferences: Schema.optionalKey(Schema.Boolean),
-  /** Server understands thread.snooze / thread.unsnooze commands. Same
-      version-skew contract as threadSettlement. */
-  threadSnooze: Schema.optionalKey(Schema.Boolean),
-  /** Server streams themes an environment publishes. Absent on servers from
-      before environment themes shipped, which never emit the events -- so a
-      client reconnecting to one must drop published themes rather than keep
-      showing a set nothing will ever update. */
-  environmentThemes: Schema.optionalKey(Schema.Boolean),
-  relayAdvertisement: Schema.optionalKey(Schema.Boolean),
-  /** Server streams quota from configured usage-limit sources. Same
-      version-skew contract as environmentThemes. */
-  usageLimitSources: Schema.optionalKey(Schema.Boolean),
-  /** Server persists custom model rates and applies them to usage summaries. */
-  usagePriceOverrides: Schema.optionalKey(Schema.Boolean),
-  /** Server persists model mappings and folds mapped usage into the target model. */
-  usageModelAliases: Schema.optionalKey(Schema.Boolean),
-  /** Server understands thread.pin / thread.unpin commands. Same
-      version-skew contract as threadSettlement. */
-  threadPinning: Schema.optionalKey(Schema.Boolean),
-  /** Server understands thread.pin.reorder (and orderKey on thread.pin).
-      Same version-skew contract as threadSettlement. */
-  threadPinReorder: Schema.optionalKey(Schema.Boolean),
-  /** Server persists manual Active order through thread.active.reorder. */
-  threadActiveReorder: Schema.optionalKey(Schema.Boolean),
-  /** Server understands thread.auto-settle.set (per-thread auto-settle off).
-      Same version-skew contract as threadSettlement. */
-  threadAutoSettleOptOut: Schema.optionalKey(Schema.Boolean),
-  /** Server understands regenerateTitle on thread.meta.update. Absent on
-      older servers, so clients hide the action instead of sending it. */
-  threadTitleRegeneration: Schema.optionalKey(Schema.Boolean),
-  /** Server understands thread.visit / thread.mark-unread commands and
-      projects lastVisitedAt on thread shells. Same version-skew contract as
-      threadSettlement: clients keep their local visited state against
-      servers that lack this. */
-  threadVisitedTracking: Schema.optionalKey(Schema.Boolean),
-  /** Server persists a pull request reference on thread.meta.update. */
-  threadPullRequestLinking: Schema.optionalKey(Schema.Boolean),
-  /** Server resolves message delivery and model-selection context and validates
-      identified rollback readiness. Clients retain projection-based command
-      shaping and validation when this is absent. */
-  serverResolvedCommandContext: Schema.optionalKey(Schema.Boolean),
-  threadPullRequests: Schema.optionalKey(Schema.Boolean),
-  /** Server understands thread.pull-request.watch and wakes agents on pull request changes. */
-  threadPullRequestWatch: Schema.optionalKey(Schema.Boolean),
-  pullRequestStackActions: Schema.optionalKey(Schema.Boolean),
   /** The update path clients should offer for this server. Absent on
       servers that must be relaunched manually (dev checkouts, Windows
-      foreground runs, pre-update servers). */
+      foreground runs). */
   serverSelfUpdate: Schema.optionalKey(ServerSelfUpdateCapability),
   /** Manual commands must update this install, not the host's default global prefix. */
   serverInstallation: ForwardCompatibleOptional(ServerInstallation),
   /** Server can stream self-update progress before acknowledging the
       restart. Clients fall back to server.updateServer when absent. */
   serverSelfUpdateProgress: Schema.optionalKey(Schema.Boolean),
-  /** Server can durably mark running provider turns before a self-update and
-      continue them after the replacement process starts. */
-  serverUpdateThreadContinuation: Schema.optionalKey(Schema.Boolean),
-  /** Server runs repository clones for new projects in the background and
-      streams their progress (`projectClone.*`, `subscribeProjectClones`).
-      Absent on older servers, where clients must clone with the blocking
-      `sourceControl.cloneRepository` call instead. */
-  projectCloneTracking: Schema.optionalKey(Schema.Boolean),
-  /** Server detects `platform.machine` and persists the `environmentIcon`
-      setting. Older servers drop the key on write, so clients show the
-      picker inert rather than offering a choice that would never stick. */
-  environmentIcon: Schema.optionalKey(Schema.Boolean),
   /** The desktop app supervising this server can be driven over RPC:
       server.updateServer runs its check -> download -> relaunch. Absent on
-      desktop servers whose app predates the remote trigger, where clients
-      must keep telling the user to update the app on that machine. */
+      servers the desktop app does not supervise, where clients tell the user
+      to update the app on that machine. */
   desktopAppUpdate: Schema.optionalKey(Schema.Boolean),
-  /** Server hosts preview tabs in its own headless Chromium (`runtime:
-      "server"`) and streams them over `/api/preview-stream`. Clients
-      without a local browser runtime open server tabs here. */
-  serverBrowser: Schema.optionalKey(Schema.Boolean),
 });
 export type ExecutionEnvironmentCapabilities = typeof ExecutionEnvironmentCapabilities.Type;
 
@@ -229,8 +118,7 @@ export const ExecutionEnvironmentDescriptor = Schema.Struct({
   label: TrimmedNonEmptyString,
   platform: ExecutionEnvironmentPlatform,
   serverVersion: TrimmedNonEmptyString,
-  /** Absent on hosts from before explicit orchestration protocol negotiation. */
-  orchestrationProtocolVersion: Schema.optionalKey(Schema.Int),
+  orchestrationProtocolVersion: Schema.Int,
   relayEndpoint: Schema.optionalKey(Schema.String),
   relayUrl: Schema.optionalKey(Schema.String),
   capabilities: ExecutionEnvironmentCapabilities,

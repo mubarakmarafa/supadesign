@@ -274,54 +274,15 @@ export const updateCommand = Command.make("update", {
  * A `supaterm serve` or `supaterm` someone started by hand, as opposed to the one the
  * background service supervises. The server records its pid on startup; a
  * stale file from a crashed server is ignored by checking the pid is alive.
- *
- * Servers from before `serviceManaged` was recorded cannot be told apart by
- * the file alone, so the launcher-supervised case is also recognised by
- * lineage: a service server's parent is the launcher, and on Linux that
- * launcher runs inside the unit's cgroup.
  */
 const findForegroundServer = Effect.fn("cli.update.find_foreground_server")(function* (input: {
   readonly serverRuntimeStatePath: string;
-  readonly serviceInstalled: boolean;
 }) {
   const state = yield* readPersistedServerRuntimeState(input.serverRuntimeStatePath);
   if (Option.isNone(state) || state.value.serviceManaged || !isProcessAlive(state.value.pid)) {
     return undefined;
   }
-  if (input.serviceInstalled && (yield* belongsToBootService(state.value.pid))) return undefined;
   return state.value;
-});
-
-const belongsToBootService = Effect.fn("cli.update.belongs_to_boot_service")(function* (
-  pid: number,
-) {
-  const platform = yield* HostProcess.Platform;
-  const fs = yield* FileSystem.FileSystem;
-  const runner = yield* ProcessRunner.ProcessRunner;
-  if (platform === "linux") {
-    const cgroup = yield* fs.readFileString(`/proc/${pid}/cgroup`).pipe(Effect.option);
-    return Option.isSome(cgroup) && cgroup.value.includes("/supaterm.service");
-  }
-  if (platform === "darwin") {
-    // The service server's parent is the launcher process.
-    const parent = yield* runner
-      .run({
-        command: "ps",
-        args: ["-o", "ppid=", "-p", String(pid)],
-        timeout: Duration.seconds(5),
-      })
-      .pipe(Effect.option);
-    const ppid = Option.isSome(parent) && parent.value.code === 0 ? parent.value.stdout.trim() : "";
-    if (!/^\d+$/.test(ppid)) return false;
-    const command = yield* runner
-      .run({ command: "ps", args: ["-o", "command=", "-p", ppid], timeout: Duration.seconds(5) })
-      .pipe(
-        Effect.map((result) => (result.code === 0 ? result.stdout : "")),
-        Effect.orElseSucceed(() => ""),
-      );
-    return /__service-launcher/.test(command);
-  }
-  return false;
 });
 
 const runUpdate = Effect.fn("cli.update.run")(function* (input: {
@@ -399,7 +360,6 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   const serviceInstalled = status.supported && status.installed && servesThisHome;
   const foreground = yield* findForegroundServer({
     serverRuntimeStatePath: input.serverRuntimeStatePath,
-    serviceInstalled,
   });
   // What this machine runs is the executable behind the launcher and, when a
   // service is installed for this home, the version that service runs. Either

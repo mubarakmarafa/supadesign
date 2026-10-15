@@ -1,4 +1,9 @@
-import { type AuthSessionState, EnvironmentId, type ServerConfig } from "@supaterm/contracts";
+import {
+  type AuthSessionState,
+  EnvironmentId,
+  type ServerConfig,
+  ORCHESTRATION_PROTOCOL_VERSION,
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Clock from "effect/Clock";
 import * as Deferred from "effect/Deferred";
@@ -31,7 +36,8 @@ const descriptor = {
   label: "Test",
   platform: { os: "linux", arch: "x64" },
   serverVersion: "0.0.0-test",
-  capabilities: { repositoryIdentity: true },
+  orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+  capabilities: {},
 };
 
 function directRoute(id: string): ConnectionRoute {

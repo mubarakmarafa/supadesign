@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supaterm/contracts";
+import { EnvironmentId, ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
 import { assert, it } from "@effect/vitest";
 import { assertTrue } from "@effect/vitest/utils";
 import * as Effect from "effect/Effect";
@@ -16,7 +16,8 @@ it.effect(
         label: "Test environment",
         platform: { os: "darwin" as const, arch: "arm64" as const },
         serverVersion: "0.0.0-test",
-        capabilities: { repositoryIdentity: true },
+        orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+        capabilities: {},
       };
 
       const welcome = yield* lifecycleEvents
@@ -46,31 +47,8 @@ it.effect(
       assertTrue(Option.isSome(ready));
       assert.equal(ready.value.sequence, 2);
 
-      yield* lifecycleEvents.publish({
-        version: 1,
-        type: "legacyThreadMigration",
-        payload: {
-          status: "running",
-          totalThreadCount: 12,
-        },
-      });
-      yield* lifecycleEvents.publish({
-        version: 1,
-        type: "legacyThreadMigration",
-        payload: {
-          status: "complete",
-          totalThreadCount: 12,
-        },
-      });
-
       const snapshot = yield* lifecycleEvents.snapshot;
-      assert.equal(snapshot.sequence, 4);
-      assert.deepEqual(snapshot.events.map((event) => event.type).toSorted(), [
-        "legacyThreadMigration",
-        "ready",
-        "welcome",
-      ]);
-      const migration = snapshot.events.find((event) => event.type === "legacyThreadMigration");
-      assert.equal(migration?.payload.status, "complete");
+      assert.equal(snapshot.sequence, 2);
+      assert.deepEqual(snapshot.events.map((event) => event.type).toSorted(), ["ready", "welcome"]);
     }).pipe(Effect.provide(ServerLifecycleEvents.layer)),
 );

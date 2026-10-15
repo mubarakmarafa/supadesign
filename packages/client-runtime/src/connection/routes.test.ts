@@ -1,4 +1,8 @@
-import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supaterm/contracts";
+import {
+  DEFAULT_PUBLIC_RELAY_URL,
+  EnvironmentId,
+  ORCHESTRATION_PROTOCOL_VERSION,
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Option from "effect/Option";
 
@@ -363,26 +367,23 @@ describe("relay route advertisements", () => {
     ).toBeNull();
   });
 
-  it("distinguishes capable-server withdrawal from legacy missing or incomplete fields", () => {
+  it("treats missing relay fields as withdrawn and partial fields as unknown", () => {
     const environment = {
       environmentId,
       label: "Test",
       platform: { os: "linux", arch: "x64" } as const,
       serverVersion: "test",
-      capabilities: { repositoryIdentity: true },
+      orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+      capabilities: {},
     };
-    expect(advertisedConnectionRoutes({ environment }).relayAdvertisement).toBeUndefined();
+    expect(advertisedConnectionRoutes({ environment }).relayAdvertisement).toBeNull();
     expect(
       advertisedConnectionRoutes({ environment: { ...environment, ...relayAdvertisement } })
         .relayAdvertisement,
     ).toEqual(relayAdvertisement);
-    const capable = {
-      ...environment,
-      capabilities: { ...environment.capabilities, relayAdvertisement: true },
-    };
-    expect(advertisedConnectionRoutes({ environment: capable }).relayAdvertisement).toBeNull();
     expect(
-      advertisedConnectionRoutes({ environment: { ...capable, relayEndpoint } }).relayAdvertisement,
+      advertisedConnectionRoutes({ environment: { ...environment, relayEndpoint } })
+        .relayAdvertisement,
     ).toBeUndefined();
   });
 });

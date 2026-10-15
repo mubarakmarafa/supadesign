@@ -218,10 +218,7 @@ function settingsCommandId(message: QueuedThreadMessage, setting: string): Comma
  * `deliveryRevision` is the revision of the payload this attempt will send,
  * used for the delivery removal's compare-and-set.
  */
-export async function prepareQueuedMessageAttachments(
-  queuedMessage: QueuedThreadMessage,
-  supportsImageUploads = false,
-): Promise<
+export async function prepareQueuedMessageAttachments(queuedMessage: QueuedThreadMessage): Promise<
   | {
       readonly status: "ready";
       readonly prepared: PreparedTurnAttachments;
@@ -245,7 +242,6 @@ export async function prepareQueuedMessageAttachments(
   const result = await prepareTurnAttachments({
     environmentId: queuedMessage.environmentId,
     attachments: queuedMessage.attachments,
-    supportsImageUploads,
     persistUploadedReferences: async (draftAttachments) => {
       if (appAtomRegistry.get(editingQueuedMessageIdsAtom)[queuedMessage.messageId]) {
         return "abandon";
@@ -857,10 +853,7 @@ export function useThreadOutboxDrain(): void {
       let deliveryRevision: number;
       if (!hasAccess()) return true;
       try {
-        const preparedResult = await prepareQueuedMessageAttachments(
-          queuedMessage,
-          serverConfig.environment.capabilities.attachmentUploads === true,
-        );
+        const preparedResult = await prepareQueuedMessageAttachments(queuedMessage);
         if (preparedResult.status === "abandoned") {
           return true;
         }
@@ -922,7 +915,6 @@ export function useThreadOutboxDrain(): void {
                 queuedMessage.attachments,
                 prepared.attachments,
               ),
-              currentConfig.environment.capabilities.inlineMessageContext === true,
             ),
             attachments: prepared.attachments,
           },
@@ -1020,10 +1012,7 @@ export function useThreadOutboxDrain(): void {
       let persistedMessage: QueuedThreadMessage;
       let deliveryRevision: number;
       try {
-        const preparedResult = await prepareQueuedMessageAttachments(
-          queuedMessage,
-          serverConfig.environment.capabilities.attachmentUploads === true,
-        );
+        const preparedResult = await prepareQueuedMessageAttachments(queuedMessage);
         if (preparedResult.status === "abandoned") {
           return true;
         }
@@ -1114,7 +1103,6 @@ export function useThreadOutboxDrain(): void {
               queuedMessage.attachments,
               prepared.attachments,
             ),
-            currentConfig.environment.capabilities.inlineMessageContext === true,
           ),
           uploadedAttachments: prepared.attachments,
           modelSelection: sendSettings.modelSelection,

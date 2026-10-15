@@ -48,13 +48,7 @@ function WorktreesDirectoryRow() {
   const updateSettings = useUpdateScopedSettings();
   const mixed = useScopedSettingsMixed(["worktreesDirectory"]);
   const edited = useRef(false);
-  if (
-    connectedEnvironments.some(
-      (environment) =>
-        environment.serverConfig?.environment.capabilities.worktreesDirectory !== true,
-    )
-  )
-    return null;
+  if (connectedEnvironments.some((environment) => environment.serverConfig == null)) return null;
   const scopeKey = targets.map((target) => target.environmentId).join(",");
 
   return (
@@ -188,16 +182,13 @@ function CleanupSection() {
   const { connectedEnvironments } = useSettingsScope();
   const [pending, setPending] = useState(false);
   const run = useAtomCommand(serverEnvironment.runStorageCleanup);
-  const supported = connectedEnvironments.filter(
-    (environment) => environment.serverConfig?.environment.capabilities.storageCleanupRun === true,
-  );
+  const supported = connectedEnvironments.filter((environment) => environment.serverConfig != null);
   const state = useAtomValue(
     useMemo(
       () =>
         Atom.make((get) =>
           connectedEnvironments.flatMap((environment) => {
-            if (environment.serverConfig?.environment.capabilities.storageCleanupRun !== true)
-              return [];
+            if (environment.serverConfig == null) return [];
             const query = get(
               serverEnvironment.storageCleanupReport({
                 environmentId: environment.environmentId,
@@ -386,35 +377,24 @@ export function StorageSettingsPanel() {
 
   if (
     isProjectScope &&
-    connectedEnvironments.some(
-      (environment) =>
-        environment.serverConfig?.environment.capabilities.projectWorktreeCleanup !== true,
-    )
+    connectedEnvironments.some((environment) => environment.serverConfig == null)
   ) {
     return (
       <SettingsScopeNotice target="all">
-        Update the selected machines to configure project worktree cleanup.
+        Connect to the selected machines to configure project worktree cleanup.
       </SettingsScopeNotice>
     );
   }
 
-  if (
-    connectedEnvironments.some(
-      (environment) => environment.serverConfig?.environment.capabilities.storageCleanup !== true,
-    )
-  ) {
+  if (connectedEnvironments.some((environment) => environment.serverConfig == null)) {
     return (
       <SettingsScopeNotice
         target="environment"
         eligibleEnvironmentIds={connectedEnvironments
-          .filter(
-            (environment) =>
-              environment.serverConfig?.environment.capabilities.storageCleanup === true,
-          )
+          .filter((environment) => environment.serverConfig != null)
           .map((environment) => environment.environmentId)}
       >
-        Update the selected environments to use storage cleanup, or choose a machine that supports
-        it.
+        Connect to the selected environments to configure storage cleanup.
       </SettingsScopeNotice>
     );
   }
@@ -520,10 +500,7 @@ export function StorageSettingsPanel() {
                 />
               }
             />
-            {connectedEnvironments.every(
-              (environment) =>
-                environment.serverConfig?.environment.capabilities.storageCleanupRun === true,
-            ) && (
+            {connectedEnvironments.every((environment) => environment.serverConfig != null) && (
               <SettingsRow
                 {...searchableSetting("storage-worktree-keep-when")}
                 status={ruleStatus("worktreeKeepWhen")}

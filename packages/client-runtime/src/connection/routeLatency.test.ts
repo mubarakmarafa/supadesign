@@ -1,4 +1,8 @@
-import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supaterm/contracts";
+import {
+  DEFAULT_PUBLIC_RELAY_URL,
+  EnvironmentId,
+  ORCHESTRATION_PROTOCOL_VERSION,
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -45,7 +49,8 @@ const descriptor = {
   label: "Test",
   platform: { os: "linux", arch: "x64" },
   serverVersion: "0.0.0-test",
-  capabilities: { repositoryIdentity: true },
+  orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+  capabilities: {},
 };
 
 describe("route latency", () => {

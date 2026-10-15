@@ -267,18 +267,14 @@ describe("draft upload scope and offline submission", () => {
       }
     }
   });
-  it("resolves thread, new-task, and queued-task drafts without crossing environments", () => {
+  it("resolves thread and queued-task drafts without crossing environments", () => {
     expect(composerDraftEnvironmentId("environment-1:thread", [])).toBe(environmentId);
-    expect(composerDraftEnvironmentId("new-task:environment-1:project", [])).toBe(environmentId);
     expect(
       composerDraftEnvironmentId("pending-task:message", [{ messageId: "message", environmentId }]),
     ).toBe(environmentId);
     expect(composerDraftEnvironmentId("pending-task:missing", [])).toBeNull();
     const colonEnvironment = EnvironmentId.make("a:vcs-status:b");
     expect(composerDraftEnvironmentId(`${colonEnvironment}:thread`, [])).toBe(colonEnvironment);
-    expect(composerDraftEnvironmentId(`new-task:${colonEnvironment}:project`, [])).toBe(
-      colonEnvironment,
-    );
   });
 
   it("reads an id-keyed new-task draft's environment from its project stamp", () => {
@@ -293,10 +289,6 @@ describe("draft upload scope and offline submission", () => {
     // An id-keyed draft that lost its stamp belongs to nobody: uploads must
     // not start and sign-out must not sweep it into some other environment.
     expect(composerDraftEnvironmentId("new-task:abc123-def456", [])).toBeNull();
-    // The stamp wins over a legacy-looking key when both are present.
-    expect(composerDraftEnvironmentId("new-task:environment-2:project", [], stamped)).toBe(
-      environmentId,
-    );
   });
 
   it("only a failed upload blocks sending; an in-flight one queues instead", () => {
@@ -307,7 +299,7 @@ describe("draft upload scope and offline submission", () => {
       connected: true,
       serverConfig: {
         environment: {
-          capabilities: { attachmentUploads: true, fileAttachments: { maxUploadBytes: 1024 } },
+          capabilities: { fileAttachments: { maxUploadBytes: 1024 } },
         },
       },
       states: {},

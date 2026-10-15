@@ -129,13 +129,12 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
                 // Older servers can drop the socket before acknowledging the restart.
                 Effect.catchCauseIf(
                   (cause) =>
-                    (capabilities.serverSelfUpdate === "boot-service" ||
-                      capabilities.serverSelfUpdate === "respawn") &&
+                    capabilities.serverSelfUpdate === "boot-service" &&
                     isLegacyUpdateHandoffLoss(cause),
                   () =>
                     Effect.succeed({
                       targetVersion: input.targetVersion,
-                      method: capabilities.serverSelfUpdate as "boot-service" | "respawn",
+                      method: "boot-service",
                     } satisfies ServerSelfUpdateResult),
                 ),
               );
@@ -200,5 +199,5 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
 );
 
 function isCompatibleDescriptor(descriptor: ExecutionEnvironmentDescriptor): boolean {
-  return (descriptor.orchestrationProtocolVersion ?? 1) === ORCHESTRATION_PROTOCOL_VERSION;
+  return descriptor.orchestrationProtocolVersion === ORCHESTRATION_PROTOCOL_VERSION;
 }

@@ -19,7 +19,7 @@ export const MOBILE_THEME_IDS = [MOBILE_DEFAULT_THEME_ID, ...BUILT_IN_THEME_IDS]
 
 /**
  * Ids a theme may not take: the appearance keywords a stored preference uses
- * and every built-in, including retired ids. Taking one would either be shadowed or
+ * and every built-in. Taking one would either be shadowed or
  * capture clients that never chose it, so the client library and the publish
  * path both consult this set.
  */
@@ -27,7 +27,6 @@ export const RESERVED_THEME_IDS: ReadonlySet<string> = new Set([
   "system",
   "light",
   "dark",
-  "graphite",
   ...BUILT_IN_THEME_IDS,
 ]);
 

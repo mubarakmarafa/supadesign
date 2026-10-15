@@ -65,16 +65,13 @@ const priceTargetsAtom = Atom.make((get): readonly UsagePriceTarget[] =>
       environmentId,
       label: environment.entry.target.label,
       prices: settings?.usagePriceOverrides ?? null,
-      aliases:
-        environment.serverConfig?.environment.capabilities.usageModelAliases === true
-          ? (settings?.usageModelAliases ?? null)
-          : null,
+      aliases: environment.serverConfig != null ? (settings?.usageModelAliases ?? null) : null,
       unavailable:
         environment.connection.phase !== "connected"
           ? "Offline"
           : settings === null
             ? "Prices not loaded"
-            : environment.serverConfig?.environment.capabilities.usagePriceOverrides !== true
+            : environment.serverConfig == null
               ? "Update server to edit prices"
               : access === "pending"
                 ? "Checking permissions…"

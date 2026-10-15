@@ -5,7 +5,7 @@ import * as Fiber from "effect/Fiber";
 import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
 
-import { EnvironmentAuthInvalidError } from "@supaterm/contracts";
+import { EnvironmentAuthInvalidError, ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
 import {
   appendClientConnectionParams,
   bootstrapRemoteBearerSession,
@@ -240,9 +240,8 @@ describe("remote environment authorization", () => {
               arch: "x64",
             },
             serverVersion: "0.0.0-test",
-            capabilities: {
-              repositoryIdentity: true,
-            },
+            orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+            capabilities: {},
           },
           { status: 200 },
         ),
@@ -255,12 +254,7 @@ describe("remote environment authorization", () => {
               sessionMethods: ["browser-session-cookie", "bearer-access-token"],
               sessionCookieName: "supaterm_session",
             },
-            scopes: [
-              "orchestration:read",
-              "orchestration:operate",
-              "terminal:operate",
-              "review:write",
-            ],
+            scopes: ["orchestration:read", "orchestration:operate", "terminal:operate"],
             sessionMethod: "bearer-access-token",
             expiresAt: "2026-05-01T12:00:00.000Z",
           },
@@ -289,7 +283,7 @@ describe("remote environment authorization", () => {
       }).pipe(provideRemoteHttp(fetch.fetchFn));
       expect(session).toMatchObject({
         authenticated: true,
-        scopes: ["orchestration:read", "orchestration:operate", "terminal:operate", "review:write"],
+        scopes: ["orchestration:read", "orchestration:operate", "terminal:operate"],
       });
 
       const ticket = yield* issueRemoteWebSocketTicket({

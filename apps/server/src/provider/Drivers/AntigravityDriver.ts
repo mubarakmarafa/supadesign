@@ -141,16 +141,10 @@ export const AntigravityDriver: ProviderDriver<
       );
       const profileDirectory = directories.profile;
       // No process of this instance exists yet, so every runtime temp
-      // directory it owns is an orphan from a killed server. Older builds
-      // unpacked inside the profile.
-      for (const directory of [
-        directories.runtimeTemp,
-        path.join(profileDirectory, "antigravity-acp", "tmp"),
-      ]) {
-        yield* removeAntigravityRuntimeTempDirs(directory).pipe(
-          Effect.provideService(FileSystem.FileSystem, fileSystem),
-        );
-      }
+      // directory it owns is an orphan from a killed server.
+      yield* removeAntigravityRuntimeTempDirs(directories.runtimeTemp).pipe(
+        Effect.provideService(FileSystem.FileSystem, fileSystem),
+      );
       const continuationIdentity = defaultProviderContinuationIdentity({
         driverKind: DRIVER,
         instanceId,

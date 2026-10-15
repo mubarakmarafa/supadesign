@@ -14,8 +14,7 @@
  * - `globalThis.__SUPATERM_DEBUG__ = ["thread-outbox"]` enables only listed ones.
  *
  * Subsystems whose traces are useful by default in development (`__DEV__`)
- * opt in with `enabledInDev`; `legacyGlobalFlag` keeps an older
- * subsystem-specific global (e.g. `__SUPATERM_TERMINAL_DEBUG__`) working.
+ * opt in with `enabledInDev`.
  */
 
 export interface DebugLogger {
@@ -26,8 +25,6 @@ export interface DebugLogger {
 export interface DebugLoggerOptions {
   /** Log whenever `__DEV__` is true, without the global filter. Defaults to false. */
   readonly enabledInDev?: boolean;
-  /** Name of a legacy subsystem-specific global boolean, e.g. `"__SUPATERM_TERMINAL_DEBUG__"`. */
-  readonly legacyGlobalFlag?: string;
 }
 
 function globalValue(name: string): unknown {
@@ -42,9 +39,6 @@ export function createDebugLogger(
 ): DebugLogger {
   const isEnabled = () => {
     if (options.enabledInDev === true && typeof __DEV__ !== "undefined" && __DEV__) {
-      return true;
-    }
-    if (options.legacyGlobalFlag !== undefined && globalValue(options.legacyGlobalFlag) === true) {
       return true;
     }
     const filter = globalValue("__SUPATERM_DEBUG__");

@@ -526,7 +526,6 @@ function parseBearerToken(request: HttpServerRequest.HttpServerRequest): string 
 export function selectRequestCredential(
   request: HttpServerRequest.HttpServerRequest,
   cookieName: string,
-  legacyCookieName: string | undefined,
 ) {
   const cookieToken = request.cookies[cookieName];
   if (cookieToken !== undefined) {
@@ -538,11 +537,6 @@ export function selectRequestCredential(
     return { token: bearerToken, source: "bearer" } as const;
   }
 
-  const legacyToken = legacyCookieName ? request.cookies[legacyCookieName] : undefined;
-  if (legacyToken !== undefined) {
-    return { token: legacyToken, source: "legacy-cookie" } as const;
-  }
-
   return undefined;
 }
 
@@ -550,7 +544,7 @@ type RequestCredentialSource = NonNullable<ReturnType<typeof selectRequestCreden
 
 /** Whether a credential came from a browser cookie rather than an Authorization header. */
 export const isBrowserCookieCredential = (source: RequestCredentialSource | "dev-cookie") =>
-  source === "cookie" || source === "legacy-cookie" || source === "dev-cookie";
+  source === "cookie" || source === "dev-cookie";
 
 function firstHeaderValue(value: string | undefined): string | undefined {
   const first = value?.split(",")[0]?.trim().toLowerCase();
@@ -625,11 +619,7 @@ export const make = Effect.gen(function* () {
     );
 
   const resolveRequestCredential = (request: HttpServerRequest.HttpServerRequest) => {
-    const selectedCredential = selectRequestCredential(
-      request,
-      sessions.cookieName,
-      sessions.legacyCookieName,
-    );
+    const selectedCredential = selectRequestCredential(request, sessions.cookieName);
     const hasAuthorization = request.headers.authorization !== undefined;
     const devCookieToken = devAuth ? request.cookies[devAuth.cookieName] : undefined;
     return (

@@ -1645,53 +1645,47 @@ it.effect("refreshes checks without refreshing full detail", () =>
   ),
 );
 
-it.effect.each([false, true])(
-  "routes checks through one reader with old alternate: %s",
-  (oldAlternate) =>
-    Effect.scoped(
-      Effect.gen(function* () {
-        const calls: string[] = [];
-        const clientFor = (local: boolean) =>
-          ({
-            [WS_METHODS.serverGetConfig]: () =>
-              Effect.succeed({
-                environment: {
-                  capabilities: local && oldAlternate ? {} : { pullRequestChecks: true },
-                },
-              }),
-            [local ? WS_METHODS.pullRequestsRoutingIdentity : WS_METHODS.pullRequestsRouting]: () =>
-              Effect.succeed({
-                host: "github.com",
-                provider: "github",
-                viewer: "viewer",
-                accountId: "123",
-              }),
-            [WS_METHODS.pullRequestsChecks]: () =>
-              Effect.gen(function* () {
-                calls.push(local ? "local" : "origin");
-                if (local && oldAlternate)
-                  return yield* Effect.die("Unknown request tag: pullRequests.checks");
-                return { state: "open", checks: [] };
-              }),
-          }) as unknown as WsRpcProtocolClient;
-        const { environmentRegistry, supervisor } = yield* makeTestRuntime(
-          clientFor(false),
-          clientFor(true),
-        );
-        const result = yield* createPullRequestRouter()(WS_METHODS.pullRequestsChecks, {
-          projectId: ProjectId.make("project-1"),
-          repository: "acme/web",
-          number: 1,
-        }).pipe(
-          Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, environmentRegistry),
-          Effect.provideService(GitHubRoutingPermissions, trustedRouting),
-          Effect.provideService(RpcPermissionGuard, { authorize: () => Effect.void }),
-          Effect.provideService(EnvironmentSupervisor.EnvironmentSupervisor, supervisor),
-        );
-        expect(result).toEqual({ state: "open", checks: [] });
-        expect(calls).toEqual(oldAlternate ? ["origin"] : ["local"]);
-      }),
-    ),
+it.effect("routes checks through one reader", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const calls: string[] = [];
+      const clientFor = (local: boolean) =>
+        ({
+          [WS_METHODS.serverGetConfig]: () =>
+            Effect.succeed({
+              environment: { capabilities: {} },
+            }),
+          [local ? WS_METHODS.pullRequestsRoutingIdentity : WS_METHODS.pullRequestsRouting]: () =>
+            Effect.succeed({
+              host: "github.com",
+              provider: "github",
+              viewer: "viewer",
+              accountId: "123",
+            }),
+          [WS_METHODS.pullRequestsChecks]: () =>
+            Effect.sync(() => {
+              calls.push(local ? "local" : "origin");
+              return { state: "open", checks: [] };
+            }),
+        }) as unknown as WsRpcProtocolClient;
+      const { environmentRegistry, supervisor } = yield* makeTestRuntime(
+        clientFor(false),
+        clientFor(true),
+      );
+      const result = yield* createPullRequestRouter()(WS_METHODS.pullRequestsChecks, {
+        projectId: ProjectId.make("project-1"),
+        repository: "acme/web",
+        number: 1,
+      }).pipe(
+        Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, environmentRegistry),
+        Effect.provideService(GitHubRoutingPermissions, trustedRouting),
+        Effect.provideService(RpcPermissionGuard, { authorize: () => Effect.void }),
+        Effect.provideService(EnvironmentSupervisor.EnvironmentSupervisor, supervisor),
+      );
+      expect(result).toEqual({ state: "open", checks: [] });
+      expect(calls).toEqual(["local"]);
+    }),
+  ),
 );
 
 it.effect("keeps live detail reads separate from reads that allow stale data", () =>

@@ -921,13 +921,6 @@ export const ServerLifecycleWelcomePayload = Schema.Struct({
 });
 export type ServerLifecycleWelcomePayload = typeof ServerLifecycleWelcomePayload.Type;
 
-export const ServerLifecycleLegacyThreadMigrationPayload = Schema.Struct({
-  status: Schema.Union([Schema.Literal("running"), Schema.Literal("complete")]),
-  totalThreadCount: NonNegativeInt,
-});
-export type ServerLifecycleLegacyThreadMigrationPayload =
-  typeof ServerLifecycleLegacyThreadMigrationPayload.Type;
-
 export const ServerLifecycleStreamWelcomeEvent = Schema.Struct({
   version: Schema.Literal(1),
   sequence: NonNegativeInt,
@@ -944,19 +937,9 @@ export const ServerLifecycleStreamReadyEvent = Schema.Struct({
 });
 export type ServerLifecycleStreamReadyEvent = typeof ServerLifecycleStreamReadyEvent.Type;
 
-export const ServerLifecycleStreamLegacyThreadMigrationEvent = Schema.Struct({
-  version: Schema.Literal(1),
-  sequence: NonNegativeInt,
-  type: Schema.Literal("legacyThreadMigration"),
-  payload: ServerLifecycleLegacyThreadMigrationPayload,
-});
-export type ServerLifecycleStreamLegacyThreadMigrationEvent =
-  typeof ServerLifecycleStreamLegacyThreadMigrationEvent.Type;
-
 export const ServerLifecycleStreamEvent = Schema.Union([
   ServerLifecycleStreamWelcomeEvent,
   ServerLifecycleStreamReadyEvent,
-  ServerLifecycleStreamLegacyThreadMigrationEvent,
 ]);
 export type ServerLifecycleStreamEvent = typeof ServerLifecycleStreamEvent.Type;
 
@@ -989,10 +972,6 @@ export const ServerSelfUpdateInput = Schema.Struct({
   /** Exact npm version of the `supaterm` package to install (never a dist-tag, so
       the server and the acknowledging client agree on what was requested). */
   targetVersion: TrimmedNonEmptyString,
-  /** Opt-in recovery for provider turns that are running when the server
-      hands off to its replacement. Missing and false keep restart behavior
-      conservative under version skew. */
-  continueRunningThreads: Schema.optionalKey(Schema.Boolean),
 });
 export type ServerSelfUpdateInput = typeof ServerSelfUpdateInput.Type;
 

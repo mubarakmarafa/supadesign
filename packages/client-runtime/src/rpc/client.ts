@@ -146,13 +146,6 @@ const currentSession = Effect.fn("EnvironmentRpc.currentSession")(function* () {
   );
 });
 
-export const getInitialServerConfig = Effect.fn("EnvironmentRpc.getInitialServerConfig")(
-  function* () {
-    const session = yield* currentSession();
-    return yield* session.initialConfig;
-  },
-);
-
 /** Installed by the shared command boundary. A missing boundary denies protected writes. */
 export class RpcPermissionGuard extends Context.Reference<{
   readonly authorize: (

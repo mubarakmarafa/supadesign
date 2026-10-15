@@ -1760,7 +1760,7 @@ const make = Effect.gen(function* () {
             // Await the original navigation failure even though background creation keeps the tab.
             await tab.initialNavigation;
           }
-          const reveal = open.open ?? open.show;
+          const reveal = open.open;
           if (reveal !== false) {
             await Effect.runPromise(
               manager.requestReveal({

@@ -170,7 +170,6 @@ describe("theme files", () => {
       sidebar: "#18191c",
       messageSurface: "#2a2b31",
     });
-    expect(BUILT_IN_THEMES.some((theme) => theme.id === "graphite")).toBe(false);
   });
 
   it("keeps the previous standard palette as the Zenbones built-in", () => {
@@ -207,9 +206,6 @@ describe("theme files", () => {
       expect(variables.get("--app-theme-message-action")).toBe(
         getStandardThemeColors(appearance).messageAction,
       );
-      applyThemePalette("graphite", appearance);
-      expect(dataset.themeId).toBe("__default");
-      expect(variables.get("--app-theme-canvas")).toBe(getStandardThemeColors(appearance).canvas);
       vi.unstubAllGlobals();
     },
   );
@@ -660,10 +656,10 @@ describe("theme files", () => {
       [
         CUSTOM_THEMES_STORAGE_KEY,
         JSON.stringify([
-          { id: "graphite-custom", label: "Graphite Tweak", appearance: "dark", colors: {} },
+          { id: "ocean-custom", label: "Ocean Tweak", appearance: "dark", colors: {} },
           {
-            id: "graphite",
-            label: "My Graphite",
+            id: "ocean",
+            label: "My Ocean",
             appearance: "dark",
             colors: { canvas: "#1d1e22" },
           },
@@ -679,15 +675,15 @@ describe("theme files", () => {
 
     invalidateCustomThemes();
     expect(getCustomThemes().map((theme) => [theme.id, theme.label])).toEqual([
-      ["graphite-custom", "Graphite Tweak"],
-      ["graphite-custom-2", "My Graphite"],
+      ["ocean-custom", "Ocean Tweak"],
+      ["ocean-custom-2", "My Ocean"],
     ]);
-    expect(getThemeDefinition("graphite")?.label).toBe("Supaterm");
+    expect(getThemeDefinition("ocean")?.label).toBe("Ocean");
 
-    removeCustomTheme("graphite-custom-2");
+    removeCustomTheme("ocean-custom-2");
 
     expect(JSON.parse(stored.get(CUSTOM_THEMES_STORAGE_KEY)!)).toEqual([
-      { id: "graphite-custom", label: "Graphite Tweak", appearance: "dark", colors: {} },
+      { id: "ocean-custom", label: "Ocean Tweak", appearance: "dark", colors: {} },
     ]);
     invalidateCustomThemes();
     vi.unstubAllGlobals();

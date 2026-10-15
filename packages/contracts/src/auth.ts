@@ -51,7 +51,7 @@ export type ServerAuthPolicy = typeof ServerAuthPolicy.Type;
  * - `desktop-bootstrap`: a trusted local desktop handoff, used so the desktop
  *   shell can pair the renderer without a login screen
  * - `one-time-token`: a short-lived pairing token, suitable for manual pairing
- *   flows such as `/pair?token=...`
+ *   flows such as `/pair#token=...`
  */
 export const ServerAuthBootstrapMethod = Schema.Literals(["desktop-bootstrap", "one-time-token"]);
 export type ServerAuthBootstrapMethod = typeof ServerAuthBootstrapMethod.Type;
@@ -69,13 +69,10 @@ export type ServerAuthBootstrapMethod = typeof ServerAuthBootstrapMethod.Type;
  *   app after bootstrap/pairing
  * - `bearer-access-token`: scoped token suitable for non-cookie or
  *   non-browser clients
- * - `dpop-access-token`: retired; decoded only because older servers and
- *   stored sessions may still carry it
  */
 export const ServerAuthSessionMethod = Schema.Literals([
   "browser-session-cookie",
   "bearer-access-token",
-  "dpop-access-token",
 ]);
 export type ServerAuthSessionMethod = typeof ServerAuthSessionMethod.Type;
 
@@ -91,8 +88,6 @@ export const AuthTerminalOperateScope = "terminal:operate" as const;
 export const AuthSourceControlWriteScope = "source-control:write" as const;
 export const AuthFilesystemReadScope = "filesystem:read" as const;
 export const AuthFilesystemWriteScope = "filesystem:write" as const;
-/** Retained for decoding existing credentials; grants no current RPC access. */
-const AuthReviewWriteScope = "review:write" as const;
 export const AuthAccessReadScope = "access:read" as const;
 export const AuthAccessWriteScope = "access:write" as const;
 export const AuthEnvironmentScope = Schema.Literals([
@@ -107,7 +102,6 @@ export const AuthEnvironmentScope = Schema.Literals([
   AuthTerminalOperateScope,
   AuthFilesystemReadScope,
   AuthFilesystemWriteScope,
-  AuthReviewWriteScope,
   AuthSourceControlWriteScope,
   AuthAccessReadScope,
   AuthAccessWriteScope,
@@ -116,84 +110,34 @@ export type AuthEnvironmentScope = typeof AuthEnvironmentScope.Type;
 export const AuthEnvironmentScopes = ForwardCompatibleArray(AuthEnvironmentScope);
 export type AuthEnvironmentScopes = typeof AuthEnvironmentScopes.Type;
 
-export const AuthGrantScope = Schema.Literals(
-  AuthEnvironmentScope.literals.filter((scope) => scope !== AuthReviewWriteScope),
-);
+export const AuthGrantScope = AuthEnvironmentScope;
 export type AuthGrantScope = typeof AuthGrantScope.Type;
 export const AuthGrantScopes = Schema.Array(AuthGrantScope);
 export type AuthGrantScopes = typeof AuthGrantScopes.Type;
 
-// Frozen wire vocabulary for clients released before granular permissions.
-const legacyScopes = new Set<AuthEnvironmentScope>([
-  AuthOrchestrationReadScope,
-  AuthOrchestrationOperateScope,
-  AuthTerminalOperateScope,
-  AuthReviewWriteScope,
-  AuthAccessReadScope,
-  AuthAccessWriteScope,
-]);
-
 /** Format public auth metadata without changing the server's authorization grant. */
 export function authScopeResponse(scopes: ReadonlyArray<AuthEnvironmentScope>) {
-  return { scopes: scopes.filter((scope) => legacyScopes.has(scope)), permissions: scopes };
+  return { scopes };
 }
 
 const authScopeResponseFields = {
   scopes: AuthEnvironmentScopes,
-  permissions: Schema.optionalKey(ForwardCompatibleArray(AuthEnvironmentScope)),
 };
 
-// Only clients talking to an old server use these parent checks. Servers never
-// expand stored grants, and an explicitly empty permissions array grants nothing.
-const legacyParents: Partial<Record<AuthEnvironmentScope, AuthEnvironmentScope>> = {
-  [AuthFilesystemReadScope]: AuthOrchestrationReadScope,
-  [AuthDiagnosticsReadScope]: AuthOrchestrationReadScope,
-  [AuthSettingsWriteScope]: AuthOrchestrationOperateScope,
-  [AuthProvidersManageScope]: AuthOrchestrationOperateScope,
-  [AuthEnvironmentMaintainScope]: AuthOrchestrationOperateScope,
-  [AuthPreviewOperateScope]: AuthOrchestrationOperateScope,
-  [AuthSourceControlWriteScope]: AuthOrchestrationOperateScope,
-  [AuthFilesystemWriteScope]: AuthOrchestrationOperateScope,
-  [AuthTerminalReadScope]: AuthTerminalOperateScope,
-};
-
-/** Keep permission denials decodable by clients with the original scope enum. */
-export function authScopeRequiredResponse(requiredPermission: AuthEnvironmentScope) {
-  return {
-    requiredScope: legacyParents[requiredPermission] ?? requiredPermission,
-    requiredPermission,
-  };
+export function authScopeRequiredResponse(requiredScope: AuthEnvironmentScope) {
+  return { requiredScope };
 }
 
 export interface SessionGrantInput {
   readonly authenticated: boolean;
   readonly scopes?: ReadonlyArray<AuthEnvironmentScope> | undefined;
-  readonly permissions?: ReadonlyArray<AuthEnvironmentScope> | undefined;
-  readonly auth?: { readonly serverUpdateScope?: string | undefined } | undefined;
 }
 
 export function sessionGrantsScope(
   session: SessionGrantInput,
   scope: AuthEnvironmentScope,
 ): boolean {
-  if (!session.authenticated) return false;
-  if (session.permissions !== undefined) return session.permissions.includes(scope);
-  if (session.scopes?.includes(scope)) return true;
-  // Also recognize servers from the first granular-scope release.
-  if (session.auth?.serverUpdateScope !== undefined) return false;
-  const parent = legacyParents[scope];
-  return parent !== undefined && session.scopes?.includes(parent) === true;
-}
-
-/** Old-only grants lost the child permissions formerly implied by their broad scopes. */
-export function sessionHasLegacyPermissions(session: SessionGrantInput): boolean {
-  const permissions = session.permissions;
-  return (
-    session.authenticated &&
-    permissions !== undefined &&
-    permissions.every((scope) => legacyScopes.has(scope)) &&
-    Object.values(legacyParents).some((parent) => permissions.includes(parent))
-  );
+  return session.authenticated && (session.scopes ?? []).includes(scope);
 }
 
 export const AuthStandardClientScopes = [
@@ -247,8 +191,6 @@ export const ServerAuthDescriptor = Schema.Struct({
   bootstrapMethods: Schema.Array(ServerAuthBootstrapMethod),
   sessionMethods: Schema.Array(ServerAuthSessionMethod),
   sessionCookieName: TrimmedNonEmptyString,
-  /** Older servers omit this and authorize self-updates with orchestration:operate. */
-  serverUpdateScope: Schema.optionalKey(Schema.Literal(AuthEnvironmentMaintainScope)),
 });
 export type ServerAuthDescriptor = typeof ServerAuthDescriptor.Type;
 
@@ -404,7 +346,6 @@ export class EnvironmentAuthorizationError extends Schema.TaggedError<Environmen
   {
     message: Schema.String,
     requiredScope: AuthEnvironmentScope,
-    requiredPermission: Schema.optionalKey(Schema.String),
   },
 ) {}
 
@@ -455,7 +396,6 @@ export const AuthSessionState = Schema.Struct({
   authenticated: Schema.Boolean,
   auth: ServerAuthDescriptor,
   scopes: Schema.optionalKey(AuthEnvironmentScopes),
-  permissions: authScopeResponseFields.permissions,
   sessionMethod: Schema.optionalKey(ServerAuthSessionMethod),
   expiresAt: Schema.optionalKey(Schema.DateTimeUtc),
 });

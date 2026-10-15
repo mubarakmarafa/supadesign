@@ -1,5 +1,4 @@
 import { useNavigation, useNavigationState, useRoute } from "@react-navigation/native";
-import { threadPullRequestLinkMode } from "@supaterm/client-runtime/thread-pull-request-compatibility";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
@@ -46,7 +45,7 @@ export function usePullRequestThreads(
 ) {
   const target = pullRequestTarget(params);
   const config = useEnvironmentServerConfig(target.environmentId);
-  const supported = threadPullRequestLinkMode(config?.environment.capabilities) === "multiple";
+  const supported = config != null;
   const parsed = pr ? parseChangeRequestUrl(pr.url) : null;
   const reference = {
     ...target,
@@ -160,7 +159,7 @@ export function usePullRequestThreads(
     ...relations,
     threads,
     canAsk,
-    canWatch: config?.environment.capabilities.threadPullRequestWatch === true,
+    canWatch: config != null,
     busy,
     ask,
     openThread,

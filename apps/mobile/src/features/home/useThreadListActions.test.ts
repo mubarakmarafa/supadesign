@@ -73,13 +73,7 @@ vi.mock("../../state/atom-registry", () => ({
                   environmentId,
                   {
                     environment: {
-                      capabilities: {
-                        threadSettlement: true,
-                        threadSnooze: true,
-                        threadPinning: true,
-                        threadPinReorder: true,
-                        threadTitleRegeneration: true,
-                      },
+                      capabilities: {},
                     },
                   },
                 ]),

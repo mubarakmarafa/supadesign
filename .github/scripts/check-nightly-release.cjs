@@ -36,7 +36,7 @@ async function assertReleaseSource({ github, context, releaseChannel }) {
   await assertCommitOnDefaultBranch({ github, context, sha: context.sha });
 }
 
-const isNightlyTag = (tag) => /^v.*-nightly\./.test(tag) || tag.startsWith("nightly-v");
+const isNightlyTag = (tag) => /^v.*-nightly\./.test(tag);
 
 // Newest published nightly by publication time, or undefined when none exists.
 async function findLatestNightly({ github, context }) {

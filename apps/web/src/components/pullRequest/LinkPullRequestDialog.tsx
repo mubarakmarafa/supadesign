@@ -48,7 +48,7 @@ export function LinkPullRequestDialogHost() {
   const threadRef = useAtomValue(linkPullRequestDialogThreadAtom);
   const thread = useThreadShell(threadRef);
   const linking = usePullRequestLinking(threadRef?.environmentId);
-  if (threadRef === null || linking.mode === "unsupported") return null;
+  if (threadRef === null || !linking.supported) return null;
   return (
     <LinkPullRequestDialog
       open

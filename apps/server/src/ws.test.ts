@@ -256,7 +256,8 @@ const relayEnvironment: ServerConfig["environment"] = {
   label: "Test",
   platform: { os: "linux", arch: "x64" },
   serverVersion: "test",
-  capabilities: { repositoryIdentity: true, relayAdvertisement: true },
+  orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+  capabilities: {},
 };
 
 const relayAdvertisement = {
@@ -264,7 +265,7 @@ const relayAdvertisement = {
   relayUrl: "wss://relay.example.test",
 };
 
-it.effect("sends opted-in relay changes without a duplicate initial advertisement", () =>
+it.effect("sends relay changes without a duplicate initial advertisement", () =>
   Effect.gen(function* () {
     const config = snapshotConfig({
       environment: { ...relayEnvironment, ...relayAdvertisement },
@@ -273,27 +274,18 @@ it.effect("sends opted-in relay changes without a duplicate initial advertisemen
     const events = yield* relayAdvertisementUpdates(
       config,
       Stream.make(relayAdvertisement, changed, changed, null),
-      true,
     ).pipe(Stream.runCollect);
     assert.deepEqual(
       Array.from(events).map((event) => event.payload),
       [changed, null],
     );
-    const caughtUp = yield* relayAdvertisementUpdates(config, Stream.make(null), true).pipe(
+    const caughtUp = yield* relayAdvertisementUpdates(config, Stream.make(null)).pipe(
       Stream.runCollect,
     );
     assert.deepEqual(
       Array.from(caughtUp).map((event) => event.payload),
       [null],
     );
-    for (const enabled of [undefined, false]) {
-      const legacy = yield* relayAdvertisementUpdates(
-        config,
-        Stream.make(changed, null),
-        enabled,
-      ).pipe(Stream.runCollect);
-      assert.equal(legacy.length, 0);
-    }
   }),
 );
 
@@ -405,7 +397,6 @@ it.live.each(["thread", "shell"] as const)(
       });
       const items = yield* subscription.pipe(
         Effect.provideService(ThreadManagement.ThreadManagementService, {
-          ensureLegacyTranscript: () => Effect.void,
           streamStoredEventsFrom: (
             input: Parameters<
               ThreadManagement.ThreadManagementService["Service"]["streamStoredEventsFrom"]

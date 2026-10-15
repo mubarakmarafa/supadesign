@@ -304,7 +304,12 @@ describe("makeManagedServerProvider", () => {
       Effect.gen(function* () {
         const initialServerSettings = {
           ...DEFAULT_SERVER_SETTINGS,
-          providerHealthRefreshInterval: Duration.hours(1),
+          backgroundActivity: {
+            ...DEFAULT_SERVER_SETTINGS.backgroundActivity,
+            profile: "custom" as const,
+            baseProfile: "balanced" as const,
+            overrides: { providerHealthRefreshInterval: Duration.hours(1) },
+          },
         };
         const serverSettingsRef = yield* Ref.make(initialServerSettings);
         const serverSettingsChanges = yield* PubSub.unbounded<typeof initialServerSettings>();
@@ -341,7 +346,10 @@ describe("makeManagedServerProvider", () => {
         yield* Deferred.await(initialCheckDone);
         const nextServerSettings = {
           ...initialServerSettings,
-          providerHealthRefreshInterval: Duration.seconds(1),
+          backgroundActivity: {
+            ...initialServerSettings.backgroundActivity,
+            overrides: { providerHealthRefreshInterval: Duration.seconds(1) },
+          },
         };
         yield* Ref.set(serverSettingsRef, nextServerSettings);
         yield* PubSub.publish(serverSettingsChanges, nextServerSettings);

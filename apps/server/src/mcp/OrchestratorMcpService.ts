@@ -337,11 +337,7 @@ export function delegatedTaskRun(
       transfer.sourceThreadId === task.threadId &&
       transfer.targetThreadId === task.childThreadId,
   );
-  if (spawnTransfer === undefined) {
-    // Legacy delegated-task projections predate the durable spawn transfer.
-    return childProjection.runs[0];
-  }
-  return spawnTransfer.targetRunId === null
+  return spawnTransfer === undefined || spawnTransfer.targetRunId === null
     ? undefined
     : childProjection.runs.find((run) => run.id === spawnTransfer.targetRunId);
 }
@@ -1689,7 +1685,7 @@ const make = Effect.gen(function* () {
         const orchestrationCapableInstanceIds = yield* loadOrchestrationCapableInstanceIds();
         // Models the user hid from pickers stay out of the catalog agents choose from.
         const modelPreferences = yield* serverSettings.getSettings.pipe(
-          Effect.map((settings) => settings.providerModelPreferences ?? {}),
+          Effect.map((settings) => settings.providerModelPreferences),
           Effect.mapError(() => failure("orchestration_error", "Unable to read server settings.")),
         );
         return {

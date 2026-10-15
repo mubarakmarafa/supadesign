@@ -101,8 +101,6 @@ function deriveCodeFontSize(baseFontSize: number): number {
 
 interface StoredAppearancePreferences {
   readonly baseFontSize?: number | null | undefined;
-  /** Legacy key from before base font size existed; migrated to baseFontSize. */
-  readonly markdownFontSize?: number | null | undefined;
   readonly terminalFontSize?: number | null | undefined;
   readonly codeFontSize?: number | null | undefined;
   readonly codeWordBreak?: boolean | null | undefined;
@@ -112,7 +110,7 @@ export function resolveAppearancePreferences(
   stored: StoredAppearancePreferences | null | undefined,
 ): AppearancePreferences {
   return {
-    baseFontSize: normalizeBaseFontSize(stored?.baseFontSize ?? stored?.markdownFontSize),
+    baseFontSize: normalizeBaseFontSize(stored?.baseFontSize),
     terminalFontSize:
       typeof stored?.terminalFontSize === "number" && Number.isFinite(stored.terminalFontSize)
         ? normalizeTerminalFontSize(stored.terminalFontSize)

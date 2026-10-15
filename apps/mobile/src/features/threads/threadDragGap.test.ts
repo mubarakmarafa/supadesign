@@ -25,34 +25,11 @@ describe("live thread insertion gap", () => {
 });
 
 describe("moving into the time-ordered inbox", () => {
-  const supported = {
-    threadPinning: true,
-    threadSettlement: true,
-    threadSnooze: true,
-  };
-  const unpinned = { pinnedAt: null };
-  const pinned = { pinnedAt: "2026-06-01T00:00:00.000Z" };
-
   it("accepts threads from other sections without a slot", () => {
-    expect(canMoveThreadToActive(pinned, "pinned", supported)).toBe(true);
-    expect(canMoveThreadToActive(unpinned, "settled", supported)).toBe(true);
-    expect(canMoveThreadToActive(pinned, "snoozed", supported)).toBe(true);
-    expect(canMoveThreadToActive(unpinned, "active", supported)).toBe(false);
-  });
-  it("requires the capability for each lifecycle change", () => {
-    expect(canMoveThreadToActive(pinned, "pinned", { ...supported, threadPinning: false })).toBe(
-      false,
-    );
-    expect(
-      canMoveThreadToActive(unpinned, "settled", { ...supported, threadSettlement: false }),
-    ).toBe(false);
-    expect(canMoveThreadToActive(unpinned, "snoozed", { ...supported, threadSnooze: false })).toBe(
-      false,
-    );
-    expect(canMoveThreadToActive(pinned, "snoozed", { ...supported, threadPinning: false })).toBe(
-      false,
-    );
-    expect(canMoveThreadToActive(unpinned, "settled", undefined)).toBe(false);
+    expect(canMoveThreadToActive("pinned", true)).toBe(true);
+    expect(canMoveThreadToActive("settled", true)).toBe(true);
+    expect(canMoveThreadToActive("snoozed", true)).toBe(true);
+    expect(canMoveThreadToActive("active", true)).toBe(false);
   });
 });
 

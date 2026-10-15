@@ -152,7 +152,7 @@ describe("resolveInitialServerAuthGateState", () => {
             platform: { os: "linux", arch: "x64" },
             serverVersion: "test",
             orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-            capabilities: { repositoryIdentity: true },
+            capabilities: {},
           }),
         session: sequence(authenticatedSession(LOOPBACK_AUTH), authenticatedSession(LOOPBACK_AUTH)),
         browserSession: () => Effect.succeed(browserSession(["orchestration:read"])),
@@ -342,18 +342,9 @@ describe("resolveInitialServerAuthGateState", () => {
     expect(testWindow.location.searchParams.get("token")).toBeNull();
   });
 
-  it("accepts query-string pairing tokens as a backward-compatible fallback", async () => {
-    const testWindow = installTestBrowser("http://localhost/?token=pairing-token");
-    const { takePairingTokenFromUrl } = await import("./environments/primary");
-
-    expect(takePairingTokenFromUrl()).toBe("pairing-token");
-    expect(testWindow.location.searchParams.get("token")).toBeNull();
-  });
-
   it.each([
     { suffix: "#token=replacement-token", cached: false },
     { suffix: "#token=replacement-token", cached: true },
-    { suffix: "?token=replacement-token", cached: true },
     { suffix: "/#token=replacement-token", cached: true },
   ])(
     "re-pairs an authenticated browser with $suffix when cached=$cached",

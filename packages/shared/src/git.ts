@@ -26,14 +26,9 @@ export function resolveDefaultWorktreeBaseBranch(
   );
 }
 
-// Canonical form is `supaterm/<8 hex>`. Older mobile builds generated `supaterm/<uuid>`
-// via Crypto.randomUUID() (always RFC 4122 v4), so the matcher also accepts exactly
-// that shape — version nibble `4`, variant nibble `[89ab]` — to keep those threads
-// eligible for branch regeneration without loosening beyond what was ever generated.
-// `supaterm-<8 hex>` is the fallback when a plain `supaterm` branch blocks the namespace.
-const TEMP_WORKTREE_BRANCH_PATTERN = new RegExp(
-  `^${WORKTREE_BRANCH_PREFIX}(?:-[0-9a-f]{8}$|\\/(?:[0-9a-f]{8}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$)`,
-);
+// Canonical form is `supaterm/<8 hex>`. `supaterm-<8 hex>` is the fallback when a
+// plain `supaterm` branch blocks the namespace.
+const TEMP_WORKTREE_BRANCH_PATTERN = new RegExp(`^${WORKTREE_BRANCH_PREFIX}[-/][0-9a-f]{8}$`);
 
 /**
  * Sanitize an arbitrary string into a valid, lowercase git refName fragment.
@@ -170,7 +165,6 @@ export function buildTemporaryWorktreeBranchName(
  * ref impossible. This moves a temporary name to the flat `supaterm-<hex>` sibling.
  */
 export function flattenTemporaryWorktreeBranchName(refName: string): string {
-  // Keep only the canonical 8-hex token so legacy UUID names stay recognizable.
   const token = refName
     .trim()
     .toLowerCase()

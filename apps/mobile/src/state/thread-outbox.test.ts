@@ -330,13 +330,13 @@ describe("thread outbox", () => {
 
     expect(
       decodeQueuedThreadMessage({
-        schemaVersion: 1,
+        schemaVersion: 4,
         ...message,
       }),
     ).toEqual(message);
     expect(() =>
       decodeQueuedThreadMessage({
-        schemaVersion: 1,
+        schemaVersion: 4,
         environmentId: "environment-1",
       }),
     ).toThrow();
@@ -365,7 +365,7 @@ describe("thread outbox", () => {
     expect(decodeQueuedThreadMessage(encodeQueuedThreadMessage(message))).toEqual(message);
   });
 
-  it("reads file-backed images from v4 queued messages", () => {
+  it("round-trips file-backed images", () => {
     const message = {
       ...queuedMessage({
         messageId: "message-image",
@@ -386,16 +386,16 @@ describe("thread outbox", () => {
       ],
     } satisfies QueuedThreadMessage;
 
-    expect(decodeQueuedThreadMessage({ ...message, schemaVersion: 4 })).toEqual(message);
+    expect(decodeQueuedThreadMessage(encodeQueuedThreadMessage(message))).toEqual(message);
   });
 
-  it("persists the exact selector snapshot while remaining compatible with v1 messages", () => {
-    const legacyMessage = queuedMessage({
+  it("persists the exact selector snapshot and falls back for messages without one", () => {
+    const unconfiguredMessage = queuedMessage({
       messageId: "message-1",
       createdAt: "2026-06-08T10:00:01.000Z",
     });
     const selectedMessage = {
-      ...legacyMessage,
+      ...unconfiguredMessage,
       modelSelection: {
         instanceId: ProviderInstanceId.make("codex"),
         model: "gpt-5.4",
@@ -409,7 +409,7 @@ describe("thread outbox", () => {
       selectedMessage,
     );
     expect(
-      resolveQueuedThreadSettings(legacyMessage, {
+      resolveQueuedThreadSettings(unconfiguredMessage, {
         modelSelection: selectedMessage.modelSelection,
         runtimeMode: selectedMessage.runtimeMode,
         interactionMode: selectedMessage.interactionMode,

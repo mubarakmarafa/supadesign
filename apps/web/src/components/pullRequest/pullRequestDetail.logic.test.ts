@@ -1,5 +1,4 @@
 import { SourceControlProviderKind } from "@supaterm/contracts";
-import { serializeLegacyContextMessage } from "@supaterm/shared/composerContextLegacySend";
 import {
   ProjectId,
   PullRequestAction,
@@ -1132,23 +1131,13 @@ describe("asking about a change rather than working on it", () => {
     isDraft: false,
   };
 
-  it.each(["", "Please consider "])("preserves PR plan feedback with prose %j", (prose) => {
-    const comment = buildPullRequestReferenceContext(base);
-    const draftText = prose + formatInlineContextReference(reviewCommentContextReference(comment));
+  it("records the pull request in the message context", () => {
     const context = buildMessageContext({
       terminalContexts: [],
       previewAnnotations: [],
-      reviewComments: [comment],
+      reviewComments: [buildPullRequestReferenceContext(base)],
     });
     expect(context?.records[0]).toMatchObject({ pullRequest: base });
-    const legacyText = serializeLegacyContextMessage({
-      text: draftText,
-      records: context!.records,
-    });
-    expect(legacyText).toContain(base.url);
-    expect(legacyText).toContain(prose);
-    expect(legacyText).not.toContain("PLEASE IMPLEMENT THIS PLAN");
-    expect(legacyText).not.toContain("supaterm-context://");
   });
 
   it("builds a neutral composer reference without prescribing an action", () => {

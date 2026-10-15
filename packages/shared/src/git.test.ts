@@ -257,34 +257,12 @@ describe("isTemporaryWorktreeBranch", () => {
     );
   });
 
-  it("matches legacy UUID-shaped temporary worktree refs from older mobile builds", () => {
-    expect(
-      isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/f4ae4e0e-f971-4d48-b4f2-9cf0aa54ab12`),
-    ).toBe(true);
-  });
-
-  it("rejects UUID-shaped refs that are not RFC 4122 v4", () => {
-    // version nibble is not 4
-    expect(
-      isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/f4ae4e0e-f971-1d48-b4f2-9cf0aa54ab12`),
-    ).toBe(false);
-    // variant nibble is not [89ab]
-    expect(
-      isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/f4ae4e0e-f971-4d48-c4f2-9cf0aa54ab12`),
-    ).toBe(false);
-  });
-
   it("matches the flat fallback used when a plain supaterm branch exists", () => {
     const flat = flattenTemporaryWorktreeBranchName(`${WORKTREE_BRANCH_PREFIX}/deadbeef`);
     expect(flat).toBe(`${WORKTREE_BRANCH_PREFIX}-deadbeef`);
     expect(isTemporaryWorktreeBranch(flat)).toBe(true);
     expect(isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}-deadbeef-extra`)).toBe(false);
     expect(isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}-feature`)).toBe(false);
-    expect(
-      flattenTemporaryWorktreeBranchName(
-        `${WORKTREE_BRANCH_PREFIX}/f4ae4e0e-f971-4d48-b4f2-9cf0aa54ab12`,
-      ),
-    ).toBe(`${WORKTREE_BRANCH_PREFIX}-f4ae4e0e`);
   });
 
   it("rejects non-temporary refName names", () => {
@@ -385,6 +363,37 @@ describe("sanitizeFeatureBranchName", () => {
 });
 
 describe("resolveAutoFeatureBranchName", () => {
+  it("uses semantic preferred ref names when available", () => {
+    expect(resolveAutoFeatureBranchName(["main", "feature/other"], "fix toast copy")).toBe(
+      "feature/fix-toast-copy",
+    );
+  });
+
+  it("normalizes preferred names that already include a ref namespace", () => {
+    expect(resolveAutoFeatureBranchName(["main"], "feature/refine-toolbar-actions")).toBe(
+      "feature/refine-toolbar-actions",
+    );
+  });
+
+  it("increments suffix when the preferred ref name already exists", () => {
+    expect(
+      resolveAutoFeatureBranchName(
+        ["main", "feature/fix-toast-copy", "feature/fix-toast-copy-2"],
+        "fix toast copy",
+      ),
+    ).toBe("feature/fix-toast-copy-3");
+  });
+
+  it("treats existing ref names as case-insensitive for collision checks", () => {
+    expect(resolveAutoFeatureBranchName(["Feature/Ticket-1"], "feature/ticket-1")).toBe(
+      "feature/ticket-1-2",
+    );
+  });
+
+  it("falls back to feature/update when no preferred name is provided", () => {
+    expect(resolveAutoFeatureBranchName(["main"])).toBe("feature/update");
+  });
+
   it("resolves case-insensitive collisions within the generated namespace", () => {
     expect(
       resolveAutoFeatureBranchName(

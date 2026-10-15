@@ -538,20 +538,6 @@ describe("ClientSettings quit confirmation", () => {
     expect(decodeClientSettings({ confirmQuit: mode }).confirmQuit).toBe(mode);
     expect(decodeClientSettingsPatch({ confirmQuit: mode }).confirmQuit).toBe(mode);
   });
-
-  it.each([
-    [true, "hold"],
-    [false, "direct"],
-  ] as const)("migrates the legacy %s value to %s", (legacyValue, mode) => {
-    const settings = decodeClientSettings({ confirmQuit: legacyValue });
-
-    expect(settings.confirmQuit).toBe(mode);
-    expect(encodeClientSettings(settings).confirmQuit).toBe(mode);
-  });
-
-  it("rejects legacy booleans at the patch boundary", () => {
-    expect(() => decodeClientSettingsPatch({ confirmQuit: true })).toThrow();
-  });
 });
 
 describe("ClientSettings browser recording frame rate", () => {
@@ -735,25 +721,6 @@ describe("ServerSettings thread settlement", () => {
   it.each([-1, 0, 91])("rejects an auto-settle threshold outside 1..90: %s", (value) => {
     expect(() => decodeServerSettings({ sidebarAutoSettleAfterDays: value })).toThrow();
     expect(() => decodeServerSettingsPatch({ sidebarAutoSettleAfterDays: value })).toThrow();
-  });
-});
-
-describe("ClientSettings pull request merge methods", () => {
-  it("defaults to no project overrides and accepts supported methods", () => {
-    expect(decodeClientSettings({}).pullRequestMergeMethodOverrides).toEqual({});
-    expect(
-      decodeClientSettingsPatch({
-        pullRequestMergeMethodOverrides: { project: "squash" },
-      }).pullRequestMergeMethodOverrides,
-    ).toEqual({ project: "squash" });
-  });
-
-  it("rejects unsupported project merge methods", () => {
-    expect(() =>
-      decodeClientSettingsPatch({
-        pullRequestMergeMethodOverrides: { project: "fast-forward" },
-      }),
-    ).toThrow();
   });
 });
 
@@ -1181,14 +1148,11 @@ describe("server model preferences", () => {
       decodeServerSettingsPatch({ setModelsHidden: [{ provider: "codex_work", model: "sol" }] }),
     ).toThrow();
   });
-  it("distinguishes unmigrated lists from deliberately cleared lists", () => {
+  it("defaults to empty lists", () => {
     expect(decodeServerSettings({})).toMatchObject({
-      favorites: null,
-      providerModelPreferences: null,
+      favorites: [],
+      providerModelPreferences: {},
     });
-    const input = { favorites: [], providerModelPreferences: {} };
-    expect(encodeServerSettings(decodeServerSettings(input))).toMatchObject(input);
-    expect(decodeServerSettingsPatch(input)).toEqual(input);
   });
 
   it("round trips favorites and hidden models keyed by provider instance", () => {
@@ -1198,8 +1162,5 @@ describe("server model preferences", () => {
     };
     expect(encodeServerSettings(decodeServerSettings(input))).toMatchObject(input);
     expect(decodeServerSettingsPatch(input)).toEqual(input);
-    expect(decodeServerSettingsPatch({ migrateModelPreferences: input })).toEqual({
-      migrateModelPreferences: input,
-    });
   });
 });

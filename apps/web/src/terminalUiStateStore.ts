@@ -5,7 +5,7 @@
  * API constrained to store actions/selectors.
  */
 
-import { parseScopedThreadKey, scopedThreadKey } from "@supaterm/client-runtime/environment";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
 import { type ScopedThreadRef } from "@supaterm/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -26,33 +26,7 @@ interface ThreadTerminalUiState {
   activeTerminalGroupId: string;
 }
 
-// Keep the old storage key so existing drawer layout preferences migrate.
 const TERMINAL_UI_STATE_STORAGE_KEY = "supaterm:terminal-state:v1";
-
-interface PersistedTerminalUiStateStoreState {
-  terminalUiStateByThreadKey?: Record<string, ThreadTerminalUiState>;
-  terminalStateByThreadKey?: Record<string, ThreadTerminalUiState>;
-}
-
-export function migratePersistedTerminalUiStateStoreState(
-  persistedState: unknown,
-  _version: number,
-): PersistedTerminalUiStateStoreState {
-  if (!persistedState || typeof persistedState !== "object") {
-    return { terminalUiStateByThreadKey: {} };
-  }
-
-  const candidate = persistedState as PersistedTerminalUiStateStoreState;
-  const persistedUiStateByThreadKey =
-    candidate.terminalUiStateByThreadKey ?? candidate.terminalStateByThreadKey ?? {};
-  const terminalUiStateByThreadKey = Object.fromEntries(
-    Object.entries(persistedUiStateByThreadKey).filter(([threadKey]) =>
-      parseScopedThreadKey(threadKey),
-    ),
-  );
-
-  return { terminalUiStateByThreadKey };
-}
 
 function createTerminalUiStateStorage() {
   return resolveStorage(typeof window !== "undefined" ? window.localStorage : undefined);
@@ -772,7 +746,6 @@ export const useTerminalUiStateStore = create<TerminalUiStateStoreState>()(
       name: TERMINAL_UI_STATE_STORAGE_KEY,
       version: 4,
       storage: createJSONStorage(createTerminalUiStateStorage),
-      migrate: migratePersistedTerminalUiStateStoreState,
       partialize: (state) => ({
         terminalUiStateByThreadKey: state.terminalUiStateByThreadKey,
       }),

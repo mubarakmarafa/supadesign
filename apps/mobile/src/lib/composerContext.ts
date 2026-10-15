@@ -1,4 +1,3 @@
-import { serializeLegacyContextMessage } from "@supaterm/shared/composerContextLegacySend";
 import { filePreviewKind } from "@supaterm/shared/filePreview";
 import { videoMimeType } from "@supaterm/shared/video";
 import {
@@ -240,19 +239,15 @@ export function reidentifyComposerContext(
 }
 
 /**
- * Keep queued records canonical; choose the wire format against the host at dispatch time.
  * An image-only prompt goes out as the attachment-only prompt web sends, so the agent is still
  * asked to respond. The images stay in the message's attachments and context records.
  */
 export function serializeComposerMessageForServer(
   composerText: string,
   context: OrchestrationMessageContext | undefined,
-  supportsInlineMessageContext: boolean,
 ): { text: string; context?: OrchestrationMessageContext } {
   const text = isImageReferencesOnly(composerText)
     ? ATTACHMENT_ONLY_BOOTSTRAP_PROMPT
     : composerText;
-  return supportsInlineMessageContext
-    ? { text, ...(context ? { context } : {}) }
-    : { text: serializeLegacyContextMessage({ text, records: context?.records ?? [] }) };
+  return { text, ...(context ? { context } : {}) };
 }

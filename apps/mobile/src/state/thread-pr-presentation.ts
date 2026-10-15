@@ -1,9 +1,5 @@
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
-import type {
-  ExecutionEnvironmentCapabilities,
-  ThreadPullRequestLink,
-  VcsStatusResult,
-} from "@supaterm/contracts";
+import type { ThreadPullRequestLink, VcsStatusResult } from "@supaterm/contracts";
 import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 
 import {
@@ -103,22 +99,10 @@ export function presentThreadLinkedPullRequests(
   };
 }
 
-/** Only the array capability replaces legacy references with persisted snapshots. */
 export function resolveThreadPrSource(
-  thread: Pick<EnvironmentThreadShell, "pullRequests" | "linkedPullRequest" | "branchPullRequest">,
-  capabilities:
-    | Pick<ExecutionEnvironmentCapabilities, "threadPullRequests" | "threadPullRequestLinking">
-    | undefined,
+  thread: Pick<EnvironmentThreadShell, "pullRequests" | "branchPullRequest">,
 ) {
-  const supportsSnapshots = capabilities?.threadPullRequests === true;
-  const linkedPresentation = supportsSnapshots
-    ? presentThreadLinkedPullRequests(thread.pullRequests)
-    : null;
-  const pullRequestRef =
-    linkedPresentation !== null
-      ? null
-      : ((supportsSnapshots
-          ? thread.branchPullRequest
-          : (thread.linkedPullRequest ?? thread.branchPullRequest)) ?? null);
+  const linkedPresentation = presentThreadLinkedPullRequests(thread.pullRequests);
+  const pullRequestRef = linkedPresentation === null ? (thread.branchPullRequest ?? null) : null;
   return { linkedPresentation, pullRequestRef };
 }

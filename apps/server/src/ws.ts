@@ -294,22 +294,16 @@ const resolveEditorConfig = <E, R>(
 export const relayAdvertisementUpdates = (
   config: ClientServerConfig,
   advertisements: Stream.Stream<RelayConnectionInfo | null>,
-  enabled: boolean | undefined,
 ) =>
-  enabled === true
-    ? Stream.concat(
-        Stream.succeed(relayAdvertisementFrom(config.environment)),
-        advertisements,
-      ).pipe(
-        Stream.changesWith<RelayConnectionInfo | null>(Equal.equals),
-        Stream.drop(1),
-        Stream.map((payload) => ({
-          version: 1 as const,
-          type: "relayAdvertisementUpdated" as const,
-          payload,
-        })),
-      )
-    : Stream.empty;
+  Stream.concat(Stream.succeed(relayAdvertisementFrom(config.environment)), advertisements).pipe(
+    Stream.changesWith<RelayConnectionInfo | null>(Equal.equals),
+    Stream.drop(1),
+    Stream.map((payload) => ({
+      version: 1 as const,
+      type: "relayAdvertisementUpdated" as const,
+      payload,
+    })),
+  );
 
 /**
  * Live config updates that follow a snapshot of `config`. A busy host can
@@ -789,17 +783,6 @@ export const subscribeOrchestrationV2Thread = Effect.fn("ws.orchestrationV2.subs
     yield* Effect.annotateCurrentSpan({
       "orchestration_v2.thread_id": input.threadId,
     });
-    yield* threadManagement.ensureLegacyTranscript(input.threadId).pipe(
-      Effect.mapError(
-        (cause) =>
-          new OrchestrationV2GetThreadProjectionError({
-            threadId: input.threadId,
-            message: `Failed to hydrate migrated thread ${input.threadId}`,
-            cause,
-          }),
-      ),
-    );
-
     const eventStreamFrom = (afterSequence: number) =>
       threadManagement
         .streamStoredEventsFrom({
@@ -2963,8 +2946,7 @@ const layerWsRpc = (
         [WS_METHODS.subscribeServerConfig]: (input) =>
           Stream.unwrap(
             Effect.gen(function* () {
-              const usageLimitsCommand = input.usageLimitsCommand === true;
-              const config = yield* loadServerConfig({ usageLimitsCommand });
+              const config = yield* loadServerConfig({ usageLimitsCommand: true });
               const keybindingsUpdates = keybindings.streamChanges.pipe(
                 Stream.map((event) => ({
                   version: 1 as const,
@@ -2986,12 +2968,9 @@ const layerWsRpc = (
                 usageLimitSources.streamChanges.pipe(
                   // Quota updates already have their own stream. Republish the model
                   // catalog only when the set of providers offered the command changes.
-                  Stream.changesWith(
-                    usageLimitsCommand ? sameUsageLimitCommandCoverage : () => true,
-                  ),
+                  Stream.changesWith(sameUsageLimitCommandCoverage),
                 ),
-                (providers, sources) =>
-                  usageLimitsCommand ? withUsageLimitsCommands(providers, sources) : providers,
+                (providers, sources) => withUsageLimitsCommands(providers, sources),
               ).pipe(
                 // Both sides replay their current value, so the first pairing normally
                 // repeats the snapshot the client already holds. Compare against that
@@ -3012,10 +2991,7 @@ const layerWsRpc = (
               // The only source of published themes: the stream emits the
               // current set before any change, so the snapshot carrying it too
               // would just send every client the same array twice per connect.
-              // Gated on the subscriber's capability flag because an
-              // already-shipped client decodes this stream against the old
-              // event union and its whole config subscription dies on an
-              // unknown member.
+              // Only clients that render published themes ask for them.
               const environmentThemeUpdates =
                 input.environmentThemes === true
                   ? environmentTheme.streamChanges.pipe(
@@ -3026,16 +3002,13 @@ const layerWsRpc = (
                       })),
                     )
                   : Stream.empty;
-              const usageLimitSourceUpdates =
-                input.usageLimitSources === true
-                  ? usageLimitSources.streamChanges.pipe(
-                      Stream.map((sources) => ({
-                        version: 1 as const,
-                        type: "usageLimitSourcesUpdated" as const,
-                        payload: { sources },
-                      })),
-                    )
-                  : Stream.empty;
+              const usageLimitSourceUpdates = usageLimitSources.streamChanges.pipe(
+                Stream.map((sources) => ({
+                  version: 1 as const,
+                  type: "usageLimitSourcesUpdated" as const,
+                  payload: { sources },
+                })),
+              );
               const settingsUpdates = serverSettings.streamChanges.pipe(
                 Stream.map((settings) => ServerSettings.redactServerSettingsForClient(settings)),
                 Stream.map((settings) => ({
@@ -3048,7 +3021,6 @@ const layerWsRpc = (
               const relayAdvertisements = relayAdvertisementUpdates(
                 config,
                 relayAccess.advertisements,
-                input.relayAdvertisement,
               );
 
               const liveUpdates = Stream.mergeAll<ServerConfigStreamEvent, never, never>(

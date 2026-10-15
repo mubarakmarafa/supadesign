@@ -109,55 +109,25 @@ export const ProjectIconOverride = Schema.Union([
 ]);
 export type ProjectIconOverride = typeof ProjectIconOverride.Type;
 
-/**
- * Before v2, servers sent a monogram as a lucide icon carrying its text, so
- * older clients showed a folder. Icons stored then, and v2 servers released
- * before this change, still use that shape; it is read here, never written.
- */
-const ProjectLucideIconWithLegacyMonogram = Schema.Struct({
-  ...ProjectLucideIcon.fields,
-  monogramText: Schema.optional(ProjectMonogramText),
-  monogram: Schema.optional(ProjectMonogramText),
-});
-const projectIconMembers = [
-  ProjectLucideIconWithLegacyMonogram,
-  ProjectEmojiIcon,
-  ProjectMonogramIcon,
-] as const;
-type ProjectIconMember = (typeof projectIconMembers)[number]["Type"];
-
-const fromLegacyMonogram = (icon: ProjectIconMember): ProjectIconOverride => {
-  if (icon.kind !== "lucide") return icon;
-  const text = icon.monogramText ?? icon.monogram;
-  return text === undefined
-    ? { kind: "lucide", name: icon.name, color: icon.color }
-    : { kind: "monogram", text, color: icon.color };
-};
-
-/** An icon the server stores; it reads legacy monograms and writes the plain shape. */
-export const StoredProjectIcon = Schema.Union(projectIconMembers).pipe(
-  Schema.decodeTo(
-    Schema.toType(ProjectIconOverride),
-    SchemaTransformation.transform<ProjectIconOverride, ProjectIconMember>({
-      decode: fromLegacyMonogram,
-      encode: (icon) => icon,
-    }),
-  ),
-);
+/** An icon the server stores. */
+export const StoredProjectIcon = ProjectIconOverride;
 
 /**
  * An icon as clients receive it. A kind from a newer server decodes as no
  * override, so the client shows the project's default icon.
  */
-export const ReceivedProjectIcon = ForwardCompatibleUnion(projectIconMembers, "kind").pipe(
+export const ReceivedProjectIcon = ForwardCompatibleUnion(
+  [ProjectLucideIcon, ProjectEmojiIcon, ProjectMonogramIcon],
+  "kind",
+).pipe(
   Schema.decodeTo(
     Schema.NullOr(Schema.toType(ProjectIconOverride)),
     SchemaTransformation.transform<
       ProjectIconOverride | null,
-      ProjectIconMember | UnknownUnionMember<"kind">
+      ProjectIconOverride | UnknownUnionMember<"kind">
     >({
-      decode: (icon) => (isUnknownUnionMember(icon) ? null : fromLegacyMonogram(icon)),
-      encode: (icon) => icon as ProjectIconMember,
+      decode: (icon) => (isUnknownUnionMember(icon) ? null : icon),
+      encode: (icon) => icon as ProjectIconOverride,
     }),
   ),
 );

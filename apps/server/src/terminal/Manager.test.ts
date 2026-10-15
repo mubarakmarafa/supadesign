@@ -1506,59 +1506,55 @@ it.layer(
     }),
   );
 
-  it.effect.each(["current", "legacy"] as const)(
-    "reads only a Unicode-safe tail from oversized %s history",
-    (source) =>
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        let sourcePath: string | undefined;
-        let closedReads = 0;
-        const readRequests: number[] = [];
-        const trackedFileSystem = FileSystem.FileSystem.of({
-          ...fs,
-          readFileString: (candidate, encoding) =>
-            candidate === sourcePath
-              ? Effect.die("History restoration must not read the whole file")
-              : fs.readFileString(candidate, encoding),
-          open: (candidate, options) =>
-            Effect.gen(function* () {
-              if (candidate !== sourcePath) return yield* fs.open(candidate, options);
-              yield* Effect.addFinalizer(() =>
-                Effect.sync(() => {
-                  closedReads += 1;
-                }),
-              );
-              const file = yield* fs.open(candidate, options);
-              return new Proxy(file, {
-                get(target, key) {
-                  if (key === "read") {
-                    return (buffer: Uint8Array) => {
-                      readRequests.push(buffer.byteLength);
-                      return target.read(buffer.subarray(0, 5));
-                    };
-                  }
-                  return Reflect.get(target, key, target);
-                },
-              });
-            }),
-        });
-        const { manager, logsDir } = yield* createManager(5, { historyByteLimit: 15 }).pipe(
-          Effect.provideService(FileSystem.FileSystem, trackedFileSystem),
-        );
-        const nextPath = yield* historyLogPath(logsDir);
-        sourcePath = source === "current" ? nextPath : path.join(logsDir, "thread-1.log");
-        yield* fs.writeFileString(sourcePath, "old".repeat(32_768) + "😀\uFEFFnewest\ré");
+  it.effect("reads only a Unicode-safe tail from oversized history", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      let sourcePath: string | undefined;
+      let closedReads = 0;
+      const readRequests: number[] = [];
+      const trackedFileSystem = FileSystem.FileSystem.of({
+        ...fs,
+        readFileString: (candidate, encoding) =>
+          candidate === sourcePath
+            ? Effect.die("History restoration must not read the whole file")
+            : fs.readFileString(candidate, encoding),
+        open: (candidate, options) =>
+          Effect.gen(function* () {
+            if (candidate !== sourcePath) return yield* fs.open(candidate, options);
+            yield* Effect.addFinalizer(() =>
+              Effect.sync(() => {
+                closedReads += 1;
+              }),
+            );
+            const file = yield* fs.open(candidate, options);
+            return new Proxy(file, {
+              get(target, key) {
+                if (key === "read") {
+                  return (buffer: Uint8Array) => {
+                    readRequests.push(buffer.byteLength);
+                    return target.read(buffer.subarray(0, 5));
+                  };
+                }
+                return Reflect.get(target, key, target);
+              },
+            });
+          }),
+      });
+      const { manager, logsDir } = yield* createManager(5, { historyByteLimit: 15 }).pipe(
+        Effect.provideService(FileSystem.FileSystem, trackedFileSystem),
+      );
+      const nextPath = yield* historyLogPath(logsDir);
+      sourcePath = nextPath;
+      yield* fs.writeFileString(sourcePath, "old".repeat(32_768) + "😀\uFEFFnewest\ré");
 
-        const snapshot = yield* manager.open(openInput());
-        expect(snapshot.history).toBe("\uFEFFnewest\ré");
-        expect(readRequests).toEqual([15, 10, 5]);
-        expect(closedReads).toBe(1);
-        expect(Buffer.from(yield* fs.readFile(nextPath)).toString()).toBe("\uFEFFnewest\ré");
-        if (source === "legacy") expect(yield* fs.exists(sourcePath)).toBe(false);
-        yield* manager.close({ threadId: "thread-1" });
-        expect((yield* manager.open(openInput())).history).toBe("\uFEFFnewest\ré");
-      }),
+      const snapshot = yield* manager.open(openInput());
+      expect(snapshot.history).toBe("\uFEFFnewest\ré");
+      expect(readRequests).toEqual([15, 10, 5]);
+      expect(closedReads).toBe(1);
+      expect(Buffer.from(yield* fs.readFile(nextPath)).toString()).toBe("\uFEFFnewest\ré");
+      yield* manager.close({ threadId: "thread-1" });
+      expect((yield* manager.open(openInput())).history).toBe("\uFEFFnewest\ré");
+    }),
   );
 
   it.effect("retains plain Unicode and control characters around a split query", () =>
@@ -1866,23 +1862,6 @@ it.layer(
 
       assert.equal(reopenedFirst.history, "first-history\n");
       assert.equal(reopenedSecond.history, "");
-    }),
-  );
-
-  it.effect("migrates legacy transcript filenames to terminal-scoped history path on open", () =>
-    Effect.gen(function* () {
-      const { manager, logsDir } = yield* createManager();
-      const path = yield* Path.Path;
-      const legacyPath = path.join(logsDir, "thread-1.log");
-      const nextPath = yield* historyLogPath(logsDir);
-      yield* writeFileString(legacyPath, "legacy-line\n");
-
-      const snapshot = yield* manager.open(openInput());
-
-      assert.equal(snapshot.history, "legacy-line\n");
-      expect(yield* pathExists(nextPath)).toBe(true);
-      expect(yield* readFileString(nextPath)).toBe("legacy-line\n");
-      expect(yield* pathExists(legacyPath)).toBe(false);
     }),
   );
 

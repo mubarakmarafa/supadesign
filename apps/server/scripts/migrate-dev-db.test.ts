@@ -181,51 +181,56 @@ it.layer(NodeServices.layer)("migrate-dev-db", (it) => {
     }),
   );
 
-  it.effect("upgrades a source from before the V2 thread tables", () =>
+  it.effect("imports a source written under another migration history", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const sourceDir = yield* fs.makeTempDirectoryScoped({ prefix: "migrate-dev-db-v1-" });
-      const destDir = yield* fs.makeTempDirectoryScoped({ prefix: "migrate-dev-db-v1-dest-" });
-      const stateDir = path.join(sourceDir, "userdata");
-      const source = path.join(stateDir, "statev2.sqlite");
-      yield* fs.makeDirectory(stateDir, { recursive: true });
-      yield* withDatabase(source, runMigrations({ toMigrationInclusive: 54 }));
-
-      const result = yield* runMigrateDevDb(
-        { baseDir: destDir, source, projects: 5, threadsPerProject: 10 },
-        { sharedHome: sourceDir },
-      );
-      assert.include(result.executedMigrations, "55_OrchestrationV2");
-    }),
-  );
-
-  it.effect("fails loudly on a migration slot collision", () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const sourceDir = yield* fs.makeTempDirectoryScoped({ prefix: "migrate-dev-db-slot-" });
-      const destDir = yield* fs.makeTempDirectoryScoped({ prefix: "migrate-dev-db-slot-dest-" });
+      const sourceDir = yield* fs.makeTempDirectoryScoped({ prefix: "migrate-dev-db-history-" });
+      const destDir = yield* fs.makeTempDirectoryScoped({
+        prefix: "migrate-dev-db-history-dest-",
+      });
       const source = yield* createFixtureSource(sourceDir);
-      // Simulate another branch having claimed slot 1 first: the id is
-      // recorded, so this checkout's migration 1 silently never runs.
+      // A source from an older build: its own migration ledger, a table this
+      // checkout no longer creates, and a column this checkout does not have.
       yield* withDatabase(
         source,
         Effect.gen(function* () {
           const sql = yield* SqlClient.SqlClient;
-          yield* sql`UPDATE effect_sql_migrations
-            SET name = 'SomebodyElsesMigration' WHERE migration_id = 1`;
+          yield* sql`DELETE FROM effect_sql_migrations`;
+          yield* sql`INSERT INTO effect_sql_migrations (migration_id, name)
+            VALUES (1, 'OrchestrationEvents'), (60, 'PullRequestReviewGuides')`;
+          yield* sql`CREATE TABLE projection_threads (thread_id TEXT PRIMARY KEY)`;
+          yield* sql`INSERT INTO projection_threads (thread_id) VALUES ('stopped-thread')`;
+          yield* sql`ALTER TABLE projection_projects ADD COLUMN retired_column TEXT`;
         }),
       );
 
-      const error = yield* runMigrateDevDb(
-        { baseDir: destDir, source, projects: 5, threadsPerProject: 10 },
+      const result = yield* runMigrateDevDb(
+        { baseDir: destDir, source, projects: 5, threadsPerProject: 1 },
         { sharedHome: sourceDir },
-      ).pipe(Effect.flip);
-      assert.equal(error._tag, "MigrateDevDbSlotCollisionError");
-      if (error._tag === "MigrateDevDbSlotCollisionError") {
-        assert.equal(error.slot, 1);
-        assert.equal(error.appliedName, "SomebodyElsesMigration");
-      }
+      );
+
+      const copied = yield* withDatabase(
+        result.databasePath,
+        Effect.gen(function* () {
+          const sql = yield* SqlClient.SqlClient;
+          const history = yield* sql<{ migration_id: number; name: string }>`
+            SELECT migration_id, name FROM effect_sql_migrations`;
+          const retired = yield* sql<{ name: string }>`
+            SELECT name FROM sqlite_master WHERE name = 'projection_threads'`;
+          const threads = yield* sql<{ thread_id: string }>`
+            SELECT thread_id FROM orchestration_v2_projection_threads ORDER BY thread_id`;
+          return { history, retired, threads };
+        }),
+      );
+      assert.deepStrictEqual(
+        copied.history.map((row) => [row.migration_id, row.name]),
+        [[1, "Baseline"]],
+      );
+      assert.deepStrictEqual(copied.retired, []);
+      assert.deepStrictEqual(
+        copied.threads.map((row) => row.thread_id),
+        ["fork-thread", "stopped-thread"],
+      );
     }),
   );
 

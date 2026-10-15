@@ -773,7 +773,7 @@ describe("buildThreadListV2Items", () => {
     expect(layout.snoozedCount).toBe(2);
   });
 
-  it("keeps snoozed threads visible on environments without the snooze capability", () => {
+  it("classifies snoozed threads without environment configuration", () => {
     const layout = buildThreadListV2Items({
       threads: [
         makeThread({
@@ -785,12 +785,11 @@ describe("buildThreadListV2Items", () => {
       ],
       environmentId: null,
       searchQuery: "",
-      snoozeEnvironmentIds: new Set(),
       now: NOW,
     });
 
-    expect(layout.items.map((item) => item.thread.id)).toEqual(["snoozed"]);
-    expect(layout.snoozedCount).toBe(0);
+    expect(layout.items).toEqual([]);
+    expect(layout.snoozedCount).toBe(1);
   });
 
   it("partitions settled threads into a slim shelf", () => {
@@ -2066,7 +2065,7 @@ function buildTickList(
   clockMs: number,
   pendingTasks: ReadonlyArray<PendingNewTask>,
   options?: {
-    readonly snoozeEnvironmentIds?: ReadonlySet<EnvironmentId>;
+    readonly loadedEnvironmentIds?: ReadonlySet<EnvironmentId>;
     readonly queuedThreadKeys?: ReadonlySet<string>;
     readonly shelfPreferencesLoading?: boolean;
   },
@@ -2092,8 +2091,8 @@ function buildTickList(
     settledCount: layout.settledCount,
     settledShelfHeaderIndex: layout.settledShelfHeaderIndex,
     snoozeLabelNow: now,
-    ...(options?.snoozeEnvironmentIds
-      ? { snoozeEnvironmentIds: options.snoozeEnvironmentIds }
+    ...(options?.loadedEnvironmentIds
+      ? { loadedEnvironmentIds: options.loadedEnvironmentIds }
       : {}),
     ...(options?.queuedThreadKeys ? { queuedThreadKeys: options.queuedThreadKeys } : {}),
     ...(options?.shelfPreferencesLoading !== undefined
@@ -2274,7 +2273,7 @@ describe("buildThreadListV2ListItems clock scoping", () => {
   it("carries the snooze menu clock on every row whose swipe menu offers presets", () => {
     const threads = buildTickThreads();
     const items = buildTickList(Object.values(threads), BASE_MS, tickQueued(), {
-      snoozeEnvironmentIds: allEnvironments,
+      loadedEnvironmentIds: allEnvironments,
     });
     const byKey = itemsByThreadKey(items);
     const ready = byKey.get(`v2-thread:${environmentId}:tick-ready`)!;
@@ -2290,10 +2289,10 @@ describe("buildThreadListV2ListItems clock scoping", () => {
     expect(snoozed.type === "v2-thread" && snoozed.snoozePresetMinute).toBeUndefined();
   });
 
-  it("keeps the snooze menu clock off rows on servers without the capability", () => {
+  it("keeps the snooze menu clock off rows on environments without loaded configuration", () => {
     const threads = buildTickThreads();
     const items = buildTickList([threads.ready], BASE_MS, [], {
-      snoozeEnvironmentIds: new Set<EnvironmentId>(),
+      loadedEnvironmentIds: new Set<EnvironmentId>(),
     });
     const ready = items.find((item) => item.type === "v2-thread")!;
     expect(ready.type === "v2-thread" && ready.snoozePresetMinute).toBeUndefined();
@@ -2385,7 +2384,7 @@ describe("thread list v2 minute tick invalidation", () => {
         assistantMessageId: null,
       },
     });
-    const options = { snoozeEnvironmentIds: new Set<EnvironmentId>() };
+    const options = { loadedEnvironmentIds: new Set<EnvironmentId>() };
     const first = buildTickList([unread], BASE_MS, [], options).find(
       (item) => item.type === "v2-thread",
     )!;
@@ -2406,11 +2405,11 @@ describe("thread list v2 minute tick invalidation", () => {
         latestUserMessageAt: isoAt(BASE_MS - 3 * 60 * MINUTE_MS),
       });
       const atStart = buildTickList([staleReady], BASE_MS, [], {
-        snoozeEnvironmentIds: new Set<EnvironmentId>(),
+        loadedEnvironmentIds: new Set<EnvironmentId>(),
       });
       vi.setSystemTime(BASE_MS + MINUTE_MS);
       const atNextMinute = buildTickList([staleReady], BASE_MS + MINUTE_MS, [], {
-        snoozeEnvironmentIds: new Set<EnvironmentId>(),
+        loadedEnvironmentIds: new Set<EnvironmentId>(),
       });
       expect(threadListV2ListItemsAreEqual(atStart[0]!, atNextMinute[0]!)).toBe(true);
     } finally {
@@ -2494,11 +2493,11 @@ describe("buildThreadListV2ListItems row-state stamps", () => {
     // to ride on the item for the recycled cell to ever update it.
     const queued = buildTickList([readyThread, settledThread], BASE_MS, [], {
       queuedThreadKeys: new Set([`${environmentId}:stamp-ready`]),
-      snoozeEnvironmentIds: allEnvironments,
+      loadedEnvironmentIds: allEnvironments,
     });
     const plain = buildTickList([readyThread, settledThread], BASE_MS, [], {
       queuedThreadKeys: new Set<string>(),
-      snoozeEnvironmentIds: allEnvironments,
+      loadedEnvironmentIds: allEnvironments,
     });
     const byKey = (items: ThreadListV2ListItem[]) => itemsByThreadKey(items);
     const readyQueued = byKey(queued).get(`v2-thread:${environmentId}:stamp-ready`)!;
@@ -2517,11 +2516,11 @@ describe("buildThreadListV2ListItems row-state stamps", () => {
     try {
       vi.setSystemTime(BASE_MS);
       const atStart = buildTickList([settledThread], BASE_MS, [], {
-        snoozeEnvironmentIds: allEnvironments,
+        loadedEnvironmentIds: allEnvironments,
       });
       vi.setSystemTime(BASE_MS + MINUTE_MS);
       const atNextMinute = buildTickList([settledThread], BASE_MS + MINUTE_MS, [], {
-        snoozeEnvironmentIds: allEnvironments,
+        loadedEnvironmentIds: allEnvironments,
       });
       const rowAtStart = atStart.find((item) => item.type === "v2-thread")!;
       const rowAtNext = atNextMinute.find((item) => item.type === "v2-thread")!;
@@ -2542,11 +2541,11 @@ describe("buildThreadListV2ListItems row-state stamps", () => {
   it("stamps the shelf loading-disabled state so recycled headers refresh", () => {
     const loading = buildTickList([settledThread], BASE_MS, [], {
       shelfPreferencesLoading: true,
-      snoozeEnvironmentIds: allEnvironments,
+      loadedEnvironmentIds: allEnvironments,
     });
     const loaded = buildTickList([settledThread], BASE_MS, [], {
       shelfPreferencesLoading: false,
-      snoozeEnvironmentIds: allEnvironments,
+      loadedEnvironmentIds: allEnvironments,
     });
     const shelfLoading = loading.find((item) => item.type === "v2-settled-shelf")!;
     const shelfLoaded = loaded.find((item) => item.type === "v2-settled-shelf")!;

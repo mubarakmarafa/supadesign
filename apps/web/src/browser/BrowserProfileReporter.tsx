@@ -24,8 +24,8 @@ export function BrowserProfileReporter() {
 
   useEffect(() => {
     if (!hydrated) return;
-    for (const [environmentId, config] of serverConfigs) {
-      if (!config.environment.capabilities.serverBrowser || !operable.has(environmentId)) continue;
+    for (const environmentId of serverConfigs.keys()) {
+      if (!operable.has(environmentId)) continue;
       void report({ environmentId, input: { profiles, defaultProfileId } });
     }
   }, [defaultProfileId, hydrated, operable, profiles, report, serverConfigs]);

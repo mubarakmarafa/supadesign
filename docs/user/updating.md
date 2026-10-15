@@ -41,10 +41,6 @@ A thread is not resumed while it waits for your approval, answer, or secret, or
 while it is archived, snoozed, or settled. After three automatic resumes in a row,
 the thread waits for your next message.
 
-Updates from the previous orchestration system preserve conversation transcripts but cannot carry
-every kind of runtime history forward. Read [Threads from older Supaterm versions](./thread-migration.md)
-before continuing an important older thread.
-
 ## When versions don't match
 
 A client and server must speak the same orchestration protocol. If they do not, the connection is

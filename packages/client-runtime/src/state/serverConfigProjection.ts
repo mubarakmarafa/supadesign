@@ -28,18 +28,14 @@ export function applyServerConfigProjection(
 ): Option.Option<ServerConfigProjection> {
   switch (event.type) {
     case "snapshot": {
-      // Wire snapshots never contain published themes. Keep the previous set
-      // until a capable server sends its authoritative theme event. A legacy
-      // server cannot send a later removal, so a downgrade must clear the set.
-      const capabilities = event.config.environment.capabilities;
-      const carriedThemes =
-        capabilities.environmentThemes === true && Option.isSome(current)
-          ? current.value.config.environmentThemes
-          : undefined;
-      const carriedSources =
-        capabilities.usageLimitSources === true && Option.isSome(current)
-          ? current.value.config.usageLimitSources
-          : undefined;
+      // Wire snapshots never contain published themes or usage-limit sources.
+      // Keep the previous sets until the server sends its authoritative events.
+      const carriedThemes = Option.isSome(current)
+        ? current.value.config.environmentThemes
+        : undefined;
+      const carriedSources = Option.isSome(current)
+        ? current.value.config.usageLimitSources
+        : undefined;
       return Option.some({
         config: {
           ...event.config,

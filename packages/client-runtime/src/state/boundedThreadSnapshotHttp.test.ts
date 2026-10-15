@@ -35,7 +35,7 @@ const FULL_SNAPSHOT_BODY = {
       creationSource: "web",
       id: String(THREAD_ID),
       projectId: "project-1",
-      title: "Full fallback thread",
+      title: "Bounded thread",
       providerInstanceId: "codex",
       modelSelection: { instanceId: "codex", model: "gpt-5" },
       runtimeMode: "full-access",
@@ -121,7 +121,7 @@ const boundedBody = (compact: boolean) => ({
 
 describe("boundedThreadSnapshotLoader", () => {
   it.effect.each([
-    ["an older server that ignores the opt-in", false],
+    ["a server that sends full turnItems", false],
     ["a server that sends compact turnItems", true],
   ] as const)("requests compact turnItems and loads %s", ([, compact]) => {
     const urls: string[] = [];
@@ -154,44 +154,6 @@ describe("boundedThreadSnapshotLoader", () => {
     );
   });
 
-  it.effect("falls back to full HTTP snapshot when bounded returns a plain route 404", () => {
-    const fetchFn = ((input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes(`/api/orchestration/threads/${THREAD_ID}/bounded`)) {
-        // Generic HTML/route 404: not a structured thread_not_found payload.
-        return Promise.resolve(
-          new Response("Not Found", {
-            status: 404,
-            headers: { "content-type": "text/plain" },
-          }),
-        );
-      }
-      expect(url).toContain(`/api/orchestration/threads/${THREAD_ID}`);
-      expect(url.includes("/bounded")).toBe(false);
-      return Promise.resolve(
-        new Response(JSON.stringify(FULL_SNAPSHOT_BODY), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-      );
-    }) satisfies typeof fetch;
-
-    return Effect.gen(function* () {
-      const loader = yield* ThreadSnapshotLoader.ThreadSnapshotLoader;
-      const result = yield* loader.load(PREPARED, THREAD_ID);
-      expect(result._tag).toBe("present");
-      if (result._tag === "present") {
-        expect(result.snapshot.snapshotSequence).toBe(9);
-        expect(result.snapshot.projection.thread.title).toBe("Full fallback thread");
-        expect(result.history).toBeUndefined();
-      }
-    }).pipe(
-      Effect.provide(
-        Layer.provide(BoundedThreadSnapshotHttp.layer, RpcHttp.layerRemoteHttpClient(fetchFn)),
-      ),
-    );
-  });
-
   it.effect("treats structured EnvironmentResourceNotFoundError from bounded as missing", () => {
     const fetchFn = ((input: RequestInfo | URL) => {
       const url = String(input);
@@ -213,44 +175,6 @@ describe("boundedThreadSnapshotLoader", () => {
       const loader = yield* ThreadSnapshotLoader.ThreadSnapshotLoader;
       const result = yield* loader.load(PREPARED, THREAD_ID);
       expect(result).toEqual({ _tag: "missing" });
-    }).pipe(
-      Effect.provide(
-        Layer.provide(BoundedThreadSnapshotHttp.layer, RpcHttp.layerRemoteHttpClient(fetchFn)),
-      ),
-    );
-  });
-
-  it.effect("treats structured missing from full fallback as missing", () => {
-    let fullCalls = 0;
-    const fetchFn = ((input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("/bounded")) {
-        return Promise.resolve(
-          new Response("Not Found", {
-            status: 404,
-            headers: { "content-type": "text/plain" },
-          }),
-        );
-      }
-      fullCalls += 1;
-      return Promise.resolve(
-        Response.json(
-          {
-            _tag: "EnvironmentResourceNotFoundError",
-            code: "not_found",
-            reason: "thread_not_found",
-            traceId: "trace-full-missing",
-          },
-          { status: 404 },
-        ),
-      );
-    }) satisfies typeof fetch;
-
-    return Effect.gen(function* () {
-      const loader = yield* ThreadSnapshotLoader.ThreadSnapshotLoader;
-      const result = yield* loader.load(PREPARED, THREAD_ID);
-      expect(result).toEqual({ _tag: "missing" });
-      expect(fullCalls).toBe(1);
     }).pipe(
       Effect.provide(
         Layer.provide(BoundedThreadSnapshotHttp.layer, RpcHttp.layerRemoteHttpClient(fetchFn)),

@@ -495,11 +495,9 @@ export function useThreadComposerState() {
     savingQueuedEditRef.current = true;
     setIsSavingQueuedEdit(true);
     await (async () => {
-      const capabilities = selectedEnvironmentRuntime?.serverConfig?.environment.capabilities;
       const prepared = await prepareTurnAttachments({
         environmentId: thread.environmentId,
         attachments: draft.attachments,
-        supportsImageUploads: capabilities?.attachmentUploads === true,
       });
       if (prepared.status !== "ready") return;
       const payload = resolveQueuedEditPayload({
@@ -534,7 +532,7 @@ export function useThreadComposerState() {
       savingQueuedEditRef.current = false;
       setIsSavingQueuedEdit(false);
     });
-  }, [editQueuedRun, selectedEnvironmentRuntime?.serverConfig, selectedThreadShell]);
+  }, [editQueuedRun, selectedThreadShell]);
 
   const onSendMessage = useCallback(
     async (followUpOverride?: ActiveTurnComposerAction) => {
@@ -764,10 +762,7 @@ export function useThreadComposerState() {
     const capabilities = selectedEnvironmentRuntime?.serverConfig?.environment.capabilities;
     const result = await pickComposerMedia({
       existingCount: countComposerDraftAttachmentsAfterSelection(threadKey, insertion),
-      maxVideoBytes:
-        capabilities?.attachmentUploads === true
-          ? capabilities.fileAttachments?.maxUploadBytes
-          : undefined,
+      maxVideoBytes: capabilities?.fileAttachments?.maxUploadBytes,
     });
     const rejectedCount = appendComposerDraftAttachments(threadKey, result.attachments, {
       appendReference: true,
@@ -838,10 +833,7 @@ export function useThreadComposerState() {
       const currentDraft = getComposerDraftSnapshot(threadKey);
       const currentAttachments = currentDraft.attachments;
       const capabilities = selectedEnvironmentRuntime?.serverConfig?.environment.capabilities;
-      const advertisedMax =
-        capabilities?.attachmentUploads === true
-          ? capabilities.fileAttachments?.maxUploadBytes
-          : undefined;
+      const advertisedMax = capabilities?.fileAttachments?.maxUploadBytes;
       const maxBytes =
         advertisedMax === undefined ? null : clampFileAttachmentUploadBytes(advertisedMax);
       const wouldExceedInputLimit =
@@ -943,10 +935,7 @@ export function useThreadComposerState() {
     async (paste: ComposerTextPaste) => {
       if (!selectedThreadShell) return;
       const capabilities = selectedEnvironmentRuntime?.serverConfig?.environment.capabilities;
-      const advertisedMax =
-        capabilities?.attachmentUploads === true
-          ? capabilities.fileAttachments?.maxUploadBytes
-          : undefined;
+      const advertisedMax = capabilities?.fileAttachments?.maxUploadBytes;
       if (advertisedMax === undefined) return;
 
       const threadKey = activeComposerDraftKey(selectedThreadShell);

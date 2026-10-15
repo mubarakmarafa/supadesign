@@ -38,7 +38,6 @@ const clientSettings: ClientSettings = {
   diffFilesCollapsed: true,
   diffIgnoreWhitespace: true,
   diffLayout: "stacked",
-  favorites: [],
   fontFamilyCode: "",
   fontFamilyComposer: "",
   fontFamilySans: "",
@@ -53,7 +52,6 @@ const clientSettings: ClientSettings = {
   proactivePanelsEnabled: true,
   showSkillsInSlashMenu: false,
   persistComposerContextStrip: true,
-  providerModelPreferences: {},
   sidebarProjectGroupingMode: "repository_path",
   sidebarProjectGroupingOverrides: {
     "environment-1:/tmp/project-a": "separate",
@@ -63,7 +61,6 @@ const clientSettings: ClientSettings = {
   sidebarThreadPreviewCount: 6,
   loadBalancingEnabled: false,
   loadBalancingWeights: { "environment-1": 75, "environment-2": 0 },
-  pullRequestMergeMethodOverrides: {},
   timestampFormat: "24-hour",
   wordWrap: true,
 };
@@ -269,31 +266,6 @@ describe("DesktopClientSettings", () => {
     ),
   );
 
-  it.effect("loads legacy wrapped client settings documents", () =>
-    withClientSettings(
-      Effect.gen(function* () {
-        const environment = yield* DesktopEnvironment.DesktopEnvironment;
-        const fileSystem = yield* FileSystem.FileSystem;
-        const settings = yield* DesktopClientSettings.DesktopClientSettings;
-        yield* fileSystem.makeDirectory(environment.stateDir, { recursive: true });
-        yield* fileSystem.writeFileString(
-          environment.clientSettingsPath,
-          `{
-            "settings": {
-              "timestampFormat": "12-hour"
-            }
-          }\n`,
-        );
-
-        const persisted = yield* settings.get;
-        assert.isTrue(Option.isSome(persisted));
-        if (Option.isSome(persisted)) {
-          assert.equal(persisted.value.timestampFormat, "12-hour");
-        }
-      }),
-    ),
-  );
-
   it.effect("loads defaults from empty client settings documents", () =>
     withClientSettings(
       Effect.gen(function* () {
@@ -311,7 +283,6 @@ describe("DesktopClientSettings", () => {
   it.effect.each([
     { label: "malformed JSON", contents: "{not-json" },
     { label: "invalid direct settings", contents: '{"fontSizeCode":"large"}' },
-    { label: "invalid legacy settings", contents: '{"settings":{"fontSizeCode":"large"}}' },
   ])("reports $label without treating the settings file as absent", (document) =>
     withClientSettings(
       Effect.gen(function* () {

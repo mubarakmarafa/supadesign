@@ -131,8 +131,7 @@ function ThreadBehaviorSettingsRows() {
   );
 
   const supportsProjectOverrides = syncTargets.every(
-    (target) =>
-      target.environment.serverConfig.environment.capabilities.projectSettingsOverrides === true,
+    (target) => target.environment.serverConfig != null,
   );
   const disabled =
     !canWriteSettings || pendingWrites > 0 || (projectSelected && !supportsProjectOverrides);

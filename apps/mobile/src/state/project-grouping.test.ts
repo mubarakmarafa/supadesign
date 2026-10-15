@@ -1,33 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import {
-  mobileProjectGroupingModePatch,
-  resolveMobileProjectGroupingSettings,
-} from "./project-grouping.logic";
+import { resolveMobileProjectGroupingSettings } from "./project-grouping.logic";
 
 describe("mobile project grouping preferences", () => {
-  it("maps the legacy boolean while preferring the new mode", () => {
+  it("groups by repository until a mode is chosen", () => {
     expect(resolveMobileProjectGroupingSettings({}).sidebarProjectGroupingMode).toBe("repository");
     expect(
-      resolveMobileProjectGroupingSettings({ projectGroupingEnabled: false })
+      resolveMobileProjectGroupingSettings({ projectGroupingMode: "repository_path" })
         .sidebarProjectGroupingMode,
-    ).toBe("separate");
-    expect(
-      resolveMobileProjectGroupingSettings({
-        projectGroupingEnabled: false,
-        projectGroupingMode: "repository_path",
-      }).sidebarProjectGroupingMode,
     ).toBe("repository_path");
-  });
-
-  it("dual-writes the legacy boolean for rollback compatibility", () => {
-    expect(mobileProjectGroupingModePatch("separate")).toEqual({
-      projectGroupingMode: "separate",
-      projectGroupingEnabled: false,
-    });
-    expect(mobileProjectGroupingModePatch("repository_path")).toEqual({
-      projectGroupingMode: "repository_path",
-      projectGroupingEnabled: true,
-    });
   });
 });

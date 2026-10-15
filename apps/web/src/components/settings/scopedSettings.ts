@@ -30,12 +30,7 @@ interface ScopedSettingsEnvironment {
   readonly environmentId: EnvironmentId;
   readonly label: string;
   readonly connection: { readonly phase: EnvironmentConnectionPhase };
-  readonly serverConfig: {
-    readonly settings: ServerSettings;
-    readonly environment?: {
-      readonly capabilities: { readonly projectSettingsOverrides?: boolean | undefined };
-    };
-  } | null;
+  readonly serverConfig: { readonly settings: ServerSettings } | null;
 }
 
 const SERVER_KEYS = new Set<string>(Object.keys(ServerSettings.fields));
@@ -183,11 +178,7 @@ function projectOverrideWrites(
   const writes = new Map<EnvironmentId, ScopedServerWrite>();
   for (const member of scope.members) {
     const environment = byId.get(member.environmentId);
-    if (
-      !environment?.serverConfig ||
-      environment.connection.phase !== "connected" ||
-      environment.serverConfig.environment?.capabilities.projectSettingsOverrides !== true
-    ) {
+    if (!environment?.serverConfig || environment.connection.phase !== "connected") {
       continue;
     }
     const settings = environment.serverConfig.settings;
