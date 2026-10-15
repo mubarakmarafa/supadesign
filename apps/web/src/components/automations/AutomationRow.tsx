@@ -21,6 +21,7 @@ import {
 } from "@supaterm/client-runtime/state/runtime";
 
 import { useInlineConfirm } from "../../hooks/useInlineConfirm";
+import { cn } from "../../lib/utils";
 import { useThreadShell } from "../../state/entities";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { serverEnvironment } from "../../state/server";
@@ -34,11 +35,9 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { lastRunLabel, nextRunLabel, scheduleLabel } from "./automations.logic";
 
-const RUN_STATUS_APPEARANCE = {
+const RUN_STATUS_BADGE = {
   failed: { Icon: CircleAlertIcon, variant: "error" },
   running: { Icon: SendIcon, variant: "info" },
-  succeeded: { Icon: CheckIcon, variant: "secondary" },
-  never: { Icon: Clock3Icon, variant: "secondary" },
 } as const;
 
 export function AutomationRow({
@@ -95,20 +94,24 @@ export function AutomationRow({
       );
     }
   };
-  const lastRun = lastRunLabel(task, now);
   const target = threadRef ? (thread?.title ?? "Its thread") : "New thread each run";
-  const { Icon: RunStatusIcon, variant: runStatusVariant } =
-    RUN_STATUS_APPEARANCE[task.lastRunStatus];
   return (
     <article className="flex min-w-0 flex-col gap-3 px-4 py-4 sm:px-5 sm:py-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <h3 className="text-sm leading-5 font-medium text-pretty wrap-anywhere">{task.title}</h3>
+          <h3
+            className={cn(
+              "text-sm leading-5 font-medium text-pretty wrap-anywhere",
+              !task.enabled && "text-muted-foreground",
+            )}
+          >
+            {task.title}
+          </h3>
           <p className="line-clamp-2 max-w-[65ch] text-xs leading-5 text-muted-foreground wrap-anywhere">
             {task.prompt}
           </p>
         </div>
-        <div className="-mt-2 flex shrink-0 items-center gap-1">
+        <div className="-mt-3 flex shrink-0 items-center gap-1 sm:-mt-2.5">
           <div className="flex size-11 items-center justify-center sm:size-10">
             <Switch
               checked={task.enabled}
@@ -169,41 +172,38 @@ export function AutomationRow({
           </Menu>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-        <Tooltip>
-          <TooltipTrigger
-            render={<span className="flex min-w-0 max-w-full items-center gap-1.5" />}
-          >
-            <FolderIcon aria-hidden className="size-3.5 shrink-0" />
-            <span className="truncate">{projectName ?? "Project removed"}</span>
-          </TooltipTrigger>
-          <TooltipPopup>{projectName ?? "Project removed"}</TooltipPopup>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger
-            render={<span className="flex min-w-0 max-w-full items-center gap-1.5" />}
-          >
-            <MessageSquareIcon aria-hidden className="size-3.5 shrink-0" />
-            <span className="truncate">{target}</span>
-          </TooltipTrigger>
-          <TooltipPopup>{target}</TooltipPopup>
-        </Tooltip>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs tabular-nums">
-        <p className="flex min-w-0 items-start gap-1.5 text-muted-foreground">
-          <Clock3Icon aria-hidden className="size-3.5 shrink-0" />
-          <span>{scheduleLabel(task.schedule)}</span>
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={task.enabled ? "text-foreground" : "text-muted-foreground"}>
-            {nextRunLabel(task, now)}
-          </span>
-          {lastRun ? (
-            <Badge variant={runStatusVariant}>
-              <RunStatusIcon aria-hidden />
-              {lastRun}
-            </Badge>
-          ) : null}
+      <div className="flex min-w-0 flex-col gap-1.5 text-xs">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 text-muted-foreground">
+          <Tooltip>
+            <TooltipTrigger
+              render={<span className="flex min-w-0 max-w-full items-center gap-1.5" />}
+            >
+              <FolderIcon aria-hidden className="size-3.5 shrink-0" />
+              <span className="truncate">{projectName ?? "Project removed"}</span>
+            </TooltipTrigger>
+            <TooltipPopup>{projectName ?? "Project removed"}</TooltipPopup>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={<span className="flex min-w-0 max-w-full items-center gap-1.5" />}
+            >
+              <MessageSquareIcon aria-hidden className="size-3.5 shrink-0" />
+              <span className="truncate">{target}</span>
+            </TooltipTrigger>
+            <TooltipPopup>{target}</TooltipPopup>
+          </Tooltip>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 tabular-nums">
+          <p className="flex min-w-0 items-start gap-1.5 text-muted-foreground">
+            <Clock3Icon aria-hidden className="size-3.5 shrink-0" />
+            <span>{scheduleLabel(task.schedule)}</span>
+          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <span className={task.enabled ? "text-foreground" : "text-muted-foreground"}>
+              {nextRunLabel(task, now)}
+            </span>
+            <LastRunStatus task={task} now={now} />
+          </div>
         </div>
       </div>
       {task.lastRunError ? (
@@ -213,5 +213,26 @@ export function AutomationRow({
         </p>
       ) : null}
     </article>
+  );
+}
+
+function LastRunStatus({ task, now }: { readonly task: ScheduledTask; readonly now: number }) {
+  const status = task.lastRunStatus;
+  if (status === "never") return null;
+  const label = lastRunLabel(task, now);
+  if (status === "succeeded") {
+    return (
+      <span className="flex items-center gap-1.5 text-muted-foreground">
+        <CheckIcon aria-hidden className="size-3.5 shrink-0" />
+        {label}
+      </span>
+    );
+  }
+  const { Icon, variant } = RUN_STATUS_BADGE[status];
+  return (
+    <Badge variant={variant}>
+      <Icon aria-hidden />
+      {label}
+    </Badge>
   );
 }
