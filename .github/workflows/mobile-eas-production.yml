@@ -97,9 +97,9 @@ jobs:
       - id: version_app_token
         name: Mint release app token for version override
         if: steps.expo-token.outputs.present == 'true' && github.event_name == 'workflow_dispatch' && inputs.mode == 'build' && inputs.version != ''
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ env.RELEASE_APP_ID }}
+          client-id: ${{ env.RELEASE_APP_ID }}
           private-key: ${{ env.RELEASE_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}

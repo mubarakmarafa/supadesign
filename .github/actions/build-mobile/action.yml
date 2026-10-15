@@ -22,11 +22,8 @@ runs:
       with:
         distribution: temurin
         java-version: 17
-    - uses: android-actions/setup-android@v3
+    - uses: android-actions/setup-android@v4
       if: inputs.platform == 'android'
-      # The v3 default also installs `tools`, which the SDK repository no longer serves.
-      with:
-        packages: platform-tools
     - shell: bash
       if: inputs.platform == 'ios'
       run: |

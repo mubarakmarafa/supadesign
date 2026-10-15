@@ -17,7 +17,7 @@ runs:
         mise exec -- vp install --filter=@supaterm/mobile...
     - shell: bash
       run: mise exec -- pnpm --version
-    - uses: expo/expo-github-action@v8
+    - uses: expo/expo-github-action@v9
       with:
         eas-version: 24.10.0
         token: ${{ inputs.token }}

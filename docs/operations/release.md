@@ -129,6 +129,18 @@ overwrite packaging code or installed dependencies. The bundle is copied into th
 on the signing runner. The
 `pull_request_target` cleanup job in the publish workflow removes the download when the PR closes and never checks out PR code.
 
+## `pull_request_target` policy
+
+GitHub blocks `pull_request_target` in public repositories unless an Actions event policy allows
+it. This repository's policy (`gh api repos/supabitapp/supaterm/actions/policies`, or
+`/settings/actions/rules` on GitHub) allows it only for `pr-vouch.yml`, `pr-size.yml`,
+`web-preview-publish.yml`, and `desktop-macos-preview-publish.yml`, none of which runs PR code. The
+policy also restricts those four workflows to the events it lists. Update it before adding a
+trigger to one of them or adding another `pull_request_target` workflow, or GitHub blocks those runs.
+Workflows that build PR code use `pull_request`, then `workflow_run` from `main` when they need
+credentials. Mobile Preview needs signing credentials in the build itself, so it runs only for
+branches in this repository.
+
 ## Required release credentials
 
 Store `OP_SERVICE_ACCOUNT_TOKEN` in the GitHub `release` environment. Its read-only 1Password service

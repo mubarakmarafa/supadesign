@@ -756,7 +756,7 @@ jobs:
           vp run --filter @supaterm/web build
           node scripts/apply-web-brand-assets.ts --channel "$VITE_HOSTED_APP_CHANNEL"
       - name: Stage hosted app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hosted-web
           path: apps/web/dist
@@ -779,7 +779,7 @@ jobs:
       - name: Setup Mise
         uses: ./.github/actions/setup-mise
       - name: Download hosted app
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: hosted-web
           path: apps/web/dist
@@ -811,7 +811,7 @@ jobs:
       - name: Build site
         run: vp run --filter @supaterm/marketing build
       - name: Stage site
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: marketing-site
           path: apps/marketing/dist
@@ -832,7 +832,7 @@ jobs:
       - name: Setup Mise
         uses: ./.github/actions/setup-mise
       - name: Download site
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: marketing-site
           path: apps/marketing/dist
@@ -869,9 +869,9 @@ jobs:
 
       - id: app_token
         name: Mint release app token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ env.RELEASE_APP_ID }}
+          client-id: ${{ env.RELEASE_APP_ID }}
           private-key: ${{ env.RELEASE_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
