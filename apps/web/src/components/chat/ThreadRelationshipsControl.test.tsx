@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { resolveThreadLineageWindow, ThreadLineageRowList } from "./ThreadRelationshipsControl";
+import {
+  resolveThreadLineageWindow,
+  ThreadLineageRowList,
+  threadLineageTitle,
+} from "./ThreadRelationshipsControl";
 
 const rows = Array.from({ length: 20 }, (_, index) => `row-${index}`);
 
@@ -45,5 +49,16 @@ describe("thread lineage row list", () => {
     expect(list).toContain("overflow-y-auto");
     expect(list).toContain("overscroll-contain");
     expect(markup.indexOf("</ul>")).toBeLessThan(markup.indexOf("<button"));
+  });
+});
+
+describe("thread lineage title", () => {
+  it("names the section after the relationships it holds", () => {
+    expect(threadLineageTitle(new Set(["subagent"]))).toBe("Subagents");
+    expect(threadLineageTitle(new Set(["subagent", "parent"]))).toBe("Parent & subagents");
+    expect(threadLineageTitle(new Set(["parent"]))).toBe("Parent");
+    expect(threadLineageTitle(new Set(["subagent", "fork", "parent"]))).toBe(
+      "Parent, forks & subagents",
+    );
   });
 });
