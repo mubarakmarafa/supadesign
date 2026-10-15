@@ -7,7 +7,7 @@ fi
 
 export PATH="$HOME/.local/bin:$PATH"
 sudo ln -sf "$(command -v mise)" /usr/local/bin/mise
-mise install --locked
+mise install
 mise reshim
 
 activation='eval "$(mise activate bash)"'

@@ -17,7 +17,7 @@ and run these commands from the repository root:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
-mise install --locked
+mise install
 mise exec -- vp i
 mise exec -- vp run dev
 ```
@@ -43,7 +43,7 @@ server without installing hooks:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
-mise install --locked
+mise install
 mise exec -- vp i
 mise exec -- vp run dev
 ```

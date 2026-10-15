@@ -18,7 +18,7 @@ Then, from the repository root:
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
-mise install --locked
+mise install
 mise exec -- vp i
 mise exec -- vp run dev
 ```

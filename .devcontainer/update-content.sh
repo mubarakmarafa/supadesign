@@ -11,7 +11,7 @@ for dir in "$HOME/.cache" "$HOME/.cache/pnpm" node_modules; do
   fi
 done
 
-mise install --locked
+mise install
 mise reshim
 CI=true mise exec -- vp i
 # Repairs electron's path.txt and exec bits after install, same as CI.

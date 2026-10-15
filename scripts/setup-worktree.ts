@@ -22,7 +22,7 @@ const worktree = NodePath.dirname(import.meta.dirname);
 // fail instead of hanging.
 const unattended: NodeChildProcess.StdioOptions = ["ignore", "inherit", "inherit"];
 
-const miseInstall = NodeChildProcess.spawnSync("mise", ["install", "--locked"], {
+const miseInstall = NodeChildProcess.spawnSync("mise", ["install"], {
   cwd: worktree,
   stdio: unattended,
 });
