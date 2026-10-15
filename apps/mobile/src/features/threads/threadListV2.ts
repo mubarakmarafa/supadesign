@@ -19,11 +19,9 @@ import {
 } from "@supaterm/client-runtime/state/thread-inbox";
 import {
   sortActiveThreadsByOrderKey,
-  pageRecentThreads,
   resolveDoneThreadTimestamp,
   sortPinnedThreadsByOrderKey,
   sortDoneThreads,
-  sortSnoozedThreadsByWake,
 } from "@supaterm/client-runtime/state/thread-sort";
 import type { EnvironmentId, ProjectId } from "@supaterm/contracts";
 
@@ -536,42 +534,15 @@ export function buildThreadListV2ListItems(input: {
   const activeCount = input.activeCount ?? activeEnd - pinnedEnd;
   const shelfDisabled = input.shelfPreferencesLoading === true;
   const result: ThreadListV2ListItem[] = [];
-  if (doneShelfHeaderIndex !== null && doneCount > 0) {
+  if (pinnedCount > 0) {
     result.push({
-      type: "v2-done-shelf",
-      key: "v2-done-shelf",
-      count: doneCount,
-      expanded: input.doneShelfExpanded !== false,
+      type: "v2-pinned-shelf",
+      key: "v2-pinned-shelf", // gitleaks:allow -- static list item identity
+      count: pinnedCount,
+      expanded: input.pinnedShelfExpanded !== false,
       disabled: shelfDisabled,
     });
-    if (input.doneShelfExpanded !== false && hiddenDoneCount > 0) {
-      result.push({
-        type: "v2-show-more",
-        key: "v2-show-more",
-        hiddenCount: hiddenDoneCount,
-      });
-    }
-    result.push(...threadItems.slice(doneShelfHeaderIndex));
-  }
-  if (snoozedShelfHeaderIndex !== null && snoozedCount > 0) {
-    result.push({
-      type: "v2-snoozed-shelf",
-      key: "v2-snoozed-shelf",
-      count: snoozedCount,
-      expanded: input.snoozedShelfExpanded === true,
-      disabled: shelfDisabled,
-    });
-    result.push(...threadItems.slice(snoozedShelfHeaderIndex, snoozedEnd));
-  }
-  if (workingShelfHeaderIndex !== null && workingCount > 0) {
-    result.push({
-      type: "v2-working-shelf",
-      key: "v2-working-shelf",
-      count: workingCount,
-      expanded: input.workingShelfExpanded === true,
-      disabled: shelfDisabled,
-    });
-    result.push(...threadItems.slice(workingShelfHeaderIndex, workingEnd));
+    result.push(...threadItems.slice(0, pinnedEnd));
   }
   if (activeCount > 0 || pendingItems.length > 0) {
     result.push({
@@ -584,17 +555,44 @@ export function buildThreadListV2ListItems(input: {
     result.push(...threadItems.slice(pinnedEnd, activeEnd));
     if (input.activeShelfExpanded !== false) result.push(...pendingItems);
   }
-  if (pinnedCount > 0) {
+  if (workingShelfHeaderIndex !== null && workingCount > 0) {
     result.push({
-      type: "v2-pinned-shelf",
-      key: "v2-pinned-shelf", // gitleaks:allow -- static list item identity
-      count: pinnedCount,
-      expanded: input.pinnedShelfExpanded !== false,
+      type: "v2-working-shelf",
+      key: "v2-working-shelf",
+      count: workingCount,
+      expanded: input.workingShelfExpanded === true,
       disabled: shelfDisabled,
     });
-    result.push(...threadItems.slice(0, pinnedEnd));
+    result.push(...threadItems.slice(workingShelfHeaderIndex, workingEnd));
+  }
+  if (snoozedShelfHeaderIndex !== null && snoozedCount > 0) {
+    result.push({
+      type: "v2-snoozed-shelf",
+      key: "v2-snoozed-shelf",
+      count: snoozedCount,
+      expanded: input.snoozedShelfExpanded === true,
+      disabled: shelfDisabled,
+    });
+    result.push(...threadItems.slice(snoozedShelfHeaderIndex, snoozedEnd));
   }
   result.push(...draftItems);
+  if (doneShelfHeaderIndex !== null && doneCount > 0) {
+    result.push({
+      type: "v2-done-shelf",
+      key: "v2-done-shelf",
+      count: doneCount,
+      expanded: input.doneShelfExpanded !== false,
+      disabled: shelfDisabled,
+    });
+    result.push(...threadItems.slice(doneShelfHeaderIndex));
+    if (input.doneShelfExpanded !== false && hiddenDoneCount > 0) {
+      result.push({
+        type: "v2-show-more",
+        key: "v2-show-more",
+        hiddenCount: hiddenDoneCount,
+      });
+    }
+  }
   // Hairlines depend on the final neighbour, so they are stamped after the
   // splice: a recycled cell only re-renders when its divider actually flips.
   return result.map((entry, index) => {
@@ -739,7 +737,10 @@ export function buildThreadListV2Items(input: {
   // arrangement.
   const orderedActive = sortInboxThreadsByReturn(active, input.inboxReturnAt);
   const orderedWorking = sortWorkingThreadsBySend(working);
-  const orderedSnoozed = sortSnoozedThreadsByWake(snoozed);
+  const orderedSnoozed = [...snoozed].sort(
+    (left, right) =>
+      parseTimestampMs(left.snoozedUntil ?? "") - parseTimestampMs(right.snoozedUntil ?? ""),
+  );
   const selectedThreadKey = input.selectedThreadKey ?? null;
   const visibleActive =
     input.activeShelfExpanded !== false
@@ -761,13 +762,15 @@ export function buildThreadListV2Items(input: {
         );
   const orderedDone = sortDoneThreadsReusingLast(done);
   const doneLimit = input.doneLimit ?? Number.POSITIVE_INFINITY;
-  const pagedDone = pageRecentThreads(
-    orderedDone,
-    doneLimit,
+  const limitedDone =
+    orderedDone.length > doneLimit ? orderedDone.slice(0, doneLimit) : orderedDone;
+  const selectedDone =
     selectedThreadKey === null
-      ? null
-      : (thread) => `${thread.environmentId}:${thread.id}` === selectedThreadKey,
-  );
+      ? undefined
+      : orderedDone
+          .slice(limitedDone.length)
+          .find((thread) => `${thread.environmentId}:${thread.id}` === selectedThreadKey);
+  const pagedDone = selectedDone === undefined ? limitedDone : [...limitedDone, selectedDone];
   const visibleDone =
     input.doneShelfExpanded !== false
       ? pagedDone

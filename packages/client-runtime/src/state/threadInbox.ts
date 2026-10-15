@@ -38,6 +38,10 @@ type InboxThreadInput = Pick<
   "id" | "environmentId" | "createdAt" | "reopenedAt" | "latestRun"
 >;
 
+/** The inbox lists threads newest first by when each last came back to the
+    user, so a thread that leaves the Working section lands on top.
+    `observedReturnAt` adds returns the server does not stamp, such as an
+    approval request mid-turn or background work ending. */
 export function sortInboxThreadsByReturn<T extends InboxThreadInput>(
   threads: readonly T[],
   observedReturnAt?: (thread: T) => number | undefined,
@@ -54,7 +58,7 @@ export function sortInboxThreadsByReturn<T extends InboxThreadInput>(
       ),
     ]),
   );
-  return sortOldestFirst(threads, timestamps);
+  return sortNewestFirst(threads, timestamps);
 }
 
 type WorkingSortInput = Pick<
@@ -62,6 +66,11 @@ type WorkingSortInput = Pick<
   "id" | "environmentId" | "createdAt" | "latestRun" | "latestUserAuthoredMessageAt"
 >;
 
+/** The Working section lists threads newest first by the last message the
+    user sent. Runs ending and wakes (background results, delegated results,
+    PR watches) do not move a row, so the order stays put while agents finish
+    and resume. Servers without the authored stamp fall back to the latest
+    run's request time. */
 export function sortWorkingThreadsBySend<T extends WorkingSortInput>(threads: readonly T[]): T[] {
   const timestamps = new Map(
     threads.map((thread) => [
@@ -76,16 +85,16 @@ export function sortWorkingThreadsBySend<T extends WorkingSortInput>(threads: re
       ),
     ]),
   );
-  return sortOldestFirst(threads, timestamps);
+  return sortNewestFirst(threads, timestamps);
 }
 
-function sortOldestFirst<T extends Pick<EnvironmentThreadShell, "id" | "environmentId">>(
+function sortNewestFirst<T extends Pick<EnvironmentThreadShell, "id" | "environmentId">>(
   threads: readonly T[],
   timestamps: ReadonlyMap<T, number>,
 ): T[] {
   return [...threads].sort(
     (left, right) =>
-      timestamps.get(left)! - timestamps.get(right)! ||
+      timestamps.get(right)! - timestamps.get(left)! ||
       left.id.localeCompare(right.id) ||
       left.environmentId.localeCompare(right.environmentId),
   );

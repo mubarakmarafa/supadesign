@@ -74,6 +74,6 @@ describe("sortWorkingThreadsBySend", () => {
     const launched = { ...thread("launched", true), latestUserAuthoredMessageAt: null };
     expect(
       sortWorkingThreadsBySend([launched, sentFirst, sentLast]).map((thread) => thread.id),
-    ).toEqual(["launched", "sent-first", "sent-last"]);
+    ).toEqual(["sent-last", "sent-first", "launched"]);
   });
 });

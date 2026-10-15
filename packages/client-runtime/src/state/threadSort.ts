@@ -48,6 +48,9 @@ export function resolveDoneThreadTimestamp(thread: DoneThreadTimestampInput): st
   return toSortableTimestamp(thread.updatedAt) === null ? null : thread.updatedAt;
 }
 
+/** Done rows are history, so they order by when the work ENDED, newest
+    first, with an id tiebreak. Each key resolves once per sort, not once
+    per comparison. Shared by web and mobile so both render the same order. */
 export function sortDoneThreads<T extends DoneThreadTimestampInput & { readonly id: string }>(
   threads: readonly T[],
 ): T[] {
@@ -58,35 +61,9 @@ export function sortDoneThreads<T extends DoneThreadTimestampInput & { readonly 
     })
     .sort(
       (left, right) =>
-        left.timestampMs - right.timestampMs || left.thread.id.localeCompare(right.thread.id),
+        right.timestampMs - left.timestampMs || left.thread.id.localeCompare(right.thread.id),
     )
     .map(({ thread }) => thread);
-}
-
-export function pageRecentThreads<T>(
-  threads: readonly T[],
-  limit: number,
-  isSelected: ((thread: T) => boolean) | null,
-): T[] {
-  const start = Math.max(0, threads.length - limit);
-  const page = threads.slice(start);
-  const selected = isSelected === null ? undefined : threads.slice(0, start).find(isSelected);
-  if (selected !== undefined) page.unshift(selected);
-  return page;
-}
-
-export function sortSnoozedThreadsByWake<
-  T extends Pick<EnvironmentThreadShell, "id" | "environmentId" | "snoozedUntil">,
->(threads: readonly T[]): T[] {
-  const timestamps = new Map(
-    threads.map((thread) => [thread, toSortableTimestamp(thread.snoozedUntil ?? undefined) ?? 0]),
-  );
-  return [...threads].sort(
-    (left, right) =>
-      timestamps.get(right)! - timestamps.get(left)! ||
-      left.id.localeCompare(right.id) ||
-      left.environmentId.localeCompare(right.environmentId),
-  );
 }
 
 function getFirstSortableTimestamp(...values: Array<string | null | undefined>): number | null {
@@ -320,7 +297,7 @@ export function planPinnedReorder(input: {
 
 /**
  * Pinned block order: user-arranged keys first (string comparison, id
- * tiebreak), then keyless threads oldest-created first — so threads on
+ * tiebreak), then keyless threads newest-created first — so threads on
  * servers that predate reordering keep the static creation order at the
  * bottom of the block instead of breaking the section.
  */
@@ -354,7 +331,7 @@ export function sortPinnedThreadsByOrderKey<
   );
   keyless.sort(
     (left, right) =>
-      timestamps.get(left)! - timestamps.get(right)! || identityTiebreak(left, right),
+      timestamps.get(right)! - timestamps.get(left)! || identityTiebreak(left, right),
   );
   return [...keyed, ...keyless];
 }

@@ -1,67 +1,8 @@
-diff --git a/animated.d.ts b/animated.d.ts
-index 14beb98c0bfed9c60611b7d164670798011182ac..16bfc5abd21ec74288d74b5f897463e62cc2a7f0 100644
---- a/animated.d.ts
-+++ b/animated.d.ts
-@@ -9,7 +9,7 @@ interface MaintainVisibleContentPositionNormalized<ItemT = any> {
- }
- 
- type ListenerType = "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "containerLayoutEpoch" | "debugComputedScroll" | "debugRawScroll" | "extraData" | "footerSize" | "headerSize" | "lastItemKeys" | "lastPositionUpdate" | "maintainVisibleContentPosition" | "numColumns" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "scrollAdjust" | "scrollAdjustPending" | "scrollAdjustUserOffset" | "scrollSize" | "snapToOffsets" | "stylePaddingTop" | "totalSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | `containerColumn${number}` | `containerSpan${number}` | `containerItemData${number}` | `containerItemIndex${number}` | `containerItemKey${number}` | `containerPosition${number}` | `containerSticky${number}`;
--type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
-+type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
- type ListenerTypeValueMap = {
-     activeStickyIndex: number;
-     alignItemsAtEndPadding: number;
-@@ -525,6 +525,7 @@ interface LegendListRenderItemProps<ItemT, TItemType extends string | number | u
- }
- type LegendListState = {
-     activeStickyIndex: number;
-+    alignItemsAtEndPadding: number;
-     contentLength: number;
-     data: readonly any[];
-     elementAtIndex: (index: number) => any;
-diff --git a/keyboard-legacy.d.ts b/keyboard-legacy.d.ts
-index 1ab8085c8873afe730b77a3c1bbe4a1a11fa7115..1bf66c277717660b4d827a034ec0f5c038631069 100644
---- a/keyboard-legacy.d.ts
-+++ b/keyboard-legacy.d.ts
-@@ -10,7 +10,7 @@ interface MaintainVisibleContentPositionNormalized<ItemT = any> {
- }
- 
- type ListenerType = "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "containerLayoutEpoch" | "debugComputedScroll" | "debugRawScroll" | "extraData" | "footerSize" | "headerSize" | "lastItemKeys" | "lastPositionUpdate" | "maintainVisibleContentPosition" | "numColumns" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "scrollAdjust" | "scrollAdjustPending" | "scrollAdjustUserOffset" | "scrollSize" | "snapToOffsets" | "stylePaddingTop" | "totalSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | `containerColumn${number}` | `containerSpan${number}` | `containerItemData${number}` | `containerItemIndex${number}` | `containerItemKey${number}` | `containerPosition${number}` | `containerSticky${number}`;
--type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
-+type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
- type ListenerTypeValueMap = {
-     activeStickyIndex: number;
-     alignItemsAtEndPadding: number;
-@@ -84,6 +84,7 @@ interface LegendListAverageItemSize {
- }
- type LegendListState = {
-     activeStickyIndex: number;
-+    alignItemsAtEndPadding: number;
-     contentLength: number;
-     data: readonly any[];
-     elementAtIndex: (index: number) => any;
 diff --git a/keyboard.d.ts b/keyboard.d.ts
-index 367945cdfa8a8c260b7a127657a75c016c9ab46f..a709f9920bbc2c790bc680814ba6e62757579f9e 100644
+index 367945cdfa8a8c260b7a127657a75c016c9ab46f..0ac7bf8b8e9c386058b2374199e58fe8c92d39b3 100644
 --- a/keyboard.d.ts
 +++ b/keyboard.d.ts
-@@ -11,7 +11,7 @@ interface MaintainVisibleContentPositionNormalized<ItemT = any> {
- }
- 
- type ListenerType = "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "containerLayoutEpoch" | "debugComputedScroll" | "debugRawScroll" | "extraData" | "footerSize" | "headerSize" | "lastItemKeys" | "lastPositionUpdate" | "maintainVisibleContentPosition" | "numColumns" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "scrollAdjust" | "scrollAdjustPending" | "scrollAdjustUserOffset" | "scrollSize" | "snapToOffsets" | "stylePaddingTop" | "totalSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | `containerColumn${number}` | `containerSpan${number}` | `containerItemData${number}` | `containerItemIndex${number}` | `containerItemKey${number}` | `containerPosition${number}` | `containerSticky${number}`;
--type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
-+type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
- type ListenerTypeValueMap = {
-     activeStickyIndex: number;
-     alignItemsAtEndPadding: number;
-@@ -102,6 +102,7 @@ interface LegendListAverageItemSize {
- }
- type LegendListState = {
-     activeStickyIndex: number;
-+    alignItemsAtEndPadding: number;
-     contentLength: number;
-     data: readonly any[];
-     elementAtIndex: (index: number) => any;
-@@ -279,7 +280,7 @@ type KeyboardChatComposerInsetListRef = {
+@@ -279,7 +279,7 @@ type KeyboardChatComposerInsetListRef = {
  type KeyboardChatComposerRef = {
      current: Pick<View, "measure"> | null;
  };
@@ -70,7 +11,7 @@ index 367945cdfa8a8c260b7a127657a75c016c9ab46f..a709f9920bbc2c790bc680814ba6e627
      contentInsetEndAdjustment: SharedValue<number>;
      onComposerLayout: (event: LayoutChangeEvent) => void;
  };
-@@ -288,8 +289,10 @@ declare function useKeyboardScrollToEnd({ freeze: freezeProp, listRef }: UseKeyb
+@@ -288,8 +288,10 @@ declare function useKeyboardScrollToEnd({ freeze: freezeProp, listRef }: UseKeyb
      scrollMessageToEnd: ({ animated, closeKeyboard }: ScrollMessageToEndOptions) => Promise<void>;
  };
  declare const KeyboardAwareLegendList: <ItemT>(props: Omit<AnimatedLegendListProps<ItemT>, "anchoredEndSpace" | "contentInsetEndAdjustment" | "renderScrollComponent"> & KeyboardChatScrollViewPropsUnique & {
@@ -283,18 +224,9 @@ index 87b38b9607c2eba6b407c2acfd520633bdb0e7c2..111eb242ba9d9ade1cb912550f7df85c
        renderScrollComponent: memoList,
        ...rest
 diff --git a/react-native.d.ts b/react-native.d.ts
-index ce1fe00001c9e5aee6c6ea8bb2d4757d4586d002..72dafa0845c75f0cc66bea4daa4656a28981d388 100644
+index ce1fe00001c9e5aee6c6ea8bb2d4757d4586d002..3ccf6f16067152dfcb0c143371e2ec6aba6636e5 100644
 --- a/react-native.d.ts
 +++ b/react-native.d.ts
-@@ -9,7 +9,7 @@ interface MaintainVisibleContentPositionNormalized<ItemT = any> {
- }
- 
- type ListenerType = "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "containerLayoutEpoch" | "debugComputedScroll" | "debugRawScroll" | "extraData" | "footerSize" | "headerSize" | "lastItemKeys" | "lastPositionUpdate" | "maintainVisibleContentPosition" | "numColumns" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "scrollAdjust" | "scrollAdjustPending" | "scrollAdjustUserOffset" | "scrollSize" | "snapToOffsets" | "stylePaddingTop" | "totalSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | `containerColumn${number}` | `containerSpan${number}` | `containerItemData${number}` | `containerItemIndex${number}` | `containerItemKey${number}` | `containerPosition${number}` | `containerSticky${number}`;
--type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
-+type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
- type ListenerTypeValueMap = {
-     activeStickyIndex: number;
-     alignItemsAtEndPadding: number;
 @@ -293,6 +293,12 @@ interface LegendListSpecificProps<ItemT, TItemType extends string | undefined> {
       * The adjustment is also rendered as real content padding so the browser scroll range includes it.
       */
@@ -308,16 +240,8 @@ index ce1fe00001c9e5aee6c6ea8bb2d4757d4586d002..72dafa0845c75f0cc66bea4daa4656a2
      /**
       * Number of columns to render items in.
       * @default 1
-@@ -525,6 +531,7 @@ interface LegendListRenderItemProps<ItemT, TItemType extends string | number | u
- }
- type LegendListState$1 = {
-     activeStickyIndex: number;
-+    alignItemsAtEndPadding: number;
-     contentLength: number;
-     data: readonly any[];
-     elementAtIndex: (index: number) => any;
 diff --git a/react-native.js b/react-native.js
-index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666d0cc4168 100644
+index b3c5a306b293f797a8b338adfca3060c0f6db22b..028c052d9fe1da5459aa6f80337351af111b9ae7 100644
 --- a/react-native.js
 +++ b/react-native.js
 @@ -717,6 +717,15 @@ function hasActiveInitialScroll(state) {
@@ -780,15 +704,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
        onLayout,
        onScroll: onScroll2,
        ref: refScrollView,
-@@ -6741,6 +6952,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
-     getScrollResponder: () => refScroller.current.getScrollResponder(),
-     getState: () => ({
-       activeStickyIndex: peek$(ctx, "activeStickyIndex"),
-+      alignItemsAtEndPadding: peek$(ctx, "alignItemsAtEndPadding") || 0,
-       contentLength: getContentSize(ctx),
-       data: state.props.data,
-       elementAtIndex: (index) => {
-@@ -6751,7 +6963,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
+@@ -6751,7 +6962,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
        endBuffered: state.endBuffered,
        getAverageItemSizes: () => getAverageItemSizes(state),
        indexByKey: (key) => state.indexByKey.get(key),
@@ -797,7 +713,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
        isAtStart: peek$(ctx, "isAtStart"),
        isEndReached: state.isEndReached,
        isNearEnd: peek$(ctx, "isNearEnd"),
-@@ -7075,6 +7287,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7075,6 +7286,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      dataVersion,
      drawDistance = 250,
      contentInsetEndAdjustment,
@@ -805,7 +721,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
      estimatedItemSize = 100,
      estimatedListSize,
      extraData,
-@@ -7132,10 +7345,12 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7132,10 +7344,12 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
    const animatedPropsInternal = props.animatedPropsInternal;
    const anchoredEndSpaceOwner = (_a3 = props.anchoredEndSpaceOwnerInternal) != null ? _a3 : "list";
    const positionComponentInternal = props.positionComponentInternal;
@@ -818,7 +734,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
      stickyPositionComponentInternal: _stickyPositionComponentInternal,
      ...restProps
    } = rest;
-@@ -7200,7 +7415,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7200,7 +7414,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
    const combinedRef = useCombinedRef(refScroller, refScrollView);
    const keyExtractor = keyExtractorProp != null ? keyExtractorProp : ((_item, index) => index.toString());
    const stickyHeaderIndices = stickyHeaderIndicesProp;
@@ -827,7 +743,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
    const previousContentInsetEndAdjustmentRef = React2.useRef(contentInsetEndAdjustmentResolved);
    const alwaysRenderIndices = React2.useMemo(() => {
      const indices = getAlwaysRenderIndices(alwaysRender, dataProp, keyExtractor, anchoredEndSpace == null ? void 0 : anchoredEndSpace.anchorIndex);
-@@ -7341,6 +7556,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7341,6 +7555,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      contentContainerAlignItems: contentContainerStyle.alignItems,
      contentInset,
      contentInsetEndAdjustment: contentInsetEndAdjustmentResolved,
@@ -835,7 +751,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
      data: dataProp,
      dataKey,
      dataVersion,
-@@ -7372,6 +7588,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7372,6 +7587,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      renderItem,
      rtl,
      snapToIndices,
@@ -843,7 +759,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
      stickyHeaderIndicesArr: stickyHeaderIndices != null ? stickyHeaderIndices : [],
      stickyHeaderIndicesSet: React2.useMemo(() => new Set(stickyHeaderIndices != null ? stickyHeaderIndices : []), [stickyHeaderIndices == null ? void 0 : stickyHeaderIndices.join(",")]),
      stickyPositionComponentInternal,
-@@ -7423,6 +7640,13 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7423,6 +7639,13 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
        return void 0;
      }
      const resolvedOffset = (_a4 = initialScroll.contentOffset) != null ? _a4 : resolveInitialScrollOffset(ctx, initialScroll);
@@ -857,7 +773,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
      return usesBootstrapInitialScroll && ((_b2 = state.initialScrollSession) == null ? void 0 : _b2.kind) === "bootstrap" && Platform.OS === "web" ? void 0 : resolvedOffset;
    }, [usesBootstrapInitialScroll]);
    React2.useLayoutEffect(() => {
-@@ -7547,6 +7771,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7547,6 +7770,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      [
        dataKey,
        dataVersion,
@@ -865,7 +781,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
        memoizedLastItemKeys.join(","),
        numColumnsProp,
        nextScrollAxisGap,
-@@ -7643,6 +7868,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7643,6 +7867,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      () => ({
        getRenderedItem: (key) => getRenderedItem(ctx, key),
        onMomentumScrollEnd: (event) => {
@@ -873,7 +789,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
          checkFinishedScrollFallback(ctx);
          if (state.props.onMomentumScrollEnd) {
            state.props.onMomentumScrollEnd(event);
-@@ -7651,6 +7877,8 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7651,6 +7876,8 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
        onScroll: (event) => onScroll(ctx, event),
        onScrollBeginDrag: (event) => {
          var _a4, _b2;
@@ -882,7 +798,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
          prepareReachedEdgeForNextUserScroll(ctx);
          (_b2 = (_a4 = state.props).onScrollBeginDrag) == null ? void 0 : _b2.call(_a4, event);
        },
-@@ -7676,11 +7904,18 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7676,11 +7903,18 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
        ListFooterComponent,
        ListFooterComponentStyle,
        ListHeaderComponent,
@@ -902,7 +818,7 @@ index b3c5a306b293f797a8b338adfca3060c0f6db22b..c278004b2561a68d4a4a3ab16ecdc666
        recycleItems,
        refreshControl: refreshControlElement ? stylePaddingTopState > 0 ? React2__namespace.cloneElement(refreshControlElement, {
 diff --git a/react-native.mjs b/react-native.mjs
-index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d6bdfd0be 100644
+index 40e87cda8c9bc79a889e5542f29af429a24b24d4..6c382179263673aeabfca8305d1d751ac23b8fec 100644
 --- a/react-native.mjs
 +++ b/react-native.mjs
 @@ -696,6 +696,15 @@ function hasActiveInitialScroll(state) {
@@ -1365,15 +1281,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
        onLayout,
        onScroll: onScroll2,
        ref: refScrollView,
-@@ -6720,6 +6931,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
-     getScrollResponder: () => refScroller.current.getScrollResponder(),
-     getState: () => ({
-       activeStickyIndex: peek$(ctx, "activeStickyIndex"),
-+      alignItemsAtEndPadding: peek$(ctx, "alignItemsAtEndPadding") || 0,
-       contentLength: getContentSize(ctx),
-       data: state.props.data,
-       elementAtIndex: (index) => {
-@@ -6730,7 +6942,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
+@@ -6730,7 +6941,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
        endBuffered: state.endBuffered,
        getAverageItemSizes: () => getAverageItemSizes(state),
        indexByKey: (key) => state.indexByKey.get(key),
@@ -1382,7 +1290,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
        isAtStart: peek$(ctx, "isAtStart"),
        isEndReached: state.isEndReached,
        isNearEnd: peek$(ctx, "isNearEnd"),
-@@ -7054,6 +7266,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7054,6 +7265,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      dataVersion,
      drawDistance = 250,
      contentInsetEndAdjustment,
@@ -1390,7 +1298,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
      estimatedItemSize = 100,
      estimatedListSize,
      extraData,
-@@ -7111,10 +7324,12 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7111,10 +7323,12 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
    const animatedPropsInternal = props.animatedPropsInternal;
    const anchoredEndSpaceOwner = (_a3 = props.anchoredEndSpaceOwnerInternal) != null ? _a3 : "list";
    const positionComponentInternal = props.positionComponentInternal;
@@ -1403,7 +1311,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
      stickyPositionComponentInternal: _stickyPositionComponentInternal,
      ...restProps
    } = rest;
-@@ -7179,7 +7394,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7179,7 +7393,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
    const combinedRef = useCombinedRef(refScroller, refScrollView);
    const keyExtractor = keyExtractorProp != null ? keyExtractorProp : ((_item, index) => index.toString());
    const stickyHeaderIndices = stickyHeaderIndicesProp;
@@ -1412,7 +1320,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
    const previousContentInsetEndAdjustmentRef = useRef(contentInsetEndAdjustmentResolved);
    const alwaysRenderIndices = useMemo(() => {
      const indices = getAlwaysRenderIndices(alwaysRender, dataProp, keyExtractor, anchoredEndSpace == null ? void 0 : anchoredEndSpace.anchorIndex);
-@@ -7320,6 +7535,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7320,6 +7534,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      contentContainerAlignItems: contentContainerStyle.alignItems,
      contentInset,
      contentInsetEndAdjustment: contentInsetEndAdjustmentResolved,
@@ -1420,7 +1328,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
      data: dataProp,
      dataKey,
      dataVersion,
-@@ -7351,6 +7567,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7351,6 +7566,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      renderItem,
      rtl,
      snapToIndices,
@@ -1428,7 +1336,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
      stickyHeaderIndicesArr: stickyHeaderIndices != null ? stickyHeaderIndices : [],
      stickyHeaderIndicesSet: useMemo(() => new Set(stickyHeaderIndices != null ? stickyHeaderIndices : []), [stickyHeaderIndices == null ? void 0 : stickyHeaderIndices.join(",")]),
      stickyPositionComponentInternal,
-@@ -7402,6 +7619,13 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7402,6 +7618,13 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
        return void 0;
      }
      const resolvedOffset = (_a4 = initialScroll.contentOffset) != null ? _a4 : resolveInitialScrollOffset(ctx, initialScroll);
@@ -1442,7 +1350,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
      return usesBootstrapInitialScroll && ((_b2 = state.initialScrollSession) == null ? void 0 : _b2.kind) === "bootstrap" && Platform.OS === "web" ? void 0 : resolvedOffset;
    }, [usesBootstrapInitialScroll]);
    useLayoutEffect(() => {
-@@ -7526,6 +7750,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7526,6 +7749,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      [
        dataKey,
        dataVersion,
@@ -1450,7 +1358,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
        memoizedLastItemKeys.join(","),
        numColumnsProp,
        nextScrollAxisGap,
-@@ -7622,6 +7847,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7622,6 +7846,7 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
      () => ({
        getRenderedItem: (key) => getRenderedItem(ctx, key),
        onMomentumScrollEnd: (event) => {
@@ -1458,7 +1366,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
          checkFinishedScrollFallback(ctx);
          if (state.props.onMomentumScrollEnd) {
            state.props.onMomentumScrollEnd(event);
-@@ -7630,6 +7856,8 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7630,6 +7855,8 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
        onScroll: (event) => onScroll(ctx, event),
        onScrollBeginDrag: (event) => {
          var _a4, _b2;
@@ -1467,7 +1375,7 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
          prepareReachedEdgeForNextUserScroll(ctx);
          (_b2 = (_a4 = state.props).onScrollBeginDrag) == null ? void 0 : _b2.call(_a4, event);
        },
-@@ -7655,11 +7883,18 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
+@@ -7655,11 +7882,18 @@ var LegendListInner = typedForwardRef(function LegendListInner2(props, forwarded
        ListFooterComponent,
        ListFooterComponentStyle,
        ListHeaderComponent,
@@ -1486,29 +1394,8 @@ index 40e87cda8c9bc79a889e5542f29af429a24b24d4..9987af7158da1107647c2890f7b7958d
        onScroll: onScrollHandler,
        recycleItems,
        refreshControl: refreshControlElement ? stylePaddingTopState > 0 ? React2.cloneElement(refreshControlElement, {
-diff --git a/react-native.web.d.ts b/react-native.web.d.ts
-index b6c7481603f4119495551b3e4c1c071984c144af..be92e2304029ded902944b3a442ad3856d6a6107 100644
---- a/react-native.web.d.ts
-+++ b/react-native.web.d.ts
-@@ -32,7 +32,7 @@ interface MaintainVisibleContentPositionNormalized<ItemT = any> {
- }
- 
- type ListenerType = "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "containerLayoutEpoch" | "debugComputedScroll" | "debugRawScroll" | "extraData" | "footerSize" | "headerSize" | "lastItemKeys" | "lastPositionUpdate" | "maintainVisibleContentPosition" | "numColumns" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "scrollAdjust" | "scrollAdjustPending" | "scrollAdjustUserOffset" | "scrollSize" | "snapToOffsets" | "stylePaddingTop" | "totalSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | `containerColumn${number}` | `containerSpan${number}` | `containerItemData${number}` | `containerItemIndex${number}` | `containerItemKey${number}` | `containerPosition${number}` | `containerSticky${number}`;
--type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
-+type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
- type ListenerTypeValueMap = {
-     activeStickyIndex: number;
-     alignItemsAtEndPadding: number;
-@@ -548,6 +548,7 @@ interface LegendListRenderItemProps<ItemT, TItemType extends string | number | u
- }
- type LegendListState$1 = {
-     activeStickyIndex: number;
-+    alignItemsAtEndPadding: number;
-     contentLength: number;
-     data: readonly any[];
-     elementAtIndex: (index: number) => any;
 diff --git a/react-native.web.js b/react-native.web.js
-index 914d2dafaafa001c9ab6791a0a0581659295e333..12e5a35d7cbfb26bfb062fb43dbde7bd755c79a3 100644
+index 914d2dafaafa001c9ab6791a0a0581659295e333..51f9bec5a05fd0d28aa78aff2c595bb914d71138 100644
 --- a/react-native.web.js
 +++ b/react-native.web.js
 @@ -4343,7 +4343,7 @@ function calculateItemsInView(ctx, params = {}) {
@@ -1528,7 +1415,8 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..12e5a35d7cbfb26bfb062fb43dbde7bd
        measurements.push({
          containerId,
          itemKey,
-@@ -5270,14 +5271,37 @@ function Separator({ ItemSeparatorComponent, leadingItem }) {
+@@ -5269,15 +5270,38 @@ function Separator({ ItemSeparatorComponent, leadingItem }) {
+ 
  // src/hooks/createResizeObserver.ts
  var globalResizeObserver = null;
 +var resizeObserverRects = /* @__PURE__ */ new WeakMap();
@@ -1651,16 +1539,8 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..12e5a35d7cbfb26bfb062fb43dbde7bd
        }
      }
    }
-@@ -7385,6 +7410,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
-     getScrollResponder: () => refScroller.current.getScrollResponder(),
-     getState: () => ({
-       activeStickyIndex: peek$(ctx, "activeStickyIndex"),
-+      alignItemsAtEndPadding: peek$(ctx, "alignItemsAtEndPadding") || 0,
-       contentLength: getContentSize(ctx),
-       data: state.props.data,
-       elementAtIndex: (index) => {
 diff --git a/react-native.web.mjs b/react-native.web.mjs
-index 95465f2ab89ce41a10553f58af83618f7310e83c..cd4e6d86a453df3bb0f7e87f9c2dd2fce2cc9035 100644
+index 95465f2ab89ce41a10553f58af83618f7310e83c..6cd067ceea39488f8302903bcaeddaf51e540b6b 100644
 --- a/react-native.web.mjs
 +++ b/react-native.web.mjs
 @@ -4322,7 +4322,7 @@ function calculateItemsInView(ctx, params = {}) {
@@ -1680,7 +1560,8 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..cd4e6d86a453df3bb0f7e87f9c2dd2fc
        measurements.push({
          containerId,
          itemKey,
-@@ -5249,14 +5250,37 @@ function Separator({ ItemSeparatorComponent, leadingItem }) {
+@@ -5248,15 +5249,38 @@ function Separator({ ItemSeparatorComponent, leadingItem }) {
+ 
  // src/hooks/createResizeObserver.ts
  var globalResizeObserver = null;
 +var resizeObserverRects = /* @__PURE__ */ new WeakMap();
@@ -1781,37 +1662,8 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..cd4e6d86a453df3bb0f7e87f9c2dd2fc
        }
      }
    }
-@@ -7364,6 +7394,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
-     getScrollResponder: () => refScroller.current.getScrollResponder(),
-     getState: () => ({
-       activeStickyIndex: peek$(ctx, "activeStickyIndex"),
-+      alignItemsAtEndPadding: peek$(ctx, "alignItemsAtEndPadding") || 0,
-       contentLength: getContentSize(ctx),
-       data: state.props.data,
-       elementAtIndex: (index) => {
-diff --git a/react.d.ts b/react.d.ts
-index b6c7481603f4119495551b3e4c1c071984c144af..be92e2304029ded902944b3a442ad3856d6a6107 100644
---- a/react.d.ts
-+++ b/react.d.ts
-@@ -32,7 +32,7 @@ interface MaintainVisibleContentPositionNormalized<ItemT = any> {
- }
- 
- type ListenerType = "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "containerLayoutEpoch" | "debugComputedScroll" | "debugRawScroll" | "extraData" | "footerSize" | "headerSize" | "lastItemKeys" | "lastPositionUpdate" | "maintainVisibleContentPosition" | "numColumns" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "scrollAdjust" | "scrollAdjustPending" | "scrollAdjustUserOffset" | "scrollSize" | "snapToOffsets" | "stylePaddingTop" | "totalSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | `containerColumn${number}` | `containerSpan${number}` | `containerItemData${number}` | `containerItemIndex${number}` | `containerItemKey${number}` | `containerPosition${number}` | `containerSticky${number}`;
--type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
-+type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
- type ListenerTypeValueMap = {
-     activeStickyIndex: number;
-     alignItemsAtEndPadding: number;
-@@ -548,6 +548,7 @@ interface LegendListRenderItemProps<ItemT, TItemType extends string | number | u
- }
- type LegendListState$1 = {
-     activeStickyIndex: number;
-+    alignItemsAtEndPadding: number;
-     contentLength: number;
-     data: readonly any[];
-     elementAtIndex: (index: number) => any;
 diff --git a/react.js b/react.js
-index 914d2dafaafa001c9ab6791a0a0581659295e333..c11834b88db56a53d4c6577d3e7fd3c8aacdf413 100644
+index 914d2dafaafa001c9ab6791a0a0581659295e333..b08ae8de8c224e9021df2a27fb0233b3b2be87fd 100644
 --- a/react.js
 +++ b/react.js
 @@ -4343,7 +4343,7 @@ function calculateItemsInView(ctx, params = {}) {
@@ -1854,7 +1706,8 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..c11834b88db56a53d4c6577d3e7fd3c8
        measurements.push({
          containerId,
          itemKey,
-@@ -5270,14 +5278,37 @@ function Separator({ ItemSeparatorComponent, leadingItem }) {
+@@ -5269,15 +5277,38 @@ function Separator({ ItemSeparatorComponent, leadingItem }) {
+ 
  // src/hooks/createResizeObserver.ts
  var globalResizeObserver = null;
 +var resizeObserverRects = /* @__PURE__ */ new WeakMap();
@@ -1987,16 +1840,8 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..c11834b88db56a53d4c6577d3e7fd3c8
              void contentNode.offsetHeight;
              scrollBy();
              if (resetPaddingRafRef.current !== void 0) {
-@@ -7385,6 +7417,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
-     getScrollResponder: () => refScroller.current.getScrollResponder(),
-     getState: () => ({
-       activeStickyIndex: peek$(ctx, "activeStickyIndex"),
-+      alignItemsAtEndPadding: peek$(ctx, "alignItemsAtEndPadding") || 0,
-       contentLength: getContentSize(ctx),
-       data: state.props.data,
-       elementAtIndex: (index) => {
 diff --git a/react.mjs b/react.mjs
-index 95465f2ab89ce41a10553f58af83618f7310e83c..f7bd4847eb63c7658b8c070e60006744358ef9df 100644
+index 95465f2ab89ce41a10553f58af83618f7310e83c..9d50a88e8e9a52d46d2d68b50020af27e9643a11 100644
 --- a/react.mjs
 +++ b/react.mjs
 @@ -4322,7 +4322,7 @@ function calculateItemsInView(ctx, params = {}) {
@@ -2039,7 +1884,8 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..f7bd4847eb63c7658b8c070e60006744
        measurements.push({
          containerId,
          itemKey,
-@@ -5249,14 +5257,37 @@ function Separator({ ItemSeparatorComponent, leadingItem }) {
+@@ -5248,15 +5256,38 @@ function Separator({ ItemSeparatorComponent, leadingItem }) {
+ 
  // src/hooks/createResizeObserver.ts
  var globalResizeObserver = null;
 +var resizeObserverRects = /* @__PURE__ */ new WeakMap();
@@ -2172,27 +2018,10 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..f7bd4847eb63c7658b8c070e60006744
              void contentNode.offsetHeight;
              scrollBy();
              if (resetPaddingRafRef.current !== void 0) {
-@@ -7364,6 +7396,7 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
-     getScrollResponder: () => refScroller.current.getScrollResponder(),
-     getState: () => ({
-       activeStickyIndex: peek$(ctx, "activeStickyIndex"),
-+      alignItemsAtEndPadding: peek$(ctx, "alignItemsAtEndPadding") || 0,
-       contentLength: getContentSize(ctx),
-       data: state.props.data,
-       elementAtIndex: (index) => {
 diff --git a/reanimated.d.ts b/reanimated.d.ts
-index e5043320700b12f34f4c0babbc341f85ca8135c1..00a6141d68002b7610d21f0ee97e18f8e1ff72c3 100644
+index e5043320700b12f34f4c0babbc341f85ca8135c1..2ce63830a28636b21937a0741fd0e613dae950fe 100644
 --- a/reanimated.d.ts
 +++ b/reanimated.d.ts
-@@ -10,7 +10,7 @@ interface MaintainVisibleContentPositionNormalized<ItemT = any> {
- }
- 
- type ListenerType = "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "containerLayoutEpoch" | "debugComputedScroll" | "debugRawScroll" | "extraData" | "footerSize" | "headerSize" | "lastItemKeys" | "lastPositionUpdate" | "maintainVisibleContentPosition" | "numColumns" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "scrollAdjust" | "scrollAdjustPending" | "scrollAdjustUserOffset" | "scrollSize" | "snapToOffsets" | "stylePaddingTop" | "totalSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | `containerColumn${number}` | `containerSpan${number}` | `containerItemData${number}` | `containerItemIndex${number}` | `containerItemKey${number}` | `containerPosition${number}` | `containerSticky${number}`;
--type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
-+type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
- type ListenerTypeValueMap = {
-     activeStickyIndex: number;
-     alignItemsAtEndPadding: number;
 @@ -294,6 +294,12 @@ interface LegendListSpecificProps<ItemT, TItemType extends string | undefined> {
       * The adjustment is also rendered as real content padding so the browser scroll range includes it.
       */
@@ -2206,33 +2035,8 @@ index e5043320700b12f34f4c0babbc341f85ca8135c1..00a6141d68002b7610d21f0ee97e18f8
      /**
       * Number of columns to render items in.
       * @default 1
-@@ -526,6 +532,7 @@ interface LegendListRenderItemProps<ItemT, TItemType extends string | number | u
- }
- type LegendListState = {
-     activeStickyIndex: number;
-+    alignItemsAtEndPadding: number;
-     contentLength: number;
-     data: readonly any[];
-     elementAtIndex: (index: number) => any;
-@@ -746,6 +753,7 @@ type AnimatedScrollView = React.ElementRef<typeof Reanimated.ScrollView>;
- type ReanimatedLayoutAnimation = ComponentProps<typeof Reanimated.View>["layout"];
- interface AnimatedLegendListSharedValues {
-     activeStickyIndex?: SharedValue<number>;
-+    alignItemsAtEndPadding?: SharedValue<number>;
-     isAtEnd?: SharedValue<boolean>;
-     isAtStart?: SharedValue<boolean>;
-     isNearEnd?: SharedValue<boolean>;
-@@ -755,6 +763,8 @@ interface AnimatedLegendListSharedValues {
- }
- interface AnimatedLegendListPropsBase<ItemT> extends Omit<PropsBase<ItemT>, KeysToOmit | "refScrollView"> {
-     animatedProps?: ComponentProps<typeof Reanimated.ScrollView>["animatedProps"];
-+    /** Animated style for the item layer; leaves the native scroll viewport stationary. */
-+    itemsContainerStyle?: ComponentProps<typeof Reanimated.View>["style"];
-     refScrollView?: React.Ref<AnimatedScrollView>;
-     sharedValues?: AnimatedLegendListSharedValues;
-     /**
 diff --git a/reanimated.js b/reanimated.js
-index f1265fad74189591b5aae86cf2e3a31f9c0fdb02..48e82c2573688632251a0d2176cf9b95387a880a 100644
+index f1265fad74189591b5aae86cf2e3a31f9c0fdb02..fc03be2190c046f743ffde45ed189ee7868d0cec 100644
 --- a/reanimated.js
 +++ b/reanimated.js
 @@ -115,8 +115,10 @@ var ReanimatedPositionView = typedMemo(function ReanimatedPositionViewComponent(
@@ -2278,24 +2082,13 @@ index f1265fad74189591b5aae86cf2e3a31f9c0fdb02..48e82c2573688632251a0d2176cf9b95
        ref: refView,
        style: viewStyle,
        ...rest
-@@ -141,6 +162,106 @@ var ReanimatedPositionView = typedMemo(function ReanimatedPositionViewComponent(
+@@ -141,6 +162,95 @@ var ReanimatedPositionView = typedMemo(function ReanimatedPositionViewComponent(
      children
    );
  });
-+// Transform-only custom transitions commit scroll bounds in the same React mount.
-+var ReanimatedStaticSizeView = typedMemo(function ReanimatedStaticSizeViewComponent(props) {
-+  const { horizontal, signalName, style, children, layoutTransition, containerStyle, ...rest } = props;
-+  const [size = 0] = useArr$([signalName]);
-+  const Container = containerStyle ? Reanimated.View : reactNative$1.View;
-+  return /* @__PURE__ */ React__namespace.createElement(
-+    Container,
-+    { ...rest, style: [style, horizontal ? { width: size } : { height: size }, containerStyle] },
-+    children
-+  );
-+});
 +var ReanimatedSizeView = typedMemo(function ReanimatedSizeViewComponent(props) {
 +  const ctx = useStateContext();
-+  const { horizontal, signalName, style, children, containerStyle, ...rest } = props;
++  const { horizontal, signalName, style, children, ...rest } = props;
 +  const [logicalSize = 0] = useArr$(signalName === "totalSize" ? [signalName] : [signalName, "totalSize"]);
 +  const baseSize = Reanimated.useSharedValue(logicalSize);
 +  const animatedDelta = Reanimated.useSharedValue(0);
@@ -2380,68 +2173,23 @@ index f1265fad74189591b5aae86cf2e3a31f9c0fdb02..48e82c2573688632251a0d2176cf9b95
 +      }));
 +    })(logicalSize, previousLogicalSize, wasAnimating, run, epoch);
 +  }, [baseSize, animatedDelta, canAnimate, completeAnimation, ctx.state, logicalSize, renderEpoch, signalName, transition]);
-+  return /* @__PURE__ */ React__namespace.createElement(Reanimated__default.default.View, { ...rest, style: [style, animatedStyle, containerStyle] }, children);
++  return /* @__PURE__ */ React__namespace.createElement(Reanimated__default.default.View, { ...rest, style: [style, animatedStyle] }, children);
 +});
  function setSharedValueValue(sharedValue, value) {
    if (!sharedValue) {
      return;
-@@ -159,6 +280,7 @@ function useAnimatedLegendListSharedValuesSync(legendList, sharedValues) {
-     }
-     const state = legendList.getState();
-     setSharedValueValue(sharedValues.activeStickyIndex, state.activeStickyIndex);
-+    setSharedValueValue(sharedValues.alignItemsAtEndPadding, state.alignItemsAtEndPadding);
-     setSharedValueValue(sharedValues.isAtEnd, state.isAtEnd);
-     setSharedValueValue(sharedValues.isAtStart, state.isAtStart);
-     setSharedValueValue(sharedValues.isNearEnd, state.isNearEnd);
-@@ -169,6 +291,10 @@ function useAnimatedLegendListSharedValuesSync(legendList, sharedValues) {
-     );
-     setSharedValueValue(sharedValues.scrollOffset, state.scroll);
-     const unsubscribers = [
-+      sharedValues.alignItemsAtEndPadding ? state.listen(
-+        "alignItemsAtEndPadding",
-+        (value) => setSharedValueValue(sharedValues.alignItemsAtEndPadding, value)
-+      ) : void 0,
-       sharedValues.activeStickyIndex ? state.listen(
-         "activeStickyIndex",
-         (value) => setSharedValueValue(sharedValues.activeStickyIndex, value)
-@@ -193,7 +319,7 @@ var LegendListForwardedRef = typedMemo(
-   // biome-ignore lint/nursery/noShadow: const function name shadowing is intentional
-   React__namespace.forwardRef(function LegendListForwardedRef2(props, ref) {
-     var _a, _b;
--    const { itemLayoutAnimation, recycleItems, refLegendList, renderScrollComponent, sharedValues, ...rest } = props;
-+    const { itemLayoutAnimation, itemsContainerStyle, recycleItems, refLegendList, renderScrollComponent, sharedValues, ...rest } = props;
-     const refFn = React.useCallback(
-       (r) => {
-         refLegendList(r);
-@@ -229,7 +355,9 @@ var LegendListForwardedRef = typedMemo(
-       [scrollOffset]
-     );
-     const itemLayoutAnimationRef = useLatestRef(itemLayoutAnimation);
-+    const itemsContainerStyleRef = useLatestRef(itemsContainerStyle);
-     const hasItemLayoutAnimation = !!itemLayoutAnimation;
-+    const hasItemsContainerStyle = !!itemsContainerStyle;
-     const positionComponentInternal = React__namespace.useMemo(() => {
-       if (!hasItemLayoutAnimation) {
-         return void 0;
-@@ -245,10 +373,26 @@ var LegendListForwardedRef = typedMemo(
+@@ -245,10 +355,19 @@ var LegendListForwardedRef = typedMemo(
          );
        };
      }, [hasItemLayoutAnimation, recycleItems]);
 +    const sizeComponentInternal = React__namespace.useMemo(() => {
-+      if (!hasItemLayoutAnimation && !hasItemsContainerStyle) {
++      if (!hasItemLayoutAnimation) {
 +        return void 0;
 +      }
 +      return function SizeComponent(sizeProps) {
-+        const transition = itemLayoutAnimationRef.current;
-+        const SizeView = !transition || typeof transition === "function" && typeof transition.build !== "function"
-+          ? ReanimatedStaticSizeView : ReanimatedSizeView;
-+        return /* @__PURE__ */ React__namespace.createElement(SizeView, {
-+          ...sizeProps,
-+          layoutTransition: transition,
-+          containerStyle: sizeProps.signalName === "totalSize" ? itemsContainerStyleRef.current : void 0
-+        });
++        return /* @__PURE__ */ React__namespace.createElement(ReanimatedSizeView, { ...sizeProps, layoutTransition: itemLayoutAnimationRef.current });
 +      };
-+    }, [hasItemLayoutAnimation, hasItemsContainerStyle]);
++    }, [hasItemLayoutAnimation]);
      const legendListProps = {
        ...rest,
        positionComponentInternal,
@@ -2451,7 +2199,7 @@ index f1265fad74189591b5aae86cf2e3a31f9c0fdb02..48e82c2573688632251a0d2176cf9b95
          renderScrollComponent: renderReanimatedScrollComponent,
          ...IsNewArchitecture ? { stickyPositionComponentInternal } : {}
 diff --git a/reanimated.mjs b/reanimated.mjs
-index 29a00d5dc084fd408a0e0a0a4d64e856d0ed1525..929bb1fc63585d03a7a7176168caeeeb2ea34bf4 100644
+index 29a00d5dc084fd408a0e0a0a4d64e856d0ed1525..6ab929250c8924e2d9919ee09a4f774238fbb90a 100644
 --- a/reanimated.mjs
 +++ b/reanimated.mjs
 @@ -1,7 +1,7 @@
@@ -2506,24 +2254,13 @@ index 29a00d5dc084fd408a0e0a0a4d64e856d0ed1525..929bb1fc63585d03a7a7176168caeeeb
        ref: refView,
        style: viewStyle,
        ...rest
-@@ -117,6 +138,106 @@ var ReanimatedPositionView = typedMemo(function ReanimatedPositionViewComponent(
+@@ -117,6 +138,95 @@ var ReanimatedPositionView = typedMemo(function ReanimatedPositionViewComponent(
      children
    );
  });
-+// Transform-only custom transitions commit scroll bounds in the same React mount.
-+var ReanimatedStaticSizeView = typedMemo(function ReanimatedStaticSizeViewComponent(props) {
-+  const { horizontal, signalName, style, children, layoutTransition, containerStyle, ...rest } = props;
-+  const [size = 0] = useArr$([signalName]);
-+  const Container = containerStyle ? Reanimated.View : View;
-+  return /* @__PURE__ */ React.createElement(
-+    Container,
-+    { ...rest, style: [style, horizontal ? { width: size } : { height: size }, containerStyle] },
-+    children
-+  );
-+});
 +var ReanimatedSizeView = typedMemo(function ReanimatedSizeViewComponent(props) {
 +  const ctx = useStateContext();
-+  const { horizontal, signalName, style, children, containerStyle, ...rest } = props;
++  const { horizontal, signalName, style, children, ...rest } = props;
 +  const [logicalSize = 0] = useArr$(signalName === "totalSize" ? [signalName] : [signalName, "totalSize"]);
 +  const baseSize = useSharedValue(logicalSize);
 +  const animatedDelta = useSharedValue(0);
@@ -2608,68 +2345,23 @@ index 29a00d5dc084fd408a0e0a0a4d64e856d0ed1525..929bb1fc63585d03a7a7176168caeeeb
 +      }));
 +    })(logicalSize, previousLogicalSize, wasAnimating, run, epoch);
 +  }, [baseSize, animatedDelta, canAnimate, completeAnimation, ctx.state, logicalSize, renderEpoch, signalName, transition]);
-+  return /* @__PURE__ */ React.createElement(Reanimated.View, { ...rest, style: [style, animatedStyle, containerStyle] }, children);
++  return /* @__PURE__ */ React.createElement(Reanimated.View, { ...rest, style: [style, animatedStyle] }, children);
 +});
  function setSharedValueValue(sharedValue, value) {
    if (!sharedValue) {
      return;
-@@ -135,6 +256,7 @@ function useAnimatedLegendListSharedValuesSync(legendList, sharedValues) {
-     }
-     const state = legendList.getState();
-     setSharedValueValue(sharedValues.activeStickyIndex, state.activeStickyIndex);
-+    setSharedValueValue(sharedValues.alignItemsAtEndPadding, state.alignItemsAtEndPadding);
-     setSharedValueValue(sharedValues.isAtEnd, state.isAtEnd);
-     setSharedValueValue(sharedValues.isAtStart, state.isAtStart);
-     setSharedValueValue(sharedValues.isNearEnd, state.isNearEnd);
-@@ -145,6 +267,10 @@ function useAnimatedLegendListSharedValuesSync(legendList, sharedValues) {
-     );
-     setSharedValueValue(sharedValues.scrollOffset, state.scroll);
-     const unsubscribers = [
-+      sharedValues.alignItemsAtEndPadding ? state.listen(
-+        "alignItemsAtEndPadding",
-+        (value) => setSharedValueValue(sharedValues.alignItemsAtEndPadding, value)
-+      ) : void 0,
-       sharedValues.activeStickyIndex ? state.listen(
-         "activeStickyIndex",
-         (value) => setSharedValueValue(sharedValues.activeStickyIndex, value)
-@@ -169,7 +295,7 @@ var LegendListForwardedRef = typedMemo(
-   // biome-ignore lint/nursery/noShadow: const function name shadowing is intentional
-   React.forwardRef(function LegendListForwardedRef2(props, ref) {
-     var _a, _b;
--    const { itemLayoutAnimation, recycleItems, refLegendList, renderScrollComponent, sharedValues, ...rest } = props;
-+    const { itemLayoutAnimation, itemsContainerStyle, recycleItems, refLegendList, renderScrollComponent, sharedValues, ...rest } = props;
-     const refFn = useCallback(
-       (r) => {
-         refLegendList(r);
-@@ -205,7 +331,9 @@ var LegendListForwardedRef = typedMemo(
-       [scrollOffset]
-     );
-     const itemLayoutAnimationRef = useLatestRef(itemLayoutAnimation);
-+    const itemsContainerStyleRef = useLatestRef(itemsContainerStyle);
-     const hasItemLayoutAnimation = !!itemLayoutAnimation;
-+    const hasItemsContainerStyle = !!itemsContainerStyle;
-     const positionComponentInternal = React.useMemo(() => {
-       if (!hasItemLayoutAnimation) {
-         return void 0;
-@@ -221,10 +349,26 @@ var LegendListForwardedRef = typedMemo(
+@@ -221,10 +331,19 @@ var LegendListForwardedRef = typedMemo(
          );
        };
      }, [hasItemLayoutAnimation, recycleItems]);
 +    const sizeComponentInternal = React.useMemo(() => {
-+      if (!hasItemLayoutAnimation && !hasItemsContainerStyle) {
++      if (!hasItemLayoutAnimation) {
 +        return void 0;
 +      }
 +      return function SizeComponent(sizeProps) {
-+        const transition = itemLayoutAnimationRef.current;
-+        const SizeView = !transition || typeof transition === "function" && typeof transition.build !== "function"
-+          ? ReanimatedStaticSizeView : ReanimatedSizeView;
-+        return /* @__PURE__ */ React.createElement(SizeView, {
-+          ...sizeProps,
-+          layoutTransition: transition,
-+          containerStyle: sizeProps.signalName === "totalSize" ? itemsContainerStyleRef.current : void 0
-+        });
++        return /* @__PURE__ */ React.createElement(ReanimatedSizeView, { ...sizeProps, layoutTransition: itemLayoutAnimationRef.current });
 +      };
-+    }, [hasItemLayoutAnimation, hasItemsContainerStyle]);
++    }, [hasItemLayoutAnimation]);
      const legendListProps = {
        ...rest,
        positionComponentInternal,
@@ -2678,24 +2370,3 @@ index 29a00d5dc084fd408a0e0a0a4d64e856d0ed1525..929bb1fc63585d03a7a7176168caeeeb
        ...{
          renderScrollComponent: renderReanimatedScrollComponent,
          ...IsNewArchitecture ? { stickyPositionComponentInternal } : {}
-diff --git a/section-list.d.ts b/section-list.d.ts
-index a790f7fc1ac32c243db6cc7e245f6acc95a383d7..a0ce16e9e9de7272d391a53e0897465b187c7b40 100644
---- a/section-list.d.ts
-+++ b/section-list.d.ts
-@@ -66,7 +66,7 @@ interface MaintainVisibleContentPositionNormalized<ItemT = any> {
- }
- 
- type ListenerType = "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "containerLayoutEpoch" | "debugComputedScroll" | "debugRawScroll" | "extraData" | "footerSize" | "headerSize" | "lastItemKeys" | "lastPositionUpdate" | "maintainVisibleContentPosition" | "numColumns" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "scrollAdjust" | "scrollAdjustPending" | "scrollAdjustUserOffset" | "scrollSize" | "snapToOffsets" | "stylePaddingTop" | "totalSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | `containerColumn${number}` | `containerSpan${number}` | `containerItemData${number}` | `containerItemIndex${number}` | `containerItemKey${number}` | `containerPosition${number}` | `containerSticky${number}`;
--type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
-+type LegendListListenerType = Extract<ListenerType, "activeStickyIndex" | "alignItemsAtEndPadding" | "anchoredEndSpaceSize" | "footerSize" | "headerSize" | "isAtEnd" | "isAtStart" | "isNearEnd" | "isNearStart" | "isWithinMaintainScrollAtEndThreshold" | "adaptiveRender" | "lastItemKeys" | "lastPositionUpdate" | "numContainers" | "numContainersPooled" | "otherAxisSize" | "readyToRender" | "snapToOffsets" | "totalSize">;
- type ListenerTypeValueMap = {
-     activeStickyIndex: number;
-     alignItemsAtEndPadding: number;
-@@ -582,6 +582,7 @@ interface LegendListRenderItemProps<ItemT, TItemType extends string | number | u
- }
- type LegendListState = {
-     activeStickyIndex: number;
-+    alignItemsAtEndPadding: number;
-     contentLength: number;
-     data: readonly any[];
-     elementAtIndex: (index: number) => any;

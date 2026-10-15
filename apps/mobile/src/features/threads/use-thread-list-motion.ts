@@ -3,8 +3,6 @@ import {
   Easing,
   ReduceMotion,
   runOnUI,
-  useAnimatedReaction,
-  useAnimatedStyle,
   useSharedValue,
   withTiming,
   type EntryAnimationsValues,
@@ -38,8 +36,6 @@ export function useThreadListMotion(input: {
   );
   const previous = useRef<typeof frame | null>(null);
   const deadline = useSharedValue(0);
-  const alignmentPadding = useSharedValue(0);
-  const alignmentOffset = useSharedValue(0);
   const prepare = useCallback(() => {
     if (!ready || reducedMotion || scrolling || searching || isKeyboardMotionSuppressed()) return;
     runOnUI(() => {
@@ -47,14 +43,6 @@ export function useThreadListMotion(input: {
       deadline.set(performance.now() + 300);
     })();
   }, [deadline, ready, reducedMotion, scrolling, searching]);
-  const timing = useMemo(
-    () => ({
-      duration: THREAD_LIST_MOTION_DURATION,
-      easing: Easing.bezier(0.645, 0.045, 0.355, 1),
-      reduceMotion: ReduceMotion.Never,
-    }),
-    [],
-  );
   useLayoutEffect(() => {
     const animate =
       ready &&
@@ -77,33 +65,12 @@ export function useThreadListMotion(input: {
     })(animate && !reducedMotion && !scrolling);
   }, [deadline, frame, scrolling, searching, reducedMotion, ready]);
 
-  useAnimatedReaction(
-    () => ({ padding: alignmentPadding.value, deadline: deadline.value }),
-    (next, previous) => {
-      if (next.deadline === 0) {
-        alignmentOffset.set(0);
-      } else if (previous && next.padding !== previous.padding) {
-        if (performance.now() < next.deadline) {
-          // The recycler commits its spacer immediately. Keep the visual position
-          // continuous, including when a second toggle interrupts the movement.
-          alignmentOffset.set(alignmentOffset.value + previous.padding - next.padding);
-          alignmentOffset.set(withTiming(0, timing));
-        } else {
-          alignmentOffset.set(0);
-        }
-      }
-    },
-    [timing],
-  );
-  const alignmentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: alignmentOffset.value }],
-  }));
-  const sharedValues = useMemo(
-    () => ({ alignItemsAtEndPadding: alignmentPadding }),
-    [alignmentPadding],
-  );
-
   return useMemo(() => {
+    const timing = {
+      duration: THREAD_LIST_MOTION_DURATION,
+      easing: Easing.bezier(0.645, 0.045, 0.355, 1),
+      reduceMotion: ReduceMotion.Never,
+    };
     const entryTiming = {
       ...timing,
       duration: MOTION_ENTER_DURATION_MS,
@@ -166,6 +133,6 @@ export function useThreadListMotion(input: {
         },
       };
     };
-    return { layout, entering, exiting, alignmentStyle, prepare, sharedValues };
-  }, [alignmentStyle, deadline, prepare, sharedValues, timing]);
+    return { layout, entering, exiting, prepare };
+  }, [deadline, prepare]);
 }
