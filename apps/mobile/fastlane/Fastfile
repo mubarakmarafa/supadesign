@@ -39,9 +39,11 @@ platform :ios do
     submitted_states = %w[WAITING_FOR_REVIEW IN_REVIEW ACCEPTED PENDING_DEVELOPER_RELEASE PENDING_APPLE_RELEASE PROCESSING_FOR_DISTRIBUTION READY_FOR_DISTRIBUTION REPLACED_WITH_NEW_VERSION READY_FOR_SALE]
     if existing && submitted_states.include?(existing.app_version_state)
       existing_build = existing.get_build
-      UI.user_error!("This App Store version already uses a different build (state=#{existing.app_version_state}, build_id=#{existing_build&.id})") unless existing_build&.id == build.id
-      UI.success("#{version} (#{build_number}) has already been submitted")
-      next
+      if existing_build&.id == build.id
+        UI.success("#{version} (#{build_number}) has already been submitted")
+        next
+      end
+      UI.user_error!("This App Store version already uses a different build (state=#{existing.app_version_state}, build_id=#{existing_build&.id})") unless existing.app_version_state == "WAITING_FOR_REVIEW"
     end
     if existing&.app_version_state == "READY_FOR_REVIEW"
       UI.user_error!("The ready submission uses a different iOS build") unless existing.get_build&.id == build.id
@@ -68,6 +70,7 @@ platform :ios do
       release_notes: {"en-US" => ENV.fetch("MOBILE_RELEASE_NOTES", "This update includes the latest Supaterm app changes.")},
       overwrite_screenshots: true,
       force: true,
+      reject_if_possible: true,
       submit_for_review: true,
       automatic_release: false,
       precheck_include_in_app_purchases: false
