@@ -37,6 +37,10 @@ export function createLiveEnvironmentAtoms<R, E>(
       label: "environment-data:live-environment:retry",
       tag: WS_METHODS.liveEnvironmentRetry,
     }),
+    discard: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:live-environment:discard",
+      tag: WS_METHODS.liveEnvironmentDiscard,
+    }),
     saveDevScript: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:live-environment:save-dev-script",
       tag: WS_METHODS.liveEnvironmentSaveDevScript,

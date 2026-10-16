@@ -78,14 +78,20 @@ every task:
 
 A live card shows a link to its local dev server; the opened thread shows the
 same link in its header. The card runs the thread's own worktree when it has
-one, otherwise a worktree checked out at its linked pull request, otherwise the
-project folder. A worktree created for a pull request first runs the project's
-setup script.
+one, otherwise a worktree checked out at its linked pull request. A card on a
+branch runs the project folder when it is on that branch, otherwise a worktree
+of the branch beside it; the project folder's branch is never switched. A
+worktree created for a pull request or branch first runs the project's setup
+script.
 
 When a card stops being live it stays **warm** for 10 minutes, so switching
 between cards doesn't restart their servers. **Stop now** ends it early. Moving
 a card out of the column, or to done, stops it right away and removes a worktree
-created for it unless it has changes.
+created for it. A worktree with changes is kept instead: the card says so, and
+**Discard changes** removes it.
+
+After Supadesign restarts, the card that was live shows **Stopped** rather than
+starting by itself; **Start** runs it again.
 
 The first time a project goes live, Supadesign works out how to start it in the
 card's own checkout. When the project's scripts make it clear, including an app

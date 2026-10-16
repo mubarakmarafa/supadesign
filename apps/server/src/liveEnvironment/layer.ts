@@ -3,8 +3,9 @@ import {
   DEFAULT_PROVIDER_INTERACTION_MODE,
   LIVE_ENVIRONMENT_DEV_SCRIPT_ID,
   LiveEnvironmentError,
+  ProjectId,
   type ProjectScript,
-  type ThreadId,
+  ThreadId,
 } from "@supaterm/contracts";
 import {
   projectSettingsOverridesForWrite,
@@ -20,6 +21,7 @@ import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import type * as PlatformError from "effect/PlatformError";
 import * as Schedule from "effect/Schedule";
+import * as Schema from "effect/Schema";
 
 import * as GitManager from "../git/GitManager.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
@@ -28,6 +30,7 @@ import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.t
 import * as PortScanner from "../preview/PortScanner.ts";
 import * as ProjectService from "../project/ProjectService.ts";
 import * as ProjectSetupScriptRunner from "../project/ProjectSetupScriptRunner.ts";
+import * as ServerConfig from "../config.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as TerminalManager from "../terminal/Manager.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
@@ -102,6 +105,11 @@ function setupAgentPrompt(
   return lines.join("\n");
 }
 
+/** Each project's live card, kept across restarts in the server's state directory. */
+const LiveCards = Schema.Array(Schema.Struct({ projectId: ProjectId, threadId: ThreadId }));
+const decodeLiveCards = Schema.decodeEffect(Schema.fromJsonString(LiveCards));
+const encodeLiveCards = Schema.encodeEffect(Schema.fromJsonString(LiveCards));
+
 const failure = (message: string) => new LiveEnvironmentError({ message });
 
 export const make = Effect.gen(function* () {
@@ -115,6 +123,7 @@ export const make = Effect.gen(function* () {
   const ports = yield* PortScanner.PortDiscovery;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const liveCardsPath = path.join((yield* ServerConfig.ServerConfig).stateDir, "live-cards.json");
   const threadLaunch = yield* ThreadLaunch.ThreadLaunchService;
   const threadManagement = yield* ThreadManagement.ThreadManagementService;
   const crypto = yield* Crypto.Crypto;
@@ -223,7 +232,41 @@ export const make = Effect.gen(function* () {
         }
         const pullRequest = shell.linkedPullRequest ?? shell.branchPullRequest ?? null;
         if (pullRequest === null) {
-          return { worktreePath: projectRoot, created: false };
+          const branch = shell.branch;
+          const rootBranch = yield* git.statusDetailsLocal(projectRoot).pipe(
+            Effect.map((details) => details.branch),
+            Effect.orElseSucceed(() => null),
+          );
+          // The project folder already shows this branch, unsaved work included.
+          if (branch === null || rootBranch === null || rootBranch === branch) {
+            return { worktreePath: projectRoot, created: false };
+          }
+          // A worktree already on the branch, such as one left by a restart, is reused as is.
+          const worktreePaths = yield* git
+            .listWorktreePaths(projectRoot)
+            .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
+          for (const candidate of worktreePaths) {
+            if (path.resolve(candidate) === path.resolve(projectRoot)) continue;
+            const candidateBranch = yield* git.statusDetailsLocal(candidate).pipe(
+              Effect.map((details) => details.branch),
+              Effect.orElseSucceed(() => null),
+            );
+            if (candidateBranch === branch) return { worktreePath: candidate, created: false };
+          }
+          // Never switch the project folder's branch; check the card's out beside it.
+          const checkout = yield* git
+            .createWorktree({ cwd: projectRoot, refName: branch, path: null })
+            .pipe(
+              Effect.tapError((error) =>
+                Effect.logInfo("Could not check out a live card's branch", { branch, error }),
+              ),
+              Effect.mapError(() =>
+                failure(
+                  `The card's branch “${branch}” couldn't be checked out. It may be open in another worktree.`,
+                ),
+              ),
+            );
+          return { worktreePath: checkout.worktree.path, created: true };
         }
         const before = yield* git
           .listWorktreePaths(projectRoot)
@@ -453,9 +496,27 @@ export const make = Effect.gen(function* () {
     removeWorkspace: ({ projectRoot, worktreePath }) =>
       // Without force, git keeps a worktree that has changes.
       git.removeWorktree({ cwd: projectRoot, path: worktreePath }).pipe(
+        Effect.as(true),
         Effect.tapError((error) =>
           Effect.logInfo("Kept a live environment worktree", { worktreePath, error }),
         ),
+        Effect.orElseSucceed(() => false),
+      ),
+
+    discardWorkspace: ({ projectRoot, worktreePath }) =>
+      git
+        .removeWorktree({ cwd: projectRoot, path: worktreePath, force: true })
+        .pipe(Effect.mapError(() => failure("The preview checkout couldn't be removed."))),
+
+    loadLiveCards: fs.readFileString(liveCardsPath).pipe(
+      Effect.flatMap(decodeLiveCards),
+      Effect.orElseSucceed(() => []),
+    ),
+
+    saveLiveCards: (cards) =>
+      encodeLiveCards(cards).pipe(
+        Effect.flatMap((text) => fs.writeFileString(liveCardsPath, text)),
+        Effect.tapError((error) => Effect.logInfo("Could not save the live cards", { error })),
         Effect.ignore,
       ),
   };

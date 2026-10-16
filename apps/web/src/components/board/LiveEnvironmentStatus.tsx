@@ -7,7 +7,15 @@ import {
   type ProjectId,
   type ScopedThreadRef,
 } from "@supaterm/contracts";
-import { BotIcon, ExternalLinkIcon, RotateCcwIcon, SquareIcon, TerminalIcon } from "lucide-react";
+import {
+  BotIcon,
+  ExternalLinkIcon,
+  PlayIcon,
+  RotateCcwIcon,
+  SquareIcon,
+  TerminalIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 
 import { useOpenLink } from "../../browser/useOpenLink";
@@ -62,6 +70,10 @@ function describe(
       };
     case "stopping":
       return { tone: "idle", label: "Stopping…" };
+    case "stopped":
+      return { tone: "idle", label: "Stopped" };
+    case "kept":
+      return { tone: "idle", label: "Not live · checkout kept" };
     case "failed":
       return { tone: "failed", label: "Couldn't start" };
     case "ready": {
@@ -246,6 +258,7 @@ export function LiveEnvironmentCardStatus({
   const { tone, label } = describe(snapshot, now);
   const stop = useAtomCommand(liveEnvironment.stop);
   const retry = useAtomCommand(liveEnvironment.retry);
+  const discard = useAtomCommand(liveEnvironment.discard);
   const [setupOpen, setSetupOpen] = useState(false);
   const openThread = useOpenThreadFromBoard();
   const threadInput = { environmentId, input: { threadId: snapshot.threadId } };
@@ -259,7 +272,9 @@ export function LiveEnvironmentCardStatus({
       onKeyDown={stopCardGestures}
     >
       <StatusLine tone={tone}>{label}</StatusLine>
-      {(snapshot.status === "failed" || snapshot.status === "needs-dev-script") &&
+      {(snapshot.status === "failed" ||
+        snapshot.status === "needs-dev-script" ||
+        snapshot.status === "kept") &&
       snapshot.error !== null ? (
         // Why it stopped, in full: the model's reason or the server's exit.
         <p className="line-clamp-3 text-xs wrap-anywhere text-muted-foreground">{snapshot.error}</p>
@@ -302,6 +317,28 @@ export function LiveEnvironmentCardStatus({
             </Button>
             <LogsButton snapshot={snapshot} />
           </>
+        ) : null}
+        {snapshot.status === "stopped" || snapshot.status === "kept" ? (
+          <Button size="compact" variant="ghost" onClick={() => void retry(threadInput)}>
+            <PlayIcon />
+            Start
+          </Button>
+        ) : null}
+        {snapshot.status === "kept" ? (
+          <Button
+            size="compact"
+            variant="ghost-muted"
+            onClick={async () => {
+              const confirmed = await readLocalApi()?.dialogs.confirm(
+                "Discard the changes in this card's preview checkout? This can't be undone.",
+                { variant: "destructive" },
+              );
+              if (confirmed) void discard(threadInput);
+            }}
+          >
+            <Trash2Icon />
+            Discard changes
+          </Button>
         ) : null}
         {snapshot.status === "needs-dev-script" ? (
           <>

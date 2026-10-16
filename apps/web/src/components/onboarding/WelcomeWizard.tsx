@@ -1,4 +1,5 @@
 import { connectionAddressLabel } from "@supaterm/client-runtime/connection";
+import { APP_BASE_NAME } from "../../branding";
 import { useAtomValue } from "@effect/atom-react";
 import type {
   AgentSessionProjectCandidate,
@@ -224,9 +225,9 @@ export function WelcomeWizard({
         initialFocus={() => document.getElementById("onboarding-pairing-url") ?? true}
       >
         <WizardHeader
-          title="Set up Supaterm"
+          title={`Set up ${APP_BASE_NAME}`}
           identity={
-            <div className="flex items-baseline gap-1.5" role="img" aria-label="Supaterm">
+            <div className="flex items-baseline gap-1.5" role="img" aria-label={APP_BASE_NAME}>
               <SupatermMark className="h-7 w-auto text-muted-foreground" aria-hidden />
             </div>
           }

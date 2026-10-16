@@ -1,4 +1,5 @@
 import { ThreadFindTimelineContext } from "./ThreadFindProvider";
+import { APP_BASE_NAME } from "../../branding";
 import {
   createThreadHistoryPrefetcher,
   THREAD_HISTORY_PREFETCH_VIEWPORTS,
@@ -2873,7 +2874,7 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
   return (
     <>
       <div className="relative min-w-0 px-1 py-0.5">
-        <MessageAuthorHeading>Supaterm</MessageAuthorHeading>
+        <MessageAuthorHeading>{APP_BASE_NAME}</MessageAuthorHeading>
         <div data-thread-find-text="true">
           <AssistantCitationSource
             messageId={row.message.id}

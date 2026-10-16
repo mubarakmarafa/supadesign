@@ -36,6 +36,10 @@ const setup = (options?: {
   readonly detected?: ReadonlyArray<string | null>;
   /** Setup agents that never report, to see the card give them up. */
   readonly silentAgents?: boolean;
+  /** Worktrees with changes, which removal keeps. */
+  readonly dirtyWorktrees?: ReadonlyArray<string>;
+  /** Cards that were live when the server last ran. */
+  readonly restoredCards?: ReadonlyArray<ThreadId>;
 }) =>
   Effect.gen(function* () {
     const calls: Array<string> = [];
@@ -43,6 +47,7 @@ const setup = (options?: {
     const detected = [...(options?.detected ?? [])];
     const exits = new Map<ThreadId, Deferred.Deferred<number | null>>();
     const launchedAgents = yield* Queue.unbounded<ThreadId>();
+    const saved: Array<ReadonlyArray<ThreadId>> = [];
     let agentCount = 0;
     const ops: LiveEnvironment.LiveEnvironmentOps = {
       plan: () =>
@@ -94,7 +99,19 @@ const setup = (options?: {
       removeSetupAgent: ({ setupThreadId }) =>
         Effect.sync(() => void calls.push(`remove-agent:${setupThreadId}`)),
       removeWorkspace: ({ worktreePath }) =>
-        Effect.sync(() => void calls.push(`remove:${worktreePath}`)),
+        Effect.sync(() => {
+          calls.push(`remove:${worktreePath}`);
+          return !(options?.dirtyWorktrees ?? []).includes(worktreePath);
+        }),
+      discardWorkspace: ({ worktreePath }) =>
+        Effect.sync(() => void calls.push(`discard:${worktreePath}`)),
+      loadLiveCards: Effect.sync(() =>
+        (options?.restoredCards ?? []).map((threadId) => ({ projectId, threadId })),
+      ),
+      saveLiveCards: (cards) =>
+        Effect.sync(() => {
+          saved.push(cards.map((card) => card.threadId));
+        }),
     };
     const service = yield* LiveEnvironment.make(ops, { graceMs: Duration.toMillis(GRACE) });
     const updates = yield* Queue.unbounded<LiveEnvironmentList>();
@@ -130,7 +147,7 @@ const setup = (options?: {
     const find = (environments: ReadonlyArray<LiveEnvironmentSnapshot>, threadId: ThreadId) =>
       environments.find((environment) => environment.threadId === threadId);
 
-    return { service, calls, exits, waitFor, find };
+    return { service, calls, exits, saved, waitFor, find };
   });
 
 it.effect("prepares, sets up, and serves the live card", () =>
@@ -322,5 +339,54 @@ it.effect("only a running setup agent can report a command", () =>
       .reportSetup({ setupThreadId: cardA, command: "rm -rf /" })
       .pipe(Effect.result);
     assert.strictEqual(result._tag, "Failure");
+  }).pipe(Effect.scoped),
+);
+
+it.effect("keeps a preview checkout with changes until it is discarded", () =>
+  Effect.gen(function* () {
+    const { service, calls, waitFor, find } = yield* setup({
+      dirtyWorktrees: ["/worktrees/thread-a"],
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+
+    yield* service.stop(cardA);
+    const kept = yield* service.list(projectId);
+    assert.strictEqual(find(kept, cardA)?.status, "kept");
+    assert.strictEqual(find(kept, cardA)?.worktreePath, "/worktrees/thread-a");
+    assert.notInclude(calls, "discard:/worktrees/thread-a");
+
+    yield* service.discard(cardA);
+    assert.include(calls, "discard:/worktrees/thread-a");
+    assert.deepStrictEqual(yield* service.list(projectId), []);
+  }).pipe(Effect.scoped),
+);
+
+it.effect("a card live before a restart waits for Start", () =>
+  Effect.gen(function* () {
+    const { service, calls, waitFor, find } = yield* setup({ restoredCards: [cardA] });
+    assert.strictEqual(find(yield* service.list(projectId), cardA)?.status, "stopped");
+
+    // Opening the board asks for the same card; it stays stopped instead of relaunching.
+    yield* service.activate({ projectId, threadId: cardA });
+    const waiting = yield* service.list(projectId);
+    assert.strictEqual(find(waiting, cardA)?.status, "stopped");
+    assert.strictEqual(find(waiting, cardA)?.active, true);
+    assert.isFalse(calls.some((call) => call.startsWith("start:")));
+
+    yield* service.retry(cardA);
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+  }).pipe(Effect.scoped),
+);
+
+it.effect("remembers each project's live card for the next start", () =>
+  Effect.gen(function* () {
+    const { service, saved, waitFor, find } = yield* setup();
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    assert.deepStrictEqual(saved.at(-1), [cardA]);
+
+    yield* service.stop(cardA);
+    assert.deepStrictEqual(saved.at(-1), []);
   }).pipe(Effect.scoped),
 );

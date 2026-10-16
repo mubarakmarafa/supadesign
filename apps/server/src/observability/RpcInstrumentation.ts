@@ -194,6 +194,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.liveEnvironmentActivate]: "preview",
   [WS_METHODS.liveEnvironmentStop]: "preview",
   [WS_METHODS.liveEnvironmentRetry]: "preview",
+  [WS_METHODS.liveEnvironmentDiscard]: "preview",
   [WS_METHODS.liveEnvironmentSaveDevScript]: "preview",
   [WS_METHODS.subscribeLiveEnvironments]: "preview",
   [WS_METHODS.projectsSummary]: "workspace",
