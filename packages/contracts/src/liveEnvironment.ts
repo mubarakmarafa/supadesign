@@ -22,6 +22,10 @@ export const LiveEnvironmentStatus = Schema.Literals([
   "ready",
   "failed",
   "stopping",
+  /** It was live when the server restarted; it waits for Start instead of relaunching. */
+  "stopped",
+  /** No longer live, but its preview checkout has changes, so it was kept until discarded. */
+  "kept",
 ]);
 export type LiveEnvironmentStatus = typeof LiveEnvironmentStatus.Type;
 

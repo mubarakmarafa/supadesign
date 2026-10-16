@@ -440,6 +440,7 @@ export const WS_METHODS = {
   liveEnvironmentActivate: "liveEnvironment.activate",
   liveEnvironmentStop: "liveEnvironment.stop",
   liveEnvironmentRetry: "liveEnvironment.retry",
+  liveEnvironmentDiscard: "liveEnvironment.discard",
   liveEnvironmentSaveDevScript: "liveEnvironment.saveDevScript",
   subscribeLiveEnvironments: "subscribeLiveEnvironments",
 
@@ -1580,6 +1581,11 @@ const WsLiveEnvironmentRetryRpc = Rpc.make(WS_METHODS.liveEnvironmentRetry, {
   error: Schema.Union([LiveEnvironmentError, EnvironmentAuthorizationError]),
 });
 
+const WsLiveEnvironmentDiscardRpc = Rpc.make(WS_METHODS.liveEnvironmentDiscard, {
+  payload: LiveEnvironmentThreadInput,
+  error: Schema.Union([LiveEnvironmentError, EnvironmentAuthorizationError]),
+});
+
 const WsLiveEnvironmentSaveDevScriptRpc = Rpc.make(WS_METHODS.liveEnvironmentSaveDevScript, {
   payload: LiveEnvironmentSaveDevScriptInput,
   error: Schema.Union([LiveEnvironmentError, EnvironmentAuthorizationError]),
@@ -2035,6 +2041,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsLiveEnvironmentActivateRpc,
   WsLiveEnvironmentStopRpc,
   WsLiveEnvironmentRetryRpc,
+  WsLiveEnvironmentDiscardRpc,
   WsLiveEnvironmentSaveDevScriptRpc,
   WsSubscribeLiveEnvironmentsRpc,
   WsProjectsSummaryRpc,

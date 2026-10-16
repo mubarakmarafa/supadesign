@@ -105,11 +105,26 @@ export interface LiveEnvironmentOps {
     readonly projectId: ProjectId;
     readonly setupThreadId: ThreadId;
   }) => Effect.Effect<void>;
-  /** Removes a worktree this service created, leaving it alone when it has changes. */
+  /**
+   * Removes a worktree this service created, leaving it alone when it has
+   * changes. False means it was kept.
+   */
   readonly removeWorkspace: (input: {
     readonly projectRoot: string;
     readonly worktreePath: string;
-  }) => Effect.Effect<void>;
+  }) => Effect.Effect<boolean>;
+  /** Removes a kept worktree and its changes, because the user asked. */
+  readonly discardWorkspace: (input: {
+    readonly projectRoot: string;
+    readonly worktreePath: string;
+  }) => Effect.Effect<void, LiveEnvironmentError>;
+  /** The cards that were live when the server last ran. */
+  readonly loadLiveCards: Effect.Effect<
+    ReadonlyArray<{ readonly projectId: ProjectId; readonly threadId: ThreadId }>
+  >;
+  readonly saveLiveCards: (
+    cards: ReadonlyArray<{ readonly projectId: ProjectId; readonly threadId: ThreadId }>,
+  ) => Effect.Effect<void>;
 }
 
 export class LiveEnvironmentService extends Context.Service<
@@ -133,6 +148,8 @@ export class LiveEnvironmentService extends Context.Service<
       readonly command: string;
       readonly previewUrl?: string | undefined;
     }) => Effect.Effect<void, LiveEnvironmentError>;
+    /** Removes a kept card's preview checkout, changes and all. */
+    readonly discard: (threadId: ThreadId) => Effect.Effect<void, LiveEnvironmentError>;
     /** A setup helper's answer: the command, or why there is none. */
     readonly reportSetup: (input: {
       readonly setupThreadId: ThreadId;
@@ -221,7 +238,14 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
     const lock = yield* Semaphore.make(1);
     const locked = Semaphore.withPermits(lock, 1);
     const scope = yield* Scope.make("parallel");
-    yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void));
+    // Shutting down stops dev servers, and those exits must not be saved as the last state.
+    let closing = false;
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        closing = true;
+      }).pipe(Effect.andThen(Scope.close(scope, Exit.void))),
+    );
+    let savedLiveCards = "";
 
     const listFor = (projectId: ProjectId): LiveEnvironmentList => ({
       projectId,
@@ -232,6 +256,20 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         .toArray(),
     });
 
+    /** Remembers each project's live card, so a restart can show it as stopped. */
+    const persistLiveCards = Effect.suspend(() => {
+      if (closing) return Effect.void;
+      const cards = entries
+        .values()
+        .filter((entry) => entry.active && entry.status !== "kept")
+        .map((entry) => ({ projectId: entry.projectId, threadId: entry.threadId }))
+        .toArray();
+      const serialized = cards.map((card) => `${card.projectId}/${card.threadId}`).join("\n");
+      if (serialized === savedLiveCards) return Effect.void;
+      savedLiveCards = serialized;
+      return ops.saveLiveCards(cards);
+    });
+
     const publish = (projectId: ProjectId) =>
       Effect.suspend(() => {
         const list = listFor(projectId);
@@ -239,7 +277,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
           [...listeners].filter((subscription) => subscription.projectId === projectId),
           (subscription) => subscription.listener(list),
           { discard: true },
-        );
+        ).pipe(Effect.andThen(persistLiveCards));
       });
 
     /** Applies a change only while `entry` is still the card's current run. */
@@ -564,6 +602,51 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         Effect.catchDefect(() => fail(entry, "The live environment could not start.")),
       );
 
+    const newEntry = (
+      projectId: ProjectId,
+      threadId: ThreadId,
+      active: boolean,
+      now: number,
+      fields?: Partial<Entry>,
+    ): Entry => ({
+      projectId,
+      threadId,
+      status: "preparing",
+      phase: "worktree",
+      active,
+      warmUntil: null,
+      url: null,
+      worktreePath: null,
+      terminalId: null,
+      error: null,
+      log: [],
+      suggestion: null,
+      updatedAt: now,
+      projectRoot: null,
+      createdWorktree: false,
+      restartAfterStop: false,
+      script: null,
+      autoChosen: false,
+      fixAttempted: false,
+      restartFixAttempted: false,
+      serverFailed: false,
+      setupThreadId: null,
+      job: null,
+      timer: null,
+      ...fields,
+    });
+
+    // A restart forgets running servers; the cards that were live wait for Start.
+    {
+      const now = yield* Clock.currentTimeMillis;
+      for (const card of yield* ops.loadLiveCards) {
+        entries.set(
+          card.threadId,
+          newEntry(card.projectId, card.threadId, false, now, { status: "stopped", phase: null }),
+        );
+      }
+    }
+
     /** Creates a run for the card and starts preparing it. Call with the lock held. */
     const startLocked = (
       projectId: ProjectId,
@@ -572,32 +655,9 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
       fixAttempted = false,
     ) =>
       Effect.gen(function* () {
-        const entry: Entry = {
-          projectId,
-          threadId,
-          status: "preparing",
-          phase: "worktree",
-          active,
-          warmUntil: null,
-          url: null,
-          worktreePath: null,
-          terminalId: null,
-          error: null,
-          log: [],
-          suggestion: null,
-          updatedAt: yield* Clock.currentTimeMillis,
-          projectRoot: null,
-          createdWorktree: false,
-          restartAfterStop: false,
-          script: null,
-          autoChosen: false,
+        const entry = newEntry(projectId, threadId, active, yield* Clock.currentTimeMillis, {
           fixAttempted,
-          restartFixAttempted: false,
-          serverFailed: false,
-          setupThreadId: null,
-          job: null,
-          timer: null,
-        };
+        });
         entries.set(threadId, entry);
         entry.job = yield* runJob(entry).pipe(Effect.forkIn(scope));
         return entry;
@@ -638,17 +698,30 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         if (entry.terminalId !== null) {
           yield* ops.stopDevServer({ threadId: entry.threadId, terminalId: entry.terminalId });
         }
-        if (entry.createdWorktree && entry.worktreePath !== null && entry.projectRoot !== null) {
-          yield* ops.removeWorkspace({
-            projectRoot: entry.projectRoot,
-            worktreePath: entry.worktreePath,
-          });
-        }
+        const kept =
+          entry.createdWorktree && entry.worktreePath !== null && entry.projectRoot !== null
+            ? !(yield* ops.removeWorkspace({
+                projectRoot: entry.projectRoot,
+                worktreePath: entry.worktreePath,
+              }))
+            : false;
         yield* locked(
           Effect.gen(function* () {
             if (entries.get(entry.threadId) !== entry) return;
             entries.delete(entry.threadId);
-            if (entry.restartAfterStop) {
+            if (kept && !entry.restartAfterStop) {
+              // Never delete work silently: the card shows the checkout until it is discarded.
+              entries.set(
+                entry.threadId,
+                newEntry(entry.projectId, entry.threadId, false, yield* Clock.currentTimeMillis, {
+                  status: "kept",
+                  phase: null,
+                  worktreePath: entry.worktreePath,
+                  projectRoot: entry.projectRoot,
+                  error: "Its preview checkout has changes, so it was kept.",
+                }),
+              );
+            } else if (entry.restartAfterStop) {
               yield* startLocked(
                 entry.projectId,
                 entry.threadId,
@@ -689,12 +762,13 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
     const activate: LiveEnvironmentService["Service"]["activate"] = (input) =>
       locked(
         Effect.gen(function* () {
+          // Deleting a visited entry while iterating a Map is safe.
           for (const entry of entries.values()) {
-            if (
-              entry.projectId === input.projectId &&
-              entry.active &&
-              entry.threadId !== input.threadId
-            ) {
+            if (entry.projectId !== input.projectId || entry.threadId === input.threadId) continue;
+            // Another card is live now, so a card waiting since a restart no longer is.
+            if (entry.status === "stopped") {
+              entries.delete(entry.threadId);
+            } else if (entry.active) {
               yield* warmLocked(entry);
             }
           }
@@ -708,6 +782,10 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
               existing.updatedAt = yield* Clock.currentTimeMillis;
               if (existing.status === "stopping") {
                 existing.restartAfterStop = true;
+              } else if (existing.status === "kept") {
+                // Going live again reuses the kept checkout, changes included.
+                existing.restartAfterStop = true;
+                yield* stopEntry(existing).pipe(Effect.forkIn(scope));
               } else if (existing.timer) {
                 const timer = existing.timer;
                 existing.timer = null;
@@ -786,6 +864,32 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         }),
       );
 
+    const discard: LiveEnvironmentService["Service"]["discard"] = (threadId) =>
+      Effect.gen(function* () {
+        const entry = entries.get(threadId);
+        if (
+          entry === undefined ||
+          entry.status !== "kept" ||
+          entry.worktreePath === null ||
+          entry.projectRoot === null
+        ) {
+          return yield* new LiveEnvironmentError({
+            message: "This card has no kept preview checkout to discard.",
+          });
+        }
+        yield* ops.discardWorkspace({
+          projectRoot: entry.projectRoot,
+          worktreePath: entry.worktreePath,
+        });
+        yield* locked(
+          Effect.gen(function* () {
+            if (entries.get(threadId) !== entry) return;
+            entries.delete(threadId);
+            yield* publish(entry.projectId);
+          }),
+        );
+      });
+
     const reportSetup: LiveEnvironmentService["Service"]["reportSetup"] = (input) =>
       Effect.suspend(() => {
         const report = setupReports.get(input.setupThreadId);
@@ -804,6 +908,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
       });
 
     return LiveEnvironmentService.of({
+      discard,
       reportSetup,
       activate,
       stop,

@@ -2922,6 +2922,7 @@ const layerWsRpc = (
         [WS_METHODS.liveEnvironmentActivate]: (input) => liveEnvironments.activate(input),
         [WS_METHODS.liveEnvironmentStop]: (input) => liveEnvironments.stop(input.threadId),
         [WS_METHODS.liveEnvironmentRetry]: (input) => liveEnvironments.retry(input.threadId),
+        [WS_METHODS.liveEnvironmentDiscard]: (input) => liveEnvironments.discard(input.threadId),
         [WS_METHODS.liveEnvironmentSaveDevScript]: (input) => liveEnvironments.saveDevScript(input),
         [WS_METHODS.subscribeLiveEnvironments]: (input) =>
           Stream.callback<LiveEnvironmentList>((queue) =>
