@@ -12,6 +12,8 @@ import { LiveEnvironmentCardStatus } from "./LiveEnvironmentStatus";
 
 export interface BoardCardHandlers {
   readonly onOpen: (threadId: string) => void;
+  /** A single click: shows the card's thread in the side peek. */
+  readonly onPeek: (threadId: string) => void;
   readonly onFocusCard: (threadId: string) => void;
   readonly onCardKeyDown: (threadId: string, event: KeyboardEvent<HTMLElement>) => void;
   readonly onCardMenu: (threadId: string, position: { x: number; y: number }) => void;
@@ -52,6 +54,7 @@ export const BoardCard = memo(function BoardCard({
   thread,
   live,
   tabbable,
+  peeked,
   canDrag,
   handlers,
 }: {
@@ -60,6 +63,7 @@ export const BoardCard = memo(function BoardCard({
   live: LiveEnvironmentSnapshot | undefined;
   /** Roving tabindex: exactly one card on the board is in the tab order. */
   tabbable: boolean;
+  peeked: boolean;
   canDrag: boolean;
   handlers: BoardCardHandlers;
 }) {
@@ -90,8 +94,14 @@ export const BoardCard = memo(function BoardCard({
         aria-roledescription="card"
         aria-label={thread.title}
         tabIndex={tabbable ? 0 : -1}
+        aria-current={peeked ? "true" : undefined}
         data-board-card-id={thread.id}
-        className={CARD_CLASS}
+        className={cn(CARD_CLASS, peeked && "border-primary/60 bg-accent/40")}
+        onClick={(event) => {
+          // The card's own buttons and links act on their own.
+          if (event.target instanceof Element && event.target.closest("button, a")) return;
+          handlers.onPeek(thread.id);
+        }}
         onFocus={(event) => {
           if (event.target === event.currentTarget) handlers.onFocusCard(thread.id);
         }}

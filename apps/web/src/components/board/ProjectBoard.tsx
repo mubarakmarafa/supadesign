@@ -23,6 +23,7 @@ import {
   type ProjectBoardFlag,
   type ProjectId,
   type ScopedProjectRef,
+  type ThreadId,
   validateProjectBoard,
 } from "@supaterm/contracts";
 import { resolveBoardColumns } from "@supaterm/shared/projectBoard";
@@ -64,6 +65,7 @@ import {
   useAllEnvironmentShellsBootstrapped,
   useProject,
   useServerConfigs,
+  useThreadShell,
   useThreadShellsForProjectRefs,
 } from "../../state/entities";
 import { projectEnvironment } from "../../state/projects";
@@ -85,6 +87,7 @@ import {
   WorkspaceBreadcrumbSeparator,
 } from "../WorkspaceBreadcrumb";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { BoardPeek } from "./BoardPeek";
 import { ProjectTabsBar, useProjectTabsMode, useShowProjectTab } from "../projects/ProjectTabs";
 import { BoardCardOverlay, type BoardCardHandlers } from "./BoardCard";
 import { BoardColumn } from "./BoardColumn";
@@ -172,6 +175,24 @@ function overColumnId(layout: BoardLayout, overId: string): BoardColumnId | null
 
 export function ProjectBoardPage() {
   const params = route.useParams();
+  const search = route.useSearch();
+  const navigate = route.useNavigate();
+  const peekedCardId = search.peek ?? null;
+  const peekThreadRef = useMemo(
+    () =>
+      peekedCardId === null
+        ? null
+        : scopeThreadRef(params.environmentId as EnvironmentId, peekedCardId as ThreadId),
+    [params.environmentId, peekedCardId],
+  );
+  const peekedThread = useThreadShell(peekThreadRef);
+  // Switching peeks replaces the entry, so Back closes the peek in one step.
+  const peek = useCallback(
+    (threadId: string) =>
+      void navigate({ search: { peek: threadId }, replace: peekedCardId !== null }),
+    [navigate, peekedCardId],
+  );
+  const closePeek = useCallback(() => void navigate({ search: {}, replace: true }), [navigate]);
   const projectRef = useMemo(
     () => scopeProjectRef(params.environmentId as EnvironmentId, params.projectId as ProjectId),
     [params.environmentId, params.projectId],
@@ -193,12 +214,23 @@ export function ProjectBoardPage() {
   let body: ReactNode;
   if (project && supported) {
     body = (
-      <ProjectBoardView
-        key={scopedProjectKey(projectRef)}
-        projectRef={projectRef}
-        project={project}
-        canOperate={canOperate}
-      />
+      <div className="flex min-h-0 min-w-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <ProjectBoardView
+            key={scopedProjectKey(projectRef)}
+            projectRef={projectRef}
+            project={project}
+            canOperate={canOperate}
+            peekedCardId={peekedThread === null ? null : peekedCardId}
+            onPeek={peek}
+          />
+        </div>
+        {peekThreadRef !== null &&
+        peekedThread !== null &&
+        peekedThread.projectId === project.id ? (
+          <BoardPeek threadRef={peekThreadRef} projectId={project.id} onClose={closePeek} />
+        ) : null}
+      </div>
     );
   } else if (!bootstrapped || (project && config === undefined)) {
     body = null;
@@ -273,10 +305,14 @@ function ProjectBoardView({
   projectRef,
   project,
   canOperate,
+  peekedCardId,
+  onPeek,
 }: {
   projectRef: ScopedProjectRef;
   project: EnvironmentProject;
   canOperate: boolean;
+  peekedCardId: string | null;
+  onPeek: (threadId: string) => void;
 }) {
   const viewKey = scopedProjectKey(projectRef);
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
@@ -580,10 +616,13 @@ function ProjectBoardView({
       return moveBoardCard(layout, id, to, overIndex === -1 ? target.cardIds.length : overIndex);
     });
   };
+  // A drag ends with a click on the card it moved; that click is not a peek.
+  const dragEndedAtRef = useRef(0);
   const endDrag = () => {
     setDragLayout(null);
     setActiveCardId(null);
     dragFromColumnRef.current = null;
+    dragEndedAtRef.current = performance.now();
   };
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const layout = dragLayout;
@@ -740,11 +779,16 @@ function ProjectBoardView({
   const handlers = useMemo<BoardCardHandlers>(
     () => ({
       onOpen: openCard,
+      onPeek: (id) => {
+        if (performance.now() - dragEndedAtRef.current < 250) return;
+        updateView(viewKey, { focusedCardId: id });
+        onPeek(id);
+      },
       onFocusCard: (id) => updateView(viewKey, { focusedCardId: id }),
       onCardKeyDown,
       onCardMenu: (id, position) => void showCardMenu(id, position),
     }),
-    [onCardKeyDown, openCard, showCardMenu, updateView, viewKey],
+    [onCardKeyDown, onPeek, openCard, showCardMenu, updateView, viewKey],
   );
 
   // ── Column editing ──
@@ -930,6 +974,7 @@ function ProjectBoardView({
               }
               liveEnvironments={liveEnvironments}
               tabbableCardId={tabbableCardId}
+              peekedCardId={peekedCardId}
               canEdit={canOperate}
               canDrag={canOperate && !moveInFlight}
               renaming={renamingColumnId === column.id}
