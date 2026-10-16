@@ -1004,7 +1004,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
       : {
           accessibilityLabel: `Mark as done ${thread.title}`,
           icon: "checkmark" as const,
-          label: "Mark as done",
+          label: "Done",
           onPress: handleMarkDone,
         };
   }, [
@@ -1033,7 +1033,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
           ? {
               accessibilityLabel: `Mark as done ${thread.title}`,
               icon: "checkmark" as const,
-              label: "Mark as done",
+              label: "Done",
               onPress: handleMarkDone,
             }
           : null,
@@ -1042,7 +1042,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const swipeAccessibilityHint = !canOperateThread
     ? "Opens the thread"
     : secondaryAction === null
-      ? `Opens the thread. Swipe left to ${primaryAction.label.toLowerCase()}.`
+      ? `Opens the thread. Swipe left for the ${primaryAction.label.toLowerCase()} action.`
       : `Opens the thread. Swipe left for ${primaryAction.label.toLowerCase()} and ${secondaryAction.label.toLowerCase()} actions.`;
 
   // Sidebar rows use navigation foregrounds on their active and idle surfaces.
