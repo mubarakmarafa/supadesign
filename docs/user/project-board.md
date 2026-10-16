@@ -38,8 +38,8 @@ reorder it or move it to another column. Order within a column is kept. On
 touch screens and narrow windows, use the card's **…** menu and **Move to**.
 
 Click a card to open its thread in a side peek beside the board, where you can
-read it and send a quick message; press **Escape** or close the peek to go back
-to just the board. Peeking doesn't change which card is live. Double-click a
+read it and send a quick message. Click an empty part of the board, press
+**Escape**, or close the peek to go back to just the board. Peeking doesn't change which card is live. Double-click a
 card, press **Enter**, or use the peek's expand button to open its thread. Press **Escape** in
 that thread to return to the board where you left it. Escape does nothing while
 the composer holds a draft, or while a terminal, preview, menu, or dialog has
