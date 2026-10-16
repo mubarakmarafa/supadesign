@@ -2,7 +2,11 @@ import { OrchestratorMcpFailure } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as LiveEnvironment from "../../../liveEnvironment/LiveEnvironmentService.ts";
 import * as ThreadManagement from "../../../orchestration-v2/ThreadManagementService.ts";
-import { requireThreadMcpCapability } from "../../McpInvocationContext.ts";
+import {
+  McpInvocationContext,
+  requireThreadMcpCapability,
+  requireThreadScope,
+} from "../../McpInvocationContext.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import { unavailable } from "../../threadAccess.ts";
 import { LiveEnvironmentToolkit } from "./tools.ts";
@@ -28,6 +32,24 @@ const access = Effect.gen(function* () {
 });
 
 export const layer = McpToolAccess.toLayer(LiveEnvironmentToolkit, {
+  // The setup agent may lack browser access, so this asks only for a thread caller;
+  // the service accepts reports from the setup agents it started.
+  supaterm_live_environment_report_dev_command: McpToolAccess.actsAsCaller((input) =>
+    Effect.gen(function* () {
+      const scope = yield* requireThreadScope(
+        yield* McpInvocationContext,
+        "report a live preview dev command",
+      );
+      const service = yield* LiveEnvironment.LiveEnvironmentService;
+      yield* service.reportSetup({
+        setupThreadId: scope.thread.threadId,
+        command: input.command,
+        previewUrl: input.previewUrl,
+        reason: input.reason,
+      });
+      return {};
+    }),
+  ),
   supaterm_live_environment_status: McpToolAccess.readsAsCaller(() =>
     Effect.gen(function* () {
       const { projectId, service } = yield* access;

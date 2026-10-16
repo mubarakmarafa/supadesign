@@ -1,4 +1,4 @@
-import { scopeProjectRef } from "@supaterm/client-runtime/environment";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   LIVE_ENVIRONMENT_GRACE_MS,
   type EnvironmentId,
@@ -7,7 +7,7 @@ import {
   type ProjectId,
   type ScopedThreadRef,
 } from "@supaterm/contracts";
-import { ExternalLinkIcon, RotateCcwIcon, SquareIcon, TerminalIcon } from "lucide-react";
+import { BotIcon, ExternalLinkIcon, RotateCcwIcon, SquareIcon, TerminalIcon } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 
 import { useOpenLink } from "../../browser/useOpenLink";
@@ -28,11 +28,12 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
+import { useOpenThreadFromBoard } from "./boardNavigation";
 import { displayLiveUrl, useNow, useProjectLiveEnvironments } from "./liveEnvironmentState";
 
 const PHASE_LABELS = {
   worktree: "Checking out…",
-  detecting: "Working out how to run it…",
+  detecting: "An agent is setting up the preview…",
   setup: "Running setup…",
   starting: "Starting dev server…",
 } as const;
@@ -246,7 +247,9 @@ export function LiveEnvironmentCardStatus({
   const stop = useAtomCommand(liveEnvironment.stop);
   const retry = useAtomCommand(liveEnvironment.retry);
   const [setupOpen, setSetupOpen] = useState(false);
+  const openThread = useOpenThreadFromBoard();
   const threadInput = { environmentId, input: { threadId: snapshot.threadId } };
+  const setupThreadId = snapshot.setupThreadId ?? null;
 
   return (
     <div
@@ -271,6 +274,18 @@ export function LiveEnvironmentCardStatus({
           >
             <ExternalLinkIcon />
             {displayLiveUrl(snapshot.url)}
+          </Button>
+        ) : null}
+        {setupThreadId !== null ? (
+          <Button
+            size="compact"
+            variant="ghost"
+            onClick={() =>
+              openThread(scopeThreadRef(environmentId, setupThreadId), snapshot.projectId)
+            }
+          >
+            <BotIcon />
+            Watch
           </Button>
         ) : null}
         {warm ? (

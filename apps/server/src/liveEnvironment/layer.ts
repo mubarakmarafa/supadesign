@@ -1,4 +1,6 @@
 import {
+  CommandId,
+  DEFAULT_PROVIDER_INTERACTION_MODE,
   LIVE_ENVIRONMENT_DEV_SCRIPT_ID,
   LiveEnvironmentError,
   type ProjectScript,
@@ -9,6 +11,7 @@ import {
   resolveProjectSettings,
 } from "@supaterm/shared/projectSettings";
 import { resolveProjectScripts } from "@supaterm/shared/projectScripts";
+import * as Crypto from "effect/Crypto";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -20,17 +23,15 @@ import * as Schedule from "effect/Schedule";
 
 import * as GitManager from "../git/GitManager.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
+import * as ThreadLaunch from "../orchestration-v2/ThreadLaunchService.ts";
+import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
 import * as PortScanner from "../preview/PortScanner.ts";
 import * as ProjectService from "../project/ProjectService.ts";
 import * as ProjectSetupScriptRunner from "../project/ProjectSetupScriptRunner.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as TerminalManager from "../terminal/Manager.ts";
-import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import {
-  DEV_SCRIPT_CONTEXT_FILE_MAX_CHARS,
-  DEV_SCRIPT_CONTEXT_FILES,
-  isAcceptableDevCommand,
   liveEnvironmentUrl,
   suggestDevScript,
   suggestNestedDevScript,
@@ -69,8 +70,37 @@ function isAccessDenied(error: PlatformError.PlatformError): boolean {
 /** Folders never worth looking inside for an app. */
 const IGNORED_FOLDERS = new Set(["node_modules", "dist", "build", "out", "coverage", "vendor"]);
 const MAX_CHILD_FOLDERS = 40;
-/** Subfolders whose files the model also sees, for apps one level down. */
-const MAX_NESTED_CONTEXT_FOLDERS = 6;
+
+/** How long a setup agent may explore before the card gives up on it. */
+const SETUP_AGENT_TIMEOUT = Duration.minutes(8);
+
+/** What the hidden setup agent is asked to do; it reports through an MCP tool. */
+function setupAgentPrompt(
+  failed: { readonly command: string; readonly output: string } | undefined,
+): string {
+  const lines = [
+    "You are setting up a live preview so a designer can open this project in a browser.",
+    "Find the one shell command that starts this checkout's local development server.",
+    "",
+    "- Explore the repo first: package.json scripts, README, Makefile, config files, and subfolders that hold the app.",
+    "- You may install dependencies and briefly start the server to check it works. Stop everything you start before you finish.",
+    "- Don't edit, commit, push, or deploy anything, and don't install anything globally.",
+    "- The command runs from this checkout's root in a non-interactive shell and must stay in the foreground while it serves. For an app in a subfolder, use `cd <folder> && ...`. Include an install step with `&&` only if dependencies are missing.",
+    "",
+    "When you know the command, call the `supaterm_live_environment_report_dev_command` tool with `command`, and `previewUrl` if you know the page to open. If nothing here serves a page, call it with only `reason`. Then stop: Supadesign runs the command itself.",
+  ];
+  if (failed) {
+    lines.push(
+      "",
+      `This command was tried and failed: ${failed.command}`,
+      "Its last output:",
+      failed.output.slice(-4_000) || "(no output)",
+      "",
+      "If the command is wrong, report a corrected one. If the command is right and the app's own code is broken, report only a `reason` that says what broke.",
+    );
+  }
+  return lines.join("\n");
+}
 
 const failure = (message: string) => new LiveEnvironmentError({ message });
 
@@ -85,7 +115,10 @@ export const make = Effect.gen(function* () {
   const ports = yield* PortScanner.PortDiscovery;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const textGeneration = yield* TextGeneration.TextGeneration;
+  const threadLaunch = yield* ThreadLaunch.ThreadLaunchService;
+  const threadManagement = yield* ThreadManagement.ThreadManagementService;
+  const crypto = yield* Crypto.Crypto;
+  const newCommandId = crypto.randomUUIDv4.pipe(Effect.orDie, Effect.map(CommandId.make));
 
   const readThread = (threadId: ThreadId) =>
     projections.getThreadShell(threadId).pipe(
@@ -166,16 +199,19 @@ export const make = Effect.gen(function* () {
         const scripts = resolveProjectScripts(current, project);
         const devScript =
           scripts.find((script) => script.id === LIVE_ENVIRONMENT_DEV_SCRIPT_ID) ?? null;
-        const suggestion =
-          devScript === null
-            ? yield* suggestFor(project.workspaceRoot, scripts)
-            : { command: null, previewUrl: null, source: null };
-        return {
-          projectId: project.id,
-          projectRoot: project.workspaceRoot,
-          devScript,
-          suggestion,
-        };
+        return { projectId: project.id, projectRoot: project.workspaceRoot, devScript };
+      }),
+
+    suggestDevScript: ({ projectId, directory }) =>
+      Effect.gen(function* () {
+        const project = yield* projects.getById(projectId).pipe(
+          Effect.map(Option.getOrNull),
+          Effect.orElseSucceed(() => null),
+        );
+        const current = yield* settings.getSettings.pipe(Effect.orElseSucceed(() => null));
+        const scripts =
+          project === null || current === null ? [] : resolveProjectScripts(current, project);
+        return yield* suggestFor(directory, scripts);
       }),
 
     prepareWorkspace: ({ threadId, projectRoot }) =>
@@ -332,100 +368,86 @@ export const make = Effect.gen(function* () {
           .pipe(Effect.mapError(() => failure("The dev server script could not be saved.")));
       }),
 
-    detectDevScript: ({ projectId, projectRoot, failed }) =>
+    launchSetupAgent: ({ cardThreadId, projectId, projectRoot, worktreePath, failed }) =>
       Effect.gen(function* () {
+        const blocked = yield* fs.readDirectory(worktreePath).pipe(
+          Effect.as(false),
+          // The agent explores with its own tools; only a block macOS shows the user stops it.
+          Effect.catchTags({
+            PlatformError: (error) =>
+              Effect.logWarning("Could not read a live preview checkout", {
+                worktreePath,
+                error,
+              }).pipe(Effect.as(isAccessDenied(error))),
+          }),
+        );
+        if (blocked) return yield* failure(FOLDER_ACCESS_DENIED);
         const current = yield* settings.getSettings.pipe(
           Effect.mapError(() => failure("Settings could not be read.")),
         );
-        const { textGenerationModelSelection } = resolveProjectSettings(
-          current,
-          projectId,
-        ).settings;
-        /** One folder's entries, with a trailing slash on directories. */
-        const listFolder = (folder: string, prefix: string) =>
-          fs.readDirectory(folder).pipe(
-            Effect.orElseSucceed((): ReadonlyArray<string> => []),
-            Effect.flatMap((names) =>
-              Effect.forEach(names.toSorted().slice(0, 200), (name) =>
-                fs.stat(path.join(folder, name)).pipe(
-                  Effect.map((info) =>
-                    info.type === "Directory" ? `${prefix}${name}/` : `${prefix}${name}`,
-                  ),
-                  Effect.orElseSucceed(() => `${prefix}${name}`),
-                ),
-              ),
-            ),
-          );
-        /** The context files present in one folder, trimmed for the prompt. */
-        const readContext = (folder: string, prefix: string, names: ReadonlyArray<string>) =>
-          Effect.forEach(
-            DEV_SCRIPT_CONTEXT_FILES.filter((name) => names.includes(`${prefix}${name}`)),
-            (name) =>
-              fs.readFileString(path.join(folder, name)).pipe(
-                Effect.map((contents) => ({
-                  path: `${prefix}${name}`,
-                  contents: contents.slice(0, DEV_SCRIPT_CONTEXT_FILE_MAX_CHARS),
-                })),
-                Effect.orElseSucceed(() => null),
-              ),
-          );
-        // A blocked read must not look like an empty repo to the model.
-        yield* fs.readDirectory(projectRoot).pipe(
-          Effect.catchTags({
-            PlatformError: (error) =>
-              isAccessDenied(error) ? Effect.fail(failure(FOLDER_ACCESS_DENIED)) : Effect.void,
-          }),
-        );
-        const listing = [...(yield* listFolder(projectRoot, ""))];
-        const files = [...(yield* readContext(projectRoot, "", listing))];
-        // An app can sit one folder down, as in a workspace folder around a repo.
-        if (!listing.includes("package.json")) {
-          let added = 0;
-          for (const name of yield* childFolders(projectRoot)) {
-            if (added >= MAX_NESTED_CONTEXT_FOLDERS) break;
-            const prefix = `${name}/`;
-            const nested = yield* listFolder(path.join(projectRoot, name), prefix);
-            if (!DEV_SCRIPT_CONTEXT_FILES.some((file) => nested.includes(`${prefix}${file}`))) {
-              continue;
-            }
-            added += 1;
-            listing.push(...nested);
-            files.push(...(yield* readContext(path.join(projectRoot, name), prefix, nested)));
-          }
-        }
-        const generated = yield* textGeneration
-          .generateDevServerCommand({
-            cwd: projectRoot,
-            listing,
-            files: files.filter((file) => file !== null),
-            failedAttempt: failed,
-            modelSelection: textGenerationModelSelection,
+        const launched = yield* threadLaunch
+          .launch({
+            commandId: yield* newCommandId,
+            projectId,
+            parentThreadId: cardThreadId,
+            title: "Set up live preview",
+            // The cheap model the app already uses for small jobs.
+            modelSelection: resolveProjectSettings(current, projectId).settings
+              .textGenerationModelSelection,
+            // Nobody watches it, so it can't stop to ask before running commands.
+            runtimeMode: "full-access",
+            interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+            workspaceStrategy:
+              worktreePath === projectRoot
+                ? { type: "root" }
+                : { type: "existing_worktree", worktreePath },
+            initialMessage: { text: setupAgentPrompt(failed), attachments: [] },
+            createdBy: "system",
+            creationSource: "server",
           })
           .pipe(
             Effect.tapError((error) =>
-              Effect.logWarning("Could not work out a dev server command", { error }),
+              Effect.logWarning("Could not start the live preview setup agent", { error }),
             ),
-            Effect.mapError((error) =>
-              failure(`The text generation model couldn't answer: ${error.detail}`),
+            Effect.mapError(() =>
+              failure("Supadesign couldn't start an agent to set up the preview."),
             ),
           );
-        yield* Effect.logInfo("Picked a dev server command", {
-          command: generated.command,
-          reason: generated.reason,
-        });
-        // The reason reaches the card, so the user sees why it asks.
-        if (generated.command === null) {
-          return yield* failure(generated.reason || "Nothing in the repo looks like a dev server.");
-        }
-        if (!isAcceptableDevCommand(generated.command)) {
-          return yield* failure(
-            `Didn't run “${generated.command}”: it does more than start a server.`,
+        return launched.threadId;
+      }),
+
+    awaitSetupAgent: ({ projectId, setupThreadId }) =>
+      threadManagement
+        .waitForThread({
+          projectId,
+          threadId: setupThreadId,
+          timeoutMs: Duration.toMillis(SETUP_AGENT_TIMEOUT),
+        })
+        .pipe(Effect.ignore),
+
+    removeSetupAgent: ({ projectId, setupThreadId }) =>
+      Effect.gen(function* () {
+        yield* threadManagement
+          .interruptThread({
+            projectId,
+            commandId: yield* newCommandId,
+            threadId: setupThreadId,
+            reason: "The live preview setup is done.",
+          })
+          .pipe(Effect.ignore);
+        // Deleting a thread never removes a worktree another thread uses.
+        yield* threadManagement
+          .dispatch({
+            type: "thread.delete",
+            commandId: yield* newCommandId,
+            threadId: setupThreadId,
+          })
+          .pipe(
+            Effect.tapError((error) =>
+              Effect.logInfo("Could not remove the live preview setup agent", { error }),
+            ),
+            Effect.ignore,
           );
-        }
-        return {
-          command: generated.command,
-          previewUrl: generated.previewUrl ?? undefined,
-        };
       }),
 
     removeWorkspace: ({ projectRoot, worktreePath }) =>

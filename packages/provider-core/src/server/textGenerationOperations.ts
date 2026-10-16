@@ -17,7 +17,6 @@ import type { ProviderTextGeneration } from "./textGeneration.ts";
 import {
   buildBranchNamePrompt,
   buildCommitMessagePrompt,
-  buildDevServerCommandPrompt,
   buildPrContentPrompt,
   buildReviewGuidePrompt,
   buildThreadTitlePrompt,
@@ -206,23 +205,6 @@ export function fromRunner(
     });
   });
 
-  const generateDevServerCommand: ProviderTextGeneration["generateDevServerCommand"] = Effect.fn(
-    `${name}.generateDevServerCommand`,
-  )(function* (input) {
-    const generated = yield* run({
-      operation: "generateDevServerCommand",
-      cwd: input.cwd,
-      modelSelection: input.modelSelection,
-      ...buildDevServerCommandPrompt(input),
-    });
-    const command = generated.command?.trim() ?? "";
-    return {
-      command: command === "" ? null : command,
-      previewUrl: generated.previewUrl?.trim() || null,
-      reason: generated.reason.trim(),
-    };
-  });
-
   return {
     supportsReviewGuides: options.supportsReviewGuides ?? false,
     generateCommitMessage,
@@ -230,6 +212,5 @@ export function fromRunner(
     generateBranchName,
     generateThreadTitle,
     generateReviewGuide,
-    generateDevServerCommand,
   } satisfies ProviderTextGeneration;
 }

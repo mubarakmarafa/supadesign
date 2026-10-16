@@ -14,10 +14,14 @@ import {
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
+import * as Deferred from "effect/Deferred";
+import * as Duration from "effect/Duration";
 import * as Exit from "effect/Exit";
 import * as Fiber from "effect/Fiber";
 import * as Scope from "effect/Scope";
 import * as Semaphore from "effect/Semaphore";
+
+import { isAcceptableDevCommand } from "./devScriptSuggestion.ts";
 
 /**
  * The steps one live environment goes through. Production wires them to git,
@@ -30,10 +34,14 @@ export interface LiveEnvironmentOps {
       readonly projectId: ProjectId;
       readonly projectRoot: string;
       readonly devScript: ProjectScript | null;
-      readonly suggestion: LiveEnvironmentDevScriptSuggestion;
     },
     LiveEnvironmentError
   >;
+  /** What the files in `directory`, the checkout the card runs, say starts it. */
+  readonly suggestDevScript: (input: {
+    readonly projectId: ProjectId;
+    readonly directory: string;
+  }) => Effect.Effect<LiveEnvironmentDevScriptSuggestion>;
   /** Picks or creates the checkout to run. `created` means teardown may remove it. */
   readonly prepareWorkspace: (input: {
     readonly threadId: ThreadId;
@@ -76,18 +84,27 @@ export interface LiveEnvironmentOps {
     readonly previewUrl: string | undefined;
   }) => Effect.Effect<void, LiveEnvironmentError>;
   /**
-   * Works out the dev server command from the repo, or a corrected one after
-   * `failed`. Fails with the reason, for the card, when it cannot: nothing
-   * serves a page, or the failure is in the app's own code.
+   * Starts a hidden helper agent in the card's checkout that finds the dev
+   * server command, or corrects `failed`, and reports it through
+   * `reportSetup`. Returns the helper's thread.
    */
-  readonly detectDevScript: (input: {
+  readonly launchSetupAgent: (input: {
+    readonly cardThreadId: ThreadId;
     readonly projectId: ProjectId;
     readonly projectRoot: string;
+    readonly worktreePath: string;
     readonly failed?: { readonly command: string; readonly output: string } | undefined;
-  }) => Effect.Effect<
-    { readonly command: string; readonly previewUrl: string | undefined },
-    LiveEnvironmentError
-  >;
+  }) => Effect.Effect<ThreadId, LiveEnvironmentError>;
+  /** Resolves once the helper's turn ends, or after a time limit. */
+  readonly awaitSetupAgent: (input: {
+    readonly projectId: ProjectId;
+    readonly setupThreadId: ThreadId;
+  }) => Effect.Effect<void>;
+  /** Stops the helper and deletes its thread; the card's checkout is untouched. */
+  readonly removeSetupAgent: (input: {
+    readonly projectId: ProjectId;
+    readonly setupThreadId: ThreadId;
+  }) => Effect.Effect<void>;
   /** Removes a worktree this service created, leaving it alone when it has changes. */
   readonly removeWorkspace: (input: {
     readonly projectRoot: string;
@@ -115,6 +132,13 @@ export class LiveEnvironmentService extends Context.Service<
       readonly projectId: ProjectId;
       readonly command: string;
       readonly previewUrl?: string | undefined;
+    }) => Effect.Effect<void, LiveEnvironmentError>;
+    /** A setup helper's answer: the command, or why there is none. */
+    readonly reportSetup: (input: {
+      readonly setupThreadId: ThreadId;
+      readonly command?: string | undefined;
+      readonly previewUrl?: string | undefined;
+      readonly reason?: string | undefined;
     }) => Effect.Effect<void, LiveEnvironmentError>;
     readonly list: (projectId?: ProjectId) => Effect.Effect<ReadonlyArray<LiveEnvironmentSnapshot>>;
     /** Calls `listener` with the project's environments now and after every change. */
@@ -147,7 +171,9 @@ interface Entry {
   script: ProjectScript | null;
   /** Whether this run's command was picked without the user. */
   autoChosen: boolean;
-  /** Whether the model already tried to correct this card's command. */
+  /** The hidden helper agent working out the command, while it runs. */
+  setupThreadId: ThreadId | null;
+  /** Whether a helper already tried to correct this card's command. */
   fixAttempted: boolean;
   /** Carries `fixAttempted` into the run a fix restarts, so a fix cannot loop. */
   restartFixAttempted: boolean;
@@ -171,9 +197,18 @@ function snapshot(entry: Entry): LiveEnvironmentSnapshot {
     error: entry.error,
     logTail: entry.status === "failed" ? [...entry.log] : [],
     suggestion: entry.suggestion,
+    setupThreadId: entry.setupThreadId,
     updatedAt: entry.updatedAt,
   };
 }
+
+interface SetupReport {
+  readonly command?: string | undefined;
+  readonly previewUrl?: string | undefined;
+  readonly reason?: string | undefined;
+}
+
+const SETUP_REPORT_GRACE = Duration.seconds(2);
 
 export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: number }) =>
   Effect.gen(function* () {
@@ -232,38 +267,117 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         current.error = message;
       });
 
+    /** Helpers waiting to report, by their thread. */
+    const setupReports = new Map<ThreadId, Deferred.Deferred<SetupReport>>();
+
+    /**
+     * Runs a hidden helper agent in the card's checkout until it reports a
+     * command, and always stops and deletes it afterwards. Fails with the
+     * helper's reason, or why it gave none.
+     */
+    const askSetupAgent = (
+      entry: Entry,
+      worktreePath: string,
+      failed?: { readonly command: string; readonly output: string },
+    ) =>
+      Effect.gen(function* () {
+        const projectRoot = entry.projectRoot ?? worktreePath;
+        const report = yield* Deferred.make<SetupReport>();
+        const answer = yield* Effect.acquireUseRelease(
+          ops
+            .launchSetupAgent({
+              cardThreadId: entry.threadId,
+              projectId: entry.projectId,
+              projectRoot,
+              worktreePath,
+              failed,
+            })
+            .pipe(
+              Effect.tap((setupThreadId) =>
+                Effect.sync(() => setupReports.set(setupThreadId, report)).pipe(
+                  Effect.andThen(
+                    update(entry, (current) => {
+                      current.setupThreadId = setupThreadId;
+                    }),
+                  ),
+                ),
+              ),
+            ),
+          (setupThreadId) =>
+            Effect.raceFirst(
+              Deferred.await(report),
+              // A report made in the helper's last moments may land just after its turn.
+              ops.awaitSetupAgent({ projectId: entry.projectId, setupThreadId }).pipe(
+                Effect.andThen(
+                  Deferred.await(report).pipe(Effect.timeoutOption(SETUP_REPORT_GRACE)),
+                ),
+                Effect.flatMap((reported) =>
+                  reported._tag === "Some"
+                    ? Effect.succeed(reported.value)
+                    : Effect.fail(
+                        new LiveEnvironmentError({
+                          message: "The setup agent finished without finding how to start it.",
+                        }),
+                      ),
+                ),
+              ),
+            ),
+          (setupThreadId) =>
+            Effect.sync(() => setupReports.delete(setupThreadId)).pipe(
+              Effect.andThen(ops.removeSetupAgent({ projectId: entry.projectId, setupThreadId })),
+              Effect.andThen(
+                update(entry, (current) => {
+                  current.setupThreadId = null;
+                }),
+              ),
+            ),
+        );
+        const command = answer.command?.trim() ?? "";
+        if (command === "") {
+          return yield* new LiveEnvironmentError({
+            message:
+              answer.reason?.trim() || "The setup agent found nothing here that serves a page.",
+          });
+        }
+        if (!isAcceptableDevCommand(command)) {
+          return yield* new LiveEnvironmentError({
+            message: `Didn't run “${command}”: it does more than start a server.`,
+          });
+        }
+        return { command, previewUrl: answer.previewUrl?.trim() || undefined };
+      });
+
     /**
      * The project's dev server script. Without one it picks one itself, from
-     * the repo's own scripts or by asking the model, and saves it; null means
-     * the user has to say how the project runs.
+     * the checkout's own scripts or by asking a helper agent, and saves it;
+     * null means the user has to say how the project runs.
      */
-    const resolveDevScript = (entry: Entry) =>
+    const resolveDevScript = (
+      entry: Entry,
+      plan: { readonly devScript: ProjectScript | null },
+      worktreePath: string,
+    ) =>
       Effect.gen(function* () {
-        const plan = yield* ops.plan(entry.threadId);
-        yield* update(entry, (current) => {
-          current.projectRoot = plan.projectRoot;
+        if (plan.devScript !== null) return plan.devScript;
+        const suggestion = yield* ops.suggestDevScript({
+          projectId: entry.projectId,
+          directory: worktreePath,
         });
-        if (plan.devScript !== null) return { plan, devScript: plan.devScript };
         let chosen: { command: string; previewUrl: string | undefined } | null =
-          plan.suggestion.command === null
+          suggestion.command === null
             ? null
-            : {
-                command: plan.suggestion.command,
-                previewUrl: plan.suggestion.previewUrl ?? undefined,
-              };
+            : { command: suggestion.command, previewUrl: suggestion.previewUrl ?? undefined };
         let reason: string | null = null;
         if (chosen === null) {
           yield* update(entry, (current) => {
             current.phase = "detecting";
           });
-          chosen = yield* ops
-            .detectDevScript({ projectId: entry.projectId, projectRoot: plan.projectRoot })
-            .pipe(
-              Effect.catch((error: LiveEnvironmentError) => {
-                reason = error.message;
-                return Effect.succeed(null);
-              }),
-            );
+          chosen = yield* askSetupAgent(entry, worktreePath).pipe(
+            Effect.catch((error: LiveEnvironmentError) => {
+              reason = error.message;
+              return Effect.succeed(null);
+            }),
+          );
         }
         const saved =
           chosen === null
@@ -276,7 +390,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
           yield* update(entry, (current) => {
             current.status = "needs-dev-script";
             current.phase = null;
-            current.suggestion = plan.suggestion;
+            current.suggestion = suggestion;
             current.error = reason;
           });
           return null;
@@ -284,7 +398,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         yield* update(entry, (current) => {
           current.autoChosen = true;
         });
-        return { plan, devScript: saved };
+        return saved;
       });
 
     /** A dev server that will not start; the model may correct a command it picked. */
@@ -332,21 +446,18 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
             // The run that failed may still be finishing; this fix replaces it.
             if (previous) yield* Fiber.interrupt(previous);
             const fixed =
-              entry.projectRoot === null
+              entry.worktreePath === null
                 ? null
-                : yield* ops
-                    .detectDevScript({
-                      projectId: entry.projectId,
-                      projectRoot: entry.projectRoot,
-                      failed: { command: script.command, output: entry.log.join("\n") },
-                    })
-                    .pipe(
-                      Effect.catch((error: LiveEnvironmentError) => {
-                        // Usually what broke in the app, worth showing beside the failure.
-                        explanation = error.message;
-                        return Effect.succeed(null);
-                      }),
-                    );
+                : yield* askSetupAgent(entry, entry.worktreePath, {
+                    command: script.command,
+                    output: entry.log.join("\n"),
+                  }).pipe(
+                    Effect.catch((error: LiveEnvironmentError) => {
+                      // Usually what broke in the app, worth showing beside the failure.
+                      explanation = error.message;
+                      return Effect.succeed(null);
+                    }),
+                  );
             const corrected = fixed !== null && fixed.command.trim() !== script.command.trim();
             if (corrected) {
               yield* ops
@@ -370,11 +481,9 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
 
     const runJob = (entry: Entry): Effect.Effect<void> =>
       Effect.gen(function* () {
-        const resolved = yield* resolveDevScript(entry);
-        if (resolved === null) return;
-        const { plan, devScript } = resolved;
+        const plan = yield* ops.plan(entry.threadId);
         yield* update(entry, (current) => {
-          current.script = devScript;
+          current.projectRoot = plan.projectRoot;
         });
         const workspace = yield* ops.prepareWorkspace({
           threadId: entry.threadId,
@@ -383,6 +492,13 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         yield* update(entry, (current) => {
           current.worktreePath = workspace.worktreePath;
           current.createdWorktree = workspace.created;
+        });
+        // Work out the command where it runs: a card's worktree can hold an
+        // app its project folder doesn't have yet.
+        const devScript = yield* resolveDevScript(entry, plan, workspace.worktreePath);
+        if (devScript === null) return;
+        yield* update(entry, (current) => {
+          current.script = devScript;
         });
         if (workspace.created) {
           yield* update(entry, (current) => {
@@ -478,6 +594,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
           fixAttempted,
           restartFixAttempted: false,
           serverFailed: false,
+          setupThreadId: null,
           job: null,
           timer: null,
         };
@@ -669,7 +786,25 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         }),
       );
 
+    const reportSetup: LiveEnvironmentService["Service"]["reportSetup"] = (input) =>
+      Effect.suspend(() => {
+        const report = setupReports.get(input.setupThreadId);
+        if (report === undefined) {
+          return Effect.fail(
+            new LiveEnvironmentError({
+              message: "Only a live preview's setup agent can report its dev command.",
+            }),
+          );
+        }
+        return Deferred.succeed(report, {
+          command: input.command,
+          previewUrl: input.previewUrl,
+          reason: input.reason,
+        }).pipe(Effect.asVoid);
+      });
+
     return LiveEnvironmentService.of({
+      reportSetup,
       activate,
       stop,
       retry,
