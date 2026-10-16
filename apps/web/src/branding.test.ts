@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import {
-  resolveServerBackedAppDisplayName,
-  resolveServerBackedAppStageLabel,
-} from "./branding.logic";
+import { resolveServerBackedAppStageLabel } from "./branding.logic";
 
 const originalWindow = globalThis.window;
 
@@ -29,14 +26,14 @@ describe("branding", () => {
     expect(branding.APP_DISPLAY_NAME).toBe("Supaterm");
   });
 
-  it("keeps development web builds labeled", async () => {
+  it("keeps development web builds identified without changing the title", async () => {
     vi.stubEnv("DEV", true);
     vi.stubEnv("VITE_HOSTED_APP_CHANNEL", "");
 
     const branding = await import("./branding");
 
     expect(branding.APP_STAGE_LABEL).toBe("Dev");
-    expect(branding.APP_DISPLAY_NAME).toBe("Supaterm (Dev)");
+    expect(branding.APP_DISPLAY_NAME).toBe("Supaterm");
   });
 
   it("preserves an absent desktop stage over the web build fallback", async () => {
@@ -69,7 +66,7 @@ describe("branding", () => {
           getAppBranding: () => ({
             baseName: "Supaterm",
             stageLabel: "Nightly",
-            displayName: "Supaterm (Nightly)",
+            displayName: "Supaterm",
           }),
         },
       },
@@ -79,7 +76,7 @@ describe("branding", () => {
 
     expect(branding.APP_BASE_NAME).toBe("Supaterm");
     expect(branding.APP_STAGE_LABEL).toBe("Nightly");
-    expect(branding.APP_DISPLAY_NAME).toBe("Supaterm (Nightly)");
+    expect(branding.APP_DISPLAY_NAME).toBe("Supaterm");
   });
 
   it("normalizes hosted app channel metadata", async () => {
@@ -90,7 +87,7 @@ describe("branding", () => {
     expect(branding.HOSTED_APP_CHANNEL).toBe("nightly");
     expect(branding.HOSTED_APP_CHANNEL_LABEL).toBe("Nightly");
     expect(branding.APP_STAGE_LABEL).toBe("Nightly");
-    expect(branding.APP_DISPLAY_NAME).toBe("Supaterm (Nightly)");
+    expect(branding.APP_DISPLAY_NAME).toBe("Supaterm");
   });
 
   it("does not label the latest hosted app channel", async () => {
@@ -122,38 +119,5 @@ describe("branding logic", () => {
         fallbackStageLabel: null,
       }),
     ).toBe("Nightly");
-  });
-
-  it("updates the display name for nightly primary server versions", () => {
-    expect(
-      resolveServerBackedAppDisplayName({
-        baseName: "Supaterm",
-        fallbackDisplayName: "Supaterm",
-        fallbackStageLabel: null,
-        primaryServerVersion: "0.0.28-nightly.20260616.12",
-      }),
-    ).toBe("Supaterm (Nightly)");
-  });
-
-  it("keeps the fallback display name for stable primary server versions", () => {
-    expect(
-      resolveServerBackedAppDisplayName({
-        baseName: "Supaterm",
-        fallbackDisplayName: "Supaterm",
-        fallbackStageLabel: null,
-        primaryServerVersion: "0.0.27",
-      }),
-    ).toBe("Supaterm");
-  });
-
-  it("keeps the fallback display name for malformed nightly primary server versions", () => {
-    expect(
-      resolveServerBackedAppDisplayName({
-        baseName: "Supaterm",
-        fallbackDisplayName: "Supaterm",
-        fallbackStageLabel: null,
-        primaryServerVersion: "0.0.28-nightly.20260616",
-      }),
-    ).toBe("Supaterm");
   });
 });

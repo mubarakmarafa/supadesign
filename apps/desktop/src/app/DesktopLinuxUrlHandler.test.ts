@@ -160,14 +160,14 @@ const emptyRecording = (): RecordedRegistration => ({
 describe("DesktopLinuxUrlHandler", () => {
   it("renders a scheme-handler desktop entry with freedesktop Exec quoting", () => {
     const entry = DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
-      displayName: "Supaterm (Nightly)",
+      displayName: "Supaterm",
       execTarget: '/home/al ice/Apps/Supaterm "100%" $HOME\\x.AppImage',
       scheme: "supaterm",
       iconPath: "/home/al ice/icons/Supaterm\\x.png",
     });
 
     assert.include(entry, "[Desktop Entry]");
-    assert.include(entry, "Name=Supaterm (Nightly)");
+    assert.include(entry, "Name=Supaterm");
     // Exec composes both escaping layers: a literal backslash becomes four
     // backslashes in the file, a quote three characters, a dollar sign two
     // backslashes plus the sign.

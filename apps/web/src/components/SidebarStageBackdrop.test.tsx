@@ -2,37 +2,40 @@ import { describe, expect, it } from "vite-plus/test";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import {
+  isSidebarStageBackdropSupported,
   resolveEnvironmentIdentificationPillLabel,
-  resolveSidebarStageBackdropVariant,
-  resolveVisibleSidebarStageBackdropVariant,
+  shouldShowSidebarStageBackdrop,
   StageBackdropArt,
 } from "./SidebarStageBackdrop";
 
 describe("SidebarStageBackdrop", () => {
-  it("resolves stage artwork per channel", () => {
-    expect(resolveSidebarStageBackdropVariant("Dev")).toBe("dev");
-    expect(resolveSidebarStageBackdropVariant("Nightly")).toBe("nightly");
-    expect(resolveSidebarStageBackdropVariant("Latest")).toBe("release");
-    expect(resolveSidebarStageBackdropVariant(null)).toBe("release");
-    expect(resolveSidebarStageBackdropVariant("Preview")).toBeNull();
+  it("resolves production artwork for every supported channel", () => {
+    expect(isSidebarStageBackdropSupported("Dev")).toBe(true);
+    expect(isSidebarStageBackdropSupported("Nightly")).toBe(true);
+    expect(isSidebarStageBackdropSupported("Latest")).toBe(true);
+    expect(isSidebarStageBackdropSupported(null)).toBe(true);
+    expect(isSidebarStageBackdropSupported("Preview")).toBe(false);
   });
 
-  it.each(["light", "dark"] as const)("keeps channel artwork under %s themes", (appearance) => {
-    expect(resolveVisibleSidebarStageBackdropVariant("Nightly", appearance)).toBe("nightly");
-    expect(resolveVisibleSidebarStageBackdropVariant("Dev", appearance)).toBe("dev");
-  });
+  it.each(["light", "dark"] as const)(
+    "applies production artwork rules under %s themes",
+    (appearance) => {
+      expect(shouldShowSidebarStageBackdrop("Nightly", appearance)).toBe(appearance === "dark");
+      expect(shouldShowSidebarStageBackdrop("Dev", appearance)).toBe(appearance === "dark");
+    },
+  );
 
-  it("shows the release artwork only under dark themes", () => {
-    expect(resolveVisibleSidebarStageBackdropVariant(null, "dark")).toBe("release");
-    expect(resolveVisibleSidebarStageBackdropVariant("Latest", "dark")).toBe("release");
-    expect(resolveVisibleSidebarStageBackdropVariant(null, "light")).toBeNull();
-    expect(resolveVisibleSidebarStageBackdropVariant("Latest", "light")).toBeNull();
+  it("shows the production artwork only under dark themes", () => {
+    expect(shouldShowSidebarStageBackdrop(null, "dark")).toBe(true);
+    expect(shouldShowSidebarStageBackdrop("Latest", "dark")).toBe(true);
+    expect(shouldShowSidebarStageBackdrop(null, "light")).toBe(false);
+    expect(shouldShowSidebarStageBackdrop("Latest", "light")).toBe(false);
   });
 
   it.each(["light", "dark"] as const)(
     "keeps unsupported stage labels hidden under %s themes",
     (appearance) => {
-      expect(resolveVisibleSidebarStageBackdropVariant("Preview", appearance)).toBeNull();
+      expect(shouldShowSidebarStageBackdrop("Preview", appearance)).toBe(false);
     },
   );
 
@@ -43,19 +46,16 @@ describe("SidebarStageBackdrop", () => {
     expect(resolveEnvironmentIdentificationPillLabel(null)).toBeNull();
   });
 
-  it.each(["nightly", "dev", "release"] as const)(
-    "uses unique SVG definition ids when %s artwork is rendered more than once",
-    (variant) => {
-      const markup = renderToStaticMarkup(
-        <>
-          <StageBackdropArt variant={variant} />
-          <StageBackdropArt variant={variant} />
-        </>,
-      );
-      const ids = Array.from(markup.matchAll(/\sid="([^"]+)"/g), (match) => match[1]);
+  it("uses unique SVG definition ids when production artwork is rendered more than once", () => {
+    const markup = renderToStaticMarkup(
+      <>
+        <StageBackdropArt />
+        <StageBackdropArt />
+      </>,
+    );
+    const ids = Array.from(markup.matchAll(/\sid="([^"]+)"/g), (match) => match[1]);
 
-      expect(ids.length).toBeGreaterThan(0);
-      expect(new Set(ids).size).toBe(ids.length);
-    },
-  );
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });

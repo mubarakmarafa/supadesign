@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { type ComponentType, useId, useSyncExternalStore } from "react";
+import { useId, useSyncExternalStore } from "react";
 
 import { APP_STAGE_LABEL } from "../branding";
 import { resolveServerBackedAppStageLabel } from "../branding.logic";
@@ -11,7 +11,6 @@ import {
   type ThemeAppearance,
 } from "../themePalette";
 
-export type SidebarStageBackdropVariant = "nightly" | "dev" | "release";
 export type EnvironmentIdentificationMode = "artwork" | "pill" | "none";
 export type EnvironmentIdentificationPillLabel = "Dev" | "Nightly";
 
@@ -19,24 +18,22 @@ export type EnvironmentIdentificationPillLabel = "Dev" | "Nightly";
 // more horizontal canvas instead of zooming the scene.
 const STAGE_BACKDROP_VIEW_BOX = "0 0 8192 96";
 
-export function resolveSidebarStageBackdropVariant(
-  stageLabel: string | null,
-): SidebarStageBackdropVariant | null {
+export function isSidebarStageBackdropSupported(stageLabel: string | null): boolean {
   const normalized = stageLabel?.trim().toLowerCase();
-  if (normalized === "nightly") return "nightly";
-  if (normalized === "dev") return "dev";
-  if (normalized === undefined || normalized === "latest") return "release";
-  return null;
+  return (
+    normalized === "nightly" ||
+    normalized === "dev" ||
+    normalized === undefined ||
+    normalized === "latest"
+  );
 }
 
-/** Dev and nightly keep their artwork in every theme; release only shows its artwork when dark. */
-export function resolveVisibleSidebarStageBackdropVariant(
+/** The production artwork is shared by every supported environment and only shows in dark themes. */
+export function shouldShowSidebarStageBackdrop(
   stageLabel: string | null,
   appearance: ThemeAppearance,
-): SidebarStageBackdropVariant | null {
-  const variant = resolveSidebarStageBackdropVariant(stageLabel);
-  if (variant === "release" && appearance !== "dark") return null;
-  return variant;
+): boolean {
+  return isSidebarStageBackdropSupported(stageLabel) && appearance === "dark";
 }
 
 export function resolveEnvironmentIdentificationPillLabel(
@@ -58,7 +55,7 @@ export function useEnvironmentStageLabel(): string | null {
   });
 }
 
-export function useSidebarStageBackdropVariant(enabled = true): SidebarStageBackdropVariant | null {
+export function useSidebarStageBackdrop(enabled = true): boolean {
   const stageLabel = useEnvironmentStageLabel();
   const { resolvedTheme } = useTheme();
   const previewAppearance = useSyncExternalStore(
@@ -66,37 +63,27 @@ export function useSidebarStageBackdropVariant(enabled = true): SidebarStageBack
     getThemePreviewAppearance,
     () => null,
   );
-  return enabled
-    ? resolveVisibleSidebarStageBackdropVariant(stageLabel, previewAppearance ?? resolvedTheme)
-    : null;
+  return enabled && shouldShowSidebarStageBackdrop(stageLabel, previewAppearance ?? resolvedTheme);
 }
 
-/** Stage-channel header art; palettes mirror the per-channel app icons in `assets/`. */
-export function SidebarStageBackdrop({ variant }: { variant: SidebarStageBackdropVariant }) {
+/** The production header art is reused wherever environment artwork is enabled. */
+export function SidebarStageBackdrop() {
   return (
     <div
       aria-hidden
       className="sidebar-stage-backdrop pointer-events-none absolute inset-x-0 top-0 z-0 h-20 select-none overflow-hidden"
     >
-      <StageBackdropArt variant={variant} />
+      <StageBackdropArt />
     </div>
   );
 }
 
-const STAGE_BACKDROP_ART = {
-  nightly: SleighRideArt,
-  dev: WireframeArt,
-  release: MeteorShowerArt,
-} satisfies Record<SidebarStageBackdropVariant, ComponentType<{ compact?: boolean }>>;
-
-export function StageBackdropArt({ variant }: { variant: SidebarStageBackdropVariant }) {
-  const Art = STAGE_BACKDROP_ART[variant];
-  return <Art />;
+export function StageBackdropArt() {
+  return <MeteorShowerArt />;
 }
 
-export function StageBackdropButtonArt({ variant }: { variant: SidebarStageBackdropVariant }) {
-  const Art = STAGE_BACKDROP_ART[variant];
-  return <Art compact />;
+export function StageBackdropButtonArt() {
+  return <MeteorShowerArt compact />;
 }
 
 type StageStar = { cx: number; cy: number; r: number; opacity: number };
@@ -380,282 +367,6 @@ function MeteorShowerArt({ compact = false }: { compact?: boolean }) {
       <rect width="100%" height="96" fill={`url(#${skyId})`} />
       <rect width="100%" height="96" fill={`url(#${starsId})`} />
       <rect width="100%" height="96" fill={`url(#${meteorsId})`} />
-    </svg>
-  );
-}
-
-function WireframeArt({ compact = false }: { compact?: boolean }) {
-  const idPrefix = useId().replaceAll(":", "");
-  const paperId = `${idPrefix}-stage-wireframe-paper`;
-  const glowId = `${idPrefix}-stage-wireframe-glow`;
-  const dotsId = `${idPrefix}-stage-wireframe-dots`;
-  const frameId = `${idPrefix}-stage-wireframe-frames`;
-
-  return (
-    <svg
-      data-stage-art="wireframe"
-      className="h-full w-full"
-      fill="none"
-      preserveAspectRatio="xMinYMin slice"
-      viewBox={compact ? "64 0 8192 96" : STAGE_BACKDROP_VIEW_BOX}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <linearGradient
-          id={paperId}
-          x1="60"
-          y1="0"
-          x2="220"
-          y2="96"
-          gradientUnits="userSpaceOnUse"
-          spreadMethod="reflect"
-        >
-          <stop style={{ stopColor: "var(--stage-wireframe-bottom)" }} />
-          <stop offset="0.5" style={{ stopColor: "var(--stage-wireframe-mid)" }} />
-          <stop offset="1" style={{ stopColor: "var(--stage-wireframe-top)" }} />
-        </linearGradient>
-        <radialGradient
-          id={glowId}
-          cx="0"
-          cy="0"
-          r="1"
-          gradientTransform="translate(216 14) rotate(137) scale(120 84)"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop style={{ stopColor: "var(--stage-wireframe-highlight)" }} stopOpacity="0.4" />
-          <stop offset="1" style={{ stopColor: "var(--stage-wireframe-bottom)" }} stopOpacity="0" />
-        </radialGradient>
-        <pattern id={dotsId} width="8" height="8" patternUnits="userSpaceOnUse">
-          <circle
-            cx="4"
-            cy="4"
-            r="0.5"
-            style={{ fill: "var(--stage-wireframe-line)" }}
-            fillOpacity="0.35"
-          />
-        </pattern>
-        <pattern id={frameId} width="512" height="96" patternUnits="userSpaceOnUse">
-          <rect width="512" height="96" fill={`url(#${glowId})`} />
-          <g
-            style={{ stroke: "var(--stage-wireframe-line)" }}
-            strokeOpacity="0.7"
-            strokeWidth="0.6"
-            strokeDasharray="2 2"
-          >
-            <rect x="200" y="10" width="64" height="30" />
-            <rect x="276" y="10" width="40" height="30" />
-            <path d="M200 52H330" />
-          </g>
-          <g
-            style={{ stroke: "var(--stage-wireframe-line)" }}
-            strokeOpacity="0.6"
-            strokeWidth="0.6"
-          >
-            <path d="M200 6V2M264 6V2M276 6V2M316 6V2" />
-          </g>
-        </pattern>
-      </defs>
-
-      <rect width="100%" height="96" fill={`url(#${paperId})`} />
-      <rect width="100%" height="96" fill={`url(#${dotsId})`} />
-      <rect width="100%" height="96" fill={`url(#${frameId})`} />
-    </svg>
-  );
-}
-
-const SLEIGH_STARS: ReadonlyArray<StageStar> = [
-  { cx: 37.6, cy: 5.1, r: 0.47, opacity: 0.4 },
-  { cx: 67.9, cy: 19.5, r: 0.49, opacity: 0.52 },
-  { cx: 235.4, cy: 67.4, r: 0.44, opacity: 0.89 },
-  { cx: 168.3, cy: 6, r: 0.37, opacity: 0.46 },
-  { cx: 218.9, cy: 32.5, r: 0.38, opacity: 0.83 },
-  { cx: 161.3, cy: 64.1, r: 0.47, opacity: 0.44 },
-  { cx: 156.7, cy: 38.4, r: 0.48, opacity: 0.8 },
-  { cx: 43.6, cy: 20.6, r: 0.63, opacity: 0.78 },
-  { cx: 24.4, cy: 49.7, r: 0.52, opacity: 0.6 },
-  { cx: 209.7, cy: 8.7, r: 0.52, opacity: 0.72 },
-  { cx: 80.7, cy: 14.9, r: 0.46, opacity: 0.58 },
-  { cx: 227.1, cy: 38.2, r: 0.5, opacity: 0.85 },
-  { cx: 37.4, cy: 54.7, r: 0.49, opacity: 0.89 },
-  { cx: 33, cy: 49.8, r: 0.37, opacity: 0.86 },
-  { cx: 159.2, cy: 52.6, r: 0.58, opacity: 0.41 },
-  { cx: 139.3, cy: 43.3, r: 0.5, opacity: 0.67 },
-  { cx: 88.6, cy: 3.4, r: 0.61, opacity: 0.36 },
-  { cx: 2, cy: 4.1, r: 0.55, opacity: 0.51 },
-  { cx: 37.2, cy: 24.6, r: 0.45, opacity: 0.56 },
-  { cx: 12, cy: 6.5, r: 0.39, opacity: 0.59 },
-  { cx: 149.7, cy: 52.5, r: 0.48, opacity: 0.86 },
-  { cx: 84.2, cy: 61.4, r: 0.61, opacity: 0.42 },
-  { cx: 93.7, cy: 69.2, r: 0.56, opacity: 0.43 },
-  { cx: 80.2, cy: 68.4, r: 0.56, opacity: 0.39 },
-  { cx: 66.1, cy: 0.5, r: 0.53, opacity: 0.83 },
-  { cx: 113.3, cy: 34.8, r: 0.38, opacity: 0.74 },
-  { cx: 102.6, cy: 50.9, r: 0.56, opacity: 0.4 },
-  { cx: 109.7, cy: 62, r: 0.5, opacity: 0.56 },
-];
-
-const SLEIGH_SPARKLES: ReadonlyArray<StageSparkle> = [
-  { x: 44, y: 18 },
-  { x: 150, y: 30 },
-  { x: 206, y: 10 },
-];
-
-const SLEIGH_MOON_CRATERS: ReadonlyArray<{ cx: number; cy: number; r: number }> = [
-  { cx: 268, cy: 24, r: 4.4 },
-  { cx: 288, cy: 40, r: 3.2 },
-  { cx: 284, cy: 20, r: 2.2 },
-  { cx: 266, cy: 42, r: 2.6 },
-  { cx: 295, cy: 28, r: 1.8 },
-];
-
-const SLEIGH_TRAIL_STARS: ReadonlyArray<{ x: number; y: number; size: number; opacity: number }> = [
-  { x: 252, y: 41, size: 1.8, opacity: 0.85 },
-  { x: 235.6, y: 46.8, size: 1.6, opacity: 0.71 },
-  { x: 219.2, y: 48.9, size: 1.4, opacity: 0.57 },
-  { x: 202.8, y: 49.9, size: 1.2, opacity: 0.43 },
-  { x: 186.4, y: 54, size: 1, opacity: 0.29 },
-  { x: 170, y: 60.4, size: 0.8, opacity: 0.15 },
-];
-
-const SLEIGH_TRAIL_DUST: ReadonlyArray<{ cx: number; cy: number; r: number; opacity: number }> = [
-  { cx: 246.5, cy: 43.2, r: 0.58, opacity: 0.76 },
-  { cx: 241.1, cy: 45.2, r: 0.56, opacity: 0.71 },
-  { cx: 230.1, cy: 47.9, r: 0.52, opacity: 0.63 },
-  { cx: 224.7, cy: 48.6, r: 0.5, opacity: 0.58 },
-  { cx: 213.7, cy: 49.1, r: 0.46, opacity: 0.5 },
-  { cx: 208.3, cy: 49.4, r: 0.44, opacity: 0.45 },
-  { cx: 197.3, cy: 50.8, r: 0.4, opacity: 0.37 },
-  { cx: 191.9, cy: 52.2, r: 0.38, opacity: 0.32 },
-  { cx: 180.9, cy: 56.1, r: 0.34, opacity: 0.24 },
-  { cx: 175.5, cy: 58.3, r: 0.32, opacity: 0.19 },
-];
-
-const SLEIGH_REINDEER: ReadonlyArray<{ x: number; y: number }> = [
-  { x: 15, y: 0 },
-  { x: 27, y: -0.6 },
-  { x: 39, y: 0.4 },
-  { x: 51, y: -0.4 },
-];
-
-function fourPointStarPath(x: number, y: number, size: number) {
-  const pinch = size * 0.14;
-  return `M${x} ${y - size}Q${x + pinch} ${y - pinch} ${x + size} ${y}Q${x + pinch} ${y + pinch} ${x} ${y + size}Q${x - pinch} ${y + pinch} ${x - size} ${y}Q${x - pinch} ${y - pinch} ${x} ${y - size}Z`;
-}
-
-function SleighRideArt({ compact = false }: { compact?: boolean }) {
-  const idPrefix = useId().replaceAll(":", "");
-  const skyId = `${idPrefix}-stage-sleigh-sky`;
-  const haloId = `${idPrefix}-stage-sleigh-halo`;
-  const moonId = `${idPrefix}-stage-sleigh-moon`;
-  const noseId = `${idPrefix}-stage-sleigh-nose`;
-  const starsId = `${idPrefix}-stage-sleigh-stars`;
-
-  return (
-    <svg
-      data-stage-art="sleigh"
-      className="h-full w-full"
-      fill="none"
-      preserveAspectRatio="xMinYMin slice"
-      viewBox={compact ? "144 0 8192 96" : STAGE_BACKDROP_VIEW_BOX}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <NightSkyGradient id={skyId} />
-        <radialGradient
-          id={haloId}
-          cx="0"
-          cy="0"
-          r="1"
-          gradientTransform="translate(278 32) scale(72 64)"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop style={{ stopColor: "var(--stage-sleigh-halo)" }} stopOpacity="0.34" />
-          <stop
-            offset="0.38"
-            style={{ stopColor: "var(--stage-night-secondary)" }}
-            stopOpacity="0.12"
-          />
-          <stop offset="1" style={{ stopColor: "var(--stage-night-top)" }} stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id={moonId} cx="0.42" cy="0.38" r="0.7">
-          <stop style={{ stopColor: "var(--stage-sleigh-moon-highlight)" }} />
-          <stop offset="1" style={{ stopColor: "var(--stage-sleigh-moon)" }} />
-        </radialGradient>
-        <radialGradient id={noseId}>
-          <stop style={{ stopColor: "var(--stage-sleigh-nose)" }} stopOpacity="0.75" />
-          <stop offset="1" style={{ stopColor: "var(--stage-sleigh-nose)" }} stopOpacity="0" />
-        </radialGradient>
-        <NightStarsPattern
-          id={starsId}
-          width={256}
-          stars={SLEIGH_STARS}
-          sparkles={SLEIGH_SPARKLES}
-        />
-      </defs>
-
-      <rect width="100%" height="96" fill={`url(#${skyId})`} />
-      <rect width="100%" height="96" fill={`url(#${starsId})`} />
-      <rect width="768" height="96" fill={`url(#${haloId})`} />
-
-      <circle cx="278" cy="32" r="27" fill={`url(#${moonId})`} />
-      <g style={{ fill: "var(--stage-sleigh-crater)" }} fillOpacity="0.32">
-        {SLEIGH_MOON_CRATERS.map((crater) => (
-          <circle key={`${crater.cx}-${crater.cy}`} cx={crater.cx} cy={crater.cy} r={crater.r} />
-        ))}
-      </g>
-
-      <g
-        transform="translate(253 41) rotate(-15) scale(0.78)"
-        style={{ color: "var(--stage-sleigh-ink)" }}
-        strokeLinecap="round"
-      >
-        <path
-          d="M-0.5 0.2C0.8 0.2 1.4 1 1.8 2.2L8.4 2.2L9.8 0.4L11 0.4L9.8 4.6L1.8 4.6C0.4 4.6 -0.5 3.4 -0.5 2Z"
-          fill="currentColor"
-        />
-        <circle cx="3" cy="0.9" r="1.9" fill="currentColor" />
-        <path d="M5.6 2.4L6 -0.4C6.1 -1.1 7.2 -1.1 7.3 -0.4L7.6 2.4Z" fill="currentColor" />
-        <circle cx="6.65" cy="-1.5" r="1" fill="currentColor" />
-        <path
-          d="M0 6H10.2C11.2 6 11.8 5.4 12.1 4.6M2.6 4.6V6M8 4.6V6"
-          stroke="currentColor"
-          strokeWidth="0.6"
-        />
-        <path d="M10.4 2.6C14 2.4 18 2.8 66 3.4" stroke="currentColor" strokeWidth="0.35" />
-        {SLEIGH_REINDEER.map((reindeer) => (
-          <g key={reindeer.x} transform={`translate(${reindeer.x} ${reindeer.y})`}>
-            <path
-              d="M0 3.2C0 2.2 1.2 1.8 2.5 2L6.2 2C6.9 2 7.4 1.4 7.8 0.9L8.4 0.3C8.8 -0.1 9.6 0 10.2 0.6L10.6 1.1C10.7 1.4 10.4 1.6 10.1 1.5L9.4 1.4C9 1.9 8.5 2.8 8.2 3.6C8 4.4 7.4 4.8 6.6 4.8L2.6 4.8C1.2 4.8 0 4.3 0 3.2Z"
-              fill="currentColor"
-            />
-            <path
-              d="M7.4 4.3L9.9 5.5M6.7 4.6L9 6.5M1.8 4.3L-1 5.1M2.6 4.6L-0.3 6.3M0.2 2.6L-0.8 2"
-              stroke="currentColor"
-              strokeWidth="0.65"
-            />
-            <path
-              d="M8.7 0.4L8.2 -1.7M8.4 -0.7L7.5 -1.3M9.3 0.2L9.7 -1.8M9.55 -0.9L10.4 -1.4"
-              stroke="currentColor"
-              strokeWidth="0.45"
-            />
-          </g>
-        ))}
-        <circle cx="61.6" cy="0.8" r="3.2" fill={`url(#${noseId})`} />
-        <circle cx="61.6" cy="0.8" r="0.75" style={{ fill: "var(--stage-sleigh-nose)" }} />
-      </g>
-
-      <g style={{ fill: "var(--stage-sleigh-dust)" }}>
-        {SLEIGH_TRAIL_DUST.map((mote) => (
-          <circle key={mote.cx} cx={mote.cx} cy={mote.cy} r={mote.r} fillOpacity={mote.opacity} />
-        ))}
-        {SLEIGH_TRAIL_STARS.map((star) => (
-          <path
-            key={star.x}
-            d={fourPointStarPath(star.x, star.y, star.size)}
-            fillOpacity={star.opacity}
-          />
-        ))}
-      </g>
     </svg>
   );
 }

@@ -49,23 +49,23 @@ describe("resolveDesktopAppBranding", () => {
     );
   });
 
-  it("keeps development desktop builds labeled", () => {
+  it("keeps development desktop builds identified without changing the title", () => {
     assert.deepEqual(
       DesktopEnvironment.resolveDesktopAppBranding({
         isDevelopment: true,
         appVersion: "0.0.28",
       }),
-      { baseName: "Supaterm", stageLabel: "Dev", displayName: "Supaterm (Dev)" },
+      { baseName: "Supaterm", stageLabel: "Dev", displayName: "Supaterm" },
     );
   });
 
-  it("keeps nightly desktop builds labeled", () => {
+  it("keeps nightly desktop builds identified without changing the title", () => {
     assert.deepEqual(
       DesktopEnvironment.resolveDesktopAppBranding({
         isDevelopment: false,
         appVersion: "0.0.28-nightly.20260616.12",
       }),
-      { baseName: "Supaterm", stageLabel: "Nightly", displayName: "Supaterm (Nightly)" },
+      { baseName: "Supaterm", stageLabel: "Nightly", displayName: "Supaterm" },
     );
   });
 });
