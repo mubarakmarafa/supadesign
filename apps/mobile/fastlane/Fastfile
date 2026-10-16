@@ -39,7 +39,7 @@ platform :ios do
     submitted_states = %w[WAITING_FOR_REVIEW IN_REVIEW ACCEPTED PENDING_DEVELOPER_RELEASE PENDING_APPLE_RELEASE PROCESSING_FOR_DISTRIBUTION READY_FOR_DISTRIBUTION REPLACED_WITH_NEW_VERSION READY_FOR_SALE]
     if existing && submitted_states.include?(existing.app_version_state)
       existing_build = existing.get_build
-      UI.user_error!("This App Store version already uses a different build (state=#{existing.app_version_state}, build=#{existing_build&.build_number})") unless existing_build&.id == build.id
+      UI.user_error!("This App Store version already uses a different build (state=#{existing.app_version_state}, build_id=#{existing_build&.id})") unless existing_build&.id == build.id
       UI.success("#{version} (#{build_number}) has already been submitted")
       next
     end
