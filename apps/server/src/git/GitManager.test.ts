@@ -349,7 +349,6 @@ function createTextGeneration(
         title: "Update workflow",
       }),
     generateReviewGuide: () => Effect.succeed({ stops: [] }),
-    generateDevServerCommand: () => Effect.succeed({ command: null, previewUrl: null, reason: "" }),
     ...overrides,
   };
 
@@ -399,7 +398,6 @@ function createTextGeneration(
         ),
       ),
     generateReviewGuide: (input) => implementation.generateReviewGuide(input),
-    generateDevServerCommand: (input) => implementation.generateDevServerCommand(input),
   };
 }
 

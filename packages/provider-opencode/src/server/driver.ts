@@ -176,11 +176,6 @@ function selectOpenCodeRuntimeTextGeneration(
         v1: v1.generateReviewGuide(input),
         v2: v2.generateReviewGuide(input),
       }),
-    generateDevServerCommand: (input) =>
-      byOpenCodeRuntime(probe.get, {
-        v1: v1.generateDevServerCommand(input),
-        v2: v2.generateDevServerCommand(input),
-      }),
   };
 }
 

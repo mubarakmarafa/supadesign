@@ -794,3 +794,43 @@ it.effect("keeps delegated child pull-request links independent of the parent", 
     assert.deepEqual(parentAfterChildLink.thread.pullRequests, parent.thread.pullRequests);
   }).pipe(Effect.provide(layerTest)),
 );
+
+it.effect("creates a server helper as a hidden subagent of its parent", () =>
+  Effect.gen(function* () {
+    const orchestrator = yield* Orchestrator.OrchestratorV2;
+    const projections = yield* ProjectionStore.ProjectionStoreV2;
+    const parentId = ThreadId.make("thread:helper-parent");
+    const helperId = ThreadId.make("thread:helper");
+    const base = {
+      projectId: ProjectId.make("project:helper"),
+      modelSelection,
+      runtimeMode: "full-access" as const,
+      interactionMode: "default" as const,
+      branch: null,
+      worktreePath: "/repo/worktree",
+      createdBy: "system" as const,
+      creationSource: "server" as const,
+    };
+    yield* orchestrator.dispatch({
+      ...base,
+      type: "thread.create",
+      commandId: CommandId.make("create-helper-parent"),
+      threadId: parentId,
+      title: "Card",
+    });
+    yield* orchestrator.dispatch({
+      ...base,
+      type: "thread.create",
+      commandId: CommandId.make("create-helper"),
+      threadId: helperId,
+      title: "Set up live preview",
+      parentThreadId: parentId,
+    });
+    const helper = yield* projections.getThreadShell(helperId);
+    assert.deepStrictEqual(helper?.lineage, {
+      parentThreadId: parentId,
+      relationshipToParent: "subagent",
+      rootThreadId: parentId,
+    });
+  }).pipe(Effect.provide(layerTest)),
+);

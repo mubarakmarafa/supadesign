@@ -2242,6 +2242,12 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
 
     const now = yield* DateTime.now;
     const emitEvent = emit(events, command);
+    const parent =
+      command.parentThreadId === undefined
+        ? null
+        : yield* projectionStore
+            .getThread(command.parentThreadId)
+            .pipe(Effect.orElseSucceed(() => null));
     const thread: OrchestrationV2AppThread = {
       createdBy: command.createdBy,
       creationSource: command.creationSource,
@@ -2255,11 +2261,14 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       branch: command.branch,
       worktreePath: command.worktreePath,
       activeProviderThreadId: null,
-      lineage: {
-        parentThreadId: null,
-        relationshipToParent: null,
-        rootThreadId: command.threadId,
-      },
+      lineage:
+        parent === null
+          ? { parentThreadId: null, relationshipToParent: null, rootThreadId: command.threadId }
+          : {
+              parentThreadId: parent.id,
+              relationshipToParent: "subagent",
+              rootThreadId: parent.lineage.rootThreadId,
+            },
       forkedFrom: null,
       createdAt: now,
       updatedAt: now,

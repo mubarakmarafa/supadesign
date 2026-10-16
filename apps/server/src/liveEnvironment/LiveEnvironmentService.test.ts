@@ -1,6 +1,5 @@
 import { assert, it } from "@effect/vitest";
 import {
-  LiveEnvironmentError,
   ProjectId,
   ThreadId,
   type LiveEnvironmentList,
@@ -31,28 +30,36 @@ const devScript = (command: string): ProjectScript => ({
 const setup = (options?: {
   /** The saved dev server command; null when the project has none yet. */
   readonly savedCommand?: string | null;
-  /** What the repo's own files suggest, without the model. */
+  /** What the checkout's own files suggest, without an agent. */
   readonly suggested?: string | null;
-  /** The model's answers, in order; null when it cannot tell. */
+  /** The setup agents' reports, in order; null reports only a reason. */
   readonly detected?: ReadonlyArray<string | null>;
+  /** Setup agents that never report, to see the card give them up. */
+  readonly silentAgents?: boolean;
 }) =>
   Effect.gen(function* () {
     const calls: Array<string> = [];
     let savedCommand = options?.savedCommand === undefined ? "npm run dev" : options.savedCommand;
     const detected = [...(options?.detected ?? [])];
     const exits = new Map<ThreadId, Deferred.Deferred<number | null>>();
+    const launchedAgents = yield* Queue.unbounded<ThreadId>();
+    let agentCount = 0;
     const ops: LiveEnvironment.LiveEnvironmentOps = {
       plan: () =>
         Effect.sync(() => ({
           projectId,
           projectRoot: "/repo",
           devScript: savedCommand === null ? null : devScript(savedCommand),
-          suggestion: {
+        })),
+      suggestDevScript: ({ directory }) =>
+        Effect.sync(() => {
+          calls.push(`suggest:${directory}`);
+          return {
             command: options?.suggested === undefined ? "npm run dev" : options.suggested,
             previewUrl: null,
             source: "package.json",
-          },
-        })),
+          };
+        }),
       prepareWorkspace: ({ threadId }) =>
         Effect.sync(() => {
           calls.push(`prepare:${threadId}`);
@@ -74,20 +81,41 @@ const setup = (options?: {
           calls.push(`save:${command}`);
           savedCommand = command;
         }),
-      detectDevScript: ({ failed }) =>
-        Effect.suspend(() => {
-          calls.push(failed ? `fix:${failed.command}` : "detect");
-          const command = detected.shift() ?? null;
-          return command === null
-            ? Effect.fail(new LiveEnvironmentError({ message: "No dev server in this repo." }))
-            : Effect.succeed({ command, previewUrl: undefined });
+      launchSetupAgent: ({ failed, worktreePath }) =>
+        Effect.gen(function* () {
+          calls.push(failed ? `fix:${failed.command}` : `agent:${worktreePath}`);
+          agentCount += 1;
+          const setupThreadId = ThreadId.make(`setup-${agentCount}`);
+          yield* Queue.offer(launchedAgents, setupThreadId);
+          return setupThreadId;
         }),
+      // The fake agents report through the service and never end their turn on their own.
+      awaitSetupAgent: () => Effect.never,
+      removeSetupAgent: ({ setupThreadId }) =>
+        Effect.sync(() => void calls.push(`remove-agent:${setupThreadId}`)),
       removeWorkspace: ({ worktreePath }) =>
         Effect.sync(() => void calls.push(`remove:${worktreePath}`)),
     };
     const service = yield* LiveEnvironment.make(ops, { graceMs: Duration.toMillis(GRACE) });
     const updates = yield* Queue.unbounded<LiveEnvironmentList>();
     yield* service.subscribe(projectId, (list) => Queue.offer(updates, list).pipe(Effect.asVoid));
+    // Each launched agent reports the next scripted answer.
+    yield* Queue.take(launchedAgents).pipe(
+      Effect.filterOrElse(
+        () => options?.silentAgents !== true,
+        () => Effect.never,
+      ),
+      Effect.flatMap((setupThreadId) => {
+        const command = detected.shift() ?? null;
+        return service.reportSetup(
+          command === null
+            ? { setupThreadId, reason: "No dev server in this repo." }
+            : { setupThreadId, command },
+        );
+      }),
+      Effect.forever,
+      Effect.forkScoped,
+    );
 
     /** Waits for the published state the test expects instead of sleeping. */
     const waitFor = (
@@ -202,12 +230,13 @@ it.effect("starts with the repo's own dev command without asking", () =>
     const { service, calls, waitFor, find } = yield* setup({ savedCommand: null });
     yield* service.activate({ projectId, threadId: cardA });
     yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    assert.include(calls, "suggest:/worktrees/thread-a");
     assert.include(calls, "save:npm run dev");
-    assert.notInclude(calls, "detect");
+    assert.isFalse(calls.some((call) => call.startsWith("agent:")));
   }).pipe(Effect.scoped),
 );
 
-it.effect("asks the model when the repo shows no dev command", () =>
+it.effect("asks a setup agent when the checkout shows no dev command", () =>
   Effect.gen(function* () {
     const { service, calls, waitFor, find } = yield* setup({
       savedCommand: null,
@@ -216,11 +245,16 @@ it.effect("asks the model when the repo shows no dev command", () =>
     });
     yield* service.activate({ projectId, threadId: cardA });
     yield* waitFor((list) => find(list, cardA)?.status === "ready");
-    assert.includeMembers(calls, ["detect", "save:make serve", "start:thread-a:make serve"]);
+    assert.includeMembers(calls, [
+      "agent:/worktrees/thread-a",
+      "remove-agent:setup-1",
+      "save:make serve",
+      "start:thread-a:make serve",
+    ]);
   }).pipe(Effect.scoped),
 );
 
-it.effect("asks the user only when the model cannot tell either", () =>
+it.effect("asks the user only when the setup agent cannot tell either", () =>
   Effect.gen(function* () {
     const { service, calls, waitFor, find } = yield* setup({
       savedCommand: null,
@@ -250,11 +284,43 @@ it.effect("corrects a command it picked once, then reports the next failure", ()
     yield* waitFor((list) => find(list, cardA)?.phase === "detecting");
     const fixed = yield* waitFor((list) => find(list, cardA)?.status === "ready");
     assert.strictEqual(find(fixed, cardA)?.error, null);
-    assert.includeMembers(calls, ["fix:npm run dev", "save:pnpm dev", "start:thread-a:pnpm dev"]);
+    assert.includeMembers(calls, [
+      "fix:npm run dev",
+      "remove-agent:setup-1",
+      "save:pnpm dev",
+      "start:thread-a:pnpm dev",
+    ]);
 
     yield* exitServer(exits, 1);
     const failed = yield* waitFor((list) => find(list, cardA)?.status === "failed");
     assert.strictEqual(find(failed, cardA)?.error, "The dev server exited with code 1.");
     assert.strictEqual(calls.filter((call) => call.startsWith("fix:")).length, 1);
+  }).pipe(Effect.scoped),
+);
+
+it.effect("stopping a card while its setup agent works removes the agent", () =>
+  Effect.gen(function* () {
+    const { service, calls, waitFor, find } = yield* setup({
+      savedCommand: null,
+      suggested: null,
+      silentAgents: true,
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    const working = yield* waitFor((list) => find(list, cardA)?.setupThreadId === "setup-1");
+    assert.strictEqual(find(working, cardA)?.phase, "detecting");
+
+    yield* service.stop(cardA);
+    assert.include(calls, "remove-agent:setup-1");
+    assert.deepStrictEqual(yield* service.list(projectId), []);
+  }).pipe(Effect.scoped),
+);
+
+it.effect("only a running setup agent can report a command", () =>
+  Effect.gen(function* () {
+    const { service } = yield* setup();
+    const result = yield* service
+      .reportSetup({ setupThreadId: cardA, command: "rm -rf /" })
+      .pipe(Effect.result);
+    assert.strictEqual(result._tag, "Failure");
   }).pipe(Effect.scoped),
 );

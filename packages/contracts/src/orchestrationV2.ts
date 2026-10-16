@@ -2735,6 +2735,11 @@ export const OrchestrationV2Command = Schema.Union([
     interactionMode: ProviderInteractionMode,
     branch: Schema.NullOr(TrimmedNonEmptyString),
     worktreePath: Schema.NullOr(TrimmedNonEmptyString),
+    /**
+     * Makes the thread a server-run helper of this one: a subagent child, so
+     * lists and boards hide it. No delegated task tracks it.
+     */
+    parentThreadId: Schema.optional(ThreadId),
     importedNativeThread: Schema.optional(
       Schema.Struct({
         ref: Schema.Struct({

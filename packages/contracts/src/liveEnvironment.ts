@@ -25,7 +25,7 @@ export const LiveEnvironmentStatus = Schema.Literals([
 ]);
 export type LiveEnvironmentStatus = typeof LiveEnvironmentStatus.Type;
 
-/** `detecting` is the model working out the dev server command. */
+/** `detecting` is a helper agent working out the dev server command. */
 export const LiveEnvironmentPhase = Schema.Literals(["worktree", "detecting", "setup", "starting"]);
 export type LiveEnvironmentPhase = typeof LiveEnvironmentPhase.Type;
 
@@ -54,6 +54,8 @@ export const LiveEnvironmentSnapshot = Schema.Struct({
   /** Last output lines, filled only when the environment failed. */
   logTail: Schema.Array(Schema.String),
   suggestion: Schema.NullOr(LiveEnvironmentDevScriptSuggestion),
+  /** The hidden helper agent working out the dev command, while it runs. */
+  setupThreadId: Schema.optional(Schema.NullOr(ThreadId)),
   updatedAt: Schema.Number,
 });
 export type LiveEnvironmentSnapshot = typeof LiveEnvironmentSnapshot.Type;

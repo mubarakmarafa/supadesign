@@ -12,8 +12,6 @@ import * as ThreadTitleLinks from "./ThreadTitleLinks.ts";
 
 export type {
   BranchNameGenerationInput,
-  DevServerCommandGenerationInput,
-  DevServerCommandGenerationResult,
   BranchNameGenerationResult,
   CommitMessageGenerationInput,
   CommitMessageGenerationResult,
@@ -37,8 +35,7 @@ type TextGenerationOp =
   | "generatePrContent"
   | "generateBranchName"
   | "generateThreadTitle"
-  | "generateReviewGuide"
-  | "generateDevServerCommand";
+  | "generateReviewGuide";
 
 const resolveInstance = (
   registry: ProviderInstanceRegistry.ProviderInstanceRegistry["Service"],
@@ -78,10 +75,6 @@ export const make = Effect.gen(function* () {
     generateReviewGuide: (input) =>
       resolveInstance(registry, "generateReviewGuide", input.modelSelection.instanceId).pipe(
         Effect.flatMap((textGeneration) => textGeneration.generateReviewGuide(input)),
-      ),
-    generateDevServerCommand: (input) =>
-      resolveInstance(registry, "generateDevServerCommand", input.modelSelection.instanceId).pipe(
-        Effect.flatMap((textGeneration) => textGeneration.generateDevServerCommand(input)),
       ),
     generateThreadTitle: (input) =>
       resolveInstance(registry, "generateThreadTitle", input.modelSelection.instanceId).pipe(

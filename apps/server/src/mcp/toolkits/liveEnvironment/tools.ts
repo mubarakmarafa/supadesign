@@ -54,7 +54,34 @@ const LiveEnvironmentStopTool = Tool.make("supaterm_live_environment_stop", {
   .annotate(Tool.Title, "Stop live environment")
   .annotate(Tool.Destructive, true);
 
+const LiveEnvironmentReportDevCommandTool = Tool.make(
+  "supaterm_live_environment_report_dev_command",
+  {
+    ...shared,
+    description:
+      "Only for the setup agent Supadesign starts for a live preview: report the shell command that starts this checkout's dev server, run from its root and staying in the foreground. Pass only reason when nothing here serves a page. Supadesign then stops you and runs the command itself.",
+    parameters: Schema.Struct({
+      command: Schema.optional(
+        Schema.String.annotate({ description: "The command, e.g. `npm run dev`." }),
+      ),
+      previewUrl: Schema.optional(
+        Schema.String.annotate({
+          description: "The page to open, e.g. http://localhost:5173/, when you know it.",
+        }),
+      ),
+      reason: Schema.optional(
+        Schema.String.annotate({ description: "Why there is no command, in one sentence." }),
+      ),
+    }),
+    success: Schema.Struct({}),
+  },
+)
+  .annotate(Tool.Title, "Report live preview dev command")
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.Idempotent, true);
+
 export const LiveEnvironmentToolkit = Toolkit.make(
+  LiveEnvironmentReportDevCommandTool,
   LiveEnvironmentStatusTool,
   LiveEnvironmentStartTool,
   LiveEnvironmentStopTool,

@@ -84,13 +84,15 @@ between cards doesn't restart their servers. **Stop now** ends it early. Moving
 a card out of the column, or to done, stops it right away and removes a worktree
 created for it unless it has changes.
 
-The first time a project goes live, Supadesign works out how to start it: from
-the project's own scripts when they make it clear (including an app one folder
-down), otherwise by asking your text
-generation model (Settings > Providers) to read the repo. The command is saved as
-the project's **Dev server** action, which you can change in the project's
-action settings. If a command it picked crashes, it gets one chance to correct
-it. Only when it can't tell does the card ask you for the command, and it says why.
+The first time a project goes live, Supadesign works out how to start it in the
+card's own checkout. When the project's scripts make it clear, including an app
+one folder down, it just starts. Otherwise a temporary setup agent, using your
+text generation model (Settings > Providers), explores the repo, reports the
+command, and is removed; **Watch** on the card shows its work. The command is
+saved as the project's **Dev server** action, which you can change in the
+project's action settings. If a command it picked crashes, an agent gets one
+chance to correct it. Only when it can't tell does the card ask you for the
+command, and it says why.
 
 If the server fails to start, the card shows why and its last output. **Retry**
-first checks whether the command itself is wrong, then starts the card again.
+first has an agent check whether the command itself is wrong, then starts the card again.
