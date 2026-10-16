@@ -5,6 +5,7 @@ import {
   type Project,
   type ProjectCreatePayload,
   type ProjectBoard,
+  type ProjectWorkspace,
   type ProjectUpdatePayload,
   type ProjectSnapshot,
   type ThreadId,
@@ -168,6 +169,7 @@ export const make = Effect.gen(function* () {
     row: ProjectStore.ProjectRow,
     enrichment: ProjectEnrichmentService.ProjectEnrichment | null,
     board: ProjectBoard | null,
+    workspace: ProjectWorkspace | null,
   ): Project => ({
     id: row.projectId,
     title: row.title,
@@ -179,6 +181,7 @@ export const make = Effect.gen(function* () {
     autoPull: row.autoPull,
     projectIcon: row.projectIcon,
     board,
+    workspace,
     scripts: row.scripts,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -193,20 +196,29 @@ export const make = Effect.gen(function* () {
         cause,
       });
 
-  /** `board` skips the per-row lookup when the caller batch-read boards already. */
+  /** `preloaded` skips the per-row lookups when the caller batch-read them already. */
   const hydrate = Effect.fn("ProjectService.hydrate")(function* (
     row: ProjectStore.ProjectRow,
-    preloadedBoard?: ProjectBoard | null,
+    preloaded?: {
+      readonly board: ProjectBoard | null;
+      readonly workspace: ProjectWorkspace | null;
+    },
   ) {
     const enrichment =
       row.deletedAt === null
         ? yield* projectEnrichment.getAvailable(row.workspaceRoot)
         : yield* projectEnrichment.peek(row.workspaceRoot);
     const board =
-      preloadedBoard !== undefined
-        ? preloadedBoard
+      preloaded !== undefined
+        ? preloaded.board
         : yield* boards.get(row.projectId).pipe(Effect.mapError(readBoardError(row.projectId)));
-    return toProject(row, enrichment, board);
+    const workspace =
+      preloaded !== undefined
+        ? preloaded.workspace
+        : yield* boards
+            .getWorkspace(row.projectId)
+            .pipe(Effect.mapError(readBoardError(row.projectId)));
+    return toProject(row, enrichment, board, workspace);
   });
 
   const readRow = (projectId: ProjectId, options?: { readonly includeDeleted?: boolean }) =>
@@ -409,6 +421,7 @@ export const make = Effect.gen(function* () {
           : { defaultThreadEnvMode: input.defaultThreadEnvMode }),
         ...(input.scripts === undefined ? {} : { scripts: input.scripts }),
         ...(input.board === undefined ? {} : { board: input.board }),
+        ...(input.workspace === undefined ? {} : { workspace: input.workspace }),
       });
       if (workspaceRoot !== previousRoot) {
         yield* projectEnrichment.invalidate([previousRoot, workspaceRoot]);
@@ -592,12 +605,18 @@ export const make = Effect.gen(function* () {
           (cause) => new ProjectOperationError({ operation: "list-projects", cause }),
         ),
       );
-    const boardsById = yield* boards
-      .getMany(rows.map((row) => row.projectId))
+    const projectIds = rows.map((row) => row.projectId);
+    const boardsById = yield* boards.getMany(projectIds).pipe(Effect.mapError(readBoardError()));
+    const workspacesById = yield* boards
+      .getManyWorkspaces(projectIds)
       .pipe(Effect.mapError(readBoardError()));
     const hydrated = yield* Effect.forEach(
       rows,
-      (row) => hydrate(row, boardsById.get(row.projectId) ?? null),
+      (row) =>
+        hydrate(row, {
+          board: boardsById.get(row.projectId) ?? null,
+          workspace: workspacesById.get(row.projectId) ?? null,
+        }),
       { concurrency: 8 },
     );
     return {

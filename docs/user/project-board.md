@@ -31,6 +31,37 @@ the command palette, to bring the sidebar back.
 Boards need an environment running a Supadesign server that supports them. The
 board entries are hidden when no connected environment does.
 
+## Workspace
+
+A board is also a workspace: you can place widgets beside the cards and give
+each project its own look. Until you add anything, the board looks the same as
+always.
+
+Select **Add widget** at the top of the board to add:
+
+- **Live preview**: the live card's dev server, with its branch. Its menu
+  switches to another server that is already running, with this project's own
+  servers listed first. It never starts a server; when nothing is live it shows
+  the project's most recently active one.
+- **Figma**: paste a figma.com file, design, or prototype link to keep the
+  design goal next to the live preview.
+- **Usage**: tokens and spend for today and the last 7 days, plus plan limits.
+  These cover every project on the environment, not just this one.
+- **Git**: the project folder's branch and uncommitted changes, its local
+  branches, and its open pull requests.
+- **Board**: the cards themselves, if you removed them.
+
+Drag a widget by its title bar to rearrange it. Its **…** menu sets its size,
+moves it earlier or later, or removes it.
+
+Select the palette button next to **Add widget** to set the project's
+background (a tint, a gradient, your own colour, or an image link) and an
+accent colour. The accent also marks the project's tab, so you can tell which
+project you are in at a glance. **Reset look** goes back to the plain board.
+
+The workspace is saved with the project, so it looks the same on every device
+connected to that environment.
+
 ## Cards
 
 New threads land in the inbox column, marked with an inbox icon. Drag a card to

@@ -5,6 +5,7 @@ import { RepositoryIdentity, ThreadEnvMode } from "./environment.ts";
 import { ModelSelection } from "./modelSelection.ts";
 import { ProjectScript, ReceivedProjectIcon } from "./project.ts";
 import { ProjectBoard } from "./projectBoard.ts";
+import { ReceivedProjectWorkspace } from "./projectWorkspace.ts";
 
 /** Project summary shared by the V2 shell and application project APIs. */
 export const OrchestrationProjectShell = Schema.Struct({
@@ -24,6 +25,8 @@ export const OrchestrationProjectShell = Schema.Struct({
   projectIcon: Schema.optional(Schema.NullOr(ReceivedProjectIcon)),
   /** Kanban layout; absent on servers without project boards, null when unset. */
   board: Schema.optional(Schema.NullOr(ProjectBoard)),
+  /** Widgets and look; absent on servers without workspaces, null when unset. */
+  workspace: Schema.optional(Schema.NullOr(ReceivedProjectWorkspace)),
   scripts: Schema.Array(ProjectScript),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,

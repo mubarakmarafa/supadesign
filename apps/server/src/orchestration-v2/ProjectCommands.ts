@@ -7,9 +7,11 @@ import {
   type ProjectIconOverride,
   ProjectId,
   type ProjectScript,
+  type ProjectWorkspace,
   SCRIPT_RUN_COMMAND_PATTERN,
   type ThreadEnvMode,
   validateProjectBoard,
+  validateProjectWorkspace,
 } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Result from "effect/Result";
@@ -40,6 +42,7 @@ export interface ProjectMetaUpdateCommand {
   readonly projectIcon?: ProjectIconOverride | null;
   readonly scripts?: ReadonlyArray<ProjectScript>;
   readonly board?: ProjectBoard | null;
+  readonly workspace?: ProjectWorkspace | null;
 }
 
 export interface ProjectDeleteCommand {
@@ -213,6 +216,14 @@ export function planProjectCommand(input: {
           );
         }
       }
+      if (command.workspace != null) {
+        const issues = validateProjectWorkspace(command.workspace);
+        if (issues.length > 0) {
+          return invariant(
+            `Project workspace is invalid: ${issues.map((issue) => issue.code).join(", ")}.`,
+          );
+        }
+      }
       if (command.workspaceRoot !== undefined) {
         const conflict = requireWorkspaceAvailable(command.workspaceRoot);
         if (conflict !== undefined) return Result.fail(conflict);
@@ -235,6 +246,7 @@ export function planProjectCommand(input: {
           ...(command.projectIcon === undefined ? {} : { projectIcon: command.projectIcon }),
           ...(command.scripts === undefined ? {} : { scripts: command.scripts }),
           ...(command.board === undefined ? {} : { board: command.board }),
+          ...(command.workspace === undefined ? {} : { workspace: command.workspace }),
           updatedAt: occurredAt,
         },
       });

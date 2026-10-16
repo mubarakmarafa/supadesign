@@ -126,6 +126,8 @@ function ProjectTabItem({
   );
   const liveSupported = useLiveEnvironmentSupported(tab.environmentId as EnvironmentId);
   if (project === null) return null;
+  // The project's own accent, so the tab is recognisable before reading it.
+  const accentColor = project.workspace?.appearance?.accentColor;
   return (
     <div
       className={cn(
@@ -143,6 +145,13 @@ function ProjectTabItem({
       >
         <ProjectFavicon project={project} className="size-3.5 shrink-0" />
         <span className="truncate">{project.title}</span>
+        {accentColor === undefined ? null : (
+          <span
+            aria-hidden
+            className="size-1.5 shrink-0 rounded-full"
+            style={{ backgroundColor: accentColor }}
+          />
+        )}
       </Link>
       <button
         type="button"

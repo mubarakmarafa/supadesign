@@ -173,6 +173,8 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   /** Server persists project boards (board on project.update) and
       thread.board.place. Absent on servers without project boards. */
   projectBoard: Schema.optionalKey(Schema.Boolean),
+  /** Server persists project workspaces (workspace on project.update). */
+  projectWorkspace: Schema.optionalKey(Schema.Boolean),
   /** Server runs live environments for board cards (liveEnvironment.* RPCs). */
   liveEnvironment: Schema.optionalKey(Schema.Boolean),
   /** Server stores banked messages per thread (threadBank.* RPCs). */

@@ -5,6 +5,8 @@ import {
   DEFAULT_PROJECT_BOARD,
   type Project,
   ProjectId,
+  type ProjectWorkspace,
+  ProjectWorkspaceWidgetId,
   ProviderInstanceId,
 } from "@supaterm/contracts";
 import * as Deferred from "effect/Deferred";
@@ -411,6 +413,80 @@ it.layer(layerTest)("ProjectService", (it) => {
       assert.isNull(cleared.board);
       const [shell] = yield* service.listShells({ projectIds: [projectId] });
       assert.isNull(shell?.board);
+    }),
+  );
+
+  it.effect("stores a project workspace beside the board and rejects an invalid one", () =>
+    Effect.gen(function* () {
+      const service = yield* ProjectService.ProjectService;
+      const projectId = ProjectId.make("project:workspace");
+      yield* TestClock.setTime(Date.parse("2026-06-20T10:00:00.000Z"));
+      const created = yield* service.create({
+        commandId: CommandId.make("command:workspace:create"),
+        projectId,
+        title: "Workspace",
+        workspaceRoot: "/work/workspace",
+      });
+      assert.isNull(created.workspace);
+
+      const workspace: ProjectWorkspace = {
+        widgets: [
+          { id: ProjectWorkspaceWidgetId.make("kanban"), kind: "kanban", w: 3, h: 2 },
+          {
+            id: ProjectWorkspaceWidgetId.make("figma-1"),
+            kind: "figma",
+            w: 1,
+            h: 1,
+            figmaUrl: "https://www.figma.com/proto/abc/Flow",
+          },
+        ],
+        appearance: { background: "dusk", accentColor: "#7c3aed" },
+      };
+      const updated = yield* service.update({
+        commandId: CommandId.make("command:workspace:set"),
+        projectId,
+        workspace,
+      });
+      assert.deepEqual(updated.workspace, workspace);
+
+      const invalid = yield* service
+        .update({
+          commandId: CommandId.make("command:workspace:invalid"),
+          projectId,
+          workspace: {
+            widgets: [
+              ...workspace.widgets,
+              { id: ProjectWorkspaceWidgetId.make("kanban-2"), kind: "kanban", w: 1, h: 1 },
+            ],
+          },
+        })
+        .pipe(Effect.flip);
+      assert.equal(invalid._tag, "ProjectOperationError");
+      assert.include(
+        String(invalid._tag === "ProjectOperationError" && invalid.cause),
+        "multiple-kanban",
+      );
+
+      // A board edit leaves the workspace alone, and the reverse; shells carry both.
+      yield* service.update({
+        commandId: CommandId.make("command:workspace:board"),
+        projectId,
+        board: DEFAULT_PROJECT_BOARD,
+      });
+      const [shell] = yield* service.listShells({ projectIds: [projectId] });
+      assert.deepEqual(shell?.workspace, workspace);
+      assert.deepEqual(shell?.board, DEFAULT_PROJECT_BOARD);
+      assert.deepEqual(Option.getOrThrow(yield* service.getShell(projectId)).workspace, workspace);
+      const listed = (yield* service.snapshot).projects.find((project) => project.id === projectId);
+      assert.deepEqual(listed?.workspace, workspace);
+
+      const cleared = yield* service.update({
+        commandId: CommandId.make("command:workspace:clear"),
+        projectId,
+        workspace: null,
+      });
+      assert.isNull(cleared.workspace);
+      assert.deepEqual(cleared.board, DEFAULT_PROJECT_BOARD);
     }),
   );
 
