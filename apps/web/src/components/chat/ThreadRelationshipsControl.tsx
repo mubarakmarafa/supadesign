@@ -23,10 +23,7 @@ import {
   type ThreadRelationshipEdge,
   type ThreadRelationshipWalkRow,
 } from "@supaterm/client-runtime/state/thread-relationships";
-import {
-  canDetachThreadProviderSession,
-  resolveLatestMergeBackRun,
-} from "@supaterm/client-runtime/state/thread-workflows";
+import { resolveLatestMergeBackRun } from "@supaterm/client-runtime/state/thread-workflows";
 import {
   AuthOrchestrationOperateScope,
   NodeId,
@@ -43,10 +40,8 @@ import {
   CornerLeftUpIcon,
   GitForkIcon,
   LoaderCircleIcon,
-  MoreHorizontalIcon,
   PlusIcon,
   SquareIcon,
-  UnplugIcon,
 } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 
@@ -67,7 +62,6 @@ import { AgentElapsed } from "./AgentElapsed";
 import { ThreadRelationshipIcon, threadRelationshipStatusLabel } from "./ThreadRelationshipIcon";
 import { ThreadLineageWorkflowRow } from "./ThreadLineageWorkflowRow";
 
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { toastManager } from "../ui/toast";
 import {
@@ -283,13 +277,12 @@ export function ThreadRelationshipsPanel(props: {
   const canOperateThread = useEnvironmentScope(props.environmentId, AuthOrchestrationOperateScope);
   const navigate = useNavigate();
   const mergeBack = useAtomCommand(threadEnvironment.mergeBack);
-  const stopSession = useAtomCommand(threadEnvironment.stopSession);
   const interruptTurn = useOrchestrationCommand(threadEnvironment.interruptTurn);
   const stopWorkflowCommand = useAtomCommand(orchestrationEnvironment.stopWorkflow);
   const canOperateWorkflow = useAtomValue(
     orchestrationEnvironment.stopWorkflow.permissionAtom(props.environmentId),
   );
-  const [busyAction, setBusyAction] = useState<"merge" | "detach" | null>(null);
+  const [isMerging, setIsMerging] = useState(false);
   const [stoppingId, setStoppingId] = useState<string | null>(null);
   const latestMergeBackRun = projection === null ? null : resolveLatestMergeBackRun(projection);
   const mergeTargetThreadId = resolveMergeBackTargetThreadId(projection);
@@ -312,7 +305,6 @@ export function ThreadRelationshipsPanel(props: {
     [graph, mergeTargetThreadId, props.threadId, subagentsByThreadId, workflowGroupsById],
   );
   const canMerge = mergeTargetThreadId !== null && latestMergeBackRun !== null;
-  const canDetach = projection ? canDetachThreadProviderSession(projection) : false;
 
   const {
     parent = [],
@@ -364,8 +356,8 @@ export function ThreadRelationshipsPanel(props: {
   };
 
   const merge = async () => {
-    if (!latestMergeBackRun || mergeTargetThreadId === null || busyAction !== null) return;
-    setBusyAction("merge");
+    if (!latestMergeBackRun || mergeTargetThreadId === null || isMerging) return;
+    setIsMerging(true);
     const result = await mergeBack({
       environmentId: props.environmentId,
       input: {
@@ -374,18 +366,8 @@ export function ThreadRelationshipsPanel(props: {
         runId: latestMergeBackRun.id,
       },
     });
-    setBusyAction(null);
+    setIsMerging(false);
     if (result._tag === "Success") openThread(mergeTargetThreadId);
-  };
-
-  const detach = async () => {
-    if (!canDetach || busyAction !== null) return;
-    setBusyAction("detach");
-    await stopSession({
-      environmentId: props.environmentId,
-      input: { threadId: props.threadId },
-    });
-    setBusyAction(null);
   };
 
   const stopSubagent = async (
@@ -430,31 +412,7 @@ export function ThreadRelationshipsPanel(props: {
       headingId="thread-details-lineage-heading"
       title="Related threads"
       data-thread-relationships-panel
-      actions={
-        canDetach ? (
-          <Menu>
-            <MenuTrigger
-              render={
-                <ThreadDetailsControl
-                  size="icon-xs"
-                  variant="ghost"
-                  part="icon"
-                  aria-label="More thread actions"
-                  disabled={busyAction !== null}
-                />
-              }
-            >
-              <MoreHorizontalIcon className="size-3.5" />
-            </MenuTrigger>
-            <MenuPopup align="end" className="min-w-60 max-w-(--available-width)">
-              <MenuItem onClick={() => void detach()}>
-                <UnplugIcon className="size-3.5" />
-                Disconnect agent session
-              </MenuItem>
-            </MenuPopup>
-          </Menu>
-        ) : null
-      }
+      showHeading={false}
     >
       {groups.map((group) => (
         <ThreadLineageGroup key={`${scopedThreadKey(ref)}:${group.id}`} {...group}>
@@ -656,10 +614,10 @@ export function ThreadRelationshipsPanel(props: {
                                   ? `Merge back to ${parentTitle}`
                                   : "Merge back to source conversation"
                               }
-                              disabled={!canMerge || busyAction !== null}
+                              disabled={!canMerge || isMerging}
                               onClick={() => void merge()}
                             >
-                              {busyAction === "merge" ? (
+                              {isMerging ? (
                                 <LoaderCircleIcon className="size-3" />
                               ) : (
                                 <PullRequestGlyph.merged className="size-3" />
