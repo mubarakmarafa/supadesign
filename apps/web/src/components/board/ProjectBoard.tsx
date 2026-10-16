@@ -110,6 +110,8 @@ import {
 import { useOpenThreadFromBoard } from "./boardNavigation";
 import { readBoardView, useBoardViewField, useBoardViewStore } from "./boardViewStore";
 import { useProjectLiveEnvironments } from "./liveEnvironmentState";
+import { useProjectThreadBanks } from "../chat/threadBankState";
+import { threadBank } from "../../state/threadBank";
 
 const route = getRouteApi("/_chat/board/$environmentId/$projectId");
 
@@ -339,6 +341,12 @@ function ProjectBoardView({
   const placeOnBoard = useOrchestrationCommand(threadEnvironment.placeOnBoard);
   const liveEnvironments = useProjectLiveEnvironments(projectRef).byThreadId;
   const stopLiveEnvironment = useAtomCommand(liveEnvironment.stop, { reportFailure: false });
+  const threadBanks = useProjectThreadBanks(projectRef.environmentId, projectRef.projectId);
+  const bankedCounts = useMemo(
+    () => new Map([...threadBanks].map(([threadId, entries]) => [threadId, entries.length])),
+    [threadBanks],
+  );
+  const sendThreadBank = useAtomCommand(threadBank.send, { reportFailure: false });
   const updateProject = useOrchestrationCommand(projectEnvironment.update);
 
   // ── Board layout, with the last edit shown until the server echoes it ──
@@ -571,6 +579,22 @@ function ProjectBoardView({
       setPendingMove((current) =>
         current?.cardId === cardId ? { ...current, settled: true } : current,
       );
+      // Entering the send column delivers the card's banked messages as one message.
+      if (
+        board.sendColumnId != null &&
+        toColumnId === board.sendColumnId &&
+        fromColumnId !== toColumnId &&
+        (bankedCounts.get(thread.id) ?? 0) > 0
+      ) {
+        void sendThreadBank({
+          environmentId: projectRef.environmentId,
+          input: { threadId: thread.id },
+        }).then((result) => {
+          if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+            failureToast("Couldn't send the banked messages", result);
+          }
+        });
+      }
       // Leaving the live preview column ends the card's environment without a warm period.
       if (
         fromColumnId === board.liveColumnId &&
@@ -585,6 +609,9 @@ function ProjectBoardView({
     },
     [
       archiveThread,
+      bankedCounts,
+      board.sendColumnId,
+      sendThreadBank,
       board.liveColumnId,
       liveEnvironments,
       stopLiveEnvironment,
@@ -816,6 +843,7 @@ function ProjectBoardView({
       if (!api) return;
       const index = board.columns.findIndex((column) => column.id === columnId);
       const isLive = board.liveColumnId === columnId;
+      const isSend = board.sendColumnId === columnId;
       const clicked = await api.contextMenu.show(
         [
           { id: "rename", label: "Rename" },
@@ -831,6 +859,11 @@ function ProjectBoardView({
             id: "live",
             label: isLive ? "Turn off live preview" : "Set as live preview",
             disabled: !canSetBoardColumnFlag(board, columnId, "live"),
+          },
+          {
+            id: "send",
+            label: isSend ? "Stop sending banked messages" : "Send banked messages here",
+            disabled: !canSetBoardColumnFlag(board, columnId, "send"),
           },
           {
             id: "done",
@@ -851,6 +884,7 @@ function ProjectBoardView({
           return;
         case "inbox":
         case "live":
+        case "send":
         case "done":
           void commitBoard(setBoardColumnFlag(board, columnId, clicked satisfies ProjectBoardFlag));
           return;
@@ -984,6 +1018,7 @@ function ProjectBoardView({
               flags={{
                 inbox: column.id === board.inboxColumnId,
                 live: column.id === board.liveColumnId,
+                send: column.id === board.sendColumnId,
                 done: isDone,
               }}
               cards={cards}
@@ -991,6 +1026,7 @@ function ProjectBoardView({
                 isDone ? (archiveCountKnown ? String(doneCount) : "") : String(cards.length)
               }
               liveEnvironments={liveEnvironments}
+              bankedCounts={bankedCounts}
               tabbableCardId={tabbableCardId}
               peekedCardId={peekedCardId}
               canEdit={canOperate}

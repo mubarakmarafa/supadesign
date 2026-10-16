@@ -15,6 +15,7 @@ import type {
 } from "@supaterm/contracts";
 
 import { resolveAnnotationSubmission } from "./AnnotationKeyboard.ts";
+import { arrowPoints, ellipsePoints, isDeliberateShape, polylinePath } from "./annotationShapes.ts";
 import { previewAnnotationStyles } from "./AnnotationStyles.generated.ts";
 import { installRecordingCursor } from "./RecordingCursor.ts";
 import { DEFAULT_RECORDING_INPUT_OPTIONS } from "./RecordingInput.ts";
@@ -24,6 +25,7 @@ import {
   ANNOTATION_THEME_CHANNEL,
   CANCEL_PICK_CHANNEL,
   ELEMENT_PICKED_CHANNEL,
+  FREEZE_FRAME_CHANNEL,
   HUMAN_INPUT_CHANNEL,
   MOUSE_NAVIGATE_CHANNEL,
   RECORDING_CURSOR_CHANNEL,
@@ -117,7 +119,9 @@ ipcRenderer.on(RECORDING_POINTER_CHANNEL, (_event, point: unknown) => {
     );
 });
 
-type AnnotationTool = "select" | "marquee" | "draw" | "erase";
+type AnnotationTool = "select" | "marquee" | "circle" | "arrow" | "draw" | "erase";
+/** Tools that mark up the page rather than pick from it; choosing one freezes the frame. */
+const SHAPE_TOOLS: ReadonlySet<AnnotationTool> = new Set(["marquee", "circle", "arrow", "draw"]);
 
 interface SelectedElement {
   id: string;
@@ -651,6 +655,11 @@ function startAnnotation(sendEnabled: boolean): void {
   const styleChanges = new Map<string, PreviewAnnotationStyleChange>();
   const toolButtons = new Map<AnnotationTool, HTMLButtonElement>();
   let tool: AnnotationTool = "select";
+  // A captured frame held behind the marks, so they stay on what was reviewed.
+  let frozenFrame: HTMLImageElement | null = null;
+  let freezing = false;
+  let overflowBeforeFreeze = "";
+  const freezeButton = createButton("Freeze", "Freeze the page so marks stay on this frame (F)");
   let dragStart: PreviewAnnotationPoint | null = null;
   let activeStroke: { target: PreviewAnnotationStrokeTarget; path: SVGPathElement } | null = null;
   let pendingCapture = false;
@@ -694,6 +703,64 @@ function startAnnotation(sendEnabled: boolean): void {
     if (tool !== "select") hoverOutline.style.display = "none";
     if (tool !== "marquee") marqueeBox.style.display = "none";
     document.documentElement.setAttribute("data-supaterm-annotation-tool", tool);
+    const frozen = frozenFrame !== null;
+    freezeButton.textContent = frozen ? "Frozen" : "Freeze";
+    freezeButton.classList.toggle("bg-primary/10", frozen);
+    freezeButton.classList.toggle("text-primary", frozen);
+    freezeButton.classList.toggle("text-foreground", !frozen);
+  };
+
+  const unfreeze = (): void => {
+    if (frozenFrame === null) return;
+    frozenFrame.remove();
+    frozenFrame = null;
+    document.documentElement.style.overflow = overflowBeforeFreeze;
+  };
+
+  async function setFrozen(next: boolean): Promise<void> {
+    if (freezing || next === (frozenFrame !== null)) return;
+    if (!next) {
+      unfreeze();
+      refreshToolButtons();
+      return;
+    }
+    freezing = true;
+    // The frame is the page alone; the overlay is hidden while it is taken.
+    host.style.visibility = "hidden";
+    await new Promise<void>((resolve) =>
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())),
+    );
+    let frame: unknown = null;
+    try {
+      frame = await ipcRenderer.invoke(FREEZE_FRAME_CHANNEL);
+    } catch {
+      frame = null;
+    }
+    host.style.visibility = "";
+    freezing = false;
+    if (finished) return;
+    if (typeof frame !== "string" || !frame.startsWith("data:image/")) {
+      freezeButton.title = "This page couldn't be frozen; marks follow the live page";
+      return;
+    }
+    const image = document.createElement("img");
+    image.setAttribute(OVERLAY_ATTRIBUTE, "");
+    image.alt = "";
+    image.src = frame;
+    image.style.cssText =
+      "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:0";
+    root.insertBefore(image, root.firstChild);
+    frozenFrame = image;
+    overflowBeforeFreeze = document.documentElement.style.overflow;
+    // Scrolling would slide the live page out from under the frozen frame.
+    document.documentElement.style.overflow = "hidden";
+    refreshToolButtons();
+  }
+
+  const chooseTool = (candidate: AnnotationTool): void => {
+    tool = candidate;
+    refreshToolButtons();
+    if (SHAPE_TOOLS.has(candidate)) void setFrozen(true);
   };
 
   const removeSelected = (target: SelectedElement): void => {
@@ -991,20 +1058,23 @@ function startAnnotation(sendEnabled: boolean): void {
 
   const tools: ReadonlyArray<[AnnotationTool, string, string]> = [
     ["select", "Select", "Select elements (V)"],
-    ["marquee", "Region", "Draw a region or marquee-select elements (R)"],
-    ["draw", "Draw", "Draw freehand (D)"],
-    ["erase", "Erase", "Remove an annotation target (E)"],
+    ["marquee", "Box", "Box a region or the elements in it (B)"],
+    ["circle", "Circle", "Circle an area (O)"],
+    ["arrow", "Arrow", "Point with an arrow (A)"],
+    ["draw", "Pen", "Draw freehand (P)"],
+    ["erase", "Erase", "Remove a mark (E)"],
   ];
   for (const [candidate, label, title] of tools) {
     const button = createButton(label, title);
     button.className += " h-8 px-2.5 text-sm";
-    button.addEventListener("click", () => {
-      tool = candidate;
-      refreshToolButtons();
-    });
+    button.addEventListener("click", () => chooseTool(candidate));
     toolButtons.set(candidate, button);
     toolbar.appendChild(button);
   }
+  freezeButton.className += " h-8 px-2.5 text-sm";
+  freezeButton.style.marginLeft = "4px";
+  freezeButton.addEventListener("click", () => void setFrozen(frozenFrame === null));
+  toolbar.appendChild(freezeButton);
 
   const clampEditorPosition = (left: number, top: number): { left: number; top: number } => {
     const margin = 8;
@@ -1245,6 +1315,18 @@ function startAnnotation(sendEnabled: boolean): void {
       );
       return;
     }
+    if ((tool === "circle" || tool === "arrow") && activeStroke && dragStart) {
+      const end = { x: event.clientX, y: event.clientY };
+      activeStroke.target.points = [
+        ...(tool === "circle" ? ellipsePoints(dragStart, end) : arrowPoints(dragStart, end)),
+      ];
+      activeStroke.target.bounds = strokeBounds(
+        activeStroke.target.points,
+        activeStroke.target.width,
+      );
+      activeStroke.path.setAttribute("d", polylinePath(activeStroke.target.points));
+      return;
+    }
     if (tool === "draw" && activeStroke) {
       activeStroke.target.points = [
         ...activeStroke.target.points,
@@ -1272,7 +1354,7 @@ function startAnnotation(sendEnabled: boolean): void {
       return;
     }
     dragStart = { x: event.clientX, y: event.clientY };
-    if (tool === "draw") {
+    if (tool === "draw" || tool === "circle" || tool === "arrow") {
       const stroke: PreviewAnnotationStrokeTarget = {
         id: nextId("stroke"),
         color: annotationTheme?.primary ?? "#2563eb",
@@ -1314,6 +1396,11 @@ function startAnnotation(sendEnabled: boolean): void {
           root.appendChild(regionBox);
         }
       }
+    } else if ((tool === "circle" || tool === "arrow") && activeStroke) {
+      if (isDeliberateShape(dragStart, { x: event.clientX, y: event.clientY }))
+        strokes.push(activeStroke.target);
+      else activeStroke.path.remove();
+      activeStroke = null;
     } else if (tool === "draw" && activeStroke) {
       if (activeStroke.target.points.length > 1) strokes.push(activeStroke.target);
       else activeStroke.path.remove();
@@ -1353,6 +1440,7 @@ function startAnnotation(sendEnabled: boolean): void {
     finished = true;
     rootResizeObserver.disconnect();
     restoreStyles();
+    unfreeze();
     window.removeEventListener("pointermove", onPointerMove, true);
     window.removeEventListener("pointerdown", onPointerDown, true);
     window.removeEventListener("pointerup", onPointerUp, true);
@@ -1386,12 +1474,26 @@ function startAnnotation(sendEnabled: boolean): void {
       teardown(true);
       return;
     }
-    if (event.key === "v") tool = "select";
-    else if (event.key === "r") tool = "marquee";
-    else if (event.key === "d") tool = "draw";
-    else if (event.key === "e") tool = "erase";
-    else return;
-    refreshToolButtons();
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const keyed: AnnotationTool | "freeze" | null =
+      event.key === "v"
+        ? "select"
+        : event.key === "b" || event.key === "r"
+          ? "marquee"
+          : event.key === "o"
+            ? "circle"
+            : event.key === "a"
+              ? "arrow"
+              : event.key === "p" || event.key === "d"
+                ? "draw"
+                : event.key === "e"
+                  ? "erase"
+                  : event.key === "f"
+                    ? "freeze"
+                    : null;
+    if (keyed === null) return;
+    if (keyed === "freeze") void setFrozen(frozenFrame === null);
+    else chooseTool(keyed);
   };
 
   const submitAnnotation = (submission: PreviewAnnotationSubmission): void => {

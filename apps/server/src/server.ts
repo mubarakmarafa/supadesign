@@ -60,6 +60,7 @@ import * as DeviceService from "./device/DeviceService.ts";
 import * as DeviceHubProxy from "./device/DeviceHubProxy.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as LiveEnvironmentLayer from "./liveEnvironment/layer.ts";
+import * as ThreadBankLayer from "./threadBank/layer.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
 import * as ServerBrowser from "./preview/ServerBrowser.ts";
@@ -532,6 +533,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   // telemetry instead of waiting for the next status probe.
   ProviderUsageLimitsIngestion.layer,
   LiveEnvironmentLayer.layer.pipe(Layer.provide(ProjectionStoreV2.layer)),
+  ThreadBankLayer.layer.pipe(Layer.provide(ProjectionStoreV2.layer)),
   ProjectSummary.layer,
   layerProviderInstallationRefresh,
   // Catches overrides left behind by a project deleted before this cleanup

@@ -179,7 +179,7 @@ export function moveBoardColumn(
   return { ...board, columns };
 }
 
-/** Done cannot share a column with the inbox or the live flag. */
+/** Done cannot share a column with the inbox, live, or send flags. */
 export function canSetBoardColumnFlag(
   board: ProjectBoard,
   columnId: BoardColumnId,
@@ -189,17 +189,19 @@ export function canSetBoardColumnFlag(
     case "inbox":
       return columnId !== board.inboxColumnId && columnId !== board.doneColumnId;
     case "live":
+    case "send":
       return columnId !== board.doneColumnId;
     case "done":
       return (
         columnId !== board.doneColumnId &&
         columnId !== board.inboxColumnId &&
-        columnId !== board.liveColumnId
+        columnId !== board.liveColumnId &&
+        columnId !== board.sendColumnId
       );
   }
 }
 
-/** Sets a flag on a column. Setting live on the live column turns the flag off. */
+/** Sets a flag on a column. Setting live or send on its own column turns that flag off. */
 export function setBoardColumnFlag(
   board: ProjectBoard,
   columnId: BoardColumnId,
@@ -211,6 +213,8 @@ export function setBoardColumnFlag(
       return { ...board, inboxColumnId: columnId };
     case "live":
       return { ...board, liveColumnId: board.liveColumnId === columnId ? null : columnId };
+    case "send":
+      return { ...board, sendColumnId: board.sendColumnId === columnId ? null : columnId };
     case "done":
       return { ...board, doneColumnId: columnId };
   }
@@ -243,6 +247,7 @@ export function deleteBoardColumn(
   const neighbor = board.columns[index === 0 ? 1 : index - 1]!;
   return {
     ...board,
+    ...(board.sendColumnId === columnId ? { sendColumnId: null } : {}),
     columns: board.columns.filter((column) => column.id !== columnId),
     retiredColumns: [...(board.retiredColumns ?? []), { id: columnId, movedTo: neighbor.id }],
   };

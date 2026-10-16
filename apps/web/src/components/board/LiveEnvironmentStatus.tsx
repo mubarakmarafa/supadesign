@@ -10,6 +10,7 @@ import {
 import {
   BotIcon,
   ExternalLinkIcon,
+  MonitorPlayIcon,
   PlayIcon,
   RotateCcwIcon,
   SquareIcon,
@@ -18,7 +19,9 @@ import {
 } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 
-import { useOpenLink } from "../../browser/useOpenLink";
+import { openUrlInPreview } from "../../browser/openFileInPreview";
+import { isPreviewAvailableFor } from "../../browser/previewRuntime";
+import { previewEnvironment } from "../../state/preview";
 import { cn } from "~/lib/utils";
 import { readLocalApi } from "../../localApi";
 import { liveEnvironment } from "../../state/liveEnvironment";
@@ -86,6 +89,22 @@ function describe(
       return { tone: "warm", label: `Warm · stops in ${minutes} min` };
     }
   }
+}
+
+/**
+ * Shows a live link in the thread's in-app preview, beside its chat, so a
+ * designer can review and mark it up without leaving the app. Clients without
+ * the in-app preview open it in the system browser.
+ */
+function useShowLivePreview() {
+  const openPreview = useAtomCommand(previewEnvironment.open, { reportFailure: false });
+  return async (threadRef: ScopedThreadRef, url: string) => {
+    if (!isPreviewAvailableFor(threadRef.environmentId)) {
+      openExternally(url);
+      return;
+    }
+    await openUrlInPreview({ threadRef, url, openPreview });
+  };
 }
 
 function openExternally(url: string) {
@@ -261,6 +280,7 @@ export function LiveEnvironmentCardStatus({
   const discard = useAtomCommand(liveEnvironment.discard);
   const [setupOpen, setSetupOpen] = useState(false);
   const openThread = useOpenThreadFromBoard();
+  const showLivePreview = useShowLivePreview();
   const threadInput = { environmentId, input: { threadId: snapshot.threadId } };
   const setupThreadId = snapshot.setupThreadId ?? null;
 
@@ -281,15 +301,31 @@ export function LiveEnvironmentCardStatus({
       ) : null}
       <div className="flex flex-wrap items-center gap-1">
         {snapshot.status === "ready" && snapshot.url !== null ? (
-          <Button
-            size="compact"
-            variant="ghost"
-            aria-label={`Open ${displayLiveUrl(snapshot.url)}`}
-            onClick={() => snapshot.url !== null && openExternally(snapshot.url)}
-          >
-            <ExternalLinkIcon />
-            {displayLiveUrl(snapshot.url)}
-          </Button>
+          <>
+            <Button
+              size="compact"
+              variant="ghost"
+              aria-label={`Preview ${displayLiveUrl(snapshot.url)} beside the chat`}
+              onClick={() => {
+                const url = snapshot.url;
+                if (url === null) return;
+                const threadRef = scopeThreadRef(environmentId, snapshot.threadId);
+                openThread(threadRef, snapshot.projectId);
+                void showLivePreview(threadRef, url);
+              }}
+            >
+              <MonitorPlayIcon />
+              {displayLiveUrl(snapshot.url)}
+            </Button>
+            <Button
+              size="icon-xs"
+              variant="ghost-muted"
+              aria-label={`Open ${displayLiveUrl(snapshot.url)} in the browser`}
+              onClick={() => snapshot.url !== null && openExternally(snapshot.url)}
+            >
+              <ExternalLinkIcon />
+            </Button>
+          </>
         ) : null}
         {setupThreadId !== null ? (
           <Button
@@ -373,7 +409,7 @@ export function LiveEnvironmentChip({
   threadRef: ScopedThreadRef;
   snapshot: LiveEnvironmentSnapshot;
 }) {
-  const openLink = useOpenLink(threadRef);
+  const showLivePreview = useShowLivePreview();
   const retry = useAtomCommand(liveEnvironment.retry);
   const [setupOpen, setSetupOpen] = useState(false);
   const { tone, label } = describe(snapshot, 0);
@@ -385,7 +421,7 @@ export function LiveEnvironmentChip({
           size="compact"
           variant="ghost"
           aria-label={`Open live preview at ${displayLiveUrl(url)}`}
-          onClick={(event) => void openLink(url, { event })}
+          onClick={() => void showLivePreview(threadRef, url)}
         >
           <span aria-hidden className={cn("size-1.5 rounded-full", TONE_CLASSES[tone].dot)} />
           {displayLiveUrl(url)}

@@ -116,6 +116,19 @@ describe("board column editing", () => {
     expect(setBoardColumnFlag(board, col("ideas"), "live")?.liveColumnId).toBe("ideas");
   });
 
+  it("toggles the send flag and keeps it off the done column", () => {
+    const sending = setBoardColumnFlag(board, col("in-progress"), "send");
+    expect(sending?.sendColumnId).toBe("in-progress");
+    expect(setBoardColumnFlag(sending!, col("in-progress"), "send")?.sendColumnId).toBeNull();
+    expect(setBoardColumnFlag(board, col("done"), "send")).toBeNull();
+    expect(setBoardColumnFlag(sending!, col("in-progress"), "done")).toBeNull();
+  });
+
+  it("drops the send flag with its deleted column", () => {
+    const sending = { ...board, sendColumnId: col("ideas") };
+    expect(deleteBoardColumn(sending, col("ideas"))?.sendColumnId).toBeNull();
+  });
+
   it("refuses to delete flagged columns or drop below the minimum", () => {
     expect(boardColumnDeleteBlocker(board, col("done"))).toBe("done");
     expect(boardColumnDeleteBlocker(board, col("in-progress"))).toBe("inbox");

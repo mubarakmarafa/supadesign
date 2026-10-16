@@ -175,6 +175,8 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   projectBoard: Schema.optionalKey(Schema.Boolean),
   /** Server runs live environments for board cards (liveEnvironment.* RPCs). */
   liveEnvironment: Schema.optionalKey(Schema.Boolean),
+  /** Server stores banked messages per thread (threadBank.* RPCs). */
+  threadBank: Schema.optionalKey(Schema.Boolean),
   /** Server answers projects.summary for the projects grid. */
   projectSummary: Schema.optionalKey(Schema.Boolean),
   /** Server understands thread.auto-settle.set (per-thread auto-settle off).

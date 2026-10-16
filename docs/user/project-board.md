@@ -50,6 +50,20 @@ With a card focused, the arrow keys, **Home**, and **End** move between cards.
 or to the neighboring column. Customize `board.open`, `board.back`, and the
 `board.card.move…` commands in **Settings → Keybindings**.
 
+## Bank messages for later
+
+Context rarely arrives in one go. Press **Option+Enter** (`Alt+Enter` on Windows
+and Linux) in a card's composer to bank what you wrote, with its images, files,
+and annotations, instead of sending it. Banked messages sit above the composer
+under **Banked**, where you can read, edit, reorder, and remove them, and the
+card shows how many it holds. **Send all** sends them to the agent as one
+message, in order.
+
+To send a card's bank by moving it, choose **Send banked messages here** from a
+column's **…** menu. Moving a card with banked messages into that column sends
+them and starts its agent. Banked messages are kept by the server, so they
+follow the card to your other devices.
+
 ## Done archives
 
 Moving a card into the done column archives its thread, and moving it back out
@@ -77,7 +91,9 @@ every task:
 - Opening a card from the column makes that card live while you are in it.
 
 A live card shows a link to its local dev server; the opened thread shows the
-same link in its header. The card runs the thread's own worktree when it has
+same link in its header. Clicking it opens the card's thread with the running
+app in the in-app preview beside the chat; the arrow button beside it opens the
+system browser instead. The card runs the thread's own worktree when it has
 one, otherwise a worktree checked out at its linked pull request. A card on a
 branch runs the project folder when it is on that branch, otherwise a worktree
 of the branch beside it; the project folder's branch is never switched. A
@@ -105,3 +121,15 @@ command, and it says why.
 
 If the server fails to start, the card shows why and its last output. **Retry**
 first has an agent check whether the command itself is wrong, then starts the card again.
+
+## Design mode
+
+In the in-app preview, press **Cmd+Shift+D** (`Ctrl+Shift+D` on Windows and
+Linux) or the design mode button to mark up the page. **Box**, **Circle**,
+**Arrow**, and **Pen** draw on the page, **Select** picks elements, and
+**Erase** removes a mark. Choosing a drawing tool freezes the page, so your
+marks stay on the frame you reviewed even if the app reloads; **Frozen**
+returns to the live page. Write a comment beside your marks and press **Attach**:
+the screenshot and comment go into the composer as one item, and design mode
+stays on for the next mark. **Escape** leaves design mode. Design mode is
+available in the desktop app.

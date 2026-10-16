@@ -161,6 +161,16 @@ import {
   LiveEnvironmentThreadInput,
 } from "./liveEnvironment.ts";
 import {
+  ThreadBankAddInput,
+  ThreadBankEntryInput,
+  ThreadBankError,
+  ThreadBankList,
+  ThreadBankProjectInput,
+  ThreadBankReorderInput,
+  ThreadBankThreadInput,
+  ThreadBankUpdateInput,
+} from "./threadBank.ts";
+import {
   OrchestrationSearchThreadsError,
   OrchestrationSearchThreadsInput,
   OrchestrationSearchThreadsResult,
@@ -443,6 +453,14 @@ export const WS_METHODS = {
   liveEnvironmentDiscard: "liveEnvironment.discard",
   liveEnvironmentSaveDevScript: "liveEnvironment.saveDevScript",
   subscribeLiveEnvironments: "subscribeLiveEnvironments",
+
+  // Thread bank methods
+  threadBankAdd: "threadBank.add",
+  threadBankUpdate: "threadBank.update",
+  threadBankRemove: "threadBank.remove",
+  threadBankReorder: "threadBank.reorder",
+  threadBankSend: "threadBank.send",
+  subscribeThreadBanks: "subscribeThreadBanks",
 
   // Projects grid
   projectsSummary: "projects.summary",
@@ -1604,6 +1622,38 @@ const WsSubscribeLiveEnvironmentsRpc = Rpc.make(WS_METHODS.subscribeLiveEnvironm
   stream: true,
 });
 
+const WsThreadBankAddRpc = Rpc.make(WS_METHODS.threadBankAdd, {
+  payload: ThreadBankAddInput,
+  error: Schema.Union([ThreadBankError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadBankUpdateRpc = Rpc.make(WS_METHODS.threadBankUpdate, {
+  payload: ThreadBankUpdateInput,
+  error: Schema.Union([ThreadBankError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadBankRemoveRpc = Rpc.make(WS_METHODS.threadBankRemove, {
+  payload: ThreadBankEntryInput,
+  error: Schema.Union([ThreadBankError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadBankReorderRpc = Rpc.make(WS_METHODS.threadBankReorder, {
+  payload: ThreadBankReorderInput,
+  error: Schema.Union([ThreadBankError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadBankSendRpc = Rpc.make(WS_METHODS.threadBankSend, {
+  payload: ThreadBankThreadInput,
+  error: Schema.Union([ThreadBankError, EnvironmentAuthorizationError]),
+});
+
+const WsSubscribeThreadBanksRpc = Rpc.make(WS_METHODS.subscribeThreadBanks, {
+  payload: ThreadBankProjectInput,
+  success: ThreadBankList,
+  error: EnvironmentAuthorizationError,
+  stream: true,
+});
+
 const WsSubscribeDiscoveredLocalServersRpc = Rpc.make(WS_METHODS.subscribeDiscoveredLocalServers, {
   payload: Schema.Struct({
     configuredUrls: Schema.optional(ConfiguredLocalServerUrls),
@@ -2044,6 +2094,12 @@ export const WsRpcGroup = RpcGroup.make(
   WsLiveEnvironmentDiscardRpc,
   WsLiveEnvironmentSaveDevScriptRpc,
   WsSubscribeLiveEnvironmentsRpc,
+  WsThreadBankAddRpc,
+  WsThreadBankUpdateRpc,
+  WsThreadBankRemoveRpc,
+  WsThreadBankReorderRpc,
+  WsThreadBankSendRpc,
+  WsSubscribeThreadBanksRpc,
   WsProjectsSummaryRpc,
   WsVcsListRefsRpc,
   WsVcsCreateWorktreeRpc,

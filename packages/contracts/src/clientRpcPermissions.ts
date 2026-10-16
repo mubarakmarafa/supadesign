@@ -44,6 +44,12 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.liveEnvironmentRetry]: AuthOrchestrationOperateScope,
   [WS_METHODS.liveEnvironmentDiscard]: AuthOrchestrationOperateScope,
   [WS_METHODS.liveEnvironmentSaveDevScript]: AuthSettingsWriteScope,
+  // Banking only stores a draft; sending it starts the agent.
+  [WS_METHODS.threadBankAdd]: AuthOrchestrationOperateScope,
+  [WS_METHODS.threadBankUpdate]: AuthOrchestrationOperateScope,
+  [WS_METHODS.threadBankRemove]: AuthOrchestrationOperateScope,
+  [WS_METHODS.threadBankReorder]: AuthOrchestrationOperateScope,
+  [WS_METHODS.threadBankSend]: AuthOrchestrationOperateScope,
   [WS_METHODS.gitPreparePullRequestThread]: AuthSourceControlWriteScope,
   [WS_METHODS.vcsCreateWorktree]: AuthSourceControlWriteScope,
   [WS_METHODS.vcsRemoveWorktree]: AuthSourceControlWriteScope,

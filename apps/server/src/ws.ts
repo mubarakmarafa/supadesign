@@ -99,6 +99,7 @@ import {
   type TerminalError,
   type TerminalEvent,
   type LiveEnvironmentList,
+  type ThreadBankList,
   type TerminalMetadataStreamEvent,
   type PullRequestRef,
   WS_METHODS,
@@ -186,6 +187,7 @@ import * as DeviceService from "./device/DeviceService.ts";
 import { remoteSshDeviceHosts } from "./device/localSshDeviceHost.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as LiveEnvironment from "./liveEnvironment/LiveEnvironmentService.ts";
+import * as ThreadBank from "./threadBank/ThreadBankService.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import { issueAssetUrl } from "./assets/AssetAccess.ts";
 import {
@@ -1311,6 +1313,7 @@ const layerWsRpc = (
       const terminalManager = yield* TerminalManager.TerminalManager;
       const previewManager = yield* PreviewManager.PreviewManager;
       const liveEnvironments = yield* LiveEnvironment.LiveEnvironmentService;
+      const threadBanks = yield* ThreadBank.ThreadBankService;
       const projectSummary = yield* ProjectSummary.ProjectSummary;
       const portDiscovery = yield* PortScanner.PortDiscovery;
       const providerRegistry = yield* ProviderRegistry.ProviderRegistry;
@@ -2928,6 +2931,19 @@ const layerWsRpc = (
           Stream.callback<LiveEnvironmentList>((queue) =>
             Effect.acquireRelease(
               liveEnvironments.subscribe(input.projectId, (list) => Queue.offer(queue, list)),
+              (unsubscribe) => Effect.sync(unsubscribe),
+            ),
+          ),
+        [WS_METHODS.threadBankAdd]: (input) => threadBanks.add(input).pipe(Effect.asVoid),
+        [WS_METHODS.threadBankUpdate]: (input) => threadBanks.update(input),
+        [WS_METHODS.threadBankRemove]: (input) => threadBanks.remove(input),
+        [WS_METHODS.threadBankReorder]: (input) => threadBanks.reorder(input),
+        [WS_METHODS.threadBankSend]: (input) =>
+          threadBanks.send(input.threadId).pipe(Effect.asVoid),
+        [WS_METHODS.subscribeThreadBanks]: (input) =>
+          Stream.callback<ThreadBankList>((queue) =>
+            Effect.acquireRelease(
+              threadBanks.subscribe(input.projectId, (list) => Queue.offer(queue, list)),
               (unsubscribe) => Effect.sync(unsubscribe),
             ),
           ),
