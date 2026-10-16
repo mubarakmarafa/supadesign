@@ -3392,7 +3392,7 @@ export function ConnectionsSettings() {
                 </AlertDialogTitle>
                 <AlertDialogDescription>
                   {pendingDesktopServerExposureMode === "network-accessible"
-                    ? "Let your other devices connect to Supaterm over the network. Pair devices to give them access. Supaterm will restart."
+                    ? "Let your other devices connect to Supaterm over the network. Pair devices to give them access. Do not enable when you're connected to public networks/Wi-Fi. Supaterm will restart."
                     : "Devices connected over your local network will disconnect. Existing tunnels, such as Tailscale HTTPS, keep working. Supaterm will restart."}
                 </AlertDialogDescription>
               </AlertDialogHeader>
