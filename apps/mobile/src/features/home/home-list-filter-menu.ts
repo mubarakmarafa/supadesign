@@ -18,7 +18,7 @@ type HomeListFilterMenuAction = {
   readonly onPress: () => void;
 };
 
-type HomeListFilterMenuSubmenu = {
+export type HomeListFilterMenuSubmenu = {
   readonly type: "submenu";
   readonly title: string;
   readonly items: HomeListFilterMenuAction[];
@@ -29,14 +29,16 @@ export interface HomeListFilterMenu {
   readonly items: Array<HomeListFilterMenuAction | HomeListFilterMenuSubmenu>;
 }
 
-export function buildHomeListFilterMenu(props: {
+export interface HomeListFilterMenuInput {
   readonly environments: ReadonlyArray<HomeListFilterMenuEnvironment>;
   readonly projects: ReadonlyArray<HomeListFilterMenuProject>;
   readonly selectedEnvironmentId: EnvironmentId | null;
   readonly selectedProjectKey: string | null;
   readonly onEnvironmentChange: (environmentId: EnvironmentId | null) => void;
   readonly onProjectChange: (projectKey: string | null) => void;
-}): HomeListFilterMenu {
+}
+
+export function buildHomeListFilterMenu(props: HomeListFilterMenuInput): HomeListFilterMenu {
   const items: Array<HomeListFilterMenuAction | HomeListFilterMenuSubmenu> = [];
 
   items.push({

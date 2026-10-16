@@ -24,6 +24,7 @@ import { checkForAppUpdateOnLaunch, startAppUpdateForegroundRecheck } from "../u
 import { AndroidHomeFabLayout } from "./AndroidHomeFab";
 import { HomeScreen } from "./HomeScreen";
 import { HomeHeader } from "./HomeHeader";
+import { ThreadListFilters } from "./ThreadListFilters";
 import { useHomeListOptions } from "./home-list-options";
 import { useAtomValueWhileVisible, useHomeRouteVisible } from "./home-route-visibility";
 import { useHomeThreadSelection } from "./home-thread-navigation";
@@ -154,6 +155,14 @@ export function HomeRouteScreen() {
   )
     ? resolvedProjectKey
     : null;
+  const threadListFilters = {
+    environments,
+    projects: projectFilterOptions,
+    selectedEnvironmentId,
+    selectedProjectKey,
+    onEnvironmentChange: setSelectedEnvironmentId,
+    onProjectChange: setSelectedProjectKey,
+  };
 
   // In split layouts the persistent sidebar IS the thread list — Home becomes
   // an empty detail pane so selecting a thread never transitions layouts.
@@ -231,14 +240,9 @@ export function HomeRouteScreen() {
           />
         )}
         <HomeHeader
+          {...threadListFilters}
           usesWorkspaceToolbar={workspace !== null}
-          environments={environments}
-          projects={projectFilterOptions}
           searchQuery={searchQuery}
-          selectedEnvironmentId={selectedEnvironmentId}
-          selectedProjectKey={selectedProjectKey}
-          onEnvironmentChange={setSelectedEnvironmentId}
-          onProjectChange={setSelectedProjectKey}
           onOpenEnvironments={() =>
             navigation.navigate("SettingsSheet", {
               screen: "SettingsContent",
@@ -275,8 +279,6 @@ export function HomeRouteScreen() {
           onSetThreadAutoMarkDone={setThreadAutoMarkDone}
           onRenameThread={renameThread}
           onRegenerateThreadTitle={regenerateThreadTitle}
-          onEnvironmentChange={setSelectedEnvironmentId}
-          onProjectChange={setSelectedProjectKey}
           onOpenSettings={() =>
             navigation.navigate("SettingsSheet", {
               screen: "SettingsContent",
@@ -308,6 +310,11 @@ export function HomeRouteScreen() {
           selectedEnvironmentId={selectedEnvironmentId}
           selectedProjectKey={selectedProjectKey}
           threads={threads}
+          listHeader={
+            Platform.OS === "ios" && workspace ? (
+              <ThreadListFilters {...threadListFilters} />
+            ) : undefined
+          }
         />
       </>
     </AndroidHomeFabLayout>

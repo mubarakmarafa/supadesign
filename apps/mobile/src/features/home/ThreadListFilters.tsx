@@ -1,0 +1,55 @@
+import { memo } from "react";
+import { Pressable, ScrollView } from "react-native";
+import { SymbolView } from "../../components/AppSymbol";
+import { ListFilterMenu } from "../workspace/ListFilterMenu";
+import {
+  buildHomeListFilterMenu,
+  type HomeListFilterMenuInput,
+  type HomeListFilterMenuSubmenu,
+} from "./home-list-filter-menu";
+
+export const ThreadListFilters = memo(function ThreadListFilters(props: HomeListFilterMenuInput) {
+  const filters = buildHomeListFilterMenu(props).items.filter((item) => item.type === "submenu");
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 2, paddingBottom: 10, gap: 8 }}
+    >
+      {filters.map((filter) => (
+        <ThreadListFilterPill key={filter.title} filter={filter} />
+      ))}
+      {props.selectedEnvironmentId !== null || props.selectedProjectKey !== null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reset thread filters"
+          className="h-8 w-8 items-center justify-center"
+          onPress={() => {
+            props.onEnvironmentChange(null);
+            props.onProjectChange(null);
+          }}
+        >
+          <SymbolView name="xmark.circle.fill" size={18} tintColorClassName="accent-icon-muted" />
+        </Pressable>
+      ) : null}
+    </ScrollView>
+  );
+});
+
+/** The builder lists each filter's "All" choice first. */
+function ThreadListFilterPill({ filter }: { readonly filter: HomeListFilterMenuSubmenu }) {
+  const current = filter.items.find((item) => item.state === "on");
+  return (
+    <ListFilterMenu
+      label={current?.title ?? filter.title}
+      accessibilityLabel={`Filter threads by ${filter.title.toLowerCase()}`}
+      active={current !== undefined && current !== filter.items[0]}
+      actions={filter.items.map((item, index) => ({
+        id: String(index),
+        title: item.title,
+        state: item.state,
+      }))}
+      onSelect={(id) => filter.items[Number(id)]?.onPress()}
+    />
+  );
+}

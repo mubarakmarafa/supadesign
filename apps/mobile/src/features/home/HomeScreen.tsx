@@ -16,7 +16,16 @@ import {
 import { type EnvironmentId, type SidebarProjectGroupingMode } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { useFocusEffect } from "@react-navigation/native";
-import { use, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import {
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactElement,
+} from "react";
 import {
   Platform,
   ScrollView,
@@ -101,8 +110,6 @@ interface HomeScreenProps {
   readonly projectSortOrder: HomeProjectSortOrder;
   readonly projectGroupingMode: SidebarProjectGroupingMode;
   readonly onSearchQueryChange: (query: string) => void;
-  readonly onEnvironmentChange: (environmentId: EnvironmentId | null) => void;
-  readonly onProjectChange: (projectKey: string | null) => void;
   readonly onAddConnection: () => void;
   readonly onOpenSettings: () => void;
   readonly onStartNewTask: () => void;
@@ -129,6 +136,7 @@ interface HomeScreenProps {
   readonly onDeletePendingTask: (pendingTask: PendingNewTask) => void;
   readonly onNewThreadOnBranch: (thread: EnvironmentThreadShell) => void;
   readonly onNewThreadInProject: (project: EnvironmentProject) => void;
+  readonly listHeader: ReactElement | undefined;
 }
 
 /* ─── Layout constants ───────────────────────────────────────────────── */
@@ -945,10 +953,6 @@ export function HomeScreen(props: HomeScreenProps) {
     );
   }
 
-  const listHeader = Platform.OS === "ios" ? undefined : <HomeTopContentSpacer />;
-
-  const v2ListHeader = <>{listHeader}</>;
-
   // Use the v2 project scope for its empty state. Snoozed threads need no
   // special empty state: their shelf header is a list row even while collapsed.
   const v2ListEmpty =
@@ -1022,7 +1026,9 @@ export function HomeScreen(props: HomeScreenProps) {
               recycleItems
               itemLayoutAnimation={listMotion.layout}
               extraData={v2ExtraData}
-              ListHeaderComponent={v2ListHeader}
+              ListHeaderComponent={
+                Platform.OS === "ios" ? props.listHeader : <HomeTopContentSpacer />
+              }
               ListEmptyComponent={v2ListEmpty}
               style={{ flex: 1 }}
               automaticallyAdjustsScrollIndicatorInsets={Platform.OS === "ios"}

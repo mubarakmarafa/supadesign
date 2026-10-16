@@ -1,19 +1,8 @@
 import { useMemo } from "react";
 import type { ControlPillMenuProps } from "../../components/ControlPillMenu.types";
-import { buildHomeListFilterMenu } from "./home-list-filter-menu";
-import type { HomeHeaderProps } from "./HomeHeader.types";
+import { buildHomeListFilterMenu, type HomeListFilterMenuInput } from "./home-list-filter-menu";
 
-type ThreadListFilterProps = Pick<
-  HomeHeaderProps,
-  | "environments"
-  | "projects"
-  | "selectedEnvironmentId"
-  | "selectedProjectKey"
-  | "onEnvironmentChange"
-  | "onProjectChange"
->;
-
-export function useThreadListFilterMenu(props: ThreadListFilterProps) {
+export function useThreadListFilterMenu(props: HomeListFilterMenuInput) {
   const {
     environments,
     projects,
