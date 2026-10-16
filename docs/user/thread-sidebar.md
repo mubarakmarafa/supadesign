@@ -136,6 +136,8 @@ pinned section.
 Choose **Mark thread as Done** from its menu to move finished work out of the active list
 without deleting the conversation. **Reopen thread** restores it to active work
 and prevents automatic completion until new activity resumes the usual rules.
+On web and desktop, `Cmd/Ctrl+Shift+D` marks the open thread as Done or reopens it
+when it is already Done. The shortcut skips terminals and can be changed in Settings → Keybindings.
 Manually marking an idle thread as Done dismisses unanswered async questions without
 sending an answer or restarting the agent. Marking it as Done also closes the thread's
 terminals that wait at an idle prompt, and keeps their output. A terminal that

@@ -119,6 +119,32 @@ function hasSameShortcutContext(left: KeybindingRule, right: KeybindingRule): bo
   return leftContext === rightContext;
 }
 
+function migrateMarkDoneKeybinding(rules: readonly KeybindingRule[]) {
+  const commandRules = rules.filter((rule) => rule.command === "thread.mark-done");
+  const [previous] = commandRules;
+  if (
+    commandRules.length !== 1 ||
+    previous?.key !== "mod+shift+s" ||
+    previous.when !== "!terminalFocus"
+  ) {
+    return rules;
+  }
+
+  const shortcutTaken = rules.some((rule) => {
+    if (rule.command === "thread.mark-done" || rule.when === "terminalFocus") return false;
+    const shortcut = parseKeybindingShortcut(rule.key);
+    return (
+      shortcut?.key === "d" &&
+      shortcut.shiftKey &&
+      !shortcut.altKey &&
+      (shortcut.modKey || shortcut.metaKey || shortcut.ctrlKey)
+    );
+  });
+  if (shortcutTaken) return rules;
+
+  return rules.map((rule) => (rule === previous ? { ...rule, key: "mod+shift+d" } : rule));
+}
+
 function keybindingRuleFromUpsertInput(input: ServerUpsertKeybindingInput): KeybindingRule {
   return input.when === undefined
     ? { key: input.key, command: input.command }
@@ -267,6 +293,27 @@ const make = Effect.gen(function* () {
   const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const markDoneMigrationPath = `${keybindingsConfigPath}.mark-done-shortcut-v1`;
+  const markDoneMigrationCompleted = fs.exists(markDoneMigrationPath).pipe(
+    Effect.mapError(
+      (cause) =>
+        new KeybindingsConfigError({
+          configPath: keybindingsConfigPath,
+          detail: "failed to read keybindings migration state",
+          cause,
+        }),
+    ),
+  );
+  const completeMarkDoneMigration = fs.writeFileString(markDoneMigrationPath, "").pipe(
+    Effect.mapError(
+      (cause) =>
+        new KeybindingsConfigError({
+          configPath: keybindingsConfigPath,
+          detail: "failed to save keybindings migration state",
+          cause,
+        }),
+    ),
+  );
   const upsertSemaphore = yield* Semaphore.make(1);
   const resolvedConfigCacheKey = "resolved" as const;
   const changesPubSub = yield* PubSub.unbounded<KeybindingsChangeEvent>();
@@ -454,6 +501,7 @@ const make = Effect.gen(function* () {
       const configExists = yield* readConfigExists;
       if (!configExists) {
         yield* writeConfigAtomically(DEFAULT_KEYBINDINGS);
+        yield* completeMarkDoneMigration;
         yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
         return;
       }
@@ -470,7 +518,10 @@ const make = Effect.gen(function* () {
         yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
         return;
       }
-      const customConfig = runtimeConfig.keybindings;
+      const migrationCompleted = yield* markDoneMigrationCompleted;
+      const customConfig = migrationCompleted
+        ? runtimeConfig.keybindings
+        : migrateMarkDoneKeybinding(runtimeConfig.keybindings);
       const existingCommands = new Set(customConfig.map((entry) => entry.command));
       const missingDefaults: KeybindingRule[] = [];
       const shortcutConflictWarnings: Array<{
@@ -531,9 +582,10 @@ const make = Effect.gen(function* () {
           commands: skippedDefaults.map((rule) => rule.command),
         });
       }
-      if (defaultsToAppend.length > 0) {
+      if (defaultsToAppend.length > 0 || customConfig !== runtimeConfig.keybindings) {
         yield* writeConfigAtomically([...defaultsToAppend, ...customConfig]);
       }
+      if (!migrationCompleted) yield* completeMarkDoneMigration;
       yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
     }),
   );

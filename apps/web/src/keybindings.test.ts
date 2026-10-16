@@ -175,7 +175,7 @@ const DEFAULT_BINDINGS = compile([
     whenAst: whenNot(whenIdentifier("terminalFocus")),
   },
   {
-    shortcut: modShortcut("s", { shiftKey: true }),
+    shortcut: modShortcut("d", { shiftKey: true }),
     command: "thread.mark-done",
     whenAst: whenNot(whenIdentifier("terminalFocus")),
   },
@@ -261,7 +261,7 @@ describe("isTerminalToggleShortcut", () => {
 describe("mark thread as done shortcut", () => {
   it("resolves outside the terminal", () => {
     assert.equal(
-      resolveShortcutCommand(event({ key: "s", metaKey: true, shiftKey: true }), DEFAULT_BINDINGS, {
+      resolveShortcutCommand(event({ key: "d", metaKey: true, shiftKey: true }), DEFAULT_BINDINGS, {
         platform: "MacIntel",
         context: { terminalFocus: false },
       }),
@@ -270,11 +270,12 @@ describe("mark thread as done shortcut", () => {
   });
 
   it("does not intercept the terminal", () => {
-    assert.isNull(
-      resolveShortcutCommand(event({ key: "s", ctrlKey: true, shiftKey: true }), DEFAULT_BINDINGS, {
+    assert.equal(
+      resolveShortcutCommand(event({ key: "d", ctrlKey: true, shiftKey: true }), DEFAULT_BINDINGS, {
         platform: "Win32",
         context: { terminalFocus: true },
       }),
+      "terminal.splitVertical",
     );
   });
 });
@@ -1718,9 +1719,9 @@ describe("composer and pull request shortcuts", () => {
 
   for (const platform of ["MacIntel", "Win32", "Linux"]) {
     it.each([
-      ["s", "thread.mark-done"],
+      ["d", "thread.mark-done"],
       ["p", "thread.pin"],
-    ])(`preserves the existing %s shortcut on ${platform}`, (key, command) => {
+    ])(`resolves the %s thread shortcut on ${platform}`, (key, command) => {
       assert.strictEqual(
         resolveShortcutCommand(
           event({
@@ -1736,6 +1737,31 @@ describe("composer and pull request shortcuts", () => {
       );
     });
   }
+
+  it.each(["MacIntel", "Win32", "Linux"])(
+    "keeps mark Done and vertical terminal split separate on %s",
+    (platform) => {
+      const input = event({
+        key: "D",
+        shiftKey: true,
+        metaKey: platform === "MacIntel",
+        ctrlKey: platform !== "MacIntel",
+      });
+      assert.strictEqual(
+        resolveShortcutCommand(input, DEFAULT_RESOLVED_KEYBINDINGS, {
+          platform,
+          context: { terminalFocus: true },
+        }),
+        "terminal.splitVertical",
+      );
+      assert.isNull(
+        resolveShortcutCommand({ ...input, key: "S" }, DEFAULT_RESOLVED_KEYBINDINGS, {
+          platform,
+          context: { terminalFocus: false },
+        }),
+      );
+    },
+  );
 
   const altEffortBindings = compileResolvedKeybindingsConfig([
     { key: "mod+alt+e", command: "composer.effort", when: "!terminalFocus" },

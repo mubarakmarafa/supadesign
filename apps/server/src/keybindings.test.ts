@@ -294,6 +294,86 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
       }).pipe(Effect.provide(layerKeybindings())),
   );
 
+  it.effect("upgrades the saved mark Done default once without changing other defaults", () =>
+    Effect.gen(function* () {
+      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
+      yield* writeKeybindingsConfig(
+        keybindingsConfigPath,
+        Keybindings.DEFAULT_KEYBINDINGS.map((rule) =>
+          rule.command === "thread.mark-done" ? { ...rule, key: "mod+shift+s" } : rule,
+        ),
+      );
+
+      const keybindings = yield* Keybindings.Keybindings;
+      yield* keybindings.syncDefaultKeybindingsOnStartup;
+      assert.deepEqual(
+        yield* readKeybindingsConfig(keybindingsConfigPath),
+        Keybindings.DEFAULT_KEYBINDINGS,
+      );
+
+      const snapshot = yield* keybindings.getSnapshot;
+      assert.equal(
+        snapshot.keybindings.find((rule) => rule.command === "thread.mark-done")?.shortcut.key,
+        "d",
+      );
+
+      yield* keybindings.syncDefaultKeybindingsOnStartup;
+      assert.deepEqual(
+        yield* readKeybindingsConfig(keybindingsConfigPath),
+        Keybindings.DEFAULT_KEYBINDINGS,
+      );
+
+      yield* keybindings.upsertKeybindingRule({
+        key: "mod+shift+s",
+        command: "thread.mark-done",
+        when: "!terminalFocus",
+        replace: {
+          key: "mod+shift+d",
+          command: "thread.mark-done",
+          when: "!terminalFocus",
+        },
+      });
+      const customized = yield* readKeybindingsConfig(keybindingsConfigPath);
+      yield* Effect.gen(function* () {
+        const restarted = yield* Keybindings.Keybindings;
+        yield* restarted.syncDefaultKeybindingsOnStartup;
+        assert.deepEqual(yield* readKeybindingsConfig(keybindingsConfigPath), customized);
+        const restartedSnapshot = yield* restarted.getSnapshot;
+        assert.equal(
+          restartedSnapshot.keybindings.find((rule) => rule.command === "thread.mark-done")
+            ?.shortcut.key,
+          "s",
+        );
+      }).pipe(Effect.provide(Layer.fresh(Keybindings.layer)));
+    }).pipe(Effect.provide(layerKeybindings())),
+  );
+
+  it.effect.each<readonly KeybindingRule[]>([
+    [{ key: "mod+alt+d", command: "thread.mark-done", when: "!terminalFocus" }],
+    [{ key: "mod+shift+s", command: "thread.mark-done", when: "composerFocus" }],
+    [
+      { key: "mod+shift+s", command: "thread.mark-done", when: "!terminalFocus" },
+      { key: "mod+alt+d", command: "thread.mark-done" },
+    ],
+    ...["shift+mod+d", "cmd+shift+d", "ctrl+shift+d"].map((key): readonly KeybindingRule[] => [
+      { key: "mod+shift+s", command: "thread.mark-done", when: "!terminalFocus" },
+      { key, command: "script.custom-action.run" },
+    ]),
+  ])("preserves customized or conflicting mark Done shortcuts on startup %#", (rules) =>
+    Effect.gen(function* () {
+      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
+      yield* writeKeybindingsConfig(keybindingsConfigPath, rules);
+      const keybindings = yield* Keybindings.Keybindings;
+      yield* keybindings.syncDefaultKeybindingsOnStartup;
+      const persisted = yield* readKeybindingsConfig(keybindingsConfigPath);
+      assert.deepEqual(persisted.slice(-rules.length), rules);
+      assert.deepEqual(
+        persisted.filter((rule) => rule.command === "thread.mark-done"),
+        rules.filter((rule) => rule.command === "thread.mark-done"),
+      );
+    }).pipe(Effect.provide(layerKeybindings())),
+  );
+
   it.effect("skips conflicting default keybindings on startup and logs a detailed warning", () => {
     const messages: string[] = [];
     const logger = Logger.make(({ message }) => {
