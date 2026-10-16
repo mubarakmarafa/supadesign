@@ -8,7 +8,7 @@
  * Builds the web client, starts an isolated server on it, seeds the scene from
  * `marketing-hero.scene.ts` as fake git repos plus projection rows, and captures
  * the hero thread with its turn diff at 1440x900 @2x in headless Chromium, in
- * the light appearance the marketing site wears. The production build is
+ * the dark appearance the marketing site wears. The production build is
  * deliberate: it leaves the sidebar header clear, where the dev client draws
  * its blueprint. Nothing touches ~/.supaterm: all state lives in a temp
  * directory.
@@ -949,7 +949,7 @@ async function main(): Promise<void> {
     const context = await browser.newContext({
       viewport: VIEWPORT,
       deviceScaleFactor: 2,
-      colorScheme: "light",
+      colorScheme: "dark",
     });
     const png = await capture(await context.newPage(), startupPairingUrl, environmentId);
     // The full-quality PNG outlives the temp directory for PR before/after evidence.

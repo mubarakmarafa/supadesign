@@ -210,11 +210,6 @@ const imageProps = {
 
 <style>
   .download-page {
-    --night-highlight: #4ea4ff;
-    --night-secondary: #696fea;
-    --night-tertiary: #a85bea;
-    --night-glow: #5165d8;
-    --night-text: color-mix(in srgb, var(--night-glow) 90%, black);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -234,7 +229,7 @@ const imageProps = {
     margin-bottom: 2rem;
   }
 
-  /* Sky: a wash in the nightly icon's colors, masked so it dissolves into the page instead of ending at a line. */
+  /* Sky: the nightly DMG backdrop, masked so it dissolves into the page instead of ending at a line. */
   .sky {
     position: absolute;
     top: -80px;
@@ -244,12 +239,7 @@ const imageProps = {
     width: 100vw;
     margin-left: -50vw;
     z-index: -1;
-    background: linear-gradient(
-      115deg,
-      color-mix(in srgb, var(--night-highlight) 18%, transparent),
-      color-mix(in srgb, var(--night-secondary) 16%, transparent) 50%,
-      color-mix(in srgb, var(--night-tertiary) 16%, transparent)
-    );
+    background: url("/nightly-sky.svg") center / cover no-repeat;
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
     opacity: 0;
@@ -315,15 +305,15 @@ const imageProps = {
     display: inline-flex;
     margin-top: 1.5rem;
     padding: 3px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 999px;
-    background: var(--bg-muted);
+    background: rgba(255, 255, 255, 0.03);
     transition: border-color 0.45s ease, background 0.45s ease;
   }
 
   .download-page[data-channel="nightly"] .channel-toggle {
-    border-color: color-mix(in srgb, var(--night-glow) 30%, transparent);
-    background: color-mix(in srgb, var(--night-glow) 10%, var(--bg));
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(7, 21, 47, 0.5);
   }
 
   /* The thumb slides between the two tabs; both tabs are the same width. */
@@ -334,13 +324,13 @@ const imageProps = {
     left: 3px;
     width: calc(50% - 3px);
     border-radius: 999px;
-    background: var(--bg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+    background: rgba(255, 255, 255, 0.12);
+    transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), background 0.45s ease;
   }
 
   .download-page[data-channel="nightly"] .channel-thumb {
     transform: translateX(100%);
+    background: rgba(255, 255, 255, 0.16);
   }
 
   .channel-toggle button {
@@ -386,7 +376,7 @@ const imageProps = {
   }
 
   .download-page[data-channel="nightly"] .changelog-link {
-    color: var(--night-text);
+    color: #b9bdff;
   }
 
   /* ── Platforms ── */
@@ -448,8 +438,8 @@ const imageProps = {
     font-size: 0.85rem;
     padding: 0.6rem 0.9rem;
     border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg-code);
+    border: 1px solid rgba(105, 111, 234, 0.35);
+    background: rgba(21, 20, 67, 0.3);
     color: var(--fg);
   }
 
@@ -468,13 +458,13 @@ const imageProps = {
     padding: 0.85rem 1rem;
     border-radius: 10px;
     border: 1px solid var(--border);
-    background: var(--bg-raised);
+    background: rgba(255, 255, 255, 0.02);
     transition: background 0.45s ease, border-color 0.45s ease, transform 0.2s ease;
   }
 
   .download-card:hover {
-    background: var(--bg-muted);
-    border-color: var(--border-strong);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
     transform: translateY(-1px);
   }
 
@@ -483,16 +473,12 @@ const imageProps = {
   }
 
   .download-page[data-channel="nightly"] .download-card[data-asset] {
-    border-color: color-mix(in srgb, var(--night-secondary) 40%, transparent);
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--night-glow) 10%, transparent),
-      color-mix(in srgb, var(--night-tertiary) 6%, transparent)
-    );
+    border-color: rgba(105, 111, 234, 0.4);
+    background: linear-gradient(135deg, rgba(81, 101, 216, 0.1), rgba(168, 91, 234, 0.06));
   }
 
   .download-page[data-channel="nightly"] .download-card[data-asset]:hover {
-    border-color: color-mix(in srgb, var(--night-secondary) 70%, transparent);
+    border-color: rgba(105, 111, 234, 0.7);
   }
 
   .card-icon {
@@ -520,7 +506,7 @@ const imageProps = {
   }
 
   .download-page[data-channel="nightly"] .card-format {
-    color: var(--night-text);
+    color: #b6b0ff;
   }
 
   .intel-note {
@@ -532,7 +518,7 @@ const imageProps = {
   .releases-link a {
     color: var(--fg-muted);
     text-decoration: underline;
-    text-decoration-color: color-mix(in srgb, var(--fg-muted) 40%, transparent);
+    text-decoration-color: rgba(161, 161, 170, 0.4);
     text-underline-offset: 3px;
     transition: color 0.3s ease, text-decoration-color 0.3s ease;
   }
