@@ -2,12 +2,12 @@ import { useMemo } from "react";
 import { View } from "react-native";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
-import { AndroidScreenHeader } from "../../components/AndroidScreenHeader";
-import { EmptyState } from "../../components/EmptyState";
-import { MaterialScreenContent } from "../../components/MaterialScreenContent";
+import { AndroidScreenHeader } from "../../components/ui/AndroidScreenHeader";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { ScreenContent } from "../../components/ui/ScreenContent";
 import { HomeRouteScreen } from "../home/HomeRouteScreen";
 import { PullRequestsScreen } from "../pull-requests/PullRequestsScreen";
-import { MaterialPullRequestToolbar } from "../pull-requests/MaterialPullRequestToolbar.android";
+import { PullRequestToolbar } from "../pull-requests/PullRequestToolbar.android";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import { WorkspaceTabsContext, useWorkspaceTabs } from "./WorkspaceTabsContext";
 import { WORKSPACE_DOCK } from "./workspace-tabs-state";
@@ -27,7 +27,6 @@ export function WorkspaceRootScreen() {
     [workspace, bottomClearance],
   );
 
-  // Split lists live beside the navigator; Home remains an empty detail pane.
   if (layout.usesSplitView) {
     return workspace.state.selectedTab === "threads" ? (
       <HomeRouteScreen />
@@ -56,10 +55,10 @@ export function WorkspaceRootScreen() {
               <HomeRouteScreen />
             ) : (
               <>
-                <MaterialPullRequestToolbar />
-                <MaterialScreenContent>
+                <PullRequestToolbar />
+                <ScreenContent>
                   <PullRequestsScreen />
-                </MaterialScreenContent>
+                </ScreenContent>
               </>
             )}
           </View>

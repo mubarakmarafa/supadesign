@@ -25,7 +25,6 @@ const screenshot = {
   title: null,
   toolName: "mcp__supaterm__device_screenshot",
   input: { deviceId: "phone" },
-  // What a detail read returns: the image's position without its bytes.
   output: {
     content: [
       { type: "text", text: "Captured the home screen." },

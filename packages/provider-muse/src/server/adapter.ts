@@ -64,6 +64,7 @@ import {
 import {
   createMuseSdkHostEffect,
   museApprovalMode,
+  musePermissionProfile,
   museWorkspaceRoot,
   type createMuseSdkHost,
   type MuseSdkHost,
@@ -233,9 +234,9 @@ interface PendingRequest {
 }
 
 /**
- * One native subagent's child thread. Muse 1.4.4 cannot address an inline
- * child session (`session/read` and `view/subscribe` answer sessionNotFound),
- * so the thread carries the prompt, live status (on its root node) and result.
+ * Muse 1.4.4 cannot address an inline child session (`session/read` and
+ * `view/subscribe` answer sessionNotFound), so the thread carries the prompt,
+ * live status (on its root node) and result.
  */
 interface ChildContext {
   readonly childSessionId: string;
@@ -244,7 +245,6 @@ interface ChildContext {
   readonly rootNodeId: NodeId;
   readonly parentThreadId: ThreadId;
   status: OrchestrationV2TurnItemStatus;
-  /** The result shown in the child thread, once the subagent settled. */
   result?: string;
 }
 
@@ -342,11 +342,8 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
       const seenTerminals = new Set<string>();
 
       const observedChildren = new Map<string, ActiveTurn>();
-      // Native subagents' child threads, by subagent item id.
       const childrenByItemId = new Map<string, ChildContext>();
-      // Titles per native subagent and workflow child attempt; later revisions drop the label.
       const agentTitles = new Map<string, string>();
-      // Background work that finished since the last turn, reported to the turn Muse starts for it.
       const finishedBackground: Array<BackgroundWorkReport> = [];
 
       let wake:
@@ -446,7 +443,6 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
       };
       const childItemIdentity = (context: ChildContext, nativeId: string) =>
         `${options.instanceId}:child:${context.childSessionId}:${nativeId}`;
-      /** A subagent with a ready result has finished its work even while Muse keeps it open. */
       const itemStatus = (item: MuseItem): OrchestrationV2TurnItemStatus => {
         const status = museItemStatus(item);
         return status === "running" &&
@@ -483,7 +479,6 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
           },
         });
       });
-      /** One synthesized conversation row in a child thread: its prompt or its result. */
       const publishChildMessage = Effect.fnUntraced(function* (
         context: ChildContext,
         role: "user" | "assistant",
@@ -519,7 +514,6 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
           turnItem: artifacts.turnItem,
         });
       });
-      /** Creates the child thread for a native subagent the first time its session id is known. */
       const ensureChildContext = Effect.fnUntraced(function* (
         turn: ActiveTurn,
         item: MuseItem,
@@ -566,10 +560,6 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
         if (prompt) yield* publishChildMessage(context, "user", prompt, "prompt", time);
         return context;
       });
-      /**
-       * Shows a native subagent on its parent thread and mirrors it into a child
-       * thread the user can open, like Claude's and Codex's subagents.
-       */
       const publishNativeSubagent = Effect.fnUntraced(function* (
         turn: ActiveTurn,
         item: MuseItem,
@@ -685,7 +675,6 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
           }
         }
       });
-      /** Lists running workflows and subagents on the thread, so it shows it still waits on them. */
       const syncBackground = Effect.fnUntraced(function* () {
         yield* updateThread({
           pendingBackgroundTasks: [...observedChildren].flatMap(([itemId, owner]) => {
@@ -961,8 +950,6 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
         seenTerminals.add(turn.nativeId);
         const completedAt = yield* DateTime.now;
         for (const item of turn.items.values()) {
-          // Workflows and subagents outlive a completed turn. A stopped or failed
-          // turn ends them in Supaterm too, as the orchestrator stops following them.
           if (
             (item.kind === "subagent" || item.kind === "workflow") &&
             item.status === "inProgress" &&
@@ -1769,16 +1756,18 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
               }
             : undefined;
           const startModel = yield* resolveModel(args.modelSelection);
+          const permissionProfile = musePermissionProfile(args.runtimePolicy.runtimeMode);
           const result = yield* request(
             requestedId ? "session/resume" : "session/start",
             requestedId
-              ? { excludeItems: true, ...(config ? { config } : {}) }
+              ? { excludeItems: true, ...(config ? { config } : {}), permissionProfile }
               : {
                   workspaceRoot: cwd,
                   ...(config ? { config } : {}),
                   ...(startModel ? { modelId: startModel } : {}),
                   providerId: "meta",
                   approvalMode: museApprovalMode(args.runtimePolicy.runtimeMode),
+                  permissionProfile,
                 },
           ).pipe(
             Effect.catch((error) => {
@@ -2081,6 +2070,7 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
         providerSession: session,
         events: Stream.fromQueue(events),
 
+        backgroundTasksEndWithProcess: true,
         hasPendingBackgroundWork: Effect.sync(
           () => observedChildren.size > 0 || wake !== undefined,
         ),

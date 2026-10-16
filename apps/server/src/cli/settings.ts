@@ -39,6 +39,7 @@ const SETTABLE_SETTINGS = {
     expected: "a number from 1 to 90 or null",
   },
   sidebarAutoMarkDoneOnMerge: BOOLEAN_SETTING,
+  sidebarAutoMarkDoneKeepPullRequests: BOOLEAN_SETTING,
   autoResumeLimitedThreads: BOOLEAN_SETTING,
   snoozeLimitedThreads: BOOLEAN_SETTING,
   defaultThreadEnvMode: {

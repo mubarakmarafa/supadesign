@@ -38,7 +38,6 @@ export const ProjectScript = Schema.Struct({
   runOnWorktreeCreate: Schema.Boolean,
   /** Run in the thread's worktree each time the thread is marked done. */
   runOnDone: Schema.optional(Schema.Boolean),
-  /** Start the agent while setup runs unless explicitly disabled. */
   async: Schema.optional(Schema.Boolean),
   previewUrl: Schema.optional(TrimmedNonEmptyString),
   autoOpenPreview: Schema.optional(Schema.Boolean),
@@ -94,14 +93,12 @@ const ProjectMonogramIcon = Schema.Struct({
   text: ProjectMonogramText,
   color: ProjectIconColor,
 });
-/** A workspace-relative image a project may use as its favicon. */
 export const ProjectFaviconPath = TrimmedNonEmptyString.check(
   Schema.isMaxLength(1024),
   Schema.isPattern(/\.(?:avif|gif|icns|ico|jpe?g|png|svg|webp)$/i),
 );
 export type ProjectFaviconPath = typeof ProjectFaviconPath.Type;
 
-/** A project's chosen icon, as clients set it. */
 export const ProjectIconOverride = Schema.Union([
   ProjectLucideIcon,
   ProjectEmojiIcon,
@@ -112,10 +109,6 @@ export type ProjectIconOverride = typeof ProjectIconOverride.Type;
 /** An icon the server stores. */
 export const StoredProjectIcon = ProjectIconOverride;
 
-/**
- * An icon as clients receive it. A kind from a newer server decodes as no
- * override, so the client shows the project's default icon.
- */
 export const ReceivedProjectIcon = ForwardCompatibleUnion(
   [ProjectLucideIcon, ProjectEmojiIcon, ProjectMonogramIcon],
   "kind",
@@ -223,8 +216,6 @@ export type ProjectEntryKind = typeof ProjectEntryKind.Type;
 
 export const ProjectSearchEntriesInput = Schema.Struct({
   cwd: TrimmedNonEmptyString,
-  // An empty query is a bounded browse: the index returns frecency-ordered
-  // entries, which the file picker uses for its initial results.
   query: TrimmedString.check(Schema.isMaxLength(256)),
   limit: PositiveInt.check(Schema.isLessThanOrEqualTo(PROJECT_SEARCH_ENTRIES_MAX_LIMIT)),
   kind: Schema.optional(ProjectEntryKind),
@@ -280,8 +271,6 @@ export type ProjectSearchContentsResult = typeof ProjectSearchContentsResult.Typ
 
 export const ProjectListEntriesInput = Schema.Struct({
   cwd: TrimmedNonEmptyString,
-  // Present for immediate filesystem children, including ignored entries; empty means root.
-  // Omitted preserves the indexed recursive listing used by older clients.
   directoryPath: Schema.optional(TrimmedString),
 });
 export type ProjectListEntriesInput = typeof ProjectListEntriesInput.Type;
@@ -331,8 +320,6 @@ export class ProjectSearchEntriesError extends Schema.TaggedError<ProjectSearchE
     cause: Schema.optional(Schema.Defect()),
   },
 ) {
-  // The structured fields are optional on the wire so newer peers can decode legacy message-only
-  // failures. New application code must provide them through this constructor.
   // @effect-diagnostics-next-line overriddenSchemaConstructor:off
   constructor(
     props: ProjectEntriesFailureContext & {
@@ -488,13 +475,11 @@ export const ProjectWriteFileResult = Schema.Struct({
 });
 export type ProjectWriteFileResult = typeof ProjectWriteFileResult.Type;
 
-/** The environment's Scratch project, created on first request. */
 export const ProjectEnsureScratchResult = Schema.Struct({
   projectId: ProjectId,
 });
 export type ProjectEnsureScratchResult = typeof ProjectEnsureScratchResult.Type;
 
-/** A project started from just a name, in a new folder the server makes. */
 export const ProjectCreateNewInput = Schema.Struct({
   name: TrimmedNonEmptyString.check(Schema.isMaxLength(200)),
 });
@@ -503,7 +488,7 @@ export type ProjectCreateNewInput = typeof ProjectCreateNewInput.Type;
 export const ProjectCreateNewResult = Schema.Struct({
   projectId: ProjectId,
   workspaceRoot: TrimmedNonEmptyString,
-  /** Why the first commit failed. The project and its files exist either way. */
+  /** The project and its files exist either way. */
   commitError: Schema.optionalKey(TrimmedNonEmptyString),
 });
 export type ProjectCreateNewResult = typeof ProjectCreateNewResult.Type;

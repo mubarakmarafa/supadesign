@@ -1,12 +1,13 @@
-import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
+import * as Dialog from "../../components/ui/Dialog";
+import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { availableScratchWorkspaceRoot } from "@supaterm/client-runtime/operations/projects";
 import Constants from "expo-constants";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import {
   type AppUpdateCheckState,
   isAppUpdateCheckAvailable,
@@ -19,7 +20,7 @@ import { SettingsScreen } from "./components/SettingsScreen";
 import { SettingsActionRow } from "./components/SettingsActionRow";
 import type { SettingsTarget } from "./settings-environment-filter";
 import { useSendFeedback } from "./use-send-feedback";
-import { ControlPillMenu } from "../../components/ControlPillMenu";
+import { Menu } from "../../components/ui/Menu";
 import { useProjects } from "../../state/entities";
 import { useEnvironments } from "../../state/environments";
 
@@ -56,8 +57,6 @@ function AppSettingsSection() {
   const busy =
     updateState === "checking" || updateState === "downloading" || updateState === "restarting";
 
-  // "Up to date" is a transient acknowledgement, not a state worth persisting —
-  // return the version row to its normal, deliberately quiet state.
   useEffect(() => {
     if (updateState !== "current") return;
     const timer = setTimeout(() => setUpdateState("idle"), 3000);
@@ -70,11 +69,9 @@ function AppSettingsSection() {
     if (updateInFlight.current) return;
     updateInFlight.current = true;
     try {
-      // The user asked for this restart by tapping the version row, so it may
-      // apply immediately instead of prompting.
       await runAppUpdateCheck({
         applyMode: "immediate",
-        onFailure: (message) => Alert.alert("Update failed", message),
+        onFailure: (message) => Dialog.alert("Update failed", message),
         onStateChange: setUpdateState,
       });
     } finally {
@@ -96,9 +93,7 @@ function AppSettingsSection() {
       ? "Checking…"
       : updateState === "downloading"
         ? "Downloading…"
-        : // "ready" appears only when this check joined an in-flight background-mode
-          // check; that download installs at the next backgrounding.
-          updateState === "ready"
+        : updateState === "ready"
           ? "Update ready"
           : updateState === "restarting"
             ? "Restarting…"
@@ -181,7 +176,7 @@ function FeedbackSettingsAction() {
   );
   if (eligibleTargets.length < 2) return row;
   return (
-    <ControlPillMenu
+    <Menu
       accessible
       accessibilityRole="button"
       accessibilityLabel="Send feedback"
@@ -197,7 +192,7 @@ function FeedbackSettingsAction() {
       }}
     >
       {row}
-    </ControlPillMenu>
+    </Menu>
   );
 }
 

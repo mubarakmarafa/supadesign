@@ -88,14 +88,11 @@ export function ThreadDetailsPrRow({
   number: number;
   reference?: Pick<PullRequestRef, "host" | "repository" | "number"> | null;
   status: PrStatusIndicator | null;
-  /** The thread's project, which is what the pull request is read through on the host. */
   project: EnvironmentProject | null;
   label: string;
   openAriaLabel: string;
   onOpen: (event: ReactMouseEvent<HTMLElement>) => void;
-  /** An action changed the pull request on the host, so the vcs status behind the row is stale. */
   onActed?: () => void;
-  /** Set while the server watches this pull request for the thread; stops the watch. */
   onStopWatching?: (() => void) | undefined;
 }) {
   const serverConfigs = useServerConfigs();
@@ -178,8 +175,6 @@ export function ThreadDetailsPrRow({
 
   const startFixChecks = () => {
     if (detail === null) return;
-    // The compact row fetches no conversation, so the handoff carries the failing checks alone;
-    // review threads keep arriving through the full panel's richer version of this action.
     void startHandoff(
       "findings",
       buildFixFindingsHandoff({
@@ -196,7 +191,6 @@ export function ThreadDetailsPrRow({
     );
   };
 
-  // Host details distinguish drafts; all panels share the same PR-state glyph.
   const statePresentation =
     detail === null
       ? null
@@ -398,6 +392,7 @@ export function ThreadDetailsPrRow({
                   part="link-primary"
                   aria-label={openAriaLabel}
                   onClick={onOpen}
+                  onAuxClick={onOpen}
                 />
               }
             >
@@ -454,6 +449,7 @@ export function ThreadDetailsPrRow({
                   part="link-primary"
                   aria-label={openAriaLabel}
                   onClick={onOpen}
+                  onAuxClick={onOpen}
                 />
               }
             >
@@ -474,6 +470,7 @@ export function ThreadDetailsPrRow({
                 part="row"
                 aria-label={openAriaLabel}
                 onClick={onOpen}
+                onAuxClick={onOpen}
               />
             }
           >

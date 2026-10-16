@@ -12,7 +12,6 @@ export type ThreadMoveDestination =
       readonly placement: "before" | "after";
     };
 
-/** Resolve against stable row identities, including rows hidden by a filter. */
 export function threadOrderAfterMove(
   orderedIds: readonly string[],
   movedId: string,
@@ -73,8 +72,6 @@ function rowOrder(row: OrderRow, section: PendingThreadOrder["section"]) {
   };
 }
 
-/** Keep every visible row as an anchor, but only offer plans whose key writes
- * are supported. Menu availability and execution use this same planner. */
 export function createThreadMovePlanner(input: {
   readonly ordered: readonly OrderRow[];
   readonly allThreads?: readonly OrderRow[];
@@ -146,7 +143,6 @@ export function reconcilePendingThreadOrder(
   return confirmed.size === pending.confirmed.size ? pending : { ...pending, confirmed };
 }
 
-/** Apply the full section's pending order after search/environment filtering. */
 export function applyPendingThreadOrder<T extends OrderRow>(
   rows: readonly T[],
   section: PendingThreadOrder["section"],
@@ -183,7 +179,6 @@ export function canMoveThreadToActive(source: ThreadDragSection, loaded: boolean
   return loaded && source !== "active";
 }
 
-/** The action shown during hover describes the lifecycle change made on drop. */
 export function threadDragAction(source: ThreadDragSection, destination: ThreadDragSection) {
   if (destination === "snoozed") return null;
   if (destination === "done") return source === "done" ? null : "Mark as Done";

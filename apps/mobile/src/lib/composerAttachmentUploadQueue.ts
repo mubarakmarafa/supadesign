@@ -65,12 +65,6 @@ export function canUploadComposerAttachment(
   );
 }
 
-/**
- * Only a failed upload blocks sending: the outbox drain would hit the same
- * failure, so the user has to retry or remove the file first. An upload still
- * in flight does not block; the message queues and the drain reuses the
- * finished upload (or re-sends the local bytes) when it delivers.
- */
 export function composerAttachmentUploadBlockReason(input: {
   readonly environmentId: EnvironmentId;
   readonly attachments: ReadonlyArray<DraftComposerAttachment>;
@@ -87,7 +81,6 @@ export function composerAttachmentUploadBlockReason(input: {
   return null;
 }
 
-/** Whether any attachment the environment accepts is still being uploaded. */
 export function composerAttachmentsStillUploading(input: {
   readonly environmentId: EnvironmentId;
   readonly attachments: ReadonlyArray<DraftComposerAttachment>;
@@ -101,7 +94,6 @@ export function composerAttachmentsStillUploading(input: {
   });
 }
 
-/** Bounds transfers across environments; disconnected or discarded drafts keep their local bytes. */
 export function createComposerAttachmentUploadQueue(options: {
   readonly upload: (
     request: ComposerAttachmentUploadRequest,
@@ -201,7 +193,6 @@ export function createComposerAttachmentUploadQueue(options: {
       setState(key, undefined);
       pump();
     },
-    /** Waits for the current transfers, useful for shutdown and focused verification. */
     async settled() {
       while (jobs.size > 0) await Promise.all([...jobs.values()].map((job) => job.done));
     },

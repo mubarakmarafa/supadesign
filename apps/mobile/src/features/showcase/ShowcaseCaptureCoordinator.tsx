@@ -70,10 +70,7 @@ function settledShowcaseScene(input: {
     input.requestedScene === null ||
     input.scene !== input.requestedScene ||
     !input.hasFixture ||
-    // Never report a scene ready while the capture orientation is still
-    // being applied — a screenshot taken early has the wrong dimensions.
     !input.orientationSettled ||
-    // Likewise for the palette: an early screenshot shows the default theme.
     !input.themeApplied ||
     !isShowcaseNativeContentReady({
       scene: input.scene,
@@ -129,9 +126,6 @@ function EnabledShowcaseCaptureCoordinator(props: { readonly pathname: string })
     const readLaunchRequest = () => {
       const values = getNativeShowcasePairingUrls();
       if (values.length === 0) return;
-      // The palette rides the same launch request as the pairing URLs, so
-      // reading it here settles it without a timeout that could expire while
-      // the request is still on its way.
       setRequestedTheme(getNativeShowcaseTheme());
       setThemeRequestSettled(true);
       setPairingUrls(values);
@@ -176,12 +170,7 @@ function EnabledShowcaseCaptureCoordinator(props: { readonly pathname: string })
     (requestedTheme === null ? themeRequestSettled : themeId === requestedTheme);
 
   useEffect(() => {
-    if (
-      !themeRequestSettled ||
-      themeApplied ||
-      // Writing before stored preferences load would be overwritten by them.
-      !appearancePreferencesReady
-    ) {
+    if (!themeRequestSettled || themeApplied || !appearancePreferencesReady) {
       return;
     }
     if (themeMode !== "system") {

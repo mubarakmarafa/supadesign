@@ -41,8 +41,6 @@ const THREAD_OUTBOX_SCHEMA_VERSION = 4;
 
 const QueuedThreadCreationSchema = Schema.Struct({
   projectId: ProjectId,
-  // Snapshot of the project's display metadata so a pending task stays
-  // presentable in the thread list even when the project shell is not loaded.
   projectTitle: Schema.optional(Schema.String),
   projectCwd: Schema.optional(Schema.String),
   workspaceMode: Schema.Literals(["local", "worktree"]),
@@ -66,8 +64,6 @@ const QueuedThreadMessageSchema = Schema.Struct({
   dispatchMode: Schema.optional(Schema.Literals(["auto", "queue", "steer", "restart"])),
   runtimeMode: Schema.optional(RuntimeMode),
   interactionMode: Schema.optional(ProviderInteractionMode),
-  // Present when the queued item creates a brand-new thread (pending task)
-  // instead of appending a turn to an existing one.
   creation: Schema.optional(QueuedThreadCreationSchema),
   createdAt: IsoDateTime,
 });
@@ -99,10 +95,7 @@ export interface QueuedThreadMessage {
   readonly runtimeMode?: RuntimeModeType;
   readonly interactionMode?: ProviderInteractionModeType;
   /**
-   * How this message should be delivered if a turn is still running when the
-   * outbox drains. Captured at enqueue time because the drain can fire long
-   * after the tap. Absent on rows written before follow-up behavior existed,
-   * which keep the previous always-queue delivery.
+   * Captured at enqueue time because the drain can fire long after the tap.
    */
   readonly dispatchMode?: ComposerDispatchMode;
   readonly creation?: QueuedThreadCreation;

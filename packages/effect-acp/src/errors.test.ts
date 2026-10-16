@@ -10,6 +10,12 @@ import * as AcpError from "./errors.ts";
 const decodeNestedNumberPayload = Schema.decodeUnknownEffect(
   Schema.Struct({ profile: Schema.Struct({ token: Schema.Number }) }),
 );
+const decodeUsagePayload = Schema.decodeUnknownEffect(
+  Schema.Struct({
+    update: Schema.Struct({ used: Schema.Number, size: Schema.Number }),
+    env: Schema.Record(Schema.String, Schema.Number),
+  }),
+);
 const encodeUnknownJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 describe("effect-acp errors", () => {
@@ -159,6 +165,29 @@ describe("effect-acp errors", () => {
       expect(protocolError.message).not.toContain(secret);
       expect(encodeUnknownJson(protocolDiagnostics)).not.toContain(secret);
       expect("detail" in protocolError).toBe(false);
+    }),
+  );
+
+  it.effect("summarizes schema issues by path without payload values", () =>
+    Effect.gen(function* () {
+      const secret = "acp-summary-secret";
+      const cause = yield* decodeUsagePayload(
+        { update: { size: secret }, env: { [`${secret} key`]: secret } },
+        { errors: "all" },
+      ).pipe(Effect.flip);
+      const error = AcpError.AcpProtocolParseError.fromSchemaError(
+        "decode-notification-payload",
+        "session/update",
+        cause,
+      );
+
+      expect(error.issueSummary).toBe(
+        "update.used missing, update.size wrong type, env.* wrong type",
+      );
+      expect(error.message).toBe(
+        "ACP protocol operation 'decode-notification-payload' failed for method 'session/update': update.used missing, update.size wrong type, env.* wrong type.",
+      );
+      expect(error.message).not.toContain(secret);
     }),
   );
 });

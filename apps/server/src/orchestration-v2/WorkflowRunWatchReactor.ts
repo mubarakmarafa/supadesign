@@ -73,7 +73,7 @@ export const make = Effect.gen(function* () {
     wake?: ReturnType<typeof workflowRunWatchMessage>,
   ) =>
     Effect.gen(function* () {
-      const uuid = yield* crypto.randomUUIDv4;
+      const uuid = yield* crypto.randomUUIDv4();
       yield* engine.dispatch({
         type: "thread.workflow-run-watch.end",
         commandId: CommandId.make(`server:run-watch:${thread.id}:${uuid}`),

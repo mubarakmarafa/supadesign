@@ -2,10 +2,6 @@ import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connec
 import type { EnvironmentShellStatus } from "@supaterm/client-runtime/state/shell";
 import type { EnvironmentThreadStatus } from "@supaterm/client-runtime/state/threads";
 
-/**
- * Reports whether the route-local projections can still yield the requested
- * thread. Explicit terminal outcomes win over unrelated synchronization.
- */
 export function threadRouteIsHydrating(input: {
   readonly isLoadingConnections: boolean;
   readonly connectionState: EnvironmentConnectionPhase;

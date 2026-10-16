@@ -45,8 +45,10 @@ const relay = route(
   `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
 );
 const entry = { ...lan, enabled: true, alternateRoutes: [tailnet] };
-const lease = (route: ConnectionRoute) =>
-  ({ prepared: { target: route.target } }) as EnvironmentConnectionLease;
+const lease = (
+  route: ConnectionRoute,
+  ready: EnvironmentConnectionLease["session"]["ready"] = Effect.void,
+) => ({ prepared: { target: route.target }, session: { ready } }) as EnvironmentConnectionLease;
 const blocked = () =>
   new ConnectionBlockedError({ reason: "authentication", detail: "Token revoked" });
 const transient = () =>
@@ -395,6 +397,64 @@ describe("direct route connection attempts", () => {
       yield* Deferred.await(started);
       yield* TestClock.adjust("15 seconds");
       expect((yield* Fiber.join(fiber)).prepared.target).toEqual(tailnet.target);
+      yield* Deferred.await(released);
+    }),
+  );
+
+  it.effect("gives an open session its snapshot budget after the setup budget", () =>
+    Effect.gen(function* () {
+      const opening = yield* Deferred.make<void>();
+      const synchronizing = yield* Deferred.make<void>();
+      const fiber = yield* connectOverRoutes(
+        { ...lan, enabled: true },
+        () => Effect.succeed("answered"),
+        (route) =>
+          Deferred.succeed(opening, undefined).pipe(
+            Effect.andThen(Effect.sleep("10 seconds")),
+            Effect.as(
+              lease(
+                route,
+                Deferred.succeed(synchronizing, undefined).pipe(
+                  Effect.andThen(Effect.sleep("70 seconds")),
+                ),
+              ),
+            ),
+          ),
+      ).pipe(Effect.forkChild);
+      yield* Deferred.await(opening);
+      yield* TestClock.adjust("10 seconds");
+      yield* Deferred.await(synchronizing);
+      yield* TestClock.adjust("70 seconds");
+      expect((yield* Fiber.join(fiber)).prepared.target).toEqual(lan.target);
+    }),
+  );
+
+  it.effect("closes a session that never sends its first snapshot", () =>
+    Effect.gen(function* () {
+      const synchronizing = yield* Deferred.make<void>();
+      const released = yield* Deferred.make<void>();
+      const fiber = yield* connectOverRoutes(
+        { ...lan, enabled: true },
+        () => Effect.succeed("answered"),
+        (route) =>
+          Effect.addFinalizer(() => Deferred.succeed(released, undefined)).pipe(
+            Effect.as(
+              lease(
+                route,
+                Deferred.succeed(synchronizing, undefined).pipe(Effect.andThen(Effect.never)),
+              ),
+            ),
+          ),
+      ).pipe(Effect.forkChild);
+      yield* Deferred.await(synchronizing);
+      yield* TestClock.adjust("74 seconds");
+      expect(fiber.pollUnsafe()).toBeUndefined();
+      yield* TestClock.adjust("1 second");
+      const result = yield* Fiber.join(fiber).pipe(Effect.result);
+      expect(result).toMatchObject({
+        _tag: "Failure",
+        failure: { _tag: "ConnectionTransientError", reason: "timeout" },
+      });
       yield* Deferred.await(released);
     }),
   );

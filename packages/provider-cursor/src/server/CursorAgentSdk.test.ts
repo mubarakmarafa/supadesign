@@ -106,6 +106,7 @@ vi.mock("./sdk.ts", () => ({
     },
   },
   createAgentPlatform: vi.fn(),
+  SqliteLocalAgentStore: { open: vi.fn() },
 }));
 
 const layerTest = CursorAgentSdk.layer.pipe(

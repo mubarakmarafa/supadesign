@@ -206,7 +206,6 @@ describe("environment favorite toggles", () => {
     await act(async () => {});
     writes[0]!.finish();
     await first;
-    // Another client removed the favorite after this client's add was acknowledged.
     const remoteSettings = { ...initialSettings, favorites: [] };
     durable.set(primaryId, remoteSettings);
     await act(() => registry.set(state.settings.get(primaryId)!, remoteSettings));

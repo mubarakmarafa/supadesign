@@ -34,8 +34,6 @@ function commandTexts(projection: OrchestrationV2ThreadProjection): ReadonlyArra
   );
 }
 
-// Every frame the background subagent emits arrives after the root turn's
-
 export function assertClaudeBackgroundSubagentAfterRootOutput(
   result: OrchestratorV2ScenarioResult,
   transcript: ProviderReplayTranscript,
@@ -60,16 +58,11 @@ export function assertClaudeBackgroundSubagentAfterRootOutput(
   const subagent = projection.subagents[0];
   assert.equal(subagent?.status, "completed");
   assert.equal(subagent?.origin, "provider_native");
-  // Its completion drains into continuation run 2, but the subagent and its
-  // node stay attributed to the run that launched it.
   assert.lengthOf(projection.runs, 2);
   assert.equal(subagent?.runId, projection.runs[0]?.id);
   const subagentNode = projection.nodes.find((node) => node.id === subagent?.id);
   assert.equal(subagentNode?.status, "completed");
   assert.equal(subagentNode?.runId, projection.runs[0]?.id);
-  // The continuation carries the subagent's notification summary. The
-  // subagent's own foreground Bash steps are not background work, so they
-  // never reach the roster or take over that summary.
   const wakeMessage = projection.messages.find(
     (message) => message.id === projection.runs[1]?.userMessageId,
   );
@@ -84,7 +77,6 @@ export function assertClaudeBackgroundSubagentAfterRootOutput(
   if (subagent?.childThreadId == null) {
     throw new Error("The background subagent is missing its child thread.");
   }
-  // Its own foreground Bash steps end before it does, but only the subagent is named.
   assert.deepEqual(backgroundNotifications(projection), [
     {
       summary: 'Subagent "Background subagent test" finished',

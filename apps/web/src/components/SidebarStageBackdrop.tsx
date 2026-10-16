@@ -14,8 +14,6 @@ import {
 export type EnvironmentIdentificationMode = "artwork" | "pill" | "none";
 export type EnvironmentIdentificationPillLabel = "Dev" | "Nightly";
 
-// A wide viewBox keeps the 96-unit art height at a fixed scale while sidebar resizing reveals
-// more horizontal canvas instead of zooming the scene.
 const STAGE_BACKDROP_VIEW_BOX = "0 0 8192 96";
 
 export function isSidebarStageBackdropSupported(stageLabel: string | null): boolean {

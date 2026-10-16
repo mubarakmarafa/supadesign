@@ -21,7 +21,6 @@ const SIGNALS = [
 
 type SignalKey = (typeof SIGNALS)[number]["key"];
 
-/** The latest check for a signal; it describes the field only while `url` is still its value. */
 type EndpointCheck = { readonly url: string; readonly result: OtlpEndpointCheckResult | null };
 
 const isHttpUrl = (url: string) => /^https?:\/\/./i.test(url);
@@ -52,7 +51,6 @@ export function TelemetryExportSettings() {
       </SettingsSection>
     );
   }
-  // Mounts per environment so its saved endpoints are the ones checked on open.
   return <TelemetryExportForm key={environment.environmentId} />;
 }
 
@@ -63,13 +61,10 @@ function TelemetryExportForm() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const environmentId = environment?.environmentId;
-  // Checks need the same grant as saving, so one permission covers the whole form.
   const canEdit = useAtomValue(
     serverEnvironment.checkOtlpEndpoint.permissionAtom(environmentId ?? null),
   );
-  // Servers from before endpoint checks keep the editor without Test.
   const canCheck = canEdit && environment?.serverConfig != null;
-  // Saved endpoints open as pending; the effect below sends their checks.
   const [checks, setChecks] = useState<Partial<Record<SignalKey, EndpointCheck>>>(() =>
     Object.fromEntries(
       SIGNALS.flatMap(({ key }) =>
@@ -87,7 +82,6 @@ function TelemetryExportForm() {
   const sendCheck = async (key: SignalKey, signal: OtlpSignal, url: string) => {
     if (!environmentId) return;
     const response = await checkOtlpEndpoint({ environmentId, input: { signal, url } });
-    // A newer check for the same field replaces this one.
     setChecks((previous) => {
       if (previous[key]?.url !== url || previous[key].result !== null) return previous;
       const next = { ...previous };
@@ -103,7 +97,6 @@ function TelemetryExportForm() {
     void sendCheck(key, signal, url);
   };
 
-  // Sends checks still pending, such as the saved endpoints' when the form opens.
   const sendPendingChecks = useEffectEvent(() => {
     for (const { key, signal } of SIGNALS) {
       const check = checks[key];
@@ -221,7 +214,6 @@ function TelemetryExportForm() {
               onClick={() => {
                 setDraft({});
                 setMessage(null);
-                // A tested draft replaced the saved endpoint's status; check the saved one again.
                 if (!canCheck) return;
                 for (const { key, signal } of SIGNALS) {
                   if (checks[key]?.url !== saved[key]) checkEndpoint(key, signal, saved[key]);

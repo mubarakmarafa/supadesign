@@ -27,7 +27,6 @@ describe("mobile database", () => {
   );
 });
 
-// Exercise the production SQL against SQLite, including the eviction window functions.
 describe("offline pull request cache", () => {
   const environmentId = "cached-environment" as import("@supaterm/contracts").EnvironmentId;
   const otherEnvironment = "other-environment" as import("@supaterm/contracts").EnvironmentId;

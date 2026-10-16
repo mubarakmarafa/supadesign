@@ -1,4 +1,6 @@
+import { Toolbar } from "../../components/ui/Toolbar";
 import { usePullRequestToolbarHeight } from "./usePullRequestToolbarHeight";
+import { Chip } from "../../components/ui/Chip";
 import { pullRequestTabOffset } from "./pullRequestTabScroll";
 
 import { PullRequestGuideContent } from "./guide/PullRequestGuideScreen";
@@ -18,10 +20,16 @@ import {
   PR_ROW_EXIT,
   PR_POSITION_LAYOUT,
 } from "./pullRequestAnimations";
-import { openOnProviderLabel } from "./pullRequestActions";
+import {
+  canPerformPullRequestAction,
+  openOnProviderLabel,
+  PR_ACTION_ICONS,
+  PR_ACTION_LABELS,
+} from "./pullRequestActions";
 import * as Clipboard from "expo-clipboard";
 
 import { usePullRequestPermissions } from "./usePullRequestPermissions";
+import { usePullRequestAction } from "./usePullRequestAction";
 
 import { useFocusEffect, useNavigation, type StaticScreenProps } from "@react-navigation/native";
 import { useAtomRefresh } from "@effect/atom-react";
@@ -43,17 +51,17 @@ import {
 import { NativeScrollViewMarker as ScrollViewMarker } from "../../native/NativeScrollViewMarker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { AndroidScreenHeader } from "../../components/AndroidScreenHeader";
+import { AppText as Text } from "../../components/ui/AppText";
+import { AndroidScreenHeader } from "../../components/ui/AndroidScreenHeader";
 
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import { AndroidWorkspaceSidebarButton } from "../layout/workspace-sidebar-toolbar";
 import { useAndroidWorkspaceBack } from "../workspace/useAndroidWorkspaceNavigation";
 
-import { SegmentedControl } from "../../components/SegmentedControl";
-import { SymbolView } from "../../components/AppSymbol";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { relativeTime } from "../../lib/time";
-import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
+import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { usePullRequestConnected } from "./usePullRequestConnected";
 import { composerPullRequests } from "../../state/pull-requests";
 import { useEnvironmentQuery } from "../../state/query";
@@ -222,9 +230,7 @@ function PullRequestOverview(props: {
       {pr.labels.length ? (
         <Animated.View layout={PR_ROW_LAYOUT} className="flex-row flex-wrap gap-2">
           {pr.labels.map((label) => (
-            <View key={label.name} className="rounded-full bg-grouped-card px-3 py-1">
-              <Text className="text-2xs text-foreground-muted">{label.name}</Text>
-            </View>
+            <Chip key={label.name} label={label.name} size="small" />
           ))}
         </Animated.View>
       ) : null}
@@ -253,7 +259,6 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
   usePullRequestEnvironmentFallback(params);
   const connected = usePullRequestConnected(params.environmentId);
   const [section, setSection] = useState<"overview" | "activity" | "guide">("overview");
-  // Keep each tab's native list and measured rows alive when it is hidden.
   const requestedSection = useRef(section);
   const [listAnimationsReady, setListAnimationsReady] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
@@ -271,7 +276,6 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
     if (next === section) return;
     scrollOffsets.current[section] = currentScrollOffset.current;
     const headerEnd = Math.max(-insets.top, bodyY.current - insets.top);
-    // The shared header stays in place. Once collapsed, retain each tab's own reading position.
     const offset = pullRequestTabOffset(
       currentScrollOffset.current,
       scrollOffsets.current[next],
@@ -306,6 +310,15 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
   const summary = params.initialSummary;
   const identity = pr ?? summary;
   const permissions = usePullRequestPermissions(params, pr);
+  const action = usePullRequestAction(params, pr);
+  const showsDeleteBranch = pr !== null && canPerformPullRequestAction(pr, "delete-branch");
+  const confirmDeleteBranch = () =>
+    pr &&
+    action.confirm(
+      "delete-branch",
+      PR_ACTION_LABELS["delete-branch"],
+      `Delete ${pr.headBranch} from ${pr.headRepositoryNameWithOwner ?? pr.repository}? Local branches and worktrees are not changed.`,
+    );
   const stack = usePullRequestStack(params, pr);
   const refreshActivity = useAtomRefresh(composerPullRequests.activity(requestTarget(params)));
   const refreshGuide = useAtomRefresh(composerPullRequests.reviewGuide(requestTarget(params)));
@@ -382,47 +395,74 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                     },
                   ]
                 : []),
+              ...(showsDeleteBranch
+                ? [
+                    {
+                      accessibilityLabel: PR_ACTION_LABELS["delete-branch"],
+                      icon: PR_ACTION_ICONS["delete-branch"],
+                      disabled: !action.available("delete-branch"),
+                      destructive: true,
+                      overflowOnly: true,
+                      onPress: confirmDeleteBranch,
+                    },
+                  ]
+                : []),
             ]}
           />
         ) : null}
-        <NativeHeaderToolbar placement="right">
-          <NativeHeaderToolbar.Menu
+        <Toolbar placement="right">
+          <Toolbar.Menu
             title="Pull request"
             accessibilityLabel="Pull request actions"
             icon="ellipsis"
           >
             {permissions.verdicts.length ? (
-              <NativeHeaderToolbar.MenuAction
+              <Toolbar.MenuAction
                 icon="text.bubble"
                 onPress={() =>
                   navigation.navigate("PullRequestReview", { ...params, mode: "review" })
                 }
               >
-                <NativeHeaderToolbar.Label>Submit review</NativeHeaderToolbar.Label>
-              </NativeHeaderToolbar.MenuAction>
+                <Toolbar.Label>Submit review</Toolbar.Label>
+              </Toolbar.MenuAction>
             ) : null}
             {permissions.canComment ? (
-              <NativeHeaderToolbar.MenuAction
+              <Toolbar.MenuAction
                 icon="plus.bubble"
                 onPress={() =>
                   navigation.navigate("PullRequestReview", { ...params, mode: "comment" })
                 }
               >
-                <NativeHeaderToolbar.Label>Add comment</NativeHeaderToolbar.Label>
-              </NativeHeaderToolbar.MenuAction>
+                <Toolbar.Label>Add comment</Toolbar.Label>
+              </Toolbar.MenuAction>
             ) : null}
             {pr ? (
-              <NativeHeaderToolbar.MenuAction
+              <Toolbar.MenuAction
                 icon="arrow.up.right"
                 onPress={() => void Linking.openURL(pr.url)}
               >
-                <NativeHeaderToolbar.Label>
-                  {openOnProviderLabel(pr.provider)}
-                </NativeHeaderToolbar.Label>
-              </NativeHeaderToolbar.MenuAction>
+                <Toolbar.Label>{openOnProviderLabel(pr.provider)}</Toolbar.Label>
+              </Toolbar.MenuAction>
             ) : null}
-          </NativeHeaderToolbar.Menu>
-        </NativeHeaderToolbar>
+            {showsDeleteBranch ? (
+              <Toolbar.MenuAction
+                icon={PR_ACTION_ICONS["delete-branch"]}
+                destructive
+                disabled={!action.available("delete-branch")}
+                subtitle={
+                  action.busy
+                    ? "Deleting…"
+                    : connected
+                      ? pr.headBranch
+                      : "Reconnect to delete this branch."
+                }
+                onPress={confirmDeleteBranch}
+              >
+                <Toolbar.Label>{PR_ACTION_LABELS["delete-branch"]}</Toolbar.Label>
+              </Toolbar.MenuAction>
+            ) : null}
+          </Toolbar.Menu>
+        </Toolbar>
         <View
           style={{
             flex: 1,

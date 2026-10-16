@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
-import { CopyTextButton } from "../components/CopyTextButton";
+import { CopyTextButton } from "../features/threads/CopyTextButton";
 import { SourceText } from "@supaterm/mobile-source-text";
 import type { NativeMarkdownTextStyle } from "./SelectableMarkdownText.types";
 

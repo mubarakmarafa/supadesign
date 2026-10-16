@@ -53,6 +53,14 @@ export type RouteCheck = "answered" | "silent" | "unchecked";
 export const ROUTE_CHECK_TIMEOUT_MS = 2_500;
 /** How long a connection attempt keeps listening for a route that missed the first check. */
 export const LATE_ROUTE_CHECK_TIMEOUT_MS = 15_000;
+/** How long a route has to resolve credentials and open its session. */
+const ROUTE_SETUP_TIMEOUT_MS = 15_000;
+/**
+ * How long a route that opened its session waits for the first config
+ * snapshot. A cold server with a large database can take longer than the
+ * setup budget to answer, and that is not a reason to drop a working socket.
+ */
+export const ROUTE_SNAPSHOT_TIMEOUT_MS = 75_000;
 const ROUTE_PREFERENCE_WAIT_MS = 250;
 const PREFLIGHT_VALIDITY_NANOS = 10_000_000_000n;
 
@@ -107,6 +115,7 @@ export const leaseRouteOrigin = (route: ConnectionRoute, httpBaseUrl: string) =>
 };
 
 type CheckRoute = (route: ConnectionRoute) => Effect.Effect<RouteCheck, never, Scope.Scope>;
+/** Resolves once the route's session is open; the driver then waits for its first snapshot. */
 type ConnectRoute<R> = (
   route: ConnectionRoute,
 ) => Effect.Effect<EnvironmentConnectionLease, ConnectionAttemptError, R | Scope.Scope>;
@@ -157,9 +166,9 @@ const selectAndConnect = Effect.fnUntraced(function* <R>(
   // Each route gets its own scope so a half-open session closes before the next try.
   const attempt = Effect.fnUntraced(function* (route: ConnectionRoute) {
     const routeScope = yield* Scope.fork(connectionScope);
-    const result = yield* connectRoute(route).pipe(
+    const timeout = (duration: number) =>
       Effect.timeoutOrElse({
-        duration: "15 seconds",
+        duration,
         orElse: () =>
           Effect.fail(
             new ConnectionTransientError({
@@ -167,7 +176,10 @@ const selectAndConnect = Effect.fnUntraced(function* <R>(
               detail: `${route.target.label} did not respond during connection setup.`,
             }),
           ),
-      }),
+      });
+    const result = yield* connectRoute(route).pipe(
+      timeout(ROUTE_SETUP_TIMEOUT_MS),
+      Effect.tap((lease) => lease.session.ready.pipe(timeout(ROUTE_SNAPSHOT_TIMEOUT_MS))),
       Scope.provide(routeScope),
       Effect.onExit((exit) => (Exit.isSuccess(exit) ? Effect.void : Scope.close(routeScope, exit))),
       Effect.result,
@@ -289,7 +301,6 @@ export const make = Effect.gen(function* () {
         yield* reportProgress({ stage: "opening", prepared });
         const session = yield* sessions.connect(prepared);
         yield* reportProgress({ stage: "synchronizing", prepared });
-        yield* session.ready;
         return { prepared, session } satisfies EnvironmentConnectionLease;
       }),
     );

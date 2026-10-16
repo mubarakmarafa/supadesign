@@ -4,13 +4,7 @@ import type { ManagedServerProvider } from "@supaterm/provider-core/server/snaps
 
 export type ProviderSnapshotSource = {
   readonly supportsReviewGuides?: boolean;
-  /**
-   * Routing key — uniquely identifies this instance in the aggregated
-   * snapshot list. Two different snapshot sources may share the same
-   * driver kind (multiple instances of the same driver).
-   */
   readonly instanceId: ProviderInstanceId;
-  /** Driver implementation kind. */
   readonly driverKind: ProviderDriverKind;
   readonly getSnapshot: ManagedServerProvider["getSnapshot"];
   readonly refresh: ManagedServerProvider["refresh"];

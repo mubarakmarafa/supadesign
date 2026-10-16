@@ -270,7 +270,6 @@ export function V5StackView(props: V5StackViewProps) {
         {
           ...descriptor,
           navigation: props.descriptors[visibleRoute.key]!.navigation,
-          // Focus belongs to the pushed page inside this presentation group.
           route: visibleRoute,
           options: modalEnvelopeOptions(descriptor.options),
           render: () => (

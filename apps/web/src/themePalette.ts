@@ -42,14 +42,9 @@ export type ThemeFile = Readonly<{
   managed?: boolean;
 }>;
 
-// Reserved ids come from shared so the CLI, the server watcher, and this
-// library cannot drift on what a published theme may be called.
-
 /**
- * The environment's palettes are not saved: they are republished by the
- * server on every change and would go stale the moment the machine's theme
- * moved on. They ride the custom-theme listeners so every theme consumer
- * already re-reads when they change.
+ * The environment's palettes are not saved: they are republished by the server
+ * on every change and would go stale the moment the machine's theme moved on.
  */
 let environmentThemeDefinitions: ReadonlyArray<ThemeDefinition> = [];
 
@@ -111,12 +106,6 @@ function parseThemeCollection(value: unknown): ThemeCollection | undefined {
     : undefined;
 }
 
-/**
- * Tolerates unknown roles and malformed values so themes written by other
- * builds (for example one that adds a new role) keep their remaining colors.
- * The one canonicalization path for every externally supplied color record:
- * stored themes, imported files, and environment-published themes.
- */
 export function lenientThemeColorOverrides(
   value: Readonly<Record<string, unknown>>,
 ): Partial<Record<ThemeColorRole, string>> {
@@ -273,7 +262,6 @@ export function setEnvironmentThemes(themes: ReadonlyArray<ThemeDefinition>): bo
   return true;
 }
 
-/** Ids no published theme may occupy: appearance keywords and built-in ids. */
 export function isReservedThemeId(themeId: string): boolean {
   return RESERVED_THEME_IDS.has(themeId);
 }
@@ -368,16 +356,11 @@ function formatOklchThemeColor(color: ThemeOklch, alpha = 1): string {
   return alpha < 1 ? `oklch(${body} / ${formatThemeColorNumber(alpha, 4)})` : `oklch(${body})`;
 }
 
-/**
- * Decode a literal CSS color into the runtime's canonical OKLCH form. Stored
- * values use this path in memory without mutating localStorage.
- */
 export function toCanonicalThemeColor(value: unknown): string | null {
   const parsed = parseThemeColor(value);
   return parsed ? formatOklchThemeColor(parsed.color, parsed.alpha) : null;
 }
 
-/** Convert a runtime theme color for hex-only editor and import adapters. */
 export function themeColorToHex(value: string): string | null {
   const color = parseThemeColor(value);
   const parsed = color ? { rgb: themeOklchToRgb(color.color), alpha: color.alpha } : null;
@@ -462,9 +445,6 @@ function themeRelativeLuminance(color: ThemeRgbColor): number {
   return 0.2126 * linearize(color.r) + 0.7152 * linearize(color.g) + 0.0722 * linearize(color.b);
 }
 
-// ---------------------------------------------------------------------------
-// Vivid palette engine: perceptual (OKLCH) derivation for user-created themes.
-
 function srgbChannelToLinear(channel: number): number {
   const c = channel / 255;
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
@@ -511,7 +491,6 @@ function oklchToRgbUnclamped({ L, C, h }: ThemeOklch): { r: number; g: number; b
   };
 }
 
-/** Find the greatest chroma along the same lightness and hue that fits in sRGB. */
 function mapThemeOklchToSrgbGamut(color: ThemeOklch): ThemeOklch {
   const isInGamut = (C: number) => {
     const linear = oklchToRgbUnclamped({ ...color, C });
@@ -536,7 +515,6 @@ function mapThemeOklchToSrgbGamut(color: ThemeOklch): ThemeOklch {
   return { ...color, C: low };
 }
 
-/** Convert to sRGB after applying the palette engine's gamut mapping. */
 function themeOklchToRgb(color: ThemeOklch): ThemeRgbColor {
   const linear = oklchToRgbUnclamped(mapThemeOklchToSrgbGamut(color));
   return {
@@ -550,7 +528,6 @@ function themeOklchToThemeColor(color: ThemeOklch): string {
   return formatOklchThemeColor(mapThemeOklchToSrgbGamut(color));
 }
 
-/** Binary-search the lightness that reaches the contrast target against a background. */
 function solveOklchLightness(
   base: ThemeOklch,
   against: ThemeRgbColor,
@@ -576,12 +553,6 @@ function solveOklchLightness(
   return { ...base, L: direction === "lighter" ? high : low };
 }
 
-/**
- * The status colors Supaterm shows without a theme, read from the app's own
- * tokens (red-500 / amber-500 families). Generated palettes fall back to
- * these instead of the flagship theme's, so an imported or created theme
- * never inherits a brand tint on destructive buttons and warnings.
- */
 const STANDARD_STATUS_COLORS = {
   light: {
     error: "#fb2c36",
@@ -597,11 +568,6 @@ const STANDARD_STATUS_COLORS = {
   },
 } as const;
 
-/**
- * Status surfaces are the standard color laid over the theme's own canvas
- * (the unthemed app uses 8% in light and 16% in dark), so alerts still sit on
- * the palette while the signal color stays standard.
- */
 function standardStatusColors(canvas: ThemeRgbColor): {
   error: string;
   errorForeground: string;
@@ -610,23 +576,16 @@ function standardStatusColors(canvas: ThemeRgbColor): {
   warningForeground: string;
   warningSurface: string;
 } {
-  // Keyed off the canvas rather than the appearance slot: a dark canvas saved
-  // as a light theme still needs the dark pair, or the alert foreground lands
-  // on a dark surface unreadable.
   const appearance: ThemeAppearance = themeRelativeLuminance(canvas) < 0.179 ? "dark" : "light";
   const standard = STANDARD_STATUS_COLORS[appearance];
   const surfaceMix = appearance === "dark" ? 0.16 : 0.08;
   const surfaceOf = (value: string) =>
     mixThemeRgbColors(canvas, parseThemeRgbColor(value, canvas), surfaceMix);
-  // The standard foregrounds are tuned against the unthemed canvas; on a
-  // tinted one they can fall just short, so lightness is nudged until the
-  // pair clears 4.5 while the hue stays standard.
   const readableOn = (foreground: string, surface: ThemeRgbColor) =>
     themeOklchToThemeColor(
       solveOklchLightness(
         themeRgbToOklch(parseThemeRgbColor(foreground, canvas)),
         surface,
-        // Leave a little headroom for browser color conversion at render time.
         4.6,
         appearance === "dark" ? "lighter" : "darker",
       ),
@@ -643,12 +602,6 @@ function standardStatusColors(canvas: ThemeRgbColor): {
   };
 }
 
-/**
- * Derive a full palette from two exact seed colors, in OKLCH. Surfaces climb a
- * perceptually even lightness ramp that carries the accent hue at low chroma,
- * a companion action color is rotated off the accent, and every foreground is
- * contrast-solved against its own surface.
- */
 export function createVividThemeColors(
   appearance: ThemeAppearance,
   backgroundValue: string,
@@ -662,10 +615,8 @@ export function createVividThemeColors(
   const accentRgb = parseThemeRgbColor(accentValue, { r: 168, g: 67, b: 112 });
   const canvas = themeRgbToOklch(canvasRgb);
   const accent = themeRgbToOklch(accentRgb);
-  // The ramp and every contrast search follow the canvas the user actually
-  // picked, not the appearance slot, so a dark canvas saved as a light theme
-  // still gets light text and raised surfaces. 0.179 is the relative
-  // luminance where white and black text have equal contrast headroom.
+  // 0.179 is the relative luminance where white and black text have equal
+  // contrast headroom.
   const dark = themeRelativeLuminance(canvasRgb) < 0.179;
   const hue = accent.C < 0.02 ? canvas.h : accent.h;
   const tintC = Math.min(0.045, Math.max(0.008, accent.C * 0.22));
@@ -678,8 +629,6 @@ export function createVividThemeColors(
   });
   const themeColor = (color: ThemeOklch) => themeOklchToThemeColor(color);
 
-  // Text carries a whisper of the accent hue instead of falling back to a
-  // fixed foreground, and is solved to WCAG AAA against the canvas.
   const textBase: ThemeOklch = {
     L: dark ? 0.95 : 0.2,
     C: Math.min(0.035, accent.C * 0.25),
@@ -689,8 +638,6 @@ export function createVividThemeColors(
   const textRgb = themeOklchToRgb(text);
   const textMutedRgb = standardMutedThemeText(canvasRgb, textRgb);
 
-  // The companion action rotates off the accent so a two-color theme still
-  // gets the dual-voice character of the hand-tuned palettes.
   const action: ThemeOklch = {
     L: Math.min(0.85, Math.max(0.35, accent.L + (dark ? 0.06 : -0.02))),
     C: Math.max(accent.C * 0.9, 0.06),
@@ -735,7 +682,6 @@ export function createVividThemeColors(
     ...defaults,
     ...standardStatusColors(canvasRgb),
     canvas: themeRgbToThemeColor(canvasRgb),
-    // The top bar shares the canvas so the main panel reads as one surface.
     chrome: themeRgbToThemeColor(canvasRgb),
     toolbar: themeRgbToThemeColor(canvasRgb),
     toolbarForeground: themeRgbToThemeColor(textRgb),
@@ -823,10 +769,6 @@ function readableThemeText(
   const softened = mixThemeRgbColors(foreground, background, amount);
   if (themeContrastRatio(softened, background) >= minimumRatio) return softened;
 
-  // Find the quietest point between the requested mix and the primary
-  // foreground that still clears the contrast floor. Returning the primary
-  // foreground here made secondary labels jump from slightly too dim to full
-  // brightness, which is especially conspicuous in dark custom themes.
   let readable = foreground;
   let lowerAmount = 0;
   let upperAmount = amount;
@@ -843,9 +785,6 @@ function readableThemeText(
   return readable;
 }
 
-// Match the perceived strength of the stock palettes rather than choosing an
-// arbitrary foreground mix. These are the measured contrast ratios of zinc-500
-// on the standard light canvas and #818181 on the standard dark canvas.
 const STANDARD_LIGHT_MUTED_CONTRAST = 4.705;
 const STANDARD_DARK_MUTED_CONTRAST = 5.082;
 
@@ -860,12 +799,6 @@ function standardMutedThemeText(
   return readableThemeText(background, foreground, 1, target);
 }
 
-/**
- * Update one Advanced-editor color family without normalizing the rest of an
- * imported or hand-tuned palette. The editor exposes a representative role
- * for each family; paired foregrounds and nearby states are derived only when
- * that representative is changed.
- */
 export function updateThemeColorFamily(
   appearance: ThemeAppearance,
   colors: ThemeColors,
@@ -1070,8 +1003,6 @@ export function getThemeDefinition(theme: ThemePreference): ThemeDefinition | nu
   return (
     BUILT_IN_THEME_DEFINITIONS.find((definition) => definition.id === theme) ??
     getCustomThemes().find((definition) => definition.id === theme) ??
-    // Resolved last so a theme the user saved always wins over one the
-    // machine happens to publish under the same id.
     environmentThemeDefinitions.find((definition) => definition.id === theme) ??
     null
   );
@@ -1086,7 +1017,6 @@ export function themeAllowsSidebarArtwork(theme: ThemePreference): boolean {
 }
 
 /**
- * Which half a theme can claim, or null when it renders both appearances.
  * Selecting a single-appearance theme as the base preference would clear the
  * light/dark mix and leave the appearance tiles disagreeing with what is on
  * screen, so every path that selects a theme has to make the same call.
@@ -1486,13 +1416,10 @@ export function getThemeColorVariable(role: ThemeColorRole): string {
   return APP_THEME_VARIABLES[role];
 }
 
-/** Marks the document as wearing an unsaved draft rather than a stored theme. */
 export const THEME_PREVIEW_ID = "__preview";
 
 /**
- * Paint a draft palette onto the live app without installing it, so the editor
- * can be judged against the real interface instead of a miniature. Callers
- * restore the stored theme (refreshTheme) when the draft goes away.
+ * Callers restore the stored theme (refreshTheme) when the draft goes away.
  */
 export function applyThemeColorPreview(colors: ThemeColors, appearance: ThemeAppearance): void {
   if (typeof document === "undefined") return;
@@ -1502,7 +1429,6 @@ export function applyThemeColorPreview(colors: ThemeColors, appearance: ThemeApp
   root.dataset.themeId = THEME_PREVIEW_ID;
   root.classList.toggle("dark", appearance === "dark");
   for (const [role, value] of Object.entries(colors) as Array<[ThemeColorRole, string]>) {
-    // A half-typed hex keeps the last good value instead of blanking the role.
     if (isThemeColor(value)) root.style.setProperty(APP_THEME_VARIABLES[role], value);
   }
   setThemePreviewAppearance(appearance);
@@ -1538,8 +1464,6 @@ export function resolveThemeAppearance(
   const systemAppearance = systemDark ? "dark" : "light";
   const mode = appearanceMode ?? ((followSystem ?? theme === "system") ? "system" : null);
   if (mode === "system") {
-    // A configured half guarantees the appearance is renderable even when the
-    // base theme lacks that mode.
     if (halves?.[systemAppearance]) return systemAppearance;
     const definition = getThemeDefinition(theme);
     return definition && getThemeColorsForMode(definition, systemAppearance) === null
@@ -1565,7 +1489,6 @@ export function resolveDesktopTheme(
   const mode = appearanceMode ?? ((followSystem ?? theme === "system") ? "system" : null);
   if (mode === "system") {
     const definition = getThemeDefinition(theme);
-    // A configured half fills in an appearance the base theme cannot render.
     const hasLightMode =
       halves?.light !== undefined ||
       (definition !== null && getThemeColorsForMode(definition, "light") !== null);
@@ -1589,11 +1512,6 @@ export function isKnownThemePreference(theme: string): boolean {
   return getThemeDefinition(theme) !== null;
 }
 
-/**
- * An automatic-mode mix: a different theme per resolved appearance. Halves
- * only name real themes that can render their half; anything else is dropped
- * so a stale mix degrades to the base preference.
- */
 export type ThemeHalves = Readonly<{ light?: string; dark?: string }>;
 
 export function parseThemeHalves(raw: string | null): ThemeHalves | null {
@@ -1616,7 +1534,6 @@ export function parseThemeHalves(raw: string | null): ThemeHalves | null {
   }
 }
 
-/** The theme that should render the given appearance under a mix, if any. */
 export function resolveThemeHalf(
   theme: ThemePreference,
   halves: ThemeHalves | null,

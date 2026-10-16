@@ -1,9 +1,9 @@
 import { Pressable, View } from "react-native";
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
-import { ControlPillMenu } from "../../components/ControlPillMenu";
-import type { ControlPillMenuProps } from "../../components/ControlPillMenu.types";
-import { ThemedGlassView } from "../../components/GlassSurface";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
+import { Menu } from "../../components/ui/Menu";
+import type { MenuProps } from "../../components/ui/Menu.types";
+import { ThemedGlassView } from "../../components/ui/GlassSurface";
 import { cn } from "../../lib/cn";
 import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
@@ -15,7 +15,7 @@ export function ListFilterMenu(props: {
   readonly label: string;
   readonly accessibilityLabel: string;
   readonly active: boolean;
-  readonly actions: ControlPillMenuProps["actions"];
+  readonly actions: MenuProps["actions"];
   readonly onSelect: (id: string) => void;
 }) {
   const { themeAppearance } = useAppearancePreferences();
@@ -35,7 +35,7 @@ export function ListFilterMenu(props: {
     </>
   );
   return (
-    <ControlPillMenu
+    <Menu
       title={props.accessibilityLabel}
       actions={props.actions}
       onPressAction={({ nativeEvent }) => props.onSelect(nativeEvent.event)}
@@ -60,6 +60,6 @@ export function ListFilterMenu(props: {
           <View className={cn(PILL, props.active ? "bg-primary" : "bg-subtle")}>{content}</View>
         )}
       </Pressable>
-    </ControlPillMenu>
+    </Menu>
   );
 }

@@ -15,11 +15,11 @@ import * as Struct from "effect/Struct";
 
 import type { EnvironmentConnectionPhase } from "../connection/presentation.ts";
 
-/** Server keys that hold a user preference rather than machine config. */
 const SHARED_SERVER_SETTING_KEYS = [
   "continueThreadsAfterServerUpdate",
   "sidebarAutoMarkDoneAfterDays",
   "sidebarAutoMarkDoneOnMerge",
+  "sidebarAutoMarkDoneKeepPullRequests",
   "autoResumeLimitedThreads",
   "snoozeLimitedThreads",
   "newWorktreesStartFromOrigin",
@@ -31,7 +31,6 @@ export type SharedServerSettingKey = (typeof SHARED_SERVER_SETTING_KEYS)[number]
 
 const SHARED_KEY_SET = new Set<string>(SHARED_SERVER_SETTING_KEYS);
 
-/** Split a server patch into the keys every environment should receive and the primary-only rest. */
 export function splitSharedServerPatch(patch: ServerSettingsPatch): {
   sharedPatch: ServerSettingsPatch;
   localPatch: ServerSettingsPatch;
@@ -51,7 +50,6 @@ export function splitSharedServerPatch(patch: ServerSettingsPatch): {
   };
 }
 
-/** Filter unsupported preferences; direct model writes retain the server's fallback behavior. */
 export function filterSharedServerPatch(
   patch: ServerSettingsPatch,
   settings?: ServerSettings,
@@ -78,7 +76,6 @@ export function filterSharedServerPatch(
   return patch;
 }
 
-/** The shared subset supported by one environment. */
 export function pickSharedServerSettings(settings: ServerSettings): ServerSettingsPatch {
   return filterSharedServerPatch(Struct.pick(settings, SHARED_SERVER_SETTING_KEYS), settings);
 }

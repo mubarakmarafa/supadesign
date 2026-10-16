@@ -170,7 +170,6 @@ const TAILSCALE_STATUS_JSON = JSON.stringify({
   Self: { DNSName: "bb-1.tail1234.ts.net.", TailscaleIPs: ["100.64.1.2"] },
 });
 
-/** `tailscale status --json` reporting a MagicDNS name. */
 const layerTailscaleUp = Layer.succeed(
   ChildProcessSpawner.ChildProcessSpawner,
   ChildProcessSpawner.make(() =>
@@ -192,7 +191,6 @@ const layerTailscaleUp = Layer.succeed(
   ),
 );
 
-/** Answers the Serve probe with `status`. */
 const layerServeProbe = (status: number) =>
   Layer.succeed(
     HttpClient.HttpClient,
@@ -201,7 +199,6 @@ const layerServeProbe = (status: number) =>
     ),
   );
 
-/** A loopback-only server with Tailscale Serve on, so only the Serve name can be listed. */
 const layerServeConfig = Layer.effect(
   ServerConfig.ServerConfig,
   Effect.map(ServerConfig.ServerConfig, (config) => ({

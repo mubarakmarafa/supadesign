@@ -80,7 +80,6 @@ it.effect("reads Go limits with the instance's XDG credentials and preserves res
     NodeAssert.equal(limits.unavailable, undefined);
     NodeAssert.equal(
       limits.credentialFingerprint,
-      // SHA-256 of "opencode-go\0instance-key".
       "aba48e85c981a8edc1c9fb4575121accc7235fa55d0f8689f66f153de5566a37",
     );
     NodeAssert.deepEqual(
@@ -557,7 +556,6 @@ it.layer(layerTest)("checkOpenCodeProviderStatus", (it) => {
         "auto",
         "full-access",
       ]);
-      // Plan mode runs as OpenCode's plan agent, and every session can compact.
       NodeAssert.equal(snapshot.showInteractionModeToggle, true);
       NodeAssert.deepEqual(
         snapshot.slashCommands.map((command) => command.name),
@@ -595,7 +593,6 @@ it.layer(layerTest)("checkOpenCodeProviderStatus", (it) => {
 
       NodeAssert.equal(snapshot.status, "error");
       NodeAssert.equal(snapshot.message, "OpenCode could not load its model list.");
-      // A failed catalog read still leaves the session able to compact.
       NodeAssert.deepEqual(
         snapshot.slashCommands.map((command) => command.name),
         ["compact"],
@@ -693,8 +690,6 @@ it.layer(layerTest)("checkOpenCodeProviderStatus with configured server URL", (i
 
   it.effect("labels each model with the sub-provider that listed it", () =>
     Effect.gen(function* () {
-      // Names come from the server's provider list; see openCode2Catalog.test.ts
-      // for reading that list itself.
       const snapshot = yield* checkProvider(
         makeOpenCodeSettings({
           serverUrl: "http://127.0.0.1:9999",
@@ -725,9 +720,7 @@ it.layer(layerTest)("checkOpenCodeProviderStatus with configured server URL", (i
       const subProviderFor = (slug: string) =>
         snapshot.models.find((model) => model.slug === slug)?.subProvider;
       NodeAssert.equal(subProviderFor("openai/gpt-5.4"), "OpenAI");
-      // A provider called plain "OpenCode" would repeat the instance name.
       NodeAssert.equal(subProviderFor("custom/m1"), undefined);
-      // The id stands in until the server names its providers.
       NodeAssert.equal(subProviderFor("anthropic/claude"), "anthropic");
     }),
   );
@@ -815,7 +808,6 @@ const bigPickle: OpenCode2Model = {
 
 it.effect("waits for a fresh OpenCode 2 server to list its models", () =>
   Effect.gen(function* () {
-    // A fresh server lists nothing until its catalog loads.
     const replies: Array<ReadonlyArray<OpenCode2Model>> = [[], [], [bigPickle]];
     const load = yield* makeOpenCode2ModelLoader(Effect.sync(() => replies.shift() ?? [bigPickle]));
     const fiber = yield* load.pipe(Effect.forkChild);
@@ -836,7 +828,6 @@ it.effect("keeps the last OpenCode 2 model list while a fresh server's stays emp
   }).pipe(Effect.provide(TestClock.layer())),
 );
 
-// What 2.0.18 lists for a directory once it has scanned it (live, 2026-09-29).
 const builtinCommands = [
   { name: "init", description: "guided AGENTS.md setup" },
   { name: "review", description: "review changes [commit|branch|pr], defaults to uncommitted" },
@@ -860,7 +851,6 @@ const scanned: OpenCode2Workspace = {
 
 it.effect("reads a fresh OpenCode 2 directory again once its scan has ended", () =>
   Effect.gen(function* () {
-    // A directory the server has not served yet lists no commands until its scan ends.
     const reads: Array<OpenCode2Workspace> = [{ commands: [], skills: [] }, scanned];
     const scanEnded = yield* Deferred.make<void>();
     const load = yield* loadOpenCode2Workspace(

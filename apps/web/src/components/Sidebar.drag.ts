@@ -19,8 +19,6 @@ const isShelfHeader = (item: SidebarListItem | undefined) =>
     item.marker === "snoozed-header" ||
     item.marker === "done-header");
 
-/** Keep the lifted card below the Pins label, including when Pins is empty.
- * The container rect follows scrolling; the offset is measured once at pickup. */
 export function restrictBelowSidebarLabel(
   { transform, containerNodeRect, draggingNodeRect }: Parameters<Modifier>[0],
   offset: number,
@@ -30,8 +28,6 @@ export function restrictBelowSidebarLabel(
   return transform.y < minimumY ? { ...transform, y: minimumY } : transform;
 }
 
-/** Reject the nearest unsupported target without selecting another section.
- * Recreate this detector when drop eligibility changes. */
 export function createSidebarCollisionDetection(
   isValidTarget: (id: string) => boolean,
   options: {
@@ -95,11 +91,8 @@ export function createSidebarCollisionDetection(
   };
 }
 
-/** Preview the committed section layout without moving or mounting DOM nodes.
- * A zero scaleY marks rows/markers to hide while retaining their measured nodes. */
 export function createSidebarSortingStrategy(input: {
   items: readonly SidebarListItem[];
-  /** Suspend the reorder preview while the thread is dragged out as context. */
   enabled?: boolean;
   doneOrder: readonly string[];
   /** Time-ordered inbox: where the lifted row would land. */
@@ -229,8 +222,6 @@ export function createSidebarSortingStrategy(input: {
     const shelfRect = rects[firstShelf];
     const beforeShelf = rects[firstShelf - 1];
     const lastRect = rects.at(-1);
-    // Consume the shelf's auto margin as drag labels and resized rows need
-    // room, keeping the combined shelves at their measured bottom.
     let shelfSpace =
       shelfRect && beforeShelf && lastRect && shelfRect.top > beforeShelf.bottom + 1
         ? Math.max(

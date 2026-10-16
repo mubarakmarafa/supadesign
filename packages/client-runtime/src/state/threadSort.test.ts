@@ -117,8 +117,6 @@ describe("sortDoneThreads", () => {
   });
 
   it("counts a turn completion as activity for auto-done threads", () => {
-    // The message came in before the other thread's, but its turn finished
-    // after: completion time is the real "work ended" moment.
     const sorted = sortDoneThreads([
       done({ id: "message-only", latestUserMessageAt: "2026-03-09T10:04:00.000Z" }),
       done({
@@ -155,13 +153,10 @@ describe("sortDoneThreads", () => {
       { updatedAt: "2026-03-09T09:00:00.000Z" },
       { updatedAt: "invalid" },
     ];
-    // Ids repeat every 3 rows and stamps every 5, so rows tie on the time,
-    // on the id, and on both. (index * 7) % 30 scrambles the input order.
     const threads = Array.from({ length: 30 }, (_, index) => {
       const row = (index * 7) % 30;
       return { ...done({ id: `thread-${row % 3}`, ...stamps[row % 5] }), row };
     });
-    // The comparator this sort replaced: it resolved both keys on every call.
     const timestampMs = (thread: DoneThreadTimestampInput) => {
       const timestamp = resolveDoneThreadTimestamp(thread);
       return timestamp === null ? 0 : Date.parse(timestamp);

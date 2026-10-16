@@ -10,7 +10,7 @@ import Svg, { Path } from "react-native-svg";
 import { withUniwind } from "uniwind";
 
 import { applyProviderOptionSelection } from "../lib/providerOptions";
-import { useAndroidControlSizing } from "./useAndroidControlSizing";
+import { useAndroidControlSizing } from "./ui/useAndroidControlSizing";
 
 const ThemedSvg = withUniwind(Svg);
 

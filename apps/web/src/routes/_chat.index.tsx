@@ -14,6 +14,7 @@ import { SidebarInset } from "../components/ui/sidebar";
 import { WorkspacePageHeader } from "../components/WorkspacePageHeader";
 import { useNewThreadHandler } from "../hooks/useHandleNewThread";
 import {
+  readProject,
   useAllEnvironmentShellsBootstrapped,
   useProjects,
   useThreadShells,
@@ -33,11 +34,6 @@ function ChatIndexRouteView() {
   return <IndexDraftLanding />;
 }
 
-/**
- * Landing on the index route drops straight into a draft thread for the most
- * recently active project, so the first screen is a prompt instead of a dead
- * end. Falls back to an add-project hero when no project exists yet.
- */
 function IndexDraftLanding() {
   const projects = useProjects();
   const threads = useThreadShells();
@@ -49,6 +45,7 @@ function IndexDraftLanding() {
   const isStillOnIndex = useEffectEvent(() => router.state.location.pathname === "/");
   const startingRef = useRef(false);
   const [startFailed, setStartFailed] = useState(false);
+  const [retryRequest, setRetryRequest] = useState(0);
 
   const mostRecentProject = useMemo(
     () =>
@@ -62,13 +59,22 @@ function IndexDraftLanding() {
     if (startingRef.current) {
       return;
     }
+    const projectRef = scopeProjectRef(project.environmentId, project.id);
+    if (readProject(projectRef) === null) {
+      return;
+    }
     startingRef.current = true;
-    void handleNewThread(scopeProjectRef(project.environmentId, project.id), {
-      replace: true,
-    }).catch(() => {
-      startingRef.current = false;
-      setStartFailed(true);
-    });
+    void handleNewThread(projectRef, { replace: true })
+      .then((opened) => {
+        if (opened === null) {
+          startingRef.current = false;
+          setRetryRequest((request) => request + 1);
+        }
+      })
+      .catch(() => {
+        startingRef.current = false;
+        setStartFailed(true);
+      });
   };
 
   useEffect(() => {
@@ -77,7 +83,8 @@ function IndexDraftLanding() {
       return;
     }
     startDraft(mostRecentProject);
-  }, [mostRecentProject, startDraft]);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- A draft abandoned for a removed project retries with the next one.
+  }, [mostRecentProject, retryRequest, startDraft]);
 
   if (!bootstrapped) {
     return null;
@@ -92,8 +99,6 @@ function IndexDraftLanding() {
       />
     ) : null;
   }
-  // First-run routing to the welcome wizard happens in FirstRunGate at the
-  // root, before this route ever renders.
   return <NoProjectsHero />;
 }
 

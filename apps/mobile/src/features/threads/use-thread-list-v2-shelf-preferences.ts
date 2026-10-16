@@ -5,9 +5,8 @@ import { useCallback, useLayoutEffect, useRef } from "react";
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
 
 /**
- * Shared persisted shelf state for the compact Home list and iPad sidebar.
- * Refs advance before persistence starts so consecutive presses always toggle
- * the latest value, even if React has not rendered the optimistic patch yet.
+ * Refs advance before persistence starts so consecutive presses always toggle the latest value,
+ * even if React has not rendered the optimistic patch yet.
  */
 export function useThreadListV2ShelfPreferences() {
   const preferencesResult = useAtomValue(mobilePreferencesAtom);

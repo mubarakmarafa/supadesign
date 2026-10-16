@@ -1,7 +1,7 @@
+import * as Dialog from "../components/ui/Dialog";
 import { useServerConfigs } from "./entities";
 import { CommandId } from "@supaterm/contracts";
 import { uuidv4 } from "../lib/uuid";
-import { Alert } from "react-native";
 import {
   questionAttachmentDraftKey,
   questionAttachmentDraftPrefix,
@@ -357,7 +357,7 @@ export function useSelectedThreadRequests() {
             attachment.uploadEnvironmentId !== selectedThreadShell.environmentId,
         )
       ) {
-        Alert.alert(
+        Dialog.alert(
           "Attachments are not ready",
           "Wait for uploads to finish, or retry failed uploads.",
         );
@@ -399,7 +399,6 @@ export function useSelectedThreadRequests() {
     selectedThreadShell,
   ]);
 
-  // Closes an async question without messaging the agent.
   const onDismissUserInput = useCallback(async () => {
     if (
       !selectedThreadShell ||

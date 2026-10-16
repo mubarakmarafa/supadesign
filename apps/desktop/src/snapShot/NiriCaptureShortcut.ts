@@ -6,7 +6,6 @@ import {
   NIRI_CAPTURE_PATH as PATH,
 } from "./linuxCaptureSession.ts";
 
-/** Niri owns the keybinding; this endpoint triggers capture without first focusing Supaterm. */
 export async function startNiriCaptureShortcut(
   appId: string,
   onCapture: () => void,

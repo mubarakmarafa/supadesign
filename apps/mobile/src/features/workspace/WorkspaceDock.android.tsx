@@ -1,4 +1,4 @@
-import { AndroidAnchoredMenu } from "../../components/AndroidAnchoredMenu";
+import { AndroidAnchoredMenu } from "../../components/ui/AndroidAnchoredMenu";
 import { AndroidWorkspaceNavigation } from "./AndroidWorkspaceNavigation";
 import { WorkspaceDockFrame } from "./WorkspaceDockFrame";
 import type { WorkspaceDockProps } from "./WorkspaceDock.types";

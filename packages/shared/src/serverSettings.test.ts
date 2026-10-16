@@ -24,7 +24,6 @@ import {
 
 const decodeServerSettingsPatch = Schema.decodeUnknownSync(ServerSettingsPatch);
 
-/** Settings after the server has folded legacy per-project fields into `projectSettingsOverrides`. */
 const FOLDED_SERVER_SETTINGS = { ...DEFAULT_SERVER_SETTINGS, projectSettingsFolded: true };
 
 describe("resolveReviewGuideModelSelection", () => {
@@ -122,6 +121,7 @@ describe("serverSettings helpers", () => {
       }).storageCleanup,
     ).toEqual({
       worktreeAfterDays: null,
+      worktreeDoneAfterDays: null,
       worktreeOnMerge: true,
       worktreeOnDelete: true,
       worktreeUnchanged: true,
@@ -164,7 +164,6 @@ describe("serverSettings helpers", () => {
       runOnWorktreeCreate: false,
     };
     const existing = { ...project, scripts: [{ ...action, command: "npm run lint" }] };
-    // Before the one-time fold, scripts stored on the project aggregate still apply.
     const unfolded = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
       defaultProjectScripts: [action],
     });
@@ -640,9 +639,6 @@ describe("serverSettings helpers", () => {
   });
 
   it("keeps a project's providerInstances override when a patch entry omits the key", () => {
-    // An older client that predates per-project provider overrides reads and
-    // resends a project's whole entry without knowing about the field. A
-    // naive whole-entry replace would silently wipe it.
     const instanceId = ProviderInstanceId.make("codex_work");
     const projectId = ProjectId.make("project-a");
     const current = {
@@ -668,9 +664,6 @@ describe("serverSettings helpers", () => {
   });
 
   it("clears a project's providerInstances override when a patch entry sends an empty map", () => {
-    // A client that knows the field expresses "clear every provider override
-    // for this project" by sending providerInstances explicitly, not by
-    // omitting it.
     const instanceId = ProviderInstanceId.make("codex_work");
     const projectId = ProjectId.make("project-a");
     const current = {
@@ -710,6 +703,7 @@ describe("serverSettings helpers", () => {
         rules: {
           worktreeKeepWhen: "any-local-files" as const,
           worktreeAfterDays: 7,
+          worktreeDoneAfterDays: null,
           worktreeOnMerge: true,
           worktreeOnDelete: false,
           worktreeUnchanged: false,

@@ -1,8 +1,3 @@
-/**
- * Visual primitives shared by controls when they are rendered in the thread details panel.
- *
- * Panel controls keep one density at every breakpoint, independent of toolbar button sizes.
- */
 const THREAD_DETAILS_PANEL_RESTING_BUTTON_SURFACE_CLASS = "bg-transparent shadow-none";
 
 const THREAD_DETAILS_PANEL_HOVER_SURFACE_CLASS =

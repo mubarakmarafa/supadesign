@@ -121,8 +121,6 @@ export const makeEnvironmentShellState = Effect.fn("EnvironmentShellState.make")
       );
       if (!saved) return;
       lastPersisted = snapshot;
-      // Only lifecycle flushes chase updates that arrived during an in-flight save.
-      // The regular worker leaves those updates for the next write window.
       if (!flush) return;
     }
   }, persistenceLock.withPermit);
@@ -177,9 +175,6 @@ export const makeEnvironmentShellState = Effect.fn("EnvironmentShellState.make")
 
   const snapshotWriteLock = yield* Semaphore.make(1);
 
-  // Apply each received batch with one state write. The RPC client's bounded
-  // buffer can split a server chunk, so a bulk action can still need several
-  // writes, but each write includes every event in that batch.
   const applyItems = Effect.fn("EnvironmentShellState.applyItems")(function* (
     items: ReadonlyArray<OrchestrationV2ShellStreamItem>,
 
@@ -374,14 +369,10 @@ export const makeEnvironmentShellState = Effect.fn("EnvironmentShellState.make")
           }
         }
 
-        // If the authoritative refresh failed, omit the cached cursor so the
-        // socket fallback sends a complete snapshot for this new session.
         if (!canResume || Option.isNone(current.snapshot)) {
           return supportsCompletionMarker ? { requestCompletionMarker: true as const } : {};
         }
         if (!supportsCompletionMarker) {
-          // Without a completion marker there is no synchronized signal for a
-          // resumed subscription, so report live immediately, like threads.
           yield* SubscriptionRef.update(state, (value) => ({
             ...value,
             status: "live" as const,

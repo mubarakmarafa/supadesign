@@ -399,7 +399,6 @@ it("opens the correct chat for every workflow phase and unphased member", async 
     model: "claude-sonnet-4-6",
     result: `Result ${index}`,
     totalTokens: 1200,
-    // Staggered starts, so a phase spans longer than either member's own run.
     startedAt: 1_700_000_000_000 + index * 1000,
     durationMs: 5000,
   }));
@@ -425,7 +424,6 @@ it("opens the correct chat for every workflow phase and unphased member", async 
     ],
   });
   state.projection = project(agents);
-  // Matching IDs from another environment cannot make these chats available.
   const memberShells = agents.map((agent) => ({
     id: agent.childThreadId,
     title: agent.label,
@@ -458,7 +456,6 @@ it("opens the correct chat for every workflow phase and unphased member", async 
         typeof node.props["aria-expanded"] === "boolean" &&
         String(node.props["aria-label"]).includes(" phase, "),
     );
-  // Only the running phase starts open, beside the unphased member.
   expect(memberButtons()).toHaveLength(3);
   expect(phaseButtons()).toHaveLength(3);
   expect(renderer.root.findByProps({ "aria-label": "Expand Inspect phase, Done" })).toBeDefined();
@@ -475,7 +472,6 @@ it("opens the correct chat for every workflow phase and unphased member", async 
     await act(async () => button.props.onClick());
   }
   expect(state.navigate).not.toHaveBeenCalled();
-  // The coordinator roster arrives before the member thread shells.
   state.shells = memberShells.map((source) => ({ environmentId: "remote", source }));
   await act(async () => renderer.update(cloneElement(panel)));
   for (const button of memberButtons()) expect(button.props.disabled).toBe(false);
@@ -492,15 +488,12 @@ it("opens the correct chat for every workflow phase and unphased member", async 
   expect(rendered.match(/Sonnet · Work account/g)).toHaveLength(7);
   expect(rendered).not.toContain("Personal account");
   for (const phase of phases) expect(rendered).toContain(phase.title);
-  // The closed row leaves phase progress to the tree.
   expect(rendered).not.toContain(" phases");
   expect(rendered).toContain('"1","/","2"," ","agents"');
   expect(rendered).toContain("Running");
-  // The phase holding the running member reports itself as the active one.
   expect(rendered).toContain("running");
   expect(rendered).toContain("Done");
   expect(rendered).toContain("stopped");
-  // Members 0 and 1 start a second apart and run 5s each, so Inspect took 6s.
   expect(rendered).toContain('"6s"');
   for (const phase of phaseButtons()) {
     const label = String(phase.props["aria-label"]).slice("Collapse ".length);
@@ -511,8 +504,6 @@ it("opens the correct chat for every workflow phase and unphased member", async 
     );
     expect(memberButtons()).toHaveLength(7);
   }
-  // A phase the user closed stays closed once it starts running, and stays
-  // closed after it settles.
   await act(async () => phaseButtons()[0]!.props.onClick());
   expect(memberButtons()).toHaveLength(5);
   const restarted = agents.map((agent) =>

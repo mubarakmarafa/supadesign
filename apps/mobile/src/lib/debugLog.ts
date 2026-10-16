@@ -23,7 +23,6 @@ export interface DebugLogger {
 }
 
 export interface DebugLoggerOptions {
-  /** Log whenever `__DEV__` is true, without the global filter. Defaults to false. */
   readonly enabledInDev?: boolean;
 }
 

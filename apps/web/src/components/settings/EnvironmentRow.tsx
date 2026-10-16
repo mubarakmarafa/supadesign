@@ -48,7 +48,6 @@ export function EnvironmentRow({
   readonly label: string;
   readonly status?: ReactNode;
   readonly subtitle: ReactNode;
-  /** Extra content under the subtitle, such as update progress. */
   readonly below?: ReactNode;
   /** Optional full-width detail content rendered below the row. */
   readonly detail?: ReactNode;

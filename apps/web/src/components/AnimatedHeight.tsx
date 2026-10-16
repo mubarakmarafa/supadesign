@@ -14,7 +14,6 @@ export function AnimatedHeight({
   animateKey,
 }: {
   readonly children: ReactNode;
-  /** Retain the previous content height while a replacement is loading. */
   readonly holdHeight?: boolean;
   /**
    * Animate only the resize that follows a change of this key, such as an

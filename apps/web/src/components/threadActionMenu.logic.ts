@@ -1,11 +1,6 @@
 import type { ContextMenuItem } from "@supaterm/contracts";
 import type { SnoozePreset } from "@supaterm/client-runtime/state/thread-snooze";
 
-/**
- * Ids for the per-thread action menu. Snooze presets are dispatched as
- * `snooze:<presetId>` so the union stays closed while the preset list
- * remains data-driven.
- */
 export type ThreadActionMenuId =
   | "new-thread-on-branch"
   | "filter-by-project"
@@ -37,7 +32,6 @@ export type DraftActionMenuId =
   | "project-settings"
   | "discard";
 
-/** Right-click menu for an unsent draft row in the sidebar. */
 export function buildDraftActionMenuItems(options: {
   readonly hasPath: boolean;
   readonly hasBranch: boolean;
@@ -72,18 +66,12 @@ export function buildDraftActionMenuItems(options: {
 export interface ThreadActionMenuState {
   readonly canOperate: boolean;
   readonly branch: string | null;
-  /**
-   * Project scoping for the thread list. Null on surfaces with no scoped
-   * list behind the menu (the chat header), where the item must not show.
-   */
   readonly projectFilter: {
     readonly label: string;
-    /** True when the list is already scoped to this thread's project. */
     readonly isActive: boolean;
   } | null;
   readonly isPinned: boolean;
   readonly isDone: boolean;
-  /** False while the user has turned automatic settlement off for this thread. */
   readonly autoMarkDoneEnabled: boolean;
   readonly isSnoozed: boolean;
   readonly canSnoozeNow: boolean;
@@ -127,9 +115,6 @@ export function buildThreadActionMenuItems(
     state.isPinned
       ? { id: "unpin" as const, label: "Unpin thread", icon: "pin-off" }
       : { id: "pin" as const, label: "Pin thread", icon: "pin" },
-    // Both lifecycle actions stay available on pinned threads: settling
-    // clears the pin ("done" beats "keep on top"), and snoozing hides the
-    // card until wake with the pin intact.
     state.isDone
       ? { id: "reopen" as const, label: "Reopen thread", icon: "circle-check" }
       : { id: "mark-done" as const, label: "Mark thread as Done", icon: "circle-check" },

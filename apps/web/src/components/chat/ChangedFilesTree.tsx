@@ -20,7 +20,6 @@ import { useTimelineDisclosureToggle } from "./timelineDisclosure";
 
 const EMPTY_DIRECTORY_OVERRIDES: Record<string, boolean> = {};
 
-/** Opens the OS-level context menu for a changed file (reveal in file manager, open in editor). */
 export type ChangedFileContextMenuHandler = (filePath: string, event: MouseEvent) => void;
 
 export const ChangedFilesCard = memo(function ChangedFilesCard(props: {

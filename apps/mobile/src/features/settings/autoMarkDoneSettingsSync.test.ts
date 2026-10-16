@@ -9,6 +9,7 @@ const reference = {
     ...DEFAULT_SERVER_SETTINGS,
     sidebarAutoMarkDoneAfterDays: 7,
     sidebarAutoMarkDoneOnMerge: true,
+    sidebarAutoMarkDoneKeepPullRequests: true,
     newWorktreesStartFromOrigin: false,
     continueThreadsAfterServerUpdate: false,
   },
@@ -36,6 +37,7 @@ describe("auto-mark-done settings sync", () => {
     expect(plan.patch).toEqual({
       sidebarAutoMarkDoneAfterDays: 7,
       sidebarAutoMarkDoneOnMerge: true,
+      sidebarAutoMarkDoneKeepPullRequests: true,
     });
   });
 
@@ -47,6 +49,7 @@ describe("auto-mark-done settings sync", () => {
         ...reference.settings,
         sidebarAutoMarkDoneAfterDays: null,
         sidebarAutoMarkDoneOnMerge: false,
+        sidebarAutoMarkDoneKeepPullRequests: false,
         newWorktreesStartFromOrigin: true,
         continueThreadsAfterServerUpdate: true,
         sourceControlWritingStyle: {
@@ -62,6 +65,7 @@ describe("auto-mark-done settings sync", () => {
     expect(plan.mismatches).toEqual([target]);
     expect(updated.sidebarAutoMarkDoneAfterDays).toBe(7);
     expect(updated.sidebarAutoMarkDoneOnMerge).toBe(true);
+    expect(updated.sidebarAutoMarkDoneKeepPullRequests).toBe(true);
     expect(updated.newWorktreesStartFromOrigin).toBe(true);
     expect(updated.continueThreadsAfterServerUpdate).toBe(true);
     expect(updated.sourceControlWritingStyle).toEqual(target.settings.sourceControlWritingStyle);

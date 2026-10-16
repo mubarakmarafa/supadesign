@@ -224,112 +224,14 @@ describe("shouldOpenPullRequestExternally", () => {
     expect(shouldOpenPullRequestExternally({ metaKey: false, ctrlKey: true })).toBe(true);
   });
 
-  it("keeps an unmodified click in the pull request view", () => {
-    expect(shouldOpenPullRequestExternally({ metaKey: false, ctrlKey: false })).toBe(false);
-  });
-});
-
-describe("parseChangeRequestUrl", () => {
-  it("reads a GitHub pull request", () => {
-    expect(parseChangeRequestUrl("https://github.com/SupabitApp/Supacode-Next/pull/123")).toEqual({
-      host: "github.com",
-      repository: "supabitapp/supacode-next",
-      number: 123,
-    });
-  });
-
-  it("reads a pull request on a GitHub Enterprise host", () => {
-    expect(parseChangeRequestUrl("https://github.acme.test/platform/api/pull/7")).toEqual({
-      host: "github.acme.test",
-      repository: "platform/api",
-      number: 7,
-    });
-  });
-
-  it("reads a GitLab merge request, nested groups and all", () => {
-    expect(
-      parseChangeRequestUrl("https://gitlab.com/supabitapp/platform/supaterm/-/merge_requests/42"),
-    ).toEqual({
-      host: "gitlab.com",
-      repository: "supabitapp/platform/supaterm",
-      number: 42,
-    });
-  });
-
-  it("reads a merge request on a self-hosted GitLab named nothing like GitLab", () => {
-    expect(parseChangeRequestUrl("https://code.acme.test/team/project/-/merge_requests/9")).toEqual(
-      {
-        host: "code.acme.test",
-        repository: "team/project",
-        number: 9,
-      },
+  it("uses the browser for middle-click", () => {
+    expect(shouldOpenPullRequestExternally({ metaKey: false, ctrlKey: false, button: 1 })).toBe(
+      true,
     );
   });
 
-  it("reads a Bitbucket pull request", () => {
-    expect(parseChangeRequestUrl("https://bitbucket.org/workspace/repo/pull-requests/5")).toEqual({
-      host: "bitbucket.org",
-      repository: "workspace/repo",
-      number: 5,
-    });
-  });
-
-  it("reads both Azure DevOps URL forms, keeping `_git` in the repository path", () => {
-    expect(
-      parseChangeRequestUrl("https://dev.azure.com/acme/platform/_git/supaterm/pullrequest/17"),
-    ).toEqual({
-      host: "dev.azure.com",
-      repository: "acme/platform/_git/supaterm",
-      number: 17,
-    });
-    expect(
-      parseChangeRequestUrl("https://acme.visualstudio.com/platform/_git/supaterm/pullrequest/17"),
-    ).toEqual({
-      host: "acme.visualstudio.com",
-      repository: "platform/_git/supaterm",
-      number: 17,
-    });
-  });
-
-  it("survives trailing segments, a trailing slash and a query string", () => {
-    expect(
-      parseChangeRequestUrl("https://github.com/supabitapp/supacode-next/pull/123/files?w=1"),
-    ).toEqual({
-      host: "github.com",
-      repository: "supabitapp/supacode-next",
-      number: 123,
-    });
-    expect(
-      parseChangeRequestUrl("https://gitlab.com/team/project/-/merge_requests/42/diffs#note_1"),
-    ).toEqual({ host: "gitlab.com", repository: "team/project", number: 42 });
-    expect(
-      parseChangeRequestUrl("https://bitbucket.org/team/repo/pull-requests/5/commits"),
-    ).toEqual({ host: "bitbucket.org", repository: "team/repo", number: 5 });
-    expect(parseChangeRequestUrl("https://github.com/supabitapp/supacode-next/pull/123/")).toEqual({
-      host: "github.com",
-      repository: "supabitapp/supacode-next",
-      number: 123,
-    });
-  });
-
-  it("claims nothing it cannot be sure of, so the link goes to the browser", () => {
-    for (const link of [
-      "https://github.com/supabitapp/supacode-next/issues/123",
-      "https://github.com/supabitapp/supacode-next/commit/0a1b2c3",
-      "https://github.com/supabitapp/supacode-next",
-      "https://github.com/supabitapp/supacode-next/pull/abc",
-      "https://gitlab.com/supabitapp/supacode-next/-/snippets/12",
-      "https://gitlab.com/supabitapp/supacode-next/-/issues/12",
-      // A path shape that means nothing off its own host.
-      "https://blog.example.test/2026/updates/pull/3",
-      // A lookalike is deliberately not fought here: `github.com.evil.test` reads as a GitHub
-      // Enterprise install and there is no way to tell it from one. It is `findProjectForChange
-      // Request` that refuses it, because no project in the workspace is checked out from it.
-      "javascript:alert(1)//github.com/supabitapp/supacode-next/pull/1",
-      "not a url",
-    ]) {
-      expect(parseChangeRequestUrl(link), link).toBeNull();
-    }
+  it("keeps an unmodified click in the pull request view", () => {
+    expect(shouldOpenPullRequestExternally({ metaKey: false, ctrlKey: false })).toBe(false);
   });
 });
 
@@ -508,9 +410,6 @@ describe("findProjectForChangeRequest", () => {
     // Azure alone addresses one repository under two names: `ssh.dev.azure.com` and `v3/...` over
     // SSH against `dev.azure.com` and `.../_git/...` everywhere a person sees it. The identity is
     // recorded in the spelling a link arrives in, so both halves of this comparison line up.
-    //
-    // Derived from the SSH remote the way the server derives it rather than written out, so the
-    // day that normalization stops reaching the web spelling this fails here too.
     const canonicalKey = normalizeGitRemoteUrl(
       "git@ssh.dev.azure.com:v3/SupabitApp/Platform/Supaterm",
     );

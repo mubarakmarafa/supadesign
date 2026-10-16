@@ -1,7 +1,7 @@
 import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { readEnvironmentScope, useEnvironmentsWithScope } from "../../state/session";
 import { AutoMarkDoneDaysField } from "./components/AutoMarkDoneDaysField";
-import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
+import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DEFAULT_SERVER_SETTINGS } from "@supaterm/contracts";
 import { supportsSharedSettingsSync } from "@supaterm/client-runtime/state/shared-settings";
-import { AppText as Text } from "../../components/AppText";
+import { AppText as Text } from "../../components/ui/AppText";
 import { showSkillsInSlashMenuAtom, updateMobilePreferencesAtom } from "../../state/preferences";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -22,6 +22,7 @@ import {
   SettingsEnvironmentFilterHeader,
 } from "./components/SettingsEnvironmentFilterHeader";
 import {
+  AUTO_MARK_DONE_KEYS,
   planAutoMarkDoneSettingsSync,
   type AutoMarkDoneSettings,
 } from "./autoMarkDoneSettingsSync";
@@ -140,10 +141,8 @@ function ThreadBehaviorSettingsRows() {
     !canWriteSettings || pendingWrites > 0 || (projectSelected && !supportsProjectOverrides);
   const hasProjectOverrides =
     projectSelected &&
-    syncTargets.some(
-      (target) =>
-        target.sources.sidebarAutoMarkDoneOnMerge === "project" ||
-        target.sources.sidebarAutoMarkDoneAfterDays === "project",
+    syncTargets.some((target) =>
+      AUTO_MARK_DONE_KEYS.some((key) => target.sources[key] === "project"),
     );
   const clearProjectOverrides = () => {
     if (
@@ -153,10 +152,7 @@ function ThreadBehaviorSettingsRows() {
       )
     )
       return;
-    const writes = planMobileScopedSettingsClear(syncTargets, [
-      "sidebarAutoMarkDoneOnMerge",
-      "sidebarAutoMarkDoneAfterDays",
-    ]);
+    const writes = planMobileScopedSettingsClear(syncTargets, AUTO_MARK_DONE_KEYS);
     if (writes.length === 0) return;
     writeInFlight.current = true;
     setPendingTargets(syncTargets);
@@ -231,6 +227,16 @@ function ThreadBehaviorSettingsRows() {
               onValueChange={(value) => writeToAll({ sidebarAutoMarkDoneAfterDays: value })}
             />
           </View>
+        ) : null}
+        {afterDays !== null ? (
+          <SettingsSwitchRow
+            icon="arrow.triangle.pull"
+            label="Keep threads with an open PR"
+            subtitle="Inactivity does not mark threads with an open pull request as Done."
+            value={referenceSettings.sidebarAutoMarkDoneKeepPullRequests}
+            disabled={disabled}
+            onValueChange={(value) => writeToAll({ sidebarAutoMarkDoneKeepPullRequests: value })}
+          />
         ) : null}
       </SettingsSection>
       {pendingWrites === 0 && mismatches.length > 0 ? (

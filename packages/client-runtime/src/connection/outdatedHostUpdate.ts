@@ -42,12 +42,9 @@ export class OutdatedHostUpdateError extends Schema.TaggedError<OutdatedHostUpda
 export type OutdatedHostUpdateStage = "downloading" | "installing" | "resuming";
 
 /**
- * Updates a host whose orchestration protocol is too old for this client.
- *
- * The normal session refuses to open against such a host, so this opens a
- * bare socket and calls only the self-update RPCs, whose wire shape has not
- * changed across protocol versions. Once the host relaunches on a compatible
- * protocol the environment is switched back on and connects normally.
+ * The normal session refuses to open against such a host, so this opens a bare
+ * socket and calls only the self-update RPCs, whose wire shape has not changed
+ * across protocol versions.
  */
 export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutdatedHost")(
   function* (
@@ -63,8 +60,6 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
     if (entry === undefined) {
       return yield* new EnvironmentRegistry.EnvironmentNotRegisteredError({ environmentId });
     }
-    // An outdated server cannot connect normally, so the routes are tried in
-    // order here. The first that authorizes carries the update.
     const { prepared, descriptor } = yield* Effect.firstSuccessOf(
       connectionRoutes(entry).map((route) => resolver.prepareForUpdate(routeEntry(entry, route))),
     );
@@ -159,8 +154,6 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
 
     if (result.upToDate) return result;
     yield* onStage("resuming");
-    // The restarted host may answer on another saved route, so each poll asks
-    // every direct address, the one that carried the update first.
     const pollUrls = [
       prepared.httpBaseUrl,
       ...connectionRoutes(entry).flatMap((route) => routeHttpBaseUrl(route) ?? []),

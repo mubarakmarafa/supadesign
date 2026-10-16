@@ -1,19 +1,3 @@
-/**
- * Durable per-file scan cache.
- *
- * Transcripts are append-only and a file that has not changed can never yield
- * different usage, so parsed records are keyed by `(size, mtime)` and reused.
- * Without this every server restart re-parses the whole window: roughly 3.5s
- * for a 30-day scan here, against ~11ms to reload this cache.
- *
- * Caching *per file* rather than per day is deliberate. It is timezone
- * independent, so changing the reporting zone does not invalidate anything, and
- * it keeps cross-file de-duplication exact: cached entries are de-duplicated
- * within their own file only, and the aggregator still applies the global
- * dedupe pass over the small surviving key set.
- *
- * @module usageScanCache
- */
 import type { UsageProviderKind } from "@supaterm/contracts";
 import type {
   TranscriptUsageFormat,
@@ -34,14 +18,12 @@ const USAGE_SCAN_CACHE_VERSION = 5 as const;
  */
 export const SCAN_CACHE_FILE_NAME = "usage-scan-cache-v5.json";
 
-/** Serialised as the index into this list. */
 const SPEEDS: readonly UsageSpeed[] = ["standard", "fast", "ultrafast"];
 
 export interface CachedFile {
   readonly size: number;
   readonly mtimeMs: number;
   readonly provider: UsageProviderKind;
-  /** Records from newline-terminated lines, up to `position.resumeOffset`. */
   readonly records: readonly UsageRecord[];
   /**
    * Records from a trailing segment the writer had not newline-terminated at
@@ -54,11 +36,6 @@ export interface CachedFile {
 
 export type ScanCache = Map<string, CachedFile>;
 
-/**
- * Row layout for the serialised form. Positional and interned rather than
- * object-per-record: on a 30-day window that is the difference between a file
- * measured in tens of megabytes and one under six.
- */
 type SerializedRecord = readonly [
   timestampMs: number,
   modelIndex: number,
@@ -71,7 +48,6 @@ type SerializedRecord = readonly [
   dedupeKey: string | null,
   reportedCostUsd: number | null,
   speed: number,
-  /** Optional trailing field keeps existing cache rows readable. */
   rateModelIndex?: number | null,
 ];
 
@@ -80,13 +56,10 @@ interface SerializedFile {
   readonly m: number;
   readonly p: UsageProviderKind;
   readonly r: readonly SerializedRecord[];
-  /** Tail records; see `CachedFile.tailRecords`. */
   readonly t: readonly SerializedRecord[];
-  /** Parse position: resume offset, guard length, guard hash. */
   readonly o: number;
   readonly gl: number;
   readonly gh: number;
-  /** The format's encoded reducer state at `o`; `null` for stateless formats. */
   readonly cs: unknown;
 }
 
@@ -97,7 +70,6 @@ interface SerializedCache {
   readonly files: Readonly<Record<string, SerializedFile>>;
 }
 
-/** Model and session strings, each stored once and referenced by index. */
 interface InternTables {
   readonly models: string[];
   readonly sessions: string[];
@@ -148,7 +120,6 @@ function serializeFile(entry: CachedFile, tables: InternTables): SerializedFile 
   };
 }
 
-/** Serialises the cache, interning the repeated model and session strings. */
 export function encodeScanCache(cache: ScanCache): SerializedCache {
   const tables = makeInternTables();
   const files: Record<string, SerializedFile> = {};
@@ -162,15 +133,9 @@ export function encodeScanCache(cache: ScanCache): SerializedCache {
 }
 
 /**
- * Returns a function that serialises the cache to JSON text, re-encoding only
- * the entries that changed since its last call. Call it once per persist.
- *
- * Writes the same document as `encodeScanCache`. Most entries never change
- * between scans, and encoding all of them made each persist cost close to a
- * second on a large cache. Entries are replaced, never mutated, when their file
- * changes, so an entry's JSON is memoised by identity. The intern tables only
- * grow, so a memoised entry's indexes stay valid; a pruned entry can leave an
- * unused string behind until the next process start.
+ * Entries are replaced, never mutated, when their file changes, so an entry's JSON is memoised by
+ * identity. The intern tables only grow, so a memoised entry's indexes stay valid; a pruned entry
+ * can leave an unused string behind until the next process start.
  */
 export function makeScanCacheWriter(): (
   cache: ScanCache,
@@ -203,13 +168,6 @@ function isRecordArray(value: unknown): value is readonly unknown[] {
   return Array.isArray(value);
 }
 
-/**
- * Rebuilds the cache from a parsed document.
- *
- * Anything malformed yields an empty cache rather than an error: a corrupt
- * cache should cost one cold scan, never a broken page. Entries of a provider
- * without a transcript format in `formats` are dropped.
- */
 export function decodeScanCache(
   document: unknown,
   formats: ReadonlyMap<UsageProviderKind, TranscriptUsageFormat<unknown>>,
@@ -224,9 +182,6 @@ export function decodeScanCache(
   if (!isRecordArray(root.models) || !isRecordArray(root.sessions)) return cache;
   if (typeof root.files !== "object" || root.files === null) return cache;
 
-  // The intern tables must be all strings: a numeric entry would pass the
-  // undefined guard below, land in a record's model, and crash the aggregate
-  // at lookupRate. A corrupt table rejects the whole cache.
   if (!root.models.every((value) => typeof value === "string")) return cache;
   if (!root.sessions.every((value) => typeof value === "string")) return cache;
   const models = root.models as readonly string[];
@@ -349,10 +304,6 @@ export function decodeScanCache(
   return cache;
 }
 
-/**
- * Per provider, whether a persisted state is valid: `null`, or one the
- * format's schema accepts.
- */
 function makeStateValidators(
   formats: ReadonlyMap<UsageProviderKind, TranscriptUsageFormat<unknown>>,
 ): ReadonlyMap<UsageProviderKind, (value: unknown) => boolean> {
@@ -367,7 +318,6 @@ function makeStateValidators(
   );
 }
 
-/** Keeps saved usage after transcript cleanup, until the reporting retention expires. */
 export function pruneScanCache(cache: ScanCache, retentionCutoffMs: number): number {
   let removed = 0;
   for (const [path, entry] of cache) {
@@ -380,11 +330,8 @@ export function pruneScanCache(cache: ScanCache, retentionCutoffMs: number): num
 }
 
 /**
- * Within-file de-duplication, applied before an entry is cached.
- *
- * Callers stitching an incremental parse together pass one `seen` set across
- * the line and tail record batches so the whole file stays deduplicated as a
- * unit; the set is mutated in place.
+ * Callers stitching an incremental parse together pass one `seen` set across the line and tail
+ * record batches so the whole file stays deduplicated as a unit; the set is mutated in place.
  */
 export function dedupeWithinFile(
   records: readonly UsageRecord[],

@@ -9,18 +9,16 @@ type WorkingThreadInput = Pick<
   | "hasActionableProposedPlan"
   | "hasPendingApprovals"
   | "hasPendingUserInput"
+  | "pendingSubagentRequest"
   | "interactionMode"
   | "latestRun"
   | "runtime"
 >;
 
-/** Threads busy with work that does not need the user fold into the Working
-    section: a running run, or one stopped with background work that will wake
-    it. Approvals, questions, plan prompts, and failures stay in the inbox. */
 export function isThreadWorking(thread: WorkingThreadInput): boolean {
   if (thread.hasPendingApprovals || thread.hasPendingUserInput) return false;
+  if (thread.pendingSubagentRequest != null) return false;
   if (!threadRuntimeIsActive(thread.runtime) && thread.runtime?.status !== "idle") return false;
-  // A plan prompt outranks lingering background work: the user has to act on it.
   const run = thread.latestRun;
   const runSettled =
     run !== null &&
@@ -38,10 +36,6 @@ type InboxThreadInput = Pick<
   "id" | "environmentId" | "createdAt" | "reopenedAt" | "latestRun"
 >;
 
-/** The inbox lists threads newest first by when each last came back to the
-    user, so a thread that leaves the Working section lands on top.
-    `observedReturnAt` adds returns the server does not stamp, such as an
-    approval request mid-turn or background work ending. */
 export function sortInboxThreadsByReturn<T extends InboxThreadInput>(
   threads: readonly T[],
   observedReturnAt?: (thread: T) => number | undefined,
@@ -66,11 +60,6 @@ type WorkingSortInput = Pick<
   "id" | "environmentId" | "createdAt" | "latestRun" | "latestUserAuthoredMessageAt"
 >;
 
-/** The Working section lists threads newest first by the last message the
-    user sent. Runs ending and wakes (background results, delegated results,
-    PR watches) do not move a row, so the order stays put while agents finish
-    and resume. Servers without the authored stamp fall back to the latest
-    run's request time. */
 export function sortWorkingThreadsBySend<T extends WorkingSortInput>(threads: readonly T[]): T[] {
   const timestamps = new Map(
     threads.map((thread) => [
@@ -120,12 +109,9 @@ export function createInboxReturnTracker() {
         present.add(key);
         if (isThreadWorking(thread)) working.add(key);
       }
-      // Drop deleted threads so the map stays bounded by the live thread list.
       for (const key of returns.keys()) {
         if (!present.has(key)) returns.delete(key);
       }
-      // The moment this client saw the change is the data; there is no
-      // server stamp to read instead.
       // @effect-diagnostics-next-line globalDate:off
       const at = Date.now();
       for (const key of lastWorkingKeys ?? []) {

@@ -3,7 +3,6 @@ import { defineConfig } from "vite-plus";
 import * as NodeURL from "node:url";
 import antiSlop from "ultracite/oxlint/anti-slop";
 
-/** Import restrictions every file keeps, including the one module exempt from the glyph rule. */
 const RESTRICTED_IMPORT_PATHS = [
   {
     name: "@supaterm/client-runtime",
@@ -17,11 +16,6 @@ const RESTRICTED_IMPORT_PATHS = [
   },
 ];
 
-/**
- * The cva functions behind components/ui exports. They style a foreign element to look
- * like a Button or Toggle, which bypasses the component's variants; render the component
- * instead (`render={<Button …/>}`, or `SelectButton` for a picker trigger).
- */
 const RESTRICTED_UI_VARIANT_PATTERNS = [
   {
     group: ["**/components/ui/*", "**/ui/*", "./ui/*"],
@@ -31,7 +25,6 @@ const RESTRICTED_UI_VARIANT_PATTERNS = [
   },
 ];
 
-/** Lucide's pull-request glyphs, which only `pullRequestIcons.tsx` may name. */
 const RESTRICTED_PULL_REQUEST_GLYPH_IMPORTS = {
   name: "lucide-react",
   importNames: [
@@ -79,7 +72,6 @@ export default defineConfig({
     ],
   },
   staged: {
-    // Formatter only for now — no lint or typecheck on commit.
     "*": "vp fmt --no-error-on-unmatched-pattern",
   },
   fmt: {
@@ -94,6 +86,8 @@ export default defineConfig({
       "*.tsbuildinfo",
       ".mise/locks/**",
       "**/routeTree.gen.ts",
+      "**/*.graphql.ts",
+      "packages/source-control-github/schema/**",
       "apps/mobile/android/**",
       "apps/mobile/ios/**",
       "apps/mobile/uniwind-types.d.ts",
@@ -118,6 +112,8 @@ export default defineConfig({
       "pnpm-lock.yaml",
       "*.tsbuildinfo",
       "**/routeTree.gen.ts",
+      "**/*.graphql.ts",
+      "packages/source-control-github/schema/**",
       "apps/mobile/android/**",
       "apps/mobile/ios/**",
       "apps/mobile/uniwind-types.d.ts",
@@ -184,6 +180,7 @@ export default defineConfig({
       ],
       "supaterm/no-global-process-runtime": "error",
       "supaterm/no-inline-schema-compile": "error",
+      "supaterm/no-low-value-comments": "error",
       "supaterm/no-manual-effect-runtime-in-tests": "error",
       "supaterm/no-native-title-tooltip": "error",
       "supaterm/no-raw-mcp-registration": "error",
@@ -227,7 +224,6 @@ export default defineConfig({
         rules: { "supaterm/no-rpc-permission-bypass": ["error", { allowRawClientAccess: false }] },
       },
       {
-        // Only shared command boundaries install the session-backed permission guard.
         files: [
           "packages/client-runtime/src/state/runtime.ts",
           "packages/client-runtime/src/state/vcsAction.ts",
@@ -240,7 +236,6 @@ export default defineConfig({
         },
       },
       {
-        // These clients are session metadata, device streams, and an Expo update adapter.
         files: [
           "apps/web/src/components/settings/ConnectionsSettings.tsx",
           "apps/mobile/src/features/updates/app-updates.ts",
@@ -250,12 +245,10 @@ export default defineConfig({
         rules: { "supaterm/no-rpc-permission-bypass": ["error", { allowRawClientAccess: true }] },
       },
       {
-        // Incompatible hosts cannot open a normal session; their updater uses a dedicated socket.
         files: ["packages/client-runtime/src/connection/outdatedHostUpdate.ts"],
         rules: { "supaterm/no-rpc-permission-bypass": "off" },
       },
       {
-        // RPC implementation and transport test fixtures need the raw client.
         files: [
           "packages/client-runtime/src/rpc/**",
           "**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
@@ -263,12 +256,18 @@ export default defineConfig({
         rules: { "supaterm/no-rpc-permission-bypass": "off" },
       },
       {
-        // The one place that reads the host platform to seed the injected references.
         files: ["packages/shared/src/HostProcess.ts"],
         rules: { "supaterm/no-global-process-runtime": "off" },
       },
       {
-        // The registration helpers that only accept handlers built by McpToolAccess.
+        // The `supaterm` npm launcher is published as plain, dependency-free Node.
+        files: ["scripts/npm-launcher/**"],
+        rules: {
+          "supaterm/no-global-process-runtime": "off",
+          "supaterm/namespace-node-imports": "off",
+        },
+      },
+      {
         files: ["apps/server/src/mcp/McpHttpServer.ts"],
         rules: { "supaterm/no-raw-mcp-registration": "off" },
       },
@@ -286,8 +285,6 @@ export default defineConfig({
         },
       },
       {
-        // The one module allowed to name lucide's pull-request glyphs; everything else picks
-        // from its vocabulary. The other import restrictions still apply here.
         files: ["apps/web/src/components/pullRequest/pullRequestIcons.tsx"],
         rules: { "eslint/no-restricted-imports": ["error", { paths: RESTRICTED_IMPORT_PATHS }] },
       },
@@ -306,19 +303,14 @@ export default defineConfig({
         rules: { "supaterm/no-raw-resize-observer": "error" },
       },
       {
-        // Every class in web code must be one Tailwind generates: a typo or a class nothing
-        // declares ships silently unstyled. JS hooks use data attributes, not class names.
         files: ["apps/web/src/**"],
         rules: { "shadcn/no-unknown-classes": "error" },
       },
       {
-        // State indicators paint inward; decorative rings keep their own geometry.
         files: ["apps/web/src/**"],
         rules: { "supaterm/no-outset-state-indicators": "error" },
       },
       {
-        // Colors come from theme tokens so status tones follow custom themes. components/ui
-        // has no findings and stays covered too.
         files: ["apps/web/src/**"],
         rules: { "shadcn/no-raw-colors": "error" },
       },
@@ -329,41 +321,24 @@ export default defineConfig({
         rules: { "shadcn/no-raw-colors": "off" },
       },
       {
-        // components/ui exports own their look. App code picks a variant or size instead
-        // of restyling with className; layout classes (width, flex, margin, position) stay
-        // allowed because placement belongs to the parent. components/ui is for generic
-        // primitives: a look that belongs to one feature stays in that feature's component.
         files: ["apps/web/src/**"],
         excludeFiles: ["apps/web/src/components/ui/**"],
         rules: {
-          // A className built at runtime on a ui component is one no-restyle cannot read.
           "shadcn/require-static-classes": "error",
-          // Appearance values come from the theme and Tailwind's scales. Layout stays free
-          // (placement belongs to the parent); the other entries are values no scale can hold.
           "shadcn/no-arbitrary-values": [
             "error",
             {
               allow: [
                 "layout",
-                // Which properties an element animates is per-element behaviour, like layout,
-                // not a design value; timing curves and durations still come from the theme.
                 "transition",
-                // Overlays that follow their frame's corner, which is set at runtime
-                // (floating preview) or by the element they decorate (composer outline).
                 "rounded-[inherit]",
-                // Inline chips size in em so they scale with the text they sit in
-                // (the composer honours the prompt font-size preference).
                 "gap-[0.33em]",
                 "px-[0.5em]",
                 "rounded-[0.5em]",
                 "text-[0.86em]",
-                // Project icons render from 14px to 48px and keep one proportional corner.
                 "rounded-[25%]",
-                // An emoji project icon fills its container, whatever size the parent gives it.
                 "text-[length:80cqh]",
-                // The platform's own selection colour on a selected composer chip.
                 "bg-[Highlight]",
-                // Brand marks keep their brand colours (Cursor, Grok, Claude).
                 "fill-[#26251E]",
                 "fill-[#EDECEC]",
                 "fill-[#0F0F0F]",
@@ -404,7 +379,6 @@ export default defineConfig({
         rules: { "supaterm/no-hermes-unsupported-apis": "error" },
       },
       {
-        // Reviewed native and third-party interop boundaries that cannot consume a className.
         files: [
           "apps/mobile/src/features/archive/ArchivedThreadsScreen.tsx",
           "apps/mobile/src/features/connection/ConnectionsNewRouteScreen.tsx",
@@ -443,7 +417,6 @@ export default defineConfig({
     options: {
       denyWarnings: true,
       reportUnusedDisableDirectives: "error",
-      // Revisit once Oxlint's tsgolint path can integrate with @effect/tsgo diagnostics.
       typeAware: false,
       typeCheck: false,
     },

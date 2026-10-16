@@ -29,7 +29,6 @@ interface ThreadPreviewTabs {
   readonly serverEpoch: string | null;
   readonly revision: number;
   readonly sessions: ReadonlyArray<PreviewSessionSnapshot>;
-  /** A list result has arrived, so `sessions` covers tabs opened before this view. */
   readonly listed: boolean;
 }
 
@@ -65,7 +64,6 @@ function applyEvent(current: ThreadPreviewTabs, event: PreviewEvent): ThreadPrev
       };
     }
   } else {
-    // Keep a tab's place so the picker order is stable.
     sessions[index === -1 ? sessions.length : index] = event.snapshot;
   }
   return { ...current, serverEpoch: event.serverEpoch, revision: event.revision, sessions };
@@ -122,7 +120,6 @@ const threadPreviewTabsAtom = Atom.family((threadKey: string) => {
     get.mount(eventsAtom);
     const cached = get.once(listAtom);
     if (AsyncResult.isSuccess(cached)) state = applyList(cached.value) ?? state;
-    // The cached list can predate an agent-opened tab.
     queueMicrotask(() => {
       if (!disposed) get.refresh(listAtom);
     });

@@ -82,8 +82,6 @@ describe("normalizeGitRemoteUrl", () => {
   });
 
   it("leaves an Azure SSH host it cannot read as the path it was given", () => {
-    // Not `v3`, and not four segments: rewriting either would invent a repository that the web
-    // spelling has no name for, so the remote stands as it arrived.
     expect(normalizeGitRemoteUrl("git@ssh.dev.azure.com:v4/Supaterm/Platform/Supaterm")).toBe(
       "ssh.dev.azure.com/v4/supaterm/platform/supaterm",
     );
@@ -124,7 +122,6 @@ describe("parseOriginUrlFromGitConfig", () => {
     expect(parseOriginUrlFromGitConfig("[remote.origin]\n\turl = git@github.com:a/b.git\n")).toBe(
       "git@github.com:a/b.git",
     );
-    // Git folds the dotted form to lowercase but keeps quoted names as written.
     expect(parseOriginUrlFromGitConfig("[remote.Origin]\n\turl = git@github.com:a/b.git\n")).toBe(
       "git@github.com:a/b.git",
     );

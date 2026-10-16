@@ -367,7 +367,6 @@ function sortDesktopPairingLinks(links: ReadonlyArray<ServerPairingLinkRecord>) 
   );
 }
 
-/** Closed-header summary for the Authorized clients fold. */
 function summarizeAuthorizedClients(
   sessions: ReadonlyArray<ServerClientSessionRecord>,
   links: ReadonlyArray<ServerPairingLinkRecord>,
@@ -457,9 +456,7 @@ function endpointDefaultPreferenceKey(endpoint: AdvertisedEndpoint): string {
   let scheme = "unknown";
   try {
     scheme = new URL(endpoint.httpBaseUrl).protocol.replace(/:$/u, "");
-  } catch {
-    // Keep the stored preference stable even if a custom endpoint is malformed.
-  }
+  } catch {}
 
   return `${endpoint.provider.id}:${endpoint.reachability}:${scheme}:${endpoint.label}`;
 }
@@ -602,8 +599,6 @@ const PairingLinkListRow = memo(function PairingLinkListRow({
   );
   const [isRevealDialogOpen, setIsRevealDialogOpen] = useState(false);
   const [isQrPanelOpen, setIsQrPanelOpen] = useState(false);
-  // Ephemeral per-row choice of which endpoint the QR encodes (AdvertisedEndpoint.id);
-  // null falls back to the saved default endpoint.
   const [qrEndpointId, setQrEndpointId] = useState<string | null>(null);
   const qrPanelId = useId();
 
@@ -657,13 +652,10 @@ const PairingLinkListRow = memo(function PairingLinkListRow({
       : isLoopbackHostname(window.location.hostname)
         ? null
         : currentOriginPairingUrl);
-  // Value of the copy attempt that last failed. The clipboard-failure reveal
-  // dialog must show exactly what failed to copy, not the row's default URL.
   const [failedCopyValue, setFailedCopyValue] = useState<string | null>(null);
   const revealValue = failedCopyValue ?? shareablePairingUrl ?? credential ?? "";
   const isRevealValueUrl = revealValue !== credential;
   const isRevealValueHostedAppPairingUrl = isRevealValueUrl && isHostedAppPairingUrl(revealValue);
-  // Never render a QR for a loopback URL, even in the manual-copy fallback.
   const isRevealValueQrShareable =
     endpointCopyOptions.find((option) => option.url === revealValue)?.qrShareable ?? true;
   const canCopyToClipboard =
@@ -738,9 +730,6 @@ const PairingLinkListRow = memo(function PairingLinkListRow({
     defaultEndpointKey,
   );
   const qrPairingUrl = selectedQrOption?.url ?? shareablePairingUrl;
-  // With no endpoint list the fallback is never loopback: selectPairingEndpoint
-  // skips loopback and the current-origin fallback is guarded by
-  // isLoopbackHostname, so only an explicit loopback selection hides the QR.
   const canRenderQrForSelection = selectedQrOption?.qrShareable ?? true;
   if (expiresAtMs <= nowMs) {
     return null;
@@ -1323,7 +1312,6 @@ function savedBackendStatus(environment: EnvironmentPresentation): {
       return { text: "Connecting", tone: "warning" };
     case "reconnecting":
       return { text: "Reconnecting", tone: "warning" };
-    // Not a failure: the machine is fine, this build just cannot talk to it.
     case "unsupported":
       return { text: "Client not supported", tone: "muted" };
     case "error":
@@ -1335,11 +1323,6 @@ function savedBackendStatus(environment: EnvironmentPresentation): {
   }
 }
 
-/**
- * One added machine in the Environments list. The switch is the main action;
- * the update icon appears only when that machine can take an update; the
- * row menu holds the icon override, trace ID, and removal.
- */
 function SavedBackendListRow({
   environment,
   removingEnvironmentId,
@@ -1412,8 +1395,6 @@ function SavedBackendListRow({
   const routeCount = connectionRoutes(environment.entry).length;
   const transportLabel = environmentTransportLabel(environment);
 
-  // Only a connected, enabled machine can take a remote update; a switched-off
-  // one keeps the version note so the icon is not a surprise later.
   const showUpdateAction =
     enabled &&
     isConnected &&
@@ -1637,8 +1618,6 @@ export function ConnectionsSettings() {
     ? (primarySessionState.data.scopes ?? null)
     : null;
   const currentAuthPolicy = desktopBridge ? null : (primarySessionState.data?.auth.policy ?? null);
-  // Catalog order is the order the machines were added; rows never jump when
-  // one is switched off.
   const savedEnvironments = useMemo(
     () =>
       environments.filter(
@@ -1646,8 +1625,6 @@ export function ConnectionsSettings() {
       ),
     [environments],
   );
-  // The WSL backend is managed from the WSL row under this machine, so it has
-  // no row of its own in the list.
   const listedEnvironments = useMemo(
     () =>
       savedEnvironments.filter(
@@ -1655,9 +1632,6 @@ export function ConnectionsSettings() {
       ),
     [savedEnvironments],
   );
-  // Machines "Update all" can reach: switched on, connected, behind the client
-  // version, remotely updatable, and not already mid-update. The button only
-  // renders when this list is non-empty.
   const savedServerUpdateStatesAtom = useMemo(
     () =>
       Atom.make((get) =>
@@ -1681,7 +1655,6 @@ export function ConnectionsSettings() {
           !environment.entry.enabled ||
           environment.connection.phase !== "connected" ||
           isDesktopLocalConnectionTarget(environment.entry.target) ||
-          // Manual-update machines only offer a copy command on their row.
           selfUpdate === null ||
           (selfUpdate === "desktop-managed" && !desktopAppUpdate)
         ) {
@@ -1700,10 +1673,6 @@ export function ConnectionsSettings() {
       }),
     [savedServerUpdateStates],
   );
-  // Switched-off machines never receive threads, so they stay out of the
-  // load balancing and GitHub sharing lists. The WSL backend has no row in
-  // the Environments list but does take threads, so it stays in here. This
-  // machine leads the list.
   const loadBalancingEnvironments = useMemo(
     () => [
       ...(primaryEnvironment ? [primaryEnvironment] : []),
@@ -1734,7 +1703,6 @@ export function ConnectionsSettings() {
   const [desktopAccessManagementMutationError, setDesktopAccessManagementMutationError] = useState<
     string | null
   >(null);
-  // Only this client's creation response can supply a shareable credential.
   const [createdPairingCredentials, setCreatedPairingCredentials] = useState<
     ReadonlyMap<string, CreatedPairingCredential>
   >(() => new Map());
@@ -1768,7 +1736,6 @@ export function ConnectionsSettings() {
   const [savedBackendSshUsername, setSavedBackendSshUsername] = useState("");
   const [savedBackendSshPort, setSavedBackendSshPort] = useState("");
   const [sshHostSuggestionsOpen, setSshHostSuggestionsOpen] = useState(false);
-  // Tracks the arrow-key/hover highlight so Enter selects it instead of submitting the typed text.
   const highlightedSshHostRef = useRef<DesktopDiscoveredSshHost | undefined>(undefined);
   const [savedBackendError, setSavedBackendError] = useState<string | null>(null);
   const [isAddingSavedBackend, setIsAddingSavedBackend] = useState(false);
@@ -1779,24 +1746,9 @@ export function ConnectionsSettings() {
   const [isUpdatingTailscaleServe, setIsUpdatingTailscaleServe] = useState(false);
   const [isUpdatingWslBackend, setIsUpdatingWslBackend] = useState(false);
   const [desktopWslMutationError, setDesktopWslMutationError] = useState<string | null>(null);
-  // Pending WSL setting change waiting on user confirmation. Set when
-  // the user tries a destructive change (disable, switch distro,
-  // toggle wsl-only) while the WSL backend has saved-env state on this
-  // machine. Confirming applies the change; cancelling drops it
-  // without touching the persisted setting. Null when nothing is
-  // pending.
   type PendingWslChange =
-    // wasWslOnly is true when the user picked Off while wsl-only mode
-    // was active. In that case "disable" also clears wsl-only and
-    // relaunches onto the Windows backend, because leaving wsl-only on
-    // with wslBackendEnabled off is a meaningless state (wsl-only is
-    // only honoured when the WSL backend is enabled).
     | { readonly kind: "disable"; readonly wasWslOnly: boolean }
     | { readonly kind: "distro"; readonly nextDistro: string | null }
-    // Asked at enable time so the user picks the mode upfront instead
-    // of being dropped into "both backends" and having to discover the
-    // wsl-only switch separately. Resolved through enable-mode action
-    // buttons on the dialog rather than a single Confirm.
     | { readonly kind: "enable"; readonly nextDistro: string | null }
     | { readonly kind: "wsl-only"; readonly nextValue: boolean };
   const [pendingWslChange, setPendingWslChange] = useState<PendingWslChange | null>(null);
@@ -2134,7 +2086,6 @@ export function ConnectionsSettings() {
     }
   }, [primaryEnvironmentId]);
 
-  // Shared by manual SSH submission and discovered-host selection.
   const connectSavedBackendSshTarget = useCallback(
     async (target: DesktopSshEnvironmentTarget) => {
       setIsAddingSavedBackend(true);
@@ -2266,7 +2217,6 @@ export function ConnectionsSettings() {
     [handleAddSavedBackend, savedBackendSshHost],
   );
 
-  // Resolves a picked alias before connecting it through the manual SSH flow.
   const handleSelectSshHostSuggestion = useCallback(
     async (target: DesktopDiscoveredSshHost) => {
       if (isAddingSavedBackend || !desktopBridge) return;
@@ -2293,7 +2243,6 @@ export function ConnectionsSettings() {
     (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.nativeEvent.isComposing || event.keyCode === 229) return;
 
-      // The popup only renders when there is content, so an "open" flag alone is not enough.
       const isSshHostPopupVisible = sshHostSuggestionsOpen && hasSshHostSuggestionContent;
       if (isSshHostPopupVisible) {
         const command = resolveShortcutCommand(event, keybindings, {
@@ -2317,7 +2266,6 @@ export function ConnectionsSettings() {
         }
       }
 
-      // A highlighted row means Enter belongs to the autocomplete, which selects it.
       const hasHighlightedSshHost =
         isSshHostPopupVisible && highlightedSshHostRef.current !== undefined;
       if (
@@ -2387,11 +2335,8 @@ export function ConnectionsSettings() {
     [removeEnvironment],
   );
 
-  // Removing forgets the pairing, credentials, and cached threads on this
-  // device. Switching off is the reversible path, so removal always confirms.
   const handleRemoveSavedBackend = useCallback(
     async (environment: EnvironmentPresentation) => {
-      // Fail closed: no mounted confirm host means no removal.
       const confirmed = await requestConfirmDialog(
         `Remove ${environment.label} from this device?\nThis forgets its pairing, credentials, and cached threads here. Switch it off instead to keep it saved.`,
         { variant: "destructive" },
@@ -2756,12 +2701,6 @@ export function ConnectionsSettings() {
           );
         })
       : null;
-  // Apply a setting change immediately. The orchestrator reconciles the
-  // pool in the background and the primary backend is untouched, so we
-  // don't gate this behind a confirmation dialog. After the desktop
-  // side persists the change and nudges its orchestrator, we trigger
-  // the renderer's reconciler so the WSL backend's saved-env-shaped
-  // entry catches up (registers/unregisters) without a reload.
   const applyWslSettingChange = useCallback(
     async (apply: () => Promise<DesktopWslState>) => {
       if (
@@ -2775,10 +2714,6 @@ export function ConnectionsSettings() {
       try {
         await apply();
         refreshDesktopWslState();
-        // The connection platform source polls the desktop bootstrap list and
-        // reconciles the environment catalog automatically, so toggling the WSL
-        // backend on/off or switching distros is picked up here without an
-        // explicit renderer reconcile.
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to update WSL backend.";
         setDesktopWslMutationError(message);
@@ -2797,29 +2732,17 @@ export function ConnectionsSettings() {
     [desktopBridge, primaryEnvironmentId],
   );
 
-  // Reload the keep-alive WSL state atom. Clearing the mutation error before
-  // refresh lets the atom-owned load error become the visible retry state.
   const loadWslState = useCallback(() => {
     setDesktopWslMutationError(null);
     refreshDesktopWslState();
   }, []);
 
-  // True when a desktop-local WSL backend is currently registered as an
-  // environment on this machine. We use this as a proxy for "the user has work
-  // that lives on the WSL side": if WSL has connected in a way that registered
-  // the env, disabling or switching distros could disrupt open threads/projects.
-  // If WSL never connected (fresh install, toggled on then immediately off,
-  // etc.) there's no local environment, so we skip the confirmation dialog.
   const hasWslRegistrationToLose = useMemo(() => {
     return environments.some((environment) =>
       isDesktopLocalConnectionTarget(environment.entry.target),
     );
   }, [environments]);
 
-  // Single picker for "WSL backend off" vs "running on distro X". The
-  // dropdown maps "Off" to disable and any distro entry to enable +
-  // run on that distro. Splitting these into a separate switch and
-  // dropdown was confusing — they're the same decision.
   const handleSelectWslMode = useCallback(
     (value: string) => {
       if (!desktopBridge || !desktopWslState) return;
@@ -2832,9 +2755,6 @@ export function ConnectionsSettings() {
         // still clear that state instead of silently no-op'ing.
         if (!desktopWslState.enabled && !desktopWslState.wslOnly) return;
         const wasWslOnly = desktopWslState.wslOnly;
-        // Confirm when there's WSL state to lose, OR when wsl-only is
-        // on (turning the only running backend off needs to switch
-        // back to Windows and restart — always consequential).
         if (hasWslRegistrationToLose || wasWslOnly) {
           setPendingWslChange({ kind: "disable", wasWslOnly });
           return;
@@ -2845,21 +2765,11 @@ export function ConnectionsSettings() {
       const nextDistro = value === BACKEND_VALUE_DEFAULT_WSL ? null : value;
       const resolvedNext = nextDistro ?? defaultDistroName;
       if (!desktopWslState.enabled) {
-        // Was off, user picked a distro: ask whether to run both
-        // backends or only WSL. We always ask here so the user picks
-        // the mode upfront instead of having to discover the wsl-only
-        // switch afterwards.
         setPendingWslChange({ kind: "enable", nextDistro });
         return;
       }
-      // Already enabled — treat as a distro switch. Skip the change if
-      // the user re-picked the row that's already selected.
       const resolvedCurrent = desktopWslState.distro ?? defaultDistroName;
       if (resolvedCurrent === resolvedNext) return;
-      // Confirm when there's WSL registration to lose, OR in wsl-only mode:
-      // there the primary IS the WSL backend, so a distro change relaunches
-      // the app (the IPC handler does this) rather than swapping a secondary,
-      // and the user should see that coming.
       if (hasWslRegistrationToLose || desktopWslState.wslOnly) {
         setPendingWslChange({ kind: "distro", nextDistro });
         return;
@@ -2869,7 +2779,6 @@ export function ConnectionsSettings() {
     [applyWslSettingChange, desktopBridge, desktopWslState, hasWslRegistrationToLose],
   );
 
-  // Dispatched from the enable modal's two action buttons.
   const handleConfirmEnableWsl = useCallback(
     (mode: "both" | "wsl-only") => {
       if (!desktopBridge || !pendingWslChange || pendingWslChange.kind !== "enable") return;
@@ -2891,12 +2800,6 @@ export function ConnectionsSettings() {
   const handleToggleWslOnly = useCallback(
     (enabled: boolean) => {
       if (!desktopBridge || !desktopWslState || desktopWslState.wslOnly === enabled) return;
-      // wsl-only changes which backend the pool uses as "primary",
-      // which is decided once at app launch. The desktop side persists
-      // the setting immediately but doesn't tear down or restart
-      // anything itself; the renderer warns the user to expect a
-      // restart and (in a follow-up) can trigger it automatically.
-      // Always prompt — even enabling is consequential here.
       setPendingWslChange({ kind: "wsl-only", nextValue: enabled });
     },
     [desktopBridge, desktopWslState],
@@ -2905,15 +2808,12 @@ export function ConnectionsSettings() {
   const handleConfirmWslChange = useCallback(() => {
     if (!desktopBridge || !pendingWslChange) return;
     const change = pendingWslChange;
-    // The enable kind resolves through handleConfirmEnableWsl, not
-    // this single Confirm path.
     if (change.kind === "enable") return;
     setPendingWslChange(null);
     if (change.kind === "disable") {
       void applyWslSettingChange(async () => {
         const next = await desktopBridge.setWslBackendEnabled(false);
         if (change.wasWslOnly) {
-          // Clearing wsl-only relaunches onto the Windows backend.
           return await desktopBridge.setWslOnly(false);
         }
         return next;
@@ -2929,11 +2829,6 @@ export function ConnectionsSettings() {
 
   const renderWslRow = () => {
     if (!desktopWslState) {
-      // A load failed: keep a recovery row (with retry) visible instead of
-      // silently hiding the section. The error persists across an in-flight
-      // retry so the row doesn't flicker away, and the button reflects the
-      // loading state. With no error we simply haven't loaded yet (or WSL
-      // management isn't available), so render nothing.
       if (
         isWslSettingsRowVisible({ state: null, error: desktopWslError }) &&
         canManageLocalBackend
@@ -2958,13 +2853,6 @@ export function ConnectionsSettings() {
       }
       return null;
     }
-    // WSL went unavailable while the user still has the WSL backend persisted
-    // (it may have been uninstalled or its distro removed). The desktop side
-    // falls back to the Windows backend, but the normal distro picker needs a
-    // live distro list it no longer has. Without a control here the user would
-    // be stranded on a WSL preference they can't clear, so render a recovery
-    // row that switches back to Windows. When WSL is unavailable AND unused,
-    // there's nothing to recover — keep the section hidden as before.
     if (!isWslSettingsRowVisible({ state: desktopWslState, error: desktopWslError })) {
       return null;
     }
@@ -2991,10 +2879,6 @@ export function ConnectionsSettings() {
         />
       );
     }
-    // Distro is null when the user wants the WSL default. Map it to the
-    // real default's name so the Select highlights a real option; fall
-    // back to the sentinel only when no distros are listed yet (the
-    // dropdown then renders a single placeholder that matches).
     const defaultDistroName =
       desktopWslState.distros.find((distro) => distro.isDefault)?.name ?? null;
     const selectValue = !desktopWslState.enabled

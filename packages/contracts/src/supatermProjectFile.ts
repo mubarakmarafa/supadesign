@@ -5,7 +5,6 @@ import { ThreadEnvMode, WorktreeSubmodules } from "./environment.ts";
 import { ProjectScriptIcon } from "./project.ts";
 import type { ProjectScopedServerSettingKey, ServerSettings } from "./settings.ts";
 
-/** File name of the checked-in Supaterm project file, resolved at the workspace root. */
 export const SUPATERM_PROJECT_FILE_NAME = "supaterm.json";
 
 /** Public URL of the published JSON Schema for {@link SupatermProjectFile}. */
@@ -114,13 +113,10 @@ export const SupatermProjectFile = Schema.Struct({
 export type SupatermProjectFile = typeof SupatermProjectFile.Type;
 
 /**
- * Settings a repository can also declare in supaterm.json. A key here must be
- * nullable on `ServerSettings` (null means inherit) so both the project
- * override and the environment value can defer to the file; `field` names
- * the supaterm.json field carrying the same value and `builtIn` is what applies
- * when every tier is unset. `resolveProjectSettings` walks project override,
- * environment value, file, built-in, so listing a key here is the whole
- * change for a new file-backed setting.
+ * A key here must be nullable on `ServerSettings` (null means inherit) so both
+ * the project override and the environment value can defer to the file; `field`
+ * names the supaterm.json field carrying the same value and `builtIn` is what applies
+ * when every tier is unset.
  */
 export const PROJECT_FILE_BACKED_SETTINGS = {
   defaultThreadEnvMode: { field: "defaultThreadEnvMode", builtIn: "local" },
@@ -142,11 +138,6 @@ export const PROJECT_FILE_BACKED_SETTINGS = {
 };
 export type ProjectFileBackedSettingKey = keyof typeof PROJECT_FILE_BACKED_SETTINGS;
 
-/**
- * `ServerSettings` with every file-backed key resolved to a concrete value.
- * What `resolveProjectSettings(...).settings` produces once a supaterm.json (or
- * its absence) has been accounted for.
- */
 export type ResolvedServerSettings = Omit<ServerSettings, ProjectFileBackedSettingKey> & {
   readonly [K in ProjectFileBackedSettingKey]: Exclude<ServerSettings[K], null>;
 };

@@ -23,7 +23,6 @@ function CollapsiblePanel({
   animate = true,
   ...props
 }: CollapsiblePrimitive.Panel.Props & { animate?: boolean }) {
-  // https://ui.shadcn.com/docs/components/base/collapsible
   return (
     <CollapsiblePrimitive.Panel
       className={cn(

@@ -13,18 +13,7 @@ import packageJson from "../../package.json" with { type: "json" };
 
 export type CliRunner = "npx" | "pnpm dlx" | "bunx";
 
-/**
- * How the CLI was launched, judged by where its entry script lives. Each
- * package runner executes out of a distinctive cache/temp layout:
- *
- *   npx      ~/.npm/_npx/<hash>/node_modules/...
- *   pnpm dlx ~/.cache/pnpm/dlx/..., $PNPM_HOME/.pnpm/dlx/...,
- *            or %LOCALAPPDATA%/pnpm-cache/dlx/... on Windows
- *   bunx     ~/.bun/install/cache/... or $TMPDIR/bunx-<uid>-<spec>/...
- *
- * Global installs and repo checkouts match none of these and return null.
- * Detection is best-effort; callers must fail closed to a plain `supaterm` command.
- */
+/** Detection is best-effort; callers must fail closed to a plain `supaterm` command. */
 function detectCliRunner(entryPath: string): CliRunner | null {
   const path = entryPath.replaceAll("\\", "/");
   if (path.includes("/_npx/")) {
@@ -47,31 +36,51 @@ const InstallManifest = Schema.Struct({
   name: Schema.String,
   version: Schema.String,
   bin: Schema.optionalKey(Schema.Struct({ supaterm: Schema.String })),
-  optionalDependencies: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
 });
 const decodeInstallManifest = Schema.decodeUnknownEffect(Schema.fromJsonString(InstallManifest));
 
-/** Prove the running package and its global bin belong together before suggesting an update. */
+/**
+ * The script this CLI was started through: the `supaterm` npm launcher that
+ * downloaded and ran this executable (it names itself in
+ * `SUPATERM_NPM_LAUNCHER_PATH`), or the Node entry script of a build run from
+ * source. A standalone executable has none and reports its own path.
+ *
+ * The variable is inherited by everything the server spawns, so a launcher
+ * counts only when its package is this exact version: a different `supaterm` run
+ * from an agent's shell must not claim to be the npm install.
+ */
+const resolveEntryPath = Effect.gen(function* () {
+  const npmLauncher = (yield* HostProcess.Environment).SUPATERM_NPM_LAUNCHER_PATH?.trim();
+  if (npmLauncher) {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const manifest = yield* fs
+      .readFileString(path.join(path.dirname(npmLauncher), "../package.json"))
+      .pipe(Effect.flatMap(decodeInstallManifest), Effect.option);
+    if (
+      Option.isSome(manifest) &&
+      manifest.value.name === "supaterm" &&
+      manifest.value.version === packageJson.version
+    ) {
+      return npmLauncher;
+    }
+  }
+  if (yield* HostProcess.IsExecutable) return yield* HostProcess.ExecutablePath;
+  return (yield* HostProcess.Arguments)[1] ?? "";
+});
+
 export const resolveServerInstallation = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const args = yield* HostProcess.Arguments;
-  const executable = yield* HostProcess.IsExecutable;
-  const executablePath = yield* HostProcess.ExecutablePath;
   const platform = yield* HostProcess.Platform;
-  const entry = yield* fs.realPath(executable ? executablePath : (args[1] ?? ""));
-  const match =
-    /^(.*)\/lib\/node_modules\/supaterm\/(?:bin\/supaterm\.js|node_modules\/@supabitapp\/supaterm-[^/]+\/supaterm)$/.exec(
-      entry,
-    );
+  const entry = yield* fs.realPath(yield* resolveEntryPath);
+  const match = /^(.*)\/lib\/node_modules\/supaterm\/bin\/supaterm\.mjs$/.exec(entry);
   if (!match) {
     const runner = detectCliRunner(entry);
     return runner === null
       ? null
       : ({ kind: runner === "pnpm dlx" ? "pnpm-dlx" : runner } satisfies ServerInstallation);
   }
-  // A global prefix can contain runner-like names; prove its ownership first.
-  // Windows shims and other package managers need their own ownership proof.
   if (platform === "win32") return null;
   const prefix = match[1] || "/";
   if (
@@ -88,28 +97,14 @@ export const resolveServerInstallation = Effect.gen(function* () {
   if (manifest.name !== "supaterm" || !manifest.bin) return null;
   const bin = yield* fs.realPath(path.join(packageRoot, manifest.bin.supaterm));
   const globalBin = yield* fs.realPath(path.join(prefix, "bin/supaterm"));
-  if (globalBin !== bin) return null;
-  if (executable) {
-    const nativeManifest = yield* fs
-      .readFileString(path.join(path.dirname(entry), "package.json"))
-      .pipe(Effect.flatMap(decodeInstallManifest));
-    if (
-      manifest.bin.supaterm !== "./bin/supaterm.js" ||
-      manifest.optionalDependencies?.[nativeManifest.name] !== nativeManifest.version ||
-      nativeManifest.version !== manifest.version
-    )
-      return null;
-  } else if (bin !== entry) {
-    return null;
-  }
+  if (globalBin !== bin || bin !== entry) return null;
   return { kind: "npm-global", prefix } satisfies ServerInstallation;
 }).pipe(Effect.orElseSucceed(() => null));
 
 /**
- * The `supaterm` package spec to suggest. The literal spec the user typed (e.g.
- * `supaterm@nightly`) is resolved away before our process starts, so re-derive it
- * from the running version: nightly builds re-suggest the nightly channel,
- * anything else suggests the bare package.
+ * The literal spec the user typed (e.g. `supaterm@nightly`) is resolved away before
+ * our process starts, so re-derive it from the running version: nightly builds
+ * re-suggest the nightly channel, anything else suggests the bare package.
  */
 function suggestedPackageSpec(version: string): string {
   const channel = /^[^-+]+-(nightly|preview)\./.exec(version)?.[1];
@@ -134,47 +129,83 @@ export function formatCliCommand(input: {
   return `${runner} ${suggestedPackageSpec(input.version)} ${input.subcommand}`;
 }
 
-/** `formatCliCommand` against this process's real entry path and version. */
 export const resolveCliCommand = (subcommand: string) =>
-  Effect.map(HostProcess.Arguments, (processArguments) =>
-    formatCliCommand({
-      subcommand,
-      entryPath: processArguments[1] ?? "",
-      version: packageJson.version,
-    }),
+  Effect.map(resolveEntryPath, (entryPath) =>
+    formatCliCommand({ subcommand, entryPath, version: packageJson.version }),
   );
 
 const shellWord = (value: string) =>
   /^[\w@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", `'"'"'`)}'`;
 
-const resolveInstallCommand = Effect.gen(function* () {
+/**
+ * Quotes `value` for PowerShell, the default Windows terminal. Always quoted,
+ * so a path reads the same whether or not it holds a space. Inside double
+ * quotes `"` and its typographic forms (which also end the string) double,
+ * and `$` and the backtick are escaped so nothing expands.
+ */
+const powershellWord = (value: string) =>
+  `"${value
+    .replaceAll("`", "``")
+    .replaceAll("$", "`$")
+    .replace(/["\u201C\u201D\u201E]/g, "$&$&")}"`;
+
+/** Quotes a word for the host's shell: POSIX, or PowerShell on Windows. */
+const hostShellWord = (platform: NodeJS.Platform, value: string) =>
+  platform === "win32" ? powershellWord(value) : shellWord(value);
+
+const electronRunAsNodePrefix = (platform: NodeJS.Platform) =>
+  platform === "win32" ? "$env:ELECTRON_RUN_AS_NODE=1; " : "env ELECTRON_RUN_AS_NODE=1 ";
+
+/**
+ * The words a person can type to run this install when `supaterm` is not on
+ * PATH: the desktop app's `supaterm` shim, a standalone binary, or this
+ * process's runtime and entrypoint, which an Electron runtime only runs as
+ * Node with `ELECTRON_RUN_AS_NODE=1`.
+ */
+const resolveInstallLauncher = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const shim = (yield* HostProcess.Environment).SUPATERM_CLI_SHIM_PATH?.trim();
+  const environment = yield* HostProcess.Environment;
+  const shim = environment.SUPATERM_CLI_SHIM_PATH?.trim();
   if (shim && (yield* fs.exists(shim).pipe(Effect.orElseSucceed(() => false)))) {
-    return Option.some(shellWord(shim));
+    return Option.some({ words: [shim], runAsNode: false });
   }
   const invocation = yield* resolveSelfInvocation();
-  if (invocation.entrypoint === undefined) return Option.some(shellWord(invocation.command));
-  if (!(yield* fs.exists(invocation.entrypoint).pipe(Effect.orElseSucceed(() => false)))) {
-    return Option.none<string>();
+  if (invocation.entrypoint === undefined) {
+    return Option.some({ words: [invocation.command], runAsNode: false });
   }
-  const command = `${shellWord(invocation.command)} ${shellWord(invocation.entrypoint)}`;
-  return Option.some(
-    (yield* HostProcess.Environment).ELECTRON_RUN_AS_NODE === "1"
-      ? `env ELECTRON_RUN_AS_NODE=1 ${command}`
-      : command,
-  );
+  if (!(yield* fs.exists(invocation.entrypoint).pipe(Effect.orElseSucceed(() => false)))) {
+    return Option.none();
+  }
+  return Option.some({
+    words: [invocation.command, invocation.entrypoint],
+    runAsNode: environment.ELECTRON_RUN_AS_NODE === "1",
+  });
 });
 
-const resolveHostCliCommand = (subcommand: string) =>
+/**
+ * `supaterm <subcommand> <args>` for a person to run on this host: `supaterm` when it is
+ * on PATH, the package runner this process came from, or else the absolute
+ * path of the launcher for this install, such as the one the desktop app
+ * installs. `args` are quoted for the host's shell: POSIX, or PowerShell on
+ * Windows.
+ */
+export const resolveHostCliCommand = (subcommand: string, args: ReadonlyArray<string> = []) =>
   Effect.gen(function* () {
+    const platform = yield* HostProcess.Platform;
+    const withArgs = (prefix: string) =>
+      [prefix, ...args.map((arg) => hostShellWord(platform, arg))].join(" ");
     const command = yield* resolveCliCommand(subcommand);
-    if (command !== `supaterm ${subcommand}`) return { command, launcher: false };
-    if (yield* isCommandAvailable("supaterm")) return { command, launcher: false };
-    const launcher = yield* resolveInstallCommand;
-    return Option.isSome(launcher)
-      ? { command: `${launcher.value} ${subcommand}`, launcher: true }
-      : { command, launcher: false };
+    if (command !== `supaterm ${subcommand}`)
+      return { command: withArgs(command), launcher: false };
+    if (yield* isCommandAvailable("supaterm"))
+      return { command: withArgs(command), launcher: false };
+    const launcher = yield* resolveInstallLauncher;
+    if (Option.isNone(launcher)) return { command: withArgs(command), launcher: false };
+    const quoted = launcher.value.words.map((word) => hostShellWord(platform, word)).join(" ");
+    // PowerShell runs a quoted path only through the call operator.
+    const call = platform === "win32" ? `& ${quoted}` : quoted;
+    const runAsNode = launcher.value.runAsNode ? electronRunAsNodePrefix(platform) : "";
+    return { command: withArgs(`${runAsNode}${call} ${subcommand}`), launcher: true };
   });
 
 export const resolveRootCliCommand = (subcommand: string) =>
@@ -188,7 +219,6 @@ export const resolveRootCliCommand = (subcommand: string) =>
     return systemNode ? `sudo ${command}` : `sudo env "PATH=$PATH" ${command}`;
   });
 
-/** Debian and Ubuntu's sudo `secure_path`, minus snap. */
 const ROOT_PATH_DIRECTORIES = [
   "/usr/local/sbin",
   "/usr/local/bin",

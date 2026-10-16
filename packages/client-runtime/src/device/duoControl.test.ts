@@ -114,7 +114,6 @@ it("pinches only a hit device, accumulates independently of native readback, cla
   expect(pinch.active).toBe(false);
 });
 
-// Screen configs as an iPhone Duo simulator reports them for each way of holding the device.
 it.each([
   [
     "vertical phone, closed",
@@ -169,7 +168,6 @@ it("falls back like the 3D view when hinge fields are missing", () => {
     fold: "closed",
     phoneVertical: true,
   });
-  // Without a display ID the 3D view draws the open inner panel, so the controls do too.
   expect(duoFoldState({ orientation: "landscape_left" })).toMatchObject({
     fold: "open",
     phoneVertical: true,

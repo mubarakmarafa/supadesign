@@ -16,9 +16,9 @@ import Reanimated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { MaterialButton } from "../../components/MaterialButton";
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
+import { Button } from "../../components/ui/Button";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { beginQueuedRunEdit, useQueuedRunEdit } from "../../state/queued-run-edit";
@@ -99,8 +99,6 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
     }
   }, [order, translation]);
 
-  // Nothing left to manage: the sheet closes rather than sitting on an empty
-  // list the user has to dismiss themselves.
   const hadQueuedRuns = useRef(queuedRuns.length > 0);
   useEffect(() => {
     if (queuedRuns.length > 0) {
@@ -313,7 +311,6 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
                       setDragRows(null);
                       translation.setValue(0);
                     };
-                    // A remote reorder or a newly started run invalidates this drag.
                     if (!success || started?.order !== order || started.runId !== run.id) {
                       stop();
                       return;
@@ -395,7 +392,7 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
             style={{ paddingBottom: Math.max(insets.bottom, 16) + 12 }}
           >
             <Text className="text-center text-sm text-foreground-muted">Paused after restart</Text>
-            <MaterialButton
+            <Button
               label={resuming ? "Resuming…" : "Resume queue"}
               tone="primary"
               fullWidth

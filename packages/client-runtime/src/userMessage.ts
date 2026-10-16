@@ -13,7 +13,6 @@ export function resolveUserMessagePresentation(message: {
   readonly scheduledTaskId?: ScheduledTaskId;
 }): {
   readonly text: string;
-  /** Who sent a user-role message the user did not type. */
   readonly attribution: "automation" | "agent" | "supaterm" | null;
   readonly scheduledTaskId: ScheduledTaskId | undefined;
 } {
@@ -29,7 +28,6 @@ export function resolveUserMessagePresentation(message: {
   }
   return {
     text: message.text,
-    // Restart continuations were sent as the agent before they became notices.
     attribution:
       message.createdBy !== "agent"
         ? null

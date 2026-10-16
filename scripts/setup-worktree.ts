@@ -29,10 +29,13 @@ const miseInstall = NodeChildProcess.spawnSync("mise", ["install"], {
 if (miseInstall.status !== 0) process.exit(miseInstall.status ?? 1);
 
 // `-- --yes` passes pnpm's confirmation flag through vp.
-const install = NodeChildProcess.spawnSync("mise", ["exec", "--", "vp", "i", "--", "--yes"], {
-  cwd: worktree,
-  stdio: unattended,
-});
+// Install exactly the locked dependencies so setup never rewrites the lockfile.
+// A stale lockfile must fail setup rather than silently resolving a new one.
+const install = NodeChildProcess.spawnSync(
+  "mise",
+  ["exec", "--", "vp", "i", "--frozen-lockfile", "--", "--yes"],
+  { cwd: worktree, stdio: unattended },
+);
 if (install.status !== 0) process.exit(install.status ?? 1);
 
 // Env files live as real files in the main checkout; worktrees only get

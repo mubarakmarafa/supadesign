@@ -31,8 +31,7 @@ type NetworkInterfacesMap = ReturnType<typeof NodeOS.networkInterfaces>;
 
 /**
  * Stays under the config read's own discovery timeout, so a slow `tailscale`
- * CLI drops only the tailnet name and never the LAN addresses. An empty list
- * would make clients forget the routes they learned.
+ * CLI drops only the tailnet name and never the LAN addresses.
  */
 const TAILSCALE_ENDPOINT_TIMEOUT = Duration.seconds(3);
 
@@ -65,11 +64,6 @@ const isTailscaleInterface = (
   /^tailscale/i.test(name) ||
   entries.some((entry) => entry.family === "IPv6" && isTailnetHost(entry.address));
 
-/**
- * Plain HTTP endpoints for the private addresses a server bound to `host`
- * accepts. IPv4 only: link-local and temporary IPv6 addresses change too
- * often to be worth saving.
- */
 export function resolveBoundEndpoints(input: {
   readonly host: string | undefined;
   readonly port: number;

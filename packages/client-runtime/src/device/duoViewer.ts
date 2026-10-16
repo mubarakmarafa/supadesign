@@ -51,7 +51,6 @@ export interface DuoViewer {
   readonly dispose: () => void;
 }
 
-/** On-demand renderer for the articulated body. One inner framebuffer spans both leaves; HID belongs to the stream. */
 export function createDuoViewer(options: {
   canvas: HTMLCanvasElement;
   sources: Record<DuoPanelId, HTMLCanvasElement>;
@@ -140,7 +139,6 @@ export function createDuoViewer(options: {
     if (!model || !screen?.supportsPhysicalOrientation || !options.onPanelRequested)
       return activeSnaps();
     const cover = duoViewSnaps(model.restFrames(1), 1);
-    // A shut inner display is occluded and cannot become a useful rest view.
     return angle > 20 && angle < 180
       ? [...duoViewSnaps(model.restFrames(3), 3), ...cover]
       : activeSnaps();
@@ -200,7 +198,6 @@ export function createDuoViewer(options: {
     model.setAngle(angle);
     appliedAngle = angle;
     if (before && hingeLeaf) {
-      // The primary surface stays in camera space; its partner supplies the fold.
       // Rebase both the displayed rotation and its rest target so releasing a
       // pinch cannot resume the pre-fold body rotation.
       const correction = before.multiply(model.leafRotation(hingeLeaf).invert());
@@ -551,9 +548,6 @@ export function createDuoViewer(options: {
       if (!leaf) return false;
       clearHandoff();
       requestedOrientation = null;
-      // The right inner leaf and the shut cover share the front-facing plane.
-      // Holding that leaf lets the cover replace the inner image without a
-      // half turn, even when the pinch starts over the moving partner.
       hingeLeaf = screen.screenId === 1 && angle > 20 ? "left" : "right";
       orbit.setPose(orbit.rotation.clone(), performance.now(), true);
       model.cancelInput();

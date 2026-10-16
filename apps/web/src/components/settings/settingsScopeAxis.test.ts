@@ -25,10 +25,19 @@ describe("settings scope environment labels", () => {
     const environments = [first, second];
     expect(
       environments.map((environment) => settingsScopeEnvironmentLabel(environment, environments)),
-    ).toEqual([
-      "Development · https://first.example.com",
-      "Development · https://second.example.com",
-    ]);
+    ).toEqual(["Development · first.example.com", "Development · second.example.com"]);
+  });
+
+  it("names same-name relay machines by relay name instead of the relay host", () => {
+    const relay = (environmentId: string, key: string) => ({
+      environmentId: EnvironmentId.make(environmentId),
+      label: "Development",
+      displayUrl: `https://${key.repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`,
+    });
+    const environments = [relay("first", "11"), relay("second", "33")];
+    expect(
+      environments.map((environment) => settingsScopeEnvironmentLabel(environment, environments)),
+    ).toEqual(["Development · Relay · cello-owl-wind", "Development · Relay · koala-otter-shore"]);
   });
 
   it("falls back to environment IDs when duplicate names have no display URL", () => {

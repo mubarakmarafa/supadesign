@@ -34,7 +34,7 @@ it.effect("ModelSelection rejects malformed instance ids", () =>
   Effect.gen(function* () {
     const result = yield* Effect.exit(
       decodeModelSelection({
-        instanceId: "1invalid", // must start with a letter
+        instanceId: "1invalid",
         model: "x",
       }),
     );

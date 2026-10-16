@@ -48,10 +48,6 @@ import {
   UnresolvedChip,
 } from "./contextChipParts";
 
-/**
- * Draft-side payload behind a context reference chip. Each kind keeps its existing draft
- * shape; the editor only needs a way to look one up by id.
- */
 export type ComposerDraftContextRecord =
   | { kind: "terminal"; record: TerminalContextDraft }
   | { kind: "review-comment"; record: ReviewCommentContext }
@@ -65,7 +61,6 @@ export type ComposerDraftContextRecord =
   | { kind: "file"; record: ComposerFileAttachment; upload?: AttachmentUploadState | undefined }
   | { kind: "thread"; record: ThreadContextRecord };
 
-/** What a chip can do beyond showing itself; the composer supplies the handlers. */
 export interface ComposerContextActions {
   environmentId: EnvironmentId | null;
   cwd?: string | undefined;
@@ -448,7 +443,6 @@ const composerContextPresentationRegistry = createContextPresentationRegistry<
   fallback: (_kind, _entry, context) => <UnresolvedContextChip label={context.label} />,
 });
 
-/** Compact chip for one reference. Unknown kinds and missing records use the registry fallback. */
 export function ComposerContextReferenceChip(props: {
   kind: string;
   contextId: string;

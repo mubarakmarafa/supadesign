@@ -201,7 +201,6 @@ describe("sidebar collision detection", () => {
       expect(at(330)).toBe("active");
       expect(at(317)).toBe("active");
       expect(at(316)).toBe("pinned");
-      // The preview moves the divider; a stationary pointer must not undo the drop target.
       boundaryTop = 400;
       expect(at(316)).toBe("pinned");
       expect(at(399)).toBe("pinned");
@@ -343,7 +342,6 @@ describe("sidebar drag projection", () => {
     const restored = preview({ ...input, enabled: false }, active, over);
     for (const transform of restored.values()) expect(transform).toEqual(stationary);
 
-    // Returning to the sidebar resumes the same live reorder preview.
     expect(preview({ ...input, enabled: true }, active, over)).toEqual(reordered);
   });
 
@@ -398,7 +396,6 @@ describe("sidebar drag projection", () => {
       doneExpanded: true,
     });
     const args = layout(pinned, active, over);
-    // dnd-kit moves the lifted row by the pointer delta, so only peers matter.
     for (let index = 0; index < pinned.length; index += 1) {
       if (index === args.activeIndex) continue;
       expect(strategy({ ...args, index })).toEqual(verticalListSortingStrategy({ ...args, index }));
@@ -497,8 +494,6 @@ describe("sidebar drag projection", () => {
       doneHeader,
       thread("s", "done"),
     ];
-    // Reorder inside active: the header gap shifts every row, the divider
-    // gap shifts the active rows and the shelf below by a second label.
     const result = preview(
       { items, doneOrder: [], doneExpanded: true, boundaryLabelHeight: 16 },
       "a2",
@@ -751,9 +746,7 @@ describe("sidebar drag projection", () => {
       marker("done-placeholder"),
     ];
     const input = { items, doneOrder: [], doneExpanded: false };
-    // By pointer, the unpinned row lands between a1 and a2.
     expect(preview(input, "p", "a1").get("a2")?.y).toBe(0);
-    // By time, it lands below a2, and the shelf does not move.
     const byTime = preview({ ...input, activeOrder: ["a1", "a2", "p"] }, "p", "a1");
     expect(byTime.get("a2")?.y).toBe(-49);
     expect(byTime.get(sidebarMarkerId("working-header"))).toEqual(stationary);

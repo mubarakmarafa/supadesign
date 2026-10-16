@@ -26,12 +26,6 @@ function reportScratchFailure(title: string, error: unknown) {
   );
 }
 
-/**
- * Threads without a project live in the environment's scratch project, a
- * plain folder the server owns (users see it as "No project"). The server
- * creates it on first use; after that it is an ordinary project on the
- * non-git path, and each thread gets its own subfolder.
- */
 export function useScratchProject() {
   const { environments } = useEnvironments();
   const projects = useProjects();
@@ -59,9 +53,6 @@ export function useScratchProject() {
     [scratchWorkspaceRoots],
   );
 
-  // A thread without a project starts on the machine the user is working on,
-  // and only there. With no current machine (the hosted app with nothing
-  // open), it starts on the one machine that offers it, never a silent pick.
   const scratchEnvironmentId = useCallback(
     (current: EnvironmentId | null): EnvironmentId | null => {
       if (current !== null) return scratchWorkspaceRootFor(current) !== null ? current : null;
@@ -73,7 +64,6 @@ export function useScratchProject() {
     [environments, scratchWorkspaceRootFor],
   );
 
-  /** Resolves to the scratch project once it is in this client's store. */
   const openScratchProject = useCallback(
     async (
       environmentId: EnvironmentId,

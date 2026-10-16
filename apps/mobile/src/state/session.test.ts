@@ -47,7 +47,6 @@ const session = (canOperate: boolean): AuthSessionState => ({
     sessionCookieName: "session",
   },
 });
-// The production atom is read-only; the fake session source is writable.
 const source = (id: EnvironmentId) =>
   environmentSession.sessionStateAtom(id) as unknown as Atom.Writable<
     AsyncResult.AsyncResult<AuthSessionState, Error>

@@ -38,7 +38,6 @@ function Textarea({
         render={(defaultProps) => (
           <textarea
             className={cn(
-              // Auto-grows with content up to one cap, then scrolls.
               "min-h-17.5 max-h-64 w-full rounded-[inherit] px-[calc(--spacing(3)-1px)] py-[calc(--spacing(1.5)-1px)] outline-none wrap-anywhere max-sm:min-h-20.5",
               autoGrow ? "field-sizing-content" : "field-sizing-fixed resize-none",
               size === "sm" &&

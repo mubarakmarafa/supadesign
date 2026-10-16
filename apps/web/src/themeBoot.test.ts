@@ -18,8 +18,6 @@ import {
 } from "./themePalette";
 
 const THEME_STORAGE_KEY = "supaterm:theme";
-// A custom theme that omits chrome falls back to the runtime default, so the
-// boot copy of that default stays derived from the real palette.
 const DEFAULT_DARK_CHROME = getStandardThemeColors("dark").chrome;
 const DRACULA = getThemeDefinition("dracula")!;
 const CATPPUCCIN_LATTE = getThemeDefinition("catppuccin-latte")!;
@@ -102,7 +100,6 @@ function runBootScript(options: {
   };
 }
 
-/** Mirrors getStored + readAppearanceModePreference + resolveThemeAppearance from the runtime. */
 function runtimeResolvedAppearance(
   storage: Record<string, string>,
   prefersDark: boolean,
@@ -314,9 +311,6 @@ describe("index.html boot script", () => {
     expect(boot.backgroundColor).toBe(colors.chrome);
   });
 
-  // Asserting against the real palette definitions (not literals) turns the
-  // boot script's hand-maintained copy into a CI-enforced contract: any
-  // palette change breaks this test until the copy in index.html is updated.
   it("keeps every built-in boot splash in sync with the real palettes", () => {
     for (const theme of BUILT_IN_THEMES) {
       // Every built-in carries one appearance, so it boots in that mode even

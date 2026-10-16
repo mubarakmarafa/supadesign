@@ -9,29 +9,6 @@ import {
   TrimmedNonEmptyString,
 } from "./baseSchemas.ts";
 
-/**
- * Declares the server's overall authentication posture.
- *
- * This is a high-level policy label that tells clients how the environment is
- * expected to be accessed, not a transport detail and not an exhaustive list
- * of every accepted credential.
- *
- * Typical usage:
- * - rendered in auth/pairing UI so the user understands what kind of
- *   environment they are connecting to
- * - used by clients to decide whether silent desktop bootstrap is expected or
- *   whether an explicit pairing flow should be shown
- *
- * Meanings:
- * - `desktop-managed-local`: local desktop-managed environment with narrow
- *   trusted bootstrap, intended to avoid login prompts on the same machine
- * - `loopback-browser`: standalone local server intended for browser pairing on
- *   the same machine
- * - `remote-reachable`: environment intended to be reached from other devices
- *   or networks, where explicit pairing/auth is expected
- * - `unsafe-no-auth`: intentionally unauthenticated mode; this is an explicit
- *   unsafe escape hatch, not a normal deployment mode
- */
 export const ServerAuthPolicy = Schema.Literals([
   "desktop-managed-local",
   "loopback-browser",
@@ -115,7 +92,6 @@ export type AuthGrantScope = typeof AuthGrantScope.Type;
 export const AuthGrantScopes = Schema.Array(AuthGrantScope);
 export type AuthGrantScopes = typeof AuthGrantScopes.Type;
 
-/** Format public auth metadata without changing the server's authorization grant. */
 export function authScopeResponse(scopes: ReadonlyArray<AuthEnvironmentScope>) {
   return { scopes };
 }
@@ -166,26 +142,6 @@ export const AuthAccessTokenType = "urn:ietf:params:oauth:token-type:access_toke
 export const AuthEnvironmentBootstrapTokenType =
   "urn:supaterm:params:oauth:token-type:environment-bootstrap" as const;
 
-/**
- * Server-advertised auth capabilities for a specific execution environment.
- *
- * Clients should treat this as the authoritative description of how that
- * environment expects to be paired and how authenticated requests should be
- * made afterward.
- *
- * Field meanings:
- * - `policy`: high-level auth posture for the environment
- * - `bootstrapMethods`: pairing/bootstrap methods the server is currently
- *   willing to accept
- * - `sessionMethods`: authenticated request/session methods the server supports
- *   once pairing is complete
- * - `sessionCookieName`: cookie name clients should expect when
- *   `browser-session-cookie` is in use
- *
- * This descriptor is intentionally capability-oriented. It lets clients choose
- * the right UX without embedding server-specific auth logic or assuming a
- * single access method.
- */
 export const ServerAuthDescriptor = Schema.Struct({
   policy: ServerAuthPolicy,
   bootstrapMethods: Schema.Array(ServerAuthBootstrapMethod),
@@ -265,7 +221,6 @@ export const AuthPairingCredentialResult = Schema.Struct({
 });
 export type AuthPairingCredentialResult = typeof AuthPairingCredentialResult.Type;
 
-// Read models contain metadata only. Credentials are returned by creation alone.
 export const AuthPairingLink = Schema.Struct({
   id: TrimmedNonEmptyString,
   ...authScopeResponseFields,
@@ -401,10 +356,6 @@ export const AuthSessionState = Schema.Struct({
 });
 export type AuthSessionState = typeof AuthSessionState.Type;
 
-/**
- * What an agent signed in through MCP OAuth may do, least to most: only read,
- * or act on threads that never run above the given runtime mode.
- */
 export const AuthMcpClientAccess = Schema.Literals([
   "read-only",
   "approval-required",
@@ -414,7 +365,6 @@ export const AuthMcpClientAccess = Schema.Literals([
 ]);
 export type AuthMcpClientAccess = typeof AuthMcpClientAccess.Type;
 
-/** RFC 9728 metadata for an environment's `/mcp` resource. */
 export const AuthMcpProtectedResourceMetadata = Schema.Struct({
   resource: Schema.String,
   authorization_servers: Schema.Array(Schema.String),
@@ -424,7 +374,6 @@ export const AuthMcpProtectedResourceMetadata = Schema.Struct({
 });
 export type AuthMcpProtectedResourceMetadata = typeof AuthMcpProtectedResourceMetadata.Type;
 
-/** RFC 8414 metadata for the authorization server MCP clients sign in through. */
 export const AuthMcpAuthorizationServerMetadata = Schema.Struct({
   issuer: Schema.String,
   authorization_endpoint: Schema.String,
@@ -439,7 +388,6 @@ export const AuthMcpAuthorizationServerMetadata = Schema.Struct({
 });
 export type AuthMcpAuthorizationServerMetadata = typeof AuthMcpAuthorizationServerMetadata.Type;
 
-/** RFC 7591 client metadata. Fields the server does not use are dropped. */
 export const AuthMcpClientRegistration = Schema.Struct({
   client_name: Schema.optionalKey(Schema.String),
   redirect_uris: Schema.optionalKey(Schema.Array(Schema.String)),
@@ -457,7 +405,6 @@ export const AuthMcpRegisteredClient = Schema.Struct({
 }).pipe(HttpApiSchema.status(201));
 export type AuthMcpRegisteredClient = typeof AuthMcpRegisteredClient.Type;
 
-/** RFC 7591 §3.2.2 registration error. */
 export class AuthMcpRegistrationError extends Schema.Error<AuthMcpRegistrationError>(
   "AuthMcpRegistrationError",
 )(
@@ -473,8 +420,7 @@ export class AuthMcpRegistrationError extends Schema.Error<AuthMcpRegistrationEr
 }
 
 /**
- * An agent's authorization request, as the approval page received it in its
- * URL. Every field is checked by the server, so all are optional here.
+ * Every field is checked by the server, so all are optional here.
  */
 export const AuthMcpAuthorizationRequest = Schema.Struct({
   response_type: Schema.optionalKey(Schema.String),
@@ -488,20 +434,14 @@ export const AuthMcpAuthorizationRequest = Schema.Struct({
 export type AuthMcpAuthorizationRequest = typeof AuthMcpAuthorizationRequest.Type;
 
 /**
- * What the approval page needs to show for an MCP OAuth sign-in. The server
- * has already validated the request; nothing here is trusted by the client
- * except for display.
+ * The server has already validated the request; nothing here is trusted by the
+ * client except for display.
  */
 export const AuthMcpApprovalDetails = Schema.Struct({
   /** Self-declared by the client, so shown as such. */
   clientName: Schema.String,
-  /**
-   * Where the code goes: a loopback address on the browser's machine (a CLI
-   * agent), or an https host (a hosted agent).
-   */
   redirectHost: Schema.String,
   environmentHost: Schema.String,
-  /** Present when this browser's session may approve without a pairing code. */
   csrfToken: Schema.optionalKey(Schema.String),
   /**
    * What that session may approve in one click: only access whose scopes it
@@ -511,10 +451,6 @@ export const AuthMcpApprovalDetails = Schema.Struct({
 });
 export type AuthMcpApprovalDetails = typeof AuthMcpApprovalDetails.Type;
 
-/**
- * Where the approval page sends the browser next: back to the agent with a
- * code, a denial, or a protocol error the agent should receive.
- */
 export const AuthMcpApprovalRedirect = Schema.Struct({
   redirectTo: Schema.String,
 });
@@ -526,7 +462,6 @@ export const AuthMcpApprovalDecision = Schema.Union([
     access: AuthMcpClientAccess,
     code: TrimmedNonEmptyString,
   }),
-  /** One click, for a browser session that may approve (see `csrfToken`). */
   Schema.TaggedStruct("browser-session", {
     access: AuthMcpClientAccess,
     csrfToken: Schema.String,
@@ -540,14 +475,12 @@ export const AuthMcpApprovalDecisionRequest = Schema.Struct({
 });
 export type AuthMcpApprovalDecisionRequest = typeof AuthMcpApprovalDecisionRequest.Type;
 
-/** A problem the approval page shows the user without redirecting anywhere. */
 export class AuthMcpApprovalError extends Schema.TaggedError<AuthMcpApprovalError>()(
   "AuthMcpApprovalError",
   { message: Schema.String },
   { httpApiStatus: 400 },
 ) {}
 
-/** RFC 6749 §4.1.3 token request. Every field is checked by the server. */
 export const AuthMcpTokenRequest = Schema.Struct({
   grant_type: Schema.optionalKey(Schema.String),
   code: Schema.optionalKey(Schema.String),
@@ -566,7 +499,6 @@ export const AuthMcpTokenResult = Schema.Struct({
 });
 export type AuthMcpTokenResult = typeof AuthMcpTokenResult.Type;
 
-/** RFC 6749 §5.2 token error. */
 export class AuthMcpTokenError extends Schema.Error<AuthMcpTokenError>("AuthMcpTokenError")(
   {
     error: Schema.Literals([

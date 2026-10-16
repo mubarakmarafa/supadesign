@@ -87,8 +87,6 @@ function roundTrip(value: string) {
   return serializeEditorDoc(doc);
 }
 
-// Plain mode: the same engine with the mark extensions off. Markers stay
-// literal characters and task lines stay paragraphs.
 const plainSchema = getSchemaByResolvedExtensions(
   resolveExtensions([
     StarterKit.configure({
@@ -855,7 +853,6 @@ describe("composer rich text document model", () => {
     const value = "a **bold** c";
     const map = roundTrip(value);
     expect(map.value).toBe(value);
-    // document text is "a bold c" (flat), markdown has the markers.
     expect(flatToMarkdown(map, 2)).toBe(4);
     expect(flatToMarkdown(map, 6)).toBe(10);
     expect(collapsedToFlat(map, 3)).toBe(2);
@@ -922,8 +919,6 @@ describe("pasting into a list item or quote", () => {
 describe("pasting into a path query", () => {
   const skillLabelFor = (name: string) => ({ label: name, description: null });
 
-  // Inserts `pasted` at the end of a one-line prompt the way the composer's
-  // paste handler does. `prompt` may be a document, to place the caret after a chip.
   function paste(prompt: string | ProseMirrorNode, pasted: string, pathQueryActive = true) {
     const promptDoc =
       typeof prompt === "string"
@@ -1030,7 +1025,6 @@ describe("caret stops at styled edges", () => {
     const outside = inside.apply(step!);
     expect(caretTakesMarksBefore(outside)).toBe(true);
     expect(typed(outside, "x")).toBe("x**bold** tail");
-    // Already outside: the next ArrowLeft moves the caret as usual.
     expect(stepCaretAcrossStyledEdge(outside, -1)).toBeNull();
 
     const back = outside.apply(stepCaretAcrossStyledEdge(outside, 1)!);
@@ -1049,7 +1043,6 @@ describe("caret stops at styled edges", () => {
   });
 
   it("offers both stops where styled text meets plain text mid-line", () => {
-    // Caret after "a ": types plain until ArrowRight steps into the bold.
     const plain = stateAt("a **b** c", 3);
     expect(caretTakesMarksBefore(plain)).toBe(true);
     expect(typed(plain, "x")).toBe("a x**b** c");
@@ -1058,7 +1051,6 @@ describe("caret stops at styled edges", () => {
   });
 
   it("offers the plain stop between bold text and a chip right after it", () => {
-    // Markdown needs a space before a mention, but deleting it leaves them adjacent.
     const doc = schema.node("doc", null, [
       schema.node("paragraph", null, [
         schema.text("bold", [schema.marks.bold!.create()]),

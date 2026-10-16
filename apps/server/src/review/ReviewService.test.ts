@@ -173,7 +173,6 @@ describe("ReviewService", () => {
         prefix: "supaterm-review-workspace-",
       });
       const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-base-" });
-      // Stands in for a project on another drive than the server's home cwd.
       const projectRoot = yield* fs.makeTempDirectoryScoped({ prefix: "supaterm-review-project-" });
       const projectChild = `${projectRoot}/packages/app`;
       yield* fs.makeDirectory(projectChild, { recursive: true });

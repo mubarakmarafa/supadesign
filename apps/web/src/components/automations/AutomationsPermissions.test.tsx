@@ -86,7 +86,19 @@ vi.mock("../settings/useSettingsProjectGroups", () => ({ useSettingsProjectGroup
 vi.mock("../../hooks/useNowMinute", () => ({
   useNowMinuteMs: () => Date.parse("2026-10-07T12:00:00Z"),
 }));
-vi.mock("@effect/atom-react", () => ({ useAtomValue: () => [] }));
+vi.mock("@effect/atom-react", async () => {
+  const { AsyncResult } = await import("effect/reactivity");
+  return {
+    useAtomValue: (atom: {
+      read?: (get: (query: { environmentId: string }) => unknown) => unknown;
+    }) =>
+      typeof atom?.read === "function"
+        ? atom.read(({ environmentId }) =>
+            AsyncResult.success({ tasks: state.tasks.get(environmentId) ?? [] }),
+          )
+        : [],
+  };
+});
 vi.mock("../EnvironmentMachineIcon", () => ({ EnvironmentMachineIcon: () => null }));
 vi.mock("../WorktreeBaseBranchPicker", () => ({ WorktreeBaseBranchPicker: "div" }));
 vi.mock("../chat/ProviderModelPicker", () => ({ ProviderModelPicker: "div" }));
@@ -399,6 +411,30 @@ describe("automation permissions", () => {
     state.permissions.delete(remoteId);
     await act(async () => edit?.props.onClick());
 
+    expect(textContent(renderer!)).not.toContain("Edit automation");
+  });
+
+  it("folds environments without automations into one line", async () => {
+    state.tasks.set(remoteId, [task(remoteProjectId)]);
+    await act(async () => {
+      renderer = create(<AutomationsPage />);
+    });
+
+    expect(renderer!.root.findAllByProps({ "aria-label": "Remote" })).toHaveLength(1);
+    expect(renderer!.root.findAllByProps({ "aria-label": "Local" })).toHaveLength(0);
+    expect(textContent(renderer!)).toContain("No automations on Local");
+  });
+
+  it("lists a single environment's automations and flags a link it does not have", async () => {
+    state.environments = [environment(remoteId, "Remote")];
+    state.tasks.set(remoteId, [task(remoteProjectId)]);
+    state.search = { environmentId: remoteId, taskId: ScheduledTaskId.make("missing") };
+    await act(async () => {
+      renderer = create(<AutomationsPage />);
+    });
+
+    expect(textContent(renderer!)).toContain("Read only automation");
+    expect(textContent(renderer!)).toContain("Automation unavailable");
     expect(textContent(renderer!)).not.toContain("Edit automation");
   });
 

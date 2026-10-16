@@ -58,7 +58,6 @@ const handlers = {
       }),
   ),
   schedule_task: McpToolAccess.startsThreads(
-    // A scheduled task runs with the caller's own modes.
     () => ({}),
     (input) =>
       Effect.gen(function* () {
@@ -102,9 +101,6 @@ const handlers = {
       return yield* service.listThreads(scope, input);
     }),
   ),
-  // Reading a child's finished result also acknowledges its delivery to the
-  // reader's own thread. That is bookkeeping on the caller's own subagent, not
-  // a change to anything it reads, so this stays a read.
   supaterm_thread_read: McpToolAccess.reads((input) =>
     Effect.gen(function* () {
       const scope = yield* McpInvocationContext.McpInvocationContext;

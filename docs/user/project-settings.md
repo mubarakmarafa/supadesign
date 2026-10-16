@@ -97,7 +97,7 @@ are, and cleanup covers both the default folder and the custom one.
 
 Open **Settings → Storage** to configure automatic cleanup on one machine or all connected
 environments. Cleanup rules for merged, unchanged, and deleted-thread worktrees are on by default;
-inactive-worktree cleanup remains disabled until you choose an age. Policies run on the server at
+inactive-worktree and done-worktree cleanup remain disabled until you choose an age. Policies run on the server at
 startup, when changed, and hourly. Offline machines keep their existing policies.
 
 Select a project to set **Automatic worktree cleanup** to **Inherit**, **Off**, or **Custom**.
@@ -105,9 +105,14 @@ Inherit follows each machine's rules; Off keeps that project's worktrees until y
 manually. Custom applies separate worktree rules to the selected project or checkout. Browser
 captures and log retention remain machine-wide.
 
-Worktrees can be removed after a chosen number of inactive days, after merging, or when they
-have no commits beyond the default branch. Only Supaterm-managed worktrees are eligible. Active
-sessions and shared worktrees prevent removal. **Keep worktrees with local changes** defaults
+Worktrees can be removed after a chosen number of inactive days, a chosen number of days after
+their thread is marked done, after merging, or when they have no commits beyond the default
+branch. Set **Delete done worktrees** to 0 days to remove a worktree at the next cleanup after its
+thread is marked done. A thread marked done automatically counts its done days from its last
+activity, not from when it was marked done. Only Supaterm-managed worktrees are eligible. Active
+sessions prevent removal, and so do other threads sharing the worktree, except a thread's own
+subagents: their shared worktree is removed once the parent qualifies and every subagent is idle.
+**Keep worktrees with local changes** defaults
 to **Uncommitted changes**, which protects tracked edits and untracked files but deletes ignored
 files such as `.env` and build output. **Any local files** also protects ignored files other than
 `node_modules`. **Edited tracked files** protects only tracked edits and allows untracked and
@@ -123,6 +128,7 @@ keep those worktrees and retain the existing prompts for deleting one manually.
 
 Choose **Delete now**, then click again to confirm, to run the enabled rules immediately. The
 latest results show which worktrees were removed or kept and why, plus any failures.
+Results also list folders in the worktree folder that no thread uses, with their sizes; cleanup never removes them, so remove them manually if you want.
 
 Browser captures and rotated logs have separate retention periods. Expired capture links stop
 working. Current logs, message attachments, and browser profiles are kept.

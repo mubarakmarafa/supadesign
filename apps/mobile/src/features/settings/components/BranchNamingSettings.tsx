@@ -9,7 +9,7 @@ import {
 import { useRef } from "react";
 import { View } from "react-native";
 
-import { AppText as Text, AppTextInput } from "../../../components/AppText";
+import { AppText as Text, AppTextInput } from "../../../components/ui/AppText";
 import { SettingsChoiceRow } from "./SettingsChoiceRow";
 import { SettingsSection } from "./SettingsSection";
 

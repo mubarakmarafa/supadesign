@@ -25,7 +25,6 @@ export function retainPendingCreationAttachments(
   );
 }
 
-/** Append the outbox after all presented activity, until the server echoes each message. */
 export function appendPendingThreadMessages(
   presentedFeed: ReadonlyArray<ThreadFeedEntry>,
   feed: ReadonlyArray<ThreadFeedEntry>,

@@ -29,7 +29,7 @@ const make = Effect.gen(function* () {
 
     for (const request of requests) {
       const { threadId, requestId, deadline } = request;
-      const attemptId = yield* crypto.randomUUIDv4.pipe(Effect.orDie);
+      const attemptId = yield* crypto.randomUUIDv4().pipe(Effect.orDie);
       yield* threads
         .dispatch({
           type: "thread.user-input.auto-dismiss",

@@ -21,7 +21,7 @@ const state = vi.hoisted(() => ({
     >(),
 }));
 
-vi.mock("../../components/ScreenScrollView", () => ({ ScreenScrollView: "ScrollView" }));
+vi.mock("../../components/ui/ScreenScrollView", () => ({ ScreenScrollView: "ScrollView" }));
 vi.mock("expo-camera", () => ({
   CameraView: "CameraView",
   useCameraPermissions: () => [{ granted: true }, state.requestCameraPermission],
@@ -64,9 +64,9 @@ vi.mock("../settings/appearance/AppearancePreferencesProvider", () => ({
   useAppearancePreferences: () => ({ themeAppearance: "light" }),
 }));
 vi.mock("../settings/components/SettingsScreen", () => ({ SettingsScreen: "SettingsScreen" }));
-vi.mock("../../components/AppText", () => ({ AppText: "Text", AppTextInput: "TextInput" }));
-vi.mock("../../components/FrostedCutout", () => ({ FrostedCutout: "FrostedCutout" }));
-vi.mock("../../components/AppSymbol", () => ({ SymbolView: "SymbolView" }));
+vi.mock("../../components/ui/AppText", () => ({ AppText: "Text", AppTextInput: "TextInput" }));
+vi.mock("../../components/ui/FrostedCutout", () => ({ FrostedCutout: "FrostedCutout" }));
+vi.mock("../../components/ui/AppSymbol", () => ({ SymbolView: "SymbolView" }));
 vi.mock("../../state/use-remote-environment-registry", () => ({
   setPendingConnectionError: (error: string | null) => {
     state.pairingConnectionError = error;

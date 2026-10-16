@@ -259,7 +259,6 @@ describe("ChatMarkdown favicon privacy", () => {
         renderer!.update(markdown("https://example.com"));
       });
       expect(renderer!.root.findAllByType("img")).toHaveLength(1);
-      // GitHub links draw the brand mark in currentColor instead of fetching a favicon.
       await act(async () => {
         renderer!.update(markdown("https://github.com/supabitapp/supacode-next/pull/1"));
       });
@@ -868,6 +867,36 @@ describe("ChatMarkdown file option chips", () => {
     expect(nestedLinkText).toContain(
       "Bad :codex-file-citation{path=&quot;/tmp/project/report.xlsx&quot;}",
     );
+  });
+});
+
+describe("ChatMarkdown Codex follow-up suggestions", () => {
+  it.each([true, false])("renders the label with parseRawHtml=%s", (parseRawHtml) => {
+    const html = renderToStaticMarkup(
+      <ChatMarkdown
+        cwd="/tmp/project"
+        text={
+          'Done.\n\n- :codex-followup[Prepare print version]{prompt="Prepare the document for printing."}'
+        }
+        lineBreaks={!parseRawHtml}
+        parseRawHtml={parseRawHtml}
+      />,
+    );
+
+    expect(html).toContain("Prepare print version");
+    expect(html).not.toContain("codex-followup");
+    expect(html).not.toContain("Prepare the document for printing.");
+  });
+
+  it("keeps the label of a malformed follow-up created by over-indented list recovery", () => {
+    const html = renderToStaticMarkup(
+      <ChatMarkdown
+        cwd="/tmp/project"
+        text="-       Next :codex-followup[Prepare print version]"
+      />,
+    );
+
+    expect(html).toContain("<li>Next :codex-followup[Prepare print version]</li>");
   });
 });
 

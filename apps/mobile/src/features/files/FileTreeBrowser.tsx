@@ -1,12 +1,12 @@
 import { LegendList } from "@legendapp/list/react-native";
 import type { ProjectEntry } from "@supaterm/contracts";
-import { AppActivityIndicator } from "../../components/AppActivityIndicator";
-import { DisclosureChevron } from "../../components/DisclosureChevron";
+import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
+import { DisclosureChevron } from "../../components/ui/DisclosureChevron";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, RefreshControl, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
+import { AppText as Text } from "../../components/ui/AppText";
 import { PierreEntryIcon } from "../../components/PierreEntryIcon";
 import { cn } from "../../lib/cn";
 import { useNativeColumnLayoutMetrics } from "../../native/native-layout-metrics";

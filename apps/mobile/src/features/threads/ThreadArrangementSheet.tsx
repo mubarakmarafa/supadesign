@@ -19,8 +19,8 @@ import Reanimated, { ReduceMotion, useAnimatedStyle, withTiming } from "react-na
 import { threadDragGapOffset } from "./threadDragGap";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { environmentServerConfigsAtom } from "../../state/server";
 import { environmentThreadShells } from "../../state/threads";
@@ -118,7 +118,6 @@ function useDragHandlePan(latest: RefObject<DragHandleProps>, disabled: boolean)
   return useMemo(() => createDragHandlePan(latest, disabled), [disabled, latest]);
 }
 
-/** Native pan recognition wins over list scrolling only inside the handle. */
 function DragHandle(props: DragHandleProps) {
   const latest = useRef(props);
   useLayoutEffect(() => {
@@ -496,7 +495,6 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
                             if (frame.current !== null) cancelAnimationFrame(frame.current);
                             frame.current = null;
                             drag.current = null;
-                            // Retain the gap until the saved order arrives, avoiding a flash back.
                             void moveThread(current.thread, current.destination).finally(stop);
                           }}
                         />

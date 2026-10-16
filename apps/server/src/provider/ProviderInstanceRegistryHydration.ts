@@ -45,11 +45,9 @@ export const deriveProviderInstanceConfigMap = (
     merged[instanceId] = { driver: driver.driverKind };
   }
 
-  // A project that turns an instance on needs it alive and probed even when
-  // the machine itself has it off, or a thread in that project would route
-  // to an instance nobody ever checked in on. Fold every project's
-  // `providerInstances[id].enabled` overrides in: an instance already enabled
-  // is untouched, and one absent from settings entirely (deleted) stays out.
+  // A project that turns an instance on needs it alive and probed even when the machine itself
+  // has it off, or a thread in that project would route to an instance nobody ever checked in
+  // on.
   for (const overrides of Object.values(settings.projectSettingsOverrides)) {
     for (const [rawInstanceId, projectOverride] of Object.entries(
       overrides?.providerInstances ?? {},
@@ -71,17 +69,6 @@ export const deriveProviderInstanceConfigMap = (
   return merged as ProviderInstanceConfigMap;
 };
 
-/**
- * Layer that consumes `ProviderInstanceRegistryMutator` and forks a
- * settings-watcher fiber. The fiber's lifetime is tied to the enclosing
- * layer scope (process lifetime in production), so it is interrupted on
- * shutdown without leaking.
- *
- * Errors inside the watcher are logged and swallowed — the registry's own
- * "unavailable" bucket already absorbs unknown drivers and invalid
- * configs, so the only way the watcher could fail is a settings stream
- * tear-down, which logs and exits cleanly.
- */
 const layerSettingsWatcher = Layer.effectDiscard(
   Effect.gen(function* () {
     const mutator = yield* ProviderInstanceRegistryMutator.ProviderInstanceRegistryMutator;
@@ -102,22 +89,6 @@ const layerSettingsWatcher = Layer.effectDiscard(
   }),
 );
 
-/**
- * Hydrate `ProviderInstanceRegistry` from `ServerSettings` and keep it in
- * sync with subsequent `streamChanges` emissions.
- *
- * The Layer's two halves:
- *   - `ProviderInstanceRegistry.layer` produces the registry +
- *     mutator from the initial config map. Its scope owns every
- *     per-instance child scope created during reconcile.
- *   - `SettingsWatcherLive` consumes the mutator, acquires its settings
- *     subscription before forking, and runs a daemon fiber in the same scope.
- *
- * Composing via `Layer.provideMerge` makes the watcher's deps available
- * from the mutable layer while still surfacing the registry as an output.
- * The mutator tag is technically also exposed; only this module imports
- * it, so the visibility leak is harmless in practice.
- */
 export const layer: Layer.Layer<
   ProviderInstanceRegistry.ProviderInstanceRegistry,
   never,

@@ -17,7 +17,7 @@ vi.mock("react-native", () => ({
     },
   },
 }));
-vi.mock("../../components/AppText", () => ({ AppText: "span" }));
+vi.mock("../../components/ui/AppText", () => ({ AppText: "span" }));
 
 const startedAt = "2026-10-06T10:00:00.000Z";
 let renderer: ReactTestRenderer | null = null;

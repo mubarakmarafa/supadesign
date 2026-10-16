@@ -30,7 +30,6 @@ export const MuseItem = Schema.Struct({
       }),
     ),
   ),
-  /** `workflow`: the run's result, once it settles. */
   finalSummary: Schema.optional(Schema.String),
   itemId: NonEmptyString,
   kind: NonEmptyString,

@@ -6,6 +6,29 @@ import * as SqlClient from "effect/sql/SqlClient";
 
 import { migrationManifest, runMigrations } from "./Migrations.ts";
 
+const createLedger = (rows: ReadonlyArray<readonly [number, string]>) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql`
+      CREATE TABLE effect_sql_migrations (
+        migration_id INTEGER PRIMARY KEY NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        name VARCHAR(255) NOT NULL
+      )
+    `;
+    for (const [id, name] of rows) {
+      yield* sql`INSERT INTO effect_sql_migrations (migration_id, name) VALUES (${id}, ${name})`;
+    }
+  });
+
+const failedErrorIndex = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  return yield* sql<{ readonly name: string }>`
+    SELECT name FROM sqlite_master
+    WHERE type = 'index' AND name = 'orchestration_v2_projection_turn_items_failed_error_idx'
+  `;
+});
+
 const history = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
   const rows = yield* sql<{ readonly migration_id: number; readonly name: string }>`
@@ -20,6 +43,7 @@ describe("runMigrations", () => {
       const sql = yield* SqlClient.SqlClient;
       assert.deepStrictEqual(yield* runMigrations(), migrationManifest);
       assert.deepStrictEqual(yield* history, migrationManifest);
+      assert.lengthOf(yield* failedErrorIndex, 1);
       assert.deepStrictEqual(yield* runMigrations(), []);
       const metadata = yield* sql<{ readonly last_sequence: number }>`
         SELECT last_sequence FROM orchestration_v2_projection_metadata
@@ -32,26 +56,48 @@ describe("runMigrations", () => {
   it.effect("refuses a database whose migration history came from another build", () =>
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
-      yield* sql`
-        CREATE TABLE effect_sql_migrations (
-          migration_id INTEGER PRIMARY KEY NOT NULL,
-          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          name VARCHAR(255) NOT NULL
-        )
-      `;
-      yield* sql`
-        INSERT INTO effect_sql_migrations (migration_id, name)
-        VALUES (1, 'OrchestrationEvents'), (60, 'PullRequestReviewGuides')
-      `;
+      yield* createLedger([
+        [1, "OrchestrationEvents"],
+        [60, "PullRequestReviewGuides"],
+      ]);
 
       const exit = yield* Effect.exit(runMigrations());
 
       assert.isTrue(Exit.isFailure(exit));
-      assert.include(String(exit), "1_OrchestrationEvents, 60_PullRequestReviewGuides");
+      assert.include(String(exit), "1_Baseline (recorded: OrchestrationEvents)");
       const tables = yield* sql`
         SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'orchestration_events'
       `;
       assert.strictEqual(tables.length, 0);
+    }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
+  );
+
+  it.effect("refuses a history that would skip one of this build's migrations", () =>
+    Effect.gen(function* () {
+      yield* createLedger([[2, "SomeOtherBuild"]]);
+
+      const exit = yield* Effect.exit(runMigrations());
+
+      assert.isTrue(Exit.isFailure(exit));
+      assert.include(String(exit), "1_Baseline (recorded: nothing)");
+    }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
+  );
+
+  it.effect("opens a database a newer Supaterm migrated past this build", () =>
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      yield* runMigrations();
+      const newer = [
+        [2, "ThreadFailureLookupIndex"],
+        [3, "FromANewerBuild"],
+      ] as const;
+      for (const [id, name] of newer) {
+        yield* sql`INSERT INTO effect_sql_migrations (migration_id, name) VALUES (${id}, ${name})`;
+      }
+
+      assert.deepStrictEqual(yield* runMigrations(), []);
+      assert.deepStrictEqual(yield* history, [...migrationManifest, ...newer]);
+      assert.lengthOf(yield* failedErrorIndex, 1);
     }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 });

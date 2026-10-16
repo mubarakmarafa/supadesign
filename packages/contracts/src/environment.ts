@@ -8,7 +8,6 @@ import {
   TrimmedNonEmptyString,
 } from "./baseSchemas.ts";
 
-/** Wire version for orchestration snapshots, streams, commands, and RPC payloads. */
 export const ORCHESTRATION_PROTOCOL_VERSION = 2;
 export const ORCHESTRATION_PROTOCOL_VERSION_TEXT = "2";
 export const ORCHESTRATION_PROTOCOL_QUERY_PARAM = "orchestrationProtocol";
@@ -25,11 +24,6 @@ export type ExecutionEnvironmentPlatformOs = typeof ExecutionEnvironmentPlatform
 export const ExecutionEnvironmentPlatformArch = Schema.Literals(["arm64", "x64", "other"]);
 export type ExecutionEnvironmentPlatformArch = typeof ExecutionEnvironmentPlatformArch.Type;
 
-/**
- * The curated set of machine shapes and OS identities an environment can wear as its icon.
- * Servers detect one from the hardware they run on (`platform.machine`), and
- * the `environmentIcon` server setting lets a user pick one instead.
- */
 export const ENVIRONMENT_MACHINE_KINDS = [
   "server",
   "cloud",
@@ -46,24 +40,16 @@ export const isEnvironmentMachineKind = Schema.is(EnvironmentMachineKind);
 export const ExecutionEnvironmentPlatform = Schema.Struct({
   os: ExecutionEnvironmentPlatformOs,
   arch: ExecutionEnvironmentPlatformArch,
-  /** Hardware shape detected at startup. Absent when the host gives no usable
-      signal (containers, Windows, unknown DMI), on servers that predate it, or
-      when a newer server names a kind this build cannot draw. */
   machine: ForwardCompatibleOptional(EnvironmentMachineKind),
 });
 
 /**
- * Where a new thread runs: the project's current checkout ("local") or a
- * fresh git worktree ("worktree"). Lives here (not settings.ts) so
- * orchestration contracts can reference it without an import cycle.
+ * Lives here (not settings.ts) so orchestration contracts can reference it
+ * without an import cycle.
  */
 export const ThreadEnvMode = Schema.Literals(["local", "worktree"]);
 export type ThreadEnvMode = typeof ThreadEnvMode.Type;
 
-/**
- * How a new worktree populates git submodules: every nested level, only the
- * ones this repository declares, or not at all.
- */
 export const WorktreeSubmodules = Schema.Literals(["recursive", "top-level", "none"]);
 export type WorktreeSubmodules = typeof WorktreeSubmodules.Type;
 export type ExecutionEnvironmentPlatform = typeof ExecutionEnvironmentPlatform.Type;
@@ -75,17 +61,12 @@ export type ExecutionEnvironmentPlatform = typeof ExecutionEnvironmentPlatform.T
 export const ServerSelfUpdateMethod = Schema.Literals(["boot-service", "desktop-app"]);
 export type ServerSelfUpdateMethod = typeof ServerSelfUpdateMethod.Type;
 
-/** Proven ownership for a manual update; unknown installs omit this descriptor. */
 export const ServerInstallation = Schema.Union([
   Schema.Struct({ kind: Schema.Literals(["npx", "pnpm-dlx", "bunx"]) }),
   Schema.Struct({ kind: Schema.Literal("npm-global"), prefix: TrimmedNonEmptyString }),
 ]);
 export type ServerInstallation = typeof ServerInstallation.Type;
 
-/** What update path a client should offer for a server: one of the RPC
-    self-update methods above, or "desktop-managed" when the backend's
-    version belongs to the Supaterm desktop app supervising it — updating the
-    app on that machine is the only way to update the server. */
 export const ServerSelfUpdateCapability = Schema.Literals(["boot-service", "desktop-managed"]);
 export type ServerSelfUpdateCapability = typeof ServerSelfUpdateCapability.Type;
 
@@ -102,8 +83,6 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   serverSelfUpdate: Schema.optionalKey(ServerSelfUpdateCapability),
   /** Manual commands must update this install, not the host's default global prefix. */
   serverInstallation: ForwardCompatibleOptional(ServerInstallation),
-  /** Server can stream self-update progress before acknowledging the
-      restart. Clients fall back to server.updateServer when absent. */
   serverSelfUpdateProgress: Schema.optionalKey(Schema.Boolean),
   /** The desktop app supervising this server can be driven over RPC:
       server.updateServer runs its check -> download -> relaunch. Absent on
@@ -132,11 +111,6 @@ export const RepositoryIdentityLocator = Schema.Struct({
 });
 export type RepositoryIdentityLocator = typeof RepositoryIdentityLocator.Type;
 
-/**
- * The checkout's own remote when it names a different repository than the canonical one, such as
- * a fork that tracks its upstream. Clients group and label by it so a fork stays distinct from the
- * repository it forked, while pull request features keep the canonical identity.
- */
 export const RepositoryOrigin = Schema.Struct({
   canonicalKey: TrimmedNonEmptyString,
   displayName: Schema.optionalKey(TrimmedNonEmptyString),
@@ -146,7 +120,6 @@ export type RepositoryOrigin = typeof RepositoryOrigin.Type;
 export const RepositoryIdentity = Schema.Struct({
   canonicalKey: TrimmedNonEmptyString,
   locator: RepositoryIdentityLocator,
-  /** Repository browser URL resolved from the server's configured hosting account. */
   webUrl: Schema.optionalKey(TrimmedNonEmptyString),
   rootPath: Schema.optionalKey(TrimmedNonEmptyString),
   displayName: Schema.optionalKey(TrimmedNonEmptyString),
@@ -157,12 +130,10 @@ export const RepositoryIdentity = Schema.Struct({
 });
 export type RepositoryIdentity = typeof RepositoryIdentity.Type;
 
-/** Key clients group checkouts by: a fork's own remote, otherwise the canonical repository. */
 export function repositoryGroupingKeyOf(identity: RepositoryIdentity): string {
   return identity.origin?.canonicalKey ?? identity.canonicalKey;
 }
 
-/** Label clients show for a checkout's repository, matching `repositoryGroupingKeyOf`. */
 export function repositoryGroupingDisplayNameOf(identity: RepositoryIdentity): string | undefined {
   return identity.origin
     ? (identity.origin.displayName ?? identity.origin.canonicalKey)

@@ -29,7 +29,6 @@ function workspaceConnectionStatusLabel(state: WorkspaceState): string {
   return "Not connected";
 }
 
-/** Header-title presentation of the connection state, or null while connected. */
 export function workspaceConnectionStatusPresentation(
   state: WorkspaceState,
 ): WorkspaceConnectionStatusPresentation | null {

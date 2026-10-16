@@ -1,10 +1,10 @@
-import type { ControlPillMenuProps } from "../../components/ControlPillMenu.types";
+import type { MenuProps } from "../../components/ui/Menu.types";
 
 export interface WorkspaceDockFilterMenu {
   readonly title: string;
   readonly accessibilityLabel: string;
-  readonly actions: ControlPillMenuProps["actions"];
-  readonly onPressAction: NonNullable<ControlPillMenuProps["onPressAction"]>;
+  readonly actions: MenuProps["actions"];
+  readonly onPressAction: NonNullable<MenuProps["onPressAction"]>;
   readonly customized: boolean;
 }
 

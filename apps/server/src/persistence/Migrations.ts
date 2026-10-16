@@ -1,13 +1,3 @@
-/**
- * Migration runner with an inline loader.
- *
- * Uses Migrator.make with fromRecord to define migrations inline.
- * All migrations are statically imported - no dynamic file system loading.
- *
- * `runMigrations` is called by the SQLite persistence layer at startup, so the
- * schema is always up to date before the application starts.
- */
-
 import * as Migrator from "effect/sql/Migrator";
 import * as Effect from "effect/Effect";
 import * as SqlClient from "effect/sql/SqlClient";
@@ -30,9 +20,11 @@ const loader = Migrator.fromRecord(
 );
 
 /**
- * The migrator compares ids only, so a database whose ledger came from another
- * build would silently skip this build's schema at those ids. Refuse to run
- * against any recorded migration this build does not know.
+ * The migrator compares ids only, so it would silently skip any of this
+ * build's migrations at or below the highest recorded id that the ledger holds
+ * under another name. Refuse that. Recorded ids this build does not know, such
+ * as those a newer Supaterm added, are left in place so older builds keep
+ * opening the database.
  */
 const assertKnownMigrationHistory = Effect.fn("assertKnownMigrationHistory")(function* () {
   const sql = yield* SqlClient.SqlClient;
@@ -44,21 +36,51 @@ const assertKnownMigrationHistory = Effect.fn("assertKnownMigrationHistory")(fun
     readonly migration_id: number;
     readonly name: string;
   }>`SELECT migration_id, name FROM effect_sql_migrations`;
-  const known = new Set(migrationManifest.map(([id, name]) => `${id}_${name}`));
-  const unknown = recorded
-    .map((row) => `${row.migration_id}_${row.name}`)
-    .filter((migration) => !known.has(migration));
-  if (unknown.length === 0) return;
-  return yield* new Migrator.MigrationError({
-    kind: "BadState",
-    message: `This database was created by a build with a different migration history (${unknown.join(", ")}). Move it aside and restart to create a new one.`,
+  const latestRecordedId = Math.max(0, ...recorded.map((row) => row.migration_id));
+  const recordedNames = new Map(recorded.map((row) => [row.migration_id, row.name]));
+  const skipped = migrationManifest.flatMap(([id, name]) => {
+    if (id > latestRecordedId) return [];
+    const recordedName = recordedNames.get(id);
+    if (recordedName === name) return [];
+    return [`${id}_${name} (recorded: ${recordedName ?? "nothing"})`];
   });
+  if (skipped.length > 0) {
+    return yield* new Migrator.MigrationError({
+      kind: "BadState",
+      message: `This database was created by a build with a different migration history (${skipped.join(", ")}). Move it aside and restart to create a new one.`,
+    });
+  }
+  const knownNames = new Map<number, string>(migrationManifest);
+  const unknown = recorded
+    .filter((row) => knownNames.get(row.migration_id) !== row.name)
+    .map((row) => `${row.migration_id}_${row.name}`);
+  if (unknown.length > 0) {
+    yield* Effect.logWarning(
+      "This database has migrations this build does not know, probably from a newer Supaterm; leaving them in place",
+    ).pipe(Effect.annotateLogs({ migrations: unknown }));
+  }
+});
+
+/**
+ * Additive schema that older builds tolerate. It stays out of the migration
+ * ledger because earlier releases refuse to open a database that recorded a
+ * migration they do not know.
+ */
+const ensureUnrecordedSchema = Effect.fn("ensureUnrecordedSchema")(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  yield* sql`
+    CREATE INDEX IF NOT EXISTS orchestration_v2_projection_turn_items_failed_error_idx
+    ON orchestration_v2_projection_turn_items(
+      thread_id, run_id, node_id, updated_at DESC, ordinal DESC, turn_item_id DESC
+    )
+    WHERE type = 'error' AND status = 'failed'
+  `;
 });
 
 const run = Migrator.make({});
 
 /**
- * Run all pending migrations.
+ * Run all pending migrations, then create the schema kept out of the ledger.
  *
  * Creates the migrations tracking table (effect_sql_migrations) if it doesn't exist,
  * then runs any migrations with ID greater than the latest recorded migration.
@@ -72,5 +94,6 @@ export const runMigrations = Effect.fn("runMigrations")(function* () {
   yield* migrations.length === 0
     ? Effect.logDebug("Database schema is current")
     : Effect.log("Migrations ran successfully").pipe(Effect.annotateLogs({ migrations }));
+  yield* ensureUnrecordedSchema();
   return executedMigrations;
 });

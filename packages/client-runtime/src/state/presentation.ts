@@ -33,7 +33,6 @@ export function createEnvironmentPresentationAtoms<E>(input: {
   readonly stateAtom: (
     environmentId: EnvironmentId,
   ) => Atom.Atom<AsyncResult.AsyncResult<SupervisorConnectionState, E>>;
-  /** Authoritative live server config, including streamed provider/settings updates. */
   readonly serverConfigValueAtom: (environmentId: EnvironmentId) => Atom.Atom<ServerConfig | null>;
 }) {
   const presentationAtom = Atom.family((environmentId: EnvironmentId) =>
@@ -104,7 +103,6 @@ export function projectEnvironmentConnectionSummary(
   };
 }
 
-// Keep list membership and connection chrome independent of provider/config refreshes.
 export function createEnvironmentSummaryAtoms(input: {
   readonly catalogValueAtom: Atom.Atom<EnvironmentCatalogState>;
   readonly presentationAtom: (
@@ -144,7 +142,6 @@ export function createEnvironmentSummaryAtoms(input: {
       if (presentation === null) return null;
       const next = projectEnvironmentConnectionSummary(environmentId, presentation);
       const previous = Option.getOrNull(get.self<EnvironmentConnectionSummary | null>());
-      // Provider refreshes and transport heartbeats do not change connection UI.
       if (
         previous !== null &&
         previous.environmentId === next.environmentId &&

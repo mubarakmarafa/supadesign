@@ -111,18 +111,40 @@ describe("Pi MCP tool results", () => {
 });
 
 describe("Pi MCP tool exposure", () => {
+  const discoveryContext = {
+    model: { api: "anthropic-messages" },
+    ui: { notify: () => undefined },
+  };
+
+  it.each(["session_start", "session_tree", "model_select", "before_agent_start"])(
+    "declares optional Supaterm tools for OpenAI-compatible gateways at %s",
+    async (hookName) => {
+      const bridge = await loadMcpBridge({ modern: true, toolSearchAvailable: true });
+      const hook = bridge.handlers.get(hookName);
+      assert.isDefined(hook);
+      await hook!(
+        { systemPrompt: "Pi system prompt" },
+        { model: { api: "openai-completions" }, ui: { notify: assert.fail } },
+      );
+      assert.isTrue(
+        bridge.tools
+          .filter((tool) => tool.name.startsWith("mcp__supaterm__"))
+          .every((tool) => bridge.getActiveTools().includes(tool.name)),
+      );
+      const result = await bridge.tools
+        .find((tool) => tool.name === "mcp__supaterm__preview_snapshot")!
+        .execute("gateway-call", {});
+      assert.equal(result.content[0]?.text, "browser snapshot");
+      assert.equal(bridge.tools.filter((tool) => tool.exposure === "hidden").length, 0);
+    },
+  );
+
   it("keeps orchestration direct and optional bridge tools discoverable on modern Pi", async () => {
     const bridge = await loadMcpBridge({ modern: true, toolSearchAvailable: true });
-    await bridge.handlers.get("session_start")!(
-      { systemPrompt: "" },
-      { ui: { notify: () => undefined } },
-    );
+    await bridge.handlers.get("session_start")!({ systemPrompt: "" }, discoveryContext);
     const start = bridge.handlers.get("before_agent_start");
     assert.isDefined(start);
-    const prompt = await start!(
-      { systemPrompt: "Pi system prompt" },
-      { ui: { notify: () => undefined } },
-    );
+    const prompt = await start!({ systemPrompt: "Pi system prompt" }, discoveryContext);
     assert.include(prompt.systemPrompt, "orchestrator_capabilities");
     assert.equal(bridge.servers.length, 0);
     assert.equal(bridge.tools.length, 4);
@@ -149,6 +171,33 @@ describe("Pi MCP tool exposure", () => {
     assert.equal(bridge.requests.at(-1)?.method, "tools/call");
   });
 
+  it("restores gateway declarations after model switches and older tree loadouts without excluded tools", async () => {
+    const bridge = await loadMcpBridge({
+      modern: true,
+      toolSearchAvailable: true,
+      allowsTool: (name) => name !== "mcp__supaterm__delegate_task",
+    });
+    const event = { systemPrompt: "" };
+    await bridge.handlers.get("session_start")!(event, discoveryContext);
+    const gatewayContext = { model: { api: "openai-completions" }, ui: { notify: assert.fail } };
+    await bridge.handlers.get("model_select")!(event, gatewayContext);
+    bridge.restoreActiveTools(["read", "mcp__supaterm__task_status"]);
+    await bridge.handlers.get("session_tree")!(event, gatewayContext);
+    assert.deepEqual(bridge.getActiveTools(), [
+      "read",
+      "mcp__supaterm__task_status",
+      "tool_search",
+      "mcp__supaterm__orchestrator_capabilities",
+      "mcp__supaterm__preview_snapshot",
+    ]);
+    await bridge.handlers.get("model_select")!(event, discoveryContext);
+    assert.equal(
+      bridge.tools.find((tool) => tool.name === "mcp__supaterm__preview_snapshot")?.exposure,
+      "deferred",
+    );
+    assert.include(bridge.getActiveTools(), "mcp__supaterm__preview_snapshot");
+  });
+
   it.each(["legacy Pi", "disabled tool search"])(
     "keeps tool execution available with %s",
     async (mode) => {
@@ -159,7 +208,7 @@ describe("Pi MCP tool exposure", () => {
       });
       if (mode !== "legacy Pi") {
         const start = bridge.handlers.get("session_start");
-        await start!({ systemPrompt: "Pi system prompt" }, { ui: { notify: () => undefined } });
+        await start!({ systemPrompt: "Pi system prompt" }, discoveryContext);
       }
       assert.equal(bridge.tools.filter((tool) => tool.exposure !== "hidden").length, 4);
       assert.isTrue(
@@ -193,10 +242,7 @@ describe("Pi MCP tool exposure", () => {
       allowsTool: (name) =>
         name === "read" || name === "tool_search" || name.startsWith("mcp__supaterm__"),
     });
-    await bridge.handlers.get("session_start")!(
-      { systemPrompt: "" },
-      { ui: { notify: () => undefined } },
-    );
+    await bridge.handlers.get("session_start")!({ systemPrompt: "" }, discoveryContext);
     assert.equal(bridge.tools.length, 4);
     assert.equal(bridge.tools.filter((tool) => tool.exposure === "direct").length, 3);
     const tool = bridge.tools.find((tool) => tool.name === "mcp__supaterm__preview_snapshot");
@@ -213,10 +259,7 @@ describe("Pi MCP tool exposure", () => {
         allowsTool: (name) =>
           name !== "mcp__supaterm__delegate_task" && (!excludeSearch || name !== "tool_search"),
       });
-      await bridge.handlers.get("session_start")!(
-        { systemPrompt: "" },
-        { ui: { notify: () => undefined } },
-      );
+      await bridge.handlers.get("session_start")!({ systemPrompt: "" }, discoveryContext);
       bridge.restoreActiveTools([
         "read",
         "mcp__supaterm__task_status",
@@ -224,7 +267,7 @@ describe("Pi MCP tool exposure", () => {
       ]);
       const tree = bridge.handlers.get("session_tree");
       assert.isDefined(tree);
-      await tree!({ systemPrompt: "" }, { ui: { notify: () => undefined } });
+      await tree!({ systemPrompt: "" }, discoveryContext);
       assert.deepEqual(bridge.getActiveTools(), [
         "read",
         "mcp__supaterm__task_status",
@@ -265,7 +308,6 @@ describe("Pi tool discovery permissions", () => {
         (await hook({ toolName: "mcp__supaterm__delegate_task", input: {} }, ctx))?.block,
         true,
       );
-      // task_status acknowledges result delivery, and is intentionally not read-only.
       assert.equal(
         (await hook({ toolName: "mcp__supaterm__task_status", input: {} }, ctx))?.block,
         true,

@@ -1,9 +1,9 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { resolveThreadReferenceCopyTarget } from "@supaterm/shared/threadReference";
 import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import { resolveThreadForkSource } from "@supaterm/client-runtime/state/thread-workflows";
 import { AuthOrchestrationOperateScope, ThreadId } from "@supaterm/contracts";
-import { Alert } from "react-native";
 import {
   createContext,
   use,
@@ -190,7 +190,7 @@ export function HardwareKeyboardCommandProvider({
                 null,
             });
             if (!ready) {
-              Alert.alert(
+              Dialog.alert(
                 "Fork created",
                 "Its thread data did not reach this client. Reconnect and try opening it from the thread list.",
               );

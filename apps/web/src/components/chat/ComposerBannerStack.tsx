@@ -354,7 +354,6 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
   );
 }
 
-/** Keep full descriptions reachable only when their inline copy is clipped. */
 function NoticeDescription({ children }: { children: ReactNode }) {
   const descriptionRef = useRef<HTMLSpanElement>(null);
   const detailsRef = useRef<HTMLButtonElement>(null);
@@ -377,7 +376,6 @@ function NoticeDescription({ children }: { children: ReactNode }) {
     };
     measure();
     const stopObserving = observeResize(description, measure);
-    // A child can reveal new text without resizing its clipped box.
     const mutations = new MutationObserver(measure);
     mutations.observe(description, { childList: true, subtree: true, characterData: true });
     return () => {

@@ -12,9 +12,7 @@ import sharp from "sharp";
 const ICON_VARIANTS = ["dev", "nightly", "prod"] as const;
 type IconVariant = (typeof ICON_VARIANTS)[number];
 
-// 108dp at xxxhdpi. Expo's prebuild derives every launcher density bucket from this.
 const ADAPTIVE_CANVAS = 432;
-// 288dp at xxxhdpi: the full Android 12+ splash canvas, so the icon needs no upscaling.
 const SPLASH_CANVAS = 1152;
 const OUTPUT_DIRECTORY = "apps/mobile/assets";
 

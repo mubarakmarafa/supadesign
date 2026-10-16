@@ -151,9 +151,6 @@ const parseStableTag = (tag: string): StableVersion | undefined => {
   if (!major || !minor || !patch) return undefined;
 
   const prereleaseIdentifiers = prerelease ? prerelease.split(".") : [];
-  // Nightly and preview tags also start with `v` and carry their channel as
-  // the prerelease identifier. They must not be considered stable candidates
-  // when resolving the previous stable tag.
   if (prereleaseIdentifiers[0] === "nightly" || prereleaseIdentifiers[0] === "preview") {
     return undefined;
   }

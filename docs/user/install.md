@@ -52,14 +52,15 @@ mise exec -- vp run dev
 
 If you have a packaged `supaterm` executable installed, these commands are available:
 
-| Task                                             | Command                                                         |
-| ------------------------------------------------ | --------------------------------------------------------------- |
-| Start the server and open the web app            | `supaterm`                                                      |
-| Start the server without a browser               | `supaterm serve`                                                |
-| Keep it running in the background (macOS, Linux) | `supaterm service install` ([details](./background-service.md)) |
-| Move to the newest release                       | `supaterm update`                                               |
-| Remove it again                                  | `supaterm uninstall`                                            |
-| List supported server settings                   | `supaterm settings list`                                        |
+| Task                                             | Command                                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Start the server and open the web app            | `supaterm`                                                                    |
+| Start the server without a browser               | `supaterm serve`                                                              |
+| Keep it running in the background (macOS, Linux) | `supaterm service install` ([details](./background-service.md))               |
+| Move to the newest release                       | `supaterm update`                                                             |
+| Reclaim database space                           | `supaterm doctor` ([details](./background-service.md#reclaim-database-space)) |
+| Remove it again                                  | `supaterm uninstall`                                                          |
+| List supported server settings                   | `supaterm settings list`                                                      |
 
 Run `supaterm --help` for the full reference.
 

@@ -1,9 +1,9 @@
+import * as Dialog from "../components/ui/Dialog";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { useCallback } from "react";
-import { Alert } from "react-native";
 
 import { useConnectionController } from "../features/connection/useConnectionController";
 import { environmentPresentations } from "./presentation";
@@ -122,7 +122,7 @@ export function useRemoteConnections() {
           "reason" in error &&
           error.reason === "unsupported"
         ) {
-          Alert.alert("Client not supported", message);
+          Dialog.alert("Client not supported", message);
         } else {
           setPendingConnectionError(message);
         }
@@ -159,7 +159,7 @@ export function useRemoteConnections() {
       if (!environment) {
         return;
       }
-      Alert.alert(
+      Dialog.alert(
         "Remove from this device?",
         `Forget ${environment.environmentLabel} and its cached threads on this device. Switch it off instead to keep it saved.`,
         [

@@ -26,7 +26,6 @@ const runServerCommand = (
 
 const encodeCommand = Schema.encodeEffect(Schema.fromJsonString(Schema.String));
 
-/** Bare words can name existing directories, but must not create typo projects. */
 export const runDefaultServerCommand = (flags: CliServerFlags) =>
   Effect.gen(function* () {
     if (Option.isSome(flags.cwd)) {

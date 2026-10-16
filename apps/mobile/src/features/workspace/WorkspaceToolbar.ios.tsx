@@ -1,14 +1,22 @@
+import { Toolbar } from "../../components/ui/Toolbar";
 import { useFocusEffect } from "@react-navigation/native";
 import { use, useCallback, useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 
+import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
 import { useNativeLayoutMetrics } from "../../native/native-layout-metrics";
-import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
+import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { NativeWorkspaceTabActivityContext } from "../../native/v5-workspace-context";
 import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import { useWorkspaceTabs } from "./WorkspaceTabsContext";
+import { useSidebarWorkspaceTabs } from "./useSidebarWorkspaceTabs";
+import { useWorkspaceTabSelection } from "./useWorkspaceTabSelection";
+import { useMobileNavigationTheme } from "../../lib/useMobileNavigationTheme";
+
+// Tabler's git-pull-request geometry, shared with the UIKit tab bar.
+const PULL_REQUEST_ICON = require("../../../modules/supaterm-native-controls/ios/Resources/pull-request.png");
 
 export function WorkspaceToolbar(props: {
   readonly onNewTask: () => void;
@@ -16,16 +24,19 @@ export function WorkspaceToolbar(props: {
 }) {
   const workspace = useWorkspaceTabs()!;
   const metrics = useNativeLayoutMetrics();
+  const sidebarTabs = useSidebarWorkspaceTabs();
+  const selectTab = useWorkspaceTabSelection();
+  const selectedTint = useMobileNavigationTheme().colors.primary;
   const nativeToolbarCompose =
-    Platform.OS === "ios" && (Platform.isPad || (metrics?.verticalBarEdge ?? "none") !== "none");
+    Platform.OS === "ios" &&
+    (Platform.isPad || sidebarTabs !== null || (metrics?.verticalBarEdge ?? "none") !== "none");
   const { isTabActive } = workspace;
   const tabActive = use(NativeWorkspaceTabActivityContext)?.active ?? true;
   const { panes, togglePrimarySidebar } = useAdaptiveWorkspaceLayout();
   const searchRef = useRef<SearchBarCommands>(null);
   const tab = workspace.state.tabs[workspace.state.selectedTab];
   const selectedTab = workspace.state.selectedTab;
-  const focusSearch = useCallback(() => {
-    if (!workspace.isTabActive(selectedTab)) return false;
+  const enterSearch = useCallback(() => {
     workspace.dispatch({
       type: "scroll",
       tab: selectedTab,
@@ -33,9 +44,13 @@ export function WorkspaceToolbar(props: {
     });
     workspace.dispatch({ type: "search", tab: selectedTab });
     if (props.sidebar && !panes.primarySidebarVisible) togglePrimarySidebar();
+  }, [workspace, selectedTab, props.sidebar, panes.primarySidebarVisible, togglePrimarySidebar]);
+  const focusSearch = useCallback(() => {
+    if (!workspace.isTabActive(selectedTab)) return false;
+    if (!NATIVE_LIQUID_GLASS_SUPPORTED) enterSearch();
     searchRef.current?.focus();
     return true;
-  }, [workspace, selectedTab, props.sidebar, panes.primarySidebarVisible, togglePrimarySidebar]);
+  }, [workspace, selectedTab, enterSearch]);
   useHardwareKeyboardCommand("focusSearch", focusSearch);
   const restoreSearch = useCallback(() => {
     if (isTabActive(selectedTab) && tab.searchMode !== "resting")
@@ -57,8 +72,10 @@ export function WorkspaceToolbar(props: {
       <NativeStackScreenOptions
         optionsVersion={[selectedTab, tab.searchMode]}
         options={{
+          // Liquid Glass keeps search mounted as UIKit's own header button, which
+          // morphs into the field; swapping a stacked bar in and out cannot animate.
           headerSearchBarOptions:
-            tab.searchMode !== "resting"
+            NATIVE_LIQUID_GLASS_SUPPORTED || tab.searchMode !== "resting"
               ? {
                   ref: searchRef,
                   autoFocus: tab.searchMode === "active",
@@ -66,12 +83,15 @@ export function WorkspaceToolbar(props: {
                   hideNavigationBar: false,
                   hideWhenScrolling: false,
                   obscureBackground: false,
-                  placement: "stacked",
-                  allowToolbarIntegration: false,
+                  placement: NATIVE_LIQUID_GLASS_SUPPORTED ? "integratedButton" : "stacked",
+                  allowToolbarIntegration: NATIVE_LIQUID_GLASS_SUPPORTED,
                   placeholder:
                     selectedTab === "pullRequests" ? "Search pull requests" : "Search threads",
                   cancelButtonText: "✕",
-                  onFocus: () => workspace.dispatch({ type: "search", tab: selectedTab }),
+                  onFocus: () =>
+                    tab.searchMode === "resting"
+                      ? enterSearch()
+                      : workspace.dispatch({ type: "search", tab: selectedTab }),
                   onBlur: () => workspace.dispatch({ type: "expand", tab: selectedTab }),
                   onSearchButtonPress: () => searchRef.current?.blur(),
                   onChangeText: ({ nativeEvent }) =>
@@ -88,10 +108,28 @@ export function WorkspaceToolbar(props: {
               : undefined,
         }}
       />
-      <NativeHeaderToolbar placement="bottom">
-        {nativeToolbarCompose ? <NativeHeaderToolbar.Spacer flexible /> : null}
+      <Toolbar placement="bottom">
+        {sidebarTabs === "toolbar" ? (
+          <Toolbar.Button
+            identifier="workspace-tab-threads"
+            accessibilityLabel="Threads"
+            icon={selectedTab === "threads" ? "text.bubble.fill" : "text.bubble"}
+            tintColor={selectedTab === "threads" ? selectedTint : undefined}
+            onPress={() => selectTab("threads")}
+          />
+        ) : null}
+        {sidebarTabs === "toolbar" ? (
+          <Toolbar.Button
+            identifier="workspace-tab-pull-requests"
+            accessibilityLabel="Pull requests"
+            icon={{ type: "image", source: PULL_REQUEST_ICON, tinted: true }}
+            tintColor={selectedTab === "pullRequests" ? selectedTint : undefined}
+            onPress={() => selectTab("pullRequests")}
+          />
+        ) : null}
+        {nativeToolbarCompose ? <Toolbar.Spacer flexible /> : null}
         {nativeToolbarCompose ? (
-          <NativeHeaderToolbar.Button
+          <Toolbar.Button
             identifier="workspace-compose"
             accessibilityLabel="New chat"
             icon="square.and.pencil"
@@ -99,7 +137,7 @@ export function WorkspaceToolbar(props: {
             separateBackground
           />
         ) : null}
-      </NativeHeaderToolbar>
+      </Toolbar>
     </>
   );
 }

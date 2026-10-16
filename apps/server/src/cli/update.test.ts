@@ -44,7 +44,6 @@ it.layer(NodeServices.layer)("supaterm update launcher", (it) => {
       const copy = path.join(root, "copy/supaterm");
       const foreign = path.join(root, "foreign/supaterm");
       const elsewhere = path.join(root, "elsewhere/supaterm");
-      // Another install's versions tree: same shape, different home.
       const otherHome = path.join(root, "other/runtime/versions/1.0.0/supaterm");
       const otherLauncher = path.join(root, "other/bin/supaterm");
       for (const file of [newExe, copy, elsewhere, otherHome]) {

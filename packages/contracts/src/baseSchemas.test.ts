@@ -26,7 +26,6 @@ const Wrapped = Schema.Array(Schema.Unknown).pipe(Schema.decodeTo(Named));
 const encodeWrapped = Schema.encodeUnknownSync(Schema.toCodecJson(Wrapped));
 const isNamed = Schema.is(Named);
 const encodeNamedToWire = Schema.encodeUnknownSync(Schema.toCodecJson(Named));
-/** How clients decode: the JSON wire codec over the runtime schema. */
 const fromWire = <S extends Schema.Top>(schema: S) =>
   Schema.decodeUnknownSync(Schema.toCodecJson(schema) as never) as (value: unknown) => S["Type"];
 
@@ -62,7 +61,6 @@ describe("ForwardCompatibleArray", () => {
   });
 
   it("drops it too when a wrapper reads the encoded array as JSON values", () => {
-    // How context records are bounded before forward-compatible decoding.
     expect(encodeWrapped([{ name: "a" }, { name: " " }])).toEqual([{ name: "a" }]);
   });
 
@@ -75,7 +73,6 @@ describe("ForwardCompatibleArray", () => {
 
   it("does not accept holes as a decoded value", () => {
     expect(isNamed([undefined])).toBe(false);
-    // A sparse array's missing index is a hole too.
     const sparse: Array<{ name: string }> = [{ name: "a" }];
     sparse.length = 2;
     expect(isNamed(sparse)).toBe(false);
@@ -182,8 +179,6 @@ describe("trimmed non-empty strings", () => {
     ...entityIds.map((name) => [name, BaseSchemas[name]] as const),
   ] as const;
 
-  // Schema-derived strings are rarely padded, so pad them with every kind of
-  // whitespace `trim()` removes, and include whitespace-only values.
   const whitespace = Arbitrary.schema(
     Schema.Literals([" ", "\t", "\n", "\r\n", "\v", "\f", "\u00a0", "\u2028", "\u3000", "\ufeff"]),
   );

@@ -246,7 +246,6 @@ function makeEnvironmentSessionAtoms<R, E>(
 
 const sessionAtomsByRuntime = new WeakMap<object, ReturnType<typeof makeEnvironmentSessionAtoms>>();
 
-/** Commands and UI share one session fetch and the same reconnect invalidation. */
 export function createEnvironmentSessionAtoms<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry.EnvironmentRegistry | R, E>,
 ): ReturnType<typeof makeEnvironmentSessionAtoms<R, E>> {

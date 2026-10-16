@@ -196,6 +196,7 @@ describe("searchSettings", () => {
       "wsl-backend",
       "auto-mark-done-inactive-threads",
       "auto-mark-done-merged-threads",
+      "auto-mark-done-keep-pull-requests",
       "days-before-auto-mark-done",
     ]);
     expect(available.map((item) => item.id).filter((id) => gatedIds.has(id))).toEqual([]);
@@ -232,6 +233,7 @@ describe("searchSettings", () => {
     expect(searchSettings("auto-mark-done", available).map((item) => item.id)).toEqual([
       "auto-mark-done-merged-threads",
       "auto-mark-done-inactive-threads",
+      "auto-mark-done-keep-pull-requests",
       "days-before-auto-mark-done",
     ]);
   });
@@ -355,7 +357,7 @@ describe("searchSettings", () => {
       hasThreadAutoMarkDone: true,
     });
     expect(searchSettings("writing style", available)[0]?.id).toBe("source-control-writing-style");
-    expect(searchSettings("auto-mark-done", available)).toHaveLength(3);
+    expect(searchSettings("auto-mark-done", available)).toHaveLength(4);
   });
 });
 
@@ -372,6 +374,7 @@ describe("settings search targets", () => {
   it.each([
     "auto-mark-done-inactive-threads",
     "auto-mark-done-merged-threads",
+    "auto-mark-done-keep-pull-requests",
     "days-before-auto-mark-done",
   ])("retains the capability requirement for %s", (targetId) => {
     expect(getSettingsSearchTargetScope(targetId)).toMatchObject({
@@ -454,6 +457,7 @@ describe("auto-mark-done search availability", () => {
     expect(searchSettings("auto-mark-done", items).map((item) => item.id)).toEqual([
       "auto-mark-done-merged-threads",
       "auto-mark-done-inactive-threads",
+      "auto-mark-done-keep-pull-requests",
       "days-before-auto-mark-done",
     ]);
   });

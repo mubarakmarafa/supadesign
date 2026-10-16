@@ -30,7 +30,6 @@ export const sidebarThreadShells = createEnvironmentThreadShellAtoms({
   snapshotAtom: threadEnvironment.sidebarSnapshotAtom,
 });
 
-/** Mounted by `RunningThreadKeepAlive` on desktop, for every enabled environment. */
 export const runningThreadKeepAliveAtom = createRunningThreadKeepAliveAtom({
   environmentIdsAtom: Atom.map(environmentCatalog.catalogValueAtom, (catalog) => [
     ...enabledEnvironmentIds(catalog),

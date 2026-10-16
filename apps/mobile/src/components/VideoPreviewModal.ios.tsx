@@ -1,9 +1,11 @@
+import * as Dialog from "./ui/Dialog";
 import { useIsFocused } from "@react-navigation/native";
 import { requireNativeModule } from "expo";
 import { useEffect, useEffectEvent, useId, useState } from "react";
-import { Alert, Keyboard } from "react-native";
+import { Keyboard } from "react-native";
 
 import { loadLocalAttachmentPreview } from "../lib/localAttachmentPreview";
+import { fullscreenVideoClosed, fullscreenVideoOpened } from "../lib/videoAudioSession";
 import { mediaVideoPreviewUri, type VideoPreviewSource } from "../lib/videoPreviewSource";
 import { useAssetUrlState, useRefreshAssetUrl } from "../state/assets";
 import { usePreparedConnection } from "../state/session";
@@ -54,8 +56,12 @@ function NativeVideoPreview(props: {
 
   useEffect(() => Keyboard.dismiss(), []);
   useEffect(() => {
+    fullscreenVideoOpened();
+    return () => fullscreenVideoClosed();
+  }, []);
+  useEffect(() => {
     if (!loadError) return;
-    Alert.alert("Could not open video", loadError);
+    Dialog.alert("Could not open video", loadError);
     onRequestClose();
   }, [loadError]);
 
@@ -86,7 +92,7 @@ function NativeVideoPreview(props: {
       if (controller.signal.aborted) return;
       // AVKit gives no retry, so re-mint now; the cached URL may simply have expired.
       if (ready) void refreshAssetUrl();
-      Alert.alert(
+      Dialog.alert(
         "Could not open video",
         ready
           ? "This video couldn't be loaded or played. Check the connection, or touch and hold the video to save or share the original."

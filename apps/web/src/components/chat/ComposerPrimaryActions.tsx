@@ -38,9 +38,7 @@ interface ComposerPrimaryActionsProps {
   canOperateThread: boolean;
   canQueueMessage: boolean;
   pendingAction: PendingActionState | null;
-  /** The turn is running: sending steers or queues instead of starting a turn. */
   isRunning: boolean;
-  /** Stop can reach a run, including one still preparing or starting. */
   canInterrupt: boolean;
   followUpBehavior?: "queue" | "steer";
   isSendBusy: boolean;

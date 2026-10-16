@@ -1,6 +1,5 @@
 import type * as Path from "effect/Path";
 
-/** Select Electron's profile independently of the server's Supaterm home. */
 export const userDataPath = (input: {
   readonly appDataDirectory: string;
   readonly isDevelopment: boolean;

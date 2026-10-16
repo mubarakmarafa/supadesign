@@ -35,14 +35,8 @@ const ROW_COUNT = 600;
 const OUTPUT_BYTES_PER_ROW = 8_192;
 
 const FULL_PROJECTION_APPLICATION_BYTES = 10_371_413;
-// Projection response + dispatch command + dispatch receipt, excluding RPC
-// envelope bytes. The omitted projection request only makes the old path larger.
 const FORMER_SEND_APPLICATION_BYTES = 10_371_672;
-// Corrected measurement: contract-encoded payloads in Effect RPC Request/Exit
-// envelopes before WebSocket framing and compression. Trace values use the
-// production 32/16 hex-character widths so the byte cost is representative.
 const FORMER_SEND_RPC_JSON_BYTES = 10_372_178;
-// The corrected first server-resolved implementation measured 522 bytes.
 const MAX_CURRENT_SEND_RPC_JSON_BYTES = 1_024;
 
 const RPC_TRACE_CONTEXT = {

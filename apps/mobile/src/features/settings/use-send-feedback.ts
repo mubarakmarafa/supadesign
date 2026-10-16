@@ -1,3 +1,4 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { buildFeedbackPrompt } from "@supaterm/client-runtime/feedback-prompt";
 import {
@@ -7,7 +8,7 @@ import {
 import type { EnvironmentId, ServerConfig } from "@supaterm/contracts";
 import Constants from "expo-constants";
 import { useRef, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 
 import { projectEnvironment } from "../../state/projects";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -35,7 +36,7 @@ export function useSendFeedback() {
       if (result._tag === "Failure") {
         if (!isAtomCommandInterrupted(result)) {
           const error = squashAtomCommandFailure(result);
-          Alert.alert(
+          Dialog.alert(
             "Could not start feedback",
             error instanceof Error ? error.message : "Try again.",
           );

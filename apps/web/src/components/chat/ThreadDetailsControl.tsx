@@ -31,7 +31,6 @@ const parts = {
   icon: THREAD_DETAILS_PANEL_ICON_ACTION_CLASS,
 };
 
-/** Panel controls own their fixed density; toolbar controls use the standard Button variants. */
 export function ThreadDetailsControl({
   panel = true,
   part = "row",

@@ -98,10 +98,6 @@ export class SessionControl {
     return run();
   }
 
-  /**
-   * Work any client may ask for, such as a viewport or appearance change. It
-   * waits its turn behind running actions but needs no control.
-   */
   system<A>(run: () => Promise<A>) {
     this.assertOpen();
     return this.enqueue(async () => {

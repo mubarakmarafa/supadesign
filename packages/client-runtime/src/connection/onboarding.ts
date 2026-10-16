@@ -240,7 +240,11 @@ const registerPairingConnection = Effect.fn(
     yield* SubscriptionRef.get(registry.entries),
   );
   yield* refreshReachedRouteCredential(registration, reachedHttpBaseUrl);
-  yield* registry.register(registration);
+  if (!(yield* registry.register(registration))) return registration.target.environmentId;
+  yield* registry.setCompatibility(registration.target.environmentId, null);
+  yield* registry
+    .setEnabled(registration.target.environmentId, true)
+    .pipe(Effect.catchTags({ EnvironmentNotRegisteredError: () => Effect.void }));
   return registration.target.environmentId;
 });
 

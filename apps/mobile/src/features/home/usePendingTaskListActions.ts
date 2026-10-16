@@ -1,7 +1,7 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useCallback } from "react";
-import { Alert } from "react-native";
 
 import { withThreadDismissal } from "./thread-dismissal";
 import { appAtomRegistry } from "../../state/atom-registry";
@@ -44,7 +44,7 @@ export function usePendingTaskListActions(): {
   const confirmDeletePendingTask = useCallback(
     (pendingTask: PendingNewTask) => {
       if (pendingTask.kind === "draft") {
-        Alert.alert("Discard draft?", `“${pendingTask.title}” will be removed.`, [
+        Dialog.alert("Discard draft?", `“${pendingTask.title}” will be removed.`, [
           { text: "Cancel", style: "cancel" },
           {
             text: "Discard",
@@ -67,7 +67,7 @@ export function usePendingTaskListActions(): {
         ]);
         return;
       }
-      Alert.alert(
+      Dialog.alert(
         "Delete pending task?",
         `“${pendingTask.title}” has not been sent yet and will be removed from the outbox.`,
         [
@@ -78,7 +78,7 @@ export function usePendingTaskListActions(): {
             onPress: () => {
               const messageId = pendingTask.message.messageId;
               if (!holdDeletingQueuedMessage(messageId)) {
-                Alert.alert(
+                Dialog.alert(
                   "Pending task is open",
                   "Close the pending task editor before deleting it.",
                 );
@@ -111,7 +111,7 @@ export function usePendingTaskListActions(): {
                 (result) => result,
               ).catch((error) => {
                 releaseDeletingQueuedMessage(messageId, false);
-                Alert.alert(
+                Dialog.alert(
                   "Could not delete pending task",
                   error instanceof Error ? error.message : "The pending task could not be removed.",
                 );

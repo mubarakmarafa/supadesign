@@ -57,11 +57,6 @@ export function normalizeProjectPathForComparison(value: string): string {
 // Windows refuses these as file names, with or without an extension.
 const WINDOWS_RESERVED_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/;
 
-/**
- * Folder name for a project started from just a name ("Pinball Stats" becomes
- * "pinball-stats"). The server uses it for `projects.createNew`, and clients
- * use it to show the path before the server makes it.
- */
 export function newProjectFolderName(name: string): string {
   const slug = name
     .normalize("NFKD")
@@ -109,8 +104,6 @@ export function isAbsolutePath(value: string): boolean {
   return value.startsWith("/") || isWindowsAbsolutePath(value);
 }
 
-/** Resolve a literal filesystem path without interpreting file-link positions.
- * Home-relative paths stay intact for the server to expand. */
 export function resolveWorkspaceFilePath(path: string, workspaceRoot: string): string {
   if (isAbsolutePath(path) || path.startsWith("~/") || path.startsWith("~\\")) return path;
   const base = workspaceRoot.replace(/[/\\]+$/, "");

@@ -82,30 +82,21 @@ interface FakePi {
   readonly spawner: ChildProcessSpawner.ChildProcessSpawner["Service"];
   readonly emit: (record: PiRpcRecord, chunkBytes?: number) => Effect.Effect<void>;
   readonly takeRequest: (type: string) => Effect.Effect<PiRpcRecord>;
-  /** Data returned by the next `get_entries` acks, consumed in order. */
   readonly queueEntries: (data: unknown) => void;
-  /** Data returned by the next active-branch `get_messages` acks. */
   readonly queueMessages: (data: unknown) => void;
-  /** Make the next `switch_session` ack report an extension veto. */
   readonly vetoNextSwitch: () => void;
-  /** Fields overriding the recorded idle state in the next `get_state` acks, in order. */
   readonly queueState: (data: Record<string, unknown>) => void;
-  /** Hold the next `get_state` response until the test resolves it. */
+  readonly setStreaming: (streaming: boolean) => void;
   readonly deferNextState: () => void;
-  /** Resolve the held `get_state` request. */
   readonly resolveDeferredState: (data: unknown) => Effect.Effect<void>;
-  /** Reject the next `get_state` request. */
   readonly failNextState: () => void;
   readonly deferNextLifecycle: (type: "switch_session" | "new_session" | "fork") => void;
 
   readonly deferNextModelSelection: () => void;
   readonly queueModels: (models: ReadonlyArray<unknown>) => void;
   readonly vetoNextNewSession: () => void;
-  /** Every request received by the fake process. */
   readonly allRequests: () => ReadonlyArray<PiRpcRecord>;
-  /** Data returned by the next `get_session_stats` acks, consumed in order. */
   readonly queueStats: (data: unknown) => void;
-  /** Close the fake process stdout stream. */
   readonly closeStdout: Effect.Effect<void>;
   readonly lastSpawn: () => {
     readonly args: ReadonlyArray<string>;
@@ -131,12 +122,6 @@ const recordedIdleState = (sessionFile: string) => ({
   pendingMessageCount: 0,
 });
 
-/**
- * In-process fake `pi --mode rpc` for races and failures a live Pi cannot
- * produce on demand: captures every stdin record, auto-acks requests, and lets
- * tests push protocol events to stdout. Behaviour a real Pi can show belongs
- * in a replay fixture instead (see PiAdapterV2.testkit.ts).
- */
 const makeFakePi: Effect.Effect<FakePi> = Effect.gen(function* () {
   const stdout = yield* Queue.unbounded<Uint8Array, Cause.Done>();
   const requests = yield* Queue.unbounded<PiRpcRecord>();
@@ -154,6 +139,7 @@ const makeFakePi: Effect.Effect<FakePi> = Effect.gen(function* () {
   let sessionFile = FAKE_SESSION_FILE;
   let sessionGeneration = 0;
   let models: ReadonlyArray<unknown> = [];
+  let isStreaming: boolean | null = null;
   let stdinBuffer = "";
 
   const emit = (record: PiRpcRecord, chunkBytes?: number) =>
@@ -166,7 +152,8 @@ const makeFakePi: Effect.Effect<FakePi> = Effect.gen(function* () {
     });
 
   const respondTo = (record: PiRpcRecord): PiRpcRecord | null => {
-    if (typeof record["id"] !== "string") return null;
+    if (typeof record["id"] !== "string" && !(record["type"] === "prompt" && isStreaming !== null))
+      return null;
     const base = {
       type: "response",
       id: record["id"],
@@ -179,9 +166,24 @@ const makeFakePi: Effect.Effect<FakePi> = Effect.gen(function* () {
           failState = false;
           return { ...base, success: false, error: "state unavailable" };
         }
-        // Queued data overrides fields of the recorded idle state, so a test
-        // that only cares about the session file still gets a real shape.
-        return { ...base, data: { ...recordedIdleState(sessionFile), ...stateQueue.shift() } };
+        return {
+          ...base,
+          data: {
+            ...recordedIdleState(sessionFile),
+            isStreaming: isStreaming ?? false,
+            ...stateQueue.shift(),
+          },
+        };
+      case "prompt":
+        if (isStreaming && record["streamingBehavior"] === undefined) {
+          return {
+            ...base,
+            success: false,
+            error:
+              "Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message.",
+          };
+        }
+        return base;
       case "get_available_models":
         return { ...base, data: { models } };
       case "new_session": {
@@ -312,6 +314,9 @@ const makeFakePi: Effect.Effect<FakePi> = Effect.gen(function* () {
       vetoSwitch = true;
     },
     queueState: (data) => stateQueue.push(data),
+    setStreaming: (streaming) => {
+      isStreaming = streaming;
+    },
     queueStats: (data) => statsQueue.push(data),
     closeStdout: Queue.end(stdout),
     lastSpawn: () => lastSpawn,
@@ -487,6 +492,37 @@ const expectModelFailure = (errorMessage: string) =>
   }).pipe(Effect.scoped, Effect.provide(layerTest));
 
 describe("PiAdapterV2", () => {
+  it.effect.each([false, true])(
+    "completes a resumed user turn before native wake events arrive, Pi streaming=%s",
+    (streaming) =>
+      Effect.gen(function* () {
+        const fake = yield* makeFakePi;
+        const { runtime, takeEvent } = yield* openRuntime(fake);
+        const providerThread = yield* runtime.ensureThread({
+          threadId: THREAD_ID,
+          modelSelection: modelSelection("default"),
+          runtimePolicy,
+        });
+        fake.setStreaming(streaming);
+        yield* runtime.resumeThread({ providerThread });
+        yield* startTurn(runtime, providerThread);
+        yield* fake.takeRequest("prompt");
+        yield* fake.emit({ type: "agent_start" });
+        yield* fake.emit({
+          type: "message_end",
+          message: {
+            role: "assistant",
+            content: [{ type: "text", text: "Resumed prompt completed" }],
+            stopReason: "stop",
+          },
+        });
+        fake.queueState({ isStreaming: false });
+        yield* fake.emit({ type: "agent_settled" });
+        const terminal = yield* takeEvent((event) => event.type === "turn.terminal");
+        assert.isTrue(terminal.type === "turn.terminal" && terminal.status === "completed");
+      }).pipe(Effect.scoped, Effect.provide(layerTest)),
+  );
+
   it.effect.each([false, true])(
     "serializes rollback fork hooks with native wake ownership, wake=%s",
     (nativeWake) =>
@@ -1620,7 +1656,6 @@ describe("PiAdapterV2", () => {
           model: "anthropic/large",
         }),
       );
-      // New native sessions have their own default, even within one process.
       fake.queueState({
         sessionFile: "/fake/replacement.jsonl",
         model: { provider: "anthropic", id: "small", contextWindow: 32_000 },
@@ -1640,10 +1675,6 @@ describe("PiAdapterV2", () => {
       const fake = yield* makeFakePi;
       const { runtime, takeEvent } = yield* openRuntime(fake);
       const now = yield* DateTime.now;
-      // The placeholder row the orchestrator creates for a first run: no
-      // native identity yet. The adapter must bind the pi session to this
-      // row instead of registering a second session-file-keyed row, or the
-      // projection ends up with two live rows per app thread.
       const placeholder: OrchestrationV2ProviderThread = {
         id: ProviderThreadId.make("thread:provider:pi:native-thread:pending:run:thread-pi-test:1"),
         driver: PI_PROVIDER,
@@ -1693,7 +1724,6 @@ describe("PiAdapterV2", () => {
         runtimePolicy,
       });
 
-      // An explicit effort on a concrete model.
       yield* startTurn(runtime, providerThread, "default", [], "Hello pi", {
         instanceId: PI_INSTANCE_ID,
         model: "xai/grok-4.6",
@@ -1709,7 +1739,6 @@ describe("PiAdapterV2", () => {
       yield* fake.emit({ type: "agent_settled" });
       yield* takeEvent((event) => event.type === "turn.terminal");
 
-      // Back to Pi default with no explicit thinking choice of its own.
       yield* startTurn(
         runtime,
         providerThread,
@@ -1811,7 +1840,6 @@ describe("PiAdapterV2", () => {
       assert.isFalse(
         fake.allRequests().some((request) => request.type === "fork" || request.type === "clone"),
       );
-      // ProviderTurnStartService adopts the fork into its pending row.
       const adopted = { ...forked, id: ProviderThreadId.make("pending-fork-row") };
       yield* startTurn(runtime, adopted, "default", [], "Continue", undefined, 1, target);
       yield* fake.emit({ type: "agent_start" });
@@ -2040,7 +2068,6 @@ describe("PiAdapterV2", () => {
             assert.deepEqual(Object.keys(event.turnItem.output as object), ["content"]);
           }
         }
-        // Distinct typed metadata remains stored even when readable text exists.
         yield* fake.emit({
           type: "tool_execution_end",
           toolCallId: "distinct-metadata",
@@ -2060,7 +2087,6 @@ describe("PiAdapterV2", () => {
         const note = "Read image file [image/png]";
         const image = { type: "image", data: "AAAA", mimeType: "image/png" };
         const imageContent = [{ type: "text", text: note }, image];
-        // An extension can attach distinct typed metadata to a read result.
         for (const structuredContent of [
           { ...image, note, width: 1200 },
           { ...image, note: "A distinct note" },
@@ -2123,8 +2149,6 @@ describe("PiAdapterV2", () => {
             },
             64 * 1024,
           );
-          // A following small completion proves a dropped screenshot immediately,
-          // without waiting for a timeout when framing loses the large event.
           yield* fake.emit({
             type: "tool_execution_end",
             toolCallId: "after-screenshot",
@@ -2313,7 +2337,6 @@ describe("PiAdapterV2", () => {
           write.turnItem.newStr === "export {};\n",
       );
 
-      // A failed edit has no patch, so it keeps the error to show when expanded.
       yield* fake.emit({
         type: "tool_execution_start",
         toolCallId: "call_edit_failed",
@@ -2649,8 +2672,6 @@ describe("PiAdapterV2", () => {
       });
       yield* startTurn(runtime, providerThread, "default", [], "/command-only");
       yield* fake.takeRequest("prompt");
-      // A pure extension command: dialog + notify, then the deferred ack —
-      // pi emits no agent_start/agent_settled at all.
       yield* fake.emit({
         type: "extension_ui_request",
         id: "ui-cmd",
@@ -2659,8 +2680,6 @@ describe("PiAdapterV2", () => {
         notifyType: "info",
       });
       yield* fake.emit({ type: "response", command: "prompt", success: true });
-      // The adapter probes get_state (auto-acked idle by the fake), then
-      // settles the turn as completed.
       const terminal = yield* takeEvent((event) => event.type === "turn.terminal");
       assert.isTrue(terminal.type === "turn.terminal" && terminal.status === "completed");
     }).pipe(Effect.scoped, Effect.provide(layerTest)),
@@ -2878,7 +2897,6 @@ describe("PiAdapterV2", () => {
         modelSelection: modelSelection("default"),
         runtimePolicy,
       });
-      // Project-trust style prompt before any turn exists.
       yield* fake.emit({
         type: "extension_ui_request",
         id: "ui-trust",
@@ -2952,7 +2970,6 @@ describe("PiAdapterV2", () => {
         decision: "accept",
       });
       assert.equal((yield* fake.takeRequest("extension_ui_response"))["id"], "fresh-dialog");
-      // The old expiry must not cancel an already answered request, and zero disables expiry.
       yield* fake.emit({ ...dialog, id: "zero-timeout", timeout: 0 });
       const zero = yield* takeEvent(
         (event) =>
@@ -3012,7 +3029,6 @@ describe("PiAdapterV2", () => {
         modelSelection: modelSelection("default"),
         runtimePolicy,
       });
-      // Project-trust style prompt before any turn exists.
       yield* fake.emit({
         type: "extension_ui_request",
         id: "ui-trust",
@@ -3255,7 +3271,6 @@ describe("PiAdapterV2", () => {
     Effect.gen(function* () {
       const fake = yield* makeFakePi;
       const { runtime } = yield* openRuntime(fake);
-      // A --no-session Pi keeps its session in memory and reports no file.
       fake.queueState({ sessionFile: undefined });
       const result = yield* runtime
         .ensureThread({
@@ -3277,7 +3292,6 @@ describe("PiAdapterV2", () => {
         modelSelection: modelSelection("default"),
         runtimePolicy,
       });
-      // An extension command can hold its prompt ack open past settlement.
       yield* startTurn(runtime, providerThread, "default", [], "/my-command");
       yield* fake.takeRequest("prompt");
       yield* fake.emit({ type: "agent_start" });
@@ -3287,8 +3301,6 @@ describe("PiAdapterV2", () => {
 
       yield* startTurn(runtime, providerThread, "default", [], "Second turn", undefined, 2);
       yield* fake.takeRequest("prompt");
-      // The rejection answers the first turn's prompt. It must not consume or
-      // fail the second turn's prompt acknowledgement.
       yield* fake.emit({
         type: "response",
         command: "prompt",
@@ -3812,8 +3824,6 @@ describe("PiAdapterV2", () => {
       yield* fake.takeRequest("prompt");
       yield* fake.emit({ type: "agent_start" });
 
-      // Extension ctx.compact() waits for this first settlement, then starts
-      // compaction in a detached continuation.
       fake.queueState({ isStreaming: false, isCompacting: true, pendingMessageCount: 0 });
       yield* fake.emit({ type: "agent_settled" });
       yield* fake.takeRequest("get_state");
@@ -4053,8 +4063,6 @@ describe("PiRpc framing", () => {
   );
 });
 
-// This fails before a provider transcript exists, so a replay fixture is not
-// an honest fit. The boundary is the stdio transport seeing stdout end.
 describe("PiRpc early process exit", () => {
   const makeHandle = (options: {
     readonly exitCode: Effect.Effect<ChildProcessSpawner.ExitCode>;

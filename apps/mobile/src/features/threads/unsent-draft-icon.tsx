@@ -1,4 +1,4 @@
-import { SymbolView } from "../../components/AppSymbol";
+import { SymbolView } from "../../components/ui/AppSymbol";
 
 /** The amber pen marks unsent work in the Drafts section and on thread rows alike. */
 export function UnsentDraftIcon({ size = 12 }: { readonly size?: number }) {

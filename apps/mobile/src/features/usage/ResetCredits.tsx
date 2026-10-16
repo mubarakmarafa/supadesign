@@ -8,7 +8,7 @@ import { formatDuration } from "@supaterm/shared/usageLimits";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
-import { AppText as Text } from "../../components/AppText";
+import { AppText as Text } from "../../components/ui/AppText";
 import { useInlineConfirm } from "../../lib/useInlineConfirm";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";

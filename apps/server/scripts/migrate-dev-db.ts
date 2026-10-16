@@ -103,9 +103,7 @@ export class MigrateDevDbPhaseError extends Schema.TaggedError<MigrateDevDbPhase
 }
 
 export interface RunMigrateDevDbInput {
-  /** Isolated .supaterm directory. Defaults to `<worktree>/.supaterm` of the cwd. */
   readonly baseDir?: string | undefined;
-  /** Source database. Defaults to `~/.supaterm/userdata/statev2.sqlite`. */
   readonly source?: string | undefined;
   readonly projects: number;
   readonly threadsPerProject: number;
@@ -128,7 +126,6 @@ const removeDatabaseFiles = Effect.fn("removeDatabaseFiles")(function* (database
   }
 });
 
-/** The slice of server-runtime.json this script cares about. */
 const ServerRuntimeState = Schema.fromJsonString(Schema.Struct({ pid: Schema.Number }));
 const decodeServerRuntimeState = Schema.decodeEffect(ServerRuntimeState);
 
@@ -142,23 +139,18 @@ const isProcessAlive = (pid: number): boolean => {
   }
 };
 
-/** Liveness probe for a running dev server. The server writes its pid to
- * server-runtime.json next to the database, which also catches an idle
- * server holding an open-but-inactive connection. The SQL probes below back
- * that up: BEGIN IMMEDIATE fails while a writer is active, and
- * wal_checkpoint(TRUNCATE) reports busy while another connection holds the
- * WAL. A leftover -shm alone is not a signal — read-only connections cannot
- * clean it up on close. */
+/**
+ * The server writes its pid to server-runtime.json next to the database, which also catches an idle server holding an open-but-inactive
+ * connection. A leftover -shm alone is not a signal — read-only connections cannot clean it up on close.
+ */
 const ensureNotInUse = Effect.fn("ensureDevDbNotInUse")(function* (databasePath: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
 
   const runtimeStatePath = path.join(path.dirname(databasePath), "server-runtime.json");
-  const runtimeState = yield* fs.readFileString(runtimeStatePath).pipe(
-    Effect.flatMap(decodeServerRuntimeState),
-    // A missing or malformed descriptor is not a liveness signal.
-    Effect.option,
-  );
+  const runtimeState = yield* fs
+    .readFileString(runtimeStatePath)
+    .pipe(Effect.flatMap(decodeServerRuntimeState), Effect.option);
   if (Option.isSome(runtimeState) && isProcessAlive(runtimeState.value.pid)) {
     return yield* new MigrateDevDbServerRunningError({
       databasePath,
@@ -202,7 +194,6 @@ const RECOVERY_KINDS: ReadonlyArray<ProjectionStore.ProjectionRecoveryKind> = [
 ];
 
 const CLEARED_TABLES: ReadonlyArray<string> = [
-  // Pending work the dev server would otherwise pick up and run.
   "scheduled_tasks",
   "orchestration_v2_effect_outbox",
   "orchestration_v2_thread_launch_workflows",
@@ -324,8 +315,6 @@ const pruneSnapshot = Effect.fn("pruneDevDbSnapshot")(function* (input: RunMigra
     GROUP BY f.root_id, root.project_id
     HAVING SUM(f.thread_id IN (SELECT thread_id FROM live_threads)) = 0`;
 
-  // Projects with clonable threads outrank empty-but-recent ones: the point
-  // of the exercise is thread data, not the project list.
   yield* sql`CREATE TEMP TABLE kept_projects AS
     SELECT p.project_id
     FROM projection_projects p
@@ -503,6 +492,9 @@ export const runMigrateDevDb = Effect.fn("runMigrateDevDb")(function* (
     yield* removeDatabaseFiles(databasePath);
     yield* Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
+      // VACUUM INTO writes this connection's auto_vacuum mode, so the copy
+      // gets the incremental mode a freshly booted server creates.
+      yield* sql`PRAGMA auto_vacuum = INCREMENTAL`;
       yield* sql`VACUUM INTO ${databasePath}`;
     }).pipe(
       Effect.provide(NodeSqliteClient.layer({ filename: snapshotPath })),
@@ -514,8 +506,7 @@ export const runMigrateDevDb = Effect.fn("runMigrateDevDb")(function* (
 
   yield* Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
-    // WAL does not survive VACUUM INTO; set it so first `vp run dev` finds
-    // the database exactly as server boot would have left it.
+    // WAL does not survive VACUUM INTO; turn it back on like server boot does.
     yield* sql.unsafe("PRAGMA journal_mode = WAL").unprepared;
   }).pipe(
     Effect.provide(NodeSqliteClient.layer({ filename: databasePath })),

@@ -24,10 +24,6 @@ const handlers = new Map<HardwareKeyboardCommand, Set<CommandHandler>>();
 const registrationListeners = new Set<() => void>();
 let registrationVersion = 0;
 
-/**
- * Registers a context-specific hardware-keyboard action. The most recently mounted handler gets
- * the first chance to consume the command, allowing focused screens to override app defaults.
- */
 export function useHardwareKeyboardCommand(
   command: HardwareKeyboardCommand | ReadonlyArray<HardwareKeyboardCommand>,
   handler: CommandHandler,
@@ -94,10 +90,6 @@ export function parseActiveThreadPath(pathname: string): {
   }
 }
 
-/**
- * The machine after `currentId` in display order, wrapping around. Starts at
- * the first machine when `currentId` is not listed.
- */
 export function nextEnvironmentId<T extends { readonly environmentId: string }>(
   environments: ReadonlyArray<T>,
   currentId: string | null,

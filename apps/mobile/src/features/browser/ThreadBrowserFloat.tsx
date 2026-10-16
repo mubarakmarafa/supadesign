@@ -4,7 +4,7 @@ import type { EnvironmentId, PreviewSessionSnapshot, ThreadId } from "@supaterm/
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Pressable, View } from "react-native";
 
-import { SymbolView } from "../../components/AppSymbol";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { browserTabTitle } from "./browserTabs";
 import { PreviewStreamWebView } from "./PreviewStreamWebView";
@@ -25,7 +25,6 @@ export function ThreadBrowserFloat(props: {
     if (!props.loaded) return;
     const previous = known.current;
     known.current = new Map(props.tabs.map((tab) => [tab.tabId, tab.revealRequest?.id]));
-    // The first list is a baseline, so reopening a thread does not resurface old tabs.
     if (previous === null) return;
     const opened = props.tabs.findLast(
       (tab) =>
@@ -87,7 +86,6 @@ function FloatingBrowserStream(props: ComponentProps<typeof FloatingBrowserPlaye
   const { themeVariables } = useAppearancePreferences();
   const [viewport, setViewport] = useState<{ width: number; height: number } | null>(null);
   const [streaming, setStreaming] = useState(false);
-  // The page keeps its own size; the player scales it into a box of the same shape.
   const aspect = Math.min(Math.max(viewport ? viewport.width / viewport.height : 16 / 10, 0.5), 2);
   const width = aspect >= 1 ? PLAYER_LONG_SIDE : Math.round(PLAYER_LONG_SIDE * aspect);
   const height = Math.round(width / aspect);

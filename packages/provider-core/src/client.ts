@@ -20,7 +20,16 @@ export interface ProviderIcon {
     readonly d: string;
     readonly fillRule?: "evenodd" | "nonzero";
     readonly fill?: { readonly light: string; readonly dark: string };
+    readonly gradient?: ProviderIconGradient;
   }>;
+}
+
+export interface ProviderIconGradient {
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+  readonly stops: ReadonlyArray<{ readonly offset: number; readonly color: string }>;
 }
 
 export interface ProviderClientDefinition {

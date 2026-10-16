@@ -159,9 +159,6 @@ describe("AcpRegistryAdapterV2", () => {
       options: ["ask", "auto"].map((value) => ({ value, name: value })),
     });
 
-    // A scripted ACP v1 agent: initialize, session/new answered with `setup`,
-    // then the frames Supaterm must send (and the agent's answers) to apply the
-    // user's stored pick from the agent's mode picker.
     const openWithStoredModePick = Effect.fn("openWithStoredModePick")(function* (input: {
       readonly setup: unknown;
       readonly modeFrames: ReadonlyArray<Frame>;

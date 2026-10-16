@@ -27,7 +27,6 @@ const NOW = DateTime.makeUnsafe("2026-09-08T00:00:00.000Z");
 const THREAD_ID = ThreadId.make("thread-stream-test");
 const LARGE_PROJECTABLE_OUTPUT_BYTES = 10 * 1_048_576;
 const LARGE_PROJECTABLE_RAW_PAYLOAD_BYTES = 10_486_214;
-// The first projected replay measured 821 bytes; leave room for small envelope additions.
 const MAX_PROJECTED_DYNAMIC_REPLAY_BYTES = 2_048;
 
 function timelineProjection(itemCount: number): OrchestrationV2ThreadProjection {
@@ -164,8 +163,6 @@ describe("decideThreadResume", () => {
     expect(isThreadReplayRawPayloadSafe(THREAD_RESUME_MAX_RAW_PAYLOAD_BYTES)).toBe(true);
     expect(isThreadReplayRawPayloadSafe(THREAD_RESUME_MAX_RAW_PAYLOAD_BYTES + 1)).toBe(false);
 
-    // Raw safety and projected transport size are deliberately separate. A
-    // tiny projected replay is transport-safe even when its raw source is not.
     expect(
       decideThreadResume({
         afterSequence: 9,

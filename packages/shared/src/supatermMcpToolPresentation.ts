@@ -85,7 +85,6 @@ function tool(
 
 const SUPATERM_MCP_SERVER_NAME = "supaterm";
 
-// Cards, activity rows, summaries, and provider identity recovery share this inventory.
 const SUPATERM_MCP_TOOLS: Readonly<Record<string, SupatermMcpToolDefinition>> = {
   link_pull_request: tool(
     ["Link", "Linking", "Linked", "a pull request"],
@@ -387,10 +386,6 @@ const SUPATERM_MCP_TOOLS: Readonly<Record<string, SupatermMcpToolDefinition>> = 
   html_render: tool(["Render", "Rendering", "Rendered", "an HTML page"], "html-render"),
 };
 
-/**
- * The Supaterm orchestration tool inventory, used to gate loose name matching on
- * both the server (ACP MCP identity recovery) and the client (logo branding).
- */
 export const SUPATERM_MCP_TOOL_NAMES: ReadonlySet<string> = new Set(
   Object.keys(SUPATERM_MCP_TOOLS),
 );
@@ -437,7 +432,6 @@ function resolveSupatermMcpToolName(value: string): string | null {
   return longest;
 }
 
-/** The bare Supaterm tool name (`html_render`) for any provider's spelling of it. */
 export function resolveSupatermMcpToolId(toolName: string | null | undefined): string | null {
   const name = toolName == null ? null : resolveSupatermMcpToolName(toolName);
   return name !== null && Object.hasOwn(SUPATERM_MCP_TOOLS, name) ? name : null;

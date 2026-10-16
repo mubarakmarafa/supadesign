@@ -48,7 +48,6 @@ const threadTitlesAtom = Atom.family((environmentId: EnvironmentId) => {
   }).pipe(Atom.withLabel(`mobile-thread-titles:${environmentId}`));
 });
 
-/** Resolves when the project event reaches the live client store. */
 export function waitForProject(
   ref: ScopedProjectRef,
   timeoutMs = 10_000,

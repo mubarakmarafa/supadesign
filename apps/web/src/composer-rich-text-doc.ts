@@ -219,9 +219,9 @@ function textJsonForSpan(text: string, marks: RichTextMark[]): Record<string, un
 }
 
 /**
- * Document content for a prompt. `literalLength` keeps that many leading
- * characters as plain text, for a paste that continues a path query: markers
- * inside a path such as `src/__init__.py` must reach file search unstyled.
+ * `literalLength` keeps that many leading characters as plain text, for a paste
+ * that continues a path query: markers inside a path such as `src/__init__.py`
+ * must reach file search unstyled.
  */
 export function buildTiptapContent(
   value: string,
@@ -237,8 +237,6 @@ export function buildTiptapContent(
   const styling = options?.styling ?? true;
 
   const blockSyntax = styling && (options?.blocks ?? true);
-  // Hide token source from the markdown parser, then restore the atoms with
-  // the marks of their surrounding text. Choose a sentinel absent from input.
   let sentinel = "\uFFFC";
   for (let codePoint = 0xe000; value.includes(sentinel); codePoint += 1) {
     sentinel = String.fromCodePoint(codePoint);
@@ -293,8 +291,6 @@ export function buildTiptapContent(
 
   for (let index = 0; index < sourceLines.length; index += 1) {
     const line = sourceLines[index]!;
-    // The rest of the literal's line continues the text before the caret, so
-    // it cannot open a block.
     if (index === 0 && literal) {
       entries.push({
         line: { list: null, inline: [textJsonForSpan(literal, []), ...buildInline(line)] },
@@ -413,7 +409,6 @@ export function buildTiptapContent(
     for (;;) {
       const top = stack[stack.length - 1];
       if (!top) {
-        // A leading indented item with no parent flattens but keeps indent.
         stack.push({ indent, list: openList(rootLists, key), container: rootLists });
         continue;
       }

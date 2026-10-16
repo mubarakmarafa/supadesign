@@ -147,8 +147,6 @@ it.effect("resolves setup scripts through the standalone project service", () =>
     assert.match(doneTerminalId, /^done-clean-/);
     assert.equal(write.mock.calls.at(-1)?.[0].data, "cargo clean\r");
 
-    // A clean run closes its shell once the prompt is back, not at the
-    // sentinel, so the prompt redraw is not taken for new activity.
     const observedDone = yield* runner.runForThread({
       threadId: "thread-1",
       projectId,

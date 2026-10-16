@@ -1,3 +1,4 @@
+import * as Dialog from "../../components/ui/Dialog";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -5,14 +6,14 @@ import {
 } from "@supaterm/client-runtime/state/runtime";
 import type { ProviderAuthResponse, ServerProvider } from "@supaterm/contracts";
 import { useRef, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Linking, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppActivityIndicator } from "../../components/AppActivityIndicator";
-import { AppText as Text } from "../../components/AppText";
-import { MaterialButton } from "../../components/MaterialButton";
+import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
+import { AppText as Text } from "../../components/ui/AppText";
+import { Button } from "../../components/ui/Button";
 import { ProviderIcon } from "../../components/ProviderIcon";
-import { ScreenScrollView } from "../../components/ScreenScrollView";
+import { ScreenScrollView } from "../../components/ui/ScreenScrollView";
 import { cn } from "../../lib/cn";
 import { useEnvironmentQuery } from "../../state/query";
 import { serverEnvironment } from "../../state/server";
@@ -241,7 +242,7 @@ function ProviderAccount({
             {provider.displayName ?? provider.driver}
           </Text>
           {showSignIn ? (
-            <MaterialButton
+            <Button
               label={signInLabel()}
               disabled={disabled}
               loading={pending}
@@ -257,7 +258,7 @@ function ProviderAccount({
               {provider.enabled ? "Not installed" : "Disabled"}
             </Text>
           ) : !active && auth.error ? (
-            <MaterialButton label="Retry" onPress={auth.refresh} />
+            <Button label="Retry" onPress={auth.refresh} />
           ) : null}
         </View>
         <Text accessibilityLiveRegion="polite" className="text-sm text-foreground-muted">
@@ -402,7 +403,7 @@ function ProviderAccount({
           tone="danger"
           disabled={disabled || state === null}
           onPress={() =>
-            Alert.alert(
+            Dialog.alert(
               "Sign out?",
               `Running threads sharing this sign-in on ${environment.label} will stop. Thread history is kept.`,
               [

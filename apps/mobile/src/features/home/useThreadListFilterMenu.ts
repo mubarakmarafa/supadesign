@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ControlPillMenuProps } from "../../components/ControlPillMenu.types";
+import type { MenuProps } from "../../components/ui/Menu.types";
 import { buildHomeListFilterMenu, type HomeListFilterMenuInput } from "./home-list-filter-menu";
 
 export function useThreadListFilterMenu(props: HomeListFilterMenuInput) {
@@ -37,7 +37,7 @@ export function useThreadListFilterMenu(props: HomeListFilterMenuInput) {
         }),
       };
     });
-    const onPressAction: NonNullable<ControlPillMenuProps["onPressAction"]> = ({ nativeEvent }) => {
+    const onPressAction: NonNullable<MenuProps["onPressAction"]> = ({ nativeEvent }) => {
       handlers.get(nativeEvent.event)?.();
     };
     return { title: definition.title, actions, onPressAction };

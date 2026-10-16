@@ -171,7 +171,6 @@ function taskFixture() {
 
 it("reports the run that ended last, not the highest ordinal", () => {
   const { projection, run } = taskFixture();
-  // A restart continuation (ordinal 4) ran ahead of held queued runs 2 and 3.
   const ended = (ordinal: number, completedAt: string): OrchestrationV2Run => ({
     ...run,
     id: RunId.make(`run:${ordinal}`),

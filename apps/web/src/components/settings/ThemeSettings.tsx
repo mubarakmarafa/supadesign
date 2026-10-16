@@ -182,8 +182,6 @@ export function ThemeLibrary({
       for (const appearance of ["light", "dark"] as const) {
         const half = storedHalves[appearance];
         if (half === undefined) continue;
-        // Writing a base preference clears the whole mix, so halves that name
-        // a surviving theme are written back; removed halves fall back to base.
         const next = half && removedIds.has(half) ? null : removesBase ? half : undefined;
         if (next !== undefined && !setThemeHalf(appearance, next)) {
           notifyThemeRemovalFailure();
@@ -205,9 +203,6 @@ export function ThemeLibrary({
     if (removeThemes(themeIdsToRemove)) setIsThemeRemovalOpen(false);
   }, [removeThemes, themeIdsToRemove]);
 
-  // ----- Automatic-mode mixing -------------------------------------------
-  // The pair model: one theme owns light, one owns dark, and the global
-  // appearance mode (light / dark / auto) decides which is showing.
   const baseCardId = getThemeDefinition(theme)?.id ?? null;
 
   const selectionFor = (appearance: ThemeAppearance) => {
@@ -237,8 +232,6 @@ export function ThemeLibrary({
         const otherOwner = readThemeHalvesRaw()[otherAppearance] ?? baseCardId;
         if (!persistTheme(appearanceMode === "system" ? "system" : appearanceMode)) return;
         if (!setThemeHalf(otherAppearance, otherOwner)) {
-          // Best-effort rollback: restore the whole-theme selection rather
-          // than leaving the user with no theme at all.
           setTheme(theme);
           notifyThemeSaveFailure();
         }
@@ -259,8 +252,6 @@ export function ThemeLibrary({
     ],
   );
 
-  // "Create theme" starts from whatever is on screen for the appearance being
-  // edited, so tuning the theme you already use never means rebuilding it.
   const activeThemeForAppearance = selectionFor(initialAppearance).definition;
 
   const setMode = (mode: ThemeMode) => {
@@ -495,8 +486,6 @@ export function ThemeLibrary({
       </div>
       <ThemeImportDialog
         onImportedMany={(importedThemes, { updated }) => {
-          // Re-apply after collection updates. The update may remove the
-          // selected variant, in which case the theme hook falls back safely.
           if (updated) refreshTheme();
           const verb = updated ? "updated" : "added";
           toastManager.add(
@@ -511,8 +500,6 @@ export function ThemeLibrary({
           );
         }}
         onImported={(importedTheme) => {
-          // Same rule as clicking the card: a one-appearance theme takes its
-          // side of the mix instead of becoming the base for both.
           const modes = getThemeModes(importedTheme);
           if (modes.length === 1) {
             assignHalf(modes[0]!, importedTheme.id);

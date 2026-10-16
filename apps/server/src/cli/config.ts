@@ -84,7 +84,6 @@ const tailscaleServePortFlag = Flag.Int("tailscale-serve-port").pipe(
   Flag.optional,
 );
 
-// Trace file location, shared by the server and `supaterm trace summary`.
 export const traceFileConfig = Config.String("SUPATERM_TRACE_FILE").pipe(
   Config.option,
   Config.map(Option.getOrUndefined),
@@ -416,8 +415,6 @@ export const resolveServerConfig = (
 
     const otel = yield* OtelEnvironment.load;
 
-    // Supaterm's own OTLP variables name no signal, so the one answer they give
-    // is the answer for all three.
     const signalExport: SignalExport = {
       protocol: env.otlpProtocol,
       headers: env.otlpHeaders,

@@ -14,8 +14,6 @@ const SheetPortal = SheetPrimitive.Portal;
 const SHEET_TRANSITION_TIMING_CLASS =
   "[--sheet-duration:200ms] duration-(--sheet-duration) ease-drawer data-ending-style:duration-[calc(var(--sheet-duration)*0.75)] data-ending-style:ease-in motion-reduce:transition-none";
 
-// Sheets are docked panels, not dialogs: their layer (--z-sheet) sits under dialogs that open
-// from inside them and under anything the app floats above panels.
 function SheetBackdrop({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
     <SheetPrimitive.Backdrop

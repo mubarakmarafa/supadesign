@@ -14,9 +14,7 @@ export interface ThreadPendingApproval {
   readonly requestKind: ProviderRequestKind;
   readonly createdAt: string;
   readonly detail?: string;
-  /** App requesting access for mcp-elicitation approvals (#8058). */
   readonly appName?: string;
-  /** Approval choices advertised by the provider (#8058); defaults apply when absent. */
   readonly options?: ReadonlyArray<ProviderApprovalOption>;
   readonly responseCapability: "live" | "not_resumable";
 }
@@ -63,7 +61,6 @@ export function seedUserInputDraftAnswers<Draft extends { readonly customAnswer?
   return seeded;
 }
 
-/** Joins pending request entities to the request items that carry display data. */
 export function derivePendingThreadRequests(
   projection: Pick<OrchestrationV2ThreadProjection, "runtimeRequests" | "turnItems">,
 ): PendingThreadRequests {
@@ -119,7 +116,6 @@ export function derivePendingThreadRequests(
   return { approvals, userInputs };
 }
 
-/** Older V2 answers were saved on requests without updating their timeline items. */
 export function createQuestionHistoryProjector() {
   type Rows = OrchestrationV2ThreadProjection["visibleTurnItems"];
   type Requests = OrchestrationV2ThreadProjection["runtimeRequests"];

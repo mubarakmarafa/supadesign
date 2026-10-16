@@ -1,17 +1,6 @@
 import { splitPromptIntoComposerSegments } from "./composer-editor-mentions";
 
-/**
- * List continuation and indentation for the composer.
- *
- * Implemented once at the ChatComposer level (store replacement), so both
- * composer modes behave identically and serialize identically:
- * Shift+Enter on a list item continues it, Enter on an empty item exits the
- * list, and Tab indents the item. Plain Markdown markers only — no real list
- * nodes anywhere.
- */
-
 export interface ComposerListEdit {
-  /** Expanded (plain string) offsets into the prompt. */
   start: number;
   end: number;
   replacement: string;
@@ -82,7 +71,6 @@ function segmentSource(
   return segment.source;
 }
 
-/** True when splitting at the caret would cut an inline chip in two. */
 function isInsideInlineToken(value: string, cursor: number): boolean {
   let offset = 0;
   for (const segment of splitPromptIntoComposerSegments(value)) {
@@ -100,11 +88,6 @@ function currentLine(value: string, cursor: number): { start: number; end: numbe
   return { start, end, text: value.slice(start, end) };
 }
 
-/**
- * Enter on a list item line: continue the list, or exit it when the item is
- * empty. Returns null for non-list lines, carets inside the marker, and
- * carets inside an inline chip — all fall through to a plain newline.
- */
 export function listContinuationForEnter(value: string, cursor: number): ComposerListEdit | null {
   if (!Number.isInteger(cursor) || cursor < 0 || cursor > value.length) return null;
   const line = currentLine(value, cursor);
@@ -114,7 +97,6 @@ export function listContinuationForEnter(value: string, cursor: number): Compose
   if (cursor < markerEnd) return null;
   if (isInsideInlineToken(value, cursor)) return null;
   if (value.slice(markerEnd, line.end).trim() === "") {
-    // Empty item: Enter exits the list by removing the marker.
     return { start: line.start, end: Math.max(cursor, markerEnd), replacement: "" };
   }
   return {

@@ -27,6 +27,8 @@ import * as EffectWorker from "../orchestration-v2/EffectWorker.ts";
 import * as Orchestrator from "../orchestration-v2/Orchestrator.ts";
 import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import * as ProviderAdapterRegistry from "../orchestration-v2/ProviderAdapterRegistry.ts";
+import * as ThreadLaunchService from "../orchestration-v2/ThreadLaunchService.ts";
+import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as ThreadManagementService from "../orchestration-v2/ThreadManagementService.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as ProviderReplayHarness from "../orchestration-v2/testkit/ProviderReplayHarness.ts";
@@ -38,13 +40,18 @@ import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts
 import type { McpInvocationScope } from "./McpInvocationContext.ts";
 import * as OrchestratorMcpService from "./OrchestratorMcpService.ts";
 
+const layerOrchestratorService = OrchestratorMcpService.layer.pipe(
+  Layer.provide(Layer.mock(ThreadLaunchService.ThreadLaunchService)({})),
+  Layer.provide(Layer.mock(GitVcsDriver.GitVcsDriver)({})),
+);
+
 const driver = ProviderDriverKind.make("claudeAgent");
 const instanceId = ProviderInstanceId.make("claudeAgent");
 const modelSelection = { instanceId, model: "claude-test" };
 
 // A delegated Claude child ends its turn while a background native subagent it
-// started keeps running (#17154). Cancelling the task stops the child, which
-// ends that subagent's process, so the task must end instead of waiting on it.
+// started keeps running (#17154).
+
 it.effect("task_cancel ends a delegated child's background native subagent", () =>
   Effect.scoped(
     Effect.gen(function* () {
@@ -142,7 +149,7 @@ it.effect("task_cancel ends a delegated child's background native subagent", () 
           ),
         ),
       );
-      const layerTest = OrchestratorMcpService.layer.pipe(
+      const layerTest = layerOrchestratorService.pipe(
         Layer.provideMerge(layerOrchestration),
         Layer.provide(
           Layer.mergeAll(
@@ -224,7 +231,6 @@ it.effect("task_cancel ends a delegated child's background native subagent", () 
         const childTurn = (yield* orchestrator.getThreadProjection(task.childThreadId!))
           .providerTurns[0]!;
 
-        // The child starts a background native subagent, then ends its turn.
         const now = yield* DateTime.now;
         const subagentId = NodeId.make("node:native-subagent");
         const native = {
@@ -355,7 +361,7 @@ it.effect("task_cancel ends a delegated child's background native subagent", () 
           childAfter.turnItems.find((item) => item.type === "subagent")?.status,
           "interrupted",
         );
-        // The child's own turn had completed, so the task keeps that result.
+
         const after = yield* service.taskStatus(scope, task.id);
         assert.equal(after.status, "completed");
         assert.notEqual(after.workState, "waiting_for_children");

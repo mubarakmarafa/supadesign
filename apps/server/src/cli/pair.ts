@@ -90,8 +90,6 @@ export class NoRunningServerError extends Schema.TaggedError<NoRunningServerErro
   }
 }
 
-// Each tailscale failure gets its own class (same reasoning as
-// scripts/lib/dev-share.ts): distinct caller-visible message, distinct remedy.
 export class TailscaleUnavailableError extends Schema.TaggedError<TailscaleUnavailableError>()(
   "TailscaleUnavailableError",
   { cause: Schema.Defect() },
@@ -137,7 +135,6 @@ export class ServePortOccupiedError extends Schema.TaggedError<ServePortOccupied
   }
 }
 
-/** The URL a browser or phone should pair through, absent Tailscale. */
 export const resolveDirectPairingBaseUrl = (state: PersistedServerRuntimeState): string =>
   state.devUrl ?? resolveHeadlessConnectionString(state.host, state.port);
 
@@ -171,10 +168,9 @@ export class PairRouteConflictError extends Schema.TaggedError<PairRouteConflict
 }
 
 /**
- * The local endpoint Tailscale Serve should proxy to. Dev servers are
- * single-origin, so the web dev server's port is the one to publish; the
- * backend rides along behind Vite's proxy. Serve targets are always plain
- * HTTP, so an HTTPS dev URL cannot be proxied and is rejected.
+ * Dev servers are single-origin, so the web dev server's port is the one to publish; the
+ * backend rides along behind Vite's proxy. Serve targets are always plain HTTP, so an HTTPS dev
+ * URL cannot be proxied and is rejected.
  */
 export const resolveTailscaleLocalTarget = (
   state: PersistedServerRuntimeState,
@@ -189,8 +185,6 @@ export const resolveTailscaleLocalTarget = (
       ? { localPort }
       : { localPort, localHost: devUrl.hostname };
   }
-  // A server bound to one specific interface does not answer on loopback, so
-  // the proxy has to target that interface directly.
   if (state.host !== undefined && !isWildcardHost(state.host) && !isLoopbackHost(state.host)) {
     return { localPort: state.port, localHost: formatHostForUrl(state.host) };
   }
@@ -217,11 +211,6 @@ const formatPairOutput = (input: {
     "",
   ].join("\n");
 
-/**
- * Three outcomes, because they drive different decisions: a Supaterm descriptor
- * (pair with it), nothing answering (safe to configure Tailscale Serve), or
- * something answering that is not a Supaterm server (do NOT overwrite its mapping).
- */
 type EnvironmentProbeResult =
   | { readonly _tag: "descriptor"; readonly descriptor: ExecutionEnvironmentDescriptor }
   | { readonly _tag: "unreachable" }
@@ -235,7 +224,6 @@ const probeEnvironmentDescriptor = (
     const request = HttpClientRequest.get(new URL(WELL_KNOWN_ENVIRONMENT_PATH, baseUrl).toString());
     const response = yield* client.execute(request).pipe(
       Effect.timeout(PAIR_PROBE_TIMEOUT),
-      // Transport failure or timeout: nothing (reachable) is listening there.
       Effect.mapError(() => ({ _tag: "unreachable" }) as const),
     );
     // Bad-gateway family means a proxy (Tailscale Serve) answered for a
@@ -245,8 +233,6 @@ const probeEnvironmentDescriptor = (
     if (response.status === 502 || response.status === 503 || response.status === 504) {
       return { _tag: "unreachable" } as const;
     }
-    // Anything else that answered HTTP but not with a valid descriptor is
-    // some other service.
     const descriptor = yield* HttpClientResponse.filterStatusOk(response).pipe(
       Effect.flatMap(HttpClientResponse.schemaBodyJson(ExecutionEnvironmentDescriptor)),
       Effect.mapError(() => ({ _tag: "not-a-supaterm-server" }) as const),
@@ -315,11 +301,9 @@ const discoverPairTarget = Effect.fn("pair.discoverPairTarget")(function* (
 });
 
 /**
- * Server config pointed at the discovered server's state directory, so the
- * minted token lands in the database the running server reads from. Built by
- * hand rather than through `resolveServerConfig` to keep the dev-vs-userdata
- * choice pinned to where the runtime state was actually found, independent of
- * ambient environment variables.
+ * Built by hand rather than through `resolveServerConfig` to keep the dev-vs-userdata choice
+ * pinned to where the runtime state was actually found, independent of ambient environment
+ * variables.
  */
 const makePairServerConfig = Effect.fn(function* (input: {
   readonly target: DiscoveredPairTarget;
@@ -544,8 +528,6 @@ export const pairCommand = Command.make("pair", {
   Command.withHandler((flags) =>
     Effect.gen(function* () {
       const cliLogLevel = yield* GlobalFlag.LogLevel;
-      // Default to Warn so storage/migration chatter cannot bury the QR code;
-      // an explicit --log-level still wins.
       const logLevel = Option.getOrElse(cliLogLevel, () => "Warn" as const);
 
       if (flags.relay && flags.tailscale) return yield* new PairRouteConflictError();

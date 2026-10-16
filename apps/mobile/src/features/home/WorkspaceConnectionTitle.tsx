@@ -2,8 +2,8 @@ import type { NativeStackNavigationOptions } from "@react-navigation/native-stac
 import { useEffect, useState, type ReactNode } from "react";
 import { Animated, Pressable, View } from "react-native";
 
-import { AppText as Text } from "../../components/AppText";
-import { useAndroidControlSizing } from "../../components/useAndroidControlSizing";
+import { AppText as Text } from "../../components/ui/AppText";
+import { useAndroidControlSizing } from "../../components/ui/useAndroidControlSizing";
 import {
   brandTitleOffset,
   CompactBrandTitle,
@@ -32,10 +32,10 @@ function useDelayedConnectionStatus(): WorkspaceConnectionStatusPresentation | n
 }
 
 /**
- * One-shot entrance fade for the status label. Deliberately JS-driven: this can
- * mount inside a native header item (RNSScreenStackHeaderSubview), where
- * native-driver animated nodes blank the re-hosted view entirely. The JS driver
- * updates opacity through the ordinary style path, which those subviews handle.
+ * Deliberately JS-driven: this can mount inside a native header item
+ * (RNSScreenStackHeaderSubview), where native-driver animated nodes blank the
+ * re-hosted view entirely. The JS driver updates opacity through the ordinary
+ * style path, which those subviews handle.
  */
 function StatusFadeIn(props: { readonly children: ReactNode }) {
   const reducedMotion = useReducedMotionPreference();
@@ -70,14 +70,10 @@ function StatusFadeIn(props: { readonly children: ReactNode }) {
 export function WorkspaceConnectionTitle(props: {
   /** Persistent brand lockup or screen title. */
   readonly brand: ReactNode;
-  /** Opens environment settings. Status is not pressable when omitted. */
   readonly onPress?: () => void;
-  /** Fill the available row width (in-flow headers) instead of hugging content (native title slots). */
   readonly grow?: boolean;
   readonly size?: "navbar" | "pageTitle";
-  /** Horizontal correction so the status aligns with the brand in native title slots. */
   readonly statusOffset?: number;
-  /** Space available beside the native header actions. */
   readonly maxWidth?: number;
 }) {
   const status = useDelayedConnectionStatus();
@@ -140,8 +136,6 @@ export function getConnectionAwareBrandHeaderOptions(opts: {
   readonly onOpenEnvironments: () => void;
   readonly fallbackTitleStyle?: NativeStackNavigationOptions["headerTitleStyle"];
 }): NativeStackNavigationOptions {
-  // Leave room for bar margins, title spacing and the 44-point native actions.
-  // Long status labels must not push Settings into UIKit's overflow menu.
   const maxWidth = Math.max(0, opts.headerWidth - 64 - 44 * (opts.trailingItemCount ?? 1));
 
   return {

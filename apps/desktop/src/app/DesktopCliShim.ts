@@ -50,6 +50,7 @@ export const renderCliShim = (input: {
       `set "SUPATERM_CLI_SHIM_PATH=${cmdText(input.shimPath)}"`,
       `if not defined SUPATERM_HOME set "SUPATERM_HOME=${cmdText(input.supatermHome)}"`,
       'set "ELECTRON_RUN_AS_NODE=1"',
+      'set "SUPATERM_DESKTOP_CLI_LAUNCHER=1"',
 
       `if exist ${cmdWord(target.executable)} goto run`,
       ...restore,

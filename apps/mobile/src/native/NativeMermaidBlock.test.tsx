@@ -16,7 +16,7 @@ vi.mock("react-native", () => ({
 vi.mock("@supaterm/mobile-source-text", () => ({ SourceText: "SourceText" }));
 vi.mock("expo-clipboard", () => ({ setStringAsync: copy }));
 vi.mock("expo-haptics", () => ({ impactAsync: vi.fn(), ImpactFeedbackStyle: { Light: "light" } }));
-vi.mock("../components/AppSymbol", () => ({ SymbolView: "SymbolView" }));
+vi.mock("../components/ui/AppSymbol", () => ({ SymbolView: "SymbolView" }));
 vi.mock("../lib/useReducedMotionPreference", () => ({ useReducedMotionPreference: () => true }));
 vi.mock("react-native-reanimated", () => ({
   default: { View: "View" },

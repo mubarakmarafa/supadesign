@@ -1,4 +1,5 @@
 import type {
+  OrchestrationV2AppThread,
   ThreadLinkedPullRequest,
   ThreadPullRequestKey,
   ThreadPullRequestLink,
@@ -13,7 +14,6 @@ type ThreadPullRequestKeySource = ThreadPullRequestKey & {
   readonly url?: string;
 };
 
-/** Normalize stored links, recovering Forgejo HTTP ports from old links' URLs. */
 export function normalizeThreadPullRequestKey(
   key: ThreadPullRequestKeySource,
 ): ThreadPullRequestKey {
@@ -34,7 +34,6 @@ export function normalizeThreadPullRequestKey(
   };
 }
 
-/** Legacy Azure selectors omit the organization and project; recover those from the PR URL. */
 export function legacyThreadPullRequestKey(
   linked: Pick<ThreadLinkedPullRequest, "repository" | "number" | "url">,
   fallbackHost?: string,
@@ -61,7 +60,6 @@ export function legacyThreadPullRequestKey(
   };
 }
 
-/** Identity comparison for links: host-level, case-insensitive on host and repository. */
 export function threadPullRequestKeysEqual(
   left: ThreadPullRequestKeySource,
   right: ThreadPullRequestKeySource,
@@ -74,7 +72,7 @@ export function threadPullRequestKeyOf(key: ThreadPullRequestKeySource): string 
   return `${normalized.host}/${normalized.repository}#${normalized.number}`;
 }
 
-/** Links a user should see. Tombstoned stack members stay in the array only so the
+/** Tombstoned stack members stay in the array only so the
  * sync reactor does not re-add them. */
 export function visibleThreadPullRequests(
   links: ReadonlyArray<ThreadPullRequestLink>,
@@ -83,8 +81,6 @@ export function visibleThreadPullRequests(
 }
 
 function isOpen(link: ThreadPullRequestLink): boolean {
-  // Unsynced links are treated as open: they were just linked, and hiding them
-  // behind a terminal PR until the first sync would make the link look lost.
   return link.snapshot === null || link.snapshot.state === "open";
 }
 
@@ -94,20 +90,14 @@ function latestUpdatedAt(link: ThreadPullRequestLink): number {
   return Number.isNaN(ms) ? 0 : ms;
 }
 
-/** The single pull request a one-slot surface (sidebar badge, tab icon, copy link) shows. */
 export type ThreadCurrentPullRequest =
   | { readonly kind: "single"; readonly link: ThreadPullRequestLink }
   | {
       readonly kind: "stack";
       readonly open: ReadonlyArray<ThreadPullRequestLink>;
-      /** Highest layer of the open set; the one "View PR" and copy-link target. */
       readonly top: ThreadPullRequestLink;
     };
 
-/**
- * Prefer open work and the highest open layer within a chain. A completed chain still
- * points at its top; unrelated terminal links use the most recently updated request.
- */
 export function resolveThreadCurrentPullRequest(
   links: ReadonlyArray<ThreadPullRequestLink>,
 ): ThreadCurrentPullRequest | null {
@@ -147,15 +137,9 @@ export function resolveThreadCurrentPullRequestLink(
 
 export interface ThreadPullRequestChain {
   readonly kind: "native" | "derived";
-  /** Bottom to top. */
   readonly layers: ReadonlyArray<ThreadPullRequestLink>;
 }
 
-/**
- * Groups a thread's links into stacks. Native stacks come from the host and win; the rest
- * are chained by matching one link's base branch to another's head branch within the same
- * repository. A link that chains to nothing is a one-layer chain.
- */
 export function resolveThreadPullRequestChains(
   links: ReadonlyArray<ThreadPullRequestLink>,
 ): ReadonlyArray<ThreadPullRequestChain> {
@@ -184,7 +168,6 @@ export function resolveThreadPullRequestChains(
     const key = normalizeThreadPullRequestKey(link);
     return `${key.host}/${key.repository}:${branch}`;
   };
-  // Reused head names cannot identify a parent unambiguously.
   const byHead = new Map<string, ThreadPullRequestLink | null>();
   for (const link of remaining) {
     if (link.snapshot === null) continue;
@@ -197,7 +180,6 @@ export function resolveThreadPullRequestChains(
     const parent = byHead.get(branchKey(link, link.snapshot.baseBranch));
     if (parent != null && parent !== link) hasChild.add(threadPullRequestKeyOf(parent));
   }
-  // Walk from each top (a link nothing builds on) down its base chain.
   for (const top of remaining) {
     if (hasChild.has(threadPullRequestKeyOf(top))) continue;
     const layers: Array<ThreadPullRequestLink> = [];
@@ -212,7 +194,6 @@ export function resolveThreadPullRequestChains(
     }
     if (layers.length > 0) chains.push({ kind: "derived", layers });
   }
-  // Cycles have no top. Keep those links visible without inventing a stack order.
   for (const link of remaining) {
     if (!placed.has(threadPullRequestKeyOf(link))) {
       chains.push({ kind: "derived", layers: [link] });
@@ -231,7 +212,6 @@ export type ThreadPullRequestBadge = {
   | { readonly kind: "pull-request"; readonly others: number }
 );
 
-/** Aggregate visible links' state for both stacks and unrelated linked counts. */
 export function resolveThreadPullRequestBadge(
   pullRequests: ReadonlyArray<ThreadPullRequestLink> | undefined,
 ): ThreadPullRequestBadge | null {
@@ -274,4 +254,16 @@ export function threadPullRequestsOf(thread: {
   readonly pullRequests?: ReadonlyArray<ThreadPullRequestLink> | undefined;
 }): ReadonlyArray<ThreadPullRequestLink> {
   return thread.pullRequests ?? [];
+}
+
+export function applyThreadPullRequestLinkUpdate(
+  thread: OrchestrationV2AppThread,
+  updated: ThreadPullRequestLink,
+): OrchestrationV2AppThread {
+  return {
+    ...thread,
+    pullRequests: threadPullRequestsOf(thread).map((link) =>
+      threadPullRequestKeysEqual(link, updated) ? updated : link,
+    ),
+  };
 }

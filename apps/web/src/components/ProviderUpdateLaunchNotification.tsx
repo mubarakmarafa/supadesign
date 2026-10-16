@@ -32,11 +32,6 @@ function useHasLocalSecondaryEnvironment(): boolean {
   );
 }
 
-/**
- * The provider update popover. With a WSL backend present it splits the update
- * trigger per environment; without one (the common case) it falls back to the
- * single-prompt flow so non-WSL users see no change.
- */
 export function ProviderUpdateLaunchNotification() {
   const hasLocalSecondary = useHasLocalSecondaryEnvironment();
 
@@ -71,8 +66,6 @@ function ProviderUpdateEnvironmentsNotification() {
   // is kept so in-progress rows are not torn down.
   const hasInteractedRef = useRef(false);
 
-  // Close our prompt if this flow unmounts (e.g. the WSL backend is disabled
-  // and we fall back to the single-prompt flow).
   useEffect(() => {
     return () => {
       if (activeToastRef.current !== null) {
@@ -88,14 +81,11 @@ function ProviderUpdateEnvironmentsNotification() {
     notificationKeyRef.current = notificationKey;
   }, [notificationKey]);
 
-  // Title summarizes the distinct providers on offer across all environments;
-  // the per-environment detail lives in the popover body.
   const candidateUnion = useMemo(
     () => collectProviderUpdateCandidates(updateGroups.flatMap((group) => group.candidates)),
     [updateGroups],
   );
 
-  // Defer while any local backend is still connecting, up to the grace period.
   const [settleGraceElapsed, setSettleGraceElapsed] = useState(false);
   if (!isAnySettling && settleGraceElapsed) {
     setSettleGraceElapsed(false);
@@ -117,18 +107,12 @@ function ProviderUpdateEnvironmentsNotification() {
   }, [navigate]);
 
   useEffect(() => {
-    // Whether a fresh prompt can actually be shown for the current update set.
     const canShowPrompt =
       notificationKey !== null &&
       !isGated &&
       !dismissedNotificationKeys.has(notificationKey) &&
       !seenProviderUpdateNotificationKeys.has(notificationKey);
 
-    // Close a prompt the user hasn't acted on yet when the available updates
-    // change: when they clear entirely (key null) so the toast doesn't linger,
-    // and when a fresh set is ready to replace it. Keep it only while a backend
-    // is re-settling (updates still exist, just gated) — and once an update is
-    // in progress, so its rows survive.
     const active = activeToastRef.current;
     if (
       active &&
@@ -148,8 +132,6 @@ function ProviderUpdateEnvironmentsNotification() {
     hasInteractedRef.current = false;
 
     const dismissPrompt = () => {
-      // Dismiss whatever set is still on offer at close time, so the popover
-      // does not re-pop for updates the user just declined.
       const liveKey = notificationKeyRef.current;
       if (liveKey) {
         dismissNotificationKey(liveKey);

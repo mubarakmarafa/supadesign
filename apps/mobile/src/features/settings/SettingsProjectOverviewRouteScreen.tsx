@@ -1,6 +1,6 @@
 import { connectionAddressLabel } from "@supaterm/client-runtime/connection";
-import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
-import { AppText as Text, AppTextInput } from "../../components/AppText";
+import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
+import { AppText as Text, AppTextInput } from "../../components/ui/AppText";
 import { ProjectFavicon } from "../../components/ProjectFavicon";
 import { deriveProjectGroupLabel } from "@supaterm/client-runtime/state/project-grouping";
 import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";

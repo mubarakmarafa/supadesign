@@ -1,3 +1,4 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { availableScratchWorkspaceRoot } from "@supaterm/client-runtime/operations/projects";
 import {
@@ -18,7 +19,6 @@ import {
   type PromptLinkRepository,
 } from "@supaterm/shared/promptLinks";
 import { useEffect, useEffectEvent, useRef } from "react";
-import { Alert } from "react-native";
 
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { useProjects, useServerConfigs, useThreadShells } from "../../state/entities";
@@ -45,7 +45,6 @@ import {
   promptLinkSearchFromParams,
 } from "./prompt-link-model";
 
-/** What a `new` link asks for, in one shape for every destination. */
 type LinkedDraftRequest = {
   readonly prompt: LinkedPrompt | null;
   readonly provider: string | null;
@@ -53,11 +52,6 @@ type LinkedDraftRequest = {
   readonly pullRequest: PromptLinkPullRequest | null;
 };
 
-/**
- * Opens a `supaterm://new?…` link. The link lands on the New Task picker with its query as route
- * params; this resolves it to a project, a thread, or a choice, then fills a draft. Nothing is
- * ever sent: the user reads the prompt and presses Send. Used by `NewTaskRouteScreen`.
- */
 export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> | undefined) {
   const navigation = useNavigation();
   const flow = useNewTaskFlow();
@@ -83,8 +77,6 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
         environment.connectionState === "connecting" || environment.connectionError === null,
     );
 
-  // Writes the prompt and the requested model into a draft. Returns true when the link named a
-  // model the user cannot use, so their default stands in.
   const writeDraft = (
     draftKey: string,
     environmentId: EnvironmentId,
@@ -107,7 +99,7 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
     try {
       await waitForComposerDraftsLoaded();
     } catch {
-      Alert.alert(
+      Dialog.alert(
         "Could not open link",
         "Drafts could not be loaded, so the prompt was not added.",
       );
@@ -119,7 +111,6 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
     });
     let pullRequestUnavailable: number | null = null;
     if (request.pullRequest) {
-      // The same draft the PR screen's Ask makes: Send checks out the PR head in a worktree.
       const detail = await loadPullRequest({
         environmentId: project.environmentId,
         input: {
@@ -162,7 +153,6 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
 
   const openScratchDraft = async (request: LinkedDraftRequest) => {
     const environmentId = promptLinkScratchEnvironmentId(
-      // Machines by their latest thread, scratch threads included.
       latestThreadEnvironmentIds(threads),
       connectedEnvironments
         .filter(
@@ -177,7 +167,7 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
         .map((environment) => environment.environmentId),
     );
     if (environmentId === null) {
-      Alert.alert(
+      Dialog.alert(
         "Could not start without a project",
         "Connect to an environment to start without a project.",
       );
@@ -187,7 +177,7 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
     if (result._tag === "Failure") {
       if (!isAtomCommandInterrupted(result)) {
         const error = squashAtomCommandFailure(result);
-        Alert.alert(
+        Dialog.alert(
           "Could not start without a project",
           error instanceof Error
             ? error.message
@@ -199,17 +189,13 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
     await openProjectDraft(result.value, { ...request, pullRequest: null });
   };
 
-  // Clone needs a tap on the destination screen, which then opens a draft in the cloned project
-  // holding the prompt. A pull request's prompt belongs on its branch, which only exists once the
-  // clone is done, so that link, like any on an older server, has to be opened again.
   const cloneRepository = (repository: PromptLinkRepository, request: LinkedDraftRequest) => {
     const environmentId =
       flow.selectedEnvironmentId ?? connectedEnvironments[0]?.environmentId ?? null;
     if (environmentId === null) {
-      Alert.alert("Could not clone", "Connect an environment first.");
+      Dialog.alert("Could not clone", "Connect an environment first.");
       return;
     }
-    // Only a tracked clone opens a draft the prompt can ride into; older servers do not.
     const prompt =
       request.pullRequest === null && serverConfigs.has(environmentId) ? request.prompt : null;
     const name = promptLinkRepositoryName(repository);
@@ -239,7 +225,7 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
   const resolveLink = useEffectEvent((linkSearch: string) => {
     const parsed = parseNewThreadLink(linkSearch);
     if (!parsed.ok) {
-      Alert.alert("Could not open link", parsed.error);
+      Dialog.alert("Could not open link", parsed.error);
       return;
     }
     const link = parsed.value;
@@ -273,8 +259,6 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
       void openScratchDraft(request);
       return;
     }
-    // Most recently active first, so the user lands where they last worked. Scopes are ordered
-    // that way, but the checkouts inside one are not.
     const lastActivity = new Map<string, string>();
     for (const thread of threads) {
       const key = `${thread.environmentId}:${thread.projectId}`;
@@ -292,7 +276,7 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
       void openProjectDraft(project, request);
       return;
     }
-    Alert.alert(`You don't have ${promptLinkRepositoryName(repository)}`, undefined, [
+    Dialog.alert(`You don't have ${promptLinkRepositoryName(repository)}`, undefined, [
       { text: "Cancel", style: "cancel" },
       ...(request.prompt
         ? [{ text: "Use without project", onPress: () => void openScratchDraft(request) }]
@@ -301,7 +285,6 @@ export function usePromptLinkResolver(params: Readonly<Record<string, unknown>> 
     ]);
   });
 
-  // Handle each link once. Clearing the params lets the same link open again later.
   const handledSearchRef = useRef<string | null>(null);
   useEffect(() => {
     if (search === null) {

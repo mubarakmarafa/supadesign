@@ -54,7 +54,6 @@ const encodeDescriptor = Schema.encodeSync(Schema.fromJsonString(ExecutionEnviro
 
 type Listener = (event: { readonly type: string; readonly data?: unknown }) => void;
 
-/** Answers update RPCs the way a protocol-1 server does. */
 class OutdatedHostSocket {
   static readonly OPEN = 1;
   readyState = 0;
@@ -235,7 +234,6 @@ describe("updateOutdatedHost", () => {
               Layer.succeed(ConnectionResolver.ConnectionResolver, resolver),
               Layer.succeed(HttpClient.HttpClient, httpClient),
               Layer.succeed(Socket.WebSocketConstructor, (url) => {
-                // The host relaunches on a compatible protocol once the update lands.
                 const socket = new OutdatedHostSocket(url, () => {
                   served = descriptor(ORCHESTRATION_PROTOCOL_VERSION, "0.0.46");
                 });
