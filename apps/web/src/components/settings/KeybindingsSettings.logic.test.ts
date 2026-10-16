@@ -331,11 +331,9 @@ describe("KeybindingsSettings.logic", () => {
         "script.setup-db.run",
       ]),
     );
-    for (const command of ["thread.stop", "composer.cycleHost"]) {
-      expect(DEFAULT_RESOLVED_KEYBINDINGS.some((binding) => binding.command === command)).toBe(
-        false,
-      );
-    }
+    expect(
+      DEFAULT_RESOLVED_KEYBINDINGS.some((binding) => binding.command === "composer.cycleHost"),
+    ).toBe(false);
   });
 
   it("reports unknown when variables without rejecting parseable expressions", () => {

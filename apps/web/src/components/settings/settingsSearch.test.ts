@@ -255,10 +255,11 @@ describe("searchSettings", () => {
   });
 
   it("sends commands without a default binding to the section", () => {
-    expect(searchSettings("thread.stop")[0]).toMatchObject({
-      id: "keybinding-thread.stop",
+    expect(searchSettings("composer.cycleHost")[0]).toMatchObject({
+      id: "keybinding-composer.cycleHost",
       targetId: "keybindings",
     });
+    expect(searchSettings("thread.stop")[0]?.targetId).toBeUndefined();
     expect(searchSettings("sidebar.toggle")[0]?.targetId).toBeUndefined();
   });
 

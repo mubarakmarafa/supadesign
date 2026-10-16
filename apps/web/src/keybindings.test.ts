@@ -1109,6 +1109,61 @@ describe("resolveChatShortcutCommand", () => {
 });
 
 describe("resolveShortcutCommand", () => {
+  it.each(["MacIntel", "Win32", "Linux x86_64"])(
+    "interrupts with Control+C and labels the tooltip on %s",
+    (platform) => {
+      assert.strictEqual(
+        resolveShortcutCommand(event({ key: "c", ctrlKey: true }), DEFAULT_RESOLVED_KEYBINDINGS, {
+          platform,
+          context: { editableFocus: true, composerFocus: true },
+        }),
+        "thread.stop",
+      );
+      assert.strictEqual(
+        shortcutLabelForCommand(DEFAULT_RESOLVED_KEYBINDINGS, "thread.stop", { platform }),
+        platform === "MacIntel" ? "⌃C" : "Ctrl+C",
+      );
+      assert.strictEqual(
+        resolveShortcutCommand(event({ key: "c", metaKey: true }), DEFAULT_RESOLVED_KEYBINDINGS, {
+          platform,
+        }),
+        null,
+      );
+    },
+  );
+
+  it.each(["terminalFocus", "previewFocus", "textSelected"])(
+    "preserves Control+C when %s is true",
+    (contextKey) => {
+      assert.strictEqual(
+        resolveShortcutCommand(event({ key: "c", ctrlKey: true }), DEFAULT_RESOLVED_KEYBINDINGS, {
+          platform: "Win32",
+          context: { [contextKey]: true },
+        }),
+        null,
+      );
+    },
+  );
+
+  it("uses a custom interrupt shortcut for both matching and its tooltip", () => {
+    const keybindings = mergeWithDefaultKeybindings(
+      compileResolvedKeybindingsConfig([{ key: "alt+escape", command: "thread.stop" }]),
+    );
+    assert.strictEqual(
+      resolveShortcutCommand(event({ key: "c", ctrlKey: true }), keybindings, {
+        platform: "Win32",
+      }),
+      null,
+    );
+    assert.strictEqual(
+      resolveShortcutCommand(event({ key: "Escape", altKey: true }), keybindings, {
+        platform: "Win32",
+      }),
+      "thread.stop",
+    );
+    assert.strictEqual(shortcutLabelForCommand(keybindings, "thread.stop", "Win32"), "Alt+Esc");
+  });
+
   it("resolves a custom stop-thread shortcut", () => {
     const keybindings = compile([{ shortcut: modShortcut("escape"), command: "thread.stop" }]);
 
