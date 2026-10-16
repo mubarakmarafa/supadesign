@@ -75,6 +75,25 @@ export interface ThreadTitleGenerationResult {
   needsRefinement?: boolean | undefined;
 }
 
+export interface DevServerCommandGenerationInput {
+  /** The project's root; the prompt carries everything, so nothing is read from it. */
+  cwd: string;
+  /** Entries at the repo root, with a trailing slash on directories. */
+  listing: ReadonlyArray<string>;
+  /** Files that show how the repo runs, already trimmed. */
+  files: ReadonlyArray<{ readonly path: string; readonly contents: string }>;
+  /** The command that just failed to start, and the last lines it printed. */
+  failedAttempt?: { readonly command: string; readonly output: string } | undefined;
+  modelSelection: ModelSelection;
+}
+
+export interface DevServerCommandGenerationResult {
+  /** Null when no command would start a preview, or the failure is in the app's code. */
+  command: string | null;
+  previewUrl: string | null;
+  reason: string;
+}
+
 export interface ReviewGuideStackLayer {
   readonly number: number;
   readonly title: string | null;
@@ -132,6 +151,11 @@ export interface ProviderTextGeneration {
   readonly generateThreadTitle: (
     input: ThreadTitleGenerationInput,
   ) => Effect.Effect<ThreadTitleGenerationResult, TextGenerationError>;
+
+  /** Pick the shell command that starts the repo's local dev server for a preview. */
+  readonly generateDevServerCommand: (
+    input: DevServerCommandGenerationInput,
+  ) => Effect.Effect<DevServerCommandGenerationResult, TextGenerationError>;
 
   /** Explain a change request to the maintainer deciding whether it lands. */
   readonly generateReviewGuide: (

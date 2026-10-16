@@ -19,26 +19,38 @@ const cardA = ThreadId.make("thread-a");
 const cardB = ThreadId.make("thread-b");
 const GRACE = Duration.minutes(10);
 
-const devScript: ProjectScript = {
+const devScript = (command: string): ProjectScript => ({
   id: "dev-server",
   name: "Dev server",
-  command: "npm run dev",
+  command,
   icon: "play",
   runOnWorktreeCreate: false,
-};
+});
 
-const setup = (options?: { readonly hasDevScript?: boolean }) =>
+const setup = (options?: {
+  /** The saved dev server command; null when the project has none yet. */
+  readonly savedCommand?: string | null;
+  /** What the repo's own files suggest, without the model. */
+  readonly suggested?: string | null;
+  /** The model's answers, in order; null when it cannot tell. */
+  readonly detected?: ReadonlyArray<string | null>;
+}) =>
   Effect.gen(function* () {
     const calls: Array<string> = [];
-    let hasDevScript = options?.hasDevScript ?? true;
+    let savedCommand = options?.savedCommand === undefined ? "npm run dev" : options.savedCommand;
+    const detected = [...(options?.detected ?? [])];
     const exits = new Map<ThreadId, Deferred.Deferred<number | null>>();
     const ops: LiveEnvironment.LiveEnvironmentOps = {
       plan: () =>
         Effect.sync(() => ({
           projectId,
           projectRoot: "/repo",
-          devScript: hasDevScript ? devScript : null,
-          suggestion: { command: "npm run dev", previewUrl: null, source: "package.json" },
+          devScript: savedCommand === null ? null : devScript(savedCommand),
+          suggestion: {
+            command: options?.suggested === undefined ? "npm run dev" : options.suggested,
+            previewUrl: null,
+            source: "package.json",
+          },
         })),
       prepareWorkspace: ({ threadId }) =>
         Effect.sync(() => {
@@ -46,9 +58,9 @@ const setup = (options?: { readonly hasDevScript?: boolean }) =>
           return { worktreePath: `/worktrees/${threadId}`, created: true };
         }),
       runSetup: ({ threadId }) => Effect.sync(() => void calls.push(`setup:${threadId}`)),
-      startDevServer: ({ threadId, onLine }) =>
+      startDevServer: ({ threadId, script, onLine }) =>
         Effect.gen(function* () {
-          calls.push(`start:${threadId}`);
+          calls.push(`start:${threadId}:${script.command}`);
           yield* onLine("VITE ready");
           const exited = yield* Deferred.make<number | null>();
           exits.set(threadId, exited);
@@ -59,7 +71,13 @@ const setup = (options?: { readonly hasDevScript?: boolean }) =>
       saveDevScript: ({ command }) =>
         Effect.sync(() => {
           calls.push(`save:${command}`);
-          hasDevScript = true;
+          savedCommand = command;
+        }),
+      detectDevScript: ({ failed }) =>
+        Effect.sync(() => {
+          calls.push(failed ? `fix:${failed.command}` : "detect");
+          const command = detected.shift() ?? null;
+          return command === null ? null : { command, previewUrl: undefined };
         }),
       removeWorkspace: ({ worktreePath }) =>
         Effect.sync(() => void calls.push(`remove:${worktreePath}`)),
@@ -93,7 +111,11 @@ it.effect("prepares, sets up, and serves the live card", () =>
     assert.strictEqual(card?.active, true);
     assert.strictEqual(card?.url, "http://localhost:5173/?card=thread-a");
     assert.strictEqual(card?.worktreePath, "/worktrees/thread-a");
-    assert.deepStrictEqual(calls, ["prepare:thread-a", "setup:thread-a", "start:thread-a"]);
+    assert.deepStrictEqual(calls, [
+      "prepare:thread-a",
+      "setup:thread-a",
+      "start:thread-a:npm run dev",
+    ]);
   }).pipe(Effect.scoped),
 );
 
@@ -132,7 +154,7 @@ it.effect("going back to a warm card keeps its server running", () =>
     yield* TestClock.adjust(GRACE);
     yield* waitFor((list) => find(list, cardB) === undefined);
     assert.notInclude(calls, "stop:thread-a");
-    assert.strictEqual(calls.filter((call) => call === "start:thread-a").length, 1);
+    assert.strictEqual(calls.filter((call) => call === "start:thread-a:npm run dev").length, 1);
   }).pipe(Effect.scoped),
 );
 
@@ -159,21 +181,76 @@ it.effect("a dev server that exits on its own fails the card with its output", (
     assert.strictEqual(find(failed, cardA)?.error, "The dev server exited with code 1.");
     assert.deepStrictEqual(find(failed, cardA)?.logTail, ["VITE ready"]);
 
+    // Retry first asks whether the command is wrong; the model says it is fine.
     yield* service.retry(cardA);
     yield* waitFor((list) => find(list, cardA)?.status === "ready");
   }).pipe(Effect.scoped),
 );
 
-it.effect("asks for a dev server script once, then starts", () =>
-  Effect.gen(function* () {
-    const { service, calls, waitFor, find } = yield* setup({ hasDevScript: false });
-    yield* service.activate({ projectId, threadId: cardA });
-    const waiting = yield* waitFor((list) => find(list, cardA)?.status === "needs-dev-script");
-    assert.strictEqual(find(waiting, cardA)?.suggestion?.command, "npm run dev");
+const exitServer = (exits: Map<ThreadId, Deferred.Deferred<number | null>>, code: number) =>
+  Effect.suspend(() => {
+    const exited = exits.get(cardA);
+    exits.delete(cardA);
+    return exited ? Deferred.succeed(exited, code) : Effect.die("no running dev server");
+  });
 
-    yield* service.saveDevScript({ projectId, command: "npm run dev" });
-    const ready = yield* waitFor((list) => find(list, cardA)?.status === "ready");
-    assert.strictEqual(find(ready, cardA)?.active, true);
+it.effect("starts with the repo's own dev command without asking", () =>
+  Effect.gen(function* () {
+    const { service, calls, waitFor, find } = yield* setup({ savedCommand: null });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
     assert.include(calls, "save:npm run dev");
+    assert.notInclude(calls, "detect");
+  }).pipe(Effect.scoped),
+);
+
+it.effect("asks the model when the repo shows no dev command", () =>
+  Effect.gen(function* () {
+    const { service, calls, waitFor, find } = yield* setup({
+      savedCommand: null,
+      suggested: null,
+      detected: ["make serve"],
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    assert.includeMembers(calls, ["detect", "save:make serve", "start:thread-a:make serve"]);
+  }).pipe(Effect.scoped),
+);
+
+it.effect("asks the user only when the model cannot tell either", () =>
+  Effect.gen(function* () {
+    const { service, calls, waitFor, find } = yield* setup({
+      savedCommand: null,
+      suggested: null,
+      detected: [null],
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "needs-dev-script");
+
+    yield* service.saveDevScript({ projectId, command: "make serve" });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    assert.include(calls, "start:thread-a:make serve");
+  }).pipe(Effect.scoped),
+);
+
+it.effect("corrects a command it picked once, then reports the next failure", () =>
+  Effect.gen(function* () {
+    const { service, calls, exits, waitFor, find } = yield* setup({
+      savedCommand: null,
+      detected: ["pnpm dev"],
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+
+    yield* exitServer(exits, 1);
+    yield* waitFor((list) => find(list, cardA)?.phase === "detecting");
+    const fixed = yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    assert.strictEqual(find(fixed, cardA)?.error, null);
+    assert.includeMembers(calls, ["fix:npm run dev", "save:pnpm dev", "start:thread-a:pnpm dev"]);
+
+    yield* exitServer(exits, 1);
+    const failed = yield* waitFor((list) => find(list, cardA)?.status === "failed");
+    assert.strictEqual(find(failed, cardA)?.error, "The dev server exited with code 1.");
+    assert.strictEqual(calls.filter((call) => call.startsWith("fix:")).length, 1);
   }).pipe(Effect.scoped),
 );

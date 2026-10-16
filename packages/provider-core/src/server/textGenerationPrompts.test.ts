@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   buildBranchNamePrompt,
   buildCommitMessagePrompt,
+  buildDevServerCommandPrompt,
   buildPrContentPrompt,
   buildReviewGuidePrompt,
   buildThreadTitlePrompt,
@@ -416,5 +417,24 @@ describe("normalizeCliError", () => {
 
     expect(result.detail).toBe("Failed to generate a commit message");
     expect(result.message).not.toContain("secret-token");
+  });
+});
+
+describe("buildDevServerCommandPrompt", () => {
+  it("shows the repo, and the failed attempt when there is one", () => {
+    const first = buildDevServerCommandPrompt({
+      listing: ["package.json", "src/"],
+      files: [{ path: "package.json", contents: '{"scripts":{"dev":"vite"}}' }],
+    });
+    expect(first.prompt).toContain("File package.json:");
+    expect(first.prompt).not.toContain("was tried and failed");
+
+    const retry = buildDevServerCommandPrompt({
+      listing: [],
+      files: [],
+      failedAttempt: { command: "npm run dev", output: "Missing script: dev" },
+    });
+    expect(retry.prompt).toContain("This command was tried and failed: npm run dev");
+    expect(retry.prompt).toContain("Missing script: dev");
   });
 });

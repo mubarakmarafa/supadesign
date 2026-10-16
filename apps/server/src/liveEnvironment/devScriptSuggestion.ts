@@ -73,3 +73,49 @@ export function liveEnvironmentUrl(discoveredUrl: string, previewUrl: string | u
     return discoveredUrl;
   }
 }
+
+/** Repo files that show the model how a project runs, read when present. */
+export const DEV_SCRIPT_CONTEXT_FILES = [
+  "package.json",
+  "README.md",
+  "readme.md",
+  "Makefile",
+  "justfile",
+  "Procfile",
+  "docker-compose.yml",
+  "compose.yaml",
+  "pnpm-workspace.yaml",
+  "turbo.json",
+  "vite.config.ts",
+  "vite.config.js",
+  "next.config.js",
+  "next.config.mjs",
+  "next.config.ts",
+  "astro.config.mjs",
+  "pyproject.toml",
+  "requirements.txt",
+  "manage.py",
+  "Gemfile",
+  "go.mod",
+  "Cargo.toml",
+  "deno.json",
+  "supaterm.json",
+  "index.html",
+] as const;
+
+/** Each file's share of the prompt; a README's opening says how to run it. */
+export const DEV_SCRIPT_CONTEXT_FILE_MAX_CHARS = 4_000;
+
+const UNSAFE_COMMAND =
+  /\b(sudo|rm\s+-[a-z]*[rf]|git\s+(push|reset|clean|checkout|commit)|npm\s+publish|shutdown|reboot|mkfs|dd\s+if=)\b|\|\s*(ba|z)?sh\b|>\s*\/(?!dev\/null)/;
+
+/** Rejects a model-picked command that does more than start a server. */
+export function isAcceptableDevCommand(command: string): boolean {
+  const trimmed = command.trim();
+  return (
+    trimmed !== "" &&
+    trimmed.length <= 500 &&
+    !trimmed.includes("\n") &&
+    !UNSAFE_COMMAND.test(trimmed)
+  );
+}
