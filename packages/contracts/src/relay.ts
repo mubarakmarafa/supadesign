@@ -71,11 +71,11 @@ export class RelayPreparationError extends Schema.TaggedError<RelayPreparationEr
   override get message(): string {
     switch (this.reason) {
       case "off":
-        return "Enable Public relay before creating a relay pairing link.";
+        return "Enable Encrypted Relay before creating a relay pairing link.";
       case "invalid-url":
         return "The relay server URL is invalid.";
       case "superseded":
-        return "Another host is using this relay identity. Turn Public relay off and on to reconnect here.";
+        return "Another host is using this relay identity. Turn Encrypted Relay off and on to reconnect here.";
       case "timeout":
         return "The relay did not connect in time. Try creating the link again.";
       case "unavailable":

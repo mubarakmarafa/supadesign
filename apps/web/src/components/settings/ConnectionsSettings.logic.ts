@@ -15,13 +15,13 @@ import type { PairingRouteHints } from "@supaterm/shared/remote";
 export function createRelayPairingEndpoint(relayEndpoint: string) {
   return createAdvertisedEndpoint({
     id: "public-relay",
-    label: "Public relay",
-    provider: { id: "public-relay", label: "Public relay", kind: "tunnel", isAddon: false },
+    label: "Encrypted Relay",
+    provider: { id: "public-relay", label: "Encrypted Relay", kind: "tunnel", isAddon: false },
     httpBaseUrl: relayEndpoint,
     reachability: "public",
     hostedHttpsCompatibility: "compatible",
     source: "server",
-    description: "End-to-end encrypted access through the public relay.",
+    description: "End-to-end encrypted access through the Encrypted Relay.",
   });
 }
 

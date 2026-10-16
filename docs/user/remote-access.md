@@ -3,11 +3,11 @@
 Connect a phone, browser, or another desktop app to Supaterm running on a different
 machine. That machine must stay running and reachable while you work.
 
-## Pair through the public relay
+## Pair through the Encrypted Relay
 
 Connect across networks without opening a port on the host. On the machine
 running your agents, open **Settings → Connections** and create a pairing link.
-**Public relay** is enabled by default. If you turned it off, enable it first.
+**Encrypted Relay** is enabled by default. If you turned it off, enable it first.
 The relay connects when you create the first link;
 the app waits until it is ready before making the link available. Paste that link into
 **Add environment** on another desktop or mobile client, or scan it with the
@@ -21,7 +21,7 @@ On a host you reach only over SSH, print a relay pairing link there:
 supaterm pair --relay
 ```
 
-If public relay is off, enable it from the terminal before creating the link:
+If Encrypted Relay is off, enable it from the terminal before creating the link:
 
 ```bash
 supaterm settings set publicRelayEnabled true
@@ -49,17 +49,17 @@ inside the app; opening it as a website does not load Supaterm.
 
 The host and client encrypt the connection end to end. The relay forwards
 encrypted bytes, including HTTP requests. Pairing permissions and authorized
-client revocation work as they do for direct connections. Turning off **Public
-relay** closes relay connections; turning it back on lets already authorized
+client revocation work as they do for direct connections. Turning off **Encrypted Relay**
+closes relay connections; turning it back on lets already authorized
 clients reconnect. The host must stay running and have internet access.
 After the first activation, the host reconnects automatically when Supaterm starts
-while **Public relay** is enabled.
+while **Encrypted Relay** is enabled.
 
 New pairing links carry the configured relay server to the clients that pair
 with them. Automatically learned relay routes follow a server change through a
 working connection; routes paired explicitly through relay need a new link. If Connections reports that
 another host is using the relay identity, the same Supaterm data is running on a
-second machine. Turn **Public relay** off and on to bring the relay back to this
+second machine. Turn **Encrypted Relay** off and on to bring the relay back to this
 host.
 
 ## Pair over a LAN or private network
@@ -199,7 +199,7 @@ A web app served over HTTPS needs an HTTPS endpoint for direct connections. It c
 to your server; a hosted pairing link does not make an unreachable backend
 reachable or convert HTTP to HTTPS.
 
-For a public relay connection in a browser, use the [local companion](#pair-through-the-public-relay).
+For an Encrypted Relay connection in a browser, use the [local companion](#pair-through-the-encrypted-relay).
 
 For a plain HTTP LAN endpoint, use the direct pairing URL in a browser that can
 open it, or pair from the desktop app. On mobile, an IP address entered without a

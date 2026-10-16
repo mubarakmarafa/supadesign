@@ -871,7 +871,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "public-relay",
-    title: "Public relay",
+    title: "Encrypted Relay",
     to: "/settings/connections",
     targetId: "connections-environment",
     searchTerms: ["remote end-to-end encrypted tunnel pairing companion"],

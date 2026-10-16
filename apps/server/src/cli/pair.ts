@@ -8,7 +8,7 @@
  * own `.supaterm` is checked first (matching dev-runner precedence); otherwise the
  * shared Supaterm home. `--tailscale` publishes the server over Tailscale Serve
  * HTTPS and pairs through the tailnet URL instead; `--relay` pairs through the
- * server's public relay address, which works for hosts no client manages directly.
+ * server's Encrypted Relay address, which works for hosts no client manages directly.
  */
 import {
   type AuthEnvironmentScope,
@@ -157,7 +157,7 @@ export class PublicRelayOffError extends Schema.TaggedError<PublicRelayOffError>
   { settingsPath: Schema.String },
 ) {
   override get message(): string {
-    return `Public relay is off for this server. Turn it on in Settings → Connections, or set "publicRelayEnabled": true in ${this.settingsPath}, then run this again.`;
+    return `Encrypted Relay is off for this server. Turn it on in Settings → Connections, or set "publicRelayEnabled": true in ${this.settingsPath}, then run this again.`;
   }
 }
 
@@ -518,7 +518,7 @@ const tailscaleFlag = Flag.Boolean("tailscale").pipe(
 
 const relayFlag = Flag.Boolean("relay").pipe(
   Flag.withDescription(
-    "Pair through the server's public relay address. Public relay must be on for the server.",
+    "Pair through the server's Encrypted Relay address. Encrypted Relay must be on for the server.",
   ),
   Flag.withDefault(false),
 );

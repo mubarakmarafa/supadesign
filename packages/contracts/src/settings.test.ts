@@ -39,7 +39,7 @@ describe("restart continuation", () => {
   });
 });
 
-describe("ServerSettings public relay", () => {
+describe("ServerSettings Encrypted Relay", () => {
   it("enables relay by default for settings without a saved preference", () => {
     expect(decodeServerSettings({})).toMatchObject({
       publicRelayEnabled: true,

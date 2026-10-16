@@ -81,7 +81,7 @@ const layerFailingSecretStore = (cause: ServerSecretStore.SecretStoreError) =>
   );
 
 it.layer(NodeServices.layer)("server settings", (it) => {
-  it.effect("enables public relay by default and persists opting out", () =>
+  it.effect("enables Encrypted Relay by default and persists opting out", () =>
     Effect.gen(function* () {
       const service = yield* ServerSettingsModule.ServerSettingsService;
       const config = yield* ServerConfig.ServerConfig;
