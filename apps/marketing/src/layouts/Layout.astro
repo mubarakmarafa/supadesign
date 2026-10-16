@@ -14,7 +14,7 @@ interface Props {
 
 const {
   title = "Supaterm",
-  description = "Supaterm. The open-source control plane for coding agents.",
+  description = "Supaterm. Your Lumon Terminal Pro for coding agents.",
   pageClass,
 } = Astro.props;
 
@@ -30,7 +30,7 @@ const socialImage = await getImage({
 });
 const socialImageUrl = new URL(socialImage.src, Astro.site);
 const socialImageAlt =
-  "Supaterm: the open-source control plane for coding agents, with Claude Code, Codex, Cursor, OpenCode, Grok and Antigravity.";
+  "Supaterm: your Lumon Terminal Pro for coding agents. Lumon Terminal Pro is the fictional computer from Severance; Supaterm is not affiliated with or endorsed by Apple.";
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 ---
 
