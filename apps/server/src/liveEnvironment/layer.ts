@@ -32,6 +32,7 @@ import {
   isAcceptableDevCommand,
   liveEnvironmentUrl,
   suggestDevScript,
+  suggestNestedDevScript,
 } from "./devScriptSuggestion.ts";
 import * as LiveEnvironment from "./LiveEnvironmentService.ts";
 
@@ -50,6 +51,12 @@ const SUGGESTION_FILES = [
   "bun.lockb",
   "index.html",
 ] as const;
+
+/** Folders never worth looking inside for an app. */
+const IGNORED_FOLDERS = new Set(["node_modules", "dist", "build", "out", "coverage", "vendor"]);
+const MAX_CHILD_FOLDERS = 40;
+/** Subfolders whose files the model also sees, for apps one level down. */
+const MAX_NESTED_CONTEXT_FOLDERS = 6;
 
 const failure = (message: string) => new LiveEnvironmentError({ message });
 
@@ -92,6 +99,40 @@ export const make = Effect.gen(function* () {
       return { files, packageJsonText };
     });
 
+  /** Folders at the project root that could hold the app, skipping tooling and dependencies. */
+  const childFolders = (root: string) =>
+    fs.readDirectory(root).pipe(
+      Effect.orElseSucceed((): ReadonlyArray<string> => []),
+      Effect.flatMap((names) =>
+        Effect.filter(
+          names
+            .filter((name) => !name.startsWith(".") && !IGNORED_FOLDERS.has(name))
+            .toSorted()
+            .slice(0, MAX_CHILD_FOLDERS),
+          (name) =>
+            fs.stat(path.join(root, name)).pipe(
+              Effect.map((info) => info.type === "Directory"),
+              Effect.orElseSucceed(() => false),
+            ),
+        ),
+      ),
+    );
+
+  /** What the root's files suggest, else the one app one folder down. */
+  const suggestFor = (root: string, scripts: ReadonlyArray<ProjectScript>) =>
+    Effect.gen(function* () {
+      const inputs = yield* readSuggestionInputs(root);
+      const atRoot = suggestDevScript({ scripts, ...inputs });
+      if (atRoot.command !== null || inputs.packageJsonText !== null) return atRoot;
+      const names = yield* childFolders(root);
+      const folders = yield* Effect.forEach(names, (name) =>
+        readSuggestionInputs(path.join(root, name)).pipe(
+          Effect.map((found) => ({ name, ...found })),
+        ),
+      );
+      return suggestNestedDevScript(folders) ?? atRoot;
+    });
+
   const ops: LiveEnvironment.LiveEnvironmentOps = {
     plan: (threadId) =>
       Effect.gen(function* () {
@@ -113,7 +154,7 @@ export const make = Effect.gen(function* () {
           scripts.find((script) => script.id === LIVE_ENVIRONMENT_DEV_SCRIPT_ID) ?? null;
         const suggestion =
           devScript === null
-            ? suggestDevScript({ scripts, ...(yield* readSuggestionInputs(project.workspaceRoot)) })
+            ? yield* suggestFor(project.workspaceRoot, scripts)
             : { command: null, previewUrl: null, source: null };
         return {
           projectId: project.id,
@@ -286,27 +327,51 @@ export const make = Effect.gen(function* () {
           current,
           projectId,
         ).settings;
-        const names = yield* fs
-          .readDirectory(projectRoot)
-          .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
-        const listing = yield* Effect.forEach(names.toSorted().slice(0, 200), (name) =>
-          fs.stat(path.join(projectRoot, name)).pipe(
-            Effect.map((info) => (info.type === "Directory" ? `${name}/` : name)),
-            Effect.orElseSucceed(() => name),
-          ),
-        );
-        const present = new Set(names);
-        const files = yield* Effect.forEach(
-          DEV_SCRIPT_CONTEXT_FILES.filter((name) => present.has(name)),
-          (name) =>
-            fs.readFileString(path.join(projectRoot, name)).pipe(
-              Effect.map((contents) => ({
-                path: name,
-                contents: contents.slice(0, DEV_SCRIPT_CONTEXT_FILE_MAX_CHARS),
-              })),
-              Effect.orElseSucceed(() => null),
+        /** One folder's entries, with a trailing slash on directories. */
+        const listFolder = (folder: string, prefix: string) =>
+          fs.readDirectory(folder).pipe(
+            Effect.orElseSucceed((): ReadonlyArray<string> => []),
+            Effect.flatMap((names) =>
+              Effect.forEach(names.toSorted().slice(0, 200), (name) =>
+                fs.stat(path.join(folder, name)).pipe(
+                  Effect.map((info) =>
+                    info.type === "Directory" ? `${prefix}${name}/` : `${prefix}${name}`,
+                  ),
+                  Effect.orElseSucceed(() => `${prefix}${name}`),
+                ),
+              ),
             ),
-        );
+          );
+        /** The context files present in one folder, trimmed for the prompt. */
+        const readContext = (folder: string, prefix: string, names: ReadonlyArray<string>) =>
+          Effect.forEach(
+            DEV_SCRIPT_CONTEXT_FILES.filter((name) => names.includes(`${prefix}${name}`)),
+            (name) =>
+              fs.readFileString(path.join(folder, name)).pipe(
+                Effect.map((contents) => ({
+                  path: `${prefix}${name}`,
+                  contents: contents.slice(0, DEV_SCRIPT_CONTEXT_FILE_MAX_CHARS),
+                })),
+                Effect.orElseSucceed(() => null),
+              ),
+          );
+        const listing = [...(yield* listFolder(projectRoot, ""))];
+        const files = [...(yield* readContext(projectRoot, "", listing))];
+        // An app can sit one folder down, as in a workspace folder around a repo.
+        if (!listing.includes("package.json")) {
+          let added = 0;
+          for (const name of yield* childFolders(projectRoot)) {
+            if (added >= MAX_NESTED_CONTEXT_FOLDERS) break;
+            const prefix = `${name}/`;
+            const nested = yield* listFolder(path.join(projectRoot, name), prefix);
+            if (!DEV_SCRIPT_CONTEXT_FILES.some((file) => nested.includes(`${prefix}${file}`))) {
+              continue;
+            }
+            added += 1;
+            listing.push(...nested);
+            files.push(...(yield* readContext(path.join(projectRoot, name), prefix, nested)));
+          }
+        }
         const generated = yield* textGeneration
           .generateDevServerCommand({
             cwd: projectRoot,
@@ -319,15 +384,23 @@ export const make = Effect.gen(function* () {
             Effect.tapError((error) =>
               Effect.logWarning("Could not work out a dev server command", { error }),
             ),
-            Effect.mapError(() =>
-              failure("Supadesign couldn't work out how to start this project."),
+            Effect.mapError((error) =>
+              failure(`The text generation model couldn't answer: ${error.detail}`),
             ),
           );
         yield* Effect.logInfo("Picked a dev server command", {
           command: generated.command,
           reason: generated.reason,
         });
-        if (generated.command === null || !isAcceptableDevCommand(generated.command)) return null;
+        // The reason reaches the card, so the user sees why it asks.
+        if (generated.command === null) {
+          return yield* failure(generated.reason || "Nothing in the repo looks like a dev server.");
+        }
+        if (!isAcceptableDevCommand(generated.command)) {
+          return yield* failure(
+            `Didn't run “${generated.command}”: it does more than start a server.`,
+          );
+        }
         return {
           command: generated.command,
           previewUrl: generated.previewUrl ?? undefined,

@@ -1,5 +1,6 @@
 import { assert, it } from "@effect/vitest";
 import {
+  LiveEnvironmentError,
   ProjectId,
   ThreadId,
   type LiveEnvironmentList,
@@ -74,10 +75,12 @@ const setup = (options?: {
           savedCommand = command;
         }),
       detectDevScript: ({ failed }) =>
-        Effect.sync(() => {
+        Effect.suspend(() => {
           calls.push(failed ? `fix:${failed.command}` : "detect");
           const command = detected.shift() ?? null;
-          return command === null ? null : { command, previewUrl: undefined };
+          return command === null
+            ? Effect.fail(new LiveEnvironmentError({ message: "No dev server in this repo." }))
+            : Effect.succeed({ command, previewUrl: undefined });
         }),
       removeWorkspace: ({ worktreePath }) =>
         Effect.sync(() => void calls.push(`remove:${worktreePath}`)),
@@ -225,7 +228,8 @@ it.effect("asks the user only when the model cannot tell either", () =>
       detected: [null],
     });
     yield* service.activate({ projectId, threadId: cardA });
-    yield* waitFor((list) => find(list, cardA)?.status === "needs-dev-script");
+    const waiting = yield* waitFor((list) => find(list, cardA)?.status === "needs-dev-script");
+    assert.strictEqual(find(waiting, cardA)?.error, "No dev server in this repo.");
 
     yield* service.saveDevScript({ projectId, command: "make serve" });
     yield* waitFor((list) => find(list, cardA)?.status === "ready");

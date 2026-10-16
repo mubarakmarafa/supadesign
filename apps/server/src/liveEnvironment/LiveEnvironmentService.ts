@@ -77,14 +77,15 @@ export interface LiveEnvironmentOps {
   }) => Effect.Effect<void, LiveEnvironmentError>;
   /**
    * Works out the dev server command from the repo, or a corrected one after
-   * `failed`. Null when it cannot, or when the failure is in the app's code.
+   * `failed`. Fails with the reason, for the card, when it cannot: nothing
+   * serves a page, or the failure is in the app's own code.
    */
   readonly detectDevScript: (input: {
     readonly projectId: ProjectId;
     readonly projectRoot: string;
     readonly failed?: { readonly command: string; readonly output: string } | undefined;
   }) => Effect.Effect<
-    { readonly command: string; readonly previewUrl: string | undefined } | null,
+    { readonly command: string; readonly previewUrl: string | undefined },
     LiveEnvironmentError
   >;
   /** Removes a worktree this service created, leaving it alone when it has changes. */
@@ -327,6 +328,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
           yield* publish(entry.projectId);
           const previous = entry.job;
           entry.job = yield* Effect.gen(function* () {
+            let explanation: string | null = null;
             // The run that failed may still be finishing; this fix replaces it.
             if (previous) yield* Fiber.interrupt(previous);
             const fixed =
@@ -338,7 +340,13 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
                       projectRoot: entry.projectRoot,
                       failed: { command: script.command, output: entry.log.join("\n") },
                     })
-                    .pipe(Effect.orElseSucceed(() => null));
+                    .pipe(
+                      Effect.catch((error: LiveEnvironmentError) => {
+                        // Usually what broke in the app, worth showing beside the failure.
+                        explanation = error.message;
+                        return Effect.succeed(null);
+                      }),
+                    );
             const corrected = fixed !== null && fixed.command.trim() !== script.command.trim();
             if (corrected) {
               yield* ops
@@ -349,7 +357,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
               return yield* update(entry, (current) => {
                 current.status = "failed";
                 current.phase = null;
-                current.error = message;
+                current.error = explanation === null ? message : `${message} ${explanation}`;
                 current.serverFailed = true;
               });
             }
