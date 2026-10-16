@@ -90,6 +90,7 @@ export const BoardColumn = memo(function BoardColumn({
   cardCountLabel,
   liveEnvironments,
   tabbableCardId,
+  peekedCardId,
   canEdit,
   canDrag,
   renaming,
@@ -108,6 +109,8 @@ export const BoardColumn = memo(function BoardColumn({
   cardCountLabel: string;
   liveEnvironments: ReadonlyMap<string, LiveEnvironmentSnapshot>;
   tabbableCardId: string | null;
+  /** The card open in the side peek, shown as selected. */
+  peekedCardId: string | null;
   canEdit: boolean;
   canDrag: boolean;
   renaming: boolean;
@@ -200,6 +203,7 @@ export const BoardColumn = memo(function BoardColumn({
               thread={thread}
               live={liveEnvironments.get(thread.id)}
               tabbable={thread.id === tabbableCardId}
+              peeked={thread.id === peekedCardId}
               canDrag={canDrag}
               handlers={handlers}
             />
