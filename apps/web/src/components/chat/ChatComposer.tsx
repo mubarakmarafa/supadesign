@@ -1649,6 +1649,8 @@ export interface ChatComposerProps {
 
   // Callbacks
   onCompactContext: () => void;
+  /** Files the draft in the thread's bank instead of sending; absent where banking is unsupported. */
+  onBank?: (() => void) | undefined;
   onSend: (
     e?: { preventDefault: () => void },
     dispatchMode?: ComposerDispatchMode,
@@ -1769,6 +1771,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     onPageScrollKeyUp,
     onPageScrollRelease,
     onCompactContext,
+    onBank,
     onSend,
     onResume,
     onInterrupt,
@@ -4437,6 +4440,16 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   // Callbacks: command key
   // ------------------------------------------------------------------
   const onComposerCommandKey = (key: string, event: KeyboardEvent, isTaskItem = false) => {
+    if (
+      key === "Enter" &&
+      onBank !== undefined &&
+      !event.isComposing &&
+      resolveShortcutCommand(event, keybindings, { context: { composerFocus: true } }) ===
+        "composer.bank"
+    ) {
+      onBank();
+      return true;
+    }
     const submissionIntent = composerSubmissionIntentForKey({
       event,
       keybindings,

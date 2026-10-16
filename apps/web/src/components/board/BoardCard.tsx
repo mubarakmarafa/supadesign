@@ -2,7 +2,7 @@ import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shel
 import type { EnvironmentId, LiveEnvironmentSnapshot } from "@supaterm/contracts";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { EllipsisIcon } from "lucide-react";
+import { EllipsisIcon, PiggyBankIcon } from "lucide-react";
 import { memo, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "~/lib/utils";
@@ -53,6 +53,7 @@ const CARD_CLASS =
 export const BoardCard = memo(function BoardCard({
   thread,
   live,
+  bankedCount,
   tabbable,
   peeked,
   canDrag,
@@ -61,6 +62,8 @@ export const BoardCard = memo(function BoardCard({
   thread: EnvironmentThreadShell;
   /** The card's live environment, when it has one. */
   live: LiveEnvironmentSnapshot | undefined;
+  /** Messages banked on the card, waiting to be sent together. */
+  bankedCount: number;
   /** Roving tabindex: exactly one card on the board is in the tab order. */
   tabbable: boolean;
   peeked: boolean;
@@ -116,6 +119,12 @@ export const BoardCard = memo(function BoardCard({
         }}
       >
         <BoardCardFace thread={thread} />
+        {bankedCount > 0 ? (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <PiggyBankIcon aria-hidden className="size-3 shrink-0" />
+            {bankedCount} banked
+          </span>
+        ) : null}
         {live ? (
           <LiveEnvironmentCardStatus
             environmentId={thread.environmentId as EnvironmentId}

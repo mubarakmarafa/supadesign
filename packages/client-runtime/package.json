@@ -291,6 +291,10 @@
       "types": "./src/state/liveEnvironment.ts",
       "default": "./src/state/liveEnvironment.ts"
     },
+    "./state/thread-bank": {
+      "types": "./src/state/threadBank.ts",
+      "default": "./src/state/threadBank.ts"
+    },
     "./state/project-summary": {
       "types": "./src/state/projectSummary.ts",
       "default": "./src/state/projectSummary.ts"

@@ -6,7 +6,7 @@ import type {
 } from "@supaterm/contracts";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { ArchiveIcon, EllipsisIcon, InboxIcon, MonitorPlayIcon } from "lucide-react";
+import { ArchiveIcon, EllipsisIcon, InboxIcon, MonitorPlayIcon, SendIcon } from "lucide-react";
 import { memo, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
@@ -20,6 +20,7 @@ export const boardColumnDropId = (columnId: BoardColumnId) => `column:${columnId
 export interface BoardColumnFlags {
   readonly inbox: boolean;
   readonly live: boolean;
+  readonly send: boolean;
   readonly done: boolean;
 }
 
@@ -89,6 +90,7 @@ export const BoardColumn = memo(function BoardColumn({
   cards,
   cardCountLabel,
   liveEnvironments,
+  bankedCounts,
   tabbableCardId,
   peekedCardId,
   canEdit,
@@ -108,6 +110,7 @@ export const BoardColumn = memo(function BoardColumn({
   cards: ReadonlyArray<EnvironmentThreadShell>;
   cardCountLabel: string;
   liveEnvironments: ReadonlyMap<string, LiveEnvironmentSnapshot>;
+  bankedCounts: ReadonlyMap<string, number>;
   tabbableCardId: string | null;
   /** The card open in the side peek, shown as selected. */
   peekedCardId: string | null;
@@ -166,6 +169,11 @@ export const BoardColumn = memo(function BoardColumn({
             <span className="hidden sm:inline">Live</span>
           </FlagMarker>
         ) : null}
+        {flags.send ? (
+          <FlagMarker label="Send: moving a card here sends its banked messages">
+            <SendIcon />
+          </FlagMarker>
+        ) : null}
         {flags.done ? (
           <FlagMarker label="Done: moving a card here archives its thread">
             <ArchiveIcon />
@@ -202,6 +210,7 @@ export const BoardColumn = memo(function BoardColumn({
               key={thread.id}
               thread={thread}
               live={liveEnvironments.get(thread.id)}
+              bankedCount={bankedCounts.get(thread.id) ?? 0}
               tabbable={thread.id === tabbableCardId}
               peeked={thread.id === peekedCardId}
               canDrag={canDrag}

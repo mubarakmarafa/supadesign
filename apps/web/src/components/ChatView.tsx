@@ -483,6 +483,9 @@ import {
   type QueuedRunsControlHandle,
   type EditQueuedRunRequest,
 } from "./chat/QueuedRunsControl";
+import { ThreadBankControl } from "./chat/ThreadBankControl";
+import { useThreadBankSupported } from "./chat/threadBankState";
+import { threadBank } from "../state/threadBank";
 import { useLinkedThreadPullRequest } from "./ThreadStatusIndicators";
 import type { ComposerBannerStackItem } from "./chat/ComposerBannerStack";
 import { ThreadStatusLine } from "./chat/ThreadStatusLine";
@@ -4775,6 +4778,8 @@ export default function ChatView(props: ChatViewProps) {
     },
     [activeThreadId, environmentId, isServerThread, runtimeMode],
   );
+  const bankThreadMessage = useAtomCommand(threadBank.add, { reportFailure: false });
+  const threadBankSupported = useThreadBankSupported(environmentId);
   const editQueuedRunCommand = useAtomCommand(threadEnvironment.editQueuedRun, {
     reportFailure: false,
   });
@@ -9585,6 +9590,96 @@ export default function ChatView(props: ChatViewProps) {
     }
   };
 
+  // Files the composer's contents in the thread's bank instead of sending them.
+  const onBank = async () => {
+    if (!activeThread || !isServerThread || !activeProject) {
+      toastManager.add(
+        stackedThreadToast({
+          type: "info",
+          title: "Send a first message before banking",
+          description: "Banked messages belong to a thread that has started.",
+        }),
+      );
+      return;
+    }
+    if (sendInFlightRef.current || editingQueuedRun !== null || outboxEditor.editing) return;
+    const sendCtx = composerRef.current?.getSendContext();
+    if (!sendCtx) return;
+    const attachments = [...sendCtx.images, ...sendCtx.files];
+    const { trimmedPrompt, sendableTerminalContexts, hasSendableContent } = deriveComposerSendState(
+      {
+        prompt: promptRef.current,
+        imageCount: attachments.length,
+        terminalContexts: sendCtx.terminalContexts,
+        elementContextCount:
+          sendCtx.previewAnnotations.length +
+          sendCtx.reviewComments.length +
+          sendCtx.threadContexts.length,
+      },
+    );
+    if (!hasSendableContent) return;
+    const threadIdForBank = activeThread.id;
+    const savedDraft = useComposerDraftStore.getState().getComposerDraft(composerDraftTarget);
+    sendInFlightRef.current = true;
+    try {
+      let uploaded: ReadonlyArray<ContractChatAttachment> = [];
+      if (attachments.length > 0) {
+        const config = appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId) ?? null;
+        if (config?.environment.capabilities.attachmentUploads !== true) {
+          throw new Error("This server can't keep attachments in a bank yet.");
+        }
+        for (const attachment of attachments)
+          startAttachmentUpload({
+            environmentId,
+            image: attachment,
+            draftTarget: composerDraftTarget,
+          });
+        await awaitAttachmentUploads(attachments.map((attachment) => attachment.id));
+        const ready = getUploadedAttachments({ environmentId, images: attachments });
+        if (ready === null) throw new Error("Retry or remove failed uploads before banking.");
+        uploaded = ready;
+      }
+      const context = buildMessageContext({
+        terminalContexts: sendableTerminalContexts,
+        reviewComments: sendCtx.reviewComments,
+        previewAnnotations: sendCtx.previewAnnotations,
+        threadContexts: sendCtx.threadContexts,
+        attachments: attachments.map((attachment, index) => ({
+          attachment,
+          attachmentId: uploaded[index]?.id ?? attachment.id,
+        })),
+      });
+      const result = await bankThreadMessage({
+        environmentId,
+        input: {
+          threadId: threadIdForBank,
+          text: trimmedPrompt,
+          ...(context ? { context } : {}),
+          attachments: [...uploaded],
+        },
+      });
+      if (result._tag === "Failure") {
+        const error = squashAtomCommandFailure(result);
+        throw error instanceof Error ? error : new Error("Could not bank the message.");
+      }
+      if (useComposerDraftStore.getState().getComposerDraft(composerDraftTarget) === savedDraft) {
+        promptRef.current = "";
+        clearComposerDraftContent(composerDraftTarget);
+        composerRef.current?.resetCursorState();
+      }
+      releaseDraftAttachments(attachments);
+      setThreadError(threadIdForBank, null);
+      scheduleComposerFocus();
+    } catch (error) {
+      setThreadError(
+        threadIdForBank,
+        error instanceof Error ? error.message : "Could not bank the message.",
+      );
+    } finally {
+      sendInFlightRef.current = false;
+    }
+  };
+
   const onRespondToApproval = useCallback(
     async (requestId: RuntimeRequestId, decision: ProviderApprovalDecision) => {
       if (!activeThreadId || !readEnvironmentScope(environmentId, AuthOrchestrationOperateScope))
@@ -10089,10 +10184,12 @@ export default function ChatView(props: ChatViewProps) {
     })();
   }, [cancelWorktreeSetup, draftId, setupTarget.environmentId, worktreeSetup]);
   const onSendRef = useRef(onSend);
+  const onBankRef = useRef(onBank);
   const onResumeRef = useRef(onResume);
   const onCompactContextRef = useRef(onCompactContext);
   useLayoutEffect(() => {
     onSendRef.current = onSend;
+    onBankRef.current = onBank;
     onResumeRef.current = onResume;
     onCompactContextRef.current = onCompactContext;
   });
@@ -10100,6 +10197,7 @@ export default function ChatView(props: ChatViewProps) {
     (...args: Parameters<typeof onSend>) => onSendRef.current(...args),
     [],
   );
+  const onComposerBank = useCallback(() => void onBankRef.current(), []);
   const onComposerResume = useCallback(() => onResumeRef.current(), []);
   const onComposerCompactContext = useCallback(() => onCompactContextRef.current(), []);
   const queuedRunsControl = useMemo(
@@ -10112,6 +10210,16 @@ export default function ChatView(props: ChatViewProps) {
           onEditMessage={beginEditingOutboxMessage}
           onCancelEdit={cancelEditingOutboxMessage}
         />
+        {threadBankSupported && isServerThread && activeThread ? (
+          <ThreadBankControl
+            environmentId={activeThread.environmentId}
+            projectId={activeThread.projectId}
+            threadId={activeThread.id}
+            bankShortcutLabel={shortcutLabelForCommand(keybindings, "composer.bank", {
+              context: { composerFocus: true },
+            })}
+          />
+        ) : null}
         {isServerThread && activeThread ? (
           <QueuedRunsControl
             ref={queuedRunsControlRef}
@@ -10144,6 +10252,7 @@ export default function ChatView(props: ChatViewProps) {
       isServerThread,
       keybindings,
       optimisticUserMessages,
+      threadBankSupported,
     ],
   );
   // Resend once the cancelled dispatch has settled and the composer is free.
@@ -11080,6 +11189,7 @@ export default function ChatView(props: ChatViewProps) {
                                   onPageScrollRelease={onComposerPageScrollRelease}
                                   onCompactContext={onComposerCompactContext}
                                   onSend={onComposerSend}
+                                  onBank={threadBankSupported ? onComposerBank : undefined}
                                   onResume={onComposerResume}
                                   onInterrupt={onInterrupt}
                                   onRespondToApproval={onRespondToApproval}

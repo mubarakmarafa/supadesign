@@ -43,6 +43,8 @@ export const ProjectBoard = Schema.Struct({
   liveColumnId: Schema.NullOr(BoardColumnId),
   /** Moving a card here archives its thread; archived threads always show here. */
   doneColumnId: BoardColumnId,
+  /** Moving a card here sends its banked messages; absent or null turns the flag off. */
+  sendColumnId: Schema.optional(Schema.NullOr(BoardColumnId)),
   retiredColumns: Schema.optional(Schema.Array(ProjectBoardRetiredColumn)),
 });
 export type ProjectBoard = typeof ProjectBoard.Type;
@@ -69,7 +71,7 @@ export const DEFAULT_PROJECT_BOARD: ProjectBoard = {
   doneColumnId: BoardColumnId.make("done"),
 };
 
-export type ProjectBoardFlag = "inbox" | "live" | "done";
+export type ProjectBoardFlag = "inbox" | "live" | "send" | "done";
 
 export type ProjectBoardIssue =
   | { readonly code: "column-count"; readonly count: number }
@@ -79,7 +81,7 @@ export type ProjectBoardIssue =
       readonly flag: ProjectBoardFlag;
       readonly columnId: BoardColumnId;
     }
-  | { readonly code: "done-column-conflict"; readonly flag: "inbox" | "live" }
+  | { readonly code: "done-column-conflict"; readonly flag: "inbox" | "live" | "send" }
   | { readonly code: "retired-column-active"; readonly columnId: BoardColumnId }
   | { readonly code: "duplicate-retired-column"; readonly columnId: BoardColumnId }
   | { readonly code: "unresolved-retired-column"; readonly columnId: BoardColumnId };
@@ -120,6 +122,7 @@ export function validateProjectBoard(board: ProjectBoard): ReadonlyArray<Project
   const flags: ReadonlyArray<readonly [ProjectBoardFlag, BoardColumnId | null]> = [
     ["inbox", board.inboxColumnId],
     ["live", board.liveColumnId],
+    ["send", board.sendColumnId ?? null],
     ["done", board.doneColumnId],
   ];
   for (const [flag, columnId] of flags) {
@@ -132,6 +135,9 @@ export function validateProjectBoard(board: ProjectBoard): ReadonlyArray<Project
   }
   if (board.doneColumnId === board.liveColumnId) {
     issues.push({ code: "done-column-conflict", flag: "live" });
+  }
+  if (board.doneColumnId === board.sendColumnId) {
+    issues.push({ code: "done-column-conflict", flag: "send" });
   }
   const retiredIds = new Set<BoardColumnId>();
   for (const entry of board.retiredColumns ?? []) {

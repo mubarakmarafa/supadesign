@@ -48,6 +48,7 @@ export * from "./editor.ts";
 export * from "./project.ts";
 export * from "./projectBoard.ts";
 export * from "./liveEnvironment.ts";
+export * from "./threadBank.ts";
 export * from "./filesystem.ts";
 export * from "./agentSessions.ts";
 export * from "./assets.ts";
