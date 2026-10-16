@@ -36,6 +36,9 @@ import { SidebarBrandWidthProbe, SidebarChromeHeader } from "./sidebar/SidebarCh
 import { MainAppLocationTracker } from "./sidebar/mainAppLocation";
 import { useSidebarStageBackdropVariant } from "./SidebarStageBackdrop";
 import { useProjects } from "../state/entities";
+import { BOARD_ROUTE } from "./board/boardNavigation";
+import { useProjectTabsMode } from "./projects/ProjectTabs";
+import { useProjectTabsStore } from "./projects/projectTabsStore";
 import {
   resolveDefaultThreadSidebarWidth,
   resolveThreadSidebarMinimumWidth,
@@ -237,6 +240,23 @@ function ProjectProjectionRetention() {
   return null;
 }
 
+/** In tabs mode the app's home is the last tab shown, or the projects grid. */
+function ProjectTabsHome({ pathname }: { pathname: string }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (pathname !== "/") return;
+    const last = useProjectTabsStore.getState().last;
+    void (last === null
+      ? navigate({ to: "/projects", replace: true })
+      : navigate({
+          to: BOARD_ROUTE,
+          params: { environmentId: last.environmentId, projectId: last.projectId },
+          replace: true,
+        }));
+  }, [navigate, pathname]);
+  return null;
+}
+
 export function AppSidebarLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { active: panelAnimationsActive, durationMs: panelAnimationDurationMs } =
@@ -249,6 +269,9 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
   const panelAnimationsSuppressed = usePanelNavigationSuppression(pathname);
   const routePanelAnimationsActive = panelAnimationsActive && !panelAnimationsSuppressed;
   const isOnSettings = pathname === "/settings" || pathname.startsWith("/settings/");
+  // Tabs replace the thread sidebar; settings still needs its own navigation.
+  const tabsMode = useProjectTabsMode();
+  const sidebarHidden = tabsMode && !isOnSettings;
   const isMacosDesktop = isMacosDesktopWindow();
   const [brandWidth, setBrandWidth] = useState(0);
   const sidebarMinimumWidth = resolveThreadSidebarMinimumWidth(brandWidth);
@@ -292,6 +315,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
         className="h-dvh! min-h-0!"
         data-panel-animations={routePanelAnimationsActive ? "true" : "false"}
         defaultOpen
+        {...(sidebarHidden ? { open: false } : {})}
         style={sidebarProviderStyle}
       >
         <Sidebar
@@ -320,7 +344,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
           <SidebarBrandWidthProbe onWidthChange={setBrandWidth} />
           <ProjectProjectionRetention />
           {children}
-          <SidebarControl />
+          {sidebarHidden ? <ProjectTabsHome pathname={pathname} /> : <SidebarControl />}
           <NavigationHistoryShortcuts />
           <MainAppLocationTracker />
         </SidebarInsetPanel>

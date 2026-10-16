@@ -19,6 +19,15 @@ on a project row opens that project's board.
 The description comes from the repo's `package.json`, or the first paragraph of
 its README.
 
+### Project tabs
+
+To focus on boards, turn on **Project tabs** in Settings > General, or choose
+**Switch projects with tabs** in the command palette. The sidebar is hidden and
+each open project becomes a tab above its board. **+** opens Projects to add a
+tab, and the gear opens Settings. Closing a tab lets its live card go warm.
+Turn the setting off, or choose **Show the sidebar instead of project tabs** in
+the command palette, to bring the sidebar back.
+
 Boards need an environment running a Supadesign server that supports them. The
 board entries are hidden when no connected environment does.
 

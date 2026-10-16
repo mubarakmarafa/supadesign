@@ -31,6 +31,11 @@ import { useLiveEnvironmentSupported, useProjectLiveEnvironments } from "./liveE
 const lastActivated = new Map<string, string | null>();
 const activationsInFlight = new Set<string>();
 
+/** Forgets what a project was told, so viewing it again activates its live card anew. */
+export function forgetLiveActivation(projectKey: string) {
+  lastActivated.delete(projectKey);
+}
+
 /**
  * Tells the server which card each project wants live, based on what the user
  * is looking at: a project board makes its live column's top card live, and a

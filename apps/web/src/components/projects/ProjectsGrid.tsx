@@ -29,6 +29,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "..
 import { SidebarInset } from "../ui/sidebar";
 import { WorkspaceBreadcrumb, WorkspaceBreadcrumbItem } from "../WorkspaceBreadcrumb";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { ProjectTabsBar, useProjectTabsMode } from "./ProjectTabs";
 import { buildProjectsGrid } from "./projectsGrid.logic";
 
 /** Every project whose environment shows boards, as cards that open the board. */
@@ -36,6 +37,7 @@ export function ProjectsGridPage() {
   const projects = useProjects();
   const configs = useServerConfigs();
   const bootstrapped = useAllEnvironmentShellsBootstrapped();
+  const tabsMode = useProjectTabsMode();
   const { scratchWorkspaceRootFor } = useScratchProject();
   // The "No project" folder holds loose chats, not a repo to plan on a board.
   const boardProjects = useMemo(
@@ -105,11 +107,15 @@ export function ProjectsGridPage() {
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none isolate">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background text-foreground">
         <WorkspacePageHeader electron={isElectron}>
-          <WorkspaceBreadcrumb ariaLabel="Projects breadcrumb" className="min-w-0 flex-1">
-            <WorkspaceBreadcrumbItem current>
-              <h1>Projects</h1>
-            </WorkspaceBreadcrumbItem>
-          </WorkspaceBreadcrumb>
+          {tabsMode ? (
+            <ProjectTabsBar active={null} />
+          ) : (
+            <WorkspaceBreadcrumb ariaLabel="Projects breadcrumb" className="min-w-0 flex-1">
+              <WorkspaceBreadcrumbItem current>
+                <h1>Projects</h1>
+              </WorkspaceBreadcrumbItem>
+            </WorkspaceBreadcrumb>
+          )}
         </WorkspacePageHeader>
         {body}
       </div>

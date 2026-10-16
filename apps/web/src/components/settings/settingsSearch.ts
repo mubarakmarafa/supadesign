@@ -368,6 +368,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["diff ignore spaces edits default"],
   },
   {
+    id: "project-tabs",
+    title: "Project tabs",
+    to: "/settings/general",
+    searchTerms: ["tabs sidebar hide focus board kanban repos switch"],
+  },
+  {
     id: "project-grouping",
     title: "Project grouping",
     to: "/settings/general",

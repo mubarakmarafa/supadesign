@@ -115,7 +115,7 @@ import {
   copyPromptLink,
   promptLinkRepositoryOf,
 } from "./promptLinks/copyPromptLink";
-import { useClientSettings } from "../hooks/useSettings";
+import { useClientSettings, useUpdateClientSettings } from "../hooks/useSettings";
 import { useTheme } from "../hooks/useTheme";
 import { useCustomThemes } from "../hooks/useCustomThemes";
 import { useEnvironmentThemeDefinitions } from "../hooks/useEnvironmentTheme";
@@ -652,6 +652,7 @@ function OpenCommandPaletteDialog(props: {
     setHighlightedItemValue(null);
   }
   const clientSettings = useClientSettings();
+  const updateClientSettings = useUpdateClientSettings();
   const createProject = useAtomCommand(projectEnvironment.create, {
     reportFailure: false,
   });
@@ -2382,6 +2383,18 @@ function OpenCommandPaletteDialog(props: {
       icon: <LayoutGridIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/projects" });
+      },
+    });
+    actionItems.push({
+      kind: "action",
+      value: "action:project-tabs",
+      searchTerms: ["tabs", "project tabs", "sidebar", "hide sidebar", "show sidebar", "focus"],
+      title: clientSettings.projectTabsEnabled
+        ? "Show the sidebar instead of project tabs"
+        : "Switch projects with tabs",
+      icon: <LayoutGridIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await updateClientSettings({ projectTabsEnabled: !clientSettings.projectTabsEnabled });
       },
     });
     actionItems.push({
