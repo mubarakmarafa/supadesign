@@ -62,7 +62,7 @@ function describe(
     case "stopping":
       return { tone: "idle", label: "Stopping…" };
     case "failed":
-      return { tone: "failed", label: snapshot.error ?? "Couldn't start" };
+      return { tone: "failed", label: "Couldn't start" };
     case "ready": {
       if (snapshot.active || snapshot.warmUntil === null) return { tone: "live", label: "Live" };
       // `now` can lag behind by one tick, so never claim more than the grace period.
@@ -256,6 +256,11 @@ export function LiveEnvironmentCardStatus({
       onKeyDown={stopCardGestures}
     >
       <StatusLine tone={tone}>{label}</StatusLine>
+      {(snapshot.status === "failed" || snapshot.status === "needs-dev-script") &&
+      snapshot.error !== null ? (
+        // Why it stopped, in full: the model's reason or the server's exit.
+        <p className="line-clamp-3 text-xs wrap-anywhere text-muted-foreground">{snapshot.error}</p>
+      ) : null}
       <div className="flex flex-wrap items-center gap-1">
         {snapshot.status === "ready" && snapshot.url !== null ? (
           <Button
@@ -284,9 +289,15 @@ export function LiveEnvironmentCardStatus({
           </>
         ) : null}
         {snapshot.status === "needs-dev-script" ? (
-          <Button size="compact" variant="outline" onClick={() => setSetupOpen(true)}>
-            Choose command
-          </Button>
+          <>
+            <Button size="compact" variant="ghost" onClick={() => void retry(threadInput)}>
+              <RotateCcwIcon />
+              Try again
+            </Button>
+            <Button size="compact" variant="outline" onClick={() => setSetupOpen(true)}>
+              Choose command
+            </Button>
+          </>
         ) : null}
       </div>
       {setupOpen ? (

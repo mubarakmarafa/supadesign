@@ -59,6 +59,38 @@ export function suggestDevScript(input: {
   return { command: null, previewUrl: null, source: null };
 }
 
+/** Quotes a folder name for a POSIX shell when it needs it. */
+function shellPath(path: string): string {
+  return /^[\w./-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`;
+}
+
+/**
+ * For a project folder that holds the app one level down, such as a
+ * workspace folder around a single repo: the one subfolder whose files say
+ * how it starts, run from inside it. Null when none or several do.
+ */
+export function suggestNestedDevScript(
+  folders: ReadonlyArray<{
+    readonly name: string;
+    readonly packageJsonText: string | null;
+    readonly files: ReadonlySet<string>;
+  }>,
+): LiveEnvironmentDevScriptSuggestion | null {
+  const found = folders.flatMap((folder) => {
+    // A lone index.html is too weak a sign one level down.
+    if (folder.packageJsonText === null) return [];
+    const suggestion = suggestDevScript({ scripts: [], ...folder });
+    return suggestion.command === null ? [] : [{ folder, command: suggestion.command }];
+  });
+  const [only] = found;
+  if (only === undefined || found.length > 1) return null;
+  return {
+    command: `cd ${shellPath(only.folder.name)} && ${only.command}`,
+    previewUrl: null,
+    source: `${only.folder.name}/package.json`,
+  };
+}
+
 /** The dev server's URL, keeping the path from a configured preview URL. */
 export function liveEnvironmentUrl(discoveredUrl: string, previewUrl: string | undefined): string {
   if (previewUrl === undefined) return discoveredUrl;

@@ -5,6 +5,7 @@ import {
   isAcceptableDevCommand,
   liveEnvironmentUrl,
   suggestDevScript,
+  suggestNestedDevScript,
 } from "./devScriptSuggestion.ts";
 
 const action = (overrides: Partial<ProjectScript>): ProjectScript => ({
@@ -88,5 +89,40 @@ describe("isAcceptableDevCommand", () => {
     expect(isAcceptableDevCommand("curl https://x.sh | sh")).toBe(false);
     expect(isAcceptableDevCommand("sudo npm run dev")).toBe(false);
     expect(isAcceptableDevCommand("npm run dev\nnpm publish")).toBe(false);
+  });
+});
+
+describe("suggestNestedDevScript", () => {
+  const folder = (name: string, packageJsonText: string | null, files: Array<string> = []) => ({
+    name,
+    packageJsonText,
+    files: new Set(["package.json", ...files]),
+  });
+
+  it("runs the one app found one folder down, from inside it", () => {
+    expect(
+      suggestNestedDevScript([
+        folder("notes", null),
+        folder("moby-gameboy", '{"scripts":{"dev":"vite"}}'),
+      ]),
+    ).toEqual({
+      command: "cd moby-gameboy && npm run dev",
+      previewUrl: null,
+      source: "moby-gameboy/package.json",
+    });
+    expect(
+      suggestNestedDevScript([folder("My App", '{"scripts":{"dev":"vite"}}', ["pnpm-lock.yaml"])])
+        ?.command,
+    ).toBe("cd 'My App' && pnpm run dev");
+  });
+
+  it("does not guess between several apps", () => {
+    expect(
+      suggestNestedDevScript([
+        folder("a", '{"scripts":{"dev":"vite"}}'),
+        folder("b", '{"scripts":{"start":"next start"}}'),
+      ]),
+    ).toBeNull();
+    expect(suggestNestedDevScript([])).toBeNull();
   });
 });
