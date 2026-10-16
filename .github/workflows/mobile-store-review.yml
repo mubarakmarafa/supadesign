@@ -20,6 +20,10 @@ on:
         description: Optional Mobile Store Review run containing captured screenshots
         required: false
         type: string
+      review_ref:
+        description: Optional ref containing the current store-review automation
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -106,7 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ inputs.review_ref || inputs.source_sha }}
       - uses: ./.github/actions/setup-mise
       - name: Install asset tooling
         run: mise exec -- vp install --filter=@supaterm/scripts...
