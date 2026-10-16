@@ -75,6 +75,18 @@ export interface LiveEnvironmentOps {
     readonly command: string;
     readonly previewUrl: string | undefined;
   }) => Effect.Effect<void, LiveEnvironmentError>;
+  /**
+   * Works out the dev server command from the repo, or a corrected one after
+   * `failed`. Null when it cannot, or when the failure is in the app's code.
+   */
+  readonly detectDevScript: (input: {
+    readonly projectId: ProjectId;
+    readonly projectRoot: string;
+    readonly failed?: { readonly command: string; readonly output: string } | undefined;
+  }) => Effect.Effect<
+    { readonly command: string; readonly previewUrl: string | undefined } | null,
+    LiveEnvironmentError
+  >;
   /** Removes a worktree this service created, leaving it alone when it has changes. */
   readonly removeWorkspace: (input: {
     readonly projectRoot: string;
@@ -92,7 +104,10 @@ export class LiveEnvironmentService extends Context.Service<
     }) => Effect.Effect<void, LiveEnvironmentError>;
     /** Stops a card's environment now, skipping the warm period. */
     readonly stop: (threadId: ThreadId) => Effect.Effect<void>;
-    /** Tears down and prepares the card again, keeping whether it is live. */
+    /**
+     * Tears down and prepares the card again, keeping whether it is live. A
+     * dev server that failed first gets its command checked by the model.
+     */
     readonly retry: (threadId: ThreadId) => Effect.Effect<void, LiveEnvironmentError>;
     /** Saves the dev server script and retries the cards that were waiting for one. */
     readonly saveDevScript: (input: {
@@ -127,6 +142,16 @@ interface Entry {
   createdWorktree: boolean;
   /** Set when the card is made live again while it is still stopping. */
   restartAfterStop: boolean;
+  /** The dev server script this run started, once it has one. */
+  script: ProjectScript | null;
+  /** Whether this run's command was picked without the user. */
+  autoChosen: boolean;
+  /** Whether the model already tried to correct this card's command. */
+  fixAttempted: boolean;
+  /** Carries `fixAttempted` into the run a fix restarts, so a fix cannot loop. */
+  restartFixAttempted: boolean;
+  /** Whether the failure came from the dev server itself, which a fix may cure. */
+  serverFailed: boolean;
   job: Fiber.Fiber<unknown, unknown> | null;
   timer: Fiber.Fiber<unknown, unknown> | null;
 }
@@ -206,21 +231,143 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         current.error = message;
       });
 
-    const runJob = (entry: Entry) =>
+    /**
+     * The project's dev server script. Without one it picks one itself, from
+     * the repo's own scripts or by asking the model, and saves it; null means
+     * the user has to say how the project runs.
+     */
+    const resolveDevScript = (entry: Entry) =>
       Effect.gen(function* () {
         const plan = yield* ops.plan(entry.threadId);
         yield* update(entry, (current) => {
           current.projectRoot = plan.projectRoot;
         });
-        if (plan.devScript === null) {
+        if (plan.devScript !== null) return { plan, devScript: plan.devScript };
+        let chosen: { command: string; previewUrl: string | undefined } | null =
+          plan.suggestion.command === null
+            ? null
+            : {
+                command: plan.suggestion.command,
+                previewUrl: plan.suggestion.previewUrl ?? undefined,
+              };
+        let reason: string | null = null;
+        if (chosen === null) {
+          yield* update(entry, (current) => {
+            current.phase = "detecting";
+          });
+          chosen = yield* ops
+            .detectDevScript({ projectId: entry.projectId, projectRoot: plan.projectRoot })
+            .pipe(
+              Effect.catch((error: LiveEnvironmentError) => {
+                reason = error.message;
+                return Effect.succeed(null);
+              }),
+            );
+        }
+        const saved =
+          chosen === null
+            ? null
+            : yield* ops.saveDevScript({ projectId: entry.projectId, ...chosen }).pipe(
+                Effect.andThen(ops.plan(entry.threadId)),
+                Effect.map((replanned) => replanned.devScript),
+              );
+        if (saved === null) {
           yield* update(entry, (current) => {
             current.status = "needs-dev-script";
             current.phase = null;
             current.suggestion = plan.suggestion;
+            current.error = reason;
           });
-          return;
+          return null;
         }
-        const devScript = plan.devScript;
+        yield* update(entry, (current) => {
+          current.autoChosen = true;
+        });
+        return { plan, devScript: saved };
+      });
+
+    /** A dev server that will not start; the model may correct a command it picked. */
+    const serverFailed = (entry: Entry, message: string): Effect.Effect<void> =>
+      Effect.suspend(() =>
+        // The server's exit and its readiness timeout can both report one failure.
+        entry.phase === "detecting"
+          ? Effect.void
+          : entry.autoChosen && !entry.fixAttempted && entry.script !== null
+            ? startFix(entry, message, "fail")
+            : update(entry, (current) => {
+                current.status = "failed";
+                current.phase = null;
+                current.url = null;
+                current.error = message;
+                current.serverFailed = true;
+              }),
+      );
+
+    /**
+     * Shows the model the failed command and its output. A corrected command
+     * is saved and the card restarts with it; otherwise the card fails with
+     * `message`, or restarts as it was when the user asked for a retry.
+     */
+    const startFix = (
+      entry: Entry,
+      message: string,
+      withoutFix: "fail" | "restart",
+    ): Effect.Effect<void> =>
+      locked(
+        Effect.gen(function* () {
+          const script = entry.script;
+          if (entries.get(entry.threadId) !== entry || script === null) return;
+          if (entry.status === "stopping" || entry.phase === "detecting") return;
+          entry.fixAttempted = true;
+          entry.status = "preparing";
+          entry.phase = "detecting";
+          entry.error = null;
+          entry.url = null;
+          entry.updatedAt = yield* Clock.currentTimeMillis;
+          yield* publish(entry.projectId);
+          const previous = entry.job;
+          entry.job = yield* Effect.gen(function* () {
+            // The run that failed may still be finishing; this fix replaces it.
+            if (previous) yield* Fiber.interrupt(previous);
+            const fixed =
+              entry.projectRoot === null
+                ? null
+                : yield* ops
+                    .detectDevScript({
+                      projectId: entry.projectId,
+                      projectRoot: entry.projectRoot,
+                      failed: { command: script.command, output: entry.log.join("\n") },
+                    })
+                    .pipe(Effect.orElseSucceed(() => null));
+            const corrected = fixed !== null && fixed.command.trim() !== script.command.trim();
+            if (corrected) {
+              yield* ops
+                .saveDevScript({ projectId: entry.projectId, ...fixed })
+                .pipe(Effect.orElseSucceed(() => undefined));
+            }
+            if (!corrected && withoutFix === "fail") {
+              return yield* update(entry, (current) => {
+                current.status = "failed";
+                current.phase = null;
+                current.error = message;
+                current.serverFailed = true;
+              });
+            }
+            entry.restartAfterStop = true;
+            entry.restartFixAttempted = true;
+            yield* stopEntry(entry).pipe(Effect.forkIn(scope));
+          }).pipe(Effect.forkIn(scope));
+        }),
+      );
+
+    const runJob = (entry: Entry): Effect.Effect<void> =>
+      Effect.gen(function* () {
+        const resolved = yield* resolveDevScript(entry);
+        if (resolved === null) return;
+        const { plan, devScript } = resolved;
+        yield* update(entry, (current) => {
+          current.script = devScript;
+        });
         const workspace = yield* ops.prepareWorkspace({
           threadId: entry.threadId,
           projectRoot: plan.projectRoot,
@@ -258,7 +405,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
           Effect.flatMap((exitCode) =>
             Effect.suspend(() =>
               entries.get(entry.threadId) === entry && entry.status !== "stopping"
-                ? fail(
+                ? serverFailed(
                     entry,
                     exitCode === null
                       ? "The dev server stopped."
@@ -269,11 +416,19 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
           ),
           Effect.forkIn(scope),
         );
-        const url = yield* ops.waitForServer({
-          threadId: entry.threadId,
-          terminalId: server.terminalId,
-          script: devScript,
-        });
+        const waited = yield* ops
+          .waitForServer({
+            threadId: entry.threadId,
+            terminalId: server.terminalId,
+            script: devScript,
+          })
+          .pipe(Effect.result);
+        if (waited._tag === "Failure") {
+          // Forked: a fix interrupts this run, which cannot wait on itself.
+          yield* serverFailed(entry, waited.failure.message).pipe(Effect.forkIn(scope));
+          return;
+        }
+        const url = waited.success;
         yield* update(entry, (current) => {
           if (current.status !== "preparing") return;
           current.status = "ready";
@@ -286,7 +441,12 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
       );
 
     /** Creates a run for the card and starts preparing it. Call with the lock held. */
-    const startLocked = (projectId: ProjectId, threadId: ThreadId, active: boolean) =>
+    const startLocked = (
+      projectId: ProjectId,
+      threadId: ThreadId,
+      active: boolean,
+      fixAttempted = false,
+    ) =>
       Effect.gen(function* () {
         const entry: Entry = {
           projectId,
@@ -305,6 +465,11 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
           projectRoot: null,
           createdWorktree: false,
           restartAfterStop: false,
+          script: null,
+          autoChosen: false,
+          fixAttempted,
+          restartFixAttempted: false,
+          serverFailed: false,
           job: null,
           timer: null,
         };
@@ -359,7 +524,12 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
             if (entries.get(entry.threadId) !== entry) return;
             entries.delete(entry.threadId);
             if (entry.restartAfterStop) {
-              yield* startLocked(entry.projectId, entry.threadId, entry.active);
+              yield* startLocked(
+                entry.projectId,
+                entry.threadId,
+                entry.active,
+                entry.restartFixAttempted,
+              );
             }
             yield* publish(entry.projectId);
           }),
@@ -440,7 +610,11 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
             message: "This card has no live environment to retry.",
           });
         }
+        if (entry.status === "failed" && entry.serverFailed && entry.script !== null) {
+          return yield* startFix(entry, entry.error ?? "The dev server stopped.", "restart");
+        }
         entry.restartAfterStop = true;
+        entry.restartFixAttempted = false;
         yield* stopEntry(entry);
       });
 

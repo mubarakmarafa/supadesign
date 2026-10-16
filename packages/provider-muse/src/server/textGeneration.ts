@@ -22,6 +22,7 @@ import {
   buildBranchNamePrompt,
   buildCommitMessagePrompt,
   buildPrContentPrompt,
+  buildDevServerCommandPrompt,
   buildThreadTitlePrompt,
 } from "@supaterm/provider-core/server/textGenerationPrompts";
 import {
@@ -340,6 +341,21 @@ export const makeMuseTextGeneration = Effect.fn("makeMuseTextGeneration")(functi
     });
     return { title: sanitizeThreadTitle(generated.title) };
   });
+  const generateDevServerCommand: ProviderTextGeneration["generateDevServerCommand"] = Effect.fn(
+    "MuseTextGeneration.generateDevServerCommand",
+  )(function* (input) {
+    const generated = yield* runMuseJson({
+      operation: "generateDevServerCommand",
+      ...buildDevServerCommandPrompt(input),
+      modelSelection: input.modelSelection,
+    });
+    const command = generated.command?.trim() ?? "";
+    return {
+      command: command === "" ? null : command,
+      previewUrl: generated.previewUrl?.trim() || null,
+      reason: generated.reason.trim(),
+    };
+  });
   // Muse runs in an empty read-only directory and cannot be pointed at a checkout to read.
   const generateReviewGuide: ProviderTextGeneration["generateReviewGuide"] = () =>
     Effect.fail(investigationUnsupported("generateReviewGuide", "Muse Code"));
@@ -350,5 +366,6 @@ export const makeMuseTextGeneration = Effect.fn("makeMuseTextGeneration")(functi
     generateBranchName,
     generateThreadTitle,
     generateReviewGuide,
+    generateDevServerCommand,
   } satisfies ProviderTextGeneration;
 });

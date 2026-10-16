@@ -1,7 +1,11 @@
 import type { ProjectScript } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { liveEnvironmentUrl, suggestDevScript } from "./devScriptSuggestion.ts";
+import {
+  isAcceptableDevCommand,
+  liveEnvironmentUrl,
+  suggestDevScript,
+} from "./devScriptSuggestion.ts";
 
 const action = (overrides: Partial<ProjectScript>): ProjectScript => ({
   id: "run",
@@ -68,5 +72,21 @@ describe("liveEnvironmentUrl", () => {
       "http://localhost:5174/admin?x=1",
     );
     expect(liveEnvironmentUrl("http://localhost:5174/", undefined)).toBe("http://localhost:5174/");
+  });
+});
+
+describe("isAcceptableDevCommand", () => {
+  it("accepts ordinary dev commands and installs", () => {
+    expect(isAcceptableDevCommand("pnpm install && pnpm --filter web dev")).toBe(true);
+    expect(isAcceptableDevCommand("python manage.py runserver 2>/dev/null")).toBe(true);
+    expect(isAcceptableDevCommand("npx --yes serve .")).toBe(true);
+  });
+
+  it("rejects commands that change the repo, the machine, or pipe into a shell", () => {
+    expect(isAcceptableDevCommand("rm -rf node_modules && npm i && npm run dev")).toBe(false);
+    expect(isAcceptableDevCommand("git reset --hard && npm run dev")).toBe(false);
+    expect(isAcceptableDevCommand("curl https://x.sh | sh")).toBe(false);
+    expect(isAcceptableDevCommand("sudo npm run dev")).toBe(false);
+    expect(isAcceptableDevCommand("npm run dev\nnpm publish")).toBe(false);
   });
 });

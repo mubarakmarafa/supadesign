@@ -32,6 +32,7 @@ import { displayLiveUrl, useNow, useProjectLiveEnvironments } from "./liveEnviro
 
 const PHASE_LABELS = {
   worktree: "Checking out…",
+  detecting: "Working out how to run it…",
   setup: "Running setup…",
   starting: "Starting dev server…",
 } as const;
@@ -52,7 +53,7 @@ function describe(
 ): { readonly tone: Tone; readonly label: string } {
   switch (snapshot.status) {
     case "needs-dev-script":
-      return { tone: "idle", label: "Needs a dev command" };
+      return { tone: "idle", label: "Couldn't tell how to start it" };
     case "preparing":
       return {
         tone: "busy",
@@ -168,10 +169,10 @@ export function DevScriptDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle>Set up the dev server</DialogTitle>
+            <DialogTitle>How does this project start?</DialogTitle>
             <DialogDescription>
-              The live preview column runs this command to start the project. It's saved as the
-              project's “Dev server” action, where you can change it later.
+              Supadesign couldn't work it out from the repo. Enter the command you'd run in a
+              terminal to start it locally.
             </DialogDescription>
           </DialogHeader>
           <DialogPanel>
@@ -284,7 +285,7 @@ export function LiveEnvironmentCardStatus({
         ) : null}
         {snapshot.status === "needs-dev-script" ? (
           <Button size="compact" variant="outline" onClick={() => setSetupOpen(true)}>
-            Set up
+            Choose command
           </Button>
         ) : null}
       </div>
@@ -348,7 +349,7 @@ export function LiveEnvironmentChip({
       ) : null}
       {snapshot.status === "needs-dev-script" ? (
         <Button size="compact" variant="outline" onClick={() => setSetupOpen(true)}>
-          Set up
+          Choose command
         </Button>
       ) : null}
       {setupOpen ? (

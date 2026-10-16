@@ -25,7 +25,8 @@ export const LiveEnvironmentStatus = Schema.Literals([
 ]);
 export type LiveEnvironmentStatus = typeof LiveEnvironmentStatus.Type;
 
-export const LiveEnvironmentPhase = Schema.Literals(["worktree", "setup", "starting"]);
+/** `detecting` is the model working out the dev server command. */
+export const LiveEnvironmentPhase = Schema.Literals(["worktree", "detecting", "setup", "starting"]);
 export type LiveEnvironmentPhase = typeof LiveEnvironmentPhase.Type;
 
 export const LiveEnvironmentDevScriptSuggestion = Schema.Struct({

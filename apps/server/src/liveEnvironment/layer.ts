@@ -4,7 +4,10 @@ import {
   type ProjectScript,
   type ThreadId,
 } from "@supaterm/contracts";
-import { projectSettingsOverridesForWrite } from "@supaterm/shared/projectSettings";
+import {
+  projectSettingsOverridesForWrite,
+  resolveProjectSettings,
+} from "@supaterm/shared/projectSettings";
 import { resolveProjectScripts } from "@supaterm/shared/projectScripts";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -21,8 +24,15 @@ import * as ProjectService from "../project/ProjectService.ts";
 import * as ProjectSetupScriptRunner from "../project/ProjectSetupScriptRunner.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as TerminalManager from "../terminal/Manager.ts";
+import * as TextGeneration from "../textGeneration/TextGeneration.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
-import { liveEnvironmentUrl, suggestDevScript } from "./devScriptSuggestion.ts";
+import {
+  DEV_SCRIPT_CONTEXT_FILE_MAX_CHARS,
+  DEV_SCRIPT_CONTEXT_FILES,
+  isAcceptableDevCommand,
+  liveEnvironmentUrl,
+  suggestDevScript,
+} from "./devScriptSuggestion.ts";
 import * as LiveEnvironment from "./LiveEnvironmentService.ts";
 
 /** One dev server terminal per card; terminal ids are scoped to the thread. */
@@ -54,6 +64,7 @@ export const make = Effect.gen(function* () {
   const ports = yield* PortScanner.PortDiscovery;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const textGeneration = yield* TextGeneration.TextGeneration;
 
   const readThread = (threadId: ThreadId) =>
     projections.getThreadShell(threadId).pipe(
@@ -264,6 +275,63 @@ export const make = Effect.gen(function* () {
             },
           })
           .pipe(Effect.mapError(() => failure("The dev server script could not be saved.")));
+      }),
+
+    detectDevScript: ({ projectId, projectRoot, failed }) =>
+      Effect.gen(function* () {
+        const current = yield* settings.getSettings.pipe(
+          Effect.mapError(() => failure("Settings could not be read.")),
+        );
+        const { textGenerationModelSelection } = resolveProjectSettings(
+          current,
+          projectId,
+        ).settings;
+        const names = yield* fs
+          .readDirectory(projectRoot)
+          .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
+        const listing = yield* Effect.forEach(names.toSorted().slice(0, 200), (name) =>
+          fs.stat(path.join(projectRoot, name)).pipe(
+            Effect.map((info) => (info.type === "Directory" ? `${name}/` : name)),
+            Effect.orElseSucceed(() => name),
+          ),
+        );
+        const present = new Set(names);
+        const files = yield* Effect.forEach(
+          DEV_SCRIPT_CONTEXT_FILES.filter((name) => present.has(name)),
+          (name) =>
+            fs.readFileString(path.join(projectRoot, name)).pipe(
+              Effect.map((contents) => ({
+                path: name,
+                contents: contents.slice(0, DEV_SCRIPT_CONTEXT_FILE_MAX_CHARS),
+              })),
+              Effect.orElseSucceed(() => null),
+            ),
+        );
+        const generated = yield* textGeneration
+          .generateDevServerCommand({
+            cwd: projectRoot,
+            listing,
+            files: files.filter((file) => file !== null),
+            failedAttempt: failed,
+            modelSelection: textGenerationModelSelection,
+          })
+          .pipe(
+            Effect.tapError((error) =>
+              Effect.logWarning("Could not work out a dev server command", { error }),
+            ),
+            Effect.mapError(() =>
+              failure("Supadesign couldn't work out how to start this project."),
+            ),
+          );
+        yield* Effect.logInfo("Picked a dev server command", {
+          command: generated.command,
+          reason: generated.reason,
+        });
+        if (generated.command === null || !isAcceptableDevCommand(generated.command)) return null;
+        return {
+          command: generated.command,
+          previewUrl: generated.previewUrl ?? undefined,
+        };
       }),
 
     removeWorkspace: ({ projectRoot, worktreePath }) =>
