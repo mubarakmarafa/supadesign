@@ -5,9 +5,12 @@ import {
   EventId,
   type ProjectBoard,
   ProjectId,
+  type ProjectWorkspace,
+  ProjectWorkspaceWidgetId,
 } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as SqlClient from "effect/sql/SqlClient";
 
 import * as OrchestrationEventStore from "../persistence/OrchestrationEventStore.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
@@ -29,7 +32,11 @@ const renamedBoard: ProjectBoard = {
 let eventCounter = 0;
 const appendMetaUpdate = (
   projectId: ProjectId,
-  fields: { readonly board?: ProjectBoard | null; readonly title?: string },
+  fields: {
+    readonly board?: ProjectBoard | null;
+    readonly workspace?: ProjectWorkspace | null;
+    readonly title?: string;
+  },
 ) =>
   Effect.flatMap(OrchestrationEventStore.OrchestrationEventStore, (events) => {
     eventCounter += 1;
@@ -74,6 +81,66 @@ it.layer(layerTest)("ProjectBoardStore", (it) => {
       const many = yield* boards.getMany([first, second, untouched]);
       assert.deepStrictEqual([...many], [[first, renamedBoard]]);
       assert.strictEqual((yield* boards.getMany([])).size, 0);
+    }),
+  );
+});
+
+const workspace: ProjectWorkspace = {
+  widgets: [
+    { id: ProjectWorkspaceWidgetId.make("kanban"), kind: "kanban", w: 3, h: 2 },
+    { id: ProjectWorkspaceWidgetId.make("usage"), kind: "usage", w: 1, h: 1 },
+  ],
+  appearance: { background: "sand", accentColor: "#ff8800" },
+};
+
+it.layer(layerTest)("ProjectBoardStore workspaces", (it) => {
+  it.effect("reads the latest workspace write independently of the board", () =>
+    Effect.gen(function* () {
+      const store = yield* ProjectBoardStore.ProjectBoardStore;
+      const first = ProjectId.make("project-workspace-first");
+      const cleared = ProjectId.make("project-workspace-cleared");
+
+      assert.isNull(yield* store.getWorkspace(first));
+      yield* appendMetaUpdate(first, { workspace });
+      yield* appendMetaUpdate(first, { board: DEFAULT_PROJECT_BOARD });
+      yield* appendMetaUpdate(cleared, { workspace });
+      yield* appendMetaUpdate(cleared, { workspace: null });
+
+      assert.deepStrictEqual(yield* store.getWorkspace(first), workspace);
+      assert.deepStrictEqual(yield* store.get(first), DEFAULT_PROJECT_BOARD);
+      assert.isNull(yield* store.getWorkspace(cleared));
+      const many = yield* store.getManyWorkspaces([first, cleared]);
+      assert.deepStrictEqual([...many], [[first, workspace]]);
+    }),
+  );
+
+  it.effect("drops what this build cannot read instead of failing the project", () =>
+    Effect.gen(function* () {
+      const store = yield* ProjectBoardStore.ProjectBoardStore;
+      const sql = yield* SqlClient.SqlClient;
+      const widened = ProjectId.make("project-workspace-widened");
+      const broken = ProjectId.make("project-workspace-broken");
+
+      const wide = yield* appendMetaUpdate(widened, { workspace });
+      yield* sql`
+        UPDATE orchestration_events
+        SET payload_json = json_set(payload_json, '$.workspace.widgets[1].w', 9)
+        WHERE event_id = ${wide.eventId}
+      `;
+      const bad = yield* appendMetaUpdate(broken, { workspace });
+      yield* sql`
+        UPDATE orchestration_events
+        SET payload_json = json_set(payload_json, '$.workspace.appearance.accentColor', 'red')
+        WHERE event_id = ${bad.eventId}
+      `;
+
+      assert.deepStrictEqual(yield* store.getWorkspace(widened), {
+        ...workspace,
+        widgets: [workspace.widgets[0]!],
+      });
+      assert.isNull(yield* store.getWorkspace(broken));
+      const many = yield* store.getManyWorkspaces([widened, broken]);
+      assert.deepStrictEqual([...many.keys()], [widened]);
     }),
   );
 });

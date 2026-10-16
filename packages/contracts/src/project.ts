@@ -3,6 +3,7 @@ import * as SchemaTransformation from "effect/SchemaTransformation";
 import { RepositoryIdentity, ThreadEnvMode } from "./environment.ts";
 import { ModelSelection } from "./modelSelection.ts";
 import { ProjectBoard } from "./projectBoard.ts";
+import { ProjectWorkspace, ReceivedProjectWorkspace } from "./projectWorkspace.ts";
 import {
   CommandId,
   ForwardCompatibleUnion,
@@ -176,6 +177,8 @@ export const Project = Schema.Struct({
   autoPull: Schema.optional(Schema.Boolean),
   /** Kanban layout; absent on servers without project boards, null when unset. */
   board: Schema.optional(Schema.NullOr(ProjectBoard)),
+  /** Widgets and look; absent on servers without workspaces, null when unset. */
+  workspace: Schema.optional(Schema.NullOr(ReceivedProjectWorkspace)),
   scripts: Schema.Array(ProjectScript),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
@@ -219,6 +222,8 @@ export const ProjectUpdatePayload = Schema.Struct({
   scripts: Schema.optional(Schema.Array(ProjectScript)),
   /** Replaces the whole board; null clears it back to the default layout. */
   board: Schema.optional(Schema.NullOr(ProjectBoard)),
+  /** Replaces the whole workspace; null resets it to the board alone. */
+  workspace: Schema.optional(Schema.NullOr(ProjectWorkspace)),
 });
 export type ProjectUpdatePayload = typeof ProjectUpdatePayload.Type;
 

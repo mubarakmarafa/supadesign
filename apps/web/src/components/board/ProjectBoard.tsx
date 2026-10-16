@@ -87,6 +87,8 @@ import {
   WorkspaceBreadcrumbSeparator,
 } from "../WorkspaceBreadcrumb";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { ProjectWorkspace } from "../workspace/ProjectWorkspace";
+import { WorkspaceControls } from "../workspace/WorkspaceControls";
 import { BoardPeek } from "./BoardPeek";
 import { ProjectTabsBar, useProjectTabsMode, useShowProjectTab } from "../projects/ProjectTabs";
 import { BoardCardOverlay, type BoardCardHandlers } from "./BoardCard";
@@ -236,13 +238,19 @@ export function ProjectBoardPage() {
                 }
           }
         >
-          <ProjectBoardView
-            key={scopedProjectKey(projectRef)}
+          <ProjectWorkspace
             projectRef={projectRef}
             project={project}
-            canOperate={canOperate}
-            peekedCardId={peekedThread === null ? null : peekedCardId}
-            onPeek={peek}
+            kanban={
+              <ProjectBoardView
+                key={scopedProjectKey(projectRef)}
+                projectRef={projectRef}
+                project={project}
+                canOperate={canOperate}
+                peekedCardId={peekedThread === null ? null : peekedCardId}
+                onPeek={peek}
+              />
+            }
           />
         </div>
         {peekThreadRef !== null &&
@@ -299,6 +307,9 @@ export function ProjectBoardPage() {
               </WorkspaceBreadcrumbItem>
             </WorkspaceBreadcrumb>
           )}
+          {project && supported ? (
+            <WorkspaceControls projectRef={projectRef} project={project} />
+          ) : null}
           {project && supported && canOperate ? (
             <Button size="sm" variant="outline" onClick={() => void handleNewThread(projectRef)}>
               <SquarePenIcon />

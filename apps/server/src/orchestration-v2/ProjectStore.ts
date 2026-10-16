@@ -1,6 +1,7 @@
 import {
   type ApplicationProjectEvent,
   type ProjectBoard,
+  type ProjectWorkspace,
   IsoDateTime,
   ModelSelection,
   type OrchestrationProjectShell,
@@ -57,7 +58,11 @@ const ProjectDbRow = Schema.Struct({
 });
 
 /** Shell fields without workspace-derived enrichment such as repository identity. */
-function toShell(row: ProjectRow, board: ProjectBoard | null): OrchestrationProjectShell {
+function toShell(
+  row: ProjectRow,
+  board: ProjectBoard | null,
+  workspace: ProjectWorkspace | null,
+): OrchestrationProjectShell {
   return {
     id: row.projectId,
     title: row.title,
@@ -69,6 +74,7 @@ function toShell(row: ProjectRow, board: ProjectBoard | null): OrchestrationProj
     faviconPath: row.faviconPath,
     projectIcon: row.projectIcon,
     board,
+    workspace,
     scripts: row.scripts,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -276,16 +282,25 @@ export const make = Effect.gen(function* () {
       const row = yield* get(projectId);
       if (Option.isNone(row)) return Option.none();
       const board = yield* boards.get(projectId).pipe(mapError("getShell"));
-      return Option.some(toShell(row.value, board));
+      const workspace = yield* boards.getWorkspace(projectId).pipe(mapError("getShell"));
+      return Option.some(toShell(row.value, board, workspace));
     }),
     listShells: Effect.fn("ProjectStoreV2.listShells")(function* (options) {
       const rows = yield* list(
         options?.projectIds === undefined ? undefined : { projectIds: options.projectIds },
       );
-      const boardsById = yield* boards
-        .getMany(rows.map((row) => row.projectId))
+      const projectIds = rows.map((row) => row.projectId);
+      const boardsById = yield* boards.getMany(projectIds).pipe(mapError("listShells"));
+      const workspacesById = yield* boards
+        .getManyWorkspaces(projectIds)
         .pipe(mapError("listShells"));
-      return rows.map((row) => toShell(row, boardsById.get(row.projectId) ?? null));
+      return rows.map((row) =>
+        toShell(
+          row,
+          boardsById.get(row.projectId) ?? null,
+          workspacesById.get(row.projectId) ?? null,
+        ),
+      );
     }),
   });
 });

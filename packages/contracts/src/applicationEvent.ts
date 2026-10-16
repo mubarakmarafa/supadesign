@@ -16,6 +16,7 @@ import { ModelSelection } from "./modelSelection.ts";
 import type { OrchestrationV2StoredEvent } from "./orchestrationV2.ts";
 import { ProjectScript, StoredProjectIcon } from "./project.ts";
 import { ProjectBoard } from "./projectBoard.ts";
+import { ReceivedProjectWorkspace } from "./projectWorkspace.ts";
 
 /**
  * Which client dispatched the command that produced this event (#7774).
@@ -72,6 +73,7 @@ export const ApplicationProjectMetaUpdatedPayload = Schema.Struct({
   projectIcon: Schema.optional(Schema.NullOr(StoredProjectIcon)),
   scripts: Schema.optional(Schema.Array(ProjectScript)),
   board: Schema.optional(Schema.NullOr(ProjectBoard)),
+  workspace: Schema.optional(Schema.NullOr(ReceivedProjectWorkspace)),
   updatedAt: IsoDateTime,
 });
 export type ApplicationProjectMetaUpdatedPayload = typeof ApplicationProjectMetaUpdatedPayload.Type;

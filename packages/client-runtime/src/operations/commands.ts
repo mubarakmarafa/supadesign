@@ -14,6 +14,7 @@ import {
   type OrchestrationV2CreationSource,
   type PlanId,
   type ProjectBoard,
+  type ProjectWorkspace,
   type ProjectId,
   type ProjectIconOverride,
   type ProjectScript,
@@ -62,6 +63,8 @@ export interface UpdateProjectInput extends CommandMetadata {
   readonly scripts?: ReadonlyArray<ProjectScript>;
   /** Replaces the whole board; null resets it to the default layout. */
   readonly board?: ProjectBoard | null;
+  /** Replaces the whole workspace; null resets it to the board alone. */
+  readonly workspace?: ProjectWorkspace | null;
 }
 
 export interface DeleteProjectInput extends CommandMetadata {
@@ -387,6 +390,7 @@ export const updateProject = Effect.fn("EnvironmentCommands.updateProject")(func
       : { defaultThreadEnvMode: input.defaultThreadEnvMode }),
     ...(input.scripts === undefined ? {} : { scripts: input.scripts }),
     ...(input.board === undefined ? {} : { board: input.board }),
+    ...(input.workspace === undefined ? {} : { workspace: input.workspace }),
   });
 });
 
