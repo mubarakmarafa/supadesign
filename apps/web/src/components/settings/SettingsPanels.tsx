@@ -2330,6 +2330,17 @@ export function GeneralSettingsPanel() {
 
       <SettingsSection id="projects" title="Projects">
         <SettingsRow
+          {...searchableSetting("project-tabs")}
+          description="Hide the sidebar and switch between project boards with tabs."
+          control={
+            <Switch
+              checked={settings.projectTabsEnabled}
+              onCheckedChange={(checked) => updateSettings({ projectTabsEnabled: checked })}
+              aria-label="Project tabs"
+            />
+          }
+        />
+        <SettingsRow
           {...searchableSetting("project-grouping")}
           description="Combine matching repositories across environments."
           resetAction={

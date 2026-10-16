@@ -85,6 +85,7 @@ import {
   WorkspaceBreadcrumbSeparator,
 } from "../WorkspaceBreadcrumb";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
+import { ProjectTabsBar, useProjectTabsMode, useShowProjectTab } from "../projects/ProjectTabs";
 import { BoardCardOverlay, type BoardCardHandlers } from "./BoardCard";
 import { BoardColumn } from "./BoardColumn";
 import {
@@ -182,6 +183,12 @@ export function ProjectBoardPage() {
   const bootstrapped = useAllEnvironmentShellsBootstrapped();
   const canOperate = useEnvironmentScope(projectRef.environmentId, AuthOrchestrationOperateScope);
   const handleNewThread = useNewThreadHandler();
+  const tabsMode = useProjectTabsMode();
+  const tab = useMemo(
+    () => ({ environmentId: params.environmentId, projectId: params.projectId }),
+    [params.environmentId, params.projectId],
+  );
+  useShowProjectTab(tabsMode && project ? tab : null);
 
   let body: ReactNode;
   if (project && supported) {
@@ -217,25 +224,29 @@ export function ProjectBoardPage() {
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none isolate">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background text-foreground">
         <WorkspacePageHeader electron={isElectron}>
-          <WorkspaceBreadcrumb ariaLabel="Board breadcrumb" className="min-w-0 flex-1">
-            <WorkspaceBreadcrumbItem>
-              <Link to="/projects" className="hover:text-foreground">
-                Projects
-              </Link>
-            </WorkspaceBreadcrumbItem>
-            <WorkspaceBreadcrumbSeparator />
-            {project ? (
-              <>
-                <WorkspaceBreadcrumbItem className="min-w-0 shrink">
-                  <span className="truncate">{project.title}</span>
-                </WorkspaceBreadcrumbItem>
-                <WorkspaceBreadcrumbSeparator />
-              </>
-            ) : null}
-            <WorkspaceBreadcrumbItem current>
-              <h1>Board</h1>
-            </WorkspaceBreadcrumbItem>
-          </WorkspaceBreadcrumb>
+          {tabsMode ? (
+            <ProjectTabsBar active={tab} />
+          ) : (
+            <WorkspaceBreadcrumb ariaLabel="Board breadcrumb" className="min-w-0 flex-1">
+              <WorkspaceBreadcrumbItem>
+                <Link to="/projects" className="hover:text-foreground">
+                  Projects
+                </Link>
+              </WorkspaceBreadcrumbItem>
+              <WorkspaceBreadcrumbSeparator />
+              {project ? (
+                <>
+                  <WorkspaceBreadcrumbItem className="min-w-0 shrink">
+                    <span className="truncate">{project.title}</span>
+                  </WorkspaceBreadcrumbItem>
+                  <WorkspaceBreadcrumbSeparator />
+                </>
+              ) : null}
+              <WorkspaceBreadcrumbItem current>
+                <h1>Board</h1>
+              </WorkspaceBreadcrumbItem>
+            </WorkspaceBreadcrumb>
+          )}
           {project && supported && canOperate ? (
             <Button size="sm" variant="outline" onClick={() => void handleNewThread(projectRef)}>
               <SquarePenIcon />
