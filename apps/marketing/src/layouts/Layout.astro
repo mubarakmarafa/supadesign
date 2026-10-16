@@ -139,24 +139,16 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 <style is:global>
   :root {
     --bg: #09090b;
-    --bg-elev: #0c0c0e;
-    --bg-card: #111113;
     --fg: #fafafa;
     --fg-muted: #a1a1aa;
     --fg-dim: #71717a;
     --fg-faint: #52525b;
     --border: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.14);
-    --accent-h: 250;
-    --accent: oklch(0.68 0.17 var(--accent-h));
-    --accent-dim: oklch(0.68 0.17 var(--accent-h) / 0.15);
-    --ok: oklch(0.72 0.16 150);
+    --accent: oklch(0.68 0.17 250);
     --warn: oklch(0.76 0.15 75);
     --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-    --radius: 12px;
-    --radius-sm: 8px;
-    --radius-lg: 16px;
   }
 
   * {
@@ -280,14 +272,6 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
     padding: 14px 22px;
     font-size: 15px;
     border-radius: 10px;
-  }
-
-  .tile {
-    position: relative;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0));
-    overflow: hidden;
   }
 
   :focus-visible {

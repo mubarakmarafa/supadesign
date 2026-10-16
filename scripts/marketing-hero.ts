@@ -9,9 +9,9 @@
  * `marketing-hero.scene.ts` as fake git repos plus projection rows, and captures
  * the hero thread with its turn diff at 1440x900 @2x in headless Chromium, in
  * the dark appearance the marketing site wears. The production build is
- * deliberate: it leaves the sidebar header clear, where the dev client draws
- * its blueprint. Nothing touches ~/.supaterm: all state lives in a temp
- * directory.
+ * deliberate: it draws the release art behind the sidebar header, where the
+ * dev client draws its blueprint. Nothing touches ~/.supaterm: all state lives
+ * in a temp directory.
  *
  * Projection rows are written directly, which is fine for a visual fixture but
  * skips the event log. Payloads are decoded with the contract schemas before
