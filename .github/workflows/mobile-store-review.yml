@@ -16,6 +16,10 @@ on:
         description: Mobile Production run containing the signed builds
         required: true
         type: string
+      screenshots_run_id:
+        description: Optional Mobile Store Review run containing captured screenshots
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -68,7 +72,7 @@ jobs:
 
   capture:
     needs: prepare
-    if: needs.prepare.outputs.enabled == 'true'
+    if: needs.prepare.outputs.enabled == 'true' && inputs.screenshots_run_id == ''
     uses: ./.github/workflows/mobile-showcase-screenshots.yml
     with:
       source_sha: ${{ inputs.source_sha }}
@@ -79,7 +83,7 @@ jobs:
   submit:
     name: Submit ${{ matrix.platform }} for review
     needs: [prepare, capture]
-    if: needs.prepare.outputs.enabled == 'true'
+    if: always() && needs.prepare.outputs.enabled == 'true' && (needs.capture.result == 'success' || inputs.screenshots_run_id != '')
     runs-on: depot-ubuntu-24.04
     environment: release
     timeout-minutes: 90
@@ -111,6 +115,8 @@ jobs:
         with:
           name: ${{ matrix.platform == 'ios' && 'app-store-connect-screenshots' || 'google-play-screenshots' }}
           path: artifacts/app-store/screenshots/${{ matrix.platform == 'ios' && 'apple' || 'google-play' }}
+          run-id: ${{ inputs.screenshots_run_id || github.run_id }}
+          github-token: ${{ github.token }}
       - name: Prepare validated Fastlane screenshot folders
         env:
           MOBILE_PLATFORM: ${{ matrix.platform }}
