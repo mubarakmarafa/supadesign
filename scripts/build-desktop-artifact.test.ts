@@ -667,6 +667,11 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         "NSLocalNetworkUsageDescription",
         "Supadesign connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
       );
+      // Projects often live in Documents; without the purpose string macOS denies reads silently.
+      assert.property(
+        (mac.mac as Record<string, unknown>).extendInfo as Record<string, unknown>,
+        "NSDocumentsFolderUsageDescription",
+      );
       for (const config of [linux, win]) {
         assert.deepStrictEqual(config.electronLanguages, DESKTOP_ELECTRON_LANGUAGES);
       }

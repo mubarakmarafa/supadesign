@@ -2398,6 +2398,18 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
           "Supadesign connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
         NSScreenCaptureUsageDescription:
           "Supadesign captures the active window when you use the window capture shortcut.",
+        // Without these, macOS silently blocks the server from projects in protected
+        // folders instead of asking, so detection sees an empty folder.
+        NSDocumentsFolderUsageDescription:
+          "Supadesign reads and runs the projects you open from your Documents folder.",
+        NSDesktopFolderUsageDescription:
+          "Supadesign reads and runs the projects you open from your Desktop folder.",
+        NSDownloadsFolderUsageDescription:
+          "Supadesign reads and runs the projects you open from your Downloads folder.",
+        NSRemovableVolumesUsageDescription:
+          "Supadesign reads and runs the projects you open from external drives.",
+        NSNetworkVolumesUsageDescription:
+          "Supadesign reads and runs the projects you open from network drives.",
         CFBundleDocumentTypes: [
           {
             CFBundleTypeName: "Web page",

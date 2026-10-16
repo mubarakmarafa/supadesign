@@ -15,6 +15,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
+import type * as PlatformError from "effect/PlatformError";
 import * as Schedule from "effect/Schedule";
 
 import * as GitManager from "../git/GitManager.ts";
@@ -51,6 +52,19 @@ const SUGGESTION_FILES = [
   "bun.lockb",
   "index.html",
 ] as const;
+
+const FOLDER_ACCESS_DENIED =
+  "macOS isn't letting Supadesign read this project's folder. In System Settings > Privacy & Security > Files & Folders, allow Supadesign to access it, then press Try again.";
+
+/**
+ * macOS privacy controls refuse with EPERM, which the platform layer reports
+ * as Unknown; plain file permissions arrive as PermissionDenied.
+ */
+function isAccessDenied(error: PlatformError.PlatformError): boolean {
+  if (error.reason._tag === "PermissionDenied") return true;
+  const cause = "cause" in error.reason ? error.reason.cause : undefined;
+  return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "EPERM";
+}
 
 /** Folders never worth looking inside for an app. */
 const IGNORED_FOLDERS = new Set(["node_modules", "dist", "build", "out", "coverage", "vendor"]);
@@ -355,6 +369,13 @@ export const make = Effect.gen(function* () {
                 Effect.orElseSucceed(() => null),
               ),
           );
+        // A blocked read must not look like an empty repo to the model.
+        yield* fs.readDirectory(projectRoot).pipe(
+          Effect.catchTags({
+            PlatformError: (error) =>
+              isAccessDenied(error) ? Effect.fail(failure(FOLDER_ACCESS_DENIED)) : Effect.void,
+          }),
+        );
         const listing = [...(yield* listFolder(projectRoot, ""))];
         const files = [...(yield* readContext(projectRoot, "", listing))];
         // An app can sit one folder down, as in a workspace folder around a repo.
