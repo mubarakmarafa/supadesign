@@ -169,6 +169,9 @@ export function PullRequestChecksPopover({
           select the row it sits on. */}
       <PopoverTrigger
         nativeButton={variant === "button"}
+        openOnHover
+        delay={150}
+        closeDelay={150}
         aria-label={
           variant === "button"
             ? `Open checks: ${summary ?? presentation.label}`

@@ -1,11 +1,10 @@
 import type {
   EnvironmentId,
   ProjectId,
-  PullRequestCheck,
   ScopedThreadRef,
   ThreadWorkflowRunKey,
 } from "@supaterm/contracts";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
 import { pullRequestEnvironment } from "~/state/pullRequests";
@@ -16,10 +15,8 @@ import {
   pullRequestChecksState,
   pullRequestChecksStatePresentation,
   pullRequestChecksStateRingToneClassName,
-  summarizePullRequestChecks,
 } from "../pullRequest/pullRequestPresentation";
 import { Popover, type PopoverCreateHandle, PopoverPopup, PopoverTrigger } from "../ui/popover";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
 type PopoverHandle = ReturnType<typeof PopoverCreateHandle>;
 
@@ -45,33 +42,29 @@ function useWatchedRun({ run, environmentId, projectId }: WatchedRunProps) {
   return workflowRun && checksState !== null ? { workflowRun, checksState } : null;
 }
 
-/** Hovering says how the run's jobs stand; a click opens the popover that lists them. */
 function RunChecksTrigger({
   handle,
-  checks,
   label,
   className,
   children,
 }: {
   handle: PopoverHandle;
-  checks: ReadonlyArray<PullRequestCheck>;
   label?: string;
   className: string;
   children: ReactNode;
 }) {
-  const trigger: ReactElement = (
+  return (
     <PopoverTrigger
       handle={handle}
       nativeButton={false}
+      openOnHover
+      delay={150}
+      closeDelay={150}
       {...(label === undefined ? {} : { "aria-label": label })}
       render={<span role="button" tabIndex={0} className={className} />}
-    />
-  );
-  return (
-    <Tooltip>
-      <TooltipTrigger render={trigger}>{children}</TooltipTrigger>
-      <TooltipPopup side="top">{summarizePullRequestChecks(checks)}</TooltipPopup>
-    </Tooltip>
+    >
+      {children}
+    </PopoverTrigger>
   );
 }
 
@@ -106,7 +99,6 @@ export function BackgroundWorkIcon({
     <>
       <RunChecksTrigger
         handle={props.handle}
-        checks={watched.workflowRun.checks}
         label={`Checks: ${pullRequestChecksStatePresentation(watched.checksState).label}`}
         className="inline-flex size-full cursor-pointer items-center justify-center"
       >
@@ -132,7 +124,6 @@ export function BackgroundWorkTitle({ title, ...props }: WatchedRunProps & { tit
   return (
     <RunChecksTrigger
       handle={props.handle}
-      checks={watched.workflowRun.checks}
       className="cursor-pointer rounded-sm underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
     >
       {title}

@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { SourceControlProviderKind } from "@supaterm/contracts";
 import {
   EnvironmentId,
@@ -218,7 +220,6 @@ let renderer: ReactTestRenderer;
 
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
   useComposerDraftStore.setState({ draftsByThreadKey: {} });
   newThread
     .mockReset()
