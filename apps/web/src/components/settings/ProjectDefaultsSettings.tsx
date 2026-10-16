@@ -396,11 +396,12 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             title="Automatically pull"
             description="Fast-forward the default branch when the checkout is clean."
             resetAction={
-              settings.defaultAutoPull ? (
+              settings.defaultAutoPull !== DEFAULT_SERVER_SETTINGS.defaultAutoPull ? (
                 <SettingResetButton
                   label="default automatic pull"
-                  tooltip="Reset automatic pull to off"
-                  onClick={() => updateSettings({ defaultAutoPull: false })}
+                  onClick={() =>
+                    updateSettings({ defaultAutoPull: DEFAULT_SERVER_SETTINGS.defaultAutoPull })
+                  }
                 />
               ) : null
             }

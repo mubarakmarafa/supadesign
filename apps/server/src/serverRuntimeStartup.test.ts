@@ -160,7 +160,7 @@ it.effect("automatic pull only updates enabled, behind, clean default-branch che
     pulled.length = 0;
     yield* ServerRuntimeStartup.autoPullProjects(
       [project("/inherited"), project("/opted-out"), project("/dirty")],
-      { ...overrides({ "/opted-out": false }), defaultAutoPull: true },
+      overrides({ "/opted-out": false }),
     ).pipe(Effect.provideService(GitVcsDriver.GitVcsDriver, git));
     assert.deepStrictEqual(pulled, ["/inherited"]);
   }),

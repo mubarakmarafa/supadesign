@@ -26,6 +26,22 @@ const decodeServerSettingsPatch = Schema.decodeUnknownSync(ServerSettingsPatch);
 const encodeServerSettings = Schema.encodeSync(ServerSettings);
 const decodeClaudeSettings = Schema.decodeUnknownSync(ClaudeSettings);
 
+describe("automatic pull", () => {
+  it("enables automatic pull when no preference is saved", () => {
+    expect(decodeServerSettings({}).defaultAutoPull).toBe(true);
+    expect(DEFAULT_SERVER_SETTINGS.defaultAutoPull).toBe(true);
+  });
+
+  it.each([true, false])("preserves an explicit %s preference and project override", (enabled) => {
+    const input = {
+      defaultAutoPull: enabled,
+      projectSettingsOverrides: { project: { defaultAutoPull: enabled } },
+    };
+    expect(encodeServerSettings(decodeServerSettings(input))).toMatchObject(input);
+    expect(decodeServerSettingsPatch(input)).toEqual(input);
+  });
+});
+
 describe("restart continuation", () => {
   it("enables continuation for sparse existing settings", () => {
     expect(decodeServerSettings({}).continueThreadsAfterServerUpdate).toBe(true);

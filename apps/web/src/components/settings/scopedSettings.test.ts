@@ -131,13 +131,14 @@ describe("scoped settings targets", () => {
   });
 
   it("resolves each member's effective settings and source at project scope", () => {
+    const optedOut = environment("Laptop", { settings: { defaultAutoPull: false } });
     const overridden = environment("Server", {
       settings: {
         defaultAutoPull: false,
         projectSettingsOverrides: { [projectId]: { defaultAutoPull: true } },
       },
     });
-    const targets = resolveScopedSettingsTargets(project, [laptop, overridden]);
+    const targets = resolveScopedSettingsTargets(project, [optedOut, overridden]);
     expect(targets.map((target) => [target.projectId, target.settings.defaultAutoPull])).toEqual([
       [projectId, true],
       [laptopProjectId, false],

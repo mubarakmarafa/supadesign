@@ -141,8 +141,9 @@ from the icon palette, derived from the saved project name. For example, `Nebula
 
 ## Keep the default branch current
 
-In Source Control, enable **Automatically pull** to keep the default-branch checkout up to date
-with its configured upstream. Choose an environment to set the default or a project to override it.
+**Automatically pull** is enabled by default to keep the default-branch checkout up to date
+with its configured upstream. In Source Control, choose an environment to change the default or a
+project to override it.
 On mobile, use **Settings → Source control** to change selected environment defaults or project overrides.
 
 Supaterm only pulls when it can fast-forward and the checkout has no changed files, untracked files,
