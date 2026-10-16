@@ -186,6 +186,7 @@ import * as DeviceService from "./device/DeviceService.ts";
 import { remoteSshDeviceHosts } from "./device/localSshDeviceHost.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as LiveEnvironment from "./liveEnvironment/LiveEnvironmentService.ts";
+import * as ProjectSummary from "./project/ProjectSummary.ts";
 import { issueAssetUrl } from "./assets/AssetAccess.ts";
 import {
   attachmentRelativePath,
@@ -1310,6 +1311,7 @@ const layerWsRpc = (
       const terminalManager = yield* TerminalManager.TerminalManager;
       const previewManager = yield* PreviewManager.PreviewManager;
       const liveEnvironments = yield* LiveEnvironment.LiveEnvironmentService;
+      const projectSummary = yield* ProjectSummary.ProjectSummary;
       const portDiscovery = yield* PortScanner.PortDiscovery;
       const providerRegistry = yield* ProviderRegistry.ProviderRegistry;
       const orchestrationSkills = yield* OrchestrationSkills.OrchestrationSkills;
@@ -2928,6 +2930,7 @@ const layerWsRpc = (
               (unsubscribe) => Effect.sync(unsubscribe),
             ),
           ),
+        [WS_METHODS.projectsSummary]: (input) => projectSummary.describe(input.projectId),
         [WS_METHODS.deviceConfigure]: (input) => deviceService.configure(input),
         [WS_METHODS.deviceTestHost]: (input) => deviceService.testHost(input),
         [WS_METHODS.deviceList]: (input) =>

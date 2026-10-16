@@ -40,7 +40,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { useAtomValue } from "@effect/atom-react";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, Link } from "@tanstack/react-router";
 import { KanbanIcon, PlusIcon, SquarePenIcon } from "lucide-react";
 import {
   type KeyboardEvent,
@@ -218,6 +218,12 @@ export function ProjectBoardPage() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background text-foreground">
         <WorkspacePageHeader electron={isElectron}>
           <WorkspaceBreadcrumb ariaLabel="Board breadcrumb" className="min-w-0 flex-1">
+            <WorkspaceBreadcrumbItem>
+              <Link to="/projects" className="hover:text-foreground">
+                Projects
+              </Link>
+            </WorkspaceBreadcrumbItem>
+            <WorkspaceBreadcrumbSeparator />
             {project ? (
               <>
                 <WorkspaceBreadcrumbItem className="min-w-0 shrink">

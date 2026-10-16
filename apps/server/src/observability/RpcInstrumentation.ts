@@ -196,6 +196,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.liveEnvironmentRetry]: "preview",
   [WS_METHODS.liveEnvironmentSaveDevScript]: "preview",
   [WS_METHODS.subscribeLiveEnvironments]: "preview",
+  [WS_METHODS.projectsSummary]: "workspace",
   [WS_METHODS.subscribeDiscoveredLocalServers]: "preview",
   [WS_METHODS.deviceConfigure]: "device",
   [WS_METHODS.deviceTestHost]: "device",

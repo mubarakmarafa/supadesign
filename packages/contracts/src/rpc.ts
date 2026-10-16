@@ -151,6 +151,7 @@ import {
   ReviewDiffPreviewResult,
 } from "./review.ts";
 import { KeybindingsConfigError } from "./keybindings.ts";
+import { ProjectSummary, ProjectSummaryInput } from "./projectBoard.ts";
 import {
   LiveEnvironmentActivateInput,
   LiveEnvironmentError,
@@ -441,6 +442,9 @@ export const WS_METHODS = {
   liveEnvironmentRetry: "liveEnvironment.retry",
   liveEnvironmentSaveDevScript: "liveEnvironment.saveDevScript",
   subscribeLiveEnvironments: "subscribeLiveEnvironments",
+
+  // Projects grid
+  projectsSummary: "projects.summary",
 
   // Review methods
   reviewGetDiffPreview: "review.getDiffPreview",
@@ -1581,6 +1585,12 @@ const WsLiveEnvironmentSaveDevScriptRpc = Rpc.make(WS_METHODS.liveEnvironmentSav
   error: Schema.Union([LiveEnvironmentError, EnvironmentAuthorizationError]),
 });
 
+const WsProjectsSummaryRpc = Rpc.make(WS_METHODS.projectsSummary, {
+  payload: ProjectSummaryInput,
+  success: ProjectSummary,
+  error: EnvironmentAuthorizationError,
+});
+
 const WsSubscribeLiveEnvironmentsRpc = Rpc.make(WS_METHODS.subscribeLiveEnvironments, {
   payload: LiveEnvironmentProjectInput,
   success: LiveEnvironmentList,
@@ -2027,6 +2037,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsLiveEnvironmentRetryRpc,
   WsLiveEnvironmentSaveDevScriptRpc,
   WsSubscribeLiveEnvironmentsRpc,
+  WsProjectsSummaryRpc,
   WsVcsListRefsRpc,
   WsVcsCreateWorktreeRpc,
   WsVcsRemoveWorktreeRpc,
