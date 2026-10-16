@@ -802,6 +802,8 @@ export function PreviewView({
     [recordingRuntimeTabId, runtimeTabId, tabId, threadRef],
   );
 
+  // Set by an Attach, so design mode reopens for the next mark.
+  const continueDesignModeRef = useRef(false);
   const handlePickElement = useCallback(() => {
     if (!previewBridge || !runtimeTabId) return;
     if (pickActiveRef.current) {
@@ -882,6 +884,10 @@ export function PreviewView({
           readEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope)
         ) {
           onSendAnnotation?.(annotation, image);
+        } else {
+          // Design mode stays on after Attach so several marks can be collected;
+          // Escape or the toolbar button ends it.
+          continueDesignModeRef.current = true;
         }
       } catch {
         // Picker failed (e.g. webview navigated). Treat as silent cancel.
@@ -912,6 +918,14 @@ export function PreviewView({
       }
     })();
   }, [addImage, addPreviewAnnotation, onSendAnnotation, runtimeTabId, threadRef]);
+  useEffect(() => {
+    if (pickActive || !continueDesignModeRef.current) return;
+    continueDesignModeRef.current = false;
+    const timer = window.setTimeout(() => {
+      if (isMountedRef.current) handlePickElement();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [handlePickElement, pickActive]);
 
   useEffect(() => {
     if (!pickActive || !previewBridge || !runtimeTabId) return;
@@ -944,6 +958,9 @@ export function PreviewView({
         case "refresh":
           handleRefresh();
           return;
+        case "design-mode":
+          handlePickElement();
+          return;
         case "focus-url":
           setFocusUrlNonce((value) => (value ?? 0) + 1);
           return;
@@ -960,7 +977,7 @@ export function PreviewView({
           return;
       }
     });
-  }, [handleRefresh, handleResetZoom, handleZoomIn, handleZoomOut, visible]);
+  }, [handlePickElement, handleRefresh, handleResetZoom, handleZoomIn, handleZoomOut, visible]);
 
   return (
     <div

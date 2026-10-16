@@ -112,6 +112,7 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "diff.toggle",
   "preview.toggle",
   "preview.refresh",
+  "preview.designMode",
   "preview.focusUrl",
   "preview.zoomIn",
   "preview.zoomOut",

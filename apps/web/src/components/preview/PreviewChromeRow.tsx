@@ -95,6 +95,7 @@ export function PreviewChromeRow({
   leadingActions,
 }: Props) {
   const refreshShortcut = useShortcutLabel("preview.refresh", PREVIEW_FOCUS_SHORTCUT_OPTIONS);
+  const designModeShortcutLabel = useShortcutLabel("preview.designMode");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [draft, setDraft] = useState(url);
   const [inputFocused, setInputFocused] = useState(false);
@@ -246,7 +247,7 @@ export function PreviewChromeRow({
                   size="icon-xs"
                   onClick={onPickElement}
                   disabled={pickDisabled}
-                  aria-label={pickActive ? "Cancel annotation" : "Annotate preview"}
+                  aria-label={pickActive ? "Exit design mode" : "Design mode"}
                   aria-pressed={pickActive ? "true" : "false"}
                   type="button"
                 />
@@ -257,8 +258,10 @@ export function PreviewChromeRow({
             {pickDisabled && pickDisabledReason ? (
               <TooltipPopup>{pickDisabledReason}</TooltipPopup>
             ) : (
-              <TooltipPopup shortcut={pickActive ? "Esc" : null}>
-                {pickActive ? "Cancel annotation" : "Annotate elements, regions, and drawings"}
+              <TooltipPopup shortcut={pickActive ? "Esc" : designModeShortcutLabel}>
+                {pickActive
+                  ? "Exit design mode"
+                  : "Design mode: box, circle, point at, or draw on the page and comment"}
               </TooltipPopup>
             )}
           </Tooltip>

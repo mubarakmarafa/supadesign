@@ -140,6 +140,7 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+d", command: "diff.toggle", when: "!terminalFocus" },
   { key: "mod+shift+j", command: "preview.toggle" },
   { key: "mod+r", command: "preview.refresh", when: "previewFocus" },
+  { key: "mod+shift+d", command: "preview.designMode", when: "!terminalFocus" },
   { key: "mod+l", command: "preview.focusUrl", when: "previewFocus" },
   { key: "mod+=", command: "preview.zoomIn", when: "previewFocus" },
   { key: "mod++", command: "preview.zoomIn", when: "previewFocus" },

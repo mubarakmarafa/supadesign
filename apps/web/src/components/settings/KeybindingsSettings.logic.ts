@@ -367,6 +367,7 @@ export function commandLabel(command: KeybindingCommand): string {
   if (command === "composer.sendBackground") return "Composer: Start in Background";
   if (command === "composer.sendAndNewThread") return "Composer: Send and Start New Thread";
   if (command === "composer.bank") return "Composer: Bank Message for Later";
+  if (command === "preview.designMode") return "Preview: Design Mode";
   if (command === "thread.steerQueuedMessage") return "Queue: Send First Queued Message as Steer";
   if (command === "thread.editQueuedMessage") return "Queue: Edit Last Queued Message";
   if (command === "thread.copyReference") return "Pull Request: Copy Link or Thread ID";

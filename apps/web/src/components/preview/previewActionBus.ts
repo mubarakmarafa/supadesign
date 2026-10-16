@@ -8,6 +8,7 @@
 export type PreviewAction =
   | "toggle-panel"
   | "refresh"
+  | "design-mode"
   | "focus-url"
   | "zoom-in"
   | "zoom-out"

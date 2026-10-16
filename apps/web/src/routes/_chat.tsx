@@ -156,6 +156,14 @@ function ChatRouteGlobalShortcuts() {
         return;
       }
 
+      if (command === "preview.designMode") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!canOperatePreview) return;
+        dispatchPreviewAction("design-mode");
+        return;
+      }
+
       // The remaining preview commands only fire when the panel is the
       // currently-focused tenant. The `when: previewFocus` rule already
       // gates this, but defend against the keybinding being misconfigured.

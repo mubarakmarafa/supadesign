@@ -24,7 +24,7 @@ const BANK_DRAG_TYPE = "application/x-supadesign-bank-entry";
 
 /** Where an entry dropped at `insertIndex` lands: the id it moves in front of, or null for the end. */
 export function bankDropTarget(
-  entries: ReadonlyArray<Pick<ThreadBankEntry, "id">>,
+  entries: ReadonlyArray<{ readonly id: string }>,
   draggedId: string,
   insertIndex: number,
 ): { readonly beforeEntryId: string | null } | null {

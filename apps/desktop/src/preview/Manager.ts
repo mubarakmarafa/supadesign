@@ -70,6 +70,7 @@ import {
   ANNOTATION_THEME_CHANNEL,
   CANCEL_PICK_CHANNEL,
   ELEMENT_PICKED_CHANNEL,
+  FREEZE_FRAME_CHANNEL,
   HUMAN_INPUT_CHANNEL,
   MOUSE_NAVIGATE_CHANNEL,
   RECORDING_CURSOR_CHANNEL,
@@ -2135,6 +2136,10 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
             wc.off("destroyed", onDestroyed);
             wc.off("did-start-navigation", onNavigated);
           }).pipe(Effect.ignore);
+          yield* attempt(
+            { operation: "pickElement.cleanupFreezeFrame", tabId, webContentsId: wc.id },
+            () => wc.ipc.removeHandler(FREEZE_FRAME_CHANNEL),
+          ).pipe(Effect.ignore);
           // Only drop the slot while it is still ours. A newer session may
           // already have swapped itself in before cancelling this one.
           yield* Ref.update(pickSessionsRef, (sessions) =>
@@ -2264,6 +2269,17 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
           // one was torn down. Cleanup already ran, so attaching listeners now
           // would leak them and start an overlay nobody is waiting on.
           if (settled) return;
+          // The overlay's Freeze holds this frame behind its marks. Without it the
+          // marks follow the live page, so a failure here does not stop the pick.
+          yield* attempt(
+            { operation: "pickElement.freezeFrame", tabId, webContentsId: wc.id },
+            () => {
+              wc.ipc.removeHandler(FREEZE_FRAME_CHANNEL);
+              wc.ipc.handle(FREEZE_FRAME_CHANNEL, () =>
+                wc.capturePage().then((image) => (image.isEmpty() ? null : image.toDataURL())),
+              );
+            },
+          ).pipe(Effect.ignore);
           yield* attempt({ operation: "pickElement.register", tabId, webContentsId: wc.id }, () => {
             wc.ipc.on(ELEMENT_PICKED_CHANNEL, onMessage);
             wc.once("destroyed", onDestroyed);
