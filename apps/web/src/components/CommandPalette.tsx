@@ -64,6 +64,7 @@ import {
   ArrowLeftIcon,
   CalendarClockIcon,
   KanbanIcon,
+  LayoutGridIcon,
   ChartNoAxesColumnIcon,
   CheckIcon,
   ChevronRightIcon,
@@ -2373,6 +2374,16 @@ function OpenCommandPaletteDialog(props: {
       (environment) => environment.serverConfig?.environment.capabilities.projectBoard === true,
     )
   ) {
+    actionItems.push({
+      kind: "action",
+      value: "action:projects",
+      searchTerms: ["projects", "repos", "repositories", "grid", "boards", "overview"],
+      title: "Open projects",
+      icon: <LayoutGridIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/projects" });
+      },
+    });
     actionItems.push({
       kind: "action",
       value: "action:board",

@@ -291,6 +291,10 @@
       "types": "./src/state/liveEnvironment.ts",
       "default": "./src/state/liveEnvironment.ts"
     },
+    "./state/project-summary": {
+      "types": "./src/state/projectSummary.ts",
+      "default": "./src/state/projectSummary.ts"
+    },
     "./state/project-board": {
       "types": "./src/state/projectBoardMove.ts",
       "default": "./src/state/projectBoardMove.ts"

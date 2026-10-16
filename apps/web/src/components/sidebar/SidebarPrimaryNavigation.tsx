@@ -1,35 +1,27 @@
 /**
  * The sidebar's top rows: start a thread, search through the command palette,
- * open the project board, and open Automations.
+ * open the projects grid, and open Automations.
  */
-import type { ScopedProjectRef } from "@supaterm/contracts";
 import { Link, useLocation, useParams } from "@tanstack/react-router";
-import { CalendarClockIcon, KanbanIcon, SearchIcon, SquarePenIcon } from "lucide-react";
+import { CalendarClockIcon, LayoutGridIcon, SearchIcon, SquarePenIcon } from "lucide-react";
 
 import { openCommandPalette } from "../../commandPaletteBus";
 import { useStartNewThreadInCurrentProject } from "../../hooks/useHandleNewThread";
 import { useShortcutLabel } from "../../hooks/useShortcutLabel";
-import { useAnyProjectBoardSupported, useOpenProjectBoard } from "../board/boardNavigation";
+import { useAnyProjectBoardSupported } from "../board/boardNavigation";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "../ui/sidebar";
 
-export function SidebarPrimaryNavigation({
-  projectGroupCount,
-  boardProjectRef = null,
-}: {
-  projectGroupCount: number;
-  /** The project the sidebar is scoped to; the board opens it before the one in view. */
-  boardProjectRef?: ScopedProjectRef | null;
-}) {
+export function SidebarPrimaryNavigation({ projectGroupCount }: { projectGroupCount: number }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const size = isMobile ? "default" : "compact";
   const newThreadShortcut = useShortcutLabel("chat.newLocal");
   const searchShortcut = useShortcutLabel("commandPalette.toggle");
   const automationsShortcut = useShortcutLabel("automations.open");
-  const boardShortcut = useShortcutLabel("board.open");
   const boardSupported = useAnyProjectBoardSupported();
-  const openProjectBoard = useOpenProjectBoard();
-  const boardActive = useLocation({
-    select: (location) => location.pathname.startsWith("/board/"),
+  // A board sits under Projects, so the item stays selected inside one.
+  const projectsActive = useLocation({
+    select: (location) =>
+      location.pathname === "/projects" || location.pathname.startsWith("/board/"),
   });
   const startNewThreadInCurrentProject = useStartNewThreadInCurrentProject();
   const newThreadActive = useParams({
@@ -80,16 +72,11 @@ export function SidebarPrimaryNavigation({
         <SidebarMenuItem>
           <SidebarMenuButton
             size={size}
-            isActive={boardActive}
-            disabled={projectGroupCount === 0}
-            onClick={() => {
-              closeMobileSidebar();
-              openProjectBoard(boardProjectRef);
-            }}
-            shortcut={boardShortcut}
+            isActive={projectsActive}
+            render={<Link to="/projects" onClick={closeMobileSidebar} />}
           >
-            <KanbanIcon />
-            <span>Board</span>
+            <LayoutGridIcon />
+            <span>Projects</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       ) : null}

@@ -4734,14 +4734,7 @@ export default function Sidebar() {
           // header and would otherwise paint across its rows.
           <SidebarGroup className="z-[1]">
             <div className="flex flex-col gap-2">
-              <SidebarPrimaryNavigation
-                projectGroupCount={projectGroups.length}
-                boardProjectRef={
-                  scopedProjectGroup
-                    ? scopeProjectRef(scopedProjectGroup.environmentId, scopedProjectGroup.id)
-                    : null
-                }
-              />
+              <SidebarPrimaryNavigation projectGroupCount={projectGroups.length} />
               {projectGroups.length > 0 ? (
                 <SidebarThreadHeader
                   rowRef={threadHeaderRef}

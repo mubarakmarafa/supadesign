@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-import { TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { ProjectId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 
 /** Stable id of one board column; titles can change, ids never do. */
 export const BoardColumnId = TrimmedNonEmptyString.pipe(Schema.brand("BoardColumnId"));
@@ -146,3 +146,15 @@ export function validateProjectBoard(board: ProjectBoard): ReadonlyArray<Project
   }
   return issues;
 }
+
+export const PROJECT_SUMMARY_DESCRIPTION_MAX_LENGTH = 240;
+
+export const ProjectSummaryInput = Schema.Struct({ projectId: ProjectId });
+export type ProjectSummaryInput = typeof ProjectSummaryInput.Type;
+
+/** What the projects grid shows about a repo besides its title and threads. */
+export const ProjectSummary = Schema.Struct({
+  /** From package.json's description, else the README's first paragraph. */
+  description: Schema.NullOr(Schema.String),
+});
+export type ProjectSummary = typeof ProjectSummary.Type;

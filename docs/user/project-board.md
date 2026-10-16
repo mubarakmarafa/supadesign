@@ -5,11 +5,19 @@ each piece of work is doing and where it stands. Each card is one thread.
 
 ## Open a board
 
-On web and desktop, select **Board** at the top of the sidebar, choose **Open
-board** in the command palette, or press `Cmd+Alt+K` (`Ctrl+Alt+K` on Windows
-and Linux). The board opens for the project the sidebar is filtered to, otherwise
-the project of the thread you are viewing. In the sidebar's project filter, the
-board button on a project row opens that project's board.
+On web and desktop, select **Projects** at the top of the sidebar, or choose
+**Open projects** in the command palette. Projects shows each repo as a card
+with its description, the thread you last worked in, and when. Select a card
+to open that project's board, and select **Projects** at the top of a board to
+go back.
+
+To skip the grid, choose **Open board** in the command palette or press
+`Cmd+Alt+K` (`Ctrl+Alt+K` on Windows and Linux). The board opens for the project
+of the thread you are viewing. In the sidebar's project filter, the board button
+on a project row opens that project's board.
+
+The description comes from the repo's `package.json`, or the first paragraph of
+its README.
 
 Boards need an environment running a Supadesign server that supports them. The
 board entries are hidden when no connected environment does.
