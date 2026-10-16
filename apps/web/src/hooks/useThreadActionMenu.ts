@@ -214,7 +214,7 @@ export function useThreadActionMenu(input: {
             return;
           }
           case "mark-done":
-            await reportFailure("Failed to mark thread as done", () => markThreadDone(threadRef));
+            await reportFailure("Failed to mark thread as Done", () => markThreadDone(threadRef));
             return;
           case "reopen":
             await reportFailure("Failed to reopen thread", () => reopenThread(threadRef));
@@ -231,7 +231,7 @@ export function useThreadActionMenu(input: {
           }
           case "auto-mark-done:enabled":
           case "auto-mark-done:disabled":
-            await reportFailure("Failed to update auto-mark-done", () =>
+            await reportFailure("Failed to update automatic completion", () =>
               setThreadAutoMarkDone(threadRef, action === "auto-mark-done:enabled"),
             );
             return;

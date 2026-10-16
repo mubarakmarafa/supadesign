@@ -3460,7 +3460,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       assert.equal(error._tag, "OrchestratorDispatchError");
       assert.equal(
         error.cause,
-        `Thread ${threadId} is still running. Stop it before marking it as done.`,
+        `Thread ${threadId} is still running. Stop it before marking it as Done.`,
       );
       const projection = yield* orchestrator.getThreadProjection(threadId);
       assert.equal(projection.runs[0]?.status, "starting");
@@ -3662,7 +3662,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
       assert.equal(error._tag, "OrchestratorDispatchError");
       assert.equal(
         error.cause,
-        `Thread ${threadId} has a queued message. Send it or remove it from the queue before marking it as done.`,
+        `Thread ${threadId} has a queued message. Send it or remove it from the queue before marking it as Done.`,
       );
     }),
   );

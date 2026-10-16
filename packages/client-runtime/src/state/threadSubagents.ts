@@ -84,7 +84,7 @@ export function resolveSubagentPillSegment(
     };
   }
   return {
-    label: `${total} done`,
-    accessibilityLabel: `${total} ${total === 1 ? "agent" : "agents"} done`,
+    label: `${total} Done`,
+    accessibilityLabel: `${total} ${total === 1 ? "agent" : "agents"} Done`,
   };
 }

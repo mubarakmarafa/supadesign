@@ -685,7 +685,7 @@ export function useThreadActions() {
           }
           return reopened;
         },
-        failureTitle: "Failed to undo marking as done",
+        failureTitle: "Failed to undo marking as Done",
       });
       return result;
     },

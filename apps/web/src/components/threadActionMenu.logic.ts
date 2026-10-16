@@ -132,7 +132,7 @@ export function buildThreadActionMenuItems(
     // card until wake with the pin intact.
     state.isDone
       ? { id: "reopen" as const, label: "Reopen thread", icon: "circle-check" }
-      : { id: "mark-done" as const, label: "Mark thread as done", icon: "circle-check" },
+      : { id: "mark-done" as const, label: "Mark thread as Done", icon: "circle-check" },
     state.isSnoozed
       ? { id: "unsnooze" as const, label: "Wake thread", icon: "clock" }
       : {

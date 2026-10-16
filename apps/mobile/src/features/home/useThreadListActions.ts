@@ -66,7 +66,7 @@ const ACTION_VERBS: Record<ThreadListAction, string> = {
   archive: "archived",
   unarchive: "unarchived",
   delete: "deleted",
-  "mark-done": "marked as done",
+  "mark-done": "marked as Done",
   reopen: "reopened",
 };
 
@@ -85,7 +85,7 @@ function selectionHaptic(): void {
 function actionFailureTitle(action: ThreadListAction): string {
   if (action === "archive") return "Could not archive thread";
   if (action === "unarchive") return "Could not unarchive thread";
-  if (action === "mark-done") return "Could not mark thread as done";
+  if (action === "mark-done") return "Could not mark thread as Done";
   if (action === "reopen") return "Could not reopen thread";
   return "Could not delete thread";
 }
@@ -450,8 +450,8 @@ export function useThreadListActions(): {
     async (thread: EnvironmentThreadShell, enabled: boolean) => {
       if (!environmentSupportsAutoMarkDoneOptOut(thread.environmentId)) {
         Alert.alert(
-          "Could not update auto-mark-done",
-          "This environment's server does not support turning auto-mark-done off per thread yet. Update the server to use it.",
+          "Could not update automatic completion",
+          "This environment's server does not support turning automatic completion off per thread yet. Update the server to use it.",
         );
         return false;
       }
@@ -463,10 +463,10 @@ export function useThreadListActions(): {
       if (result._tag === "Failure") {
         const error = Cause.squash(result.cause);
         Alert.alert(
-          "Could not update auto-mark-done",
+          "Could not update automatic completion",
           error instanceof Error && error.message.trim().length > 0
             ? error.message
-            : "The auto-mark-done setting could not be changed.",
+            : "The automatic completion setting could not be changed.",
         );
         return false;
       }

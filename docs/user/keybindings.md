@@ -150,7 +150,7 @@ including on macOS. The default shortcut skips terminals, previews, and selected
 text so copying keeps working. Change it in **Settings → Keybindings**.
 
 `thread.undo` (`mod+z` by default) reverses the actions shown in the notice at the
-bottom of the sidebar, such as unpin, mark as done, snooze, archive, or discarding a
+bottom of the sidebar, such as unpin, mark as Done, snooze, archive, or discarding a
 draft. Consecutive
 actions of the same kind undo together. The notice remains available for five
 seconds after the latest action. The default shortcut skips text fields and

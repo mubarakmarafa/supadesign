@@ -42,7 +42,7 @@ export function AutoMarkDoneDaysField(props: AutoMarkDoneDaysFieldProps) {
             modifiers={[
               buttonStyle("bordered"),
               disabled(props.disabled),
-              accessibilityLabel(`Days before auto-mark-done: ${props.value}`),
+              accessibilityLabel(`Days before automatically marking as Done: ${props.value}`),
               frame({ minWidth: 64, minHeight: 44 }),
               foregroundStyle(colors["--color-primary-text"]),
               font({ size: appearance.baseFontSize }),
@@ -60,7 +60,7 @@ export function AutoMarkDoneDaysField(props: AutoMarkDoneDaysFieldProps) {
             ]}
           >
             <Picker
-              label="Days before auto-mark-done"
+              label="Days before automatically marking as Done"
               selection={draft}
               onSelectionChange={setDraft}
               modifiers={[pickerStyle("wheel"), frame({ height: 180 })]}

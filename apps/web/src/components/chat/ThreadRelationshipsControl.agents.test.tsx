@@ -461,7 +461,7 @@ it("opens the correct chat for every workflow phase and unphased member", async 
   // Only the running phase starts open, beside the unphased member.
   expect(memberButtons()).toHaveLength(3);
   expect(phaseButtons()).toHaveLength(3);
-  expect(renderer.root.findByProps({ "aria-label": "Expand Inspect phase, done" })).toBeDefined();
+  expect(renderer.root.findByProps({ "aria-label": "Expand Inspect phase, Done" })).toBeDefined();
   expect(
     renderer.root.findByProps({ "aria-label": "Expand Improve phase, stopped" }),
   ).toBeDefined();
@@ -498,7 +498,7 @@ it("opens the correct chat for every workflow phase and unphased member", async 
   expect(rendered).toContain("Running");
   // The phase holding the running member reports itself as the active one.
   expect(rendered).toContain("running");
-  expect(rendered).toContain("done");
+  expect(rendered).toContain("Done");
   expect(rendered).toContain("stopped");
   // Members 0 and 1 start a second apart and run 5s each, so Inspect took 6s.
   expect(rendered).toContain('"6s"');

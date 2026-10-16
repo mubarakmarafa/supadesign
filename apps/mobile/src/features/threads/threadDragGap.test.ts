@@ -39,8 +39,8 @@ describe("drag action labels", () => {
     expect(threadDragAction("pinned", "active")).toBe("Unpin");
     expect(threadDragAction("done", "active")).toBe("Reopen");
     expect(threadDragAction("snoozed", "active")).toBe("Unsnooze");
-    expect(threadDragAction("active", "done")).toBe("Mark as done");
-    expect(threadDragAction("pinned", "done")).toBe("Mark as done");
+    expect(threadDragAction("active", "done")).toBe("Mark as Done");
+    expect(threadDragAction("pinned", "done")).toBe("Mark as Done");
     expect(threadDragAction("active", "active")).toBe("Reorder");
   });
   it("does not offer a parked-section reorder or snooze without a wake time", () => {

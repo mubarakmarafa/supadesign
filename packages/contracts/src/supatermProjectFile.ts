@@ -46,7 +46,7 @@ export const SupatermProjectFileScript = Schema.Struct({
   runOnDone: Schema.optionalKey(
     Schema.Boolean.annotate({
       description:
-        "When true, the script runs in the thread's worktree each time the thread is marked done, for example to delete build output. Threads without their own worktree skip it.",
+        "When true, the script runs in the thread's worktree each time the thread is marked Done, for example to delete build output. Threads without their own worktree skip it.",
     }),
   ),
   async: Schema.optionalKey(

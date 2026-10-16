@@ -2389,7 +2389,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       return yield* new OrchestratorDispatchError({
         commandId: command.commandId,
         commandType: command.type,
-        cause: "The watch ended or its thread was marked done while it was read.",
+        cause: "The watch ended or its thread was marked Done while it was read.",
       });
     }
     yield* dispatchThreadMutation(command, events, effects);
@@ -2481,7 +2481,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       return yield* new OrchestratorDispatchError({
         commandId: command.commandId,
         commandType: command.type,
-        cause: `Thread ${command.threadId} is done or archived and cannot start a watch.`,
+        cause: `Thread ${command.threadId} is Done or archived and cannot start a watch.`,
       });
     }
     // A subagent or delegated task reports to its parent thread, which owns the pull request
@@ -2662,11 +2662,11 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       );
       // The reason is shown to the user, so it names what to clear first.
       const blocker = blockingRequestExists
-        ? "is waiting on an approval or question. Answer it before marking it as done."
+        ? "is waiting on an approval or question. Answer it before marking it as Done."
         : runningRunExists
-          ? "is still running. Stop it before marking it as done."
+          ? "is still running. Stop it before marking it as Done."
           : queuedMessageExists
-            ? "has a queued message. Send it or remove it from the queue before marking it as done."
+            ? "has a queued message. Send it or remove it from the queue before marking it as Done."
             : null;
       if (blocker !== null) {
         return yield* new OrchestratorDispatchError({
@@ -3448,7 +3448,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                   command.type === "thread.archive"
                     ? "Thread archived."
                     : command.type === "thread.mark-done"
-                      ? "Thread marked done."
+                      ? "Thread marked Done."
                       : command.type === "thread.metadata.update"
                         ? "Workspace changed."
                         : command.type === "thread.runtime-mode.set"
@@ -3467,7 +3467,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                   command.type === "thread.archive"
                     ? "Thread archived."
                     : command.type === "thread.mark-done"
-                      ? "Thread marked done."
+                      ? "Thread marked Done."
                       : command.type === "thread.metadata.update"
                         ? "Workspace changed."
                         : command.type === "thread.runtime-mode.set"

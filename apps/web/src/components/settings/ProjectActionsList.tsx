@@ -41,7 +41,7 @@ export function ProjectActionsList({
             ) : null}
             {script.runOnDone ? (
               <span className="shrink-0 rounded-sm border border-border/60 px-1.5 py-px text-2xs font-normal text-muted-foreground">
-                on done
+                on Done
               </span>
             ) : null}
             {script.previewUrl ? (

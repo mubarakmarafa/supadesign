@@ -1128,7 +1128,7 @@ const dropVerbBadge: Record<SidebarDropVerb, ReactNode> = {
   "mark-done": (
     <>
       <CircleCheckIcon aria-hidden className="size-3" />
-      Mark as done
+      Mark as Done
     </>
   ),
   reopen: (
@@ -1952,7 +1952,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                         {snoozedMarkDoneSupported ? (
                           <SidebarParkedActionButton
                             action="mark-done"
-                            label="Mark thread as done"
+                            label="Mark thread as Done"
                             shortcut={props.doneShortcut}
                             onClick={handleMarkDoneClick}
                             onSweepStart={handleSweepPointerDown}
@@ -2136,7 +2136,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                         render={
                           <button
                             type="button"
-                            aria-label="Mark thread as done"
+                            aria-label="Mark thread as Done"
                             onClick={handleMarkDoneClick}
                             onPointerDown={handleMarkDonePointerDown}
                             className="inline-flex h-5 shrink-0 cursor-pointer items-center gap-1 rounded-sm text-muted-foreground/65 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
@@ -2146,7 +2146,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                         <CheckIcon aria-hidden className="size-3.5" />
                         Done
                       </TooltipTrigger>
-                      <TooltipPopup shortcut={props.doneShortcut}>Mark thread as done</TooltipPopup>
+                      <TooltipPopup shortcut={props.doneShortcut}>Mark thread as Done</TooltipPopup>
                     </Tooltip>
                   ) : null}
                 </span>
@@ -3143,7 +3143,7 @@ export default function Sidebar() {
             toastManager.add(
               stackedThreadToast({
                 type: "error",
-                title: "Failed to mark thread as done",
+                title: "Failed to mark thread as Done",
                 description: error instanceof Error ? error.message : "An error occurred.",
               }),
             );
@@ -3846,7 +3846,7 @@ export default function Sidebar() {
             const navigateAfterMarkDone = planForwardNavigation(activeKey);
             const done = await run(
               markThreadDone(threadRef),
-              "Failed to mark thread as done",
+              "Failed to mark thread as Done",
             ).finally(() => markingDoneThreadKeysRef.current.delete(activeKey));
             if (
               done &&
@@ -4050,7 +4050,7 @@ export default function Sidebar() {
               : []),
             {
               id: "mark-done",
-              label: `Mark as done (${count})`,
+              label: `Mark as Done (${count})`,
               disabled: markingDoneThreads.length === 0 || !canOperateThreads(markingDoneThreads),
             },
             ...(canSnoozeSelection
@@ -4452,7 +4452,7 @@ export default function Sidebar() {
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: "Failed to update auto-mark-done",
+                  title: "Failed to update automatic completion",
                   description: error instanceof Error ? error.message : "An error occurred.",
                 }),
               );

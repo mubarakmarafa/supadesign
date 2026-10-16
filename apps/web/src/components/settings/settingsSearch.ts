@@ -294,7 +294,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "auto-mark-done-merged-threads",
-    title: "Automatically mark merged threads as done",
+    title: "Automatically mark merged threads as Done",
     to: "/settings/general",
     searchTerms: ["auto-mark-done", "pull request merge closed automatically sidebar"],
     requiresThreadAutoMarkDone: true,
@@ -302,7 +302,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "auto-mark-done-inactive-threads",
-    title: "Automatically mark inactive threads as done",
+    title: "Automatically mark inactive threads as Done",
     to: "/settings/general",
     searchTerms: ["auto-mark-done", "sidebar inactivity days no activity automatically"],
     requiresThreadAutoMarkDone: true,
@@ -310,7 +310,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "days-before-auto-mark-done",
-    title: "Days of inactivity before marking done",
+    title: "Days of inactivity before marking Done",
     to: "/settings/general",
     targetId: "auto-mark-done-inactive-threads",
     searchTerms: ["auto-mark-done", "thread timeout activity sidebar"],

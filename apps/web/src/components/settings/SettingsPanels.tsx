@@ -531,11 +531,11 @@ export function useSettingsRestore(onRestored?: () => void) {
         : []),
       ...(settings.sidebarAutoMarkDoneAfterDays !==
       DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneAfterDays
-        ? ["Automatically mark inactive threads as done"]
+        ? ["Automatically mark inactive threads as Done"]
         : []),
       ...(settings.sidebarAutoMarkDoneOnMerge !==
       DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneOnMerge
-        ? ["Automatically mark merged threads as done"]
+        ? ["Automatically mark merged threads as Done"]
         : []),
       ...(settings.autoResumeLimitedThreads !== DEFAULT_UNIFIED_SETTINGS.autoResumeLimitedThreads
         ? ["Auto-resume limited threads"]
@@ -2007,7 +2007,7 @@ export function GeneralSettingsPanel() {
                 settings.sidebarAutoMarkDoneOnMerge !==
                 DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneOnMerge ? (
                   <SettingResetButton
-                    label="auto-mark-done on merge"
+                    label="automatically mark as Done on merge"
                     onClick={() =>
                       updateSettings({
                         sidebarAutoMarkDoneOnMerge:
@@ -2024,7 +2024,7 @@ export function GeneralSettingsPanel() {
                   onCheckedChange={(checked) =>
                     updateSettings({ sidebarAutoMarkDoneOnMerge: Boolean(checked) })
                   }
-                  aria-label="Automatically mark merged threads as done"
+                  aria-label="Automatically mark merged threads as Done"
                 />
               }
             />
@@ -2033,12 +2033,12 @@ export function GeneralSettingsPanel() {
               serverScoped
               settingKeys={["sidebarAutoMarkDoneAfterDays"]}
               {...searchableSetting("auto-mark-done-inactive-threads")}
-              description="Mark threads with no recent activity as done."
+              description="Mark threads with no recent activity as Done."
               resetAction={
                 settings.sidebarAutoMarkDoneAfterDays !==
                 DEFAULT_UNIFIED_SETTINGS.sidebarAutoMarkDoneAfterDays ? (
                   <SettingResetButton
-                    label="auto-mark-done"
+                    label="automatically mark as Done"
                     onClick={() =>
                       updateSettings({
                         sidebarAutoMarkDoneAfterDays:
@@ -2052,7 +2052,7 @@ export function GeneralSettingsPanel() {
                 <>
                   {settings.sidebarAutoMarkDoneAfterDays !== null ? (
                     <DaysField
-                      label="Automatically mark inactive threads as done"
+                      label="Automatically mark inactive threads as Done"
                       min={MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS}
                       max={MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS}
                       value={settings.sidebarAutoMarkDoneAfterDays}
@@ -2067,7 +2067,7 @@ export function GeneralSettingsPanel() {
                         sidebarAutoMarkDoneAfterDays: checked ? AUTO_MARK_DONE_DEFAULT_DAYS : null,
                       })
                     }
-                    aria-label="Automatically mark inactive threads as done"
+                    aria-label="Automatically mark inactive threads as Done"
                   />
                 </>
               }

@@ -15,7 +15,7 @@ export function SidebarThreadUndoNotice() {
   const noun = `${notice.action === "Discarded" ? "draft" : "thread"}${notice.count === 1 ? "" : "s"}`;
   const label =
     notice.action === "Done"
-      ? `Marked ${notice.count} ${noun} as done`
+      ? `Marked ${notice.count} ${noun} as Done`
       : `${notice.action} ${notice.count} ${noun}`;
 
   return (

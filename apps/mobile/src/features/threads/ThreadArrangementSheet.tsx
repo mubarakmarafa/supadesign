@@ -396,7 +396,7 @@ export function ThreadArrangementSheet(props: { onClose: () => void }) {
             </Pressable>
           </View>
           <Text className="px-5 pb-3 text-sm text-foreground-muted">
-            Drag to reorder, pin, or mark as done. Changes save when you drop.
+            Drag to reorder, pin, or mark as Done. Changes save when you drop.
           </Text>
           <View
             onLayout={(event) => {

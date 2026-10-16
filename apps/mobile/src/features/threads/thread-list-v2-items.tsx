@@ -127,7 +127,7 @@ const READY_STATUS_LABEL: StatusLabel = {
 // own surface (thread screen / settings) rather than crowding v2 rows.
 const MARK_DONE_MENU_ACTION: MenuAction = {
   id: "mark-done",
-  title: "Mark as done",
+  title: "Mark as Done",
   image: "checkmark",
 };
 
@@ -299,7 +299,7 @@ export const ThreadListV2ShowMoreRow = memo(function ThreadListV2ShowMoreRow(pro
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Show ${Math.min(props.hiddenCount, THREAD_LIST_V2_DONE_PAGE_COUNT)} more done threads`}
+      accessibilityLabel={`Show ${Math.min(props.hiddenCount, THREAD_LIST_V2_DONE_PAGE_COUNT)} more Done threads`}
       onPress={props.onPress}
       className="mx-4 mt-2 items-center rounded-lg border border-dashed border-border py-2.5"
       style={({ pressed }) => ({ minHeight: 44, opacity: pressed ? 0.6 : 1 })}
@@ -311,7 +311,7 @@ export const ThreadListV2ShowMoreRow = memo(function ThreadListV2ShowMoreRow(pro
             : "text-xs font-supaterm-medium text-foreground-muted"
         }
       >
-        Show more ({props.hiddenCount} done hidden)
+        Show more ({props.hiddenCount} Done hidden)
       </Text>
     </Pressable>
   );
@@ -1002,7 +1002,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
           onPress: handleReopen,
         }
       : {
-          accessibilityLabel: `Mark as done ${thread.title}`,
+          accessibilityLabel: `Mark as Done ${thread.title}`,
           icon: "checkmark" as const,
           label: "Done",
           onPress: handleMarkDone,
@@ -1031,7 +1031,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
           }
         : swipeActions.secondary === "mark-done"
           ? {
-              accessibilityLabel: `Mark as done ${thread.title}`,
+              accessibilityLabel: `Mark as Done ${thread.title}`,
               icon: "checkmark" as const,
               label: "Done",
               onPress: handleMarkDone,

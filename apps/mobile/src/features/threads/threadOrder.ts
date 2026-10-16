@@ -186,7 +186,7 @@ export function canMoveThreadToActive(source: ThreadDragSection, loaded: boolean
 /** The action shown during hover describes the lifecycle change made on drop. */
 export function threadDragAction(source: ThreadDragSection, destination: ThreadDragSection) {
   if (destination === "snoozed") return null;
-  if (destination === "done") return source === "done" ? null : "Mark as done";
+  if (destination === "done") return source === "done" ? null : "Mark as Done";
   if (source === destination) return "Reorder";
   if (destination === "pinned") return "Pin";
   if (source === "pinned") return "Unpin";

@@ -204,17 +204,17 @@ function ThreadBehaviorSettingsRows() {
           />
         </SettingsSection>
       ) : null}
-      <SettingsSection title="Automatically mark as done">
+      <SettingsSection title="Automatically mark as Done">
         <SettingsSwitchRow
           icon="arrow.triangle.branch"
-          label="Automatically mark merged threads as done"
+          label="Automatically mark merged threads as Done"
           value={referenceSettings.sidebarAutoMarkDoneOnMerge}
           disabled={disabled}
           onValueChange={(value) => writeToAll({ sidebarAutoMarkDoneOnMerge: value })}
         />
         <SettingsSwitchRow
           icon="clock"
-          label="Automatically mark inactive threads as done"
+          label="Automatically mark inactive threads as Done"
           value={afterDays !== null}
           disabled={disabled}
           onValueChange={(value) =>
@@ -237,7 +237,7 @@ function ThreadBehaviorSettingsRows() {
         <SettingsSection title="Across environments">
           <View className="gap-3 p-4">
             <Text className="text-base text-foreground">
-              Automatically mark as done defaults differ
+              Automatically mark as Done defaults differ
             </Text>
             <Text className="text-sm text-foreground-muted">
               {mismatches.map((mismatch) => mismatch.label).join(", ")}
@@ -249,7 +249,7 @@ function ThreadBehaviorSettingsRows() {
               className="self-start rounded-full bg-subtle px-4 py-2 active:opacity-70"
             >
               <Text className="text-sm font-supaterm-medium text-foreground">
-                Apply auto-mark-done defaults
+                Apply automatic completion defaults
               </Text>
             </Pressable>
           </View>

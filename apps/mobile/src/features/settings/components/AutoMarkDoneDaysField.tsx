@@ -41,7 +41,7 @@ export function AutoMarkDoneDaysField(props: AutoMarkDoneDaysFieldProps) {
       onChangeText={setDraft}
       onBlur={commit}
       onSubmitEditing={commit}
-      accessibilityLabel="Days before auto-mark-done"
+      accessibilityLabel="Days before automatically marking as Done"
       editable={!props.disabled}
     />
   );

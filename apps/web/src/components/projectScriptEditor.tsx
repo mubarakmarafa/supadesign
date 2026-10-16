@@ -444,7 +444,7 @@ export function ProjectScriptEditorDialog({
                 />
               </label>
               <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-                <span>Run in the thread's worktree when the thread is marked done</span>
+                <span>Run in the thread's worktree when the thread is marked Done</span>
                 <Switch
                   checked={runOnDone}
                   onCheckedChange={(checked) => setRunOnDone(Boolean(checked))}

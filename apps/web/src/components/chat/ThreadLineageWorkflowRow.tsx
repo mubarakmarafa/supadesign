@@ -53,7 +53,7 @@ function phaseStatusLabel(phase: SubagentWorkflowGroup["phases"][number]) {
   ) {
     return "stopped";
   }
-  return phase.state === "done" ? "done" : "not started";
+  return phase.state === "done" ? "Done" : "not started";
 }
 
 /** Members run under the coordinator's provider, so they share its glyph. */

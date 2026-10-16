@@ -28,21 +28,21 @@ export function AutoMarkDoneDaysField(props: AutoMarkDoneDaysFieldProps) {
       />
       <MaterialIconButton
         icon="minus"
-        accessibilityLabel="Decrease days before auto-mark-done"
+        accessibilityLabel="Decrease days before automatically marking as Done"
         disabled={props.disabled || props.value <= MIN_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS}
         onPress={() => adjust(-1)}
       />
       <AppText
         className="min-w-8 text-center text-base"
         style={{ fontVariant: ["tabular-nums"] }}
-        accessibilityLabel={`${props.value} ${props.value === 1 ? "day" : "days"} before auto-mark-done`}
+        accessibilityLabel={`${props.value} ${props.value === 1 ? "day" : "days"} before automatically marking as Done`}
         accessibilityLiveRegion="polite"
       >
         {props.value}
       </AppText>
       <MaterialIconButton
         icon="plus"
-        accessibilityLabel="Increase days before auto-mark-done"
+        accessibilityLabel="Increase days before automatically marking as Done"
         disabled={props.disabled || props.value >= MAX_SIDEBAR_AUTO_MARK_DONE_AFTER_DAYS}
         onPress={() => adjust(1)}
       />
