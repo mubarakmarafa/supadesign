@@ -42,7 +42,6 @@ const DEVELOPMENT_ASSETS = {
   androidAdaptiveBackgroundColor: "#E7E1D3",
   androidAdaptiveBackgroundImage: "./assets/android-icon-background-dev.png",
   androidSplashIcon: "./assets/android-splash-icon-dev.png",
-  androidMonochromeIcon: "./assets/android-icon-mark.png",
 } as const;
 
 const PREVIEW_ASSETS = {
@@ -53,7 +52,6 @@ const PREVIEW_ASSETS = {
   androidAdaptiveBackgroundColor: "#E7E1D3",
   androidAdaptiveBackgroundImage: "./assets/android-icon-background-nightly.png",
   androidSplashIcon: "./assets/android-splash-icon-nightly.png",
-  androidMonochromeIcon: "./assets/android-icon-mark.png",
 } as const;
 
 const RELEASE_ASSETS = {
@@ -64,7 +62,6 @@ const RELEASE_ASSETS = {
   androidAdaptiveBackgroundColor: "#E7E1D3",
   androidAdaptiveBackgroundImage: "./assets/android-icon-background-prod.png",
   androidSplashIcon: "./assets/android-splash-icon-prod.png",
-  androidMonochromeIcon: "./assets/android-icon-mark.png",
 } as const;
 
 const VARIANT_CONFIG = {
@@ -289,7 +286,6 @@ const config: ExpoConfig = {
       backgroundColor: variant.assets.androidAdaptiveBackgroundColor,
       backgroundImage: variant.assets.androidAdaptiveBackgroundImage,
       foregroundImage: variant.assets.androidAdaptiveForeground,
-      monochromeImage: variant.assets.androidMonochromeIcon,
     },
     // Opts into OnBackInvokedCallback-based back dispatch (Android 13+).
     // JS back handling survives it via react-native's Android 16 shim plus

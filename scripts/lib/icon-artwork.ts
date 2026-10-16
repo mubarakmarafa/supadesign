@@ -87,26 +87,3 @@ export const recolorBolt = (image: RgbImage, hue: number): Uint8Array => {
   });
   return output;
 };
-
-// A one-channel mask of the lit bolt cells, without the glow around them. Returns null when the
-// artwork has no yellow bolt, so callers can fail instead of rendering an empty icon.
-export const boltMask = (image: RgbImage): Uint8Array | null => {
-  const mask = new Uint8Array(image.width * image.height);
-  let lit = false;
-  forEachScreenPixel(image, (offset, index) => {
-    const red = image.data[offset]!;
-    const green = image.data[offset + 1]!;
-    const blue = image.data[offset + 2]!;
-    const max = Math.max(red, green, blue);
-    if (
-      max > 150 &&
-      (max - Math.min(red, green, blue)) / max > 0.55 &&
-      red > blue &&
-      green > blue
-    ) {
-      mask[index] = 255;
-      lit = true;
-    }
-  });
-  return lit ? mask : null;
-};

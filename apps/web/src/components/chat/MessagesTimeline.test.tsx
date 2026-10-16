@@ -2605,7 +2605,7 @@ describe("MessagesTimeline", () => {
     expect(markup).toContain("Received 1 update and ran 1 command");
   });
 
-  it("renders Supaterm MCP dynamic tools with the product logo and pretty name", async () => {
+  it("renders Supaterm MCP dynamic tools with their pretty name", async () => {
     activityTestState.expanded = true;
     const { MessagesTimeline } = await import("./MessagesTimeline");
     const item = {
@@ -2674,7 +2674,6 @@ describe("MessagesTimeline", () => {
       />,
     );
 
-    expect(markup).toContain('viewBox="0 0 12 19"');
     expect(markup).toContain("Read a Supaterm thread");
     expect(markup).not.toContain("mcp__supaterm__supaterm_thread_read");
   });

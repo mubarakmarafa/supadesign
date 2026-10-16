@@ -8,9 +8,9 @@ The three shared Icon Composer projects are the source of truth for exported app
 
 Each project has one raster layer, `Assets/artwork.png`: the retro computer face, rendered full bleed at 1024×1024 so the casing fills the system's rounded-square mask. The `fill` in `icon.json` matches the casing colour, so nothing else shows at the mask edge. Nightly and dev reuse the production artwork with only the screen's lightning bolt recoloured (magenta and cyan), so the builds stay distinguishable in the Dock. After changing the production artwork, run `vp run icons:variants` to regenerate them before exporting.
 
-The in-app mark is the bolt alone as a single-colour pixel silhouette, in `prod/logo.svg`, `SupatermMark.tsx` (web and mobile) and the DMG backgrounds.
+In-app branding uses the exported application icon.
 
-These copies are made by hand from the exports and are not covered by `icons:check`: the marketing site's favicons (16/32/48px ICO and a palette PNG touch icon, kept small) and `src/assets/icon*.webp` (from the macOS exports), and the icon embedded in `apps/mobile/fastlane/feature-graphic.svg`.
+These copies are made by hand from the exports and are not covered by `icons:check`: the marketing site's favicons (16/32/48px ICO and a palette PNG touch icon, kept small) and `src/assets/icon*.webp` (from the macOS exports), and the icons embedded in the DMG backgrounds and `apps/mobile/fastlane/feature-graphic.svg`.
 
 Run `vp run icons:export` from the repository root to regenerate the tracked iOS, Linux, Windows, and web assets. The development web exports are also copied to `apps/web/public` for the browser favicon and splash screen. Run `vp run icons:check` to verify that the generated assets and public copies match their sources without changing files.
 
@@ -53,7 +53,5 @@ renders the Android artwork from each variant's `artwork.png` instead:
   sits in the background
 - `apps/mobile/assets/android-splash-icon-*.png`: the same composition at 288dp, so the splash mask
   frames the artwork like the launcher icon does
-- `apps/mobile/assets/android-icon-mark.png`: the production bolt as a solid silhouette for
-  Android's monochrome themed icon
 
 Rerun the export after changing an `artwork.png`.

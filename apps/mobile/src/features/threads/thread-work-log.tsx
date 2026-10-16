@@ -54,7 +54,7 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { toolActivityFaviconUrl } from "@supaterm/shared/favicon";
 
 import { AppText as Text } from "../../components/AppText";
-import { SupatermMark } from "../../components/SupatermMark";
+import { SupatermIcon } from "../../components/SupatermIcon";
 import { BrowserAppIcon } from "../../components/BrowserAppIcon";
 import { cn } from "../../lib/cn";
 import { THREAD_WORK_ROW_MIN_HEIGHT, type deriveThreadWorkLogSizing } from "../../lib/layout";
@@ -109,12 +109,7 @@ function WorkLogIcon(props: {
 }) {
   const colorClassName = props.highlighted ? "accent-foreground" : props.colorClassName;
   if (props.icon === "supaterm") {
-    return (
-      <SupatermMark
-        height={10}
-        {...(colorClassName ? { colorClassName } : { color: props.color })}
-      />
-    );
+    return <SupatermIcon size={14} />;
   }
   if (props.icon === "computer") {
     return (
@@ -1007,7 +1002,7 @@ const ThreadWorkLogRow = memo(function ThreadWorkLogRow(
               Copied
             </Text>
           ) : null}
-          {failed && toolIcon !== undefined ? (
+          {failed && (toolIcon !== undefined || icon === "supaterm") ? (
             <View
               className="h-4 w-4 items-center justify-center"
               accessibilityElementsHidden

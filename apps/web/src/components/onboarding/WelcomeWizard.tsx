@@ -57,7 +57,7 @@ import { readProjects, useProjects } from "../../state/entities";
 import { useEnvironments, usePrimaryEnvironment } from "../../state/environments";
 import { resolveOnboardingSetup } from "../../onboarding/targetEnvironment.logic";
 import { useProjectScans } from "../../onboarding/useProjectScans";
-import { SupatermMark } from "../SupatermMark";
+import { SupatermIcon } from "../SupatermIcon";
 import { projectEnvironment } from "../../state/projects";
 import { serverEnvironment } from "../../state/server";
 import {
@@ -223,14 +223,7 @@ export function WelcomeWizard({
         showCloseButton={false}
         initialFocus={() => document.getElementById("onboarding-pairing-url") ?? true}
       >
-        <WizardHeader
-          title="Set up Supaterm"
-          identity={
-            <div className="flex items-baseline gap-1.5" role="img" aria-label="Supaterm">
-              <SupatermMark className="h-7 w-auto text-muted-foreground" aria-hidden />
-            </div>
-          }
-        >
+        <WizardHeader title="Set up Supaterm" identity={<SupatermIcon className="size-8" />}>
           <WizardSteps
             steps={ONBOARDING_STAGES}
             currentStep={stageIndex}

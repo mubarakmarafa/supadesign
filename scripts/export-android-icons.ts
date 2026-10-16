@@ -1,17 +1,5 @@
 #!/usr/bin/env node
 
-// Renders the Android launcher, splash, and themed-icon artwork from the Icon Composer sources.
-//
-// Icon Composer exports already contain a rounded-square silhouette, and Android masks the
-// central 72dp of a 108dp adaptive canvas, so exporting them as a foreground produces a
-// double-framed icon. Instead, each variant's full-bleed artwork is fitted into the masked
-// central two thirds of the background layer, with the casing colour filling the parallax
-// margin, and the foreground layer stays transparent.
-//
-// The Android 12+ splash screen masks its icon to a circle covering the central two thirds of a
-// 288dp canvas, the same proportion the launcher crops, so the splash reuses the background
-// composition. The monochrome themed icon is the production artwork's lightning bolt.
-
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Console from "effect/Console";
@@ -21,8 +9,6 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import sharp from "sharp";
 
-import { boltMask } from "./lib/icon-artwork.ts";
-
 const ICON_VARIANTS = ["dev", "nightly", "prod"] as const;
 type IconVariant = (typeof ICON_VARIANTS)[number];
 
@@ -30,8 +16,6 @@ type IconVariant = (typeof ICON_VARIANTS)[number];
 const ADAPTIVE_CANVAS = 432;
 // 288dp at xxxhdpi: the full Android 12+ splash canvas, so the icon needs no upscaling.
 const SPLASH_CANVAS = 1152;
-// Bolt height as a fraction of the 108dp canvas, inside the 66dp safe zone.
-const MARK_FRACTION = 0.42;
 const OUTPUT_DIRECTORY = "apps/mobile/assets";
 
 export class AndroidIconRenderError extends Schema.TaggedError<AndroidIconRenderError>()(
@@ -105,40 +89,6 @@ const renderBackground = (
 const renderTransparent = (size: number) =>
   render("foreground", () => transparentCanvas(size).png().toBuffer());
 
-const renderMark = (artwork: Uint8Array, size: number) =>
-  render("monochrome", async () => {
-    const { data, info } = await sharp(artwork)
-      .removeAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    const mask = boltMask({ data, width: info.width, height: info.height });
-    if (mask === null) throw new Error("the production artwork has no yellow bolt");
-    const raw = { width: info.width, height: info.height, channels: 1 } as const;
-    // The bolt is drawn as a grid of lit cells; closing the gaps between them gives the themed
-    // icon a solid silhouette.
-    const solid = await sharp(mask, { raw })
-      .blur(6)
-      .threshold(90)
-      .extractChannel(0)
-      .raw()
-      .toBuffer();
-    const bolt = await sharp({
-      create: { width: info.width, height: info.height, channels: 3, background: "#ffffff" },
-    })
-      .joinChannel(solid, { raw })
-      .png()
-      .toBuffer();
-    const trimmed = await sharp(bolt)
-      .trim()
-      .resize({ height: Math.round(size * MARK_FRACTION) })
-      .png()
-      .toBuffer();
-    return transparentCanvas(size)
-      .composite([{ input: trimmed, gravity: "center" }])
-      .png()
-      .toBuffer();
-  });
-
 const exportAndroidIcons = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -148,10 +98,6 @@ const exportAndroidIcons = Effect.gen(function* () {
     yield* Console.log(`wrote ${OUTPUT_DIRECTORY}/${name}`);
   });
   yield* write("android-icon-foreground.png", yield* renderTransparent(ADAPTIVE_CANVAS));
-  yield* write(
-    "android-icon-mark.png",
-    yield* renderMark(yield* readArtwork(repositoryRoot, "prod"), ADAPTIVE_CANVAS),
-  );
   const casing = yield* readCasing(repositoryRoot);
   for (const variant of ICON_VARIANTS) {
     const artwork = yield* readArtwork(repositoryRoot, variant);
