@@ -86,4 +86,17 @@ describe("stored thread outbox compatibility", () => {
     expect(restored.payload.input.message.text).toBe("Offline task");
     expect(restored.payload.pendingWorktree).toBeUndefined();
   });
+
+  it.each([false, true])(
+    "drops legacy automatic-compaction metadata without losing the queued message: accepted=%s",
+    (compactAccepted) => {
+      const saved = encodeStoredOutboxEntry(queuedWorktree());
+      const legacyEntry = {
+        ...saved,
+        payload: { ...saved.payload, compactBeforeSend: true, compactAccepted },
+      };
+      const restored = decodeStored(legacyEntry);
+      expect(restored.payload).toEqual(saved.payload);
+    },
+  );
 });

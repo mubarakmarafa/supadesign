@@ -1,16 +1,8 @@
 import type { ProviderDriverKind, ProviderInstanceId } from "@supaterm/contracts";
 import {
-  CLAUDE_RESUME_COMPACTION_NEVER_ANSWER,
-  isClaudeResumeCompactionQuestion,
-} from "@supaterm/shared/claudeCompaction";
-import {
   resolveSelectableProviderInstanceEntry,
   type ProviderInstanceEntry,
 } from "../../providerInstances";
-
-// Used when the provider did not report its cache TTL: Claude's 1h cache plus slack.
-const CLAUDE_RESUME_COMPACTION_FALLBACK_MS = 70 * 60_000;
-const CLAUDE_RESUME_COMPACTION_TOKENS = 100_000;
 
 export function usageFillColor(usedPercent: number): string {
   return usedPercent > 90
@@ -45,53 +37,6 @@ export function hasAvailableCompactionProvider(input: {
 
   return providerSupportsManualCompaction(
     resolveSelectableProviderInstanceEntry(compatibleProviders, input.instanceId ?? undefined),
-  );
-}
-
-export function hasDismissedResumeCompaction(
-  activities: ReadonlyArray<{ readonly kind: string; readonly payload: unknown }>,
-): boolean {
-  return activities.some((activity) => {
-    if (activity.kind !== "user-input.resolved") return false;
-    const payload = activity.payload;
-    if (!payload || typeof payload !== "object") return false;
-    const answers = (payload as { readonly answers?: unknown }).answers;
-    if (!answers || typeof answers !== "object" || Array.isArray(answers)) return false;
-
-    return Object.entries(answers).some(
-      ([question, answer]) =>
-        isClaudeResumeCompactionQuestion(question) &&
-        answer === CLAUDE_RESUME_COMPACTION_NEVER_ANSWER,
-    );
-  });
-}
-
-/** True once a large Claude context's prompt cache has expired, so the next
-    turn would re-read all of it uncached. */
-export function shouldOfferResumeCompaction(input: {
-  readonly provider: string | null | undefined;
-  readonly selectedInstanceId: ProviderInstanceId | null;
-  readonly sessionInstanceId: ProviderInstanceId | null | undefined;
-  readonly usedTokens: number | null | undefined;
-  readonly updatedAt: string | null | undefined;
-  readonly promptCacheTtlMs?: number | undefined;
-  readonly now: string;
-}): boolean {
-  if (
-    input.provider !== "claudeAgent" ||
-    input.sessionInstanceId == null ||
-    input.sessionInstanceId !== input.selectedInstanceId ||
-    (input.usedTokens ?? 0) < CLAUDE_RESUME_COMPACTION_TOKENS
-  ) {
-    return false;
-  }
-
-  const updatedAt = Date.parse(input.updatedAt ?? "");
-  const now = Date.parse(input.now);
-  return (
-    Number.isFinite(updatedAt) &&
-    Number.isFinite(now) &&
-    now - updatedAt >= (input.promptCacheTtlMs ?? CLAUDE_RESUME_COMPACTION_FALLBACK_MS)
   );
 }
 

@@ -50,7 +50,6 @@ import { feedbackBannerItem } from "./chat/ComposerFeedback";
 import { usageLimitsBannerItem } from "./chat/ComposerUsageLimits";
 import { ComposerUsageMeter } from "./chat/ComposerUsageMeter";
 import { getTerminalLabel } from "@supaterm/shared/terminalLabels";
-import * as Schema from "effect/Schema";
 import {
   questionAttachmentDraftId,
   questionAttachmentDraftPrefix,
@@ -489,11 +488,7 @@ import { ThreadStatusLine } from "./chat/ThreadStatusLine";
 import { formatRelativeTimeLabel, formatRelativeTimeUntilLabel } from "../timestampFormat";
 import { ComposerSurface } from "./chat/ComposerSurface";
 import { resolveThreadSyncPhase } from "../threadSync";
-import {
-  hasAvailableCompactionProvider,
-  hasDismissedResumeCompaction,
-  shouldOfferResumeCompaction,
-} from "./chat/ContextWindow.logic";
+import { hasAvailableCompactionProvider } from "./chat/ContextWindow.logic";
 import {
   deriveLatestContextWindowSnapshot,
   latestProviderTurnTokenUsage,
@@ -4248,33 +4243,6 @@ export default function ChatView(props: ChatViewProps) {
       selectedProvider,
     ],
   );
-  const [resumeCompactionPermanentlyDismissed, setResumeCompactionPermanentlyDismissed] =
-    useLocalStorage(
-      `supaterm:resume-compaction-dismissed:${environmentId}:${activeProviderInstanceId ?? "claudeAgent"}`,
-      false,
-      Schema.Boolean,
-    );
-  const nativeResumeCompactionDismissed = useMemo(
-    () =>
-      hasDismissedResumeCompaction(
-        (serverProjection?.runtimeRequests ?? [])
-          .filter((request) => request.kind === "user_input" && request.status === "resolved")
-          .map((request) => ({
-            kind: "user-input.resolved",
-            payload: { answers: request.answers },
-          })),
-      ),
-    [serverProjection?.runtimeRequests],
-  );
-  useEffect(() => {
-    if (nativeResumeCompactionDismissed && !resumeCompactionPermanentlyDismissed) {
-      setResumeCompactionPermanentlyDismissed(true);
-    }
-  }, [
-    nativeResumeCompactionDismissed,
-    resumeCompactionPermanentlyDismissed,
-    setResumeCompactionPermanentlyDismissed,
-  ]);
   const providerStatusBannerKey = getProviderStatusBannerKey(activeProviderStatus);
   const [dismissedProviderStatusBannerKey, setDismissedProviderStatusBannerKey] = useState<
     string | null
@@ -7800,45 +7768,6 @@ export default function ChatView(props: ChatViewProps) {
           ? "Compaction is unavailable for this provider"
           : "Compacting is unavailable right now"
     : null;
-  // Tokens a stale Claude session would re-read on its next turn. While set,
-
-  const resumeCompactionTokens =
-    activeContextWindow &&
-    !resumeCompactionPermanentlyDismissed &&
-    !nativeResumeCompactionDismissed &&
-    !compactDisabled &&
-    !hasHeldQueuedRuns &&
-    multipleModelSelections === null &&
-    shouldOfferResumeCompaction({
-      provider: selectedProvider,
-      selectedInstanceId: activeProviderInstanceId,
-      sessionInstanceId: activeRuntime?.providerInstanceId,
-      usedTokens: activeContextWindow.usedTokens,
-      updatedAt: activeContextWindow.updatedAt,
-      // Only the live report carries a TTL, and only when it is the window's source.
-      promptCacheTtlMs: activeThreadLiveTokenUsage?.promptCacheTtlMs,
-      now: `${nowMinute}:00.000Z`,
-    })
-      ? activeContextWindow.usedTokens
-      : null;
-
-  const [fullHistoryThreadKeys, setFullHistoryThreadKeys] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
-  const keepFullHistory = fullHistoryThreadKeys.has(routeThreadKey);
-  const setKeepFullHistory = useCallback((threadKey: string, keep: boolean) => {
-    setFullHistoryThreadKeys((current) => {
-      if (current.has(threadKey) === keep) return current;
-      const next = new Set(current);
-      if (keep) next.add(threadKey);
-      else next.delete(threadKey);
-      return next;
-    });
-  }, []);
-  const toggleKeepFullHistory = useCallback(
-    () => setKeepFullHistory(routeThreadKey, !keepFullHistory),
-    [keepFullHistory, routeThreadKey, setKeepFullHistory],
-  );
   const feedbackBannerItems = useMemo(
     () =>
       feedbackSubmissions.flatMap((submission) => {
@@ -9274,14 +9203,7 @@ export default function ChatView(props: ChatViewProps) {
     );
     const messageIdForSend = newMessageId();
     const messageCreatedAt = new Date().toISOString();
-    // A stale Claude session compacts before this message so the turn does not re-read the
-    // old history. The message queues behind the /compact run, since steering into it is
-    // rejected.
-    const compactBeforeSend =
-      resumeCompactionTokens !== null &&
-      !keepFullHistory &&
-      messageTextForSend.toLowerCase() !== "/compact";
-    const turnDispatchMode = compactBeforeSend || sendQueuesBehindSetup ? "queue" : dispatchMode;
+    const turnDispatchMode = sendQueuesBehindSetup ? "queue" : dispatchMode;
     const outgoingMessageText = formatOutgoingPrompt({
       provider: ctxSelectedProvider,
       model: ctxSelectedModel,
@@ -9414,7 +9336,6 @@ export default function ChatView(props: ChatViewProps) {
               ...(bootstrap ? { bootstrap } : {}),
               createdAt: messageCreatedAt,
             },
-            compactBeforeSend,
             localAttachments,
             ...(pendingWorktree ? { pendingWorktree } : {}),
             ...(localCheckoutBranchMismatch
@@ -9425,10 +9346,8 @@ export default function ChatView(props: ChatViewProps) {
           };
         }),
       );
-      setKeepFullHistory(routeThreadKey, false);
       if (
         multipleModelSelections === null &&
-        !compactBeforeSend &&
         !sendQueuesBehindSetup &&
         !(phase === "running" && dispatchMode === "queue")
       ) {
@@ -10883,9 +10802,6 @@ export default function ChatView(props: ChatViewProps) {
                                   }
                                   queuedRunsControl={queuedRunsControl}
                                   bannerItems={composerBannerItems}
-                                  resumeCompactionTokens={resumeCompactionTokens}
-                                  keepFullHistory={keepFullHistory}
-                                  onToggleKeepFullHistory={toggleKeepFullHistory}
                                   // With attachments or contexts aboard the pick just inserts the
                                   // text, so it sends as a prompt like the typed path would.
                                   onUsageLimitsCommand={
