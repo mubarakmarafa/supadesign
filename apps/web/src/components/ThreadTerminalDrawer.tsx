@@ -1,4 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
+import { scopedThreadKey } from "@supaterm/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -76,6 +77,7 @@ import {
 import {
   DEFAULT_THREAD_TERMINAL_HEIGHT,
   MAX_TERMINALS_PER_GROUP,
+  type TerminalSplitLayout,
   type ThreadTerminalGroup,
 } from "../types";
 import { readLocalApi } from "~/localApi";
@@ -89,6 +91,7 @@ import { readEnvironmentScope } from "../state/session";
 import { terminalEnvironment } from "../state/terminal";
 import { useEnvironmentScope } from "../state/session";
 import { openTerminalLinkInPreview } from "./preview/openTerminalLinkInPreview";
+import { TerminalSplitPanels } from "./TerminalSplitPanels";
 import { useAtomCommand } from "../state/use-atom-command";
 import { preventTerminalCloseShortcut } from "../lib/terminalCloseShortcut";
 import {
@@ -1136,6 +1139,7 @@ interface ThreadTerminalDrawerProps {
   onActiveTerminalChange: (terminalId: string) => void;
   onCloseTerminal: (terminalId: string) => void;
   onHeightChange: (height: number) => void;
+  onSplitLayoutChange: (groupId: string, layout: TerminalSplitLayout) => void;
   onAddTerminalContext: (selection: TerminalContextSelection) => void;
   keybindings: ResolvedKeybindingsConfig;
   terminalLabelsById?: ReadonlyMap<string, string>;
@@ -1206,6 +1210,7 @@ export default function ThreadTerminalDrawer({
   onActiveTerminalChange,
   onCloseTerminal,
   onHeightChange,
+  onSplitLayoutChange,
   onAddTerminalContext,
   keybindings,
   terminalLabelsById,
@@ -1242,6 +1247,7 @@ export default function ThreadTerminalDrawer({
     [controlledDrawerHeight, threadId],
   );
   const [resizeEpoch, setResizeEpoch] = useState(0);
+  const [splitFocusRequestId, setSplitFocusRequestId] = useState(0);
   const drawerHeightRef = useRef(drawerHeight);
   const preferredDrawerHeightRef = useRef(preferredDrawerHeight);
   const lastSyncedHeightRef = useRef(controlledDrawerHeight);
@@ -1324,6 +1330,7 @@ export default function ThreadTerminalDrawer({
         ...(terminalGroup.splitDirection === "vertical"
           ? { splitDirection: "vertical" as const }
           : {}),
+        ...(terminalGroup.layout ? { layout: terminalGroup.layout } : {}),
       });
     }
 
@@ -1358,13 +1365,13 @@ export default function ThreadTerminalDrawer({
     return indexByTerminal >= 0 ? indexByTerminal : 0;
   }, [activeTerminalGroupId, resolvedActiveTerminalId, resolvedTerminalGroups]);
 
+  const activeTerminalGroup = resolvedTerminalGroups[resolvedActiveGroupIndex];
   const visibleTerminalIds =
-    resolvedTerminalGroups[resolvedActiveGroupIndex]?.terminalIds ??
+    activeTerminalGroup?.terminalIds ??
     (normalizedTerminalIds.length > 0 ? [resolvedActiveTerminalId] : []);
-  const splitDirection =
-    resolvedTerminalGroups[resolvedActiveGroupIndex]?.splitDirection ?? "horizontal";
   const hasTerminalSidebar = normalizedTerminalIds.length > 1;
-  const isSplitView = visibleTerminalIds.length > 1;
+  const splitTerminalGroup =
+    activeTerminalGroup && activeTerminalGroup.terminalIds.length > 1 ? activeTerminalGroup : null;
   const showGroupHeaders =
     resolvedTerminalGroups.length > 1 ||
     resolvedTerminalGroups.some((terminalGroup) => terminalGroup.terminalIds.length > 1);
@@ -1587,7 +1594,32 @@ export default function ThreadTerminalDrawer({
     );
   }
 
-  const activeTerminalLaunchLocation = resolveTerminalLaunchLocation(resolvedActiveTerminalId);
+  const renderTerminalViewport = (terminalId: string) => {
+    const launchLocation = resolveTerminalLaunchLocation(terminalId);
+    return (
+      <TerminalViewport
+        key={terminalId}
+        advancedTypography={advancedTypography}
+        threadRef={threadRef}
+        threadId={threadId}
+        terminalId={terminalId}
+        terminalLabel={terminalLabelById.get(terminalId) ?? "Terminal"}
+        cwd={launchLocation.cwd}
+        {...(launchLocation.worktreePath !== undefined
+          ? { worktreePath: launchLocation.worktreePath }
+          : {})}
+        {...(launchLocation.runtimeEnv ? { runtimeEnv: launchLocation.runtimeEnv } : {})}
+        onSessionExited={() => onCloseTerminal(terminalId)}
+        onAddTerminalContext={onAddTerminalContext}
+        focusRequestId={focusRequestId + splitFocusRequestId}
+        autoFocus={terminalId === resolvedActiveTerminalId}
+        visible={visible}
+        resizeEpoch={resizeEpoch}
+        drawerHeight={drawerHeight}
+        keybindings={keybindings}
+      />
+    );
+  };
 
   return (
     <aside
@@ -1672,93 +1704,19 @@ export default function ThreadTerminalDrawer({
           )}
         >
           <div className="min-w-0 flex-1">
-            {isSplitView ? (
-              <div
-                className="grid h-full w-full min-w-0 gap-0 overflow-hidden"
-                style={
-                  splitDirection === "vertical"
-                    ? {
-                        gridTemplateRows: `repeat(${visibleTerminalIds.length}, minmax(0, 1fr))`,
-                      }
-                    : {
-                        gridTemplateColumns: `repeat(${visibleTerminalIds.length}, minmax(0, 1fr))`,
-                      }
-                }
-              >
-                {visibleTerminalIds.map((terminalId) => {
-                  const terminalLaunchLocation = resolveTerminalLaunchLocation(terminalId);
-                  return (
-                    <div
-                      key={terminalId}
-                      className={`min-h-0 min-w-0 ${
-                        splitDirection === "vertical"
-                          ? "border-t first:border-t-0"
-                          : "border-l first:border-l-0"
-                      } ${
-                        terminalId === resolvedActiveTerminalId
-                          ? "border-border"
-                          : "border-border/70"
-                      }`}
-                      onPointerDown={() => {
-                        if (terminalId !== resolvedActiveTerminalId) {
-                          onActiveTerminalChange(terminalId);
-                        }
-                      }}
-                    >
-                      <div className="h-full">
-                        <TerminalViewport
-                          advancedTypography={advancedTypography}
-                          threadRef={threadRef}
-                          threadId={threadId}
-                          terminalId={terminalId}
-                          terminalLabel={terminalLabelById.get(terminalId) ?? "Terminal"}
-                          cwd={terminalLaunchLocation.cwd}
-                          {...(terminalLaunchLocation.worktreePath !== undefined
-                            ? { worktreePath: terminalLaunchLocation.worktreePath }
-                            : {})}
-                          {...(terminalLaunchLocation.runtimeEnv
-                            ? { runtimeEnv: terminalLaunchLocation.runtimeEnv }
-                            : {})}
-                          onSessionExited={() => onCloseTerminal(terminalId)}
-                          onAddTerminalContext={onAddTerminalContext}
-                          focusRequestId={focusRequestId}
-                          autoFocus={terminalId === resolvedActiveTerminalId}
-                          visible={visible}
-                          resizeEpoch={resizeEpoch}
-                          drawerHeight={drawerHeight}
-                          keybindings={keybindings}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            {splitTerminalGroup ? (
+              <TerminalSplitPanels
+                idPrefix={`${scopedThreadKey(threadRef)}:${splitTerminalGroup.id}:`}
+                group={splitTerminalGroup}
+                disabled={!visible}
+                activeTerminalId={resolvedActiveTerminalId}
+                onActiveTerminalChange={onActiveTerminalChange}
+                onLayoutChange={(layout) => onSplitLayoutChange(splitTerminalGroup.id, layout)}
+                onDividerRelease={() => setSplitFocusRequestId((value) => value + 1)}
+                renderTerminal={renderTerminalViewport}
+              />
             ) : (
-              <div className="h-full">
-                <TerminalViewport
-                  advancedTypography={advancedTypography}
-                  key={resolvedActiveTerminalId}
-                  threadRef={threadRef}
-                  threadId={threadId}
-                  terminalId={resolvedActiveTerminalId}
-                  terminalLabel={terminalLabelById.get(resolvedActiveTerminalId) ?? "Terminal"}
-                  cwd={activeTerminalLaunchLocation.cwd}
-                  {...(activeTerminalLaunchLocation.worktreePath !== undefined
-                    ? { worktreePath: activeTerminalLaunchLocation.worktreePath }
-                    : {})}
-                  {...(activeTerminalLaunchLocation.runtimeEnv
-                    ? { runtimeEnv: activeTerminalLaunchLocation.runtimeEnv }
-                    : {})}
-                  onSessionExited={() => onCloseTerminal(resolvedActiveTerminalId)}
-                  onAddTerminalContext={onAddTerminalContext}
-                  focusRequestId={focusRequestId}
-                  autoFocus
-                  visible={visible}
-                  resizeEpoch={resizeEpoch}
-                  drawerHeight={drawerHeight}
-                  keybindings={keybindings}
-                />
-              </div>
+              <div className="h-full">{renderTerminalViewport(resolvedActiveTerminalId)}</div>
             )}
           </div>
 

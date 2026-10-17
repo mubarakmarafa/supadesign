@@ -970,6 +970,29 @@ describe("rightPanelStore", () => {
     });
   });
 
+  it("records a split layout on its terminal surface only", () => {
+    const store = useRightPanelStore.getState();
+    store.openBrowser(refA, "tab-a");
+    store.openTerminal(refA, "term-1");
+    store.splitTerminal(refA, "terminal:term-1", "term-2");
+    store.setTerminalSplitLayout(refA, "browser:tab-a", { "term-1": 70, "term-2": 30 });
+    store.setTerminalSplitLayout(refA, "terminal:term-1", { "term-1": 70, "term-2": 30 });
+
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).surfaces,
+    ).toEqual([
+      { id: "browser:tab-a", kind: "preview", resourceId: "tab-a" },
+      {
+        id: "terminal:term-1",
+        kind: "terminal",
+        resourceId: "term-1",
+        terminalIds: ["term-1", "term-2"],
+        activeTerminalId: "term-2",
+        layout: { "term-1": 70, "term-2": 30 },
+      },
+    ]);
+  });
+
   it("tracks vertical layout for a terminal surface", () => {
     useRightPanelStore.getState().openTerminal(refA, "term-1");
     useRightPanelStore.getState().splitTerminal(refA, "terminal:term-1", "term-2", "vertical");

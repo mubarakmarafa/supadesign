@@ -4,6 +4,7 @@ import {
   Group,
   Panel,
   Separator,
+  useGroupRef,
   usePanelCallbackRef,
   type GroupProps,
   type PanelProps,
@@ -64,7 +65,7 @@ function ResizablePanel({ style, ...props }: PanelProps) {
 }
 
 /**
- * A zero-width divider. The library hit-tests its own widened target; the
+ * A zero-thickness divider. The library hit-tests its own widened target; the
  * `before` strip gives double-click a real element to land on. The library's
  * double-click resets to a percentage, so it is off and callers pass their own.
  */
@@ -72,7 +73,7 @@ function ResizableHandle({ className, ...props }: Omit<SeparatorProps, "disableD
   return (
     <Separator
       className={cn(
-        "relative z-20 w-0 outline-none before:absolute before:inset-y-0 before:-left-1 before:w-2 after:pointer-events-none after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 after:transition-colors after:duration-150 data-[separator=active]:after:bg-primary/60 data-[separator=disabled]:hidden data-[separator=focus]:after:bg-ring data-[separator=hover]:after:bg-border",
+        "relative z-20 outline-none before:absolute after:pointer-events-none after:absolute after:transition-colors after:duration-150 aria-[orientation=vertical]:w-0 aria-[orientation=vertical]:before:inset-y-0 aria-[orientation=vertical]:before:-left-1 aria-[orientation=vertical]:before:w-2 aria-[orientation=vertical]:after:inset-y-0 aria-[orientation=vertical]:after:left-1/2 aria-[orientation=vertical]:after:w-px aria-[orientation=vertical]:after:-translate-x-1/2 aria-[orientation=horizontal]:h-0 aria-[orientation=horizontal]:before:inset-x-0 aria-[orientation=horizontal]:before:-top-1 aria-[orientation=horizontal]:before:h-2 aria-[orientation=horizontal]:after:inset-x-0 aria-[orientation=horizontal]:after:top-1/2 aria-[orientation=horizontal]:after:h-px aria-[orientation=horizontal]:after:-translate-y-1/2 data-[separator=active]:after:bg-primary/60 data-[separator=disabled]:hidden data-[separator=focus]:after:bg-ring data-[separator=hover]:after:bg-border",
         className,
       )}
       data-slot="resizable-handle"
@@ -276,4 +277,4 @@ function animateToggle(panel: HTMLElement): (() => void) | null {
   return end;
 }
 
-export { ResizableHandle, ResizablePanel, ResizablePanelGroup, useCollapsiblePanel };
+export { ResizableHandle, ResizablePanel, ResizablePanelGroup, useCollapsiblePanel, useGroupRef };

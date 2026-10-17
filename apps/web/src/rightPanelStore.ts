@@ -6,11 +6,12 @@ import {
 import { EnvironmentId, ThreadId, type ScopedThreadRef } from "@supaterm/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { shallow } from "zustand/vanilla/shallow";
 
 import { useClosedViewStore } from "./closedViewStore";
 import { resolveStorage } from "./lib/storage";
 import type { ThreadPanelPresentation } from "./rightPanelLayout";
-import type { ChatFileAttachment } from "./types";
+import type { ChatFileAttachment, TerminalSplitLayout, ThreadTerminalGroup } from "./types";
 
 const RIGHT_PANEL_KINDS = [
   "diff",
@@ -35,14 +36,12 @@ export type RightPanelSurface =
   | { id: `browser:${string}`; kind: "preview"; resourceId: string }
   | { id: "browser:new"; kind: "preview"; resourceId: null }
   | { id: "device" | `device:${string}`; kind: "device"; target?: DeviceTabTarget; title?: string }
-  | {
+  | (Omit<ThreadTerminalGroup, "id"> & {
       id: `terminal:${string}`;
       kind: "terminal";
       resourceId: string;
-      terminalIds: string[];
       activeTerminalId: string;
-      splitDirection?: "horizontal" | "vertical";
-    }
+    })
   | { id: "diff"; kind: "diff" }
   | {
       id: "files";
@@ -161,6 +160,11 @@ interface RightPanelStoreState {
     direction?: "horizontal" | "vertical",
   ) => void;
   activateTerminal: (ref: ScopedThreadRef, surfaceId: string, terminalId: string) => void;
+  setTerminalSplitLayout: (
+    ref: ScopedThreadRef,
+    surfaceId: string,
+    layout: TerminalSplitLayout,
+  ) => void;
   closeTerminal: (ref: ScopedThreadRef, surfaceId: string, terminalId: string) => void;
   activateSurface: (ref: ScopedThreadRef, surfaceId: string) => void;
   closeSurface: (ref: ScopedThreadRef, surfaceId: string) => void;
@@ -648,6 +652,19 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
                 : surface,
             ),
           })),
+        ),
+      setTerminalSplitLayout: (ref, surfaceId, layout) =>
+        set((state) =>
+          updateThread(state, scopedThreadKey(ref), (current) => {
+            const surface = current.surfaces.find((entry) => entry.id === surfaceId);
+            if (surface?.kind !== "terminal" || shallow(surface.layout, layout)) return current;
+            return {
+              ...current,
+              surfaces: current.surfaces.map((entry) =>
+                entry === surface ? { ...surface, layout } : entry,
+              ),
+            };
+          }),
         ),
       closeTerminal: (ref, surfaceId, terminalId) =>
         set((state) =>

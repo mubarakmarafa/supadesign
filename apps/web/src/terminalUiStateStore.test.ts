@@ -3,7 +3,7 @@ import { ThreadId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "./terminalUiStateStore";
-import { DEFAULT_THREAD_TERMINAL_ID } from "./types";
+import { DEFAULT_THREAD_TERMINAL_ID, terminalSplitLayoutMatches } from "./types";
 
 const THREAD_ID = ThreadId.make("thread-1");
 const THREAD_REF = scopeThreadRef("environment-a" as never, THREAD_ID);
@@ -200,6 +200,33 @@ describe("terminalUiStateStore actions", () => {
     expect(terminalUiState.terminalGroups).toEqual([
       { id: "group-terminal-2", terminalIds: ["terminal-2"] },
     ]);
+  });
+
+  it("keeps a split layout through splits and closes of its group", () => {
+    const store = useTerminalUiStateStore.getState();
+    const groupId = `group-${DEFAULT_THREAD_TERMINAL_ID}`;
+    const layout = { [DEFAULT_THREAD_TERMINAL_ID]: 70, "terminal-2": 30 };
+    const readGroup = () =>
+      selectThreadTerminalUiState(
+        useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
+        THREAD_REF,
+      ).terminalGroups[0];
+    store.setTerminalOpen(THREAD_REF, true);
+    store.splitTerminal(THREAD_REF, "terminal-2");
+    store.setTerminalSplitLayout(THREAD_REF, "missing-group", layout);
+    expect(readGroup()?.layout).toBeUndefined();
+
+    store.setTerminalSplitLayout(THREAD_REF, groupId, layout);
+    store.splitTerminal(THREAD_REF, "terminal-3");
+    expect(terminalSplitLayoutMatches(readGroup()?.layout, readGroup()?.terminalIds ?? [])).toBe(
+      false,
+    );
+
+    store.closeTerminal(THREAD_REF, "terminal-3");
+    expect(readGroup()?.layout).toEqual(layout);
+    expect(terminalSplitLayoutMatches(readGroup()?.layout, readGroup()?.terminalIds ?? [])).toBe(
+      true,
+    );
   });
 
   it("reconciles terminal ids from an external ordered list", () => {

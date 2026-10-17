@@ -2,11 +2,13 @@ import { scopedThreadKey } from "@supaterm/client-runtime/environment";
 import { type ScopedThreadRef } from "@supaterm/contracts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { shallow } from "zustand/vanilla/shallow";
 import { resolveStorage } from "./lib/storage";
 import {
   DEFAULT_THREAD_TERMINAL_HEIGHT,
   DEFAULT_THREAD_TERMINAL_ID,
   MAX_TERMINALS_PER_GROUP,
+  type TerminalSplitLayout,
   type ThreadTerminalGroup,
 } from "./types";
 
@@ -94,6 +96,7 @@ function normalizeTerminalGroups(
       id: assignUniqueGroupId(baseGroupId, usedGroupIds),
       terminalIds: groupTerminalIds,
       ...(group.splitDirection === "vertical" ? { splitDirection: "vertical" as const } : {}),
+      ...(group.layout ? { layout: group.layout } : {}),
     });
   }
 
@@ -129,6 +132,7 @@ function terminalGroupsEqual(left: ThreadTerminalGroup[], right: ThreadTerminalG
       return false;
     }
     if (!arraysEqual(leftGroup.terminalIds, rightGroup.terminalIds)) return false;
+    if (!shallow(leftGroup.layout, rightGroup.layout)) return false;
   }
   return true;
 }
@@ -211,11 +215,7 @@ function terminalThreadKey(threadRef: ScopedThreadRef): string {
 }
 
 function copyTerminalGroups(groups: ThreadTerminalGroup[]): ThreadTerminalGroup[] {
-  return groups.map((group) => ({
-    id: group.id,
-    terminalIds: [...group.terminalIds],
-    ...(group.splitDirection === "vertical" ? { splitDirection: "vertical" as const } : {}),
-  }));
+  return groups.map((group) => ({ ...group, terminalIds: [...group.terminalIds] }));
 }
 
 function upsertTerminalIntoGroups(
@@ -332,6 +332,22 @@ function setThreadTerminalHeight(
     return normalized;
   }
   return { ...normalized, terminalHeight: height };
+}
+
+function setThreadTerminalSplitLayout(
+  state: ThreadTerminalUiState,
+  groupId: string,
+  layout: TerminalSplitLayout,
+): ThreadTerminalUiState {
+  const normalized = normalizeThreadTerminalUiState(state);
+  const group = normalized.terminalGroups.find((entry) => entry.id === groupId);
+  if (!group || shallow(group.layout, layout)) return normalized;
+  return {
+    ...normalized,
+    terminalGroups: normalized.terminalGroups.map((entry) =>
+      entry === group ? { ...group, layout } : entry,
+    ),
+  };
 }
 
 function splitThreadTerminal(
@@ -532,6 +548,11 @@ interface TerminalUiStateStoreState {
   suppressedTerminalIdsByThreadKey: Record<string, string[]>;
   setTerminalOpen: (threadRef: ScopedThreadRef, open: boolean) => void;
   setTerminalHeight: (threadRef: ScopedThreadRef, height: number) => void;
+  setTerminalSplitLayout: (
+    threadRef: ScopedThreadRef,
+    groupId: string,
+    layout: TerminalSplitLayout,
+  ) => void;
   splitTerminal: (threadRef: ScopedThreadRef, terminalId: string) => void;
   splitTerminalVertical: (threadRef: ScopedThreadRef, terminalId: string) => void;
   newTerminal: (threadRef: ScopedThreadRef, terminalId: string) => void;
@@ -606,6 +627,10 @@ export const useTerminalUiStateStore = create<TerminalUiStateStoreState>()(
         },
         setTerminalHeight: (threadRef, height) =>
           updateTerminal(threadRef, (state) => setThreadTerminalHeight(state, height)),
+        setTerminalSplitLayout: (threadRef, groupId, layout) =>
+          updateTerminal(threadRef, (state) =>
+            setThreadTerminalSplitLayout(state, groupId, layout),
+          ),
         splitTerminal: (threadRef, terminalId) =>
           updateTerminal(threadRef, (state) => splitThreadTerminal(state, terminalId), {
             terminalId,

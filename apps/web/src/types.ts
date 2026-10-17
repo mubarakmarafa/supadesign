@@ -35,10 +35,26 @@ export const DEFAULT_THREAD_TERMINAL_ID = "term-1";
 export const MAX_TERMINALS_PER_GROUP = 4;
 export type ProjectScript = ContractProjectScript;
 
+/** Percent of the split each terminal takes, keyed by terminal id. */
+export type TerminalSplitLayout = Record<string, number>;
+
+/** Stored layouts outlive splits and closes, so one only applies while it covers exactly these terminals. */
+export function terminalSplitLayoutMatches(
+  layout: TerminalSplitLayout | undefined,
+  terminalIds: readonly string[],
+): layout is TerminalSplitLayout {
+  if (!layout || Object.keys(layout).length !== terminalIds.length) return false;
+  return terminalIds.every((terminalId) => {
+    const size = layout[terminalId];
+    return size !== undefined && Number.isFinite(size) && size > 0;
+  });
+}
+
 export interface ThreadTerminalGroup {
   id: string;
   terminalIds: string[];
   splitDirection?: "horizontal" | "vertical";
+  layout?: TerminalSplitLayout;
 }
 
 export interface ChatImageAttachment extends ContractChatImageAttachment {

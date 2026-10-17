@@ -236,6 +236,7 @@ import {
   MAX_TERMINALS_PER_GROUP,
   type ChatMessage,
   type SessionPhase,
+  type TerminalSplitLayout,
   type Thread,
 } from "../types";
 import { useTheme } from "../hooks/useTheme";
@@ -1091,6 +1092,9 @@ const PersistentThreadTerminalDrawer = memo(function PersistentThreadTerminalDra
     [allocatableTerminalIds, knownTerminalSessions, threadRef.environmentId],
   );
   const storeSetTerminalHeight = useTerminalUiStateStore((state) => state.setTerminalHeight);
+  const storeSetTerminalSplitLayout = useTerminalUiStateStore(
+    (state) => state.setTerminalSplitLayout,
+  );
   const storeSplitTerminal = useTerminalUiStateStore((state) => state.splitTerminal);
   const storeSplitTerminalVertical = useTerminalUiStateStore(
     (state) => state.splitTerminalVertical,
@@ -1153,6 +1157,13 @@ const PersistentThreadTerminalDrawer = memo(function PersistentThreadTerminalDra
       storeSetTerminalHeight(threadRef, height);
     },
     [storeSetTerminalHeight, threadRef],
+  );
+
+  const setTerminalSplitLayout = useCallback(
+    (groupId: string, layout: TerminalSplitLayout) => {
+      storeSetTerminalSplitLayout(threadRef, groupId, layout);
+    },
+    [storeSetTerminalSplitLayout, threadRef],
   );
 
   const splitTerminal = useCallback(() => {
@@ -1342,6 +1353,7 @@ const PersistentThreadTerminalDrawer = memo(function PersistentThreadTerminalDra
           onActiveTerminalChange={activateTerminal}
           onCloseTerminal={closeTerminal}
           onHeightChange={setTerminalHeight}
+          onSplitLayoutChange={setTerminalSplitLayout}
           onAddTerminalContext={handleAddTerminalContext}
           terminalLabelsById={terminalLabelsById}
           terminalHasRunningSubprocessById={terminalHasRunningSubprocessById}
@@ -1494,6 +1506,15 @@ const PersistentThreadTerminalPanel = memo(function PersistentThreadTerminalPane
     threadWorktreePath,
   ]);
 
+  const terminalGroups = useMemo(() => [surface], [surface]);
+  const storeSetTerminalSplitLayout = useRightPanelStore((state) => state.setTerminalSplitLayout);
+  const setTerminalSplitLayout = useCallback(
+    (surfaceId: string, layout: TerminalSplitLayout) => {
+      storeSetTerminalSplitLayout(threadRef, surfaceId, layout);
+    },
+    [storeSetTerminalSplitLayout, threadRef],
+  );
+
   if (!project || !cwd) return null;
 
   return (
@@ -1508,13 +1529,7 @@ const PersistentThreadTerminalPanel = memo(function PersistentThreadTerminalPane
       height={0}
       terminalIds={surface.terminalIds}
       activeTerminalId={surface.activeTerminalId}
-      terminalGroups={[
-        {
-          id: surface.id,
-          terminalIds: surface.terminalIds,
-          ...(surface.splitDirection === "vertical" ? { splitDirection: "vertical" as const } : {}),
-        },
-      ]}
+      terminalGroups={terminalGroups}
       activeTerminalGroupId={surface.id}
       focusRequestId={focusRequestId}
       onSplitTerminal={onSplitTerminal}
@@ -1527,6 +1542,7 @@ const PersistentThreadTerminalPanel = memo(function PersistentThreadTerminalPane
       onActiveTerminalChange={onActiveTerminalChange}
       onCloseTerminal={onCloseTerminal}
       onHeightChange={() => undefined}
+      onSplitLayoutChange={setTerminalSplitLayout}
       onAddTerminalContext={onAddTerminalContext}
       terminalLabelsById={terminalLabelsById}
       terminalHasRunningSubprocessById={terminalHasRunningSubprocessById}
