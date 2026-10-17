@@ -169,6 +169,16 @@ export function createEnvironmentCatalogAtoms<R, E>(
       ),
   });
 
+  const rename = createRuntimeCommand(runtime, {
+    label: "environment-catalog:rename",
+    scheduler: commandScheduler,
+    concurrency: serial,
+    execute: (input: { readonly environmentId: EnvironmentIdType; readonly label: string }) =>
+      EnvironmentRegistry.EnvironmentRegistry.pipe(
+        Effect.flatMap((registry) => registry.rename(input.environmentId, input.label)),
+      ),
+  });
+
   const retryNow = createRuntimeCommand(runtime, {
     label: "environment-catalog:retry-now",
     scheduler: commandScheduler,
@@ -191,6 +201,7 @@ export function createEnvironmentCatalogAtoms<R, E>(
     remove,
     removeRoute,
     reorderRoutes,
+    rename,
     retryNow,
     setEnabled,
   };

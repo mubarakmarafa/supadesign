@@ -7,6 +7,7 @@ import {
   ChevronsLeftRightEllipsisIcon,
   EllipsisIcon,
   PlusIcon,
+  PencilIcon,
   QrCodeIcon,
   RouteIcon,
   TerminalIcon,
@@ -88,6 +89,7 @@ import {
 import { LocalEnvironmentSetting } from "./LocalEnvironmentSetting";
 import { searchableSetting } from "./settingsSearch";
 import { EnvironmentIconMenu } from "./EnvironmentIconPicker";
+import { RenameEnvironmentDialog } from "./RenameEnvironmentDialog";
 import { EnvironmentRoutesList } from "./EnvironmentRoutesList";
 import {
   EnvironmentRow,
@@ -1330,6 +1332,7 @@ function SavedBackendListRow({
   onRemove,
   onAddRoute,
 }: SavedBackendListRowProps) {
+  const [renameOpen, setRenameOpen] = useState(false);
   const [routesOpen, setRoutesOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const environmentId = environment.environmentId;
@@ -1458,6 +1461,12 @@ function SavedBackendListRow({
       }
       detail={
         <>
+          {renameOpen && (
+            <RenameEnvironmentDialog
+              environment={environment}
+              onClose={() => setRenameOpen(false)}
+            />
+          )}
           {routesOpen && (
             <EnvironmentRoutesList
               environment={environment}
@@ -1557,6 +1566,10 @@ function SavedBackendListRow({
               <EllipsisIcon className="size-3.5" />
             </MenuTrigger>
             <MenuPopup align="end">
+              <MenuItem onClick={() => setRenameOpen(true)}>
+                <PencilIcon />
+                Rename…
+              </MenuItem>
               <EnvironmentIconMenu
                 environmentId={environmentId}
                 serverConfig={environment.serverConfig}

@@ -23,6 +23,7 @@ import {
   type ConnectionRoute,
   type PlatformConnectionRegistration,
   type PrimaryConnectionRegistration,
+  BearerConnectionProfile,
   SshConnectionProfile,
   connectionRegistrationCatalogEntry,
 } from "./catalog.ts";
@@ -36,7 +37,7 @@ import type {
   NetworkStatus,
   SupervisorConnectionState,
 } from "./model.ts";
-import { ConnectionBlockedError } from "./model.ts";
+import { BearerConnectionTarget, ConnectionBlockedError, SshConnectionTarget } from "./model.ts";
 import * as Persistence from "../platform/persistence.ts";
 import * as EnvironmentSupervisor from "./supervisor.ts";
 import * as ConnectionDriver from "./driver.ts";
@@ -143,6 +144,15 @@ export class EnvironmentRegistry extends Context.Service<
       | ConnectionBlockedError
     >;
     readonly retryNow: (environmentId: EnvironmentId) => Effect.Effect<void>;
+    readonly rename: (
+      environmentId: EnvironmentId,
+      label: string,
+    ) => Effect.Effect<
+      void,
+      | EnvironmentNotRegisteredError
+      | Persistence.ConnectionPersistenceError
+      | ConnectionBlockedError
+    >;
     readonly setEnabled: (
       environmentId: EnvironmentId,
       enabled: boolean,
@@ -1014,6 +1024,61 @@ export const make = Effect.gen(function* () {
     );
   });
 
+  const rename = Effect.fn("EnvironmentRegistry.rename")(function* (
+    environmentId: EnvironmentId,
+    input: string,
+  ) {
+    const label = input.trim();
+    if (label === "") {
+      return yield* new ConnectionBlockedError({
+        reason: "configuration",
+        detail: "Environment label cannot be empty.",
+      });
+    }
+    yield* withLeaseLock(
+      environmentId,
+      Effect.gen(function* () {
+        const entry = yield* getEntry(environmentId);
+        if (
+          entry.target._tag === "PrimaryConnectionTarget" ||
+          (yield* Ref.get(platformEnvironmentIds)).has(environmentId)
+        ) {
+          return yield* new ConnectionBlockedError({
+            reason: "configuration",
+            detail: "Only saved remote environments can be renamed.",
+          });
+        }
+        const routes = connectionRoutes(entry).map((route) => {
+          if (route.target._tag === "PrimaryConnectionTarget") return route;
+          return {
+            target:
+              route.target._tag === "SshConnectionTarget"
+                ? new SshConnectionTarget({ ...route.target, label })
+                : new BearerConnectionTarget({ ...route.target, label }),
+            profile: Option.map(route.profile, (profile) =>
+              profile._tag === "SshConnectionProfile"
+                ? new SshConnectionProfile({ ...profile, label })
+                : new BearerConnectionProfile({ ...profile, label }),
+            ),
+          };
+        });
+        const next = entryWithRoutes(entry, routes);
+        yield* registrations.setRoutes(
+          environmentId,
+          persistedRoutes(next),
+          routes.flatMap((route) => Option.toArray(route.profile)),
+        );
+        const lease = (yield* SubscriptionRef.get(serviceScopes)).get(environmentId);
+        if (lease !== undefined) {
+          yield* Ref.set(lease.entry, next);
+        }
+        yield* SubscriptionRef.update(entries, (current) =>
+          new Map(current).set(environmentId, next),
+        );
+      }).pipe(Effect.uninterruptible),
+    );
+  });
+
   const retryNow = (environmentId: EnvironmentId) =>
     acquireSupervisor(environmentId).pipe(
       Effect.flatMap((supervisor) => supervisor.retryNow),
@@ -1152,6 +1217,7 @@ export const make = Effect.gen(function* () {
     remove,
     removeRoute,
     reorderRoutes,
+    rename,
     retryNow,
     setEnabled,
     setCompatibility,
