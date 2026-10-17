@@ -1690,6 +1690,104 @@ it.effect("keeps ingesting a late background command item completion after root 
   }),
 );
 
+it.effect("persists a late image reply before its generation releases ingestion", () =>
+  Effect.gen(function* () {
+    const now = yield* DateTime.now;
+    const text = "Done.\n\n![](</tmp/generated-dog.png>)";
+    const persisted = yield* Ref.make<ReadonlyArray<string>>([]);
+    yield* runBackgroundItemScenario(
+      "late-generated-image",
+      (ids) => {
+        const nodeId = NodeId.make("node:late-image-answer");
+        const messageId = MessageId.make("message:late-image-answer");
+        return [
+          backgroundTurnItemEvent(ids, "dynamic_tool", "running", 1),
+          rootTerminalEvent(ids, "completed"),
+          {
+            type: "node.updated",
+            driver,
+            node: {
+              id: nodeId,
+              threadId: ids.threadId,
+              runId: ids.runId,
+              parentNodeId: ids.rootNodeId,
+              rootNodeId: ids.rootNodeId,
+              kind: "assistant_message",
+              status: "completed",
+              countsForRun: false,
+              providerThreadId: ids.providerThreadId,
+              providerTurnId: ids.rootProviderTurnId,
+              nativeItemRef: null,
+              runtimeRequestId: null,
+              checkpointScopeId: null,
+              startedAt: now,
+              completedAt: now,
+            },
+          },
+          {
+            type: "message.updated",
+            driver,
+            message: {
+              createdBy: "agent",
+              creationSource: "provider",
+              id: messageId,
+              threadId: ids.threadId,
+              runId: ids.runId,
+              nodeId,
+              role: "assistant",
+              text,
+              attachments: [],
+              streaming: false,
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+          {
+            type: "turn_item.updated",
+            driver,
+            turnItem: {
+              id: TurnItemId.make("turn-item:late-image-answer"),
+              threadId: ids.threadId,
+              runId: ids.runId,
+              nodeId,
+              providerThreadId: ids.providerThreadId,
+              providerTurnId: ids.rootProviderTurnId,
+              nativeItemRef: null,
+              parentItemId: null,
+              ordinal: 2,
+              status: "completed",
+              title: null,
+              startedAt: now,
+              completedAt: now,
+              updatedAt: now,
+              type: "assistant_message",
+              messageId,
+              text,
+              streaming: false,
+            },
+          },
+          backgroundTurnItemEvent(ids, "dynamic_tool", "completed", 1),
+        ];
+      },
+      {
+        keepEventStreamOpen: true,
+        observe: (event) => {
+          const output =
+            event.type === "message.updated"
+              ? event.message.text
+              : event.type === "turn_item.updated" && event.turnItem.type === "assistant_message"
+                ? event.turnItem.text
+                : null;
+          return output === null
+            ? Effect.void
+            : Ref.update(persisted, (current) => [...current, output]);
+        },
+      },
+    );
+    assert.deepEqual(yield* Ref.get(persisted), [text, text]);
+  }),
+);
+
 it.effect("ingests the trailing subagent item completion after the subagent row completes", () =>
   Effect.gen(function* () {
     const observed = yield* runBackgroundItemScenario("subagent-trailing-item", (ids) => [
@@ -4359,6 +4457,7 @@ function runBackgroundItemScenario(
       ReadonlyArray<{ readonly id: TurnItemId; readonly runId: RunId }>
     >;
     readonly onSubscribe?: Effect.Effect<void>;
+    readonly observe?: (event: ProviderAdapter.ProviderAdapterV2Event) => Effect.Effect<unknown>;
   },
 ) {
   return Effect.gen(function* () {
@@ -4391,6 +4490,7 @@ function runBackgroundItemScenario(
             ingestNormalized: (input) =>
               Effect.gen(function* () {
                 const event = input.event;
+                yield* options?.observe?.(event) ?? Effect.void;
                 if (event.type === "turn_item.updated") {
                   yield* Ref.update(observed, (current) => [
                     ...current,

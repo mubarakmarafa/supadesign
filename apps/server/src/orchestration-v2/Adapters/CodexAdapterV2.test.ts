@@ -35,6 +35,7 @@ import { SpawnExecutableResolution } from "@supaterm/shared/shell";
 import * as CodexClient from "effect-codex-app-server/client";
 import * as CodexError from "effect-codex-app-server/errors";
 import * as CodexReplay from "effect-codex-app-server/replay";
+import type * as CodexSchema from "effect-codex-app-server/schema";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
 import * as Crypto from "effect/Crypto";
@@ -2100,6 +2101,225 @@ describe("CodexAdapterV2 post-settle continuation", () => {
         firstTerminal: Deferred.await(firstTerminal),
       };
     });
+
+  type GeneratedImage = Extract<
+    CodexSchema.V2ItemCompletedNotification__ThreadItem,
+    { readonly type: "imageGeneration" }
+  >;
+  const imageCases: ReadonlyArray<{
+    readonly label: string;
+    readonly replies: ReadonlyArray<string>;
+    readonly expected: string;
+    readonly images?: ReadonlyArray<Partial<GeneratedImage>>;
+    readonly late?: boolean;
+    readonly unfinished?: boolean;
+    readonly status?: "completed" | "interrupted";
+  }> = [
+    { label: "text-only reply", replies: ["Done."], expected: "Done.\n\n![](</tmp/dog.png>)" },
+    { label: "no reply", replies: [], expected: "![](</tmp/dog.png>)" },
+    {
+      label: "authored image",
+      replies: ["![Dog](/tmp/dog.png)"],
+      expected: "![Dog](/tmp/dog.png)",
+    },
+    {
+      label: "ordinary link",
+      replies: ["[Download](/tmp/dog.png)"],
+      expected: "[Download](/tmp/dog.png)\n\n![](</tmp/dog.png>)",
+    },
+    {
+      label: "code example",
+      replies: ["`![](/tmp/dog.png)`"],
+      expected: "`![](/tmp/dog.png)`\n\n![](</tmp/dog.png>)",
+    },
+    {
+      label: "empty and duplicate trailing answers",
+      replies: ["Done.", "", "Done."],
+      expected: "Done.\n\n![](</tmp/dog.png>)",
+    },
+    {
+      label: "failed generation",
+      replies: ["Done."],
+      images: [{ status: "failed" }],
+      expected: "Done.",
+    },
+    {
+      label: "generation failure detail",
+      replies: ["Done."],
+      images: [{ failure: { type: "usageLimitExceeded", limitId: "images" } }],
+      expected: "Done.",
+    },
+    {
+      label: "missing saved path",
+      replies: ["Done."],
+      images: [{ savedPath: null }],
+      expected: "Done.",
+    },
+    {
+      label: "blank saved path",
+      replies: ["Done."],
+      images: [{ savedPath: " " }],
+      expected: "Done.",
+    },
+    {
+      label: "multiple images without reply",
+      replies: [],
+      images: [{}, { savedPath: "/tmp/cat.png" }],
+      expected: "![](</tmp/dog.png>)\n\n![](</tmp/cat.png>)",
+    },
+    {
+      label: "late generation",
+      replies: ["Done."],
+      late: true,
+      expected: "Done.\n\n![](</tmp/dog.png>)",
+    },
+    {
+      label: "completed image before interruption",
+      replies: ["Done."],
+      status: "interrupted",
+      expected: "Done.\n\n![](</tmp/dog.png>)",
+    },
+    {
+      label: "unfinished generation on interruption",
+      replies: ["Done."],
+      unfinished: true,
+      status: "interrupted",
+      expected: "Done.",
+    },
+  ];
+
+  it.effect.each(imageCases)("projects generated images: $label", (testCase) =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const nativeThreadId = "native-image-thread";
+        const nativeTurnId = "native-image-turn";
+        const prompt = "Generate a dog";
+        const imageData = "generated-image-base64-must-stay-on-server";
+        const images = (testCase.images ?? [{}]).map((image, index) => ({
+          type: "imageGeneration" as const,
+          id: `generated-image-${index}`,
+          status: "completed",
+          savedPath: "/tmp/dog.png",
+          result: imageData,
+          ...image,
+        }));
+        const imageEvent = (
+          item: GeneratedImage,
+          phase: "started" | "completed",
+        ): CodexReplay.CodexAppServerReplayEntry => ({
+          type: "emit_inbound",
+          frame: {
+            method: `item/${phase}`,
+            params: {
+              threadId: nativeThreadId,
+              turnId: nativeTurnId,
+              item:
+                phase === "started"
+                  ? { ...item, status: "in_progress", savedPath: null, result: "" }
+                  : item,
+              [`${phase}AtMs`]: 1782622445000,
+            },
+          },
+        });
+        const answers: Array<CodexReplay.CodexAppServerReplayEntry> = testCase.replies.map(
+          (text, index) => ({
+            type: "emit_inbound",
+            frame: {
+              method: "item/completed",
+              params: {
+                threadId: nativeThreadId,
+                turnId: nativeTurnId,
+                item: {
+                  type: "agentMessage",
+                  id: `dog-answer-${index}`,
+                  text,
+                  phase: "final_answer",
+                },
+                completedAtMs: 1782622446000 + index,
+              },
+            },
+          }),
+        );
+        const terminal: CodexReplay.CodexAppServerReplayEntry = {
+          type: "emit_inbound",
+          frame: {
+            method: "turn/completed",
+            params: {
+              threadId: nativeThreadId,
+              turn: makeCodexReplayTurn({
+                id: nativeTurnId,
+                status: testCase.status ?? "completed",
+              }),
+            },
+          },
+        };
+        const projected = yield* Deferred.make<void>();
+        const imageSettled = yield* Deferred.make<void>();
+        const harness = yield* makeCodexReplayHarness(
+          makeCodexReplayTranscript({
+            scenario: `generated-image-${testCase.label.replaceAll(" ", "-")}`,
+            entries: [
+              ...codexReplayPreamble({ nativeThreadId, nativeTurnId, prompt }),
+              ...images.map((image) => imageEvent(image, "started")),
+              ...(testCase.late ? [...answers, terminal] : []),
+              ...(testCase.unfinished ? [] : images.map((image) => imageEvent(image, "completed"))),
+              ...(testCase.late ? [] : [...answers, terminal]),
+            ],
+          }),
+          (event) =>
+            Effect.gen(function* () {
+              if (event.type === "message.updated" && event.message.text === testCase.expected) {
+                yield* Deferred.succeed(projected, undefined);
+              }
+              if (
+                event.type === "turn_item.updated" &&
+                event.turnItem.type === "dynamic_tool" &&
+                event.turnItem.status !== "running"
+              ) {
+                yield* Deferred.succeed(imageSettled, undefined);
+              }
+            }),
+        );
+        yield* harness.runtime.startTurn(
+          makeCodexTestTurnInput({
+            threadId: harness.threadId,
+            providerThread: harness.providerThread,
+            now: yield* DateTime.now,
+            attemptId: RunAttemptId.make("attempt-generated-image"),
+            text: prompt,
+          }),
+        );
+        yield* harness.firstTerminal;
+        yield* Deferred.await(projected);
+        yield* Deferred.await(imageSettled);
+        const messages = harness.events.flatMap((event) =>
+          event.type === "message.updated" ? [event.message] : [],
+        );
+        assert.strictEqual(messages.at(-1)?.text, testCase.expected);
+        assert.notInclude(encodeUnknownJson(harness.events), imageData);
+        assert.strictEqual(new Set(messages.map((message) => message.id)).size, 1);
+        assert.isFalse(yield* harness.hasPendingBackgroundWork);
+        if (testCase.late) {
+          const terminalIndex = harness.events.findIndex((event) => event.type === "turn.terminal");
+          const imageMessageIndex = harness.events.findIndex(
+            (event) => event.type === "message.updated" && event.message.text === testCase.expected,
+          );
+          const settledImageIndex = harness.events.findIndex(
+            (event) =>
+              event.type === "turn_item.updated" &&
+              event.turnItem.type === "dynamic_tool" &&
+              event.turnItem.status === "completed",
+          );
+          assert.isAbove(imageMessageIndex, terminalIndex);
+          assert.isAbove(settledImageIndex, imageMessageIndex);
+        }
+      }).pipe(
+        Effect.provide(
+          Layer.mergeAll(IdAllocator.layer, McpProviderSessions.layer, NodeServices.layer),
+        ),
+      ),
+    ),
+  );
 
   it.effect.each(["supported", "unsupported", "invalid"] as const)(
     "delivers native history with %s app-server protocol",

@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./markdownImageEmbeds": {
+      "types": "./src/markdownImageEmbeds.ts",
+      "import": "./src/markdownImageEmbeds.ts"
+    },
     "./githubMarkdownLinks": {
       "types": "./src/githubMarkdownLinks.ts",
       "import": "./src/githubMarkdownLinks.ts"

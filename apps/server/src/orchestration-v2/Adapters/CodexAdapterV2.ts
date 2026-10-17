@@ -41,6 +41,7 @@ import {
   dynamicToolTitle,
 } from "@supaterm/shared/toolActivity";
 import { toolOutputImages } from "@supaterm/shared/toolOutput";
+import { appendMissingImageEmbeds } from "@supaterm/shared/markdownImageEmbeds";
 import { getModelSelectionStringOptionValue, modelSelectionsEqual } from "@supaterm/shared/model";
 import { resolveSpawnCommand } from "@supaterm/shared/shell";
 import type {
@@ -488,10 +489,25 @@ function codexDynamicToolOutput(
   return item.success === false ? { success: false } : undefined;
 }
 
+function codexToolItemStatus(item: CodexDynamicToolItem) {
+  if (item.type !== "imageGeneration") return codexItemStatus(item.status);
+  if (item.status === "failed" || item.failure != null) return codexItemStatus("failed");
+  return codexItemStatus(item.status === "completed" ? "completed" : "inProgress");
+}
+
 export const projectCodexDynamicToolItem = Effect.fn("CodexAdapterV2.projectDynamicToolItem")(
   function* (
     item: CodexDynamicToolItem,
   ): Effect.fn.Return<CodexDynamicToolProjection, never, Crypto.Crypto> {
+    if (item.type === "imageGeneration") {
+      return {
+        toolName: "image_gen",
+        title: "Generate image",
+        input: item.revisedPrompt ?? null,
+        output: { savedPath: item.savedPath ?? null, failure: item.failure ?? null },
+        status: codexToolItemStatus(item).turnItem,
+      };
+    }
     const output =
       item.type === "mcpToolCall" ? codexMcpToolOutput(item) : codexDynamicToolOutput(item);
     const toolName =
@@ -1105,6 +1121,11 @@ function codexErrorInfoCode(value: unknown): string | null {
   return Object.keys(value)[0] ?? null;
 }
 
+class CodexGeneratedImages {
+  readonly paths = new Set<string>();
+  message: { readonly id: string; readonly text: string } | null = null;
+}
+
 interface ActiveCodexTurnContext {
   latestProviderFailure?: {
     readonly nativeMessage: string;
@@ -1126,6 +1147,7 @@ interface ActiveCodexTurnContext {
   readonly rootNodeId: OrchestrationV2ExecutionNode["id"];
   readonly subagent: CodexSubagentThreadContext | null;
   readonly startedAt: DateTime.Utc;
+  readonly generatedImages: CodexGeneratedImages;
   readonly itemPositions: Map<
     string,
     { readonly ordinal: number; readonly startedAt: DateTime.Utc }
@@ -1148,6 +1170,7 @@ interface TrackedRunningCommandItem {
 }
 
 function isPersistentCodexDynamicTool(item: CodexDynamicToolItem): boolean {
+  if (item.type === "imageGeneration") return true;
   const input = item.arguments;
   if (input === null || typeof input !== "object" || Array.isArray(input)) {
     return false;
@@ -1248,7 +1271,7 @@ type CodexWebSearchItem = {
 export type CodexDynamicToolItem = Extract<
   | CodexSchema.V2ItemStartedNotification__ThreadItem
   | CodexSchema.V2ItemCompletedNotification__ThreadItem,
-  { readonly type: "mcpToolCall" | "dynamicToolCall" }
+  { readonly type: "mcpToolCall" | "dynamicToolCall" | "imageGeneration" }
 >;
 
 type CodexCollabAgentToolCallItem = Extract<
@@ -1937,6 +1960,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               subagent: null,
               startedAt: input.startedAt,
               itemPositions: new Map(),
+              generatedImages: new CodexGeneratedImages(),
             };
             yield* Ref.update(limitedTurnItems, (current) => {
               const next = new Map(current);
@@ -2509,6 +2533,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               subagent,
               startedAt: turn.startedAt,
               itemPositions: new Map(),
+              generatedImages: new CodexGeneratedImages(),
             };
             beginTurnTokenUsage(activeContext);
             endSessionApprovalsOnModeChange(activeContext);
@@ -3319,6 +3344,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
                 turnItem: artifacts.turnItem,
               });
               if (finalAnswerItem && update.completed) {
+                context.generatedImages.message = { id: update.itemId, text: update.text };
                 yield* Ref.update(completedFinalAnswerTextsByTurn, (current) => {
                   const updated = new Map(current);
                   const texts = new Set(updated.get(update.turnId) ?? []);
@@ -3577,7 +3603,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
         ) =>
           Effect.gen(function* () {
             const updatedAt = yield* DateTime.now;
-            const status = codexItemStatus(item.status);
+            const status = codexToolItemStatus(item);
             const completedAt = status.completed ? updatedAt : null;
             const nodeId = idAllocator.derive.nodeFromProviderItem({
               driver: CODEX_PROVIDER,
@@ -4612,8 +4638,12 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               return;
             }
 
-            if (payload.item.type === "mcpToolCall" || payload.item.type === "dynamicToolCall") {
-              if (!codexItemStatus(payload.item.status).completed) {
+            if (
+              payload.item.type === "mcpToolCall" ||
+              payload.item.type === "dynamicToolCall" ||
+              payload.item.type === "imageGeneration"
+            ) {
+              if (!codexToolItemStatus(payload.item).completed) {
                 yield* trackRunningDynamicTool(payload.turnId, payload.item);
               }
               const artifacts = yield* buildDynamicToolArtifacts(context, payload.item);
@@ -4762,8 +4792,19 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               return;
             }
 
-            if (payload.item.type === "mcpToolCall" || payload.item.type === "dynamicToolCall") {
+            if (
+              payload.item.type === "mcpToolCall" ||
+              payload.item.type === "dynamicToolCall" ||
+              payload.item.type === "imageGeneration"
+            ) {
               yield* clearRunningDynamicTool(payload.turnId, payload.item.id);
+              if (payload.item.type === "imageGeneration") {
+                const { savedPath, status, failure } = payload.item;
+                if (status === "completed" && failure == null && savedPath?.trim()) {
+                  context.generatedImages.paths.add(savedPath);
+                }
+                if (settled) yield* projectGeneratedImages(context);
+              }
               const appResourceUri = codexMcpAppResourceUri(payload.item);
               if (appResourceUri !== undefined && payload.item.type === "mcpToolCall") {
                 yield* captureMcpApp(context, payload.turnId, payload.item, appResourceUri);
@@ -5642,6 +5683,35 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
           },
         );
 
+        const projectGeneratedImages = Effect.fnUntraced(function* (
+          context: ActiveCodexTurnContext,
+        ) {
+          if (context.generatedImages.paths.size === 0) return;
+          const message = context.generatedImages.message ?? {
+            id: `${context.nativeTurnId}:generated-images`,
+            text: "",
+          };
+          const text = appendMissingImageEmbeds(message.text, context.generatedImages.paths);
+          if (text === message.text) return;
+          context.generatedImages.message = { ...message, text };
+          const artifacts = yield* buildAgentMessageArtifacts(context, { ...message, text }, true);
+          yield* emitProviderEvent({
+            type: "node.updated",
+            driver: CODEX_PROVIDER,
+            node: artifacts.node,
+          });
+          yield* emitProviderEvent({
+            type: "message.updated",
+            driver: CODEX_PROVIDER,
+            message: artifacts.message,
+          });
+          yield* emitProviderEvent({
+            type: "turn_item.updated",
+            driver: CODEX_PROVIDER,
+            turnItem: artifacts.turnItem,
+          });
+        });
+
         const finalizeCodexTurn = (input: {
           readonly context: ActiveCodexTurnContext;
           readonly nativeTurnId: string;
@@ -5698,6 +5768,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
               yield* agentMessageDeltas.flushTurn(input.nativeTurnId);
               yield* reasoningDeltas.flushTurn(input.nativeTurnId);
               yield* planDeltas.flushTurn(input.nativeTurnId);
+              yield* projectGeneratedImages(input.context);
               for (const [key, part] of reasoningParts) {
                 if (part.turnId === input.nativeTurnId) reasoningParts.delete(key);
               }
@@ -5952,6 +6023,7 @@ export const makeCodexAdapterV2 = Effect.fn("makeCodexAdapterV2")(function* (
             subagent: null,
             startedAt: now,
             itemPositions: new Map(),
+            generatedImages: new CodexGeneratedImages(),
           };
           const providerTurn = {
             id: context.providerTurnId,
