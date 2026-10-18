@@ -35,7 +35,7 @@ class NativeTunnel(
   private val timing: Timing = Timing()
 ) : AutoCloseable {
   companion object {
-    const val BACKGROUND_GRACE_MILLIS = 15_000L
+    const val BACKGROUND_GRACE_MILLIS = 5 * 60_000L
     private const val SWITCHING_PROTOCOLS = 101
   }
 
