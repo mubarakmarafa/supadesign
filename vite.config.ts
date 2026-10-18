@@ -293,6 +293,15 @@ export default defineConfig({
         rules: { "supaterm/no-mobile-uniwind-theme-escape-hatches": "error" },
       },
       {
+        files: ["apps/mobile/src/**"],
+        excludeFiles: [
+          "apps/mobile/src/components/ui/AppSymbol.tsx",
+          "apps/mobile/src/components/ui/AppSymbol.ios.tsx",
+          "apps/mobile/src/features/pull-requests/pullRequestGlyphs.ts",
+        ],
+        rules: { "supaterm/no-mobile-pull-request-glyph-literals": "error" },
+      },
+      {
         // React commits state set in a raw ResizeObserver callback after the paint, so derived
         // layout lands a frame late. observeResize flushes every observed resize in one render.
         files: ["apps/web/src/**"],
@@ -366,6 +375,29 @@ export default defineConfig({
         },
       },
       {
+        // Every web file must compile under the React Compiler. Its bailout rules are errors here,
+        // and manual memoization is redundant. No built-in oxlint rule bans useMemo/useCallback,
+        // hence supaterm/no-manual-memo.
+        files: ["apps/web/src/**/*.{ts,tsx}"],
+        rules: {
+          "react/exhaustive-effect-dependencies": "error",
+          "react/globals": "error",
+          "react/hooks": "error",
+          "react/immutability": "error",
+          // The compiler memoizes context values; this rule would ask for useMemo.
+          "react/jsx-no-constructed-context-values": "off",
+          "react/memo-dependencies": "error",
+          "react/preserve-manual-memoization": "error",
+          "react/purity": "error",
+          "react/refs": "error",
+          "react/set-state-in-effect": "error",
+          "react/set-state-in-render": "error",
+          "react/static-components": "error",
+          "react/unsupported-syntax": "error",
+          "supaterm/no-manual-memo": "error",
+        },
+      },
+      {
         // Shared client code must not call APIs missing from Hermes. Our ESNext
         // TypeScript target accepts them even when they would crash mobile at launch.
         // Tests run on Node and are exempt.
@@ -377,6 +409,13 @@ export default defineConfig({
         ],
         excludeFiles: ["**/*.test.ts", "**/*.test.tsx"],
         rules: { "supaterm/no-hermes-unsupported-apis": "error" },
+      },
+      {
+        // Mobile is ratcheting toward full React Compiler coverage
+        // (apps/mobile/src/reactCompilerCoverage.test.ts). Directives would hide bailouts from it;
+        // the manual memo hooks go once the allowlist there is empty.
+        files: ["apps/mobile/src/**/*.{ts,tsx}"],
+        rules: { "supaterm/no-manual-memo": ["error", { allowMemoHooks: true }] },
       },
       {
         files: [
@@ -399,10 +438,8 @@ export default defineConfig({
           "apps/mobile/src/features/settings/appearance/components/FontSizeSliderRow.tsx",
           "apps/mobile/src/features/threads/NewTaskContextPickerScreens.tsx",
           "apps/mobile/src/features/threads/ThreadQueueControl.tsx",
-          "apps/mobile/src/features/threads/ThreadAgentsSheet.tsx",
           "apps/mobile/src/features/review/ReviewCommentCard.tsx",
           "apps/mobile/src/features/threads/ThreadSettingsSheet.tsx",
-          "apps/mobile/src/features/threads/git/GitOverviewSheet.tsx",
           "apps/mobile/src/features/threads/thread-list-items.tsx",
           "apps/mobile/src/features/threads/thread-list-v2-items.tsx",
           "apps/mobile/src/lib/useMobileNavigationTheme.ts",

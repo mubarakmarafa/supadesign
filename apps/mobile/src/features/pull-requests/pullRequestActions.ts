@@ -1,11 +1,13 @@
 import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
-import type {
-  PullRequestAction,
-  PullRequestDetail,
-  PullRequestMergeMethod,
-  SourceControlProviderKind,
+import {
+  type PullRequestAction,
+  pullRequestActionAllowed,
+  type PullRequestDetail,
+  type PullRequestMergeMethod,
+  type SourceControlProviderKind,
 } from "@supaterm/contracts";
 import type { AppSymbolName } from "../../components/ui/AppSymbol";
+import { PullRequestGlyph } from "./pullRequestGlyphs";
 
 type ActionDetail = Pick<
   PullRequestDetail,
@@ -17,7 +19,7 @@ type ActionDetail = Pick<
   >;
   readonly viewerPermissions: Pick<
     PullRequestDetail["viewerPermissions"],
-    "actions" | "updateMethods"
+    "actions" | "updateMethods" | "deleteBranch"
   >;
   readonly mergeCapabilities: PullRequestDetail["mergeCapabilities"];
 };
@@ -46,7 +48,7 @@ export const PR_ACTION_LABELS = {
 } as const satisfies Record<PullRequestAction, string>;
 
 export const PR_ACTION_ICONS = {
-  merge: "arrow.triangle.merge",
+  merge: PullRequestGlyph.merged,
   ready: "checkmark.circle",
   draft: "pencil",
   close: "xmark",
@@ -59,20 +61,6 @@ export const PR_ACTION_ICONS = {
   "approve-workflows": "checkmark",
 } as const satisfies Record<PullRequestAction, AppSymbolName>;
 
-export const ALL_PR_ACTIONS: readonly PullRequestAction[] = [
-  "merge",
-  "ready",
-  "draft",
-  "update-branch",
-  "enable-auto-merge",
-  "disable-auto-merge",
-  "approve-workflows",
-  "close",
-  "reopen",
-  "revert",
-  "delete-branch",
-];
-
 export function allowedMergeMethods(pr: ActionDetail) {
   return pr.capabilities.mergeMethods.filter((method) => pr.mergeCapabilities[method]);
 }
@@ -84,12 +72,14 @@ export function allowedUpdateMethods(pr: ActionDetail) {
 }
 
 export function canPerformPullRequestAction(pr: ActionDetail, action: PullRequestAction) {
-  if (!pr.capabilities.actions.includes(action) || !pr.viewerPermissions.actions.includes(action))
+  if (
+    !pullRequestActionAllowed(pr.capabilities, action) ||
+    !pullRequestActionAllowed(pr.viewerPermissions, action)
+  )
     return false;
   if (action === "reopen") return pr.state === "closed";
   if (action === "revert") return pr.state === "merged";
-  if (action === "delete-branch")
-    return pr.state !== "open" && pr.capabilities.deleteBranch === true;
+  if (action === "delete-branch") return pr.state !== "open";
   if (pr.state !== "open") return false;
   switch (action) {
     case "update-branch":

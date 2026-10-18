@@ -855,6 +855,8 @@ function kindUnionWithFallback<
 const PendingBackgroundTaskFields = {
   taskId: TrimmedNonEmptyString,
   description: Schema.optional(TrimmedNonEmptyString),
+  /** The subagent task that started this work and waits on it. */
+  parentTaskId: Schema.optional(TrimmedNonEmptyString),
 };
 
 export const OrchestrationV2PendingBackgroundTask = kindUnionWithFallback(
@@ -862,6 +864,8 @@ export const OrchestrationV2PendingBackgroundTask = kindUnionWithFallback(
     Schema.Struct({
       ...PendingBackgroundTaskFields,
       kind: Schema.Literal("subagent"),
+      /** The owning provider thread's instance, populated in derived pending work. */
+      providerInstanceId: Schema.optional(ProviderInstanceId),
       childThreadId: Schema.optional(ThreadId),
     }),
     Schema.Struct({ ...PendingBackgroundTaskFields, kind: Schema.Literal("command") }),
@@ -869,9 +873,10 @@ export const OrchestrationV2PendingBackgroundTask = kindUnionWithFallback(
     Schema.Struct({ ...PendingBackgroundTaskFields, kind: Schema.Literal("background_task") }),
   ],
   (kind) => Schema.Struct({ ...PendingBackgroundTaskFields, kind }),
-  ({ taskId, description }) => ({
+  ({ taskId, description, parentTaskId }) => ({
     taskId,
     ...(description === undefined ? {} : { description }),
+    ...(parentTaskId === undefined ? {} : { parentTaskId }),
     kind: "background_task",
   }),
 );
@@ -1139,6 +1144,11 @@ export const OrchestrationV2ConversationMessage = Schema.Struct({
   ...OrchestrationV2CreationFields,
   scheduledTaskId: Schema.optional(ScheduledTaskId),
   senderThreadId: Schema.optional(ThreadId),
+  /**
+   * The message is the script a provider-native workflow run executes, not prose. Clients show
+   * the workflow's opening instead and keep the script behind a disclosure.
+   */
+  workflowScript: Schema.optional(Schema.Boolean),
   id: MessageId,
   threadId: ThreadId,
   runId: Schema.NullOr(RunId),
@@ -1374,6 +1384,7 @@ export const OrchestrationV2TurnItem = Schema.Union([
     messageId: MessageId,
     scheduledTaskId: Schema.optional(ScheduledTaskId),
     senderThreadId: Schema.optional(ThreadId),
+    workflowScript: OrchestrationV2ConversationMessage.fields.workflowScript,
     inputIntent: OrchestrationV2UserMessageInputIntent,
     text: Schema.String,
     context: Schema.optional(OrchestrationMessageContext),
@@ -1915,7 +1926,7 @@ export const OrchestrationV2ShellSnapshot = Schema.Struct({
 });
 export type OrchestrationV2ShellSnapshot = typeof OrchestrationV2ShellSnapshot.Type;
 
-export const OrchestrationV2ShellStreamItem = Schema.Union([
+const OrchestrationV2KnownShellStreamItems = [
   Schema.Struct({
     kind: Schema.Literal("synchronized"),
   }),
@@ -1946,6 +1957,43 @@ export const OrchestrationV2ShellStreamItem = Schema.Union([
     location: Schema.Literals(["active", "archive"]),
     threadId: ThreadId,
   }),
+] as const;
+
+const knownShellStreamItemKinds: ReadonlySet<string> = new Set(
+  OrchestrationV2KnownShellStreamItems.map((member) => member.fields.kind.literal),
+);
+
+/**
+ * A shell stream item whose kind this build does not know. Newer servers add kinds; older
+ * clients decode them to this case and skip them instead of failing the whole subscription.
+ */
+const OrchestrationV2UnknownShellStreamItem = Schema.Struct({
+  kind: Schema.String.check(
+    Schema.makeFilter(
+      (kind: string) =>
+        !knownShellStreamItemKinds.has(kind) || "A known shell stream kind must decode in full.",
+    ),
+  ),
+}).pipe(
+  Schema.decodeTo(
+    Schema.Struct({
+      kind: Schema.Literal("unknown-item"),
+      itemKind: Schema.String,
+    }),
+    {
+      decode: SchemaGetter.transform((item) => ({
+        kind: "unknown-item" as const,
+        itemKind: item.kind,
+      })),
+      encode: SchemaGetter.forbidden(() => "Servers never send unknown shell stream items."),
+    },
+  ),
+);
+
+export const OrchestrationV2ShellStreamItem = Schema.Union([
+  ...OrchestrationV2KnownShellStreamItems,
+  // After the known arms: union members are tried in order.
+  OrchestrationV2UnknownShellStreamItem,
 ]);
 export type OrchestrationV2ShellStreamItem = typeof OrchestrationV2ShellStreamItem.Type;
 
@@ -2129,6 +2177,7 @@ export const OrchestrationV2TurnItemJson = Schema.Union([
     messageId: MessageId,
     scheduledTaskId: Schema.optional(ScheduledTaskId),
     senderThreadId: Schema.optional(ThreadId),
+    workflowScript: OrchestrationV2ConversationMessage.fields.workflowScript,
     inputIntent: OrchestrationV2UserMessageInputIntent,
     text: Schema.String,
     context: Schema.optional(OrchestrationMessageContext),

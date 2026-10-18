@@ -35,17 +35,14 @@ const ResizablePanelGroupContext = React.createContext<ResizablePanelGroupContex
 
 function ResizablePanelGroup({ onLayoutChanged, ...props }: GroupProps) {
   const listeners = React.useRef(new Set<() => void>());
-  const context = React.useMemo<ResizablePanelGroupContextValue>(
-    () => ({
-      subscribe: (listener) => {
-        listeners.current.add(listener);
-        return () => {
-          listeners.current.delete(listener);
-        };
-      },
-    }),
-    [],
-  );
+  const context: ResizablePanelGroupContextValue = {
+    subscribe: (listener) => {
+      listeners.current.add(listener);
+      return () => {
+        listeners.current.delete(listener);
+      };
+    },
+  };
   return (
     <ResizablePanelGroupContext value={context}>
       <Group
@@ -217,19 +214,19 @@ function useCollapsiblePanel(options: ResizablePanelWidthOptions) {
   );
 
   // Sizes are measured, so a toggle reports every animated frame; keep the pinned width.
-  const onResize = React.useCallback((size: PanelSize) => {
+  const onResize = (size: PanelSize) => {
     const element = elementRef.current;
     if (!element || size.inPixels === 0 || element.hasAttribute(PANEL_TOGGLING_ATTRIBUTE)) return;
     element.style.setProperty(PANEL_WIDTH_PROPERTY, `${size.inPixels}px`);
-  }, []);
+  };
 
-  const reset = React.useCallback(() => {
+  const reset = () => {
     const current = latest.current;
     writeStoredWidth(current.storageKey, null);
     applied.current = { open: current.open, width: current.defaultWidth };
     setStored({ storageKey: current.storageKey, width: current.defaultWidth });
     if (current.open) panel?.resize(current.defaultWidth);
-  }, [panel]);
+  };
 
   return {
     panelProps: {

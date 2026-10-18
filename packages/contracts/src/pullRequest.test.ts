@@ -5,11 +5,14 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   PullRequestActionInput,
   PullRequestCapabilities,
+  PullRequestListedAction,
   PullRequestFilesViewedResult,
   PullRequestListInput,
   PullRequestListResult,
   PullRequestReviewerRequestInput,
   PullRequestSetFilesViewedInput,
+  PullRequestViewerPermissions,
+  pullRequestActionAllowed,
   pullRequestHostOf,
   resolvePullRequestAuthorFilter,
 } from "./pullRequest.ts";
@@ -273,6 +276,67 @@ describe("PullRequestCapabilities", () => {
   it("only offers branch deletion when the server advertises it", () => {
     expect(decodeCapabilities(base).deleteBranch).toBeUndefined();
     expect(decodeCapabilities({ ...base, deleteBranch: true }).deleteBranch).toBe(true);
+  });
+});
+
+describe("action lists from a newer server", () => {
+  const decodeCapabilities = Schema.decodeUnknownSync(PullRequestCapabilities);
+  const decodePermissions = Schema.decodeUnknownSync(PullRequestViewerPermissions);
+  const capabilities = {
+    diff: true,
+    comment: true,
+    actions: ["merge", "summon-reviewer", "close"],
+    mergeMethods: [],
+    search: true,
+    review: { inlineComment: true, reply: true, resolve: true, verdicts: [] },
+    reviewers: { request: true, listCandidates: true },
+  };
+  const permissions = {
+    actions: ["summon-reviewer", "reopen"],
+    comment: true,
+    resolve: true,
+    verdicts: [],
+    requestReviewers: false,
+  };
+
+  it("drops actions this build does not know instead of failing the payload", () => {
+    expect(decodeCapabilities(capabilities).actions).toEqual(["merge", "close"]);
+    expect(decodePermissions(permissions).actions).toEqual(["reopen"]);
+    const [provider] = LIST_RESULT.providers;
+    expect(
+      decodeListResult({
+        ...LIST_RESULT,
+        providers: [{ ...provider, actions: ["merge", "summon-reviewer"] }],
+      }).providers[0]?.actions,
+    ).toEqual(["merge"]);
+  });
+
+  it("keeps the listed actions to what v26.10.1 clients decode", () => {
+    expect(new Set(PullRequestListedAction.literals)).toEqual(
+      new Set([
+        "merge",
+        "ready",
+        "draft",
+        "close",
+        "reopen",
+        "update-branch",
+        "enable-auto-merge",
+        "disable-auto-merge",
+        "revert",
+        "approve-workflows",
+      ]),
+    );
+  });
+
+  it("reads branch deletion from its flags, not from the lists", () => {
+    const listed = { ...decodeCapabilities(capabilities), actions: ["merge"] as const };
+    expect(pullRequestActionAllowed(listed, "delete-branch")).toBe(false);
+    expect(pullRequestActionAllowed({ ...listed, deleteBranch: true }, "delete-branch")).toBe(true);
+    expect(pullRequestActionAllowed(listed, "merge")).toBe(true);
+    const viewer = decodePermissions({ ...permissions, deleteBranch: true });
+    expect(pullRequestActionAllowed(viewer, "delete-branch")).toBe(true);
+    expect(pullRequestActionAllowed(decodePermissions(permissions), "delete-branch")).toBe(false);
+    expect(pullRequestActionAllowed(viewer, "merge")).toBe(false);
   });
 });
 

@@ -14,6 +14,7 @@ import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import * as TestClock from "effect/testing/TestClock";
@@ -26,7 +27,11 @@ import type {
 import { DEFAULT_SERVER_SETTINGS } from "@supaterm/contracts/settings";
 import type { ServerSettings } from "@supaterm/contracts";
 import * as ServerSettingsService from "../serverSettings.ts";
-import { PullRequestOperationError } from "@supaterm/contracts";
+import {
+  PullRequestDetail,
+  PullRequestListResult,
+  PullRequestOperationError,
+} from "@supaterm/contracts";
 
 import * as ProjectService from "../project/ProjectService.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
@@ -646,6 +651,68 @@ it.effect("reports each host's actions with its summary, so rows can offer them 
     const result = yield* service.list({ state: "open" });
 
     assert.deepStrictEqual(result.providers[0]?.actions, ["merge", "close"]);
+  }),
+);
+
+const V26_10_1_LISTED_ACTIONS: ReadonlySet<string> = new Set([
+  "merge",
+  "ready",
+  "draft",
+  "close",
+  "reopen",
+  "update-branch",
+  "enable-auto-merge",
+  "disable-auto-merge",
+  "revert",
+  "approve-workflows",
+]);
+
+it.effect("sends v26.10.1 clients only actions they can decode, branch deletion included", () =>
+  Effect.gen(function* () {
+    const github = yield* GitHubPullRequestProvider.make.pipe(
+      Effect.provide(Layer.mock(GitHubPullRequestApi.GitHubPullRequestApi)({})),
+    );
+    const service = yield* makeService({
+      projects: [project({ id: "p1", title: "web", workspaceRoot: "/w", repository: "acme/web" })],
+      providers: [
+        fakeProvider(SourceControlProviderKind.make("github"), {
+          capabilities: github.capabilities,
+          getChangeRequest: () =>
+            Effect.succeed({
+              ...hostedChangeRequest("Description"),
+              state: "merged" as const,
+              viewerPermissions: GitHubPullRequestProvider.gitHubViewerPermissions({
+                canWrite: true,
+                canDeleteBranch: true,
+                canTriage: true,
+                canUpdate: true,
+                canUpdateBranch: true,
+                didAuthor: false,
+              }),
+            }),
+        }),
+      ],
+    });
+
+    const detail = yield* service
+      .detail({ projectId: "p1" as ProjectId, repository: "acme/web", number: 1 })
+      .pipe(Effect.flatMap(Schema.encodeEffect(PullRequestDetail)));
+    const list = yield* service
+      .list({ state: "open" })
+      .pipe(Effect.flatMap(Schema.encodeEffect(PullRequestListResult)));
+    const sent = [
+      ...detail.capabilities.actions,
+      ...detail.viewerPermissions.actions,
+      ...list.providers.flatMap((provider) => provider.actions ?? []),
+    ];
+
+    assert.isAbove(sent.length, 0);
+    assert.deepStrictEqual(
+      sent.filter((action) => !V26_10_1_LISTED_ACTIONS.has(action)),
+      [],
+    );
+    assert.strictEqual(detail.capabilities.deleteBranch, true);
+    assert.strictEqual(detail.viewerPermissions.deleteBranch, true);
   }),
 );
 
@@ -1692,7 +1759,7 @@ it.effect("runs branch deletion only when the host and viewer support it, never 
           ...base,
           capabilities: {
             ...base.capabilities,
-            actions: ["delete-branch"],
+            actions: [],
             stackActions: true,
             get deleteBranch() {
               return supported;
@@ -1700,7 +1767,8 @@ it.effect("runs branch deletion only when the host and viewer support it, never 
           },
           getViewerPermissions: () =>
             Effect.succeed({
-              actions: allowed ? ["delete-branch"] : [],
+              actions: [],
+              deleteBranch: allowed,
               comment: true,
               resolve: true,
               verdicts: [],
@@ -7936,4 +8004,134 @@ it.effect.each([
       });
       assert.deepStrictEqual(calls, [expected]);
     }),
+);
+
+it.effect("expands only files the change request changes, across every slice of its diff", () =>
+  Effect.gen(function* () {
+    const read: Array<string> = [];
+    const service = yield* makeService({
+      projects: [
+        project({
+          id: "p1",
+          title: "supaterm",
+          workspaceRoot: "/a",
+          repository: "supabitapp/supacode-next",
+        }),
+      ],
+      providers: [
+        fakeProvider(SourceControlProviderKind.make("github"), {
+          getDiff: (input) =>
+            Effect.succeed(
+              input.cursor === undefined
+                ? {
+                    patch: [
+                      "diff --git a/src/old.ts b/src/new.ts",
+                      "rename from src/old.ts",
+                      "rename to src/new.ts",
+                      "--- a/src/old.ts",
+                      "+++ b/src/new.ts",
+                      "",
+                    ].join("\n"),
+                    truncated: false,
+                    nextCursor: "2",
+                  }
+                : {
+                    patch: [
+                      "diff --git a/gone.md b/gone.md",
+                      "deleted file mode 100644",
+                      "--- a/gone.md",
+                      "+++ /dev/null",
+                      "",
+                    ].join("\n"),
+                    truncated: false,
+                    nextCursor: null,
+                  },
+            ),
+          getDiffFileContents: (input) =>
+            Effect.sync(() => {
+              read.push(`${input.oldPath}->${input.newPath}`);
+              return { oldContents: "old", newContents: "new" };
+            }),
+        }),
+      ],
+    });
+    const ref = { projectId: "p1" as ProjectId, repository: "supabitapp/supacode-next", number: 1 };
+
+    yield* service.diffFileContents({
+      ...ref,
+      changeType: "rename-changed",
+      oldPath: "src/old.ts",
+      newPath: "src/new.ts",
+    });
+    yield* service.diffFileContents({
+      ...ref,
+      changeType: "deleted",
+      oldPath: "gone.md",
+      newPath: "gone.md",
+    });
+    const outside = yield* service
+      .diffFileContents({ ...ref, changeType: "deleted", oldPath: ".env", newPath: ".env" })
+      .pipe(Effect.flip);
+    const halfRename = yield* service
+      .diffFileContents({
+        ...ref,
+        changeType: "change",
+        oldPath: "src/secret.ts",
+        newPath: "src/new.ts",
+      })
+      .pipe(Effect.flip);
+
+    assert.strictEqual(outside._tag, "PullRequestOperationError");
+    assert.strictEqual(halfRename._tag, "PullRequestOperationError");
+    assert.deepStrictEqual(read, ["src/old.ts->src/new.ts", "gone.md->gone.md"]);
+  }),
+);
+
+it.effect("checks expanded files against a diff too large to cache without fetching it again", () =>
+  Effect.gen(function* () {
+    let diffReads = 0;
+    const filler = `+${"x".repeat(300 * 1024)}`;
+    const service = yield* makeService({
+      projects: [
+        project({
+          id: "p1",
+          title: "supaterm",
+          workspaceRoot: "/a",
+          repository: "supabitapp/supacode-next",
+        }),
+      ],
+      providers: [
+        fakeProvider(SourceControlProviderKind.make("github"), {
+          getDiff: () =>
+            Effect.sync(() => {
+              diffReads += 1;
+              return {
+                patch: ["a.ts", "b.ts"]
+                  .flatMap((name) => [
+                    `diff --git a/${name} b/${name}`,
+                    `--- a/${name}`,
+                    `+++ b/${name}`,
+                    "@@ -0,0 +1 @@",
+                    filler,
+                  ])
+                  .join("\n"),
+                truncated: false,
+                nextCursor: null,
+              };
+            }),
+          getDiffFileContents: () => Effect.succeed({ oldContents: "old", newContents: "new" }),
+        }),
+      ],
+    });
+    const ref = { projectId: "p1" as ProjectId, repository: "supabitapp/supacode-next", number: 1 };
+    for (const name of ["a.ts", "b.ts"]) {
+      yield* service.diffFileContents({
+        ...ref,
+        changeType: "change",
+        oldPath: name,
+        newPath: name,
+      });
+    }
+    assert.strictEqual(diffReads, 1);
+  }),
 );

@@ -5,7 +5,6 @@ import type {
   ThreadPullRequestLink,
 } from "@supaterm/contracts";
 
-import * as Arr from "effect/Array";
 import { parseChangeRequestUrl } from "./changeRequestUrl.ts";
 import { canonicalRepositoryKey } from "./sourceControl.ts";
 
@@ -67,8 +66,21 @@ export function threadPullRequestKeysEqual(
   return threadPullRequestKeyOf(left) === threadPullRequestKeyOf(right);
 }
 
+// Clients re-derive chains for every link on each render, and normalizing parses the
+// link's URL. Links are immutable and keep their identity until they change.
+const normalizedKeys = new WeakMap<ThreadPullRequestKeySource, ThreadPullRequestKey>();
+
+function normalizedKeyOf(key: ThreadPullRequestKeySource): ThreadPullRequestKey {
+  let normalized = normalizedKeys.get(key);
+  if (normalized === undefined) {
+    normalized = normalizeThreadPullRequestKey(key);
+    normalizedKeys.set(key, normalized);
+  }
+  return normalized;
+}
+
 export function threadPullRequestKeyOf(key: ThreadPullRequestKeySource): string {
-  const normalized = normalizeThreadPullRequestKey(key);
+  const normalized = normalizedKeyOf(key);
   return `${normalized.host}/${normalized.repository}#${normalized.number}`;
 }
 
@@ -98,6 +110,15 @@ export type ThreadCurrentPullRequest =
       readonly top: ThreadPullRequestLink;
     };
 
+function layersFromTop(chain: ThreadPullRequestChain): Array<ThreadPullRequestLink> {
+  // `.sort()` on a fresh array, not `.toSorted()`: this runs on Hermes, which has no ES2023
+  // array methods, and a TypeError here is fatal on every mobile launch that renders a stack.
+  return chain.layers
+    .map((link, index) => ({ link, index, depth: chain.depths[index]! }))
+    .sort((left, right) => right.depth - left.depth || right.index - left.index)
+    .map((entry) => entry.link);
+}
+
 export function resolveThreadCurrentPullRequest(
   links: ReadonlyArray<ThreadPullRequestLink>,
 ): ThreadCurrentPullRequest | null {
@@ -108,7 +129,7 @@ export function resolveThreadCurrentPullRequest(
   const chains = resolveThreadPullRequestChains(visible);
   if (open.length > 1) {
     const openChains = chains
-      .map((chain) => Arr.reverse(chain.layers).filter(isOpen))
+      .map((chain) => layersFromTop(chain).filter(isOpen))
       .filter((layers) => layers.length > 0)
       .sort(
         (left, right) =>
@@ -119,7 +140,7 @@ export function resolveThreadCurrentPullRequest(
     return { kind: "stack", open: ordered, top: ordered[0]! };
   }
   if (chains.length === 1) {
-    return { kind: "single", link: chains[0]!.layers.at(-1)! };
+    return { kind: "single", link: layersFromTop(chains[0]!)[0]! };
   }
   const terminal = [...visible].sort(
     (left, right) => latestUpdatedAt(right) - latestUpdatedAt(left),
@@ -138,6 +159,8 @@ export function resolveThreadCurrentPullRequestLink(
 export interface ThreadPullRequestChain {
   readonly kind: "native" | "derived";
   readonly layers: ReadonlyArray<ThreadPullRequestLink>;
+  /** One per layer: 0 for the base, parent's depth + 1 above it. Siblings share a depth. */
+  readonly depths: ReadonlyArray<number>;
 }
 
 export function resolveThreadPullRequestChains(
@@ -150,7 +173,7 @@ export function resolveThreadPullRequestChains(
   const nativeStacks = new Map<string, Array<ThreadPullRequestLink>>();
   for (const link of visible) {
     if (link.stack === null) continue;
-    const key = normalizeThreadPullRequestKey(link);
+    const key = normalizedKeyOf(link);
     const stackKey = `${key.host}/${key.repository}#stack:${link.stack.id}`;
     const members = nativeStacks.get(stackKey) ?? [];
     members.push(link);
@@ -160,12 +183,12 @@ export function resolveThreadPullRequestChains(
     const order = new Map(members[0]!.stack!.layers.map((layer, index) => [layer.number, index]));
     members.sort((left, right) => (order.get(left.number) ?? 0) - (order.get(right.number) ?? 0));
     for (const member of members) placed.add(threadPullRequestKeyOf(member));
-    chains.push({ kind: "native", layers: members });
+    chains.push({ kind: "native", layers: members, depths: members.map((_, index) => index) });
   }
 
   const remaining = visible.filter((link) => !placed.has(threadPullRequestKeyOf(link)));
   const branchKey = (link: ThreadPullRequestLink, branch: string) => {
-    const key = normalizeThreadPullRequestKey(link);
+    const key = normalizedKeyOf(link);
     return `${key.host}/${key.repository}:${branch}`;
   };
   const byHead = new Map<string, ThreadPullRequestLink | null>();
@@ -174,29 +197,44 @@ export function resolveThreadPullRequestChains(
     const key = branchKey(link, link.snapshot.headBranch);
     byHead.set(key, byHead.has(key) ? null : link);
   }
-  const hasChild = new Set<string>();
-  for (const link of remaining) {
-    if (link.snapshot === null) continue;
+  const parentOf = (link: ThreadPullRequestLink) => {
+    if (link.snapshot === null) return undefined;
     const parent = byHead.get(branchKey(link, link.snapshot.baseBranch));
-    if (parent != null && parent !== link) hasChild.add(threadPullRequestKeyOf(parent));
+    return parent == null || parent === link ? undefined : parent;
+  };
+  const children = new Map<string, Array<ThreadPullRequestLink>>();
+  for (const link of remaining) {
+    const parent = parentOf(link);
+    if (parent === undefined) continue;
+    const key = threadPullRequestKeyOf(parent);
+    const siblings = children.get(key) ?? [];
+    siblings.push(link);
+    children.set(key, siblings);
   }
-  for (const top of remaining) {
-    if (hasChild.has(threadPullRequestKeyOf(top))) continue;
+  for (const base of remaining) {
+    if (parentOf(base) !== undefined) continue;
     const layers: Array<ThreadPullRequestLink> = [];
-    let cursor: ThreadPullRequestLink | undefined = top;
-    while (cursor !== undefined && !placed.has(threadPullRequestKeyOf(cursor))) {
-      placed.add(threadPullRequestKeyOf(cursor));
-      layers.unshift(cursor);
-      cursor =
-        cursor.snapshot === null
-          ? undefined
-          : (byHead.get(branchKey(cursor, cursor.snapshot.baseBranch)) ?? undefined);
+    const depths: Array<number> = [];
+    const pending: Array<{ readonly link: ThreadPullRequestLink; readonly depth: number }> = [
+      { link: base, depth: 0 },
+    ];
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+      const key = threadPullRequestKeyOf(next.link);
+      // Two links with one identity would otherwise share a child list and expand forever.
+      if (placed.has(key)) continue;
+      placed.add(key);
+      layers.push(next.link);
+      depths.push(next.depth);
+      const below = children.get(key) ?? [];
+      for (let index = below.length - 1; index >= 0; index -= 1) {
+        pending.push({ link: below[index]!, depth: next.depth + 1 });
+      }
     }
-    if (layers.length > 0) chains.push({ kind: "derived", layers });
+    if (layers.length > 0) chains.push({ kind: "derived", layers, depths });
   }
   for (const link of remaining) {
     if (!placed.has(threadPullRequestKeyOf(link))) {
-      chains.push({ kind: "derived", layers: [link] });
+      chains.push({ kind: "derived", layers: [link], depths: [0] });
     }
   }
   return chains;
@@ -266,4 +304,38 @@ export function applyThreadPullRequestLinkUpdate(
       threadPullRequestKeysEqual(link, updated) ? updated : link,
     ),
   };
+}
+
+export interface PullRequestListLine {
+  readonly link: ThreadPullRequestLink;
+  readonly depth: number;
+  readonly chainKey: string;
+  readonly stack: { readonly kind: ThreadPullRequestChain["kind"]; readonly size: number } | null;
+}
+
+function chainKeyOf(chain: ThreadPullRequestChain): string {
+  const bottom = chain.layers[0]!;
+  return `${bottom.host}/${bottom.repository}#${bottom.number}`;
+}
+
+export function pullRequestListLines(
+  chains: ReadonlyArray<ThreadPullRequestChain>,
+): ReadonlyArray<PullRequestListLine> {
+  const ordered = [...chains].sort(
+    (left, right) =>
+      Math.max(...right.layers.map(latestUpdatedAt)) -
+      Math.max(...left.layers.map(latestUpdatedAt)),
+  );
+  return ordered.flatMap((chain) => {
+    const chainKey = chainKeyOf(chain);
+    return chain.layers.map((link, index) => ({
+      link,
+      depth: chain.depths[index]!,
+      chainKey,
+      stack:
+        index === 0 && chain.layers.length > 1
+          ? { kind: chain.kind, size: chain.layers.length }
+          : null,
+    }));
+  });
 }

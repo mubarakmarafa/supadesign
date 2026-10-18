@@ -221,6 +221,32 @@ describe("orchestration V2 contracts", () => {
     ).toThrow();
   });
 
+  it("decodes shell stream kinds from a newer server as skippable items", () => {
+    const codec = Schema.toCodecJson(Schema.Array(OrchestrationV2RpcSchemas.subscribeShell.output));
+    const decodeWireItems = Schema.decodeUnknownSync(codec);
+    const removed = (sequence: number) => ({
+      kind: "project.removed",
+      sequence,
+      projectId: "project-1",
+    });
+
+    const items = decodeWireItems([
+      removed(1),
+      { kind: "project.archived", sequence: 2, projectId: "project-1" },
+      removed(3),
+    ]);
+
+    expect(items.map((item) => item.kind)).toEqual([
+      "project.removed",
+      "unknown-item",
+      "project.removed",
+    ]);
+    expect(items[1]).toEqual({ kind: "unknown-item", itemKind: "project.archived" });
+    expect(() => decodeWireItems([{ kind: "project.removed", sequence: 4 }])).toThrow();
+    expect(Schema.encodeUnknownSync(codec)([items[0]])).toEqual([removed(1)]);
+    expect(() => Schema.encodeUnknownSync(codec)([items[1]])).toThrow();
+  });
+
   it("skips turn item types from a newer server in snapshots and turn-item events", () => {
     const decodeWireItems = Schema.decodeUnknownSync(
       Schema.toCodecJson(Schema.Array(OrchestrationV2RpcSchemas.subscribeThread.output)),
@@ -1489,6 +1515,7 @@ describe("background work kinds from older or newer servers", () => {
         { taskId: "bg-3", description: "Nightly", kind: "workflow", schedule: "0 3 * * *" },
         { taskId: "bg-4", description: "npm test", kind: "command" },
         { taskId: "bg-5", kind: "subagent", childThreadId: "thread-child" },
+        { taskId: "bg-6", kind: "subagent", providerInstanceId: "claudeAgent" },
       ],
     });
     expect(providerThread.pendingBackgroundTasks).toEqual([
@@ -1497,6 +1524,7 @@ describe("background work kinds from older or newer servers", () => {
       { taskId: "bg-3", description: "Nightly", kind: "background_task" },
       { taskId: "bg-4", description: "npm test", kind: "command" },
       { taskId: "bg-5", kind: "subagent", childThreadId: "thread-child" },
+      { taskId: "bg-6", kind: "subagent", providerInstanceId: "claudeAgent" },
     ]);
     const encoded = encodeOrchestrationV2ProviderThreadJson(providerThread).pendingBackgroundTasks;
     expect(encoded).toEqual(providerThread.pendingBackgroundTasks);
@@ -1515,6 +1543,7 @@ describe("background work kinds from older or newer servers", () => {
       "bg-3",
       "bg-4",
       "bg-5",
+      "bg-6",
     ]);
     expect(() =>
       decodeOrchestrationV2ProviderThreadJson({

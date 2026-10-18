@@ -1,12 +1,12 @@
 import { CheckIcon, CopyIcon, Maximize2Icon } from "lucide-react";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../components/ui/tooltip";
 import { useCopyToClipboard } from "../hooks/useCopyToClipboard";
 import { renderMermaidDiagram } from "./mermaidRenderer";
 import { ExpandedPreviewDialog } from "../components/chat/ExpandedPreviewDialog";
-import { MarkdownFindContext, useFindRevealRef } from "../components/chat/markdownFindContext";
+import { MarkdownFindContext, findRevealRef } from "../components/chat/markdownFindContext";
 
 export function MermaidBlock({
   source,
@@ -23,8 +23,8 @@ export function MermaidBlock({
   const [showSource, setShowSource] = useState(false);
   const [expandedDiagram, setExpandedDiagram] = useState<string | null>(null);
   const searching = use(MarkdownFindContext);
-  const revealSource = useCallback(() => setShowSource(true), []);
-  const sourceRevealRef = useFindRevealRef(revealSource);
+  const revealSource = () => setShowSource(true);
+  const sourceRevealRef = findRevealRef(revealSource);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const { copyToClipboard, isCopied } = useCopyToClipboard<string>({
     timeout: 1200,
