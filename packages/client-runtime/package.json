@@ -295,6 +295,10 @@
       "types": "./src/state/threadBank.ts",
       "default": "./src/state/threadBank.ts"
     },
+    "./state/thread-progress": {
+      "types": "./src/state/threadProgress.ts",
+      "default": "./src/state/threadProgress.ts"
+    },
     "./state/project-summary": {
       "types": "./src/state/projectSummary.ts",
       "default": "./src/state/projectSummary.ts"

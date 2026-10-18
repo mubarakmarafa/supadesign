@@ -50,6 +50,7 @@ export * from "./projectBoard.ts";
 export * from "./projectWorkspace.ts";
 export * from "./liveEnvironment.ts";
 export * from "./threadBank.ts";
+export * from "./threadProgress.ts";
 export * from "./filesystem.ts";
 export * from "./agentSessions.ts";
 export * from "./assets.ts";

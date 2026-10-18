@@ -61,6 +61,7 @@ import * as DeviceHubProxy from "./device/DeviceHubProxy.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as LiveEnvironmentLayer from "./liveEnvironment/layer.ts";
 import * as ThreadBankLayer from "./threadBank/layer.ts";
+import * as ThreadProgressLayer from "./threadProgress/layer.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
 import * as ServerBrowser from "./preview/ServerBrowser.ts";
@@ -532,7 +533,11 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   // Subscribes to `account.rate-limits.updated` so usage bars track live
   // telemetry instead of waiting for the next status probe.
   ProviderUsageLimitsIngestion.layer,
-  LiveEnvironmentLayer.layer.pipe(Layer.provide(ProjectionStoreV2.layer)),
+  // Card progress captures the live card after each turn, so it builds on live environments.
+  ThreadProgressLayer.layer.pipe(
+    Layer.provideMerge(LiveEnvironmentLayer.layer),
+    Layer.provide(ProjectionStoreV2.layer),
+  ),
   ThreadBankLayer.layer.pipe(Layer.provide(ProjectionStoreV2.layer)),
   ProjectSummary.layer,
   layerProviderInstallationRefresh,
@@ -552,6 +557,9 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   Layer.provideMerge(layerGit),
   Layer.provideMerge(layerVcs),
   Layer.provideMerge(Layer.mergeAll(layerTerminal, layerPreview, layerDevice)),
+  // Server browser tabs, HTML render previews, and card progress captures install and run
+  // the same headless browser.
+  Layer.provideMerge(PreviewBrowser.layer),
   Layer.provideMerge(layerPersistence),
   // Both read a user-owned file out of the state directory and stream changes
   // to clients; neither depends on the other.
@@ -678,8 +686,6 @@ const layerMakeRoutes = Layer.mergeAll(
   Layer.provide(layerPullRequestService),
   // The stream route and the WebSocket RPCs share one browser.
   Layer.provide(ServerBrowser.layer.pipe(Layer.provide(DesktopBrowserChannel.layer))),
-  // Server browser tabs and HTML render previews install and run the same headless browser.
-  Layer.provide(PreviewBrowser.layer),
   Layer.provide(PreviewAutomationBroker.layer),
   Layer.provide(ServerSelfUpdate.layer.pipe(Layer.provide(layerDesktopAppUpdate))),
   Layer.provide(layerCommandReadiness),

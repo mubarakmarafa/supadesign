@@ -179,6 +179,8 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   liveEnvironment: Schema.optionalKey(Schema.Boolean),
   /** Server stores banked messages per thread (threadBank.* RPCs). */
   threadBank: Schema.optionalKey(Schema.Boolean),
+  /** Server keeps card progress images and summaries (threadProgress.* RPCs). */
+  threadProgress: Schema.optionalKey(Schema.Boolean),
   /** Server answers projects.summary for the projects grid. */
   projectSummary: Schema.optionalKey(Schema.Boolean),
   /** Server understands thread.auto-settle.set (per-thread auto-settle off).

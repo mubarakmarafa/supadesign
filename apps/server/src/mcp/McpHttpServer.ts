@@ -28,6 +28,8 @@ import { PreviewControlsToolkit } from "./toolkits/previewControls/tools.ts";
 import * as PreviewControlsHandlers from "./toolkits/previewControls/handlers.ts";
 import { LiveEnvironmentToolkit } from "./toolkits/liveEnvironment/tools.ts";
 import * as LiveEnvironmentHandlers from "./toolkits/liveEnvironment/handlers.ts";
+import { ProgressToolkit } from "./toolkits/progress/tools.ts";
+import * as ProgressHandlers from "./toolkits/progress/handlers.ts";
 import { EnvironmentToolkit } from "./toolkits/environment/tools.ts";
 import * as EnvironmentHandlers from "./toolkits/environment/handlers.ts";
 import { ProjectToolkit } from "./toolkits/project/tools.ts";
@@ -827,6 +829,8 @@ const layerLiveEnvironmentRegistration = toolkitRegistration(
   LiveEnvironmentHandlers.layer,
 );
 
+const layerProgressRegistration = toolkitRegistration(ProgressToolkit, ProgressHandlers.layer);
+
 const layerPreviewControlsRegistration = toolkitRegistration(
   PreviewControlsToolkit,
   PreviewControlsHandlers.layer,
@@ -881,6 +885,7 @@ export const layer = Layer.mergeAll(
   layerEnvironmentToolkit,
   layerPreviewControlsRegistration,
   layerLiveEnvironmentRegistration,
+  layerProgressRegistration,
   layerWorktreeToolkitRegistration,
   layerPullRequestsToolkit,
   layerDeviceToolkit,

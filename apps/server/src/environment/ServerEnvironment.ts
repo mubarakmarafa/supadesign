@@ -247,6 +247,7 @@ export const make = Effect.gen(function* () {
       projectWorkspace: true,
       liveEnvironment: true,
       threadBank: true,
+      threadProgress: true,
       projectSummary: true,
       threadAutoSettleOptOut: true,
       threadTitleRegeneration: true,

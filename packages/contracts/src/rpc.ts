@@ -171,6 +171,15 @@ import {
   ThreadBankUpdateInput,
 } from "./threadBank.ts";
 import {
+  ThreadProgressCaptureInput,
+  ThreadProgressError,
+  ThreadProgressList,
+  ThreadProgressProjectInput,
+  ThreadProgressRemoveInput,
+  ThreadProgressUpdate,
+  ThreadSummarySetInput,
+} from "./threadProgress.ts";
+import {
   OrchestrationSearchThreadsError,
   OrchestrationSearchThreadsInput,
   OrchestrationSearchThreadsResult,
@@ -461,6 +470,10 @@ export const WS_METHODS = {
   threadBankReorder: "threadBank.reorder",
   threadBankSend: "threadBank.send",
   subscribeThreadBanks: "subscribeThreadBanks",
+  threadProgressCapture: "threadProgress.capture",
+  threadProgressRemove: "threadProgress.remove",
+  threadSummarySet: "threadProgress.setSummary",
+  subscribeThreadProgress: "subscribeThreadProgress",
 
   // Projects grid
   projectsSummary: "projects.summary",
@@ -1654,6 +1667,29 @@ const WsSubscribeThreadBanksRpc = Rpc.make(WS_METHODS.subscribeThreadBanks, {
   stream: true,
 });
 
+const WsThreadProgressCaptureRpc = Rpc.make(WS_METHODS.threadProgressCapture, {
+  payload: ThreadProgressCaptureInput,
+  success: ThreadProgressUpdate,
+  error: Schema.Union([ThreadProgressError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadProgressRemoveRpc = Rpc.make(WS_METHODS.threadProgressRemove, {
+  payload: ThreadProgressRemoveInput,
+  error: Schema.Union([ThreadProgressError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadSummarySetRpc = Rpc.make(WS_METHODS.threadSummarySet, {
+  payload: ThreadSummarySetInput,
+  error: Schema.Union([ThreadProgressError, EnvironmentAuthorizationError]),
+});
+
+const WsSubscribeThreadProgressRpc = Rpc.make(WS_METHODS.subscribeThreadProgress, {
+  payload: ThreadProgressProjectInput,
+  success: ThreadProgressList,
+  error: EnvironmentAuthorizationError,
+  stream: true,
+});
+
 const WsSubscribeDiscoveredLocalServersRpc = Rpc.make(WS_METHODS.subscribeDiscoveredLocalServers, {
   payload: Schema.Struct({
     configuredUrls: Schema.optional(ConfiguredLocalServerUrls),
@@ -2100,6 +2136,10 @@ export const WsRpcGroup = RpcGroup.make(
   WsThreadBankReorderRpc,
   WsThreadBankSendRpc,
   WsSubscribeThreadBanksRpc,
+  WsThreadProgressCaptureRpc,
+  WsThreadProgressRemoveRpc,
+  WsThreadSummarySetRpc,
+  WsSubscribeThreadProgressRpc,
   WsProjectsSummaryRpc,
   WsVcsListRefsRpc,
   WsVcsCreateWorktreeRpc,
