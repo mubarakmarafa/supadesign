@@ -7,6 +7,70 @@ import * as Schema from "effect/Schema";
 import type { SQLiteDatabase } from "expo-sqlite";
 
 const DATABASE_NAME = "supaterm-client.db";
+export const DATABASE_SCHEMA_VERSION = 1;
+
+const DATABASE_SCHEMA_SQL = `
+  CREATE TABLE IF NOT EXISTS client_cache (
+    environment_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    cache_key TEXT NOT NULL,
+    schema_version INTEGER NOT NULL,
+    payload TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (environment_id, kind, cache_key)
+  ) WITHOUT ROWID;
+
+  CREATE INDEX IF NOT EXISTS client_cache_environment_updated
+    ON client_cache (environment_id, updated_at DESC);
+
+  CREATE TABLE IF NOT EXISTS client_preferences (
+    singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+    payload TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`;
+
+interface DatabaseMigration {
+  readonly version: number;
+  readonly migrate: (transaction: SQLiteDatabase) => Promise<void>;
+}
+
+const DATABASE_MIGRATIONS: ReadonlyArray<DatabaseMigration> = [
+  {
+    version: 1,
+    migrate: (transaction) => transaction.execAsync(DATABASE_SCHEMA_SQL),
+  },
+];
+
+async function migrateDatabase(database: SQLiteDatabase): Promise<void> {
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    const schema = await transaction.getFirstAsync<{ readonly user_version: number }>(
+      "PRAGMA user_version",
+    );
+    if (schema === null) {
+      throw new Error("Could not read the mobile database schema version");
+    }
+    if (schema.user_version > DATABASE_SCHEMA_VERSION) {
+      throw new Error(
+        `Mobile database schema ${schema.user_version} is newer than supported schema ${DATABASE_SCHEMA_VERSION}`,
+      );
+    }
+
+    let currentVersion = schema.user_version;
+    for (const migration of DATABASE_MIGRATIONS) {
+      if (migration.version <= currentVersion) continue;
+      if (migration.version !== currentVersion + 1) {
+        throw new Error(`Missing mobile database migration for schema ${currentVersion + 1}`);
+      }
+      await migration.migrate(transaction);
+      await transaction.execAsync(`PRAGMA user_version = ${migration.version}`);
+      currentVersion = migration.version;
+    }
+    if (currentVersion !== DATABASE_SCHEMA_VERSION) {
+      throw new Error(`Missing mobile database migration for schema ${currentVersion + 1}`);
+    }
+  });
+}
 
 export const ClientCacheKind = Schema.Literals([
   "shell",
@@ -132,28 +196,7 @@ const makeAvailable = Effect.gen(function* () {
   yield* Effect.tryPromise({
     try: async () => {
       await database.execAsync("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
-      await database.withExclusiveTransactionAsync(async (transaction) => {
-        await transaction.execAsync(`
-              CREATE TABLE IF NOT EXISTS client_cache (
-                environment_id TEXT NOT NULL,
-                kind TEXT NOT NULL,
-                cache_key TEXT NOT NULL,
-                schema_version INTEGER NOT NULL,
-                payload TEXT NOT NULL,
-                updated_at INTEGER NOT NULL,
-                PRIMARY KEY (environment_id, kind, cache_key)
-              ) WITHOUT ROWID;
-
-              CREATE INDEX IF NOT EXISTS client_cache_environment_updated
-                ON client_cache (environment_id, updated_at DESC);
-
-              CREATE TABLE IF NOT EXISTS client_preferences (
-                singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
-                payload TEXT NOT NULL,
-                updated_at INTEGER NOT NULL
-              );
-            `);
-      });
+      await migrateDatabase(database);
     },
     catch: databaseError("migrate"),
   });

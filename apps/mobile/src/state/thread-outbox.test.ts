@@ -318,24 +318,52 @@ describe("thread outbox", () => {
     });
   });
 
-  it("decodes the persisted schema and rejects incomplete messages", () => {
+  it.each([1, 2, 3, 4] as const)(
+    "decodes persisted schema version %s into the current message",
+    (schemaVersion) => {
+      const message = queuedMessage({
+        messageId: `message-v${schemaVersion}`,
+        createdAt: "2026-06-08T10:00:01.000Z",
+      });
+
+      expect(
+        decodeQueuedThreadMessage({
+          schemaVersion,
+          ...message,
+        }),
+      ).toEqual(message);
+    },
+  );
+
+  it("rejects unknown and incomplete persisted messages", () => {
     const message = queuedMessage({
       messageId: "message-1",
       createdAt: "2026-06-08T10:00:01.000Z",
     });
 
-    expect(
-      decodeQueuedThreadMessage({
-        schemaVersion: 4,
-        ...message,
-      }),
-    ).toEqual(message);
     expect(() =>
       decodeQueuedThreadMessage({
         schemaVersion: 4,
         environmentId: "environment-1",
       }),
     ).toThrow();
+    expect(() => decodeQueuedThreadMessage({ schemaVersion: 5, ...message })).toThrow();
+  });
+
+  it("loads a schema v3 file without rewriting it eagerly", async () => {
+    onTestFinished(() => outboxFiles.clear());
+    const message = queuedMessage({
+      messageId: "message-v3",
+      createdAt: "2026-06-08T10:00:01.000Z",
+    });
+    const stored = JSON.stringify({ schemaVersion: 3, ...message });
+    outboxFiles.set("message-v3.json", stored);
+
+    await expect(expoThreadOutboxStorage.load()).resolves.toEqual({
+      messages: [message],
+      errors: [],
+    });
+    expect(outboxFiles.get("message-v3.json")).toBe(stored);
   });
 
   it("persists generic attachment paths without embedding their contents", () => {
