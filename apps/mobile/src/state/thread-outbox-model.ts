@@ -52,7 +52,7 @@ const QueuedThreadCreationSchema = Schema.Struct({
 });
 
 const QueuedThreadMessageSchema = Schema.Struct({
-  schemaVersion: Schema.Literal(THREAD_OUTBOX_SCHEMA_VERSION),
+  schemaVersion: Schema.Literals([1, 2, 3, THREAD_OUTBOX_SCHEMA_VERSION]),
   environmentId: EnvironmentId,
   threadId: ThreadId,
   messageId: MessageId,

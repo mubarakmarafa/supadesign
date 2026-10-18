@@ -37,8 +37,16 @@ const mocks = vi.hoisted(() => {
       closeAsync: vi.fn(() => Promise.resolve()),
       execAsync: vi.fn(() => Promise.resolve()),
       withExclusiveTransactionAsync: vi.fn(
-        (run: (transaction: { execAsync: () => Promise<void> }) => Promise<void>) =>
-          run({ execAsync: () => Promise.resolve() }),
+        (
+          run: (transaction: {
+            execAsync: () => Promise<void>;
+            getFirstAsync: () => Promise<{ readonly user_version: number }>;
+          }) => Promise<void>,
+        ) =>
+          run({
+            execAsync: () => Promise.resolve(),
+            getFirstAsync: () => Promise.resolve({ user_version: 0 }),
+          }),
       ),
       getFirstAsync: vi.fn(() => {
         if (loadPreferencesFails) {
