@@ -2173,6 +2173,7 @@ export default function ChatView(props: ChatViewProps) {
   const fanoutState = useAtomValue(fanoutStateAtom);
   const sendInFlightRef = fanoutState.sendInFlight;
   const isSendInFlight = useEffectEvent(() => sendInFlightRef.current);
+  const isSendInFlightStable = useStableCallback(() => sendInFlightRef.current);
   const [resumingThreadKeys, setResumingThreadKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -9994,6 +9995,7 @@ export default function ChatView(props: ChatViewProps) {
             draftId={draftId}
             activeProjectRef={activeProjectRef}
             activeProjectTitle={activeProject?.title ?? null}
+            isSendInFlight={isSendInFlightStable}
           />
         ) : null
       }
