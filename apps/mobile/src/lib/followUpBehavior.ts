@@ -2,4 +2,4 @@ import type { ActiveTurnComposerAction } from "@supaterm/client-runtime/state/co
 
 export type FollowUpBehavior = Extract<ActiveTurnComposerAction, "queue" | "steer">;
 
-export const DEFAULT_FOLLOW_UP_BEHAVIOR: FollowUpBehavior = "queue";
+export const DEFAULT_FOLLOW_UP_BEHAVIOR: FollowUpBehavior = "steer";
