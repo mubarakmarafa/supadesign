@@ -1,5 +1,6 @@
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
+import * as SchemaGetter from "effect/SchemaGetter";
 import { AcpRegistryUrlAuthAction } from "./acpRegistry.ts";
 import {
   type EnvironmentMachineKind,
@@ -9,6 +10,7 @@ import {
 import { ServerAuthDescriptor } from "./auth.ts";
 import {
   ForwardCompatibleArray,
+  hasUnknownUnionTag,
   IsoDateTime,
   NonNegativeInt,
   PositiveInt,
@@ -739,30 +741,55 @@ export const ServerConfigStreamEnvironmentThemesUpdatedEvent = Schema.Struct({
 export type ServerConfigStreamEnvironmentThemesUpdatedEvent =
   typeof ServerConfigStreamEnvironmentThemesUpdatedEvent.Type;
 
-/**
- * Servers that still had usage-limit hubs send this on every connect. Clients
- * decode and drop it so the config stream survives an older server.
- */
-export const ServerConfigStreamUsageLimitSourcesUpdatedEvent = Schema.Struct({
-  version: Schema.Literal(1),
-  type: Schema.Literal("usageLimitSourcesUpdated"),
-  payload: Schema.Unknown,
-});
-
 export const ServerConfigStreamRelayAdvertisementUpdatedEvent = Schema.Struct({
   version: Schema.Literal(1),
   type: Schema.Literal("relayAdvertisementUpdated"),
   payload: Schema.NullOr(RelayConnectionInfo),
 });
 
-export const ServerConfigStreamEvent = Schema.Union([
+const ServerConfigKnownStreamEvents = [
   ServerConfigStreamSnapshotEvent,
   ServerConfigStreamKeybindingsUpdatedEvent,
   ServerConfigStreamProviderStatusesEvent,
   ServerConfigStreamSettingsUpdatedEvent,
   ServerConfigStreamEnvironmentThemesUpdatedEvent,
-  ServerConfigStreamUsageLimitSourcesUpdatedEvent,
   ServerConfigStreamRelayAdvertisementUpdatedEvent,
+] as const;
+
+const isUnknownServerConfigStreamEvent = hasUnknownUnionTag(ServerConfigKnownStreamEvents, "type");
+
+/**
+ * A config event whose type this build does not know, such as a newer server's event or the
+ * `usageLimitSourcesUpdated` that servers with usage-limit hubs send on every connect. A failed
+ * config subscription closes the connection, so clients skip these instead.
+ */
+const ServerConfigStreamUnknownEvent = Schema.Struct({ type: Schema.String })
+  .check(
+    Schema.makeFilter(
+      (event) =>
+        isUnknownServerConfigStreamEvent(event) || "A known config event type must decode in full.",
+    ),
+  )
+  .pipe(
+    Schema.decodeTo(
+      Schema.Struct({
+        type: Schema.Literal("unknown-event"),
+        eventType: Schema.String,
+      }),
+      {
+        decode: SchemaGetter.transform((event) => ({
+          type: "unknown-event" as const,
+          eventType: event.type,
+        })),
+        encode: SchemaGetter.forbidden(() => "Servers never send unknown config events."),
+      },
+    ),
+  );
+
+export const ServerConfigStreamEvent = Schema.Union([
+  ...ServerConfigKnownStreamEvents,
+  // After the known arms: union members are tried in order.
+  ServerConfigStreamUnknownEvent,
 ]);
 export type ServerConfigStreamEvent = typeof ServerConfigStreamEvent.Type;
 
