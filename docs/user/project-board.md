@@ -42,7 +42,8 @@ Select **Add widget** at the top of the board to add:
 - **Live preview**: the live card's dev server, with its branch. Its menu
   switches to another server that is already running, with this project's own
   servers listed first. It never starts a server; when nothing is live it shows
-  the project's most recently active one.
+  the project's most recently active one, including a server a card's agent
+  started itself in the project folder or the card's worktree.
 - **Figma**: paste a figma.com file, design, or prototype link to keep the
   design goal next to the live preview.
 - **Usage**: tokens and spend for today and the last 7 days, plus plan limits.

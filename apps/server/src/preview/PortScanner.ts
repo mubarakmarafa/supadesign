@@ -49,7 +49,19 @@ export class PortDiscovery extends Context.Service<
   }
 >()("supaterm/preview/PortScanner/PortDiscovery") {}
 
+/**
+ * Folders whose dev servers count as Supaterm's own: project roots and thread
+ * worktrees. A listener started outside a terminal (by an agent, say) is probed
+ * only when its process runs inside one of these.
+ */
+export class PortDiscoveryWorkspaceRoots extends Context.Reference<
+  Effect.Effect<ReadonlyArray<string>>
+>("supaterm/preview/PortScanner/PortDiscoveryWorkspaceRoots", {
+  defaultValue: () => Effect.succeed([]),
+}) {}
+
 const POLL_INTERVAL = Duration.seconds(3);
+const WORKSPACE_ROOTS_TTL_MS = Duration.toMillis(Duration.seconds(15));
 const LSOF_TIMEOUT_MS = 5_000;
 
 const PROC_FD_WALK_LIMIT = 50_000;
@@ -210,6 +222,37 @@ const parseLsofOutput = (
   return Array.from(seen.values()).toSorted((a, b) => a.port - b.port);
 };
 
+/** Process working directories from `lsof -a -d cwd -p <pids> -F pn`. */
+export const parseLsofCwdOutput = (raw: string): ReadonlyMap<number, string> => {
+  const cwds = new Map<number, string>();
+  let pid: number | null = null;
+  for (const line of raw.split("\n")) {
+    const tag = line.charAt(0);
+    const value = line.slice(1);
+    if (tag === "p") {
+      const parsed = Number.parseInt(value, 10);
+      pid = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    } else if (tag === "n" && pid !== null && value.startsWith("/")) {
+      cwds.set(pid, value);
+    }
+  }
+  return cwds;
+};
+
+/** The root that contains `path`, or null. Roots and path are absolute. */
+export const containingWorkspaceRoot = (
+  path: string,
+  roots: ReadonlyArray<string>,
+): string | null => {
+  for (const raw of roots) {
+    const root = raw.length > 1 ? raw.replace(/[\\/]+$/, "") : raw;
+    if (path === root || path.startsWith(`${root}/`) || path.startsWith(`${root}\\`)) {
+      return root;
+    }
+  }
+  return null;
+};
+
 const parsePortFromLsofName = (name: string): number | null => {
   // Examples: "*:5173", "127.0.0.1:5173", "[::1]:5173", "localhost:5173",
   //           "192.168.1.10:5173 (LISTEN)" — we only care if the host part is local.
@@ -302,7 +345,8 @@ const serversEqual = (
       a.processName !== b.processName ||
       a.pid !== b.pid ||
       a.terminal?.threadId !== b.terminal?.threadId ||
-      a.terminal?.terminalId !== b.terminal?.terminalId
+      a.terminal?.terminalId !== b.terminal?.terminalId ||
+      (a.cwd ?? null) !== (b.cwd ?? null)
     ) {
       return false;
     }
@@ -327,6 +371,13 @@ export const make = Effect.gen(function* PortDiscoveryMake() {
   const webProbeCacheRef = yield* Ref.make<ReadonlyMap<string, WebProbeCacheEntry>>(new Map());
   const scanSemaphore = yield* Semaphore.make(1);
   const lsofMissingRef = yield* Ref.make(false);
+  const workspaceRoots = yield* PortDiscoveryWorkspaceRoots;
+  const workspaceRootsRef = yield* Ref.make<{
+    readonly roots: ReadonlyArray<string>;
+    readonly expiresAtMillis: number;
+  }>({ roots: [], expiresAtMillis: 0 });
+  // A process's working directory rarely changes, so each pid is read once.
+  const processCwdsRef = yield* Ref.make<ReadonlyMap<number, string | null>>(new Map());
 
   const socketOwnersRef = yield* Ref.make<
     ReadonlyMap<string, { readonly pid: number; readonly processName: string | null }>
@@ -420,6 +471,76 @@ export const make = Effect.gen(function* PortDiscoveryMake() {
     return [...seen.values()].toSorted((left, right) => left.port - right.port);
   });
 
+  const currentWorkspaceRoots = Effect.fn("PortDiscovery.currentWorkspaceRoots")(function* () {
+    const nowMillis = yield* Clock.currentTimeMillis;
+    const cached = yield* Ref.get(workspaceRootsRef);
+    if (cached.expiresAtMillis > nowMillis) return cached.roots;
+    const roots = yield* workspaceRoots;
+    yield* Ref.set(workspaceRootsRef, {
+      roots,
+      expiresAtMillis: nowMillis + WORKSPACE_ROOTS_TTL_MS,
+    });
+    return roots;
+  });
+
+  const readProcessCwds = Effect.fn("PortDiscovery.readProcessCwds")(function* (
+    pids: ReadonlyArray<number>,
+  ) {
+    if (pids.length === 0) return new Map<number, string>();
+    if (hostPlatform === "linux") {
+      const entries = yield* Effect.forEach(
+        pids,
+        (pid) =>
+          fileSystem.readLink(`/proc/${pid}/cwd`).pipe(
+            Effect.map((cwd) => [pid, cwd] as const),
+            Effect.orElseSucceed(() => null),
+          ),
+        { concurrency: 16 },
+      );
+      return new Map(entries.filter((entry) => entry !== null));
+    }
+    if (hostPlatform === "win32") return new Map<number, string>();
+    return yield* processRunner
+      .run({
+        command: "lsof",
+        args: ["-a", "-d", "cwd", "-p", pids.join(","), "-F", "pn"],
+        timeout: Duration.millis(LSOF_TIMEOUT_MS),
+        // lsof exits non-zero when one of the pids has gone away; the rest still print.
+        maxOutputBytes: 1024 * 1024,
+      })
+      .pipe(
+        Effect.map((result) => parseLsofCwdOutput(result.stdout)),
+        Effect.orElseSucceed(() => new Map<number, string>()),
+      );
+  });
+
+  /**
+   * Marks listeners outside Supaterm terminals with their working directory
+   * when it is inside a project or worktree, which makes them safe to probe.
+   */
+  const attachWorkspaceCwds = Effect.fn("PortDiscovery.attachWorkspaceCwds")(function* (
+    servers: ReadonlyArray<DiscoveredLocalServer>,
+  ) {
+    const candidates = servers.filter((server) => server.terminal === null && server.pid !== null);
+    if (candidates.length === 0) return servers;
+    const roots = yield* currentWorkspaceRoots();
+    if (roots.length === 0) return servers;
+    const known = yield* Ref.get(processCwdsRef);
+    const pids = [...new Set(candidates.map((server) => server.pid!))];
+    const read = yield* readProcessCwds(pids.filter((pid) => !known.has(pid)));
+    const cwds = new Map(
+      pids.map((pid) => [pid, known.has(pid) ? known.get(pid)! : (read.get(pid) ?? null)] as const),
+    );
+    yield* Ref.set(processCwdsRef, cwds);
+    return servers.map((server) => {
+      if (server.terminal !== null || server.pid === null) return server;
+      const cwd = cwds.get(server.pid) ?? null;
+      return cwd !== null && containingWorkspaceRoot(cwd, roots) !== null
+        ? { ...server, cwd }
+        : server;
+    });
+  });
+
   const probeWebUrl = Effect.fn("PortDiscovery.probeWebUrl")((url: string) =>
     httpClient.get(url).pipe(
       Effect.map((response) => {
@@ -474,8 +595,9 @@ export const make = Effect.gen(function* PortDiscoveryMake() {
 
     for (const server of servers) {
       // A listener alone does not identify its protocol. Sending HTTP or TLS to
-      // another app's binary RPC listener can crash it before classification.
-      if (server.terminal === null) continue;
+      // another app's binary RPC listener can crash it before classification,
+      // so only listeners from terminals or project folders are probed.
+      if (server.terminal === null && server.cwd == null) continue;
       groups.push({
         server,
         urls: [`http://${server.host}:${server.port}`, `https://${server.host}:${server.port}`],
@@ -492,7 +614,7 @@ export const make = Effect.gen(function* PortDiscoveryMake() {
   ) {
     const nowMillis = yield* Clock.currentTimeMillis;
     const cached = yield* Ref.get(webProbeCacheRef);
-    const groups = makeWebProbeGroups(servers, configuredUrls);
+    const groups = makeWebProbeGroups(yield* attachWorkspaceCwds(servers), configuredUrls);
     const batchProbes = new Map<
       string,
       Effect.Effect<{ readonly probe: WebProbeCacheEntry; readonly fresh: boolean }>

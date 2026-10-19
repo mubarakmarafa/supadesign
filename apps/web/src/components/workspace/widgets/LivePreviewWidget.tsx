@@ -29,6 +29,7 @@ import { WidgetMessage, WorkspaceWidgetFrame, useWorkspaceFrame } from "../Works
 import {
   type LivePreviewCandidate,
   type PreviewPortCandidate,
+  previewServerOwner,
   resolvePreviewSelection,
   setWorkspaceWidgetSettings,
   sortPreviewPorts,
@@ -79,20 +80,24 @@ export function LivePreviewWidget({
     () =>
       sortPreviewPorts(
         servers.map((server): PreviewPortCandidate => {
-          const thread =
-            server.terminal === null ? undefined : threadById.get(server.terminal.threadId);
+          const { thread, inProject } = previewServerOwner({
+            terminalThreadId: server.terminal?.threadId ?? null,
+            cwd: server.cwd ?? null,
+            workspaceRoot: project.workspaceRoot,
+            threads,
+          });
           return {
             port: server.port,
             url: server.url,
             threadTitle: thread?.title ?? null,
             branch: thread?.branch ?? null,
-            ownedByProject: thread !== undefined,
-            updatedAtMs: thread === undefined ? 0 : Date.parse(thread.updatedAt) || 0,
+            ownedByProject: inProject,
+            updatedAtMs: thread === null ? 0 : Date.parse(thread.updatedAt) || 0,
             processName: server.processName,
           };
         }),
       ),
-    [servers, threadById],
+    [project.workspaceRoot, servers, threads],
   );
 
   const selection = resolvePreviewSelection({ pinnedPort: widget.previewPort, live, ports });
@@ -134,7 +139,10 @@ export function LivePreviewWidget({
               <MenuGroupLabel>This project</MenuGroupLabel>
               {ownPorts.map((port) => (
                 <MenuRadioItem key={port.port} value={String(port.port)} disabled={!canEdit}>
-                  <PortRow label={`:${port.port}`} detail={port.branch ?? port.threadTitle} />
+                  <PortRow
+                    label={`:${port.port}`}
+                    detail={port.branch ?? port.threadTitle ?? port.processName}
+                  />
                 </MenuRadioItem>
               ))}
             </MenuGroup>
@@ -216,7 +224,8 @@ export function LivePreviewWidget({
         <WidgetMessage>
           <p>Nothing is running for this project.</p>
           <p className="text-xs">
-            Move a card into the live preview column to start its dev server, then it shows here.
+            Move a card into the live preview column to start its dev server. Servers a card's agent
+            starts show here too.
           </p>
         </WidgetMessage>
       )}
