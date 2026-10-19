@@ -297,9 +297,9 @@ const makeHarness = Effect.fn("TestConnectionHarness.make")(function* (options?:
 });
 
 describe("retryDelayMs", () => {
-  it("doubles from 2 seconds to a 5 minute cap, jittered within the upper half of each step", () => {
-    const ceilings = [2_000, 4_000, 8_000, 16_000, 32_000, 64_000, 128_000, 256_000, 300_000];
-    for (const [failureCount, ceiling] of [...ceilings, 300_000].entries()) {
+  it("doubles from 2 seconds to a 30 second cap, jittered within the upper half of each step", () => {
+    const ceilings = [2_000, 4_000, 8_000, 16_000, 30_000];
+    for (const [failureCount, ceiling] of [...ceilings, 30_000].entries()) {
       expect(EnvironmentSupervisor.retryDelayMs(failureCount, 0)).toBe(ceiling / 2);
       expect(EnvironmentSupervisor.retryDelayMs(failureCount, 0.5)).toBe((ceiling * 3) / 4);
       expect(EnvironmentSupervisor.retryDelayMs(failureCount, 1 - Number.EPSILON)).toBe(ceiling);
@@ -527,7 +527,7 @@ describe("EnvironmentSupervisor", () => {
     }),
   );
 
-  it.effect("retries forever with exponential backoff capped at five minutes", () =>
+  it.effect("retries forever with exponential backoff capped at 30 seconds", () =>
     Effect.gen(function* () {
       const harness = yield* makeHarness({
         prepare: () => Effect.fail(transient()),
@@ -542,9 +542,7 @@ describe("EnvironmentSupervisor", () => {
       );
       expect(yield* Ref.get(harness.prepareCount)).toBe(1);
 
-      const delays = [
-        2_000, 4_000, 8_000, 16_000, 32_000, 64_000, 128_000, 256_000, 300_000, 300_000,
-      ];
+      const delays = [2_000, 4_000, 8_000, 16_000, 30_000, 30_000, 30_000];
       for (const [index, delay] of delays.entries()) {
         yield* TestClock.adjust(delay - 1);
         expect(yield* Ref.get(harness.prepareCount)).toBe(index + 1);

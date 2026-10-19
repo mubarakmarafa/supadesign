@@ -8,6 +8,7 @@ import {
 } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
 import {
   ConnectionBlockedError,
   ConnectionTransientError,
@@ -16,6 +17,7 @@ import {
 import {
   canRetainCachedPlatformRegistrationAfterRefreshFailure,
   canReuseCachedPlatformRegistration,
+  disconnectDesktopSshEnvironment,
   isRejectedBootstrapCredentialError,
   isRejectedSecondaryBootstrap,
   nextRejectedSecondaryBootstrap,
@@ -41,6 +43,7 @@ function makeBridge(
     readonly failDescriptor?: boolean;
     readonly savedTokenRejected?: boolean;
     readonly savedTokenScopes?: ReadonlyArray<string>;
+    readonly launchGate?: Promise<void>;
   },
 ): DesktopBridge {
   return {
@@ -49,12 +52,16 @@ function makeBridge(
       ensureOptions?: { issuePairingToken?: boolean },
     ) => {
       calls.push("ensure");
+      await options?.launchGate;
       return {
         target,
         httpBaseUrl: "http://127.0.0.1:3201/",
         wsBaseUrl: "ws://127.0.0.1:3201/",
         pairingToken: ensureOptions?.issuePairingToken === true ? "pairing-token" : null,
       };
+    },
+    disconnectSshEnvironment: async () => {
+      calls.push("disconnect");
     },
     fetchSshSessionState: async () => {
       calls.push("session");
@@ -169,6 +176,68 @@ describe("desktop SSH pairing", () => {
       expect(prepared.bearerToken).toBe("bearer-token");
       expect(calls).toEqual(["ensure", "descriptor", "session", "ensure", "descriptor", "token"]);
     }),
+  );
+
+  it.effect("joins a reconnect launch still running instead of queueing another", () =>
+    Effect.gen(function* () {
+      const calls: string[] = [];
+      let openLaunchGate = () => {};
+      const launchGate = new Promise<void>((resolve) => {
+        openLaunchGate = resolve;
+      });
+      const bridge = makeBridge(calls, { launchGate });
+      const input = {
+        target: TARGET,
+        expectedEnvironmentId: EnvironmentId.make("environment-ssh"),
+        bearerToken: "saved-token",
+      };
+
+      const abandoned = yield* Effect.forkChild(prepareDesktopSshEnvironment(bridge, input), {
+        startImmediately: true,
+      });
+      yield* Fiber.interrupt(abandoned);
+      const retry = yield* Effect.forkChild(prepareDesktopSshEnvironment(bridge, input), {
+        startImmediately: true,
+      });
+      openLaunchGate();
+
+      expect((yield* Fiber.join(retry)).bearerToken).toBe("saved-token");
+      expect(calls.filter((call) => call === "ensure")).toHaveLength(1);
+
+      yield* prepareDesktopSshEnvironment(bridge, input);
+      expect(calls.filter((call) => call === "ensure")).toHaveLength(2);
+    }),
+  );
+
+  it.effect(
+    "starts its own reconnect launch after a disconnect instead of joining the old one",
+    () =>
+      Effect.gen(function* () {
+        const calls: string[] = [];
+        let openLaunchGate = () => {};
+        const launchGate = new Promise<void>((resolve) => {
+          openLaunchGate = resolve;
+        });
+        const bridge = makeBridge(calls, { launchGate });
+        const input = {
+          target: TARGET,
+          expectedEnvironmentId: EnvironmentId.make("environment-ssh"),
+          bearerToken: "saved-token",
+        };
+
+        const abandoned = yield* Effect.forkChild(prepareDesktopSshEnvironment(bridge, input), {
+          startImmediately: true,
+        });
+        yield* Fiber.interrupt(abandoned);
+        yield* disconnectDesktopSshEnvironment(bridge, TARGET);
+        const reconnect = yield* Effect.forkChild(prepareDesktopSshEnvironment(bridge, input), {
+          startImmediately: true,
+        });
+        openLaunchGate();
+        yield* Fiber.join(reconnect);
+
+        expect(calls.slice(0, 3)).toEqual(["ensure", "disconnect", "ensure"]);
+      }),
   );
 
   it.effect("stops before sending the saved token or pairing on a different machine", () =>
