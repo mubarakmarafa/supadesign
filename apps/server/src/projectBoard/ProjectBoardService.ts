@@ -34,8 +34,10 @@ export interface ProjectBoardOps {
   readonly readProject: (projectId: ProjectId) => Effect.Effect<
     {
       readonly board: ProjectBoard | null;
-      /** Every card of the project, archived ones included, without subagents. */
+      /** Every thread of the project, archived ones included, without subagents. */
       readonly threads: ReadonlyArray<BoardThreadRecord>;
+      /** The thread the board agent chats in, which is not a card. */
+      readonly boardAgentThreadId: ThreadId | null;
     },
     ProjectBoardError
   >;
@@ -124,12 +126,16 @@ export const make = (ops: ProjectBoardOps) =>
     const moves = yield* Semaphore.make(1);
 
     const load = (projectId: ProjectId) =>
-      Effect.map(ops.readProject(projectId), ({ board, threads }) => ({
-        board,
-        threads,
-        layout: board ?? DEFAULT_PROJECT_BOARD,
-        resolved: resolveBoardColumns(board, threads),
-      }));
+      Effect.map(ops.readProject(projectId), ({ board, threads: all, boardAgentThreadId }) => {
+        const threads = all.filter((thread) => thread.id !== boardAgentThreadId);
+        return {
+          board,
+          threads,
+          boardAgentThreadId,
+          layout: board ?? DEFAULT_PROJECT_BOARD,
+          resolved: resolveBoardColumns(board, threads),
+        };
+      });
 
     const read: ProjectBoardService["Service"]["read"] = ({ projectId, limit }) =>
       Effect.map(load(projectId), ({ layout, resolved }) =>
@@ -156,7 +162,12 @@ export const make = (ops: ProjectBoardOps) =>
     }) =>
       Effect.gen(function* () {
         const projectId = yield* ops.projectOf(input.threadId);
-        const { board, threads, layout, resolved } = yield* load(projectId);
+        const { board, threads, boardAgentThreadId, layout, resolved } = yield* load(projectId);
+        if (input.threadId === boardAgentThreadId) {
+          return yield* fail(
+            "That thread is the board agent, not a card. Pass the threadId of the card to move.",
+          );
+        }
         const thread = threads.find((entry) => entry.id === input.threadId);
         if (thread === undefined) return yield* fail("The card's thread is not on this board.");
         const toColumnId = input.columnId ?? layout.inboxColumnId;

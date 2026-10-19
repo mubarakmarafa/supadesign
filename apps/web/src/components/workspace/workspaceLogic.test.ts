@@ -1,4 +1,5 @@
 import {
+  BOARD_ONLY_PROJECT_WORKSPACE,
   DEFAULT_PROJECT_WORKSPACE,
   type ProjectWorkspace,
   ProjectWorkspaceWidgetId,
@@ -33,7 +34,7 @@ function workspaceOf(...kinds: Array<"kanban" | "usage" | "git" | "figma">): Pro
 
 describe("addWorkspaceWidget", () => {
   it("narrows a full-width board so the first widget lands beside it", () => {
-    const next = addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "live-preview", id("preview"))!;
+    const next = addWorkspaceWidget(BOARD_ONLY_PROJECT_WORKSPACE, "live-preview", id("preview"))!;
     expect(next.widgets).toEqual([
       { id: "kanban", kind: "kanban", w: 3, h: 2 },
       { id: "preview", kind: "live-preview", w: 1, h: 2 },
@@ -56,6 +57,7 @@ describe("addWorkspaceWidget", () => {
 
   it("allows one board, and puts a re-added board first", () => {
     expect(addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "kanban", id("again"))).toBeNull();
+    expect(addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "board-agent", id("again"))).toBeNull();
     const withoutBoard = removeWorkspaceWidget(workspaceOf("kanban", "usage"), id("kanban"));
     const readded = addWorkspaceWidget(withoutBoard, "kanban", id("board"))!;
     expect(readded.widgets[0]).toEqual({ id: "board", kind: "kanban", w: 3, h: 2 });

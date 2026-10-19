@@ -29,11 +29,14 @@ const record = (
   working: options.working ?? false,
 });
 
-const setup = (threads: Array<ProjectBoard.BoardThreadRecord>) =>
+const setup = (
+  threads: Array<ProjectBoard.BoardThreadRecord>,
+  boardAgentThreadId: ThreadId | null = null,
+) =>
   Effect.gen(function* () {
     const calls: Array<string> = [];
     const service = yield* ProjectBoard.make({
-      readProject: () => Effect.succeed({ board, threads }),
+      readProject: () => Effect.succeed({ board, threads, boardAgentThreadId }),
       projectOf: () => Effect.succeed(projectId),
       place: (input) =>
         Effect.sync(() => {
@@ -115,5 +118,26 @@ it.effect("puts a new card under the live card, so adding one never swaps what r
       [ThreadId.make("live"), ThreadId.make("new")],
     );
     assert.isTrue(testing?.live);
+  }),
+);
+
+it.effect("leaves the board agent's own thread off the board and out of moves", () =>
+  Effect.gen(function* () {
+    const agent = ThreadId.make("agent");
+    const { service, calls } = yield* setup(
+      [record("agent", null), record("card", { columnId: col("ideas"), orderKey: "m" })],
+      agent,
+    );
+    const columns = yield* service.read({ projectId });
+    assert.deepStrictEqual(
+      columns.flatMap((column) => column.cards.map((card) => card.threadId)),
+      [ThreadId.make("card")],
+    );
+    // An agent that omits threadId names itself; that must not put it on the board.
+    const refused = yield* service
+      .moveCard({ threadId: agent, columnId: col("testing") })
+      .pipe(Effect.flip);
+    assert.include(refused.message, "board agent");
+    assert.deepStrictEqual(calls, []);
   }),
 );

@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-import { ForwardCompatibleArray, TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { ForwardCompatibleArray, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 
 /** Stable id of one widget in a project workspace. */
 export const ProjectWorkspaceWidgetId = TrimmedNonEmptyString.check(Schema.isMaxLength(64)).pipe(
@@ -15,6 +15,7 @@ export const PROJECT_WORKSPACE_WIDGET_KINDS = [
   "figma",
   "usage",
   "git",
+  "board-agent",
 ] as const;
 export type ProjectWorkspaceWidgetKind = (typeof PROJECT_WORKSPACE_WIDGET_KINDS)[number];
 
@@ -79,6 +80,12 @@ export const ProjectWorkspace = Schema.Struct({
     Schema.isMaxLength(PROJECT_WORKSPACE_MAX_WIDGETS),
   ),
   appearance: Schema.optional(ProjectWorkspaceAppearance),
+  /**
+   * The thread the board agent widget chats in. It is the board's helper, not
+   * a card, so the board leaves it out. Kept when the widget is removed, so
+   * adding it back resumes the same conversation.
+   */
+  boardAgentThreadId: Schema.optional(ThreadId),
 });
 export type ProjectWorkspace = typeof ProjectWorkspace.Type;
 
@@ -89,13 +96,22 @@ export type ProjectWorkspace = typeof ProjectWorkspace.Type;
 export const ReceivedProjectWorkspace = Schema.Struct({
   widgets: ForwardCompatibleArray(ProjectWorkspaceWidget),
   appearance: Schema.optional(ProjectWorkspaceAppearance),
+  boardAgentThreadId: Schema.optional(ThreadId),
 });
 
 export const PROJECT_WORKSPACE_KANBAN_WIDGET_ID = ProjectWorkspaceWidgetId.make("kanban");
 
-/** What a project without a stored workspace shows: today's board, alone. */
-export const DEFAULT_PROJECT_WORKSPACE: ProjectWorkspace = {
+/** The board alone, as a server older than workspaces shows it. */
+export const BOARD_ONLY_PROJECT_WORKSPACE: ProjectWorkspace = {
   widgets: [{ id: PROJECT_WORKSPACE_KANBAN_WIDGET_ID, kind: "kanban", w: 4, h: 2 }],
+};
+
+/** What a project without a stored workspace shows: the board and its agent beside it. */
+export const DEFAULT_PROJECT_WORKSPACE: ProjectWorkspace = {
+  widgets: [
+    { id: PROJECT_WORKSPACE_KANBAN_WIDGET_ID, kind: "kanban", w: 3, h: 2 },
+    { id: ProjectWorkspaceWidgetId.make("board-agent"), kind: "board-agent", w: 1, h: 2 },
+  ],
 };
 
 /** Whether a pasted link is a figma.com page the embed endpoint accepts. */
