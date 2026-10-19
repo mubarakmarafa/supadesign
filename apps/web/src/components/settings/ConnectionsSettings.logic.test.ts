@@ -9,6 +9,7 @@ import {
   selectQrEndpointOption,
   togglePairingScopeSelection,
   resolvePairingLinkRoutes,
+  resolveTailscaleHttpsRow,
   createRelayPairingEndpoint,
 } from "./ConnectionsSettings.logic";
 
@@ -268,4 +269,36 @@ it("uses current routing when the relay server changes after link creation", () 
     resolvePairingLinkRoutes([], {}, prepared, { ...settings, publicRelayEnabled: false })
       .endpoints,
   ).toEqual([]);
+});
+
+describe("resolveTailscaleHttpsRow", () => {
+  const endpoint = makeEndpoint({
+    id: "tailscale-magicdns:https://machine.tailnet.ts.net",
+    label: "Tailscale HTTPS",
+    httpBaseUrl: "https://machine.tailnet.ts.net",
+    reachability: "private-network",
+  });
+
+  it("offers setup before Tailscale has reported a MagicDNS name", () => {
+    expect(resolveTailscaleHttpsRow({ endpoint: null, serveEnabled: false })).toEqual({
+      description: "Use Tailscale Serve to expose this backend through a MagicDNS HTTPS URL.",
+      unreachable: false,
+    });
+  });
+
+  it("asks to start Tailscale when Serve is on but no MagicDNS name is reported", () => {
+    expect(resolveTailscaleHttpsRow({ endpoint: null, serveEnabled: true })).toEqual({
+      description: "Start Tailscale to set up HTTPS access through MagicDNS.",
+      unreachable: false,
+    });
+  });
+
+  it("shows the URL and flags it when this machine cannot reach it", () => {
+    expect(
+      resolveTailscaleHttpsRow({
+        endpoint: { ...endpoint, status: "unavailable" },
+        serveEnabled: true,
+      }),
+    ).toEqual({ description: endpoint.httpBaseUrl, unreachable: true });
+  });
 });

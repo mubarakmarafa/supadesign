@@ -84,6 +84,23 @@ export function isQrShareableEndpoint(endpoint: AdvertisedEndpoint): boolean {
   return endpoint.status !== "unavailable" && endpoint.reachability !== "loopback";
 }
 
+/**
+ * The row follows the saved Serve flag rather than probe health so a failed
+ * probe or a stopped Tailscale never hides the way to turn Serve off.
+ */
+export function resolveTailscaleHttpsRow(input: {
+  readonly endpoint: AdvertisedEndpoint | null;
+  readonly serveEnabled: boolean;
+}) {
+  const { endpoint, serveEnabled } = input;
+  return {
+    description: serveEnabled
+      ? (endpoint?.httpBaseUrl ?? "Start Tailscale to set up HTTPS access through MagicDNS.")
+      : "Use Tailscale Serve to expose this backend through a MagicDNS HTTPS URL.",
+    unreachable: serveEnabled && endpoint !== null && endpoint.status !== "available",
+  };
+}
+
 export function isWslSettingsRowVisible(input: {
   readonly state: DesktopWslState | null;
   readonly error: string | null;
