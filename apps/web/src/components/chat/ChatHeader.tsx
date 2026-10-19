@@ -39,6 +39,7 @@ import {
 } from "../WorkspaceBreadcrumb";
 import { observeResize } from "~/lib/observeResize";
 import { ThreadLiveEnvironmentChip } from "../board/LiveEnvironmentStatus";
+import { ThreadProgressChip } from "../progress/ThreadProgressChip";
 import { cn } from "~/lib/utils";
 import { useClientSettings } from "../../hooks/useSettings";
 
@@ -455,7 +456,10 @@ export const ChatHeader = memo(function ChatHeader({
         </WorkspaceBreadcrumbItem>
       </WorkspaceBreadcrumb>
       {isServerThread && activeProject ? (
-        <ThreadLiveEnvironmentChip threadRef={activeThreadRef} projectId={activeProject.id} />
+        <>
+          <ThreadProgressChip threadRef={activeThreadRef} projectId={activeProject.id} />
+          <ThreadLiveEnvironmentChip threadRef={activeThreadRef} projectId={activeProject.id} />
+        </>
       ) : null}
     </div>
   );

@@ -3,6 +3,7 @@ import type {
   BoardColumnId,
   LiveEnvironmentSnapshot,
   ProjectBoardColumn,
+  ThreadProgress,
 } from "@supaterm/contracts";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -91,6 +92,7 @@ export const BoardColumn = memo(function BoardColumn({
   cardCountLabel,
   liveEnvironments,
   bankedCounts,
+  progressByThread,
   tabbableCardId,
   peekedCardId,
   canEdit,
@@ -111,6 +113,7 @@ export const BoardColumn = memo(function BoardColumn({
   cardCountLabel: string;
   liveEnvironments: ReadonlyMap<string, LiveEnvironmentSnapshot>;
   bankedCounts: ReadonlyMap<string, number>;
+  progressByThread: ReadonlyMap<string, ThreadProgress>;
   tabbableCardId: string | null;
   /** The card open in the side peek, shown as selected. */
   peekedCardId: string | null;
@@ -210,6 +213,7 @@ export const BoardColumn = memo(function BoardColumn({
               key={thread.id}
               thread={thread}
               live={liveEnvironments.get(thread.id)}
+              progress={progressByThread.get(thread.id)}
               bankedCount={bankedCounts.get(thread.id) ?? 0}
               tabbable={thread.id === tabbableCardId}
               peeked={thread.id === peekedCardId}

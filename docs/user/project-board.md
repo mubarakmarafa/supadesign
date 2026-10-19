@@ -76,10 +76,36 @@ that thread to return to the board where you left it. Escape does nothing while
 the composer holds a draft, or while a terminal, preview, menu, or dialog has
 focus.
 
+Under its title a card shows a short summary of the thread. Its agent keeps the
+summary current; until it writes one, the card shows the thread's goal or its
+first message. Choose **Edit summary…** from the card's **…** menu to write your
+own; your summary stays until you clear it with **Let the agent write it**.
+
 With a card focused, the arrow keys, **Home**, and **End** move between cards.
 `Cmd+Arrow` (`Ctrl+Arrow` on Windows and Linux) moves the focused card up, down,
 or to the neighboring column. Customize `board.open`, `board.back`, and the
 `board.card.move…` commands in **Settings → Keybindings**.
+
+## Progress images
+
+A card's cover is a screenshot of its running app, so you can see where the
+work is without opening it. Images arrive three ways:
+
+- The agent publishes one when there is something worth reviewing, with a note
+  on what changed and any questions it wants you to decide. A card with
+  questions shows how many under its summary.
+- After each of the agent's turns on the live card, Supadesign captures it.
+- **Capture progress now** in the card's **…** menu, or **Capture** in the
+  thread's header, captures the live card right away.
+
+A card that isn't live keeps its last image. When the agent has worked since
+that image was taken, the cover says **Out of date**; if a capture fails, the
+card keeps its last image and says why.
+
+The expand button on a cover, the question count, **View progress** in the
+card's menu, and the thumbnail in the thread's header all open the card's
+images, newest first. **Reply with this image** puts the image into the
+thread's composer so you can comment on exactly what you saw.
 
 ## Bank messages for later
 

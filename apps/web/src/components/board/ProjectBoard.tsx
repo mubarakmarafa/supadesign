@@ -23,7 +23,7 @@ import {
   type ProjectBoardFlag,
   type ProjectId,
   type ScopedProjectRef,
-  type ThreadId,
+  ThreadId,
   validateProjectBoard,
 } from "@supaterm/contracts";
 import { resolveBoardColumns } from "@supaterm/shared/projectBoard";
@@ -91,6 +91,11 @@ import { ProjectWorkspace } from "../workspace/ProjectWorkspace";
 import { WorkspaceControls } from "../workspace/WorkspaceControls";
 import { BoardPeek } from "./BoardPeek";
 import { ProjectTabsBar, useProjectTabsMode, useShowProjectTab } from "../projects/ProjectTabs";
+import { cardSummaryText } from "../progress/cardProgress.logic";
+import { ProgressViewer } from "../progress/ProgressViewer";
+import { useProjectThreadProgress, useThreadProgressSupported } from "../progress/progressState";
+import { SummaryDialog } from "../progress/SummaryDialog";
+import { threadProgress } from "../../state/threadProgress";
 import { BoardCardOverlay, type BoardCardHandlers } from "./BoardCard";
 import { BoardColumn } from "./BoardColumn";
 import {
@@ -358,6 +363,11 @@ function ProjectBoardView({
     [threadBanks],
   );
   const sendThreadBank = useAtomCommand(threadBank.send, { reportFailure: false });
+  const progressSupported = useThreadProgressSupported(projectRef.environmentId);
+  const progressByThread = useProjectThreadProgress(projectRef.environmentId, projectRef.projectId);
+  const captureProgress = useAtomCommand(threadProgress.capture);
+  const [viewingProgressId, setViewingProgressId] = useState<string | null>(null);
+  const [editingSummaryId, setEditingSummaryId] = useState<string | null>(null);
   const updateProject = useOrchestrationCommand(projectEnvironment.update);
 
   // ── Board layout, with the last edit shown until the server echoes it ──
@@ -739,9 +749,20 @@ function ProjectBoardView({
       const thread = threadById.get(id);
       if (!api || !thread) return;
       const currentColumnId = columnOfCard(visibleLayout, id);
+      const live = liveEnvironments.get(id);
+      const hasProgress = (progressByThread.get(id)?.updates.length ?? 0) > 0;
       const clicked = await api.contextMenu.show(
         [
           { id: "open", label: "Open thread" },
+          ...(hasProgress ? [{ id: "progress", label: "View progress" }] : []),
+          ...(canOperate && progressSupported
+            ? [
+                ...(live?.status === "ready"
+                  ? [{ id: "capture", label: "Capture progress now" }]
+                  : []),
+                { id: "summary", label: "Edit summary…" },
+              ]
+            : []),
           ...(canOperate
             ? [
                 {
@@ -761,16 +782,28 @@ function ProjectBoardView({
         position,
       );
       if (clicked === "open") openCard(id);
-      else if (clicked?.startsWith("move:")) {
+      else if (clicked === "progress") setViewingProgressId(id);
+      else if (clicked === "summary") setEditingSummaryId(id);
+      else if (clicked === "capture") {
+        void captureProgress({
+          environmentId: projectRef.environmentId,
+          input: { threadId: ThreadId.make(id) },
+        });
+      } else if (clicked?.startsWith("move:")) {
         moveCardToColumn(id, BoardColumnIdSchema.make(clicked.slice("move:".length)));
       }
     },
     [
       board.columns,
       canOperate,
+      captureProgress,
+      liveEnvironments,
       moveCardToColumn,
       moveInFlight,
       openCard,
+      progressByThread,
+      progressSupported,
+      projectRef.environmentId,
       threadById,
       visibleLayout,
     ],
@@ -843,6 +876,7 @@ function ProjectBoardView({
       onFocusCard: (id) => updateView(viewKey, { focusedCardId: id }),
       onCardKeyDown,
       onCardMenu: (id, position) => void showCardMenu(id, position),
+      onViewProgress: setViewingProgressId,
     }),
     [onCardKeyDown, onPeek, openCard, showCardMenu, updateView, viewKey],
   );
@@ -971,6 +1005,12 @@ function ProjectBoardView({
   const archiveCountKnown = archiveRequested && !archive.isLoading;
 
   const activeThread = activeCardId === null ? null : (threadById.get(activeCardId) ?? null);
+  const viewingThread =
+    viewingProgressId === null ? null : (threadById.get(viewingProgressId) ?? null);
+  const viewingProgress =
+    viewingProgressId === null ? undefined : progressByThread.get(viewingProgressId);
+  const editingThread =
+    editingSummaryId === null ? null : (threadById.get(editingSummaryId) ?? null);
 
   // Screen readers hear card and column names, not dnd-kit's internal ids.
   const announcements = useMemo<Announcements>(() => {
@@ -1038,6 +1078,7 @@ function ProjectBoardView({
               }
               liveEnvironments={liveEnvironments}
               bankedCounts={bankedCounts}
+              progressByThread={progressByThread}
               tabbableCardId={tabbableCardId}
               peekedCardId={peekedCardId}
               canEdit={canOperate}
@@ -1094,8 +1135,42 @@ function ProjectBoardView({
         ) : null}
       </div>
       <DragOverlay dropAnimation={null}>
-        {activeThread ? <BoardCardOverlay thread={activeThread} /> : null}
+        {activeThread ? (
+          <BoardCardOverlay
+            thread={activeThread}
+            progress={progressByThread.get(activeThread.id)}
+            bankedCount={bankedCounts.get(activeThread.id) ?? 0}
+          />
+        ) : null}
       </DragOverlay>
+      {viewingThread && viewingProgress ? (
+        <ProgressViewer
+          environmentId={projectRef.environmentId}
+          threadRef={scopeThreadRef(projectRef.environmentId, viewingThread.id)}
+          title={viewingThread.title}
+          progress={viewingProgress}
+          latestRunStartedAt={viewingThread.latestRun?.startedAt}
+          canCapture={canOperate && liveEnvironments.get(viewingThread.id)?.status === "ready"}
+          onOpenChange={(open) => {
+            if (!open) setViewingProgressId(null);
+          }}
+          onReplied={() => onPeek(viewingThread.id)}
+        />
+      ) : null}
+      {editingThread ? (
+        <SummaryDialog
+          environmentId={projectRef.environmentId}
+          threadId={editingThread.id}
+          summary={progressByThread.get(editingThread.id)?.summary ?? null}
+          fallback={cardSummaryText(
+            progressByThread.get(editingThread.id),
+            editingThread.goal?.objective,
+          )}
+          onOpenChange={(open) => {
+            if (!open) setEditingSummaryId(null);
+          }}
+        />
+      ) : null}
     </DndContext>
   );
 }

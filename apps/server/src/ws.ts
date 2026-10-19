@@ -100,6 +100,7 @@ import {
   type TerminalEvent,
   type LiveEnvironmentList,
   type ThreadBankList,
+  type ThreadProgressList,
   type TerminalMetadataStreamEvent,
   type PullRequestRef,
   WS_METHODS,
@@ -188,6 +189,7 @@ import { remoteSshDeviceHosts } from "./device/localSshDeviceHost.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as LiveEnvironment from "./liveEnvironment/LiveEnvironmentService.ts";
 import * as ThreadBank from "./threadBank/ThreadBankService.ts";
+import * as ThreadProgress from "./threadProgress/ThreadProgressService.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import { issueAssetUrl } from "./assets/AssetAccess.ts";
 import {
@@ -1314,6 +1316,7 @@ const layerWsRpc = (
       const previewManager = yield* PreviewManager.PreviewManager;
       const liveEnvironments = yield* LiveEnvironment.LiveEnvironmentService;
       const threadBanks = yield* ThreadBank.ThreadBankService;
+      const threadProgress = yield* ThreadProgress.ThreadProgressService;
       const projectSummary = yield* ProjectSummary.ProjectSummary;
       const portDiscovery = yield* PortScanner.PortDiscovery;
       const providerRegistry = yield* ProviderRegistry.ProviderRegistry;
@@ -2944,6 +2947,20 @@ const layerWsRpc = (
           Stream.callback<ThreadBankList>((queue) =>
             Effect.acquireRelease(
               threadBanks.subscribe(input.projectId, (list) => Queue.offer(queue, list)),
+              (unsubscribe) => Effect.sync(unsubscribe),
+            ),
+          ),
+        [WS_METHODS.threadProgressCapture]: (input) =>
+          threadProgress.capture({ threadId: input.threadId, source: "designer" }),
+        [WS_METHODS.threadProgressRemove]: (input) => threadProgress.remove(input),
+        [WS_METHODS.threadSummarySet]: (input) =>
+          threadProgress
+            .setSummary({ threadId: input.threadId, text: input.text, source: "designer" })
+            .pipe(Effect.asVoid),
+        [WS_METHODS.subscribeThreadProgress]: (input) =>
+          Stream.callback<ThreadProgressList>((queue) =>
+            Effect.acquireRelease(
+              threadProgress.subscribe(input.projectId, (list) => Queue.offer(queue, list)),
               (unsubscribe) => Effect.sync(unsubscribe),
             ),
           ),
