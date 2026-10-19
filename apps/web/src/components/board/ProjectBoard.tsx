@@ -88,6 +88,7 @@ import {
 } from "../WorkspaceBreadcrumb";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { ProjectWorkspace } from "../workspace/ProjectWorkspace";
+import { useProjectWorkspace } from "../workspace/useProjectWorkspace";
 import { WorkspaceControls } from "../workspace/WorkspaceControls";
 import { BoardPeek } from "./BoardPeek";
 import { ProjectTabsBar, useProjectTabsMode, useShowProjectTab } from "../projects/ProjectTabs";
@@ -356,7 +357,7 @@ function ProjectBoardView({
   const viewKey = scopedProjectKey(projectRef);
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const openThreadFromBoard = useOpenThreadFromBoard();
-  const { archiveThread, unarchiveThread } = useThreadActions();
+  const { archiveThread, unarchiveThread, confirmAndDeleteThread } = useThreadActions();
   const placeOnBoard = useOrchestrationCommand(threadEnvironment.placeOnBoard);
   const liveEnvironments = useProjectLiveEnvironments(projectRef).byThreadId;
   const stopLiveEnvironment = useAtomCommand(liveEnvironment.stop, { reportFailure: false });
@@ -417,6 +418,7 @@ function ProjectBoardView({
     [archiveRequested, projectRef.environmentId],
   );
   const archive = useArchivedThreadSnapshots(archiveEnvironmentIds);
+  const boardAgentThreadId = useProjectWorkspace(projectRef, project).workspace.boardAgentThreadId;
   const threads = useMemo(() => {
     const byId = new Map<string, EnvironmentThreadShell>();
     for (const { environmentId, snapshot } of archive.snapshots) {
@@ -433,8 +435,10 @@ function ProjectBoardView({
         byId.set(thread.id, thread);
       }
     }
+    // The board agent chats beside the board; it is not one of its cards.
+    if (boardAgentThreadId !== undefined) byId.delete(boardAgentThreadId);
     return [...byId.values()];
-  }, [archive.snapshots, liveThreads, projectRef]);
+  }, [archive.snapshots, boardAgentThreadId, liveThreads, projectRef]);
 
   const resolved = useMemo(() => resolveBoardColumns(storedBoard, threads), [storedBoard, threads]);
   const { canonicalThreadById, orderKeyById, canonicalLayout } = useMemo(() => {
@@ -871,6 +875,7 @@ function ProjectBoardView({
                     disabled: column.id === currentColumnId,
                   })),
                 },
+                { id: "delete", label: "Delete thread", destructive: true, separatorBefore: true },
               ]
             : []),
         ],
@@ -886,12 +891,20 @@ function ProjectBoardView({
         });
       } else if (clicked?.startsWith("move:")) {
         moveCardToColumn(id, BoardColumnIdSchema.make(clicked.slice("move:".length)));
+      } else if (clicked === "delete") {
+        const result = await confirmAndDeleteThread(
+          scopeThreadRef(projectRef.environmentId, ThreadId.make(id)),
+        );
+        if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+          failureToast("Failed to delete thread", result);
+        }
       }
     },
     [
       board.columns,
       canOperate,
       captureProgress,
+      confirmAndDeleteThread,
       liveEnvironments,
       moveCardToColumn,
       moveInFlight,

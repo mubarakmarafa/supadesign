@@ -2,6 +2,7 @@ import { scopedProjectKey } from "@supaterm/client-runtime/environment";
 import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import {
   AuthOrchestrationOperateScope,
+  BOARD_ONLY_PROJECT_WORKSPACE,
   type ProjectWorkspace,
   type ScopedProjectRef,
   validateProjectWorkspace,
@@ -90,7 +91,7 @@ export function useProjectWorkspace(
   return {
     supported,
     canEdit: supported && canOperate,
-    workspace: supported ? workspaceOrDefault(stored) : workspaceOrDefault(null),
+    workspace: supported ? workspaceOrDefault(stored) : BOARD_ONLY_PROJECT_WORKSPACE,
     commit,
   };
 }

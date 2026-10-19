@@ -42,7 +42,12 @@ export function useCreateBoardCard(project: EnvironmentProject) {
   const createThread = useOrchestrationCommand(threadEnvironment.create);
 
   return useCallback(
-    async (input: { title: string; draft: string }): Promise<CreateBoardCardResult> => {
+    async (input: {
+      title: string;
+      draft: string;
+      /** A known id, for a caller that has to record the thread before it exists. */
+      threadId?: ThreadId;
+    }): Promise<CreateBoardCardResult> => {
       const entries = sortProviderInstanceEntries(
         applyProviderInstanceSettings(
           deriveProviderInstanceEntries(providers),
@@ -55,7 +60,7 @@ export function useCreateBoardCard(project: EnvironmentProject) {
       const runtimeMode =
         resolveProjectSettings(settings, project.id, project).settings.defaultRuntimeMode ??
         DEFAULT_RUNTIME_MODE;
-      const threadId = newThreadId();
+      const threadId = input.threadId ?? newThreadId();
       const result = await createThread({
         environmentId,
         input: {

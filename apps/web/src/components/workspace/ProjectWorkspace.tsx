@@ -10,6 +10,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
 import { useProjectWorkspace } from "./useProjectWorkspace";
+import { BoardAgentWidget } from "./widgets/BoardAgentWidget";
 import { FigmaWidget } from "./widgets/FigmaWidget";
 import { GitWidget } from "./widgets/GitWidget";
 import { LivePreviewWidget } from "./widgets/LivePreviewWidget";
@@ -70,8 +71,8 @@ export function ProjectWorkspace({
             </EmptyMedia>
             <EmptyTitle>Nothing in this workspace</EmptyTitle>
             <EmptyDescription>
-              Use Add widget above to bring back the board or add a preview, Figma frame, usage, or
-              Git.
+              Use Add widget above to bring back the board or add its agent, a preview, a Figma
+              frame, usage, or Git.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -133,5 +134,7 @@ function WorkspaceWidget({
       return <UsageWidget widget={widget} environmentId={projectRef.environmentId} />;
     case "git":
       return <GitWidget widget={widget} projectRef={projectRef} project={project} />;
+    case "board-agent":
+      return <BoardAgentWidget widget={widget} project={project} />;
   }
 }

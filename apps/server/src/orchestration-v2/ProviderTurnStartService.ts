@@ -24,6 +24,7 @@ import * as Schema from "effect/Schema";
 
 import * as GitWorkflowService from "../git/GitWorkflowService.ts";
 import * as ProjectService from "../project/ProjectService.ts";
+import { withBoardAgentBrief } from "../projectBoard/boardAgentBrief.ts";
 import * as ProviderAuthService from "../provider/ProviderAuthService.ts";
 import * as EventSink from "./EventSink.ts";
 import * as ContextHandoffService from "./ContextHandoffService.ts";
@@ -946,10 +947,18 @@ export const layer: Layer.Layer<
       const routableSubagents = projection.subagents.filter((subagent) =>
         RunExecutionService.canRouteRelatedSubagent(subagent.status),
       );
-      const userText = projectComposerContextForProvider({
+      const providerText = projectComposerContextForProvider({
         text: message.text,
         records: message.context?.records ?? [],
       });
+      const threadProject = yield* projects.getById(projection.thread.projectId).pipe(
+        Effect.map(Option.getOrUndefined),
+        Effect.orElseSucceed(() => undefined),
+      );
+      const userText =
+        threadProject?.workspace?.boardAgentThreadId === projection.thread.id
+          ? withBoardAgentBrief(providerText)
+          : providerText;
       // Delivered once: this run's provider turn marks the work as told. A
       // restart continuation is prompted by its own text or resumes natively.
       const noteContinuation = isRestartNoteContinuation(

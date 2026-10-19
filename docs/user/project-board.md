@@ -34,11 +34,17 @@ board entries are hidden when no connected environment does.
 ## Workspace
 
 A board is also a workspace: you can place widgets beside the cards and give
-each project its own look. Until you add anything, the board looks the same as
-always.
+each project its own look. A new board starts with the board agent beside the
+cards.
 
 Select **Add widget** at the top of the board to add:
 
+- **Board agent**: a chat that runs the board for you. Select **Start the
+  board agent**, then tell it your ideas and it adds them as cards, hands work
+  to cards so their own agents start, and moves cards between columns. It
+  doesn't change the project's files itself. Its thread is listed with the
+  project's threads but never shows as a card, and removing the widget keeps
+  the conversation for when you add it back.
 - **Live preview**: the live card's dev server, with its branch. Its menu
   switches to another server that is already running, with this project's own
   servers listed first. It never starts a server; when nothing is live it shows
@@ -85,6 +91,10 @@ card, press **Enter**, or use the peek's expand button to open its thread. Press
 that thread to return to the board where you left it. Escape does nothing while
 the composer holds a draft, or while a terminal, preview, menu, or dialog has
 focus.
+
+To get rid of a card, right-click it or open its **…** menu and choose
+**Delete thread**. This permanently deletes the thread and its history; to keep
+it, move the card to done instead.
 
 Under its title a card shows a short summary of the thread. Its agent keeps the
 summary current; until it writes one, the card shows the thread's goal or its

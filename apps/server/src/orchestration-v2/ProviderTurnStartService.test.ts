@@ -172,6 +172,8 @@ function makeLocalCommandHarness(input: {
   /** Loads the thread and starts the run, then fails every later state read. */
   readonly failReadsAfterRunning?: boolean;
   readonly missingWorktree?: boolean;
+  /** The thread is its project's board agent. */
+  readonly boardAgent?: boolean;
 }) {
   const now = DateTime.makeUnsafe("2026-09-04T12:00:00Z");
   const nativeSessionCwd = input.missingWorktree
@@ -502,9 +504,15 @@ function makeLocalCommandHarness(input: {
     input.missingWorktree === true
       ? {
           getById: () =>
-            Effect.succeed(Option.some({ workspaceRoot: "/tmp/native-account-command" } as never)),
+            Effect.succeed(
+              Option.some({
+                workspaceRoot: "/tmp/native-account-command",
+                workspace:
+                  input.boardAgent === true ? { widgets: [], boardAgentThreadId: threadId } : null,
+              } as never),
+            ),
         }
-      : {},
+      : { getById: () => Effect.succeed(Option.none()) },
   );
   const layer = ProviderTurnStart.layer.pipe(
     Layer.provide(
@@ -599,6 +607,24 @@ effectIt.effect("recreates a deleted worktree before starting its next turn", ()
       harness.startRootRun.mock.invocationCallOrder[0]!,
     );
     expect(harness.projection().runs.at(-1)).toMatchObject({ status: "running" });
+  }),
+);
+
+effectIt.effect("briefs the board agent on its turns and no other thread", () =>
+  Effect.gen(function* () {
+    const sentText = function* (boardAgent: boolean) {
+      const harness = makeLocalCommandHarness({
+        text: "Add a card for dark mode",
+        missingWorktree: true,
+        boardAgent,
+      });
+      yield* harness.start;
+      return harness.startRootRun.mock.calls[0]?.[0].message.text;
+    };
+    const briefed = yield* sentText(true);
+    expect(briefed).toMatch(/^<supadesign_board_agent>[\s\S]*supaterm_board_read/);
+    expect(briefed?.endsWith("Add a card for dark mode")).toBe(true);
+    expect(yield* sentText(false)).toBe("Add a card for dark mode");
   }),
 );
 

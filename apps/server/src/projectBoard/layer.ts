@@ -59,6 +59,7 @@ export const make = Effect.gen(function* () {
         );
         return {
           board: project.board ?? null,
+          boardAgentThreadId: project.workspace?.boardAgentThreadId ?? null,
           threads: shells.map((shell) => ({
             id: shell.id,
             title: shell.title,

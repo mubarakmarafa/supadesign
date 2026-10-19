@@ -43,10 +43,11 @@ export const WIDGET_DEFAULT_SIZES: Readonly<Record<ProjectWorkspaceWidgetKind, W
   figma: { w: 1, h: 2 },
   usage: { w: 1, h: 1 },
   git: { w: 1, h: 1 },
+  "board-agent": { w: 1, h: 2 },
 };
 
 /** Kinds that can appear once per workspace. */
-const SINGLE_KINDS: ReadonlySet<string> = new Set(["kanban"]);
+const SINGLE_KINDS: ReadonlySet<string> = new Set(["kanban", "board-agent"]);
 
 export function canAddWidget(workspace: ProjectWorkspace, kind: ProjectWorkspaceWidgetKind) {
   if (workspace.widgets.length >= PROJECT_WORKSPACE_MAX_WIDGETS) return false;

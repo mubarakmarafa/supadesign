@@ -7,10 +7,11 @@ const mode = process.argv[3];
 const withHandoff = mode.startsWith("handoff");
 const require = NodeModule.createRequire(root + "/apps/server/package.json");
 const load = (name) => import(NodeURL.pathToFileURL(require.resolve("effect/" + name)));
-const [Effect, Layer, FileSystem] = await Promise.all([
+const [Effect, Layer, FileSystem, Option] = await Promise.all([
   load("Effect"),
   load("Layer"),
   load("FileSystem"),
+  load("Option"),
 ]);
 const app = (file) => import(NodeURL.pathToFileURL(root + "/apps/server/src/" + file + ".ts"));
 const providerCore = (file) =>
@@ -49,7 +50,7 @@ const dependencies = Layer.mergeAll(
   Id.layer,
   FileSystem.layerNoop({}),
   Layer.mock(Git.GitWorkflowService)({}),
-  Layer.mock(Project.ProjectService)({}),
+  Layer.mock(Project.ProjectService)({ getById: () => Effect.succeed(Option.none()) }),
   Layer.mock(Auth.ProviderAuthService)({}),
   Layer.mock(Projection.ProjectionStoreV2)({
     getThreadProjection: () =>

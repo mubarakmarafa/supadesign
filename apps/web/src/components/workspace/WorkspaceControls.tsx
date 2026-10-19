@@ -7,6 +7,7 @@ import {
   type ScopedProjectRef,
 } from "@supaterm/contracts";
 import {
+  BotIcon,
   GaugeIcon,
   GitBranchIcon,
   KanbanIcon,
@@ -38,6 +39,12 @@ const WIDGET_CATALOG: ReadonlyArray<{
   readonly description: string;
   readonly icon: ReactNode;
 }> = [
+  {
+    kind: "board-agent",
+    label: "Board agent",
+    description: "Chat to add ideas, hand out work, and move cards",
+    icon: <BotIcon />,
+  },
   {
     kind: "live-preview",
     label: "Live preview",
