@@ -5,6 +5,7 @@ import type {
   PreviewViewportSetting,
   ScopedThreadRef,
 } from "@supaterm/contracts";
+import { FILL_PREVIEW_VIEWPORT } from "@supaterm/contracts";
 import { useShallow } from "zustand/react/shallow";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -15,11 +16,7 @@ import { cn, isMacPlatform } from "~/lib/utils";
 
 import { resolveBrowserSurfacePanelRect, useBrowserSurfaceStore } from "./browserSurfaceStore";
 import { useActiveBrowserRecordingTabIds } from "./browserRecording";
-import {
-  browserViewportSettingKey,
-  resolveBrowserViewportLayout,
-  resolveFittedBrowserViewport,
-} from "./browserViewportLayout";
+import { browserViewportSettingKey, resolveBrowserViewportLayout } from "./browserViewportLayout";
 import { BrowserDeviceToolbar } from "./BrowserDeviceToolbar";
 import { BrowserViewportResizeHandles } from "./BrowserViewportResizeHandles";
 import { acquireDesktopTab, type AcquiredDesktopTab, withDesktopTab } from "./desktopTabLifetime";
@@ -258,17 +255,13 @@ export function HostedBrowserWebview(props: {
     deviceToolbarVisible,
     aspectRatio: lockedAspectRatio,
   });
-  const fittedSourceViewport =
-    presentation.fitSourceContent && lastRect
-      ? resolveFittedBrowserViewport(
-          viewport,
-          presentation.fittedSourceContent,
-          normalizedZoomFactor,
-        )
-      : null;
+  // A floating player shows the page at the player's own size, the way the
+  // panel does. Shrinking a wider page into it with a CSS transform made the
+  // guest paint into a fraction of the frame on Retina displays.
+  const floating = presentation.fitSourceContent && lastRect !== null;
   const layout =
-    fittedSourceViewport && lastRect
-      ? resolveBrowserViewportLayout(lastRect, fittedSourceViewport, normalizedZoomFactor)
+    floating && lastRect
+      ? resolveBrowserViewportLayout(lastRect, FILL_PREVIEW_VIEWPORT, normalizedZoomFactor)
       : viewportLayout;
 
   const syncContentPresentation = useCallback(() => {
@@ -351,18 +344,14 @@ export function HostedBrowserWebview(props: {
           data-preview-viewport-mode={effectiveViewport._tag}
           data-preview-viewport-key={browserViewportSettingKey(effectiveViewport)}
           data-preview-css-width={
-            fittedSourceViewport
-              ? fittedSourceViewport.width
-              : effectiveViewport._tag === "fill"
-                ? Math.max(1, Math.round(layout.viewportWidth / normalizedZoomFactor))
-                : effectiveViewport.width
+            floating || effectiveViewport._tag === "fill"
+              ? Math.max(1, Math.round(layout.viewportWidth / normalizedZoomFactor))
+              : effectiveViewport.width
           }
           data-preview-css-height={
-            fittedSourceViewport
-              ? fittedSourceViewport.height
-              : effectiveViewport._tag === "fill"
-                ? Math.max(1, Math.round(layout.viewportHeight / normalizedZoomFactor))
-                : effectiveViewport.height
+            floating || effectiveViewport._tag === "fill"
+              ? Math.max(1, Math.round(layout.viewportHeight / normalizedZoomFactor))
+              : effectiveViewport.height
           }
           aria-hidden={active ? undefined : true}
           className={cn(
@@ -378,7 +367,7 @@ export function HostedBrowserWebview(props: {
             transformOrigin: "top left",
           }}
         />
-        {active && effectiveViewport._tag !== "fill" && !fittedSourceViewport ? (
+        {active && effectiveViewport._tag !== "fill" && !floating ? (
           <>
             <BrowserViewportResizeHandles
               layout={layout}
