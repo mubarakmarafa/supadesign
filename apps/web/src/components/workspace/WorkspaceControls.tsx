@@ -21,16 +21,22 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { cn, randomUUID } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
+import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from "../ui/menu";
 import { Popover, PopoverPopup, PopoverTitle, PopoverTrigger } from "../ui/popover";
 import { useProjectWorkspace } from "./useProjectWorkspace";
+import { evenOutLayout } from "./bentoLayout";
 import {
   ACCENT_PRESETS,
   addWorkspaceWidget,
   BACKGROUND_PRESETS,
   canAddWidget,
+  isBoardOnly,
   patchWorkspaceAppearance,
+  resetWorkspaceLayout,
+  withWorkspaceLayout,
+  WORKSPACE_MAX_TILES,
   workspaceBackgroundStyle,
+  workspaceLayout,
 } from "./workspaceLogic";
 
 const WIDGET_CATALOG: ReadonlyArray<{
@@ -80,8 +86,10 @@ export function WorkspaceControls({
   projectRef: ScopedProjectRef;
   project: EnvironmentProject;
 }) {
-  const { workspace, canEdit, commit } = useProjectWorkspace(projectRef, project);
+  const { workspace, canEdit, canArrange, commit } = useProjectWorkspace(projectRef, project);
   if (!canEdit) return null;
+  const full = workspace.widgets.length >= WORKSPACE_MAX_TILES;
+  const layout = workspaceLayout(workspace);
   return (
     <>
       <Menu>
@@ -90,6 +98,11 @@ export function WorkspaceControls({
           Add widget
         </MenuTrigger>
         <MenuPopup align="end">
+          {full ? (
+            <p className="max-w-64 px-2 py-1.5 text-xs text-muted-foreground">
+              Up to {WORKSPACE_MAX_TILES} widgets fit on one screen. Remove one to add another.
+            </p>
+          ) : null}
           {WIDGET_CATALOG.map((entry) => (
             <MenuItem
               key={entry.kind}
@@ -111,6 +124,19 @@ export function WorkspaceControls({
               </span>
             </MenuItem>
           ))}
+          {canArrange && layout !== null && !isBoardOnly(workspace) ? (
+            <>
+              <MenuSeparator />
+              <MenuItem
+                onClick={() => commit(withWorkspaceLayout(workspace, evenOutLayout(layout)))}
+              >
+                Even out sizes
+              </MenuItem>
+              <MenuItem onClick={() => commit(resetWorkspaceLayout(workspace))}>
+                Reset layout
+              </MenuItem>
+            </>
+          ) : null}
         </MenuPopup>
       </Menu>
       <Popover>

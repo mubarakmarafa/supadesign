@@ -1,3 +1,4 @@
+import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 
 import { ForwardCompatibleArray, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
@@ -52,6 +53,76 @@ export const ProjectWorkspaceWidget = Schema.Struct({
 });
 export type ProjectWorkspaceWidget = typeof ProjectWorkspaceWidget.Type;
 
+/** The bento's snap grid. Tiles cover it exactly; a gap moves one track at a time. */
+export const PROJECT_WORKSPACE_LAYOUT_COLUMNS = 8;
+export const PROJECT_WORKSPACE_LAYOUT_ROWS = 6;
+/** Bounds a stored layout tree; real layouts are far smaller. */
+const PROJECT_WORKSPACE_LAYOUT_MAX_NODES = 64;
+const PROJECT_WORKSPACE_LAYOUT_MAX_DEPTH = 8;
+
+/**
+ * One node of the bento's split tree. A tile shows one widget; a split lays
+ * its children side by side (`row`) or stacked (`column`). `span` is the
+ * node's size in grid tracks along its parent's axis, so siblings' spans add
+ * up to their parent's size; the root's span is unused.
+ */
+export type ProjectWorkspaceLayoutNode =
+  | {
+      readonly type: "tile";
+      readonly widgetId: ProjectWorkspaceWidgetId;
+      readonly span: number;
+    }
+  | {
+      readonly type: "split";
+      readonly axis: "row" | "column";
+      readonly span: number;
+      readonly children: ReadonlyArray<ProjectWorkspaceLayoutNode>;
+    };
+type ProjectWorkspaceLayoutNodeEncoded =
+  | { readonly type: "tile"; readonly widgetId: string; readonly span: number }
+  | {
+      readonly type: "split";
+      readonly axis: "row" | "column";
+      readonly span: number;
+      readonly children: ReadonlyArray<ProjectWorkspaceLayoutNodeEncoded>;
+    };
+
+const LayoutSpan = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 64 }));
+
+export const ProjectWorkspaceLayoutNode: Schema.Codec<
+  ProjectWorkspaceLayoutNode,
+  ProjectWorkspaceLayoutNodeEncoded
+> = Schema.Union([
+  Schema.Struct({
+    type: Schema.Literal("tile"),
+    widgetId: ProjectWorkspaceWidgetId,
+    span: LayoutSpan,
+  }),
+  Schema.Struct({
+    type: Schema.Literal("split"),
+    axis: Schema.Literals(["row", "column"]),
+    span: LayoutSpan,
+    children: Schema.Array(
+      Schema.suspend(
+        (): Schema.Codec<ProjectWorkspaceLayoutNode, ProjectWorkspaceLayoutNodeEncoded> =>
+          ProjectWorkspaceLayoutNode,
+      ),
+    ).check(Schema.isMaxLength(PROJECT_WORKSPACE_MAX_WIDGETS)),
+  }),
+]);
+
+/**
+ * Where each widget sits: a split tree over a `columns` × `rows` grid. Widgets
+ * missing from the tree are placed by the client, and tiles for widgets that
+ * are gone are dropped, so the tree never has to be perfect.
+ */
+export const ProjectWorkspaceLayout = Schema.Struct({
+  columns: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 64 })),
+  rows: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 64 })),
+  root: ProjectWorkspaceLayoutNode,
+});
+export type ProjectWorkspaceLayout = typeof ProjectWorkspaceLayout.Type;
+
 /** `#rrggbb`. */
 export const ProjectWorkspaceColor = TrimmedNonEmptyString.check(
   Schema.isPattern(/^#[0-9a-f]{6}$/i),
@@ -86,6 +157,11 @@ export const ProjectWorkspace = Schema.Struct({
    * adding it back resumes the same conversation.
    */
   boardAgentThreadId: Schema.optional(ThreadId),
+  /**
+   * The bento arrangement. Absent lays the widgets out in order. Older
+   * clients drop it when they save; the next client rebuilds it from order.
+   */
+  layout: Schema.optional(ProjectWorkspaceLayout),
 });
 export type ProjectWorkspace = typeof ProjectWorkspace.Type;
 
@@ -97,6 +173,12 @@ export const ReceivedProjectWorkspace = Schema.Struct({
   widgets: ForwardCompatibleArray(ProjectWorkspaceWidget),
   appearance: Schema.optional(ProjectWorkspaceAppearance),
   boardAgentThreadId: Schema.optional(ThreadId),
+  // A layout this build cannot read is dropped, never the workspace with it.
+  layout: Schema.optional(
+    Schema.UndefinedOr(ProjectWorkspaceLayout).pipe(
+      Schema.catchDecoding(() => Effect.succeedSome(undefined)),
+    ),
+  ),
 });
 
 export const PROJECT_WORKSPACE_KANBAN_WIDGET_ID = ProjectWorkspaceWidgetId.make("kanban");
@@ -138,7 +220,8 @@ export type ProjectWorkspaceIssue =
   | { readonly code: "duplicate-widget-id"; readonly widgetId: ProjectWorkspaceWidgetId }
   | { readonly code: "multiple-kanban" }
   | { readonly code: "invalid-figma-url"; readonly widgetId: ProjectWorkspaceWidgetId }
-  | { readonly code: "invalid-background-image-url" };
+  | { readonly code: "invalid-background-image-url" }
+  | { readonly code: "invalid-layout" };
 
 /** Cross-field rules a workspace must satisfy before it is stored. Empty means valid. */
 export function validateProjectWorkspace(
@@ -159,9 +242,25 @@ export function validateProjectWorkspace(
     }
   }
   if (kanbans > 1) issues.push({ code: "multiple-kanban" });
+  if (workspace.layout !== undefined && !layoutWithinBounds(workspace.layout.root)) {
+    issues.push({ code: "invalid-layout" });
+  }
   const imageUrl = workspace.appearance?.backgroundImageUrl;
   if (imageUrl !== undefined && !isHttpsUrl(imageUrl)) {
     issues.push({ code: "invalid-background-image-url" });
   }
   return issues;
+}
+
+/** Whether a layout tree stays within the node and depth bounds the server stores. */
+function layoutWithinBounds(root: ProjectWorkspaceLayoutNode): boolean {
+  let nodes = 0;
+  const visit = (node: ProjectWorkspaceLayoutNode, depth: number): boolean => {
+    nodes += 1;
+    if (nodes > PROJECT_WORKSPACE_LAYOUT_MAX_NODES || depth > PROJECT_WORKSPACE_LAYOUT_MAX_DEPTH) {
+      return false;
+    }
+    return node.type === "tile" || node.children.every((child) => visit(child, depth + 1));
+  };
+  return visit(root, 1);
 }

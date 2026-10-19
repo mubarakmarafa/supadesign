@@ -1,13 +1,17 @@
 import {
   DEFAULT_PROJECT_WORKSPACE,
   PROJECT_WORKSPACE_COLUMNS,
+  PROJECT_WORKSPACE_MAX_ROW_SPAN,
   PROJECT_WORKSPACE_MAX_WIDGETS,
   type ProjectWorkspace,
+  type ProjectWorkspaceLayout,
   type ProjectWorkspaceAppearance,
   type ProjectWorkspaceWidget,
   type ProjectWorkspaceWidgetId,
   type ProjectWorkspaceWidgetKind,
 } from "@supaterm/contracts";
+
+import { buildLayout, insertTile, layoutRects, reconcileLayout, removeTile } from "./bentoLayout";
 
 // ── Layout ──
 
@@ -22,23 +26,88 @@ export function isBoardOnly(workspace: ProjectWorkspace): boolean {
   return workspace.widgets.length === 1 && workspace.widgets[0]!.kind === "kanban";
 }
 
-export interface WidgetSize {
-  readonly w: number;
-  readonly h: number;
+/**
+ * The most tiles a workspace takes, so everything on it stays visible on one
+ * screen. Workspaces saved with more keep them; they just cannot grow.
+ */
+export const WORKSPACE_MAX_TILES = 5;
+
+/** Kinds that can appear once per workspace. */
+const SINGLE_KINDS: ReadonlySet<string> = new Set(["kanban", "board-agent"]);
+
+export function canAddWidget(workspace: ProjectWorkspace, kind: ProjectWorkspaceWidgetKind) {
+  if (workspace.widgets.length >= Math.min(WORKSPACE_MAX_TILES, PROJECT_WORKSPACE_MAX_WIDGETS)) {
+    return false;
+  }
+  return !SINGLE_KINDS.has(kind) || !workspace.widgets.some((widget) => widget.kind === kind);
 }
 
-export const WIDGET_SIZE_PRESETS: ReadonlyArray<WidgetSize & { readonly label: string }> = [
-  { label: "Small", w: 1, h: 1 },
-  { label: "Wide", w: 2, h: 1 },
-  { label: "Tall", w: 1, h: 2 },
-  { label: "Large", w: 2, h: 2 },
-  { label: "Wide and tall", w: 3, h: 2 },
-  { label: "Full width", w: 4, h: 2 },
-  { label: "Full width, tall", w: 4, h: 3 },
-];
+/** The bento arrangement to draw: the stored one, or one built from widget order. */
+export function workspaceLayout(workspace: ProjectWorkspace): ProjectWorkspaceLayout | null {
+  return reconcileLayout(
+    workspace.widgets.map((widget) => widget.id),
+    workspace.layout,
+  );
+}
 
-export const WIDGET_DEFAULT_SIZES: Readonly<Record<ProjectWorkspaceWidgetKind, WidgetSize>> = {
-  kanban: { w: 4, h: 2 },
+/**
+ * Saves an arrangement. Each widget also keeps a rough `w`/`h` in the old
+ * 4×3 grid, so a client from before the bento still draws something close.
+ */
+export function withWorkspaceLayout(
+  workspace: ProjectWorkspace,
+  layout: ProjectWorkspaceLayout | null,
+): ProjectWorkspace {
+  if (layout === null) {
+    const { layout: _previous, ...rest } = workspace;
+    return rest;
+  }
+  const rects = new Map(layoutRects(layout).map((rect) => [rect.widgetId, rect]));
+  const scaleX = PROJECT_WORKSPACE_COLUMNS / layout.columns;
+  const scaleY = PROJECT_WORKSPACE_MAX_ROW_SPAN / layout.rows;
+  const clamp = (value: number, max: number) => Math.max(1, Math.min(max, Math.round(value)));
+  const order = [...layoutRects(layout)].sort((a, b) => a.y - b.y || a.x - b.x);
+  const position = new Map(order.map((rect, index) => [rect.widgetId, index]));
+  return {
+    ...workspace,
+    widgets: workspace.widgets
+      .map((widget) => {
+        const rect = rects.get(widget.id);
+        return rect === undefined
+          ? widget
+          : {
+              ...widget,
+              w: clamp(rect.w * scaleX, PROJECT_WORKSPACE_COLUMNS),
+              h: clamp(rect.h * scaleY, PROJECT_WORKSPACE_MAX_ROW_SPAN),
+            };
+      })
+      // Older clients place widgets in array order, so keep it close to reading order.
+      .toSorted(
+        (a, b) =>
+          (position.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (position.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      ),
+    layout,
+  };
+}
+
+/** Adds a widget by splitting the biggest tile; null when it cannot be added. */
+export function addWorkspaceWidget(
+  workspace: ProjectWorkspace,
+  kind: ProjectWorkspaceWidgetKind,
+  id: ProjectWorkspaceWidgetId,
+): ProjectWorkspace | null {
+  if (!canAddWidget(workspace, kind)) return null;
+  const current = workspaceLayout(workspace);
+  const layout = current === null ? buildLayout([id]) : insertTile(current, id);
+  if (layout === null) return null;
+  const widget = { id, kind, ...LEGACY_SIZES[kind] };
+  return withWorkspaceLayout({ ...workspace, widgets: [...workspace.widgets, widget] }, layout);
+}
+
+/** Starting `w`/`h`, replaced from the layout as soon as it is saved. */
+const LEGACY_SIZES: Readonly<Record<ProjectWorkspaceWidgetKind, { w: number; h: number }>> = {
+  kanban: { w: 3, h: 2 },
   "live-preview": { w: 1, h: 2 },
   figma: { w: 1, h: 2 },
   usage: { w: 1, h: 1 },
@@ -46,82 +115,34 @@ export const WIDGET_DEFAULT_SIZES: Readonly<Record<ProjectWorkspaceWidgetKind, W
   "board-agent": { w: 1, h: 2 },
 };
 
-/** Kinds that can appear once per workspace. */
-const SINGLE_KINDS: ReadonlySet<string> = new Set(["kanban", "board-agent"]);
-
-export function canAddWidget(workspace: ProjectWorkspace, kind: ProjectWorkspaceWidgetKind) {
-  if (workspace.widgets.length >= PROJECT_WORKSPACE_MAX_WIDGETS) return false;
-  return !SINGLE_KINDS.has(kind) || !workspace.widgets.some((widget) => widget.kind === kind);
-}
-
-/**
- * Adds a widget at its default size; null when it cannot be added. The first
- * widget beside a full-width kanban narrows the kanban so the newcomer lands
- * beside it rather than under it. A re-added kanban goes first.
- */
-export function addWorkspaceWidget(
-  workspace: ProjectWorkspace,
-  kind: ProjectWorkspaceWidgetKind,
-  id: ProjectWorkspaceWidgetId,
-): ProjectWorkspace | null {
-  if (!canAddWidget(workspace, kind)) return null;
-  const size = WIDGET_DEFAULT_SIZES[kind];
-  if (kind === "kanban") {
-    const w = workspace.widgets.length === 0 ? PROJECT_WORKSPACE_COLUMNS : size.w - 1;
-    return { ...workspace, widgets: [{ id, kind, w, h: size.h }, ...workspace.widgets] };
-  }
-  const widgets = isBoardOnly(workspace)
-    ? workspace.widgets.map((widget) =>
-        widget.w === PROJECT_WORKSPACE_COLUMNS
-          ? { ...widget, w: PROJECT_WORKSPACE_COLUMNS - 1 }
-          : widget,
-      )
-    : workspace.widgets;
-  return { ...workspace, widgets: [...widgets, { id, kind, ...size }] };
-}
-
+/** Removes a widget; its neighbour takes the space. */
 export function removeWorkspaceWidget(
   workspace: ProjectWorkspace,
   id: ProjectWorkspaceWidgetId,
 ): ProjectWorkspace {
-  return { ...workspace, widgets: workspace.widgets.filter((widget) => widget.id !== id) };
+  const current = workspaceLayout(workspace);
+  const remaining = {
+    ...workspace,
+    widgets: workspace.widgets.filter((widget) => widget.id !== id),
+  };
+  return withWorkspaceLayout(remaining, current === null ? null : removeTile(current, id));
 }
 
-export function resizeWorkspaceWidget(
-  workspace: ProjectWorkspace,
-  id: ProjectWorkspaceWidgetId,
-  size: WidgetSize,
-): ProjectWorkspace {
-  return mapWidget(workspace, id, (widget) => ({ ...widget, w: size.w, h: size.h }));
-}
-
-/** Swaps a widget with its neighbour; null at either end. */
-export function nudgeWorkspaceWidget(
-  workspace: ProjectWorkspace,
-  id: ProjectWorkspaceWidgetId,
-  direction: "earlier" | "later",
-): ProjectWorkspace | null {
-  const index = workspace.widgets.findIndex((widget) => widget.id === id);
-  const target = direction === "earlier" ? index - 1 : index + 1;
-  if (index === -1 || target < 0 || target >= workspace.widgets.length) return null;
-  const widgets = [...workspace.widgets];
-  [widgets[index], widgets[target]] = [widgets[target]!, widgets[index]!];
-  return { ...workspace, widgets };
-}
-
-/** Moves a dragged widget into the slot of the widget it was dropped on. */
-export function moveWorkspaceWidget(
-  workspace: ProjectWorkspace,
-  id: ProjectWorkspaceWidgetId,
-  overId: ProjectWorkspaceWidgetId,
-): ProjectWorkspace | null {
-  const from = workspace.widgets.findIndex((widget) => widget.id === id);
-  const to = workspace.widgets.findIndex((widget) => widget.id === overId);
-  if (from === -1 || to === -1 || from === to) return null;
-  const widgets = [...workspace.widgets];
-  const [moved] = widgets.splice(from, 1);
-  widgets.splice(to, 0, moved!);
-  return { ...workspace, widgets };
+/** Lays the widgets out afresh: the board, then its agent, then the rest in reading order. */
+export function resetWorkspaceLayout(workspace: ProjectWorkspace): ProjectWorkspace {
+  const current = workspaceLayout(workspace);
+  const reading =
+    current === null
+      ? workspace.widgets.map((widget) => widget.id)
+      : [...layoutRects(current)]
+          .sort((a, b) => a.y - b.y || a.x - b.x)
+          .map((rect) => rect.widgetId);
+  const kinds = new Map(workspace.widgets.map((widget) => [widget.id, widget.kind]));
+  const rank = (id: ProjectWorkspaceWidgetId) => {
+    const kind = kinds.get(id);
+    return kind === "kanban" ? 0 : kind === "board-agent" ? 1 : 2;
+  };
+  return withWorkspaceLayout(workspace, buildLayout(reading.toSorted((a, b) => rank(a) - rank(b))));
 }
 
 /** Sets or (with null) clears a widget's own settings. */

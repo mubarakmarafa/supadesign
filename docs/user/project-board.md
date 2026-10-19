@@ -58,8 +58,25 @@ Select **Add widget** at the top of the board to add:
   branches, and its open pull requests.
 - **Board**: the cards themselves, if you removed them.
 
-Drag a widget by its title bar to rearrange it. Its **…** menu sets its size,
-moves it earlier or later, or removes it.
+Widgets are tiles that always fill the board, up to five at a time so
+everything stays on one screen. Adding a widget splits the biggest tile.
+
+- **Resize**: drag the gap between two tiles. One grows as its neighbour
+  shrinks, and edges snap to an even grid so they line up. Double-click a gap
+  to make the tiles beside it equal.
+- **Move**: drag a tile by its title bar. Drop it on the middle of another tile
+  to swap the two, on another tile's edge to split that tile, or on the board's
+  outer edge to run it along that whole side. Esc cancels.
+- **Maximize**: double-click a title bar, or use its **…** menu, to fill the
+  board with one tile. Esc or the restore button puts it back. This only
+  changes the device you're on.
+- **Even out sizes** and **Reset layout** are in the **Add widget** menu.
+  Removing a widget from its **…** menu can be undone from the notice that
+  appears.
+
+With the keyboard, Tab to a gap and use the arrow keys to resize, or focus a
+title bar and press Alt+Arrow to move to the next tile and Alt+Shift+Arrow to
+swap with it. In a narrow window the tiles stack and scroll.
 
 Select the palette button next to **Add widget** to set the project's
 background (a tint, a gradient, your own colour, or an image link) and an
