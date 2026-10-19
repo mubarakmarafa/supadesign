@@ -181,7 +181,7 @@ import {
 } from "../lib/utils";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../terminalUiStateStore";
 import { buildThreadRouteParams, resolveThreadRouteTarget } from "../threadRoutes";
-import { useOpenProjectBoard } from "./board/boardNavigation";
+import { useOpenProjectBoard, useOpenProjectHome } from "./board/boardNavigation";
 import { useAvailableSettingsSearchItems } from "./settings/useAvailableSettingsSearchItems";
 import {
   applyWslEnvironmentConfiguration,
@@ -679,6 +679,7 @@ function OpenCommandPaletteDialog(props: {
   });
   const { environments } = useEnvironments();
   const openProjectBoard = useOpenProjectBoard();
+  const openProjectHome = useOpenProjectHome();
   const desktopLocalBootstraps = useDesktopLocalBootstraps();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const availableSettingsSearchItems = useAvailableSettingsSearchItems();
@@ -1194,6 +1195,7 @@ function OpenCommandPaletteDialog(props: {
 
   const openProjectFromSearch = useMemo(
     () => async (project: (typeof projects)[number]) => {
+      if (openProjectHome(scopeProjectRef(project.environmentId, project.id))) return;
       const group = projectGroupByTargetKey.get(`${project.environmentId}:${project.id}`);
       const groupedProjectKeys = group
         ? new Set(
@@ -1232,6 +1234,7 @@ function OpenCommandPaletteDialog(props: {
       clientSettings.sidebarThreadSortOrder,
       handleNewThread,
       navigate,
+      openProjectHome,
       projectGroupByTargetKey,
       threads,
     ],
@@ -2581,6 +2584,10 @@ function OpenCommandPaletteDialog(props: {
         projects.filter((project) => project.environmentId === input.environmentId),
         cwd,
       );
+      if (existing && openProjectHome(scopeProjectRef(existing.environmentId, existing.id))) {
+        setOpen(false);
+        return;
+      }
       if (existing) {
         const latestThread = getLatestThreadForProject(
           threads.filter((thread) => thread.environmentId === existing.environmentId),
@@ -2649,6 +2656,10 @@ function OpenCommandPaletteDialog(props: {
         return;
       }
 
+      if (openProjectHome(scopeProjectRef(input.environmentId, projectId))) {
+        setOpen(false);
+        return;
+      }
       const navigationResult = await settlePromise(() =>
         handleNewThread(scopeProjectRef(input.environmentId, projectId)),
       );
@@ -2670,6 +2681,7 @@ function OpenCommandPaletteDialog(props: {
       createProject,
       environments,
       navigate,
+      openProjectHome,
       projects,
       setOpen,
       clientSettings.sidebarThreadSortOrder,

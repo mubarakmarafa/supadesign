@@ -28,6 +28,9 @@ tab, and the gear opens Settings. Closing a tab lets its live card go warm.
 Turn the setting off, or choose **Show the sidebar instead of project tabs** in
 the command palette, to bring the sidebar back.
 
+Opening a project, from the command palette, a new or cloned project, or when the app starts,
+shows its board. Start its first card there.
+
 Boards need an environment running a Supadesign server that supports them. The
 board entries are hidden when no connected environment does.
 
@@ -104,10 +107,10 @@ touch screens and narrow windows, use the card's **…** menu and **Move to**.
 Click a card to open its thread in a side peek beside the board, where you can
 read it and send a quick message. Click an empty part of the board, press
 **Escape**, or close the peek to go back to just the board. Peeking doesn't change which card is live. Double-click a
-card, press **Enter**, or use the peek's expand button to open its thread. Press **Escape** in
-that thread to return to the board where you left it. Escape does nothing while
-the composer holds a draft, or while a terminal, preview, menu, or dialog has
-focus.
+card, press **Enter**, or use the peek's expand button to open its thread. To return to the
+board where you left it, select the project name with the back arrow at the top of the thread,
+or press **Escape**. Escape does nothing while the composer holds a draft, or while a terminal,
+preview, menu, or dialog has focus.
 
 To get rid of a card, right-click it or open its **…** menu and choose
 **Delete thread**. This permanently deletes the thread and its history; to keep

@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useRef } from "react";
 
 import { useNewThreadHandler } from "../hooks/useHandleNewThread";
+import { useOpenProjectHome } from "./board/boardNavigation";
 import { useRemoveClonedProject } from "../hooks/useRemoveClonedProject";
 import { useEnvironments } from "../state/environments";
 import { useEnvironmentProjectClones } from "../state/projectClones";
@@ -54,6 +55,7 @@ function renderKey(clone: ProjectCloneSnapshot): string {
 function EnvironmentCloneToasts({ environmentId }: { environmentId: EnvironmentId }) {
   const clones = useEnvironmentProjectClones(environmentId);
   const handleNewThread = useNewThreadHandler();
+  const openProjectHome = useOpenProjectHome();
   const { draftId: routeDraftId } = useParams({ strict: false });
   const cancelClone = useAtomCommand(sourceControlEnvironment.cancelProjectClone, {
     reportFailure: false,
@@ -96,9 +98,10 @@ function EnvironmentCloneToasts({ environmentId }: { environmentId: EnvironmentI
 
   const openProject = useCallback(
     (projectId: ProjectId) => {
-      void handleNewThread(scopeProjectRef(environmentId, projectId));
+      const projectRef = scopeProjectRef(environmentId, projectId);
+      if (!openProjectHome(projectRef)) void handleNewThread(projectRef);
     },
-    [environmentId, handleNewThread],
+    [environmentId, handleNewThread, openProjectHome],
   );
 
   useEffect(() => {

@@ -15,6 +15,7 @@ import { waitForProject } from "~/state/entities";
 import { projectEnvironment } from "~/state/projects";
 import { sourceControlEnvironment } from "~/state/sourceControl";
 import { useAtomCommand } from "~/state/use-atom-command";
+import { useOpenProjectHome } from "~/components/board/boardNavigation";
 import { useNewThreadHandler } from "./useHandleNewThread";
 
 function errorMessage(error: unknown): string {
@@ -37,6 +38,7 @@ export function useNewProject() {
     reportFailure: false,
   });
   const handleNewThread = useNewThreadHandler();
+  const openProjectHome = useOpenProjectHome();
 
   const publishNewRepository = useCallback(
     async (input: {
@@ -135,6 +137,8 @@ export function useNewProject() {
         return null;
       });
       if (project === null) return true;
+      // A new project opens on its board, where its first card starts.
+      if (openProjectHome(projectRef)) return true;
       await handleNewThread(projectRef).catch((error: unknown) => {
         toastManager.add(
           stackedThreadToast({
@@ -146,6 +150,6 @@ export function useNewProject() {
       });
       return true;
     },
-    [createNew, handleNewThread, publishNewRepository],
+    [createNew, handleNewThread, openProjectHome, publishNewRepository],
   );
 }

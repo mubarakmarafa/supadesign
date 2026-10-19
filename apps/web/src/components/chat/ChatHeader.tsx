@@ -9,7 +9,7 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@supaterm/client-runtime/state/runtime";
-import { ChevronDownIcon } from "lucide-react";
+import { ArrowLeftIcon, ChevronDownIcon } from "lucide-react";
 import {
   memo,
   useCallback,
@@ -54,6 +54,8 @@ interface ChatHeaderProps {
   onOpenThread: (threadId: ThreadId) => void;
   rightPanelOpen: boolean;
   onNewThreadInProject: () => void;
+  /** Set when the project has a board: its name then leads back there. */
+  onOpenProjectBoard?: (() => void) | undefined;
   onOpenProjectSettings?: (() => void) | undefined;
 }
 
@@ -88,11 +90,13 @@ export const ChatHeader = memo(function ChatHeader({
   onOpenThread,
   rightPanelOpen,
   onNewThreadInProject,
+  onOpenProjectBoard,
   onOpenProjectSettings,
 }: ChatHeaderProps) {
   const activeProjectName = activeProject?.title;
   const activeProjectCwd = activeProject?.workspaceRoot ?? null;
   const newThreadShortcut = useShortcutLabel("chat.newLocal");
+  const boardShortcut = useShortcutLabel("board.open");
   const interfaceFont = useClientSettings((settings) => settings.fontFamilySans);
   const breadcrumbContainerRef = useRef<HTMLDivElement>(null);
   const [collapseParentTitle, setCollapseParentTitle] = useState(false);
@@ -338,20 +342,33 @@ export const ChatHeader = memo(function ChatHeader({
                   render={
                     <button
                       type="button"
-                      aria-label={`New thread in ${activeProjectName}`}
-                      onClick={onNewThreadInProject}
+                      aria-label={
+                        onOpenProjectBoard
+                          ? `Back to the ${activeProjectName} board`
+                          : `New thread in ${activeProjectName}`
+                      }
+                      onClick={onOpenProjectBoard ?? onNewThreadInProject}
                       className="inline-flex min-w-0 max-w-full cursor-pointer items-center gap-1.5 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     />
                   }
                 >
+                  {onOpenProjectBoard ? (
+                    <ArrowLeftIcon aria-hidden className="size-3.5 shrink-0" />
+                  ) : null}
                   <ProjectFavicon project={activeProject} className="size-3.5" />
                   <WorkspaceBreadcrumbText className="max-w-40">
                     {activeProjectName}
                   </WorkspaceBreadcrumbText>
                 </TooltipTrigger>
-                <TooltipPopup side="top" shortcut={newThreadShortcut}>
-                  New thread in {activeProjectName}
-                </TooltipPopup>
+                {onOpenProjectBoard ? (
+                  <TooltipPopup side="top" shortcut={boardShortcut}>
+                    Back to the board
+                  </TooltipPopup>
+                ) : (
+                  <TooltipPopup side="top" shortcut={newThreadShortcut}>
+                    New thread in {activeProjectName}
+                  </TooltipPopup>
+                )}
               </Tooltip>
             </WorkspaceBreadcrumbItem>
             <WorkspaceBreadcrumbSeparator>

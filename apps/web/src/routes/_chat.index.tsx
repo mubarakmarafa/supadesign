@@ -12,6 +12,7 @@ import { Button } from "../components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../components/ui/empty";
 import { SidebarInset } from "../components/ui/sidebar";
 import { WorkspacePageHeader } from "../components/WorkspacePageHeader";
+import { useOpenProjectHome } from "../components/board/boardNavigation";
 import { useNewThreadHandler } from "../hooks/useHandleNewThread";
 import {
   useAllEnvironmentShellsBootstrapped,
@@ -34,15 +35,16 @@ function ChatIndexRouteView() {
 }
 
 /**
- * Landing on the index route drops straight into a draft thread for the most
- * recently active project, so the first screen is a prompt instead of a dead
- * end. Falls back to an add-project hero when no project exists yet.
+ * Landing on the index route opens the most recently active project: its
+ * board, or a draft thread where it has none, so the first screen is never a
+ * dead end. Falls back to an add-project hero when no project exists yet.
  */
 function IndexDraftLanding() {
   const projects = useProjects();
   const threads = useThreadShells();
   const bootstrapped = useAllEnvironmentShellsBootstrapped();
   const handleNewThread = useNewThreadHandler();
+  const openProjectHome = useOpenProjectHome();
   const router = useRouter();
   // Read at effect time: this page stays mounted while a navigation away from
   // "/" is still loading, but the router already points at the new location.
@@ -63,7 +65,9 @@ function IndexDraftLanding() {
       return;
     }
     startingRef.current = true;
-    void handleNewThread(scopeProjectRef(project.environmentId, project.id), {
+    const projectRef = scopeProjectRef(project.environmentId, project.id);
+    if (openProjectHome(projectRef, { replace: true })) return;
+    void handleNewThread(projectRef, {
       replace: true,
     }).catch(() => {
       startingRef.current = false;

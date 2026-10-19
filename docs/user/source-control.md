@@ -119,7 +119,7 @@ Merging a stack lands it through GitCafe, and updating a branch restacks the lay
 To start from nothing, choose **New project** in the command palette (`Cmd/Ctrl+K`), or
 **New project** under **Add Project** on any client, and type a name. Supaterm makes a Git
 repository in `~/.supaterm/projects` (the `projects` folder of your Supaterm data directory) with a README,
-an icon, and a first commit, then opens a new thread in it. Until the project has a thread, new
+an icon, and a first commit, then opens its board (or a new thread where boards aren't available). Until the project has a thread, new
 threads work in its folder, even when your default is a new worktree. The folder is named after
 the project, like `pinball-stats` for "Pinball Stats". Turn on **Create private repository** to
 also publish it to a host you are signed in to; when several are ready, pick one next to the
