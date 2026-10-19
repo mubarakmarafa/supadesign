@@ -447,6 +447,7 @@ import {
   resolveScrollToEndClearance,
 } from "./composerFooterLayout";
 import { ChatHeader } from "./chat/ChatHeader";
+import { useBackToProjectBoard, useProjectHasBoard } from "./board/boardNavigation";
 import { useRemoteOpenState } from "~/remoteOpen";
 import { shouldShowOpenInPicker } from "./chat/OpenInPicker.logic";
 import { useOpenFavoriteEditorShortcut } from "./chat/OpenInPickerShortcut";
@@ -2682,6 +2683,11 @@ export default function ChatView(props: ChatViewProps) {
   const handleNewThreadInActiveProject = useCallback(() => {
     startNewThreadForProject(activeProjectRef, handleNewThread);
   }, [activeProjectRef, handleNewThread]);
+  const activeProjectHasBoard = useProjectHasBoard(activeProject ?? null);
+  const backToProjectBoard = useBackToProjectBoard();
+  const handleOpenProjectBoard = useCallback(() => {
+    if (activeProjectRef) backToProjectBoard(activeProjectRef);
+  }, [activeProjectRef, backToProjectBoard]);
   const projectGroupingSettings = selectProjectGroupingSettings(settings);
   const activeDraftLogicalProjectKey =
     !isServerThread && activeProject
@@ -10788,6 +10794,7 @@ export default function ChatView(props: ChatViewProps) {
                   onOpenThread={onOpenRelatedThread}
                   rightPanelOpen={inlineRightPanelOwnsTitleBar}
                   onNewThreadInProject={handleNewThreadInActiveProject}
+                  onOpenProjectBoard={activeProjectHasBoard ? handleOpenProjectBoard : undefined}
                   {...(activeDraftLogicalProjectKey
                     ? { onOpenProjectSettings: handleOpenDraftProjectSettings }
                     : {})}

@@ -1,4 +1,6 @@
 import { scopeProjectRef } from "@supaterm/client-runtime/environment";
+import { isScratchProject } from "@supaterm/client-runtime/state/projects";
+import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import type {
   EnvironmentId,
   ProjectId,
@@ -11,7 +13,8 @@ import { useCallback } from "react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
 import { firstOrderedProjectRef } from "../../hooks/useHandleNewThread";
-import { readProjects, readThreadShell } from "../../state/entities";
+import { useScratchProject } from "../../hooks/useScratchProject";
+import { readProject, readProjects, readThreadShell } from "../../state/entities";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { environmentServerConfigsAtom } from "../../state/server";
 import { resolveThreadRouteTarget, buildThreadRouteParams } from "../../threadRoutes";
@@ -117,6 +120,75 @@ export function useOpenThreadFromBoard() {
             index: router.history.location.state.__TSR_index,
           },
         },
+      });
+    },
+    [router],
+  );
+}
+
+/**
+ * Opens a project at its board, the project's home. Returns false, doing
+ * nothing, for the "No project" folder and environments without boards, so
+ * the caller can open a thread as before.
+ */
+export function useOpenProjectHome() {
+  const router = useRouter();
+  const { scratchWorkspaceRootFor } = useScratchProject();
+  return useCallback(
+    (projectRef: ScopedProjectRef, options?: { readonly replace?: boolean }): boolean => {
+      const project = readProject(projectRef);
+      const scratch =
+        project !== null &&
+        isScratchProject(project, scratchWorkspaceRootFor(projectRef.environmentId));
+      if (scratch || !readProjectBoardSupported(projectRef.environmentId)) return false;
+      void router.navigate({
+        to: BOARD_ROUTE,
+        params: { environmentId: projectRef.environmentId, projectId: projectRef.projectId },
+        ...(options?.replace ? { replace: true } : {}),
+      });
+      return true;
+    },
+    [router, scratchWorkspaceRootFor],
+  );
+}
+
+/** Whether a project has a board to go back to. */
+export function useProjectHasBoard(project: EnvironmentProject | null): boolean {
+  const configs = useAtomValue(environmentServerConfigsAtom);
+  const { scratchWorkspaceRootFor } = useScratchProject();
+  if (project === null) return false;
+  return (
+    configs.get(project.environmentId)?.environment.capabilities.projectBoard === true &&
+    !isScratchProject(project, scratchWorkspaceRootFor(project.environmentId))
+  );
+}
+
+/**
+ * Leaves a thread for its project's board: back through history when the
+ * thread was opened from that board, so the board is as it was, otherwise
+ * straight to it. On the board itself it closes the side peek.
+ */
+export function useBackToProjectBoard() {
+  const router = useRouter();
+  return useCallback(
+    (projectRef: ScopedProjectRef) => {
+      const location = router.state.location;
+      const origin = location.state.boardOrigin;
+      if (
+        origin !== undefined &&
+        origin.environmentId === projectRef.environmentId &&
+        origin.projectId === projectRef.projectId &&
+        origin.index === location.state.__TSR_index - 1
+      ) {
+        router.history.back();
+        return;
+      }
+      const params = { environmentId: projectRef.environmentId, projectId: projectRef.projectId };
+      const onBoard = location.pathname === `/board/${params.environmentId}/${params.projectId}`;
+      void router.navigate({
+        to: BOARD_ROUTE,
+        params,
+        ...(onBoard ? { search: {}, replace: true } : {}),
       });
     },
     [router],
