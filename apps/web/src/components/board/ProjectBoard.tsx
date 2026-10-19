@@ -26,7 +26,7 @@ import {
   ThreadId,
   validateProjectBoard,
 } from "@supaterm/contracts";
-import { resolveBoardColumns } from "@supaterm/shared/projectBoard";
+import { newBoardCardIndex, resolveBoardColumns } from "@supaterm/shared/projectBoard";
 import {
   type Announcements,
   type CollisionDetection,
@@ -112,7 +112,6 @@ import {
   findBoardCard,
   moveBoardCard,
   moveBoardColumn,
-  newBoardCardIndex,
   nextBoardFocus,
   nudgeBoardCard,
   renameBoardColumn,

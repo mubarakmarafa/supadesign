@@ -40,6 +40,8 @@ const setup = (options?: {
   readonly dirtyWorktrees?: ReadonlyArray<string>;
   /** Cards that were live when the server last ran. */
   readonly restoredCards?: ReadonlyArray<ThreadId>;
+  /** How the card's checkout was found: made for the run, its own, or its own put back. */
+  readonly workspace?: "created" | "own" | "restored";
 }) =>
   Effect.gen(function* () {
     const calls: Array<string> = [];
@@ -68,7 +70,12 @@ const setup = (options?: {
       prepareWorkspace: ({ threadId }) =>
         Effect.sync(() => {
           calls.push(`prepare:${threadId}`);
-          return { worktreePath: `/worktrees/${threadId}`, created: true };
+          const workspace = options?.workspace ?? "created";
+          return {
+            worktreePath: `/worktrees/${threadId}`,
+            created: workspace === "created",
+            restored: workspace === "restored",
+          };
         }),
       runSetup: ({ threadId }) => Effect.sync(() => void calls.push(`setup:${threadId}`)),
       startDevServer: ({ threadId, script, onLine }) =>
@@ -81,6 +88,8 @@ const setup = (options?: {
         }),
       waitForServer: ({ threadId }) => Effect.succeed(`http://localhost:5173/?card=${threadId}`),
       stopDevServer: ({ threadId }) => Effect.sync(() => void calls.push(`stop:${threadId}`)),
+      stopAgentServers: ({ worktreePath }) =>
+        Effect.sync(() => void calls.push(`sweep:${worktreePath}`)),
       saveDevScript: ({ command }) =>
         Effect.sync(() => {
           calls.push(`save:${command}`);
@@ -214,6 +223,24 @@ it.effect("stop skips the warm period", () =>
     yield* service.stop(cardA);
     assert.deepStrictEqual(yield* service.list(projectId), []);
     assert.include(calls, "stop:thread-a");
+  }).pipe(Effect.scoped),
+);
+
+it.effect("sets up a card's own worktree only when it was checked out again", () =>
+  Effect.gen(function* () {
+    for (const [workspace, setUp] of [
+      ["own", false],
+      ["restored", true],
+    ] as const) {
+      const { service, calls, waitFor, find } = yield* setup({ workspace });
+      yield* service.activate({ projectId, threadId: cardA });
+      yield* waitFor((list) => find(list, cardA)?.status === "ready");
+      assert.strictEqual(calls.includes("setup:thread-a"), setUp, workspace);
+      // Its checkout stays, but servers its agent left there stop with the card.
+      yield* service.stop(cardA);
+      assert.include(calls, "sweep:/worktrees/thread-a");
+      assert.notInclude(calls, "remove:/worktrees/thread-a");
+    }
   }).pipe(Effect.scoped),
 );
 

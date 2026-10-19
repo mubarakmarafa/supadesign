@@ -207,6 +207,10 @@
       "types": "./src/threadPullRequests.ts",
       "import": "./src/threadPullRequests.ts"
     },
+    "./orderKeys": {
+      "types": "./src/orderKeys.ts",
+      "import": "./src/orderKeys.ts"
+    },
     "./projectBoard": {
       "types": "./src/projectBoard.ts",
       "import": "./src/projectBoard.ts"

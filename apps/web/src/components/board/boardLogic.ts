@@ -288,15 +288,3 @@ export function boardCardFromText(
   const end = cut > BOARD_CARD_TITLE_MAX_LENGTH / 2 ? cut : BOARD_CARD_TITLE_MAX_LENGTH - 1;
   return { title: `${first.slice(0, end).trimEnd()}…`, summary: summaryOf(lines.join("\n")) };
 }
-
-/**
- * Where a new card goes in its column: the top, except in the live column,
- * where it goes under the live card so adding an idea never swaps what's running.
- */
-export function newBoardCardIndex(
-  board: ProjectBoard,
-  columnId: BoardColumnId,
-  cardCount: number,
-): number {
-  return columnId === board.liveColumnId && cardCount > 0 ? 1 : 0;
-}

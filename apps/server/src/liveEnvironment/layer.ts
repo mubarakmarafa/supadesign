@@ -22,12 +22,14 @@ import * as Path from "effect/Path";
 import type * as PlatformError from "effect/PlatformError";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
+import * as Stream from "effect/Stream";
 
 import * as GitManager from "../git/GitManager.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ThreadLaunch from "../orchestration-v2/ThreadLaunchService.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
 import * as PortScanner from "../preview/PortScanner.ts";
+import { forkParked } from "../serverActivation.ts";
 import * as ProjectService from "../project/ProjectService.ts";
 import * as ProjectSetupScriptRunner from "../project/ProjectSetupScriptRunner.ts";
 import * as ServerConfig from "../config.ts";
@@ -44,6 +46,8 @@ import * as LiveEnvironment from "./LiveEnvironmentService.ts";
 /** One dev server terminal per card; terminal ids are scoped to the thread. */
 const DEV_SERVER_TERMINAL_ID = "live-dev";
 const SERVER_READY_TIMEOUT = Duration.minutes(3);
+/** Long enough for a first install; a script past it is usually waiting for input. */
+const SETUP_SCRIPT_TIMEOUT = Duration.minutes(15);
 const SERVER_POLL_INTERVAL = Duration.seconds(2);
 /** Time a dev server gets to exit on Ctrl-C before its terminal is closed. */
 const INTERRUPT_GRACE = Duration.millis(1500);
@@ -110,6 +114,11 @@ const LiveCards = Schema.Array(Schema.Struct({ projectId: ProjectId, threadId: T
 const decodeLiveCards = Schema.decodeEffect(Schema.fromJsonString(LiveCards));
 const encodeLiveCards = Schema.encodeEffect(Schema.fromJsonString(LiveCards));
 
+/** Checkouts made for live cards, so one reused after a restart is still cleaned up. */
+const CreatedWorktrees = Schema.Array(Schema.String);
+const decodeCreatedWorktrees = Schema.decodeEffect(Schema.fromJsonString(CreatedWorktrees));
+const encodeCreatedWorktrees = Schema.encodeEffect(Schema.fromJsonString(CreatedWorktrees));
+
 const failure = (message: string) => new LiveEnvironmentError({ message });
 
 export const make = Effect.gen(function* () {
@@ -123,7 +132,9 @@ export const make = Effect.gen(function* () {
   const ports = yield* PortScanner.PortDiscovery;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const liveCardsPath = path.join((yield* ServerConfig.ServerConfig).stateDir, "live-cards.json");
+  const stateDir = (yield* ServerConfig.ServerConfig).stateDir;
+  const liveCardsPath = path.join(stateDir, "live-cards.json");
+  const createdWorktreesPath = path.join(stateDir, "live-worktrees.json");
   const threadLaunch = yield* ThreadLaunch.ThreadLaunchService;
   const threadManagement = yield* ThreadManagement.ThreadManagementService;
   const crypto = yield* Crypto.Crypto;
@@ -140,6 +151,27 @@ export const make = Effect.gen(function* () {
     );
 
   const exists = (target: string) => fs.exists(target).pipe(Effect.orElseSucceed(() => false));
+
+  const createdWorktrees = new Set(
+    yield* fs.readFileString(createdWorktreesPath).pipe(
+      Effect.flatMap(decodeCreatedWorktrees),
+      Effect.orElseSucceed((): ReadonlyArray<string> => []),
+    ),
+  );
+  const rememberCreated = (worktreePath: string, created: boolean) =>
+    Effect.suspend(() => {
+      const key = path.resolve(worktreePath);
+      if (createdWorktrees.has(key) === created) return Effect.void;
+      if (created) createdWorktrees.add(key);
+      else createdWorktrees.delete(key);
+      return encodeCreatedWorktrees([...createdWorktrees]).pipe(
+        Effect.flatMap((text) => fs.writeFileString(createdWorktreesPath, text)),
+        Effect.tapError((error) =>
+          Effect.logInfo("Could not save the live preview checkouts", { error }),
+        ),
+        Effect.ignore,
+      );
+    });
 
   const readSuggestionInputs = (root: string) =>
     Effect.gen(function* () {
@@ -226,11 +258,40 @@ export const make = Effect.gen(function* () {
     prepareWorkspace: ({ threadId, projectRoot }) =>
       Effect.gen(function* () {
         const shell = yield* readThread(threadId);
-        // The agent's own worktree has its latest work, pushed or not.
-        if (shell.worktreePath !== null && (yield* exists(shell.worktreePath))) {
-          return { worktreePath: shell.worktreePath, created: false };
-        }
         const pullRequest = shell.linkedPullRequest ?? shell.branchPullRequest ?? null;
+        if (shell.worktreePath !== null) {
+          // The agent's own worktree has its latest work, pushed or not.
+          if (yield* exists(shell.worktreePath)) {
+            return { worktreePath: shell.worktreePath, created: false };
+          }
+          // Deleted outside the app: check its branch out again where the agent
+          // expects it, as the next message would.
+          const branch = shell.branch;
+          const restored =
+            branch !== null &&
+            (yield* git.pruneWorktrees({ cwd: projectRoot }).pipe(
+              Effect.andThen(
+                git.createWorktree({ cwd: projectRoot, refName: branch, path: shell.worktreePath }),
+              ),
+              Effect.as(true),
+              Effect.tapError((error) =>
+                Effect.logInfo("Could not restore a live card's deleted worktree", {
+                  worktreePath: shell.worktreePath,
+                  error,
+                }),
+              ),
+              Effect.orElseSucceed(() => false),
+            ));
+          if (restored) return { worktreePath: shell.worktreePath, created: false, restored: true };
+          // Previewing the project folder instead would show some other branch's code.
+          if (pullRequest === null) {
+            return yield* failure(
+              branch === null
+                ? "The card's worktree folder was deleted, and it has no branch to check out again."
+                : `The card's worktree folder was deleted and its branch “${branch}” couldn't be checked out again. It may be open in another worktree.`,
+            );
+          }
+        }
         if (pullRequest === null) {
           const branch = shell.branch;
           const rootBranch = yield* git.statusDetailsLocal(projectRoot).pipe(
@@ -251,7 +312,12 @@ export const make = Effect.gen(function* () {
               Effect.map((details) => details.branch),
               Effect.orElseSucceed(() => null),
             );
-            if (candidateBranch === branch) return { worktreePath: candidate, created: false };
+            if (candidateBranch === branch) {
+              return {
+                worktreePath: candidate,
+                created: createdWorktrees.has(path.resolve(candidate)),
+              };
+            }
           }
           // Never switch the project folder's branch; check the card's out beside it.
           const checkout = yield* git
@@ -266,6 +332,7 @@ export const make = Effect.gen(function* () {
                 ),
               ),
             );
+          yield* rememberCreated(checkout.worktree.path, true);
           return { worktreePath: checkout.worktree.path, created: true };
         }
         const before = yield* git
@@ -284,10 +351,12 @@ export const make = Effect.gen(function* () {
           );
         const worktreePath = prepared.worktreePath ?? projectRoot;
         const known = new Set(before.map((entry) => path.resolve(entry)));
-        return {
-          worktreePath,
-          created: prepared.worktreePath !== null && !known.has(path.resolve(worktreePath)),
-        };
+        const created =
+          prepared.worktreePath !== null &&
+          (!known.has(path.resolve(worktreePath)) ||
+            createdWorktrees.has(path.resolve(worktreePath)));
+        if (created) yield* rememberCreated(worktreePath, true);
+        return { worktreePath, created };
       }),
 
     runSetup: ({ threadId, projectId, worktreePath, onLine }) =>
@@ -301,7 +370,21 @@ export const make = Effect.gen(function* () {
           })
           .pipe(Effect.mapError(() => failure("The setup script could not start.")));
         if (result.status !== "started" || result.completion === undefined) return;
-        const { exitCode } = yield* result.completion;
+        const stopSetup = terminals
+          .close({ threadId, terminalId: result.terminalId })
+          .pipe(Effect.ignore);
+        // Stopping the card mid-setup ends the script too.
+        const finished = yield* result.completion.pipe(
+          Effect.timeoutOption(SETUP_SCRIPT_TIMEOUT),
+          Effect.onInterrupt(() => stopSetup),
+        );
+        if (finished._tag === "None") {
+          yield* stopSetup;
+          return yield* failure(
+            "The setup script was still running after 15 minutes, so it was stopped. It may be waiting for input.",
+          );
+        }
+        const { exitCode } = finished.value;
         if (exitCode !== 0) {
           return yield* failure(
             exitCode === null
@@ -370,6 +453,43 @@ export const make = Effect.gen(function* () {
         yield* terminals.write({ threadId, terminalId, data: "\u0003" }).pipe(Effect.ignore);
         yield* Effect.sleep(INTERRUPT_GRACE);
         yield* terminals.close({ threadId, terminalId }).pipe(Effect.ignore);
+      }),
+
+    stopAgentServers: ({ threadId, worktreePath }) =>
+      Effect.gen(function* () {
+        const shell = yield* projections
+          .getThreadShell(threadId)
+          .pipe(Effect.orElseSucceed(() => null));
+        const status = shell?.activityRunStatus ?? null;
+        if (status === "preparing" || status === "starting" || status === "running") return;
+        const root = path.resolve(worktreePath);
+        const within = (cwd: string) => {
+          const relative = path.relative(root, path.resolve(cwd));
+          return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+        };
+        // The scanner reports a cwd only for listeners outside the app's terminals.
+        const pids = new Set(
+          (yield* ports.scan()).flatMap((server) =>
+            server.terminal === null &&
+            server.pid !== null &&
+            server.pid !== process.pid &&
+            server.cwd != null &&
+            within(server.cwd)
+              ? [server.pid]
+              : [],
+          ),
+        );
+        for (const pid of pids) {
+          yield* Effect.try(() => process.kill(pid, "SIGTERM")).pipe(
+            Effect.tap(() =>
+              Effect.logInfo("Stopped a server a live card's agent left running", {
+                threadId,
+                pid,
+              }),
+            ),
+            Effect.ignore,
+          );
+        }
       }),
 
     saveDevScript: ({ projectId, command, previewUrl }) =>
@@ -496,6 +616,7 @@ export const make = Effect.gen(function* () {
     removeWorkspace: ({ projectRoot, worktreePath }) =>
       // Without force, git keeps a worktree that has changes.
       git.removeWorktree({ cwd: projectRoot, path: worktreePath }).pipe(
+        Effect.andThen(rememberCreated(worktreePath, false)),
         Effect.as(true),
         Effect.tapError((error) =>
           Effect.logInfo("Kept a live environment worktree", { worktreePath, error }),
@@ -504,9 +625,10 @@ export const make = Effect.gen(function* () {
       ),
 
     discardWorkspace: ({ projectRoot, worktreePath }) =>
-      git
-        .removeWorktree({ cwd: projectRoot, path: worktreePath, force: true })
-        .pipe(Effect.mapError(() => failure("The preview checkout couldn't be removed."))),
+      git.removeWorktree({ cwd: projectRoot, path: worktreePath, force: true }).pipe(
+        Effect.mapError(() => failure("The preview checkout couldn't be removed.")),
+        Effect.andThen(rememberCreated(worktreePath, false)),
+      ),
 
     loadLiveCards: fs.readFileString(liveCardsPath).pipe(
       Effect.flatMap(decodeLiveCards),
@@ -521,7 +643,29 @@ export const make = Effect.gen(function* () {
       ),
   };
 
-  return yield* LiveEnvironment.make(ops);
+  const service = yield* LiveEnvironment.make(ops);
+  // A card archived or deleted anywhere, not only dragged to Done, stops its
+  // dev server now. A kept checkout stays, so its changes can still be discarded.
+  yield* forkParked(
+    threadManagement.streamDomainEvents.pipe(
+      Stream.filter((event) => event.type === "thread.archived" || event.type === "thread.deleted"),
+      Stream.runForEach((event) =>
+        service
+          .list()
+          .pipe(
+            Effect.flatMap((environments) =>
+              environments.some(
+                (environment) =>
+                  environment.threadId === event.threadId && environment.status !== "kept",
+              )
+                ? service.stop(event.threadId)
+                : Effect.void,
+            ),
+          ),
+      ),
+    ),
+  );
+  return service;
 });
 
 export const layer = Layer.effect(LiveEnvironment.LiveEnvironmentService, make);

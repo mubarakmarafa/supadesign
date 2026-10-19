@@ -47,7 +47,13 @@ export interface LiveEnvironmentOps {
     readonly threadId: ThreadId;
     readonly projectRoot: string;
   }) => Effect.Effect<
-    { readonly worktreePath: string; readonly created: boolean },
+    {
+      readonly worktreePath: string;
+      /** Made for this run, so teardown removes it when it is clean. */
+      readonly created: boolean;
+      /** The card's own worktree, checked out again after it was deleted; it needs setup. */
+      readonly restored?: boolean;
+    },
     LiveEnvironmentError
   >;
   readonly runSetup: (input: {
@@ -76,6 +82,14 @@ export interface LiveEnvironmentOps {
   readonly stopDevServer: (input: {
     readonly threadId: ThreadId;
     readonly terminalId: string;
+  }) => Effect.Effect<void>;
+  /**
+   * Stops servers the card's agent started itself in the card's own checkout,
+   * outside the app's terminals, unless the agent is mid-turn and may still use them.
+   */
+  readonly stopAgentServers: (input: {
+    readonly threadId: ThreadId;
+    readonly worktreePath: string;
   }) => Effect.Effect<void>;
   /** Saves the project's dev server script, replacing an earlier one. */
   readonly saveDevScript: (input: {
@@ -442,8 +456,9 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
     /** A dev server that will not start; the model may correct a command it picked. */
     const serverFailed = (entry: Entry, message: string): Effect.Effect<void> =>
       Effect.suspend(() =>
-        // The server's exit and its readiness timeout can both report one failure.
-        entry.phase === "detecting"
+        // The server's exit and its readiness timeout can both report one failure;
+        // the first one is the real reason.
+        entry.phase === "detecting" || entry.status === "failed"
           ? Effect.void
           : entry.autoChosen && !entry.fixAttempted && entry.script !== null
             ? startFix(entry, message, "fail")
@@ -538,7 +553,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         yield* update(entry, (current) => {
           current.script = devScript;
         });
-        if (workspace.created) {
+        if (workspace.created || workspace.restored === true) {
           yield* update(entry, (current) => {
             current.phase = "setup";
           });
@@ -697,6 +712,17 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         if (timer) yield* Fiber.interrupt(timer);
         if (entry.terminalId !== null) {
           yield* ops.stopDevServer({ threadId: entry.threadId, terminalId: entry.terminalId });
+        }
+        // The project folder is shared by every card, so only a card's own checkout is swept.
+        if (
+          entry.worktreePath !== null &&
+          entry.projectRoot !== null &&
+          entry.worktreePath !== entry.projectRoot
+        ) {
+          yield* ops.stopAgentServers({
+            threadId: entry.threadId,
+            worktreePath: entry.worktreePath,
+          });
         }
         const kept =
           entry.createdWorktree && entry.worktreePath !== null && entry.projectRoot !== null

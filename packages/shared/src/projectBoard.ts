@@ -5,8 +5,11 @@ import {
   type ProjectBoardColumn,
   resolveProjectBoardColumnId,
   type ThreadBoardPlacement,
+  type ThreadId,
 } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
+
+import { planPinnedReorder } from "./orderKeys.ts";
 
 /** The thread fields board resolution reads; works for server and client shells. */
 export interface BoardThread {
@@ -141,4 +144,176 @@ export function desiredLiveCardId<T extends BoardThread>(
   const column = resolved.find((entry) => entry.column.id === liveColumnId);
   const opened = column?.cards.find((card) => card.thread.id === openedThreadId);
   return opened !== undefined && opened.thread.archivedAt === null ? openedThreadId : undefined;
+}
+
+// ── Moving cards ────────────────────────────────────────────────────────
+
+/** One card of the target column as displayed after the drop. */
+export interface BoardMoveCard {
+  readonly threadId: ThreadId;
+  /** The card's sort key in this column (`BoardCard.orderKey`); null when it has none here. */
+  readonly orderKey: string | null;
+  /** The thread's stored placement, so a rewrite keeps its return column. */
+  readonly placement: ThreadBoardPlacement | null;
+}
+
+export type BoardMoveStep =
+  | {
+      readonly type: "place";
+      readonly threadId: ThreadId;
+      readonly columnId: BoardColumnId;
+      readonly orderKey: string;
+      readonly returnColumnId: BoardColumnId | null;
+    }
+  | { readonly type: "archive"; readonly threadId: ThreadId }
+  | { readonly type: "unarchive"; readonly threadId: ThreadId };
+
+/**
+ * Commands that realize one card drag, in dispatch order. Placement comes
+ * first and the archive/unarchive last, so a failed archive leaves the card
+ * resolving back to its return column instead of stranding it.
+ *
+ * - Into done: the moved card remembers `fromColumnId` as its return column.
+ * - Within done: the moved card keeps its return column.
+ * - Out of done: the thread is unarchived after it is placed.
+ *
+ * Usually one placement. When a neighbor has no slot of its own (an unplaced
+ * thread) the whole target column gets fresh keys, once.
+ */
+/** A drop that leaves a keyed card between keyed neighbors it already sorts between. */
+function keepsSlot(cards: ReadonlyArray<BoardMoveCard>, threadId: ThreadId, sameColumn: boolean) {
+  if (!sameColumn) return false;
+  const index = cards.findIndex((card) => card.threadId === threadId);
+  const key = cards[index]?.orderKey;
+  if (key == null) return false;
+  const before = index > 0 ? cards[index - 1]!.orderKey : "";
+  const after = index < cards.length - 1 ? cards[index + 1]!.orderKey : undefined;
+  return (
+    before !== null && before < key && (after === undefined || (after !== null && key < after))
+  );
+}
+
+export function planBoardMove(input: {
+  readonly board: ProjectBoard | null;
+  readonly threadId: ThreadId;
+  readonly archived: boolean;
+  readonly fromColumnId: BoardColumnId;
+  readonly toColumnId: BoardColumnId;
+  /** The target column after the drop, top to bottom, including the moved card. */
+  readonly targetCards: ReadonlyArray<BoardMoveCard>;
+}): ReadonlyArray<BoardMoveStep> {
+  const { threadId, fromColumnId, toColumnId, targetCards } = input;
+  const doneColumnId = (input.board ?? DEFAULT_PROJECT_BOARD).doneColumnId;
+  if (!targetCards.some((card) => card.threadId === threadId)) return [];
+  const intoDone = toColumnId === doneColumnId;
+  const fromDone = fromColumnId === doneColumnId;
+
+  const keys = keepsSlot(targetCards, threadId, fromColumnId === toColumnId)
+    ? []
+    : planPinnedReorder({
+        orderedIds: targetCards.map((card) => card.threadId),
+        keysById: new Map(
+          targetCards.map((card) => [
+            card.threadId,
+            // The moved card's old key belongs to its source column.
+            card.threadId === threadId && fromColumnId !== toColumnId ? null : card.orderKey,
+          ]),
+        ),
+        movedId: threadId,
+      });
+  const placementsById = new Map(targetCards.map((card) => [card.threadId, card.placement]));
+  const returnColumnFor = (id: ThreadId): BoardColumnId | null => {
+    if (!intoDone) return null;
+    if (id === threadId && !fromDone) return fromColumnId;
+    return placementsById.get(id)?.returnColumnId ?? null;
+  };
+  const place = (id: ThreadId, orderKey: string): BoardMoveStep => ({
+    type: "place",
+    threadId: id,
+    columnId: toColumnId,
+    orderKey,
+    returnColumnId: returnColumnFor(id),
+  });
+
+  const keysById = new Map(keys.map((entry) => [entry.id, entry.orderKey]));
+  const steps: BoardMoveStep[] = [];
+  const movedKey = keysById.get(threadId);
+  if (movedKey !== undefined) steps.push(place(threadId, movedKey));
+  for (const card of targetCards) {
+    const orderKey = keysById.get(card.threadId);
+    if (card.threadId !== threadId && orderKey !== undefined) {
+      steps.push(place(card.threadId, orderKey));
+    }
+  }
+  if (intoDone && !input.archived) steps.push({ type: "archive", threadId });
+  if (!intoDone && input.archived) steps.push({ type: "unarchive", threadId });
+  return steps;
+}
+
+/** Where a card sits on the board, or null when it isn't on it. */
+export function findBoardCardColumn<T extends BoardThread>(
+  resolved: ReadonlyArray<ResolvedBoardColumn<T>>,
+  threadId: string,
+): BoardColumnId | null {
+  return (
+    resolved.find((entry) => entry.cards.some((card) => card.thread.id === threadId))?.column.id ??
+    null
+  );
+}
+
+/**
+ * Plans moving a card to `index` of a column (clamped, counted without the
+ * card itself) from a resolved board, for callers that have no layout of
+ * their own, such as an agent. A thread missing from `resolved` is new and
+ * moves from the inbox.
+ */
+export function planBoardCardMove<T extends BoardThread & { readonly id: ThreadId }>(input: {
+  readonly board: ProjectBoard | null;
+  readonly resolved: ReadonlyArray<ResolvedBoardColumn<T>>;
+  readonly threadId: ThreadId;
+  readonly archived: boolean;
+  readonly toColumnId: BoardColumnId;
+  readonly index: number;
+}): ReadonlyArray<BoardMoveStep> {
+  const layout = input.board ?? DEFAULT_PROJECT_BOARD;
+  const target = input.resolved.find((entry) => entry.column.id === input.toColumnId);
+  if (target === undefined) return [];
+  const fromColumnId = findBoardCardColumn(input.resolved, input.threadId) ?? layout.inboxColumnId;
+  const others = target.cards
+    .filter((card) => card.thread.id !== input.threadId)
+    .map((card): BoardMoveCard => ({
+      threadId: card.thread.id,
+      orderKey: card.orderKey,
+      placement: card.thread.board ?? null,
+    }));
+  const moved = target.cards.find((card) => card.thread.id === input.threadId);
+  const index = Math.max(0, Math.min(Math.trunc(input.index), others.length));
+  return planBoardMove({
+    board: input.board,
+    threadId: input.threadId,
+    archived: input.archived,
+    fromColumnId,
+    toColumnId: input.toColumnId,
+    targetCards: [
+      ...others.slice(0, index),
+      {
+        threadId: input.threadId,
+        orderKey: moved?.orderKey ?? null,
+        placement: moved?.thread.board ?? null,
+      },
+      ...others.slice(index),
+    ],
+  });
+}
+
+/**
+ * Where a new card goes in its column: the top, except in the live column,
+ * where it goes under the live card so adding an idea never swaps what's running.
+ */
+export function newBoardCardIndex(
+  board: ProjectBoard,
+  columnId: BoardColumnId,
+  cardCount: number,
+): number {
+  return columnId === board.liveColumnId && cardCount > 0 ? 1 : 0;
 }

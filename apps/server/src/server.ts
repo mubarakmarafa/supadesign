@@ -60,6 +60,7 @@ import * as DeviceService from "./device/DeviceService.ts";
 import * as DeviceHubProxy from "./device/DeviceHubProxy.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as LiveEnvironmentLayer from "./liveEnvironment/layer.ts";
+import * as ProjectBoardLayer from "./projectBoard/layer.ts";
 import * as ThreadBankLayer from "./threadBank/layer.ts";
 import * as ThreadProgressLayer from "./threadProgress/layer.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
@@ -543,12 +544,17 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   // Subscribes to `account.rate-limits.updated` so usage bars track live
   // telemetry instead of waiting for the next status probe.
   ProviderUsageLimitsIngestion.layer,
-  // Card progress captures the live card after each turn, so it builds on live environments.
-  ThreadProgressLayer.layer.pipe(
-    Layer.provideMerge(LiveEnvironmentLayer.layer),
+  // A board move sends banks and stops live environments, as a drag does. Card
+  // progress captures the live card after each turn, so it builds on live environments.
+  ProjectBoardLayer.layer.pipe(
+    Layer.provideMerge(
+      Layer.merge(
+        ThreadProgressLayer.layer.pipe(Layer.provideMerge(LiveEnvironmentLayer.layer)),
+        ThreadBankLayer.layer,
+      ),
+    ),
     Layer.provide(ProjectionStoreV2.layer),
   ),
-  ThreadBankLayer.layer.pipe(Layer.provide(ProjectionStoreV2.layer)),
   ProjectSummary.layer,
   layerProviderInstallationRefresh,
   // Catches overrides left behind by a project deleted before this cleanup

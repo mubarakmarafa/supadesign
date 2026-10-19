@@ -164,3 +164,8 @@ export const ProjectSummary = Schema.Struct({
   description: Schema.NullOr(Schema.String),
 });
 export type ProjectSummary = typeof ProjectSummary.Type;
+
+export class ProjectBoardError extends Schema.TaggedError<ProjectBoardError>()(
+  "ProjectBoardError",
+  { message: Schema.String },
+) {}
