@@ -9,6 +9,7 @@ import {
   isFigmaUrl,
   ProjectWorkspace,
   type ProjectWorkspace as ProjectWorkspaceType,
+  type ProjectWorkspaceLayoutNode,
   ProjectWorkspaceWidgetId,
   ReceivedProjectWorkspace,
   validateProjectWorkspace,
@@ -85,6 +86,42 @@ describe("workspace schemas", () => {
       widgets: [{ id: "kanban", kind: "kanban", w: 3, h: 2 }],
       appearance: { background: "sand", accentColor: "#ff8800" },
     });
+  });
+
+  it("round-trips a layout and drops one a received workspace cannot read", () => {
+    const layout = {
+      columns: 8,
+      rows: 6,
+      root: {
+        type: "split",
+        axis: "row",
+        span: 1,
+        children: [
+          { type: "tile", widgetId: "kanban", span: 6 },
+          { type: "tile", widgetId: "board-agent", span: 2 },
+        ],
+      },
+    };
+    const widgets = DEFAULT_PROJECT_WORKSPACE.widgets;
+    expect(decodeWorkspace({ widgets, layout }).layout).toEqual(layout);
+    const future = { ...layout, root: { type: "spiral", children: [] } };
+    expect(() => decodeWorkspace({ widgets, layout: future })).toThrow();
+    const received = decodeReceived({ widgets, layout: future });
+    expect(received.widgets).toHaveLength(2);
+    expect(received.layout).toBeUndefined();
+  });
+
+  it("rejects a layout tree deeper than the server stores", () => {
+    let root: ProjectWorkspaceLayoutNode = { type: "tile", widgetId: id("kanban"), span: 1 };
+    for (let depth = 0; depth < 10; depth++) {
+      root = { type: "split", axis: depth % 2 ? "row" : "column", span: 1, children: [root] };
+    }
+    expect(
+      validateProjectWorkspace({
+        ...DEFAULT_PROJECT_WORKSPACE,
+        layout: { columns: 8, rows: 6, root },
+      }),
+    ).toEqual([{ code: "invalid-layout" }]);
   });
 
   it("rejects colours that are not #rrggbb", () => {

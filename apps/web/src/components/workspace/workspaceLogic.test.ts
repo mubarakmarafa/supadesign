@@ -7,20 +7,22 @@ import {
 } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
+import { layoutGutters, layoutRects, resizeGutter, swapTiles } from "./bentoLayout";
 import {
   addWorkspaceWidget,
   figmaEmbedUrl,
   isBoardOnly,
-  moveWorkspaceWidget,
-  nudgeWorkspaceWidget,
   patchWorkspaceAppearance,
   type PreviewPortCandidate,
-  removeWorkspaceWidget,
-  resizeWorkspaceWidget,
   previewServerOwner,
+  removeWorkspaceWidget,
+  resetWorkspaceLayout,
   resolvePreviewSelection,
   setWorkspaceWidgetSettings,
+  withWorkspaceLayout,
+  WORKSPACE_MAX_TILES,
   workspaceBackgroundStyle,
+  workspaceLayout,
 } from "./workspaceLogic";
 
 const id = ProjectWorkspaceWidgetId.make;
@@ -33,87 +35,75 @@ function workspaceOf(...kinds: Array<"kanban" | "usage" | "git" | "figma">): Pro
 }
 
 describe("addWorkspaceWidget", () => {
-  it("narrows a full-width board so the first widget lands beside it", () => {
+  it("puts the first widget a quarter wide beside the board", () => {
     const next = addWorkspaceWidget(BOARD_ONLY_PROJECT_WORKSPACE, "live-preview", id("preview"))!;
     expect(next.widgets).toEqual([
-      { id: "kanban", kind: "kanban", w: 3, h: 2 },
-      { id: "preview", kind: "live-preview", w: 1, h: 2 },
+      { id: "kanban", kind: "kanban", w: 3, h: 3 },
+      { id: "preview", kind: "live-preview", w: 1, h: 3 },
+    ]);
+    expect(layoutRects(next.layout!)).toEqual([
+      { widgetId: "kanban", x: 0, y: 0, w: 6, h: 6 },
+      { widgetId: "preview", x: 6, y: 0, w: 2, h: 6 },
     ]);
     expect(isBoardOnly(next)).toBe(false);
     expect(validateProjectWorkspace(next)).toEqual([]);
   });
 
-  it("leaves a board the user sized alone once other widgets exist", () => {
-    const start: ProjectWorkspace = {
-      widgets: [
-        { id: id("kanban"), kind: "kanban", w: 4, h: 2 },
-        { id: id("usage"), kind: "usage", w: 1, h: 1 },
-      ],
-    };
-    const next = addWorkspaceWidget(start, "git", id("git"))!;
-    expect(next.widgets[0]).toEqual(start.widgets[0]);
-    expect(ids(next)).toEqual(["kanban", "usage", "git"]);
+  it("keeps a layout the user arranged and only splits the biggest tile", () => {
+    const start = addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "git", id("git"))!;
+    const next = addWorkspaceWidget(start, "usage", id("usage"))!;
+    const agentBefore = layoutRects(start.layout!).find((rect) => rect.widgetId === "board-agent");
+    const agentAfter = layoutRects(next.layout!).find((rect) => rect.widgetId === "board-agent");
+    expect(agentAfter).toEqual(agentBefore);
+    expect(ids(next).toSorted()).toEqual(["board-agent", "git", "kanban", "usage"]);
   });
 
-  it("allows one board, and puts a re-added board first", () => {
+  it("allows one board and one board agent", () => {
     expect(addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "kanban", id("again"))).toBeNull();
     expect(addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "board-agent", id("again"))).toBeNull();
     const withoutBoard = removeWorkspaceWidget(workspaceOf("kanban", "usage"), id("kanban"));
-    const readded = addWorkspaceWidget(withoutBoard, "kanban", id("board"))!;
-    expect(readded.widgets[0]).toEqual({ id: "board", kind: "kanban", w: 3, h: 2 });
+    expect(addWorkspaceWidget(withoutBoard, "kanban", id("board"))).not.toBeNull();
     const alone = addWorkspaceWidget({ widgets: [] }, "kanban", id("board"))!;
     expect(isBoardOnly(alone)).toBe(true);
-    expect(alone.widgets[0]?.w).toBe(4);
   });
 
-  it("stops at the widget limit", () => {
-    const full: ProjectWorkspace = {
-      widgets: Array.from({ length: 24 }, (_, index) => ({
-        id: id(`usage-${index}`),
-        kind: "usage",
-        w: 1,
-        h: 1,
-      })),
-    };
-    expect(addWorkspaceWidget(full, "git", id("git"))).toBeNull();
+  it("stops once everything would no longer fit on one screen", () => {
+    let workspace: ProjectWorkspace = DEFAULT_PROJECT_WORKSPACE;
+    for (const kind of ["live-preview", "figma", "usage"] as const) {
+      workspace = addWorkspaceWidget(workspace, kind, id(kind))!;
+    }
+    expect(workspace.widgets).toHaveLength(WORKSPACE_MAX_TILES);
+    expect(addWorkspaceWidget(workspace, "git", id("git"))).toBeNull();
   });
 });
 
-describe("rearranging", () => {
-  it("nudges a widget toward either end and stops there", () => {
-    const start = workspaceOf("kanban", "usage", "git");
-    expect(ids(nudgeWorkspaceWidget(start, id("git"), "earlier")!)).toEqual([
-      "kanban",
-      "git",
-      "usage",
-    ]);
-    expect(nudgeWorkspaceWidget(start, id("kanban"), "earlier")).toBeNull();
-    expect(nudgeWorkspaceWidget(start, id("git"), "later")).toBeNull();
+describe("arranging", () => {
+  it("removes a widget and gives its space to a neighbour", () => {
+    const start = addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "figma", id("figma"))!;
+    const next = removeWorkspaceWidget(start, id("figma"));
+    expect(ids(next)).toEqual(["kanban", "board-agent"]);
+    expect(layoutRects(next.layout!).map((rect) => rect.w)).toEqual([6, 2]);
   });
 
-  it("drops a dragged widget into the slot of the one under it", () => {
-    const start = workspaceOf("kanban", "usage", "git", "figma");
-    expect(ids(moveWorkspaceWidget(start, id("figma"), id("usage"))!)).toEqual([
-      "kanban",
-      "figma",
-      "usage",
-      "git",
-    ]);
-    expect(ids(moveWorkspaceWidget(start, id("kanban"), id("git"))!)).toEqual([
-      "usage",
-      "git",
-      "kanban",
-      "figma",
-    ]);
-    expect(moveWorkspaceWidget(start, id("git"), id("git"))).toBeNull();
-    expect(moveWorkspaceWidget(start, id("gone"), id("git"))).toBeNull();
+  it("orders widgets by where they sit, so older clients draw them close", () => {
+    const start = addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "figma", id("figma"))!;
+    const swapped = withWorkspaceLayout(start, swapTiles(start.layout!, id("kanban"), id("figma")));
+    expect(ids(swapped)).toEqual(["figma", "kanban", "board-agent"]);
   });
 
-  it("resizes only the widget asked for", () => {
-    const next = resizeWorkspaceWidget(workspaceOf("kanban", "usage"), id("usage"), { w: 2, h: 3 });
-    expect(next.widgets.map(({ w, h }) => [w, h])).toEqual([
-      [1, 1],
-      [2, 3],
+  it("resets to the default arrangement in reading order", () => {
+    const start = addWorkspaceWidget(DEFAULT_PROJECT_WORKSPACE, "figma", id("figma"))!;
+    const squeezed = withWorkspaceLayout(
+      start,
+      resizeGutter(start.layout!, layoutGutters(start.layout!)[0]!, -3),
+    );
+    expect(resetWorkspaceLayout(squeezed).layout).toEqual(start.layout);
+  });
+
+  it("lays out a workspace without a stored layout from its order", () => {
+    expect(layoutRects(workspaceLayout(DEFAULT_PROJECT_WORKSPACE)!)).toEqual([
+      { widgetId: "kanban", x: 0, y: 0, w: 6, h: 6 },
+      { widgetId: "board-agent", x: 6, y: 0, w: 2, h: 6 },
     ]);
   });
 });

@@ -245,6 +245,7 @@ export const make = Effect.gen(function* () {
       threadActiveReorder: true,
       projectBoard: true,
       projectWorkspace: true,
+      projectWorkspaceLayout: true,
       liveEnvironment: true,
       threadBank: true,
       threadProgress: true,

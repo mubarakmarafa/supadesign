@@ -5,10 +5,10 @@ import {
   type ScopedProjectRef,
 } from "@supaterm/contracts";
 import { KanbanIcon, LayoutGridIcon, PuzzleIcon } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 
-import { cn } from "~/lib/utils";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
+import { BentoGrid } from "./BentoGrid";
 import { useProjectWorkspace } from "./useProjectWorkspace";
 import { BoardAgentWidget } from "./widgets/BoardAgentWidget";
 import { FigmaWidget } from "./widgets/FigmaWidget";
@@ -21,11 +21,16 @@ import {
   type WorkspaceFrameContextValue,
   WorkspaceWidgetFrame,
 } from "./WorkspaceWidgetFrame";
-import { isBoardOnly, workspaceBackgroundStyle } from "./workspaceLogic";
+import {
+  isBoardOnly,
+  withWorkspaceLayout,
+  workspaceBackgroundStyle,
+  workspaceLayout,
+} from "./workspaceLogic";
 
 /**
- * A project's workspace: its widgets on a bento grid over the project's own
- * background. With only the board and no custom look it renders the board
+ * A project's workspace: its widgets on a bento that fills the board, over
+ * the project's own background. With only the board and no custom look it renders the board
  * exactly as before, with nothing wrapped around it.
  */
 export function ProjectWorkspace({
@@ -38,14 +43,14 @@ export function ProjectWorkspace({
   /** The project's kanban, rendered by the board page that owns its state. */
   kanban: ReactNode;
 }) {
-  const { workspace, canEdit, commit } = useProjectWorkspace(projectRef, project);
-  const [drag, setDrag] = useState<WorkspaceFrameContextValue["drag"]>(null);
+  const { workspace, canEdit, canArrange, commit } = useProjectWorkspace(projectRef, project);
   const accentColor = workspace.appearance?.accentColor;
   const background = workspaceBackgroundStyle(workspace.appearance);
   const frame = useMemo<WorkspaceFrameContextValue>(
-    () => ({ workspace, canEdit, commit, accentColor, drag, setDrag }),
-    [accentColor, canEdit, commit, drag, workspace],
+    () => ({ workspace, canEdit, commit, accentColor }),
+    [accentColor, canEdit, commit, workspace],
   );
+  const layout = useMemo(() => workspaceLayout(workspace), [workspace]);
 
   const boardOnly = isBoardOnly(workspace);
   if (boardOnly && background === null && accentColor === undefined) return kanban;
@@ -63,7 +68,7 @@ export function ProjectWorkspace({
       {accentStrip}
       {boardOnly ? (
         kanban
-      ) : workspace.widgets.length === 0 ? (
+      ) : layout === null ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -78,23 +83,20 @@ export function ProjectWorkspace({
         </Empty>
       ) : (
         <WorkspaceFrameContext.Provider value={frame}>
-          <div
-            className={cn(
-              "grid min-h-0 flex-1 grid-flow-row-dense auto-rows-[minmax(13rem,1fr)] grid-cols-1 gap-3 overflow-y-auto p-3 md:grid-cols-4",
-              // Frames swallow drag events; let the grid see them while a widget moves.
-              drag !== null && "[&_iframe]:pointer-events-none",
-            )}
-          >
-            {workspace.widgets.map((widget) => (
+          <BentoGrid
+            widgets={workspace.widgets}
+            layout={layout}
+            canArrange={canArrange}
+            commitLayout={(next) => commit(withWorkspaceLayout(workspace, next))}
+            renderWidget={(widget) => (
               <WorkspaceWidget
-                key={widget.id}
                 widget={widget}
                 projectRef={projectRef}
                 project={project}
                 kanban={kanban}
               />
-            ))}
-          </div>
+            )}
+          />
         </WorkspaceFrameContext.Provider>
       )}
     </div>

@@ -44,6 +44,8 @@ export interface ProjectWorkspaceState {
   /** Servers older than workspaces show the plain board and no controls. */
   readonly supported: boolean;
   readonly canEdit: boolean;
+  /** The server keeps a bento layout, so tiles can be resized and moved. */
+  readonly canArrange: boolean;
   readonly workspace: ProjectWorkspace;
   readonly commit: (next: ProjectWorkspace | null) => void;
 }
@@ -54,8 +56,8 @@ export function useProjectWorkspace(
 ): ProjectWorkspaceState {
   const key = scopedProjectKey(projectRef);
   const configs = useServerConfigs();
-  const supported =
-    configs.get(projectRef.environmentId)?.environment.capabilities.projectWorkspace === true;
+  const capabilities = configs.get(projectRef.environmentId)?.environment.capabilities;
+  const supported = capabilities?.projectWorkspace === true;
   const canOperate = useEnvironmentScope(projectRef.environmentId, AuthOrchestrationOperateScope);
   const updateProject = useOrchestrationCommand(projectEnvironment.update);
   const serverWorkspace = project.workspace ?? null;
@@ -91,6 +93,7 @@ export function useProjectWorkspace(
   return {
     supported,
     canEdit: supported && canOperate,
+    canArrange: supported && canOperate && capabilities?.projectWorkspaceLayout === true,
     workspace: supported ? workspaceOrDefault(stored) : BOARD_ONLY_PROJECT_WORKSPACE,
     commit,
   };

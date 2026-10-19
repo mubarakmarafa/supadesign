@@ -175,6 +175,8 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   projectBoard: Schema.optionalKey(Schema.Boolean),
   /** Server persists project workspaces (workspace on project.update). */
   projectWorkspace: Schema.optionalKey(Schema.Boolean),
+  /** Server stores the workspace's bento layout (workspace.layout). */
+  projectWorkspaceLayout: Schema.optionalKey(Schema.Boolean),
   /** Server runs live environments for board cards (liveEnvironment.* RPCs). */
   liveEnvironment: Schema.optionalKey(Schema.Boolean),
   /** Server stores banked messages per thread (threadBank.* RPCs). */
