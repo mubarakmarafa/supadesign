@@ -1602,6 +1602,7 @@ export function ConnectionsSettings() {
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const { environments } = useEnvironments();
   const primaryEnvironment = usePrimaryEnvironment();
+  const [renamePrimaryOpen, setRenamePrimaryOpen] = useState(false);
   const connectPairing = useAtomCommand(connectPairingAtom, { reportFailure: false });
   const connectSshEnvironment = useAtomCommand(connectSshEnvironmentAtom, {
     reportFailure: false,
@@ -3007,6 +3008,10 @@ export function ConnectionsSettings() {
                     <EllipsisIcon className="size-3.5" />
                   </MenuTrigger>
                   <MenuPopup align="end">
+                    <MenuItem onClick={() => setRenamePrimaryOpen(true)}>
+                      <PencilIcon />
+                      Rename…
+                    </MenuItem>
                     <EnvironmentIconMenu
                       environmentId={primaryEnvironmentId}
                       serverConfig={primaryServerConfig}
@@ -3016,6 +3021,12 @@ export function ConnectionsSettings() {
               ) : null
             }
           >
+            {renamePrimaryOpen && primaryEnvironment && (
+              <RenameEnvironmentDialog
+                environment={primaryEnvironment}
+                onClose={() => setRenamePrimaryOpen(false)}
+              />
+            )}
             <LocalEnvironmentSetting />
             {canManageLocalBackend ? (
               <PublicRelaySettings
