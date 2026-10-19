@@ -17,7 +17,7 @@ import {
   commandProgramName,
 } from "@supaterm/client-runtime/work-log/command-label";
 import {
-  latestToolGroupImage,
+  toolGroupImages,
   type ToolGroupImage,
   contextCompactionLabel,
   liveThoughtLine,
@@ -72,6 +72,7 @@ import {
   mcpAppFromToolItem,
 } from "@supaterm/shared/toolOutput";
 import * as DateTime from "effect/DateTime";
+import * as Equal from "effect/Equal";
 
 export type PendingApproval = ThreadPendingApproval;
 export type PendingUserInput = ThreadPendingUserInput;
@@ -199,10 +200,11 @@ type ThreadFeedEntryContent =
       readonly createdAt: string;
       readonly runId: RunId | null;
       readonly activities: ReadonlyArray<ThreadFeedActivity>;
+      readonly images?: ReadonlyArray<ToolGroupImage>;
     }
   | {
       readonly type: "work-toggle";
-      readonly latestImage?: ToolGroupImage | null;
+      readonly images?: ReadonlyArray<ToolGroupImage>;
       readonly id: string;
       readonly createdAt: string;
       readonly runId: RunId | null;
@@ -227,6 +229,7 @@ type ThreadFeedEntryContent =
       readonly runId: RunId;
       readonly label: string;
       readonly expanded: boolean;
+      readonly images: ReadonlyArray<ToolGroupImage>;
     }
   | {
       readonly type: "thinking";
@@ -1004,6 +1007,7 @@ interface ThreadFeedRunFold {
   readonly runId: RunId;
   readonly createdAt: string;
   readonly hiddenEntryIds: ReadonlySet<string>;
+  readonly images: ReadonlyArray<ToolGroupImage>;
   readonly label: string;
 }
 
@@ -1178,6 +1182,13 @@ function deriveThreadFeedRunFolds(
       runId,
       createdAt: firstHiddenEntry.createdAt,
       hiddenEntryIds,
+      images: toolGroupImages(
+        group.entries.flatMap((entry) =>
+          entry.type === "activity-group" && hiddenEntryIds.has(entry.id)
+            ? entry.activities.map((activity) => activity.projectedItem)
+            : [],
+        ),
+      ),
       label: interrupted
         ? duration
           ? `You stopped after ${duration}`
@@ -1269,7 +1280,8 @@ export function deriveThreadFeedPresentation(
         row.runId !== fold.runId ||
         row.createdAt !== fold.createdAt ||
         row.label !== fold.label ||
-        row.expanded !== expanded
+        row.expanded !== expanded ||
+        !Equal.equals(row.images, fold.images)
       ) {
         row = {
           type: "run-fold",
@@ -1278,6 +1290,7 @@ export function deriveThreadFeedPresentation(
           runId: fold.runId,
           label: fold.label,
           expanded,
+          images: fold.images,
         };
         runFoldRowsCache.set(entry, row);
       }
@@ -1291,7 +1304,7 @@ export function deriveThreadFeedPresentation(
       ) {
         let rows = failedActivityGroupsCache.get(entry);
         if (!rows) {
-          rows =
+          rows = (
             entry.activities.length === 1
               ? [entry]
               : entry.activities.map((activity) => ({
@@ -1300,7 +1313,13 @@ export function deriveThreadFeedPresentation(
                   createdAt: activity.createdAt,
                   runId: activity.runId,
                   activities: [activity],
-                }));
+                }))
+          ).map((row) => {
+            const images = toolGroupImages(
+              row.activities.map((activity) => activity.projectedItem),
+            );
+            return images.length > 0 ? { ...row, images } : row;
+          });
           failedActivityGroupsCache.set(entry, rows);
         }
         result.push(...rows);
@@ -1335,17 +1354,11 @@ export function deriveThreadFeedPresentation(
 
 export function finalizeThreadFeedPresentation(feed: ReadonlyArray<ThreadFeedEntry>) {
   return feed.map((row, index) => {
-    const hideImage =
-      row.type === "work-toggle" && row.latestImage != null && index < feed.length - 1;
     const continuesWorkLog = isWorkLogFeedRow(row) && isWorkLogFeedRow(feed[index + 1]);
-    if (!hideImage && !continuesWorkLog) return row;
+    if (!continuesWorkLog) return row;
     let presented = presentedWorkLogRows.get(row);
-    if (!presented || presented.continuesWorkLog !== continuesWorkLog) {
-      presented = {
-        ...row,
-        continuesWorkLog,
-        ...(hideImage ? { latestImage: null } : {}),
-      };
+    if (!presented) {
+      presented = { ...row, continuesWorkLog };
       presentedWorkLogRows.set(row, presented);
     }
     return presented;
@@ -1561,7 +1574,7 @@ function appendToolGroupRows(
     createdAt: sourceGroup.createdAt,
     runId: sourceGroup.runId,
     groupId,
-    latestImage: latestToolGroupImage(activities.map((activity) => activity.projectedItem)),
+    images: toolGroupImages(activities.map((activity) => activity.projectedItem)),
     hiddenCount: activities.length,
     expanded,
     summary,
