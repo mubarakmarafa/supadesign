@@ -7,7 +7,14 @@ import type {
 } from "@supaterm/contracts";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { ArchiveIcon, EllipsisIcon, InboxIcon, MonitorPlayIcon, SendIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  EllipsisIcon,
+  InboxIcon,
+  MonitorPlayIcon,
+  PlusIcon,
+  SendIcon,
+} from "lucide-react";
 import { memo, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
@@ -100,6 +107,8 @@ export const BoardColumn = memo(function BoardColumn({
   renaming,
   collapsedBody,
   footer,
+  newCard,
+  onAddCard,
   handlers,
   onRenameCommit,
   onStartRename,
@@ -123,6 +132,10 @@ export const BoardColumn = memo(function BoardColumn({
   /** Replaces the card list while a column is collapsed (Done). */
   collapsedBody: ReactNode;
   footer: ReactNode;
+  /** The card being written at the top of the column, when there is one. */
+  newCard: ReactNode;
+  /** Starts writing a new card here; null where cards can't be added. */
+  onAddCard: (() => void) | null;
   handlers: BoardCardHandlers;
   onRenameCommit: (columnId: BoardColumnId, title: string | null) => void;
   onStartRename: (columnId: BoardColumnId) => void;
@@ -182,6 +195,23 @@ export const BoardColumn = memo(function BoardColumn({
             <ArchiveIcon />
           </FlagMarker>
         ) : null}
+        {onAddCard ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="icon-xs"
+                  variant="ghost-muted"
+                  aria-label={`Add a card to ${column.title}`}
+                  onClick={onAddCard}
+                />
+              }
+            >
+              <PlusIcon />
+            </TooltipTrigger>
+            <TooltipPopup side="top">Add a card</TooltipPopup>
+          </Tooltip>
+        ) : null}
         {canEdit ? (
           <Button
             size="icon-xs"
@@ -208,6 +238,7 @@ export const BoardColumn = memo(function BoardColumn({
           className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-2"
           onScroll={(event) => onListScroll(column.id, event.currentTarget.scrollTop)}
         >
+          {newCard}
           {cards.map((thread) => (
             <BoardCard
               key={thread.id}

@@ -1098,7 +1098,14 @@ import { Button } from "../ui/button";
 import { Select, SelectItem, SelectPopup, SelectValue } from "../ui/select";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { toastManager } from "../ui/toast";
-import { CircleAlertIcon, PaperclipIcon, PlayIcon, ShieldIcon, XIcon } from "lucide-react";
+import {
+  CircleAlertIcon,
+  LayersIcon,
+  PaperclipIcon,
+  PlayIcon,
+  ShieldIcon,
+  XIcon,
+} from "lucide-react";
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
@@ -2854,6 +2861,18 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const showComposerTopDrawer = isComposerApprovalState || pendingUserInputs.length > 0;
   const showCollapsedMobilePromptRow =
     isComposerCollapsedMobile && !isComposerApprovalState && pendingUserInputs.length === 0;
+  // Banking files the composer's contents with the card instead of sending them.
+  // Drafts can't bank yet, so they don't advertise it.
+  const canBank = onBank !== undefined && routeKind !== "draft";
+  const bankShortcutLabel = !canBank
+    ? null
+    : shortcutLabelForCommand(keybindings, "composer.bank", { context: { composerFocus: true } });
+  const showComposerBankAction =
+    canBank &&
+    composerSendState.hasSendableContent &&
+    !activePendingProgress &&
+    !isComposerApprovalState &&
+    !isEditingQueuedMessage;
   const showComposerAttachAction =
     fileStagingLimit !== null &&
     (!activePendingProgress ||
@@ -7565,7 +7584,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                               ? "Enable a provider in Settings to send a message"
                               : phase === "disconnected"
                                 ? DISCONNECTED_COMPOSER_PLACEHOLDER
-                                : "Ask anything, @tag files/folders, $use skills, or / for commands"
+                                : bankShortcutLabel
+                                  ? `Ask anything, or ${bankShortcutLabel} to bank it for later`
+                                  : "Ask anything, @tag files/folders, $use skills, or / for commands"
                     }
                     disabled={
                       isConnecting ||
@@ -7687,6 +7708,28 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                         <TooltipPopup>Attach files</TooltipPopup>
                       </Tooltip>
                     </>
+                  ) : null}
+                  {showComposerBankAction ? (
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onPointerDown={(event) => event.preventDefault()}
+                            onClick={onBank}
+                            aria-label="Bank for later"
+                          />
+                        }
+                      >
+                        <LayersIcon />
+                      </TooltipTrigger>
+                      <TooltipPopup>
+                        Bank for later{bankShortcutLabel ? ` (${bankShortcutLabel})` : ""}: keep
+                        adding, then send it all at once
+                      </TooltipPopup>
+                    </Tooltip>
                   ) : null}
                   <ComposerFooterPrimaryActions
                     compact={isComposerResting || isComposerPrimaryActionsCompact}

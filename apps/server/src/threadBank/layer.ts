@@ -87,7 +87,13 @@ export const make = Effect.gen(function* () {
         });
       }).pipe(
         Effect.tapError((error) => Effect.logWarning("Could not send a thread bank", { error })),
-        Effect.mapError(() => failure("The banked messages couldn't be sent. Try again.")),
+        Effect.mapError((error) =>
+          failure(
+            error instanceof Error && error.message.length > 0
+              ? `The banked messages couldn't be sent: ${error.message}`
+              : "The banked messages couldn't be sent. Try again.",
+          ),
+        ),
         Effect.provide(services),
       ),
 

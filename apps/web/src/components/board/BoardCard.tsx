@@ -10,9 +10,9 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   EllipsisIcon,
   HistoryIcon,
+  LayersIcon,
   Maximize2Icon,
   MessageCircleQuestionIcon,
-  PiggyBankIcon,
   TriangleAlertIcon,
 } from "lucide-react";
 import { memo, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
@@ -129,6 +129,8 @@ function BoardCardFace({
   onViewProgress: (() => void) | null;
 }) {
   const status = resolveThreadStatusPill({ thread });
+  // A card made on the board holds only its note until something is sent.
+  const notStarted = thread.latestRun == null && thread.latestUserMessageAt == null;
   const summary = cardSummaryText(progress, thread.goal?.objective);
   const cover = progress?.updates.at(-1);
   const questions = cover?.questions.length ?? 0;
@@ -151,7 +153,7 @@ function BoardCardFace({
             {summary}
           </span>
         ) : null}
-        {status || bankedCount > 0 || questions > 0 ? (
+        {status || notStarted || bankedCount > 0 || questions > 0 ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-xs">
             {status ? (
               // The sidebar pulses live statuses; a board shows many at once, so it stays still.
@@ -161,6 +163,14 @@ function BoardCardFace({
                   className={cn("size-1.5 shrink-0 rounded-full", status.dotClass)}
                 />
                 {status.label}
+              </span>
+            ) : notStarted ? (
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <span
+                  aria-hidden
+                  className="size-1.5 shrink-0 rounded-full border border-current"
+                />
+                Not started
               </span>
             ) : null}
             {questions > 0 ? (
@@ -185,7 +195,7 @@ function BoardCardFace({
             ) : null}
             {bankedCount > 0 ? (
               <span className="flex items-center gap-1 text-muted-foreground">
-                <PiggyBankIcon aria-hidden className="size-3 shrink-0" />
+                <LayersIcon aria-hidden className="size-3 shrink-0" />
                 {bankedCount} banked
               </span>
             ) : null}

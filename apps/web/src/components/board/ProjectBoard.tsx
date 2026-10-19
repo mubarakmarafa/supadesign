@@ -98,8 +98,11 @@ import { SummaryDialog } from "../progress/SummaryDialog";
 import { threadProgress } from "../../state/threadProgress";
 import { BoardCardOverlay, type BoardCardHandlers } from "./BoardCard";
 import { BoardColumn } from "./BoardColumn";
+import { NewBoardCard } from "./NewBoardCard";
+import { useCreateBoardCard } from "./useCreateBoardCard";
 import {
   addBoardColumn,
+  boardCardFromText,
   type BoardFocusKey,
   type BoardLayout,
   boardColumnDeleteBlocker,
@@ -109,6 +112,7 @@ import {
   findBoardCard,
   moveBoardCard,
   moveBoardColumn,
+  newBoardCardIndex,
   nextBoardFocus,
   nudgeBoardCard,
   renameBoardColumn,
@@ -368,6 +372,9 @@ function ProjectBoardView({
   const captureProgress = useAtomCommand(threadProgress.capture);
   const [viewingProgressId, setViewingProgressId] = useState<string | null>(null);
   const [editingSummaryId, setEditingSummaryId] = useState<string | null>(null);
+  const setThreadSummary = useAtomCommand(threadProgress.setSummary);
+  const createBoardCard = useCreateBoardCard(project);
+  const [addingCardColumnId, setAddingCardColumnId] = useState<BoardColumnId | null>(null);
   const updateProject = useOrchestrationCommand(projectEnvironment.update);
 
   // ── Board layout, with the last edit shown until the server echoes it ──
@@ -645,6 +652,95 @@ function ProjectBoardView({
       threadById,
       unarchiveThread,
       withHiddenCards,
+    ],
+  );
+
+  // ── Cards made in place ──
+  const addCard = useCallback(
+    async (columnId: BoardColumnId, text: string): Promise<boolean> => {
+      const card = boardCardFromText(text);
+      if (card === null || !canOperate) return false;
+      const created = await createBoardCard({ title: card.title, draft: text.trim() });
+      if (created._tag === "no-model") {
+        infoToast("Can't add a card yet", "Turn on a provider in Settings first.");
+        return false;
+      }
+      if (created._tag === "failed") {
+        if (created.message !== null) infoToast("Couldn't add the card", created.message);
+        return false;
+      }
+      const { threadId } = created;
+      const column = fullLayout.find((entry) => entry.columnId === columnId)?.cardIds ?? [];
+      const index = newBoardCardIndex(board, columnId, column.length);
+      const cardIds = [...column.slice(0, index), threadId, ...column.slice(index)];
+      const layout = fullLayout.map((entry) =>
+        entry.columnId === columnId ? { ...entry, cardIds } : entry,
+      );
+      const steps = planBoardMove({
+        board: storedBoard,
+        threadId,
+        archived: false,
+        // A new thread starts unplaced, which resolves to the inbox.
+        fromColumnId: board.inboxColumnId,
+        toColumnId: columnId,
+        targetCards: cardIds.flatMap((id): BoardMoveCard[] => {
+          if (id === threadId) return [{ threadId, orderKey: null, placement: null }];
+          const thread = threadById.get(id);
+          return thread
+            ? [
+                {
+                  threadId: thread.id,
+                  orderKey: orderKeyById.get(id) ?? null,
+                  placement: thread.board ?? null,
+                },
+              ]
+            : [];
+        }),
+      });
+      // The card shows in its column as soon as the thread arrives, not in the inbox first.
+      setPendingMove({
+        layout,
+        threads: threadById,
+        cardId: threadId,
+        toColumnId: columnId,
+        settled: false,
+      });
+      for (const step of steps) {
+        if (step.type !== "place") continue;
+        const result = await placeOnBoard({
+          environmentId: projectRef.environmentId,
+          input: {
+            threadId: step.threadId,
+            columnId: step.columnId,
+            orderKey: step.orderKey,
+            returnColumnId: step.returnColumnId,
+          },
+        });
+        if (result._tag === "Failure") break;
+      }
+      setPendingMove((current) =>
+        current?.cardId === threadId ? { ...current, settled: true } : current,
+      );
+      if (card.summary !== null && progressSupported) {
+        void setThreadSummary({
+          environmentId: projectRef.environmentId,
+          input: { threadId, text: card.summary },
+        });
+      }
+      return true;
+    },
+    [
+      board,
+      canOperate,
+      createBoardCard,
+      fullLayout,
+      orderKeyById,
+      placeOnBoard,
+      progressSupported,
+      projectRef.environmentId,
+      setThreadSummary,
+      storedBoard,
+      threadById,
     ],
   );
 
@@ -1119,6 +1215,16 @@ function ProjectBoardView({
                   </div>
                 ) : null
               }
+              newCard={
+                addingCardColumnId === column.id ? (
+                  <NewBoardCard
+                    columnTitle={column.title}
+                    onAdd={(text) => addCard(column.id, text)}
+                    onClose={() => setAddingCardColumnId(null)}
+                  />
+                ) : null
+              }
+              onAddCard={canOperate && !isDone ? () => setAddingCardColumnId(column.id) : null}
               handlers={handlers}
               onRenameCommit={onRenameCommit}
               onStartRename={setRenamingColumnId}

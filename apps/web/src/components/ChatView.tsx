@@ -9495,7 +9495,8 @@ export default function ChatView(props: ChatViewProps) {
                 ...(outgoingMessageContext ? { context: outgoingMessageContext } : {}),
               },
               modelSelection: target.selection,
-              titleSeed: title,
+              // A card made on the board starts with the name it was given there.
+              ...(isServerThread && activeMessageCount === 0 ? {} : { titleSeed: title }),
               runtimeMode,
               interactionMode: target.interactionMode,
               // Like mobile, a delayed steer follows current server state at delivery.
@@ -10215,9 +10216,6 @@ export default function ChatView(props: ChatViewProps) {
             environmentId={activeThread.environmentId}
             projectId={activeThread.projectId}
             threadId={activeThread.id}
-            bankShortcutLabel={shortcutLabelForCommand(keybindings, "composer.bank", {
-              context: { composerFocus: true },
-            })}
           />
         ) : null}
         {isServerThread && activeThread ? (
