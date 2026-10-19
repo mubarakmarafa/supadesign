@@ -20,6 +20,7 @@ import * as PullRequestReviewGuideService from "../../../pullRequest/PullRequest
 import * as ProjectSetupScriptRunner from "../../../project/ProjectSetupScriptRunner.ts";
 import * as LiveEnvironment from "../../../liveEnvironment/LiveEnvironmentService.ts";
 import * as ThreadProgress from "../../../threadProgress/ThreadProgressService.ts";
+import * as ProjectBoard from "../../../projectBoard/ProjectBoardService.ts";
 import * as ProviderRegistry from "../../../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../../../scheduledTasks/ScheduledTaskService.ts";
 import * as ServerSettings from "../../../serverSettings.ts";
@@ -55,6 +56,7 @@ const layerStubServices = Layer.mergeAll(
   Layer.mock(PreviewManager.PreviewManager)({}),
   Layer.mock(LiveEnvironment.LiveEnvironmentService)({}),
   Layer.mock(ThreadProgress.ThreadProgressService)({}),
+  Layer.mock(ProjectBoard.ProjectBoardService)({}),
   Layer.mock(ServerSecretStore.ServerSecretStore)({}),
   Layer.mock(SourceControlRepositoryService.SourceControlRepositoryService)({}),
   Layer.mock(ThreadLaunchService.ThreadLaunchService)({}),

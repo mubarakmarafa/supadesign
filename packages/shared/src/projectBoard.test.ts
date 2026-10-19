@@ -3,6 +3,7 @@ import {
   DEFAULT_PROJECT_BOARD,
   type ProjectBoard,
   type ThreadBoardPlacement,
+  ThreadId,
 } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
@@ -11,6 +12,8 @@ import {
   type BoardThread,
   desiredLiveCardId,
   liveCard,
+  newBoardCardIndex,
+  planBoardCardMove,
   resolveBoardColumns,
 } from "./projectBoard.ts";
 
@@ -153,5 +156,81 @@ describe("desiredLiveCardId", () => {
     const board = { ...DEFAULT_PROJECT_BOARD, liveColumnId: null };
     expect(desiredLiveCardId(board, resolveBoardColumns(board, threads), null)).toBeNull();
     expect(desiredLiveCardId(board, resolveBoardColumns(board, threads), "top")).toBeUndefined();
+  });
+});
+
+describe("newBoardCardIndex", () => {
+  it("adds to the top, but under the live card in the live column", () => {
+    const board = DEFAULT_PROJECT_BOARD;
+    expect(newBoardCardIndex(board, col("ideas"), 3)).toBe(0);
+    expect(newBoardCardIndex(board, board.liveColumnId!, 2)).toBe(1);
+    expect(newBoardCardIndex(board, board.liveColumnId!, 0)).toBe(0);
+  });
+});
+
+describe("planBoardCardMove", () => {
+  const card = (id: string, board: ThreadBoardPlacement | null, archived = false) => ({
+    ...thread(id, { board, archived }),
+    id: ThreadId.make(id),
+  });
+  const cards = [
+    card("idea", { columnId: col("ideas"), orderKey: "m" }),
+    card("first", { columnId: col("testing"), orderKey: "g" }),
+    card("second", { columnId: col("testing"), orderKey: "p" }),
+  ];
+  const resolved = resolveBoardColumns(null, cards);
+
+  it("places a card at an index of another column with one key", () => {
+    const steps = planBoardCardMove({
+      board: null,
+      resolved,
+      threadId: ThreadId.make("idea"),
+      archived: false,
+      toColumnId: col("testing"),
+      index: 1,
+    });
+    expect(steps).toHaveLength(1);
+    const [step] = steps;
+    expect(step).toMatchObject({ type: "place", columnId: "testing", returnColumnId: null });
+    expect(step?.type === "place" && step.orderKey > "g" && step.orderKey < "p").toBe(true);
+  });
+
+  it("clamps the index and archives a card moved into done, remembering where it came from", () => {
+    const steps = planBoardCardMove({
+      board: null,
+      resolved,
+      threadId: ThreadId.make("first"),
+      archived: false,
+      toColumnId: col("done"),
+      index: 99,
+    });
+    expect(steps.map((step) => step.type)).toEqual(["place", "archive"]);
+    expect(steps[0]).toMatchObject({ columnId: "done", returnColumnId: "testing" });
+  });
+
+  it("places a thread that isn't on the board yet", () => {
+    const steps = planBoardCardMove({
+      board: null,
+      resolved,
+      threadId: ThreadId.make("new"),
+      archived: false,
+      toColumnId: col("testing"),
+      index: 0,
+    });
+    expect(steps).toHaveLength(1);
+    expect(steps[0]?.type === "place" && steps[0].orderKey < "g").toBe(true);
+  });
+
+  it("does nothing for an unknown column", () => {
+    expect(
+      planBoardCardMove({
+        board: null,
+        resolved,
+        threadId: ThreadId.make("idea"),
+        archived: false,
+        toColumnId: col("nowhere"),
+        index: 0,
+      }),
+    ).toEqual([]);
   });
 });

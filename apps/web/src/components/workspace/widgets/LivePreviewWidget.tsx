@@ -5,12 +5,15 @@ import {
   ExternalLinkIcon,
   GitBranchIcon,
   MonitorIcon,
+  RotateCcwIcon,
   RotateCwIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { resolveDiscoveredServerUrl } from "~/browser/browserTargetResolver";
 import { useThreadShellsForProjectRefs } from "../../../state/entities";
+import { liveEnvironment } from "../../../state/liveEnvironment";
+import { useAtomCommand } from "../../../state/use-atom-command";
 import { useProjectLiveEnvironments } from "../../board/liveEnvironmentState";
 import { useDiscoveredLocalServers } from "../../preview/useDiscoveredLocalServers";
 import { Button } from "../../ui/button";
@@ -60,7 +63,11 @@ export function LivePreviewWidget({
   );
   const liveEnvironments = useProjectLiveEnvironments(projectRef).byThreadId;
   const servers = useDiscoveredLocalServers({ environmentId });
+  const retryLive = useAtomCommand(liveEnvironment.retry);
   const [reloadKey, setReloadKey] = useState(0);
+  const failedLive =
+    [...liveEnvironments.values()].find((entry) => entry.active && entry.status === "failed") ??
+    null;
 
   const live = useMemo((): LivePreviewCandidate | null => {
     const ready = [...liveEnvironments.values()].filter(
@@ -219,6 +226,21 @@ export function LivePreviewWidget({
               Follow the live card
             </Button>
           ) : null}
+        </WidgetMessage>
+      ) : failedLive !== null ? (
+        <WidgetMessage>
+          <p>The live card's dev server didn't start.</p>
+          {failedLive.error !== null ? <p className="text-xs">{failedLive.error}</p> : null}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              void retryLive({ environmentId, input: { threadId: failedLive.threadId } })
+            }
+          >
+            <RotateCcwIcon />
+            Retry
+          </Button>
         </WidgetMessage>
       ) : (
         <WidgetMessage>

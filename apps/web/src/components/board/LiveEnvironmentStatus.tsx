@@ -345,6 +345,14 @@ export function LiveEnvironmentCardStatus({
             Stop now
           </Button>
         ) : null}
+        {snapshot.status === "preparing" &&
+        (snapshot.phase === "setup" || snapshot.phase === "starting") ? (
+          // A setup script or server can hang; this is the way out short of moving the card.
+          <Button size="compact" variant="ghost-muted" onClick={() => void retry(threadInput)}>
+            <RotateCcwIcon />
+            Start over
+          </Button>
+        ) : null}
         {snapshot.status === "failed" ? (
           <>
             <Button size="compact" variant="ghost" onClick={() => void retry(threadInput)}>

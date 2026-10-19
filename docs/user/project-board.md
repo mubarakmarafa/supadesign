@@ -96,6 +96,12 @@ With a card focused, the arrow keys, **Home**, and **End** move between cards.
 or to the neighboring column. Customize `board.open`, `board.back`, and the
 `board.card.move…` commands in **Settings → Keybindings**.
 
+Agents can use the board too. Ask one to add cards for ideas, or to move its
+card to another column, and it does what the same drag would: moving to done
+archives, moving to the send column sends banked messages, and moving out of
+the live preview column stops the card's server. Cards an agent adds wait
+unstarted, like yours.
+
 ## Progress images
 
 A card's cover is a screenshot of its running app, so you can see where the
@@ -170,9 +176,12 @@ script.
 
 When a card stops being live it stays **warm** for 10 minutes, so switching
 between cards doesn't restart their servers. **Stop now** ends it early. Moving
-a card out of the column, or to done, stops it right away and removes a worktree
-created for it. A worktree with changes is kept instead: the card says so, and
-**Discard changes** removes it.
+a card out of the column, or archiving it anywhere, stops it right away and
+removes a worktree created for it. Servers the card's agent started itself in
+the card's worktree stop with it, unless the agent is still working. A worktree
+with changes is kept instead: the card says so, and **Discard changes** removes
+it. If a card's worktree folder was deleted, going live checks its branch out
+there again.
 
 After Supadesign restarts, the card that was live shows **Stopped** rather than
 starting by itself; **Start** runs it again.
@@ -187,8 +196,11 @@ project's action settings. If a command it picked crashes, an agent gets one
 chance to correct it. Only when it can't tell does the card ask you for the
 command, and it says why.
 
-If the server fails to start, the card shows why and its last output. **Retry**
-first has an agent check whether the command itself is wrong, then starts the card again.
+If the server fails to start, the card and the Live preview widget show why,
+and the card shows its last output. **Retry** first has an agent check whether
+the command itself is wrong, then starts the card again. A setup script or
+server that seems stuck can be restarted with **Start over**; a setup script
+still running after 15 minutes is stopped.
 
 ## Design mode
 

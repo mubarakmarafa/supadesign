@@ -9,7 +9,6 @@ import {
   deleteBoardColumn,
   moveBoardCard,
   moveBoardColumn,
-  newBoardCardIndex,
   nextBoardFocus,
   nudgeBoardCard,
   renameBoardColumn,
@@ -190,14 +189,5 @@ describe("boardCardFromText", () => {
 
   it("ignores blank input", () => {
     expect(boardCardFromText(" \n  ")).toBeNull();
-  });
-});
-
-describe("newBoardCardIndex", () => {
-  it("adds to the top, but under the live card in the live column", () => {
-    const board = DEFAULT_PROJECT_BOARD;
-    expect(newBoardCardIndex(board, col("ideas"), 3)).toBe(0);
-    expect(newBoardCardIndex(board, board.liveColumnId!, 2)).toBe(1);
-    expect(newBoardCardIndex(board, board.liveColumnId!, 0)).toBe(0);
   });
 });
