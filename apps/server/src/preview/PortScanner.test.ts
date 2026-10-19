@@ -785,3 +785,77 @@ effectIt.effect("does not swallow process probe interruption", () =>
     }
   }),
 );
+
+effectIt.effect("probes a listener an agent started inside a project folder", () => {
+  const requests: string[] = [];
+  const fetchFn = ((input: Parameters<typeof globalThis.fetch>[0]) => {
+    requests.push(String(input));
+    return Promise.resolve(new Response("app", { headers: { "content-type": "text/html" } }));
+  }) as typeof globalThis.fetch;
+  const cwdByPid: Record<string, string> = {
+    "/proc/4321/cwd": "/work/portfolio/site",
+    "/proc/9876/cwd": "/Applications/Other.app",
+  };
+  const layer = PortScanner.layer.pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        FileSystem.layerNoop({
+          readLink: (path) =>
+            cwdByPid[path] === undefined
+              ? Effect.fail(
+                  PlatformError.systemError({
+                    _tag: "NotFound",
+                    module: "FileSystem",
+                    method: "readLink",
+                    pathOrDescriptor: path,
+                  }),
+                )
+              : Effect.succeed(cwdByPid[path]),
+        }),
+        Layer.succeed(ProcessRunner.ProcessRunner, {
+          run: () =>
+            Effect.succeed({
+              stdout: `p4321\ncnode\nn*:${LSOF_TEST_PORT}\np9876\ncOther\nn127.0.0.1:${LSOF_TEST_PORT + 1}\n`,
+              stderr: "",
+              code: null,
+              timedOut: false,
+              stdoutTruncated: false,
+              stderrTruncated: false,
+              stdoutInvalidUtf8: false,
+              stderrInvalidUtf8: false,
+            }),
+        }),
+        Layer.succeed(HostProcess.Platform, "linux"),
+        Layer.succeed(
+          PortScanner.PortDiscoveryWorkspaceRoots,
+          Effect.succeed(["/work/portfolio/"]),
+        ),
+        FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.Fetch, fetchFn))),
+      ),
+    ),
+  );
+
+  return Effect.gen(function* () {
+    const scanner = yield* PortScanner.PortDiscovery;
+    const servers = yield* scanner.scan();
+    expect(servers.map((server) => [server.port, server.cwd])).toEqual([
+      [LSOF_TEST_PORT, "/work/portfolio/site"],
+    ]);
+    // The other app's listener, outside every project, is never sent a request.
+    expect(requests).toEqual([`http://localhost:${LSOF_TEST_PORT}/`]);
+  }).pipe(Effect.provide(layer));
+});
+
+effectIt("matches working directories against workspace roots and lsof output", () => {
+  expect(PortScanner.containingWorkspaceRoot("/work/app/src", ["/other", "/work/app/"])).toBe(
+    "/work/app",
+  );
+  expect(PortScanner.containingWorkspaceRoot("/work/app", ["/work/app"])).toBe("/work/app");
+  expect(PortScanner.containingWorkspaceRoot("/work/apple", ["/work/app"])).toBeNull();
+  expect([
+    ...PortScanner.parseLsofCwdOutput("p12\nfcwd\nn/Users/me/site\np34\nfcwd\nn/\n"),
+  ]).toEqual([
+    [12, "/Users/me/site"],
+    [34, "/"],
+  ]);
+});

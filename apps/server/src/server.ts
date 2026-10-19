@@ -64,6 +64,7 @@ import * as ThreadBankLayer from "./threadBank/layer.ts";
 import * as ThreadProgressLayer from "./threadProgress/layer.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
+import * as PortScannerWorkspaceRoots from "./preview/workspaceRoots.ts";
 import * as ServerBrowser from "./preview/ServerBrowser.ts";
 import * as DesktopBrowserChannel from "./preview/DesktopBrowserChannel.ts";
 import * as ServerBrowserStream from "./preview/ServerBrowserStream.ts";
@@ -377,7 +378,16 @@ const layerVcs = Layer.empty.pipe(
 
 const layerCheckpointStore = CheckpointStore.layer.pipe(Layer.provide(layerVcsDriverRegistry));
 
-const layerPortScanner = PortScanner.layer.pipe(Layer.provide(ProcessRunner.layer));
+const layerPortScanner = PortScanner.layer.pipe(
+  Layer.provide(ProcessRunner.layer),
+  // Servers an agent starts in a project folder count as that project's.
+  Layer.provide(
+    PortScannerWorkspaceRoots.layer.pipe(
+      Layer.provide(ProjectStore.layer),
+      Layer.provide(ProjectionStoreV2.layer),
+    ),
+  ),
+);
 
 const layerTerminal = TerminalManager.layer.pipe(
   Layer.provide(layerPtyAdapter),

@@ -405,6 +405,12 @@ export const DiscoveredLocalServer = Schema.Struct({
       terminalId: TrimmedNonEmptyString,
     }),
   ),
+  /**
+   * The listening process's working directory, reported when it sits inside a
+   * project folder or thread worktree, so clients can tie servers an agent
+   * started outside a terminal back to their project.
+   */
+  cwd: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
 });
 export type DiscoveredLocalServer = typeof DiscoveredLocalServer.Type;
 

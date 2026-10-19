@@ -282,10 +282,10 @@ export interface PreviewPortCandidate {
   readonly port: number;
   /** Where this client loads it; remote connections go through the environment. */
   readonly url: string;
-  /** The thread whose terminal runs it, when Supadesign started it. */
+  /** The thread whose terminal or worktree runs it, when known. */
   readonly threadTitle: string | null;
   readonly branch: string | null;
-  /** Its thread belongs to this project. */
+  /** It runs in this project's folder or one of its threads. */
   readonly ownedByProject: boolean;
   /** The thread's last update, ms; 0 when unknown. */
   readonly updatedAtMs: number;
@@ -340,6 +340,40 @@ export function resolvePreviewSelection(input: {
   return recent === undefined
     ? { kind: "none" }
     : { kind: "port", port: recent.port, url: recent.url, branch: recent.branch, fallback: true };
+}
+
+/** Whether `path` is `root` or inside it. Both are absolute paths on the server. */
+export function pathWithin(root: string, path: string): boolean {
+  const base = root.length > 1 ? root.replace(/[\\/]+$/, "") : root;
+  return path === base || path.startsWith(`${base}/`) || path.startsWith(`${base}\\`);
+}
+
+/**
+ * Who a running server belongs to: the thread whose terminal started it, else
+ * the thread whose worktree it runs in, else just the project when it runs in
+ * the project folder. Agents often start servers outside a terminal, so the
+ * working directory is what ties those back.
+ */
+export function previewServerOwner<
+  T extends { readonly id: string; readonly worktreePath: string | null },
+>(input: {
+  readonly terminalThreadId: string | null;
+  readonly cwd: string | null;
+  readonly workspaceRoot: string;
+  readonly threads: ReadonlyArray<T>;
+}): { readonly thread: T | null; readonly inProject: boolean } {
+  if (input.terminalThreadId !== null) {
+    const thread = input.threads.find((entry) => entry.id === input.terminalThreadId) ?? null;
+    return { thread, inProject: thread !== null };
+  }
+  const cwd = input.cwd;
+  if (cwd === null) return { thread: null, inProject: false };
+  let thread: T | null = null;
+  for (const entry of input.threads) {
+    if (entry.worktreePath === null || !pathWithin(entry.worktreePath, cwd)) continue;
+    if (thread === null || entry.worktreePath.length > thread.worktreePath!.length) thread = entry;
+  }
+  return { thread, inProject: thread !== null || pathWithin(input.workspaceRoot, cwd) };
 }
 
 /** The project's own ports first, most recently active first, then the rest by port. */

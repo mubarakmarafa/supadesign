@@ -16,6 +16,7 @@ import {
   type PreviewPortCandidate,
   removeWorkspaceWidget,
   resizeWorkspaceWidget,
+  previewServerOwner,
   resolvePreviewSelection,
   setWorkspaceWidgetSettings,
   workspaceBackgroundStyle,
@@ -223,5 +224,38 @@ describe("resolvePreviewSelection", () => {
     expect(
       resolvePreviewSelection({ pinnedPort: undefined, live: null, ports: [port({ port: 8080 })] }),
     ).toEqual({ kind: "none" });
+  });
+});
+
+describe("previewServerOwner", () => {
+  const threads = [
+    { id: "local", worktreePath: null },
+    { id: "card", worktreePath: "/wt/card" },
+    { id: "nested", worktreePath: "/wt/card/packages/site" },
+  ];
+  const owner = (terminalThreadId: string | null, cwd: string | null) => {
+    const result = previewServerOwner({
+      terminalThreadId,
+      cwd,
+      workspaceRoot: "/repo/portfolio",
+      threads,
+    });
+    return [result.thread?.id ?? null, result.inProject];
+  };
+
+  it("ties a server an agent started to the worktree it runs in", () => {
+    expect(owner(null, "/wt/card/apps/web")).toEqual(["card", true]);
+    expect(owner(null, "/wt/card/packages/site")).toEqual(["nested", true]);
+  });
+
+  it("counts a server in the project folder as the project's, without guessing a card", () => {
+    expect(owner(null, "/repo/portfolio")).toEqual([null, true]);
+    expect(owner(null, "/repo/portfolio-old")).toEqual([null, false]);
+    expect(owner(null, null)).toEqual([null, false]);
+  });
+
+  it("keeps a terminal's own thread first", () => {
+    expect(owner("local", "/wt/card")).toEqual(["local", true]);
+    expect(owner("elsewhere", null)).toEqual([null, false]);
   });
 });
