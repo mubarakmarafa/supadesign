@@ -3,11 +3,13 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   addBoardColumn,
+  boardCardFromText,
   type BoardLayout,
   boardColumnDeleteBlocker,
   deleteBoardColumn,
   moveBoardCard,
   moveBoardColumn,
+  newBoardCardIndex,
   nextBoardFocus,
   nudgeBoardCard,
   renameBoardColumn,
@@ -160,5 +162,42 @@ describe("board column editing", () => {
     expect(deleteBoardColumn(withExtra, col("review"))?.retiredColumns).toEqual([
       { id: "review", movedTo: "testing" },
     ]);
+  });
+});
+
+describe("boardCardFromText", () => {
+  it("uses the first line as the title and the rest as the summary", () => {
+    expect(boardCardFromText("  Sound pass \n\n make taps feel tactile \n and fresh ")).toEqual({
+      title: "Sound pass",
+      summary: "make taps feel tactile\nand fresh",
+    });
+    expect(boardCardFromText("Onboarding copy")).toEqual({
+      title: "Onboarding copy",
+      summary: null,
+    });
+  });
+
+  it("shortens a long first line at a word and keeps all of it in the summary", () => {
+    const text =
+      "make sure we are fun and creative with the sounds, i really want to make the app feel tactile and fresh";
+    const card = boardCardFromText(text)!;
+    expect(card.title.length).toBeLessThanOrEqual(80);
+    expect(card.title).toBe(
+      "make sure we are fun and creative with the sounds, i really want to make the…",
+    );
+    expect(card.summary).toBe(text);
+  });
+
+  it("ignores blank input", () => {
+    expect(boardCardFromText(" \n  ")).toBeNull();
+  });
+});
+
+describe("newBoardCardIndex", () => {
+  it("adds to the top, but under the live card in the live column", () => {
+    const board = DEFAULT_PROJECT_BOARD;
+    expect(newBoardCardIndex(board, col("ideas"), 3)).toBe(0);
+    expect(newBoardCardIndex(board, board.liveColumnId!, 2)).toBe(1);
+    expect(newBoardCardIndex(board, board.liveColumnId!, 0)).toBe(0);
   });
 });

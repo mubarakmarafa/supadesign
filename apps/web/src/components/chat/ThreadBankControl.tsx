@@ -1,10 +1,16 @@
 import type { EnvironmentId, ProjectId, ThreadBankEntry, ThreadId } from "@supaterm/contracts";
+import {
+  type AtomCommandResult,
+  isAtomCommandInterrupted,
+  squashAtomCommandFailure,
+} from "@supaterm/client-runtime/state/runtime";
 import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 import {
   CheckIcon,
+  ChevronDownIcon,
   GripVerticalIcon,
+  LayersIcon,
   PencilIcon,
-  PiggyBankIcon,
   SendIcon,
   XIcon,
 } from "lucide-react";
@@ -42,7 +48,6 @@ export function ThreadBankControl(props: {
   readonly environmentId: EnvironmentId;
   readonly projectId: ProjectId;
   readonly threadId: ThreadId;
-  readonly bankShortcutLabel: string | null;
 }) {
   const entries = useThreadBankEntries(props.environmentId, props.projectId, props.threadId);
   const send = useAtomCommand(threadBank.send);
@@ -77,11 +82,21 @@ export function ThreadBankControl(props: {
   );
 
   const target = { environmentId: props.environmentId };
-  const run = async (action: () => Promise<{ readonly _tag: string }>, failure: string) => {
+  const run = async (
+    action: () => Promise<AtomCommandResult<unknown, unknown>>,
+    failure: string,
+  ) => {
     setBusy(true);
     try {
       const result = await action();
-      if (result._tag === "Failure") toastManager.add({ type: "error", title: failure });
+      if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+        const error = squashAtomCommandFailure(result);
+        toastManager.add({
+          type: "error",
+          title: failure,
+          ...(error instanceof Error ? { description: error.message } : {}),
+        });
+      }
       return result._tag !== "Failure";
     } finally {
       setBusy(false);
@@ -144,34 +159,42 @@ export function ThreadBankControl(props: {
         className="relative z-0"
       >
         <ComposerBanner.Row>
-          <button
-            type="button"
-            aria-label={expanded ? "Collapse banked messages" : "Expand banked messages"}
-            aria-expanded={expanded}
-            aria-controls={listId}
-            onPointerDown={(event) => event.preventDefault()}
-            onClick={() => setExpanded((value) => !value)}
-            className="flex min-w-0 flex-1 items-center gap-2 text-start outline-none"
-          >
-            <ComposerBanner.Icon>
-              <PiggyBankIcon />
-            </ComposerBanner.Icon>
-            <ComposerBanner.Content className="text-muted-foreground">
-              Banked
-              {props.bankShortcutLabel ? (
-                <span className="text-muted-foreground/60">
-                  {" "}
-                  · {props.bankShortcutLabel} adds the composer
-                </span>
-              ) : null}
-            </ComposerBanner.Content>
-            <ComposerBanner.Count>{count}</ComposerBanner.Count>
-            <ComposerBanner.ToggleIcon expanded={expanded} />
-          </button>
+          <ComposerBanner.Icon>
+            <LayersIcon />
+          </ComposerBanner.Icon>
+          <ComposerBanner.Content>
+            <button
+              type="button"
+              aria-label={expanded ? "Collapse banked messages" : "Expand banked messages"}
+              aria-expanded={expanded}
+              aria-controls={listId}
+              onPointerDown={(event) => event.preventDefault()}
+              onClick={() => setExpanded((value) => !value)}
+              className="flex min-h-6 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md text-start text-muted-foreground outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              <span className="truncate">Banked for later</span>
+              <ComposerBanner.Count>{count}</ComposerBanner.Count>
+            </button>
+          </ComposerBanner.Content>
           <ComposerBanner.Actions>
             <Button size="xs" variant="outline" disabled={busy || count === 0} onClick={sendAll}>
               <SendIcon />
               Send all
+            </Button>
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              tabIndex={-1}
+              aria-hidden
+              onPointerDown={(event) => event.preventDefault()}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              <ChevronDownIcon
+                className={cn(
+                  "size-3.5 transition-transform duration-150 ease-out motion-reduce:transition-none",
+                  !expanded && "rotate-180",
+                )}
+              />
             </Button>
           </ComposerBanner.Actions>
         </ComposerBanner.Row>

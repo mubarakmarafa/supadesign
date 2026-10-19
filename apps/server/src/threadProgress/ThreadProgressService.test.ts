@@ -181,10 +181,7 @@ it.effect("drops the oldest images past the limit", () =>
     const progress = yield* service.get(card);
     assert.strictEqual(progress?.updates.length, THREAD_PROGRESS_MAX_UPDATES);
     assert.strictEqual(deleted.length, 2);
-    assert.notInclude(
-      progress?.updates.map((update) => update.image.id),
-      deleted[0],
-    );
+    assert.isFalse(progress?.updates.some((update) => update.image.id === deleted[0]));
   }),
 );
 

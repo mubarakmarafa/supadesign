@@ -64,7 +64,16 @@ connected to that environment.
 
 ## Cards
 
-New threads land in the inbox column, marked with an inbox icon. Drag a card to
+New threads land in the inbox column, marked with an inbox icon. To jot down
+work before starting it, select **+** on a column and write what you want to
+work on: the first line is the card's title and the rest its summary. **Enter**
+adds the card and leaves room for the next one; **Shift+Enter** starts a new
+line. The card says **Not started** until you send it something. Its note waits
+in the card's composer, so opening it and pressing **Enter** starts the agent.
+A card added to the live preview column goes under the live card, so it doesn't
+change what is running.
+
+Drag a card to
 reorder it or move it to another column. Order within a column is kept. On
 touch screens and narrow windows, use the card's **…** menu and **Move to**.
 
@@ -111,7 +120,8 @@ thread's composer so you can comment on exactly what you saw.
 
 Context rarely arrives in one go. Press **Option+Enter** (`Alt+Enter` on Windows
 and Linux) in a card's composer to bank what you wrote, with its images, files,
-and annotations, instead of sending it. Banked messages sit above the composer
+and annotations, instead of sending it, or select the bank button beside send.
+The composer's placeholder shows the shortcut. Banked messages sit above the composer
 under **Banked**, where you can read, edit, reorder, and remove them, and the
 card shows how many it holds. **Send all** sends them to the agent as one
 message, in order.

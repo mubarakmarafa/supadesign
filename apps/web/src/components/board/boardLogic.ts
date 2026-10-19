@@ -6,6 +6,7 @@ import {
   PROJECT_BOARD_MIN_COLUMNS,
   type ProjectBoard,
   type ProjectBoardFlag,
+  THREAD_SUMMARY_MAX_LENGTH,
 } from "@supaterm/contracts";
 
 /** Card ids per column, left to right and top to bottom, as the board shows them. */
@@ -255,4 +256,47 @@ export function deleteBoardColumn(
 
 export function boardOrDefault(board: ProjectBoard | null | undefined): ProjectBoard {
   return board ?? DEFAULT_PROJECT_BOARD;
+}
+
+// ── Cards made on the board ─────────────────────────────────────────────
+
+export const BOARD_CARD_TITLE_MAX_LENGTH = 80;
+
+/**
+ * Splits what someone typed into a new card: the first line is its title, and
+ * whatever doesn't fit there becomes its summary. Null when there's nothing.
+ */
+export function boardCardFromText(
+  text: string,
+): { readonly title: string; readonly summary: string | null } | null {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const first = lines[0];
+  if (first === undefined) return null;
+  const summaryOf = (value: string) =>
+    value.length === 0
+      ? null
+      : value.length <= THREAD_SUMMARY_MAX_LENGTH
+        ? value
+        : `${value.slice(0, THREAD_SUMMARY_MAX_LENGTH - 1).trimEnd()}…`;
+  if (first.length <= BOARD_CARD_TITLE_MAX_LENGTH) {
+    return { title: first, summary: summaryOf(lines.slice(1).join("\n")) };
+  }
+  const cut = first.lastIndexOf(" ", BOARD_CARD_TITLE_MAX_LENGTH - 1);
+  const end = cut > BOARD_CARD_TITLE_MAX_LENGTH / 2 ? cut : BOARD_CARD_TITLE_MAX_LENGTH - 1;
+  return { title: `${first.slice(0, end).trimEnd()}…`, summary: summaryOf(lines.join("\n")) };
+}
+
+/**
+ * Where a new card goes in its column: the top, except in the live column,
+ * where it goes under the live card so adding an idea never swaps what's running.
+ */
+export function newBoardCardIndex(
+  board: ProjectBoard,
+  columnId: BoardColumnId,
+  cardCount: number,
+): number {
+  return columnId === board.liveColumnId && cardCount > 0 ? 1 : 0;
 }
