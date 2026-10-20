@@ -124,6 +124,7 @@ import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import { signalProcessGroup } from "@supaterm/provider-core/server/processGroup";
 import {
   claudeSignedOutMessage,
+  hasClaudeTranscript,
   makeClaudeEnvironment,
 } from "../../provider/Drivers/ClaudeHome.ts";
 import {
@@ -8613,8 +8614,20 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
           // requires resume; sessionId would fail with "already in use".
           const hasPersistedProviderTurn =
             turnInput.nativeThreadHasTurns ?? turnInput.providerTurnOrdinal > 1;
+          // Imported sessions have a transcript before their first Supaterm turn.
           const shouldResume =
-            resumeSessionAt !== undefined || openedWithResume || hasPersistedProviderTurn;
+            resumeSessionAt !== undefined ||
+            openedWithResume ||
+            hasPersistedProviderTurn ||
+            (yield* hasClaudeTranscript({
+              config: adapterOptions.settings,
+              environment: adapterOptions.environment,
+              cwd: turnInput.runtimePolicy.cwd,
+              sessionId: nativeThreadId,
+            }).pipe(
+              Effect.provideService(FileSystem.FileSystem, fileSystem),
+              Effect.provideService(Path.Path, path),
+            ));
           const queryOptions = makeClaudeQueryOptions({
             modelSelection: turnInput.modelSelection,
             nativeThreadId,
