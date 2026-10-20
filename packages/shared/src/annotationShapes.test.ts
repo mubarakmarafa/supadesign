@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { arrowPoints, ellipsePoints, isDeliberateShape, polylinePath } from "./annotationShapes.ts";
+import {
+  arrowPoints,
+  ellipsePoints,
+  isDeliberateShape,
+  normalizeRect,
+  polylinePath,
+  unionRects,
+} from "./annotationShapes.ts";
 
 describe("ellipsePoints", () => {
   it("traces a closed ellipse inside the dragged box", () => {
@@ -47,5 +54,32 @@ describe("shape helpers", () => {
   it("ignores stray clicks", () => {
     expect(isDeliberateShape({ x: 0, y: 0 }, { x: 3, y: 2 })).toBe(false);
     expect(isDeliberateShape({ x: 0, y: 0 }, { x: 0, y: 12 })).toBe(true);
+  });
+});
+
+describe("unionRects", () => {
+  it("pads the marks and keeps the box inside the frame", () => {
+    expect(
+      unionRects(
+        [
+          { x: 10, y: 30, width: 20, height: 10 },
+          { x: 70, y: 60, width: 20, height: 30 },
+        ],
+        { width: 100, height: 100 },
+      ),
+    ).toEqual({ x: 0, y: 10, width: 100, height: 90 });
+  });
+
+  it("has no box without marks", () => {
+    expect(unionRects([], { width: 100, height: 100 })).toBeNull();
+  });
+
+  it("spans a drag in any direction", () => {
+    expect(normalizeRect({ x: 40, y: 10 }, { x: 10, y: 30 })).toEqual({
+      x: 10,
+      y: 10,
+      width: 30,
+      height: 20,
+    });
   });
 });

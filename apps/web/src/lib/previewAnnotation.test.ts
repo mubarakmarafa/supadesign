@@ -1,7 +1,10 @@
 import type { PreviewAnnotationPayload } from "@supaterm/contracts";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { capturePreviewAnnotationScreenshot } from "./previewAnnotation";
+import {
+  capturePreviewAnnotationScreenshot,
+  previewAnnotationComposerItems,
+} from "./previewAnnotation";
 
 const annotation: PreviewAnnotationPayload = {
   id: "annotation_1",
@@ -53,4 +56,35 @@ describe("preview annotation capture", () => {
       expect(capturePreviewAnnotationScreenshot(picked)).toEqual({ status: "failed" });
     },
   );
+});
+
+describe("preview annotation composer items", () => {
+  it("attaches the crop as the image that shares the annotation's id", () => {
+    const { annotation: cited, image, captureFailed } = previewAnnotationComposerItems(annotation);
+    expect(cited).toBe(annotation);
+    expect(image).toMatchObject({
+      type: "image",
+      id: annotation.id,
+      name: "preview-annotation-annotation_1.png",
+      mimeType: "image/png",
+      previewUrl: annotation.screenshot!.dataUrl,
+    });
+    expect(captureFailed).toBe(false);
+  });
+
+  it("drops a crop it can't decode from the citation too", () => {
+    const picked = {
+      ...annotation,
+      screenshot: { ...annotation.screenshot!, dataUrl: "data:image/jpeg;base64,AA==" },
+    };
+    const items = previewAnnotationComposerItems(picked);
+    expect(items.annotation.screenshot).toBeNull();
+    expect(items.image).toBeNull();
+    expect(items.captureFailed).toBe(true);
+  });
+
+  it("has no image for a comment-only annotation", () => {
+    const items = previewAnnotationComposerItems({ ...annotation, screenshot: null });
+    expect(items).toMatchObject({ image: null, captureFailed: false });
+  });
 });
