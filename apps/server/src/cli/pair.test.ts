@@ -5,12 +5,17 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { AuthStandardClientScopes, ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
+import {
+  AuthStandardClientScopes,
+  ORCHESTRATION_PROTOCOL_VERSION,
+  RelayPreparationError,
+} from "@supaterm/contracts";
 import * as NetService from "@supaterm/shared/Net";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 import { assert, describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Schema from "effect/Schema";
 import * as TestConsole from "effect/testing/TestConsole";
 import { Command, CliError } from "effect/cli";
 
@@ -27,6 +32,7 @@ import {
 } from "../serverRuntimeState.ts";
 import {
   DevServerNotProxiableError,
+  PairRouteConflictError,
   resolveDirectPairingBaseUrl,
   resolveTailscaleLocalTarget,
 } from "./pair.ts";
@@ -118,16 +124,20 @@ const testDescriptor = {
   capabilities: {},
 };
 
+const isRelayPreparationError = Schema.is(RelayPreparationError);
+
 const withDescriptorServer = <A, E, R>(
   run: (origin: string) => Effect.Effect<A, E, R>,
-  relay?: { readonly relayEndpoint: string; readonly relayUrl: string },
+  relay?: { readonly relayEndpoint: string; readonly relayUrl: string } | RelayPreparationError,
 ) =>
   Effect.acquireUseRelease(
     Effect.callback<NodeHttp.Server>((resume) => {
       const server = NodeHttp.createServer((request, response) => {
         if (request.url === "/api/relay/prepare" && relay) {
           expect(request.headers.authorization).toMatch(/^Bearer /);
-          response.writeHead(200, { "content-type": "application/json" });
+          response.writeHead(isRelayPreparationError(relay) ? 503 : 200, {
+            "content-type": "application/json",
+          });
           response.end(JSON.stringify(relay));
           return;
         }
@@ -152,7 +162,10 @@ const withDescriptorServer = <A, E, R>(
   );
 
 describe("supaterm pair", () => {
-  it.effect("activates an idle relay before printing its first pairing URL", () => {
+  it.effect.each([
+    { label: "by default", flags: [] },
+    { label: "with --relay", flags: ["--relay"] },
+  ])("activates an idle relay $label before printing its first pairing URL", ({ flags }) => {
     const relay = {
       relayEndpoint: `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.alt/`,
       relayUrl: "wss://custom-relay.invalid",
@@ -170,7 +183,7 @@ describe("supaterm pair", () => {
               port: Number(new URL(origin).port),
             }),
           });
-          const output = yield* captureStdout(runCli(["pair", "--relay", "--base-dir", baseDir]));
+          const output = yield* captureStdout(runCli(["pair", ...flags, "--base-dir", baseDir]));
           assert.include(output, `Pairing URL: ${relay.relayEndpoint}pair#token=`);
           assert.include(output, `relay=${encodeURIComponent(relay.relayUrl)}`);
           const sessions = yield* captureStdout(
@@ -181,7 +194,46 @@ describe("supaterm pair", () => {
       relay,
     ).pipe(Effect.provide(NodeServices.layer));
   });
-  it.effect("mints a token and prints a QR pairing URL for a live server", () =>
+  it.effect.each(["off", "invalid-url", "superseded", "timeout", "unavailable"] as const)(
+    "suggests direct pairing when relay preparation fails: %s",
+    (reason) =>
+      withDescriptorServer(
+        (origin) =>
+          provideCliTestLayers(
+            Effect.gen(function* () {
+              const baseDir = NodeFS.mkdtempSync(
+                NodePath.join(NodeOS.tmpdir(), "supaterm-pair-relay-failure-test-"),
+              );
+              yield* persistServerRuntimeState({
+                path: NodePath.join(baseDir, "userdata", "server-runtime.json"),
+                state: yield* makePersistedServerRuntimeState({
+                  config: { host: "127.0.0.1", devUrl: undefined },
+                  port: Number(new URL(origin).port),
+                }),
+              });
+
+              const error = yield* runCli(["pair", "--base-dir", baseDir]).pipe(Effect.flip);
+
+              expect(error).toMatchObject({
+                _tag: reason === "off" ? "PublicRelayOffError" : "RelayPreparationError",
+              });
+              expect(yield* TestConsole.errorLines).toContain(
+                "Pass --no-relay to pair directly instead.",
+              );
+              assert.notInclude((yield* TestConsole.logLines).join("\n"), "Pairing URL:");
+              for (const group of ["pairing", "session"]) {
+                const listed = yield* captureStdout(
+                  runCli(["auth", group, "list", "--base-dir", baseDir, "--json"]),
+                );
+                expect(JSON.parse(listed)).toEqual([]);
+              }
+            }),
+          ),
+        new RelayPreparationError({ reason }),
+      ).pipe(Effect.provide(NodeServices.layer)),
+  );
+
+  it.effect("pairs directly without activating relay with --no-relay", () =>
     withDescriptorServer((origin) =>
       Effect.gen(function* () {
         const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "supaterm-pair-test-"));
@@ -195,7 +247,7 @@ describe("supaterm pair", () => {
           }),
         });
 
-        const output = yield* captureStdout(runCli(["pair", "--base-dir", baseDir]));
+        const output = yield* captureStdout(runCli(["pair", "--no-relay", "--base-dir", baseDir]));
 
         assert.include(output, `Pairing with pair-test (${origin})`);
         assert.include(output, `Pairing URL: ${origin}/pair#token=`);
@@ -251,6 +303,7 @@ describe("supaterm pair", () => {
         yield* captureStdout(
           runCli([
             "pair",
+            "--no-relay",
             "--base-dir",
             baseDir,
             "--scope",
@@ -289,21 +342,25 @@ describe("supaterm pair", () => {
           }),
         });
 
-        const output = yield* captureStdout(runCli(["pair", "--base-dir", baseDir]));
+        const output = yield* captureStdout(runCli(["pair", "--no-relay", "--base-dir", baseDir]));
 
         assert.include(output, "Pairing URL: http://localhost:5733/pair#token=");
       }),
     ).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.effect("directs to serve when no server is running", () =>
+  it.effect.each([
+    { label: "default relay", flags: [] },
+    { label: "Tailscale", flags: ["--tailscale"] },
+    { label: "Tailscale without relay", flags: ["--tailscale", "--no-relay"] },
+  ])("accepts $label and directs to serve when no server is running", ({ flags }) =>
     Effect.gen(function* () {
       const baseDir = NodeFS.mkdtempSync(
         NodePath.join(NodeOS.tmpdir(), "supaterm-pair-none-test-"),
       );
 
       const error = yield* provideCliTestLayers(
-        runCli(["pair", "--base-dir", baseDir]).pipe(Effect.flip),
+        runCli(["pair", ...flags, "--base-dir", baseDir]).pipe(Effect.flip),
       );
 
       const rendered = String(
@@ -312,6 +369,16 @@ describe("supaterm pair", () => {
       assert.include(rendered, "No running Supaterm server found.");
       assert.include(rendered, "supaterm serve");
     }).pipe(Effect.provide(NodeServices.layer)),
+  );
+
+  it.effect("rejects explicitly selecting both relay and Tailscale before discovery", () =>
+    Effect.gen(function* () {
+      const error = yield* provideCliTestLayers(
+        runCli(["pair", "--relay", "--tailscale"]).pipe(Effect.flip),
+      );
+
+      assert.instanceOf(error, PairRouteConflictError);
+    }),
   );
 
   it.effect("ignores runtime state whose recorded pid is no longer alive", () =>
