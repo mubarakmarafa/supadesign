@@ -96,6 +96,27 @@ describe("column automations", () => {
     ]);
   });
 
+  it("only moves done cards on from a column with arrival steps, to another column", () => {
+    const withMove = (columnId: string, moveWhenDone: string, steps = [step("a")]) => ({
+      ...DEFAULT_PROJECT_BOARD,
+      columns: DEFAULT_PROJECT_BOARD.columns.map((column) =>
+        column.id === columnId
+          ? { ...column, onEnter: steps, moveWhenDone: BoardColumnId.make(moveWhenDone) }
+          : column,
+      ),
+    });
+    expect(validateProjectBoard(withMove("testing", "done"))).toEqual([]);
+    expect(validateProjectBoard(withMove("testing", "testing"))).toEqual([
+      { code: "invalid-move-when-done", columnId: "testing" },
+    ]);
+    expect(validateProjectBoard(withMove("testing", "nowhere"))).toEqual([
+      { code: "invalid-move-when-done", columnId: "testing" },
+    ]);
+    expect(validateProjectBoard(withMove("testing", "done", []))).toEqual([
+      { code: "invalid-move-when-done", columnId: "testing" },
+    ]);
+  });
+
   it("decodes boards stored before automations and caps steps per trigger", () => {
     expect(decodeBoard(DEFAULT_PROJECT_BOARD).columns[0]?.onEnter).toBeUndefined();
     const crowded = {

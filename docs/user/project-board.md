@@ -132,7 +132,8 @@ card to another column, and it does what the same drag would: moving to done
 archives, moving to the send column sends banked messages, and moving out of
 the live preview column stops the card's server. A move into or out of a column
 with automations runs them too. Cards an agent adds wait unstarted, like
-yours.
+yours. An agent can also bank a message on a card, which waits with the
+card's other banked messages without starting its agent.
 
 ## Progress images
 
@@ -154,6 +155,16 @@ The expand button on a cover, the question count, **View progress** in the
 card's menu, and the thumbnail in the thread's header all open the card's
 images, newest first. **Reply with this image** puts the image into the
 thread's composer so you can comment on exactly what you saw.
+
+To point at part of an image, select **Mark up**. Draw on it with **Box**,
+**Circle**, **Arrow**, or **Pen** (**Erase** removes a mark), write a comment,
+and press **Attach**: the marked area and your comment go into the composer as
+one item, the same way design mode does for the live page. Attach as many as
+you like, then select **Reply with … marks** to go to the composer. Marking up
+works in the browser as well as the desktop app.
+
+**Compare** shows two images side by side with when each was taken and what the
+agent said about it. Select any image below to swap it in.
 
 ## Bank messages for later
 
@@ -211,6 +222,20 @@ column with automations shows a lightning mark; hover it to see what runs.
 - Done archives its cards, so it can't have automations, and nothing runs on a
   card moved there. Put steps such as merging in a column before Done.
 
+The agent reports back when it's finished, and the card shows how it went:
+
+- **Done**, with the agent's note. If the column's settings say **When the
+  agent reports them done: Move it to …**, the card moves there by itself, so a
+  "Ship" column that merges can send the card straight to Done.
+- **Needs you**, with what's blocking it, such as a merge conflict. The card
+  stays put; use **Open thread** to sort it out, then **Run again**.
+- **Finished without a report** when the agent stopped without saying. Check
+  the thread, then **Move to …** or **Dismiss**.
+
+**Run this column's steps again** in a card's **…** menu re-sends the column's
+arrival steps without moving the card. A board that keeps passing a card along
+on its own stops after three automatic moves in a row and asks you to move it.
+
 Agents that move cards trigger automations the same way you do.
 
 ## Live preview
@@ -238,12 +263,14 @@ between cards doesn't restart their servers. **Stop now** ends it early. Moving
 a card out of the column, or archiving it anywhere, stops it right away and
 removes a worktree created for it. Servers the card's agent started itself in
 the card's worktree stop with it, unless the agent is still working. A worktree
-with changes is kept instead: the card says so, and **Discard changes** removes
-it. If a card's worktree folder was deleted, going live checks its branch out
-there again.
+with changes is kept instead, even across a restart: the card says so,
+**Start** makes it the live card again with its changes, and **Discard changes**
+removes it. If a card's worktree folder was deleted, going live checks its
+branch out there again; when the branch is gone too, the card says so.
 
 After Supadesign restarts, the card that was live shows **Stopped** rather than
-starting by itself; **Start** runs it again.
+starting by itself; **Start**, on the card or in its thread's header, runs it
+again.
 
 The first time a project goes live, Supadesign works out how to start it in the
 card's own checkout. When the project's scripts make it clear, including an app
@@ -271,4 +298,5 @@ marks stay on the frame you reviewed even if the app reloads; **Frozen**
 returns to the live page. Write a comment beside your marks and press **Attach**:
 the screenshot and comment go into the composer as one item, and design mode
 stays on for the next mark. **Escape** leaves design mode. Design mode is
-available in the desktop app.
+available in the desktop app; to mark up an earlier capture, use **Mark up** on
+a [progress image](#progress-images).

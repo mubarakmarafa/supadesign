@@ -1,6 +1,11 @@
-import { OrchestratorMcpFailure, ThreadId } from "@supaterm/contracts";
+import {
+  BOARD_AUTOMATION_REPORT_NOTE_MAX_LENGTH,
+  OrchestratorMcpFailure,
+  ThreadId,
+} from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as BoardAutomation from "../../../boardAutomation/BoardAutomationService.ts";
 import * as ThreadLaunch from "../../../orchestration-v2/ThreadLaunchService.ts";
 import * as Project from "../../../project/ProjectService.ts";
 import * as ProjectBoard from "../../../projectBoard/ProjectBoardService.ts";
@@ -11,6 +16,7 @@ import {
   readCaller,
   readThread,
   resolveProjectId,
+  resolveThreadId,
   unavailable,
 } from "../../threadAccess.ts";
 import { BoardToolkit } from "./tools.ts";
@@ -35,6 +41,20 @@ export const layer = McpToolAccess.toLayer(BoardToolkit, {
           index: input.index,
         });
         return { threadId: projection.thread.id, ...placement };
+      }),
+  ),
+  supaterm_board_step_report: McpToolAccess.writesThreads(
+    (input) => [input.threadId],
+    (input) =>
+      Effect.gen(function* () {
+        const threadId = yield* resolveThreadId(yield* readCaller(), input.threadId);
+        const automations = yield* BoardAutomation.BoardAutomationService;
+        yield* automations.report({
+          threadId,
+          outcome: input.outcome,
+          note: input.note?.slice(0, BOARD_AUTOMATION_REPORT_NOTE_MAX_LENGTH),
+        });
+        return { threadId };
       }),
   ),
   supaterm_board_add_card: McpToolAccess.startsThreads(

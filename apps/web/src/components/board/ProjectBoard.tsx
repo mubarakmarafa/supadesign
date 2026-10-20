@@ -28,7 +28,12 @@ import {
   ThreadId,
   validateProjectBoard,
 } from "@supaterm/contracts";
-import { newBoardCardIndex, resolveBoardColumns } from "@supaterm/shared/projectBoard";
+import {
+  boardArrivalSteps,
+  boardMoveWhenDone,
+  newBoardCardIndex,
+  resolveBoardColumns,
+} from "@supaterm/shared/projectBoard";
 import {
   type Announcements,
   type CollisionDetection,
@@ -364,6 +369,7 @@ function ProjectBoardView({
   const automationsSupported = useBoardAutomationsSupported(projectRef.environmentId);
   const automations = useProjectBoardAutomations(projectRef.environmentId, projectRef.projectId);
   const cancelAutomation = useAtomCommand(boardAutomation.cancel, { reportFailure: false });
+  const runAutomationNow = useAtomCommand(boardAutomation.runNow, { reportFailure: false });
   const progressSupported = useThreadProgressSupported(projectRef.environmentId);
   const progressByThread = useProjectThreadProgress(projectRef.environmentId, projectRef.projectId);
   const captureProgress = useAtomCommand(threadProgress.capture);
@@ -851,6 +857,12 @@ function ProjectBoardView({
       const currentColumnId = columnOfCard(visibleLayout, id);
       const live = liveEnvironments.get(id);
       const hasProgress = (progressByThread.get(id)?.updates.length ?? 0) > 0;
+      const canRerun =
+        canOperate &&
+        automationsSupported &&
+        currentColumnId !== null &&
+        boardArrivalSteps(storedBoard, currentColumnId).length > 0 &&
+        automations.get(id)?.status !== "scheduled";
       const clicked = await api.contextMenu.show(
         [
           { id: "open", label: "Open thread" },
@@ -863,6 +875,7 @@ function ProjectBoardView({
                 { id: "summary", label: "Edit summary…" },
               ]
             : []),
+          ...(canRerun ? [{ id: "rerun", label: "Run this column's steps again" }] : []),
           ...(canOperate
             ? [
                 {
@@ -885,7 +898,15 @@ function ProjectBoardView({
       if (clicked === "open") openCard(id);
       else if (clicked === "progress") setViewingProgressId(id);
       else if (clicked === "summary") setEditingSummaryId(id);
-      else if (clicked === "capture") {
+      else if (clicked === "rerun" && currentColumnId !== null) {
+        const result = await runAutomationNow({
+          environmentId: projectRef.environmentId,
+          input: { threadId: ThreadId.make(id), columnId: currentColumnId },
+        });
+        if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+          failureToast("Couldn't run the steps again", result);
+        }
+      } else if (clicked === "capture") {
         void captureProgress({
           environmentId: projectRef.environmentId,
           input: { threadId: ThreadId.make(id) },
@@ -902,6 +923,8 @@ function ProjectBoardView({
       }
     },
     [
+      automations,
+      automationsSupported,
       board.columns,
       canOperate,
       captureProgress,
@@ -913,6 +936,8 @@ function ProjectBoardView({
       progressByThread,
       progressSupported,
       projectRef.environmentId,
+      runAutomationNow,
+      storedBoard,
       threadById,
       visibleLayout,
     ],
@@ -986,8 +1011,20 @@ function ProjectBoardView({
       onCardKeyDown,
       onCardMenu: (id, position) => void showCardMenu(id, position),
       onViewProgress: setViewingProgressId,
+      onMoveCard: moveCardToColumn,
+      columnTitleOf: (columnId) =>
+        board.columns.find((column) => column.id === columnId)?.title ?? null,
     }),
-    [onCardKeyDown, onPeek, openCard, showCardMenu, updateView, viewKey],
+    [
+      board.columns,
+      moveCardToColumn,
+      onCardKeyDown,
+      onPeek,
+      openCard,
+      showCardMenu,
+      updateView,
+      viewKey,
+    ],
   );
 
   // ── Column editing ──
@@ -1226,6 +1263,11 @@ function ProjectBoardView({
             <BoardColumn
               key={column.id}
               column={column}
+              moveWhenDoneTitle={
+                board.columns.find(
+                  (entry) => entry.id === boardMoveWhenDone(storedBoard, column.id),
+                )?.title ?? null
+              }
               flags={{
                 inbox: column.id === board.inboxColumnId,
                 live: column.id === board.liveColumnId,

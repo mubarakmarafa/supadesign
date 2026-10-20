@@ -1,5 +1,6 @@
 import type { PreviewAnnotationPayload } from "@supaterm/contracts";
 
+import type { ComposerImageAttachment } from "../composerDraftStore";
 import { dataUrlToFile } from "./imageCompression";
 
 export type PreviewAnnotationCapture =
@@ -27,4 +28,32 @@ export function capturePreviewAnnotationScreenshot(
   } catch {
     return { status: "failed" };
   }
+}
+
+/**
+ * What one annotation puts into the composer: its citation, and its crop as
+ * the image attachment that shares the annotation's id. A crop that can't be
+ * decoded is dropped from the citation too, so the prompt never names a
+ * screenshot that wasn't sent.
+ */
+export function previewAnnotationComposerItems(picked: PreviewAnnotationPayload): {
+  readonly annotation: PreviewAnnotationPayload;
+  readonly image: ComposerImageAttachment | null;
+  readonly captureFailed: boolean;
+} {
+  const capture = capturePreviewAnnotationScreenshot(picked);
+  const annotation = capture.status === "failed" ? { ...picked, screenshot: null } : picked;
+  const image =
+    capture.status === "captured" && annotation.screenshot
+      ? ({
+          type: "image",
+          id: annotation.id,
+          name: capture.file.name,
+          mimeType: capture.file.type,
+          sizeBytes: capture.file.size,
+          previewUrl: annotation.screenshot.dataUrl,
+          file: capture.file,
+        } satisfies ComposerImageAttachment)
+      : null;
+  return { annotation, image, captureFailed: capture.status === "failed" };
 }

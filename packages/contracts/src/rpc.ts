@@ -173,6 +173,7 @@ import {
 import {
   BoardAutomationError,
   BoardAutomationProjectInput,
+  BoardAutomationRunNowInput,
   BoardAutomationRunList,
   BoardAutomationThreadInput,
 } from "./boardAutomation.ts";
@@ -1684,7 +1685,7 @@ const WsBoardAutomationCancelRpc = Rpc.make(WS_METHODS.boardAutomationCancel, {
 });
 
 const WsBoardAutomationRunNowRpc = Rpc.make(WS_METHODS.boardAutomationRunNow, {
-  payload: BoardAutomationThreadInput,
+  payload: BoardAutomationRunNowInput,
   error: Schema.Union([BoardAutomationError, EnvironmentAuthorizationError]),
 });
 

@@ -42,6 +42,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { type BoardColumnSettings, boardColumnSettings } from "./boardLogic";
@@ -339,6 +340,9 @@ export function ColumnSettingsDialog({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [live, setLive] = useState(initial?.live ?? false);
   const [send, setSend] = useState(initial?.send ?? false);
+  const [moveWhenDone, setMoveWhenDone] = useState<BoardColumnId | null>(
+    initial?.moveWhenDone ?? null,
+  );
   const [steps, setSteps] = useState<Record<Trigger, ReadonlyArray<StepDraft>>>({
     onEnter: (initial?.onEnter ?? []).map(toDraft),
     onLeave: (initial?.onLeave ?? []).map(toDraft),
@@ -351,6 +355,8 @@ export function ColumnSettingsDialog({
   const incomplete = [...steps.onEnter, ...steps.onLeave].some((step) => fromDraft(step) === null);
   const canSave = title.trim().length > 0 && !incomplete;
   const titleId = useId();
+  const moveId = useId();
+  const moveTargets = board.columns.filter((column) => column.id !== columnId);
 
   const save = () => {
     if (!canSave) return;
@@ -362,6 +368,7 @@ export function ColumnSettingsDialog({
       send,
       onEnter: finished(steps.onEnter),
       onLeave: finished(steps.onLeave),
+      moveWhenDone,
     });
   };
 
@@ -437,6 +444,43 @@ export function ColumnSettingsDialog({
                       steps={steps.onEnter}
                       onChange={(onEnter) => setSteps((current) => ({ ...current, onEnter }))}
                     />
+                    {steps.onEnter.length > 0 ? (
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <Label htmlFor={moveId}>When the agent reports them done</Label>
+                          <p className="text-xs text-muted-foreground">
+                            A card whose agent is blocked stays here and is flagged for you.
+                          </p>
+                        </div>
+                        <div className="w-48 shrink-0">
+                          <Select
+                            value={moveWhenDone ?? ""}
+                            onValueChange={(value) =>
+                              setMoveWhenDone(value ? (value as BoardColumnId) : null)
+                            }
+                          >
+                            <SelectTrigger id={moveId} size="sm">
+                              <SelectValue>
+                                {moveWhenDone === null
+                                  ? "Keep the card here"
+                                  : `Move it to ${
+                                      board.columns.find((column) => column.id === moveWhenDone)
+                                        ?.title ?? "another column"
+                                    }`}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectPopup>
+                              <SelectItem value="">Keep the card here</SelectItem>
+                              {moveTargets.map((column) => (
+                                <SelectItem key={column.id} value={column.id}>
+                                  Move it to {column.title}
+                                </SelectItem>
+                              ))}
+                            </SelectPopup>
+                          </Select>
+                        </div>
+                      </div>
+                    ) : null}
                     <StepList
                       title="When a card leaves"
                       description="Sent before the next column's steps. Nothing runs on a card moved to Done."

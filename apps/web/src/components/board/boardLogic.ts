@@ -231,6 +231,8 @@ export interface BoardColumnSettings {
   readonly send: boolean;
   readonly onEnter: ReadonlyArray<BoardAutomationStep>;
   readonly onLeave: ReadonlyArray<BoardAutomationStep>;
+  /** Where a card goes once its agent reports the arrival steps done; null stays put. */
+  readonly moveWhenDone: BoardColumnId | null;
 }
 
 export function boardColumnSettings(
@@ -245,6 +247,7 @@ export function boardColumnSettings(
     send: board.sendColumnId === columnId,
     onEnter: column.onEnter ?? [],
     onLeave: column.onLeave ?? [],
+    moveWhenDone: column.moveWhenDone ?? null,
   };
 }
 
@@ -265,6 +268,9 @@ export function applyBoardColumnSettings(
     enabled && !isDone ? columnId : current === columnId ? null : (current ?? null);
   const onEnter = isDone ? [] : settings.onEnter;
   const onLeave = isDone ? [] : settings.onLeave;
+  // Moving on only follows arrival steps, and never back into the same column.
+  const moveWhenDone =
+    onEnter.length > 0 && settings.moveWhenDone !== columnId ? settings.moveWhenDone : null;
   return {
     ...board,
     liveColumnId: flag(settings.live, board.liveColumnId),
@@ -276,6 +282,7 @@ export function applyBoardColumnSettings(
             title,
             ...(onEnter.length > 0 ? { onEnter } : {}),
             ...(onLeave.length > 0 ? { onLeave } : {}),
+            ...(moveWhenDone === null ? {} : { moveWhenDone }),
           }
         : column,
     ),

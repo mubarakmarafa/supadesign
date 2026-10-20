@@ -21,6 +21,8 @@ import * as ProjectSetupScriptRunner from "../../../project/ProjectSetupScriptRu
 import * as LiveEnvironment from "../../../liveEnvironment/LiveEnvironmentService.ts";
 import * as ThreadProgress from "../../../threadProgress/ThreadProgressService.ts";
 import * as ProjectBoard from "../../../projectBoard/ProjectBoardService.ts";
+import * as BoardAutomation from "../../../boardAutomation/BoardAutomationService.ts";
+import * as ThreadBank from "../../../threadBank/ThreadBankService.ts";
 import * as ProviderRegistry from "../../../provider/ProviderRegistry.ts";
 import * as ScheduledTaskService from "../../../scheduledTasks/ScheduledTaskService.ts";
 import * as ServerSettings from "../../../serverSettings.ts";
@@ -57,6 +59,8 @@ const layerStubServices = Layer.mergeAll(
   Layer.mock(LiveEnvironment.LiveEnvironmentService)({}),
   Layer.mock(ThreadProgress.ThreadProgressService)({}),
   Layer.mock(ProjectBoard.ProjectBoardService)({}),
+  Layer.mock(BoardAutomation.BoardAutomationService)({}),
+  Layer.mock(ThreadBank.ThreadBankService)({}),
   Layer.mock(ServerSecretStore.ServerSecretStore)({}),
   Layer.mock(SourceControlRepositoryService.SourceControlRepositoryService)({}),
   Layer.mock(ThreadLaunchService.ThreadLaunchService)({}),
@@ -147,6 +151,7 @@ it.effect("production mcp layer lists worktree tools over http", () =>
       // than replacing them.
       expect(toolNames).toContain("preview_status");
       expect(toolNames).toContain("delegate_task");
+      expect(toolNames).toContain("supaterm_bank_add");
 
       // The handoff tool mutates thread state, reaches the network (origin
       // fetch), and runs project setup scripts, so its MCP hints must not
