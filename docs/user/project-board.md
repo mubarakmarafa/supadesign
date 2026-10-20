@@ -132,7 +132,8 @@ card to another column, and it does what the same drag would: moving to done
 archives, moving to the send column sends banked messages, and moving out of
 the live preview column stops the card's server. A move into or out of a column
 with automations runs them too. Cards an agent adds wait unstarted, like
-yours.
+yours. An agent can also bank a message on a card, which waits with the
+card's other banked messages without starting its agent.
 
 ## Progress images
 
