@@ -1,4 +1,15 @@
 // @effect-diagnostics globalDate:off globalTimers:off - This isolated Electron preload does not run inside an Effect runtime.
+import {
+  arrowPoints,
+  ellipsePoints,
+  isDeliberateShape,
+  isUsableRect,
+  normalizeRect,
+  polylinePath,
+  smoothPath,
+  strokeBounds,
+  unionRects,
+} from "@supaterm/shared/annotationShapes";
 import { ipcRenderer } from "electron";
 import { getElementContext } from "react-grab/primitives";
 import type {
@@ -15,7 +26,6 @@ import type {
 } from "@supaterm/contracts";
 
 import { resolveAnnotationSubmission } from "./AnnotationKeyboard.ts";
-import { arrowPoints, ellipsePoints, isDeliberateShape, polylinePath } from "./annotationShapes.ts";
 import { previewAnnotationStyles } from "./AnnotationStyles.generated.ts";
 import { installRecordingCursor } from "./RecordingCursor.ts";
 import { DEFAULT_RECORDING_INPUT_OPTIONS } from "./RecordingInput.ts";
@@ -231,47 +241,15 @@ const nextId = (prefix: string): string => {
   return `${prefix}_${idSequence.toString(36)}`;
 };
 
+/** Marks and their screenshot stay inside the page's viewport. */
+const viewportFrame = () => ({ width: window.innerWidth, height: window.innerHeight });
+
 const rectFromDomRect = (rect: DOMRect): PreviewAnnotationRect => ({
   x: rect.left,
   y: rect.top,
   width: rect.width,
   height: rect.height,
 });
-
-const normalizeRect = (
-  startX: number,
-  startY: number,
-  endX: number,
-  endY: number,
-): PreviewAnnotationRect => ({
-  x: Math.min(startX, endX),
-  y: Math.min(startY, endY),
-  width: Math.abs(endX - startX),
-  height: Math.abs(endY - startY),
-});
-
-const isUsableRect = (rect: PreviewAnnotationRect): boolean => rect.width >= 3 && rect.height >= 3;
-
-function unionRects(
-  rects: ReadonlyArray<PreviewAnnotationRect>,
-  padding = 20,
-): PreviewAnnotationRect | null {
-  if (rects.length === 0) return null;
-  const left = Math.min(...rects.map((rect) => rect.x));
-  const top = Math.min(...rects.map((rect) => rect.y));
-  const right = Math.max(...rects.map((rect) => rect.x + rect.width));
-  const bottom = Math.max(...rects.map((rect) => rect.y + rect.height));
-  const x = Math.max(0, left - padding);
-  const y = Math.max(0, top - padding);
-  const maxWidth = Math.max(1, window.innerWidth - x);
-  const maxHeight = Math.max(1, window.innerHeight - y);
-  return {
-    x,
-    y,
-    width: Math.min(maxWidth, right - left + padding * 2),
-    height: Math.min(maxHeight, bottom - top + padding * 2),
-  };
-}
 
 function isAnnotationNode(element: Element): boolean {
   return element instanceof Element && element.closest(`[${OVERLAY_ATTRIBUTE}]`) !== null;
@@ -523,34 +501,6 @@ function createUnitInput(unit: string, placeholder = "0"): HTMLInputElement {
   input.style.paddingRight = "30px";
   input.dataset.unit = unit;
   return input;
-}
-
-function pathFromPoints(points: ReadonlyArray<PreviewAnnotationPoint>): string {
-  if (points.length === 0) return "";
-  if (points.length === 1) return `M ${points[0]!.x} ${points[0]!.y} l 0.01 0.01`;
-  let path = `M ${points[0]!.x} ${points[0]!.y}`;
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const current = points[index]!;
-    const next = points[index + 1]!;
-    path += ` Q ${current.x} ${current.y} ${(current.x + next.x) / 2} ${(current.y + next.y) / 2}`;
-  }
-  const last = points[points.length - 1]!;
-  path += ` L ${last.x} ${last.y}`;
-  return path;
-}
-
-function strokeBounds(
-  points: ReadonlyArray<PreviewAnnotationPoint>,
-  width: number,
-): PreviewAnnotationRect {
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
-  const padding = width + 3;
-  const left = Math.min(...xs) - padding;
-  const top = Math.min(...ys) - padding;
-  const right = Math.max(...xs) + padding;
-  const bottom = Math.max(...ys) + padding;
-  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 function startAnnotation(sendEnabled: boolean): void {
@@ -1110,6 +1060,7 @@ function startAnnotation(sendEnabled: boolean): void {
         ...regions.map((region) => region.rect),
         ...strokes.map((stroke) => stroke.bounds),
       ],
+      viewportFrame(),
       0,
     );
 
@@ -1309,10 +1260,7 @@ function startAnnotation(sendEnabled: boolean): void {
     }
     clearHoverOutline();
     if (tool === "marquee" && dragStart) {
-      positionBox(
-        marqueeBox,
-        normalizeRect(dragStart.x, dragStart.y, event.clientX, event.clientY),
-      );
+      positionBox(marqueeBox, normalizeRect(dragStart, { x: event.clientX, y: event.clientY }));
       return;
     }
     if ((tool === "circle" || tool === "arrow") && activeStroke && dragStart) {
@@ -1336,7 +1284,7 @@ function startAnnotation(sendEnabled: boolean): void {
         activeStroke.target.points,
         activeStroke.target.width,
       );
-      activeStroke.path.setAttribute("d", pathFromPoints(activeStroke.target.points));
+      activeStroke.path.setAttribute("d", smoothPath(activeStroke.target.points));
     }
   };
 
@@ -1380,7 +1328,7 @@ function startAnnotation(sendEnabled: boolean): void {
     event.preventDefault();
     event.stopPropagation();
     if (tool === "marquee") {
-      const rect = normalizeRect(dragStart.x, dragStart.y, event.clientX, event.clientY);
+      const rect = normalizeRect(dragStart, { x: event.clientX, y: event.clientY });
       marqueeBox.style.display = "none";
       if (isUsableRect(rect)) {
         const found = selectElementsInRect(rect);
@@ -1544,11 +1492,14 @@ function startAnnotation(sendEnabled: boolean): void {
         editor.style.display = "none";
         toolbar.style.display = "none";
         hoverOutline.style.display = "none";
-        const screenshotRect = unionRects([
-          ...elements.map((target) => target.rect),
-          ...submittedRegions.map((region) => region.rect),
-          ...submittedStrokes.map((stroke) => stroke.bounds),
-        ]);
+        const screenshotRect = unionRects(
+          [
+            ...elements.map((target) => target.rect),
+            ...submittedRegions.map((region) => region.rect),
+            ...submittedStrokes.map((stroke) => stroke.bounds),
+          ],
+          viewportFrame(),
+        );
         ipcRenderer.send(
           ELEMENT_PICKED_CHANNEL,
           annotation,
