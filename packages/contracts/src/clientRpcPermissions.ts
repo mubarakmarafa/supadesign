@@ -50,6 +50,9 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.threadBankRemove]: AuthOrchestrationOperateScope,
   [WS_METHODS.threadBankReorder]: AuthOrchestrationOperateScope,
   [WS_METHODS.threadBankSend]: AuthOrchestrationOperateScope,
+  // Running now sends the column's prompts to the card's agent.
+  [WS_METHODS.boardAutomationCancel]: AuthOrchestrationOperateScope,
+  [WS_METHODS.boardAutomationRunNow]: AuthOrchestrationOperateScope,
   [WS_METHODS.threadProgressCapture]: AuthOrchestrationOperateScope,
   [WS_METHODS.threadProgressRemove]: AuthOrchestrationOperateScope,
   [WS_METHODS.threadSummarySet]: AuthOrchestrationOperateScope,

@@ -1,5 +1,7 @@
+import { threadRuntimeCanArchive } from "@supaterm/client-runtime/state/models";
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import type {
+  BoardAutomationRun,
   EnvironmentId,
   LiveEnvironmentSnapshot,
   ThreadProgress,
@@ -24,6 +26,7 @@ import { cardSummaryText, coverState, type CoverState } from "../progress/cardPr
 import { progressImageResource } from "../progress/progressImage";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { BoardAutomationCardStatus } from "./BoardAutomationStatus";
 import { LiveEnvironmentCardStatus } from "./LiveEnvironmentStatus";
 
 export interface BoardCardHandlers {
@@ -212,6 +215,7 @@ const CARD_CLASS =
 export const BoardCard = memo(function BoardCard({
   thread,
   live,
+  automation,
   progress,
   bankedCount,
   tabbable,
@@ -222,6 +226,8 @@ export const BoardCard = memo(function BoardCard({
   thread: EnvironmentThreadShell;
   /** The card's live environment, when it has one. */
   live: LiveEnvironmentSnapshot | undefined;
+  /** The column automation waiting on, sent to, or failed for the card. */
+  automation: BoardAutomationRun | undefined;
   /** The card's progress images and summary. */
   progress: ThreadProgress | undefined;
   /** Messages banked on the card, waiting to be sent together. */
@@ -290,6 +296,15 @@ export const BoardCard = memo(function BoardCard({
           bankedCount={bankedCount}
           onViewProgress={() => handlers.onViewProgress(thread.id)}
         />
+        {automation ? (
+          <div className="px-3 pb-2.5">
+            <BoardAutomationCardStatus
+              environmentId={thread.environmentId as EnvironmentId}
+              run={automation}
+              working={!threadRuntimeCanArchive(thread.runtime)}
+            />
+          </div>
+        ) : null}
         {live ? (
           <div className="px-3 pb-2.5">
             <LiveEnvironmentCardStatus

@@ -120,7 +120,7 @@ function openExternally(url: string) {
  * Keeps clicks and keys on the status buttons from dragging or opening the
  * card. The rest of the status row still behaves like the card.
  */
-function stopCardGestures(event: {
+export function stopCardGestures(event: {
   stopPropagation: () => void;
   target: EventTarget;
   key?: string;

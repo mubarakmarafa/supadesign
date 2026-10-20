@@ -5,6 +5,7 @@ import { ApplicationProjectMetaUpdatedPayload } from "./applicationEvent.ts";
 import { OrchestrationProjectShell } from "./orchestrationProject.ts";
 import { OrchestrationV2Command } from "./orchestrationV2.ts";
 import {
+  BoardAutomationStepId,
   BoardColumnId,
   DEFAULT_PROJECT_BOARD,
   ProjectBoard,
@@ -68,6 +69,44 @@ describe("validateProjectBoard", () => {
       { code: "unresolved-retired-column", columnId: "loop-a" },
       { code: "unresolved-retired-column", columnId: "loop-b" },
     ]);
+  });
+});
+
+describe("column automations", () => {
+  const step = (stepId: string) => ({
+    id: BoardAutomationStepId.make(stepId),
+    name: "Merge into main",
+    prompt: "Merge {branch} into main.",
+  });
+
+  it("keeps automations off Done and step ids unique within a column", () => {
+    const board: ProjectBoardType = {
+      ...DEFAULT_PROJECT_BOARD,
+      columns: DEFAULT_PROJECT_BOARD.columns.map((column) =>
+        column.id === "done"
+          ? { ...column, onEnter: [step("a")] }
+          : column.id === "testing"
+            ? { ...column, onEnter: [step("b")], onLeave: [step("b")] }
+            : column,
+      ),
+    };
+    expect(validateProjectBoard(board)).toEqual([
+      { code: "duplicate-step-id", columnId: "testing" },
+      { code: "done-column-automation", columnId: "done" },
+    ]);
+  });
+
+  it("decodes boards stored before automations and caps steps per trigger", () => {
+    expect(decodeBoard(DEFAULT_PROJECT_BOARD).columns[0]?.onEnter).toBeUndefined();
+    const crowded = {
+      ...DEFAULT_PROJECT_BOARD,
+      columns: DEFAULT_PROJECT_BOARD.columns.map((column) =>
+        column.id === "testing"
+          ? { ...column, onEnter: [step("a"), step("b"), step("c"), step("d")] }
+          : column,
+      ),
+    };
+    expect(() => decodeBoard(crowded)).toThrow();
   });
 });
 

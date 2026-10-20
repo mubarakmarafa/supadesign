@@ -1,8 +1,16 @@
-import { BoardColumnId, DEFAULT_PROJECT_BOARD, type ProjectBoard } from "@supaterm/contracts";
+import {
+  BoardAutomationStepId,
+  BoardColumnId,
+  DEFAULT_PROJECT_BOARD,
+  type ProjectBoard,
+  validateProjectBoard,
+} from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
   addBoardColumn,
+  applyBoardColumnSettings,
+  boardColumnSettings,
   boardCardFromText,
   type BoardLayout,
   boardColumnDeleteBlocker,
@@ -189,5 +197,62 @@ describe("boardCardFromText", () => {
 
   it("ignores blank input", () => {
     expect(boardCardFromText(" \n  ")).toBeNull();
+  });
+});
+
+describe("column settings", () => {
+  const merge = {
+    id: BoardAutomationStepId.make("merge"),
+    name: "Merge into main",
+    prompt: "Merge {branch} into main.",
+  };
+
+  it("names a column, takes live preview from another column, and stores its steps", () => {
+    const current = boardColumnSettings(DEFAULT_PROJECT_BOARD, col("in-progress"))!;
+    const next = applyBoardColumnSettings(DEFAULT_PROJECT_BOARD, col("in-progress"), {
+      ...current,
+      title: " Ship ",
+      live: true,
+      onEnter: [merge],
+    })!;
+    expect(validateProjectBoard(next)).toEqual([]);
+    expect(next.liveColumnId).toBe("in-progress");
+    expect(boardColumnSettings(next, col("in-progress"))).toEqual({
+      title: "Ship",
+      live: true,
+      send: false,
+      onEnter: [merge],
+      onLeave: [],
+    });
+    // Turning it off again leaves the board without a live column.
+    const off = applyBoardColumnSettings(next, col("in-progress"), {
+      ...boardColumnSettings(next, col("in-progress"))!,
+      live: false,
+      onEnter: [],
+    })!;
+    expect(off.liveColumnId).toBeNull();
+    expect(off.columns.find((column) => column.id === "in-progress")).toEqual({
+      id: "in-progress",
+      title: "Ship",
+    });
+  });
+
+  it("keeps Done free of built-ins and steps, and refuses an empty name", () => {
+    const done = applyBoardColumnSettings(DEFAULT_PROJECT_BOARD, col("done"), {
+      title: "Done",
+      live: true,
+      send: true,
+      onEnter: [merge],
+      onLeave: [merge],
+    })!;
+    expect(validateProjectBoard(done)).toEqual([]);
+    expect(done.liveColumnId).toBe("testing");
+    expect(boardColumnSettings(done, col("done"))?.onEnter).toEqual([]);
+    expect(
+      applyBoardColumnSettings(DEFAULT_PROJECT_BOARD, col("ideas"), {
+        ...boardColumnSettings(DEFAULT_PROJECT_BOARD, col("ideas"))!,
+        title: "  ",
+      }),
+    ).toBeNull();
   });
 });

@@ -47,6 +47,7 @@ export * from "./supatermProjectFile.ts";
 export * from "./editor.ts";
 export * from "./project.ts";
 export * from "./projectBoard.ts";
+export * from "./boardAutomation.ts";
 export * from "./projectWorkspace.ts";
 export * from "./liveEnvironment.ts";
 export * from "./threadBank.ts";

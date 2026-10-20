@@ -1,4 +1,5 @@
 import {
+  BoardAutomationStepId,
   BoardColumnId,
   DEFAULT_PROJECT_BOARD,
   type ProjectBoard,
@@ -9,11 +10,13 @@ import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  boardAutomationSteps,
   type BoardThread,
   desiredLiveCardId,
   liveCard,
   newBoardCardIndex,
   planBoardCardMove,
+  renderBoardAutomationPrompt,
   resolveBoardColumns,
 } from "./projectBoard.ts";
 
@@ -232,5 +235,47 @@ describe("planBoardCardMove", () => {
         index: 0,
       }),
     ).toEqual([]);
+  });
+});
+
+describe("column automations", () => {
+  const step = (name: string) => ({
+    id: BoardAutomationStepId.make(name),
+    name,
+    prompt: `${name} {branch}`,
+  });
+  const board: ProjectBoard = {
+    ...DEFAULT_PROJECT_BOARD,
+    columns: DEFAULT_PROJECT_BOARD.columns.map((column) =>
+      column.id === "testing"
+        ? { ...column, onEnter: [step("audit")], onLeave: [step("stop")] }
+        : column.id === "in-progress"
+          ? { ...column, onLeave: [step("push")] }
+          : column,
+    ),
+    retiredColumns: [{ id: col("review"), movedTo: col("testing") }],
+  };
+  const names = (from: string, to: string) =>
+    boardAutomationSteps(board, col(from), col(to)).map((entry) => entry.name);
+
+  it("runs the old column's leave steps, then the new column's enter steps", () => {
+    expect(names("in-progress", "testing")).toEqual(["push", "audit"]);
+    expect(names("testing", "ideas")).toEqual(["stop"]);
+  });
+
+  it("runs nothing within a column, into Done, or between a column and its retired id", () => {
+    expect(names("testing", "testing")).toEqual([]);
+    expect(names("testing", "done")).toEqual([]);
+    expect(names("review", "testing")).toEqual([]);
+    expect(names("ideas", "review")).toEqual(["audit"]);
+  });
+
+  it("fills in the card's details and leaves unknown braces alone", () => {
+    const values = { card: "Hero", branch: null, column: "Ship", from: "Testing" };
+    expect(
+      renderBoardAutomationPrompt("Merge {branch} ({card}, {from} → {column}) {x}", values),
+    ).toBe("Merge this card's branch (Hero, Testing → Ship) {x}");
+    expect(renderBoardAutomationPrompt("Plan: {banked}", values)).toBe("Plan: {banked}");
+    expect(renderBoardAutomationPrompt("Plan: {banked}", values, "notes")).toBe("Plan: notes");
   });
 });

@@ -171,6 +171,12 @@ import {
   ThreadBankUpdateInput,
 } from "./threadBank.ts";
 import {
+  BoardAutomationError,
+  BoardAutomationProjectInput,
+  BoardAutomationRunList,
+  BoardAutomationThreadInput,
+} from "./boardAutomation.ts";
+import {
   ThreadProgressCaptureInput,
   ThreadProgressError,
   ThreadProgressList,
@@ -470,6 +476,11 @@ export const WS_METHODS = {
   threadBankReorder: "threadBank.reorder",
   threadBankSend: "threadBank.send",
   subscribeThreadBanks: "subscribeThreadBanks",
+
+  // Column automation methods
+  boardAutomationCancel: "boardAutomation.cancel",
+  boardAutomationRunNow: "boardAutomation.runNow",
+  subscribeBoardAutomations: "subscribeBoardAutomations",
   threadProgressCapture: "threadProgress.capture",
   threadProgressRemove: "threadProgress.remove",
   threadSummarySet: "threadProgress.setSummary",
@@ -1667,6 +1678,23 @@ const WsSubscribeThreadBanksRpc = Rpc.make(WS_METHODS.subscribeThreadBanks, {
   stream: true,
 });
 
+const WsBoardAutomationCancelRpc = Rpc.make(WS_METHODS.boardAutomationCancel, {
+  payload: BoardAutomationThreadInput,
+  error: Schema.Union([BoardAutomationError, EnvironmentAuthorizationError]),
+});
+
+const WsBoardAutomationRunNowRpc = Rpc.make(WS_METHODS.boardAutomationRunNow, {
+  payload: BoardAutomationThreadInput,
+  error: Schema.Union([BoardAutomationError, EnvironmentAuthorizationError]),
+});
+
+const WsSubscribeBoardAutomationsRpc = Rpc.make(WS_METHODS.subscribeBoardAutomations, {
+  payload: BoardAutomationProjectInput,
+  success: BoardAutomationRunList,
+  error: EnvironmentAuthorizationError,
+  stream: true,
+});
+
 const WsThreadProgressCaptureRpc = Rpc.make(WS_METHODS.threadProgressCapture, {
   payload: ThreadProgressCaptureInput,
   success: ThreadProgressUpdate,
@@ -2136,6 +2164,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsThreadBankReorderRpc,
   WsThreadBankSendRpc,
   WsSubscribeThreadBanksRpc,
+  WsBoardAutomationCancelRpc,
+  WsBoardAutomationRunNowRpc,
+  WsSubscribeBoardAutomationsRpc,
   WsThreadProgressCaptureRpc,
   WsThreadProgressRemoveRpc,
   WsThreadSummarySetRpc,

@@ -71,7 +71,7 @@ export const make = Effect.gen(function* () {
         Effect.provide(services),
       ),
 
-    send: ({ threadId, text, attachments, context }) =>
+    send: ({ threadId, text, attachments, context, modelSelection }) =>
       Effect.gen(function* () {
         yield* ThreadMessageIntake.dispatchCommand({
           type: "message.dispatch",
@@ -81,6 +81,7 @@ export const make = Effect.gen(function* () {
           text: text.length > 0 ? text : ATTACHMENT_ONLY_TEXT,
           attachments,
           ...(context === undefined ? {} : { context }),
+          ...(modelSelection === undefined ? {} : { modelSelection }),
           dispatchMode: { type: "queue_after_active" },
           createdBy: "user",
           creationSource: "web",

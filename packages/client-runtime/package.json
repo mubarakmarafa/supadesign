@@ -295,6 +295,10 @@
       "types": "./src/state/threadBank.ts",
       "default": "./src/state/threadBank.ts"
     },
+    "./state/board-automation": {
+      "types": "./src/state/boardAutomation.ts",
+      "default": "./src/state/boardAutomation.ts"
+    },
     "./state/thread-progress": {
       "types": "./src/state/threadProgress.ts",
       "default": "./src/state/threadProgress.ts"
