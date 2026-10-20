@@ -109,8 +109,21 @@ function setupAgentPrompt(
   return lines.join("\n");
 }
 
-/** Each project's live card, kept across restarts in the server's state directory. */
-const LiveCards = Schema.Array(Schema.Struct({ projectId: ProjectId, threadId: ThreadId }));
+/**
+ * Each project's live card and the preview checkouts made for cards, kept
+ * across restarts in the server's state directory. Files written before
+ * `state` and `checkout` existed list only live cards.
+ */
+const LiveCards = Schema.Array(
+  Schema.Struct({
+    projectId: ProjectId,
+    threadId: ThreadId,
+    state: Schema.optional(Schema.Literals(["live", "warm", "kept"])),
+    checkout: Schema.optional(
+      Schema.NullOr(Schema.Struct({ worktreePath: Schema.String, projectRoot: Schema.String })),
+    ),
+  }),
+);
 const decodeLiveCards = Schema.decodeEffect(Schema.fromJsonString(LiveCards));
 const encodeLiveCards = Schema.encodeEffect(Schema.fromJsonString(LiveCards));
 
@@ -285,10 +298,22 @@ export const make = Effect.gen(function* () {
           if (restored) return { worktreePath: shell.worktreePath, created: false, restored: true };
           // Previewing the project folder instead would show some other branch's code.
           if (pullRequest === null) {
+            if (branch === null) {
+              return yield* failure(
+                "The card's worktree folder was deleted, and it has no branch to check out again.",
+              );
+            }
+            // A merge usually deletes the branch with its worktree; say so rather than guess.
+            const branchExists = yield* git
+              .resolveCommit({ cwd: projectRoot, revision: `refs/heads/${branch}` })
+              .pipe(
+                Effect.as(true),
+                Effect.orElseSucceed(() => false),
+              );
             return yield* failure(
-              branch === null
-                ? "The card's worktree folder was deleted, and it has no branch to check out again."
-                : `The card's worktree folder was deleted and its branch “${branch}” couldn't be checked out again. It may be open in another worktree.`,
+              branchExists
+                ? `The card's worktree folder was deleted and its branch “${branch}” couldn't be checked out again. It may be open in another worktree.`
+                : `The card's worktree folder and its branch “${branch}” were both deleted, so there's nothing left to preview. If its work was merged, move the card to Done.`,
             );
           }
         }
@@ -345,8 +370,19 @@ export const make = Effect.gen(function* () {
             mode: "worktree",
           })
           .pipe(
-            Effect.mapError(() =>
-              failure(`Pull request #${pullRequest.number} could not be checked out.`),
+            Effect.tapError((error) =>
+              Effect.logInfo("Could not check out a live card's pull request", {
+                pullRequest: pullRequest.number,
+                error,
+              }),
+            ),
+            // Git's own reason, such as the branch being open elsewhere, says what to fix.
+            Effect.mapError((error) =>
+              failure(
+                error._tag === "GitManagerError"
+                  ? `Pull request #${pullRequest.number} could not be checked out. ${error.detail}`
+                  : `Pull request #${pullRequest.number} could not be checked out.`,
+              ),
             ),
           );
         const worktreePath = prepared.worktreePath ?? projectRoot;
@@ -633,6 +669,19 @@ export const make = Effect.gen(function* () {
     loadLiveCards: fs.readFileString(liveCardsPath).pipe(
       Effect.flatMap(decodeLiveCards),
       Effect.orElseSucceed(() => []),
+      // A checkout deleted while the server was off has nothing left to clean up or keep.
+      Effect.flatMap((cards) =>
+        Effect.forEach(cards, (card) =>
+          Effect.gen(function* () {
+            const state = card.state ?? "live";
+            const checkout =
+              card.checkout != null && (yield* exists(card.checkout.worktreePath))
+                ? card.checkout
+                : null;
+            return { projectId: card.projectId, threadId: card.threadId, state, checkout };
+          }),
+        ),
+      ),
     ),
 
     saveLiveCards: (cards) =>

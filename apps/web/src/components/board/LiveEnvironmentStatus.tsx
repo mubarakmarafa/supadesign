@@ -454,6 +454,22 @@ export function LiveEnvironmentChip({
           Retry
         </Button>
       ) : null}
+      {snapshot.status === "stopped" || snapshot.status === "kept" ? (
+        // The card's own thread is where a designer lands after a restart; start it here too.
+        <Button
+          size="compact"
+          variant="ghost"
+          onClick={() =>
+            void retry({
+              environmentId: threadRef.environmentId,
+              input: { threadId: snapshot.threadId },
+            })
+          }
+        >
+          <PlayIcon />
+          Start
+        </Button>
+      ) : null}
       {snapshot.status === "needs-dev-script" ? (
         <Button size="compact" variant="outline" onClick={() => setSetupOpen(true)}>
           Choose command

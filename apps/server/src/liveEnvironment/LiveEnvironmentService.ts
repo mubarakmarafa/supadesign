@@ -132,13 +132,26 @@ export interface LiveEnvironmentOps {
     readonly projectRoot: string;
     readonly worktreePath: string;
   }) => Effect.Effect<void, LiveEnvironmentError>;
-  /** The cards that were live when the server last ran. */
-  readonly loadLiveCards: Effect.Effect<
-    ReadonlyArray<{ readonly projectId: ProjectId; readonly threadId: ThreadId }>
-  >;
-  readonly saveLiveCards: (
-    cards: ReadonlyArray<{ readonly projectId: ProjectId; readonly threadId: ThreadId }>,
-  ) => Effect.Effect<void>;
+  /** The cards this service held when the server last ran. */
+  readonly loadLiveCards: Effect.Effect<ReadonlyArray<LiveCardRecord>>;
+  readonly saveLiveCards: (cards: ReadonlyArray<LiveCardRecord>) => Effect.Effect<void>;
+}
+
+/**
+ * A card remembered across restarts. A restart forgets running servers, but
+ * not which card was live or the preview checkouts this service made, so
+ * those are still cleaned up, or kept for their changes, afterwards.
+ */
+export interface LiveCardRecord {
+  readonly projectId: ProjectId;
+  readonly threadId: ThreadId;
+  /**
+   * `live` was the project's live card and waits for Start, `warm` was only
+   * kept warm and is torn down, `kept` holds a checkout with changes.
+   */
+  readonly state: "live" | "warm" | "kept";
+  /** A checkout this service made for the card; teardown removes it when clean. */
+  readonly checkout: { readonly worktreePath: string; readonly projectRoot: string } | null;
 }
 
 export class LiveEnvironmentService extends Context.Service<
@@ -148,6 +161,14 @@ export class LiveEnvironmentService extends Context.Service<
     readonly activate: (input: {
       readonly projectId: ProjectId;
       readonly threadId: ThreadId | null;
+    }) => Effect.Effect<void, LiveEnvironmentError>;
+    /**
+     * Makes `threadId` the project's live card, as `activate` does, and also
+     * starts it when it waits for Start after a restart or failed to start.
+     */
+    readonly start: (input: {
+      readonly projectId: ProjectId;
+      readonly threadId: ThreadId;
     }) => Effect.Effect<void, LiveEnvironmentError>;
     /** Stops a card's environment now, skipping the warm period. */
     readonly stop: (threadId: ThreadId) => Effect.Effect<void>;
@@ -240,6 +261,7 @@ interface SetupReport {
 }
 
 const SETUP_REPORT_GRACE = Duration.seconds(2);
+const KEPT_MESSAGE = "Its preview checkout has changes, so it was kept.";
 
 export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: number }) =>
   Effect.gen(function* () {
@@ -270,15 +292,40 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         .toArray(),
     });
 
-    /** Remembers each project's live card, so a restart can show it as stopped. */
+    /**
+     * Remembers each project's live card, so a restart can show it as
+     * stopped, and every checkout made here, so a restart can still clean it up.
+     */
     const persistLiveCards = Effect.suspend(() => {
       if (closing) return Effect.void;
-      const cards = entries
-        .values()
-        .filter((entry) => entry.active && entry.status !== "kept")
-        .map((entry) => ({ projectId: entry.projectId, threadId: entry.threadId }))
-        .toArray();
-      const serialized = cards.map((card) => `${card.projectId}/${card.threadId}`).join("\n");
+      const cards: Array<LiveCardRecord> = [];
+      for (const entry of entries.values()) {
+        const { projectId, threadId } = entry;
+        const checkout =
+          entry.worktreePath !== null && entry.projectRoot !== null
+            ? { worktreePath: entry.worktreePath, projectRoot: entry.projectRoot }
+            : null;
+        const made = entry.createdWorktree ? checkout : null;
+        if (entry.status === "kept") {
+          if (checkout !== null) cards.push({ projectId, threadId, state: "kept", checkout });
+        } else if (entry.active || entry.status === "stopped") {
+          // A card waiting for Start since a restart is still the project's live card.
+          cards.push({ projectId, threadId, state: "live", checkout: made });
+        } else if (made !== null) {
+          cards.push({ projectId, threadId, state: "warm", checkout: made });
+        }
+      }
+      const serialized = cards
+        .map((card) =>
+          [
+            card.projectId,
+            card.threadId,
+            card.state,
+            card.checkout?.worktreePath ?? "",
+            card.checkout?.projectRoot ?? "",
+          ].join("\t"),
+        )
+        .join("\n");
       if (serialized === savedLiveCards) return Effect.void;
       savedLiveCards = serialized;
       return ops.saveLiveCards(cards);
@@ -651,14 +698,35 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
       ...fields,
     });
 
-    // A restart forgets running servers; the cards that were live wait for Start.
+    // A restart forgets running servers; the cards that were live wait for
+    // Start, kept checkouts stay on their cards, and warm ones are torn down.
+    const restoredWarm: Array<Entry> = [];
     {
       const now = yield* Clock.currentTimeMillis;
       for (const card of yield* ops.loadLiveCards) {
-        entries.set(
-          card.threadId,
-          newEntry(card.projectId, card.threadId, false, now, { status: "stopped", phase: null }),
-        );
+        const checkout = card.checkout;
+        if (checkout === null) {
+          if (card.state === "live") {
+            entries.set(
+              card.threadId,
+              newEntry(card.projectId, card.threadId, false, now, {
+                status: "stopped",
+                phase: null,
+              }),
+            );
+          }
+          continue;
+        }
+        const entry = newEntry(card.projectId, card.threadId, false, now, {
+          status: card.state === "kept" ? "kept" : "stopped",
+          phase: null,
+          worktreePath: checkout.worktreePath,
+          projectRoot: checkout.projectRoot,
+          createdWorktree: card.state !== "kept",
+          error: card.state === "kept" ? KEPT_MESSAGE : null,
+        });
+        entries.set(card.threadId, entry);
+        if (card.state === "warm") restoredWarm.push(entry);
       }
     }
 
@@ -744,7 +812,7 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
                   phase: null,
                   worktreePath: entry.worktreePath,
                   projectRoot: entry.projectRoot,
-                  error: "Its preview checkout has changes, so it was kept.",
+                  error: KEPT_MESSAGE,
                 }),
               );
             } else if (entry.restartAfterStop) {
@@ -791,9 +859,11 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
           // Deleting a visited entry while iterating a Map is safe.
           for (const entry of entries.values()) {
             if (entry.projectId !== input.projectId || entry.threadId === input.threadId) continue;
-            // Another card is live now, so a card waiting since a restart no longer is.
+            // Another card is live now, so a card waiting since a restart no
+            // longer is. A checkout made for it goes too, or is kept for its changes.
             if (entry.status === "stopped") {
-              entries.delete(entry.threadId);
+              if (entry.createdWorktree) yield* stopEntry(entry).pipe(Effect.forkIn(scope));
+              else entries.delete(entry.threadId);
             } else if (entry.active) {
               yield* warmLocked(entry);
             }
@@ -826,7 +896,9 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
     const stop: LiveEnvironmentService["Service"]["stop"] = (threadId) =>
       Effect.suspend(() => {
         const entry = entries.get(threadId);
-        if (entry === undefined) return Effect.void;
+        // Nothing runs for a kept checkout, and forgetting it would hide its
+        // changes; only Discard or going live again ends it.
+        if (entry === undefined || entry.status === "kept") return Effect.void;
         entry.restartAfterStop = false;
         return stopEntry(entry);
       });
@@ -839,12 +911,37 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
             message: "This card has no live environment to retry.",
           });
         }
+        // Starting a card that isn't live makes it the live one, so the project
+        // still runs a single environment and the previous card goes warm.
+        if (!entry.active && (entry.status === "kept" || entry.status === "stopped")) {
+          const kept = entry.status === "kept";
+          yield* activate({ projectId: entry.projectId, threadId });
+          // Going live restarts a kept checkout; a stopped card still needs starting.
+          if (kept) return;
+        }
+        // Nothing runs since the restart; start in the checkout it had.
+        if (entry.status === "stopped") {
+          return yield* locked(
+            Effect.gen(function* () {
+              if (entries.get(threadId) !== entry) return;
+              yield* startLocked(entry.projectId, threadId, entry.active);
+              yield* publish(entry.projectId);
+            }),
+          );
+        }
         if (entry.status === "failed" && entry.serverFailed && entry.script !== null) {
           return yield* startFix(entry, entry.error ?? "The dev server stopped.", "restart");
         }
         entry.restartAfterStop = true;
         entry.restartFixAttempted = false;
         yield* stopEntry(entry);
+      });
+
+    const start: LiveEnvironmentService["Service"]["start"] = (input) =>
+      Effect.gen(function* () {
+        yield* activate(input);
+        const status = entries.get(input.threadId)?.status;
+        if (status === "stopped" || status === "failed") yield* retry(input.threadId);
       });
 
     const saveDevScript: LiveEnvironmentService["Service"]["saveDevScript"] = (input) =>
@@ -933,10 +1030,17 @@ export const make = (ops: LiveEnvironmentOps, options?: { readonly graceMs?: num
         }).pipe(Effect.asVoid);
       });
 
+    // Checkouts of cards that were only warm when the server stopped are
+    // removed when clean, or kept for their changes.
+    for (const entry of restoredWarm) {
+      yield* stopEntry(entry).pipe(Effect.forkIn(scope));
+    }
+
     return LiveEnvironmentService.of({
       discard,
       reportSetup,
       activate,
+      start,
       stop,
       retry,
       saveDevScript,

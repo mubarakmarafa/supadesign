@@ -38,7 +38,7 @@ const LiveEnvironmentStatusTool = Tool.make("supaterm_live_environment_status", 
 const LiveEnvironmentStartTool = Tool.make("supaterm_live_environment_start", {
   ...shared,
   description:
-    "Make this thread its project's live card: check out its work, run setup, and start the project's dev server. The project's previous live card stays warm for a grace period. Returns right away; poll supaterm_live_environment_status until status is ready, failed, or needs-dev-script.",
+    "Make this thread its project's live card: check out its work, run setup, and start the project's dev server. A card stopped since a restart, or one that failed to start, starts again. The project's previous live card stays warm for a grace period. Returns right away; poll supaterm_live_environment_status until status is ready, failed, or needs-dev-script.",
   success: Schema.Struct({}),
 })
   .annotate(Tool.Title, "Start live environment")
