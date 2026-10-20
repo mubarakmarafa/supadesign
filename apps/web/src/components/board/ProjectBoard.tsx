@@ -193,14 +193,6 @@ function overColumnId(layout: BoardLayout, overId: string): BoardColumnId | null
   return columnOfCard(layout, overId);
 }
 
-/** Clicks that land on the board itself, not a card, control, or field. */
-const BOARD_INTERACTIVE_SELECTOR =
-  "[data-board-card-id], button, a, input, textarea, select, label, [role='menu'], [role='menuitem'], [role='dialog'], [contenteditable='true']";
-
-function isBoardBackground(target: EventTarget): boolean {
-  return target instanceof Element && target.closest(BOARD_INTERACTIVE_SELECTOR) === null;
-}
-
 export function ProjectBoardPage() {
   const params = route.useParams();
   const search = route.useSearch();
@@ -243,17 +235,7 @@ export function ProjectBoardPage() {
   if (project && supported) {
     body = (
       <div className="flex min-h-0 min-w-0 flex-1">
-        {/* The peek is a glance: a click on empty board dismisses it. */}
-        <div
-          className="flex min-h-0 min-w-0 flex-1 flex-col"
-          onClick={
-            peekedCardId === null
-              ? undefined
-              : (event) => {
-                  if (isBoardBackground(event.target)) closePeek();
-                }
-          }
-        >
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <ProjectWorkspace
             projectRef={projectRef}
             project={project}
@@ -272,7 +254,12 @@ export function ProjectBoardPage() {
         {peekThreadRef !== null &&
         peekedThread !== null &&
         peekedThread.projectId === project.id ? (
-          <BoardPeek threadRef={peekThreadRef} projectId={project.id} onClose={closePeek} />
+          <BoardPeek
+            threadRef={peekThreadRef}
+            projectId={project.id}
+            title={peekedThread.title}
+            onClose={closePeek}
+          />
         ) : null}
       </div>
     );

@@ -104,10 +104,11 @@ Drag a card to
 reorder it or move it to another column. Order within a column is kept. On
 touch screens and narrow windows, use the card's **…** menu and **Move to**.
 
-Click a card to open its thread in a side peek beside the board, where you can
-read it and send a quick message. Click an empty part of the board, press
-**Escape**, or close the peek to go back to just the board. Peeking doesn't change which card is live. Double-click a
-card, press **Enter**, or use the peek's expand button to open its thread. To return to the
+Click a card to open its thread in a window over the board, where you can read
+it and send a quick message. Click outside the window, press **Escape**, or
+close it to go back to the board. Peeking doesn't change which card is live.
+Double-click a card, press **Enter**, or select **Open full thread** in the
+window to open its thread. To return to the
 board where you left it, select the project name with the back arrow at the top of the thread,
 or press **Escape**. Escape does nothing while the composer holds a draft, or while a terminal,
 preview, menu, or dialog has focus.

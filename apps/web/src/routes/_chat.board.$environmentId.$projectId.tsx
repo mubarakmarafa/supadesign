@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ProjectBoardPage } from "../components/board/ProjectBoard";
 
 export interface BoardSearch {
-  /** The card open in the side peek beside the board. */
+  /** The card whose thread is peeked in a window over the board. */
   readonly peek?: string;
 }
 

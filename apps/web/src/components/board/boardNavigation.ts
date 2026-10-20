@@ -166,7 +166,7 @@ export function useProjectHasBoard(project: EnvironmentProject | null): boolean 
 /**
  * Leaves a thread for its project's board: back through history when the
  * thread was opened from that board, so the board is as it was, otherwise
- * straight to it. On the board itself it closes the side peek.
+ * straight to it. On the board itself it closes the peeked card.
  */
 export function useBackToProjectBoard() {
   const router = useRouter();
