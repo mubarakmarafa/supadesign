@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./annotationShapes": {
+      "types": "./src/annotationShapes.ts",
+      "import": "./src/annotationShapes.ts"
+    },
     "./appIdentity": {
       "types": "./src/appIdentity.ts",
       "import": "./src/appIdentity.ts"

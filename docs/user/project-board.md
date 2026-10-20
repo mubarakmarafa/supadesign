@@ -132,7 +132,8 @@ card to another column, and it does what the same drag would: moving to done
 archives, moving to the send column sends banked messages, and moving out of
 the live preview column stops the card's server. A move into or out of a column
 with automations runs them too. Cards an agent adds wait unstarted, like
-yours.
+yours. An agent can also bank a message on a card, which waits with the
+card's other banked messages without starting its agent.
 
 ## Progress images
 
@@ -154,6 +155,16 @@ The expand button on a cover, the question count, **View progress** in the
 card's menu, and the thumbnail in the thread's header all open the card's
 images, newest first. **Reply with this image** puts the image into the
 thread's composer so you can comment on exactly what you saw.
+
+To point at part of an image, select **Mark up**. Draw on it with **Box**,
+**Circle**, **Arrow**, or **Pen** (**Erase** removes a mark), write a comment,
+and press **Attach**: the marked area and your comment go into the composer as
+one item, the same way design mode does for the live page. Attach as many as
+you like, then select **Reply with … marks** to go to the composer. Marking up
+works in the browser as well as the desktop app.
+
+**Compare** shows two images side by side with when each was taken and what the
+agent said about it. Select any image below to swap it in.
 
 ## Bank messages for later
 
@@ -287,4 +298,5 @@ marks stay on the frame you reviewed even if the app reloads; **Frozen**
 returns to the live page. Write a comment beside your marks and press **Attach**:
 the screenshot and comment go into the composer as one item, and design mode
 stays on for the next mark. **Escape** leaves design mode. Design mode is
-available in the desktop app.
+available in the desktop app; to mark up an earlier capture, use **Mark up** on
+a [progress image](#progress-images).
