@@ -2,6 +2,7 @@ import { threadRuntimeCanArchive } from "@supaterm/client-runtime/state/models";
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import type {
   BoardAutomationRun,
+  BoardColumnId,
   EnvironmentId,
   LiveEnvironmentSnapshot,
   ThreadProgress,
@@ -38,6 +39,9 @@ export interface BoardCardHandlers {
   readonly onCardMenu: (threadId: string, position: { x: number; y: number }) => void;
   /** Opens the card's progress images. */
   readonly onViewProgress: (threadId: string) => void;
+  /** Moves the card to a column, as a drag would. */
+  readonly onMoveCard: (threadId: string, columnId: BoardColumnId) => void;
+  readonly columnTitleOf: (columnId: BoardColumnId) => string | null;
 }
 
 /** Keeps a press on a card's own controls from starting a drag. */
@@ -302,6 +306,15 @@ export const BoardCard = memo(function BoardCard({
               environmentId={thread.environmentId as EnvironmentId}
               run={automation}
               working={!threadRuntimeCanArchive(thread.runtime)}
+              moveTargetTitle={
+                automation.moveTo === undefined ? null : handlers.columnTitleOf(automation.moveTo)
+              }
+              onOpenThread={() => handlers.onOpen(thread.id)}
+              onMoveOn={
+                automation.moveTo === undefined
+                  ? null
+                  : () => handlers.onMoveCard(thread.id, automation.moveTo!)
+              }
             />
           </div>
         ) : null}

@@ -2954,7 +2954,10 @@ const layerWsRpc = (
             ),
           ),
         [WS_METHODS.boardAutomationCancel]: (input) => boardAutomations.cancel(input.threadId),
-        [WS_METHODS.boardAutomationRunNow]: (input) => boardAutomations.runNow(input.threadId),
+        [WS_METHODS.boardAutomationRunNow]: (input) =>
+          input.columnId === undefined
+            ? boardAutomations.runNow(input.threadId)
+            : boardAutomations.rerun({ threadId: input.threadId, columnId: input.columnId }),
         [WS_METHODS.subscribeBoardAutomations]: (input) =>
           Stream.callback<BoardAutomationRunList>((queue) =>
             Effect.acquireRelease(

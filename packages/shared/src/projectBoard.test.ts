@@ -10,7 +10,9 @@ import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  boardArrivalSteps,
   boardAutomationSteps,
+  boardMoveWhenDone,
   type BoardThread,
   desiredLiveCardId,
   liveCard,
@@ -256,7 +258,7 @@ describe("column automations", () => {
     retiredColumns: [{ id: col("review"), movedTo: col("testing") }],
   };
   const names = (from: string, to: string) =>
-    boardAutomationSteps(board, col(from), col(to)).map((entry) => entry.name);
+    boardAutomationSteps(board, col(from), col(to)).map((entry) => entry.step.name);
 
   it("runs the old column's leave steps, then the new column's enter steps", () => {
     expect(names("in-progress", "testing")).toEqual(["push", "audit"]);
@@ -268,6 +270,33 @@ describe("column automations", () => {
     expect(names("testing", "done")).toEqual([]);
     expect(names("review", "testing")).toEqual([]);
     expect(names("ideas", "review")).toEqual(["audit"]);
+  });
+
+  it("names each step's column and finds where a column moves finished cards", () => {
+    expect(
+      boardAutomationSteps(board, col("in-progress"), col("testing")).map(
+        (entry) => entry.column.title,
+      ),
+    ).toEqual(["In progress", "Testing"]);
+    expect(boardArrivalSteps(board, col("testing")).map((entry) => entry.step.name)).toEqual([
+      "audit",
+    ]);
+    const shipping: ProjectBoard = {
+      ...board,
+      columns: board.columns.map((column) =>
+        column.id === "testing" ? { ...column, moveWhenDone: col("review") } : column,
+      ),
+    };
+    // A retired target that resolves back to the column itself goes nowhere.
+    expect(boardMoveWhenDone(shipping, col("testing"))).toBeNull();
+    const toDone: ProjectBoard = {
+      ...board,
+      columns: board.columns.map((column) =>
+        column.id === "testing" ? { ...column, moveWhenDone: col("done") } : column,
+      ),
+    };
+    expect(boardMoveWhenDone(toDone, col("testing"))).toBe("done");
+    expect(boardMoveWhenDone(toDone, col("in-progress"))).toBeNull();
   });
 
   it("fills in the card's details and leaves unknown braces alone", () => {

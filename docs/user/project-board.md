@@ -211,6 +211,20 @@ column with automations shows a lightning mark; hover it to see what runs.
 - Done archives its cards, so it can't have automations, and nothing runs on a
   card moved there. Put steps such as merging in a column before Done.
 
+The agent reports back when it's finished, and the card shows how it went:
+
+- **Done**, with the agent's note. If the column's settings say **When the
+  agent reports them done: Move it to …**, the card moves there by itself, so a
+  "Ship" column that merges can send the card straight to Done.
+- **Needs you**, with what's blocking it, such as a merge conflict. The card
+  stays put; use **Open thread** to sort it out, then **Run again**.
+- **Finished without a report** when the agent stopped without saying. Check
+  the thread, then **Move to …** or **Dismiss**.
+
+**Run this column's steps again** in a card's **…** menu re-sends the column's
+arrival steps without moving the card. A board that keeps passing a card along
+on its own stops after three automatic moves in a row and asks you to move it.
+
 Agents that move cards trigger automations the same way you do.
 
 ## Live preview
