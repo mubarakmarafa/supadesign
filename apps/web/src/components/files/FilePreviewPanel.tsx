@@ -58,7 +58,7 @@ import { resolveDiffThemeName } from "~/lib/diffRendering";
 import { PREFERRED_HIGHLIGHTER } from "~/lib/syntaxHighlighting";
 import { cn } from "~/lib/utils";
 import type { ChatFileAttachment } from "~/types";
-import { isAbsolutePath } from "@supaterm/shared/path";
+import { fileBasename, isAbsolutePath } from "@supaterm/shared/path";
 import { resolvePathLinkTarget } from "@supaterm/shared/fileLinks";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";
@@ -364,6 +364,32 @@ function WorkspaceAudioPreview(props: {
   }
   if (url === null) return <FileSurfaceLoading />;
   return <AudioPreview src={url} name={props.name} onError={() => setFailedUrl(url)} />;
+}
+
+function WorkspaceBinaryFilePreview(props: {
+  readonly environmentId: EnvironmentId;
+  readonly threadRef: ScopedThreadRef;
+  readonly absolutePath: string;
+  readonly name: string;
+}) {
+  return (
+    <AttachmentFilePreview
+      name={fileBasename(props.name)}
+      mimeType="application/octet-stream"
+      sizeBytes={0}
+      kind="unsupported"
+      asset={{
+        environmentId: props.environmentId,
+        resource: {
+          _tag: "media-file",
+          threadId: props.threadRef.threadId,
+          path: props.absolutePath,
+          disposition: "attachment",
+        },
+      }}
+      origin="File"
+    />
+  );
 }
 
 function clampFileLine(contents: string, requestedLine: number): number {
@@ -1367,6 +1393,14 @@ export default function FilePreviewPanel({
               workspaceRoot={cwd}
               title={relativePath}
               workspaceMutationId={workspaceMutationId}
+            />
+          ) : relativePath && absolutePath && file.readError?.failure === "binary_file" ? (
+            <WorkspaceBinaryFilePreview
+              key={`${environmentId}:${absolutePath}`}
+              environmentId={environmentId}
+              threadRef={threadRef}
+              absolutePath={absolutePath}
+              name={relativePath}
             />
           ) : relativePath && file.error && file.data === null ? (
             <div
