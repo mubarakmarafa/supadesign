@@ -69,10 +69,13 @@ const setup = (options: { readonly callerRuntimeMode?: RuntimeMode } = {}) =>
       }),
       Layer.mock(ThreadManagement.ThreadManagementService)({
         getThreadShell: (threadId) => Effect.succeed(shellOf(threadId)),
-        getProjectThreadRecords: ({ threadId }) =>
+        // Like the real store, messages come back only when they were asked for.
+        getProjectThreadRecords: ({ threadId }, fields) =>
           Effect.succeed({
             ...idleThreadProjection(shellOf(threadId)),
-            messages: [{ id: MessageId.make("message:earlier"), attachments: [owned] }],
+            ...(fields.includes("messages")
+              ? { messages: [{ id: MessageId.make("message:earlier"), attachments: [owned] }] }
+              : { messages: undefined }),
           } as unknown as OrchestrationV2ThreadProjection),
       }),
     );

@@ -262,7 +262,8 @@ export function ProgressMarkup({
             aria-label="Marks on the image"
             viewBox={`0 0 ${update.width} ${update.height}`}
             preserveAspectRatio="none"
-            className="absolute inset-0 size-full cursor-crosshair touch-none text-primary"
+            // Marks take the theme color, which can be as dark as the capture; a halo keeps them visible.
+            className="absolute inset-0 size-full cursor-crosshair touch-none text-primary drop-shadow-xs drop-shadow-white/90"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={finishDraft}

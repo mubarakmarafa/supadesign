@@ -17,10 +17,13 @@ export const layer = McpToolAccess.toLayer(BankToolkit, {
           requested.length > 0 ? ["messages"] : [],
         );
         const threadId = projection.thread.id;
-        const attachments = yield* resolveAttachmentReferences(
-          requested,
-          projection.messages.flatMap((message) => message.attachments),
-        );
+        const attachments =
+          requested.length === 0
+            ? []
+            : yield* resolveAttachmentReferences(
+                requested,
+                projection.messages.flatMap((message) => message.attachments),
+              );
         const bank = yield* ThreadBank.ThreadBankService;
         const entry = yield* bank.add({ threadId, text: input.text, attachments });
         const entries = yield* bank.get(threadId);

@@ -3,6 +3,9 @@ import { polylinePath, smoothPath } from "@supaterm/shared/annotationShapes";
 
 import type { ImageMarks } from "./progressMarkup.logic";
 
+/** Drawn around every mark so a dark theme color still shows on a dark capture. */
+export const MARK_HALO = "rgb(255 255 255 / 0.9)";
+
 /** A stroke's outline as it is drawn on screen: pen strokes smoothed, shapes with their corners. */
 export function markStrokePath(marks: ImageMarks, stroke: ImageMarks["strokes"][number]): string {
   return marks.smoothStrokeIds.includes(stroke.id)
@@ -54,6 +57,9 @@ export async function renderMarkedCrop(input: {
     context.fillStyle = input.color;
     context.lineCap = "round";
     context.lineJoin = "round";
+    // A light halo keeps marks readable on dark captures, matching the screen.
+    context.shadowColor = MARK_HALO;
+    context.shadowBlur = 3;
     for (const region of input.marks.regions) {
       const { x, y, width, height } = region.rect;
       context.globalAlpha = 0.06;
