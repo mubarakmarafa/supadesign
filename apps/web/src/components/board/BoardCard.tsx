@@ -31,7 +31,7 @@ import { LiveEnvironmentCardStatus } from "./LiveEnvironmentStatus";
 
 export interface BoardCardHandlers {
   readonly onOpen: (threadId: string) => void;
-  /** A single click: shows the card's thread in the side peek. */
+  /** A single click: opens the card's thread in a window over the board. */
   readonly onPeek: (threadId: string) => void;
   readonly onFocusCard: (threadId: string) => void;
   readonly onCardKeyDown: (threadId: string, event: KeyboardEvent<HTMLElement>) => void;

@@ -139,7 +139,7 @@ export const BoardColumn = memo(function BoardColumn({
   bankedCounts: ReadonlyMap<string, number>;
   progressByThread: ReadonlyMap<string, ThreadProgress>;
   tabbableCardId: string | null;
-  /** The card open in the side peek, shown as selected. */
+  /** The card peeked over the board, shown as selected. */
   peekedCardId: string | null;
   canEdit: boolean;
   canDrag: boolean;

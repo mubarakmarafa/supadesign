@@ -1,5 +1,3 @@
-import { scopeThreadRef } from "@supaterm/client-runtime/environment";
-import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -64,22 +62,11 @@ export function BoardShortcuts() {
       const origin = location.state.boardOrigin;
       const params = router.state.matches[router.state.matches.length - 1]?.params ?? {};
       const threadRef = resolveThreadRouteRef(params);
-      const boardParams = params as Record<string, string | undefined>;
-      // A board with a card in its side peek treats Escape like that thread does.
-      const peek =
-        location.pathname.startsWith("/board/") &&
-        typeof location.search.peek === "string" &&
-        boardParams.environmentId !== undefined
-          ? scopeThreadRef(
-              boardParams.environmentId as EnvironmentId,
-              location.search.peek as ThreadId,
-            )
-          : null;
+      // A card peeked on its board is a dialog, which handles Escape itself.
       const boardThread =
-        peek !== null ||
-        (origin !== undefined &&
-          threadRef !== null &&
-          threadRef.environmentId === origin.environmentId);
+        origin !== undefined &&
+        threadRef !== null &&
+        threadRef.environmentId === origin.environmentId;
       const command = resolveShortcutCommand(event, keybindings, {
         context: {
           terminalFocus: isTerminalFocused(),
@@ -94,26 +81,6 @@ export function BoardShortcuts() {
         event.preventDefault();
         event.stopPropagation();
         if (!event.repeat) openProjectBoard();
-        return;
-      }
-
-      if (command === "board.back" && peek !== null && !event.repeat) {
-        const peekDraft = useComposerDraftStore.getState().getComposerDraft(peek);
-        if (!escapeIsFree(event.target, composerDraftHasUserContent(peekDraft))) return;
-        const preventedBeforeUs = event.defaultPrevented;
-        setTimeout(() => {
-          if (event.defaultPrevented && !preventedBeforeUs) return;
-          if (router.state.location.href !== location.href) return;
-          void router.navigate({
-            to: BOARD_ROUTE,
-            params: {
-              environmentId: boardParams.environmentId ?? "",
-              projectId: boardParams.projectId ?? "",
-            },
-            search: {},
-            replace: true,
-          });
-        }, 0);
         return;
       }
 
