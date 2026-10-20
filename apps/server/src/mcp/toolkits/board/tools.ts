@@ -1,4 +1,6 @@
 import {
+  BOARD_AUTOMATION_REPORT_NOTE_MAX_LENGTH,
+  BoardAutomationError,
   BoardColumnId,
   ModelSelection,
   NonNegativeInt,
@@ -13,6 +15,7 @@ import {
 import * as Crypto from "effect/Crypto";
 import * as Schema from "effect/Schema";
 import { Tool, Toolkit } from "effect/ai";
+import * as BoardAutomation from "../../../boardAutomation/BoardAutomationService.ts";
 import * as ThreadLaunchService from "../../../orchestration-v2/ThreadLaunchService.ts";
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
 import * as ProjectService from "../../../project/ProjectService.ts";
@@ -59,6 +62,7 @@ const BoardReadTool = Tool.make("supaterm_board_read", {
         done: Schema.Boolean,
         onEnter: Schema.Array(Schema.String),
         onLeave: Schema.Array(Schema.String),
+        moveWhenDone: Schema.NullOr(BoardColumnId),
         cardCount: NonNegativeInt,
         cards: Schema.Array(
           Schema.Struct({ threadId: ThreadId, title: Schema.String, archived: Schema.Boolean }),
@@ -115,4 +119,33 @@ const BoardAddCardTool = Tool.make("supaterm_board_add_card", {
   .annotate(Tool.Title, "Add a board card")
   .annotate(Tool.Destructive, false);
 
-export const BoardToolkit = Toolkit.make(BoardReadTool, BoardMoveCardTool, BoardAddCardTool);
+const BoardStepReportTool = Tool.make("supaterm_board_step_report", {
+  failure: Schema.Union([OrchestratorMcpFailure, BoardAutomationError]),
+  failureMode: "return" as const,
+  dependencies: [
+    McpInvocationContext.McpInvocationContext,
+    ThreadManagementService.ThreadManagementService,
+    BoardAutomation.BoardAutomationService,
+  ],
+  description:
+    'Report how a board column\'s step went, when a message says it was "Sent by the … column\'s … step". Call it once you have finished that work: outcome "done" with a short note of what you did (the board may then move the card on, for example to Done), or "needs_you" with what is blocking you (a conflict, a failing check, a question), which flags the card for the designer. Omit threadId for this thread\'s own card.',
+  parameters: Schema.Struct({
+    threadId: Schema.optional(ThreadId),
+    outcome: Schema.Literals(["done", "needs_you"]),
+    note: Schema.optional(
+      Schema.String.annotate({
+        description: `One line for the designer, at most ${BOARD_AUTOMATION_REPORT_NOTE_MAX_LENGTH} characters.`,
+      }),
+    ),
+  }),
+  success: Schema.Struct({ threadId: ThreadId }),
+})
+  .annotate(Tool.Title, "Report a board step")
+  .annotate(Tool.Destructive, false);
+
+export const BoardToolkit = Toolkit.make(
+  BoardReadTool,
+  BoardMoveCardTool,
+  BoardAddCardTool,
+  BoardStepReportTool,
+);

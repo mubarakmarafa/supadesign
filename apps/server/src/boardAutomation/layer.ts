@@ -25,6 +25,7 @@ import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
 import * as ThreadMessageIntake from "../orchestration-v2/ThreadMessageIntake.ts";
 import * as Project from "../project/ProjectService.ts";
+import * as ProjectBoards from "../projectBoard/ProjectBoardService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as ThreadBank from "../threadBank/ThreadBankService.ts";
 import * as BoardAutomation from "./BoardAutomationService.ts";
@@ -53,6 +54,7 @@ export const make = Effect.gen(function* () {
   const projects = yield* Project.ProjectService;
   const threads = yield* ThreadManagement.ThreadManagementService;
   const banks = yield* ThreadBank.ThreadBankService;
+  const boards = yield* ProjectBoards.ProjectBoardService;
   const crypto = yield* Crypto.Crypto;
   // Dispatch reads these per call, as client sends do.
   const services = yield* Effect.context<
@@ -116,6 +118,12 @@ export const make = Effect.gen(function* () {
       banks
         .sendAs({ threadId, render, modelSelection })
         .pipe(Effect.mapError((error) => failure(error.message))),
+
+    moveCard: ({ threadId, columnId }) =>
+      boards.moveCard({ threadId, columnId }).pipe(
+        Effect.mapError((error) => failure(error.message)),
+        Effect.asVoid,
+      ),
   });
 
   // ── Watching card moves ──

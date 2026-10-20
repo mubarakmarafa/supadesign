@@ -223,6 +223,7 @@ describe("column settings", () => {
       send: false,
       onEnter: [merge],
       onLeave: [],
+      moveWhenDone: null,
     });
     // Turning it off again leaves the board without a live column.
     const off = applyBoardColumnSettings(next, col("in-progress"), {
@@ -237,6 +238,22 @@ describe("column settings", () => {
     });
   });
 
+  it("moves done cards on only from a column with arrival steps", () => {
+    const base = boardColumnSettings(DEFAULT_PROJECT_BOARD, col("testing"))!;
+    const ship = applyBoardColumnSettings(DEFAULT_PROJECT_BOARD, col("testing"), {
+      ...base,
+      onEnter: [merge],
+      moveWhenDone: col("done"),
+    })!;
+    expect(validateProjectBoard(ship)).toEqual([]);
+    expect(boardColumnSettings(ship, col("testing"))?.moveWhenDone).toBe("done");
+    const noSteps = applyBoardColumnSettings(DEFAULT_PROJECT_BOARD, col("testing"), {
+      ...base,
+      moveWhenDone: col("done"),
+    })!;
+    expect(boardColumnSettings(noSteps, col("testing"))?.moveWhenDone).toBeNull();
+  });
+
   it("keeps Done free of built-ins and steps, and refuses an empty name", () => {
     const done = applyBoardColumnSettings(DEFAULT_PROJECT_BOARD, col("done"), {
       title: "Done",
@@ -244,6 +261,7 @@ describe("column settings", () => {
       send: true,
       onEnter: [merge],
       onLeave: [merge],
+      moveWhenDone: col("ideas"),
     })!;
     expect(validateProjectBoard(done)).toEqual([]);
     expect(done.liveColumnId).toBe("testing");

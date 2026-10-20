@@ -160,7 +160,7 @@ export const resolveProjectId = (context: Caller, projectId: ProjectId | undefin
         );
 
 /** A target thread: the one passed, else the calling thread. */
-const resolveThreadId = (context: Caller, threadId: ThreadId | undefined) =>
+export const resolveThreadId = (context: Caller, threadId: ThreadId | undefined) =>
   threadId !== undefined
     ? Effect.succeed(threadId)
     : context.caller !== undefined

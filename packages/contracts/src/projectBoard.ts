@@ -47,6 +47,11 @@ export const ProjectBoardColumn = Schema.Struct({
   onEnter: Schema.optional(BoardAutomationSteps),
   /** Sent, in order, when a card moves out of this column. */
   onLeave: Schema.optional(BoardAutomationSteps),
+  /**
+   * Where a card goes once its agent reports that this column's arrival steps
+   * succeeded. A retired id follows its `movedTo` chain.
+   */
+  moveWhenDone: Schema.optional(BoardColumnId),
 });
 export type ProjectBoardColumn = typeof ProjectBoardColumn.Type;
 
@@ -118,6 +123,7 @@ export type ProjectBoardIssue =
   | { readonly code: "done-column-conflict"; readonly flag: "inbox" | "live" | "send" }
   | { readonly code: "done-column-automation"; readonly columnId: BoardColumnId }
   | { readonly code: "duplicate-step-id"; readonly columnId: BoardColumnId }
+  | { readonly code: "invalid-move-when-done"; readonly columnId: BoardColumnId }
   | { readonly code: "retired-column-active"; readonly columnId: BoardColumnId }
   | { readonly code: "duplicate-retired-column"; readonly columnId: BoardColumnId }
   | { readonly code: "unresolved-retired-column"; readonly columnId: BoardColumnId };
@@ -183,6 +189,12 @@ export function validateProjectBoard(board: ProjectBoard): ReadonlyArray<Project
     }
     if (new Set(steps.map((step) => step.id)).size !== steps.length) {
       issues.push({ code: "duplicate-step-id", columnId: column.id });
+    }
+    if (column.moveWhenDone !== undefined) {
+      const target = resolveProjectBoardColumnId(board, column.moveWhenDone);
+      if (target === null || target === column.id || (column.onEnter ?? []).length === 0) {
+        issues.push({ code: "invalid-move-when-done", columnId: column.id });
+      }
     }
   }
   const retiredIds = new Set<BoardColumnId>();

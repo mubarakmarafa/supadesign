@@ -547,12 +547,17 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   ProviderUsageLimitsIngestion.layer,
   // A board move sends banks and stops live environments, as a drag does. Card
   // progress captures the live card after each turn, so it builds on live environments.
-  // Column automations watch every card move and can fold a card's bank into a prompt.
-  ProjectBoardLayer.layer.pipe(
+  // Column automations watch every card move, fold a card's bank into a prompt, and
+  // move a card on through the board once its agent reports the steps are done.
+  BoardAutomationLayer.layer.pipe(
     Layer.provideMerge(
-      Layer.merge(
-        ThreadProgressLayer.layer.pipe(Layer.provideMerge(LiveEnvironmentLayer.layer)),
-        BoardAutomationLayer.layer.pipe(Layer.provideMerge(ThreadBankLayer.layer)),
+      ProjectBoardLayer.layer.pipe(
+        Layer.provideMerge(
+          Layer.merge(
+            ThreadProgressLayer.layer.pipe(Layer.provideMerge(LiveEnvironmentLayer.layer)),
+            ThreadBankLayer.layer,
+          ),
+        ),
       ),
     ),
     Layer.provide(ProjectionStoreV2.layer),

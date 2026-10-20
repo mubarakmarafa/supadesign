@@ -136,6 +136,12 @@ export function resolveBoardColumns<T extends BoardThread>(
 
 // ── Column automations ──────────────────────────────────────────────────
 
+/** A step and the column it belongs to, so its prompt can say where it came from. */
+export interface PlannedBoardAutomationStep {
+  readonly step: BoardAutomationStep;
+  readonly column: ProjectBoardColumn;
+}
+
 /**
  * The prompt steps a card moving from `fromColumnId` to `toColumnId` runs:
  * the old column's leave steps, then the new column's enter steps. A card
@@ -145,14 +151,45 @@ export function boardAutomationSteps(
   board: ProjectBoard | null,
   fromColumnId: BoardColumnId,
   toColumnId: BoardColumnId,
-): ReadonlyArray<BoardAutomationStep> {
+): ReadonlyArray<PlannedBoardAutomationStep> {
   const layout = board ?? DEFAULT_PROJECT_BOARD;
   const from = resolveProjectBoardColumnId(layout, fromColumnId);
   const to = resolveProjectBoardColumnId(layout, toColumnId);
   if (from === to || to === null || to === layout.doneColumnId) return [];
   const columnOf = (id: BoardColumnId | null) =>
     id === null ? undefined : layout.columns.find((column) => column.id === id);
-  return [...(columnOf(from)?.onLeave ?? []), ...(columnOf(to)?.onEnter ?? [])];
+  const planned = (column: ProjectBoardColumn | undefined, trigger: "onEnter" | "onLeave") =>
+    (column?.[trigger] ?? []).map((step) => ({ step, column }) as PlannedBoardAutomationStep);
+  return [...planned(columnOf(from), "onLeave"), ...planned(columnOf(to), "onEnter")];
+}
+
+/** A column's arrival steps, for running them again on a card already in it. */
+export function boardArrivalSteps(
+  board: ProjectBoard | null,
+  columnId: BoardColumnId,
+): ReadonlyArray<PlannedBoardAutomationStep> {
+  const layout = board ?? DEFAULT_PROJECT_BOARD;
+  const id = resolveProjectBoardColumnId(layout, columnId);
+  const column = layout.columns.find((entry) => entry.id === id);
+  if (column === undefined || column.id === layout.doneColumnId) return [];
+  return (column.onEnter ?? []).map((step) => ({ step, column }));
+}
+
+/**
+ * Where a card goes once a run's arrival steps in `columnId` report success:
+ * the column's `moveWhenDone`, followed through retired columns. Null when it
+ * has none, no arrival steps, or it points back at itself.
+ */
+export function boardMoveWhenDone(
+  board: ProjectBoard | null,
+  columnId: BoardColumnId,
+): BoardColumnId | null {
+  const layout = board ?? DEFAULT_PROJECT_BOARD;
+  const id = resolveProjectBoardColumnId(layout, columnId);
+  const column = layout.columns.find((entry) => entry.id === id);
+  if (column?.moveWhenDone === undefined || (column.onEnter ?? []).length === 0) return null;
+  const target = resolveProjectBoardColumnId(layout, column.moveWhenDone);
+  return target === column.id ? null : target;
 }
 
 export const BOARD_AUTOMATION_BANKED = "{banked}";

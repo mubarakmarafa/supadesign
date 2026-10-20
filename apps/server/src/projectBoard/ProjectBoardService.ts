@@ -8,6 +8,7 @@ import {
   type ThreadId,
 } from "@supaterm/contracts";
 import {
+  boardMoveWhenDone,
   findBoardCardColumn,
   newBoardCardIndex,
   planBoardCardMove,
@@ -79,6 +80,8 @@ export interface ProjectBoardColumnView {
   readonly onEnter: ReadonlyArray<string>;
   /** Names of the prompts sent when a card moves out. */
   readonly onLeave: ReadonlyArray<string>;
+  /** Where a card goes once its agent reports the arrival steps done. */
+  readonly moveWhenDone: BoardColumnId | null;
   readonly cardCount: number;
   /** Top to bottom, at most `limit` of them. */
   readonly cards: ReadonlyArray<ProjectBoardCardView>;
@@ -142,7 +145,7 @@ export const make = (ops: ProjectBoardOps) =>
       });
 
     const read: ProjectBoardService["Service"]["read"] = ({ projectId, limit }) =>
-      Effect.map(load(projectId), ({ layout, resolved }) =>
+      Effect.map(load(projectId), ({ board, layout, resolved }) =>
         resolved.map(({ column, cards }) => ({
           id: column.id,
           title: column.title,
@@ -152,6 +155,7 @@ export const make = (ops: ProjectBoardOps) =>
           done: column.id === layout.doneColumnId,
           onEnter: (column.onEnter ?? []).map((step) => step.name),
           onLeave: (column.onLeave ?? []).map((step) => step.name),
+          moveWhenDone: boardMoveWhenDone(board, column.id),
           cardCount: cards.length,
           cards: cards.slice(0, limit ?? DEFAULT_READ_LIMIT).map(({ thread }) => ({
             threadId: thread.id,

@@ -94,12 +94,19 @@ function FlagMarker({ label, children }: { label: string; children: ReactNode })
   );
 }
 
-/** "Runs Merge into main when a card arrives", or null for a column without steps. */
-function describeColumnAutomations(column: ProjectBoardColumn): string | null {
+/** "Runs Merge into main when a card arrives, then moves it to Done", or null without steps. */
+function describeColumnAutomations(
+  column: ProjectBoardColumn,
+  moveWhenDoneTitle: string | null,
+): string | null {
   const names = (steps: ProjectBoardColumn["onEnter"]) =>
     (steps ?? []).map((step) => step.name).join(", ");
   const parts = [
-    column.onEnter?.length ? `${names(column.onEnter)} when a card arrives` : null,
+    column.onEnter?.length
+      ? `${names(column.onEnter)} when a card arrives${
+          moveWhenDoneTitle === null ? "" : `, then moves it to ${moveWhenDoneTitle}`
+        }`
+      : null,
     column.onLeave?.length ? `${names(column.onLeave)} when a card leaves` : null,
   ].filter((part) => part !== null);
   return parts.length === 0 ? null : `Runs ${parts.join("; ")}`;
@@ -107,6 +114,7 @@ function describeColumnAutomations(column: ProjectBoardColumn): string | null {
 
 export const BoardColumn = memo(function BoardColumn({
   column,
+  moveWhenDoneTitle,
   flags,
   cards,
   cardCountLabel,
@@ -130,6 +138,8 @@ export const BoardColumn = memo(function BoardColumn({
   onListScroll,
 }: {
   column: ProjectBoardColumn;
+  /** Where the column sends cards whose arrival steps are done. */
+  moveWhenDoneTitle: string | null;
   flags: BoardColumnFlags;
   /** Visible cards, top to bottom. */
   cards: ReadonlyArray<EnvironmentThreadShell>;
@@ -159,7 +169,7 @@ export const BoardColumn = memo(function BoardColumn({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: boardColumnDropId(column.id) });
   const headingId = `board-column-${column.id}`;
-  const automationLabel = describeColumnAutomations(column);
+  const automationLabel = describeColumnAutomations(column, moveWhenDoneTitle);
 
   return (
     <section
