@@ -129,8 +129,9 @@ or to the neighboring column. Customize `board.open`, `board.back`, and the
 Agents can use the board too. Ask one to add cards for ideas, or to move its
 card to another column, and it does what the same drag would: moving to done
 archives, moving to the send column sends banked messages, and moving out of
-the live preview column stops the card's server. Cards an agent adds wait
-unstarted, like yours.
+the live preview column stops the card's server. A move into or out of a column
+with automations runs them too. Cards an agent adds wait unstarted, like
+yours.
 
 ## Progress images
 
@@ -177,12 +178,39 @@ stop it. Done is collapsed at first; select **Show archived** to load its cards.
 ## Columns
 
 Use a column's **…** menu to rename it, move it left or right, or choose which
-column is the inbox or done. Double-click a column's name to rename it, and use
-**Add column** at the end of the board for a new one.
+column is the inbox or done. Double-click a column's name to rename it. **Add
+column** at the end of the board asks for a name and what the column does, the
+same choices as **Column settings…** in the column's menu.
 
 Deleting a column moves its cards to the column on its left, or to the right for
 the first column. The done column can't be deleted, and the inbox must move to
 another column first.
+
+## Column automations
+
+A column can send prompts to a card's agent when the card moves in or out, so
+moving work along the board does the routine work for you: open a pull request,
+merge into main, delete the branch, audit the changes, or turn banked notes into
+a plan. Open **Column settings…** from a column's **…** menu and use **Add
+step** under **When a card arrives** or **When a card leaves**. Each step starts
+from a preset you can rename and rewrite, or from a blank **Custom step**. A
+column with automations shows a lightning mark; hover it to see what runs.
+
+- Each prompt goes to the card's own thread, which already knows its branch and
+  work, and waits behind anything the agent is doing. A step runs on the card's
+  model unless you turn off **Use the card's model** and pick another one and its
+  effort; a quick, inexpensive model is usually enough for routine steps.
+- Prompts can mention `{card}`, `{branch}`, `{column}`, and `{from}`.
+  `{banked}` puts in the card's banked messages and sends them along; a step
+  that uses it is skipped when nothing is banked.
+- A moved card waits five seconds before anything is sent, with a countdown on
+  the card and a toast. **Cancel** stops it and **Run now** skips the wait.
+  Moving the card again in those seconds counts as one move from where it
+  started, so dragging it back runs nothing.
+- Done archives its cards, so it can't have automations, and nothing runs on a
+  card moved there. Put steps such as merging in a column before Done.
+
+Agents that move cards trigger automations the same way you do.
 
 ## Live preview
 

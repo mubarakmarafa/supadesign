@@ -4,6 +4,7 @@ import {
   ThreadBankError,
   combineThreadBankEntries,
   type ChatAttachment,
+  type ModelSelection,
   type OrchestrationMessageContext,
   type ProjectId,
   type ThreadBank,
@@ -40,6 +41,7 @@ export interface ThreadBankOps {
     readonly text: string;
     readonly attachments: ReadonlyArray<ChatAttachment>;
     readonly context: OrchestrationMessageContext | undefined;
+    readonly modelSelection?: ModelSelection | undefined;
   }) => Effect.Effect<void, ThreadBankError>;
   readonly newEntryId: Effect.Effect<string>;
   readonly now: Effect.Effect<string>;
@@ -60,6 +62,15 @@ export class ThreadBankService extends Context.Service<
     readonly reorder: (input: ThreadBankReorderInput) => Effect.Effect<void, ThreadBankError>;
     /** Sends every entry as one message, then empties the bank. False when it was empty. */
     readonly send: (threadId: ThreadId) => Effect.Effect<boolean, ThreadBankError>;
+    /**
+     * Sends every entry as one message whose text is `render` of theirs, such
+     * as a column's prompt around them, then empties the bank. False when empty.
+     */
+    readonly sendAs: (input: {
+      readonly threadId: ThreadId;
+      readonly render: (text: string) => string;
+      readonly modelSelection?: ModelSelection | undefined;
+    }) => Effect.Effect<boolean, ThreadBankError>;
     readonly get: (threadId: ThreadId) => Effect.Effect<ReadonlyArray<ThreadBankEntry>>;
     /** Calls `listener` with the project's non-empty banks now and after every change. */
     readonly subscribe: (
@@ -219,17 +230,25 @@ export const make = (ops: ThreadBankOps) =>
         }),
       );
 
-    const send: ThreadBankService["Service"]["send"] = (threadId) =>
+    const sendAs: ThreadBankService["Service"]["sendAs"] = ({ threadId, render, modelSelection }) =>
       locked(
         Effect.gen(function* () {
           const bank = banks.get(threadId);
           if (bank === undefined) return false;
           const combined = combineThreadBankEntries(bank.entries);
-          yield* ops.send({ threadId, ...combined });
+          yield* ops.send({
+            threadId,
+            ...combined,
+            text: render(combined.text),
+            ...(modelSelection === undefined ? {} : { modelSelection }),
+          });
           yield* setEntries(bank, []);
           return true;
         }),
       );
+
+    const send: ThreadBankService["Service"]["send"] = (threadId) =>
+      sendAs({ threadId, render: (text) => text });
 
     const get: ThreadBankService["Service"]["get"] = (threadId) =>
       Effect.sync(() => banks.get(threadId)?.entries ?? []);
@@ -246,5 +265,5 @@ export const make = (ops: ThreadBankOps) =>
         }),
       );
 
-    return ThreadBankService.of({ add, update, remove, reorder, send, get, subscribe });
+    return ThreadBankService.of({ add, update, remove, reorder, send, sendAs, get, subscribe });
   });

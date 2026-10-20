@@ -75,6 +75,10 @@ export interface ProjectBoardColumnView {
   readonly send: boolean;
   /** Moving a card here archives it. */
   readonly done: boolean;
+  /** Names of the prompts sent when a card moves in. */
+  readonly onEnter: ReadonlyArray<string>;
+  /** Names of the prompts sent when a card moves out. */
+  readonly onLeave: ReadonlyArray<string>;
   readonly cardCount: number;
   /** Top to bottom, at most `limit` of them. */
   readonly cards: ReadonlyArray<ProjectBoardCardView>;
@@ -146,6 +150,8 @@ export const make = (ops: ProjectBoardOps) =>
           live: column.id === layout.liveColumnId,
           send: column.id === layout.sendColumnId,
           done: column.id === layout.doneColumnId,
+          onEnter: (column.onEnter ?? []).map((step) => step.name),
+          onLeave: (column.onLeave ?? []).map((step) => step.name),
           cardCount: cards.length,
           cards: cards.slice(0, limit ?? DEFAULT_READ_LIMIT).map(({ thread }) => ({
             threadId: thread.id,

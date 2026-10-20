@@ -1,5 +1,6 @@
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import type {
+  BoardAutomationRun,
   BoardColumnId,
   LiveEnvironmentSnapshot,
   ProjectBoardColumn,
@@ -14,6 +15,7 @@ import {
   MonitorPlayIcon,
   PlusIcon,
   SendIcon,
+  ZapIcon,
 } from "lucide-react";
 import { memo, useRef, useState, type ReactNode } from "react";
 
@@ -92,12 +94,24 @@ function FlagMarker({ label, children }: { label: string; children: ReactNode })
   );
 }
 
+/** "Runs Merge into main when a card arrives", or null for a column without steps. */
+function describeColumnAutomations(column: ProjectBoardColumn): string | null {
+  const names = (steps: ProjectBoardColumn["onEnter"]) =>
+    (steps ?? []).map((step) => step.name).join(", ");
+  const parts = [
+    column.onEnter?.length ? `${names(column.onEnter)} when a card arrives` : null,
+    column.onLeave?.length ? `${names(column.onLeave)} when a card leaves` : null,
+  ].filter((part) => part !== null);
+  return parts.length === 0 ? null : `Runs ${parts.join("; ")}`;
+}
+
 export const BoardColumn = memo(function BoardColumn({
   column,
   flags,
   cards,
   cardCountLabel,
   liveEnvironments,
+  automations,
   bankedCounts,
   progressByThread,
   tabbableCardId,
@@ -121,6 +135,7 @@ export const BoardColumn = memo(function BoardColumn({
   cards: ReadonlyArray<EnvironmentThreadShell>;
   cardCountLabel: string;
   liveEnvironments: ReadonlyMap<string, LiveEnvironmentSnapshot>;
+  automations: ReadonlyMap<string, BoardAutomationRun>;
   bankedCounts: ReadonlyMap<string, number>;
   progressByThread: ReadonlyMap<string, ThreadProgress>;
   tabbableCardId: string | null;
@@ -144,6 +159,7 @@ export const BoardColumn = memo(function BoardColumn({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: boardColumnDropId(column.id) });
   const headingId = `board-column-${column.id}`;
+  const automationLabel = describeColumnAutomations(column);
 
   return (
     <section
@@ -188,6 +204,11 @@ export const BoardColumn = memo(function BoardColumn({
         {flags.send ? (
           <FlagMarker label="Send: moving a card here sends its banked messages">
             <SendIcon />
+          </FlagMarker>
+        ) : null}
+        {automationLabel ? (
+          <FlagMarker label={automationLabel}>
+            <ZapIcon />
           </FlagMarker>
         ) : null}
         {flags.done ? (
@@ -244,6 +265,7 @@ export const BoardColumn = memo(function BoardColumn({
               key={thread.id}
               thread={thread}
               live={liveEnvironments.get(thread.id)}
+              automation={automations.get(thread.id)}
               progress={progressByThread.get(thread.id)}
               bankedCount={bankedCounts.get(thread.id) ?? 0}
               tabbable={thread.id === tabbableCardId}

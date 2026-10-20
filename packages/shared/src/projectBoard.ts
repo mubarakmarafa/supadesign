@@ -1,4 +1,5 @@
 import {
+  type BoardAutomationStep,
   type BoardColumnId,
   DEFAULT_PROJECT_BOARD,
   type ProjectBoard,
@@ -58,6 +59,43 @@ function compareCards<T extends BoardThread>(left: SortableCard<T>, right: Sorta
   return left.thread.id < right.thread.id ? -1 : left.thread.id > right.thread.id ? 1 : 0;
 }
 
+/** The column a thread shows in and how it sorts there; see `resolveBoardColumns`. */
+function placeCard(
+  layout: ProjectBoard,
+  thread: BoardThread,
+): { readonly columnId: BoardColumnId; readonly group: CardGroup } {
+  const resolveColumn = (columnId: BoardColumnId | null | undefined) =>
+    columnId == null ? null : resolveProjectBoardColumnId(layout, columnId);
+  const placement = thread.board ?? null;
+  const placedColumn = resolveColumn(placement?.columnId);
+  const placedNatively = placedColumn !== null && placedColumn === placement?.columnId;
+  if (thread.archivedAt !== null) {
+    const group =
+      placedColumn !== layout.doneColumnId
+        ? CardGroup.Unplaced
+        : placedNatively
+          ? CardGroup.Native
+          : CardGroup.Retired;
+    return { columnId: layout.doneColumnId, group };
+  }
+  if (placedColumn === layout.doneColumnId) {
+    const returned = resolveColumn(placement?.returnColumnId) ?? layout.inboxColumnId;
+    return {
+      columnId: returned === layout.doneColumnId ? layout.inboxColumnId : returned,
+      group: CardGroup.Unplaced,
+    };
+  }
+  if (placedColumn !== null) {
+    return { columnId: placedColumn, group: placedNatively ? CardGroup.Native : CardGroup.Retired };
+  }
+  return { columnId: layout.inboxColumnId, group: CardGroup.Unplaced };
+}
+
+/** The column one thread shows in on a board (the default board when `board` is null). */
+export function boardCardColumnId(board: ProjectBoard | null, thread: BoardThread): BoardColumnId {
+  return placeCard(board ?? DEFAULT_PROJECT_BOARD, thread).columnId;
+}
+
 /**
  * Lay threads out on a board (the default board when `board` is null).
  *
@@ -78,33 +116,12 @@ export function resolveBoardColumns<T extends BoardThread>(
   const buckets = new Map<BoardColumnId, SortableCard<T>[]>(
     layout.columns.map((column) => [column.id, []]),
   );
-  const resolveColumn = (columnId: BoardColumnId | null | undefined) =>
-    columnId == null ? null : resolveProjectBoardColumnId(layout, columnId);
-
   for (const thread of threads) {
-    const placement = thread.board ?? null;
-    const placedColumn = resolveColumn(placement?.columnId);
-    const placedNatively = placedColumn !== null && placedColumn === placement?.columnId;
-    let columnId: BoardColumnId;
-    let group: CardGroup = CardGroup.Unplaced;
-    if (thread.archivedAt !== null) {
-      columnId = layout.doneColumnId;
-      if (placedColumn === layout.doneColumnId) {
-        group = placedNatively ? CardGroup.Native : CardGroup.Retired;
-      }
-    } else if (placedColumn === layout.doneColumnId) {
-      columnId = resolveColumn(placement?.returnColumnId) ?? layout.inboxColumnId;
-      if (columnId === layout.doneColumnId) columnId = layout.inboxColumnId;
-    } else if (placedColumn !== null) {
-      columnId = placedColumn;
-      group = placedNatively ? CardGroup.Native : CardGroup.Retired;
-    } else {
-      columnId = layout.inboxColumnId;
-    }
+    const { columnId, group } = placeCard(layout, thread);
     buckets.get(columnId)?.push({
       thread,
       group,
-      orderKey: group === CardGroup.Unplaced ? null : placement!.orderKey,
+      orderKey: group === CardGroup.Unplaced ? null : thread.board!.orderKey,
       createdAtMs: epochMillis(thread.createdAt),
     });
   }
@@ -115,6 +132,56 @@ export function resolveBoardColumns<T extends BoardThread>(
       .sort(compareCards)
       .map(({ thread, orderKey }) => ({ thread, orderKey })),
   }));
+}
+
+// ── Column automations ──────────────────────────────────────────────────
+
+/**
+ * The prompt steps a card moving from `fromColumnId` to `toColumnId` runs:
+ * the old column's leave steps, then the new column's enter steps. A card
+ * moved into Done runs nothing, since Done archives it.
+ */
+export function boardAutomationSteps(
+  board: ProjectBoard | null,
+  fromColumnId: BoardColumnId,
+  toColumnId: BoardColumnId,
+): ReadonlyArray<BoardAutomationStep> {
+  const layout = board ?? DEFAULT_PROJECT_BOARD;
+  const from = resolveProjectBoardColumnId(layout, fromColumnId);
+  const to = resolveProjectBoardColumnId(layout, toColumnId);
+  if (from === to || to === null || to === layout.doneColumnId) return [];
+  const columnOf = (id: BoardColumnId | null) =>
+    id === null ? undefined : layout.columns.find((column) => column.id === id);
+  return [...(columnOf(from)?.onLeave ?? []), ...(columnOf(to)?.onEnter ?? [])];
+}
+
+export const BOARD_AUTOMATION_BANKED = "{banked}";
+
+/** What `{card}`, `{branch}`, `{column}`, and `{from}` stand for in a step's prompt. */
+export interface BoardAutomationPromptValues {
+  readonly card: string;
+  readonly branch: string | null;
+  readonly column: string;
+  readonly from: string;
+}
+
+/** Fills a step's placeholders; `banked` replaces `{banked}` when given. Unknown braces stay. */
+export function renderBoardAutomationPrompt(
+  prompt: string,
+  values: BoardAutomationPromptValues,
+  banked?: string,
+): string {
+  const replacements: Record<string, string | undefined> = {
+    card: values.card,
+    branch: values.branch ?? "this card's branch",
+    column: values.column,
+    from: values.from,
+    banked,
+  };
+  return prompt.replace(
+    /\{(card|branch|column|from|banked)\}/g,
+    (match, key: string) => replacements[key] ?? match,
+  );
 }
 
 /** The live column's top unarchived thread, or null when the board has no live column. */

@@ -1,4 +1,5 @@
 import {
+  type BoardAutomationStep,
   type BoardColumnId,
   DEFAULT_PROJECT_BOARD,
   PROJECT_BOARD_COLUMN_TITLE_MAX_LENGTH,
@@ -219,6 +220,66 @@ export function setBoardColumnFlag(
     case "done":
       return { ...board, doneColumnId: columnId };
   }
+}
+
+/** What the column settings dialog edits: a column's name, built-in behaviours, and steps. */
+export interface BoardColumnSettings {
+  readonly title: string;
+  /** The top card runs its dev server in the live preview. */
+  readonly live: boolean;
+  /** Arriving cards send their banked messages. */
+  readonly send: boolean;
+  readonly onEnter: ReadonlyArray<BoardAutomationStep>;
+  readonly onLeave: ReadonlyArray<BoardAutomationStep>;
+}
+
+export function boardColumnSettings(
+  board: ProjectBoard,
+  columnId: BoardColumnId,
+): BoardColumnSettings | null {
+  const column = board.columns.find((entry) => entry.id === columnId);
+  if (column === undefined) return null;
+  return {
+    title: column.title,
+    live: board.liveColumnId === columnId,
+    send: board.sendColumnId === columnId,
+    onEnter: column.onEnter ?? [],
+    onLeave: column.onLeave ?? [],
+  };
+}
+
+/**
+ * Applies a column's settings. Turning live preview or sending on takes it
+ * from whichever column had it; Done keeps neither, and no steps, since it
+ * archives its cards. Null when the name is empty or the column is gone.
+ */
+export function applyBoardColumnSettings(
+  board: ProjectBoard,
+  columnId: BoardColumnId,
+  settings: BoardColumnSettings,
+): ProjectBoard | null {
+  const title = normalizeBoardColumnTitle(settings.title);
+  if (title === null || !board.columns.some((column) => column.id === columnId)) return null;
+  const isDone = columnId === board.doneColumnId;
+  const flag = (enabled: boolean, current: BoardColumnId | null | undefined) =>
+    enabled && !isDone ? columnId : current === columnId ? null : (current ?? null);
+  const onEnter = isDone ? [] : settings.onEnter;
+  const onLeave = isDone ? [] : settings.onLeave;
+  return {
+    ...board,
+    liveColumnId: flag(settings.live, board.liveColumnId),
+    sendColumnId: flag(settings.send, board.sendColumnId),
+    columns: board.columns.map((column) =>
+      column.id === columnId
+        ? {
+            id: column.id,
+            title,
+            ...(onEnter.length > 0 ? { onEnter } : {}),
+            ...(onLeave.length > 0 ? { onLeave } : {}),
+          }
+        : column,
+    ),
+  };
 }
 
 export type BoardColumnDeleteBlocker = "done" | "inbox" | "live" | "min-columns";

@@ -40,7 +40,7 @@ const Placement = Schema.Struct({
 const BoardReadTool = Tool.make("supaterm_board_read", {
   ...shared,
   description:
-    "Read a project's board: its columns left to right, each with its cards top to bottom. Each card is one thread. Flags: inbox (new cards land here), live (the top card's dev server runs in the live preview), send (moving a card here sends its banked messages), done (moving a card here archives it). Omit projectId for this thread's project.",
+    "Read a project's board: its columns left to right, each with its cards top to bottom. Each card is one thread. Flags: inbox (new cards land here), live (the top card's dev server runs in the live preview), send (moving a card here sends its banked messages), done (moving a card here archives it). onEnter and onLeave name the column's automations: prompts sent to a card's own agent a few seconds after it moves in or out. Omit projectId for this thread's project.",
   parameters: Schema.Struct({
     projectId: Schema.optional(ProjectId),
     limit: Schema.optional(
@@ -57,6 +57,8 @@ const BoardReadTool = Tool.make("supaterm_board_read", {
         live: Schema.Boolean,
         send: Schema.Boolean,
         done: Schema.Boolean,
+        onEnter: Schema.Array(Schema.String),
+        onLeave: Schema.Array(Schema.String),
         cardCount: NonNegativeInt,
         cards: Schema.Array(
           Schema.Struct({ threadId: ThreadId, title: Schema.String, archived: Schema.Boolean }),
@@ -73,7 +75,7 @@ const BoardReadTool = Tool.make("supaterm_board_read", {
 const BoardMoveCardTool = Tool.make("supaterm_board_move_card", {
   ...shared,
   description:
-    "Move a card on its project's board, as the designer's drag does. Moving it to the done column archives its thread, which fails while that thread is working; moving it out of done unarchives it. Moving it to the send column sends its banked messages. Moving it out of the live column stops its dev server, and the top card of the live column is the one the live preview runs. Omit threadId for this thread's own card. Column ids come from supaterm_board_read.",
+    "Move a card on its project's board, as the designer's drag does. Moving it to the done column archives its thread, which fails while that thread is working; moving it out of done unarchives it. Moving it to the send column sends its banked messages. Moving it out of the live column stops its dev server, and the top card of the live column is the one the live preview runs. Moving it in or out of a column with automations (onEnter, onLeave) sends those prompts to the card's agent after a few seconds, so only make moves the designer asked for. Omit threadId for this thread's own card. Column ids come from supaterm_board_read.",
   parameters: Schema.Struct({
     threadId: Schema.optional(ThreadId),
     columnId: BoardColumnId,

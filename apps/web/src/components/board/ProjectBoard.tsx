@@ -16,10 +16,12 @@ import {
 } from "@supaterm/client-runtime/state/shell";
 import {
   AuthOrchestrationOperateScope,
+  BOARD_AUTOMATION_DELAY_MS,
   type BoardColumnId,
   BoardColumnId as BoardColumnIdSchema,
   type EnvironmentId,
   type ProjectBoard as ProjectBoardLayout,
+  PROJECT_BOARD_MAX_COLUMNS,
   type ProjectBoardFlag,
   type ProjectId,
   type ScopedProjectRef,
@@ -99,10 +101,14 @@ import { SummaryDialog } from "../progress/SummaryDialog";
 import { threadProgress } from "../../state/threadProgress";
 import { BoardCardOverlay, type BoardCardHandlers } from "./BoardCard";
 import { BoardColumn } from "./BoardColumn";
+import { useBoardAutomationsSupported, useProjectBoardAutomations } from "./boardAutomationState";
+import { ColumnSettingsDialog } from "./ColumnSettingsDialog";
 import { NewBoardCard } from "./NewBoardCard";
 import { useCreateBoardCard } from "./useCreateBoardCard";
 import {
   addBoardColumn,
+  applyBoardColumnSettings,
+  type BoardColumnSettings,
   boardCardFromText,
   type BoardFocusKey,
   type BoardLayout,
@@ -123,6 +129,7 @@ import { readBoardView, useBoardViewField, useBoardViewStore } from "./boardView
 import { useProjectLiveEnvironments } from "./liveEnvironmentState";
 import { useProjectThreadBanks } from "../chat/threadBankState";
 import { threadBank } from "../../state/threadBank";
+import { boardAutomation } from "../../state/boardAutomation";
 
 const route = getRouteApi("/_chat/board/$environmentId/$projectId");
 
@@ -367,6 +374,9 @@ function ProjectBoardView({
     [threadBanks],
   );
   const sendThreadBank = useAtomCommand(threadBank.send, { reportFailure: false });
+  const automationsSupported = useBoardAutomationsSupported(projectRef.environmentId);
+  const automations = useProjectBoardAutomations(projectRef.environmentId, projectRef.projectId);
+  const cancelAutomation = useAtomCommand(boardAutomation.cancel, { reportFailure: false });
   const progressSupported = useThreadProgressSupported(projectRef.environmentId);
   const progressByThread = useProjectThreadProgress(projectRef.environmentId, projectRef.projectId);
   const captureProgress = useAtomCommand(threadProgress.capture);
@@ -387,6 +397,10 @@ function ProjectBoardView({
     boardEdit !== null && boardEdit.base === serverBoard ? boardEdit.board : serverBoard;
   const board = boardOrDefault(storedBoard);
   const [renamingColumnId, setRenamingColumnId] = useState<BoardColumnId | null>(null);
+  /** The column whose settings are open; a null id is a column being added. */
+  const [settingsColumn, setSettingsColumn] = useState<{
+    readonly columnId: BoardColumnId | null;
+  } | null>(null);
 
   const commitBoard = useCallback(
     async (next: ProjectBoardLayout | null) => {
@@ -999,6 +1013,7 @@ function ProjectBoardView({
       const isSend = board.sendColumnId === columnId;
       const clicked = await api.contextMenu.show(
         [
+          { id: "settings", label: "Column settings…" },
           { id: "rename", label: "Rename" },
           { id: "left", label: "Move left", disabled: index <= 0, separatorBefore: true },
           { id: "right", label: "Move right", disabled: index >= board.columns.length - 1 },
@@ -1028,6 +1043,9 @@ function ProjectBoardView({
         position,
       );
       switch (clicked) {
+        case "settings":
+          setSettingsColumn({ columnId });
+          return;
         case "rename":
           setRenamingColumnId(columnId);
           return;
@@ -1069,15 +1087,62 @@ function ProjectBoardView({
   );
 
   const addColumn = () => {
-    const id = BoardColumnIdSchema.make(`col-${randomUUID().slice(0, 8)}`);
-    const next = addBoardColumn(board, { id, title: "New column" });
-    if (next === null) {
+    if (board.columns.length >= PROJECT_BOARD_MAX_COLUMNS) {
       infoToast("Can't add a column", "A board holds at most 20 columns.");
       return;
     }
-    void commitBoard(next);
-    setRenamingColumnId(id);
+    setSettingsColumn({ columnId: null });
   };
+
+  const saveColumnSettings = (columnId: BoardColumnId | null, settings: BoardColumnSettings) => {
+    setSettingsColumn(null);
+    if (columnId !== null) {
+      void commitBoard(applyBoardColumnSettings(board, columnId, settings));
+      return;
+    }
+    const id = BoardColumnIdSchema.make(`col-${randomUUID().slice(0, 8)}`);
+    const added = addBoardColumn(board, { id, title: settings.title });
+    void commitBoard(added === null ? null : applyBoardColumnSettings(added, id, settings));
+  };
+
+  // ── Column automations: a toast to cancel each one as it starts waiting ──
+  const automationToastsRef = useRef<Map<string, { at: string; toastId: string }> | null>(null);
+  useEffect(() => {
+    const first = automationToastsRef.current === null;
+    const shown = (automationToastsRef.current ??= new Map());
+    for (const [threadId, entry] of shown) {
+      const run = automations.get(threadId);
+      if (run?.status !== "scheduled" || run.at !== entry.at) {
+        toastManager.close(entry.toastId);
+        shown.delete(threadId);
+      }
+    }
+    for (const run of automations.values()) {
+      if (run.status !== "scheduled" || shown.get(run.threadId)?.at === run.at) continue;
+      // Runs already waiting when the board opened were someone else's move.
+      if (first) continue;
+      const card = threadById.get(run.threadId);
+      const column = board.columns.find((entry) => entry.id === run.toColumnId);
+      const toastId = toastManager.add({
+        type: "info",
+        title: `${run.stepNames.join(", ")} in ${Math.round(BOARD_AUTOMATION_DELAY_MS / 1000)}s`,
+        description:
+          card && column ? `${card.title} moved to ${column.title}.` : "A card moved on the board.",
+        timeout: BOARD_AUTOMATION_DELAY_MS,
+        actionProps: {
+          children: "Cancel",
+          onClick: () => {
+            toastManager.close(toastId);
+            void cancelAutomation({
+              environmentId: projectRef.environmentId,
+              input: { threadId: run.threadId },
+            });
+          },
+        },
+      });
+      shown.set(run.threadId, { at: run.at, toastId });
+    }
+  }, [automations, board.columns, cancelAutomation, projectRef.environmentId, threadById]);
 
   // ── Scroll memory ──
   const onListScroll = useCallback(
@@ -1185,6 +1250,7 @@ function ProjectBoardView({
                 isDone ? (archiveCountKnown ? String(doneCount) : "") : String(cards.length)
               }
               liveEnvironments={liveEnvironments}
+              automations={automations}
               bankedCounts={bankedCounts}
               progressByThread={progressByThread}
               tabbableCardId={tabbableCardId}
@@ -1273,6 +1339,17 @@ function ProjectBoardView({
             if (!open) setViewingProgressId(null);
           }}
           onReplied={() => onPeek(viewingThread.id)}
+        />
+      ) : null}
+      {settingsColumn ? (
+        <ColumnSettingsDialog
+          environmentId={projectRef.environmentId}
+          project={project}
+          board={board}
+          columnId={settingsColumn.columnId}
+          automationsSupported={automationsSupported}
+          onSave={(settings) => saveColumnSettings(settingsColumn.columnId, settings)}
+          onClose={() => setSettingsColumn(null)}
         />
       ) : null}
       {editingThread ? (

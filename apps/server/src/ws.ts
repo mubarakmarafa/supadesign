@@ -100,6 +100,7 @@ import {
   type TerminalEvent,
   type LiveEnvironmentList,
   type ThreadBankList,
+  type BoardAutomationRunList,
   type ThreadProgressList,
   type TerminalMetadataStreamEvent,
   type PullRequestRef,
@@ -189,6 +190,7 @@ import { remoteSshDeviceHosts } from "./device/localSshDeviceHost.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as LiveEnvironment from "./liveEnvironment/LiveEnvironmentService.ts";
 import * as ThreadBank from "./threadBank/ThreadBankService.ts";
+import * as BoardAutomation from "./boardAutomation/BoardAutomationService.ts";
 import * as ThreadProgress from "./threadProgress/ThreadProgressService.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import { issueAssetUrl } from "./assets/AssetAccess.ts";
@@ -1316,6 +1318,7 @@ const layerWsRpc = (
       const previewManager = yield* PreviewManager.PreviewManager;
       const liveEnvironments = yield* LiveEnvironment.LiveEnvironmentService;
       const threadBanks = yield* ThreadBank.ThreadBankService;
+      const boardAutomations = yield* BoardAutomation.BoardAutomationService;
       const threadProgress = yield* ThreadProgress.ThreadProgressService;
       const projectSummary = yield* ProjectSummary.ProjectSummary;
       const portDiscovery = yield* PortScanner.PortDiscovery;
@@ -2947,6 +2950,15 @@ const layerWsRpc = (
           Stream.callback<ThreadBankList>((queue) =>
             Effect.acquireRelease(
               threadBanks.subscribe(input.projectId, (list) => Queue.offer(queue, list)),
+              (unsubscribe) => Effect.sync(unsubscribe),
+            ),
+          ),
+        [WS_METHODS.boardAutomationCancel]: (input) => boardAutomations.cancel(input.threadId),
+        [WS_METHODS.boardAutomationRunNow]: (input) => boardAutomations.runNow(input.threadId),
+        [WS_METHODS.subscribeBoardAutomations]: (input) =>
+          Stream.callback<BoardAutomationRunList>((queue) =>
+            Effect.acquireRelease(
+              boardAutomations.subscribe(input.projectId, (list) => Queue.offer(queue, list)),
               (unsubscribe) => Effect.sync(unsubscribe),
             ),
           ),

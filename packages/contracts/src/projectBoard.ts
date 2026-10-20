@@ -1,6 +1,7 @@
 import * as Schema from "effect/Schema";
 
 import { ProjectId, TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { ModelSelection } from "./modelSelection.ts";
 
 /** Stable id of one board column; titles can change, ids never do. */
 export const BoardColumnId = TrimmedNonEmptyString.pipe(Schema.brand("BoardColumnId"));
@@ -10,9 +11,42 @@ export const PROJECT_BOARD_MIN_COLUMNS = 2;
 export const PROJECT_BOARD_MAX_COLUMNS = 20;
 export const PROJECT_BOARD_COLUMN_TITLE_MAX_LENGTH = 60;
 
+export const BoardAutomationStepId = TrimmedNonEmptyString.pipe(
+  Schema.brand("BoardAutomationStepId"),
+);
+export type BoardAutomationStepId = typeof BoardAutomationStepId.Type;
+
+export const BOARD_AUTOMATION_MAX_STEPS = 3;
+export const BOARD_AUTOMATION_NAME_MAX_LENGTH = 60;
+export const BOARD_AUTOMATION_PROMPT_MAX_LENGTH = 8_000;
+/** How long a move waits before its prompts are sent, so a slip can be cancelled. */
+export const BOARD_AUTOMATION_DELAY_MS = 5_000;
+
+/**
+ * A prompt a column sends to a card's own thread when the card arrives or
+ * leaves. `{card}`, `{branch}`, `{column}`, `{from}`, and `{banked}` are
+ * filled in when it is sent; `{banked}` takes the card's banked messages.
+ */
+export const BoardAutomationStep = Schema.Struct({
+  id: BoardAutomationStepId,
+  name: TrimmedNonEmptyString.check(Schema.isMaxLength(BOARD_AUTOMATION_NAME_MAX_LENGTH)),
+  prompt: TrimmedNonEmptyString.check(Schema.isMaxLength(BOARD_AUTOMATION_PROMPT_MAX_LENGTH)),
+  /** Absent: the card's own model. */
+  modelSelection: Schema.optional(ModelSelection),
+});
+export type BoardAutomationStep = typeof BoardAutomationStep.Type;
+
+const BoardAutomationSteps = Schema.Array(BoardAutomationStep).check(
+  Schema.isMaxLength(BOARD_AUTOMATION_MAX_STEPS),
+);
+
 export const ProjectBoardColumn = Schema.Struct({
   id: BoardColumnId,
   title: TrimmedNonEmptyString.check(Schema.isMaxLength(PROJECT_BOARD_COLUMN_TITLE_MAX_LENGTH)),
+  /** Sent, in order, when a card moves into this column. */
+  onEnter: Schema.optional(BoardAutomationSteps),
+  /** Sent, in order, when a card moves out of this column. */
+  onLeave: Schema.optional(BoardAutomationSteps),
 });
 export type ProjectBoardColumn = typeof ProjectBoardColumn.Type;
 
@@ -82,6 +116,8 @@ export type ProjectBoardIssue =
       readonly columnId: BoardColumnId;
     }
   | { readonly code: "done-column-conflict"; readonly flag: "inbox" | "live" | "send" }
+  | { readonly code: "done-column-automation"; readonly columnId: BoardColumnId }
+  | { readonly code: "duplicate-step-id"; readonly columnId: BoardColumnId }
   | { readonly code: "retired-column-active"; readonly columnId: BoardColumnId }
   | { readonly code: "duplicate-retired-column"; readonly columnId: BoardColumnId }
   | { readonly code: "unresolved-retired-column"; readonly columnId: BoardColumnId };
@@ -138,6 +174,16 @@ export function validateProjectBoard(board: ProjectBoard): ReadonlyArray<Project
   }
   if (board.doneColumnId === board.sendColumnId) {
     issues.push({ code: "done-column-conflict", flag: "send" });
+  }
+  for (const column of board.columns) {
+    const steps = [...(column.onEnter ?? []), ...(column.onLeave ?? [])];
+    // Done archives its cards, and nothing runs on an archived card.
+    if (column.id === board.doneColumnId && steps.length > 0) {
+      issues.push({ code: "done-column-automation", columnId: column.id });
+    }
+    if (new Set(steps.map((step) => step.id)).size !== steps.length) {
+      issues.push({ code: "duplicate-step-id", columnId: column.id });
+    }
   }
   const retiredIds = new Set<BoardColumnId>();
   for (const entry of board.retiredColumns ?? []) {
