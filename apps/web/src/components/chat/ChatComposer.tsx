@@ -54,6 +54,7 @@ import {
   PROVIDER_WORKSPACE_SNAPSHOT_TTL_MS,
 } from "@supaterm/contracts";
 import type { EnvironmentConnectionPresentation } from "@supaterm/client-runtime/connection";
+import type { SpeedToggleLevel } from "@supaterm/client-runtime/provider-speed-toggle";
 import { settlePromise, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 import {
   isPasteAsTextShortcut,
@@ -320,6 +321,7 @@ import {
   getComposerPromptInjectionState,
   getComposerProviderState,
   getComposerReasoningStep,
+  getComposerSpeedToggleChange,
   renderProviderTraitsMenuContent,
   renderProviderTraitsPicker,
 } from "./composerProviderState";
@@ -1434,6 +1436,10 @@ export interface ChatComposerHandle {
   ) => boolean;
   openModelPicker: () => void;
   stepReasoningEffort: (direction: 1 | -1) => void;
+  /** Flips Fast mode and returns the new level, or null when the model has no speed option. */
+  toggleFastMode: () => SpeedToggleLevel | null;
+  /** Sends the draft as the send button would; does nothing when sending isn't possible. */
+  submit: () => void;
   toggleModelPicker: () => void;
   openControl: (command: KeybindingCommand) => void;
   isModelPickerOpen: () => boolean;
@@ -6126,6 +6132,26 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           });
         }
       },
+      toggleFastMode: () => {
+        if (noProviderAvailable || isEditingQueuedMessage) return null;
+        const change = getComposerSpeedToggleChange({
+          provider: selectedProvider,
+          models: selectedProviderModels,
+          model: selectedModel,
+          prompt: promptRef.current,
+          modelOptions: composerModelOptions?.[selectedInstanceId],
+        });
+        if (!change) return null;
+        useComposerDraftStore
+          .getState()
+          .setProviderModelOptions(composerDraftTarget, selectedProvider, change.modelOptions, {
+            instanceId: selectedInstanceId,
+            model: selectedModel,
+            persistSticky: true,
+          });
+        return change.level;
+      },
+      submit: () => submitComposerStable(),
       toggleModelPicker: () => {
         if (isComposerModelPickerOpen) {
           setIsComposerModelPickerOpen(false);

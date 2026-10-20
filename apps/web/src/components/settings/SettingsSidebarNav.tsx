@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 
+import { CodexMicroIcon } from "../codexMicro/CodexMicroIcon";
 import { Button } from "../ui/button";
 import { Kbd } from "../ui/kbd";
 import {
@@ -33,6 +34,7 @@ import { scrollToSettingsTarget } from "./settingsLayout";
 import {
   searchSettings,
   isSettingsOverviewVisible,
+  isSettingsSectionAvailable,
   SETTINGS_SECTION_LABELS,
   type SettingsPath,
   type SettingsSearchItem,
@@ -61,6 +63,7 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/projects": PanelsTopLeftIcon,
   "/settings/keybindings": KeyboardIcon,
   "/settings/snap-shot": SnapShotIcon,
+  "/settings/codex-micro": CodexMicroIcon,
   "/settings/providers": BotIcon,
   "/settings/integrations": BlocksIcon,
   "/settings/source-control": GitBranchIcon,
@@ -74,7 +77,7 @@ const SETTINGS_NAV_ITEMS: ReadonlyArray<{
   to: SettingsPath;
   icon: ComponentType<{ className?: string }>;
 }> = (Object.keys(SETTINGS_SECTION_LABELS) as SettingsPath[])
-  .filter((to) => to !== "/settings/diagnostics")
+  .filter((to) => to !== "/settings/diagnostics" && isSettingsSectionAvailable(to))
   .map((to) => ({
     to,
     label: SETTINGS_SECTION_LABELS[to],
