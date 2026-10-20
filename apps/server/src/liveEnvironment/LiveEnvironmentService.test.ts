@@ -40,6 +40,8 @@ const setup = (options?: {
   readonly dirtyWorktrees?: ReadonlyArray<string>;
   /** Cards that were live when the server last ran. */
   readonly restoredCards?: ReadonlyArray<ThreadId>;
+  /** Everything the server remembered when it last ran, in full. */
+  readonly restoredRecords?: ReadonlyArray<LiveEnvironment.LiveCardRecord>;
   /** How the card's checkout was found: made for the run, its own, or its own put back. */
   readonly workspace?: "created" | "own" | "restored";
 }) =>
@@ -50,6 +52,7 @@ const setup = (options?: {
     const exits = new Map<ThreadId, Deferred.Deferred<number | null>>();
     const launchedAgents = yield* Queue.unbounded<ThreadId>();
     const saved: Array<ReadonlyArray<ThreadId>> = [];
+    const savedRecords: Array<ReadonlyArray<LiveEnvironment.LiveCardRecord>> = [];
     let agentCount = 0;
     const ops: LiveEnvironment.LiveEnvironmentOps = {
       plan: () =>
@@ -114,12 +117,19 @@ const setup = (options?: {
         }),
       discardWorkspace: ({ worktreePath }) =>
         Effect.sync(() => void calls.push(`discard:${worktreePath}`)),
-      loadLiveCards: Effect.sync(() =>
-        (options?.restoredCards ?? []).map((threadId) => ({ projectId, threadId })),
-      ),
+      loadLiveCards: Effect.sync(() => [
+        ...(options?.restoredCards ?? []).map((threadId): LiveEnvironment.LiveCardRecord => ({
+          projectId,
+          threadId,
+          state: "live",
+          checkout: null,
+        })),
+        ...(options?.restoredRecords ?? []),
+      ]),
       saveLiveCards: (cards) =>
         Effect.sync(() => {
-          saved.push(cards.map((card) => card.threadId));
+          saved.push(cards.filter((card) => card.state === "live").map((card) => card.threadId));
+          savedRecords.push(cards);
         }),
     };
     const service = yield* LiveEnvironment.make(ops, { graceMs: Duration.toMillis(GRACE) });
@@ -156,7 +166,7 @@ const setup = (options?: {
     const find = (environments: ReadonlyArray<LiveEnvironmentSnapshot>, threadId: ThreadId) =>
       environments.find((environment) => environment.threadId === threadId);
 
-    return { service, calls, exits, saved, waitFor, find };
+    return { service, calls, exits, saved, savedRecords, waitFor, find };
   });
 
 it.effect("prepares, sets up, and serves the live card", () =>
@@ -415,5 +425,134 @@ it.effect("remembers each project's live card for the next start", () =>
 
     yield* service.stop(cardA);
     assert.deepStrictEqual(saved.at(-1), []);
+  }).pipe(Effect.scoped),
+);
+
+const otherProjectId = ProjectId.make("project-2");
+const cardC = ThreadId.make("thread-c");
+const checkoutOf = (threadId: ThreadId) => ({
+  worktreePath: `/worktrees/${threadId}`,
+  projectRoot: "/repo",
+});
+
+it.effect("another project's card waiting for Start is still remembered after a change here", () =>
+  Effect.gen(function* () {
+    const { service, savedRecords, waitFor, find } = yield* setup({
+      restoredRecords: [
+        { projectId: otherProjectId, threadId: cardC, state: "live", checkout: null },
+      ],
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    const remembered = savedRecords.at(-1) ?? [];
+    assert.deepStrictEqual(
+      remembered.map((card) => [card.threadId, card.state]),
+      [
+        [cardC, "live"],
+        [cardA, "live"],
+      ],
+    );
+  }).pipe(Effect.scoped),
+);
+
+it.effect("a kept checkout stays on its card when the card is stopped or moved", () =>
+  Effect.gen(function* () {
+    const { service, calls, waitFor, find } = yield* setup({
+      dirtyWorktrees: ["/worktrees/thread-a"],
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    yield* service.stop(cardA);
+    assert.strictEqual(find(yield* service.list(projectId), cardA)?.status, "kept");
+
+    // Leaving the live column stops the card again; its changes must stay findable.
+    yield* service.stop(cardA);
+    const kept = find(yield* service.list(projectId), cardA);
+    assert.strictEqual(kept?.status, "kept");
+    assert.strictEqual(kept?.worktreePath, "/worktrees/thread-a");
+    assert.notInclude(calls, "discard:/worktrees/thread-a");
+  }).pipe(Effect.scoped),
+);
+
+it.effect("starting a kept card that isn't live makes it the one live card", () =>
+  Effect.gen(function* () {
+    const { service, waitFor, find } = yield* setup({
+      dirtyWorktrees: ["/worktrees/thread-a"],
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    yield* service.activate({ projectId, threadId: cardB });
+    yield* waitFor((list) => find(list, cardB)?.status === "ready");
+    yield* service.stop(cardA);
+    assert.strictEqual(find(yield* service.list(projectId), cardA)?.status, "kept");
+
+    yield* service.retry(cardA);
+    const started = yield* waitFor(
+      (list) => find(list, cardA)?.status === "ready" && find(list, cardA)?.active === true,
+    );
+    // The card it replaced goes warm instead of running beside it untracked.
+    assert.strictEqual(find(started, cardB)?.active, false);
+    assert.strictEqual(typeof find(started, cardB)?.warmUntil, "number");
+  }).pipe(Effect.scoped),
+);
+
+it.effect("a restart still cleans up the checkouts it made, and keeps changed ones", () =>
+  Effect.gen(function* () {
+    const { service, calls, savedRecords, waitFor, find } = yield* setup({
+      dirtyWorktrees: ["/worktrees/thread-c"],
+      restoredRecords: [
+        { projectId, threadId: cardA, state: "live", checkout: checkoutOf(cardA) },
+        { projectId, threadId: cardB, state: "warm", checkout: checkoutOf(cardB) },
+        { projectId, threadId: cardC, state: "kept", checkout: checkoutOf(cardC) },
+      ],
+    });
+    // A card that was only warm has nothing to wait for, so its clean checkout goes now.
+    const afterStart = yield* waitFor((list) => find(list, cardB) === undefined);
+    assert.include(calls, "remove:/worktrees/thread-b");
+    assert.strictEqual(find(afterStart, cardA)?.status, "stopped");
+    assert.strictEqual(find(afterStart, cardC)?.status, "kept");
+    assert.strictEqual(find(afterStart, cardC)?.worktreePath, "/worktrees/thread-c");
+
+    // Another card going live ends the wait; the checkout made for the old one goes with it.
+    const cardD = ThreadId.make("thread-d");
+    yield* service.activate({ projectId, threadId: cardD });
+    yield* waitFor((list) => find(list, cardA) === undefined);
+    assert.include(calls, "remove:/worktrees/thread-a");
+    yield* waitFor((list) => find(list, cardD)?.status === "ready");
+    assert.deepStrictEqual(
+      (savedRecords.at(-1) ?? []).map((card) => [card.threadId, card.state]),
+      [
+        [cardC, "kept"],
+        [cardD, "live"],
+      ],
+    );
+  }).pipe(Effect.scoped),
+);
+
+it.effect("Start after a restart reuses the checkout the card had", () =>
+  Effect.gen(function* () {
+    const { service, calls, waitFor, find } = yield* setup({
+      restoredRecords: [{ projectId, threadId: cardA, state: "live", checkout: checkoutOf(cardA) }],
+    });
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* service.retry(cardA);
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+    assert.notInclude(calls, "remove:/worktrees/thread-a");
+    assert.include(calls, "start:thread-a:npm run dev");
+  }).pipe(Effect.scoped),
+);
+
+it.effect("an agent's start runs a card that waits since a restart or failed", () =>
+  Effect.gen(function* () {
+    const { service, exits, waitFor, find } = yield* setup({ restoredCards: [cardA] });
+    // The board already asked for this card, which only marks it live.
+    yield* service.activate({ projectId, threadId: cardA });
+    yield* service.start({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
+
+    yield* exitServer(exits, 1);
+    yield* waitFor((list) => find(list, cardA)?.status === "failed");
+    yield* service.start({ projectId, threadId: cardA });
+    yield* waitFor((list) => find(list, cardA)?.status === "ready");
   }).pipe(Effect.scoped),
 );

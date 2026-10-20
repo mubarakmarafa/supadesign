@@ -59,7 +59,7 @@ export const layer = McpToolAccess.toLayer(LiveEnvironmentToolkit, {
   supaterm_live_environment_start: McpToolAccess.actsAsCaller(() =>
     Effect.gen(function* () {
       const { projectId, threadId, service } = yield* access;
-      yield* service.activate({ projectId, threadId });
+      yield* service.start({ projectId, threadId });
       return {};
     }),
   ),

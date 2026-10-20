@@ -263,12 +263,14 @@ between cards doesn't restart their servers. **Stop now** ends it early. Moving
 a card out of the column, or archiving it anywhere, stops it right away and
 removes a worktree created for it. Servers the card's agent started itself in
 the card's worktree stop with it, unless the agent is still working. A worktree
-with changes is kept instead: the card says so, and **Discard changes** removes
-it. If a card's worktree folder was deleted, going live checks its branch out
-there again.
+with changes is kept instead, even across a restart: the card says so,
+**Start** makes it the live card again with its changes, and **Discard changes**
+removes it. If a card's worktree folder was deleted, going live checks its
+branch out there again; when the branch is gone too, the card says so.
 
 After Supadesign restarts, the card that was live shows **Stopped** rather than
-starting by itself; **Start** runs it again.
+starting by itself; **Start**, on the card or in its thread's header, runs it
+again.
 
 The first time a project goes live, Supadesign works out how to start it in the
 card's own checkout. When the project's scripts make it clear, including an app
