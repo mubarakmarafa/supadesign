@@ -187,6 +187,16 @@ import {
   ThreadSummarySetInput,
 } from "./threadProgress.ts";
 import {
+  ThreadBriefError,
+  ThreadBriefList,
+  ThreadBriefProjectInput,
+  ThreadBriefSetInput,
+  ThreadBriefThreadInput,
+  ThreadDecisionAcceptInput,
+  ThreadDecisionAddInput,
+  ThreadDecisionEntryInput,
+} from "./threadBrief.ts";
+import {
   OrchestrationSearchThreadsError,
   OrchestrationSearchThreadsInput,
   OrchestrationSearchThreadsResult,
@@ -486,6 +496,15 @@ export const WS_METHODS = {
   threadProgressRemove: "threadProgress.remove",
   threadSummarySet: "threadProgress.setSummary",
   subscribeThreadProgress: "subscribeThreadProgress",
+
+  // Card brief and decisions
+  threadBriefSet: "threadBrief.set",
+  threadBriefSeed: "threadBrief.seed",
+  threadDecisionAdd: "threadBrief.addDecision",
+  threadDecisionAccept: "threadBrief.acceptDecision",
+  threadDecisionReject: "threadBrief.rejectDecision",
+  threadDecisionRestore: "threadBrief.restoreDecision",
+  subscribeThreadBriefs: "subscribeThreadBriefs",
 
   // Projects grid
   projectsSummary: "projects.summary",
@@ -1719,6 +1738,43 @@ const WsSubscribeThreadProgressRpc = Rpc.make(WS_METHODS.subscribeThreadProgress
   stream: true,
 });
 
+const WsThreadBriefSetRpc = Rpc.make(WS_METHODS.threadBriefSet, {
+  payload: ThreadBriefSetInput,
+  error: Schema.Union([ThreadBriefError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadBriefSeedRpc = Rpc.make(WS_METHODS.threadBriefSeed, {
+  payload: ThreadBriefThreadInput,
+  error: Schema.Union([ThreadBriefError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadDecisionAddRpc = Rpc.make(WS_METHODS.threadDecisionAdd, {
+  payload: ThreadDecisionAddInput,
+  error: Schema.Union([ThreadBriefError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadDecisionAcceptRpc = Rpc.make(WS_METHODS.threadDecisionAccept, {
+  payload: ThreadDecisionAcceptInput,
+  error: Schema.Union([ThreadBriefError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadDecisionRejectRpc = Rpc.make(WS_METHODS.threadDecisionReject, {
+  payload: ThreadDecisionEntryInput,
+  error: Schema.Union([ThreadBriefError, EnvironmentAuthorizationError]),
+});
+
+const WsThreadDecisionRestoreRpc = Rpc.make(WS_METHODS.threadDecisionRestore, {
+  payload: ThreadDecisionEntryInput,
+  error: Schema.Union([ThreadBriefError, EnvironmentAuthorizationError]),
+});
+
+const WsSubscribeThreadBriefsRpc = Rpc.make(WS_METHODS.subscribeThreadBriefs, {
+  payload: ThreadBriefProjectInput,
+  success: ThreadBriefList,
+  error: EnvironmentAuthorizationError,
+  stream: true,
+});
+
 const WsSubscribeDiscoveredLocalServersRpc = Rpc.make(WS_METHODS.subscribeDiscoveredLocalServers, {
   payload: Schema.Struct({
     configuredUrls: Schema.optional(ConfiguredLocalServerUrls),
@@ -2246,6 +2302,13 @@ export const WsBoardRpcGroup = RpcGroup.make(
   WsThreadProgressRemoveRpc,
   WsThreadSummarySetRpc,
   WsSubscribeThreadProgressRpc,
+  WsThreadBriefSetRpc,
+  WsThreadBriefSeedRpc,
+  WsThreadDecisionAddRpc,
+  WsThreadDecisionAcceptRpc,
+  WsThreadDecisionRejectRpc,
+  WsThreadDecisionRestoreRpc,
+  WsSubscribeThreadBriefsRpc,
   WsProjectsSummaryRpc,
 );
 

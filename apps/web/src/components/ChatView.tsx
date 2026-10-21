@@ -450,6 +450,7 @@ import {
   resolveScrollToEndClearance,
 } from "./composerFooterLayout";
 import { ChatHeader } from "./chat/ChatHeader";
+import { ThreadBriefPanel } from "./brief/ThreadBriefPanel";
 import { useBackToProjectBoard, useProjectHasBoard } from "./board/boardNavigation";
 import { useRemoteOpenState } from "~/remoteOpen";
 import { shouldShowOpenInPicker } from "./chat/OpenInPicker.logic";
@@ -10841,6 +10842,18 @@ export default function ChatView(props: ChatViewProps) {
                 />
               </TooltipProvider>
             </header>
+            {/* A card's brief and decisions; the board agent's own thread is not a card. */}
+            {isServerThread &&
+            activeProject &&
+            activeProjectHasBoard &&
+            activeProject.workspace?.boardAgentThreadId !== activeThread.id ? (
+              <ThreadBriefPanel
+                key={`${activeThread.environmentId}:${activeThread.id}`}
+                environmentId={activeThread.environmentId}
+                threadId={activeThread.id}
+                projectId={activeProject.id}
+              />
+            ) : null}
 
             {/* Main content area with optional plan sidebar */}
             <div className="relative flex min-h-0 min-w-0 flex-1">
