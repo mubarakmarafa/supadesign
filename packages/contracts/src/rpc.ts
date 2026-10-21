@@ -2021,7 +2021,11 @@ export class RpcScopeAuthorization extends RpcMiddleware.Service<RpcScopeAuthori
   { error: EnvironmentAuthorizationError },
 ) {}
 
-export const WsRpcGroup = RpcGroup.make(
+/**
+ * The upstream RPCs. Their server handlers are one map in `apps/server/src/ws.ts`;
+ * Supadesign's own RPCs go in `WsBoardRpcGroup` instead.
+ */
+export const WsCoreRpcGroup = RpcGroup.make(
   WsServerProbeRpc,
   WsServerGetConfigRpc,
   WsServerRefreshProvidersRpc,
@@ -2153,26 +2157,6 @@ export const WsRpcGroup = RpcGroup.make(
   WsGitRunStackedActionRpc,
   WsGitResolvePullRequestRpc,
   WsGitPreparePullRequestThreadRpc,
-  WsLiveEnvironmentActivateRpc,
-  WsLiveEnvironmentStopRpc,
-  WsLiveEnvironmentRetryRpc,
-  WsLiveEnvironmentDiscardRpc,
-  WsLiveEnvironmentSaveDevScriptRpc,
-  WsSubscribeLiveEnvironmentsRpc,
-  WsThreadBankAddRpc,
-  WsThreadBankUpdateRpc,
-  WsThreadBankRemoveRpc,
-  WsThreadBankReorderRpc,
-  WsThreadBankSendRpc,
-  WsSubscribeThreadBanksRpc,
-  WsBoardAutomationCancelRpc,
-  WsBoardAutomationRunNowRpc,
-  WsSubscribeBoardAutomationsRpc,
-  WsThreadProgressCaptureRpc,
-  WsThreadProgressRemoveRpc,
-  WsThreadSummarySetRpc,
-  WsSubscribeThreadProgressRpc,
-  WsProjectsSummaryRpc,
   WsVcsListRefsRpc,
   WsVcsCreateWorktreeRpc,
   WsVcsRemoveWorktreeRpc,
@@ -2234,4 +2218,36 @@ export const WsRpcGroup = RpcGroup.make(
   WsOrchestrationV2SubscribeArchivedShellRpc,
   WsOrchestrationV2SubscribeShellRpc,
   WsOrchestrationV2SubscribeThreadRpc,
-).middleware(RpcScopeAuthorization);
+);
+
+/**
+ * Supadesign's board RPCs: live environments, thread banks, column automations,
+ * card progress, and the projects grid. They have their own server handler layer
+ * because one handler map for every RPC sits at TypeScript's instantiation-depth
+ * limit; new domains get their own group the same way.
+ */
+export const WsBoardRpcGroup = RpcGroup.make(
+  WsLiveEnvironmentActivateRpc,
+  WsLiveEnvironmentStopRpc,
+  WsLiveEnvironmentRetryRpc,
+  WsLiveEnvironmentDiscardRpc,
+  WsLiveEnvironmentSaveDevScriptRpc,
+  WsSubscribeLiveEnvironmentsRpc,
+  WsThreadBankAddRpc,
+  WsThreadBankUpdateRpc,
+  WsThreadBankRemoveRpc,
+  WsThreadBankReorderRpc,
+  WsThreadBankSendRpc,
+  WsSubscribeThreadBanksRpc,
+  WsBoardAutomationCancelRpc,
+  WsBoardAutomationRunNowRpc,
+  WsSubscribeBoardAutomationsRpc,
+  WsThreadProgressCaptureRpc,
+  WsThreadProgressRemoveRpc,
+  WsThreadSummarySetRpc,
+  WsSubscribeThreadProgressRpc,
+  WsProjectsSummaryRpc,
+);
+
+/** Every RPC the WebSocket serves, each checked against the scope it declares. */
+export const WsRpcGroup = WsCoreRpcGroup.merge(WsBoardRpcGroup).middleware(RpcScopeAuthorization);
