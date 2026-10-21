@@ -149,7 +149,11 @@ work is without opening it. Images arrive three ways:
   questions shows how many under its summary.
 - After each of the agent's turns on the live card, Supadesign captures it.
 - **Capture progress now** in the card's **…** menu, or **Capture** in the
-  thread's header, captures the live card right away.
+  thread's header, captures the live card right away. These open the app fresh,
+  so they show its first page.
+- To capture a particular screen, click through to it in the thread's floating
+  preview, then select the camera in the preview's top-right corner. The image
+  is exactly what the preview shows, and it opens ready to mark up.
 
 A card that isn't live keeps its last image. When the agent has worked since
 that image was taken, the cover says **Out of date**; if a capture fails, the

@@ -68,7 +68,11 @@ export const layer = WsBoardRpcGroup.toLayer(
           boardAutomations.subscribe(input.projectId, listener),
         ),
       [WS_METHODS.threadProgressCapture]: (input) =>
-        threadProgress.capture({ threadId: input.threadId, source: "designer" }),
+        threadProgress.capture({
+          threadId: input.threadId,
+          source: "designer",
+          screen: input.screen,
+        }),
       [WS_METHODS.threadProgressRemove]: (input) => threadProgress.remove(input),
       [WS_METHODS.threadSummarySet]: (input) =>
         threadProgress

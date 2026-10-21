@@ -7,11 +7,13 @@ import {
   THREAD_SUMMARY_MAX_LENGTH,
   ThreadProgressError,
   ThreadProgressUpdateId,
+  isProviderSendTurnSupportedImageMimeType,
   type ChatImageAttachment,
   type ProjectId,
   type ThreadId,
   type ThreadProgress,
   type ThreadProgressList,
+  type ThreadProgressScreen,
   type ThreadProgressSource,
   type ThreadProgressUpdate,
   type ThreadSummary,
@@ -20,7 +22,10 @@ import {
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
+import * as Base64 from "effect/encoding/Base64";
 import * as Semaphore from "effect/Semaphore";
+
+import { parseBase64DataUrl } from "../imageMime.ts";
 
 /** A screenshot of a running page. */
 export interface ProgressScreenshot {
@@ -59,6 +64,8 @@ export interface ThreadProgressCaptureRequest {
   readonly questions?: ReadonlyArray<string> | undefined;
   /** A page to capture instead of the card's live dev server. */
   readonly url?: string | undefined;
+  /** What the designer's preview already shows; nothing is opened or captured again. */
+  readonly screen?: ThreadProgressScreen | undefined;
 }
 
 export class ThreadProgressService extends Context.Service<
@@ -92,6 +99,25 @@ export class ThreadProgressService extends Context.Service<
 >()("supaterm/threadProgress/ThreadProgressService") {}
 
 const fail = (message: string) => new ThreadProgressError({ message });
+
+/** The image in a screen the designer captured, checked before it's kept. */
+export const decodeScreen = (screen: ThreadProgressScreen) =>
+  Effect.gen(function* () {
+    const parsed = parseBase64DataUrl(screen.dataUrl);
+    if (parsed === null || !isProviderSendTurnSupportedImageMimeType(parsed.mimeType)) {
+      return yield* fail("The captured screen isn't an image Supadesign can keep.");
+    }
+    const bytes = yield* Effect.fromResult(Base64.decode(parsed.base64)).pipe(
+      Effect.mapError(() => fail("The captured screen couldn't be read.")),
+    );
+    const screenshot: ProgressScreenshot = {
+      bytes,
+      mimeType: parsed.mimeType,
+      width: screen.width,
+      height: screen.height,
+    };
+    return screenshot;
+  });
 
 /** Which sources may replace a summary written by `current`. */
 const SUMMARY_RANK: Record<ThreadSummarySource, number> = {
@@ -200,8 +226,10 @@ export const make = (ops: ThreadProgressOps) =>
         if (refusal !== null) return yield* fail(refusal);
 
         const captured = Effect.gen(function* () {
-          const url = request.url ?? (yield* ops.pageOf(request.threadId));
-          const screenshot = yield* ops.screenshot(url);
+          const { screen } = request;
+          const url = screen?.url ?? request.url ?? (yield* ops.pageOf(request.threadId));
+          const screenshot =
+            screen === undefined ? yield* ops.screenshot(url) : yield* decodeScreen(screen);
           const image = yield* ops.storeImage({ threadId: request.threadId, screenshot });
           const update: ThreadProgressUpdate = {
             id: ThreadProgressUpdateId.make(yield* ops.newId),

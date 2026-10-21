@@ -1,6 +1,10 @@
 "use client";
 
-import { FILL_PREVIEW_VIEWPORT, type ScopedThreadRef } from "@supaterm/contracts";
+import {
+  FILL_PREVIEW_VIEWPORT,
+  type ScopedThreadRef,
+  type ThreadProgressScreen,
+} from "@supaterm/contracts";
 import { shouldShowFloatingBrowser } from "@supaterm/client-runtime/preview/floating-browser";
 import { PanelRightIcon, PictureInPicture2, XIcon } from "lucide-react";
 import {
@@ -48,6 +52,7 @@ import { useRightPanelStore } from "~/rightPanelStore";
 import { useDeviceState } from "~/state/device";
 
 import { DeviceStreamView } from "../device/DeviceStreamView";
+import { PreviewCaptureButton } from "../progress/PreviewCaptureButton";
 import type { DeviceScreenSize } from "@supaterm/client-runtime/device/stream";
 import type { PreviewStreamViewport } from "@supaterm/client-runtime/preview/server-browser-stream";
 import { previewBridge } from "./previewBridge";
@@ -183,6 +188,20 @@ function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly 
     }
   };
 
+  /** The page exactly as the designer sees it, wherever the tab runs. */
+  const grabScreen = async (): Promise<ThreadProgressScreen | null> => {
+    const url = snapshot?.navStatus._tag === "Idle" ? null : (snapshot?.navStatus.url ?? null);
+    if (url === null) return null;
+    if (serverTab) {
+      const canvas = serverSurfaceRef.current?.canvas() ?? null;
+      if (canvas === null) return null;
+      const { width, height } = canvas;
+      return { dataUrl: canvas.toDataURL("image/jpeg", 0.85), width, height, url };
+    }
+    if (!previewBridge) return null;
+    return { ...(await previewBridge.captureImage(runtimeTabId)), url };
+  };
+
   if (!snapshot || !pageVisible) return null;
   const poppedOut = serverTab ? serverPictureInPicture : Boolean(desktopOverlay?.pictureInPicture);
   const canPopOut = serverTab ? supportsServerPictureInPicture() : true;
@@ -198,29 +217,32 @@ function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly 
       onOpenInPanel={openInPanel}
       openInPanelShortcut={togglePreviewShortcut}
       pillActions={
-        canPopOut ? (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant={poppedOut ? "secondary" : "ghost"}
-                  size="icon-xs"
-                  aria-label={
-                    poppedOut ? "Close popped-out preview" : "Pop preview into separate window"
-                  }
-                  disabled={!serverTab && !desktopOverlay?.hasWebContents}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={toggleNativePictureInPicture}
-                />
-              }
-            >
-              <PictureInPicture2 />
-            </TooltipTrigger>
-            <TooltipPopup side="top">
-              {poppedOut ? "Close separate window" : "Pop into separate window"}
-            </TooltipPopup>
-          </Tooltip>
-        ) : null
+        <>
+          <PreviewCaptureButton threadRef={threadRef} grab={grabScreen} />
+          {canPopOut ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant={poppedOut ? "secondary" : "ghost"}
+                    size="icon-xs"
+                    aria-label={
+                      poppedOut ? "Close popped-out preview" : "Pop preview into separate window"
+                    }
+                    disabled={!serverTab && !desktopOverlay?.hasWebContents}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={toggleNativePictureInPicture}
+                  />
+                }
+              >
+                <PictureInPicture2 />
+              </TooltipTrigger>
+              <TooltipPopup side="top">
+                {poppedOut ? "Close separate window" : "Pop into separate window"}
+              </TooltipPopup>
+            </Tooltip>
+          ) : null}
+        </>
       }
     >
       {(frame) =>

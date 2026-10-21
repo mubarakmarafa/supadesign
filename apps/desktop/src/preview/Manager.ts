@@ -21,6 +21,7 @@ import type {
   DesktopPreviewRecordingArtifact,
   DesktopPreviewRecordingFrame,
   DesktopPreviewRecordingInputEvent,
+  DesktopPreviewImage,
   DesktopPreviewScreenshotArtifact,
   DesktopPreviewTabDefaults,
   PreviewForwardedShortcut,
@@ -2497,6 +2498,21 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
     };
   });
 
+  const captureImage = Effect.fn("PreviewManager.captureImage")(function* (tabId: string) {
+    const wc = yield* requireWebContents(tabId);
+    const image = yield* capturePageWithRetry(
+      { operation: "captureImage.capturePage", tabId, webContentsId: wc.id },
+      tabId,
+      wc,
+    );
+    const { width, height } = image.getSize();
+    return {
+      dataUrl: `data:image/jpeg;base64,${image.toJPEG(85).toString("base64")}`,
+      width,
+      height,
+    };
+  });
+
   const capturePreviewFrame = Effect.fn("PreviewManager.capturePreviewFrame")(function* (
     tabId: string,
   ) {
@@ -3353,6 +3369,7 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
   return {
     cancelPickElement,
     captureScreenshot,
+    captureImage,
     closeTab,
     copyArtifactToClipboard,
     createTab,
@@ -3610,6 +3627,9 @@ export class PreviewManager extends Context.Service<
     readonly captureScreenshot: (
       tabId: string,
     ) => Effect.Effect<DesktopPreviewScreenshotArtifact, PreviewManagerError>;
+    readonly captureImage: (
+      tabId: string,
+    ) => Effect.Effect<DesktopPreviewImage, PreviewManagerError>;
     readonly revealArtifact: (path: string) => Effect.Effect<void, PreviewManagerError>;
     readonly copyArtifactToClipboard: (path: string) => Effect.Effect<void, PreviewManagerError>;
     readonly openPictureInPicture: (tabId: string) => Effect.Effect<void, PreviewManagerError>;
@@ -3763,6 +3783,7 @@ export const make = Effect.gen(function* PreviewManagerMake() {
     pickElement: operations.pickElement,
     cancelPickElement: operations.cancelPickElement,
     captureScreenshot: operations.captureScreenshot,
+    captureImage: operations.captureImage,
     revealArtifact: operations.revealArtifact,
     copyArtifactToClipboard: operations.copyArtifactToClipboard,
     openPictureInPicture: operations.openPictureInPicture,
