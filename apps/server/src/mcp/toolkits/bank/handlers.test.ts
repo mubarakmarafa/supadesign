@@ -73,7 +73,7 @@ const setup = (options: { readonly callerRuntimeMode?: RuntimeMode } = {}) =>
         getProjectThreadRecords: ({ threadId }, fields) =>
           Effect.succeed({
             ...idleThreadProjection(shellOf(threadId)),
-            ...(fields.includes("messages")
+            ...(fields.some((field) => field === "messages")
               ? { messages: [{ id: MessageId.make("message:earlier"), attachments: [owned] }] }
               : { messages: undefined }),
           } as unknown as OrchestrationV2ThreadProjection),

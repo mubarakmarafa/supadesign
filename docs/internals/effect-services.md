@@ -35,6 +35,15 @@ also instruments it
 ([`RpcInstrumentation.ts`](../../apps/server/src/observability/RpcInstrumentation.ts)). A handler
 with per-call context, such as a thread id, adds it with `Effect.annotateCurrentSpan`.
 
+WebSocket RPCs are split into groups in [`rpc.ts`](../../packages/contracts/src/rpc.ts):
+`WsCoreRpcGroup`, whose handlers are the one map in `ws.ts`, and `WsBoardRpcGroup`, whose handlers
+are a separate layer in [`wsBoard.ts`](../../apps/server/src/wsBoard.ts). `WsRpcGroup` merges
+them, so clients and the RPC server still see a single group. The split exists because TypeScript
+type-checks a handler map against every RPC in its group at once, and one map for all of them hit
+the instantiation-depth limit: a single extra RPC failed `ws.ts` with TS2589, cascading into
+`server.ts`. When a domain adds a batch of RPCs, give it its own group and handler layer the same
+way instead of growing the core map.
+
 ## Shape of a service module
 
 One module per service, in this order: imports, errors and schemas, the `Context.Service` tag with
