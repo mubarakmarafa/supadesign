@@ -199,6 +199,16 @@ Only you can change the brief or settle a suggestion.
 A card with decisions shows a count under its summary, such as **2 decided · 1
 to review**.
 
+**History**, in the brief's row, opens the card's history beside the chat,
+newest first. Each round starts with a message you sent and shows what came
+back before your next one: the agent's reply, its images, and the decisions and
+brief changes made along the way. Under each message, its status shows how far
+the agent got with it: **Waiting** while it's queued, then **Sent**, **Picked
+up**, and **Answered** once the agent's work produced a new image, or **Done**
+when it finished without one. Your own captures don't count as an answer.
+Select an image to open it in Progress, ready to mark up or compare; **Images**
+and **Decisions** narrow the list.
+
 ## Bank messages for later
 
 Context rarely arrives in one go. Press **Option+Enter** (`Alt+Enter` on Windows

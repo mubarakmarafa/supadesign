@@ -57,6 +57,17 @@ export const ThreadBrief = Schema.Struct({
 });
 export type ThreadBrief = typeof ThreadBrief.Type;
 
+/** One brief the designer wrote; an empty text is the brief being cleared. */
+export const ThreadBriefVersion = Schema.Struct({
+  text: Schema.String.check(Schema.isMaxLength(THREAD_BRIEF_MAX_LENGTH)),
+  editedAt: Schema.String,
+});
+export type ThreadBriefVersion = typeof ThreadBriefVersion.Type;
+
+/** Every brief a card has had, oldest first, cleared ones included. */
+export const ThreadBriefVersionList = Schema.Array(ThreadBriefVersion);
+export type ThreadBriefVersionList = typeof ThreadBriefVersionList.Type;
+
 /** Every card in a project with a brief or decisions. */
 export const ThreadBriefList = Schema.Array(ThreadBrief);
 export type ThreadBriefList = typeof ThreadBriefList.Type;

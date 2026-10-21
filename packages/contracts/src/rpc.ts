@@ -192,6 +192,7 @@ import {
   ThreadBriefProjectInput,
   ThreadBriefSetInput,
   ThreadBriefThreadInput,
+  ThreadBriefVersionList,
   ThreadDecisionAcceptInput,
   ThreadDecisionAddInput,
   ThreadDecisionEntryInput,
@@ -504,6 +505,7 @@ export const WS_METHODS = {
   threadDecisionAccept: "threadBrief.acceptDecision",
   threadDecisionReject: "threadBrief.rejectDecision",
   threadDecisionRestore: "threadBrief.restoreDecision",
+  threadBriefVersions: "threadBrief.versions",
   subscribeThreadBriefs: "subscribeThreadBriefs",
 
   // Projects grid
@@ -1768,6 +1770,12 @@ const WsThreadDecisionRestoreRpc = Rpc.make(WS_METHODS.threadDecisionRestore, {
   error: Schema.Union([ThreadBriefError, EnvironmentAuthorizationError]),
 });
 
+const WsThreadBriefVersionsRpc = Rpc.make(WS_METHODS.threadBriefVersions, {
+  payload: ThreadBriefThreadInput,
+  success: ThreadBriefVersionList,
+  error: EnvironmentAuthorizationError,
+});
+
 const WsSubscribeThreadBriefsRpc = Rpc.make(WS_METHODS.subscribeThreadBriefs, {
   payload: ThreadBriefProjectInput,
   success: ThreadBriefList,
@@ -2308,6 +2316,7 @@ export const WsBoardRpcGroup = RpcGroup.make(
   WsThreadDecisionAcceptRpc,
   WsThreadDecisionRejectRpc,
   WsThreadDecisionRestoreRpc,
+  WsThreadBriefVersionsRpc,
   WsSubscribeThreadBriefsRpc,
   WsProjectsSummaryRpc,
 );
