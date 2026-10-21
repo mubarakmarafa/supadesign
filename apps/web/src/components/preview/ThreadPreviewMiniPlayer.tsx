@@ -221,6 +221,13 @@ function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly 
         visible={!serverTab || streamFrameTabId === runtimeTabId}
         sourceSize={sourceSize}
         lockAspect={false}
+        onResizeStart={() => {
+          // A streamed tab at a fixed size only scales into the player. Resizing
+          // the player like a window means the page should take its size.
+          if (serverTab && snapshot.viewport !== undefined && snapshot.viewport._tag !== "fill") {
+            serverSurfaceRef.current?.viewport(FILL_PREVIEW_VIEWPORT);
+          }
+        }}
         label="Floating browser preview"
         recording={recording}
         onOpenInPanel={openInPanel}
@@ -393,6 +400,7 @@ function MiniPlayerShell({
   recording = false,
   visible = true,
   lockAspect = true,
+  onResizeStart,
   cornerRadius = frameCornerRadius,
   children,
 }: {
@@ -409,6 +417,7 @@ function MiniPlayerShell({
   readonly visible?: boolean;
   /** False for a page, which reflows to any size; a device screen keeps its shape. */
   readonly lockAspect?: boolean;
+  readonly onResizeStart?: () => void;
   /** The clip radius for a given frame; the pill stays inside the curve. */
   readonly cornerRadius?: (frame: PreviewMiniPlayerSize) => number;
   readonly children: (frame: PreviewMiniPlayerFrame) => ReactNode;
@@ -514,6 +523,7 @@ function MiniPlayerShell({
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
     event.stopPropagation();
+    if (direction !== null) onResizeStart?.();
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
