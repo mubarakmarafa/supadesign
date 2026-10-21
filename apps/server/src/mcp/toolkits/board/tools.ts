@@ -143,9 +143,30 @@ const BoardStepReportTool = Tool.make("supaterm_board_step_report", {
   .annotate(Tool.Title, "Report a board step")
   .annotate(Tool.Destructive, false);
 
+const BoardHandOffTool = Tool.make("supaterm_board_hand_off", {
+  ...shared,
+  description:
+    "Hand a card work: send its own agent the full brief. A card that hasn't started begins in its own git worktree and branch (unless the project starts new work in its folder), so cards working at once never edit the same files. A card already working gets the brief after its current turn. Use this rather than supaterm_thread_send for cards. It doesn't move the card; do that with supaterm_board_move_card.",
+  parameters: Schema.Struct({
+    threadId: ThreadId,
+    brief: TrimmedNonEmptyString.annotate({
+      description: "Everything the card's agent needs to do the work.",
+    }),
+  }),
+  success: Schema.Struct({
+    threadId: ThreadId,
+    startedInWorktree: Schema.Boolean.annotate({
+      description: "The card began in a new worktree of its own.",
+    }),
+  }),
+})
+  .annotate(Tool.Title, "Hand a card work")
+  .annotate(Tool.Destructive, false);
+
 export const BoardToolkit = Toolkit.make(
   BoardReadTool,
   BoardMoveCardTool,
   BoardAddCardTool,
   BoardStepReportTool,
+  BoardHandOffTool,
 );

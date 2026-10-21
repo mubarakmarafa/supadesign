@@ -25,6 +25,7 @@ import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
 import * as ThreadMessageIntake from "../orchestration-v2/ThreadMessageIntake.ts";
 import * as Project from "../project/ProjectService.ts";
+import * as CardWorkspace from "../projectBoard/cardWorkspace.ts";
 import * as ProjectBoards from "../projectBoard/ProjectBoardService.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as ThreadBank from "../threadBank/ThreadBankService.ts";
@@ -61,6 +62,7 @@ export const make = Effect.gen(function* () {
     ServerConfig.ServerConfig | FileSystem.FileSystem | ThreadManagement.ThreadManagementService
   >();
   const uuid = crypto.randomUUIDv4.pipe(Effect.orDie);
+  const cards = yield* CardWorkspace.make;
 
   const projectOf = (projectId: ProjectId) =>
     projects.getById(projectId).pipe(
@@ -88,11 +90,23 @@ export const make = Effect.gen(function* () {
 
     send: ({ threadId, text, modelSelection }) =>
       Effect.gen(function* () {
+        const message = {
+          threadId,
+          commandId: CommandId.make(yield* uuid),
+          messageId: MessageId.make(yield* uuid),
+          text,
+          attachments: [],
+          modelSelection,
+          createdBy: "user",
+          creationSource: "server",
+        } as const;
+        // A card that hasn't started gets its own worktree, as from the composer.
+        if (Option.isSome(yield* cards.startInWorktree(message))) return;
         yield* ThreadMessageIntake.dispatchCommand({
           type: "message.dispatch",
-          commandId: CommandId.make(yield* uuid),
+          commandId: message.commandId,
           threadId,
-          messageId: MessageId.make(yield* uuid),
+          messageId: message.messageId,
           text,
           attachments: [],
           ...(modelSelection === undefined ? {} : { modelSelection }),

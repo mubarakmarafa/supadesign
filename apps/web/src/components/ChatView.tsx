@@ -33,6 +33,7 @@ import {
 } from "./ChatView.logic";
 import { useLoadBalancedEnvironment } from "../hooks/useLoadBalancedEnvironment";
 import { useScratchProject } from "../hooks/useScratchProject";
+import { useSupatermProjectFileState } from "../hooks/useSupatermProjectFileScripts";
 import { isScratchProject } from "@supaterm/client-runtime/state/projects";
 import { visibleThreadPullRequests } from "@supaterm/shared/threadPullRequests";
 import {
@@ -151,6 +152,7 @@ import {
 } from "@supaterm/shared/orchestrationV2ThreadError";
 import {
   projectSettingsOverridesForWrite,
+  resolveNewThreadEnvMode,
   resolveProjectSettings,
 } from "@supaterm/shared/projectSettings";
 import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
@@ -416,6 +418,7 @@ import { useProjectClone } from "../state/projectClones";
 import { projectCloneDisplayName, projectCloneProgressSummary } from "@supaterm/contracts";
 import { useEnvironments, usePrimaryEnvironment } from "../state/environments";
 import {
+  readThreadShells,
   resolveThreadDetailRef,
   useEnvironmentSupportsServerBrowser,
   useProject,
@@ -7086,8 +7089,45 @@ export default function ChatView(props: ChatViewProps) {
     activeThread.worktreePath === null &&
     !envLocked,
   );
+  // A card made on the board (or by an agent) starts where the project's new
+  // threads start, so cards get their own worktree unless the project says
+  // otherwise. The board agent only runs the board, so it stays in the project.
+  const emptyThreadProjectFile = useSupatermProjectFileState(
+    environmentId,
+    canOverrideServerThreadEnvMode ? (activeProject?.workspaceRoot ?? null) : null,
+  );
+  const newProjectsRoot = serverConfig?.newProjectsRoot;
+  const emptyThreadEnvMode = useMemo((): DraftThreadEnvMode => {
+    if (!canOverrideServerThreadEnvMode || !activeProject || !activeThread) return derivedEnvMode;
+    if (activeProject.workspace?.boardAgentThreadId === activeThread.id) return "local";
+    return resolveNewThreadEnvMode({
+      projectSettings: resolveProjectSettings(
+        settings,
+        activeProject.id,
+        activeProject,
+        emptyThreadProjectFile.file,
+      ),
+      workspaceRoot: activeProject.workspaceRoot,
+      newProjectsRoot,
+      projectHasThreads: readThreadShells().some(
+        (thread) =>
+          thread.environmentId === activeProject.environmentId &&
+          thread.projectId === activeProject.id &&
+          thread.id !== activeThread.id &&
+          thread.id !== activeProject.workspace?.boardAgentThreadId,
+      ),
+    });
+  }, [
+    activeProject,
+    activeThread,
+    canOverrideServerThreadEnvMode,
+    derivedEnvMode,
+    emptyThreadProjectFile.file,
+    newProjectsRoot,
+    settings,
+  ]);
   const envMode: DraftThreadEnvMode = canOverrideServerThreadEnvMode
-    ? (pendingServerThreadEnvMode ?? draftThread?.envMode ?? derivedEnvMode)
+    ? (pendingServerThreadEnvMode ?? draftThread?.envMode ?? emptyThreadEnvMode)
     : derivedEnvMode;
   const selectedThreadBranch =
     canOverrideServerThreadEnvMode && pendingServerThreadBranch !== undefined

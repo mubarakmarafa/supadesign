@@ -57,6 +57,21 @@ export const layer = McpToolAccess.toLayer(BoardToolkit, {
         return { threadId };
       }),
   ),
+  supaterm_board_hand_off: McpToolAccess.writesThreads(
+    (input) => [input.threadId],
+    (input) =>
+      Effect.gen(function* () {
+        const { projection } = yield* readThread(input.threadId);
+        const caller = (yield* readCaller()).caller;
+        const board = yield* ProjectBoard.ProjectBoardService;
+        const { startedInWorktree } = yield* board.handOff({
+          threadId: projection.thread.id,
+          brief: input.brief,
+          senderThreadId: caller?.id,
+        });
+        return { threadId: projection.thread.id, startedInWorktree };
+      }),
+  ),
   supaterm_board_add_card: McpToolAccess.startsThreads(
     () => ({}),
     (input, { runtimeMode, interactionMode }) =>

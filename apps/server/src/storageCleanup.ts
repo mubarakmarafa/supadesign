@@ -244,10 +244,10 @@ const make = Effect.gen(function* () {
     );
 
   const readThreads = Effect.fn("StorageCleanup.readThreads")(function* () {
-    const active = yield* projections.getShellSnapshot();
-    const archived = yield* projections.getShellSnapshot({ location: "archive" });
+    // Archived threads arrive in `archivedThreads`, so their worktrees are cleaned too.
+    const snapshot = yield* projections.getShellSnapshot();
     const projects = yield* projectStore.listShells();
-    return { projects, threads: [...active.threads, ...archived.threads] };
+    return { projects, threads: [...snapshot.threads, ...snapshot.archivedThreads] };
   });
 
   // Local threads under another project need not have a worktreePath of their own.
@@ -834,8 +834,15 @@ const make = Effect.gen(function* () {
     );
     yield* forkParked(
       Stream.runForEach(events, (event) =>
-        (event.type === "thread.deleted" || event.type === "provider-session.updated") &&
-        anyWorktreePolicy(lastSettings, (rules) => rules.worktreeOnDelete)
+        ((event.type === "thread.deleted" || event.type === "provider-session.updated") &&
+          anyWorktreePolicy(lastSettings, (rules) => rules.worktreeOnDelete)) ||
+        // Supadesign: a card moved to Done is archived, so a worktree whose work
+        // is merged goes then rather than at the next hourly sweep.
+        (event.type === "thread.archived" &&
+          anyWorktreePolicy(
+            lastSettings,
+            (rules) => rules.worktreeOnMerge || rules.worktreeUnchanged,
+          ))
           ? worker.enqueue(undefined)
           : Effect.void,
       ).pipe(

@@ -64,7 +64,8 @@ branch name remains.
 
 ## Defaults and inheritance
 
-General contains the model and workspace for new threads. Integrations controls agent browser
+General contains the model and workspace for new threads. The workspace defaults to a new
+worktree, so each thread and board card works in its own copy of the project. Integrations controls agent browser
 access. Source Control contains automatic pull, the default pull request merge method and text
 generation. The same rows edit environment defaults or project overrides depending on the
 project crumb.
@@ -98,7 +99,8 @@ are, and cleanup covers both the default folder and the custom one.
 Open **Settings → Storage** to configure automatic cleanup on one machine or all connected
 environments. Cleanup rules for merged, unchanged, and deleted-thread worktrees are on by default;
 inactive-worktree cleanup remains disabled until you choose an age. Policies run on the server at
-startup, when changed, and hourly. Offline machines keep their existing policies.
+startup, when changed, hourly, and when a thread is archived, such as a card moved to Done. Offline
+machines keep their existing policies.
 
 Select a project to set **Automatic worktree cleanup** to **Inherit**, **Off**, or **Custom**.
 Inherit follows each machine's rules; Off keeps that project's worktrees until you remove them
