@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 
-import { openUrlInPreview } from "../../browser/openFileInPreview";
+import {
+  findPreviewTabForOrigin,
+  floatPreviewTab,
+  openUrlInPreview,
+} from "../../browser/openFileInPreview";
 import { isPreviewAvailableFor } from "../../browser/previewRuntime";
 import { previewEnvironment } from "../../state/preview";
 import { cn } from "~/lib/utils";
@@ -92,9 +96,10 @@ function describe(
 }
 
 /**
- * Shows a live link in the thread's in-app preview, beside its chat, so a
- * designer can review and mark it up without leaving the app. Clients without
- * the in-app preview open it in the system browser.
+ * Floats a live link over the thread's chat in the in-app preview, so a
+ * designer can review and mark it up without leaving the app. A tab already on
+ * that site comes back where they left it. Clients without the in-app preview
+ * open it in the system browser.
  */
 function useShowLivePreview() {
   const openPreview = useAtomCommand(previewEnvironment.open, { reportFailure: false });
@@ -103,7 +108,12 @@ function useShowLivePreview() {
       openExternally(url);
       return;
     }
-    await openUrlInPreview({ threadRef, url, openPreview });
+    const existing = findPreviewTabForOrigin(threadRef, url);
+    if (existing !== null) {
+      floatPreviewTab(threadRef, existing);
+      return;
+    }
+    await openUrlInPreview({ threadRef, url, openPreview, floating: true });
   };
 }
 

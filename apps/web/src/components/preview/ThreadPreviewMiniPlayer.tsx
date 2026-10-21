@@ -4,6 +4,7 @@ import {
   FILL_PREVIEW_VIEWPORT,
   type ScopedThreadRef,
   type ThreadProgressScreen,
+  type ThreadProgressUpdateId,
 } from "@supaterm/contracts";
 import { shouldShowFloatingBrowser } from "@supaterm/client-runtime/preview/floating-browser";
 import { PanelRightIcon, PictureInPicture2, XIcon } from "lucide-react";
@@ -52,7 +53,7 @@ import { useRightPanelStore } from "~/rightPanelStore";
 import { useDeviceState } from "~/state/device";
 
 import { DeviceStreamView } from "../device/DeviceStreamView";
-import { PreviewCaptureButton } from "../progress/PreviewCaptureButton";
+import { CapturedScreenMarkup, PreviewCaptureButton } from "../progress/PreviewCaptureButton";
 import type { DeviceScreenSize } from "@supaterm/client-runtime/device/stream";
 import type { PreviewStreamViewport } from "@supaterm/client-runtime/preview/server-browser-stream";
 import { previewBridge } from "./previewBridge";
@@ -147,6 +148,7 @@ function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly 
   if (!pageVisible && streamFrameTabId !== null) setStreamFrameTabId(null);
   const [streamViewport, setStreamViewport] = useState<PreviewStreamViewport | null>(null);
   const serverSurfaceRef = useRef<ServerBrowserHandle | null>(null);
+  const [captured, setCaptured] = useState<ThreadProgressUpdateId | null>(null);
   const serverPictureInPicture =
     useServerPictureInPictureKey() === serverPictureInPictureKey(threadRef.threadId, tabId);
   const sourceSize =
@@ -207,85 +209,99 @@ function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly 
   const canPopOut = serverTab ? supportsServerPictureInPicture() : true;
 
   return (
-    <MiniPlayerShell
-      threadRef={threadRef}
-      miniPlayer={miniPlayer}
-      visible={!serverTab || streamFrameTabId === runtimeTabId}
-      sourceSize={sourceSize}
-      label="Floating browser preview"
-      recording={recording}
-      onOpenInPanel={openInPanel}
-      openInPanelShortcut={togglePreviewShortcut}
-      pillActions={
-        <>
-          <PreviewCaptureButton threadRef={threadRef} grab={grabScreen} />
-          {canPopOut ? (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant={poppedOut ? "secondary" : "ghost"}
-                    size="icon-xs"
-                    aria-label={
-                      poppedOut ? "Close popped-out preview" : "Pop preview into separate window"
-                    }
-                    disabled={!serverTab && !desktopOverlay?.hasWebContents}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={toggleNativePictureInPicture}
-                  />
-                }
-              >
-                <PictureInPicture2 />
-              </TooltipTrigger>
-              <TooltipPopup side="top">
-                {poppedOut ? "Close separate window" : "Pop into separate window"}
-              </TooltipPopup>
-            </Tooltip>
-          ) : null}
-        </>
-      }
-    >
-      {(frame) =>
-        serverTab ? (
-          <div
-            className="pointer-events-auto absolute inset-0 overflow-hidden rounded-[inherit]"
-            style={{ zIndex: PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX }}
-          >
-            <ServerBrowserSurface
-              key={runtimeTabId}
-              ref={serverSurfaceRef}
-              environmentId={threadRef.environmentId}
-              threadId={threadRef.threadId}
-              tabId={tabId}
-              visible
-              followSize={false}
-              controlPosition="bottom"
-              onFirstFrame={() => setStreamFrameTabId(runtimeTabId)}
-              onViewport={setStreamViewport}
-              onPopup={(popupTabId) => showPreviewPopup(threadRef, popupTabId, "floating")}
-              className="size-full"
-            />
-          </div>
-        ) : (
+    <>
+      <MiniPlayerShell
+        threadRef={threadRef}
+        miniPlayer={miniPlayer}
+        visible={!serverTab || streamFrameTabId === runtimeTabId}
+        sourceSize={sourceSize}
+        lockAspect={false}
+        label="Floating browser preview"
+        recording={recording}
+        onOpenInPanel={openInPanel}
+        openInPanelShortcut={togglePreviewShortcut}
+        pillActions={
           <>
-            <BrowserSurfaceSlot
-              tabId={runtimeTabId}
-              visible={Boolean(desktopOverlay?.hasWebContents)}
-              cornerRadius={PREVIEW_MINI_PLAYER_CORNER_RADIUS}
-              zIndex={PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX}
-              fitSourceContent
-              layoutVersion={`${frame.x}:${frame.y}`}
-              className="absolute inset-0"
+            <PreviewCaptureButton
+              threadRef={threadRef}
+              grab={grabScreen}
+              onCaptured={setCaptured}
             />
-            {!desktopOverlay?.hasWebContents ? (
-              <div className="pointer-events-none absolute inset-0 z-[49] flex items-center justify-center rounded-[inherit] bg-muted text-xs text-muted-foreground">
-                Reconnecting preview…
-              </div>
+            {canPopOut ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant={poppedOut ? "secondary" : "ghost"}
+                      size="icon-xs"
+                      aria-label={
+                        poppedOut ? "Close popped-out preview" : "Pop preview into separate window"
+                      }
+                      disabled={!serverTab && !desktopOverlay?.hasWebContents}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={toggleNativePictureInPicture}
+                    />
+                  }
+                >
+                  <PictureInPicture2 />
+                </TooltipTrigger>
+                <TooltipPopup side="top">
+                  {poppedOut ? "Close separate window" : "Pop into separate window"}
+                </TooltipPopup>
+              </Tooltip>
             ) : null}
           </>
-        )
-      }
-    </MiniPlayerShell>
+        }
+      >
+        {(frame) =>
+          serverTab ? (
+            <div
+              className="pointer-events-auto absolute inset-0 overflow-hidden rounded-[inherit]"
+              style={{ zIndex: PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX }}
+            >
+              <ServerBrowserSurface
+                key={runtimeTabId}
+                ref={serverSurfaceRef}
+                environmentId={threadRef.environmentId}
+                threadId={threadRef.threadId}
+                tabId={tabId}
+                visible
+                controlPosition="bottom"
+                onFirstFrame={() => setStreamFrameTabId(runtimeTabId)}
+                onViewport={setStreamViewport}
+                onPopup={(popupTabId) => showPreviewPopup(threadRef, popupTabId, "floating")}
+                className="size-full"
+              />
+            </div>
+          ) : (
+            <>
+              <BrowserSurfaceSlot
+                tabId={runtimeTabId}
+                visible={Boolean(desktopOverlay?.hasWebContents)}
+                cornerRadius={PREVIEW_MINI_PLAYER_CORNER_RADIUS}
+                zIndex={PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX}
+                fitSourceContent
+                layoutVersion={`${frame.x}:${frame.y}`}
+                className="absolute inset-0"
+              />
+              {!desktopOverlay?.hasWebContents ? (
+                <div className="pointer-events-none absolute inset-0 z-[49] flex items-center justify-center rounded-[inherit] bg-muted text-xs text-muted-foreground">
+                  Reconnecting preview…
+                </div>
+              ) : null}
+            </>
+          )
+        }
+      </MiniPlayerShell>
+      {/* Beside the shell, not inside it: the shell's drag handle would take the dialog's clicks. */}
+      {captured !== null ? (
+        <CapturedScreenMarkup
+          threadRef={threadRef}
+          updateId={captured}
+          onClose={() => setCaptured(null)}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -363,6 +379,7 @@ function MiniPlayerShell({
   pillActions,
   recording = false,
   visible = true,
+  lockAspect = true,
   cornerRadius = frameCornerRadius,
   children,
 }: {
@@ -377,6 +394,8 @@ function MiniPlayerShell({
   readonly recording?: boolean;
   /** Keep the stream measurable before its first frame without showing a floating card. */
   readonly visible?: boolean;
+  /** False for a page, which reflows to any size; a device screen keeps its shape. */
+  readonly lockAspect?: boolean;
   /** The clip radius for a given frame; the pill stays inside the curve. */
   readonly cornerRadius?: (frame: PreviewMiniPlayerSize) => number;
   readonly children: (frame: PreviewMiniPlayerFrame) => ReactNode;
@@ -408,8 +427,10 @@ function MiniPlayerShell({
         ? resolvePreviewMiniPlayerFrame({
             container,
             width: miniPlayer.width,
+            height: miniPlayer.height,
             position: miniPlayer.position,
             source: sourceSize,
+            lockAspect,
           })
         : null;
   const { width: sourceWidth, height: sourceHeight } = sourceSize;
@@ -423,14 +444,18 @@ function MiniPlayerShell({
     reportPreview?.({
       key: sourceKey,
       width: miniPlayer.width,
+      height: miniPlayer.height,
       position: miniPlayer.position,
       lastInteraction: miniPlayer.lastInteraction,
       source: { width: sourceWidth, height: sourceHeight },
+      lockAspect,
     });
   }, [
     reportPreview,
     sourceKey,
     miniPlayer.width,
+    miniPlayer.height,
+    lockAspect,
     miniPlayer.position,
     miniPlayer.lastInteraction,
     sourceWidth,
@@ -439,6 +464,17 @@ function MiniPlayerShell({
     clearPreview,
   ]);
   useLayoutEffect(() => () => clearPreview?.(sourceKey), [clearPreview, sourceKey]);
+  // A free player keeps the shape it first appeared at instead of following
+  // the page, which reflows to the player's size and would chase it.
+  const settledWidth = frame?.width ?? null;
+  const settledHeight = frame?.height ?? null;
+  const unsettled = !lockAspect && (miniPlayer.width === null || miniPlayer.height === null);
+  useEffect(() => {
+    if (!unsettled || !visible || settledWidth === null || settledHeight === null) return;
+    usePreviewMiniPlayerStore
+      .getState()
+      .settle(threadRef, sourceKey, { width: settledWidth, height: settledHeight });
+  }, [unsettled, visible, settledWidth, settledHeight, threadRef, sourceKey]);
 
   const radius = frame ? cornerRadius(frame) : PREVIEW_MINI_PLAYER_CORNER_RADIUS;
   // Inside a wide curve the default 8px inset would land on the clipped-away corner.
@@ -494,8 +530,14 @@ function MiniPlayerShell({
       source: sourceSize,
       container,
       obstacles,
+      lockAspect,
     });
-    store.resize(threadRef, sourceKey, next.width, { x: next.x, y: next.y });
+    store.resize(
+      threadRef,
+      sourceKey,
+      { width: next.width, height: next.height },
+      { x: next.x, y: next.y },
+    );
   };
 
   const endGesture = (event: ReactPointerEvent<HTMLElement>) => {

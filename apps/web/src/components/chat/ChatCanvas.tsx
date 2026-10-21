@@ -55,6 +55,8 @@ export function ChatCanvas({
     setPreview((current) =>
       current?.key === next.key &&
       current.width === next.width &&
+      current.height === next.height &&
+      current.lockAspect === next.lockAspect &&
       current.lastInteraction === next.lastInteraction &&
       current.position?.x === next.position?.x &&
       current.position?.y === next.position?.y &&

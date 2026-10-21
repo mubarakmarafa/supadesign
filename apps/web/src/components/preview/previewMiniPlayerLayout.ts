@@ -15,6 +15,8 @@ export const PREVIEW_MINI_PLAYER_CORNER_RADIUS = 12;
 export const PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX = 48;
 // A fresh player is the largest box at the source aspect ratio that fits here.
 const PREVIEW_MINI_PLAYER_DEFAULT_BOX = { width: 320, height: 320 } as const;
+// A browser player is a small window onto the page, so it starts roomier.
+const PREVIEW_MINI_PLAYER_FREE_DEFAULT_BOX = { width: 480, height: 400 } as const;
 const PREVIEW_MINI_PLAYER_MIN_SIZE = { width: 240, height: 150 } as const;
 
 export interface PreviewMiniPlayerFrame extends PreviewMiniPlayerPosition, PreviewMiniPlayerSize {}
@@ -141,7 +143,7 @@ const availableArea = (
 });
 
 /**
- * Width is the player's only free dimension; height always follows the source
+ * A locked player's only free dimension is width; height follows the source
  * aspect ratio so the webview fills the box without letterboxing. The player
  * may upscale the source, and a tight container wins over the minimum.
  */
@@ -163,11 +165,34 @@ function fitPreviewMiniPlayerWidth(
   return { width: Math.round(width), height: Math.round(width / aspectRatio) };
 }
 
-function defaultPreviewMiniPlayerWidth(source: PreviewMiniPlayerSize): number {
-  return Math.min(
-    PREVIEW_MINI_PLAYER_DEFAULT_BOX.width,
-    (PREVIEW_MINI_PLAYER_DEFAULT_BOX.height * source.width) / source.height,
-  );
+const clampLength = (value: number, min: number, max: number) =>
+  Math.round(Math.min(Math.max(value, min), Math.max(1, max)));
+
+/**
+ * A free player sizes like a window: width and height move independently and
+ * the page reflows to fill it. Without a stored height it takes the source's
+ * shape. A tight container wins over the minimum.
+ */
+function fitPreviewMiniPlayerSize(
+  desired: { readonly width: number; readonly height: number | null },
+  source: PreviewMiniPlayerSize,
+  max: PreviewMiniPlayerSize,
+  lockAspect: boolean,
+): PreviewMiniPlayerSize {
+  if (lockAspect) return fitPreviewMiniPlayerWidth(desired.width, source, max);
+  return {
+    width: clampLength(desired.width, PREVIEW_MINI_PLAYER_MIN_SIZE.width, max.width),
+    height: clampLength(
+      desired.height ?? (desired.width * source.height) / source.width,
+      PREVIEW_MINI_PLAYER_MIN_SIZE.height,
+      max.height,
+    ),
+  };
+}
+
+function defaultPreviewMiniPlayerWidth(source: PreviewMiniPlayerSize, lockAspect: boolean): number {
+  const box = lockAspect ? PREVIEW_MINI_PLAYER_DEFAULT_BOX : PREVIEW_MINI_PLAYER_FREE_DEFAULT_BOX;
+  return Math.min(box.width, (box.height * source.width) / source.height);
 }
 
 const clampToContainer = (
@@ -279,20 +304,28 @@ export function clampPreviewMiniPlayerPosition(
  */
 export function resolvePreviewMiniPlayerFrame(input: {
   readonly width: number | null;
+  /** Only a free player keeps its own height. */
+  readonly height?: number | null;
   readonly position: PreviewMiniPlayerPosition | null;
   readonly source: PreviewMiniPlayerSize;
   readonly container: PreviewMiniPlayerSize;
   readonly obstacles?: PreviewMiniPlayerObstacles;
+  /** True when height follows the source's aspect ratio, as a device screen's does. */
+  readonly lockAspect?: boolean;
 }): PreviewMiniPlayerFrame {
   const {
     width,
+    height = null,
     position,
     source,
     container,
     obstacles = NO_PREVIEW_MINI_PLAYER_OBSTACLES,
+    lockAspect = true,
   } = input;
-  const size = fitPreviewMiniPlayerWidth(
-    width ?? defaultPreviewMiniPlayerWidth(source),
+  const size = fitPreviewMiniPlayerSize(
+    width === null
+      ? { width: defaultPreviewMiniPlayerWidth(source, lockAspect), height: null }
+      : { width, height },
     source,
     availableArea(
       container,
@@ -302,6 +335,7 @@ export function resolvePreviewMiniPlayerFrame(input: {
       position && width ? { composer: obstacles.composer, detailsCard: null } : obstacles,
       position && width ? spanOf(position.x, width) : null,
     ),
+    lockAspect,
   );
   const { detailsCard } = obstacles;
   const anchored =
@@ -316,7 +350,8 @@ export function resolvePreviewMiniPlayerFrame(input: {
 }
 
 /**
- * Resizes from any edge or corner while holding the aspect ratio. The edge
+ * Resizes from any edge or corner, holding the aspect ratio unless the player
+ * is free, in which case each axis follows the pointer on its own. The edge
  * opposite the dragged one stays anchored, so growth stops at the container
  * on that axis and the pointer keeps tracking the grabbed edge. On a plain edge
  * drag the perpendicular axis may use the whole container, and the player
@@ -329,6 +364,7 @@ export function resizePreviewMiniPlayer(input: {
   readonly source: PreviewMiniPlayerSize;
   readonly container: PreviewMiniPlayerSize;
   readonly obstacles?: PreviewMiniPlayerObstacles;
+  readonly lockAspect?: boolean;
 }): PreviewMiniPlayerFrame {
   const {
     start,
@@ -337,6 +373,7 @@ export function resizePreviewMiniPlayer(input: {
     source,
     container,
     obstacles = NO_PREVIEW_MINI_PLAYER_OBSTACLES,
+    lockAspect = true,
   } = input;
   const east = direction.includes("east");
   const west = direction.includes("west");
@@ -375,7 +412,9 @@ export function resizePreviewMiniPlayer(input: {
       : horizontal
         ? desiredWidth
         : desiredHeight * aspectRatio;
-  const size = fitPreviewMiniPlayerWidth(desired, source, max);
+  const size = lockAspect
+    ? fitPreviewMiniPlayerWidth(desired, source, max)
+    : fitPreviewMiniPlayerSize({ width: desiredWidth, height: desiredHeight }, source, max, false);
   const position = clampPreviewMiniPlayerPosition(
     { x: west ? right - size.width : start.x, y: north ? bottom - size.height : start.y },
     container,
