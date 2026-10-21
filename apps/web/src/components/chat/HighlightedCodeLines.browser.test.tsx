@@ -20,11 +20,11 @@ function normalizedHtml(html: string) {
   return host.innerHTML;
 }
 
-it("streams Shiki HTML into the DOM, keeping finished lines mounted", async () => {
+it("streams highlighted HTML into the DOM, keeping finished lines mounted", async () => {
   const highlighter = await getSharedHighlighter({
     langs: ["typescript"],
     themes: ["pierre-dark", "pierre-light"],
-    preferredHighlighter: "shiki-wasm",
+    preferredHighlighter: "highlights",
   });
   const code =
     'const html = "<img src=x onerror=alert(1)>";\n\n/* multi\nline */\n\tconst x = 1;\n';
