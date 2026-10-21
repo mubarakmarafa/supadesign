@@ -1270,3 +1270,25 @@ describe("server model preferences", () => {
     expect(decodeServerSettingsPatch(input)).toEqual(input);
   });
 });
+
+describe("thread grouping preference", () => {
+  it("defaults existing client settings to status", () => {
+    expect(decodeClientSettings({}).sidebarThreadGrouping).toBe("status");
+  });
+  it.each(["status", "project"])("round trips %s", (sidebarThreadGrouping) => {
+    const input = { sidebarThreadGrouping };
+    expect(encodeClientSettings(decodeClientSettings(input))).toMatchObject(input);
+    expect(decodeClientSettingsPatch(input)).toEqual(input);
+  });
+  it("rejects unknown grouping modes in patches", () => {
+    expect(() => decodeClientSettingsPatch({ sidebarThreadGrouping: "unknown" })).toThrow();
+  });
+  it("loads saved settings with an unknown grouping as Default and keeps the rest", () => {
+    const decoded = decodeClientSettings({
+      sidebarThreadGrouping: "updated",
+      confirmThreadDelete: false,
+    });
+    expect(decoded.sidebarThreadGrouping).toBe("status");
+    expect(decoded.confirmThreadDelete).toBe(false);
+  });
+});

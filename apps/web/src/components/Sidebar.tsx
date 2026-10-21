@@ -1,3 +1,23 @@
+import {
+  SidebarDragBoundary,
+  SidebarSectionHeader,
+  SidebarSectionPlaceholder,
+  SortableSidebarMarker,
+  SIDEBAR_DRAG_LABEL_HEIGHT,
+  SIDEBAR_SORTABLE_DRAG_DISABLED,
+} from "./sidebar/SidebarListMarkers";
+import {
+  buildSidebarInboxItems,
+  buildSidebarListItems,
+  previewDraggedInbox,
+  threadShellKey,
+  sidebarListLayoutKey,
+} from "./Sidebar.list";
+import {
+  toggleCollapsedThreadGroup,
+  type ThreadGroupingProject,
+} from "@supaterm/client-runtime/state/thread-grouping";
+import type { SidebarThreadGrouping } from "@supaterm/contracts/settings";
 import { SidebarPendingThreadRow } from "./SidebarPendingThreadRow";
 import { useThreadOutbox } from "../state/threadOutbox";
 import { type EnvironmentId, type ScopedProjectRef } from "@supaterm/contracts";
@@ -29,6 +49,7 @@ import {
   DndContext,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -78,14 +99,11 @@ import {
   CircleCheckIcon,
   CircleDashedIcon,
   ClockIcon,
-  FolderIcon,
   GitBranchIcon,
-  ListFilterIcon,
   MessageCircleQuestionIcon,
   PinIcon,
   PinOffIcon,
   PlusIcon,
-  SettingsIcon,
   ShieldQuestionIcon,
   SquarePenIcon,
   TerminalIcon,
@@ -97,7 +115,7 @@ import {
   memo,
   useEffect,
   useLayoutEffect,
-  useReducer,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -131,7 +149,7 @@ import { isMacPlatform } from "~/lib/utils";
 import { useOpenPrLink } from "../lib/openPullRequestLink";
 import { readLocalApi } from "../localApi";
 import { useSidebarPendingFileDropStore } from "../sidebarPendingFileDropStore";
-import { selectProjectGroupingSettings } from "../logicalProject";
+import { getProjectOrderKey, selectProjectGroupingSettings } from "../logicalProject";
 import {
   projectGroupMemberKeys,
   projectGroupsSpanEnvironments,
@@ -152,9 +170,8 @@ import { useTerminalFocus } from "../hooks/useTerminalFocus";
 import { registerAppCommandHandler } from "../appCommandBus";
 import { isCommandPaletteOpen, openCommandPalette } from "../commandPaletteBus";
 import { registerMarkDoneAndAdvance } from "../markDoneAndAdvance";
-import { useClientSettings } from "../hooks/useSettings";
+import { updateClientSettings, useClientSettings } from "../hooks/useSettings";
 import { usePickerShortcuts } from "../hooks/usePickerShortcuts";
-import { Kbd } from "./ui/kbd";
 import { useCopyToClipboard } from "../hooks/useCopyToClipboard";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useNowMinute } from "../hooks/useNowMinute";
@@ -189,7 +206,6 @@ import { isScratchProject } from "@supaterm/client-runtime/state/projects";
 import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import { cn } from "~/lib/utils";
 import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";
-import { ProjectEnvironmentBadge } from "./ProjectEnvironmentBadge";
 import {
   buildDraftActionMenuItems,
   buildThreadActionMenuItems,
@@ -202,7 +218,6 @@ import {
   buildBulkTitleRegenerationContextMenuItem,
   buildBulkUnpinContextMenuItem,
   deleteSelectedThreadEntries,
-  filterSidebarProjectScopeItems,
   formatWorkingDurationLabel,
   firstValidTimestampMs,
   hasUnseenCompletion,
@@ -211,7 +226,6 @@ import {
   isTrailingDoubleClick,
   orderItemsByPreferredIds,
   planSidebarThreadDrop,
-  reduceSidebarProjectScopeMenuState,
   resolveAdjacentThreadId,
   resolveSidebarSweepKeys,
   resolveSidebarDropTarget,
@@ -227,8 +241,8 @@ import {
   shouldNavigateAfterThreadPark,
   shouldRecedeSidebarThread,
   shouldShowSidebarV2Duration,
+  isSidebarGroupId,
   sidebarListItemId,
-  sidebarMarkerId,
   sidebarThreadKeyAtY,
   sortInboxThreadsByReturn,
   sortPinnedThreadsForSidebar,
@@ -236,15 +250,15 @@ import {
   useThreadJumpHintVisibility,
   useRetainedValue,
   useSidebarRowSubscriptionLease,
-  type SidebarListItem,
-  type SidebarListMarker,
   type SidebarSection,
 } from "./Sidebar.logic";
 import { resolveLocalCheckoutBranchMismatch } from "./BranchToolbar.logic";
 import {
   createSidebarCollisionDetection,
+  createSidebarGroupCollisionDetection,
   createSidebarSortingStrategy,
   restrictBelowSidebarLabel,
+  sidebarProjectGroupBlocks,
 } from "./Sidebar.drag";
 import { SidebarDragLifecycle, SidebarPointerSensor } from "./Sidebar.pointer";
 import { createSidebarListMotion } from "./Sidebar.motion";
@@ -271,20 +285,13 @@ import {
 import { useThreadRunningTerminalIds } from "../state/terminalSessions";
 import { useStableCallback } from "../hooks/useStableCallback";
 import { stackedThreadToast, toastManager } from "./ui/toast";
-import { Button, InlineButton } from "./ui/button";
-import {
-  Combobox,
-  ComboboxEmpty,
-  ComboboxSearchInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxPopup,
-  ComboboxTrigger,
-  useComboboxFilter,
-} from "./ui/combobox";
+import { InlineButton } from "./ui/button";
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
-import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
+import { SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
+import { SidebarProjectFilterSubmenu } from "./sidebar/SidebarProjectFilterSubmenu";
+import { SidebarThreadListMenu } from "./sidebar/SidebarThreadListMenu";
+import { SidebarGroupHeader } from "./sidebar/SidebarGroupHeader";
 import { SidebarPrimaryNavigation } from "./sidebar/SidebarPrimaryNavigation";
 import { SidebarPinButton } from "./sidebar/SidebarPinButton";
 import { SidebarParkedActionButton } from "./sidebar/SidebarParkedActionButton";
@@ -384,6 +391,8 @@ const DONE_SHELF_EXPANDED_KEY = "supaterm:sidebar:done-expanded";
 const SNOOZED_SHELF_EXPANDED_KEY = "supaterm:sidebar:snoozed-expanded";
 const WORKING_SHELF_EXPANDED_KEY = "supaterm:sidebar:working-expanded";
 const DRAFTS_SHELF_EXPANDED_KEY = "supaterm:sidebar:drafts-expanded";
+const COLLAPSED_THREAD_GROUPS_KEY = "supaterm:sidebar:collapsed-thread-groups";
+const CollapsedThreadGroups = Schema.Array(Schema.String);
 
 // When this client saw each thread leave the Working shelf.
 // Module scope keeps the inbox order across routes that unmount the sidebar.
@@ -413,39 +422,20 @@ interface SidebarThreadPartitionInput {
   readonly snoozeWakeTickAt: number;
 }
 
-function threadShellKey(thread: Pick<SidebarThreadSummary, "environmentId" | "id">): string {
-  return scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
-}
-
 const NO_DRAGGED_ORDER: readonly string[] = [];
-const NO_DRAGGED_ORDERS: {
-  readonly doneOrder: readonly string[];
-  readonly activeOrder: readonly string[] | undefined;
-} = { doneOrder: NO_DRAGGED_ORDER, activeOrder: undefined };
 
-// Where the dragged row would sort if dropped on the done or the
-// time-ordered active shelf; the strategy previews those slots.
-function resolveDraggedOrders(input: {
+function resolveDraggedDoneOrder(input: {
   readonly drag: { readonly activeKey: string; readonly occurredAt: string };
   readonly threadByKey: ReadonlyMap<string, EnvironmentThreadShell>;
   readonly doneThreads: readonly EnvironmentThreadShell[];
-  readonly activeThreads: readonly EnvironmentThreadShell[];
-}): typeof NO_DRAGGED_ORDERS {
-  const { drag, threadByKey, doneThreads, activeThreads } = input;
+}): readonly string[] {
+  const { drag, threadByKey, doneThreads } = input;
   const thread = threadByKey.get(drag.activeKey);
-  if (thread === undefined) return NO_DRAGGED_ORDERS;
-  const others = (list: readonly EnvironmentThreadShell[]) =>
-    list.filter((candidate) => threadShellKey(candidate) !== drag.activeKey);
-  return {
-    doneOrder: sortDoneThreads([
-      ...others(doneThreads),
-      applySidebarThreadDrop(thread, "done", drag.occurredAt),
-    ]).map(threadShellKey),
-    activeOrder: sortInboxThreadsByReturn(
-      [...others(activeThreads), applySidebarThreadDrop(thread, "active", drag.occurredAt)],
-      inboxReturns.returnedAt,
-    ).map(threadShellKey),
-  };
+  if (thread === undefined) return NO_DRAGGED_ORDER;
+  return sortDoneThreads([
+    ...doneThreads.filter((candidate) => threadShellKey(candidate) !== drag.activeKey),
+    applySidebarThreadDrop(thread, "done", drag.occurredAt),
+  ]).map(threadShellKey);
 }
 
 // A collapsed shelf still shows the open thread, so the route never hides
@@ -470,6 +460,8 @@ function useSidebarThreads(input: {
   readonly optimisticDrop: SidebarOptimisticDrop | null;
   readonly routeThreadRef: ScopedThreadRef | null;
   readonly dragging: boolean;
+  readonly grouping: SidebarThreadGrouping;
+  readonly groupingProjects: readonly ThreadGroupingProject[];
 }) {
   const { projectScopeKey, scopedProjectKeys, serverConfigs, optimisticDrop, routeThreadRef } =
     input;
@@ -522,6 +514,12 @@ function useSidebarThreads(input: {
     false,
     Schema.Boolean,
   );
+  const [collapsedThreadGroups, setCollapsedThreadGroups] = useLocalStorage(
+    COLLAPSED_THREAD_GROUPS_KEY,
+    [],
+    CollapsedThreadGroups,
+  );
+  const collapsedThreadGroupKeys = new Set(collapsedThreadGroups);
   // The done tail renders in pages: history shouldn't dominate the sidebar,
   // and the common lookups are recent. Paging restarts whenever the project
   // scope changes, so a scope flip never inherits a deep page state.
@@ -579,10 +577,24 @@ function useSidebarThreads(input: {
   const visiblePinnedThreads = pinnedShelfVisible
     ? pinnedThreads
     : routeThreadOnly(pinnedThreads, routeRowThreadKey);
+  const inboxItems = buildSidebarInboxItems({
+    mode: input.grouping,
+    active: activeThreads,
+    working: workingThreads,
+    visibleWorking: visibleWorkingThreads,
+    projects: input.groupingProjects,
+    collapsedGroups: collapsedThreadGroupKeys,
+    routeThreadKey: routeRowThreadKey,
+  });
+  const inboxThreadsByKey = new Map(
+    [...activeThreads, ...workingThreads].map((thread) => [threadShellKey(thread), thread]),
+  );
   const orderedThreads = [
     ...visiblePinnedThreads,
-    ...activeThreads,
-    ...visibleWorkingThreads,
+    ...inboxItems.flatMap((item) => {
+      const thread = item.kind === "thread" ? inboxThreadsByKey.get(item.key) : undefined;
+      return thread ? [thread] : [];
+    }),
     ...visibleSnoozedThreads,
     ...renderedDoneThreads,
   ];
@@ -598,6 +610,7 @@ function useSidebarThreads(input: {
   }
   return {
     routeRowThreadKey,
+    inboxItems,
     ...partition,
     threads,
     serverThreadKeys,
@@ -617,6 +630,10 @@ function useSidebarThreads(input: {
     toggleSnoozedShelf: () => setSnoozedShelfExpanded((value) => !value),
     workingShelfExpanded,
     toggleWorkingShelf: () => setWorkingShelfExpanded((value) => !value),
+    collapsedThreadGroups,
+    collapsedThreadGroupKeys,
+    toggleThreadGroup: (key: string) =>
+      setCollapsedThreadGroups((keys) => toggleCollapsedThreadGroup(keys, key)),
     visiblePinnedThreads,
     renderedDoneThreads,
     visibleSnoozedThreads,
@@ -798,7 +815,7 @@ function useSidebarLookups() {
     projectGroups.map((project) => [project.projectKey, project] as const),
   );
   const projectScopeItems = [
-    { value: "all", label: "All projects" },
+    { value: "all", label: "All" },
     ...projectGroups.map((project) => ({ value: project.projectKey, label: project.displayName })),
   ];
   return {
@@ -1136,7 +1153,6 @@ type SortableThreadRowBag = Pick<
 
 // useSortable memoizes on its `disabled` object, so a fresh one per render
 // re-renders every row and marker on each sidebar update.
-const SIDEBAR_SORTABLE_DRAG_DISABLED = { draggable: true } as const;
 const SIDEBAR_SORTABLE_DRAG_ENABLED = { draggable: false } as const;
 
 // Takes the row's props rather than a render function: a closure from the
@@ -1206,137 +1222,7 @@ function SidebarDraftDiscardButton(props: {
   );
 }
 
-function SortableSidebarMarker(props: {
-  marker: SidebarListMarker;
-  className?: string;
-  children?: ReactNode;
-  "data-testid"?: string;
-}) {
-  const { setNodeRef, transform, transition } = useSortable({
-    id: sidebarMarkerId(props.marker),
-    disabled: SIDEBAR_SORTABLE_DRAG_DISABLED,
-    animateLayoutChanges: animateSidebarLayoutChanges,
-  });
-  return (
-    <li
-      ref={setNodeRef}
-      data-thread-selection-safe
-      data-testid={props["data-testid"]}
-      className={cn("list-none", props.className)}
-      style={{
-        transform: CSS.Translate.toString(transform),
-        transition: props.marker.endsWith("-placeholder") ? "none" : transition,
-        visibility: transform?.scaleY === 0 ? "hidden" : undefined,
-      }}
-    >
-      {props.children}
-    </li>
-  );
-}
-
-function SidebarSectionPlaceholder(props: {
-  marker: "active-placeholder" | "done-placeholder";
-  label: string;
-  showHint: boolean;
-  isDropTarget: boolean;
-}) {
-  return (
-    <SortableSidebarMarker
-      marker={props.marker}
-      data-testid={`sidebar-${props.marker}`}
-      className="relative mx-0.5 -mb-px h-0"
-    >
-      {props.showHint ? (
-        <div
-          className={cn(
-            "absolute inset-x-0 top-0 flex h-9 items-center justify-center rounded-md border border-dashed border-sidebar-foreground/25 text-xs text-sidebar-foreground/80",
-            props.isDropTarget && "border-primary/40 bg-primary/5 text-primary",
-          )}
-        >
-          {props.label}
-        </div>
-      ) : null}
-    </SortableSidebarMarker>
-  );
-}
-
 const SIDEBAR_DRAG_DISTANCE = 6;
-
-const SIDEBAR_DRAG_LABEL_HEIGHT = 24;
-
-function SidebarDragBoundary(props: {
-  marker: "pinned-header" | "pinned-divider";
-  label: string;
-  visible: boolean;
-  persistent?: boolean;
-  isDropTarget: boolean;
-}) {
-  return (
-    <SortableSidebarMarker
-      marker={props.marker}
-      data-testid={`sidebar-${props.marker}`}
-      className={cn("pointer-events-none relative mx-0.5", props.persistent ? "h-8" : "-mb-px h-0")}
-    >
-      {props.visible || props.persistent ? (
-        <div
-          className={cn(
-            "sidebar-drag-boundary-label absolute inset-x-2 flex h-4 items-center gap-2",
-            props.persistent ? "top-2" : "top-1",
-          )}
-        >
-          <span
-            className={cn(
-              "shrink-0 text-xs",
-              props.isDropTarget ? "text-primary" : "text-sidebar-muted-foreground/60",
-            )}
-          >
-            {props.label}
-          </span>
-          <span
-            aria-hidden
-            className={cn(
-              "h-px flex-1",
-              props.isDropTarget ? "bg-primary/50" : "bg-sidebar-border/60",
-            )}
-          />
-        </div>
-      ) : null}
-    </SortableSidebarMarker>
-  );
-}
-
-function SidebarSectionHeader(props: {
-  marker: "pinned-header" | "working-header" | "snoozed-header" | "done-header";
-  label: string;
-  className?: string;
-  // While dragging, the done header reads at full strength and takes the
-  // accent while the lifted row is over it.
-  dragging?: boolean;
-  isDropTarget?: boolean;
-  toggle: { expanded: boolean; onToggle: () => void; prepare: () => void };
-}) {
-  const shelf = props.marker.replace("-header", "");
-  return (
-    <SortableSidebarMarker
-      marker={props.marker}
-      data-testid={`sidebar-${props.marker}`}
-      className={cn("mx-0.5 h-8", props.className)}
-    >
-      <CollapsibleSectionHeader
-        onClick={() => {
-          props.toggle.prepare();
-          props.toggle.onToggle();
-        }}
-        expanded={props.toggle.expanded}
-        weight="normal"
-        tone={props.isDropTarget ? "accent" : props.dragging ? "emphasized" : "muted"}
-        data-testid={`sidebar-${shelf}-shelf-toggle`}
-      >
-        {props.label}
-      </CollapsibleSectionHeader>
-    </SortableSidebarMarker>
-  );
-}
 
 // One unsent draft session the user has invested content in. Two lines,
 // with the typed prompt above the branch or project name. All the draft's
@@ -1667,6 +1553,8 @@ type SidebarThreadRowProps = {
   environmentMachine: EnvironmentMachineKind;
   scratchMachineLabel: string | null;
   project: EnvironmentProject | null;
+  /** Off under a project group, whose header already shows the icon. */
+  showProjectIcon: boolean;
   projectDisplayName: string | null;
   providerEntryByInstanceId: ReadonlyMap<string, SidebarProviderEntry>;
   onThreadClick: (event: ReactMouseEvent, threadRef: ScopedThreadRef) => void;
@@ -2465,11 +2353,13 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
           {accessibleTitle}
           <div className="relative z-10 h-12 px-2.5 pt-1.5">
             <div className="flex h-5 min-w-0 items-center gap-1.5">
-              <span className="inline-flex size-4 shrink-0">
-                {props.project ? (
-                  <ProjectFavicon project={props.project} className="size-4" />
-                ) : null}
-              </span>
+              {props.showProjectIcon ? (
+                <span className="inline-flex size-4 shrink-0">
+                  {props.project ? (
+                    <ProjectFavicon project={props.project} className="size-4" />
+                  ) : null}
+                </span>
+              ) : null}
               {/* Left of the status slot, the pin would slide when hover swaps the
                 label for the wider row controls. */}
               {pinIndicator}
@@ -2644,6 +2534,13 @@ export default function Sidebar() {
   const confirmThreadDelete = useClientSettings((s) => s.confirmThreadDelete);
   const confirmThreadArchive = useClientSettings((s) => s.confirmThreadArchive);
   const timestampFormat = useClientSettings((s) => s.timestampFormat);
+  const threadGrouping = useClientSettings((s) => s.sidebarThreadGrouping);
+  const projectSortOrder = useClientSettings((s) => s.sidebarProjectSortOrder);
+  const groupingProjects = projectGroups.map((group) => ({
+    key: group.projectKey,
+    label: group.displayName,
+    memberProjectRefs: group.memberProjectRefs,
+  }));
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
   const {
     markThreadDone,
@@ -2732,11 +2629,14 @@ export default function Sidebar() {
   const environmentMachineById = useEnvironmentMachines();
   const persistedProjectScopeKey = useUiStateStore((store) => store.sidebarProjectScopeKey);
   const setPersistedProjectScopeKey = useUiStateStore((store) => store.setSidebarProjectScopeKey);
-  const [projectScopeMenuState, dispatchProjectScopeMenu] = useReducer(
-    reduceSidebarProjectScopeMenuState,
-    { open: false, query: "" },
-  );
-  const projectScopeFilter = useComboboxFilter();
+  const [threadListMenuOpen, setThreadListMenuOpen] = useState(false);
+  const [projectFilterOpen, setProjectFilterOpen] = useState(false);
+  // Closing a controlled menu from code skips onOpenChange, so the submenu's
+  // flag, which arms the project shortcuts, has to close with it.
+  const closeThreadListMenu = () => {
+    setThreadListMenuOpen(false);
+    setProjectFilterOpen(false);
+  };
   const allProjectSnapshotsReady = useAllEnvironmentProjectSnapshotsReady();
   const allProjectConfigsReady = useAtomValue(environmentProjects.projectConfigsReadyAtom);
   const outboxEntries = useThreadOutbox();
@@ -2753,12 +2653,9 @@ export default function Sidebar() {
   const terminalFocused = useTerminalFocus();
   const { showThreadJumpHints: showJumpHints, updateThreadJumpHintsVisibility } =
     useThreadJumpHintVisibility();
-  // Anchor for the scope popup: the thread list heading, not its icon trigger.
-  const threadHeaderRef = useRef<HTMLDivElement | null>(null);
   // Safari can send a click after Ctrl+click opens settings. Ignore that one
-  // selection, then clear the guard when the picker opens again.
+  // selection, then clear the guard when the menu opens again.
   const suppressNextScopeChangeRef = useRef(false);
-  const highlightedProjectScopeKeyRef = useRef<string | null>(null);
   // Keep a dropped row at its destination while its server applies the
   // lifecycle command and any order-key writes. The next pickup waits for
   // this hold so a second drop cannot replace an unconfirmed placement.
@@ -2835,23 +2732,15 @@ export default function Sidebar() {
     }
     return environmentLabelById.get(thread.environmentId) ?? null;
   };
-  const selectedProjectScopeItem =
-    projectScopeItems.find((item) => item.value === (projectScopeKey ?? "all")) ??
-    projectScopeItems[0]!;
-  const filteredProjectScopeItems = filterSidebarProjectScopeItems({
-    items: projectScopeItems,
-    query: projectScopeMenuState.query,
-    matches: (item, query) =>
-      projectScopeFilter.contains(item, query, (candidate) => candidate.label),
-  });
   const projectScopeJumpLabels = usePickerShortcuts({
     picker: "project",
-    open: projectScopeMenuState.open,
-    items: filteredProjectScopeItems.filter((item) => item.value !== "all"),
+    open: projectFilterOpen,
+    items: projectScopeItems.filter((item) => item.value !== "all"),
+    fixedChoice: { item: projectScopeItems[0]!, command: "projectPicker.noProject" },
     keybindings,
     onSelect: (item) => {
-      setProjectScopeKey(item.value);
-      dispatchProjectScopeMenu({ type: "open-changed", open: false });
+      setProjectScopeKey(item.value === "all" ? null : item.value);
+      closeThreadListMenu();
     },
   });
   const scopedProjectGroup =
@@ -2920,14 +2809,11 @@ export default function Sidebar() {
     },
   );
   const handleProjectSettings = useStableCallback(
-    (
-      event: ReactMouseEvent<HTMLElement> | ReactKeyboardEvent<HTMLInputElement>,
-      projectGroup: SidebarProjectSnapshot,
-    ) => {
+    (event: ReactMouseEvent<HTMLElement>, projectGroup: SidebarProjectSnapshot) => {
       event.preventDefault();
       event.stopPropagation();
       suppressNextScopeChangeRef.current = true;
-      dispatchProjectScopeMenu({ type: "project-settings-opened" });
+      closeThreadListMenu();
       openProjectSettings(projectGroup);
     },
   );
@@ -2954,10 +2840,14 @@ export default function Sidebar() {
     toggleSnoozedShelf,
     workingShelfExpanded,
     toggleWorkingShelf,
+    collapsedThreadGroups,
+    collapsedThreadGroupKeys,
+    toggleThreadGroup,
     visiblePinnedThreads,
     renderedDoneThreads,
     visibleSnoozedThreads,
     visibleWorkingThreads,
+    inboxItems,
     orderedThreadKeys,
     threadByKey,
     doneThreadKeys,
@@ -2967,6 +2857,8 @@ export default function Sidebar() {
     pinnedKeysById,
     routeRowThreadKey,
   } = useSidebarThreads({
+    grouping: threadGrouping,
+    groupingProjects,
     projectScopeKey,
     scopedProjectKeys,
     serverConfigs,
@@ -3275,6 +3167,7 @@ export default function Sidebar() {
     return bounds !== undefined && (point.x < bounds.left || point.x > bounds.right);
   };
   const moveThreadContextDrag = (point: { x: number; y: number }) => {
+    if (contextDragKeyRef.current === null) return false;
     const contextDrag = pointerOutsideThreadList(point);
     setDragState((current) =>
       current === null || current.contextDrag === contextDrag
@@ -3296,7 +3189,7 @@ export default function Sidebar() {
     return true;
   };
   const dropThreadContextDrag = (point: { x: number; y: number }) => {
-    if (!pointerOutsideThreadList(point)) return false;
+    if (contextDragKeyRef.current === null || !pointerOutsideThreadList(point)) return false;
     dropThreadContext(point, { kind: "threads", threads: contextDragThreads() });
     return true;
   };
@@ -3399,6 +3292,15 @@ export default function Sidebar() {
       toastThreadActionFailure("Failed to unpin thread", result),
     );
 
+  const handleGroupDragStart = () => {
+    listMotionRef.current?.suspend();
+    const list = threadListRef.current;
+    const firstGroup = list?.querySelector<HTMLElement>('[data-testid^="sidebar-group-project:"]');
+    dragLabelOffsetRef.current =
+      list && firstGroup
+        ? firstGroup.getBoundingClientRect().top - list.getBoundingClientRect().top
+        : 0;
+  };
   const handleThreadDragStart = (event: DragStartEvent) => {
     const activeKey = String(event.active.id);
     contextDragKeyRef.current = activeKey;
@@ -3434,43 +3336,22 @@ export default function Sidebar() {
       snoozedThreads.length +
       doneThreads.length >
     0;
-  const sidebarListItemsFresh = ((): readonly SidebarListItem[] => {
-    const rowsOf = (
-      list: readonly EnvironmentThreadShell[],
-      section: SidebarSection,
-    ): SidebarListItem[] =>
-      list.map((thread) => ({ kind: "thread", key: threadShellKey(thread), section }));
-    if (!sidebarHasThreadSections) {
-      return [{ kind: "marker", marker: "drafts-block" }];
-    }
-    const items: SidebarListItem[] = [{ kind: "marker", marker: "pinned-header" }];
-    const pinnedRows = rowsOf(visiblePinnedThreads, "pinned");
-    items.push(...pinnedRows);
-    items.push({ kind: "marker", marker: "drafts-block" });
-    items.push({ kind: "marker", marker: "pinned-divider" });
-    const activeRows = rowsOf(activeThreads, "active");
-    items.push({ kind: "marker", marker: "active-placeholder" });
-    items.push(...activeRows);
-    if (workingThreads.length > 0) {
-      items.push({ kind: "marker", marker: "working-header" });
-      items.push(...rowsOf(visibleWorkingThreads, "working"));
-    }
-    if (snoozedThreads.length > 0) {
-      items.push({ kind: "marker", marker: "snoozed-header" });
-      items.push(...rowsOf(visibleSnoozedThreads, "snoozed"));
-    }
-    items.push({ kind: "marker", marker: "done-header" });
-    const doneRows = rowsOf(renderedDoneThreads, "done");
-    items.push({ kind: "marker", marker: "done-placeholder" });
-    items.push(...doneRows);
-    return items;
-  })();
+  const showWorkingShelf = inboxItems.some(
+    (item) => item.kind === "marker" && item.marker === "working-header",
+  );
+  const inboxCount = activeThreads.length + (showWorkingShelf ? 0 : workingThreads.length);
+  const sidebarListItemsFresh = buildSidebarListItems({
+    hasThreads: sidebarHasThreadSections,
+    pinned: visiblePinnedThreads,
+    snoozed: visibleSnoozedThreads,
+    done: renderedDoneThreads,
+    showSnoozed: snoozedThreads.length > 0,
+    inboxItems,
+  });
   // Thread shells update on every streamed event without moving rows. Keep the
   // list's identity until its order changes, so the sorting strategy, the
   // sortable context and every sortable row stay memoized meanwhile.
-  const sidebarListItemsKey = sidebarListItemsFresh
-    .map((item) => (item.kind === "thread" ? item.section + ":" + item.key : item.marker))
-    .join("\n");
+  const sidebarListItemsKey = sidebarListLayoutKey(sidebarListItemsFresh);
   const [sidebarListItemsState, setSidebarListItems] = useState(sidebarListItemsFresh);
   const [sidebarListItemsKeyState, setSidebarListItemsKeyState] = useState(sidebarListItemsKey);
   let sidebarListItems = sidebarListItemsState;
@@ -3496,27 +3377,27 @@ export default function Sidebar() {
   // keeps ordinary updates from forcing a layout read and animating rows
   // whose position drifted for other reasons.
   const listMotionLayoutKey = [
-    sidebarListItems
-      .map((item) => (item.kind === "thread" ? `${item.key}:${item.section}` : item.marker))
-      .join("\0"),
+    sidebarListLayoutKey(sidebarListItems),
     routeDraftIdForRows ?? "",
     visibleDraftSessionCount,
     pendingThreads.length,
     undoNoticeShown,
   ].join("\n");
-  const listMotionShelfState = `${pinnedShelfExpanded}:${workingShelfExpanded}:${snoozedShelfExpanded}:${doneShelfExpanded}`;
+  const listMotionShelfState = `${pinnedShelfExpanded}:${workingShelfExpanded}:${snoozedShelfExpanded}:${doneShelfExpanded}:${collapsedThreadGroups.join(",")}`;
   const listMotionAnimate =
     dragState === null &&
     (sidebarHasThreadSections || visibleDraftSessionCount > 0 || pendingThreads.length > 0);
-  // The effect reads only `animate` and the shelf state; the pass object is
-  // cached on all three fields, so a new layout key alone also triggers it.
   const listMotionPass = {
     layoutKey: listMotionLayoutKey,
     shelfState: listMotionShelfState,
     animate: listMotionAnimate,
+    grouping: threadGrouping,
   };
+  const previousGroupingRef = useRef(threadGrouping);
   const previousShelfStateRef = useRef(listMotionPass.shelfState);
   useLayoutEffect(() => {
+    if (previousGroupingRef.current !== listMotionPass.grouping) listMotionRef.current?.suspend();
+    previousGroupingRef.current = listMotionPass.grouping;
     const shelfToggled = previousShelfStateRef.current !== listMotionPass.shelfState;
     previousShelfStateRef.current = listMotionPass.shelfState;
     listMotionRef.current?.update(listMotionPass.animate, shelfToggled);
@@ -3536,16 +3417,45 @@ export default function Sidebar() {
   // every sortable row, keeps its identity while thread shells stream in.
   // The inbox is time-ordered too, so the preview shows the slot a drop will
   // land in, not the slot under the pointer.
-  const { doneOrder: draggedDoneOrder, activeOrder: draggedActiveOrder } =
+  const draggedDoneOrder =
     dragState === null
-      ? NO_DRAGGED_ORDERS
-      : resolveDraggedOrders({ drag: dragState, threadByKey, doneThreads, activeThreads });
+      ? NO_DRAGGED_ORDER
+      : resolveDraggedDoneOrder({ drag: dragState, threadByKey, doneThreads });
+  // oxlint-disable-next-line supaterm/no-manual-memo -- The compiler merges this scope across hooks; Sidebar.compiled.test.ts guards strategy caching.
+  const draggedInbox = useMemo(
+    () =>
+      previewDraggedInbox({
+        mode: threadGrouping,
+        drag: dragState,
+        threadByKey,
+        active: activeThreads,
+        working: workingThreads,
+        visibleWorking: visibleWorkingThreads,
+        inboxReturnAt: inboxReturns.returnedAt,
+        workingShelfExpanded,
+        routeThreadKey: routeRowThreadKey,
+        projects: groupingProjects,
+        collapsedGroups: collapsedThreadGroupKeys,
+      }),
+    [
+      threadGrouping,
+      dragState,
+      threadByKey,
+      activeThreads,
+      workingThreads,
+      visibleWorkingThreads,
+      workingShelfExpanded,
+      routeRowThreadKey,
+      groupingProjects,
+      collapsedThreadGroupKeys,
+    ],
+  );
   const sidebarSortingStrategy = createSidebarSortingStrategy({
+    inbox: draggedInbox,
     items: sidebarListItems,
     enabled: !isContextDrag,
     boundaryLabelHeight: SIDEBAR_DRAG_LABEL_HEIGHT,
     doneOrder: draggedDoneOrder,
-    ...(draggedActiveOrder === undefined ? {} : { activeOrder: draggedActiveOrder }),
     doneExpanded: doneShelfExpanded,
     doneVisibleCount,
     routeThreadKey: routeRowThreadKey,
@@ -3583,6 +3493,29 @@ export default function Sidebar() {
       },
     );
   })();
+  const groupCollisionDetection = createSidebarGroupCollisionDetection(sidebarListItems);
+  const sidebarCollisionDetection: CollisionDetection = (args) =>
+    isSidebarGroupId(String(args.active.id))
+      ? groupCollisionDetection(args)
+      : dndCollisionDetection(args);
+  const handleGroupDragEnd = (event: DragEndEvent) => {
+    const blocks = sidebarProjectGroupBlocks(sidebarListItems);
+    const projectKeyOf = (id: string | undefined) =>
+      blocks.find((block) => sidebarListItemId(block.item) === id)?.item.projectKey ?? null;
+    const dragged = projectKeyOf(String(event.active.id));
+    const target = projectKeyOf(event.over === null ? undefined : String(event.over.id));
+    if (dragged === null || target === null || dragged === target) return;
+    const memberKeys = (projectKey: string) =>
+      projectGroupByScopeKey.get(projectKey)?.memberProjects.map(getProjectOrderKey) ?? [];
+    useUiStateStore.getState().reorderProjects(
+      projectGroups.flatMap((group) => group.memberProjects.map(getProjectOrderKey)),
+      memberKeys(dragged),
+      memberKeys(target),
+    );
+    if (projectSortOrder !== "manual") {
+      void updateClientSettings({ sidebarProjectSortOrder: "manual" });
+    }
+  };
   const handleThreadDragEnd = (event: DragEndEvent) => {
     const activeKey = String(event.active.id);
     const activeSection = sectionByThreadKey.get(activeKey);
@@ -4413,144 +4346,43 @@ export default function Sidebar() {
               <SidebarPrimaryNavigation projectGroupCount={projectGroups.length} />
               {projectGroups.length > 0 ? (
                 <SidebarThreadHeader
-                  rowRef={threadHeaderRef}
                   scopeLabel={scopedProjectGroup?.displayName ?? null}
                   onNewProject={openAddProjectCommandPalette}
-                  projectScope={
-                    <Combobox
-                      items={projectScopeItems}
-                      filteredItems={filteredProjectScopeItems}
-                      autoHighlight
-                      itemToStringLabel={(item) => item.label}
-                      isItemEqualToValue={(a, b) => a.value === b.value}
-                      open={projectScopeMenuState.open}
+                  optionsMenu={
+                    <SidebarThreadListMenu
+                      open={threadListMenuOpen}
                       onOpenChange={(open) => {
-                        if (open) suppressNextScopeChangeRef.current = false;
-                        dispatchProjectScopeMenu({ type: "open-changed", open });
+                        if (!open) return closeThreadListMenu();
+                        suppressNextScopeChangeRef.current = false;
+                        setThreadListMenuOpen(true);
                       }}
-                      onItemHighlighted={(item) => {
-                        highlightedProjectScopeKeyRef.current = item?.value ?? null;
-                      }}
-                      value={selectedProjectScopeItem}
-                      onValueChange={(item) => {
-                        if (suppressNextScopeChangeRef.current) {
-                          suppressNextScopeChangeRef.current = false;
-                          return;
-                        }
-                        if (!item) return;
-                        setProjectScopeKey(item.value === "all" ? null : item.value);
-                      }}
-                    >
-                      <ComboboxTrigger
-                        render={
-                          <SidebarHeaderIconButton
-                            label={
-                              scopedProjectGroup
-                                ? `Filter threads by project: ${scopedProjectGroup.displayName}`
-                                : "Filter threads by project"
-                            }
-                          />
-                        }
-                      >
-                        {scopedProjectGroup ? (
-                          <span className="flex shrink-0">
-                            <ProjectFavicon project={scopedProjectGroup} className="size-4" />
-                          </span>
-                        ) : (
-                          <ListFilterIcon className="size-4" />
-                        )}
-                      </ComboboxTrigger>
-                      <ComboboxPopup
-                        align="start"
-                        // Anchored to the heading row, not the 28px trigger: the
-                        // popup opens under the row, is at least as wide as it,
-                        // and grows to fit project names up to a cap, past which
-                        // the rows truncate.
-                        anchor={threadHeaderRef}
-                        className="max-w-[min(18rem,var(--available-width))] overflow-hidden"
-                      >
-                        <ComboboxSearchInput
-                          aria-label="Search projects"
-                          placeholder="Search projects..."
-                          value={projectScopeMenuState.query}
-                          onKeyDown={(event) => {
-                            if (
-                              event.defaultPrevented ||
-                              event.nativeEvent.isComposing ||
-                              event.ctrlKey ||
-                              event.altKey ||
-                              event.metaKey ||
-                              (event.key !== "ContextMenu" &&
-                                !(event.shiftKey && event.key === "F10"))
-                            ) {
+                      projectFilter={
+                        <SidebarProjectFilterSubmenu
+                          items={projectScopeItems}
+                          value={projectScopeKey ?? "all"}
+                          open={projectFilterOpen}
+                          onOpenChange={setProjectFilterOpen}
+                          projects={projectGroupByScopeKey}
+                          environments={
+                            showProjectEnvironments
+                              ? {
+                                  primaryEnvironmentId,
+                                  machineByEnvironmentId: environmentMachineById,
+                                }
+                              : null
+                          }
+                          shortcutLabels={projectScopeJumpLabels}
+                          onSelect={(value) => {
+                            if (suppressNextScopeChangeRef.current) {
+                              suppressNextScopeChangeRef.current = false;
                               return;
                             }
-                            const scopeKey = highlightedProjectScopeKeyRef.current;
-                            const project = scopeKey ? projectGroupByScopeKey.get(scopeKey) : null;
-                            if (project) handleProjectSettings(event, project);
+                            setProjectScopeKey(value === "all" ? null : value);
                           }}
-                          onChange={(event) =>
-                            dispatchProjectScopeMenu({
-                              type: "query-changed",
-                              query: event.target.value,
-                            })
-                          }
+                          onProjectSettings={handleProjectSettings}
                         />
-                        <ComboboxEmpty>No matching projects.</ComboboxEmpty>
-                        <ComboboxList>
-                          {(item: (typeof projectScopeItems)[number]) => {
-                            const project = projectGroupByScopeKey.get(item.value) ?? null;
-                            return (
-                              <ComboboxItem
-                                key={item.value}
-                                hideIndicator
-                                value={item}
-                                onContextMenu={(event) => {
-                                  if (project) handleProjectSettings(event, project);
-                                }}
-                              >
-                                {project ? (
-                                  <ProjectFavicon project={project} className="size-4 shrink-0" />
-                                ) : (
-                                  <FolderIcon className="size-4 shrink-0" />
-                                )}
-                                <span className="min-w-0 flex-1 truncate text-sm">
-                                  {item.label}
-                                </span>
-                                {project && showProjectEnvironments ? (
-                                  <ProjectEnvironmentBadge
-                                    group={project}
-                                    primaryEnvironmentId={primaryEnvironmentId}
-                                    machineByEnvironmentId={environmentMachineById}
-                                  />
-                                ) : null}
-                                {projectScopeJumpLabels.has(item) ? (
-                                  <Kbd variant="plain" aria-hidden>
-                                    {projectScopeJumpLabels.get(item)}
-                                  </Kbd>
-                                ) : null}
-                                {project ? (
-                                  <Button
-                                    size="icon-xs"
-                                    variant="ghost-muted"
-                                    tabIndex={-1}
-                                    aria-hidden="true"
-                                    title={`Project settings for ${project.displayName}`}
-                                    className="ml-auto"
-                                    onPointerDown={(event) => event.stopPropagation()}
-                                    onClick={(event) => {
-                                      void handleProjectSettings(event, project);
-                                    }}
-                                  >
-                                    <SettingsIcon className="size-3.5" />
-                                  </Button>
-                                ) : null}
-                              </ComboboxItem>
-                            );
-                          }}
-                        </ComboboxList>
-                      </ComboboxPopup>
-                    </Combobox>
+                      }
+                    />
                   }
                 />
               ) : null}
@@ -4568,11 +4400,19 @@ export default function Sidebar() {
             <DndContext
               sensors={dndSensors}
               autoScroll={!isContextDrag}
-              collisionDetection={dndCollisionDetection}
+              collisionDetection={sidebarCollisionDetection}
               modifiers={dndModifiers}
-              onDragStart={handleThreadDragStart}
+              onDragStart={(event: DragStartEvent) =>
+                isSidebarGroupId(String(event.active.id))
+                  ? handleGroupDragStart()
+                  : handleThreadDragStart(event)
+              }
               onDragOver={handleThreadDragOver}
-              onDragEnd={handleThreadDragEnd}
+              onDragEnd={(event: DragEndEvent) =>
+                isSidebarGroupId(String(event.active.id))
+                  ? handleGroupDragEnd(event)
+                  : handleThreadDragEnd(event)
+              }
             >
               <SidebarDragLifecycle onUnmount={cancelThreadDrag} />
               <SortableContext items={sortableIds} strategy={sidebarSortingStrategy}>
@@ -4596,6 +4436,7 @@ export default function Sidebar() {
                     const renderThreadRow = (
                       thread: EnvironmentThreadShell,
                       section: SidebarSection,
+                      showProjectIcon: boolean,
                     ) => {
                       const threadKey = scopedThreadKey(
                         scopeThreadRef(thread.environmentId, thread.id),
@@ -4661,6 +4502,7 @@ export default function Sidebar() {
                           project={
                             projectByKey.get(`${thread.environmentId}:${thread.projectId}`) ?? null
                           }
+                          showProjectIcon={showProjectIcon}
                           projectDisplayName={
                             projectDisplayNameByKey.get(
                               `${thread.environmentId}:${thread.projectId}`,
@@ -4707,9 +4549,33 @@ export default function Sidebar() {
                         onNavigate={navigateToThread}
                       />
                     ));
+                    let underProjectGroup = false;
                     for (const item of sidebarListItems) {
                       if (item.kind === "thread") {
-                        items.push(renderThreadRow(threadByKey.get(item.key)!, item.section));
+                        items.push(
+                          renderThreadRow(
+                            threadByKey.get(item.key)!,
+                            item.section,
+                            !underProjectGroup,
+                          ),
+                        );
+                        continue;
+                      }
+                      underProjectGroup = item.kind === "group" && item.projectKey !== null;
+                      if (item.kind === "group") {
+                        items.push(
+                          <SidebarGroupHeader
+                            key={sidebarListItemId(item)}
+                            item={item}
+                            project={
+                              item.projectKey === null
+                                ? null
+                                : (projectGroupByScopeKey.get(item.projectKey) ?? null)
+                            }
+                            onToggle={toggleThreadGroup}
+                            prepare={prepareShelfMotion}
+                          />,
+                        );
                         continue;
                       }
                       switch (item.marker) {
@@ -4760,7 +4626,7 @@ export default function Sidebar() {
                               key="pinned-divider"
                               marker="pinned-divider"
                               label="Active"
-                              persistent={pinnedThreads.length > 0 && activeThreads.length > 0}
+                              persistent={pinnedThreads.length > 0 && inboxCount > 0}
                               visible={from !== null}
                               isDropTarget={dragTargetSection === "active"}
                             />,
@@ -4774,9 +4640,9 @@ export default function Sidebar() {
                               label="Active"
                               showHint={
                                 from !== null &&
-                                (activeThreads.length === 0 ||
+                                (inboxCount === 0 ||
                                   (from === "active" &&
-                                    activeThreads.length === 1 &&
+                                    inboxCount === 1 &&
                                     dragTargetSection !== null &&
                                     dragTargetSection !== "active"))
                               }
@@ -4808,7 +4674,7 @@ export default function Sidebar() {
                             <SidebarSectionHeader
                               key="snoozed-shelf-header"
                               marker="snoozed-header"
-                              className={cn(workingThreads.length === 0 && "mt-auto")}
+                              className={cn(!showWorkingShelf && "mt-auto")}
                               label={
                                 snoozedShelfExpanded
                                   ? "Snoozed"
@@ -4824,7 +4690,7 @@ export default function Sidebar() {
                           break;
                         case "done-header":
                           items.push(
-                            workingThreads.length + snoozedThreads.length === 0 ? (
+                            !showWorkingShelf && snoozedThreads.length === 0 ? (
                               <li
                                 key="done-shelf-spacer"
                                 aria-hidden

@@ -184,6 +184,16 @@ describe("mobile storage", () => {
     expect(fallback.updatedAt).toEqual(expect.any(Number));
   });
 
+  it.each(["status", "project"] as const)("persists %s thread grouping", async (threadGrouping) => {
+    await savePreferencesPatch({ threadGrouping });
+    await expect(loadPreferences()).resolves.toEqual({ threadGrouping });
+  });
+
+  it("drops invalid thread grouping without discarding other preferences", async () => {
+    mocks.setPreferencesJson(JSON.stringify({ threadGrouping: "unknown", baseFontSize: 17 }), 10);
+    await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 17 });
+  });
+
   it("persists thread list shelf preferences", async () => {
     await expect(
       savePreferencesPatch({
@@ -207,6 +217,15 @@ describe("mobile storage", () => {
       threadListSnoozedShelfExpanded: true,
       threadListWorkingShelfExpanded: true,
     });
+  });
+
+  it("persists collapsed thread list groups and drops non-string keys", async () => {
+    await savePreferencesPatch({ threadListCollapsedGroups: ["project:a", "project:b"] });
+    await expect(loadPreferences()).resolves.toEqual({
+      threadListCollapsedGroups: ["project:a", "project:b"],
+    });
+    mocks.setPreferencesJson(JSON.stringify({ threadListCollapsedGroups: ["project:a", 1] }), 10);
+    await expect(loadPreferences()).resolves.toEqual({ threadListCollapsedGroups: ["project:a"] });
   });
 
   it("drops invalid thread list shelf expansion preferences", async () => {

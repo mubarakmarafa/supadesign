@@ -2750,3 +2750,150 @@ describe("Working section", () => {
     ]);
   });
 });
+
+describe("grouped inbox", () => {
+  it("keeps shared shelves and working cards in project mode", () => {
+    const active = makeThread({ id: ThreadId.make("active"), title: "Active", createdAt: NOW });
+    const working = makeThread({
+      id: ThreadId.make("working"),
+      title: "Working",
+      createdAt: NOW,
+      runtime: {
+        status: "running",
+        activeRunId: null,
+        providerInstanceId: ProviderInstanceId.make("codex"),
+        providerName: "Codex",
+        lastError: null,
+        updatedAt: NOW,
+      },
+    });
+    const done = makeThread({ id: ThreadId.make("done"), title: "Done", doneOverride: "done" });
+    const pinned = makeThread({ id: ThreadId.make("pinned"), title: "Pinned", pinnedAt: NOW });
+    const input = {
+      grouping: "project" as const,
+      threads: [active, working, done, pinned],
+      environmentId: null,
+      searchQuery: "",
+      now: NOW,
+      groupingProjects: [
+        {
+          key: "project",
+          label: "Project",
+          memberProjectRefs: [{ environmentId, projectId: active.projectId }],
+        },
+      ],
+    };
+    const layout = buildThreadListV2Items(input);
+    expect(layout.activeCount).toBe(2);
+    expect(layout.workingShelfHeaderIndex).toBeNull();
+    expect(
+      layout.items
+        .filter((row) => [active.id, working.id].includes(row.thread.id))
+        .map((row) => row.variant),
+    ).toEqual(["card", "card"]);
+    const list = buildThreadListV2ListItems({ ...layout, pendingTasks: [] });
+    expect(list.filter((row) => row.type === "v2-done-shelf")).toHaveLength(1);
+    expect(list.filter((row) => row.type === "v2-working-shelf")).toHaveLength(0);
+    expect(list.filter((row) => row.type === "v2-group-header")).toHaveLength(1);
+    const collapsed = buildThreadListV2Items({
+      ...input,
+      activeShelfExpanded: false,
+      selectedThreadKey: `${environmentId}:${working.id}`,
+    });
+    expect(collapsed.items.map((row) => row.thread.id)).toEqual([pinned.id, working.id, done.id]);
+    expect(collapsed.inboxGroups).toBeNull();
+    expect(
+      buildThreadListV2Items({ ...input, searchQuery: "Working" }).items.map(
+        (row) => row.thread.id,
+      ),
+    ).toEqual([working.id]);
+  });
+
+  it("collapses a group to its header and the selected thread, counting the hidden rows", () => {
+    const threads = ["a", "b", "c"].map((id) =>
+      makeThread({ id: ThreadId.make(id), title: id, createdAt: NOW }),
+    );
+    const input = {
+      grouping: "project" as const,
+      threads,
+      environmentId: null,
+      searchQuery: "",
+      now: NOW,
+      selectedThreadKey: `${environmentId}:b`,
+      groupingProjects: [
+        {
+          key: "project",
+          label: "Project",
+          memberProjectRefs: [{ environmentId, projectId: threads[0]!.projectId }],
+        },
+      ],
+    };
+    const headers = (collapsedGroups: readonly string[]) => {
+      const layout = buildThreadListV2Items({ ...input, collapsedGroups });
+      return buildThreadListV2ListItems({ ...layout, pendingTasks: [] }).flatMap((row) =>
+        row.type === "v2-group-header"
+          ? [[row.label, row.count, row.expanded]]
+          : row.type === "v2-thread"
+            ? [row.item.thread.id]
+            : [],
+      );
+    };
+    expect(headers([])).toEqual([["Project", 3, true], "a", "b", "c"]);
+    expect(headers(["project:project"])).toEqual([["Project", 3, false], "b"]);
+    expect(
+      buildThreadListV2ListItems({
+        ...buildThreadListV2Items({
+          ...input,
+          selectedThreadKey: null,
+          collapsedGroups: ["project:project"],
+        }),
+        pendingTasks: [],
+      }).filter((row) => row.type === "v2-group-header" || row.type === "v2-thread"),
+    ).toEqual([expect.objectContaining({ type: "v2-group-header", count: 3, expanded: false })]);
+  });
+
+  it("moves the project icon from rows to their project header", () => {
+    const grouped = makeThread({ id: ThreadId.make("grouped"), title: "grouped", createdAt: NOW });
+    const other = makeThread({
+      id: ThreadId.make("other"),
+      title: "other",
+      createdAt: NOW,
+      projectId: ProjectId.make("project-elsewhere"),
+    });
+    const pinned = makeThread({ id: ThreadId.make("pinned"), title: "pinned", pinnedAt: NOW });
+    const done = makeThread({ id: ThreadId.make("done"), title: "done", doneOverride: "done" });
+    const rows = (grouping: "status" | "project") =>
+      buildThreadListV2ListItems({
+        ...buildThreadListV2Items({
+          grouping,
+          threads: [grouped, other, pinned, done],
+          environmentId: null,
+          searchQuery: "",
+          now: NOW,
+          groupingProjects: [
+            {
+              key: "project",
+              label: "Project",
+              memberProjectRefs: [{ environmentId, projectId: grouped.projectId }],
+            },
+          ],
+        }),
+        pendingTasks: [],
+      }).flatMap((row): Array<readonly [string, string | boolean | null]> =>
+        row.type === "v2-group-header"
+          ? [[row.label, row.projectKey]]
+          : row.type === "v2-thread"
+            ? [[row.item.thread.id, row.showProjectIcon]]
+            : [],
+      );
+    expect(rows("project")).toEqual([
+      ["pinned", true],
+      ["Project", "project"],
+      ["grouped", false],
+      ["Other projects", null],
+      ["other", true],
+      ["done", true],
+    ]);
+    expect(rows("status").every((row) => row[1] === true)).toBe(true);
+  });
+});

@@ -7,6 +7,7 @@ import {
 } from "./auth.ts";
 import * as Effect from "effect/Effect";
 import * as Duration from "effect/Duration";
+import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as SchemaTransformation from "effect/SchemaTransformation";
 import {
@@ -58,6 +59,9 @@ const DEFAULT_DIFF_LAYOUT: DiffLayout = "stacked";
 export const SidebarProjectSortOrder = Schema.Literals(["updated_at", "created_at", "manual"]);
 export type SidebarProjectSortOrder = typeof SidebarProjectSortOrder.Type;
 export const DEFAULT_SIDEBAR_PROJECT_SORT_ORDER: SidebarProjectSortOrder = "updated_at";
+
+export const SidebarThreadGrouping = Schema.Literals(["status", "project"]);
+export type SidebarThreadGrouping = typeof SidebarThreadGrouping.Type;
 
 export const SidebarThreadSortOrder = Schema.Literals(["updated_at", "created_at"]);
 export type SidebarThreadSortOrder = typeof SidebarThreadSortOrder.Type;
@@ -401,6 +405,11 @@ export const ClientSettingsSchema = Schema.Struct({
   ),
   sidebarThreadSortOrder: SidebarThreadSortOrder.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_SIDEBAR_THREAD_SORT_ORDER)),
+  ),
+  // An unknown grouping falls back to Default instead of failing the whole settings document.
+  sidebarThreadGrouping: SidebarThreadGrouping.pipe(
+    Schema.catchDecoding(() => Effect.succeed(Option.some("status" as const))),
+    Schema.withDecodingDefault(Effect.succeed("status" as const)),
   ),
   sidebarThreadPreviewCount: SidebarThreadPreviewCount.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_SIDEBAR_THREAD_PREVIEW_COUNT)),
@@ -1591,6 +1600,7 @@ export const ClientSettingsPatch = Schema.Struct({
   ),
   sidebarProjectSortOrder: Schema.optionalKey(SidebarProjectSortOrder),
   sidebarThreadSortOrder: Schema.optionalKey(SidebarThreadSortOrder),
+  sidebarThreadGrouping: Schema.optionalKey(SidebarThreadGrouping),
   sidebarThreadPreviewCount: Schema.optionalKey(SidebarThreadPreviewCount),
   timestampFormat: Schema.optionalKey(TimestampFormat),
   snapShotEnabled: Schema.optionalKey(Schema.Boolean),

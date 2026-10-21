@@ -1,3 +1,4 @@
+import type { SidebarThreadGrouping } from "@supaterm/contracts";
 import { useThreadListV2Layout } from "../threads/use-thread-list-v2-layout";
 import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 import { useAndroidControlSizing } from "../../components/ui/useAndroidControlSizing";
@@ -67,6 +68,7 @@ import {
   ThreadListV2SnoozedShelfHeader,
   ThreadListV2PinnedShelfHeader,
   ThreadListV2ActiveShelfHeader,
+  ThreadListV2GroupHeader,
   ThreadListV2WorkingShelfHeader,
 } from "../threads/thread-list-v2-items";
 import { useThreadRowProviderInstanceResolver } from "../threads/thread-provider-instance";
@@ -105,6 +107,7 @@ interface HomeScreenProps {
   readonly selectedProjectKey: string | null;
   readonly projectSortOrder: HomeProjectSortOrder;
   readonly projectGroupingMode: SidebarProjectGroupingMode;
+  readonly threadGrouping: SidebarThreadGrouping;
   readonly onSearchQueryChange: (query: string) => void;
   readonly onAddConnection: () => void;
   readonly onOpenSettings: () => void;
@@ -479,11 +482,13 @@ export function HomeScreen(props: HomeScreenProps) {
     pinnedShelfExpanded,
     activeShelfExpanded,
     workingShelfExpanded,
+    collapsedGroups,
     toggleDoneShelf,
     toggleSnoozedShelf,
     togglePinnedShelf,
     toggleActiveShelf,
     toggleWorkingShelf,
+    toggleGroup,
   } = useThreadListV2ShelfPreferences();
   const [nowMinute, setNowMinute] = useState(() => new Date().toISOString().slice(0, 16));
   const [snoozeWakeTick, bumpSnoozeWakeTick] = useState(0);
@@ -506,6 +511,12 @@ export function HomeScreen(props: HomeScreenProps) {
   const resolveProviderInstance = useThreadRowProviderInstanceResolver(providersByEnvironmentId);
   const pendingOrder = usePendingThreadOrder(nowMinute, snoozeWakeTick);
   const { threadListV2Layout } = useThreadListV2Layout({
+    grouping: props.threadGrouping,
+    groupingProjects: projectScopes.map((scope) => ({
+      key: scope.key,
+      label: scope.title,
+      memberProjectRefs: scope.projectRefs,
+    })),
     threads: props.threads,
     environmentId: props.selectedEnvironmentId,
     projectRefs: v2ScopedProjectGroup === null ? null : v2ScopedProjectGroup.projectRefs,
@@ -518,9 +529,10 @@ export function HomeScreen(props: HomeScreenProps) {
     pinnedShelfExpanded,
     activeShelfExpanded,
     workingShelfExpanded,
+    collapsedGroups,
     snoozedShelfExpanded,
     doneShelfExpanded,
-    selectedThreadKey: null,
+    selectedThreadKey,
   });
   const nextSnoozeWakeAt = threadListV2Layout.nextSnoozeWakeAt;
   useEffect(() => {
@@ -601,6 +613,19 @@ export function HomeScreen(props: HomeScreenProps) {
         />
       );
     }
+    if (item.type === "v2-group-header") {
+      return (
+        <ThreadListV2GroupHeader
+          groupKey={item.groupKey}
+          label={item.label}
+          project={findHomeProjectScope(projectScopes, item.projectKey)?.representative ?? null}
+          count={item.count}
+          disabled={item.disabled}
+          expanded={item.expanded}
+          onToggle={toggleGroup}
+        />
+      );
+    }
     if (item.type === "v2-active-header") {
       return (
         <ThreadListV2ActiveShelfHeader
@@ -673,6 +698,7 @@ export function HomeScreen(props: HomeScreenProps) {
         snoozeWakeLabelText={item.snoozeWakeLabelText}
         timeLabel={item.timeLabel}
         showTrailingDivider={item.showTrailingDivider}
+        showProjectIcon={item.showProjectIcon}
         project={projectByKey.get(scopedProjectKey(thread.environmentId, thread.projectId)) ?? null}
         projectTitle={v2ProjectTitleByProjectKey.get(
           scopedProjectKey(thread.environmentId, thread.projectId),
@@ -736,6 +762,7 @@ export function HomeScreen(props: HomeScreenProps) {
   // the same reason: the clock text is precomputed per item instead.
   const v2ExtraData = {
     projectByKey,
+    projectScopes,
     projectTitleByProjectKey: v2ProjectTitleByProjectKey,
     listEnvironments,
     savedConnectionsById: props.savedConnectionsById,

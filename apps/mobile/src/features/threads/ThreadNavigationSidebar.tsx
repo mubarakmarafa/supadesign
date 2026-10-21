@@ -13,7 +13,6 @@ import {
 import { AnimatedLegendList } from "@legendapp/list/reanimated";
 import Animated from "react-native-reanimated";
 import { useThreadListMotion } from "./use-thread-list-motion";
-import type { MenuAction } from "@react-native-menu/menu";
 import { useAtomValue } from "@effect/atom-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type {
@@ -47,8 +46,9 @@ import { useSavedRemoteConnections } from "../../state/use-remote-environment-re
 import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
 import { useThreadJumpShortcuts } from "../keyboard/threadKeyboardShortcuts";
 import { useHomeListOptions } from "../home/home-list-options";
+import { useThreadListFilterMenu } from "../home/useThreadListFilterMenu";
 import { buildHomeListFilterMenu } from "../home/home-list-filter-menu";
-import { buildHomeProjectScopes } from "../home/homeThreadList";
+import { buildHomeProjectScopes, findHomeProjectScope } from "../home/homeThreadList";
 import { SwipeableScrollGateProvider, useSwipeableScrollGate } from "../home/thread-swipe-actions";
 import { usePendingTaskListActions } from "../home/usePendingTaskListActions";
 import { useThreadListActions } from "../home/useThreadListActions";
@@ -72,6 +72,7 @@ import {
   ThreadListV2SnoozedShelfHeader,
   ThreadListV2PinnedShelfHeader,
   ThreadListV2ActiveShelfHeader,
+  ThreadListV2GroupHeader,
   ThreadListV2WorkingShelfHeader,
 } from "./thread-list-v2-items";
 import { useThreadRowProviderInstanceResolver } from "./thread-provider-instance";
@@ -195,7 +196,7 @@ function ThreadNavigationSidebarPane(
   const availableEnvironmentIds = new Set(
     environments.map((environment) => environment.environmentId),
   );
-  const { options, setSelectedEnvironmentId, setSelectedProjectKey } =
+  const { options, setSelectedEnvironmentId, setSelectedProjectKey, setThreadGrouping } =
     useHomeListOptions(availableEnvironmentIds);
   const searchEnvironmentIds =
     options.selectedEnvironmentId === null
@@ -298,11 +299,13 @@ function ThreadNavigationSidebarPane(
     pinnedShelfExpanded,
     activeShelfExpanded,
     workingShelfExpanded,
+    collapsedGroups,
     toggleDoneShelf,
     toggleSnoozedShelf,
     togglePinnedShelf,
     toggleActiveShelf,
     toggleWorkingShelf,
+    toggleGroup,
   } = useThreadListV2ShelfPreferences();
   const [minuteClock] = useState(createMinuteClock);
   const nowMinute = useSyncExternalStore(minuteClock.subscribe, minuteClock.getSnapshot);
@@ -321,6 +324,12 @@ function ThreadNavigationSidebarPane(
   const resolveProviderInstance = useThreadRowProviderInstanceResolver(providersByEnvironmentId);
   const pendingOrder = usePendingThreadOrder(nowMinute, snoozeWakeTick);
   const { threadListV2Layout } = useThreadListV2Layout({
+    grouping: options.threadGrouping,
+    groupingProjects: projectScopes.map((scope) => ({
+      key: scope.key,
+      label: scope.title,
+      memberProjectRefs: scope.projectRefs,
+    })),
     threads,
     environmentId: options.selectedEnvironmentId,
     projectRefs: selectedProjectScope === null ? null : selectedProjectScope.projectRefs,
@@ -333,6 +342,7 @@ function ThreadNavigationSidebarPane(
     pinnedShelfExpanded,
     activeShelfExpanded,
     workingShelfExpanded,
+    collapsedGroups,
     snoozedShelfExpanded,
     doneShelfExpanded,
     selectedThreadKey: props.selectedThreadKey ?? null,
@@ -377,78 +387,18 @@ function ThreadNavigationSidebarPane(
     });
     return items;
   })();
-  const listMenuActions = [
+  const { actions: listMenuActions, onPressAction: handleListMenuAction } = useThreadListFilterMenu(
     {
-      id: "environment",
-      title: "Environment",
-      subactions: [
-        {
-          id: "environment:all",
-          title: "All environments",
-          subtitle: "Show threads from every environment",
-          state: options.selectedEnvironmentId === null ? "on" : "off",
-        },
-        ...environments.map((environment) => ({
-          id: `environment:${environment.environmentId}`,
-          title: environment.label,
-          state:
-            options.selectedEnvironmentId === environment.environmentId
-              ? ("on" as const)
-              : ("off" as const),
-        })),
-      ],
+      environments,
+      projects: projectFilterOptions,
+      selectedEnvironmentId: options.selectedEnvironmentId,
+      selectedProjectKey,
+      onEnvironmentChange: setSelectedEnvironmentId,
+      onProjectChange: setSelectedProjectKey,
+      grouping: options.threadGrouping,
+      onGroupingChange: setThreadGrouping,
     },
-    ...(projectFilterOptions.length === 0
-      ? []
-      : ([
-          {
-            id: "project",
-            title: "Project",
-            subactions: [
-              {
-                id: "project:all",
-                title: "All projects",
-                subtitle: "Show threads from every project",
-                state: selectedProjectKey === null ? "on" : "off",
-              },
-              ...projectFilterOptions.map((project) => ({
-                id: `project:${project.key}`,
-                title: project.label,
-                state: selectedProjectKey === project.key ? ("on" as const) : ("off" as const),
-              })),
-            ],
-          },
-        ] satisfies MenuAction[])),
-  ] satisfies MenuAction[];
-  const handleListMenuAction = ({
-    nativeEvent,
-  }: {
-    readonly nativeEvent: { readonly event: string };
-  }) => {
-    const event = nativeEvent.event;
-    if (event === "environment:all") {
-      setSelectedEnvironmentId(null);
-      return;
-    }
-    if (event.startsWith("environment:")) {
-      const environment = environments.find(
-        (candidate) => String(candidate.environmentId) === event.slice("environment:".length),
-      );
-      if (environment) setSelectedEnvironmentId(environment.environmentId);
-      return;
-    }
-    if (event === "project:all") {
-      setSelectedProjectKey(null);
-      return;
-    }
-    if (event.startsWith("project:")) {
-      const projectKey = event.slice("project:".length);
-      if (projectFilterOptions.some((project) => project.key === projectKey)) {
-        setSelectedProjectKey(projectKey);
-      }
-      return;
-    }
-  };
+  );
 
   const [measuredHeaderHeight, setMeasuredHeaderHeight] = useState<number | null>(null);
   const { height, paddingTop, paddingBottom } = useToolbarLayout();
@@ -511,6 +461,7 @@ function ThreadNavigationSidebarPane(
   const listExtraData = {
     selectedThreadKey: props.selectedThreadKey ?? "",
     projectByKey,
+    projectScopes,
     projectTitleByProjectKey,
     savedConnectionsById,
     listEnvironments,
@@ -590,6 +541,7 @@ function ThreadNavigationSidebarPane(
             timeLabel={item.timeLabel}
             project={projectByKey.get(scopeKey) ?? null}
             projectTitle={projectTitleByProjectKey.get(scopeKey)}
+            showProjectIcon={item.showProjectIcon}
             providerInstance={resolveProviderInstance(thread)}
             providers={providersByEnvironmentId.get(thread.environmentId)}
             environmentLabel={
@@ -633,6 +585,19 @@ function ThreadNavigationSidebarPane(
           />
         );
       }
+      case "v2-group-header":
+        return (
+          <ThreadListV2GroupHeader
+            groupKey={item.groupKey}
+            label={item.label}
+            project={findHomeProjectScope(projectScopes, item.projectKey)?.representative ?? null}
+            count={item.count}
+            disabled={item.disabled}
+            expanded={item.expanded}
+            onToggle={toggleGroup}
+            pane="sidebar"
+          />
+        );
       case "v2-active-header":
         return (
           <ThreadListV2ActiveShelfHeader
@@ -711,6 +676,8 @@ function ThreadNavigationSidebarPane(
     ? "line.3.horizontal.decrease.circle.fill"
     : "line.3.horizontal.decrease.circle";
   const filterMenu = buildHomeListFilterMenu({
+    grouping: options.threadGrouping,
+    onGroupingChange: setThreadGrouping,
     environments,
     projects: projectFilterOptions,
     selectedEnvironmentId: options.selectedEnvironmentId,

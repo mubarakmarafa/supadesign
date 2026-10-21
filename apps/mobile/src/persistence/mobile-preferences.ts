@@ -7,6 +7,7 @@ import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 import {
   EnvironmentId,
+  SidebarThreadGrouping,
   PullRequestInvolvement,
   PullRequestListFilters,
   PullRequestListState,
@@ -46,6 +47,7 @@ const PullRequestListPreferences = Schema.Struct({
 });
 export type PullRequestListPreferences = typeof PullRequestListPreferences.Type;
 
+const isThreadGrouping = Schema.is(SidebarThreadGrouping);
 const isThreadListFilters = Schema.is(ThreadListFilters);
 const isPullRequestListPreferences = Schema.is(PullRequestListPreferences);
 
@@ -70,11 +72,13 @@ export interface Preferences {
   readonly followUpBehavior?: FollowUpBehavior;
   readonly microphones?: ReadonlyArray<MicrophoneEntry>;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
+  readonly threadGrouping?: SidebarThreadGrouping;
   readonly threadListPinnedShelfExpanded?: boolean;
   readonly threadListActiveShelfExpanded?: boolean;
   readonly threadListDoneShelfExpanded?: boolean;
   readonly threadListSnoozedShelfExpanded?: boolean;
   readonly threadListWorkingShelfExpanded?: boolean;
+  readonly threadListCollapsedGroups?: readonly string[];
   readonly threadListFilters?: ThreadListFilters;
   readonly pullRequestListFilters?: PullRequestListPreferences;
 }
@@ -136,11 +140,13 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     followUpBehavior?: FollowUpBehavior;
     microphones?: ReadonlyArray<MicrophoneEntry>;
     projectGroupingMode?: SidebarProjectGroupingMode;
+    threadGrouping?: SidebarThreadGrouping;
     threadListPinnedShelfExpanded?: boolean;
     threadListActiveShelfExpanded?: boolean;
     threadListDoneShelfExpanded?: boolean;
     threadListSnoozedShelfExpanded?: boolean;
     threadListWorkingShelfExpanded?: boolean;
+    threadListCollapsedGroups?: readonly string[];
     threadListFilters?: ThreadListFilters;
     pullRequestListFilters?: PullRequestListPreferences;
   } = {};
@@ -224,6 +230,9 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   ) {
     preferences.projectGroupingMode = parsed.projectGroupingMode;
   }
+  if (isThreadGrouping(parsed.threadGrouping)) {
+    preferences.threadGrouping = parsed.threadGrouping;
+  }
   if (typeof parsed.threadListPinnedShelfExpanded === "boolean") {
     preferences.threadListPinnedShelfExpanded = parsed.threadListPinnedShelfExpanded;
   }
@@ -238,6 +247,11 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (typeof parsed.threadListWorkingShelfExpanded === "boolean") {
     preferences.threadListWorkingShelfExpanded = parsed.threadListWorkingShelfExpanded;
+  }
+  if (Array.isArray(parsed.threadListCollapsedGroups)) {
+    preferences.threadListCollapsedGroups = parsed.threadListCollapsedGroups.filter(
+      (key): key is string => typeof key === "string",
+    );
   }
   if (isThreadListFilters(parsed.threadListFilters)) {
     preferences.threadListFilters = parsed.threadListFilters;
