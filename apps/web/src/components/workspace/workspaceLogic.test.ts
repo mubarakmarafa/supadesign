@@ -14,6 +14,7 @@ import {
   isBoardOnly,
   patchWorkspaceAppearance,
   type PreviewPortCandidate,
+  previewServerName,
   previewServerOwner,
   removeWorkspaceWidget,
   resetWorkspaceLayout,
@@ -172,10 +173,13 @@ describe("figmaEmbedUrl", () => {
 describe("resolvePreviewSelection", () => {
   const port = (overrides: Partial<PreviewPortCandidate> & { port: number }) => ({
     url: `http://localhost:${overrides.port}/`,
+    name: `Port ${overrides.port}`,
     threadTitle: null,
     branch: null,
     ownedByProject: false,
-    updatedAtMs: 0,
+    working: false,
+    recencyMs: 0,
+    startedAt: null,
     processName: null,
     ...overrides,
   });
@@ -196,11 +200,11 @@ describe("resolvePreviewSelection", () => {
     });
   });
 
-  it("follows the live card, then the project's most recently active port", () => {
+  it("follows the live card, then the project's newest port", () => {
     const ports = [
       port({ port: 8080 }),
-      port({ port: 5174, ownedByProject: true, updatedAtMs: 10, branch: "old" }),
-      port({ port: 5175, ownedByProject: true, updatedAtMs: 20, branch: "new" }),
+      port({ port: 5174, ownedByProject: true, recencyMs: 10, branch: "old" }),
+      port({ port: 5175, ownedByProject: true, recencyMs: 20, branch: "new" }),
     ];
     expect(resolvePreviewSelection({ pinnedPort: undefined, live, ports })).toEqual({
       kind: "live",
@@ -216,6 +220,67 @@ describe("resolvePreviewSelection", () => {
     expect(
       resolvePreviewSelection({ pinnedPort: undefined, live: null, ports: [port({ port: 8080 })] }),
     ).toEqual({ kind: "none" });
+  });
+});
+
+describe("resolvePreviewSelection with a working agent", () => {
+  it("prefers the project's server whose agent is working over a newer idle one", () => {
+    const base = {
+      threadTitle: null,
+      ownedByProject: true,
+      processName: null,
+      name: "web",
+      startedAt: null,
+    };
+    const ports = [
+      {
+        ...base,
+        port: 4173,
+        url: "http://localhost:4173/",
+        branch: "new",
+        working: false,
+        recencyMs: 30,
+      },
+      {
+        ...base,
+        port: 5173,
+        url: "http://localhost:5173/",
+        branch: "busy",
+        working: true,
+        recencyMs: 10,
+      },
+    ];
+    expect(resolvePreviewSelection({ pinnedPort: undefined, live: null, ports })).toMatchObject({
+      kind: "port",
+      port: 5173,
+    });
+    expect(
+      resolvePreviewSelection({
+        pinnedPort: undefined,
+        live: null,
+        ports: ports.map((entry) => ({ ...entry, working: false })),
+      }),
+    ).toMatchObject({ kind: "port", port: 4173 });
+  });
+});
+
+describe("previewServerName", () => {
+  const name = (
+    cwd: string | null,
+    checkoutPath: string | null,
+    threadTitle: string | null = null,
+  ) => previewServerName({ cwd, checkoutPath, threadTitle, processName: "node", port: 4173 });
+
+  it("names a server by its folder in the checkout", () => {
+    expect(name("/wt/app/apps/landing", "/wt/app")).toBe("apps/landing");
+    expect(name("/wt/app/apps/landing", "/wt/app/", "Hero")).toBe("apps/landing");
+  });
+
+  it("falls back to the checkout, then the thread, then the process", () => {
+    expect(name("/wt/supacode-7a45", "/wt/supacode-7a45")).toBe("supacode-7a45");
+    expect(name("/wt/card", "/wt/card", "Hero")).toBe("Hero");
+    expect(name(null, null, "Hero")).toBe("Hero");
+    expect(name(null, null)).toBe("node");
   });
 });
 
@@ -244,6 +309,28 @@ describe("previewServerOwner", () => {
     expect(owner(null, "/repo/portfolio")).toEqual([null, true]);
     expect(owner(null, "/repo/portfolio-old")).toEqual([null, false]);
     expect(owner(null, null)).toEqual([null, false]);
+  });
+
+  it("counts a worktree of the project's repository that another tool made", () => {
+    const result = previewServerOwner({
+      terminalThreadId: null,
+      cwd: "/Users/me/.other-tool/worktrees/portfolio/review/apps/web",
+      workspaceRoot: "/repo/portfolio",
+      threads,
+      projectId: "portfolio",
+      checkoutProjectId: "portfolio",
+    });
+    expect([result.thread, result.inProject]).toEqual([null, true]);
+    expect(
+      previewServerOwner({
+        terminalThreadId: null,
+        cwd: "/elsewhere/site",
+        workspaceRoot: "/repo/portfolio",
+        threads,
+        projectId: "portfolio",
+        checkoutProjectId: "other",
+      }).inProject,
+    ).toBe(false);
   });
 
   it("keeps a terminal's own thread first", () => {

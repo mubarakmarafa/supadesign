@@ -382,11 +382,13 @@ const layerCheckpointStore = CheckpointStore.layer.pipe(Layer.provide(layerVcsDr
 
 const layerPortScanner = PortScanner.layer.pipe(
   Layer.provide(ProcessRunner.layer),
-  // Servers an agent starts in a project folder count as that project's.
+  // Servers an agent starts in a project folder, or in any worktree of its
+  // repository, count as that project's.
   Layer.provide(
     PortScannerWorkspaceRoots.layer.pipe(
       Layer.provide(ProjectStore.layer),
       Layer.provide(ProjectionStoreV2.layer),
+      Layer.provide(ProcessRunner.layer),
     ),
   ),
 );

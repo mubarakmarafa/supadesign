@@ -4,6 +4,7 @@ import { it as effectIt } from "@effect/vitest";
 import {
   CONFIGURED_LOCAL_SERVER_URLS_MAX_ITEMS,
   PREVIEW_URL_MAX_LENGTH,
+  ProjectId,
   type DiscoveredLocalServer,
 } from "@supaterm/contracts";
 import * as HostProcess from "@supaterm/shared/HostProcess";
@@ -24,6 +25,7 @@ import { FetchHttpClient } from "effect/http";
 
 import * as ProcessRunner from "../processRunner.ts";
 import * as PortScanner from "./PortScanner.ts";
+import { parseWorktreeListPorcelain } from "./workspaceRoots.ts";
 const processProbeFailure: ProcessRunner.ProcessRunner["Service"]["run"] = (input) =>
   Effect.fail(
     new ProcessRunner.ProcessSpawnError({
@@ -718,7 +720,7 @@ effectIt.effect(
       )) as typeof globalThis.fetch;
     const layer = layerProbeFailure(
       (input) => {
-        lsofSpawns += 1;
+        if (input.command === "lsof") lsofSpawns += 1;
         return processProbeFailure(input);
       },
       fetchFn,
@@ -828,7 +830,9 @@ effectIt.effect("probes a listener an agent started inside a project folder", ()
         Layer.succeed(HostProcess.Platform, "linux"),
         Layer.succeed(
           PortScanner.PortDiscoveryWorkspaceRoots,
-          Effect.succeed(["/work/portfolio/"]),
+          Effect.succeed([
+            { path: "/work/portfolio/", projectId: ProjectId.make("portfolio"), branch: "main" },
+          ]),
         ),
         FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.Fetch, fetchFn))),
       ),
@@ -838,8 +842,12 @@ effectIt.effect("probes a listener an agent started inside a project folder", ()
   return Effect.gen(function* () {
     const scanner = yield* PortScanner.PortDiscovery;
     const servers = yield* scanner.scan();
-    expect(servers.map((server) => [server.port, server.cwd])).toEqual([
-      [LSOF_TEST_PORT, "/work/portfolio/site"],
+    expect(servers.map((server) => [server.port, server.cwd, server.checkout])).toEqual([
+      [
+        LSOF_TEST_PORT,
+        "/work/portfolio/site",
+        { path: "/work/portfolio", projectId: "portfolio", branch: "main" },
+      ],
     ]);
     // The other app's listener, outside every project, is never sent a request.
     expect(requests).toEqual([`http://localhost:${LSOF_TEST_PORT}/`]);
@@ -857,5 +865,59 @@ effectIt("matches working directories against workspace roots and lsof output", 
   ]).toEqual([
     [12, "/Users/me/site"],
     [34, "/"],
+  ]);
+});
+
+effectIt("ties a working directory to the most specific project folder or worktree", () => {
+  const project = ProjectId.make("app");
+  const roots = [
+    { path: "/work/app", projectId: project, branch: "main" },
+    { path: "/work/app/.worktrees/feature", projectId: project, branch: "feature" },
+    { path: "/elsewhere/app-review", projectId: project, branch: "review" },
+  ];
+  expect(PortScanner.containingWorkspace("/work/app/.worktrees/feature/web", roots)?.branch).toBe(
+    "feature",
+  );
+  expect(PortScanner.containingWorkspace("/work/app/web", roots)?.branch).toBe("main");
+  expect(PortScanner.containingWorkspace("/elsewhere/app-review", roots)?.branch).toBe("review");
+  expect(PortScanner.containingWorkspace("/work/apple", roots)).toBeNull();
+});
+
+effectIt("reads process ages from ps", () => {
+  expect(PortScanner.parseElapsedSeconds("05:09")).toBe(309);
+  expect(PortScanner.parseElapsedSeconds("01:05:09")).toBe(3909);
+  expect(PortScanner.parseElapsedSeconds("2-01:05:09")).toBe(176_709);
+  expect(PortScanner.parseElapsedSeconds("soon")).toBeNull();
+  expect([...PortScanner.parsePsElapsedOutput("  123     05:09\n 456 2-01:05:09\nbad\n")]).toEqual([
+    [123, 309],
+    [456, 176_709],
+  ]);
+});
+
+effectIt("lists a repository's checkouts and their branches", () => {
+  expect(
+    parseWorktreeListPorcelain(
+      [
+        "worktree /work/app",
+        "HEAD 1111111111111111111111111111111111111111",
+        "branch refs/heads/main",
+        "",
+        "worktree /Users/me/.other-tool/worktrees/app/review",
+        "HEAD 2222222222222222222222222222222222222222",
+        "branch refs/heads/feat/reading-width",
+        "",
+        "worktree /work/app-detached",
+        "HEAD 3333333333333333333333333333333333333333",
+        "detached",
+        "",
+        "worktree /work/app.git",
+        "bare",
+        "",
+      ].join("\n"),
+    ),
+  ).toEqual([
+    { path: "/work/app", branch: "main" },
+    { path: "/Users/me/.other-tool/worktrees/app/review", branch: "feat/reading-width" },
+    { path: "/work/app-detached", branch: null },
   ]);
 });

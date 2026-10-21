@@ -9,7 +9,13 @@
  * @module Preview
  */
 import { Schema } from "effect";
-import { NonNegativeInt, PositiveInt, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
+import {
+  NonNegativeInt,
+  PositiveInt,
+  ProjectId,
+  ThreadId,
+  TrimmedNonEmptyString,
+} from "./baseSchemas.ts";
 import { BROWSER_PROFILE_MAX_COUNT, BrowserProfile, BrowserProfileId } from "./browserProfile.ts";
 
 export const PREVIEW_URL_MAX_LENGTH = 2_048;
@@ -411,6 +417,22 @@ export const DiscoveredLocalServer = Schema.Struct({
    * started outside a terminal back to their project.
    */
   cwd: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
+  /**
+   * The checkout `cwd` is in: a project folder, a thread worktree, or another
+   * worktree of a project's repository (one another tool made counts too), with
+   * its project and branch.
+   */
+  checkout: Schema.optional(
+    Schema.NullOr(
+      Schema.Struct({
+        path: TrimmedNonEmptyString,
+        projectId: Schema.NullOr(ProjectId),
+        branch: Schema.NullOr(TrimmedNonEmptyString),
+      }),
+    ),
+  ),
+  /** When the listening process started (ISO 8601), so the newest server can be told apart. */
+  startedAt: Schema.optional(Schema.NullOr(Schema.String)),
 });
 export type DiscoveredLocalServer = typeof DiscoveredLocalServer.Type;
 

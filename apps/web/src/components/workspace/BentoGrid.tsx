@@ -153,6 +153,9 @@ export function BentoGrid({
   const startTileDrag = (id: ProjectWorkspaceWidgetId, event: PointerEvent<HTMLElement>) => {
     const grid = gridRef.current;
     if (!canArrange || maximizedId !== null || event.button !== 0 || grid === null) return;
+    // React bubbles events from a header menu's portal popup up to the header,
+    // so only presses on the header itself start a drag.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     if ((event.target as Element).closest("button, a, input, textarea, select, [role=menuitem]")) {
       return;
     }
