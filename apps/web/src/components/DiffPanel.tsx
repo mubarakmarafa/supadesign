@@ -12,6 +12,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   Columns2Icon,
+  FileSymlinkIcon,
   FolderTreeIcon,
   PilcrowIcon,
   Rows3Icon,
@@ -26,7 +27,7 @@ import { useFilesystemReadAccess } from "~/state/filesystem";
 import { useOpenInPreferredEditor } from "../editorPreferences";
 import { useFileContextMenuHandler } from "../fileContextMenu";
 import { type DraftId } from "../composerDraftStore";
-import { openDiffFilePrimaryAction } from "../diffFileActions";
+import { openDiffFilePrimaryAction, resolveDiffPathForWorkspace } from "../diffFileActions";
 import { useCheckpointDiff } from "~/lib/checkpointDiffState";
 import { cn } from "~/lib/utils";
 import {
@@ -165,20 +166,40 @@ function DiffFileCollapseToggle({
 
 function DiffFileHeaderSuffix({
   filePath,
+  canOpenFile,
   hasStat,
   error,
   truncated,
+  onOpenFile,
   onRetry,
 }: {
   filePath: string;
+  canOpenFile: boolean;
   hasStat: boolean;
   error: boolean;
   truncated: boolean;
+  onOpenFile: (path: string) => void;
   onRetry: (path: string) => void;
 }) {
   return (
     <>
       <DiffFilePathCopyButton filePath={filePath} />
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              size="icon-micro"
+              variant="ghost-muted"
+              aria-label={`Open ${filePath}`}
+              aria-disabled={!canOpenFile}
+              onClick={canOpenFile ? () => onOpenFile(filePath) : undefined}
+            />
+          }
+        >
+          <FileSymlinkIcon className="size-3" />
+        </TooltipTrigger>
+        <TooltipPopup>{canOpenFile ? "Open file" : "File is outside this workspace"}</TooltipPopup>
+      </Tooltip>
       {hasStat ? (
         <DiffFileStatus error={error} truncated={truncated} retry={() => onRetry(filePath)} />
       ) : null}
@@ -630,6 +651,7 @@ export default function DiffPanel({
       },
     });
   };
+  const stableOpenDiffFile = useStableCallback(openDiffFile);
   // Every file header holds these; a new identity per collapse change would redraw them all.
   const toggleDiffFileCollapsed = useStableCallback((fileKey: string) => {
     updateCollapsedDiffFiles((current) => {
@@ -1070,15 +1092,6 @@ export default function DiffPanel({
                         return;
                       }
                     }
-                    const title = composedPath.find(
-                      (node): node is HTMLElement =>
-                        node instanceof HTMLElement && node.hasAttribute("data-title"),
-                    );
-                    const filePath = title?.textContent;
-                    if (filePath) {
-                      openDiffFile(filePath);
-                      return;
-                    }
                     const header = composedPath.find(
                       (node): node is HTMLElement =>
                         node instanceof HTMLElement && node.hasAttribute("data-diffs-header"),
@@ -1127,9 +1140,17 @@ export default function DiffPanel({
                       return (
                         <DiffFileHeaderSuffix
                           filePath={path}
+                          canOpenFile={
+                            resolveDiffPathForWorkspace({
+                              filePath: path,
+                              workspaceRoot: activeCwd,
+                              repositoryRoot: activeRepositoryRoot,
+                            }) !== null
+                          }
                           hasStat={fileStats.has(path)}
                           error={state?.error ?? false}
                           truncated={state?.truncated ?? false}
+                          onOpenFile={stableOpenDiffFile}
                           onRetry={retry}
                         />
                       );
