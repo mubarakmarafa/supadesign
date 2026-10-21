@@ -160,6 +160,7 @@ import { fnv1a32 } from "../lib/diffRendering";
 import { LRUCache } from "../lib/lruCache";
 import { MermaidBlock } from "../diagrams/MermaidBlock";
 import { getSyntaxHighlighterPromise } from "../lib/syntaxHighlighting";
+import { highlightCodeDocument } from "../lib/incrementalHighlighting";
 import { GitHubIcon } from "./Icons";
 import { HighlightedCodeLines } from "./chat/HighlightedCodeLines";
 import { RenderErrorBoundary } from "./RenderErrorBoundary";
@@ -1096,16 +1097,15 @@ function UncachedShikiCodeBlock({
   const highlighted = (() => {
     try {
       if (incrementalHighlight) return incrementalHighlight(code);
-      return preserveLines
-        ? highlighter.codeToHast(code, { lang: language, theme: themeName })
-        : highlighter.codeToHtml(code, { lang: language, theme: themeName });
+      return highlighter.codeToHtml(code, { lang: language, theme: themeName });
     } catch (error) {
+      incrementalHighlight?.dispose();
       console.warn(
         `Code highlighting failed for language "${language}", falling back to plain text.`,
         error instanceof Error ? error.message : error,
       );
       return preserveLines
-        ? highlighter.codeToHast(code, { lang: "text", theme: themeName })
+        ? highlightCodeDocument(highlighter, code, "text", themeName)
         : highlighter.codeToHtml(code, { lang: "text", theme: themeName });
     }
   })();

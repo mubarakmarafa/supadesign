@@ -248,6 +248,7 @@ export default defineConfig(() => {
     css: {
       devSourcemap: buildSourcemap !== false,
     },
+    worker: { format: "es" },
     build: {
       outDir: "dist",
       emptyOutDir: true,

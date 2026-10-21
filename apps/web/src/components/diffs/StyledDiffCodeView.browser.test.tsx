@@ -106,7 +106,7 @@ function FileOutput({ file }: { file: FileContents }) {
   useEffect(() => {
     testState.renderPools.push(pool);
     const renderer = new FileRenderer(
-      { theme: "pierre-dark", preferredHighlighter: "shiki-wasm" },
+      { theme: "pierre-dark", preferredHighlighter: "highlights" },
       undefined,
       render,
       pool,
@@ -270,7 +270,7 @@ describe("code-view worker lifecycle", () => {
       await getSharedHighlighter({
         themes: ["pierre-dark"],
         langs: ["text"],
-        preferredHighlighter: "shiki-wasm",
+        preferredHighlighter: "highlights",
       });
     });
     expect(pool.isWorkingPool()).toBe(false);
@@ -347,7 +347,7 @@ describe("collapsed diff content", () => {
     testState.holdInitialization = false;
     const pool = new WorkerPoolManager(
       { workerFactory: () => new DiffsWorker(), poolSize: 1 },
-      { theme: "pierre-dark", langs: ["typescript"], preferredHighlighter: "shiki-wasm" },
+      { theme: "pierre-dark", langs: ["typescript"], preferredHighlighter: "highlights" },
     );
     stack.defer(() => pool.terminate());
     await pool.initialize();

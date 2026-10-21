@@ -530,22 +530,39 @@ describe("ChatMarkdown streaming", () => {
     }
   });
 
+  function spyOnStreamChunks(highlighter: Awaited<ReturnType<typeof getSyntaxHighlighterPromise>>) {
+    const create = highlighter.createStreamTokenizer.bind(highlighter);
+    const chunks = vi.fn<(chunk: string) => void>();
+    const factory = vi.spyOn(highlighter, "createStreamTokenizer").mockImplementation((options) => {
+      const stream = create(options);
+      const enqueue = stream.enqueue.bind(stream);
+      vi.spyOn(stream, "enqueue").mockImplementation((chunk) => {
+        chunks(chunk);
+        return enqueue(chunk);
+      });
+      return stream;
+    });
+    return Object.assign(factory, { chunks });
+  }
+
   it("does not retokenize completed lines when streaming finishes", async () => {
     setup();
     const highlighter = await getSyntaxHighlighterPromise("typescript");
-    using highlight = vi.spyOn(highlighter, "codeToHast");
+    using highlight = spyOnStreamChunks(highlighter);
     const text = "```typescript\nconst completed = 1;\nconst current = 2;";
     await using screen = await render(<ChatMarkdown cwd="/tmp/project" text={text} isStreaming />);
     const { rerender } = screen;
-    await vi.waitFor(() => expect(highlight).toHaveBeenCalled());
-    highlight.mockClear();
+    await vi.waitFor(() => expect(highlight.chunks).toHaveBeenCalled());
+    highlight.chunks.mockClear();
     await rerender(<ChatMarkdown cwd="/tmp/project" text={text + "\n```"} />);
-    expect(highlight.mock.calls.every(([code]) => !code.includes("const completed"))).toBe(true);
+    expect(highlight.chunks.mock.calls.every(([code]) => !code.includes("const completed"))).toBe(
+      true,
+    );
   });
 
   it("does not retokenize completed lines while the last line streams", async () => {
     const highlighter = await getSyntaxHighlighterPromise("typescript");
-    using highlight = vi.spyOn(highlighter, "codeToHast");
+    using highlight = spyOnStreamChunks(highlighter);
     const message = (code: string) => (
       <ChatMarkdown
         cwd="/tmp/project"
@@ -556,23 +573,67 @@ describe("ChatMarkdown streaming", () => {
     setup();
     await using screen = await render(message("const cur"));
     const { rerender } = screen;
-    await vi.waitFor(() => expect(highlight).toHaveBeenCalled());
-    highlight.mockClear();
+    await vi.waitFor(() => expect(highlight.chunks).toHaveBeenCalled());
+    highlight.chunks.mockClear();
     for (const code of ["const curr", "const current = 2;", "const current = 2;\nconst next"]) {
       await rerender(message(code));
     }
-    expect(highlight).toHaveBeenCalled();
-    expect(highlight.mock.calls.every(([code]) => !code.includes("const completed"))).toBe(true);
+    expect(highlight.chunks).toHaveBeenCalled();
+    expect(highlight.chunks.mock.calls.every(([code]) => !code.includes("const completed"))).toBe(
+      true,
+    );
+  });
+
+  it("recovers without duplicating code after a tokenizer fails during an append", async () => {
+    setup();
+    const highlighter = await getSyntaxHighlighterPromise("typescript");
+    const create = highlighter.createStreamTokenizer.bind(highlighter);
+    let fail = true;
+    using _factory = vi
+      .spyOn(highlighter, "createStreamTokenizer")
+      .mockImplementation((options) => {
+        const tokenizer = create(options);
+        const enqueue = tokenizer.enqueue.bind(tokenizer);
+        tokenizer.enqueue = (chunk) => {
+          const result = enqueue(chunk);
+          if (fail) {
+            fail = false;
+            throw new Error("Tokenization failed after consuming the chunk");
+          }
+          return result;
+        };
+        return tokenizer;
+      });
+    using _warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const message = (code: string) => (
+      <ChatMarkdown cwd="/tmp/project" text={`\`\`\`typescript\n${code}`} isStreaming />
+    );
+    await using screen = await render(message("const first = 1;"));
+    await vi.waitFor(() => expect(fail).toBe(false));
+    const code = "const first = 1;\nconst second = 2;";
+    await screen.rerender(message(code));
+    await vi.waitFor(() => {
+      expect(screen.container.querySelector(".chat-markdown-shiki code")?.textContent).toBe(
+        `${code}\n`,
+      );
+    });
   });
 
   it("recovers highlighting after a failed fence changes without resetting its controls", async () => {
     setup();
     const highlighter = await getSyntaxHighlighterPromise("text");
-    const codeToHast = highlighter.codeToHast.bind(highlighter);
+    const createStreamTokenizer = highlighter.createStreamTokenizer.bind(highlighter);
+    const codeToTokens = highlighter.codeToTokens.bind(highlighter);
     let fail = true;
-    using _codeToHast = vi.spyOn(highlighter, "codeToHast").mockImplementation((...args) => {
+    using _createStreamTokenizer = vi
+      .spyOn(highlighter, "createStreamTokenizer")
+      .mockImplementation((...args) => {
+        if (fail) throw new Error("Temporary highlighter failure");
+        return createStreamTokenizer(...args);
+      });
+    using _codeToTokens = vi.spyOn(highlighter, "codeToTokens").mockImplementation((...args) => {
       if (fail) throw new Error("Temporary highlighter failure");
-      return codeToHast(...args);
+      return codeToTokens(...args);
     });
     using _consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     using _consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -602,7 +663,7 @@ describe("ChatMarkdown streaming", () => {
   it("preserves code controls and details without highlighting an unchanged fence again", async () => {
     setup();
     const highlighter = await getSyntaxHighlighterPromise("text");
-    using highlight = vi.spyOn(highlighter, "codeToHast");
+    using highlight = spyOnStreamChunks(highlighter);
     using writeText = vi
       .spyOn(navigator.clipboard, "writeText")
       .mockImplementation(async () => undefined);

@@ -923,17 +923,17 @@ function PullRequestCodeTab({
     />
   );
 
-  const renderAnnotation = (annotation: ReviewAnnotation) => (
+  const renderAnnotation = ({ metadata }: Pick<ReviewAnnotation, "metadata">) => (
     <div className="py-1 font-sans text-foreground">
-      {annotation.metadata.threads.map(renderThreadCard)}
-      {annotation.metadata.pending.map((comment) => (
+      {metadata.threads.map(renderThreadCard)}
+      {metadata.pending.map((comment) => (
         <PendingReviewCommentCard
           key={comment.id}
           comment={comment}
           onRemove={() => removeComment(reviewKey, comment.id)}
         />
       ))}
-      {annotation.metadata.draft && draft && canSelectLines ? (
+      {metadata.draft && draft && canSelectLines ? (
         <DiffCommentAnnotation
           kind="draft"
           rangeLabel={`${draft.path}:${getReviewPositionAnchor(draft.position).line}`}
@@ -1459,7 +1459,7 @@ function PullRequestCodeTab({
               renderCodeViewFooter={renderCodeViewFooter}
               renderHeaderPrefix={renderHeaderPrefix}
               renderHeaderMetadata={renderHeaderMetadata}
-              renderAnnotation={renderAnnotation}
+              renderAnnotation={(...args) => renderAnnotation(args[0])}
               // Find can ask again before the unfolded file arrives, so this unfolds and never folds.
               onRevealSearchMatch={(item) =>
                 setToggledFiles((current) =>
