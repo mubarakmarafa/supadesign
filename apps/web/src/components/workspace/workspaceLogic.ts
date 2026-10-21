@@ -304,13 +304,19 @@ export interface PreviewPortCandidate {
   readonly port: number;
   /** Where this client loads it; remote connections go through the environment. */
   readonly url: string;
+  /** What the menu calls it: its folder in its checkout, else its thread, else its process. */
+  readonly name: string;
   /** The thread whose terminal or worktree runs it, when known. */
   readonly threadTitle: string | null;
   readonly branch: string | null;
-  /** It runs in this project's folder or one of its threads. */
+  /** It runs in this project's folder, one of its threads, or a worktree of its repository. */
   readonly ownedByProject: boolean;
-  /** The thread's last update, ms; 0 when unknown. */
-  readonly updatedAtMs: number;
+  /** The agent of the thread running it is working now. */
+  readonly working: boolean;
+  /** When the server started, else its thread's last update, ms; 0 when unknown. */
+  readonly recencyMs: number;
+  /** When the server's process started (ISO), when the environment reports it. */
+  readonly startedAt: string | null;
   readonly processName: string | null;
 }
 
@@ -335,8 +341,8 @@ export type PreviewSelection =
 
 /**
  * What a live preview widget shows: the pinned port when it is running, else
- * the project's live card, else the project's most recently active port.
- * Never anything that is not already running.
+ * the project's live card, else the project's server whose agent is working,
+ * else its newest server. Never anything that is not already running.
  */
 export function resolvePreviewSelection(input: {
   readonly pinnedPort: number | undefined;
@@ -358,6 +364,7 @@ export function resolvePreviewSelection(input: {
   if (input.live !== null) {
     return { kind: "live", url: input.live.url, branch: input.live.branch };
   }
+  // Sorted with working servers first, then the newest.
   const recent = sortPreviewPorts(input.ports).find((port) => port.ownedByProject);
   return recent === undefined
     ? { kind: "none" }
@@ -373,7 +380,8 @@ export function pathWithin(root: string, path: string): boolean {
 /**
  * Who a running server belongs to: the thread whose terminal started it, else
  * the thread whose worktree it runs in, else just the project when it runs in
- * the project folder. Agents often start servers outside a terminal, so the
+ * the project folder or a worktree of its repository (`checkoutProjectId`, as
+ * the server found it). Agents often start servers outside a terminal, so the
  * working directory is what ties those back.
  */
 export function previewServerOwner<
@@ -383,6 +391,8 @@ export function previewServerOwner<
   readonly cwd: string | null;
   readonly workspaceRoot: string;
   readonly threads: ReadonlyArray<T>;
+  readonly projectId?: string;
+  readonly checkoutProjectId?: string | null;
 }): { readonly thread: T | null; readonly inProject: boolean } {
   if (input.terminalThreadId !== null) {
     const thread = input.threads.find((entry) => entry.id === input.terminalThreadId) ?? null;
@@ -395,16 +405,51 @@ export function previewServerOwner<
     if (entry.worktreePath === null || !pathWithin(entry.worktreePath, cwd)) continue;
     if (thread === null || entry.worktreePath.length > thread.worktreePath!.length) thread = entry;
   }
-  return { thread, inProject: thread !== null || pathWithin(input.workspaceRoot, cwd) };
+  return {
+    thread,
+    inProject:
+      thread !== null ||
+      pathWithin(input.workspaceRoot, cwd) ||
+      (input.projectId !== undefined && input.checkoutProjectId === input.projectId),
+  };
 }
 
-/** The project's own ports first, most recently active first, then the rest by port. */
+/**
+ * A server's name in the menu: the folder it runs in within its checkout
+ * (`apps/web`), the checkout's own folder name when it runs at the top, else
+ * its thread, else its process.
+ */
+export function previewServerName(input: {
+  readonly cwd: string | null;
+  readonly checkoutPath: string | null;
+  readonly threadTitle: string | null;
+  readonly processName: string | null;
+  readonly port: number;
+}): string {
+  const { cwd, checkoutPath } = input;
+  if (cwd !== null && checkoutPath !== null && pathWithin(checkoutPath, cwd)) {
+    const relative = cwd.slice(checkoutPath.replace(/[\\/]+$/, "").length).replace(/^[\\/]+/, "");
+    if (relative.length > 0) return relative;
+    if (input.threadTitle === null) {
+      return checkoutPath.split(/[\\/]/).findLast((part) => part.length > 0) ?? checkoutPath;
+    }
+  }
+  return input.threadTitle ?? input.processName ?? `Port ${input.port}`;
+}
+
+/**
+ * The project's own ports first: those whose agent is working, then the
+ * newest. Then the rest by port.
+ */
 export function sortPreviewPorts(
   ports: ReadonlyArray<PreviewPortCandidate>,
 ): ReadonlyArray<PreviewPortCandidate> {
   return [...ports].sort((left, right) => {
     if (left.ownedByProject !== right.ownedByProject) return left.ownedByProject ? -1 : 1;
-    if (left.updatedAtMs !== right.updatedAtMs) return right.updatedAtMs - left.updatedAtMs;
+    if (left.ownedByProject) {
+      if (left.working !== right.working) return left.working ? -1 : 1;
+      if (left.recencyMs !== right.recencyMs) return right.recencyMs - left.recencyMs;
+    }
     return left.port - right.port;
   });
 }

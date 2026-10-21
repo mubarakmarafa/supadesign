@@ -48,11 +48,13 @@ Select **Add widget** at the top of the board to add:
   doesn't change the project's files itself. Its thread is listed with the
   project's threads but never shows as a card, and removing the widget keeps
   the conversation for when you add it back.
-- **Live preview**: the live card's dev server, with its branch. Its menu
-  switches to another server that is already running, with this project's own
-  servers listed first. It never starts a server; when nothing is live it shows
-  the project's most recently active one, including a server a card's agent
-  started itself in the project folder or the card's worktree.
+- **Live preview**: a dev server that is already running, with its branch. On
+  **Automatic** it shows the live card, else a server whose card's agent is
+  working, else the project's newest server. Its menu lists every running
+  server by folder, branch and age, this project's first, to pick another. A
+  server counts as the project's when it runs in the project folder or any
+  worktree of its repository, including worktrees another app made. It never
+  starts a server.
 - **Figma**: paste a figma.com file, design, or prototype link to keep the
   design goal next to the live preview.
 - **Usage**: tokens and spend for today and the last 7 days, plus plan limits.
