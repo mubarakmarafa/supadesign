@@ -13,6 +13,7 @@ import {
   type ThreadId,
 } from "@supaterm/contracts";
 import * as Context from "effect/Context";
+import type { TurnContextEntry } from "../orchestration-v2/TurnContext.ts";
 import * as Effect from "effect/Effect";
 import * as Semaphore from "effect/Semaphore";
 
@@ -93,6 +94,11 @@ export class ThreadBriefService extends Context.Service<
       readonly by: ThreadBriefActor;
     }) => Effect.Effect<void, ThreadBriefError>;
     readonly get: (threadId: ThreadId) => Effect.Effect<ThreadBrief | null>;
+    /**
+     * The brief and settled decisions as the card's agent is told them with
+     * its next turn. Null for a card that never had either.
+     */
+    readonly turnContext: (threadId: ThreadId) => Effect.Effect<TurnContextEntry | null>;
     /** Every brief the card has had, oldest first, cleared ones included. */
     readonly versions: (threadId: ThreadId) => Effect.Effect<ReadonlyArray<StoredBriefVersion>>;
     /** Calls `listener` with the project's briefs now and after every change. */
@@ -133,6 +139,48 @@ export const toThreadBrief = (record: StoredBrief): ThreadBrief => {
 };
 
 const isVisible = (brief: ThreadBrief) => brief.brief !== null || brief.decisions.length > 0;
+
+/**
+ * What the agent reads ahead of the designer's next message. Suggestions
+ * still waiting aren't decided, so only settled decisions go in; a cleared
+ * brief is said outright so the agent drops the one it saw before. Null
+ * until the designer has written a brief or settled a decision.
+ */
+export const briefTurnContext = (record: StoredBrief): TurnContextEntry | null => {
+  const { brief, decisions } = toThreadBrief(record);
+  const settled = decisions.filter((decision) => decision.status !== "suggested");
+  // Waiting suggestions alone give the agent nothing to follow or drop.
+  const everSet =
+    record.versions.length > 0 ||
+    record.decisions.some((decision) => decision.status !== "suggested");
+  if (!everSet) return null;
+  const version = [
+    record.versions.length,
+    ...settled.map((decision) => `${decision.id}:${decision.updatedAt}`),
+  ].join("|");
+  if (brief === null && settled.length === 0) {
+    return {
+      version,
+      text: [
+        "<card_brief>",
+        "The designer cleared this card's brief and decisions in Supadesign. Drop the earlier ones; follow their messages from here.",
+        "</card_brief>",
+      ].join("\n"),
+    };
+  }
+  return {
+    version,
+    text: [
+      "<card_brief>",
+      "The designer's brief and settled decisions for this card, from Supadesign. They changed since you last saw them. Follow them, and don't reopen settled decisions; propose a change with supaterm_decision_suggest instead.",
+      ...(brief === null ? [] : ["", "Brief:", brief.text]),
+      ...(settled.length === 0
+        ? []
+        : ["", "Decided:", ...settled.map((decision) => `- ${decision.text}`)]),
+      "</card_brief>",
+    ].join("\n"),
+  };
+};
 
 export const make = (ops: ThreadBriefOps) =>
   Effect.gen(function* () {
@@ -389,6 +437,12 @@ export const make = (ops: ThreadBriefOps) =>
         return record === undefined ? null : toThreadBrief(record);
       });
 
+    const turnContext: ThreadBriefService["Service"]["turnContext"] = (threadId) =>
+      Effect.sync(() => {
+        const record = records.get(threadId);
+        return record === undefined ? null : briefTurnContext(record);
+      });
+
     const versions: ThreadBriefService["Service"]["versions"] = (threadId) =>
       Effect.sync(() => records.get(threadId)?.versions ?? []);
 
@@ -412,6 +466,7 @@ export const make = (ops: ThreadBriefOps) =>
       rejectDecision,
       restoreDecision,
       get,
+      turnContext,
       versions,
       subscribe,
     });

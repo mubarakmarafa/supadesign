@@ -187,8 +187,10 @@ begin from what you already wrote. **Edit** changes it later; earlier versions
 are kept, so changing direction doesn't lose the old one.
 
 Under the brief, **Decisions** lists choices already made. **Add** records one
-of yours. The card's agent can read the brief and decisions, and can suggest a
-decision when it makes a choice that shapes later work. A suggestion waits
+of yours. Whenever the brief or decisions change, the card's agent receives
+them with your next message, so it follows your latest direction without
+being asked; suggestions still waiting aren't included. The agent can also
+suggest a decision when it makes a choice that shapes later work. A suggestion waits
 until you **Accept** it, **Edit** it into your own words, or **Reject** it.
 Rejected suggestions leave the list, and the agent can't suggest them again;
 **Undo** on the notice brings one back. Hover a decision to edit or remove it.

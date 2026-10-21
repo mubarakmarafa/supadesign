@@ -26,7 +26,7 @@ const DecisionSummary = Schema.Struct({ id: ThreadDecisionId, text: Schema.Strin
 
 const BriefReadTool = Tool.make("supaterm_brief_read", {
   ...shared,
-  description: `Read the designer's brief for this thread's card and the decisions they have settled. The brief is the direction the designer set in their own words; decisions are choices already made, so follow them and don't reopen them. Read it before starting work, and again when the direction feels unclear. Suggestions still waiting on the designer are listed separately; they are not decided yet. Only the designer writes the brief and settles decisions; use supaterm_decision_suggest to propose one.`,
+  description: `Read the designer's brief for this thread's card and the decisions they have settled. The brief is the direction the designer set in their own words; decisions are choices already made, so follow them and don't reopen them. It also arrives ahead of the designer's message whenever it changes, in a <card_brief> block; read it here when you need it again, such as when the direction feels unclear. Suggestions still waiting on the designer are listed separately; they are not decided yet. Only the designer writes the brief and settles decisions; use supaterm_decision_suggest to propose one.`,
   // No `parameters`: Tool.EmptyParams serializes to the object schema MCP requires.
   success: Schema.Struct({
     brief: Schema.NullOr(Schema.String).annotate({
