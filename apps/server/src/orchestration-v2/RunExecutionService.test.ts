@@ -49,6 +49,7 @@ import * as ProviderEventIngestor from "./ProviderEventIngestor.ts";
 import * as McpAppModelContext from "../mcpApps/McpAppModelContext.ts";
 import * as RunExecutionService from "./RunExecutionService.ts";
 import * as RunFinalizationService from "./RunFinalizationService.ts";
+import * as TurnContext from "./TurnContext.ts";
 
 const driver = ProviderDriverKind.make("codex");
 
@@ -752,6 +753,100 @@ it.effect("passes the thread's MCP app context to the provider under a safe key"
                   },
                 ]),
             }),
+            Layer.mock(CheckpointService.CheckpointServiceV2)({
+              captureBaseline: () => Effect.void,
+            }),
+            Layer.mock(EventSink.EventSinkV2)({}),
+            IdAllocator.layer,
+            Layer.mock(ProviderEventIngestor.ProviderEventIngestorV2)({
+              ingestNormalized: () => Effect.succeed([]),
+            }),
+            ServerSettings.layerTest(),
+          ),
+        ),
+      ),
+    ),
+  ),
+);
+
+it.effect("sends a thread's standing context ahead of the message once, until it changes", () =>
+  Effect.gen(function* () {
+    const runExecution = yield* RunExecutionService.RunExecutionServiceV2;
+    const turnContext = yield* TurnContext.TurnContext;
+    const brief = yield* Ref.make("v1");
+    yield* turnContext.register({
+      key: "card-brief",
+      read: () =>
+        Ref.get(brief).pipe(
+          Effect.map((version) => ({ version, text: `<card_brief>${version}</card_brief>` })),
+        ),
+    });
+    const threadId = ThreadId.make("thread:run-execution-standing-context");
+    const providerInstanceId = ProviderInstanceId.make("claude");
+    const startTurnWith = (ordinal: number) =>
+      Effect.gen(function* () {
+        const started = yield* Deferred.make<ProviderAdapter.ProviderAdapterV2TurnInput>();
+        const attemptId = RunAttemptId.make(`attempt:run-execution-standing-context-${ordinal}`);
+        yield* runExecution.startRootRun({
+          commandId: CommandId.make(`command:run-execution-standing-context-${ordinal}`),
+          appThread: { id: threadId } as OrchestrationV2AppThread,
+          providerSessionId: ProviderSessionId.make("session:run-execution-standing-context"),
+          session: {
+            events: Stream.never,
+            startTurn: (input: ProviderAdapter.ProviderAdapterV2TurnInput) =>
+              Deferred.succeed(started, input),
+          } as unknown as ProviderAdapter.ProviderAdapterV2SessionRuntime,
+          run: {
+            id: RunId.make(`run:run-execution-standing-context-${ordinal}`),
+            threadId,
+            ordinal,
+            providerInstanceId,
+          } as OrchestrationV2Run,
+          rootNode: {
+            id: NodeId.make(`node:run-execution-standing-context-${ordinal}`),
+          } as OrchestrationV2ExecutionNode,
+          checkpointScope: {
+            id: CheckpointScopeId.make(
+              `checkpoint-scope:run-execution-standing-context-${ordinal}`,
+            ),
+          } as OrchestrationV2CheckpointScope,
+          providerThread: {
+            id: ProviderThreadId.make("provider-thread:run-execution-standing-context"),
+            driver,
+          } as OrchestrationV2ProviderThread,
+          attempt: { id: attemptId, providerTurnId: null } as OrchestrationV2RunAttempt,
+          attemptId,
+          providerTurnOrdinal: ordinal,
+          nativeThreadHasTurns: ordinal > 1,
+          message: {
+            messageId: MessageId.make(`message:run-execution-standing-context-${ordinal}`),
+            text: `Turn ${ordinal}`,
+            attachments: [],
+            createdBy: "user",
+            creationSource: "web",
+          },
+          modelSelection: { instanceId: providerInstanceId, model: "claude-opus" },
+          runtimePolicy: {
+            runtimeMode: "full-access",
+            interactionMode: "default",
+            cwd: process.cwd(),
+          },
+        });
+        return (yield* Deferred.await(started)).message.text;
+      });
+
+    assert.equal(yield* startTurnWith(1), "<card_brief>v1</card_brief>\n\nTurn 1");
+    // The provider already has it, so the next turn is only the designer's words.
+    assert.equal(yield* startTurnWith(2), "Turn 2");
+    yield* Ref.set(brief, "v2");
+    assert.equal(yield* startTurnWith(3), "<card_brief>v2</card_brief>\n\nTurn 3");
+  }).pipe(
+    Effect.provide(
+      RunExecutionService.layer.pipe(
+        Layer.provideMerge(
+          Layer.mergeAll(
+            TurnContext.layer,
+            McpAppModelContext.layerEmpty,
             Layer.mock(CheckpointService.CheckpointServiceV2)({
               captureBaseline: () => Effect.void,
             }),

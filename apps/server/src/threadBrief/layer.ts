@@ -11,6 +11,7 @@ import * as Schema from "effect/Schema";
 import * as ServerConfig from "../config.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
+import * as TurnContext from "../orchestration-v2/TurnContext.ts";
 import * as ThreadBank from "../threadBank/ThreadBankService.ts";
 import * as ThreadBrief from "./ThreadBriefService.ts";
 
@@ -89,4 +90,13 @@ export const make = Effect.gen(function* () {
   return yield* ThreadBrief.make(ops);
 });
 
-export const layer = Layer.effect(ThreadBrief.ThreadBriefService, make);
+/** A card's brief rides along with its agent's turns whenever it changes. */
+export const layer = Layer.effect(
+  ThreadBrief.ThreadBriefService,
+  Effect.gen(function* () {
+    const service = yield* make;
+    const turnContext = yield* TurnContext.TurnContext;
+    yield* turnContext.register({ key: "card-brief", read: service.turnContext });
+    return service;
+  }),
+);

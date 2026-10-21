@@ -65,6 +65,7 @@ import * as ThreadBankLayer from "./threadBank/layer.ts";
 import * as BoardAutomationLayer from "./boardAutomation/layer.ts";
 import * as ThreadProgressLayer from "./threadProgress/layer.ts";
 import * as ThreadBriefLayer from "./threadBrief/layer.ts";
+import * as TurnContext from "./orchestration-v2/TurnContext.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
 import * as PortScannerWorkspaceRoots from "./preview/workspaceRoots.ts";
@@ -575,6 +576,9 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
 ).pipe(
   // Core Services
   Layer.provideMerge(layerOrchestrationApplication),
+  // Card briefs register with it and every provider turn reads it, so it sits
+  // beneath both as one shared instance.
+  Layer.provideMerge(TurnContext.layer),
   Layer.provideMerge(RuntimeLayer.layerEventInfrastructure),
   Layer.provideMerge(Layer.merge(ProjectStore.layer, ThreadSearch.layer)),
   Layer.provideMerge(layerServerSettings),

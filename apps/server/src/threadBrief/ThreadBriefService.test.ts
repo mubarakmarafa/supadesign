@@ -253,3 +253,40 @@ it.effect("restores briefs and decisions saved before a restart", () =>
     assert.strictEqual(brief?.brief?.version, 2);
   }),
 );
+
+it.effect("tells the agent the brief and settled decisions, not waiting suggestions", () =>
+  Effect.gen(function* () {
+    const { service } = yield* setup();
+    yield* suggest(service, "Try a carousel");
+    // Suggestions alone give the agent nothing to follow.
+    assert.isNull(yield* service.turnContext(card));
+
+    yield* service.setBrief({ threadId: card, text: "A calm settings page", by: "designer" });
+    yield* service.addDecision({ threadId: card, text: "Use the 12px radius", by: "designer" });
+    const context = yield* service.turnContext(card);
+    assert.include(context?.text, "Brief:\nA calm settings page");
+    assert.include(context?.text, "Decided:\n- Use the 12px radius");
+    assert.notInclude(context?.text, "carousel");
+
+    // Accepting the suggestion changes what the agent should know.
+    const waiting = (yield* service.get(card))?.decisions.find(
+      (decision) => decision.status === "suggested",
+    );
+    yield* service.acceptDecision({ threadId: card, decisionId: waiting!.id, by: "designer" });
+    const after = yield* service.turnContext(card);
+    assert.notStrictEqual(after?.version, context?.version);
+    assert.include(after?.text, "- Try a carousel");
+  }),
+);
+
+it.effect("tells the agent when the designer clears the brief", () =>
+  Effect.gen(function* () {
+    const { service } = yield* setup();
+    yield* service.setBrief({ threadId: card, text: "A calm settings page", by: "designer" });
+    const before = yield* service.turnContext(card);
+    yield* service.setBrief({ threadId: card, text: "", by: "designer" });
+    const cleared = yield* service.turnContext(card);
+    assert.notStrictEqual(cleared?.version, before?.version);
+    assert.include(cleared?.text, "cleared this card's brief");
+  }),
+);

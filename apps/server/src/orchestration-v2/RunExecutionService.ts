@@ -31,12 +31,14 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 
 import * as McpSessionRegistry from "../mcp/McpSessionRegistry.ts";
 import * as McpAppModelContext from "../mcpApps/McpAppModelContext.ts";
+import * as TurnContext from "./TurnContext.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as CheckpointService from "./CheckpointService.ts";
 import * as EventSink from "./EventSink.ts";
@@ -578,6 +580,7 @@ export const layer: Layer.Layer<
     const providerEventIngestor = yield* ProviderEventIngestor.ProviderEventIngestorV2;
     const serverSettings = yield* ServerSettings.ServerSettingsService;
     const mcpAppModelContext = yield* McpAppModelContext.McpAppModelContext;
+    const turnContext = yield* Effect.serviceOption(TurnContext.TurnContext);
     const finalizationObserver = yield* RunFinalizationService.RunFinalizationObserver;
 
     const writeFinalRunEvents = (input: {
@@ -1410,6 +1413,15 @@ export const layer: Layer.Layer<
             key: `mcp_app_${entry.itemId.replace(/[^\w.-]/g, "_")}`,
             text: entry.text,
           }));
+          // Standing direction, such as a card's brief, rides ahead of the
+          // message when it changed since the agent last saw it.
+          const standing =
+            Option.isNone(turnContext) || input.message.text.trim().toLowerCase() === "/compact"
+              ? null
+              : yield* turnContext.value.forTurn({
+                  threadId: input.run.threadId,
+                  freshNativeThread: input.nativeThreadHasTurns === false,
+                });
           const turnInput = {
             appThread: input.appThread,
             threadId: input.run.threadId,
@@ -1427,7 +1439,16 @@ export const layer: Layer.Layer<
             attemptId: input.attemptId,
             rootNodeId: input.rootNode.id,
             providerThread: input.providerThread,
-            message: input.message,
+            message:
+              standing === null
+                ? input.message
+                : {
+                    ...input.message,
+                    text:
+                      input.message.text.length === 0
+                        ? standing.text
+                        : `${standing.text}\n\n${input.message.text}`,
+                  },
             modelSelection: input.modelSelection,
             runtimePolicy: input.runtimePolicy,
             ...(appContext.length === 0 ? {} : { appContext }),
@@ -1448,6 +1469,7 @@ export const layer: Layer.Layer<
               ))
             : input.session.startTurn(turnInput);
           yield* Effect.andThen(shouldStart, startTurn).pipe(
+            Effect.tap(() => standing?.markDelivered ?? Effect.void),
             Effect.catchCause((cause) =>
               Effect.logError("orchestration V2 provider turn start failed", {
                 runId: input.run.id,
