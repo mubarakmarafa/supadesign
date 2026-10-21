@@ -20,6 +20,7 @@ import * as ThreadLaunchService from "../../../orchestration-v2/ThreadLaunchServ
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
 import * as ProjectService from "../../../project/ProjectService.ts";
 import * as ProjectBoard from "../../../projectBoard/ProjectBoardService.ts";
+import * as ThreadBank from "../../../threadBank/ThreadBankService.ts";
 import * as ThreadProgress from "../../../threadProgress/ThreadProgressService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 
@@ -96,7 +97,7 @@ const BoardMoveCardTool = Tool.make("supaterm_board_move_card", {
 
 const BoardAddCardTool = Tool.make("supaterm_board_add_card", {
   ...shared,
-  description: `Add a card to a project's board for work to do later, as the designer's "+" on a column does. The card is a new thread that has not started: nothing is sent to an agent until the designer opens it and sends a message. It goes to the top of columnId (the inbox when omitted), or under the live card in the live column. Use one card per idea; to start work right away use supaterm_thread_launch instead. Omit projectId for this thread's project, and modelSelection for this thread's model or the project's default.`,
+  description: `Add a card to a project's board for work to do later, as the designer's "+" on a column does. The card is a new thread that has not started: its title and summary wait as a banked message, and nothing reaches an agent until the designer sends them or the card moves into the send column. It goes to the top of columnId (the inbox when omitted), or under the live card in the live column. Use one card per idea; to start work right away use supaterm_thread_launch instead. Omit projectId for this thread's project, and modelSelection for this thread's model or the project's default.`,
   parameters: Schema.Struct({
     projectId: Schema.optional(ProjectId),
     columnId: Schema.optional(BoardColumnId),
@@ -114,6 +115,7 @@ const BoardAddCardTool = Tool.make("supaterm_board_add_card", {
     ProjectService.ProjectService,
     ThreadLaunchService.ThreadLaunchService,
     ThreadProgress.ThreadProgressService,
+    ThreadBank.ThreadBankService,
   ],
 })
   .annotate(Tool.Title, "Add a board card")
