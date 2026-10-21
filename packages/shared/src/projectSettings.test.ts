@@ -219,7 +219,7 @@ describe("resolveProjectSettings with a supaterm.json", () => {
     expect(fromFile.sources.defaultThreadEnvMode).toBe("supaterm.json");
 
     const builtIn = resolveProjectSettings(DEFAULT_SERVER_SETTINGS, projectId, null, null);
-    expect(builtIn.settings.defaultThreadEnvMode).toBe("local");
+    expect(builtIn.settings.defaultThreadEnvMode).toBe("worktree");
     expect(builtIn.sources.defaultThreadEnvMode).toBe("environment");
     // A stored null override defers like an unset one and is not reported
     // as the project's value.

@@ -57,6 +57,16 @@ export interface ProjectBoardOps {
   readonly sendBank: (threadId: ThreadId) => Effect.Effect<void, ProjectBoardError>;
   /** Stops the card's live environment, if it has one, without a warm period. */
   readonly stopLiveEnvironment: (threadId: ThreadId) => Effect.Effect<void>;
+  /**
+   * Sends a card's agent a message from another thread's agent, after any
+   * turn it is running. A card that hasn't started begins in its own worktree
+   * when the project's new threads start in one.
+   */
+  readonly sendToCard: (input: {
+    readonly threadId: ThreadId;
+    readonly text: string;
+    readonly senderThreadId: ThreadId | undefined;
+  }) => Effect.Effect<{ readonly startedInWorktree: boolean }, ProjectBoardError>;
 }
 
 export interface ProjectBoardCardView {
@@ -120,6 +130,16 @@ export class ProjectBoardService extends Context.Service<
       readonly threadId: ThreadId;
       readonly columnId?: BoardColumnId | undefined;
     }) => Effect.Effect<ProjectBoardPlacementResult, ProjectBoardError>;
+    /**
+     * Hands a card work: its agent gets the brief after any turn it is
+     * running. A card that hasn't started begins in its own worktree, so
+     * cards working at once never edit the same files.
+     */
+    readonly handOff: (input: {
+      readonly threadId: ThreadId;
+      readonly brief: string;
+      readonly senderThreadId?: ThreadId | undefined;
+    }) => Effect.Effect<{ readonly startedInWorktree: boolean }, ProjectBoardError>;
   }
 >()("supaterm/projectBoard/ProjectBoardService") {}
 
@@ -231,5 +251,21 @@ export const make = (ops: ProjectBoardOps) =>
         move({ threadId: input.threadId, columnId: input.columnId, index: newBoardCardIndex }).pipe(
           moves.withPermits(1),
         ),
+      handOff: ({ threadId, brief, senderThreadId }) =>
+        Effect.gen(function* () {
+          const text = brief.trim();
+          if (text.length === 0) return yield* fail("The brief is empty.");
+          const { boardAgentThreadId, threads } = yield* load(yield* ops.projectOf(threadId));
+          if (threadId === boardAgentThreadId) {
+            return yield* fail(
+              "That thread is the board agent, not a card. Pass the threadId of the card to hand work to.",
+            );
+          }
+          const card = threads.find((thread) => thread.id === threadId);
+          if (card !== undefined && card.archivedAt !== null) {
+            return yield* fail("That card is in Done. Move it out of Done first.");
+          }
+          return yield* ops.sendToCard({ threadId, text, senderThreadId });
+        }),
     });
   });

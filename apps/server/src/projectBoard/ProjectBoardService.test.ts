@@ -58,6 +58,11 @@ const setup = (
         Effect.sync(() => void calls.push(`${archived ? "archive" : "unarchive"} ${threadId}`)),
       sendBank: (threadId) => Effect.sync(() => void calls.push(`send ${threadId}`)),
       stopLiveEnvironment: (threadId) => Effect.sync(() => void calls.push(`stop ${threadId}`)),
+      sendToCard: ({ threadId }) =>
+        Effect.sync(() => {
+          calls.push(`hand off ${threadId}`);
+          return { startedInWorktree: false };
+        }),
     });
     return { service, calls };
   });
@@ -139,5 +144,30 @@ it.effect("leaves the board agent's own thread off the board and out of moves", 
       .pipe(Effect.flip);
     assert.include(refused.message, "board agent");
     assert.deepStrictEqual(calls, []);
+  }),
+);
+
+it.effect("hands a card its brief, but not the board agent or a card in Done", () =>
+  Effect.gen(function* () {
+    const agent = ThreadId.make("agent");
+    const { service, calls } = yield* setup(
+      [
+        record("card", { columnId: col("ideas"), orderKey: "m" }),
+        record("finished", { columnId: col("done"), orderKey: "m" }, { archived: true }),
+        record("agent", null),
+      ],
+      agent,
+    );
+    const handed = yield* service.handOff({ threadId: ThreadId.make("card"), brief: " Do it " });
+    assert.deepStrictEqual(handed, { startedInWorktree: false });
+    assert.deepStrictEqual(calls, ["hand off card"]);
+
+    const toAgent = yield* service.handOff({ threadId: agent, brief: "Do it" }).pipe(Effect.flip);
+    assert.include(toAgent.message, "board agent");
+    const toDone = yield* service
+      .handOff({ threadId: ThreadId.make("finished"), brief: "Do it" })
+      .pipe(Effect.flip);
+    assert.include(toDone.message, "Done");
+    assert.deepStrictEqual(calls, ["hand off card"]);
   }),
 );

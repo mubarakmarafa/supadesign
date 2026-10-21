@@ -273,8 +273,11 @@ const cleanupFixture = Effect.gen(function* () {
       listShells: () => Effect.succeed([{ id: ProjectId.make("project-1"), workspaceRoot: repo }]),
     } as unknown as ProjectStore.ProjectStoreV2["Service"]),
     Effect.provideService(ProjectionStore.ProjectionStoreV2, {
-      getShellSnapshot: (input?: { location?: string }) =>
-        Effect.sync(() => ({ threads: input?.location === "archive" ? [] : threads })),
+      getShellSnapshot: () =>
+        Effect.sync(() => ({
+          threads: threads.filter((thread) => thread.archivedAt === null),
+          archivedThreads: threads.filter((thread) => thread.archivedAt !== null),
+        })),
     } as unknown as ProjectionStore.ProjectionStoreV2["Service"]),
     Effect.provideService(Orchestrator.OrchestratorV2, {
       streamDomainEvents: Stream.empty,
@@ -382,6 +385,17 @@ describe("storage cleanup reports and local file policies", () => {
         expect(report.entries[0]).toMatchObject({ outcome: "removed", bytes, files: null });
         expect(report.bytesFreed).toBe(bytes);
         expect(yield* fs.readFileString(`${outside}/external`)).toBe("must not count");
+      }),
+    ),
+  );
+  it.live("removes the worktree of an archived thread, such as a card moved to Done", () =>
+    runCleanupTest(
+      Effect.gen(function* () {
+        const { service, fs, worktree, setThreads } = yield* cleanupFixture;
+        setThreads([shell({ branch: "feature", worktreePath: worktree, archivedAt: at(-1_000) })]);
+        const report = yield* service.runNow;
+        expect(report.entries[0]).toMatchObject({ outcome: "removed" });
+        expect(yield* fs.exists(worktree)).toBe(false);
       }),
     ),
   );

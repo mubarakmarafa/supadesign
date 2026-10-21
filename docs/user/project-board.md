@@ -181,6 +181,24 @@ column's **…** menu. Moving a card with banked messages into that column sends
 them and starts its agent. Banked messages are kept by the server, so they
 follow the card to your other devices.
 
+## Each card works in its own copy
+
+When a card starts, it gets its own worktree, a separate copy of the project
+on its own branch. Cards working at the same time never edit each other's files,
+and the project folder stays as you left it. Cards that haven't started have no
+copy, so a long list of ideas costs nothing. This holds however the card
+starts: from its composer, the board agent, banked messages, or a column
+automation.
+
+To have a card work in the project folder instead, choose **Current checkout**
+in its composer before sending the first message. To change this for a whole
+project, set **Workspace** in **Settings → General** with the project selected.
+Folders that aren't git repositories always work in place.
+
+A card's copy is removed once its work is merged, which is checked right away when
+the card moves to Done. A copy with uncommitted changes is always kept, and
+nothing unmerged is thrown away. See [Storage cleanup](project-settings.md#storage-cleanup).
+
 ## Done archives
 
 Moving a card into the done column archives its thread, and moving it back out

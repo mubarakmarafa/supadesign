@@ -123,7 +123,8 @@ export type SupatermProjectFile = typeof SupatermProjectFile.Type;
  * change for a new file-backed setting.
  */
 export const PROJECT_FILE_BACKED_SETTINGS = {
-  defaultThreadEnvMode: { field: "defaultThreadEnvMode", builtIn: "local" },
+  // Supadesign: each card works in its own worktree unless the project says otherwise.
+  defaultThreadEnvMode: { field: "defaultThreadEnvMode", builtIn: "worktree" },
   worktreeSubmodules: { field: "worktreeSubmodules", builtIn: "recursive" },
 } as const satisfies {
   // `providerInstances` is scoped per project but overrides field by field

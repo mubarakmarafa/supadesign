@@ -12,6 +12,7 @@ import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
@@ -20,6 +21,7 @@ import * as AttachmentClaims from "../orchestration-v2/AttachmentClaims.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
 import * as ThreadMessageIntake from "../orchestration-v2/ThreadMessageIntake.ts";
+import * as CardWorkspace from "../projectBoard/cardWorkspace.ts";
 import * as ThreadBank from "./ThreadBankService.ts";
 
 /** Every non-empty bank, kept across restarts in the server's state directory. */
@@ -49,6 +51,7 @@ export const make = Effect.gen(function* () {
     ServerConfig.ServerConfig | FileSystem.FileSystem | ThreadManagement.ThreadManagementService
   >();
   const uuid = crypto.randomUUIDv4.pipe(Effect.orDie);
+  const cards = yield* CardWorkspace.make;
 
   const ops: ThreadBank.ThreadBankOps = {
     projectOf: (threadId) =>
@@ -73,12 +76,25 @@ export const make = Effect.gen(function* () {
 
     send: ({ threadId, text, attachments, context, modelSelection }) =>
       Effect.gen(function* () {
-        yield* ThreadMessageIntake.dispatchCommand({
-          type: "message.dispatch",
-          commandId: CommandId.make(yield* uuid),
+        const message = {
           threadId,
+          commandId: CommandId.make(yield* uuid),
           messageId: MessageId.make(yield* uuid),
           text: text.length > 0 ? text : ATTACHMENT_ONLY_TEXT,
+          attachments,
+          context,
+          modelSelection,
+          createdBy: "user",
+          creationSource: "web",
+        } as const;
+        // A card that hasn't started gets its own worktree, as from the composer.
+        if (Option.isSome(yield* cards.startInWorktree(message))) return;
+        yield* ThreadMessageIntake.dispatchCommand({
+          type: "message.dispatch",
+          commandId: message.commandId,
+          threadId,
+          messageId: message.messageId,
+          text: message.text,
           attachments,
           ...(context === undefined ? {} : { context }),
           ...(modelSelection === undefined ? {} : { modelSelection }),
