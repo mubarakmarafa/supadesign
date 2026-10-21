@@ -23,7 +23,7 @@ const pixel: PreviewMiniPlayerSource = {
 };
 
 beforeEach(() => {
-  usePreviewMiniPlayerStore.setState({ byThreadKey: {} });
+  usePreviewMiniPlayerStore.setState({ byThreadKey: {}, closedGeometryByThreadKey: {} });
 });
 
 describe("previewMiniPlayerStore", () => {
@@ -50,6 +50,7 @@ describe("previewMiniPlayerStore", () => {
       source: tabB,
       position: { x: 24, y: 48 },
       width: null,
+      height: null,
       lastInteraction: "drag",
     });
   });
@@ -65,24 +66,52 @@ describe("previewMiniPlayerStore", () => {
       source: tabB,
       position: null,
       width: null,
+      height: null,
       lastInteraction: "drag",
     });
   });
 
-  it("preserves a thread-bound width while switching tabs", () => {
+  it("preserves a thread-bound size while switching tabs", () => {
     usePreviewMiniPlayerStore.getState().open(refA, tabA);
-    usePreviewMiniPlayerStore.getState().resize(refA, "browser:tab-a", 480);
+    usePreviewMiniPlayerStore.getState().resize(refA, "browser:tab-a", { width: 480, height: 300 });
     usePreviewMiniPlayerStore.getState().open(refA, tabB);
 
     expect(
       selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
-    ).toMatchObject({ source: tabB, width: 480 });
+    ).toMatchObject({ source: tabB, width: 480, height: 300 });
+  });
+
+  it("puts a closed player back where it was when the thread floats again", () => {
+    const store = usePreviewMiniPlayerStore.getState();
+    store.open(refA, tabA);
+    store.resize(refA, "browser:tab-a", { width: 640, height: 420 }, { x: 40, y: 60 });
+    store.close(refA);
+    store.open(refA, tabA);
+    expect(
+      selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
+    ).toEqual({
+      source: tabA,
+      position: { x: 40, y: 60 },
+      width: 640,
+      height: 420,
+      lastInteraction: "resize",
+    });
+  });
+
+  it("settles a new player's first size once, without counting it as a resize", () => {
+    const store = usePreviewMiniPlayerStore.getState();
+    store.open(refA, tabA);
+    store.settle(refA, "browser:tab-a", { width: 480, height: 300 });
+    store.settle(refA, "browser:tab-a", { width: 200, height: 200 });
+    expect(
+      selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
+    ).toMatchObject({ width: 480, height: 300, lastInteraction: "drag" });
   });
 
   it("keeps a resize placement after release and clears it when dragging", () => {
     const store = usePreviewMiniPlayerStore.getState();
     store.open(refA, tabA);
-    store.resize(refA, "browser:tab-a", 460, { x: 1112, y: 275 });
+    store.resize(refA, "browser:tab-a", { width: 460, height: 300 }, { x: 1112, y: 275 });
     expect(
       selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
     ).toMatchObject({ width: 460, position: { x: 1112, y: 275 }, lastInteraction: "resize" });

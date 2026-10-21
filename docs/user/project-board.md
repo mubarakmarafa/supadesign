@@ -278,8 +278,9 @@ every task:
 
 A live card shows a link to its local dev server; the opened thread shows the
 same link in its header. Clicking it opens the card's thread with the running
-app in the in-app preview beside the chat; the arrow button beside it opens the
-system browser instead. The card runs the thread's own worktree when it has
+app floating over the chat, back on the screen you left it on; the arrow button
+beside it opens the system browser instead. Drag the floating preview's edges
+or corners to any size, like a window, and the page reflows to fit. The card runs the thread's own worktree when it has
 one, otherwise a worktree checked out at its linked pull request. A card on a
 branch runs the project folder when it is on that branch, otherwise a worktree
 of the branch beside it; the project folder's branch is never switched. A

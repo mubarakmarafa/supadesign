@@ -26,13 +26,21 @@ export type PreviewMiniPlayerSource =
 export interface PreviewMiniPlayerState {
   readonly source: PreviewMiniPlayerSource;
   readonly position: PreviewMiniPlayerPosition | null;
-  /** Height always follows the mirrored source's aspect ratio. */
   readonly width: number | null;
+  /**
+   * A browser player sizes like a window, so it keeps its own height. A device
+   * player ignores this: its height follows the screen's aspect ratio.
+   */
+  readonly height: number | null;
   readonly lastInteraction: "drag" | "resize";
 }
 
+type PreviewMiniPlayerGeometry = Omit<PreviewMiniPlayerState, "source">;
+
 interface PreviewMiniPlayerStoreState {
   readonly byThreadKey: Record<string, PreviewMiniPlayerState>;
+  /** Where a closed player was, so floating again puts it back like a window. */
+  readonly closedGeometryByThreadKey: Record<string, PreviewMiniPlayerGeometry>;
   readonly open: (ref: ScopedThreadRef, source: PreviewMiniPlayerSource) => void;
   readonly close: (ref: ScopedThreadRef) => void;
   /** `sourceKey` guards against a drag that outlives the source it started on. */
@@ -44,9 +52,11 @@ interface PreviewMiniPlayerStoreState {
   readonly resize: (
     ref: ScopedThreadRef,
     sourceKey: string,
-    width: number,
+    size: PreviewMiniPlayerSize,
     position?: PreviewMiniPlayerPosition,
   ) => void;
+  /** Keeps the size a new player first appeared at, so its shape stops following the page. */
+  readonly settle: (ref: ScopedThreadRef, sourceKey: string, size: PreviewMiniPlayerSize) => void;
   readonly removeThread: (ref: ScopedThreadRef) => void;
 }
 
@@ -63,16 +73,15 @@ export const browserMiniPlayerSource = (tabId: string): PreviewMiniPlayerSource 
 
 export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((set) => ({
   byThreadKey: {},
+  closedGeometryByThreadKey: {},
   open: (ref, source) =>
     set((state) => {
       const threadKey = scopedThreadKey(ref);
-      const current = state.byThreadKey[threadKey];
-      if (
-        current &&
-        previewMiniPlayerSourceKey(current.source) === previewMiniPlayerSourceKey(source)
-      ) {
+      const open = state.byThreadKey[threadKey];
+      if (open && previewMiniPlayerSourceKey(open.source) === previewMiniPlayerSourceKey(source)) {
         return state;
       }
+      const current = open ?? state.closedGeometryByThreadKey[threadKey];
       return {
         byThreadKey: {
           ...state.byThreadKey,
@@ -80,6 +89,7 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
             source,
             position: current?.position ?? null,
             width: current?.width ?? null,
+            height: current?.height ?? null,
             lastInteraction: current?.lastInteraction ?? "drag",
           },
         },
@@ -88,9 +98,14 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
   close: (ref) =>
     set((state) => {
       const threadKey = scopedThreadKey(ref);
-      if (!(threadKey in state.byThreadKey)) return state;
+      const closed = state.byThreadKey[threadKey];
+      if (!closed) return state;
       const { [threadKey]: _closed, ...byThreadKey } = state.byThreadKey;
-      return { byThreadKey };
+      const { source: _source, ...geometry } = closed;
+      return {
+        byThreadKey,
+        closedGeometryByThreadKey: { ...state.closedGeometryByThreadKey, [threadKey]: geometry },
+      };
     }),
   move: (ref, sourceKey, position) =>
     set((state) => {
@@ -110,7 +125,7 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
         },
       };
     }),
-  resize: (ref, sourceKey, width, position) =>
+  resize: (ref, sourceKey, { width, height }, position) =>
     set((state) => {
       const threadKey = scopedThreadKey(ref);
       const current = state.byThreadKey[threadKey];
@@ -118,6 +133,7 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
         !current ||
         previewMiniPlayerSourceKey(current.source) !== sourceKey ||
         (current.width === width &&
+          current.height === height &&
           current.lastInteraction === "resize" &&
           (!position || (current.position?.x === position.x && current.position.y === position.y)))
       ) {
@@ -129,18 +145,38 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
           [threadKey]: {
             ...current,
             width,
+            height,
             position: position ?? current.position,
             lastInteraction: "resize",
           },
         },
       };
     }),
+  settle: (ref, sourceKey, { width, height }) =>
+    set((state) => {
+      const threadKey = scopedThreadKey(ref);
+      const current = state.byThreadKey[threadKey];
+      if (
+        !current ||
+        previewMiniPlayerSourceKey(current.source) !== sourceKey ||
+        (current.width !== null && current.height !== null)
+      ) {
+        return state;
+      }
+      return {
+        byThreadKey: { ...state.byThreadKey, [threadKey]: { ...current, width, height } },
+      };
+    }),
   removeThread: (ref) =>
     set((state) => {
       const threadKey = scopedThreadKey(ref);
-      if (!(threadKey in state.byThreadKey)) return state;
+      if (!(threadKey in state.byThreadKey) && !(threadKey in state.closedGeometryByThreadKey)) {
+        return state;
+      }
       const { [threadKey]: _removed, ...byThreadKey } = state.byThreadKey;
-      return { byThreadKey };
+      const { [threadKey]: _geometry, ...closedGeometryByThreadKey } =
+        state.closedGeometryByThreadKey;
+      return { byThreadKey, closedGeometryByThreadKey };
     }),
 }));
 

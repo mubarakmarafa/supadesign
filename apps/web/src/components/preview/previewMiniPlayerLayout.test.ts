@@ -302,6 +302,74 @@ describe("resizePreviewMiniPlayer", () => {
   });
 });
 
+describe("a free browser player", () => {
+  const start = { x: 300, y: 200, width: 320, height: 200 };
+
+  it("opens roomier than a device, at the page's shape", () => {
+    expect(
+      resolvePreviewMiniPlayerFrame({
+        width: null,
+        position: null,
+        source,
+        container,
+        lockAspect: false,
+      }),
+    ).toMatchObject({ width: 480, height: 300 });
+  });
+
+  it("keeps its own height instead of following the page's shape", () => {
+    expect(
+      resolvePreviewMiniPlayerFrame({
+        width: 400,
+        height: 500,
+        position: { x: 40, y: 40 },
+        source,
+        container,
+        lockAspect: false,
+      }),
+    ).toEqual({ x: 40, y: 40, width: 400, height: 500 });
+  });
+
+  it("changes only the dragged axis on an edge drag", () => {
+    expect(
+      resizePreviewMiniPlayer({
+        start,
+        direction: "south",
+        delta: { x: 0, y: 150 },
+        source,
+        container,
+        lockAspect: false,
+      }),
+    ).toEqual({ ...start, height: 350 });
+  });
+
+  it("follows the pointer on both axes from a corner, anchoring the opposite one", () => {
+    expect(
+      resizePreviewMiniPlayer({
+        start,
+        direction: "northwest",
+        delta: { x: -80, y: 40 },
+        source,
+        container,
+        lockAspect: false,
+      }),
+    ).toEqual({ x: 220, y: 240, width: 400, height: 160 });
+  });
+
+  it("stops at the minimum size and the container", () => {
+    expect(
+      resizePreviewMiniPlayer({
+        start,
+        direction: "southeast",
+        delta: { x: -500, y: 900 },
+        source,
+        container,
+        lockAspect: false,
+      }),
+    ).toEqual({ ...start, width: 240, height: container.height - gap - start.y });
+  });
+});
+
 describe("resolvePreviewMiniPlayerFrame with the details card", () => {
   it("opens under the inline details card with right edges aligned", () => {
     expect(

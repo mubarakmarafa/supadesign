@@ -519,7 +519,7 @@ describe("PreviewView navigation", () => {
     );
   });
 
-  it("opens and closes a thread-scoped floating preview for the active tab", async () => {
+  it("floats the tab it shows, even when the thread already floats it", async () => {
     const props = {
       threadRef: {
         environmentId: EnvironmentId.make("environment-1"),
@@ -538,11 +538,18 @@ describe("PreviewView navigation", () => {
     });
     expect(mocks.closeRightPanel).toHaveBeenCalledWith(props.threadRef);
 
+    // The panel showing a tab hides its floating player, so floating again
+    // must not close the player the designer can't see.
+    mocks.openMiniPlayer.mockClear();
     mocks.miniPlayerTabId = "tab-1";
     renderToStaticMarkup(<PreviewView {...props} />);
-    expect(mocks.pictureInPicturePressed).toBe(true);
+    expect(mocks.pictureInPicturePressed).toBe(false);
     mocks.togglePictureInPicture?.();
-    expect(mocks.closeMiniPlayer).toHaveBeenCalledWith(props.threadRef);
+    expect(mocks.closeMiniPlayer).not.toHaveBeenCalled();
+    expect(mocks.openMiniPlayer).toHaveBeenCalledWith(props.threadRef, {
+      kind: "browser",
+      tabId: "tab-1",
+    });
   });
 
   it("keeps the native preview window as a secondary action", async () => {

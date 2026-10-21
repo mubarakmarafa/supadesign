@@ -49,11 +49,7 @@ import {
 import { previewEnvironment } from "~/state/preview";
 import { usePreviewStreamAccess } from "~/state/previewStream";
 import { useAtomCommand } from "~/state/use-atom-command";
-import {
-  browserMiniPlayerSource,
-  selectThreadPreviewMiniPlayerTabId,
-  usePreviewMiniPlayerStore,
-} from "~/previewMiniPlayerStore";
+import { browserMiniPlayerSource, usePreviewMiniPlayerStore } from "~/previewMiniPlayerStore";
 import { readEnvironmentScope, useEnvironmentScope } from "~/state/session";
 import { useRightPanelStore } from "~/rightPanelStore";
 
@@ -164,9 +160,6 @@ export function PreviewView({
   const recentHistoryEntries = useThreadRecentHistory(
     threadRef,
     BROWSER_HISTORY_MAX_ENTRIES_PER_PROJECT,
-  );
-  const miniPlayerTabId = usePreviewMiniPlayerStore((state) =>
-    selectThreadPreviewMiniPlayerTabId(state.byThreadKey, threadRef),
   );
   const addPreviewAnnotation = useComposerDraftStore((store) => store.addPreviewAnnotation);
   const addImage = useComposerDraftStore((store) => store.addImage);
@@ -490,15 +483,13 @@ export function PreviewView({
     await closePreviewSession({ closePreview, snapshot, tabId, threadRef });
   }, [closePreview, moveTarget, open, snapshot, tabId, threadRef, url, viewport]);
 
+  // This view showing the tab hides its floating player, so the button only
+  // ever floats it. Toggling here closed a player the user couldn't see.
   const handlePictureInPicture = useCallback(() => {
     if (!tabId) return;
-    if (miniPlayerTabId === tabId) {
-      usePreviewMiniPlayerStore.getState().close(threadRef);
-      return;
-    }
     usePreviewMiniPlayerStore.getState().open(threadRef, browserMiniPlayerSource(tabId));
     useRightPanelStore.getState().close(threadRef);
-  }, [miniPlayerTabId, tabId, threadRef]);
+  }, [tabId, threadRef]);
 
   /**
    * The menu's actions. A server tab, streamed or rendered natively here, runs
@@ -991,7 +982,6 @@ export function PreviewView({
         onPictureInPicture={
           tabId && (isServerTab || previewBridge) ? handlePictureInPicture : undefined
         }
-        pictureInPicture={miniPlayerTabId === tabId}
         pictureInPictureDisabled={
           isUnreachable || (!isServerTab && !desktopOverlay?.hasWebContents)
         }

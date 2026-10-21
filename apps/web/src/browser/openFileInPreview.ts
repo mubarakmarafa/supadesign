@@ -24,7 +24,12 @@ import {
   setActivePreviewTab,
   updatePreviewServerSnapshot,
 } from "~/previewStateStore";
-import { selectSelectedRightPanelSurface, useRightPanelStore } from "~/rightPanelStore";
+import { browserMiniPlayerSource, usePreviewMiniPlayerStore } from "~/previewMiniPlayerStore";
+import {
+  selectActiveRightPanelSurface,
+  selectSelectedRightPanelSurface,
+  useRightPanelStore,
+} from "~/rightPanelStore";
 
 import {
   browserDefaultOpenProfileId,
@@ -63,6 +68,8 @@ export async function openUrlInPreview<E>(input: {
   readonly profileId?: PreviewOpenInput["profileId"];
 
   readonly background?: boolean;
+  /** Float the page over chat instead of docking it in the right panel. */
+  readonly floating?: boolean;
 }): Promise<AtomCommandResult<void, E | BrowserSettingsReadError>> {
   const defaults = await resolveBrowserDefaults().catch(
     (cause: unknown) => new BrowserSettingsReadError({ cause }),
@@ -108,9 +115,43 @@ export async function openUrlInPreview<E>(input: {
       return;
     }
     applyPreviewServerSnapshot(input.threadRef, snapshot);
-    useRightPanelStore.getState().openBrowser(input.threadRef, snapshot.tabId);
+    if (input.floating) floatPreviewTab(input.threadRef, snapshot.tabId);
+    else useRightPanelStore.getState().openBrowser(input.threadRef, snapshot.tabId);
   });
 }
+
+/** Floats a thread's browser tab over chat, taking it out of the right panel if it's there. */
+export function floatPreviewTab(threadRef: ScopedThreadRef, tabId: string): void {
+  usePreviewMiniPlayerStore.getState().open(threadRef, browserMiniPlayerSource(tabId));
+  const panel = useRightPanelStore.getState();
+  const docked = selectActiveRightPanelSurface(panel.byThreadKey, threadRef);
+  if (docked?.kind === "preview" && docked.resourceId === tabId) panel.close(threadRef);
+}
+
+/**
+ * The thread's tab already showing a page from `url`'s server, wherever the
+ * designer has navigated within it, so reopening a site returns to their place.
+ * A tab that failed to load is left alone: it would float as nothing.
+ */
+export function findPreviewTabForOrigin(threadRef: ScopedThreadRef, url: string): string | null {
+  const origin = originOf(url);
+  if (origin === null) return null;
+  const { sessions, activeTabId } = readThreadPreviewState(threadRef);
+  const matches = Object.values(sessions).filter(
+    ({ navStatus }) =>
+      (navStatus._tag === "Success" || navStatus._tag === "Loading") &&
+      originOf(navStatus.url) === origin,
+  );
+  return (matches.find((session) => session.tabId === activeTabId) ?? matches[0])?.tabId ?? null;
+}
+
+const originOf = (url: string): string | null => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Opens a browser document in the integrated browser. Inside the workspace the

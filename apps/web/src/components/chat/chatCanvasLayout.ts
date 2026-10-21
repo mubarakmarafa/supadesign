@@ -13,8 +13,10 @@ import type {
 export interface ChatCanvasPreview {
   readonly key: string;
   readonly width: number | null;
+  readonly height?: number | null;
   readonly position: PreviewMiniPlayerPosition | null;
   readonly source: PreviewMiniPlayerSize;
+  readonly lockAspect?: boolean;
   readonly lastInteraction?: PreviewMiniPlayerState["lastInteraction"];
 }
 
@@ -87,8 +89,10 @@ export function resolveChatCanvasLayout({
       if (lift > 0) {
         frame = resolvePreviewMiniPlayerFrame({
           width: frame.width,
+          height: frame.height,
           position: frame,
           source: preview.source,
+          ...(preview.lockAspect === undefined ? {} : { lockAspect: preview.lockAspect }),
           container: {
             ...container,
             height: Math.max(GAP * 2 + 1, container.height - composerHeight * lift),
