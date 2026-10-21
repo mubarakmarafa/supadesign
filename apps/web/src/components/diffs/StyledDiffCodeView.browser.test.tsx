@@ -1,3 +1,4 @@
+import { act, render, fakeTimers } from "../../../test/render";
 import {
   CodeView,
   FileDiff,
@@ -12,18 +13,16 @@ import { WorkerPoolManager, type WorkerRequest, type WorkerResponse } from "@pie
 import DiffsWorker from "@pierre/diffs/worker/worker.js?worker";
 import { getDiffLineStat, getRenderablePatch } from "../../lib/diffRendering";
 import {
-  act,
   StrictMode,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
-  type ReactElement,
+  type ReactNode,
   type Ref,
 } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 const testState = vi.hoisted(() => ({
   workers: [] as Worker[],
@@ -39,7 +38,7 @@ const testState = vi.hoisted(() => ({
 
 vi.mock(import("../../hooks/useTheme"), async (original) => ({
   ...(await original()),
-  useTheme: (() => ({ resolvedTheme: "dark" })) as never,
+  useRenderedAppearance: (() => "dark") as never,
 }));
 
 // Wraps Pierre's real worker so the suite can count workers, read requests and hold startup.
@@ -147,31 +146,12 @@ function renderViews(count: number) {
   );
 }
 
-const roots: Root[] = [];
-
-function mount(element: ReactElement) {
-  const container = document.createElement("div");
-  document.body.append(container);
-  const root = createRoot(container);
-  roots.push(root);
-  return {
-    root,
-    render: (next: ReactElement) => act(async () => root.render(next)),
-    initial: act(async () => root.render(element)),
-  };
-}
-
-async function unmountAll() {
-  for (const root of roots.splice(0)) await act(async () => root.unmount());
-  document.body.replaceChildren();
-}
-
 const codeFile = (name: string) =>
   document.querySelector(`[data-code-file="${name}"]`)?.textContent ?? "";
 const loadingViews = () => document.querySelectorAll('[role="status"]').length;
 
 describe("code-view worker lifecycle", () => {
-  beforeEach(() => {
+  function setup() {
     testState.workers = [];
     testState.terminations = 0;
     testState.requests = [];
@@ -181,38 +161,55 @@ describe("code-view worker lifecycle", () => {
     testState.holdInitialization = false;
     testState.heldResponses = [];
     testState.onInitializationHeld = undefined;
-    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  }
+  // Worker startup runs on real time, so only the idle expiry checks use this clock.
+  // Faking startup too would let advancing the idle clock time out a worker startup.
+  const idleClock = () => fakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  async function workerEnvironment() {
+    await using stack = new AsyncDisposableStack();
     // Pins the pool at two workers whatever machine runs the suite.
-    Object.defineProperty(navigator, "hardwareConcurrency", { configurable: true, value: 2 });
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    stack.use(vi.spyOn(navigator, "hardwareConcurrency", "get").mockReturnValue(2));
     const initialize = WorkerPoolManager.prototype.initialize;
-    vi.spyOn(WorkerPoolManager.prototype, "initialize").mockImplementation(function (
-      this: WorkerPoolManager,
-      ...args
-    ) {
-      const pending = initialize.apply(this, args);
-      testState.pools.set(this, pending);
-      return pending;
+    stack.use(
+      vi.spyOn(WorkerPoolManager.prototype, "initialize").mockImplementation(function (
+        this: WorkerPoolManager,
+        ...args
+      ) {
+        const pending = initialize.apply(this, args);
+        testState.pools.set(this, pending);
+        return pending;
+      }),
+    );
+    // Runs out the idle timer each view's unmount scheduled, releasing its pool.
+    stack.defer(async () => {
+      await vi.runOnlyPendingTimersAsync();
+      vi.useRealTimers();
     });
-  });
+    const environment = stack.move();
+    return {
+      async render(ui: ReactNode) {
+        const view = environment.use(await render(ui, { router: false }));
+        // Disposed before the view, so its unmount schedules the idle timer on a fake clock
+        // that the run-out above then restores.
+        environment.defer(() => {
+          if (!vi.isFakeTimers()) idleClock();
+        });
+        return view;
+      },
+      [Symbol.asyncDispose]: () => environment.disposeAsync(),
+    };
+  }
 
-  afterEach(async () => {
-    await unmountAll();
-    await vi.runOnlyPendingTimersAsync();
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-    delete (navigator as { hardwareConcurrency?: number }).hardwareConcurrency;
-  });
-
-  it("starts on demand, keeps quick reopens warm, and expires the last closed pool", async () => {
-    const view = mount(renderViews(0));
-    await view.initial;
+  // Two cold starts can each use Pierre's 10-second initialization budget.
+  it("starts workers on demand and expires idle pools", { timeout: 30_000 }, async () => {
+    setup();
+    await using workers = await workerEnvironment();
+    const view = await workers.render(renderViews(0));
     const button = document.querySelector("button")!;
     expect(testState.workers).toHaveLength(0);
     expect(testState.pools.size).toBe(0);
     await act(async () => button.click());
-    await view.render(renderViews(1));
+    await view.rerender(renderViews(1));
     const pool = [...testState.pools.keys()][0]!;
     await act(async () => testState.pools.get(pool));
     expect(pool.isInitialized()).toBe(true);
@@ -220,7 +217,7 @@ describe("code-view worker lifecycle", () => {
     await vi.waitFor(() => expect(codeFile("notes.txt")).toContain("Plain text is ready."));
     expect(testState.requests.filter((request) => request.type === "file")).toHaveLength(0);
 
-    await view.render(renderViews(2));
+    await view.rerender(renderViews(2));
     await act(async () => pool.primeFileHighlightCache(files[1]!));
     expect(testState.pools.size).toBe(1);
     expect(testState.workers).toHaveLength(2);
@@ -228,28 +225,31 @@ describe("code-view worker lifecycle", () => {
     expect(pool.getFileResultCache(files[1]!)).toBeDefined();
     await vi.waitFor(() => expect(codeFile("answer.ts")).toContain("answer"));
 
-    await view.render(renderViews(1));
-    expect(pool.getStats().totalWorkers).toBe(2);
-    expect(testState.terminations).toBe(0);
-    await view.render(renderViews(0));
-    await vi.advanceTimersByTimeAsync(29_999);
-    expect(pool.getStats().totalWorkers).toBe(2);
-    expect(testState.terminations).toBe(0);
+    {
+      using _idleClock = idleClock();
+      await view.rerender(renderViews(1));
+      expect(pool.getStats().totalWorkers).toBe(2);
+      expect(testState.terminations).toBe(0);
+      await view.rerender(renderViews(0));
+      await vi.advanceTimersByTimeAsync(29_999);
+      expect(pool.getStats().totalWorkers).toBe(2);
+      expect(testState.terminations).toBe(0);
 
-    await view.render(renderViews(1));
-    expect(testState.pools.size).toBe(1);
-    expect(testState.workers).toHaveLength(2);
-    expect(loadingViews()).toBe(0);
-    expect(pool.getFileResultCache(files[1]!)).toBeDefined();
-    await vi.advanceTimersByTimeAsync(30_000);
-    expect(pool.getStats().totalWorkers).toBe(2);
+      await view.rerender(renderViews(1));
+      expect(testState.pools.size).toBe(1);
+      expect(testState.workers).toHaveLength(2);
+      expect(loadingViews()).toBe(0);
+      expect(pool.getFileResultCache(files[1]!)).toBeDefined();
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(pool.getStats().totalWorkers).toBe(2);
 
-    await view.render(renderViews(0));
-    await vi.advanceTimersByTimeAsync(30_000);
-    expect(pool.getStats().totalWorkers).toBe(0);
-    expect(testState.terminations).toBe(2);
+      await view.rerender(renderViews(0));
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(pool.getStats().totalWorkers).toBe(0);
+      expect(testState.terminations).toBe(2);
+    }
 
-    await view.render(renderViews(1));
+    await view.rerender(renderViews(1));
     const reopenedPool = [...testState.pools.keys()][1]!;
     await act(async () => testState.pools.get(reopenedPool));
     expect(reopenedPool.isInitialized()).toBe(true);
@@ -260,8 +260,10 @@ describe("code-view worker lifecycle", () => {
   });
 
   it("renders through Pierre's main-thread fallback when worker creation fails", async () => {
+    setup();
+    await using workers = await workerEnvironment();
     testState.failWorkers = true;
-    await mount(renderViews(1)).initial;
+    await workers.render(renderViews(1));
     const pool = [...testState.pools.keys()][0]!;
     await act(async () => {
       await expect(testState.pools.get(pool)).rejects.toMatchObject({ _tag: "DiffWorkerError" });
@@ -277,12 +279,14 @@ describe("code-view worker lifecycle", () => {
   });
 
   it("keeps an initializing pool until its last view closes and ignores late responses", async () => {
+    setup();
+    using _idleClock = idleClock();
+    await using workers = await workerEnvironment();
     testState.holdInitialization = true;
     const held = new Promise<void>((resolve) => {
       testState.onInitializationHeld = resolve;
     });
-    const view = mount(renderViews(2));
-    await view.initial;
+    const view = await workers.render(renderViews(2));
     const pool = [...testState.pools.keys()][0]!;
     const pending = testState.pools.get(pool)!;
     await held;
@@ -291,10 +295,10 @@ describe("code-view worker lifecycle", () => {
     expect(loadingViews()).toBe(2);
     expect(testState.renderPools).toHaveLength(0);
 
-    await view.render(renderViews(1));
+    await view.rerender(renderViews(1));
     expect(pool.getStats().totalWorkers).toBe(2);
     expect(testState.terminations).toBe(0);
-    await view.render(renderViews(0));
+    await view.rerender(renderViews(0));
     // Pierre gives up on a held startup after 10 seconds; the idle timer then tears the pool down.
     const timedOut = expect(pending).rejects.toThrow("worker initialization timed out");
     await vi.advanceTimersByTimeAsync(30_000);
@@ -311,10 +315,6 @@ describe("code-view worker lifecycle", () => {
 });
 
 describe("collapsed diff content", () => {
-  let pool: WorkerPoolManager;
-  let container: HTMLDivElement;
-  let viewer: FileDiff<string> | CodeView<string> | undefined;
-
   const loadedDiff = () => {
     const parsed = getRenderablePatch(
       [
@@ -334,41 +334,45 @@ describe("collapsed diff content", () => {
     if (parsed?.kind !== "files" || !parsed.files[0]) throw new Error("Expected diff");
     return parsed.files[0];
   };
-  const code = () =>
+  const codeIn = (container: HTMLElement) =>
     [...container.querySelectorAll("diffs-container")]
       .flatMap((element) => [...(element.shadowRoot?.querySelectorAll("[data-line]") ?? [])])
       .map((line) => line.textContent)
       .join("\n");
 
-  beforeEach(async () => {
+  async function setup() {
+    await using stack = new AsyncDisposableStack();
     testState.requests = [];
     testState.failWorkers = false;
     testState.holdInitialization = false;
-    pool = new WorkerPoolManager(
+    const pool = new WorkerPoolManager(
       { workerFactory: () => new DiffsWorker(), poolSize: 1 },
       { theme: "pierre-dark", langs: ["typescript"], preferredHighlighter: "shiki-wasm" },
     );
+    stack.defer(() => pool.terminate());
     await pool.initialize();
-    container = document.createElement("div");
+    const container = document.createElement("div");
     container.style.cssText = "height: 400px; width: 800px; overflow: auto";
     document.body.append(container);
-  });
-
-  afterEach(() => {
-    viewer?.cleanUp();
-    viewer = undefined;
-    pool.terminate();
-    container.remove();
-    vi.restoreAllMocks();
-  });
+    stack.defer(() => container.remove());
+    const environment = stack.move();
+    return {
+      pool,
+      container,
+      code: () => codeIn(container),
+      [Symbol.asyncDispose]: () => environment.disposeAsync(),
+    };
+  }
 
   it("defers plain AST and highlight work across collapsed renders until expansion", async () => {
+    await using environment = await setup();
+    const { pool, container, code } = environment;
     const fileDiff = loadedDiff();
-    const highlight = vi.spyOn(pool, "highlightDiffAST");
-    const plainAST = vi.spyOn(pool, "getPlainDiffAST");
+    using highlight = vi.spyOn(pool, "highlightDiffAST");
+    using plainAST = vi.spyOn(pool, "getPlainDiffAST");
     const options = { theme: "pierre-dark", collapsed: true, disableErrorHandling: true } as const;
     const file = new FileDiff<string>(options, pool);
-    viewer = file;
+    using _viewer = { [Symbol.dispose]: () => file.cleanUp() };
     file.render({ fileDiff, containerWrapper: container });
     file.render({ fileDiff, forceRender: true });
     expect.soft(highlight.mock.calls.length).toBe(0);
@@ -388,6 +392,8 @@ describe("collapsed diff content", () => {
   });
 
   it("finds newly loaded collapsed lines and unfolds the match with its annotation and header", async () => {
+    await using environment = await setup();
+    const { pool, container, code } = environment;
     const fileDiff = loadedDiff();
     const item: CodeViewItem<string> = {
       type: "diff",
@@ -417,7 +423,7 @@ describe("collapsed diff content", () => {
       },
       pool,
     );
-    viewer = view;
+    using _viewer = { [Symbol.dispose]: () => view.cleanUp() };
     view.setup(container);
     view.openSearch();
     const search = container.querySelector("[data-diffs-search]")!.shadowRoot!;
@@ -442,8 +448,8 @@ describe("collapsed diff content", () => {
 
     await pool.primeDiffHighlightCache(fileDiff);
     view.render(true);
-    const highlight = vi.spyOn(pool, "highlightDiffAST");
-    const plainAST = vi.spyOn(pool, "getPlainDiffAST");
+    using highlight = vi.spyOn(pool, "highlightDiffAST");
+    using plainAST = vi.spyOn(pool, "getPlainDiffAST");
     const updatedDiff = { ...fileDiff, name: "updated.ts", cacheKey: "collapsed-update" };
     view.setItems([{ ...item, fileDiff: updatedDiff, version: 2 }]);
     view.render(true);
@@ -563,27 +569,22 @@ function RevealViews({
 }
 
 describe("code-view file reveals", () => {
-  let view: ReturnType<typeof mount>;
   const reveal = () => act(async () => document.querySelector("button")!.click());
 
-  beforeEach(() => {
+  function setup() {
     revealCalls.length = 0;
-    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  });
-
-  afterEach(async () => {
-    await unmountAll();
-    vi.unstubAllGlobals();
-  });
+  }
 
   it("does not replay a handled tree click or scroll an old handle when a selected file remounts the view", async () => {
-    view = mount(<RevealViews scope="first" visible selectedFile="external-a" />);
-    await view.initial;
+    setup();
+    await using view = await render(
+      <RevealViews scope="first" visible selectedFile="external-a" />,
+    );
     await reveal();
     expect(revealCalls.at(-1)?.fileKey).toBe("tree-file");
     revealCalls.length = 0;
 
-    await view.render(
+    await view.rerender(
       <RevealViews scope="second" visible selectedFile="external-b" requestId={1} />,
     );
     expect(revealCalls).toEqual([
@@ -592,16 +593,18 @@ describe("code-view file reveals", () => {
   });
 
   it("waits for a live viewer and applies each pending tree click only once", async () => {
-    view = mount(<RevealViews scope="diff" visible={false} selectedFile="external" />);
-    await view.initial;
+    setup();
+    await using view = await render(
+      <RevealViews scope="diff" visible={false} selectedFile="external" />,
+    );
     await reveal();
     expect(revealCalls).toEqual([]);
 
-    await view.render(<RevealViews scope="diff" visible selectedFile="external" />);
+    await view.rerender(<RevealViews scope="diff" visible selectedFile="external" />);
     expect(revealCalls.map((call) => call.fileKey)).toEqual(["external", "tree-file"]);
     revealCalls.length = 0;
-    await view.render(<RevealViews scope="diff" visible={false} selectedFile="external" />);
-    await view.render(<RevealViews scope="diff" visible selectedFile="external" />);
+    await view.rerender(<RevealViews scope="diff" visible={false} selectedFile="external" />);
+    await view.rerender(<RevealViews scope="diff" visible selectedFile="external" />);
     expect(revealCalls).toEqual([
       { scope: "diff", fileKey: "external", mounted: true, collapsed: false },
     ]);
@@ -610,10 +613,10 @@ describe("code-view file reveals", () => {
     // A click that lands in the same update that hides the viewer waits for it to return.
     await act(async () => {
       document.querySelector("button")!.click();
-      view.root.render(<RevealViews scope="diff" visible={false} selectedFile="external" />);
+      await view.rerender(<RevealViews scope="diff" visible={false} selectedFile="external" />);
     });
     expect(revealCalls).toEqual([]);
-    await view.render(<RevealViews scope="diff" visible selectedFile="external" />);
+    await view.rerender(<RevealViews scope="diff" visible selectedFile="external" />);
     expect(revealCalls).toEqual([
       { scope: "diff", fileKey: "external", mounted: true, collapsed: false },
       { scope: "diff", fileKey: "tree-file", mounted: true, collapsed: false },
@@ -621,25 +624,27 @@ describe("code-view file reveals", () => {
   });
 
   it("cancels pending tree clicks when an external selection or diff scope changes", async () => {
-    view = mount(<RevealViews scope="first" visible={false} selectedFile="external-a" />);
-    await view.initial;
+    setup();
+    await using view = await render(
+      <RevealViews scope="first" visible={false} selectedFile="external-a" />,
+    );
     await reveal();
-    await view.render(
+    await view.rerender(
       <RevealViews scope="first" visible selectedFile="external-b" requestId={1} />,
     );
     expect(revealCalls.map((call) => call.fileKey)).toEqual(["external-b"]);
     revealCalls.length = 0;
 
-    await view.render(<RevealViews scope="first" visible={false} />);
+    await view.rerender(<RevealViews scope="first" visible={false} />);
     await reveal();
-    await view.render(<RevealViews scope="second" visible={false} />);
-    await view.render(<RevealViews scope="first" visible />);
+    await view.rerender(<RevealViews scope="second" visible={false} />);
+    await view.rerender(<RevealViews scope="first" visible />);
     expect(revealCalls).toEqual([]);
   });
 
   it("reveals after a collapsed file expands and honors another click on the same file", async () => {
-    view = mount(<RevealViews scope="diff" visible />);
-    await view.initial;
+    setup();
+    await using _view = await render(<RevealViews scope="diff" visible />);
     await reveal();
     await reveal();
     expect(revealCalls).toEqual([
