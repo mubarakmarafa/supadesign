@@ -61,7 +61,7 @@ jobs:
       always() && !cancelled() &&
       ((needs.resolve.result == 'success' && needs.resolve.outputs.eligible == 'true') ||
       (github.event_name == 'pull_request_target' && github.event.action == 'closed'))
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: depot-ubuntu-24.04-16
     timeout-minutes: 15
     environment: web-preview
     permissions:

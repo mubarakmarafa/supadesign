@@ -105,7 +105,7 @@ jobs:
     if: |
       needs.resolve_commit.result == 'success' &&
       (github.event_name != 'schedule' || needs.resolve_commit.outputs.has_changes == 'true')
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: depot-ubuntu-24.04-16
     timeout-minutes: 10
     outputs:
       release_channel: ${{ steps.release_meta.outputs.release_channel }}
@@ -264,7 +264,7 @@ jobs:
     name: Release tests
     needs: [preflight]
     if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: depot-ubuntu-24.04-16
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -290,16 +290,45 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libsecret-1-dev pkg-config build-essential
 
       - name: Test
-        run: vp run --parallel --concurrency-limit 4 --filter '!supaterm' --filter '!@supaterm/monorepo' --filter '!@supaterm/web' test
+        run: vp run --parallel --concurrency-limit 4 --filter '!supaterm' --filter '!@supaterm/monorepo' --filter '!@supaterm/web' --filter '!@supaterm/mobile' test --maxWorkers 4
 
-  # Web browser tests time out when they share a runner with the other package
-  # suites: Chromium gets too little CPU and diff workers miss their 10s start budget.
-  test_web:
-    name: Release web tests
+  test_mobile:
+    name: Release mobile tests ${{ matrix.shard }}
     needs: [preflight]
     if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: depot-ubuntu-24.04-16
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ needs.preflight.outputs.ref }}
+
+      - name: Setup Mise
+        uses: ./.github/actions/setup-mise
+        with:
+          cache: false
+      - name: Install workspace dependencies
+        run: mise exec -- vp install
+
+      - name: Test
+        run: vp run --filter @supaterm/mobile test --shard ${{ matrix.shard }}/${{ strategy.job-total }} --maxWorkers 8
+
+  test_web:
+    name: Release web tests ${{ matrix.shard }}
+    needs: [preflight]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
+    runs-on: depot-ubuntu-24.04-16
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -342,19 +371,19 @@ jobs:
           fi
 
       - name: Test
-        run: vp run --filter @supaterm/web test
+        run: vp run --filter @supaterm/web test --shard ${{ matrix.shard }}/${{ strategy.job-total }} --maxWorkers 8
 
   # Server test files run one at a time, so more small runners beat fewer big ones.
   test_server:
     name: Release server tests ${{ matrix.shard }}
     needs: [preflight]
     if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: depot-ubuntu-24.04-8
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -515,7 +544,7 @@ jobs:
       ref: ${{ needs.preflight.outputs.ref }}
       release_channel: ${{ needs.preflight.outputs.release_channel }}
       label: Linux arm64
-      runner: depot-ubuntu-24.04-arm-16
+      runner: depot-ubuntu-24.04-arm-32
       platform: linux
       target: AppImage
       arch: arm64
@@ -537,7 +566,7 @@ jobs:
       ref: ${{ needs.preflight.outputs.ref }}
       release_channel: ${{ needs.preflight.outputs.release_channel }}
       label: Windows x64
-      runner: windows-2025
+      runner: depot-windows-2025-32
       platform: win
       target: nsis
       arch: x64
@@ -558,7 +587,7 @@ jobs:
       ref: ${{ needs.preflight.outputs.ref }}
       release_channel: ${{ needs.preflight.outputs.release_channel }}
       label: Windows arm64
-      runner: depot-ubuntu-24.04-16
+      runner: depot-ubuntu-24.04-32
       verify_runner: windows-11-arm
       platform: win
       target: nsis
@@ -609,6 +638,7 @@ jobs:
         quality,
         test,
         test_web,
+        test_mobile,
         test_server,
         check_cli_publish,
         desktop_mac_arm64,
@@ -618,7 +648,7 @@ jobs:
         desktop_win_x64,
         desktop_win_arm64,
       ]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.quality.result == 'success' && needs.test.result == 'success' && needs.test_web.result == 'success' && needs.test_server.result == 'success' && needs.check_cli_publish.result == 'success' && needs.desktop_mac_arm64.result == 'success' && needs.desktop_mac_x64.result == 'success' && needs.desktop_linux_x64.result == 'success' && needs.desktop_linux_arm64.result == 'success' && needs.desktop_win_x64.result == 'success' && needs.desktop_win_arm64.result == 'success' }}
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.quality.result == 'success' && needs.test.result == 'success' && needs.test_web.result == 'success' && needs.test_mobile.result == 'success' && needs.test_server.result == 'success' && needs.check_cli_publish.result == 'success' && needs.desktop_mac_arm64.result == 'success' && needs.desktop_mac_x64.result == 'success' && needs.desktop_linux_x64.result == 'success' && needs.desktop_linux_arm64.result == 'success' && needs.desktop_win_x64.result == 'success' && needs.desktop_win_arm64.result == 'success' }}
     runs-on: depot-ubuntu-24.04-8
     timeout-minutes: 30
     permissions:
@@ -834,7 +864,7 @@ jobs:
     name: Build hosted web app
     needs: [preflight]
     if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.preflight.outputs.release_channel != 'preview' }}
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: depot-ubuntu-24.04-32
     timeout-minutes: 10
     env:
       APP_VERSION: ${{ needs.preflight.outputs.version }}
