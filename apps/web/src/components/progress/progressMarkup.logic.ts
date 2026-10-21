@@ -22,9 +22,31 @@ import {
  */
 export type MarkupTool = "box" | "circle" | "arrow" | "pen" | "erase";
 
+/**
+ * The markup palette, after CleanShot's: bright enough to read on most
+ * screens, plus black and white for the screens they aren't.
+ */
+export const MARK_COLORS = [
+  { name: "Red", value: "#ff3b30" },
+  { name: "Orange", value: "#ff9500" },
+  { name: "Yellow", value: "#ffcc00" },
+  { name: "Green", value: "#34c759" },
+  { name: "Blue", value: "#007aff" },
+  { name: "Purple", value: "#af52de" },
+  { name: "Black", value: "#1c1c1e" },
+  { name: "White", value: "#ffffff" },
+] as const;
+
+export const DEFAULT_MARK_COLOR = MARK_COLORS[0].value;
+
+/** A box keeps the color it was drawn in, like every other mark. */
+export interface ColoredRegion extends PreviewAnnotationRegionTarget {
+  readonly color: string;
+}
+
 /** Marks on one image, in the image's own pixels (`update.width` by `update.height`). */
 export interface ImageMarks {
-  readonly regions: ReadonlyArray<PreviewAnnotationRegionTarget>;
+  readonly regions: ReadonlyArray<ColoredRegion>;
   readonly strokes: ReadonlyArray<PreviewAnnotationStrokeTarget>;
   /** Pen strokes, drawn smoothed; circles and arrows keep their corners. */
   readonly smoothStrokeIds: ReadonlyArray<string>;
@@ -110,7 +132,11 @@ export function commitDraft(marks: ImageMarks, draft: MarkDraft, style: MarkStyl
       onScreen(draft.end, style.scale),
     );
     if (!isUsableRect(screenRect)) return marks;
-    const region = { id: style.id, rect: normalizeRect(draft.start, draft.end) };
+    const region = {
+      id: style.id,
+      color: style.color,
+      rect: normalizeRect(draft.start, draft.end),
+    };
     return { ...marks, regions: [...marks.regions, region] };
   }
   const deliberate =
@@ -189,7 +215,8 @@ export function progressImageAnnotation(input: {
       pageTitle: progressImageTitle(input.update),
       comment: input.comment.trim(),
       elements: [],
-      regions: input.marks.regions,
+      // The agent reads where the boxes are; their colors only matter in the screenshot.
+      regions: input.marks.regions.map(({ id, rect }) => ({ id, rect })),
       strokes: input.marks.strokes,
       styleChanges: [],
       screenshot: null,

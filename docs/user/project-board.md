@@ -165,8 +165,9 @@ images, newest first. **Reply with this image** puts the image into the
 thread's composer so you can comment on exactly what you saw.
 
 To point at part of an image, select **Mark up**. Draw on it with **Box**,
-**Circle**, **Arrow**, or **Pen** (**Erase** removes a mark), write a comment,
-and press **Attach**: the marked area and your comment go into the composer as
+**Circle**, **Arrow**, or **Pen** (**Erase** removes a mark). The color dot
+beside the tools sets the color of new marks and is remembered for next time.
+Write a comment and press **Attach**: the marked area and your comment go into the composer as
 one item, the same way design mode does for the live page. Attach as many as
 you like, then select **Reply with … marks** to go to the composer. Marking up
 works in the browser as well as the desktop app.
