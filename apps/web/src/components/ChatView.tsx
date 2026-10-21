@@ -5726,7 +5726,7 @@ export default function ChatView(props: ChatViewProps) {
       } else if (!surface) {
         usePreviewMiniPlayerStore
           .getState()
-          .open(activeThreadRef, browserMiniPlayerSource(session.tabId));
+          .open(activeThreadRef, browserMiniPlayerSource(session.tabId), { waitForPage: true });
       }
     }
   }, [

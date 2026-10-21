@@ -52,6 +52,7 @@ describe("previewMiniPlayerStore", () => {
       width: null,
       height: null,
       lastInteraction: "drag",
+      waitForPage: false,
     });
   });
 
@@ -68,6 +69,7 @@ describe("previewMiniPlayerStore", () => {
       width: null,
       height: null,
       lastInteraction: "drag",
+      waitForPage: false,
     });
   });
 
@@ -95,7 +97,25 @@ describe("previewMiniPlayerStore", () => {
       width: 640,
       height: 420,
       lastInteraction: "resize",
+      waitForPage: false,
     });
+  });
+
+  it("shows a player an agent opened as soon as the designer asks for it", () => {
+    const store = usePreviewMiniPlayerStore.getState();
+    store.open(refA, tabA, { waitForPage: true });
+    expect(
+      selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
+    ).toMatchObject({ waitForPage: true });
+    store.open(refA, tabA);
+    expect(
+      selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
+    ).toMatchObject({ waitForPage: false });
+    // An agent revealing it again doesn't hide what the designer asked to see.
+    store.open(refA, tabA, { waitForPage: true });
+    expect(
+      selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
+    ).toMatchObject({ waitForPage: false });
   });
 
   it("settles a new player's first size once, without counting it as a resize", () => {
