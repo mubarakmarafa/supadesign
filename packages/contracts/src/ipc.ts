@@ -797,6 +797,19 @@ export interface DesktopPreviewScreenshotArtifact {
   createdAt: string;
 }
 
+/** What a preview tab shows right now, as an image the page can send on. */
+export interface DesktopPreviewImage {
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
+export const DesktopPreviewImageSchema: Schema.Codec<DesktopPreviewImage> = Schema.Struct({
+  dataUrl: Schema.String,
+  width: Schema.Int,
+  height: Schema.Int,
+});
+
 export const DesktopPreviewScreenshotArtifactSchema: Schema.Codec<DesktopPreviewScreenshotArtifact> =
   Schema.Struct({
     id: Schema.String,
@@ -1328,6 +1341,8 @@ export interface DesktopPreviewBridge {
   /** Cancel an in-flight preview annotation session. */
   cancelPickElement: (tabId: string) => Promise<void>;
   captureScreenshot: (tabId: string) => Promise<DesktopPreviewScreenshotArtifact>;
+  /** The tab as it looks now, kept in memory rather than saved to a file. */
+  captureImage: (tabId: string) => Promise<DesktopPreviewImage>;
   revealArtifact: (path: string) => Promise<void>;
   copyArtifactToClipboard: (path: string) => Promise<void>;
   pictureInPicture: {

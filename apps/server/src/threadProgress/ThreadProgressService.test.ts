@@ -27,6 +27,7 @@ const setup = (options?: {
     let nextId = 0;
     const deleted: Array<string> = [];
     const captured: Array<string> = [];
+    const stored: Array<ThreadProgress.ProgressScreenshot> = [];
     const published: Array<ThreadProgressList> = [];
     let failNext: string | null = null;
     let holdScreenshot: Deferred.Deferred<void> | null = null;
@@ -47,14 +48,17 @@ const setup = (options?: {
           captured.push(url);
           return { bytes: new Uint8Array(4), mimeType: "image/jpeg", width: 1280, height: 800 };
         }),
-      storeImage: () =>
-        Effect.sync(() => ({
-          type: "image" as const,
-          id: ChatAttachmentId.make(`image-${++nextId}`),
-          name: "progress.jpg",
-          mimeType: "image/jpeg",
-          sizeBytes: 4,
-        })),
+      storeImage: ({ screenshot }) =>
+        Effect.sync(() => {
+          stored.push(screenshot);
+          return {
+            type: "image" as const,
+            id: ChatAttachmentId.make(`image-${++nextId}`),
+            name: "progress.jpg",
+            mimeType: "image/jpeg",
+            sizeBytes: 4,
+          };
+        }),
       deleteImage: (image) => Effect.sync(() => void deleted.push(image.id)),
       newId: Effect.sync(() => `update-${++nextId}`),
       nowMs: Effect.sync(() => now),
@@ -66,6 +70,7 @@ const setup = (options?: {
       service,
       deleted,
       captured,
+      stored,
       published,
       advance: (ms: number) => {
         now += ms;
@@ -110,6 +115,37 @@ it.effect("captures the page an agent names instead of the live preview", () =>
       url: "http://localhost:3001/",
     });
     assert.deepStrictEqual(captured, ["http://localhost:3001/"]);
+  }),
+);
+
+it.effect("keeps the screen the designer captured without opening the page again", () =>
+  Effect.gen(function* () {
+    const { service, captured, stored } = yield* setup({ pageMissing: true });
+    const update = yield* service.capture({
+      threadId: card,
+      source: "designer",
+      screen: {
+        dataUrl: "data:image/png;base64,AQID",
+        width: 390,
+        height: 844,
+        url: "http://localhost:4318/cartridges",
+      },
+    });
+    assert.deepStrictEqual(captured, []);
+    assert.deepStrictEqual([...(stored[0]?.bytes ?? [])], [1, 2, 3]);
+    assert.strictEqual(stored[0]?.mimeType, "image/png");
+    assert.strictEqual(update.url, "http://localhost:4318/cartridges");
+    assert.deepStrictEqual([update.width, update.height], [390, 844]);
+
+    const refused = yield* service
+      .capture({
+        threadId: card,
+        source: "designer",
+        screen: { dataUrl: "data:text/html;base64,AQID", width: 1, height: 1, url: LIVE_URL },
+      })
+      .pipe(Effect.flip);
+    assert.strictEqual(refused.message, "The captured screen isn't an image Supadesign can keep.");
+    assert.strictEqual((yield* service.get(card))?.updates.length, 1);
   }),
 );
 

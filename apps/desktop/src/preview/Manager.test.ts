@@ -2407,6 +2407,25 @@ describe("PreviewManager", () => {
     ),
   );
 
+  effectIt.effect("captures what a tab shows as an image without saving a file", () =>
+    withManager((manager) =>
+      Effect.gen(function* () {
+        const capturePage = vi.fn(async () => ({
+          toJPEG: () => Buffer.from([1, 2, 3]),
+          getSize: () => ({ width: 390, height: 844 }),
+        }));
+        fromId.mockReturnValue(makeTestPreviewWebContents(capturePage) as never);
+        yield* manager.createTab("tab_1");
+        yield* manager.registerWebview("tab_1", 42);
+
+        const image = yield* manager.captureImage("tab_1");
+
+        expect(image).toEqual({ dataUrl: "data:image/jpeg;base64,AQID", width: 390, height: 844 });
+        expect(writeFile).not.toHaveBeenCalled();
+      }),
+    ),
+  );
+
   effectIt.effect("captures a PNG screenshot into browser artifacts", () =>
     withManager((manager) =>
       Effect.gen(function* () {

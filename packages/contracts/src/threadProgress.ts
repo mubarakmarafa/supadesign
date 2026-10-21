@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-import { ProjectId, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { PositiveInt, ProjectId, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 import { ChatImageAttachment } from "./chatAttachment.ts";
 
 /**
@@ -84,7 +84,24 @@ export type ThreadProgressList = typeof ThreadProgressList.Type;
 export const ThreadProgressProjectInput = Schema.Struct({ projectId: ProjectId });
 export type ThreadProgressProjectInput = typeof ThreadProgressProjectInput.Type;
 
-export const ThreadProgressCaptureInput = Schema.Struct({ threadId: ThreadId });
+/** About 10 MB of image once decoded. */
+const THREAD_PROGRESS_SCREEN_MAX_DATA_URL_CHARS = 14_000_000;
+
+/** What the designer's preview is showing, captured as they see it. */
+export const ThreadProgressScreen = Schema.Struct({
+  dataUrl: Schema.String.check(Schema.isMaxLength(THREAD_PROGRESS_SCREEN_MAX_DATA_URL_CHARS)),
+  width: PositiveInt,
+  height: PositiveInt,
+  /** The page the preview was on. */
+  url: Schema.String,
+});
+export type ThreadProgressScreen = typeof ThreadProgressScreen.Type;
+
+/** Without a screen, the card's running app is opened fresh and captured. */
+export const ThreadProgressCaptureInput = Schema.Struct({
+  threadId: ThreadId,
+  screen: Schema.optionalKey(ThreadProgressScreen),
+});
 export type ThreadProgressCaptureInput = typeof ThreadProgressCaptureInput.Type;
 
 export const ThreadProgressRemoveInput = Schema.Struct({

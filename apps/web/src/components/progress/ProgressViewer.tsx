@@ -127,6 +127,8 @@ export function ProgressViewer({
   progress,
   latestRunStartedAt,
   canCapture,
+  initialSelectedId = null,
+  startInMarkup = false,
   onOpenChange,
   onReplied,
 }: {
@@ -137,13 +139,19 @@ export function ProgressViewer({
   latestRunStartedAt: string | null | undefined;
   /** Whether the card has a running page to capture right now. */
   canCapture: boolean;
+  /** The image to open on; the newest when absent. */
+  initialSelectedId?: string | null;
+  /** Opens ready to mark up, for an image the designer just captured to give feedback on. */
+  startInMarkup?: boolean;
   onOpenChange: (open: boolean) => void;
   /** Shows the composer the image went into, when it isn't on screen already. */
   onReplied?: () => void;
 }) {
   const newestFirst = useMemo(() => progress.updates.toReversed(), [progress.updates]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mode, setMode] = useState<ViewerMode>(VIEW);
+  const [selectedId, setSelectedId] = useState(initialSelectedId);
+  const [mode, setMode] = useState<ViewerMode>(
+    startInMarkup ? { kind: "markup", attached: 0 } : VIEW,
+  );
   const selected: ThreadProgressUpdate | undefined =
     newestFirst.find((update) => update.id === selectedId) ?? newestFirst[0];
   const latest = newestFirst[0];
