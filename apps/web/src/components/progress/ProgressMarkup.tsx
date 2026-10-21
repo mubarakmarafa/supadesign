@@ -5,22 +5,27 @@ import type {
   ThreadProgressUpdate,
 } from "@supaterm/contracts";
 import { normalizeRect } from "@supaterm/shared/annotationShapes";
+import * as Schema from "effect/Schema";
 import { CircleIcon, EraserIcon, MoveUpRightIcon, PencilIcon, SquareIcon } from "lucide-react";
 import { type PointerEvent, useRef, useState } from "react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { previewAnnotationComposerItems } from "../../lib/previewAnnotation";
 import { randomUUID } from "../../lib/utils";
 import { Button } from "../ui/button";
+import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { Textarea } from "../ui/textarea";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import {
   commitDraft,
+  DEFAULT_MARK_COLOR,
   draftStroke,
   eraseMarkAt,
   hasMarks,
   type ImageMarks,
+  MARK_COLORS,
   type MarkDraft,
   type MarkStyle,
   type MarkupTool,
@@ -45,6 +50,9 @@ const TOOLS: ReadonlyArray<{
   { tool: "pen", label: "Draw freehand (P)", Icon: PencilIcon },
   { tool: "erase", label: "Erase a mark (E)", Icon: EraserIcon },
 ];
+
+// Remembered across images and restarts, as CleanShot keeps your last color.
+const MARK_COLOR_KEY = "supadesign:progress-markup:color";
 
 /** A mark being drawn and how it will look. */
 interface Drawing {
@@ -74,6 +82,14 @@ export function ProgressMarkup({
   onAttached: () => void;
 }) {
   const [tool, setTool] = useState<MarkupTool>("box");
+  const [storedColor, setColor] = useLocalStorage(
+    MARK_COLOR_KEY,
+    DEFAULT_MARK_COLOR,
+    Schema.String,
+  );
+  const color = MARK_COLORS.some((entry) => entry.value === storedColor)
+    ? storedColor
+    : DEFAULT_MARK_COLOR;
   const [marks, setMarks] = useState<ImageMarks>(NO_MARKS);
   const [drawing, setDrawingState] = useState<Drawing | null>(null);
   // Pointer events can outrun renders, so handlers read the latest draft here.
@@ -117,7 +133,7 @@ export function ProgressMarkup({
       draft: tool === "pen" ? { tool, points: [point] } : { tool, start: point, end: point },
       style: {
         id: `mark_${randomUUID()}`,
-        color: getComputedStyle(event.currentTarget).color,
+        color,
         width: STROKE_WIDTH * scale,
         scale,
       },
@@ -165,7 +181,6 @@ export function ProgressMarkup({
         frame: update,
         marks,
         cropRect: prepared.cropRect,
-        color: svgRef.current ? getComputedStyle(svgRef.current).color : "#2563eb",
         regionLineWidth: REGION_LINE_WIDTH * currentScale(),
       });
     } catch {
@@ -235,6 +250,7 @@ export function ProgressMarkup({
             </Toggle>
           ))}
         </ToggleGroup>
+        <MarkColorPicker color={color} onChange={setColor} />
         <p className="text-xs text-muted-foreground">
           Mark the image, describe the change, then attach it to your reply.
         </p>
@@ -262,8 +278,8 @@ export function ProgressMarkup({
             aria-label="Marks on the image"
             viewBox={`0 0 ${update.width} ${update.height}`}
             preserveAspectRatio="none"
-            // Marks take the theme color, which can be as dark as the capture; a halo keeps them visible.
-            className="absolute inset-0 size-full cursor-crosshair touch-none text-primary drop-shadow-xs drop-shadow-white/90"
+            // A soft shadow lifts every palette color off the capture, as the attached crop draws it.
+            className="absolute inset-0 size-full cursor-crosshair touch-none drop-shadow-xs drop-shadow-black/35"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={finishDraft}
@@ -273,9 +289,9 @@ export function ProgressMarkup({
               <rect
                 key={region.id}
                 {...region.rect}
-                fill="currentColor"
+                fill={region.color}
                 fillOpacity={0.06}
-                stroke="currentColor"
+                stroke={region.color}
                 strokeWidth={REGION_LINE_WIDTH}
                 vectorEffect="non-scaling-stroke"
               />
@@ -285,7 +301,7 @@ export function ProgressMarkup({
                 key={stroke.id}
                 d={markStrokePath(marks, stroke)}
                 fill="none"
-                stroke="currentColor"
+                stroke={stroke.color}
                 strokeWidth={stroke.width}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -294,9 +310,9 @@ export function ProgressMarkup({
             {draftRegion ? (
               <rect
                 {...draftRegion}
-                fill="currentColor"
+                fill={drawing?.style.color}
                 fillOpacity={0.06}
-                stroke="currentColor"
+                stroke={drawing?.style.color}
                 strokeWidth={REGION_LINE_WIDTH}
                 vectorEffect="non-scaling-stroke"
               />
@@ -311,7 +327,7 @@ export function ProgressMarkup({
                   draftLine,
                 )}
                 fill="none"
-                stroke="currentColor"
+                stroke={draftLine.color}
                 strokeWidth={draftLine.width}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -340,5 +356,59 @@ export function ProgressMarkup({
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * The color new marks are drawn in, as a swatch beside the tools that opens
+ * the palette. Marks already drawn keep their own color.
+ */
+function MarkColorPicker({
+  color,
+  onChange,
+}: {
+  color: string;
+  onChange: (color: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = MARK_COLORS.find((entry) => entry.value === color) ?? MARK_COLORS[0];
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Mark color: ${current.name}`}
+            title="Mark color"
+          />
+        }
+      >
+        <span
+          aria-hidden
+          className="size-4 rounded-full shadow-xs ring-1 ring-foreground/20"
+          style={{ backgroundColor: current.value }}
+        />
+      </PopoverTrigger>
+      <PopoverPopup align="start" aria-label="Mark color">
+        <div role="radiogroup" aria-label="Mark color" className="grid grid-cols-4 gap-2">
+          {MARK_COLORS.map((entry) => (
+            <button
+              key={entry.value}
+              type="button"
+              role="radio"
+              aria-checked={entry.value === current.value}
+              aria-label={entry.name}
+              className="size-6 rounded-full shadow-xs ring-1 ring-foreground/20 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset aria-checked:ring-3 aria-checked:ring-foreground/70 aria-checked:ring-inset"
+              style={{ backgroundColor: entry.value }}
+              onClick={() => {
+                onChange(entry.value);
+                setOpen(false);
+              }}
+            />
+          ))}
+        </div>
+      </PopoverPopup>
+    </Popover>
   );
 }

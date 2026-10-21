@@ -22,14 +22,14 @@ const update = {
 const style = (id: string): MarkStyle => ({ id, color: "rgb(37, 99, 235)", width: 8, scale: 2 });
 
 describe("commitDraft", () => {
-  it("keeps a dragged box as a region in image pixels", () => {
+  it("keeps a dragged box as a region in image pixels, in the color it was drawn in", () => {
     const marks = commitDraft(
       NO_MARKS,
       { tool: "box", start: { x: 300, y: 200 }, end: { x: 100, y: 100 } },
       style("box"),
     );
     expect(marks.regions).toEqual([
-      { id: "box", rect: { x: 100, y: 100, width: 200, height: 100 } },
+      { id: "box", color: "rgb(37, 99, 235)", rect: { x: 100, y: 100, width: 200, height: 100 } },
     ]);
     expect(marks.strokes).toEqual([]);
   });
@@ -111,7 +111,8 @@ describe("progressImageAnnotation", () => {
       pageTitle:
         "Progress image captured 2026-10-21T10:00:00.000Z: Settings page with the new sidebar",
       comment: "Make this button quieter",
-      regions: marks.regions,
+      // Box colors only matter in the screenshot, so the agent gets just where they are.
+      regions: [{ id: "box", rect: { x: 900, y: 10, width: 90, height: 50 } }],
       elements: [],
       screenshot: null,
     });

@@ -3,8 +3,8 @@ import { polylinePath, smoothPath } from "@supaterm/shared/annotationShapes";
 
 import type { ImageMarks } from "./progressMarkup.logic";
 
-/** Drawn around every mark so a dark theme color still shows on a dark capture. */
-export const MARK_HALO = "rgb(255 255 255 / 0.9)";
+/** A soft shadow under every mark, so any palette color lifts off the capture beneath it. */
+export const MARK_SHADOW = "rgb(0 0 0 / 0.35)";
 
 /** A stroke's outline as it is drawn on screen: pen strokes smoothed, shapes with their corners. */
 export function markStrokePath(marks: ImageMarks, stroke: ImageMarks["strokes"][number]): string {
@@ -24,7 +24,6 @@ export async function renderMarkedCrop(input: {
   readonly frame: { readonly width: number; readonly height: number };
   readonly marks: ImageMarks;
   readonly cropRect: PreviewAnnotationRect;
-  readonly color: string;
   /** A region's outline width, in mark units. */
   readonly regionLineWidth: number;
 }): Promise<PreviewAnnotationScreenshot> {
@@ -53,15 +52,15 @@ export async function renderMarkedCrop(input: {
     );
     context.scale(scale, scale);
     context.translate(-cropRect.x, -cropRect.y);
-    context.strokeStyle = input.color;
-    context.fillStyle = input.color;
     context.lineCap = "round";
     context.lineJoin = "round";
-    // A light halo keeps marks readable on dark captures, matching the screen.
-    context.shadowColor = MARK_HALO;
+    // Matches the shadow the marks have on screen.
+    context.shadowColor = MARK_SHADOW;
     context.shadowBlur = 3;
     for (const region of input.marks.regions) {
       const { x, y, width, height } = region.rect;
+      context.strokeStyle = region.color;
+      context.fillStyle = region.color;
       context.globalAlpha = 0.06;
       context.fillRect(x, y, width, height);
       context.globalAlpha = 1;
@@ -69,6 +68,7 @@ export async function renderMarkedCrop(input: {
       context.strokeRect(x, y, width, height);
     }
     for (const stroke of input.marks.strokes) {
+      context.strokeStyle = stroke.color;
       context.lineWidth = stroke.width;
       context.stroke(new Path2D(markStrokePath(input.marks, stroke)));
     }
