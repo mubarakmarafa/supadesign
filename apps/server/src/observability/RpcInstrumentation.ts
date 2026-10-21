@@ -216,6 +216,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.threadDecisionAccept]: "orchestration",
   [WS_METHODS.threadDecisionReject]: "orchestration",
   [WS_METHODS.threadDecisionRestore]: "orchestration",
+  [WS_METHODS.threadBriefVersions]: "orchestration",
   [WS_METHODS.subscribeThreadBriefs]: "orchestration",
   [WS_METHODS.projectsSummary]: "workspace",
   [WS_METHODS.subscribeDiscoveredLocalServers]: "preview",

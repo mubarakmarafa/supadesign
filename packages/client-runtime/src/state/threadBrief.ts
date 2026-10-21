@@ -4,6 +4,7 @@ import { Atom } from "effect/reactivity";
 import type { EnvironmentRegistry } from "../connection/registry.ts";
 import {
   createEnvironmentRpcCommand,
+  createEnvironmentRpcQueryAtomFamily,
   createEnvironmentRpcSubscriptionAtomFamily,
 } from "./runtime.ts";
 
@@ -15,6 +16,11 @@ export function createThreadBriefAtoms<R, E>(
     briefs: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:thread-brief:briefs",
       tag: WS_METHODS.subscribeThreadBriefs,
+    }),
+    /** Every brief the card has had, for its history. */
+    versions: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:thread-brief:versions",
+      tag: WS_METHODS.threadBriefVersions,
     }),
     setBrief: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:thread-brief:set",

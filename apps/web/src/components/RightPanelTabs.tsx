@@ -34,6 +34,7 @@ import {
   FileDiff,
   Files,
   Globe2,
+  HistoryIcon,
   Plus,
   TerminalSquare,
 } from "lucide-react";
@@ -601,6 +602,8 @@ function surfaceTitle(
       return "Diff";
     case "files":
       return "Files";
+    case "history":
+      return "History";
     case "file":
       return surface.relativePath.slice(
         Math.max(surface.relativePath.lastIndexOf("/"), surface.relativePath.lastIndexOf("\\")) + 1,
@@ -676,6 +679,8 @@ function SurfaceIcon({
       return <FileDiff className="size-3 shrink-0" />;
     case "files":
       return <Files className="size-3 shrink-0" />;
+    case "history":
+      return <HistoryIcon className="size-3 shrink-0" />;
     case "file":
       return (
         <PierreEntryIcon

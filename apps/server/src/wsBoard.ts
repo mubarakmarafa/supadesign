@@ -97,6 +97,7 @@ export const layer = WsBoardRpcGroup.toLayer(
         threadBriefs.rejectDecision({ ...input, by: "designer" }),
       [WS_METHODS.threadDecisionRestore]: (input) =>
         threadBriefs.restoreDecision({ ...input, by: "designer" }),
+      [WS_METHODS.threadBriefVersions]: (input) => threadBriefs.versions(input.threadId),
       [WS_METHODS.subscribeThreadBriefs]: (input) =>
         subscription<ThreadBriefList>((listener) =>
           threadBriefs.subscribe(input.projectId, listener),

@@ -14,12 +14,13 @@ import {
   type ThreadDecision,
   type ThreadDecisionId,
 } from "@supaterm/contracts";
-import { CheckIcon, PencilIcon, PlusIcon, SparklesIcon, XIcon } from "lucide-react";
+import { CheckIcon, HistoryIcon, PencilIcon, PlusIcon, SparklesIcon, XIcon } from "lucide-react";
 import * as Schema from "effect/Schema";
 import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { useLocalStorage } from "~/hooks/useLocalStorage";
 import { cn } from "~/lib/utils";
+import { useRightPanelStore } from "~/rightPanelStore";
 import { useThreadShell } from "../../state/entities";
 import { threadBrief } from "../../state/threadBrief";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -132,6 +133,14 @@ export function ThreadBriefPanel({
             Edit
           </Button>
         ) : null}
+        <Button
+          size="xs"
+          variant="ghost-muted"
+          onClick={() => useRightPanelStore.getState().open(threadRef, "history")}
+        >
+          <HistoryIcon />
+          History
+        </Button>
       </div>
       {open ? (
         <div className="flex max-h-[40vh] flex-col gap-3 overflow-y-auto pt-1 pb-2">
