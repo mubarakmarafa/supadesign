@@ -11,7 +11,9 @@ export function showPreviewPopup(
 ): void {
   whenPreviewTabKnown(threadRef, popupTabId, () => {
     if (from === "floating") {
-      usePreviewMiniPlayerStore.getState().open(threadRef, browserMiniPlayerSource(popupTabId));
+      usePreviewMiniPlayerStore
+        .getState()
+        .open(threadRef, browserMiniPlayerSource(popupTabId), { waitForPage: true });
     } else {
       useRightPanelStore.getState().openBrowser(threadRef, popupTabId);
     }

@@ -33,15 +33,25 @@ export interface PreviewMiniPlayerState {
    */
   readonly height: number | null;
   readonly lastInteraction: "drag" | "resize";
+  /**
+   * Hold the player back until its page has loaded, for tabs an agent or a
+   * page opened. A player the designer asked for shows right away: a tab that
+   * isn't on screen may not finish loading until it is.
+   */
+  readonly waitForPage: boolean;
 }
 
-type PreviewMiniPlayerGeometry = Omit<PreviewMiniPlayerState, "source">;
+type PreviewMiniPlayerGeometry = Omit<PreviewMiniPlayerState, "source" | "waitForPage">;
 
 interface PreviewMiniPlayerStoreState {
   readonly byThreadKey: Record<string, PreviewMiniPlayerState>;
   /** Where a closed player was, so floating again puts it back like a window. */
   readonly closedGeometryByThreadKey: Record<string, PreviewMiniPlayerGeometry>;
-  readonly open: (ref: ScopedThreadRef, source: PreviewMiniPlayerSource) => void;
+  readonly open: (
+    ref: ScopedThreadRef,
+    source: PreviewMiniPlayerSource,
+    options?: { readonly waitForPage?: boolean },
+  ) => void;
   readonly close: (ref: ScopedThreadRef) => void;
   /** `sourceKey` guards against a drag that outlives the source it started on. */
   readonly move: (
@@ -74,11 +84,16 @@ export const browserMiniPlayerSource = (tabId: string): PreviewMiniPlayerSource 
 export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((set) => ({
   byThreadKey: {},
   closedGeometryByThreadKey: {},
-  open: (ref, source) =>
+  open: (ref, source, options) =>
     set((state) => {
       const threadKey = scopedThreadKey(ref);
+      const waitForPage = options?.waitForPage ?? false;
       const open = state.byThreadKey[threadKey];
       if (open && previewMiniPlayerSourceKey(open.source) === previewMiniPlayerSourceKey(source)) {
+        // Asking for a player that is still waiting on its page shows it now.
+        if (open.waitForPage && !waitForPage) {
+          return { byThreadKey: { ...state.byThreadKey, [threadKey]: { ...open, waitForPage } } };
+        }
         return state;
       }
       const current = open ?? state.closedGeometryByThreadKey[threadKey];
@@ -91,6 +106,7 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
             width: current?.width ?? null,
             height: current?.height ?? null,
             lastInteraction: current?.lastInteraction ?? "drag",
+            waitForPage,
           },
         },
       };
@@ -101,7 +117,7 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
       const closed = state.byThreadKey[threadKey];
       if (!closed) return state;
       const { [threadKey]: _closed, ...byThreadKey } = state.byThreadKey;
-      const { source: _source, ...geometry } = closed;
+      const { source: _source, waitForPage: _waitForPage, ...geometry } = closed;
       return {
         byThreadKey,
         closedGeometryByThreadKey: { ...state.closedGeometryByThreadKey, [threadKey]: geometry },

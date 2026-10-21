@@ -129,9 +129,14 @@ export function ThreadPreviewMiniPlayer({ threadRef, miniPlayer }: Props) {
 function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly tabId: string }) {
   const previewState = useThreadPreviewState(threadRef);
   const snapshot = previewState.sessions[tabId] ?? null;
+  const navStatus = snapshot?.navStatus ?? null;
   const [wasVisible, setWasVisible] = useState(false);
-  const pageVisible = shouldShowFloatingBrowser(snapshot?.navStatus ?? null, wasVisible);
-  if (pageVisible !== wasVisible) setWasVisible(pageVisible);
+  const pageLoaded = shouldShowFloatingBrowser(navStatus, wasVisible);
+  if (pageLoaded !== wasVisible) setWasVisible(pageLoaded);
+  // A player the designer asked for shows while its page loads, or fails to.
+  const pageVisible = miniPlayer.waitForPage
+    ? pageLoaded
+    : navStatus !== null && navStatus._tag !== "Idle";
   const runtimeTabId = previewRuntimeTabId(threadRef, previewState.serverEpoch, tabId);
   const recordingTabIds = useActiveBrowserRecordingTabIds();
   const recording =
@@ -253,45 +258,53 @@ function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly 
           </>
         }
       >
-        {(frame) =>
-          serverTab ? (
-            <div
-              className="pointer-events-auto absolute inset-0 overflow-hidden rounded-[inherit]"
-              style={{ zIndex: PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX }}
-            >
-              <ServerBrowserSurface
-                key={runtimeTabId}
-                ref={serverSurfaceRef}
-                environmentId={threadRef.environmentId}
-                threadId={threadRef.threadId}
-                tabId={tabId}
-                visible
-                controlPosition="bottom"
-                onFirstFrame={() => setStreamFrameTabId(runtimeTabId)}
-                onViewport={setStreamViewport}
-                onPopup={(popupTabId) => showPreviewPopup(threadRef, popupTabId, "floating")}
-                className="size-full"
-              />
-            </div>
-          ) : (
-            <>
-              <BrowserSurfaceSlot
-                tabId={runtimeTabId}
-                visible={Boolean(desktopOverlay?.hasWebContents)}
-                cornerRadius={PREVIEW_MINI_PLAYER_CORNER_RADIUS}
-                zIndex={PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX}
-                fitSourceContent
-                layoutVersion={`${frame.x}:${frame.y}`}
-                className="absolute inset-0"
-              />
-              {!desktopOverlay?.hasWebContents ? (
-                <div className="pointer-events-none absolute inset-0 z-[49] flex items-center justify-center rounded-[inherit] bg-muted text-xs text-muted-foreground">
-                  Reconnecting preview…
-                </div>
-              ) : null}
-            </>
-          )
-        }
+        {(frame) => (
+          <>
+            {navStatus?._tag === "LoadFailed" ? (
+              <div className="pointer-events-none absolute inset-0 z-[49] flex flex-col items-center justify-center gap-1 rounded-[inherit] bg-muted p-4 text-center text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Couldn't load this page</span>
+                <span className="wrap-anywhere">{navStatus.url}</span>
+              </div>
+            ) : null}
+            {serverTab ? (
+              <div
+                className="pointer-events-auto absolute inset-0 overflow-hidden rounded-[inherit]"
+                style={{ zIndex: PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX }}
+              >
+                <ServerBrowserSurface
+                  key={runtimeTabId}
+                  ref={serverSurfaceRef}
+                  environmentId={threadRef.environmentId}
+                  threadId={threadRef.threadId}
+                  tabId={tabId}
+                  visible
+                  controlPosition="bottom"
+                  onFirstFrame={() => setStreamFrameTabId(runtimeTabId)}
+                  onViewport={setStreamViewport}
+                  onPopup={(popupTabId) => showPreviewPopup(threadRef, popupTabId, "floating")}
+                  className="size-full"
+                />
+              </div>
+            ) : (
+              <>
+                <BrowserSurfaceSlot
+                  tabId={runtimeTabId}
+                  visible={Boolean(desktopOverlay?.hasWebContents)}
+                  cornerRadius={PREVIEW_MINI_PLAYER_CORNER_RADIUS}
+                  zIndex={PREVIEW_MINI_PLAYER_WEBVIEW_Z_INDEX}
+                  fitSourceContent
+                  layoutVersion={`${frame.x}:${frame.y}`}
+                  className="absolute inset-0"
+                />
+                {!desktopOverlay?.hasWebContents ? (
+                  <div className="pointer-events-none absolute inset-0 z-[49] flex items-center justify-center rounded-[inherit] bg-muted text-xs text-muted-foreground">
+                    Reconnecting preview…
+                  </div>
+                ) : null}
+              </>
+            )}
+          </>
+        )}
       </MiniPlayerShell>
       {/* Beside the shell, not inside it: the shell's drag handle would take the dialog's clicks. */}
       {captured !== null ? (
