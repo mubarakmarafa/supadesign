@@ -35,8 +35,12 @@ export interface PreviewMiniPlayerState {
   readonly lastInteraction: "drag" | "resize";
 }
 
+type PreviewMiniPlayerGeometry = Omit<PreviewMiniPlayerState, "source">;
+
 interface PreviewMiniPlayerStoreState {
   readonly byThreadKey: Record<string, PreviewMiniPlayerState>;
+  /** Where a closed player was, so floating again puts it back like a window. */
+  readonly closedGeometryByThreadKey: Record<string, PreviewMiniPlayerGeometry>;
   readonly open: (ref: ScopedThreadRef, source: PreviewMiniPlayerSource) => void;
   readonly close: (ref: ScopedThreadRef) => void;
   /** `sourceKey` guards against a drag that outlives the source it started on. */
@@ -69,16 +73,15 @@ export const browserMiniPlayerSource = (tabId: string): PreviewMiniPlayerSource 
 
 export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((set) => ({
   byThreadKey: {},
+  closedGeometryByThreadKey: {},
   open: (ref, source) =>
     set((state) => {
       const threadKey = scopedThreadKey(ref);
-      const current = state.byThreadKey[threadKey];
-      if (
-        current &&
-        previewMiniPlayerSourceKey(current.source) === previewMiniPlayerSourceKey(source)
-      ) {
+      const open = state.byThreadKey[threadKey];
+      if (open && previewMiniPlayerSourceKey(open.source) === previewMiniPlayerSourceKey(source)) {
         return state;
       }
+      const current = open ?? state.closedGeometryByThreadKey[threadKey];
       return {
         byThreadKey: {
           ...state.byThreadKey,
@@ -95,9 +98,14 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
   close: (ref) =>
     set((state) => {
       const threadKey = scopedThreadKey(ref);
-      if (!(threadKey in state.byThreadKey)) return state;
+      const closed = state.byThreadKey[threadKey];
+      if (!closed) return state;
       const { [threadKey]: _closed, ...byThreadKey } = state.byThreadKey;
-      return { byThreadKey };
+      const { source: _source, ...geometry } = closed;
+      return {
+        byThreadKey,
+        closedGeometryByThreadKey: { ...state.closedGeometryByThreadKey, [threadKey]: geometry },
+      };
     }),
   move: (ref, sourceKey, position) =>
     set((state) => {
@@ -162,9 +170,13 @@ export const usePreviewMiniPlayerStore = create<PreviewMiniPlayerStoreState>()((
   removeThread: (ref) =>
     set((state) => {
       const threadKey = scopedThreadKey(ref);
-      if (!(threadKey in state.byThreadKey)) return state;
+      if (!(threadKey in state.byThreadKey) && !(threadKey in state.closedGeometryByThreadKey)) {
+        return state;
+      }
       const { [threadKey]: _removed, ...byThreadKey } = state.byThreadKey;
-      return { byThreadKey };
+      const { [threadKey]: _geometry, ...closedGeometryByThreadKey } =
+        state.closedGeometryByThreadKey;
+      return { byThreadKey, closedGeometryByThreadKey };
     }),
 }));
 

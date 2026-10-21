@@ -23,7 +23,7 @@ const pixel: PreviewMiniPlayerSource = {
 };
 
 beforeEach(() => {
-  usePreviewMiniPlayerStore.setState({ byThreadKey: {} });
+  usePreviewMiniPlayerStore.setState({ byThreadKey: {}, closedGeometryByThreadKey: {} });
 });
 
 describe("previewMiniPlayerStore", () => {
@@ -79,6 +79,23 @@ describe("previewMiniPlayerStore", () => {
     expect(
       selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
     ).toMatchObject({ source: tabB, width: 480, height: 300 });
+  });
+
+  it("puts a closed player back where it was when the thread floats again", () => {
+    const store = usePreviewMiniPlayerStore.getState();
+    store.open(refA, tabA);
+    store.resize(refA, "browser:tab-a", { width: 640, height: 420 }, { x: 40, y: 60 });
+    store.close(refA);
+    store.open(refA, tabA);
+    expect(
+      selectThreadPreviewMiniPlayer(usePreviewMiniPlayerStore.getState().byThreadKey, refA),
+    ).toEqual({
+      source: tabA,
+      position: { x: 40, y: 60 },
+      width: 640,
+      height: 420,
+      lastInteraction: "resize",
+    });
   });
 
   it("settles a new player's first size once, without counting it as a resize", () => {
