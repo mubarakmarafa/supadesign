@@ -18,10 +18,13 @@ import {
   sortProviderInstanceEntries,
 } from "../../providerInstances";
 import { EMPTY_SERVER_PROVIDERS, serverEnvironment } from "../../state/server";
+import { threadBank } from "../../state/threadBank";
 import { threadEnvironment } from "../../state/threads";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
 import { DEFAULT_RUNTIME_MODE } from "../../types";
 import { scheduledTaskDefaultModel } from "../automations/automations.logic";
+import { useThreadBankSupported } from "../chat/threadBankState";
 
 export type CreateBoardCardResult =
   | { readonly _tag: "created"; readonly threadId: ThreadId }
@@ -30,9 +33,9 @@ export type CreateBoardCardResult =
 
 /**
  * Makes a card's thread without starting it: the project's default model and
- * permissions, no worktree yet, nothing sent. What was typed waits in the
- * thread's composer on this device, so opening the card is one Enter from
- * starting it.
+ * permissions, no worktree yet, nothing sent. What was typed waits as a banked
+ * message, so moving the card into the send column starts it. A server without
+ * banks gets it in the thread's composer on this device instead.
  */
 export function useCreateBoardCard(project: EnvironmentProject) {
   const environmentId = project.environmentId;
@@ -40,11 +43,14 @@ export function useCreateBoardCard(project: EnvironmentProject) {
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(environmentId)) ?? EMPTY_SERVER_PROVIDERS;
   const createThread = useOrchestrationCommand(threadEnvironment.create);
+  const bankMessage = useAtomCommand(threadBank.add, { reportFailure: false });
+  const bankSupported = useThreadBankSupported(environmentId);
 
   return useCallback(
     async (input: {
       title: string;
-      draft: string;
+      /** The card's note; empty leaves nothing waiting. */
+      note: string;
       /** A known id, for a caller that has to record the thread before it exists. */
       threadId?: ThreadId;
     }): Promise<CreateBoardCardResult> => {
@@ -83,11 +89,20 @@ export function useCreateBoardCard(project: EnvironmentProject) {
           message: error instanceof Error ? error.message : "An error occurred.",
         };
       }
-      useComposerDraftStore
-        .getState()
-        .setPrompt(scopeThreadRef(environmentId, threadId), input.draft);
+      if (input.note.length === 0) return { _tag: "created", threadId };
+      const banked = bankSupported
+        ? await bankMessage({
+            environmentId,
+            input: { threadId, text: input.note, attachments: [] },
+          })
+        : null;
+      if (banked === null || banked._tag === "Failure") {
+        useComposerDraftStore
+          .getState()
+          .setPrompt(scopeThreadRef(environmentId, threadId), input.note);
+      }
       return { _tag: "created", threadId };
     },
-    [createThread, environmentId, project, providers, settings],
+    [bankMessage, bankSupported, createThread, environmentId, project, providers, settings],
   );
 }

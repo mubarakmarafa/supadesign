@@ -670,7 +670,7 @@ function ProjectBoardView({
     async (columnId: BoardColumnId, text: string): Promise<boolean> => {
       const card = boardCardFromText(text);
       if (card === null || !canOperate) return false;
-      const created = await createBoardCard({ title: card.title, draft: text.trim() });
+      const created = await createBoardCard({ title: card.title, note: text.trim() });
       if (created._tag === "no-model") {
         infoToast("Can't add a card yet", "Turn on a provider in Settings first.");
         return false;

@@ -49,7 +49,7 @@ export function BoardAgentWidget({
     const id = newThreadId();
     // Recorded first, so the new thread never shows on the board as a card.
     commit({ ...workspace, boardAgentThreadId: id });
-    const result = await createThread({ title: "Board agent", draft: "", threadId: id });
+    const result = await createThread({ title: "Board agent", note: "", threadId: id });
     setStarting(false);
     if (result._tag === "created") return;
     toastManager.add(

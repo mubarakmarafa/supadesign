@@ -108,6 +108,8 @@ export const DEFAULT_PROJECT_BOARD: ProjectBoard = {
   inboxColumnId: BoardColumnId.make("in-progress"),
   liveColumnId: BoardColumnId.make("testing"),
   doneColumnId: BoardColumnId.make("done"),
+  // Supadesign: a card's note is banked, so moving it from Ideas to In progress starts it.
+  sendColumnId: BoardColumnId.make("in-progress"),
 };
 
 export type ProjectBoardFlag = "inbox" | "live" | "send" | "done";

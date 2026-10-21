@@ -98,7 +98,9 @@ work before starting it, select **+** on a column and write what you want to
 work on: the first line is the card's title and the rest its summary. **Enter**
 adds the card and leaves room for the next one; **Shift+Enter** starts a new
 line. The card says **Not started** until you send it something. Its note waits
-in the card's composer, so opening it and pressing **Enter** starts the agent.
+as a banked message, so moving the card into the column that sends banked
+messages, **In progress** on a new board, starts the agent with it. You can also
+open the card and select **Send all**.
 A card added to the live preview column goes under the live card, so it doesn't
 change what is running.
 
@@ -134,7 +136,7 @@ card to another column, and it does what the same drag would: moving to done
 archives, moving to the send column sends banked messages, and moving out of
 the live preview column stops the card's server. A move into or out of a column
 with automations runs them too. Cards an agent adds wait unstarted, like
-yours. An agent can also bank a message on a card, which waits with the
+yours, with their title and summary banked. An agent can also bank a message on a card, which waits with the
 card's other banked messages without starting its agent.
 
 ## Progress images
@@ -178,9 +180,11 @@ under **Banked**, where you can read, edit, reorder, and remove them, and the
 card shows how many it holds. **Send all** sends them to the agent as one
 message, in order.
 
-To send a card's bank by moving it, choose **Send banked messages here** from a
-column's **…** menu. Moving a card with banked messages into that column sends
-them and starts its agent. Banked messages are kept by the server, so they
+On a new board, moving a card with banked messages into **In progress** sends
+them and starts its agent. To send from another column, or if your board
+doesn't do this yet, choose **Send banked messages here** from that column's
+**…** menu; **Stop sending banked messages** turns it off. Adding a card straight
+into that column doesn't send its note. Banked messages are kept by the server, so they
 follow the card to your other devices.
 
 ## Each card works in its own copy

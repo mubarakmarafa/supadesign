@@ -9,6 +9,7 @@ import * as BoardAutomation from "../../../boardAutomation/BoardAutomationServic
 import * as ThreadLaunch from "../../../orchestration-v2/ThreadLaunchService.ts";
 import * as Project from "../../../project/ProjectService.ts";
 import * as ProjectBoard from "../../../projectBoard/ProjectBoardService.ts";
+import * as ThreadBank from "../../../threadBank/ThreadBankService.ts";
 import * as ThreadProgress from "../../../threadProgress/ThreadProgressService.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import {
@@ -139,11 +140,24 @@ export const layer = McpToolAccess.toLayer(BoardToolkit, {
               : unavailable(),
           ),
         );
-        if (input.summary !== undefined && input.summary.trim().length > 0) {
+        const summary = input.summary?.trim() ?? "";
+        if (summary.length > 0) {
           const progress = yield* ThreadProgress.ThreadProgressService;
-          yield* progress.setSummary({ threadId, text: input.summary, source: "agent" });
+          yield* progress.setSummary({ threadId, text: summary, source: "agent" });
         }
         const placement = yield* board.placeNewCard({ threadId, columnId: input.columnId });
+        // The card's note waits in its bank, so moving it into the send column starts it.
+        // Banked after placing, so a card added straight to the send column waits too.
+        yield* ThreadBank.ThreadBankService.pipe(
+          Effect.flatMap((bank) =>
+            bank.add({
+              threadId,
+              text: summary.length > 0 ? `${input.title}\n${summary}` : input.title,
+              attachments: [],
+            }),
+          ),
+          Effect.catch((error) => Effect.logWarning("Could not bank a new card's note", { error })),
+        );
         return { threadId, ...placement };
       }),
   ),

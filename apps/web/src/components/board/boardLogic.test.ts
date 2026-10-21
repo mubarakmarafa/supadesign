@@ -126,11 +126,12 @@ describe("board column editing", () => {
   });
 
   it("toggles the send flag and keeps it off the done column", () => {
-    const sending = setBoardColumnFlag(board, col("in-progress"), "send");
-    expect(sending?.sendColumnId).toBe("in-progress");
-    expect(setBoardColumnFlag(sending!, col("in-progress"), "send")?.sendColumnId).toBeNull();
+    expect(board.sendColumnId).toBe("in-progress");
+    expect(setBoardColumnFlag(board, col("in-progress"), "send")?.sendColumnId).toBeNull();
+    const sending = setBoardColumnFlag(board, col("ideas"), "send");
+    expect(sending?.sendColumnId).toBe("ideas");
     expect(setBoardColumnFlag(board, col("done"), "send")).toBeNull();
-    expect(setBoardColumnFlag(sending!, col("in-progress"), "done")).toBeNull();
+    expect(setBoardColumnFlag(sending!, col("ideas"), "done")).toBeNull();
   });
 
   it("drops the send flag with its deleted column", () => {
@@ -220,7 +221,7 @@ describe("column settings", () => {
     expect(boardColumnSettings(next, col("in-progress"))).toEqual({
       title: "Ship",
       live: true,
-      send: false,
+      send: true,
       onEnter: [merge],
       onLeave: [],
       moveWhenDone: null,
