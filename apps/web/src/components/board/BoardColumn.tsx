@@ -4,6 +4,7 @@ import type {
   BoardColumnId,
   LiveEnvironmentSnapshot,
   ProjectBoardColumn,
+  ThreadBrief,
   ThreadProgress,
 } from "@supaterm/contracts";
 import { useDroppable } from "@dnd-kit/core";
@@ -122,6 +123,7 @@ export const BoardColumn = memo(function BoardColumn({
   automations,
   bankedCounts,
   progressByThread,
+  briefsByThread,
   tabbableCardId,
   peekedCardId,
   canEdit,
@@ -148,6 +150,7 @@ export const BoardColumn = memo(function BoardColumn({
   automations: ReadonlyMap<string, BoardAutomationRun>;
   bankedCounts: ReadonlyMap<string, number>;
   progressByThread: ReadonlyMap<string, ThreadProgress>;
+  briefsByThread: ReadonlyMap<string, ThreadBrief>;
   tabbableCardId: string | null;
   /** The card peeked over the board, shown as selected. */
   peekedCardId: string | null;
@@ -278,6 +281,7 @@ export const BoardColumn = memo(function BoardColumn({
               automation={automations.get(thread.id)}
               progress={progressByThread.get(thread.id)}
               bankedCount={bankedCounts.get(thread.id) ?? 0}
+              brief={briefsByThread.get(thread.id)}
               tabbable={thread.id === tabbableCardId}
               peeked={thread.id === peekedCardId}
               canDrag={canDrag}

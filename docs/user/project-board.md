@@ -175,6 +175,28 @@ works in the browser as well as the desktop app.
 **Compare** shows two images side by side with when each was taken and what the
 agent said about it. Select any image below to swap it in.
 
+## Brief and decisions
+
+Each card can carry a brief: where the work is headed and what done looks like,
+in your words. It sits under the thread's title, beside the agent's own goal
+rather than replacing it. Select **Brief** to collapse or expand it.
+
+A card starts without a brief. Select **Write a brief**, or **Start from the
+card note** (**Start from the first message** once the card has started) to
+begin from what you already wrote. **Edit** changes it later; earlier versions
+are kept, so changing direction doesn't lose the old one.
+
+Under the brief, **Decisions** lists choices already made. **Add** records one
+of yours. The card's agent can read the brief and decisions, and can suggest a
+decision when it makes a choice that shapes later work. A suggestion waits
+until you **Accept** it, **Edit** it into your own words, or **Reject** it.
+Rejected suggestions leave the list, and the agent can't suggest them again;
+**Undo** on the notice brings one back. Hover a decision to edit or remove it.
+Only you can change the brief or settle a suggestion.
+
+A card with decisions shows a count under its summary, such as **2 decided · 1
+to review**.
+
 ## Bank messages for later
 
 Context rarely arrives in one go. Press **Option+Enter** (`Alt+Enter` on Windows

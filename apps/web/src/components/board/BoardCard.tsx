@@ -5,6 +5,7 @@ import type {
   BoardColumnId,
   EnvironmentId,
   LiveEnvironmentSnapshot,
+  ThreadBrief,
   ThreadProgress,
   ThreadProgressUpdate,
 } from "@supaterm/contracts";
@@ -14,6 +15,7 @@ import {
   EllipsisIcon,
   HistoryIcon,
   LayersIcon,
+  ListChecksIcon,
   Maximize2Icon,
   MessageCircleQuestionIcon,
   TriangleAlertIcon,
@@ -23,6 +25,7 @@ import { memo, type KeyboardEvent, type MouseEvent, type ReactNode } from "react
 import { useAssetUrlState } from "../../assets/assetUrls";
 import { cn } from "~/lib/utils";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
+import { decisionCounts, decisionPillLabel } from "../brief/brief.logic";
 import { cardSummaryText, coverState, type CoverState } from "../progress/cardProgress.logic";
 import { progressImageResource } from "../progress/progressImage";
 import { Button } from "../ui/button";
@@ -128,11 +131,13 @@ function BoardCardFace({
   thread,
   progress,
   bankedCount,
+  brief,
   onViewProgress,
 }: {
   thread: EnvironmentThreadShell;
   progress: ThreadProgress | undefined;
   bankedCount: number;
+  brief: ThreadBrief | undefined;
   onViewProgress: (() => void) | null;
 }) {
   const status = resolveThreadStatusPill({ thread });
@@ -141,6 +146,8 @@ function BoardCardFace({
   const summary = cardSummaryText(progress, thread.goal?.objective);
   const cover = progress?.updates.at(-1);
   const questions = cover?.questions.length ?? 0;
+  const decisions = decisionCounts(brief);
+  const decisionLabel = decisionPillLabel(decisions);
   return (
     <>
       {progress && cover ? (
@@ -160,7 +167,7 @@ function BoardCardFace({
             {summary}
           </span>
         ) : null}
-        {status || notStarted || bankedCount > 0 || questions > 0 ? (
+        {status || notStarted || bankedCount > 0 || questions > 0 || decisionLabel !== null ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-xs">
             {status ? (
               // The sidebar pulses live statuses; a board shows many at once, so it stays still.
@@ -200,6 +207,17 @@ function BoardCardFace({
                 </span>
               )
             ) : null}
+            {decisionLabel !== null ? (
+              <span
+                className={cn(
+                  "flex items-center gap-1",
+                  decisions.toReview > 0 ? "text-warning-foreground" : "text-muted-foreground",
+                )}
+              >
+                <ListChecksIcon aria-hidden className="size-3 shrink-0" />
+                {decisionLabel}
+              </span>
+            ) : null}
             {bankedCount > 0 ? (
               <span className="flex items-center gap-1 text-muted-foreground">
                 <LayersIcon aria-hidden className="size-3 shrink-0" />
@@ -222,6 +240,7 @@ export const BoardCard = memo(function BoardCard({
   automation,
   progress,
   bankedCount,
+  brief,
   tabbable,
   peeked,
   canDrag,
@@ -236,6 +255,8 @@ export const BoardCard = memo(function BoardCard({
   progress: ThreadProgress | undefined;
   /** Messages banked on the card, waiting to be sent together. */
   bankedCount: number;
+  /** The card's brief and decisions. */
+  brief: ThreadBrief | undefined;
   /** Roving tabindex: exactly one card on the board is in the tab order. */
   tabbable: boolean;
   peeked: boolean;
@@ -298,6 +319,7 @@ export const BoardCard = memo(function BoardCard({
           thread={thread}
           progress={progress}
           bankedCount={bankedCount}
+          brief={brief}
           onViewProgress={() => handlers.onViewProgress(thread.id)}
         />
         {automation ? (
@@ -353,10 +375,12 @@ export function BoardCardOverlay({
   thread,
   progress,
   bankedCount,
+  brief,
 }: {
   thread: EnvironmentThreadShell;
   progress: ThreadProgress | undefined;
   bankedCount: number;
+  brief: ThreadBrief | undefined;
 }) {
   return (
     <div className={cn(CARD_CLASS, "-rotate-1 shadow-lg")}>
@@ -364,6 +388,7 @@ export function BoardCardOverlay({
         thread={thread}
         progress={progress}
         bankedCount={bankedCount}
+        brief={brief}
         onViewProgress={null}
       />
     </div>

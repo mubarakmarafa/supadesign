@@ -64,6 +64,7 @@ import * as ProjectBoardLayer from "./projectBoard/layer.ts";
 import * as ThreadBankLayer from "./threadBank/layer.ts";
 import * as BoardAutomationLayer from "./boardAutomation/layer.ts";
 import * as ThreadProgressLayer from "./threadProgress/layer.ts";
+import * as ThreadBriefLayer from "./threadBrief/layer.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
 import * as PortScannerWorkspaceRoots from "./preview/workspaceRoots.ts";
@@ -551,13 +552,14 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   // progress captures the live card after each turn, so it builds on live environments.
   // Column automations watch every card move, fold a card's bank into a prompt, and
   // move a card on through the board once its agent reports the steps are done.
+  // A card's brief can start from its banked note, so briefs build on banks.
   BoardAutomationLayer.layer.pipe(
     Layer.provideMerge(
       ProjectBoardLayer.layer.pipe(
         Layer.provideMerge(
           Layer.merge(
             ThreadProgressLayer.layer.pipe(Layer.provideMerge(LiveEnvironmentLayer.layer)),
-            ThreadBankLayer.layer,
+            ThreadBriefLayer.layer.pipe(Layer.provideMerge(ThreadBankLayer.layer)),
           ),
         ),
       ),

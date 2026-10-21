@@ -102,6 +102,7 @@ import { ProjectTabsBar, useProjectTabsMode, useShowProjectTab } from "../projec
 import { cardSummaryText } from "../progress/cardProgress.logic";
 import { ProgressViewer } from "../progress/ProgressViewer";
 import { useProjectThreadProgress, useThreadProgressSupported } from "../progress/progressState";
+import { useProjectThreadBriefs } from "../brief/briefState";
 import { SummaryDialog } from "../progress/SummaryDialog";
 import { threadProgress } from "../../state/threadProgress";
 import { BoardCardOverlay, type BoardCardHandlers } from "./BoardCard";
@@ -373,6 +374,7 @@ function ProjectBoardView({
   const progressSupported = useThreadProgressSupported(projectRef.environmentId);
   const progressByThread = useProjectThreadProgress(projectRef.environmentId, projectRef.projectId);
   const captureProgress = useAtomCommand(threadProgress.capture);
+  const briefsByThread = useProjectThreadBriefs(projectRef.environmentId, projectRef.projectId);
   const [viewingProgressId, setViewingProgressId] = useState<string | null>(null);
   const [editingSummaryId, setEditingSummaryId] = useState<string | null>(null);
   const setThreadSummary = useAtomCommand(threadProgress.setSummary);
@@ -1282,6 +1284,7 @@ function ProjectBoardView({
               automations={automations}
               bankedCounts={bankedCounts}
               progressByThread={progressByThread}
+              briefsByThread={briefsByThread}
               tabbableCardId={tabbableCardId}
               peekedCardId={peekedCardId}
               canEdit={canOperate}
@@ -1353,6 +1356,7 @@ function ProjectBoardView({
             thread={activeThread}
             progress={progressByThread.get(activeThread.id)}
             bankedCount={bankedCounts.get(activeThread.id) ?? 0}
+            brief={briefsByThread.get(activeThread.id)}
           />
         ) : null}
       </DragOverlay>

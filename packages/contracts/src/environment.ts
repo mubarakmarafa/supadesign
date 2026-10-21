@@ -185,6 +185,8 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   boardAutomations: Schema.optionalKey(Schema.Boolean),
   /** Server keeps card progress images and summaries (threadProgress.* RPCs). */
   threadProgress: Schema.optionalKey(Schema.Boolean),
+  /** Server keeps each card's brief and decisions (threadBrief.* RPCs). */
+  threadBrief: Schema.optionalKey(Schema.Boolean),
   /** Server answers projects.summary for the projects grid. */
   projectSummary: Schema.optionalKey(Schema.Boolean),
   /** Server understands thread.auto-settle.set (per-thread auto-settle off).

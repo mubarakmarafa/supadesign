@@ -303,6 +303,10 @@
       "types": "./src/state/threadProgress.ts",
       "default": "./src/state/threadProgress.ts"
     },
+    "./state/thread-brief": {
+      "types": "./src/state/threadBrief.ts",
+      "default": "./src/state/threadBrief.ts"
+    },
     "./state/project-summary": {
       "types": "./src/state/projectSummary.ts",
       "default": "./src/state/projectSummary.ts"

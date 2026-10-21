@@ -250,6 +250,7 @@ export const make = Effect.gen(function* () {
       threadBank: true,
       boardAutomations: true,
       threadProgress: true,
+      threadBrief: true,
       projectSummary: true,
       threadAutoSettleOptOut: true,
       threadTitleRegeneration: true,

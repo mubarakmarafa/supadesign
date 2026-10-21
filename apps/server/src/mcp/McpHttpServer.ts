@@ -33,6 +33,8 @@ import { BoardToolkit } from "./toolkits/board/tools.ts";
 import * as BoardHandlers from "./toolkits/board/handlers.ts";
 import { BankToolkit } from "./toolkits/bank/tools.ts";
 import * as BankHandlers from "./toolkits/bank/handlers.ts";
+import { BriefToolkit } from "./toolkits/brief/tools.ts";
+import * as BriefHandlers from "./toolkits/brief/handlers.ts";
 import * as ProgressHandlers from "./toolkits/progress/handlers.ts";
 import { EnvironmentToolkit } from "./toolkits/environment/tools.ts";
 import * as EnvironmentHandlers from "./toolkits/environment/handlers.ts";
@@ -839,6 +841,8 @@ const layerBoardRegistration = toolkitRegistration(BoardToolkit, BoardHandlers.l
 
 const layerBankRegistration = toolkitRegistration(BankToolkit, BankHandlers.layer);
 
+const layerBriefRegistration = toolkitRegistration(BriefToolkit, BriefHandlers.layer);
+
 const layerPreviewControlsRegistration = toolkitRegistration(
   PreviewControlsToolkit,
   PreviewControlsHandlers.layer,
@@ -896,6 +900,7 @@ export const layer = Layer.mergeAll(
   layerProgressRegistration,
   layerBoardRegistration,
   layerBankRegistration,
+  layerBriefRegistration,
   layerWorktreeToolkitRegistration,
   layerPullRequestsToolkit,
   layerDeviceToolkit,

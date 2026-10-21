@@ -2,6 +2,7 @@ import {
   type BoardAutomationRunList,
   type LiveEnvironmentList,
   type ThreadBankList,
+  type ThreadBriefList,
   type ThreadProgressList,
   WS_METHODS,
   WsBoardRpcGroup,
@@ -14,6 +15,7 @@ import * as BoardAutomation from "./boardAutomation/BoardAutomationService.ts";
 import * as LiveEnvironment from "./liveEnvironment/LiveEnvironmentService.ts";
 import * as ProjectSummary from "./project/ProjectSummary.ts";
 import * as ThreadBank from "./threadBank/ThreadBankService.ts";
+import * as ThreadBrief from "./threadBrief/ThreadBriefService.ts";
 import * as ThreadProgress from "./threadProgress/ThreadProgressService.ts";
 
 /** Streams a service's per-project list: now, then after every change, until the client leaves. */
@@ -37,6 +39,7 @@ export const layer = WsBoardRpcGroup.toLayer(
     const threadBanks = yield* ThreadBank.ThreadBankService;
     const boardAutomations = yield* BoardAutomation.BoardAutomationService;
     const threadProgress = yield* ThreadProgress.ThreadProgressService;
+    const threadBriefs = yield* ThreadBrief.ThreadBriefService;
     const projectSummary = yield* ProjectSummary.ProjectSummary;
 
     return WsBoardRpcGroup.of({
@@ -81,6 +84,22 @@ export const layer = WsBoardRpcGroup.toLayer(
       [WS_METHODS.subscribeThreadProgress]: (input) =>
         subscription<ThreadProgressList>((listener) =>
           threadProgress.subscribe(input.projectId, listener),
+        ),
+      // Clients act as the designer; agents reach briefs only through their MCP tools.
+      [WS_METHODS.threadBriefSet]: (input) =>
+        threadBriefs.setBrief({ ...input, by: "designer" }).pipe(Effect.asVoid),
+      [WS_METHODS.threadBriefSeed]: (input) => threadBriefs.seedBrief(input.threadId),
+      [WS_METHODS.threadDecisionAdd]: (input) =>
+        threadBriefs.addDecision({ ...input, by: "designer" }).pipe(Effect.asVoid),
+      [WS_METHODS.threadDecisionAccept]: (input) =>
+        threadBriefs.acceptDecision({ ...input, by: "designer" }).pipe(Effect.asVoid),
+      [WS_METHODS.threadDecisionReject]: (input) =>
+        threadBriefs.rejectDecision({ ...input, by: "designer" }),
+      [WS_METHODS.threadDecisionRestore]: (input) =>
+        threadBriefs.restoreDecision({ ...input, by: "designer" }),
+      [WS_METHODS.subscribeThreadBriefs]: (input) =>
+        subscription<ThreadBriefList>((listener) =>
+          threadBriefs.subscribe(input.projectId, listener),
         ),
       [WS_METHODS.projectsSummary]: (input) => projectSummary.describe(input.projectId),
     });
