@@ -109,7 +109,8 @@ export function feedbackStatus(
 /**
  * A card's history as rounds, newest first: each message the designer sent,
  * then the images, decisions and brief edits that followed until the next.
- * Decisions count when they were settled, suggestions when they were made.
+ * Decisions count when they were settled, suggestions when they were made,
+ * and the designer's own capture goes with the marked message it fed.
  */
 export function buildCardHistory(input: {
   readonly messages: ReadonlyArray<HistoryMessage>;
@@ -141,7 +142,16 @@ export function buildCardHistory(input: {
     images: [] as ThreadProgressUpdate[],
     events: [] as HistoryEvent[],
   }));
-  for (const image of images) buckets[roundOf(timeOf(image.createdAt)) + 1]!.images.push(image);
+  // The designer captures a screen to mark it up, so a capture taken just
+  // before a message with marks belongs with that message, not the round before.
+  const roundOfImage = (image: ThreadProgressUpdate) => {
+    const round = roundOf(timeOf(image.createdAt));
+    const next = messages[round + 1];
+    return image.source === "designer" && next !== undefined && next.markCount > 0
+      ? round + 1
+      : round;
+  };
+  for (const image of images) buckets[roundOfImage(image) + 1]!.images.push(image);
   for (const event of events) buckets[roundOf(event.at) + 1]!.events.push(event);
 
   const rounds: HistoryRound[] = [];

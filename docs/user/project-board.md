@@ -322,6 +322,9 @@ of the branch beside it; the project folder's branch is never switched. A
 worktree created for a pull request or branch first runs the project's setup
 script.
 
+The live card's agent is told where its preview runs, so it checks its work
+there and shows you progress from it instead of starting a server of its own.
+
 When a card stops being live it stays **warm** for 10 minutes, so switching
 between cards doesn't restart their servers. **Stop now** ends it early. Moving
 a card out of the column, or archiving it anywhere, stops it right away and
