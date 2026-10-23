@@ -28,6 +28,7 @@ import * as GitManager from "../git/GitManager.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ThreadLaunch from "../orchestration-v2/ThreadLaunchService.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
+import * as TurnContext from "../orchestration-v2/TurnContext.ts";
 import * as PortScanner from "../preview/PortScanner.ts";
 import { forkParked } from "../serverActivation.ts";
 import * as ProjectService from "../project/ProjectService.ts";
@@ -42,6 +43,7 @@ import {
   suggestNestedDevScript,
 } from "./devScriptSuggestion.ts";
 import * as LiveEnvironment from "./LiveEnvironmentService.ts";
+import { livePreviewTurnContext } from "./livePreviewTurnContext.ts";
 
 /** One dev server terminal per card; terminal ids are scoped to the thread. */
 const DEV_SERVER_TERMINAL_ID = "live-dev";
@@ -717,4 +719,25 @@ export const make = Effect.gen(function* () {
   return service;
 });
 
-export const layer = Layer.effect(LiveEnvironment.LiveEnvironmentService, make);
+/** The live card's agent hears where its preview runs whenever that changes. */
+export const layer = Layer.effect(
+  LiveEnvironment.LiveEnvironmentService,
+  Effect.gen(function* () {
+    const service = yield* make;
+    const turnContext = yield* TurnContext.TurnContext;
+    yield* turnContext.register({
+      key: "card-live-preview",
+      read: (threadId) =>
+        service
+          .list()
+          .pipe(
+            Effect.map((environments) =>
+              livePreviewTurnContext(
+                environments.find((environment) => environment.threadId === threadId),
+              ),
+            ),
+          ),
+    });
+    return service;
+  }),
+);

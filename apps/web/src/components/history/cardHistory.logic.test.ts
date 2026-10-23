@@ -144,6 +144,23 @@ describe("buildCardHistory", () => {
     expect(rounds[0]?.status).toEqual({ kind: "waiting" });
   });
 
+  it("files the designer's capture with the marked message it was sent with", () => {
+    const marked = { ...message("marked", 10), markCount: 1 };
+    const rounds = buildCardHistory({
+      messages: [message("first", 0), marked, message("plain", 20)],
+      replies: [],
+      runs: [run("first", "completed", 1, 5)],
+      images: [image("shot", 8, "designer"), image("note", 18, "designer")],
+      decisions: [],
+      briefVersions: [],
+    });
+    const byId = new Map(rounds.map((round) => [round.id, round]));
+    expect(byId.get("marked")?.images.map((update) => update.id)).toEqual(["shot", "note"]);
+    expect(byId.get("first")?.images).toEqual([]);
+    // Its own capture never answers the designer's earlier message.
+    expect(byId.get("first")?.status).toEqual({ kind: "done", at: at(5) });
+  });
+
   it("has no rounds for a card with nothing in it", () => {
     expect(
       buildCardHistory({

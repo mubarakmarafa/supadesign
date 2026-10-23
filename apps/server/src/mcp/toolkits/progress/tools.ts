@@ -22,7 +22,7 @@ const shared = {
 
 const ProgressPublishTool = Tool.make("supaterm_progress_publish", {
   ...shared,
-  description: `Show the designer your work in progress. Supadesign screenshots the running app and makes it the cover of this thread's board card, with your note. Publish when an early layout is reviewable, after a consequential visual choice, after addressing feedback, or when you need the designer's judgment before investing further, not only at the end. Without url it captures this card's live preview; pass url when you run the dev server yourself. Ask questions only when a decision is genuinely the designer's.`,
+  description: `Show the designer your work in progress. Supadesign screenshots the running app and makes it the cover of this thread's board card, with your note. Publish when an early layout is reviewable, after a consequential visual choice, after addressing feedback, or when you need the designer's judgment before investing further, not only at the end. Without url it captures this card's live preview, which is where to check your work; pass url only for a page the live preview doesn't serve. Ask questions only when a decision is genuinely the designer's.`,
   parameters: Schema.Struct({
     note: Schema.String.annotate({
       description:
