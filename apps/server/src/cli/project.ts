@@ -3,6 +3,7 @@ import {
   CommandId,
   EnvironmentHttpApi,
   EnvironmentHttpCommonError,
+  EnvironmentRequestInvalidError,
   type ProjectMutation,
   type ProjectSnapshot,
   ProjectId,
@@ -53,6 +54,7 @@ type ProjectCommandExecutionMode = "live" | "offline";
 type ProjectCliDispatchCommand = ProjectMutation;
 
 const isEnvironmentHttpCommonError = Schema.is(EnvironmentHttpCommonError);
+const isEnvironmentRequestInvalidError = Schema.is(EnvironmentRequestInvalidError);
 
 export class ProjectCommandIdGenerationError extends Schema.TaggedError<ProjectCommandIdGenerationError>()(
   "ProjectCommandIdGenerationError",
@@ -157,6 +159,19 @@ export class ProjectAlreadyExistsError extends Schema.TaggedError<ProjectAlready
   }
 }
 
+export class ProjectHasThreadsError extends Schema.TaggedError<ProjectHasThreadsError>()(
+  "ProjectHasThreadsError",
+  {
+    operation: Schema.Literal("removeProject"),
+    projectId: ProjectId,
+    title: Schema.String,
+  },
+) {
+  override get message(): string {
+    return `Project '${this.title}' still has threads. Re-run with --force to remove it and delete all of its threads.`;
+  }
+}
+
 export const ProjectCommandError = Schema.Union([
   ProjectCommandIdGenerationError,
   ProjectLiveServerDeclaredResponseError,
@@ -166,8 +181,11 @@ export const ProjectCommandError = Schema.Union([
   ProjectIdentifierEmptyError,
   ProjectNotFoundError,
   ProjectAlreadyExistsError,
+  ProjectHasThreadsError,
 ]);
 export type ProjectCommandError = typeof ProjectCommandError.Type;
+
+const isProjectNotEmptyError = Schema.is(ProjectService.ProjectNotEmptyError);
 
 export function projectCommandErrorFromLiveServerRequest(cause: unknown): ProjectCommandError {
   if (isEnvironmentHttpCommonError(cause)) {
@@ -338,10 +356,14 @@ const dispatchLiveOrchestrationCommand = Effect.fn("project.dispatchLiveOrchestr
       payload: command,
     } as Parameters<typeof client.projects.mutate>[0]);
   },
-  (effect, _origin, _bearerToken, _command) =>
+  (effect, _origin, _bearerToken, command) =>
     effect.pipe(
       withProjectCliLiveServerTimeout,
-      Effect.mapError(projectCommandErrorFromLiveServerRequest),
+      Effect.mapError((cause) =>
+        isEnvironmentRequestInvalidError(cause) && cause.reason === "project_not_empty"
+          ? new ProjectService.ProjectNotEmptyError({ projectId: command.projectId })
+          : projectCommandErrorFromLiveServerRequest(cause),
+      ),
     ),
 );
 
@@ -533,7 +555,17 @@ const projectRemoveCommand = Command.make("remove", {
           commandId: CommandId.make(yield* projectCommandUuid),
           projectId: project.id,
           force: flags.force,
-        });
+        }).pipe(
+          Effect.catchIf(isProjectNotEmptyError, () =>
+            Effect.fail(
+              new ProjectHasThreadsError({
+                operation: "removeProject",
+                projectId: project.id,
+                title: project.title,
+              }),
+            ),
+          ),
+        );
         return `Removed project ${project.id} (${project.title}).`;
       }),
     ),

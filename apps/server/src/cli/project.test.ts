@@ -41,6 +41,7 @@ import * as SupatermProjectFileLoader from "../project/SupatermProjectFileLoader
 import * as ServerSettings from "../serverSettings.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 import {
+  ProjectHasThreadsError,
   ProjectLiveServerDeclaredResponseError,
   ProjectLiveServerRequestError,
   projectCommandErrorFromLiveServerRequest,
@@ -286,7 +287,8 @@ it.layer(NodeServices.layer)("project deletion with native V2 threads", (it) => 
         }),
       );
 
-      assert.include(error.message, "not empty");
+      assert.instanceOf(error, ProjectHasThreadsError);
+      assert.include(error.message, "still has threads. Re-run with --force");
       assert.deepEqual(
         (yield* readProjects(baseDir)).projects.map((entry) => entry.id),
         [project.id],
