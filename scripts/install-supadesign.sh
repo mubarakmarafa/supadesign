@@ -21,13 +21,15 @@ cleanup() {
 trap cleanup EXIT
 
 echo "Finding the latest release..."
-release_json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest")"
-dmg_url="$(printf '%s' "$release_json" | grep -o '"browser_download_url": *"[^"]*arm64\.dmg"' | head -n 1 | sed -E 's/.*"(https[^"]+)"$/\1/')"
-tag="$(printf '%s' "$release_json" | grep -o '"tag_name": *"[^"]*"' | head -n 1 | sed -E 's/.*"([^"]+)"$/\1/')"
-if [[ -z "$dmg_url" ]]; then
-  echo "The latest release has no arm64 DMG." >&2
+# Follow the releases/latest redirect instead of asking the GitHub API, which
+# allows only 60 anonymous requests an hour per network and then fails.
+latest_url="$(curl -fsSL -o /dev/null -w '%{url_effective}' "https://github.com/${repo}/releases/latest")"
+tag="${latest_url##*/tag/}"
+if [[ -z "$tag" || "$tag" == "$latest_url" ]]; then
+  echo "Couldn't find the latest release." >&2
   exit 1
 fi
+dmg_url="https://github.com/${repo}/releases/download/${tag}/supadesign-${tag#v}-arm64.dmg"
 
 echo "Downloading ${tag}..."
 curl -fL --progress-bar -o "${work}/${app_name}.dmg" "$dmg_url"
