@@ -269,7 +269,7 @@ export const BoardColumn = memo(function BoardColumn({
           ref={setNodeRef}
           data-board-column-list={column.id}
           aria-labelledby={headingId}
-          className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-2"
+          className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain p-2"
           onScroll={(event) => onListScroll(column.id, event.currentTarget.scrollTop)}
         >
           {newCard}
