@@ -60,8 +60,10 @@ vi.mock(import("../remoteOpen"), async (original) => ({
 vi.mock(import("../diagrams/mermaidRenderer"), async (original) => ({
   ...(await original()),
   renderMermaidDiagram: vi.fn(),
+  peekMermaidDiagram: vi.fn(),
 }));
-import { renderMermaidDiagram } from "../diagrams/mermaidRenderer";
+import { peekMermaidDiagram, renderMermaidDiagram } from "../diagrams/mermaidRenderer";
+import { stubDiagramGeometry } from "../../test/diagramGeometry";
 
 const settingsOverrides = vi.hoisted(() => ({ mathRenderingEnabled: false }));
 vi.mock(import("../hooks/useSettings"), async (original) => {
@@ -89,6 +91,7 @@ const diagramResult = (label: string) => ({
 function setup() {
   settingsOverrides.mathRenderingEnabled = false;
   renderDiagram.mockReset().mockResolvedValue(diagramResult("Diagram"));
+  vi.mocked(peekMermaidDiagram).mockReset();
   workspaceSearch.mockReset().mockResolvedValue(AsyncResult.success({ entries: [] }));
   filesystemMetadata.mockReset().mockResolvedValue(AsyncResult.success({ entries: [null] }));
 }
@@ -292,6 +295,7 @@ describe("ChatMarkdown bare anchor placeholders", () => {
 describe("ChatMarkdown Mermaid streaming", () => {
   it("reveals a completed fence while streaming and preserves it through later prose and stream end", async () => {
     setup();
+    using _geometry = stubDiagramGeometry();
     let finishRender!: (label: string) => void;
     renderDiagram.mockReturnValue(
       new Promise<Awaited<ReturnType<typeof renderMermaidDiagram>>>((resolve) => {
@@ -314,36 +318,38 @@ describe("ChatMarkdown Mermaid streaming", () => {
       expect(renderDiagram).toHaveBeenCalledWith(
         expect.stringContaining(source),
         expect.anything(),
+        undefined,
       ),
     );
-    expect(container.querySelector('svg[role="img"]')).toBeNull();
+    expect(container.querySelector("svg[aria-label]")).toBeNull();
     expect(container.querySelector(".chat-markdown-shiki")).toBeNull();
     const placeholder = container.querySelector("pre");
     expect(placeholder?.getAttribute("aria-hidden")).not.toBe("true");
     expect(placeholder?.textContent).toContain(source);
 
     await act(async () => finishRender("Completed diagram"));
-    const diagram = container.querySelector('svg[role="img"]');
+    const diagram = container.querySelector("svg[aria-label]");
     expect(diagram?.getAttribute("aria-label")).toBe("Completed diagram");
     for (const streaming of [true, false]) {
       await rerender(message(`${closed}The remaining explanation.`, streaming));
-      expect(container.querySelector('svg[role="img"]')).toBe(diagram);
+      expect(container.querySelector("svg[aria-label]")).toBe(diagram);
       expect(container.textContent).toContain("The remaining explanation.");
     }
 
     await act(async () =>
       [...container.querySelectorAll("button")]
-        .find((button) => button.textContent === "Source")!
+        .find((button) => button.getAttribute("aria-label") === "Show code")!
         .click(),
     );
-    expect(container.querySelector('svg[role="img"]')).toBeNull();
+    expect(container.querySelector("svg[aria-label]")).toBeNull();
     expect(container.querySelector("pre")?.textContent).toContain(source);
+    vi.mocked(peekMermaidDiagram).mockReturnValue(diagramResult("Completed diagram"));
     await act(async () =>
       [...container.querySelectorAll("button")]
-        .find((button) => button.textContent === "Diagram")!
+        .find((button) => button.getAttribute("aria-label") === "Show diagram")!
         .click(),
     );
-    expect(container.querySelector('svg[role="img"]')?.getAttribute("aria-label")).toBe(
+    expect(container.querySelector("svg[aria-label]")?.getAttribute("aria-label")).toBe(
       "Completed diagram",
     );
   });
@@ -362,6 +368,7 @@ describe("ChatMarkdown Mermaid streaming", () => {
     ],
   ])("keeps a %s in source until a real closer arrives", async (_, open, closing) => {
     setup();
+    using _geometry = stubDiagramGeometry();
     const message = (text: string) => <ChatMarkdown cwd={undefined} text={text} isStreaming />;
     await using screen = await render(message(open));
     const { container, rerender } = screen;
@@ -370,7 +377,7 @@ describe("ChatMarkdown Mermaid streaming", () => {
 
     await rerender(message(`${open}${closing}`));
     await vi.waitFor(() =>
-      expect(container.querySelector('svg[role="img"]')?.getAttribute("aria-label")).toBe(
+      expect(container.querySelector("svg[aria-label]")?.getAttribute("aria-label")).toBe(
         "Diagram",
       ),
     );
@@ -378,6 +385,7 @@ describe("ChatMarkdown Mermaid streaming", () => {
 
   it("does not mistake a CRLF stream cut after CR for a closed fence", async () => {
     setup();
+    using _geometry = stubDiagramGeometry();
     const open = "```mermaid\r\nflowchart LR\r\nA --> B\r\n\t```";
     const message = (text: string) => <ChatMarkdown cwd={undefined} text={text} isStreaming />;
     await using screen = await render(message(open));
@@ -389,7 +397,7 @@ describe("ChatMarkdown Mermaid streaming", () => {
 
     await rerender(message(`${open}\r\n\`\`\``));
     await vi.waitFor(() =>
-      expect(container.querySelector('svg[role="img"]')?.getAttribute("aria-label")).toBe(
+      expect(container.querySelector("svg[aria-label]")?.getAttribute("aria-label")).toBe(
         "Diagram",
       ),
     );
@@ -397,6 +405,7 @@ describe("ChatMarkdown Mermaid streaming", () => {
 
   it("falls back to source when a completed diagram fails during streaming", async () => {
     setup();
+    using _geometry = stubDiagramGeometry();
     await getSyntaxHighlighterPromise("mermaid");
     renderDiagram.mockResolvedValue(null);
     using _consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -408,9 +417,10 @@ describe("ChatMarkdown Mermaid streaming", () => {
       expect(renderDiagram).toHaveBeenCalledWith(
         expect.stringContaining("invalid diagram"),
         expect.anything(),
+        undefined,
       ),
     );
-    expect(container.querySelector('svg[role="img"]')).toBeNull();
+    expect(container.querySelector("svg[aria-label]")).toBeNull();
     expect(container.querySelector("pre")?.textContent).toContain("invalid diagram");
     expect(container.querySelector("pre")?.getAttribute("aria-hidden")).not.toBe("true");
   });
@@ -798,6 +808,7 @@ describe("ChatMarkdown diagrams", () => {
   ])(
     "renders completed fences while retaining unfinished source: $text",
     async ({ text, streaming, expected }) => {
+      using _geometry = stubDiagramGeometry();
       vi.mocked(renderMermaidDiagram).mockReset().mockResolvedValue({
         svg: '<svg xmlns="http://www.w3.org/2000/svg"><text>diagram</text></svg>',
         width: 100,
