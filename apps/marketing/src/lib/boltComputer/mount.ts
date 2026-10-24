@@ -48,8 +48,9 @@ const lookOf = (settings: BoltComputerSettings): Look => ({
 
 /**
  * Adds a canvas with the app icon's computer to `container`, filling it. It switches on, turns
- * toward a nearby pointer and hops with a spin on a click. Frames are drawn only while it moves.
- * The canvas reaches past the container so hops and the floor's shadow take no layout space.
+ * toward a nearby pointer and hops with a spin on a click. Frames are drawn only while it moves
+ * on screen. The canvas reaches past the container so hops and the floor's shadow take no layout
+ * space.
  * The error state shakes on forever unless `restAfter` seconds lets it rest between shakes.
  * Returns null, adding nothing, if the browser refuses a 2D context.
  */
@@ -64,7 +65,9 @@ export function mountBoltComputer(
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let settings = initial;
   let look = lookOf(settings);
-  const still = () => reducedMotion || settings.paused;
+  // Off screen it holds the still pose, so the canvas stays current for anything that reads it.
+  let onScreen = true;
+  const still = () => reducedMotion || settings.paused || !onScreen;
   const sim = new BoltComputerSim(Math.random(), settings.state, restAfter);
   const renderer = new BoltComputerRenderer();
   let frame = frameFor(container.clientWidth);
@@ -110,6 +113,10 @@ export function mountBoltComputer(
   place();
   container.append(canvas);
   new ResizeObserver(place).observe(container);
+  new IntersectionObserver(([entry]) => {
+    onScreen = entry?.isIntersecting ?? onScreen;
+    draw();
+  }).observe(canvas);
   onPointerMove(() => {
     if (!still() && (sim.pointer !== null || relativePointer() !== null)) draw();
   });
