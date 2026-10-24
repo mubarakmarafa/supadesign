@@ -38,16 +38,33 @@ describe("resolveMarkdownMediaPreview", () => {
     ["/tmp/frame%23one.png:12", "/tmp/frame#one.png"],
     ["/tmp/frame%3Fone.png:12:3", "/tmp/frame?one.png"],
     ["/tmp/frame%2523one.png:12", "/tmp/frame%23one.png"],
-    ["file://server/share/frame.png", "\\\\server\\share\\frame.png"],
-    ["\\\\server\\share\\frame.png", "\\\\server\\share\\frame.png"],
-  ])("keeps encoded filename and UNC semantics for %s", (href, path) => {
-    expect(resolveMarkdownMediaPreview(href, input)).toMatchObject({
+    ["file://server/share/frame.png", "\\\\server\\share\\frame.png", "\\\\server\\share"],
+    ["\\\\server\\share\\frame.png", "\\\\server\\share\\frame.png", "\\\\server\\share"],
+  ])("keeps encoded filename and UNC semantics for %s", (href, path, workspaceRoot = "/repo") => {
+    expect(resolveMarkdownMediaPreview(href, { ...input, workspaceRoot })).toMatchObject({
       kind: "image",
       source: {
         resource: { path },
         actionsSource: { reference: { kind: "file", path } },
       },
     });
+  });
+
+  it("opens a network image anywhere in the project from a nested Markdown file", () => {
+    const preview = {
+      ...input,
+      threadId: undefined,
+      workspaceRoot: "\\\\nas.test\\share\\project\\docs",
+      projectRoot: "\\\\nas.test\\share\\project",
+    };
+    const path = "\\\\nas.test\\share\\project\\images\\logo.png";
+    expect(
+      resolveMarkdownMediaPreview("file://nas.test/share/project/images/logo.png", preview),
+    ).toMatchObject({
+      kind: "image",
+      source: { resource: { _tag: "draft-workspace-file", cwd: preview.projectRoot, path } },
+    });
+    expect(resolveMarkdownMediaPreview("file://nas.test/share/other/logo.png", preview)).toBeNull();
   });
 
   it("separates a video playback fragment from literal filename characters", () => {

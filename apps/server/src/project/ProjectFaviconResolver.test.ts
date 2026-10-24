@@ -1,3 +1,4 @@
+import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { it, describe, expect } from "@effect/vitest";
 import * as Duration from "effect/Duration";
@@ -178,6 +179,75 @@ it.layer(layerTest)("ProjectFaviconResolverLive", (it) => {
         const resolved = yield* resolver.resolvePath(cwd, externalPath);
 
         expect(resolved).toBe(externalPath);
+      }),
+    );
+
+    // An agent can save the favicon path, and statting a network path sent the
+    // Windows user's NTLM credentials to its host.
+    it.effect("never stats a saved favicon on a network path outside the project", () =>
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem;
+        const cwd = yield* makeTempDir;
+        yield* writeTextFile(cwd, "favicon.svg", "<svg>automatic</svg>");
+        const statted: Array<string> = [];
+        const resolver = yield* makeResolverWithFileSystem(
+          FileSystem.FileSystem.of({
+            ...fileSystem,
+            stat: (filePath) => {
+              statted.push(filePath);
+              return fileSystem.stat(filePath);
+            },
+          }),
+        );
+
+        const resolved = yield* resolver.resolvePath(cwd, "//attacker.test/share/icon.png");
+
+        expect(resolved).toContain("favicon.svg");
+        expect(statted.filter((filePath) => filePath.includes("attacker.test"))).toEqual([]);
+      }),
+    );
+
+    // This resolves inside the project, but Windows reads `\\?\` paths as
+    // written, so statting the raw string signed in to attacker.test.
+    it.effect("stats the network favicon path it checked", () =>
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem;
+        const directory = yield* fileSystem.stat(yield* makeTempDir);
+        const project = "\\\\?\\UNC\\nas.test\\share\\project";
+        const statted: Array<string> = [];
+        const resolver = yield* ProjectFaviconResolver.make.pipe(
+          Effect.provide(
+            Layer.fresh(Layer.mergeAll(WorkspacePaths.layer, SupatermProjectFileLoader.layer)),
+          ),
+          Effect.provideService(
+            FileSystem.FileSystem,
+            FileSystem.FileSystem.of({
+              ...fileSystem,
+              stat: (filePath) => {
+                statted.push(filePath);
+                return filePath === project
+                  ? Effect.succeed(directory)
+                  : Effect.fail(
+                      PlatformError.systemError({
+                        _tag: "NotFound",
+                        module: "FileSystem",
+                        method: "stat",
+                        pathOrDescriptor: filePath,
+                      }),
+                    );
+              },
+            }),
+          ),
+          Effect.provide(NodePath.layerWin32),
+        );
+
+        yield* resolver.resolvePath(
+          project,
+          "\\\\?\\UNC\\attacker.test\\s\\..\\..\\nas.test\\share\\project\\icon.png",
+        );
+
+        expect(statted).toContain("\\\\?\\UNC\\nas.test\\share\\project\\icon.png");
+        expect(statted.filter((filePath) => filePath.includes("attacker.test"))).toEqual([]);
       }),
     );
 
