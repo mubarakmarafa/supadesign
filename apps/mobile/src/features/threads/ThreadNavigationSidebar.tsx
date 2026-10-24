@@ -1,3 +1,5 @@
+import { useActiveNewTask } from "../../state/active-new-task";
+import { ThreadUndoNotice } from "../home/ThreadUndoNotice";
 import { useThreadListV2Layout } from "./use-thread-list-v2-layout";
 import { useAndroidControlSizing } from "../../components/ui/useAndroidControlSizing";
 import { resolveScratchProjectScopeKey } from "@supaterm/client-runtime/state/project-grouping";
@@ -185,6 +187,7 @@ function ThreadNavigationSidebarPane(
     regenerateThreadTitle,
   } = useThreadListActions();
   const pendingTasks = usePendingNewTasks();
+  const activeNewTask = useActiveNewTask();
   const queuedThreadKeys = useQueuedThreadKeys();
   const { confirmDeletePendingTask } = usePendingTaskListActions();
   const environments = Object.values(savedConnectionsById)
@@ -316,6 +319,7 @@ function ThreadNavigationSidebarPane(
     now: new Date().toISOString(),
   }));
   if (listClock.nowMinute !== nowMinute || listClock.snoozeWakeTick !== snoozeWakeTick) {
+    // oxlint-disable-next-line react/purity -- Resamples the clock only when the minute or a snooze wake changes; the sample lives in state.
     setListClock({ nowMinute, snoozeWakeTick, now: new Date().toISOString() });
   }
   const listEnvironments = useAtomValue(threadListEnvironmentsAtom);
@@ -459,6 +463,7 @@ function ThreadNavigationSidebarPane(
   // clock deliberately stays out: its per-row text lives on the items, so a
   // tick only re-renders rows whose displayed text actually moved.
   const listExtraData = {
+    activeNewTask,
     selectedThreadKey: props.selectedThreadKey ?? "",
     projectByKey,
     projectScopes,
@@ -506,6 +511,14 @@ function ThreadNavigationSidebarPane(
         return (
           <ThreadListV2PendingRow
             pendingTask={item.pendingTask}
+            selected={
+              activeNewTask?.pendingKey === item.pendingTask.key ||
+              (item.pendingTask.kind === "pending" &&
+                scopedThreadKey(
+                  item.pendingTask.environmentId,
+                  item.pendingTask.message.threadId,
+                ) === props.selectedThreadKey)
+            }
             project={projectByKey.get(pendingScopeKey) ?? null}
             projectTitle={projectTitleByProjectKey.get(pendingScopeKey)}
             environmentLabel={
@@ -536,6 +549,7 @@ function ThreadNavigationSidebarPane(
             hasQueuedMessages={item.hasQueuedMessages}
             snoozed={item.item.snoozed}
             pinned={item.item.pinned}
+            wokeAt={item.item.wokeAt}
             snoozePresetMinute={item.snoozePresetMinute ?? ""}
             snoozeWakeLabelText={item.snoozeWakeLabelText}
             timeLabel={item.timeLabel}
@@ -558,7 +572,10 @@ function ThreadNavigationSidebarPane(
             )}
             searchQuery={props.searchQuery}
             pane="sidebar"
-            selected={scopedThreadKey(thread.environmentId, thread.id) === props.selectedThreadKey}
+            selected={
+              !activeNewTask &&
+              scopedThreadKey(thread.environmentId, thread.id) === props.selectedThreadKey
+            }
             fullSwipeWidth={props.width - 20}
             onSelectThread={handleSelectThread}
             onOpenThreadPullRequests={handleOpenThreadPullRequests}
@@ -786,6 +803,7 @@ function ThreadNavigationSidebarPane(
               />
             </GestureDetector>
           </SwipeableScrollGateProvider>
+          <ThreadUndoNotice visible={props.visible} />
         </View>
       </>
     );
@@ -926,6 +944,7 @@ function ThreadNavigationSidebarPane(
           </View>
         </View>
       )}
+      <ThreadUndoNotice visible={props.visible} />
     </View>
   );
 }
