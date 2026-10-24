@@ -6,9 +6,12 @@ import {
   KNOB,
   LED_PITCH,
   SCREEN_HOLE,
+  SLIDER,
   SLOT,
   extents,
   sd,
+  type Outline,
+  type V3,
 } from "./geometry";
 import { HALF, KEY, smooth } from "./light";
 
@@ -112,6 +115,22 @@ const glass: Distance = (u, v) => sd(SCREEN_HOLE, u, v, GASKET);
 const knob: Distance = (u, v) => Math.hypot(u - KNOB.x, v - KNOB.y) - KNOB.r;
 const slot: Distance = (u, v) =>
   Math.hypot(Math.max(0, Math.abs(u - SLOT.x) - (SLOT.hw - SLOT.hh)), v - SLOT.y) - SLOT.hh;
+const HANDLE_ROUND = 0.006;
+const HANDLE: Outline = {
+  cx: SLIDER.x,
+  cy: SLOT.y,
+  bx: SLIDER.hw - HANDLE_ROUND,
+  by: SLIDER.hh - HANDLE_ROUND,
+  r: HANDLE_ROUND,
+};
+const handle: Distance = (u, v) => sd(HANDLE, u, v);
+
+/** How fully a control standing `height` off the plate hides the key light from a point. */
+const shadowOf = (fn: Distance, u: number, v: number, height: number) =>
+  1 - smooth(-0.004, 0.004, fn(u + KEY[0] * height, v + KEY[1] * height));
+
+const controlShadow = (u: number, v: number) =>
+  0.42 * Math.max(shadowOf(knob, u, v, 0.014), shadowOf(handle, u, v, 0.016));
 
 function bakeFront(unit: number) {
   const lip = 0.03;
@@ -120,10 +139,13 @@ function bakeFront(unit: number) {
     for (const control of [knob, slot]) {
       const d = control(u, v);
       if (d < 0) return 0;
-      if (d < controlLip) return rollInto(control, u, v, d, controlLip) + grain;
+      if (d < controlLip)
+        return rollInto(control, u, v, d, controlLip) + grain - controlShadow(u, v);
     }
     const dh = hole(u, v);
-    if (dh >= 0) return dh < lip ? rollInto(hole, u, v, dh, lip) + grain : grain;
+    if (dh >= 0) {
+      return (dh < lip ? rollInto(hole, u, v, dh, lip) + grain : grain) - controlShadow(u, v);
+    }
     const dg = glass(u, v);
     if (dg >= 0) {
       const [gx, gy] = grad(glass, u, v);
@@ -242,6 +264,114 @@ export function grainPattern(ctx: CanvasRenderingContext2D) {
   }
   g.putImageData(image, 0, 0);
   return ctx.createPattern(canvas, "repeat");
+}
+
+const GROOVE_ALBEDO: V3 = [44, 48, 34];
+const RIDGES = [-0.008, 0, 0.008];
+
+/** `albedo` lit the way bakeRelief lights the shell: toward white above zero, black below. */
+const lit = (albedo: V3, light: number): V3 => {
+  const tone = light > 0 ? 255 : 0;
+  const k = Math.min(1, Math.abs(light));
+  return [
+    albedo[0] + (tone - albedo[0]) * k,
+    albedo[1] + (tone - albedo[1]) * k,
+    albedo[2] + (tone - albedo[2]) * k,
+  ];
+};
+
+interface Paint {
+  readonly color: V3;
+  readonly cover: number;
+}
+
+/** `color` covering as much of a pixel `px` wide as lies inside an edge `d` away. */
+const paint = (color: V3, d: number, px: number): Paint => ({
+  color,
+  cover: Math.min(1, Math.max(0, 0.5 - d / px)),
+});
+
+/** `top` laid over `under`, so an antialiased edge blends into what is beneath it. */
+function over(top: Paint | null, under: Paint | null): Paint | null {
+  if (!top || top.cover === 0) return under;
+  if (!under || under.cover === 0) return top;
+  const cover = top.cover + under.cover * (1 - top.cover);
+  const mixed = (c: number) =>
+    (top.color[c] * top.cover + under.color[c] * under.cover * (1 - top.cover)) / cover;
+  return { color: [mixed(0), mixed(1), mixed(2)], cover };
+}
+
+/** The handle's top is flat, its edges roll off over `bevel`, and ridges are cut across its middle. */
+function handleLight(u: number, v: number, inside: number): number {
+  const bevel = 0.007;
+  let [nx, ny, nz] = [0, 0, 1];
+  if (inside < bevel) {
+    const [gx, gy] = grad(handle, u, v);
+    const th = (1 - inside / bevel) * 1.25;
+    [nx, ny, nz] = [gx * Math.sin(th), gy * Math.sin(th), Math.cos(th)];
+  } else if (Math.abs(v - SLOT.y) < SLIDER.hh * 0.55) {
+    for (const ridge of RIDGES) {
+      const across = (u - SLIDER.x - ridge) / 0.0024;
+      if (Math.abs(across) < 1) nx = -across * 0.9;
+    }
+  }
+  return tilt(nx, ny, nz, 0.6, 28) * 1.15;
+}
+
+/** The slot's floor, the knob and the slider's handle, coloured and lit over the plate. */
+export function bakeControls(unit: number, knobs: V3) {
+  // The handle is a shade darker than the knob, as on the app icon.
+  const handleAlbedo: V3 = [knobs[0] * 0.88, knobs[1] * 0.88, knobs[2] * 0.88];
+  const canvas = makeCanvas(PLATE.hx * 2 * unit, PLATE.hy * 2 * unit);
+  const ctx = context2d(canvas);
+  const px = (PLATE.hx * 2) / canvas.width;
+  const left = Math.max(0, Math.floor((KNOB.x - KNOB.r + PLATE.hx) / px) - 2);
+  const right = Math.min(canvas.width, Math.ceil((SLOT.x + SLOT.hw + PLATE.hx) / px) + 2);
+  const top = Math.max(
+    0,
+    Math.floor((Math.min(KNOB.y - KNOB.r, SLOT.y - SLIDER.hh) + PLATE.hy) / px) - 2,
+  );
+  const bottom = Math.min(
+    canvas.height,
+    Math.ceil((Math.max(KNOB.y + KNOB.r, SLOT.y + SLIDER.hh) + PLATE.hy) / px) + 2,
+  );
+  const image = ctx.createImageData(right - left, bottom - top);
+  for (let iy = top; iy < bottom; iy++) {
+    const v = -PLATE.hy + (iy + 0.5) * px;
+    for (let ix = left; ix < right; ix++) {
+      const u = -PLATE.hx + (ix + 0.5) * px;
+      const grain = (hash(ix, iy) - 0.5) * 0.04;
+      const dk = knob(u, v);
+      const dh = handle(u, v);
+      const ds = slot(u, v);
+      let part: Paint | null = null;
+      if (dk < px) {
+        const dx = (u - KNOB.x) / KNOB.r;
+        const dy = (v - KNOB.y) / KNOB.r;
+        const nz = Math.sqrt(Math.max(0, 1 - dx * dx - dy * dy)) + 0.18;
+        part = paint(lit(knobs, tilt(dx, dy, nz, 0.6, 80) + grain), dk, px);
+      } else if (dh < px) {
+        part = paint(lit(handleAlbedo, handleLight(u, v, -dh) + grain), dh, px);
+      }
+      let floor: Paint | null = null;
+      if (ds < px) {
+        // The floor sits below the plate, so its top wall shades it from the key light.
+        const walled = smooth(-0.004, 0.004, slot(u + KEY[0] * 0.02, v + KEY[1] * 0.02));
+        const light = -0.55 * walled - 0.5 * shadowOf(handle, u, v, 0.016) + grain;
+        floor = paint(lit(GROOVE_ALBEDO, light), ds, px);
+      }
+      const pixel = over(part, floor);
+      if (!pixel) continue;
+      const { color, cover } = pixel;
+      const i = ((iy - top) * (right - left) + (ix - left)) * 4;
+      image.data[i] = color[0];
+      image.data[i + 1] = color[1];
+      image.data[i + 2] = color[2];
+      image.data[i + 3] = Math.round(cover * 255);
+    }
+  }
+  ctx.putImageData(image, left, top);
+  return canvas;
 }
 
 export interface Bakes {
