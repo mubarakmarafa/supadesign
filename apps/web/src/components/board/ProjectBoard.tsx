@@ -69,6 +69,7 @@ import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { randomUUID } from "../../lib/utils";
 import { readLocalApi } from "../../localApi";
 import {
+  showArchivedThreadShell,
   useAllEnvironmentShellsBootstrapped,
   useProject,
   useServerConfigs,
@@ -252,6 +253,7 @@ export function ProjectBoardPage() {
                 project={project}
                 canOperate={canOperate}
                 peekedCardId={peekedThread === null ? null : peekedCardId}
+                requestedPeekId={peekedCardId}
                 onPeek={peek}
               />
             }
@@ -264,6 +266,7 @@ export function ProjectBoardPage() {
             threadRef={peekThreadRef}
             projectId={project.id}
             title={peekedThread.title}
+            archived={peekedThread.archivedAt !== null}
             onClose={closePeek}
           />
         ) : null}
@@ -346,12 +349,15 @@ function ProjectBoardView({
   project,
   canOperate,
   peekedCardId,
+  requestedPeekId,
   onPeek,
 }: {
   projectRef: ScopedProjectRef;
   project: EnvironmentProject;
   canOperate: boolean;
   peekedCardId: string | null;
+  /** The peek in the URL, which may be an archived card only this board has loaded. */
+  requestedPeekId: string | null;
   onPeek: (threadId: string) => void;
 }) {
   const viewKey = scopedProjectKey(projectRef);
@@ -504,6 +510,16 @@ function ProjectBoardView({
         ? canonicalThreadById
         : new Map([...activePending.threads, ...canonicalThreadById]),
     [activePending, canonicalThreadById],
+  );
+  // Archived cards come from the board's own archive read, so the peek finds
+  // them only through this. A message reopens the card and its live shell takes over.
+  const peekedArchivedThread =
+    requestedPeekId === null ? null : (canonicalThreadById.get(requestedPeekId) ?? null);
+  const shownArchivedThread =
+    peekedArchivedThread?.archivedAt == null ? null : peekedArchivedThread;
+  useEffect(
+    () => (shownArchivedThread === null ? undefined : showArchivedThreadShell(shownArchivedThread)),
+    [shownArchivedThread],
   );
 
   // ── Drag state ──
@@ -832,9 +848,14 @@ function ProjectBoardView({
       const thread = threadById.get(id);
       if (!thread) return;
       updateView(viewKey, { focusedCardId: id });
+      // A Done card has no full thread until a message reopens it, so review it in the peek.
+      if (thread.archivedAt !== null) {
+        onPeek(id);
+        return;
+      }
       openThreadFromBoard(scopeThreadRef(thread.environmentId, thread.id), thread.projectId);
     },
-    [openThreadFromBoard, threadById, updateView, viewKey],
+    [onPeek, openThreadFromBoard, threadById, updateView, viewKey],
   );
 
   const moveCardToColumn = useCallback(

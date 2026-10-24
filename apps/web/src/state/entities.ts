@@ -9,6 +9,7 @@ import {
   type EnvironmentThreadStatus,
   type ThreadHistoryMeta,
 } from "@supaterm/client-runtime/state/threads";
+import { parseScopedThreadKey, scopedThreadKey } from "@supaterm/client-runtime/environment";
 import type { ScopedProjectRef, ScopedThreadRef, ServerConfig } from "@supaterm/contracts";
 import type { EnvironmentId, OrchestrationV2ProjectedTurnItem } from "@supaterm/contracts";
 import { Atom } from "effect/reactivity";
@@ -115,9 +116,40 @@ export function useProject(ref: ScopedProjectRef | null): EnvironmentProject | n
   return useAtomValue(ref === null ? EMPTY_PROJECT_ATOM : environmentProjects.projectAtom(ref));
 }
 
+// Archived threads are not in the live shell store. The board shows the one
+// it opens for review here, so its peek reads and writes to it like any thread.
+const shownArchivedShellsAtom = Atom.make<ReadonlyMap<string, EnvironmentThreadShell>>(
+  new Map(),
+).pipe(Atom.keepAlive, Atom.withLabel("web-shown-archived-thread-shells"));
+
+const threadShellOrShownArchivedAtom = Atom.family((key: string) => {
+  const ref = parseScopedThreadKey(key);
+  return Atom.make(
+    (get) =>
+      (ref === null ? null : get(environmentThreadShells.threadShellAtom(ref))) ??
+      get(shownArchivedShellsAtom).get(key) ??
+      null,
+  ).pipe(Atom.withLabel(`web-thread-shell-or-archived:${key}`));
+});
+
+/** Lets thread views read an archived thread's shell until the returned release runs. */
+export function showArchivedThreadShell(shell: EnvironmentThreadShell): () => void {
+  const key = scopedThreadKey({ environmentId: shell.environmentId, threadId: shell.id });
+  const update = (change: (next: Map<string, EnvironmentThreadShell>) => void) => {
+    const next = new Map(appAtomRegistry.get(shownArchivedShellsAtom));
+    change(next);
+    appAtomRegistry.set(shownArchivedShellsAtom, next);
+  };
+  update((next) => next.set(key, shell));
+  return () =>
+    update((next) => {
+      if (next.get(key) === shell) next.delete(key);
+    });
+}
+
 export function useThreadShell(ref: ScopedThreadRef | null): EnvironmentThreadShell | null {
   return useAtomValue(
-    ref === null ? EMPTY_THREAD_SHELL_ATOM : environmentThreadShells.threadShellAtom(ref),
+    ref === null ? EMPTY_THREAD_SHELL_ATOM : threadShellOrShownArchivedAtom(scopedThreadKey(ref)),
   );
 }
 
@@ -199,7 +231,7 @@ export function waitForProject(
 }
 
 export function readThreadShell(ref: ScopedThreadRef): EnvironmentThreadShell | null {
-  return appAtomRegistry.get(environmentThreadShells.threadShellAtom(ref));
+  return appAtomRegistry.get(threadShellOrShownArchivedAtom(scopedThreadKey(ref)));
 }
 
 export function waitForThreadShell(ref: ScopedThreadRef, timeoutMs = 5_000): Promise<boolean> {

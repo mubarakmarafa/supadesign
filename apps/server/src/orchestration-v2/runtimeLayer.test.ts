@@ -4876,6 +4876,76 @@ it.layer(layerSharedApplicationDataPlaneTest)("board placement projection", (it)
       assert.deepEqual(unarchived.thread.board, reordered.thread.board);
     }),
   );
+
+  it.effect("reopens an archived thread with a message, sending its card to the inbox", () =>
+    Effect.gen(function* () {
+      const projects = yield* ProjectService.ProjectService;
+      const orchestrator = yield* Orchestrator.OrchestratorV2;
+      const projectId = ProjectId.make("runtime-layer-reopen-project");
+      const threadId = ThreadId.make("runtime-layer-reopen-thread");
+
+      yield* projects.create({
+        commandId: CommandId.make("runtime-layer-reopen-project-create"),
+        projectId,
+        title: "Reopen by message",
+        workspaceRoot: "/tmp/runtime-layer-reopen-project",
+      });
+      yield* orchestrator.dispatch({
+        type: "thread.create",
+        createdBy: "user",
+        creationSource: "web",
+        commandId: CommandId.make("runtime-layer-reopen-create"),
+        threadId,
+        projectId,
+        title: "Reopen by message",
+        modelSelection,
+        runtimeMode: "full-access",
+        interactionMode: "default",
+        branch: null,
+        worktreePath: null,
+      });
+      yield* orchestrator.dispatch({
+        type: "thread.board.place",
+        commandId: CommandId.make("runtime-layer-reopen-place-done"),
+        threadId,
+        columnId: BoardColumnId.make("done"),
+        orderKey: "g",
+        returnColumnId: BoardColumnId.make("testing"),
+      });
+      yield* orchestrator.dispatch({
+        type: "thread.archive",
+        commandId: CommandId.make("runtime-layer-reopen-archive"),
+        threadId,
+      });
+
+      yield* orchestrator.dispatch({
+        type: "message.dispatch",
+        createdBy: "user",
+        creationSource: "web",
+        commandId: CommandId.make("runtime-layer-reopen-message"),
+        threadId,
+        messageId: MessageId.make("runtime-layer-reopen-message"),
+        text: "One more tweak.",
+        attachments: [],
+        modelSelection,
+        dispatchMode: { type: "start_immediately" },
+      });
+
+      const reopened = yield* orchestrator.getThreadProjection(threadId);
+      assert.isNull(reopened.thread.archivedAt);
+      // No return column, so the board shows it in the inbox, not back in Testing.
+      assert.deepEqual(reopened.thread.board, {
+        columnId: BoardColumnId.make("done"),
+        orderKey: "g",
+      });
+      assert.isTrue(
+        reopened.messages.some((message) => message.id === "runtime-layer-reopen-message"),
+      );
+      const shells = yield* orchestrator.getShellSnapshot();
+      assert.isTrue(shells.threads.some((thread) => thread.id === threadId));
+      assert.isFalse(shells.archivedThreads.some((thread) => thread.id === threadId));
+    }),
+  );
 });
 
 it.layer(layerSharedApplicationDataPlaneTest)("shared application data plane", (it) => {

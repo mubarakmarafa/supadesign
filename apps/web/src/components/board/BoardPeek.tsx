@@ -12,16 +12,20 @@ import { useOpenThreadFromBoard } from "./boardNavigation";
  * A card's thread in a window over its board: send a quick message, then click
  * outside or press Escape to return to the board. The expand button opens the
  * full thread. Escape keeps the window open while the composer holds a draft.
+ * A Done card is archived and has no full thread to open until a message
+ * reopens it.
  */
 export function BoardPeek({
   threadRef,
   projectId,
   title,
+  archived,
   onClose,
 }: {
   threadRef: ScopedThreadRef;
   projectId: ProjectId;
   title: string;
+  archived: boolean;
   onClose: () => void;
 }) {
   const openThread = useOpenThreadFromBoard();
@@ -55,10 +59,12 @@ export function BoardPeek({
           >
             <XIcon />
           </DialogClose>
-          <Button size="sm" variant="ghost" onClick={() => openThread(threadRef, projectId)}>
-            <Maximize2Icon />
-            Open full thread
-          </Button>
+          {archived ? null : (
+            <Button size="sm" variant="ghost" onClick={() => openThread(threadRef, projectId)}>
+              <Maximize2Icon />
+              Open full thread
+            </Button>
+          )}
         </div>
         <div className="relative flex min-h-0 flex-1 flex-col">
           <ChatView

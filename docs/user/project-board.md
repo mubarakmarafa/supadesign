@@ -250,6 +250,9 @@ Moving a card into the done column archives its thread, and moving it back out
 unarchives it. A thread that is still working can't be moved to done until you
 stop it. Done is collapsed at first; select **Show archived** to load its cards.
 
+Click a done card to read back through its thread. To pick the work up again,
+send it a message: the thread reopens and its card moves to the inbox.
+
 ## Columns
 
 Use a column's **…** menu to rename it, move it left or right, or choose which

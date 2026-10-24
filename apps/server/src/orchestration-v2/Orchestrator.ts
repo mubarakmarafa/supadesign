@@ -4695,6 +4695,36 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         });
         projection = yield* getProjectionWithPendingEvents(command.threadId, events);
       }
+      // Writing to an archived thread reopens it. Its board card leaves Done
+      // for the inbox rather than the column it was archived from, so reopening
+      // old work never takes over the live preview. Deliveries don't reopen.
+      if (
+        projection.thread.archivedAt !== null &&
+        command.notification === undefined &&
+        command.delegatedCompletion === undefined
+      ) {
+        const now = yield* DateTime.now;
+        const placement = projection.thread.board;
+        const thread: OrchestrationV2AppThread = {
+          ...projection.thread,
+          archivedAt: null,
+          ...(placement == null
+            ? {}
+            : { board: { columnId: placement.columnId, orderKey: placement.orderKey } }),
+          updatedAt: now,
+        };
+        yield* emit(
+          events,
+          command,
+        )({
+          type: "thread.unarchived",
+          threadId: command.threadId,
+          providerInstanceId: thread.providerInstanceId,
+          occurredAt: now,
+          payload: thread,
+        });
+        projection = yield* getProjectionWithPendingEvents(command.threadId, events);
+      }
       const userMessages = projection.messages.filter((message) => message.role === "user");
       const onlyMaintenanceHistory =
         userMessages.length > 0 && userMessages.every(isNativeMaintenanceCommand);
