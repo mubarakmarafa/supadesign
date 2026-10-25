@@ -14,7 +14,7 @@ import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 import { generateAndroidIcons } from "./lib/android-icons.ts";
-import { BRAND_ASSET_PATHS } from "./lib/brand-assets.ts";
+import { BRAND_ASSET_PATHS, ICON_DOCUMENT } from "./lib/brand-assets.ts";
 import { generateBrandIconDerivatives } from "./lib/brand-icon-derivatives.ts";
 import { encodePngIco, readPngDimensions, WINDOWS_ICON_SIZES } from "./lib/icon-export.ts";
 import { generateIconProjects } from "./lib/icon-projects.ts";
@@ -24,6 +24,11 @@ import {
   isSupportedXcodeVersion,
   macIconCompilerArguments,
 } from "./lib/mac-icon-assets.ts";
+import {
+  ICON_INPUTS_STAMP,
+  iconInputsDigest,
+  renderStudioIcons,
+} from "./lib/studio-icon-render.ts";
 
 const DESIGN_GENERATION = 26;
 const ICON_COMPOSER_EXECUTABLE_PARTS = [
@@ -776,15 +781,16 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
     `Exporting icons with Icon Composer ${tool.version}, design generation ${DESIGN_GENERATION}.`,
   );
 
-  const projects = yield* generateIconProjects(repositoryRoot);
+  yield* Console.log("Rendering the studio's bolt computer...");
+  const renders = yield* renderStudioIcons(repositoryRoot);
+  const projects = yield* generateIconProjects(repositoryRoot, renders);
+  const source = path.join(BRAND_ASSET_PATHS.productionIconComposerProject, ICON_DOCUMENT);
   const generated = new Map<string, Buffer>();
   for (const [relativePath, contents] of projects.files) {
     const staged = path.join(temporaryDirectory, relativePath);
     yield* fs.makeDirectory(path.dirname(staged), { recursive: true });
     yield* fs.writeFile(staged, contents);
-    if (!relativePath.startsWith(`${BRAND_ASSET_PATHS.productionIconComposerProject}/`)) {
-      generated.set(relativePath, contents);
-    }
+    if (relativePath !== source) generated.set(relativePath, contents);
   }
   for (const variant of ICON_VARIANTS) {
     yield* Console.log(`Rendering ${variant.label} from ${variant.source}...`);
@@ -794,9 +800,10 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
     }
   }
 
-  for (const [relativePath, contents] of yield* generateAndroidIcons(temporaryDirectory)) {
+  for (const [relativePath, contents] of yield* generateAndroidIcons(renders)) {
     generated.set(relativePath, contents);
   }
+  generated.set(ICON_INPUTS_STAMP, Buffer.from(yield* iconInputsDigest(repositoryRoot)));
   for (const [relativePath, contents] of yield* generateBrandIconDerivatives(
     repositoryRoot,
     generated,
@@ -846,7 +853,7 @@ export const exportBrandIconsCommand = Command.make(
     ),
   },
   ({ check }) => exportBrandIcons(check).pipe(Effect.scoped),
-).pipe(Command.withDescription("Derive all application icons from assets/prod/app-icon.icon."));
+).pipe(Command.withDescription("Render all application icons from the studio's bolt computer."));
 
 if (import.meta.main) {
   Command.run(exportBrandIconsCommand, { version: "0.0.0" }).pipe(
