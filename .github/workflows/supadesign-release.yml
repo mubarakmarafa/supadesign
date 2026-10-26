@@ -9,9 +9,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the DMG as the latest release. Off builds it only, to check a branch.
+        type: boolean
+        default: true
 
-permissions:
-  contents: write
+permissions: {}
 
 concurrency:
   group: supadesign-release
@@ -21,7 +25,10 @@ jobs:
   build:
     name: Build and publish macOS arm64
     if: github.repository == 'mubarakmarafa/supadesign'
-    runs-on: macos-26
+    permissions:
+      contents: write
+    # The app icon compiles from an Icon Composer project, which needs Xcode 27.
+    runs-on: xcode-27
     timeout-minutes: 45
     steps:
       # checkout's credential cleanup fails on the orphaned gitlinks in the
@@ -40,11 +47,20 @@ jobs:
       - name: Setup Mise
         uses: ./.github/actions/setup-mise
 
+      - name: Select Xcode 27.1
+        shell: bash
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+        run: |
+          xcodebuild -version
+          xcrun --find actool
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+
       - name: Install desktop dependencies
         run: vp install --filter=@supaterm/desktop... --filter=supaterm... --filter=@supaterm/web... --filter=@supaterm/scripts...
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           targets: aarch64-apple-darwin
 
@@ -62,6 +78,7 @@ jobs:
         run: node scripts/build-desktop-artifact.ts --platform mac --target dmg --arch arm64 --build-version "${{ steps.version.outputs.version }}" --verbose
 
       - name: Publish release
+        if: github.event_name == 'push' || inputs.publish
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

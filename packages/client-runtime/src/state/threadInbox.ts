@@ -9,18 +9,16 @@ type WorkingThreadInput = Pick<
   | "hasActionableProposedPlan"
   | "hasPendingApprovals"
   | "hasPendingUserInput"
+  | "pendingSubagentRequest"
   | "interactionMode"
   | "latestRun"
   | "runtime"
 >;
 
-/** Threads busy with work that does not need the user fold into the Working
-    section: a running run, or one stopped with background work that will wake
-    it. Approvals, questions, plan prompts, and failures stay in the inbox. */
 export function isThreadWorking(thread: WorkingThreadInput): boolean {
   if (thread.hasPendingApprovals || thread.hasPendingUserInput) return false;
+  if (thread.pendingSubagentRequest != null) return false;
   if (!threadRuntimeIsActive(thread.runtime) && thread.runtime?.status !== "idle") return false;
-  // A plan prompt outranks lingering background work: the user has to act on it.
   const run = thread.latestRun;
   const runSettled =
     run !== null &&
@@ -35,7 +33,7 @@ export function isThreadWorking(thread: WorkingThreadInput): boolean {
 
 type InboxThreadInput = Pick<
   EnvironmentThreadShell,
-  "id" | "environmentId" | "createdAt" | "unsettledAt" | "latestRun"
+  "id" | "environmentId" | "createdAt" | "reopenedAt" | "latestRun"
 >;
 
 export function sortInboxThreadsByReturn<T extends InboxThreadInput>(
@@ -47,14 +45,14 @@ export function sortInboxThreadsByReturn<T extends InboxThreadInput>(
       thread,
       Math.max(
         toSortableTimestamp(thread.createdAt) ?? 0,
-        toSortableTimestamp(thread.unsettledAt ?? undefined) ?? 0,
+        toSortableTimestamp(thread.reopenedAt ?? undefined) ?? 0,
         toSortableTimestamp(thread.latestRun?.requestedAt ?? undefined) ?? 0,
         toSortableTimestamp(thread.latestRun?.completedAt ?? undefined) ?? 0,
         observedReturnAt?.(thread) ?? 0,
       ),
     ]),
   );
-  return sortOldestFirst(threads, timestamps);
+  return sortNewestFirst(threads, timestamps);
 }
 
 type WorkingSortInput = Pick<
@@ -76,16 +74,16 @@ export function sortWorkingThreadsBySend<T extends WorkingSortInput>(threads: re
       ),
     ]),
   );
-  return sortOldestFirst(threads, timestamps);
+  return sortNewestFirst(threads, timestamps);
 }
 
-function sortOldestFirst<T extends Pick<EnvironmentThreadShell, "id" | "environmentId">>(
+function sortNewestFirst<T extends Pick<EnvironmentThreadShell, "id" | "environmentId">>(
   threads: readonly T[],
   timestamps: ReadonlyMap<T, number>,
 ): T[] {
   return [...threads].sort(
     (left, right) =>
-      timestamps.get(left)! - timestamps.get(right)! ||
+      timestamps.get(right)! - timestamps.get(left)! ||
       left.id.localeCompare(right.id) ||
       left.environmentId.localeCompare(right.environmentId),
   );
@@ -111,12 +109,9 @@ export function createInboxReturnTracker() {
         present.add(key);
         if (isThreadWorking(thread)) working.add(key);
       }
-      // Drop deleted threads so the map stays bounded by the live thread list.
       for (const key of returns.keys()) {
         if (!present.has(key)) returns.delete(key);
       }
-      // The moment this client saw the change is the data; there is no
-      // server stamp to read instead.
       // @effect-diagnostics-next-line globalDate:off
       const at = Date.now();
       for (const key of lastWorkingKeys ?? []) {

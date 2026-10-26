@@ -60,7 +60,7 @@ function environment(environmentId: EnvironmentId, settings: ServerSettings): Se
     environmentId,
     serverConfig: {
       settings,
-      environment: { capabilities: { projectSettingsOverrides: true } },
+      environment: { capabilities: {} },
     },
   } as SettingsTarget;
 }

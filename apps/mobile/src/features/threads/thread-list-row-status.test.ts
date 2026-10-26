@@ -35,7 +35,7 @@ it("restores goal and unread completion labels when connected", () => {
   ).toBe("Goal");
   expect(
     resolveThreadListV2RowStatusLabel({ ...state, status: "ready", isUnread: true })?.label,
-  ).toBe("Done");
+  ).toBe("Ready");
 });
 
 it.each(["text-drawer-foreground-muted", "text-foreground-muted"])(

@@ -3,8 +3,10 @@ import { useEffect } from "react";
 
 import { usePreferredEditor } from "../../editorPreferences";
 import { isOpenFavoriteEditorShortcut } from "../../keybindings";
+import { useRemoteOpenState } from "../../remoteOpen";
 import { shellEnvironment } from "../../state/shell";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { usePaneInputOwner } from "../../chatPanes/paneScope";
 
 export function useOpenFavoriteEditorShortcut({
   enabled,
@@ -21,11 +23,14 @@ export function useOpenFavoriteEditorShortcut({
 }) {
   const openInEditorMutation = useAtomCommand(shellEnvironment.openInEditor, "open in editor");
   const [preferredEditor] = usePreferredEditor(availableEditors);
+  const remote = useRemoteOpenState(environmentId);
+  const isPaneInputOwner = usePaneInputOwner();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || remote.mode !== "local-exec") return;
     const handler = (event: globalThis.KeyboardEvent) => {
-      if (!isOpenFavoriteEditorShortcut(event, keybindings)) return;
+      if (event.defaultPrevented || !isOpenFavoriteEditorShortcut(event, keybindings)) return;
+      if (!isPaneInputOwner()) return;
       if (!openInCwd || !preferredEditor) return;
 
       event.preventDefault();
@@ -39,5 +44,14 @@ export function useOpenFavoriteEditorShortcut({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [enabled, environmentId, keybindings, openInCwd, openInEditorMutation, preferredEditor]);
+  }, [
+    enabled,
+    environmentId,
+    isPaneInputOwner,
+    keybindings,
+    openInCwd,
+    openInEditorMutation,
+    preferredEditor,
+    remote.mode,
+  ]);
 }

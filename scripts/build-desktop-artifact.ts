@@ -22,6 +22,11 @@ import desktopPackageJson from "../apps/desktop/package.json" with { type: "json
 import gnomeCaptureBundle from "../apps/desktop/gnome-extension/bundle.json" with { type: "json" };
 import serverPackageJson from "../apps/server/package.json" with { type: "json" };
 
+import {
+  ReleasePackageManifestError,
+  releasePackageFiles,
+  updateReleasePackageVersions,
+} from "./update-release-package-versions.ts";
 import { applyWebBrandAssets } from "./apply-web-brand-assets.ts";
 import {
   BRAND_ASSET_PATHS,
@@ -39,12 +44,19 @@ import {
   selectDesktopRuntimeExternalDependencies,
 } from "./lib/desktop-external-packages.ts";
 import { resolveCatalogDependencies } from "./lib/resolve-catalog.ts";
+import {
+  MAC_ICON_NAME,
+  XCODE_REQUIREMENT,
+  isSupportedXcodeVersion,
+  macIconCompilerArguments,
+} from "./lib/mac-icon-assets.ts";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Logger from "effect/Logger";
@@ -98,6 +110,9 @@ const RepoRoot = Effect.service(Path.Path).pipe(
   Effect.flatMap((path) => path.fromFileUrl(new URL("..", import.meta.url))),
 );
 const encodeJsonString = Schema.encodeEffect(Schema.fromJsonString(Schema.Unknown));
+const decodeReleasePackageManifest = Schema.decodeEffect(
+  Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)),
+);
 const decodeWorkspaceConfig = Schema.decodeEffect(fromYaml(WorkspaceConfig));
 const encodeStageWorkspaceConfig = Schema.encodeEffect(fromYaml(StageWorkspaceConfig));
 
@@ -111,6 +126,8 @@ const readWorkspaceConfig = Effect.fn("readWorkspaceConfig")(function* () {
 
 interface DesktopBuildIconAssets {
   readonly macIconPng: string;
+  readonly macDarkIconPng: string;
+  readonly macIconProject: string;
   readonly linuxIconPng: string;
   readonly windowsIconIco: string;
 }
@@ -167,6 +184,7 @@ interface BuildCliInput {
   readonly outputDir: Option.Option<string>;
   readonly skipBuild: Option.Option<boolean>;
   readonly keepStage: Option.Option<boolean>;
+  readonly withoutCodexMicro: Option.Option<boolean>;
   readonly signed: Option.Option<boolean>;
   readonly verbose: Option.Option<boolean>;
   readonly mockUpdates: Option.Option<boolean>;
@@ -257,6 +275,15 @@ export class InvalidMockUpdateServerPortError extends Schema.TaggedError<Invalid
   }
 }
 
+export class DesktopBuildManifestRestoreError extends Schema.TaggedError<DesktopBuildManifestRestoreError>()(
+  "DesktopBuildManifestRestoreError",
+  { failures: Schema.Array(ReleasePackageManifestError) },
+) {
+  override get message(): string {
+    return `Failed to restore release manifests: ${this.failures.map((failure) => failure.filePath).join(", ")}`;
+  }
+}
+
 export class BuildCommandFailedError extends Schema.TaggedError<BuildCommandFailedError>()(
   "BuildCommandFailedError",
   {
@@ -286,6 +313,11 @@ export const LINUX_DESKTOP_BUILD_PREREQUISITES = [
     id: "libsecret",
     description: "libsecret development headers and pkg-config",
     packages: ["libsecret-1-dev", "pkg-config"],
+  },
+  {
+    id: "hid",
+    description: "libusb and libudev development headers",
+    packages: ["libusb-1.0-0-dev", "libudev-dev", "pkg-config"],
   },
   { id: "imagemagick", description: "ImageMagick", packages: ["imagemagick"] },
 ] as const;
@@ -333,7 +365,7 @@ const MAC_DESKTOP_BUILD_PREREQUISITES = [
   { id: "clang", description: "Xcode Command Line Tools (clang)" },
   { id: "make", description: "Xcode Command Line Tools (make)" },
   { id: "sips", description: "macOS image tool (sips)" },
-  { id: "iconutil", description: "macOS icon tool (iconutil)" },
+  { id: "actool", description: `${XCODE_REQUIREMENT} asset compiler (actool)` },
   { id: "lipo", description: "Xcode universal-binary tool (lipo)" },
 ] as const;
 
@@ -352,8 +384,7 @@ export class MacDesktopBuildPrerequisitesMissingError extends Schema.TaggedError
       "macOS desktop build prerequisites are missing:",
       details,
       "",
-      "Install Apple's build tools with:",
-      "  xcode-select --install",
+      `Install ${XCODE_REQUIREMENT} and select its developer directory with DEVELOPER_DIR or xcode-select.`,
       "Install Rust from https://rustup.rs, then add the requested target(s):",
       `  rustup target add ${this.rustTargets.join(" ")}`,
       "",
@@ -874,6 +905,7 @@ interface ResolvedBuildOptions {
   readonly outputDir: string;
   readonly skipBuild: boolean;
   readonly keepStage: boolean;
+  readonly withoutCodexMicro: boolean;
   readonly signed: boolean;
   readonly verbose: boolean;
   readonly mockUpdates: boolean;
@@ -887,6 +919,7 @@ interface StagePackageJson {
   readonly buildVersion: string;
   readonly supatermCommitHash: string;
   readonly supatermWebAuthn?: { readonly touchIdKeychainAccessGroup: string };
+  readonly supatermFeatures?: { readonly codexMicro: false };
   readonly private: true;
   readonly packageManager: string;
   readonly description: string;
@@ -914,8 +947,6 @@ export const DESKTOP_FILE_EXCLUSIONS = [
   // so the SDK's optional platform packages (each a ~200MB bundled executable)
   // are dead weight. The trailing dash keeps the SDK's own JS package.
   "!**/node_modules/@anthropic-ai/claude-agent-sdk-*/**/*",
-  // Nothing in the packaged app enables source maps or serves them: the web
-  // client's maps alone were 50 MB of app.asar that no request ever read.
   "!**/*.map",
   "!**/*.d.cts",
   "!apps/desktop/resources/browser-secret",
@@ -933,43 +964,76 @@ export const DESKTOP_FILE_EXCLUSIONS = [
   "!apps/desktop/gnome-extension/**/*",
 ] as const;
 // Windows terminal helpers cannot run on macOS and slow signing and notarization.
-export const MAC_FILE_EXCLUSIONS = [
+const NODE_PTY_WINDOWS_EXCLUSIONS = [
   "!**/node_modules/node-pty/prebuilds/win32-*/**/*",
   "!**/node_modules/node-pty/third_party/conpty/**/*",
 ] as const;
+// node-hid publishes its C sources and every platform's prebuild in one package.
+// Each platform keeps only what it loads; foreign .node files would also be
+// unpacked and Authenticode-signed on Windows. electron-builder's native rebuild
+// also compiles a build/ copy, which pkg-prebuilds would load ahead of the
+// equivalent N-API prebuild.
+const NODE_HID_SOURCE_EXCLUSIONS = [
+  "!**/node_modules/node-hid/hidapi/**/*",
+  "!**/node_modules/node-hid/src/**/*",
+  "!**/node_modules/node-hid/build/**/*",
+  "!**/node_modules/node-hid/binding.gyp",
+] as const;
+export const MAC_FILE_EXCLUSIONS = [
+  ...NODE_PTY_WINDOWS_EXCLUSIONS,
+  ...NODE_HID_SOURCE_EXCLUSIONS,
+  "!**/node_modules/node-hid/prebuilds/HID-win32-*/**/*",
+  "!**/node_modules/node-hid/prebuilds/HID-linux-*/**/*",
+  "!**/node_modules/node-hid/prebuilds/HID_hidraw-*/**/*",
+] as const;
 // Linux builds node-pty from source, so every prebuild in the package is for
-// another platform (58 MB of it Windows debug symbols).
+// another platform (58 MB of it Windows debug symbols). node-hid loads its
+// glibc hidraw build there; the HID-* builds use libusb or another OS.
 export const LINUX_FILE_EXCLUSIONS = [
-  ...MAC_FILE_EXCLUSIONS,
+  ...NODE_PTY_WINDOWS_EXCLUSIONS,
   "!**/node_modules/node-pty/prebuilds/darwin-*/**/*",
+  ...NODE_HID_SOURCE_EXCLUSIONS,
+  "!**/node_modules/node-hid/prebuilds/HID-*/**/*",
+  "!**/node_modules/node-hid/prebuilds/HID_hidraw-linux-*-musl/**/*",
 ] as const;
 
-// node-pty publishes both Darwin prebuilds in one package. Single-architecture
-// apps only need the native target; universal apps need both. An omitted arch
-// preserves the existing common exclusions for callers that only inspect the
-// generic platform config.
+// node-pty and node-hid publish both Darwin prebuilds in one package.
+// Single-architecture apps only need the native target; universal apps need both.
 export function resolveMacFileExclusions(arch?: typeof BuildArch.Type) {
   if (arch === undefined || arch === "universal") {
     return [...MAC_FILE_EXCLUSIONS];
   }
 
   const unusedArch = arch === "arm64" ? "x64" : "arm64";
-  return [...MAC_FILE_EXCLUSIONS, `!**/node_modules/node-pty/prebuilds/darwin-${unusedArch}/**/*`];
+  return [
+    ...MAC_FILE_EXCLUSIONS,
+    `!**/node_modules/node-pty/prebuilds/darwin-${unusedArch}/**/*`,
+    `!**/node_modules/node-hid/prebuilds/HID-darwin-${unusedArch}/**/*`,
+  ];
+}
+
+export function resolveWindowsFileExclusions(arch?: typeof BuildArch.Type) {
+  const unusedArchitectures = arch === "arm64" ? ["x64", "ia32"] : ["arm64", "ia32"];
+  return [
+    ...NODE_HID_SOURCE_EXCLUSIONS,
+    "!**/node_modules/node-hid/prebuilds/HID-darwin-*/**/*",
+    "!**/node_modules/node-hid/prebuilds/HID-linux-*/**/*",
+    "!**/node_modules/node-hid/prebuilds/HID_hidraw-*/**/*",
+    ...unusedArchitectures.map(
+      (unusedArch) => `!**/node_modules/node-hid/prebuilds/HID-win32-${unusedArch}/**/*`,
+    ),
+  ];
 }
 // Windows ships the server tree (bundle + node_modules) as a separate
-// resources/server.asar sidecar instead of loose files: the NSIS installer
-// then extracts a handful of large archives instead of thousands of small
-// files, which dominates install (and update) time. The Windows primary runs
-// the server from inside server.asar via the asar-aware ELECTRON_RUN_AS_NODE
-// runtime. WSL does not use this sidecar: it runs the Linux CLI archive
-// embedded as resources/wsl-runtime.tar.gz (see WSL_RUNTIME_ARCHIVE_NAME).
+// resources/server.asar sidecar instead of loose files: the NSIS installer then
+// extracts a handful of large archives instead of thousands of small files,
+// which dominates install (and update) time.
 export const WINDOWS_SERVER_ASAR_RESOURCE = "server.asar";
 // dlopen/spawn need real files, so native modules, shared libraries, and
 // helper executables live in each archive's .unpacked sibling (the standard
 // asar redirect convention). Everything else stays packed.
 export const WINDOWS_NATIVE_ASAR_UNPACK_GLOB =
   "{**/*.node,**/*.dll,**/*.exe,**/*.so,**/*.so.*,**/*.dylib}";
-// The server sidecar unpacks .node files separately, keeping only Windows ones.
 export const WINDOWS_SERVER_ASAR_UNPACK_GLOBS = [
   "**/*.dll",
   "**/*.exe",
@@ -1010,10 +1074,6 @@ export const WINDOWS_PACKAGED_PAYLOAD_FILE_LIMIT = 80;
 export const WINDOWS_SERVER_RESOURCE_SOURCE_DIR = "apps/desktop/prod-resources/windows-server";
 export const WINDOWS_SERVER_EXTRA_RESOURCES = [
   {
-    // Copy the archive and its .unpacked sibling from one parent directory.
-    // Mapping the .unpacked directory as an independent FileSet silently
-    // omitted it from Windows packages even though electron-builder copied
-    // the adjacent archive.
     from: WINDOWS_SERVER_RESOURCE_SOURCE_DIR,
     to: ".",
     filter: [WINDOWS_SERVER_ASAR_RESOURCE, `${WINDOWS_SERVER_ASAR_RESOURCE}.unpacked/**/*`],
@@ -1030,11 +1090,6 @@ export const WSL_RUNTIME_ARCHIVE_HASH_EXTRA_RESOURCE = {
   to: WSL_RUNTIME_ARCHIVE_HASH_NAME,
 } as const;
 
-// The WSL runtime is the Linux CLI release archive (supaterm-<version>-linux-<arch>
-// .tar.gz, built by scripts/build-cli-archive.ts) copied in verbatim, so WSL
-// runs the exact bytes a Linux user downloads. This one predicate decides both
-// whether the archive is staged and whether the packaging config ships it:
-// listing an extraResource whose source was never written fails electron-builder.
 export const bundlesWslRuntime = (input: {
   readonly platform: typeof BuildPlatform.Type;
   readonly runtimeArchivePath: string | undefined;
@@ -1123,7 +1178,6 @@ export const stageCursorSdkPlatformPackages = Effect.fn("stageCursorSdkPlatformP
     yield* fs.makeDirectory(destination, { recursive: true });
     const sdkDirectory = path.join(nodeModulesDir, "@cursor/sdk");
     if (!(yield* fs.exists(sdkDirectory))) return;
-    // pnpm's isolated layout puts optional packages beside the real SDK directory.
     const cursorDirectory = path.dirname(yield* fs.realPath(sdkDirectory));
     for (const name of yield* fs.readDirectory(cursorDirectory)) {
       if (!name.startsWith("sdk-")) continue;
@@ -1273,15 +1327,15 @@ const BuildEnvConfig = Config.all({
   outputDir: Config.String("SUPATERM_DESKTOP_OUTPUT_DIR").pipe(Config.option),
   skipBuild: Config.Boolean("SUPATERM_DESKTOP_SKIP_BUILD").pipe(Config.withDefault(false)),
   keepStage: Config.Boolean("SUPATERM_DESKTOP_KEEP_STAGE").pipe(Config.withDefault(false)),
+  withoutCodexMicro: Config.Boolean("SUPATERM_DESKTOP_WITHOUT_CODEX_MICRO").pipe(
+    Config.withDefault(false),
+  ),
   signed: Config.Boolean("SUPATERM_DESKTOP_SIGNED").pipe(Config.withDefault(false)),
   verbose: Config.Boolean("SUPATERM_DESKTOP_VERBOSE").pipe(Config.withDefault(false)),
   mockUpdates: Config.Boolean("SUPATERM_DESKTOP_MOCK_UPDATES").pipe(Config.withDefault(false)),
   mockUpdateServerPort: Config.String("SUPATERM_DESKTOP_MOCK_UPDATE_SERVER_PORT").pipe(
     Config.option,
   ),
-  // Path to the Linux CLI release archive (supaterm-<version>-linux-x64.tar.gz) built
-  // by the build_linux_cli CI job. The Windows build embeds it verbatim as the
-  // WSL runtime.
   wslRuntime: Config.String("SUPATERM_DESKTOP_WSL_RUNTIME").pipe(Config.option),
 });
 
@@ -1359,6 +1413,7 @@ export const resolveBuildOptions = Effect.fn("resolveBuildOptions")(function* (
 
   const skipBuild = resolveBooleanFlag(input.skipBuild, env.skipBuild);
   const keepStage = resolveBooleanFlag(input.keepStage, env.keepStage);
+  const withoutCodexMicro = resolveBooleanFlag(input.withoutCodexMicro, env.withoutCodexMicro);
   const signed = resolveBooleanFlag(input.signed, env.signed);
   const verbose = resolveBooleanFlag(input.verbose, env.verbose);
 
@@ -1385,6 +1440,7 @@ export const resolveBuildOptions = Effect.fn("resolveBuildOptions")(function* (
     outputDir,
     skipBuild,
     keepStage,
+    withoutCodexMicro,
     signed,
     verbose,
     mockUpdates,
@@ -1421,6 +1477,113 @@ const runCommand = Effect.fn("runCommand")(function* (
   }
 });
 
+export class DesktopBuildAlreadyRunningError extends Schema.TaggedError<DesktopBuildAlreadyRunningError>()(
+  "DesktopBuildAlreadyRunningError",
+  { lockPath: Schema.String },
+) {
+  override get message(): string {
+    return `Another desktop build owns '${this.lockPath}'. Wait for it to finish. If a build was killed, confirm no desktop build is running, inspect and restore any changed release manifests, then remove this lock.`;
+  }
+}
+
+const withDesktopBuildLock = Effect.fn("withDesktopBuildLock")(function* <A, E, R>(
+  repoRoot: string,
+  build: Effect.Effect<A, E, R>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const lockPath = path.join(repoRoot, ".desktop-build.lock");
+  return yield* Effect.acquireUseRelease(
+    fs
+      .makeDirectory(lockPath)
+      .pipe(
+        Effect.mapError((error) =>
+          error.reason._tag === "AlreadyExists"
+            ? new DesktopBuildAlreadyRunningError({ lockPath })
+            : error,
+        ),
+      ),
+    // Stop packaging children and finish stage cleanup before another build can enter.
+    () => build.pipe(Effect.scoped),
+    (_, exit) =>
+      fs
+        .remove(lockPath, { recursive: true })
+        .pipe(
+          Effect.catch((error) =>
+            Exit.isFailure(exit) ? Effect.logError(error) : Effect.fail(error),
+          ),
+        ),
+  );
+});
+
+// The artifact entry point holds the checkout lock through staging/packaging,
+// so it calls this implementation without reacquiring its own lock.
+const buildDesktopBundlesUnlocked = Effect.fn("buildDesktopBundlesUnlocked")(function* (
+  repoRoot: string,
+  appVersion: string,
+  verbose: boolean,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const spawnCommand = yield* resolveSpawnCommand("vp", ["run", "build:desktop"]);
+  yield* Effect.acquireUseRelease(
+    Effect.forEach(releasePackageFiles, (relativePath) =>
+      Effect.gen(function* () {
+        const filePath = path.join(repoRoot, relativePath);
+        const contents = yield* fs.readFileString(filePath);
+        const needsRestore = yield* decodeReleasePackageManifest(contents).pipe(
+          Effect.map((manifest) => manifest.version !== appVersion),
+          // Let alignment report invalid manifests after any preceding writes.
+          Effect.orElseSucceed(() => false),
+        );
+        return { filePath, contents, needsRestore };
+      }),
+    ),
+    () =>
+      Effect.gen(function* () {
+        yield* updateReleasePackageVersions(appVersion, { rootDir: repoRoot });
+        // The compiler must stop reading the aligned manifests before restoration.
+        yield* runCommand(
+          ChildProcess.make(spawnCommand.command, spawnCommand.args, {
+            cwd: repoRoot,
+            shell: spawnCommand.shell,
+            env: { APP_VERSION: appVersion },
+            extendEnv: true,
+          }),
+          { label: "vp run build:desktop", verbose },
+        ).pipe(Effect.scoped);
+      }),
+    (originals, exit) =>
+      Effect.gen(function* () {
+        const [, failures] = yield* Effect.partition(
+          originals.filter(({ needsRestore }) => needsRestore),
+          ({ filePath, contents }) =>
+            fs
+              .writeFileString(filePath, contents)
+              .pipe(
+                Effect.mapError(
+                  (cause) =>
+                    new ReleasePackageManifestError({ operation: "write", filePath, cause }),
+                ),
+              ),
+        );
+        if (failures.length === 0) return;
+        const error = new DesktopBuildManifestRestoreError({ failures });
+        if (Exit.isFailure(exit)) {
+          // Cleanup must not hide the original build or alignment failure.
+          yield* Effect.logError(error);
+        } else {
+          return yield* error;
+        }
+      }),
+  );
+});
+
+export const buildDesktopBundles = Effect.fn("buildDesktopBundles")(
+  (repoRoot: string, appVersion: string, verbose: boolean) =>
+    withDesktopBuildLock(repoRoot, buildDesktopBundlesUnlocked(repoRoot, appVersion, verbose)),
+);
+
 const desktopBuildProbeSucceeds = Effect.fn("desktopBuildProbeSucceeds")(function* (
   command: ChildProcess.Command,
   label: string,
@@ -1453,7 +1616,6 @@ export const preflightLinuxDesktopBuild = Effect.fn("preflightLinuxDesktopBuild"
   const reuseCaptureHelpers = yield* Config.Boolean(
     "SUPATERM_DESKTOP_REUSE_LINUX_CAPTURE_HELPERS",
   ).pipe(Config.withDefault(false));
-  // Rust is only optional when every Linux Rust artifact comes from a cache.
   const needsRust = !reuseResourceMonitor || !reuseCaptureHelpers;
   const rustTarget = resolveResourceMonitorRustTargets("linux", arch)[0]!;
 
@@ -1468,6 +1630,10 @@ export const preflightLinuxDesktopBuild = Effect.fn("preflightLinuxDesktopBuild"
       libsecret: desktopBuildProbeSucceeds(
         ChildProcess.make("pkg-config", ["--exists", "libsecret-1"]),
         "libsecret",
+      ),
+      hid: desktopBuildProbeSucceeds(
+        ChildProcess.make("pkg-config", ["--exists", "libusb-1.0", "libudev"]),
+        "hid",
       ),
       imagemagick: Effect.all([
         desktopBuildProbeSucceeds(ChildProcess.make("magick", ["-version"]), "magick"),
@@ -1505,10 +1671,13 @@ export const preflightMacDesktopBuild = Effect.fn("preflightMacDesktopBuild")(fu
       clang: desktopBuildProbeSucceeds(ChildProcess.make("clang", ["--version"]), "clang"),
       make: desktopBuildProbeSucceeds(ChildProcess.make("make", ["--version"]), "make"),
       sips: desktopBuildProbeSucceeds(ChildProcess.make("sips", ["--help"]), "sips"),
-      iconutil: desktopBuildProbeSucceeds(
-        ChildProcess.make("xcrun", ["--find", "iconutil"]),
-        "iconutil",
-      ),
+      actool: Effect.all([
+        desktopBuildProbeSucceeds(ChildProcess.make("xcrun", ["--find", "actool"]), "actool"),
+        spawnAndCollectOutput(ChildProcess.make("xcodebuild", ["-version"])).pipe(
+          Effect.map((result) => result.exitCode === 0 && isSupportedXcodeVersion(result.stdout)),
+          Effect.orElseSucceed(() => false),
+        ),
+      ]).pipe(Effect.map(([actool, supportedXcode]) => actool && supportedXcode)),
       lipo:
         arch === "universal"
           ? desktopBuildProbeSucceeds(ChildProcess.make("lipo", ["-version"]), "lipo")
@@ -1586,14 +1755,6 @@ export const preflightWindowsDesktopBuild = Effect.fn("preflightWindowsDesktopBu
   },
 );
 
-/**
- * Every `node_modules` directory that would be visible from `startDir`.
- *
- * The self-containment check is only meaningful in a directory with none of
- * these: Node walks parents when resolving a bare import, so a stray
- * node_modules above the probe would satisfy imports that are missing from the
- * packaged tree and turn the check into a silent pass.
- */
 function trimTrailingSeparators(value: string): string {
   let end = value.length;
   while (end > 1 && (value[end - 1] === "/" || value[end - 1] === "\\")) end -= 1;
@@ -1601,8 +1762,6 @@ function trimTrailingSeparators(value: string): string {
 }
 
 /**
- * Length of the `\\server\share` prefix, or 0 when the path is not UNC.
- *
  * The share is the highest real directory on a UNC path: `\\server` on its own
  * is not one, so the ancestor walk must stop there.
  */
@@ -1626,8 +1785,6 @@ export function ancestorNodeModulesPaths(
   // rebuilt into a relative path that silently resolves against the build cwd.
   const paths: string[] = [];
   let current = trimTrailingSeparators(startDir);
-  // On a UNC path the share itself is the root: \\server is not a directory, so
-  // walking past \\server\share would emit paths that cannot exist.
   const uncRootLength = uncShareRootLength(current);
   for (;;) {
     const cut = Math.max(current.lastIndexOf("/"), current.lastIndexOf("\\"));
@@ -1651,7 +1808,6 @@ const decodeNativeMarkerManifest = Schema.decodeUnknownSync(
   Schema.fromJsonString(NativeMarkerManifest),
 );
 
-/** Whether a package builds or ships a native addon it loads at runtime. */
 const hasNativeLoaderMarkers = Effect.fn("hasNativeLoaderMarkers")(function* (packageDir: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -1685,11 +1841,11 @@ export const copyDirectoryPreservingSymlinks = Effect.fn("copyDirectoryPreservin
     // probe cannot resolve through staging and Windows needs no symlink privilege.
     yield* fs.copy(source, destination);
 
-    const restoreRelativeSymlinks = (
-      sourceDirectory: string,
-      destinationDirectory: string,
-    ): Effect.Effect<void, PlatformError | BundleNotSelfContainedError> =>
-      Effect.gen(function* () {
+    const restoreRelativeSymlinks = Effect.fn("build-desktop-artifact.restoreRelativeSymlinks")(
+      function* (
+        sourceDirectory: string,
+        destinationDirectory: string,
+      ): Effect.fn.Return<void, PlatformError | BundleNotSelfContainedError> {
         for (const entry of yield* fs.readDirectory(sourceDirectory)) {
           const sourceEntry = path.join(sourceDirectory, entry);
           const destinationEntry = path.join(destinationDirectory, entry);
@@ -1726,13 +1882,14 @@ export const copyDirectoryPreservingSymlinks = Effect.fn("copyDirectoryPreservin
             }
           }
         }
-      });
+      },
+    );
 
     yield* restoreRelativeSymlinks(source, destination);
   },
 );
 
-const verifyPackagedBundleIsSelfContained = Effect.fn("verifyPackagedBundleIsSelfContained")(
+export const verifyPackagedBundleIsSelfContained = Effect.fn("verifyPackagedBundleIsSelfContained")(
   function* (input: { readonly asarPath: string; readonly verbose: boolean }) {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -1750,9 +1907,6 @@ const verifyPackagedBundleIsSelfContained = Effect.fn("verifyPackagedBundleIsSel
           output: `Could not extract ${input.asarPath} for the bundle self-containment check: ${String(cause)}`,
         }),
     });
-    // Keep the existing symlink isolation guard even though the sidecar stage
-    // is hoisted and should be physical. A future package-manager layout change
-    // must not let the probe resolve through the build tree.
     yield* copyDirectoryPreservingSymlinks(extractedApp, probeApp);
 
     // Guard the guard: if anything above the probe provides a node_modules, a
@@ -1775,12 +1929,6 @@ const verifyPackagedBundleIsSelfContained = Effect.fn("verifyPackagedBundleIsSel
       });
     }
 
-    // --version exercises the eagerly loaded module graph, which is where a
-    // missing dependency shows up, without starting a server or touching disk
-    // state. It does not cover lazily imported externals: node-pty is checked
-    // by the WSL preflight probe at runtime, while ffi-rs, @ff-labs/fff-node
-    // and the bun adapters are covered by the shared runtime-external closure
-    // and emitted-bundle checks.
     yield* runCommand(
       ChildProcess.make(
         process.execPath,
@@ -1793,9 +1941,6 @@ const verifyPackagedBundleIsSelfContained = Effect.fn("verifyPackagedBundleIsSel
           cwd: probeApp,
           stdout: "pipe",
           stderr: "pipe",
-          // NODE_PATH would let a createRequire call inside the bundle resolve
-          // a missing external from outside the packaged tree, which is the
-          // whole thing this is trying to rule out.
           env: { ...process.env, NODE_PATH: "" },
         },
       ),
@@ -1804,9 +1949,6 @@ const verifyPackagedBundleIsSelfContained = Effect.fn("verifyPackagedBundleIsSel
         verbose: input.verbose,
       },
     ).pipe(
-      // Printing a version should be immediate. A regression that blocks (on
-      // stdin, a port, a lock) would otherwise hang release CI until the job
-      // times out with nothing useful in the log.
       Effect.timeout(BUNDLE_SELF_CHECK_TIMEOUT),
       Effect.catchTags({
         TimeoutError: () =>
@@ -1983,12 +2125,9 @@ export const stageBrowserSecret = Effect.fn("stageBrowserSecret")(function* (inp
 }) {
   if (input.platform !== "linux") return;
   // The helper links against the host's libsecret, so it can only be built on
-  // Linux; the build script is a no-op elsewhere. A Linux artifact from
-  // another host would ship without it and every v11 cookie import would
-  // report the keyring as unavailable, so refuse rather than package that
-  // silently. `universal` is a mac-only arch the option type still admits;
-  // the helper script rejects it, so it maps to the concrete x64 the Linux
-  // resource monitor uses for the same request.
+  // Linux; the build script is a no-op elsewhere. A Linux artifact from another
+  // host would ship without it and every v11 cookie import would report the
+  // keyring as unavailable, so refuse rather than package that silently.
   const hostPlatform = yield* HostProcess.Platform;
   if (hostPlatform !== "linux") {
     return yield* new LinuxBrowserSecretHostError({ hostPlatform });
@@ -2010,69 +2149,58 @@ export const stageBrowserSecret = Effect.fn("stageBrowserSecret")(function* (inp
   );
 });
 
-function generateMacIconSet(
+const stageMacIcons = Effect.fn("stageMacIcons")(function* (
+  stageResourcesDir: string,
   sourcePng: string,
-  targetIcns: string,
-  tmpRoot: string,
-  path: Path.Path,
+  sourceDarkPng: string,
+  sourceProject: string,
   verbose: boolean,
 ) {
-  return Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const iconsetDir = path.join(tmpRoot, "icon.iconset");
-    yield* fs.makeDirectory(iconsetDir, { recursive: true });
-
-    const iconSizes = [16, 32, 128, 256, 512] as const;
-    for (const size of iconSizes) {
-      yield* runCommand(
-        ChildProcess.make(
-          {},
-        )`sips -z ${size} ${size} ${sourcePng} --out ${path.join(iconsetDir, `icon_${size}x${size}.png`)}`,
-        { label: `sips icon ${size}x${size}`, verbose },
-      );
-
-      const retinaSize = size * 2;
-      yield* runCommand(
-        ChildProcess.make(
-          {},
-        )`sips -z ${retinaSize} ${retinaSize} ${sourcePng} --out ${path.join(iconsetDir, `icon_${size}x${size}@2x.png`)}`,
-        { label: `sips icon ${size}x${size}@2x`, verbose },
-      );
-    }
-
-    yield* runCommand(ChildProcess.make({})`iconutil -c icns ${iconsetDir} -o ${targetIcns}`, {
-      label: "iconutil icns",
-      verbose,
-    });
-  });
-}
-
-function stageMacIcons(stageResourcesDir: string, sourcePng: string, verbose: boolean) {
-  return Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    if (!(yield* fs.exists(sourcePng))) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const repoRoot = yield* RepoRoot;
+  // The Dock's launch animation: the brand's dark icon, and the bolt-off renders all brands share.
+  const launchIcons = [
+    [sourceDarkPng, "icon-dark.png"],
+    [path.join(repoRoot, BRAND_ASSET_PATHS.macUnlitIconPng), "icon-unlit.png"],
+    [path.join(repoRoot, BRAND_ASSET_PATHS.macUnlitDarkIconPng), "icon-unlit-dark.png"],
+  ] as const;
+  for (const sourcePath of [sourcePng, sourceProject, ...launchIcons.map(([source]) => source)]) {
+    if (!(yield* fs.exists(sourcePath))) {
       return yield* new DesktopIconSourceMissingError({
         platform: "mac",
-        sourcePath: sourcePng,
+        sourcePath,
       });
     }
+  }
 
-    const tmpRoot = yield* fs.makeTempDirectoryScoped({
-      prefix: "supaterm-icon-build-",
-    });
+  const tmpRoot = yield* fs.makeTempDirectoryScoped({
+    prefix: "supaterm-icon-build-",
+  });
 
-    const iconPngPath = path.join(stageResourcesDir, "icon.png");
-    const iconIcnsPath = path.join(stageResourcesDir, "icon.icns");
+  const iconPngPath = path.join(stageResourcesDir, "icon.png");
+  const iconIcnsPath = path.join(stageResourcesDir, "icon.icns");
 
-    yield* runCommand(ChildProcess.make({})`sips -z 512 512 ${sourcePng} --out ${iconPngPath}`, {
-      label: "sips mac icon",
+  yield* runCommand(ChildProcess.make({})`sips -z 512 512 ${sourcePng} --out ${iconPngPath}`, {
+    label: "sips mac icon",
+    verbose,
+  });
+  // Through the same resize as icon.png, so each pair the animation blends stays pixel-aligned.
+  for (const [source, fileName] of launchIcons) {
+    const target = path.join(stageResourcesDir, fileName);
+    yield* runCommand(ChildProcess.make({})`sips -z 512 512 ${source} --out ${target}`, {
+      label: `sips ${fileName}`,
       verbose,
     });
+  }
 
-    yield* generateMacIconSet(sourcePng, iconIcnsPath, tmpRoot, path, verbose);
+  yield* runCommand(ChildProcess.make("xcrun", macIconCompilerArguments(sourceProject, tmpRoot)), {
+    label: "compile adaptive macOS icon",
+    verbose,
   });
-}
+  yield* fs.copyFile(path.join(tmpRoot, `${MAC_ICON_NAME}.icns`), iconIcnsPath);
+  yield* fs.copyFile(path.join(tmpRoot, "Assets.car"), path.join(stageResourcesDir, "Assets.car"));
+});
 
 export const stageDesktopDmgBackground = Effect.fn("stageDesktopDmgBackground")(function* (
   stageResourcesDir: string,
@@ -2107,32 +2235,34 @@ export const stageDesktopDmgBackground = Effect.fn("stageDesktopDmgBackground")(
   }
 });
 
-function stageLinuxIcons(stageResourcesDir: string, sourcePng: string, verbose: boolean) {
-  return Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    if (!(yield* fs.exists(sourcePng))) {
-      return yield* new DesktopIconSourceMissingError({
-        platform: "linux",
-        sourcePath: sourcePng,
-      });
-    }
+const stageLinuxIcons = Effect.fn("build-desktop-artifact.stageLinuxIcons")(function* (
+  stageResourcesDir: string,
+  sourcePng: string,
+  verbose: boolean,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  if (!(yield* fs.exists(sourcePng))) {
+    return yield* new DesktopIconSourceMissingError({
+      platform: "linux",
+      sourcePath: sourcePng,
+    });
+  }
 
-    const iconPath = path.join(stageResourcesDir, "icon.png");
-    yield* fs.copyFile(sourcePng, iconPath);
+  const iconPath = path.join(stageResourcesDir, "icon.png");
+  yield* fs.copyFile(sourcePng, iconPath);
 
-    const iconsDir = path.join(stageResourcesDir, "icons");
-    yield* fs.makeDirectory(iconsDir, { recursive: true });
-    for (const iconSize of LINUX_ICON_SIZES) {
-      yield* stageLinuxIconSize(
-        sourcePng,
-        path.join(iconsDir, `${iconSize}x${iconSize}.png`),
-        iconSize,
-        verbose,
-      );
-    }
-  });
-}
+  const iconsDir = path.join(stageResourcesDir, "icons");
+  yield* fs.makeDirectory(iconsDir, { recursive: true });
+  for (const iconSize of LINUX_ICON_SIZES) {
+    yield* stageLinuxIconSize(
+      sourcePng,
+      path.join(iconsDir, `${iconSize}x${iconSize}.png`),
+      iconSize,
+      verbose,
+    );
+  }
+});
 
 export function stageLinuxIconSize(
   sourcePng: string,
@@ -2168,24 +2298,25 @@ export function stageLinuxIconSize(
   );
 }
 
-function stageWindowsIcons(stageResourcesDir: string, sourceIco: string) {
-  return Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    if (!(yield* fs.exists(sourceIco))) {
-      return yield* new DesktopIconSourceMissingError({
-        platform: "win",
-        sourcePath: sourceIco,
-      });
-    }
+const stageWindowsIcons = Effect.fn("build-desktop-artifact.stageWindowsIcons")(function* (
+  stageResourcesDir: string,
+  sourceIco: string,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  if (!(yield* fs.exists(sourceIco))) {
+    return yield* new DesktopIconSourceMissingError({
+      platform: "win",
+      sourcePath: sourceIco,
+    });
+  }
 
-    const iconPath = path.join(stageResourcesDir, "icon.ico");
-    yield* fs.copyFile(sourceIco, iconPath);
-  });
-}
+  const iconPath = path.join(stageResourcesDir, "icon.ico");
+  yield* fs.copyFile(sourceIco, iconPath);
+});
 
-function validateBundledClientAssets(clientDir: string) {
-  return Effect.gen(function* () {
+const validateBundledClientAssets = Effect.fn("build-desktop-artifact.validateBundledClientAssets")(
+  function* (clientDir: string) {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const indexPath = path.join(clientDir, "index.html");
@@ -2217,14 +2348,20 @@ function validateBundledClientAssets(clientDir: string) {
         missingFiles: missing,
       });
     }
-  });
+  },
+);
+
+// Native libraries that only the Codex Micro keyboard loads.
+const CODEX_MICRO_RUNTIME_DEPENDENCIES: ReadonlySet<string> = new Set(["node-hid"]);
+
+function withoutCodexMicroDependencies(
+  dependencies: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(dependencies).filter(([name]) => !CODEX_MICRO_RUNTIME_DEPENDENCIES.has(name)),
+  );
 }
 
-// The main-process bundle inlines every JS dependency (see
-// apps/desktop/vite.config.ts), so the packaged app only installs the packages
-// that bundle leaves external: native addons and playwright-core. Everything
-// else already lives inside dist-electron and would only duplicate what the
-// server bundle carries too.
 export function resolveDesktopRuntimeDependencies(
   dependencies: Record<string, string> | undefined,
   catalog: Record<string, string>,
@@ -2270,13 +2407,6 @@ export function resolveDesktopUpdateChannel(version: string): "latest" | "nightl
   return /-nightly\.\d{8}\.\d+$/.test(version) ? "nightly" : "latest";
 }
 
-// Pull request builds (`-pr.<n>.`) and the maintainers' preview train
-// (`-preview.<date>.<run>`) are downloaded by hand and never through an
-// updater. Building them without a publish config means electron-builder
-// emits no `latest*.yml`/`nightly*.yml` manifests or blockmaps for them and
-// the app ships without `app-update.yml`, so neither a stable nor a nightly
-// install can be pointed at one of these releases, and the build itself
-// reports that no update feed is configured instead of polling.
 export function isDesktopPreviewVersion(version: string): boolean {
   return /-pr\./.test(version) || /-preview\.\d{8}\.\d+$/.test(version);
 }
@@ -2289,6 +2419,8 @@ export function resolveDesktopBuildIconAssets(version: string): DesktopBuildIcon
   if (resolveDesktopUpdateChannel(version) === "nightly") {
     return {
       macIconPng: BRAND_ASSET_PATHS.nightlyMacIconPng,
+      macDarkIconPng: BRAND_ASSET_PATHS.nightlyMacDarkIconPng,
+      macIconProject: BRAND_ASSET_PATHS.nightlyIconComposerProject,
       linuxIconPng: BRAND_ASSET_PATHS.nightlyLinuxIconPng,
       windowsIconIco: BRAND_ASSET_PATHS.nightlyWindowsIconIco,
     };
@@ -2296,6 +2428,8 @@ export function resolveDesktopBuildIconAssets(version: string): DesktopBuildIcon
 
   return {
     macIconPng: BRAND_ASSET_PATHS.productionMacIconPng,
+    macDarkIconPng: BRAND_ASSET_PATHS.productionMacDarkIconPng,
+    macIconProject: BRAND_ASSET_PATHS.productionIconComposerProject,
     linuxIconPng: BRAND_ASSET_PATHS.productionLinuxIconPng,
     windowsIconIco: BRAND_ASSET_PATHS.productionWindowsIconIco,
   };
@@ -2331,9 +2465,6 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   signed: boolean,
   mockUpdates: boolean,
   mockUpdateServerPort: number | undefined,
-  // Windows only, and false when no Linux CLI archive was handed to the build:
-  // staging skips the archive in that case, and listing a resource whose
-  // source file was never written fails the electron-builder step.
   wslRuntimeBundled = false,
   arch?: typeof BuildArch.Type,
   macTouchIdSigning?: {
@@ -2352,7 +2483,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
         ? resolveMacFileExclusions(arch)
         : platform === "linux"
           ? LINUX_FILE_EXCLUSIONS
-          : []),
+          : resolveWindowsFileExclusions(arch)),
     ],
     directories: {
       buildResources: "apps/desktop/resources",
@@ -2372,6 +2503,8 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     ],
   };
   const updateChannel = resolveDesktopUpdateChannel(version);
+
+  buildConfig.publish = null;
   if (!isDesktopPreviewVersion(version)) {
     const publishConfig = yield* resolveGitHubPublishConfig(updateChannel);
     if (publishConfig) {
@@ -2392,8 +2525,12 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     buildConfig.mac = {
       target: target === "dmg" ? [target, "zip"] : [target],
       icon: "icon.icns",
+      extraResources: [{ from: "apps/desktop/prod-resources/Assets.car", to: "Assets.car" }],
       category: "public.app-category.developer-tools",
       extendInfo: {
+        CFBundleIconName: MAC_ICON_NAME,
+        // macOS 26 offers Messages/Mail codes in every text field unless opted out.
+        NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true,
         NSLocalNetworkUsageDescription:
           "Supadesign connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
         NSScreenCaptureUsageDescription:
@@ -2410,6 +2547,10 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
           "Supadesign reads and runs the projects you open from external drives.",
         NSNetworkVolumesUsageDescription:
           "Supadesign reads and runs the projects you open from network drives.",
+        NSCameraUsageDescription:
+          "Supadesign lets commands run by terminals and coding agents use the camera.",
+        NSMicrophoneUsageDescription:
+          "Supadesign lets commands run by terminals and coding agents use the microphone.",
         CFBundleDocumentTypes: [
           {
             CFBundleTypeName: "Web page",
@@ -2466,20 +2607,12 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     const path = yield* Path.Path;
     const repoRoot = yield* RepoRoot;
     buildConfig.linux = {
-      // The .deb is built from the same unpacked app after the AppImage.
-      // electron-builder lists both in latest-linux.yml and writes
-      // resources/package-type into the .deb only, so electron-updater updates
-      // each install in its own format.
       target: target === "AppImage" ? [target, "deb"] : [target],
       executableName: APP_SLUG,
       icon: "icons",
       category: "Development",
       synopsis: "Desktop GUI for coding agents",
-      // Required by the .deb control file.
       maintainer: "Supaterm <hello@supaterm.com>",
-      // electron-builder turns these into MimeType=x-scheme-handler/<scheme>;
-      // in the .desktop entry (Exec already gets %U), so browsers can hand
-      // supaterm:// OAuth callbacks to the app.
       protocols: [
         {
           name: APP_PRODUCT_NAME,
@@ -2494,13 +2627,12 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     };
     buildConfig.deb = {
       // FPM runs outside the staged app directory, so source paths must be absolute.
-      // AppStream consumers associate this metadata with our supaterm.desktop entry.
       fpm: [
         `${path.join(repoRoot, "apps/desktop/resources/linux/com.supaterm.desktop.metainfo.xml")}=/usr/share/metainfo/com.supaterm.desktop.metainfo.xml`,
         `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/supaterm/copyright`,
       ],
-      // Electron's runtime libraries. Debian 13 and Ubuntu 24.04 renamed some
-      // for 64-bit time; the old name is the fallback for older releases.
+      // Debian 13 and Ubuntu 24.04 renamed some for 64-bit time; the old name
+      // is the fallback for older releases.
       depends: [
         "libasound2t64 | libasound2",
         "libatspi2.0-0t64 | libatspi2.0-0",
@@ -2519,10 +2651,10 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
 
   if (platform === "win") {
     buildConfig.npmRebuild = false;
-    // Keep blockmap-based differential downloads enabled while changing the
-    // installed file topology. The optimization is in the payload shape, not
-    // in trading update bandwidth for install speed.
-    buildConfig.nsis = { differentialPackage: true };
+    buildConfig.nsis = {
+      differentialPackage: true,
+      include: "apps/desktop/resources/installer.nsh",
+    };
     const winConfig: Record<string, unknown> = {
       target: [target],
       icon: "icon.ico",
@@ -2535,8 +2667,16 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       // packaged executable with Electron's stock icon.
       signAndEditExecutable: true,
     };
-    if (signed) {
+    if (signed && (yield* HostProcess.Platform) === "win32") {
       winConfig.azureSignOptions = yield* AzureTrustedSigningOptionsConfig;
+    } else if (signed) {
+      const path = yield* Path.Path;
+      const { publisherName } = yield* AzureTrustedSigningOptionsConfig;
+      winConfig.signtoolOptions = {
+        sign: yield* path.fromFileUrl(new URL("./lib/windows-jsign.ts", import.meta.url)),
+        signingHashAlgorithms: ["sha256"],
+        publisherName: [publisherName],
+      };
     }
     buildConfig.win = winConfig;
   }
@@ -2551,7 +2691,13 @@ const assertPlatformBuildResources = Effect.fn("assertPlatformBuildResources")(f
   verbose: boolean,
 ) {
   if (platform === "mac") {
-    yield* stageMacIcons(stageResourcesDir, iconAssets.macIconPng, verbose);
+    yield* stageMacIcons(
+      stageResourcesDir,
+      iconAssets.macIconPng,
+      iconAssets.macDarkIconPng,
+      iconAssets.macIconProject,
+      verbose,
+    );
     return;
   }
 
@@ -2565,10 +2711,9 @@ const assertPlatformBuildResources = Effect.fn("assertPlatformBuildResources")(f
   }
 });
 
-// Copy the Linux CLI release archive into the stage verbatim and record its
-// SHA-256 beside it. The desktop app verifies the digest inside the distro
-// before extracting, and the digest also names the extracted runtime's cache
-// directory, so it must be computed from the exact bytes that ship.
+// The desktop app verifies the digest inside the distro before extracting, and
+// the digest also names the extracted runtime's cache directory, so it must be
+// computed from the exact bytes that ship.
 export const stageWslRuntimeArchive = Effect.fn("stageWslRuntimeArchive")(function* (input: {
   readonly sourceArchivePath: string;
   readonly archivePath: string;
@@ -2607,11 +2752,6 @@ export const parseWslRuntimeArchiveMembers = (listing: string): ReadonlyArray<st
     .map((member) => member.replace(/^\.\//, "").replace(/\/$/, ""))
     .filter((member) => member.length > 0);
 
-// Stage and pack the Windows server sidecar: the bundled server plus a hoisted
-// install of only its runtime-external/native dependency closure for win32.
-// The Windows primary runs from the archive through the asar-aware
-// ELECTRON_RUN_AS_NODE runtime. Shipping one packed archive instead of
-// thousands of loose files is what makes the NSIS install/update fast.
 export const packWindowsServerAsar = Effect.fn("packWindowsServerAsar")(function* (input: {
   readonly sourceDir: string;
   readonly asarPath: string;
@@ -2869,14 +3009,38 @@ export const verifyWindowsPrimaryFffNativeLoad = Effect.fn(
   );
 });
 
+/**
+ * The fff probe needs a host of the target's platform and architecture; the
+ * bundle self-check needs a Windows host. A cross build defers both to
+ * scripts/verify-windows-desktop-artifact.ts.
+ */
+export const verifyWindowsPackagedRuntime = Effect.fn(
+  "desktopArtifact.verifyWindowsPackagedRuntime",
+)(function* (input: {
+  readonly packagedAppDir: string;
+  readonly appExecutableName: string;
+  readonly targetArch: typeof BuildArch.Type;
+  readonly verbose: boolean;
+}) {
+  const path = yield* Path.Path;
+  const asarPath = path.join(input.packagedAppDir, "resources", WINDOWS_SERVER_ASAR_RESOURCE);
+  yield* verifyWindowsPrimaryFffNativeLoad({ ...input, asarPath });
+  const hostPlatform = yield* HostProcess.Platform;
+  if (hostPlatform !== "win32") {
+    yield* Effect.log(
+      `[desktop-artifact] Skipped the bundle self-check on a ${hostPlatform} host.`,
+    );
+    return;
+  }
+  yield* verifyPackagedBundleIsSelfContained({ asarPath, verbose: input.verbose });
+});
+
 export const validateWindowsPackagedPayload = Effect.fn(
   "desktopArtifact.validateWindowsPackagedPayload",
 )(function* (input: {
   readonly stageDistDir: string;
   readonly appExecutableName: string;
   readonly targetArch: typeof BuildArch.Type;
-  // The version the embedded Linux CLI archive must carry; its top-level
-  // directory is named supaterm-<version>-linux-<arch>.
   readonly appVersion: string;
   readonly expectWslRuntime?: boolean;
   readonly fileLimit?: number;
@@ -2922,9 +3086,6 @@ export const validateWindowsPackagedPayload = Effect.fn(
 
   const unpackedFiles = yield* Effect.try({
     try: () => {
-      // The entry lookup proves the archive contains the server executable,
-      // while the single header walk identifies every file ASAR redirects to
-      // the unpacked sibling at runtime.
       // @electron/asar resolves entry names using the host path separator.
       // POSIX separators work on Linux/macOS but fail on Windows even when the
       // entry is present in the archive.
@@ -3054,7 +3215,6 @@ export const validateWindowsPackagedPayload = Effect.fn(
     }
     const requiredMembers = [`${stem}/supaterm`, `${stem}/client`, `${stem}/node_modules`];
     const missingMembers = requiredMembers.filter((member) => !members.includes(member));
-    // node-pty can load a source build or the prebuild for the WSL target.
     const ptyCandidates = [
       `${stem}/node_modules/node-pty/build/Release/pty.node`,
       `${stem}/node_modules/node-pty/prebuilds/linux-${input.targetArch}/pty.node`,
@@ -3070,7 +3230,6 @@ export const validateWindowsPackagedPayload = Effect.fn(
         cause: new Error("WSL runtime archive is not a Linux CLI release archive"),
       });
     }
-    // The CLI archive runs the single-executable, never a loose server bundle.
     const bundleEntry = members.find((member) => member.endsWith("/bin.mjs"));
     if (bundleEntry !== undefined) {
       return yield* invalidWslRuntime(
@@ -3089,16 +3248,10 @@ export const validateWindowsPackagedPayload = Effect.fn(
     });
   }
 
-  yield* verifyWindowsPrimaryFffNativeLoad({
+  yield* verifyWindowsPackagedRuntime({
     packagedAppDir,
-    asarPath,
     appExecutableName: input.appExecutableName,
     targetArch: input.targetArch,
-    verbose: input.verbose ?? false,
-  });
-
-  yield* verifyPackagedBundleIsSelfContained({
-    asarPath,
     verbose: input.verbose ?? false,
   });
 
@@ -3108,7 +3261,7 @@ export const validateWindowsPackagedPayload = Effect.fn(
   return { packagedAppDir, fileCount, unpackedFiles } as const;
 });
 
-const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
+const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(function* (
   options: ResolvedBuildOptions,
 ) {
   const repoRoot = yield* RepoRoot;
@@ -3183,6 +3336,9 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
         cause,
       }),
   });
+  const desktopRuntimeDependencies = options.withoutCodexMicro
+    ? withoutCodexMicroDependencies(resolvedDesktopRuntimeDependencies)
+    : resolvedDesktopRuntimeDependencies;
 
   const appVersion = options.version ?? serverPackageJson.version;
   const iconAssets = resolveDesktopBuildIconAssets(appVersion);
@@ -3203,14 +3359,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
 
   if (!options.skipBuild) {
     yield* Effect.log("[desktop-artifact] Building desktop/server/web artifacts...");
-    const spawnCommand = yield* resolveSpawnCommand("vp", ["run", "build:desktop"]);
-    yield* runCommand(
-      ChildProcess.make(spawnCommand.command, spawnCommand.args, {
-        cwd: repoRoot,
-        shell: spawnCommand.shell,
-      }),
-      { label: "vp run build:desktop", verbose: options.verbose },
-    );
+    yield* buildDesktopBundlesUnlocked(repoRoot, appVersion, options.verbose);
   }
 
   const requiredBuildInputs = [
@@ -3227,14 +3376,9 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     }
   }
 
-  // Assert against the emitted bundle, not the bundler config. `alwaysBundle`
-  // only forces packages IN, so a transitive dependency of an external package
-  // is bundled by default however the predicate is written — that silently
-  // inlined a native loader (node-gyp-build-optional-packages) while every
-  // list-based test still passed. An inlined native loader resolves its
-  // prebuilds relative to the bundle and quietly falls back to a slower
-  // pure-JS path, so this fails the build rather than shipping a silent
-  // regression.
+  // An inlined native loader resolves its prebuilds relative to the bundle and
+  // quietly falls back to a slower pure-JS path, so this fails the build rather
+  // than shipping a silent regression.
   {
     const chunkNames = (yield* fs.readDirectory(distDirs.serverDist)).filter((entry) =>
       entry.endsWith(".mjs"),
@@ -3331,8 +3475,6 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       options.verbose,
     );
   }
-  // On Windows the server tree ships in the server.asar sidecar instead of
-  // app.asar (see stageWindowsServerSidecar), so the app stage omits it.
   if (options.platform !== "win") {
     yield* fs.copy(distDirs.serverDist, path.join(stageAppDir, "apps/server/dist"));
   }
@@ -3366,6 +3508,8 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     stageResourcesDir,
     {
       macIconPng: path.join(repoRoot, iconAssets.macIconPng),
+      macDarkIconPng: path.join(repoRoot, iconAssets.macDarkIconPng),
+      macIconProject: path.join(repoRoot, iconAssets.macIconProject),
       linuxIconPng: path.join(repoRoot, iconAssets.linuxIconPng),
       windowsIconIco: path.join(repoRoot, iconAssets.windowsIconIco),
     },
@@ -3385,17 +3529,13 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   });
   const touchIdKeychainAccessGroup = macTouchIdSigning?.touchIdKeychainAccessGroup;
 
-  // Windows splits dependencies per process: app.asar carries only the
-  // desktop main-process externals, while the server bundle's externals live
-  // in the server.asar sidecar (see stageWindowsServerSidecar). macOS and
-  // Linux merge both sets into one app.asar.
   const stageDependencies =
     options.platform === "win"
-      ? { ...resolvedDesktopRuntimeDependencies }
+      ? { ...desktopRuntimeDependencies }
       : resolveMergedStageDependencies({
           platform: options.platform,
           serverDependencies: resolvedServerDependencies,
-          desktopDependencies: resolvedDesktopRuntimeDependencies,
+          desktopDependencies: desktopRuntimeDependencies,
           arch: options.arch,
           fffNodeVersion: serverPackageJson.dependencies["@ff-labs/fff-node"],
         });
@@ -3413,6 +3553,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     buildVersion: appVersion,
     supatermCommitHash: commitHash,
     ...(touchIdKeychainAccessGroup ? { supatermWebAuthn: { touchIdKeychainAccessGroup } } : {}),
+    ...(options.withoutCodexMicro ? { supatermFeatures: { codexMicro: false } as const } : {}),
     private: true,
     packageManager: rootPackageJson.packageManager,
     description:
@@ -3469,8 +3610,6 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   );
   yield* stageKeyringNativeBinaries(stageAppDir, options.platform, options.arch);
 
-  // Only the Windows artifact carries the server sidecar and the WSL runtime;
-  // other platforms ignore the --wsl-runtime input.
   if (options.platform === "win" && windowsServerAsarPath) {
     yield* stageWindowsServerSidecar({
       stageRoot,
@@ -3521,6 +3660,13 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     // fpm compresses the .deb with the system xz through tar. Threaded mode
     // takes seconds on a many-core runner instead of about two minutes.
     buildEnv.XZ_DEFAULTS = "-T0";
+  }
+  if (options.platform === "win") {
+    // Windows signs only through Azure Trusted Signing. Off Windows,
+    // electron-builder's signtool manager would read CSC_LINK (the macOS
+    // certificate) as a Windows certificate.
+    delete buildEnv.CSC_LINK;
+    delete buildEnv.CSC_KEY_PASSWORD;
   }
   if (!options.signed) {
     buildEnv.CSC_IDENTITY_AUTO_DISCOVERY = "false";
@@ -3587,18 +3733,6 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     });
   }
 
-  // Prove the packaged bundle is self-contained by loading it the way the WSL
-  // backend does, rather than by reasoning about the emitted source.
-  //
-  // Static analysis kept getting this wrong here. Scanning for bare imports
-  // matched specifiers inside effect's JSDoc examples and inside ajv's runtime
-  // codegen template, and asserting that one sentinel package was inlined
-  // missed a build that inlined `effect` while leaving `yaml` external. Node's
-  // resolver has no such ambiguity: it either finds every import or it does not.
-  //
-  // Only Windows unpacks anything; macOS and Linux keep the whole tree inside
-  // the app asar. Windows validates and executes the separately packed server
-  // sidecar after electron-builder copies it into the final payload.
   if (options.platform === "win") {
     yield* validateWindowsPackagedPayload({
       stageDistDir,
@@ -3640,6 +3774,13 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   );
 });
 
+const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
+  options: ResolvedBuildOptions,
+) {
+  const repoRoot = yield* RepoRoot;
+  return yield* withDesktopBuildLock(repoRoot, buildDesktopArtifactUnlocked(options));
+});
+
 const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
   platform: Flag.Literals("platform", BuildPlatform.literals).pipe(
     Flag.withDescription("Build platform (env: SUPATERM_DESKTOP_PLATFORM)."),
@@ -3658,7 +3799,9 @@ const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
     Flag.optional,
   ),
   buildVersion: Flag.String("build-version").pipe(
-    Flag.withDescription("Artifact version metadata (env: SUPATERM_DESKTOP_VERSION)."),
+    Flag.withDescription(
+      "Compiled bundle and desktop package version (env: SUPATERM_DESKTOP_VERSION).",
+    ),
     Flag.optional,
   ),
   outputDir: Flag.String("output-dir").pipe(
@@ -3673,6 +3816,12 @@ const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
   ),
   keepStage: Flag.Boolean("keep-stage").pipe(
     Flag.withDescription("Keep temporary staging files (env: SUPATERM_DESKTOP_KEEP_STAGE)."),
+    Flag.optional,
+  ),
+  withoutCodexMicro: Flag.Boolean("without-codex-micro").pipe(
+    Flag.withDescription(
+      "Leave out the Codex Micro keyboard and its HID library; the app hides the feature (env: SUPATERM_DESKTOP_WITHOUT_CODEX_MICRO).",
+    ),
     Flag.optional,
   ),
   signed: Flag.Boolean("signed").pipe(

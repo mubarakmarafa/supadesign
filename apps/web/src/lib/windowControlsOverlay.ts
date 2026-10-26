@@ -30,6 +30,23 @@ function getWindowControlsOverlay(): WindowControlsOverlayLike | null {
   return (navigator as NavigatorWithWindowControlsOverlay).windowControlsOverlay ?? null;
 }
 
+export function windowControlsOverlayHeight(): number {
+  const overlay = getWindowControlsOverlay();
+  return overlay?.visible ? overlay.getTitlebarAreaRect().height : 0;
+}
+
+export function onWindowControlsOverlayGeometryChange(listener: () => void): () => void {
+  const overlay = getWindowControlsOverlay();
+  if (!overlay) {
+    return () => {};
+  }
+
+  overlay.addEventListener("geometrychange", listener);
+  return () => {
+    overlay.removeEventListener("geometrychange", listener);
+  };
+}
+
 export function syncDocumentWindowControlsOverlayClass(): () => void {
   if (typeof document === "undefined") {
     return () => {};
@@ -41,14 +58,7 @@ export function syncDocumentWindowControlsOverlayClass(): () => void {
   };
 
   update();
-  if (!overlay) {
-    return () => {};
-  }
-
-  overlay.addEventListener("geometrychange", update);
-  return () => {
-    overlay.removeEventListener("geometrychange", update);
-  };
+  return onWindowControlsOverlayGeometryChange(update);
 }
 
 function subscribeTitlebarArea(listener: () => void): () => void {
@@ -63,7 +73,6 @@ function getNativeTitlebarHeight(): number {
   return overlay?.visible ? overlay.getTitlebarAreaRect().bottom : 0;
 }
 
-/** Height of the strip at the top of the window where native window controls paint over the page. */
 export function useNativeTitlebarHeight(): number {
   return useSyncExternalStore(subscribeTitlebarArea, getNativeTitlebarHeight, () => 0);
 }

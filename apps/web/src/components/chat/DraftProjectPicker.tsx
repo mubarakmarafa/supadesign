@@ -9,7 +9,7 @@ import { scopedProjectKey, scopeProjectRef } from "@supaterm/client-runtime/envi
 import { isScratchProject } from "@supaterm/client-runtime/state/projects";
 import { ChevronDownIcon, FolderIcon, FolderPlusIcon, MessageSquareDashedIcon } from "lucide-react";
 import { useAtomValue } from "@effect/atom-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { openCommandPalette } from "~/commandPaletteBus";
 import { useComposerHandleContext } from "~/composerHandleContext";
@@ -19,7 +19,7 @@ import { useNewThreadHandler } from "~/hooks/useHandleNewThread";
 import { useScratchProject } from "~/hooks/useScratchProject";
 import { useClientSettings } from "~/hooks/useSettings";
 import { usePickerShortcuts } from "~/hooks/usePickerShortcuts";
-import { hasExplicitComposerModelSelection } from "~/lib/chatThreadActions";
+import { moveDraftToProject, resolveNewDraftWorkspace } from "~/lib/newDraftWorkspace";
 import {
   deriveLogicalProjectKeyFromSettings,
   selectProjectGroupingSettings,
@@ -44,11 +44,11 @@ import {
   ComboboxItem,
   ComboboxEmpty,
 } from "../ui/combobox";
+import { MiddleTruncate } from "../ui/middle-truncate";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { Kbd } from "../ui/kbd";
 import { ComposerControl } from "./ComposerControl";
 import { useComposerMenuProps } from "./composerEventScope";
-import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import { normalizeSearchQuery, scoreQueryMatch } from "@supaterm/shared/searchRanking";
 
 // Menu value for "No project"; real entries are keyed by logical project key.
@@ -58,6 +58,59 @@ interface DraftProjectPickerProps {
   readonly draftId: DraftId | null;
   readonly activeProjectRef: ScopedProjectRef | null;
   readonly activeProjectTitle: string | null;
+  readonly isSendInFlight: () => boolean;
+}
+
+// The picker's handlers pass catalog entries to plain functions after later hooks, so the
+// catalog is derived in its own hook, where the compiler can cache it.
+function useDraftProjectCatalog(activeProjectRef: ScopedProjectRef | null) {
+  const projects = useProjects();
+  const threads = useThreadShells();
+  const { environments } = useEnvironments();
+  const primaryEnvironmentId = usePrimaryEnvironmentId();
+  const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
+  const projectSortOrder = useClientSettings((settings) => settings.sidebarProjectSortOrder);
+  const environmentLabelById = new Map(
+    environments.map((environment) => [environment.environmentId, environment.label] as const),
+  );
+  const projectGroups = sortLogicalProjectsForSidebar(
+    buildSidebarProjectSnapshots({
+      projects,
+      settings: projectGroupingSettings,
+      primaryEnvironmentId,
+      resolveEnvironmentLabel: (environmentId) => environmentLabelById.get(environmentId) ?? null,
+    }),
+    threads,
+    projectSortOrder,
+  );
+  const projectPickerEntries = buildSidebarProjectPickerEntries({
+    groups: projectGroups,
+    preferredProjectRef: activeProjectRef,
+  });
+  return {
+    projects,
+    environments,
+    primaryEnvironmentId,
+    projectGroupingSettings,
+    projectGroups,
+    projectPickerEntries,
+    projectEntryByKey: new Map(
+      projectPickerEntries.map((entry) => [entry.group.projectKey, entry] as const),
+    ),
+    // Same-named projects on two machines are only told apart by where they
+    // live, so rows on another machine carry its icon once the catalog spans
+    // more than one environment; a single-machine catalog stays as it was.
+    showProjectEnvironments: projectGroupsSpanEnvironments(projectGroups),
+    environmentMachineById: new Map(
+      environments.map(
+        (environment) =>
+          [
+            environment.environmentId,
+            resolveEnvironmentMachineKind(environment.serverConfig),
+          ] as const,
+      ),
+    ),
+  };
 }
 
 /** The composer strip's project control for a new draft; it retargets the draft in place. */
@@ -65,20 +118,21 @@ export function DraftProjectPicker({
   draftId,
   activeProjectRef,
   activeProjectTitle,
+  isSendInFlight,
 }: DraftProjectPickerProps) {
-  const projects = useProjects();
-  const threads = useThreadShells();
-  const { environments } = useEnvironments();
-  const primaryEnvironmentId = usePrimaryEnvironmentId();
-  const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
-  const projectSortOrder = useClientSettings((settings) => settings.sidebarProjectSortOrder);
-  const setLogicalProjectDraftThreadId = useComposerDraftStore(
-    (store) => store.setLogicalProjectDraftThreadId,
-  );
+  const {
+    projects,
+    environments,
+    primaryEnvironmentId,
+    projectGroupingSettings,
+    projectGroups,
+    projectPickerEntries,
+    projectEntryByKey,
+    showProjectEnvironments,
+    environmentMachineById,
+  } = useDraftProjectCatalog(activeProjectRef);
   const getComposerDraft = useComposerDraftStore((store) => store.getComposerDraft);
-  const applyStickyState = useComposerDraftStore((store) => store.applyStickyState);
-  const setModelSelection = useComposerDraftStore((store) => store.setModelSelection);
-  const openAddProject = useCallback(() => openCommandPalette({ open: "add-project" }), []);
+  const openAddProject = () => openCommandPalette({ open: "add-project" });
   const { scratchEnvironmentId, scratchWorkspaceRootFor, openScratchProject } = useScratchProject();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const projectPickerShortcut = shortcutLabelForCommand(keybindings, "projectPicker.toggle");
@@ -88,67 +142,6 @@ export function DraftProjectPicker({
   const composerMenuProps = useComposerMenuProps();
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const environmentLabelById = useMemo(
-    () =>
-      new Map(
-        environments.map((environment) => [environment.environmentId, environment.label] as const),
-      ),
-    [environments],
-  );
-  const projectGroups = useMemo(
-    () =>
-      sortLogicalProjectsForSidebar(
-        buildSidebarProjectSnapshots({
-          projects,
-          settings: projectGroupingSettings,
-          primaryEnvironmentId,
-          resolveEnvironmentLabel: (environmentId) =>
-            environmentLabelById.get(environmentId) ?? null,
-        }),
-        threads,
-        projectSortOrder,
-      ),
-    [
-      environmentLabelById,
-      primaryEnvironmentId,
-      projectGroupingSettings,
-      projectSortOrder,
-      projects,
-      threads,
-    ],
-  );
-  // Same-named projects on two machines are only told apart by where they
-  // live, so rows on another machine carry its icon once the catalog spans
-  // more than one environment; a single-machine catalog stays as it was.
-  const showProjectEnvironments = useMemo(
-    () => projectGroupsSpanEnvironments(projectGroups),
-    [projectGroups],
-  );
-  const environmentMachineById = useMemo(
-    () =>
-      new Map(
-        environments.map(
-          (environment) =>
-            [
-              environment.environmentId,
-              resolveEnvironmentMachineKind(environment.serverConfig),
-            ] as const,
-        ),
-      ),
-    [environments],
-  );
-  const projectPickerEntries = useMemo(
-    () =>
-      buildSidebarProjectPickerEntries({
-        groups: projectGroups,
-        preferredProjectRef: activeProjectRef,
-      }),
-    [activeProjectRef, projectGroups],
-  );
-  const projectEntryByKey = useMemo(
-    () => new Map(projectPickerEntries.map((entry) => [entry.group.projectKey, entry] as const)),
-    [projectPickerEntries],
-  );
   const activeProjectGroup =
     activeProjectRef === null
       ? null
@@ -181,8 +174,8 @@ export function DraftProjectPicker({
   const isScratchDraft =
     activeProject !== null && isScratchProject(activeProject, scratchWorkspaceRoot);
 
-  // The picker can change the draft's target while the no-project home is
-  // still being opened; a stale continuation must not retarget it again.
+  // The draft can move elsewhere while the no-project home is still being
+  // opened; a stale continuation must not retarget it again.
   const latestTargetRef = useRef({ draftId, activeProjectKey, scratchTargetEnvironmentId });
   useEffect(() => {
     latestTargetRef.current = { draftId, activeProjectKey, scratchTargetEnvironmentId };
@@ -191,47 +184,44 @@ export function DraftProjectPicker({
   // prompt stays in the same composer session, so the sidebar only gets a
   // draft row if the user later navigates away.
   const openProjectDraft = useNewThreadHandler();
+  // Each choice takes a new request, so one still waiting on its project's
+  // defaults or folder yields to a later choice, even one that keeps the
+  // current project.
+  const moveRequestRef = useRef(0);
   const selectProject = (project: (typeof projects)[number], logicalProjectKey: string) => {
     if (!draftId) {
       return;
     }
-    latestTargetRef.current = {
-      draftId,
-      activeProjectKey: logicalProjectKey,
-      scratchTargetEnvironmentId: project.environmentId,
-    };
-    const currentDraft = getComposerDraft(draftId);
+    const moveRequest = ++moveRequestRef.current;
+    const projectRef = scopeProjectRef(project.environmentId, project.id);
     if (
-      !composerDraftHasUserContent(currentDraft) &&
+      !composerDraftHasUserContent(getComposerDraft(draftId)) &&
       draftThreadHasOpenPreview(useComposerDraftStore.getState().getDraftSession(draftId))
     ) {
-      void openProjectDraft(scopeProjectRef(project.environmentId, project.id));
+      void openProjectDraft(projectRef);
       return;
     }
-    setLogicalProjectDraftThreadId(
-      logicalProjectKey,
-      scopeProjectRef(project.environmentId, project.id),
-      draftId,
-    );
-    if (!hasExplicitComposerModelSelection(currentDraft)) {
-      applyStickyState(draftId);
-      const environmentSettings = environments.find(
-        (environment) => environment.environmentId === project.environmentId,
-      )?.serverConfig?.settings;
-      const defaultModelSelection = environmentSettings
-        ? resolveProjectSettings(environmentSettings, project.id, project).settings
-            .defaultModelSelection
-        : project.defaultModelSelection;
-      if (defaultModelSelection) {
-        setModelSelection(draftId, defaultModelSelection, {
-          replaceOptions: true,
-        });
+    const serverConfig = environments.find(
+      (environment) => environment.environmentId === project.environmentId,
+    )?.serverConfig;
+    void resolveNewDraftWorkspace(projectRef, serverConfig).then((workspace) => {
+      // A send that started meanwhile goes to the project still shown.
+      if (moveRequestRef.current !== moveRequest || isSendInFlight()) {
+        return;
       }
-    }
+      moveDraftToProject({
+        draftId,
+        project,
+        logicalProjectKey,
+        serverSettings: serverConfig?.settings ?? null,
+        workspace,
+      });
+    });
   };
   // Moves the draft to No project. Focus goes to the prompt unless the user has
   // already moved it elsewhere while the folder was being prepared.
   const startScratch = async () => {
+    const moveRequest = ++moveRequestRef.current;
     if (scratchTargetEnvironmentId === null || isScratchDraft) {
       return;
     }
@@ -240,6 +230,7 @@ export function DraftProjectPicker({
     const latest = latestTargetRef.current;
     if (
       !project ||
+      moveRequestRef.current !== moveRequest ||
       latest.draftId !== requested.draftId ||
       latest.activeProjectKey !== requested.activeProjectKey ||
       latest.scratchTargetEnvironmentId !== requested.scratchTargetEnvironmentId
@@ -295,8 +286,14 @@ export function DraftProjectPicker({
       return;
     }
     const entry = projectEntryByKey.get(item.value);
-    if (entry && item.value !== activeProjectKey)
-      selectProject(entry.targetProject, entry.group.projectKey);
+    if (!entry) {
+      return;
+    }
+    if (item.value === activeProjectKey) {
+      moveRequestRef.current += 1;
+      return;
+    }
+    selectProject(entry.targetProject, entry.group.projectKey);
   };
   const projectJumpLabels = usePickerShortcuts({
     picker: "project",
@@ -373,7 +370,9 @@ export function DraftProjectPicker({
             ) : (
               <FolderIcon className="size-3 shrink-0" />
             )}
-            <ComposerContextLabel>{triggerLabel}</ComposerContextLabel>
+            <ComposerContextLabel>
+              <MiddleTruncate value={triggerLabel} showTitle={false} className="w-full" />
+            </ComposerContextLabel>
             <ChevronDownIcon className="size-3 shrink-0 opacity-50" />
           </TooltipTrigger>
           <TooltipPopup shortcut={projectPickerShortcut}>Select project</TooltipPopup>

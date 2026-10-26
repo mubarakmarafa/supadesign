@@ -77,8 +77,6 @@ function group(
   };
 }
 
-// Project IDs are environment-local. This unrelated server checkout deliberately
-// shares an ID with a laptop checkout in the selected group.
 const sameIdElsewhere = member("first", serverId);
 const groups = [
   group("supaterm", [first, second, third]),

@@ -10,13 +10,13 @@ import {
   orchestrationProtocolCompatibilityError,
 } from "./compatibility.ts";
 
-const descriptor = (orchestrationProtocolVersion?: number): ExecutionEnvironmentDescriptor => ({
+const descriptor = (orchestrationProtocolVersion: number): ExecutionEnvironmentDescriptor => ({
   environmentId: EnvironmentId.make("environment-remote"),
   label: "Build Mac",
   platform: { os: "darwin", arch: "arm64" },
   serverVersion: "9.0.0",
-  ...(orchestrationProtocolVersion === undefined ? {} : { orchestrationProtocolVersion }),
-  capabilities: { repositoryIdentity: true },
+  orchestrationProtocolVersion,
+  capabilities: {},
 });
 
 describe("orchestration protocol compatibility", () => {
@@ -35,15 +35,6 @@ describe("orchestration protocol compatibility", () => {
     expect(socketUrl.searchParams.get("connectionMethod")).toBe("ssh");
   });
 
-  it("treats missing metadata as protocol 1", () => {
-    const error = orchestrationProtocolCompatibilityError(descriptor());
-    if (Number(ORCHESTRATION_PROTOCOL_VERSION) === 1) {
-      expect(error).toBeNull();
-    } else {
-      expect(error).toMatchObject({ reason: "unsupported" });
-    }
-  });
-
   it("blocks a different protocol before connecting", () => {
     const error = orchestrationProtocolCompatibilityError(
       descriptor(ORCHESTRATION_PROTOCOL_VERSION + 1),
@@ -58,18 +49,15 @@ describe("orchestration protocol compatibility", () => {
     const withCapabilities = (capabilities: ExecutionEnvironmentDescriptor["capabilities"]) =>
       orchestrationProtocolCompatibilityError({ ...older, capabilities });
 
-    expect(
-      withCapabilities({ repositoryIdentity: true, serverSelfUpdate: "boot-service" }),
-    ).toMatchObject({ serverUpdateRequired: true });
-    expect(withCapabilities({ repositoryIdentity: true })).not.toHaveProperty(
+    expect(withCapabilities({ serverSelfUpdate: "boot-service" })).toMatchObject({
+      serverUpdateRequired: true,
+    });
+    expect(withCapabilities({})).not.toHaveProperty("serverUpdateRequired");
+    expect(withCapabilities({ serverSelfUpdate: "desktop-managed" })).not.toHaveProperty(
       "serverUpdateRequired",
     );
     expect(
-      withCapabilities({ repositoryIdentity: true, serverSelfUpdate: "desktop-managed" }),
-    ).not.toHaveProperty("serverUpdateRequired");
-    expect(
       withCapabilities({
-        repositoryIdentity: true,
         serverSelfUpdate: "desktop-managed",
         desktopAppUpdate: true,
       }),

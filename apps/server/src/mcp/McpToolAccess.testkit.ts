@@ -16,10 +16,6 @@ import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.t
 
 const EPOCH = DateTime.makeUnsafe("2026-01-01T00:00:00.000Z");
 
-/**
- * A thread in the middle of a turn on the `codex` instance: the shape the
- * access gate reads for a thread caller, and for the threads a caller targets.
- */
 export const liveThreadShell = (
   id: ThreadId,
   modes: {
@@ -56,26 +52,17 @@ export const liveThreadShell = (
     createdAt: EPOCH,
     updatedAt: EPOCH,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     deletedAt: null,
   };
 };
 
-/**
- * `ThreadManagementService` that answers only the access gate's lookups,
- * every thread a live full-access one. For tests of a tool rather than of who
- * may call it.
- */
 export const liveThreadsLayer = Layer.mock(ThreadManagement.ThreadManagementService)({
   getThreadShell: (threadId) => Effect.succeed(liveThreadShell(threadId)),
 });
 
-/**
- * The thread of `shell` with no runs, messages or other records: what a
- * caller looks like once its turn has ended.
- */
 export const idleThreadProjection = (
   shell: OrchestrationV2ThreadShell,
 ): OrchestrationV2ThreadProjection => {

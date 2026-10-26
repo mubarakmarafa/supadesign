@@ -20,9 +20,8 @@ const personalTeamBundleIdentifier = repoEnv.SUPATERM_IOS_PERSONAL_TEAM_BUNDLE_I
 const IOS_BUNDLE_IDENTIFIER_PATTERN = /^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 
 const fromRepoRoot = (relativePath: string) => `../../${relativePath}`;
-// Android layers are rendered by scripts/export-android-icons.ts from the Icon Composer sources.
-// The wordmark sits inside the adaptive safe zone; the variant artwork is a full-bleed background.
 const androidAdaptiveForeground = "./assets/android-icon-foreground.png";
+const androidAdaptiveBackgroundColor = "#151B17";
 
 if (
   isIosPersonalTeamBuild &&
@@ -38,33 +37,33 @@ const DEVELOPMENT_ASSETS = {
   appIcon: fromRepoRoot(BRAND_ASSET_PATHS.developmentIosIconPng),
   iosIcon: fromRepoRoot(BRAND_ASSET_PATHS.developmentIconComposerProject),
   splashIcon: fromRepoRoot(BRAND_ASSET_PATHS.developmentIosIconPng),
+  androidIcon: "./assets/android-icon-dev.png",
   androidAdaptiveForeground,
-  androidAdaptiveBackgroundColor: "#347FF8",
+  androidAdaptiveBackgroundColor,
   androidAdaptiveBackgroundImage: "./assets/android-icon-background-dev.png",
   androidSplashIcon: "./assets/android-splash-icon-dev.png",
-  androidMonochromeIcon: "./assets/android-icon-mark.png",
 } as const;
 
 const PREVIEW_ASSETS = {
   appIcon: fromRepoRoot(BRAND_ASSET_PATHS.nightlyIosIconPng),
   iosIcon: fromRepoRoot(BRAND_ASSET_PATHS.nightlyIconComposerProject),
   splashIcon: fromRepoRoot(BRAND_ASSET_PATHS.nightlyIosIconPng),
+  androidIcon: "./assets/android-icon-nightly.png",
   androidAdaptiveForeground,
-  androidAdaptiveBackgroundColor: "#111533",
+  androidAdaptiveBackgroundColor,
   androidAdaptiveBackgroundImage: "./assets/android-icon-background-nightly.png",
   androidSplashIcon: "./assets/android-splash-icon-nightly.png",
-  androidMonochromeIcon: "./assets/android-icon-mark.png",
 } as const;
 
 const RELEASE_ASSETS = {
   appIcon: fromRepoRoot(BRAND_ASSET_PATHS.productionIosIconPng),
   iosIcon: fromRepoRoot(BRAND_ASSET_PATHS.productionIconComposerProject),
   splashIcon: fromRepoRoot(BRAND_ASSET_PATHS.productionIosIconPng),
+  androidIcon: "./assets/android-icon-prod.png",
   androidAdaptiveForeground,
-  androidAdaptiveBackgroundColor: "#0E0F34",
+  androidAdaptiveBackgroundColor,
   androidAdaptiveBackgroundImage: "./assets/android-icon-background-prod.png",
   androidSplashIcon: "./assets/android-splash-icon-prod.png",
-  androidMonochromeIcon: "./assets/android-icon-mark.png",
 } as const;
 
 const VARIANT_CONFIG = {
@@ -107,10 +106,10 @@ const iosBundleIdentifier = isIosPersonalTeamBuild
   ? personalTeamBundleIdentifier!
   : variant.iosBundleIdentifier;
 
-const dmSansFonts = {
-  regular: "@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf",
-  medium: "@expo-google-fonts/dm-sans/500Medium/DMSans_500Medium.ttf",
-  bold: "@expo-google-fonts/dm-sans/700Bold/DMSans_700Bold.ttf",
+const codeFonts = {
+  regular: "@expo-google-fonts/jetbrains-mono/400Regular/JetBrainsMono_400Regular.ttf",
+  medium: "@expo-google-fonts/jetbrains-mono/500Medium/JetBrainsMono_500Medium.ttf",
+  bold: "@expo-google-fonts/jetbrains-mono/700Bold/JetBrainsMono_700Bold.ttf",
 } as const;
 
 const widgetsPlugin: NonNullable<ExpoConfig["plugins"]>[number] = [
@@ -201,16 +200,12 @@ const sharingPlugin: NonNullable<ExpoConfig["plugins"]>[number] = [
   },
 ];
 
-// These aliases match the fonts' PostScript names on iOS. Register the same
-// names on Android so React Native and the native composer use one set of
-// family names without waiting for runtime font loading.
-
 const config: ExpoConfig = {
   name: variant.appName,
-  slug: "supacode",
+  slug: "supaterm",
   platforms: ["ios", "android"],
   scheme: variant.scheme,
-  version: "26.3.0",
+  version: "26.10.5",
   runtimeVersion: {
     // Development manifests resolve on every launch, so avoid fingerprint's
     // expensive native-project calculation there. Preview and production stay
@@ -222,15 +217,13 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   updates: {
     enabled: repoEnv.SUPATERM_MOBILE_UPDATES_ENABLED !== "0",
-    url: "https://u.expo.dev/43107a7e-1d06-490b-bfc6-be228b285ee2",
+    url: "https://u.expo.dev/c96e633c-2940-4aab-a40a-44777a9600c6",
     checkAutomatically: "ON_LOAD",
     fallbackToCacheTimeout: 0,
   },
   ios: {
     icon: variant.assets.iosIcon,
     supportsTablet: true,
-    // Multitasking-capable iPad apps cannot rotate programmatically, so the
-    // showcase capture build requires full screen (see infoPlist below).
     requireFullScreen: process.env.SUPATERM_SHOWCASE_CAPTURE_BUILD === "1",
     bundleIdentifier: iosBundleIdentifier,
     // Pin code signing to SUPABIT COMPANY LIMITED so non-interactive `expo run:ios`
@@ -282,13 +275,13 @@ const config: ExpoConfig = {
     },
   },
   android: {
-    icon: variant.assets.appIcon,
+    icon: variant.assets.androidIcon,
     package: variant.androidPackage,
+    versionCode: 3,
     adaptiveIcon: {
       backgroundColor: variant.assets.androidAdaptiveBackgroundColor,
       backgroundImage: variant.assets.androidAdaptiveBackgroundImage,
       foregroundImage: variant.assets.androidAdaptiveForeground,
-      monochromeImage: variant.assets.androidMonochromeIcon,
     },
     // Opts into OnBackInvokedCallback-based back dispatch (Android 13+).
     // JS back handling survives it via react-native's Android 16 shim plus
@@ -302,25 +295,22 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-asset",
+    "react-native-pdf-jsi",
     [
       "expo-font",
       {
         ios: {
-          fonts: [dmSansFonts.regular, dmSansFonts.medium, dmSansFonts.bold],
+          fonts: [codeFonts.regular, codeFonts.medium, codeFonts.bold],
         },
         android: {
           fonts: [
             {
-              fontFamily: "DMSans-Regular",
-              fontDefinitions: [{ path: dmSansFonts.regular, weight: 400 }],
-            },
-            {
-              fontFamily: "DMSans-Medium",
-              fontDefinitions: [{ path: dmSansFonts.medium, weight: 500 }],
-            },
-            {
-              fontFamily: "DMSans-Bold",
-              fontDefinitions: [{ path: dmSansFonts.bold, weight: 700 }],
+              fontFamily: "JetBrainsMono",
+              fontDefinitions: [
+                { path: codeFonts.regular, weight: 400 },
+                { path: codeFonts.medium, weight: 500 },
+                { path: codeFonts.bold, weight: 700 },
+              ],
             },
           ],
         },
@@ -376,13 +366,13 @@ const config: ExpoConfig = {
           backgroundColor: "#0a0a0a",
         },
         android: {
-          // Android 12+ masks the splash icon to a circle over the central two thirds of
-          // its 288dp canvas, so the iOS export's corners get cut. A full-canvas image of
-          // the composed adaptive layers puts the wordmark in the same frame the launcher
-          // icon uses.
           image: variant.assets.androidSplashIcon,
+          backgroundColor: variant.assets.androidAdaptiveBackgroundColor,
           imageWidth: 288,
-          dark: { image: variant.assets.androidSplashIcon },
+          dark: {
+            image: variant.assets.androidSplashIcon,
+            backgroundColor: variant.assets.androidAdaptiveBackgroundColor,
+          },
         },
       },
     ],
@@ -394,12 +384,10 @@ const config: ExpoConfig = {
           minSdkVersion: 24,
           // kotlinx-io uses Kotlin 2.3's return-value checker annotation, while
           // SDK 58 builds with Kotlin 2.2. It has no runtime behavior.
-          //
           // WorkManager 2.9 keeps InputMerger classes but not their constructors,
           // and R8 full mode no longer keeps a default constructor implicitly.
           // Without it no work request can start, so the Glance session behind
-          // the widget never renders and it stays on "Loading widget". WorkManager
-          // 2.10 ships this rule itself; drop it once the resolved version gets there.
+          // the widget never renders and it stays on "Loading widget".
           extraProguardRules: [
             "-dontwarn kotlin.MustUseReturnValues",
             "-keep class * extends androidx.work.InputMerger { <init>(); }",
@@ -417,6 +405,7 @@ const config: ExpoConfig = {
     ...(!isIosPersonalTeamBuild ? [widgetsPlugin] : []),
     "./plugins/withAndroidCleartextTraffic.cjs",
     "./plugins/withAndroidGradleHeap.cjs",
+    "./plugins/withAndroidFbjniVersion.cjs",
     "./plugins/withAndroidInputBackground.cjs",
     "./plugins/withAndroidModernPopupMenu.cjs",
     "./plugins/withAndroidModernAlertDialog.cjs",
@@ -428,10 +417,14 @@ const config: ExpoConfig = {
     appVariant: APP_VARIANT,
     iosPersonalTeamBuild: isIosPersonalTeamBuild,
     eas: {
-      projectId: "43107a7e-1d06-490b-bfc6-be228b285ee2",
+      projectId: "c96e633c-2940-4aab-a40a-44777a9600c6",
     },
   },
   owner: "supabitapp",
+  experiments: {
+    // Metro only runs babel-plugin-react-compiler when this is set; see src/reactCompilerCoverage.test.ts.
+    reactCompiler: true,
+  },
 };
 
 export default config;

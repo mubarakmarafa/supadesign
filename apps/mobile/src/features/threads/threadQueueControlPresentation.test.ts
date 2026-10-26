@@ -1,19 +1,70 @@
+import { formatAssistantCitationHref } from "@supaterm/shared/assistantCitations";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
   REMOVE_QUEUED_MESSAGE_ACCESSIBILITY_LABEL,
-  buildCancelQueuedRunCommand,
-  resolveQueueDragBeforeRunId,
   resolveThreadQueueRowControls,
   resolveQueueDropBeforeRunId,
 } from "./threadQueueControlPresentation";
-import { threadDragGapOffset } from "./threadDragGap";
 
 describe("threadQueueControlPresentation", () => {
-  it("preserves queue reorder and steer controls with removal", () => {
+  it.each([
+    { busy: false, isEditing: false, expected: true },
+    { busy: true, isEditing: false, expected: false },
+    { busy: false, isEditing: true, expected: false },
+  ])(
+    "gates sending a stopped thread's queued message with $busy busy and $isEditing editing",
+    ({ busy, isEditing, expected }) => {
+      const controls = resolveThreadQueueRowControls({
+        canOperate: true,
+        busy,
+        isEditing,
+        canPromoteToSteer: false,
+        canSendNow: true,
+        canReorder: false,
+        index: 0,
+        queuedCount: 1,
+        text: "Queued message",
+      });
+
+      expect(controls.canSend).toBe(expected);
+    },
+  );
+
+  it("shows an assistant quote as its quoted text", () => {
+    const href = formatAssistantCitationHref({
+      version: 1,
+      environmentId: "environment:test" as never,
+      threadId: "thread:test" as never,
+      messageId: "message:assistant" as never,
+      text: "Retry the sync after the lock clears.",
+      start: 0,
+      end: 37,
+      prefix: "",
+      suffix: "",
+    });
     const controls = resolveThreadQueueRowControls({
+      canOperate: true,
       busy: false,
       canPromoteToSteer: true,
+      canSendNow: false,
+      canReorder: true,
+      index: 0,
+      queuedCount: 1,
+      text: `[Assistant quote](${href}) Can we add a backoff here?`,
+    });
+
+    expect(controls.displayText).toBe(
+      "Retry the sync after the lock clears. Can we add a backoff here?",
+    );
+  });
+
+  it("preserves queue reorder and send controls with removal", () => {
+    const controls = resolveThreadQueueRowControls({
+      canOperate: true,
+      busy: false,
+      canPromoteToSteer: true,
+      canSendNow: false,
       canReorder: true,
       index: 1,
       queuedCount: 3,
@@ -23,7 +74,7 @@ describe("threadQueueControlPresentation", () => {
     expect(controls.displayText).toBe("Please review the follow-up change.");
     expect(controls.canMoveUp).toBe(true);
     expect(controls.canMoveDown).toBe(true);
-    expect(controls.canSteer).toBe(true);
+    expect(controls.canSend).toBe(true);
     expect(controls.canDismiss).toBe(true);
     expect(controls.canOpen).toBe(true);
     expect(controls.dismissAccessibilityLabel).toBe(REMOVE_QUEUED_MESSAGE_ACCESSIBILITY_LABEL);
@@ -31,16 +82,20 @@ describe("threadQueueControlPresentation", () => {
 
   it("disables edge reorder controls and busy dismissal", () => {
     const first = resolveThreadQueueRowControls({
+      canOperate: true,
       busy: false,
       canPromoteToSteer: false,
+      canSendNow: false,
       canReorder: true,
       index: 0,
       queuedCount: 2,
       text: "First",
     });
     const busy = resolveThreadQueueRowControls({
+      canOperate: true,
       busy: true,
       canPromoteToSteer: true,
+      canSendNow: false,
       canReorder: true,
       index: 0,
       queuedCount: 1,
@@ -49,17 +104,19 @@ describe("threadQueueControlPresentation", () => {
 
     expect(first.canMoveUp).toBe(false);
     expect(first.canMoveDown).toBe(true);
-    expect(first.canSteer).toBe(false);
+    expect(first.canSend).toBe(false);
     expect(busy.canDismiss).toBe(false);
     expect(busy.canOpen).toBe(false);
     expect(busy.canMoveUp).toBe(false);
-    expect(busy.canSteer).toBe(false);
+    expect(busy.canSend).toBe(false);
   });
 
   it("lets an edited row return to the composer without reloading or steering", () => {
     const editing = resolveThreadQueueRowControls({
+      canOperate: true,
       busy: false,
       canPromoteToSteer: true,
+      canSendNow: false,
       canReorder: true,
       index: 1,
       isEditing: true,
@@ -70,25 +127,30 @@ describe("threadQueueControlPresentation", () => {
     expect(editing.isEditing).toBe(true);
     expect(editing.canOpen).toBe(true);
     expect(editing.canEdit).toBe(false);
-    expect(editing.canSteer).toBe(false);
-    // Reordering and removing a message stay available while it is edited.
+    expect(editing.canSend).toBe(false);
     expect(editing.canMoveUp).toBe(true);
     expect(editing.canDismiss).toBe(true);
   });
 
-  it("builds cancelQueuedRun command arguments for removal", () => {
-    expect(
-      buildCancelQueuedRunCommand({
-        environmentId: "environment:test" as never,
-        runId: "run:queued" as never,
-        threadId: "thread:test" as never,
-      }),
-    ).toEqual({
-      environmentId: "environment:test",
-      input: {
-        runId: "run:queued",
-        threadId: "thread:test",
-      },
+  it("disables every queue mutation on a read-only connection", () => {
+    const controls = resolveThreadQueueRowControls({
+      canOperate: false,
+      busy: false,
+      canPromoteToSteer: true,
+      canSendNow: false,
+      canReorder: true,
+      index: 1,
+      queuedCount: 3,
+      text: "Queued message",
+    });
+    expect(controls).toMatchObject({
+      canDismiss: false,
+      canEdit: false,
+      canMoveDown: false,
+      canMoveUp: false,
+      canOpen: false,
+      canSend: false,
+      displayText: "Queued message",
     });
   });
 });
@@ -104,24 +166,6 @@ describe("queue drag insertion", () => {
     expect(resolveQueueDropBeforeRunId(rows, rows[0]!.id, 140)).toBe("third");
     expect(resolveQueueDropBeforeRunId(rows, rows[0]!.id, 300)).toBeNull();
     expect(resolveQueueDropBeforeRunId(rows, rows[2]!.id, -300)).toBe("first");
-  });
-
-  it("opens the destination gap while the dragged row crosses other rows", () => {
-    const offsets = (runId: (typeof rows)[number]["id"], translation: number) => {
-      const before = resolveQueueDragBeforeRunId(rows, runId, translation);
-      if (before === undefined) return;
-      const source = rows.find((row) => row.id === runId)!;
-      const last = rows.at(-1)!;
-      const insertion =
-        before === null ? last.y + last.height : rows.find((row) => row.id === before)!.y;
-      return rows.map((row) => threadDragGapOffset(row.y, source.y, source.height, insertion));
-    };
-
-    expect(resolveQueueDragBeforeRunId(rows, rows[0]!.id, 0)).toBe(rows[1]!.id);
-    expect(offsets(rows[0]!.id, 140)).toEqual([0, -80, 0]);
-    expect(offsets(rows[0]!.id, 300)).toEqual([0, -80, -80]);
-    expect(offsets(rows[2]!.id, -300)).toEqual([80, 80, 0]);
-    expect(offsets(rows[1]!.id, 0)).toEqual([0, 0, 0]);
   });
 
   it("does not send a reorder for an unchanged or unmeasured drop", () => {

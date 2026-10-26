@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { toastManager } from "../components/ui/toast";
 import {
+  releaseThreadUndoShortcut,
   showThreadUndoNotice,
+  threadUndoClaimsShortcut,
   undoLatestThreadAction,
   useThreadUndoNotice,
 } from "./showThreadUndoNotice";
@@ -36,15 +38,15 @@ describe("thread undo notice", () => {
     const { add, undo, options } = setup();
     showThreadUndoNotice({
       ...options,
-      action: "Settled",
-      claim: ThreadUndo.begin("settle", "env/a"),
+      action: "Done",
+      claim: ThreadUndo.begin("mark-done", "env/a"),
     });
     showThreadUndoNotice({
       ...options,
-      action: "Settled",
-      claim: ThreadUndo.begin("settle", "env/b"),
+      action: "Done",
+      claim: ThreadUndo.begin("mark-done", "env/b"),
     });
-    expect(notice()).toMatchObject({ action: "Settled", count: 2 });
+    expect(notice()).toMatchObject({ action: "Done", count: 2 });
     expect(add).not.toHaveBeenCalled();
     const group = notice();
     await group.undo();
@@ -131,9 +133,9 @@ describe("thread undo notice", () => {
     const newer = vi.fn(async () => AsyncResult.success(undefined));
     showThreadUndoNotice({
       ...options,
-      action: "Settled",
+      action: "Done",
       undo: older,
-      claim: ThreadUndo.begin("settle", "env/a"),
+      claim: ThreadUndo.begin("mark-done", "env/a"),
     });
     showThreadUndoNotice({
       ...options,
@@ -144,9 +146,30 @@ describe("thread undo notice", () => {
     expect(undoLatestThreadAction()).toBe(true);
     expect(newer).toHaveBeenCalledOnce();
     expect(older).not.toHaveBeenCalled();
-    expect(notice().action).toBe("Settled");
+    expect(notice().action).toBe("Done");
     await notice().undo();
     expect(older).toHaveBeenCalledOnce();
     expect(undoLatestThreadAction()).toBe(false);
+  });
+
+  it("claims mod+z from text fields until the user types, then again for a new notice", () => {
+    const { options } = setup();
+    expect(threadUndoClaimsShortcut()).toBe(false);
+    showThreadUndoNotice(options);
+    expect(threadUndoClaimsShortcut()).toBe(true);
+    releaseThreadUndoShortcut();
+    expect(threadUndoClaimsShortcut()).toBe(false);
+    showThreadUndoNotice({ ...options, claim: ThreadUndo.begin("pin", "env/next") });
+    expect(threadUndoClaimsShortcut()).toBe(true);
+  });
+
+  it("stops claiming mod+z once nothing is left to undo", async () => {
+    const { options } = setup();
+    showThreadUndoNotice(options);
+    await notice().undo();
+    expect(threadUndoClaimsShortcut()).toBe(false);
+    showThreadUndoNotice({ ...options, claim: ThreadUndo.begin("pin", "env/expiring") });
+    vi.advanceTimersByTime(5_000);
+    expect(threadUndoClaimsShortcut()).toBe(false);
   });
 });

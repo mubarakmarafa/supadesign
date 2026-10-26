@@ -19,16 +19,16 @@ export function toSortableTimestamp(iso: string | undefined): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
-export type SettledThreadTimestampInput = Pick<
+export type DoneThreadTimestampInput = Pick<
   EnvironmentThreadShell,
-  "settledAt" | "latestUserMessageAt" | "latestRun" | "updatedAt"
+  "doneAt" | "latestUserMessageAt" | "latestRun" | "updatedAt"
 >;
 
-/** The timestamp a settled row sorts and labels by on every client: settledAt
+/** The timestamp a done row sorts and labels by on every client: doneAt
     when stamped, otherwise the latest message or turn stamp, then updatedAt. */
-export function resolveSettledThreadTimestamp(thread: SettledThreadTimestampInput): string | null {
-  if (thread.settledAt != null && toSortableTimestamp(thread.settledAt) !== null) {
-    return thread.settledAt;
+export function resolveDoneThreadTimestamp(thread: DoneThreadTimestampInput): string | null {
+  if (thread.doneAt != null && toSortableTimestamp(thread.doneAt) !== null) {
+    return thread.doneAt;
   }
 
   let latest: string | null = null;
@@ -49,45 +49,22 @@ export function resolveSettledThreadTimestamp(thread: SettledThreadTimestampInpu
   return toSortableTimestamp(thread.updatedAt) === null ? null : thread.updatedAt;
 }
 
-export function sortSettledThreads<T extends SettledThreadTimestampInput & { readonly id: string }>(
+/** Done rows are history, so they order by when the work ENDED, newest
+    first, with an id tiebreak. Each key resolves once per sort, not once
+    per comparison. Shared by web and mobile so both render the same order. */
+export function sortDoneThreads<T extends DoneThreadTimestampInput & { readonly id: string }>(
   threads: readonly T[],
 ): T[] {
   return threads
     .map((thread) => {
-      const timestamp = resolveSettledThreadTimestamp(thread);
+      const timestamp = resolveDoneThreadTimestamp(thread);
       return { thread, timestampMs: timestamp === null ? 0 : Date.parse(timestamp) };
     })
     .sort(
       (left, right) =>
-        left.timestampMs - right.timestampMs || left.thread.id.localeCompare(right.thread.id),
+        right.timestampMs - left.timestampMs || left.thread.id.localeCompare(right.thread.id),
     )
     .map(({ thread }) => thread);
-}
-
-export function pageRecentThreads<T>(
-  threads: readonly T[],
-  limit: number,
-  isSelected: ((thread: T) => boolean) | null,
-): T[] {
-  const start = Math.max(0, threads.length - limit);
-  const page = threads.slice(start);
-  const selected = isSelected === null ? undefined : threads.slice(0, start).find(isSelected);
-  if (selected !== undefined) page.unshift(selected);
-  return page;
-}
-
-export function sortSnoozedThreadsByWake<
-  T extends Pick<EnvironmentThreadShell, "id" | "environmentId" | "snoozedUntil">,
->(threads: readonly T[]): T[] {
-  const timestamps = new Map(
-    threads.map((thread) => [thread, toSortableTimestamp(thread.snoozedUntil ?? undefined) ?? 0]),
-  );
-  return [...threads].sort(
-    (left, right) =>
-      timestamps.get(right)! - timestamps.get(left)! ||
-      left.id.localeCompare(right.id) ||
-      left.environmentId.localeCompare(right.environmentId),
-  );
 }
 
 function getFirstSortableTimestamp(...values: Array<string | null | undefined>): number | null {
@@ -142,19 +119,19 @@ export function getThreadSortTimestamp(
 
 /**
  * Sort anchor for the active thread list: creation time, re-anchored to
- * unsettledAt when the thread last re-entered the active list (an explicit
- * un-settle, or a settled thread waking on activity). The list stays static
- * between lifecycle transitions, but an un-settled thread surfaces at the
+ * reopenedAt when the thread last re-entered the active list (an explicit
+ * reopen, or a done thread waking on activity). The list stays static
+ * between lifecycle transitions, but an un-done thread surfaces at the
  * top instead of sinking back to its creation-order slot. Shared by web and
  * mobile so both render the same order. Malformed timestamps sink to 0.
  */
-export function activeThreadAnchorTimestampMs(thread: {
+function activeThreadAnchorTimestampMs(thread: {
   readonly createdAt: string;
-  readonly unsettledAt?: string | null | undefined;
+  readonly reopenedAt?: string | null | undefined;
 }): number {
   return Math.max(
     toSortableTimestamp(thread.createdAt) ?? 0,
-    toSortableTimestamp(thread.unsettledAt ?? undefined) ?? 0,
+    toSortableTimestamp(thread.reopenedAt ?? undefined) ?? 0,
   );
 }
 
@@ -211,12 +188,6 @@ export {
   planPinnedReorder,
 } from "@supaterm/shared/orderKeys";
 
-/**
- * Pinned block order: user-arranged keys first (string comparison, id
- * tiebreak), then keyless threads oldest-created first — so threads on
- * servers that predate reordering keep the static creation order at the
- * bottom of the block instead of breaking the section.
- */
 export function sortPinnedThreadsByOrderKey<
   T extends {
     readonly id: string;
@@ -247,18 +218,16 @@ export function sortPinnedThreadsByOrderKey<
   );
   keyless.sort(
     (left, right) =>
-      timestamps.get(left)! - timestamps.get(right)! || identityTiebreak(left, right),
+      timestamps.get(right)! - timestamps.get(left)! || identityTiebreak(left, right),
   );
   return [...keyed, ...keyless];
 }
 
-/** New and reopened threads lead the active list. Arranged threads follow
-    their saved keys; activity leaves both groups in place. */
 export function sortActiveThreadsByOrderKey<
   T extends {
     readonly id: string;
     readonly createdAt: string;
-    readonly unsettledAt?: string | null | undefined;
+    readonly reopenedAt?: string | null | undefined;
     readonly activeOrderKey?: string | null | undefined;
     readonly environmentId?: string | undefined;
   },
@@ -289,14 +258,7 @@ export function sortActiveThreadsByOrderKey<
   });
 }
 
-/**
- * planPinnedReorder specialized for mobile's Move up / Move down menu
- * actions: swap the moved thread with its displayed neighbor. Null when the
- * move falls off either end of the list. Same single-write-per-move
- * semantics as a web drag.
- */
 export function planPinnedMove(input: {
-  /** Reorder-capable pinned thread ids in displayed order. */
   readonly orderedIds: readonly string[];
   readonly keysById: ReadonlyMap<string, string | null | undefined>;
   readonly movedId: string;

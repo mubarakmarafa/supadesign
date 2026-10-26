@@ -1,17 +1,21 @@
-import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
+import { Toolbar } from "../../components/ui/Toolbar";
+import * as Dialog from "../../components/ui/Dialog";
+import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { useNavigation, type StaticScreenProps } from "@react-navigation/native";
 import type { MenuAction } from "@react-native-menu/menu";
 import { EnvironmentId } from "@supaterm/contracts";
 import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
 import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, Platform, ScrollView, View } from "react-native";
-
-import { AndroidHeaderIconButton, AndroidScreenHeader } from "../../components/AndroidScreenHeader";
-import { AppText as Text } from "../../components/AppText";
-import { AudioFilePreview } from "../../components/AudioFilePreview";
-import { ControlPillMenu } from "../../components/ControlPill";
-import { EmptyState } from "../../components/EmptyState";
+import { useRef, useState } from "react";
+import { Platform, ScrollView, View } from "react-native";
+import {
+  AndroidHeaderIconButton,
+  AndroidScreenHeader,
+} from "../../components/ui/AndroidScreenHeader";
+import { AppText as Text } from "../../components/ui/AppText";
+import { AudioFilePreview } from "./AudioFilePreview";
+import { Menu } from "../../components/ui/Menu";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { FilePreviewModal, type FilePreviewSource } from "../../components/FilePreviewModal";
 import { useAttachmentDocument } from "../../lib/attachmentDocument";
 import { nativeViewerErrorMessage } from "../../lib/attachmentDownload";
@@ -19,17 +23,12 @@ import { isFileBackedComposerAttachment } from "../../lib/composerImages";
 import { copyTextWithHaptic } from "../../lib/copyTextWithHaptic";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { removeComposerDraftAttachment, useComposerDraft } from "../../state/use-composer-drafts";
-import { FilePreviewLoading, FilePreviewNotice } from "./FilePreviewFeedback";
+import { FilePreviewLoading, FilePreviewNotice } from "../../components/FilePreviewFeedback";
 import { FileMarkdownPreview } from "./FileMarkdownPreview";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { SourceFileSurface } from "./SourceFileSurface";
 import { WorkspaceFileWebPreview } from "./WorkspaceFileWebPreview";
 import { HtmlRenderWebView } from "../threads/HtmlRenderWebView";
-
-/**
- * Both the thread stack and the new-task sheet stack register this screen, so a chip in a
- * sent message and a chip in a draft open the same view a workspace file does.
- */
 export type AttachmentFileRouteParams = {
   readonly environmentId?: string;
   readonly threadId?: string;
@@ -37,22 +36,16 @@ export type AttachmentFileRouteParams = {
   readonly name: string;
   readonly mimeType: string;
   readonly sizeBytes: string;
-  /** Present for a draft attachment, which may still live only on this device. */
   readonly draftKey?: string;
-  /** Present for a page an agent published with `html_render`, which takes the app theme. */
   readonly htmlRender?: "1";
 };
-
 type AttachmentFileScreenProps = StaticScreenProps<AttachmentFileRouteParams>;
-
-/** Kinds this screen cannot render itself; the platform viewer is the primary presentation. */
 function nativeViewerKind(kind: ReturnType<typeof useAttachmentDocument>["kind"]) {
   if (kind === "image") return "image" as const;
   if (kind === "pdf") return "pdf" as const;
   if (kind === "video" || kind === "unsupported") return "document" as const;
   return null;
 }
-
 function AttachmentDocumentBody(props: {
   readonly document: ReturnType<typeof useAttachmentDocument>;
   readonly name: string;
@@ -169,28 +162,26 @@ function AttachmentDocumentBody(props: {
     </View>
   );
 }
-
 export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
   const navigation = useNavigation();
   const { appearance, setCodeWordBreak } = useAppearancePreferences();
   const iconColor = useUniwindTheme()["--color-icon"];
   const isAndroid = Platform.OS === "android";
   const params = props.route.params;
-  const environmentId = useMemo(
-    () => (params.environmentId?.trim() ? EnvironmentId.make(params.environmentId) : null),
-    [params.environmentId],
-  );
+  const environmentId = params.environmentId?.trim()
+    ? EnvironmentId.make(params.environmentId)
+    : null;
   const sizeBytes = Number.parseInt(params.sizeBytes, 10) || 0;
   const draftKey = params.draftKey ?? null;
   const draft = useComposerDraft(draftKey);
-  const localAttachment = useMemo(() => {
+  const localAttachment = (() => {
     const draftAttachment = draftKey
       ? draft.attachments.find((entry) => entry.id === params.attachmentId)
       : undefined;
     return draftAttachment && isFileBackedComposerAttachment(draftAttachment)
       ? draftAttachment
       : null;
-  }, [draftKey, draft.attachments, params.attachmentId]);
+  })();
   const document = useAttachmentDocument({
     name: params.name,
     mimeType: params.mimeType,
@@ -200,17 +191,15 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
     attachment: localAttachment,
   });
   const [nativeOpen, setNativeOpen] = useState(false);
-  // A format we cannot render goes straight to the system viewer; this screen is only the
-  // launch pad and, when no viewer can show it, the honest fallback.
   const nativeKind = nativeViewerKind(document.kind);
   const [nativeViewer, setNativeViewer] = useState<"pending" | "open" | "unavailable" | null>(
     nativeKind ? "pending" : null,
   );
   const [nativeError, setNativeError] = useState<string | null>(null);
   const pendingNativeError = useRef<string | null>(null);
-  const handleBack = useCallback(() => {
+  const handleBack = () => {
     if (navigation.canGoBack()) navigation.goBack();
-  }, [navigation]);
+  };
   const { uri, resource } = document;
   if (nativeViewer === "pending" && uri) {
     setNativeViewer("open");
@@ -218,27 +207,45 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
   }
   // The viewer mints its own fresh URL from the resource, so a link that expired while this
   // screen sat in the background is never handed to Quick Look or ACTION_VIEW.
-  const nativeSource = useMemo<FilePreviewSource | null>(() => {
+  const nativeSource = ((): FilePreviewSource | null => {
     const kind = nativeKind ?? "document";
-    const base = { kind, name: params.name, mimeType: params.mimeType };
-    if (localAttachment) return { ...base, attachment: localAttachment };
-    if (environmentId) return { ...base, environmentId, resource };
-    return uri ? { ...base, uri } : null;
-  }, [environmentId, localAttachment, nativeKind, params.mimeType, params.name, resource, uri]);
-  const openNativeViewer = useCallback(() => {
+    const base = {
+      kind,
+      name: params.name,
+      mimeType: params.mimeType,
+    };
+    if (localAttachment)
+      return {
+        ...base,
+        attachment: localAttachment,
+      };
+    if (environmentId)
+      return {
+        ...base,
+        environmentId,
+        resource,
+      };
+    return uri
+      ? {
+          ...base,
+          uri,
+        }
+      : null;
+  })();
+  const openNativeViewer = () => {
     setNativeViewer((current) => (current === null ? null : "open"));
     setNativeOpen(true);
-  }, []);
-  const handleNativeOpenError = useCallback((error: unknown) => {
+  };
+  const handleNativeOpenError = (error: unknown) => {
     pendingNativeError.current = nativeViewerErrorMessage(error);
-  }, []);
-  const handleNativeClose = useCallback(() => {
+  };
+  const handleNativeClose = () => {
     setNativeOpen(false);
     const message = pendingNativeError.current;
     pendingNativeError.current = null;
     if (nativeViewer === null) {
       // A file this screen renders itself: an explicit viewer failure is worth a word.
-      if (message) Alert.alert("Could not open document", message);
+      if (message) Dialog.alert("Could not open document", message);
       return;
     }
     if (message) {
@@ -246,121 +253,105 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
       setNativeViewer("unavailable");
       return;
     }
-    // The viewer was the whole visit: return to the conversation rather than a blank screen.
     handleBack();
-  }, [handleBack, nativeViewer]);
-  const removeFromDraft = useCallback(() => {
+  };
+  const removeFromDraft = () => {
     if (!draftKey) return;
     removeComposerDraftAttachment(draftKey, params.attachmentId);
     handleBack();
-  }, [draftKey, handleBack, params.attachmentId]);
-
+  };
   const { content, renderedMode, activeMode, setRendered, share, sharing } = document;
-  const menuActions = useMemo(
-    () =>
-      [
-        renderedMode
-          ? ({
-              id: "preview",
-              title: renderedMode === "table" ? "Table" : "Preview",
-              icon: renderedMode === "table" ? "tablecells" : "eye",
-              inline: true,
-              onPress: () => setRendered(true),
-            } as const)
-          : null,
-        renderedMode
-          ? ({
-              id: "source",
-              title: "Source",
-              icon: "doc.text",
-              inline: true,
-              onPress: () => setRendered(false),
-            } as const)
-          : null,
-        content && activeMode === "source"
-          ? ({
-              id: "word-wrap",
-              title: appearance.codeWordBreak ? "Disable word wrap" : "Enable word wrap",
-              icon: "text.alignleft",
-              inline: false,
-              onPress: () => setCodeWordBreak(!appearance.codeWordBreak),
-            } as const)
-          : null,
-        content
-          ? ({
-              id: "copy",
-              title: content.truncated ? "Copy preview" : "Copy contents",
-              icon: "doc.on.doc",
-              inline: false,
-              onPress: () => copyTextWithHaptic(content.text),
-            } as const)
-          : null,
-        uri
-          ? ({
-              id: "share",
-              title: sharing ? "Opening share sheet…" : "Save or share",
-              icon: "square.and.arrow.up",
-              inline: false,
-              onPress: () => void share(),
-            } as const)
-          : null,
-        uri
-          ? ({
-              id: "open-viewer",
-              title: "Open in file viewer",
-              icon: "arrow.up.left.and.arrow.down.right",
-              inline: false,
-              onPress: () => {
-                setNativeViewer((current) => (current === null ? null : "open"));
-                setNativeOpen(true);
-              },
-            } as const)
-          : null,
-        draftKey
-          ? ({
-              id: "remove",
-              title: "Remove from draft",
-              icon: "trash",
-              inline: false,
-              destructive: true,
-              onPress: removeFromDraft,
-            } as const)
-          : null,
-      ].filter((action) => action !== null),
-    [
-      appearance.codeWordBreak,
-      setCodeWordBreak,
-      content,
-      draftKey,
-      removeFromDraft,
-      activeMode,
-      renderedMode,
-      setRendered,
-      share,
-      sharing,
-      uri,
-    ],
-  );
+  const menuActions = [
+    renderedMode
+      ? ({
+          id: "preview",
+          title: renderedMode === "table" ? "Table" : "Preview",
+          icon: renderedMode === "table" ? "tablecells" : "eye",
+          inline: true,
+          onPress: () => setRendered(true),
+        } as const)
+      : null,
+    renderedMode
+      ? ({
+          id: "source",
+          title: "Source",
+          icon: "doc.text",
+          inline: true,
+          onPress: () => setRendered(false),
+        } as const)
+      : null,
+    content && activeMode === "source"
+      ? ({
+          id: "word-wrap",
+          title: appearance.codeWordBreak ? "Disable word wrap" : "Enable word wrap",
+          icon: "text.alignleft",
+          inline: false,
+          onPress: () => setCodeWordBreak(!appearance.codeWordBreak),
+        } as const)
+      : null,
+    content
+      ? ({
+          id: "copy",
+          title: content.truncated ? "Copy preview" : "Copy contents",
+          icon: "doc.on.doc",
+          inline: false,
+          onPress: () => copyTextWithHaptic(content.text),
+        } as const)
+      : null,
+    uri
+      ? ({
+          id: "share",
+          title: sharing ? "Opening share sheet…" : "Save or share",
+          icon: "square.and.arrow.up",
+          inline: false,
+          onPress: () => void share(),
+        } as const)
+      : null,
+    uri
+      ? ({
+          id: "open-viewer",
+          title: "Open in file viewer",
+          icon: "arrow.up.left.and.arrow.down.right",
+          inline: false,
+          onPress: () => {
+            setNativeViewer((current) => (current === null ? null : "open"));
+            setNativeOpen(true);
+          },
+        } as const)
+      : null,
+    draftKey
+      ? ({
+          id: "remove",
+          title: "Remove from draft",
+          icon: "trash",
+          inline: false,
+          destructive: true,
+          onPress: removeFromDraft,
+        } as const)
+      : null,
+  ].filter((action) => action !== null);
   const selectedAction = activeMode === "source" ? "source" : "preview";
-  const androidMenuActions = useMemo<MenuAction[]>(
-    () =>
-      menuActions.map((action) => ({
-        id: action.id,
-        title: action.title,
-        image: action.icon,
-        state: action.inline ? (action.id === selectedAction ? "on" : "off") : undefined,
-        ...("destructive" in action ? { attributes: { destructive: true } } : {}),
-      })),
-    [selectedAction, menuActions],
-  );
-  const handleAndroidMenuAction = useCallback(
-    (event: { nativeEvent: { event: string } }) => {
-      menuActions.find(({ id }) => id === event.nativeEvent.event)?.onPress();
-    },
-    [menuActions],
-  );
+  const androidMenuActions = menuActions.map((action) => ({
+    id: action.id,
+    title: action.title,
+    image: action.icon,
+    state: action.inline ? (action.id === selectedAction ? "on" : "off") : undefined,
+    ...("destructive" in action
+      ? {
+          attributes: {
+            destructive: true,
+          },
+        }
+      : {}),
+  })) satisfies MenuAction[];
+  const handleAndroidMenuAction = (event: {
+    nativeEvent: {
+      event: string;
+    };
+  }) => {
+    menuActions.find(({ id }) => id === event.nativeEvent.event)?.onPress();
+  };
   const subtitle = `${draftKey ? "Draft attachment" : "Attachment"}${sizeBytes > 0 ? ` · ${formatAttachmentSize(sizeBytes)}` : ""}`;
-
   return (
     <View className="flex-1 bg-sheet">
       <NativeStackScreenOptions
@@ -378,49 +369,53 @@ export function AttachmentFileScreen(props: AttachmentFileScreenProps) {
           subtitle={subtitle}
           onBack={handleBack}
           trailing={
-            <ControlPillMenu
+            <Menu
               actions={androidMenuActions}
               isAnchoredToRight
               title="File actions"
               onPressAction={handleAndroidMenuAction}
             >
               <AndroidHeaderIconButton accessibilityLabel="File actions" icon="ellipsis" />
-            </ControlPillMenu>
+            </Menu>
           }
         />
       ) : null}
-      <NativeHeaderToolbar placement="right">
-        <NativeHeaderToolbar.Menu accessibilityLabel="File actions" icon="ellipsis">
+      <Toolbar placement="right">
+        <Toolbar.Menu accessibilityLabel="File actions" icon="ellipsis">
           {renderedMode ? (
-            <NativeHeaderToolbar.Menu inline>
-              {menuActions
-                .filter(({ inline }) => inline)
-                .map((action) => (
-                  <NativeHeaderToolbar.MenuAction
+            <Toolbar.Menu inline>
+              {menuActions.flatMap((action) =>
+                action.inline
+                  ? [
+                      <Toolbar.MenuAction
+                        key={action.id}
+                        icon={action.icon}
+                        isOn={action.id === selectedAction}
+                        onPress={action.onPress}
+                      >
+                        {action.title}
+                      </Toolbar.MenuAction>,
+                    ]
+                  : [],
+              )}
+            </Toolbar.Menu>
+          ) : null}
+          {menuActions.flatMap((action) =>
+            !action.inline
+              ? [
+                  <Toolbar.MenuAction
                     key={action.id}
                     icon={action.icon}
-                    isOn={action.id === selectedAction}
+                    destructive={"destructive" in action}
                     onPress={action.onPress}
                   >
                     {action.title}
-                  </NativeHeaderToolbar.MenuAction>
-                ))}
-            </NativeHeaderToolbar.Menu>
-          ) : null}
-          {menuActions
-            .filter(({ inline }) => !inline)
-            .map((action) => (
-              <NativeHeaderToolbar.MenuAction
-                key={action.id}
-                icon={action.icon}
-                destructive={"destructive" in action}
-                onPress={action.onPress}
-              >
-                {action.title}
-              </NativeHeaderToolbar.MenuAction>
-            ))}
-        </NativeHeaderToolbar.Menu>
-      </NativeHeaderToolbar>
+                  </Toolbar.MenuAction>,
+                ]
+              : [],
+          )}
+        </Toolbar.Menu>
+      </Toolbar>
       <AttachmentDocumentBody
         document={document}
         name={params.name}

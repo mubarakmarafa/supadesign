@@ -35,7 +35,7 @@ class NativeTunnel(
   private val timing: Timing = Timing()
 ) : AutoCloseable {
   companion object {
-    const val BACKGROUND_GRACE_MILLIS = 15_000L
+    const val BACKGROUND_GRACE_MILLIS = 5 * 60_000L
     private const val SWITCHING_PROTOCOLS = 101
   }
 
@@ -47,7 +47,7 @@ class NativeTunnel(
 
   private val identity = parseRelayIdentity(hostAddress)
   private val hostAddress =
-    identity.hex().let { "https://${it.take(32)}.${it.drop(32)}.relay.supaterm.invalid/" }
+    identity.hex().let { "https://${it.take(32)}.${it.drop(32)}$RELAY_ADDRESS_SUFFIX/" }
   private val actor = Executors.newSingleThreadScheduledExecutor {
     Thread(it, "relay-session").apply { isDaemon = true }
   }

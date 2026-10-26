@@ -1,5 +1,7 @@
+import { AsyncResult } from "effect/reactivity";
+import { settlePromise, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import * as Dialog from "../../components/ui/Dialog";
 import { useNavigation, useNavigationState, useRoute } from "@react-navigation/native";
-import { threadPullRequestLinkMode } from "@supaterm/client-runtime/thread-pull-request-compatibility";
 import {
   AuthOrchestrationOperateScope,
   AuthSourceControlWriteScope,
@@ -11,7 +13,7 @@ import { formatComposerContextReference } from "@supaterm/shared/composerContext
 import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 import { normalizeThreadPullRequestKey } from "@supaterm/shared/threadPullRequests";
 import { useRef, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import { useAndroidWorkspaceSelection } from "../workspace/useAndroidWorkspaceSelection";
 import { pullRequestComposerContext } from "../../lib/composerContext";
 import { scopedThreadKey } from "../../lib/scopedEntities";
@@ -35,10 +37,7 @@ import {
   pullRequestAgentPrompt,
   type PullRequestAgentTask,
 } from "./pullRequestAgentTasks";
-
 type LinkedThread = PullRequestLinkedThreadsResult["threads"][number];
-
-/** Stay in the PR's environment when entering a thread or creating its draft. */
 export function usePullRequestThreads(
   params: PullRequestParams,
   pr: PullRequestDetail | null,
@@ -46,11 +45,14 @@ export function usePullRequestThreads(
 ) {
   const target = pullRequestTarget(params);
   const config = useEnvironmentServerConfig(target.environmentId);
-  const supported = threadPullRequestLinkMode(config?.environment.capabilities) === "multiple";
+  const supported = config != null;
   const parsed = pr ? parseChangeRequestUrl(pr.url) : null;
   const reference = {
     ...target,
-    input: { ...target.input, ...(parsed ? normalizeThreadPullRequestKey(parsed) : {}) },
+    input: {
+      ...target.input,
+      ...(parsed ? normalizeThreadPullRequestKey(parsed) : {}),
+    },
   };
   const key = JSON.stringify(reference);
   const route = useRoute();
@@ -60,14 +62,19 @@ export function usePullRequestThreads(
   const relations = useEnvironmentQuery(
     pr && supported && focused ? composerPullRequests.linkedThreads(reference) : null,
   );
-  const [lastRelations, setLastRelations] = useState({ key, data: relations.data });
+  const [lastRelations, setLastRelations] = useState({
+    key,
+    data: relations.data,
+  });
   if (relations.data && (lastRelations.key !== key || relations.data !== lastRelations.data))
-    setLastRelations({ key, data: relations.data });
+    setLastRelations({
+      key,
+      data: relations.data,
+    });
   const threads =
     (relations.data ?? (lastRelations.key === key ? lastRelations.data : null))?.threads ?? [];
   const connected = usePullRequestConnected(params.environmentId);
   const canOperate = useEnvironmentScope(target.environmentId, AuthOrchestrationOperateScope);
-  // Composing offline only writes a local draft. The outbox checks grants on delivery.
   const canAsk = !connected || canOperate;
   const canCheckout = useEnvironmentScope(target.environmentId, AuthSourceControlWriteScope);
   const navigation = useNavigation();
@@ -75,8 +82,15 @@ export function usePullRequestThreads(
   const pending = useRef(false);
   const previousPrompts = useRef(new Map<string, string>());
   const openThread = (thread: LinkedThread) => {
-    const destination = { environmentId: params.environmentId, threadId: thread.id };
-    if (Platform.OS === "android") selectAndroidWorkspace({ name: "Thread", params: destination });
+    const destination = {
+      environmentId: params.environmentId,
+      threadId: thread.id,
+    };
+    if (Platform.OS === "android")
+      selectAndroidWorkspace({
+        name: "Thread",
+        params: destination,
+      });
     else navigation.navigate("Thread", destination);
   };
   const [busy, setBusy] = useState(false);
@@ -84,7 +98,7 @@ export function usePullRequestThreads(
     if (!pr || !canAsk || pending.current) return;
     pending.current = true;
     setBusy(true);
-    try {
+    const result = await settlePromise(async () => {
       if (connected && !thread && !canCheckout)
         throw new Error("Starting work from this PR requires source control write access.");
       await waitForComposerDraftsLoaded();
@@ -131,9 +145,16 @@ export function usePullRequestThreads(
           draftKey,
           {
             text: `${formatComposerContextReference(context)} `,
-            context: { version: 1, records: [context] },
+            context: {
+              version: 1,
+              records: [context],
+            },
           },
-          { text: draft.text, start: draft.text.length, end: draft.text.length },
+          {
+            text: draft.text,
+            start: draft.text.length,
+            end: draft.text.length,
+          },
         )
       )
         throw new Error("Remove some context from this thread's draft, then try again.");
@@ -145,22 +166,22 @@ export function usePullRequestThreads(
       previousPrompts.current.set(draftKey, pullRequestAgentPrompt(task));
       if (thread) openThread(thread);
       else
-        navigation.navigate("NewTaskSheet", {
-          screen: "NewTaskDraft",
-          params: { draftId: draftKey, title: `Ask about #${pr.number}` },
+        navigation.navigate("Thread", {
+          draft: { draftId: draftKey, title: `Ask about #${pr.number}` },
         });
-    } catch (cause) {
-      Alert.alert("Couldn't open a thread", cause instanceof Error ? cause.message : "Try again.");
-    } finally {
-      pending.current = false;
-      setBusy(false);
+    });
+    pending.current = false;
+    setBusy(false);
+    if (AsyncResult.isFailure(result)) {
+      const cause = squashAtomCommandFailure(result);
+      Dialog.alert("Couldn't open a thread", cause instanceof Error ? cause.message : "Try again.");
     }
   };
   return {
     ...relations,
     threads,
     canAsk,
-    canWatch: config?.environment.capabilities.threadPullRequestWatch === true,
+    canWatch: config != null,
     busy,
     ask,
     openThread,

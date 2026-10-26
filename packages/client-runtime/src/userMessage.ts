@@ -1,18 +1,11 @@
 import {
   type OrchestrationV2Actor,
   type OrchestrationV2CreationSource,
-  ScheduledTaskId,
+  type ScheduledTaskId,
 } from "@supaterm/contracts";
 
-const LEGACY_AUTOMATION_PREFIX = /^\[Triggered by schedule task: [^\r\n]+\]\r?\n\r?\n/;
-const LEGACY_AUTOMATION_MESSAGE_ID = /^scheduled-task-message:(.+):\d+:(?:scheduled|manual)$/;
-
-/**
- * Text and sender label for a user-role message. Older scheduled messages
- * stored their attribution in the prompt itself.
- */
+/** Text and sender label for a user-role message. */
 export function resolveUserMessagePresentation(message: {
-  readonly id?: string;
   readonly role: string;
   readonly text: string;
   readonly createdBy?: OrchestrationV2Actor;
@@ -20,7 +13,6 @@ export function resolveUserMessagePresentation(message: {
   readonly scheduledTaskId?: ScheduledTaskId;
 }): {
   readonly text: string;
-  /** Who sent a user-role message the user did not type. */
   readonly attribution: "automation" | "agent" | "supaterm" | null;
   readonly scheduledTaskId: ScheduledTaskId | undefined;
 } {
@@ -34,20 +26,8 @@ export function resolveUserMessagePresentation(message: {
       scheduledTaskId: message.scheduledTaskId,
     };
   }
-  const legacyPrefix = LEGACY_AUTOMATION_PREFIX.exec(message.text);
-  const legacyTaskId = legacyPrefix
-    ? LEGACY_AUTOMATION_MESSAGE_ID.exec(message.id ?? "")?.[1]
-    : undefined;
-  if (legacyPrefix !== null && (legacyTaskId !== undefined || message.createdBy === "agent")) {
-    return {
-      text: message.text.slice(legacyPrefix[0].length),
-      attribution: "automation",
-      scheduledTaskId: legacyTaskId === undefined ? undefined : ScheduledTaskId.make(legacyTaskId),
-    };
-  }
   return {
     text: message.text,
-    // Restart continuations were sent as the agent before they became notices.
     attribution:
       message.createdBy !== "agent"
         ? null

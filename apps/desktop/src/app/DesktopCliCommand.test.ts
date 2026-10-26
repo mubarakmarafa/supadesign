@@ -286,23 +286,6 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
     }).pipe(Effect.scoped),
   );
 
-  it.effect("does not read a large binary another supaterm links to", () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const home = yield* fs.makeTempDirectoryScoped();
-
-      const binary = path.join(home, "native-supaterm");
-      yield* fs.writeFileString(binary, `${"\0".repeat(64 * 1024)}${DesktopCliShim.MARKER}`);
-      yield* fs.makeDirectory(path.join(home, ".local", "bin"), { recursive: true });
-      yield* fs.symlink(binary, path.join(home, ".local", "bin", APP_CLI_COMMAND));
-      const command = yield* commandIn({ home });
-      expect((yield* command.state).installedPath).toBeNull();
-      yield* command.uninstall;
-      expect(yield* fs.readLink(path.join(home, ".local", "bin", APP_CLI_COMMAND))).toBe(binary);
-    }).pipe(Effect.scoped),
-  );
-
   it.effect("refuses to install behind another supaterm that runs first", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;

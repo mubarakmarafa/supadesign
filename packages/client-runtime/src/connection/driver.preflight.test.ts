@@ -1,4 +1,4 @@
-import { EnvironmentId } from "@supaterm/contracts";
+import { EnvironmentId, ORCHESTRATION_PROTOCOL_VERSION } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -77,7 +77,8 @@ const makeHarness = Effect.fnUntraced(function* () {
             label: target.label,
             platform: { os: "linux", arch: "x64" },
             serverVersion: "0.0.0-test",
-            capabilities: { repositoryIdentity: true },
+            orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+            capabilities: {},
           }),
         ),
       ),

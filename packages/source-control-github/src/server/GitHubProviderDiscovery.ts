@@ -10,7 +10,7 @@ import * as HostProcess from "@supaterm/shared/HostProcess";
 import { readSourceControlHostSettings } from "@supaterm/source-control-core/client/definition";
 import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 import * as GitHubClient from "../client/definition.ts";
-import * as GitHubApi from "./GitHubApi.ts";
+import * as GitHubRest from "./GitHubRest.ts";
 import * as GitHubCredentials from "./GitHubCredentials.ts";
 import {
   effectiveGitHubAccount,
@@ -202,7 +202,7 @@ function discoveryTokenAuthAccounts(cli: SourceControlProviderDiscoveryItem) {
  * token is checked against the API, since `gh auth status` may not know it.
  */
 export const make = Effect.gen(function* () {
-  const api = yield* GitHubApi.GitHubApi;
+  const api = yield* GitHubRest.GitHubRest;
   const credentials = yield* GitHubCredentials.GitHubCredentials;
   const sourceControlHost = yield* SourceControlHost.SourceControlHost;
   const process = sourceControlHost.process;
@@ -313,10 +313,14 @@ export const make = Effect.gen(function* () {
     refineUnknownRemote: ({ context }) => {
       const url = URL.parse(context.provider.baseUrl);
       if (!url?.host) return Effect.succeed(null);
+      // A timeout or keyring failure propagates: the registry does not keep that answer.
       return credentials.get(url.host).pipe(
         Effect.as(true),
-        Effect.catchTags({ GitHubHostDisabledError: () => Effect.succeed(true) }),
-        Effect.orElseSucceed(() => false),
+        Effect.catchTags({
+          GitHubCliMissingError: () => Effect.succeed(false),
+          GitHubHostDisabledError: () => Effect.succeed(true),
+          GitHubNotSignedInError: () => Effect.succeed(false),
+        }),
         Effect.map((known) =>
           known
             ? ({

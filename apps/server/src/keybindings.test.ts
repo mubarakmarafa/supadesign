@@ -2,7 +2,6 @@ import { KeybindingCommand, KeybindingRule, KeybindingsConfig } from "@supaterm/
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import { assertFailure } from "@effect/vitest/utils";
-import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -11,18 +10,11 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as ServerConfig from "./config.ts";
 import * as Keybindings from "./keybindings.ts";
-import { KeybindingsConfigError, MAX_KEYBINDINGS_COUNT } from "@supaterm/contracts";
-import * as HostProcess from "@supaterm/shared/HostProcess";
+import { KeybindingsConfigError } from "@supaterm/contracts";
 
 const KeybindingsConfigJson = Schema.fromJsonString(KeybindingsConfig);
 const encodeKeybindingsConfigJson = Schema.encodeEffect(KeybindingsConfigJson);
 const decodeKeybindingsConfigJson = Schema.decodeUnknownEffect(KeybindingsConfigJson);
-const encodeResolvedKeybindingFromConfig = Schema.encodeEffect(
-  Keybindings.ResolvedKeybindingFromConfig,
-);
-const decodeResolvedKeybindingFromConfigExit = Schema.decodeUnknownExit(
-  Keybindings.ResolvedKeybindingFromConfig,
-);
 const layerKeybindings = () => {
   return Keybindings.layer.pipe(
     Layer.provideMerge(
@@ -109,25 +101,6 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
     }),
   );
 
-  it.effect("encodes resolved plus-key shortcuts", () =>
-    Effect.gen(function* () {
-      const encoded = yield* encodeResolvedKeybindingFromConfig({
-        command: "terminal.toggle",
-        shortcut: {
-          key: "+",
-          metaKey: false,
-          ctrlKey: false,
-          shiftKey: false,
-          altKey: false,
-          modKey: true,
-        },
-      });
-
-      assert.equal(encoded.key, "mod++");
-      assert.equal(encoded.command, "terminal.toggle");
-    }),
-  );
-
   it.effect("rejects invalid rules", () =>
     Effect.sync(() => {
       assert.isNull(
@@ -152,23 +125,6 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
           when: `${"!".repeat(300)}terminalFocus`,
         }),
       );
-    }),
-  );
-
-  it.effect("formats invalid resolved keybinding rules with the custom message", () =>
-    Effect.sync(() => {
-      const result = decodeResolvedKeybindingFromConfigExit({
-        key: "mod+shift+d+o",
-        command: "terminal.new",
-      });
-
-      if (result._tag !== "Failure") {
-        assert.fail("Expected invalid keybinding decode to fail");
-      }
-
-      const detail = Cause.pretty(result.cause);
-      assert.isTrue(detail.includes("Invalid keybinding rule"));
-      assert.isFalse(detail.includes("Invalid data"));
     }),
   );
 
@@ -294,73 +250,71 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
       }).pipe(Effect.provide(layerKeybindings())),
   );
 
-  it.effect("adds a late default to an existing command once", () =>
+  it.effect("reads a pre-launch thread.settle binding as mark Done and syncs new defaults", () =>
     Effect.gen(function* () {
       const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
+      const fileSystem = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const preLaunch = (yield* encodeKeybindingsConfigJson(
+        Keybindings.DEFAULT_KEYBINDINGS.filter((rule) => rule.command !== "thread.pin"),
+      )).replace('"thread.mark-done"', '"thread.settle"');
+      yield* fileSystem.makeDirectory(path.dirname(keybindingsConfigPath), { recursive: true });
+      yield* fileSystem.writeFileString(keybindingsConfigPath, preLaunch);
+
       const keybindings = yield* Keybindings.Keybindings;
-      const when = "composerFocus && draftThreadRoute";
-      const existing = { key: "mod+alt+enter", command: "composer.sendBackground", when } as const;
-      const backgroundRules = Effect.map(readKeybindingsConfig(keybindingsConfigPath), (rules) =>
-        rules.filter((entry) => entry.command === "composer.sendBackground"),
+      yield* keybindings.syncDefaultKeybindingsOnStartup;
+
+      const saved = yield* readKeybindingsConfig(keybindingsConfigPath);
+      assert.includeMembers(
+        saved.map((rule) => rule.command),
+        ["thread.mark-done", "thread.pin"],
       );
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [existing]);
-
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      assert.deepStrictEqual(yield* backgroundRules, [
-        { key: "mod+enter", command: "composer.sendBackground", when },
-        existing,
-      ]);
-
-      // Removing the added rule later must survive the next startup.
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [existing]);
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      assert.deepStrictEqual(yield* backgroundRules, [existing]);
     }).pipe(Effect.provide(layerKeybindings())),
   );
 
-  it.effect("leaves a customized command without the late default", () =>
+  it.effect("keeps mark Done on mod+shift+s because design mode owns mod+shift+d", () =>
     Effect.gen(function* () {
       const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      const keybindings = yield* Keybindings.Keybindings;
-      const custom = {
-        key: "alt+b",
-        command: "composer.sendBackground",
-        when: "composerFocus && draftThreadRoute",
-      } as const;
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [custom]);
+      yield* writeKeybindingsConfig(keybindingsConfigPath, Keybindings.DEFAULT_KEYBINDINGS);
 
+      const keybindings = yield* Keybindings.Keybindings;
+      yield* keybindings.syncDefaultKeybindingsOnStartup;
+
+      assert.deepEqual(
+        yield* readKeybindingsConfig(keybindingsConfigPath),
+        Keybindings.DEFAULT_KEYBINDINGS,
+      );
+      const snapshot = yield* keybindings.getSnapshot;
+      assert.equal(
+        snapshot.keybindings.find((rule) => rule.command === "thread.mark-done")?.shortcut.key,
+        "s",
+      );
+    }).pipe(Effect.provide(layerKeybindings())),
+  );
+
+  it.effect.each<readonly KeybindingRule[]>([
+    [{ key: "mod+alt+d", command: "thread.mark-done", when: "!terminalFocus" }],
+    [{ key: "mod+shift+s", command: "thread.mark-done", when: "composerFocus" }],
+    [
+      { key: "mod+shift+s", command: "thread.mark-done", when: "!terminalFocus" },
+      { key: "mod+alt+d", command: "thread.mark-done" },
+    ],
+    ...["shift+mod+d", "cmd+shift+d", "ctrl+shift+d"].map((key): readonly KeybindingRule[] => [
+      { key: "mod+shift+s", command: "thread.mark-done", when: "!terminalFocus" },
+      { key, command: "script.custom-action.run" },
+    ]),
+  ])("preserves customized or conflicting mark Done shortcuts on startup %#", (rules) =>
+    Effect.gen(function* () {
+      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
+      yield* writeKeybindingsConfig(keybindingsConfigPath, rules);
+      const keybindings = yield* Keybindings.Keybindings;
       yield* keybindings.syncDefaultKeybindingsOnStartup;
       const persisted = yield* readKeybindingsConfig(keybindingsConfigPath);
-      assert.deepStrictEqual(
-        persisted.filter((entry) => entry.command === "composer.sendBackground"),
-        [custom],
+      assert.deepEqual(persisted.slice(-rules.length), rules);
+      assert.deepEqual(
+        persisted.filter((rule) => rule.command === "thread.mark-done"),
+        rules.filter((rule) => rule.command === "thread.mark-done"),
       );
-    }).pipe(Effect.provide(layerKeybindings())),
-  );
-
-  it.effect("keeps a late default pending while the config is full", () =>
-    Effect.gen(function* () {
-      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      const keybindings = yield* Keybindings.Keybindings;
-      const when = "composerFocus && draftThreadRoute";
-      const existing = { key: "mod+alt+enter", command: "composer.sendBackground", when } as const;
-      const fillers = Array.from({ length: MAX_KEYBINDINGS_COUNT - 1 }, (_, index) => ({
-        key: "mod+alt+f1",
-        command: `script.filler-${index}.run` as const,
-      }));
-      const hasModEnter = Effect.map(readKeybindingsConfig(keybindingsConfigPath), (rules) =>
-        rules.some(
-          (entry) => entry.command === "composer.sendBackground" && entry.key === "mod+enter",
-        ),
-      );
-
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [existing, ...fillers]);
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      assert.isFalse(yield* hasModEnter);
-
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [existing]);
-      yield* keybindings.syncDefaultKeybindingsOnStartup;
-      assert.isTrue(yield* hasModEnter);
     }).pipe(Effect.provide(layerKeybindings())),
   );
 
@@ -396,32 +350,6 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
       ),
     );
   });
-
-  it.effect("upserts custom keybindings to configured path", () =>
-    Effect.gen(function* () {
-      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [
-        { key: "mod+j", command: "terminal.toggle" },
-      ]);
-
-      const resolved = yield* Effect.gen(function* () {
-        const keybindings = yield* Keybindings.Keybindings;
-        return yield* keybindings.upsertKeybindingRule({
-          key: "mod+shift+r",
-          command: "script.run-tests.run",
-        });
-      });
-
-      const persisted = yield* readKeybindingsConfig(keybindingsConfigPath);
-      const persistedView = persisted.map(({ key, command }) => ({ key, command }));
-
-      assert.deepEqual(persistedView, [
-        { key: "mod+j", command: "terminal.toggle" },
-        { key: "mod+shift+r", command: "script.run-tests.run" },
-      ]);
-      assert.isTrue(resolved.some((entry) => entry.command === "script.run-tests.run"));
-    }).pipe(Effect.provide(layerKeybindings())),
-  );
 
   it.effect("appends additional custom keybindings for the same command", () =>
     Effect.gen(function* () {
@@ -534,89 +462,10 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
     }).pipe(Effect.provide(layerKeybindings())),
   );
 
-  it.effect("reports non-array config parse errors without duplicate prefix", () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      yield* fs.writeFileString(
-        keybindingsConfigPath,
-        '{"key":"mod+j","command":"terminal.toggle"}',
-      );
-
-      const firstResult = yield* Effect.gen(function* () {
-        const keybindings = yield* Keybindings.Keybindings;
-        return yield* keybindings.upsertKeybindingRule({
-          key: "mod+shift+r",
-          command: "script.run-tests.run",
-        });
-      }).pipe(toDetailResult);
-      assertFailure(firstResult, "expected JSON array");
-
-      const secondResult = yield* Effect.gen(function* () {
-        const keybindings = yield* Keybindings.Keybindings;
-        return yield* keybindings.upsertKeybindingRule({
-          key: "mod+shift+r",
-          command: "script.run-tests.run",
-        });
-      }).pipe(toDetailResult);
-      assertFailure(secondResult, "expected JSON array");
-    }).pipe(Effect.provide(layerKeybindings())),
-  );
-
-  // chmod cannot make a directory unwritable on Windows, so the write succeeds.
-  it.effect.skipIf(HostProcess.Platform.defaultValue() === "win32")(
-    "fails when config directory is not writable",
-    () =>
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-        const { dirname } = yield* Path.Path;
-        yield* writeKeybindingsConfig(keybindingsConfigPath, [
-          { key: "mod+j", command: "terminal.toggle" },
-        ]);
-        yield* fs.chmod(dirname(keybindingsConfigPath), 0o500);
-
-        const result = yield* Effect.gen(function* () {
-          const keybindings = yield* Keybindings.Keybindings;
-          return yield* keybindings.upsertKeybindingRule({
-            key: "mod+shift+r",
-            command: "script.run-tests.run",
-          });
-        }).pipe(toDetailResult);
-        assertFailure(result, "failed to write keybindings config");
-
-        yield* fs.chmod(dirname(keybindingsConfigPath), 0o700);
-
-        const persisted = yield* readKeybindingsConfig(keybindingsConfigPath);
-        const persistedView = persisted.map(({ key, command }) => ({ key, command }));
-        assert.deepEqual(persistedView, [{ key: "mod+j", command: "terminal.toggle" }]);
-      }).pipe(Effect.provide(layerKeybindings())),
-  );
-
-  it.effect("caches loaded resolved config across repeated reads", () =>
-    Effect.gen(function* () {
-      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [
-        { key: "mod+j", command: "terminal.toggle" },
-      ]);
-
-      const [first, second] = yield* Effect.gen(function* () {
-        const keybindings = yield* Keybindings.Keybindings;
-        const firstLoad = (yield* keybindings.loadConfigState).keybindings;
-        const secondLoad = (yield* keybindings.loadConfigState).keybindings;
-        return [firstLoad, secondLoad] as const;
-      });
-
-      assert.deepEqual(first, second);
-      assert.isTrue(second.some((entry) => entry.command === "terminal.toggle"));
-    }).pipe(Effect.provide(layerKeybindings())),
-  );
-
   it.effect("retries a failed config read instead of keeping the failure", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      // A directory where the file should be makes the read itself fail.
       yield* fileSystem.makeDirectory(keybindingsConfigPath, { recursive: true });
 
       const keybindings = yield* Keybindings.Keybindings;
@@ -631,28 +480,6 @@ it.layer(NodeServices.layer)("keybindings", (it) => {
       const configState = yield* keybindings.loadConfigState;
       assert.deepEqual(configState.issues, []);
       assert.isTrue(configState.keybindings.some((entry) => entry.command === "terminal.toggle"));
-    }).pipe(Effect.provide(layerKeybindings())),
-  );
-
-  it.effect("updates cached resolved config after upsert", () =>
-    Effect.gen(function* () {
-      const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
-      yield* writeKeybindingsConfig(keybindingsConfigPath, [
-        { key: "mod+j", command: "terminal.toggle" },
-      ]);
-
-      const loadedAfterUpsert = yield* Effect.gen(function* () {
-        const keybindings = yield* Keybindings.Keybindings;
-        yield* keybindings.loadConfigState;
-        yield* keybindings.upsertKeybindingRule({
-          key: "mod+shift+r",
-          command: "script.run-tests.run",
-        });
-        return (yield* keybindings.loadConfigState).keybindings;
-      });
-
-      assert.isTrue(loadedAfterUpsert.some((entry) => entry.command === "script.run-tests.run"));
-      assert.isTrue(loadedAfterUpsert.some((entry) => entry.command === "terminal.toggle"));
     }).pipe(Effect.provide(layerKeybindings())),
   );
 

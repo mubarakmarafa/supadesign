@@ -62,6 +62,15 @@ function tokenEndForCursor(text: string, cursor: number): number {
 }
 
 /**
+ * `$5`, `€9.99` and `$10k` are money, not skills. Matches the amounts the inline skill
+ * token regexes already refuse to render as skills, plus the punctuation prose puts after
+ * one (`$10k.`, `($5)`).
+ */
+function isCurrencyAmountQuery(query: string): boolean {
+  return /^\.?[0-9][0-9,._]*(?:[kKmMbBtT]|[eE][0-9]+)?[.,;:!?)]*$/.test(query);
+}
+
+/**
  * Detect an active trigger (@path, #pull-request, $skill, /command at prompt
  * start, /skill elsewhere) at the cursor position.
  */
@@ -70,6 +79,8 @@ export function detectComposerTrigger(text: string, cursorInput: number): Compos
   const tokenStart = tokenStartForCursor(text, cursor);
   const token = text.slice(tokenStart, cursor);
   if (token.startsWith("/")) {
+    const word = text.slice(tokenStart, tokenEndForCursor(text, cursor));
+    if (word.slice(1).includes("/")) return null;
     if (Array.from(text.slice(0, tokenStart)).every(isWhitespace)) {
       return {
         kind: "slash-command",
@@ -78,16 +89,12 @@ export function detectComposerTrigger(text: string, cursorInput: number): Compos
         rangeEnd: cursor,
       };
     }
-    const word = text.slice(tokenStart, tokenEndForCursor(text, cursor));
-    if (!word.slice(1).includes("/")) {
-      return {
-        kind: "slash-skill",
-        query: token.slice(1),
-        rangeStart: tokenStart,
-        rangeEnd: cursor,
-      };
-    }
-    return null;
+    return {
+      kind: "slash-skill",
+      query: token.slice(1),
+      rangeStart: tokenStart,
+      rangeEnd: cursor,
+    };
   }
 
   const pullRequestMatch = /^#([\p{L}\p{N}][\p{L}\p{N}_-]*)?$/u.exec(token);
@@ -101,6 +108,7 @@ export function detectComposerTrigger(text: string, cursorInput: number): Compos
   }
   const skillPrefix = /^\p{Sc}/u.exec(token);
   if (skillPrefix) {
+    if (isCurrencyAmountQuery(token.slice(skillPrefix[0].length))) return null;
     return {
       kind: "skill",
       query: token.slice(skillPrefix[0].length),
@@ -118,6 +126,21 @@ export function detectComposerTrigger(text: string, cursorInput: number): Compos
     rangeStart: tokenStart,
     rangeEnd: cursor,
   };
+}
+
+/**
+ * A replacement ending in a space swallows one space already after the range, so inserting
+ * `@file ` before existing text does not leave a double space.
+ */
+export function extendReplacementRangeForTrailingSpace(
+  text: string,
+  rangeEnd: number,
+  replacement: string,
+): number {
+  if (!replacement.endsWith(" ")) {
+    return rangeEnd;
+  }
+  return text[rangeEnd] === " " ? rangeEnd + 1 : rangeEnd;
 }
 
 export function replaceTextRange(

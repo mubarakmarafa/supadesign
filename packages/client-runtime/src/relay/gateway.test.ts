@@ -226,6 +226,39 @@ it.effect("preserves a tunnel shared with another lease or an existing connectio
   }),
 );
 
+it.effect("keeps a leased tunnel that a connection resolved before the lease closed", () =>
+  Effect.gen(function* () {
+    let opens = 0;
+    let closes = 0;
+    yield* Effect.gen(function* () {
+      const gateway = yield* RelayGateway;
+      const check = gateway.lease(address);
+      yield* Effect.promise(() => check.prepare());
+      yield* Effect.promise(() => gateway.resolve(address));
+      yield* Effect.promise(() => check.close());
+      expect(closes).toBe(0);
+      expect(opens).toBe(1);
+    }).pipe(
+      Effect.provide(
+        layer({
+          fetch,
+          open: async () => {
+            opens++;
+            return {
+              prepare: async () => "http://127.0.0.1:3000",
+              close: async () => {
+                closes++;
+              },
+            };
+          },
+        }),
+      ),
+      Effect.scoped,
+    );
+    expect(closes).toBe(1);
+  }),
+);
+
 it.effect("does not open an abandoned lease waiting behind an old endpoint closing", () =>
   Effect.gen(function* () {
     const finishClose = Promise.withResolvers<void>();

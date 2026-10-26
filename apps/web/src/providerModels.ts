@@ -38,9 +38,6 @@ function getProviderSnapshot(
   return providers.find((candidate) => candidate.instanceId === defaultInstanceId);
 }
 
-// Resolve an instance selection to the correlated live driver. If the
-// instance is absent, fall back to a live enabled provider instead of
-// inferring a driver from the missing instance id.
 export function resolveSelectableProvider(
   providers: ReadonlyArray<ServerProvider>,
   provider: ProviderDriverKind | ProviderInstanceId | null | undefined,

@@ -1,6 +1,4 @@
-import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import * as SchemaTransformation from "effect/SchemaTransformation";
 import { TrimmedNonEmptyString } from "./baseSchemas.ts";
 import { ProviderDriverKind } from "./providerInstance.ts";
 
@@ -52,86 +50,14 @@ export const ProviderOptionSelection = Schema.Struct({
 });
 export type ProviderOptionSelection = typeof ProviderOptionSelection.Type;
 
-/**
- * Legacy on-disk shape for provider option selections, kept readable by the
- * decoder so we can tolerate stored data written before the v3 array shape.
- *
- * Persisted historically as `{ effort: "max", fastMode: true, ... }` inside
- * `modelSelection.options`. Migration 026 rewrites stored rows to the
- * canonical array shape, but we still see the legacy form in:
- *   - `settings.json` files from older client builds,
- *   - SQLite databases that have not yet run migration 026,
- *   - any future regression that re-introduces the legacy shape.
- */
-const LegacyProviderOptionSelectionsObject = Schema.Record(Schema.String, Schema.Unknown);
-
-const ProviderOptionSelectionsFromLegacyObject = LegacyProviderOptionSelectionsObject.pipe(
-  Schema.decodeTo(
-    Schema.Array(ProviderOptionSelection),
-    SchemaTransformation.transformEffect({
-      decode: (record) => Effect.succeed(coerceLegacyOptionsObjectToArray(record)),
-      encode: (selections) => Effect.succeed(canonicalSelectionsToLegacyObject(selections)),
-    }),
-  ),
-);
-
-/**
- * Schema for the `options` field of every `ModelSelection` variant.
- *
- * Accepts both:
- *   - the canonical array shape `Array<{ id, value }>` (preferred), and
- *   - the legacy object shape `Record<string, string | boolean | …>` from
- *     pre-migration data.
- *
- * Always normalizes to the canonical array on decode and re-encodes as the
- * canonical array, so any legacy storage gets cleaned up the next time the
- * containing record is written back.
- */
-export const ProviderOptionSelections = Schema.Union([
-  Schema.Array(ProviderOptionSelection),
-  ProviderOptionSelectionsFromLegacyObject,
-]);
+export const ProviderOptionSelections = Schema.Array(ProviderOptionSelection);
 export type ProviderOptionSelections = typeof ProviderOptionSelections.Type;
-
-function coerceLegacyOptionsObjectToArray(
-  record: Record<string, unknown>,
-): ReadonlyArray<ProviderOptionSelection> {
-  const entries: Array<ProviderOptionSelection> = [];
-  for (const [rawKey, rawValue] of Object.entries(record)) {
-    const id = typeof rawKey === "string" ? rawKey.trim() : "";
-    if (id.length === 0) continue;
-    if (typeof rawValue === "string") {
-      const trimmed = rawValue.trim();
-      if (trimmed.length > 0) entries.push({ id, value: trimmed });
-    } else if (typeof rawValue === "boolean") {
-      entries.push({ id, value: rawValue });
-    }
-    // Drop anything else (numbers, null, nested objects/arrays) to match the
-    // permissive normalization performed by migration 026.
-  }
-  return entries;
-}
-
-function canonicalSelectionsToLegacyObject(
-  selections: ReadonlyArray<ProviderOptionSelection>,
-): Record<string, string | boolean> {
-  const out: Record<string, string | boolean> = {};
-  for (const { id, value } of selections) {
-    out[id] = value;
-  }
-  return out;
-}
 
 export const ModelCapabilities = Schema.Struct({
   optionDescriptors: Schema.optional(Schema.Array(ProviderOptionDescriptor)),
 });
 export type ModelCapabilities = typeof ModelCapabilities.Type;
 
-/**
- * A user-authored custom model. `name` and `capabilities` are optional so a
- * bare slug keeps its driver-default presentation; when `capabilities` is
- * set, its descriptors replace the driver default in the model picker.
- */
 export const CustomModelEntry = Schema.Struct({
   slug: TrimmedNonEmptyString,
   name: Schema.optional(TrimmedNonEmptyString),
@@ -139,7 +65,6 @@ export const CustomModelEntry = Schema.Struct({
 });
 export type CustomModelEntry = typeof CustomModelEntry.Type;
 
-/** On-disk custom model setting: the legacy bare slug, or a full entry. */
 export const CustomModelSetting = Schema.Union([Schema.String, CustomModelEntry]);
 export type CustomModelSetting = typeof CustomModelSetting.Type;
 
@@ -155,9 +80,9 @@ const OPENCODE_DRIVER_KIND = ProviderDriverKind.make("opencode");
 export const DEFAULT_MODEL = "gpt-6-astra";
 
 /**
- * Codex default-model preference, most preferred first. The provider snapshot
- * marks the first of these present in the live `model/list` response as
- * default; when none are available, Codex's own `isDefault` flag wins.
+ * The provider snapshot marks the first of these present in the live
+ * `model/list` response as default; when none are available, Codex's own
+ * `isDefault` flag wins.
  */
 export const PREFERRED_DEFAULT_CODEX_MODELS: ReadonlyArray<string> = [
   DEFAULT_MODEL,
@@ -185,13 +110,12 @@ export const DEFAULT_MODEL_BY_PROVIDER: Partial<Record<ProviderDriverKind, strin
   [ProviderDriverKind.make("antigravity")]: ANTIGRAVITY_DEFAULT_MODEL,
 };
 
-/** Per-provider text generation model defaults. */
 export const DEFAULT_TEXT_GENERATION_MODEL_BY_PROVIDER: Partial<
   Record<ProviderDriverKind, string>
 > = {
   [CODEX_DRIVER_KIND]: DEFAULT_TEXT_GENERATION_MODEL,
   [ProviderDriverKind.make("antigravity")]: ANTIGRAVITY_DEFAULT_MODEL,
-  [CLAUDE_DRIVER_KIND]: "claude-haiku-4-5",
+  [CLAUDE_DRIVER_KIND]: "claude-haiku-5-5",
   [CURSOR_DRIVER_KIND]: "composer-2",
   [OPENCODE_DRIVER_KIND]: "openai/gpt-5",
 };
@@ -221,8 +145,6 @@ export const MODEL_SLUG_ALIASES_BY_PROVIDER: Partial<
   },
   [OPENCODE_DRIVER_KIND]: {},
 };
-
-// ── Provider display names ────────────────────────────────────────────
 
 export const PROVIDER_DISPLAY_NAMES: Partial<Record<ProviderDriverKind, string>> = {
   [ProviderDriverKind.make("antigravity")]: "Antigravity",

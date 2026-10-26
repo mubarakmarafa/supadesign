@@ -70,10 +70,7 @@ function settledShowcaseScene(input: {
     input.requestedScene === null ||
     input.scene !== input.requestedScene ||
     !input.hasFixture ||
-    // Never report a scene ready while the capture orientation is still
-    // being applied — a screenshot taken early has the wrong dimensions.
     !input.orientationSettled ||
-    // Likewise for the palette: an early screenshot shows the default theme.
     !input.themeApplied ||
     !isShowcaseNativeContentReady({
       scene: input.scene,
@@ -97,8 +94,9 @@ function EnabledShowcaseCaptureCoordinator(props: { readonly pathname: string })
   const {
     isReady: appearancePreferencesReady,
     themeId,
-    themeIds,
+    themeMode,
     setThemeIdForBothAppearances,
+    setThemeMode,
   } = useAppearancePreferences();
   const workspace = useWorkspaceState();
   const projects = useProjects();
@@ -128,9 +126,6 @@ function EnabledShowcaseCaptureCoordinator(props: { readonly pathname: string })
     const readLaunchRequest = () => {
       const values = getNativeShowcasePairingUrls();
       if (values.length === 0) return;
-      // The palette rides the same launch request as the pairing URLs, so
-      // reading it here settles it without a timeout that could expire while
-      // the request is still on its way.
       setRequestedTheme(getNativeShowcaseTheme());
       setThemeRequestSettled(true);
       setPairingUrls(values);
@@ -169,24 +164,29 @@ function EnabledShowcaseCaptureCoordinator(props: { readonly pathname: string })
     return () => clearInterval(interval);
   }, []);
 
-  // Captures pick a palette for both color schemes so the requested theme is
-  // used whichever system appearance the runner set on the device.
   const themeApplied =
-    requestedTheme === null
-      ? themeRequestSettled
-      : themeIds.light === requestedTheme && themeIds.dark === requestedTheme;
+    appearancePreferencesReady &&
+    themeMode === "system" &&
+    (requestedTheme === null ? themeRequestSettled : themeId === requestedTheme);
 
   useEffect(() => {
-    if (
-      requestedTheme === null ||
-      themeApplied ||
-      // Writing before stored preferences load would be overwritten by them.
-      !appearancePreferencesReady
-    ) {
+    if (!themeRequestSettled || themeApplied || !appearancePreferencesReady) {
       return;
     }
-    setThemeIdForBothAppearances(requestedTheme);
-  }, [appearancePreferencesReady, requestedTheme, setThemeIdForBothAppearances, themeApplied]);
+    if (themeMode !== "system") {
+      setThemeMode("system");
+      return;
+    }
+    if (requestedTheme !== null) setThemeIdForBothAppearances(requestedTheme);
+  }, [
+    appearancePreferencesReady,
+    requestedTheme,
+    setThemeIdForBothAppearances,
+    setThemeMode,
+    themeApplied,
+    themeMode,
+    themeRequestSettled,
+  ]);
 
   useEffect(() => {
     if (pairingUrls.length === 0) return;

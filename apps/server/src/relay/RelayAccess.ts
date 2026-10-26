@@ -57,10 +57,11 @@ const make = Effect.gen(function* () {
     runFork(
       Effect.gen(function* () {
         if (running?.generation !== generation) return;
-        if (state === "registered") yield* Effect.logInfo("Public relay registered", { relayUrl });
+        if (state === "registered")
+          yield* Effect.logInfo("Encrypted Relay registered", { relayUrl });
         if (state === "superseded")
           yield* Effect.logWarning(
-            "Public relay identity is active on another host; reconnect is stopped.",
+            "Encrypted Relay identity is active on another host; reconnect is stopped.",
           );
         yield* SubscriptionRef.set(status, { state, relayEndpoint: address, relayUrl });
       }).pipe(lock.withPermit),
@@ -143,7 +144,7 @@ const make = Effect.gen(function* () {
     );
     const changes = yield* settings.subscribeChanges;
     const recover = Effect.catch((error: RelayPreparationError) =>
-      Effect.logWarning("Public relay could not start", { error }).pipe(
+      Effect.logWarning("Encrypted Relay could not start", { error }).pipe(
         Effect.andThen(SubscriptionRef.set(status, { state: "off" })),
       ),
     );

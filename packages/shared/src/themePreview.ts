@@ -10,7 +10,6 @@ export type ThemePreviewColors = Readonly<{
   messageAction: string;
 }>;
 
-/** The standard Supaterm artwork is not a built-in theme, so its preview colors live here. */
 export const STANDARD_THEME_PREVIEW_COLORS: Readonly<Record<ThemeAppearance, ThemePreviewColors>> =
   {
     light: {
@@ -43,7 +42,6 @@ export type ThemePreviewRenderSpec = Readonly<{
   blurAt56Px: number;
 }>;
 
-/** Shared geometry and falloff for the web and native theme preview orbs. */
 export const THEME_PREVIEW_RENDER_SPECS: Readonly<Record<ThemeAppearance, ThemePreviewRenderSpec>> =
   {
     light: {

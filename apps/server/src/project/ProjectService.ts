@@ -21,7 +21,6 @@ import * as Schema from "effect/Schema";
 
 import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
-import * as LegacyV1ThreadImporter from "../orchestration-v2/legacy/LegacyV1ThreadImporter.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import {
   decodeProjectCommandRejection,
@@ -135,14 +134,9 @@ export class ProjectService extends Context.Service<
       options?: { readonly includeDeleted?: boolean },
     ) => Effect.Effect<Option.Option<Project>, ProjectOperationError>;
     readonly snapshot: Effect.Effect<ProjectSnapshot, ProjectOperationError>;
-    /**
-     * An active project's shell with its immediately available repository
-     * identity; missing identity resolves in the background.
-     */
     readonly getShell: (
       projectId: ProjectId,
     ) => Effect.Effect<Option.Option<OrchestrationProjectShell>, ProjectOperationError>;
-    /** Active project shells, enriched like `getShell`, in creation order. */
     readonly listShells: (options?: {
       readonly projectIds?: ReadonlyArray<ProjectId>;
     }) => Effect.Effect<ReadonlyArray<OrchestrationProjectShell>, ProjectOperationError>;
@@ -157,11 +151,8 @@ export const make = Effect.gen(function* () {
   const threadProjections = yield* ProjectionStore.ProjectionStoreV2;
   const eventSink = yield* EventSink.EventSinkV2;
   const idAllocator = yield* IdAllocator.IdAllocatorV2;
-  const legacyImporter = yield* LegacyV1ThreadImporter.LegacyV1ThreadImporter;
   const threadCommands = yield* ThreadCommandExecutor.ThreadCommandExecutor;
   const serverSettings = yield* ServerSettings.ServerSettingsService;
-  // Commands for one project run in order. Commands that claim a workspace root
-  // also hold that root, so two projects cannot both claim it.
   const projectLocks = yield* KeyedLock.make<ProjectId>();
   const workspaceLocks = yield* KeyedLock.make<string>();
 
@@ -251,10 +242,6 @@ export const make = Effect.gen(function* () {
         ),
       );
 
-  /**
-   * Plan one command against rows read under its locks, then commit its event or
-   * its rejection. A reused command id resolves to the receipt it already has.
-   */
   const commit = Effect.fn("ProjectService.commit")(function* (command: ProjectCommand) {
     const { projectId } = command;
     const dispatchError = (cause: unknown) =>
@@ -438,12 +425,10 @@ export const make = Effect.gen(function* () {
     },
   );
 
-  /** Delete one child thread durably; a stable command id makes a retry resume the cascade. */
   const deleteChildThread = Effect.fn("ProjectService.deleteChildThread")(function* (
     input: ProjectDeleteInput,
     threadId: ThreadId,
   ) {
-    yield* legacyImporter.ensureTranscript(threadId);
     const projection = yield* threadProjections.getThreadRecords(threadId, [
       "runs",
       "attempts",
@@ -489,12 +474,10 @@ export const make = Effect.gen(function* () {
     }
   });
 
-  /** Refuse a non-empty project without force, else delete its live threads first. */
   const deleteChildThreads = Effect.fn("ProjectService.deleteChildThreads")(function* (
     input: ProjectDeleteInput,
   ) {
     const { projectId } = input;
-    // The V2 shell is the only record of which threads are live.
     const snapshot = yield* threadProjections
       .getShellSnapshot()
       .pipe(

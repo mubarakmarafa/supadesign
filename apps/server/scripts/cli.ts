@@ -19,7 +19,7 @@ import {
   ServerCliDevelopmentIconTargetMissingError,
   ServerCliExecutableImportError,
 } from "./cliErrors.ts";
-import { publishPlatformsThenLauncher } from "./publishOrder.ts";
+import { SEA_NODE_VERSION } from "./seaNodeVersion.ts";
 
 const RepoRoot = Effect.service(Path.Path).pipe(
   Effect.flatMap((path) => path.fromFileUrl(new URL("../../..", import.meta.url))),
@@ -64,10 +64,6 @@ const applyDevelopmentIconOverrides = Effect.fn("applyDevelopmentIconOverrides")
   yield* Effect.log("[cli] Applied development icon overrides to dist/client");
 });
 
-// ---------------------------------------------------------------------------
-// build subcommand
-// ---------------------------------------------------------------------------
-
 const buildCmd = Command.make(
   "build",
   {
@@ -103,10 +99,6 @@ const buildCmd = Command.make(
     }),
 ).pipe(Command.withDescription("Build the server package (tsdown + bundle web client)."));
 
-// ---------------------------------------------------------------------------
-// build-exe subcommand
-// ---------------------------------------------------------------------------
-
 const buildExeCmd = Command.make(
   "build-exe",
   {
@@ -126,7 +118,17 @@ const buildExeCmd = Command.make(
       const serverDir = path.join(repoRoot, "apps/server");
 
       yield* Effect.log("[cli] Building single-executable...");
-      const spawnCommand = yield* resolveSpawnCommand("vp", ["pack"]);
+      // `vp env exec --node` selects the runtime in managed and system-first
+      // modes alike. The pack runs on it, and a native build embeds it.
+      const spawnCommand = yield* resolveSpawnCommand("vp", [
+        "env",
+        "exec",
+        "--node",
+        SEA_NODE_VERSION,
+        "--",
+        "vp",
+        "pack",
+      ]);
       yield* runCommand(
         ChildProcess.make(spawnCommand.command, spawnCommand.args, {
           cwd: serverDir,
@@ -158,26 +160,20 @@ const buildExeCmd = Command.make(
     }),
 ).pipe(
   Command.withDescription(
-    "Build the server as a Node single-executable (needs a Node 25.7+ host for --build-sea). The binary still resolves native packages from a node_modules tree beside it.",
+    `Build the server as a Node ${SEA_NODE_VERSION} single-executable. vp runs the pack on that Node, and native builds reject any other host version. The binary still resolves native packages from a node_modules tree beside it.`,
   ),
 );
 
-// ---------------------------------------------------------------------------
-// publish subcommand
-// ---------------------------------------------------------------------------
-
 /**
- * Publishes the tarballs scripts/build-npm-platform-packages.ts produced:
- * every `@supabitapp/supaterm-<platform>.tgz` first, `supaterm.tgz` (the launcher) last, so
- * the launcher is never installable before the executables it depends on.
- * Tarballs rather than directories because `npm publish <dir>` strips the
- * `node_modules/` the executable loads its native addons from.
+ * Publishes the `supaterm.tgz` launcher scripts/build-npm-launcher.ts produced. The
+ * launcher downloads its executable from the GitHub Release, so the release
+ * workflow runs this only after that release is published.
  */
 const publishCmd = Command.make(
   "publish",
   {
     packagesDir: Flag.String("packages-dir").pipe(
-      Flag.withDescription("Output dir of scripts/build-npm-platform-packages.ts."),
+      Flag.withDescription("Output dir of scripts/build-npm-launcher.ts."),
     ),
     tag: Flag.String("tag").pipe(Flag.withDefault("latest")),
     access: Flag.String("access").pipe(Flag.withDefault("public")),
@@ -189,22 +185,8 @@ const publishCmd = Command.make(
     Effect.gen(function* () {
       const path = yield* Path.Path;
       const fs = yield* FileSystem.FileSystem;
-      // npm runs with cwd set to the packages dir below, so tarball paths are
-      // resolved once here rather than joined twice.
       const packagesDir = path.resolve(config.packagesDir);
-      const scopeDir = path.join(packagesDir, "@supabitapp");
       const launcherTarball = path.join(packagesDir, "supaterm.tgz");
-      const platformTarballs = (yield* fs
-        .readDirectory(scopeDir)
-        .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => [])))
-        .filter((entry) => entry.startsWith("supaterm-") && entry.endsWith(".tgz"))
-        .sort()
-        .map((entry) => path.join(scopeDir, entry));
-      if (platformTarballs.length === 0) {
-        return yield* new ServerCliBuildAssetMissingError({
-          assetPath: path.join(scopeDir, "supaterm-<platform>.tgz"),
-        });
-      }
       if (!(yield* fs.exists(launcherTarball))) {
         return yield* new ServerCliBuildAssetMissingError({ assetPath: launcherTarball });
       }
@@ -212,32 +194,18 @@ const publishCmd = Command.make(
       const args = ["publish", "--access", config.access, "--tag", config.tag];
       if (config.provenance) args.push("--provenance");
       if (config.dryRun) args.push("--dry-run");
-
-      const publish = Effect.fn("publish")(function* (tarball: string) {
-        const spawnCommand = yield* resolveSpawnCommand("npm", [...args, tarball]);
-        yield* Effect.log(`[cli] npm ${args.join(" ")} ${path.basename(tarball)}`);
-        yield* runCommand(
-          ChildProcess.make(spawnCommand.command, spawnCommand.args, {
-            cwd: packagesDir,
-            stdout: config.verbose ? "inherit" : "ignore",
-            stderr: "inherit",
-            shell: spawnCommand.shell,
-          }),
-        );
-      });
-
-      // Each publish takes about 17s, so the platform packages go at once.
-      yield* publishPlatformsThenLauncher({ platformTarballs, launcherTarball, publish });
+      const spawnCommand = yield* resolveSpawnCommand("npm", [...args, launcherTarball]);
+      yield* Effect.log(`[cli] npm ${args.join(" ")} supaterm.tgz`);
+      yield* runCommand(
+        ChildProcess.make(spawnCommand.command, spawnCommand.args, {
+          cwd: packagesDir,
+          stdout: config.verbose ? "inherit" : "ignore",
+          stderr: "inherit",
+          shell: spawnCommand.shell,
+        }),
+      );
     }),
-).pipe(
-  Command.withDescription(
-    "Publish the @supabitapp/supaterm-<platform> tarballs and then the supaterm launcher to npm.",
-  ),
-);
-
-// ---------------------------------------------------------------------------
-// root command
-// ---------------------------------------------------------------------------
+).pipe(Command.withDescription("Publish the supaterm launcher to npm."));
 
 const cli = Command.make("cli").pipe(
   Command.withDescription("Supaterm server build & publish CLI."),

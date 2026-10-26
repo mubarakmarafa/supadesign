@@ -25,7 +25,7 @@ import { makeWsRpcProtocolClient, PING_TIMEOUT } from "../rpc/protocol.ts";
 import { isLegacyUpdateHandoffLoss, resolveServerUpdateProgressResult } from "../state/server.ts";
 import * as ConnectionResolver from "./resolver.ts";
 import * as EnvironmentRegistry from "./registry.ts";
-import { connectionRoutes, routeEntry, routeHttpBaseUrl } from "./routes.ts";
+import { connectionRoutes, routeEntry, routeHttpBaseUrl, usableRoutes } from "./routes.ts";
 
 // A v1 host restarting into v2 runs migrations before its descriptor answers again.
 const OUTDATED_HOST_RESTART_TIMEOUT = Duration.minutes(4);
@@ -41,13 +41,29 @@ export class OutdatedHostUpdateError extends Schema.TaggedError<OutdatedHostUpda
 
 export type OutdatedHostUpdateStage = "downloading" | "installing" | "resuming";
 
+const reachOutdatedHost = Effect.fn("clientRuntime.connection.reachOutdatedHost")(function* (
+  environmentId: EnvironmentId,
+) {
+  const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
+  const resolver = yield* ConnectionResolver.ConnectionResolver;
+  const entry = (yield* SubscriptionRef.get(registry.entries)).get(environmentId);
+  if (entry === undefined) {
+    return yield* new EnvironmentRegistry.EnvironmentNotRegisteredError({ environmentId });
+  }
+  const { prepared, descriptor } = yield* Effect.firstSuccessOf(
+    usableRoutes(entry).map((route) => resolver.prepareForUpdate(routeEntry(entry, route))),
+  );
+  return { entry, prepared, descriptor };
+});
+
+// The normal session cannot read config from a host behind the protocol gate.
+export const describeOutdatedHost = (environmentId: EnvironmentId) =>
+  reachOutdatedHost(environmentId).pipe(Effect.map(({ descriptor }) => descriptor));
+
 /**
- * Updates a host whose orchestration protocol is too old for this client.
- *
- * The normal session refuses to open against such a host, so this opens a
- * bare socket and calls only the self-update RPCs, whose wire shape has not
- * changed across protocol versions. Once the host relaunches on a compatible
- * protocol the environment is switched back on and connects normally.
+ * The normal session refuses to open against such a host, so this opens a bare
+ * socket and calls only the self-update RPCs, whose wire shape has not changed
+ * across protocol versions.
  */
 export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutdatedHost")(
   function* (
@@ -56,18 +72,19 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
     onStage: (stage: OutdatedHostUpdateStage) => Effect.Effect<void>,
   ) {
     const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
-    const resolver = yield* ConnectionResolver.ConnectionResolver;
     const webSocketConstructor = yield* Socket.WebSocketConstructor;
     const httpClient = yield* HttpClient.HttpClient;
-    const entry = (yield* SubscriptionRef.get(registry.entries)).get(environmentId);
-    if (entry === undefined) {
-      return yield* new EnvironmentRegistry.EnvironmentNotRegisteredError({ environmentId });
+    const { entry, prepared, descriptor } = yield* reachOutdatedHost(environmentId);
+    const switchBackOn = Effect.gen(function* () {
+      yield* registry.setCompatibility(environmentId, null);
+      yield* registry.setEnabled(environmentId, true);
+    });
+
+    if (isCompatibleDescriptor(descriptor)) {
+      yield* switchBackOn;
+      return { targetVersion: descriptor.serverVersion };
     }
-    // An outdated server cannot connect normally, so the routes are tried in
-    // order here. The first that authorizes carries the update.
-    const { prepared, descriptor } = yield* Effect.firstSuccessOf(
-      connectionRoutes(entry).map((route) => resolver.prepareForUpdate(routeEntry(entry, route))),
-    );
+
     const capabilities = descriptor.capabilities;
     if (
       capabilities.serverSelfUpdate === undefined ||
@@ -129,13 +146,12 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
                 // Older servers can drop the socket before acknowledging the restart.
                 Effect.catchCauseIf(
                   (cause) =>
-                    (capabilities.serverSelfUpdate === "boot-service" ||
-                      capabilities.serverSelfUpdate === "respawn") &&
+                    capabilities.serverSelfUpdate === "boot-service" &&
                     isLegacyUpdateHandoffLoss(cause),
                   () =>
                     Effect.succeed({
                       targetVersion: input.targetVersion,
-                      method: capabilities.serverSelfUpdate as "boot-service" | "respawn",
+                      method: "boot-service",
                     } satisfies ServerSelfUpdateResult),
                 ),
               );
@@ -160,8 +176,6 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
 
     if (result.upToDate) return result;
     yield* onStage("resuming");
-    // The restarted host may answer on another saved route, so each poll asks
-    // every direct address, the one that carried the update first.
     const pollUrls = [
       prepared.httpBaseUrl,
       ...connectionRoutes(entry).flatMap((route) => routeHttpBaseUrl(route) ?? []),
@@ -193,12 +207,11 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
       });
     }
 
-    yield* registry.setCompatibility(environmentId, null);
-    yield* registry.setEnabled(environmentId, true);
+    yield* switchBackOn;
     return { ...result, targetVersion: resumed.value.serverVersion };
   },
 );
 
 function isCompatibleDescriptor(descriptor: ExecutionEnvironmentDescriptor): boolean {
-  return (descriptor.orchestrationProtocolVersion ?? 1) === ORCHESTRATION_PROTOCOL_VERSION;
+  return descriptor.orchestrationProtocolVersion === ORCHESTRATION_PROTOCOL_VERSION;
 }

@@ -22,7 +22,6 @@ import {
 } from "./threadDetailsCardLayout";
 import { observeResize } from "../../lib/observeResize";
 
-/** One card owns its placement and folds content only when that content cannot fit. */
 export function ThreadDetailsCard({
   threadRef,
   anchor,
@@ -106,10 +105,13 @@ export function ThreadDetailsCard({
     const measure = () => {
       const frame = element.closest<HTMLElement>("[data-thread-details-card]");
       const next = element.offsetHeight + (frame ? frame.offsetHeight - frame.clientHeight : 0);
-      // Lineage scrolls as it expands. Counting it toward density would hide
+      // PR lists and lineage scroll as they expand. Counting them toward density would hide
       // the section and workspace controls when the user asks to see more rows.
-      const lineage = element.querySelector<HTMLElement>("[data-thread-relationships-panel]");
-      const fittingHeight = next - (lineage?.offsetHeight ?? 0);
+      const lists = element.querySelectorAll<HTMLElement>(
+        "[data-thread-relationships-panel], [data-thread-details-pr-list]",
+      );
+      const fittingHeight =
+        next - Array.from(lists).reduce((sum, list) => sum + list.offsetHeight, 0);
       setMeasurements((current) => {
         const heights = current.key === measurementKey ? current.heights : { full: 0, compact: 0 };
         const fullContentHeight =
@@ -170,8 +172,6 @@ export function ThreadDetailsCard({
       handle={handle}
       open={mode === "popover" && popoverOpen}
       onOpenChange={(open, details) => {
-        // The find bar sits beside the card, so clicking or focusing it does not
-        // dismiss the card. Escape still does.
         const target =
           details.reason === "focus-out"
             ? (details.event as FocusEvent).relatedTarget
@@ -191,8 +191,6 @@ export function ThreadDetailsCard({
           open={inlineOpen}
           density={density}
           style={{
-            // Anchored to the right edge like the find bar, so both follow a resizing
-            // canvas in the same frame instead of waiting for its next measurement.
             right: placement.right,
             top: placement.y,
             width: placement.width,

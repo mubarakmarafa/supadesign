@@ -13,14 +13,15 @@ import { assetEnvironment } from "../state/assets";
 import { environmentSession, usePreparedConnection } from "../state/session";
 import { useAtomQueryRunner } from "../state/use-atom-query-runner";
 
-/** Native nested images use the same signed asset queries as app-owned media. */
 export function useMarkdownImageSource(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId | null;
   readonly workspaceRoot: string | null;
+  /** Bounds network paths when `workspaceRoot` is a nested directory relative images resolve from. */
+  readonly projectRoot?: string | null;
   readonly captured?: boolean;
 }): MarkdownImageSourceResolver {
-  const { environmentId, threadId, workspaceRoot, captured } = props;
+  const { environmentId, threadId, workspaceRoot, projectRoot, captured } = props;
   const connection = usePreparedConnection(environmentId);
   const environment = useEnvironmentPresentation(environmentId);
   const connectionPhase = environment.presentation?.connection.phase;
@@ -38,6 +39,7 @@ export function useMarkdownImageSource(props: {
       const media = resolveMobileMarkdownMediaSource(image.href, {
         threadId: threadId ?? undefined,
         workspaceRoot,
+        projectRoot,
         imageEmbed: true,
       });
       if (media?.access === "direct") return { uri: normalizeNativeMarkdownUrl(media.uri) };
@@ -68,6 +70,7 @@ export function useMarkdownImageSource(props: {
       httpBaseUrl,
       threadId,
       workspaceRoot,
+      projectRoot,
     ],
   );
 }

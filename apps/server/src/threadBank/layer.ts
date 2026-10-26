@@ -50,7 +50,7 @@ export const make = Effect.gen(function* () {
   const services = yield* Effect.context<
     ServerConfig.ServerConfig | FileSystem.FileSystem | ThreadManagement.ThreadManagementService
   >();
-  const uuid = crypto.randomUUIDv4.pipe(Effect.orDie);
+  const uuid = crypto.randomUUIDv4().pipe(Effect.orDie);
   const cards = yield* CardWorkspace.make;
 
   const ops: ThreadBank.ThreadBankOps = {
@@ -74,8 +74,14 @@ export const make = Effect.gen(function* () {
         Effect.provide(services),
       ),
 
-    send: ({ threadId, text, attachments, context, modelSelection }) =>
-      Effect.gen(function* () {
+    send: Effect.fn("ThreadBank.send")(
+      function* ({
+        threadId,
+        text,
+        attachments,
+        context,
+        modelSelection,
+      }: Parameters<ThreadBank.ThreadBankOps["send"]>[0]) {
         const message = {
           threadId,
           commandId: CommandId.make(yield* uuid),
@@ -102,17 +108,17 @@ export const make = Effect.gen(function* () {
           createdBy: "user",
           creationSource: "web",
         });
-      }).pipe(
-        Effect.tapError((error) => Effect.logWarning("Could not send a thread bank", { error })),
-        Effect.mapError((error) =>
-          failure(
-            error instanceof Error && error.message.length > 0
-              ? `The banked messages couldn't be sent: ${error.message}`
-              : "The banked messages couldn't be sent. Try again.",
-          ),
+      },
+      Effect.tapError((error) => Effect.logWarning("Could not send a thread bank", { error })),
+      Effect.mapError((error) =>
+        failure(
+          error instanceof Error && error.message.length > 0
+            ? `The banked messages couldn't be sent: ${error.message}`
+            : "The banked messages couldn't be sent. Try again.",
         ),
-        Effect.provide(services),
       ),
+      Effect.provide(services),
+    ),
 
     newEntryId: uuid,
     now: DateTime.now.pipe(Effect.map(DateTime.formatIso)),

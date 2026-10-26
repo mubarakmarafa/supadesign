@@ -7,7 +7,7 @@ import {
   faviconKey,
   faviconStorageLocation,
   isStorableFaviconDataUrl,
-  migratePersistedBrowserFaviconState,
+  sanitizePersistedBrowserFaviconState,
 } from "./browserFaviconLogic";
 
 const PNG = "data:image/png;base64,AAAA";
@@ -86,9 +86,8 @@ describe("browser favicon logic", () => {
     expect(result["key-0"]).toBeUndefined();
     expect(result["key-1"]).toBeUndefined();
     expect(
-      migratePersistedBrowserFaviconState({
+      sanitizePersistedBrowserFaviconState({
         byKey: {
-          "env:project http://local:3000": entry(4),
           "env:project http://localhost:3000": entry(5),
           "env:project http://localhost:3003": {
             ...entry(6),

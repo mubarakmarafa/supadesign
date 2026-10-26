@@ -27,7 +27,7 @@ import {
   holdEditingQueuedMessage,
   releaseDeletingQueuedMessage,
 } from "../../state/use-thread-outbox";
-import { buildPendingNewTasks } from "../../state/pending-new-tasks-model";
+import { buildPendingQueuedTasks } from "../../state/pending-new-tasks-model";
 import { usePendingTaskListActions } from "../home/usePendingTaskListActions";
 import { NewTaskFlowProvider, useNewTaskFlow } from "./new-task-flow-provider";
 
@@ -52,6 +52,9 @@ vi.mock("@react-navigation/native", () => ({
     goBack: transport.goBack,
     canGoBack: () => true,
   }),
+}));
+vi.mock("../home/home-thread-navigation", () => ({
+  useHomeThreadRouteSelection: () => (params: object) => transport.navigate("Thread", params),
 }));
 vi.mock("../../state/shell", () => ({ environmentShell: {} }));
 vi.mock("../../state/entities", () => ({
@@ -84,6 +87,7 @@ vi.mock("../../state/query", () => ({
 }));
 vi.mock("../../state/vcs", () => ({ vcsEnvironment: { status: () => null } }));
 vi.mock("../../state/queries", () => ({
+  useBranches: () => ({ data: null }),
   useDebouncedValue: (value: string) => value,
   usePaginatedBranches: () => ({
     refs: [],
@@ -123,13 +127,15 @@ vi.mock("../../state/pending-task-editor-writes", () => ({
 }));
 vi.mock("../../state/thread-outbox-removal", () => ({
   removeThreadOutboxMessage: transport.removePendingTask,
+  removePendingThreadCreation: transport.removePendingTask,
 }));
-vi.mock("../../state/thread-outbox", () => ({
+vi.mock("../../state/thread-outbox", async () => ({
   get threadOutboxManager() {
     return { queuedMessagesByThreadKeyAtom: queueAtom };
   },
   flattenQueuedThreadMessages: (messages: Record<string, ReadonlyArray<QueuedThreadMessage>>) =>
     Object.values(messages).flat(),
+  hasQueuedFollowUps: (await import("../../state/thread-outbox-model")).hasQueuedFollowUps,
 }));
 vi.mock("../../state/use-thread-outbox", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../state/use-thread-outbox")>()),
@@ -321,7 +327,7 @@ function beginSwitch(environmentId = secondEnvironment!) {
 }
 
 function deletePendingTask() {
-  const task = buildPendingNewTasks({ queuedMessages: [pendingTask], drafts: {} })[0]!;
+  const task = buildPendingQueuedTasks([pendingTask])[0]!;
   pendingActions.confirmDeletePendingTask(task);
   const confirmation = vi.mocked(Alert.alert).mock.calls.at(-1)?.[2];
   const deleteAction = confirmation?.find((action) => action.text === "Delete");
@@ -338,7 +344,7 @@ describe("pending task editor dismissal", () => {
   });
 
   it("opens a queued creation's reserved thread from the list", () => {
-    const task = buildPendingNewTasks({ queuedMessages: [pendingTask], drafts: {} })[0]!;
+    const task = buildPendingQueuedTasks([pendingTask])[0]!;
     pendingActions.openPendingTask(task);
     expect(transport.navigate).toHaveBeenCalledWith("Thread", {
       environmentId: pendingTask.environmentId,
@@ -385,6 +391,26 @@ describe("pending task editor dismissal", () => {
     expect(transport.removePendingTask).not.toHaveBeenCalled();
     expect(vi.mocked(Alert.alert).mock.calls.at(-1)?.[0]).toBe("Pending task is open");
     expect(flow.prompt).toBe(pendingTask.text);
+  });
+
+  // The next draft resets the shared flow before this editor's cleanup runs.
+  it("saves an edited pending task when the next draft resets the flow", async () => {
+    await act(() => flow.setPrompt("Changed prompt"));
+    await act(() => flow.reset());
+
+    expect(flow.editingPendingTask).toBeNull();
+    expect(transport.editorWrite).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.objectContaining({ text: "Changed prompt" }) }),
+    );
+  });
+
+  it("keeps a cleared pending task held when the next draft resets the flow", async () => {
+    await act(() => flow.setPrompt(""));
+    await act(() => flow.reset());
+
+    expect(flow.editingPendingTask).toBeNull();
+    expect(transport.editorWrite).not.toHaveBeenCalled();
+    expect(appAtomRegistry.get(editingQueuedMessageIdsAtom)[pendingTask.messageId]).toBe("paused");
   });
 
   it("reopens retained edits after a failed save", async () => {

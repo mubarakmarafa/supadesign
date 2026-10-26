@@ -1,5 +1,6 @@
 import type { EnvironmentId } from "@supaterm/contracts";
 
+import { scopedThreadKey } from "../lib/scopedEntities";
 import { appAtomRegistry } from "./atom-registry";
 import { threadOutboxManager } from "./thread-outbox";
 import type { QueuedThreadMessage } from "./thread-outbox-model";
@@ -57,11 +58,6 @@ async function cleanUpRemovedMessages(
 }
 
 /**
- * The only way a queued message leaves the outbox. Removal also releases the
- * message's local attachment files (via the reference-counting sweep, so a
- * file still referenced by a draft or another queued message survives).
- * Keeping release inside the removal call means no call site can forget it.
- *
  * `expectedRevision` (from `threadOutboxRevision`) and `canRemove` make the
  * removal a compare-and-set: when an edit was accepted or an editor takes the
  * message, it stays queued, nothing is released, and this returns false.
@@ -81,7 +77,30 @@ export async function removeThreadOutboxMessage(
   return true;
 }
 
-/** Removes every queued message of an environment and releases their files. */
+/**
+ * Deletes a pending task together with the follow-ups queued behind it. The
+ * task goes first: until then it heads their queue, so none can be sent.
+ */
+export async function removePendingThreadCreation(
+  creation: QueuedThreadMessage,
+  canRemove: () => boolean,
+): Promise<boolean> {
+  const queue =
+    appAtomRegistry.get(threadOutboxManager.queuedMessagesByThreadKeyAtom)[
+      scopedThreadKey(creation.environmentId, creation.threadId)
+    ] ?? [];
+  if (!(await removeThreadOutboxMessage(creation, undefined, canRemove))) return false;
+  for (const message of queue) {
+    if (message.creation !== undefined) continue;
+    // The drain drops leftovers once the shell is live; this keeps them from
+    // lingering while offline.
+    await removeThreadOutboxMessage(message).catch((error: unknown) => {
+      console.warn("[thread-outbox] failed to remove a deleted task's follow-up", error);
+    });
+  }
+  return true;
+}
+
 export async function clearThreadOutboxEnvironment(environmentId: EnvironmentId): Promise<void> {
   // clearEnvironment loads and merges persisted messages itself and reports
   // what it actually removed, so the release set cannot miss messages a

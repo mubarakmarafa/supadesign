@@ -1,9 +1,9 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { resolveThreadReferenceCopyTarget } from "@supaterm/shared/threadReference";
 import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import { resolveThreadForkSource } from "@supaterm/client-runtime/state/thread-workflows";
 import { AuthOrchestrationOperateScope, ThreadId } from "@supaterm/contracts";
-import { Alert } from "react-native";
 import {
   createContext,
   use,
@@ -33,7 +33,7 @@ import { uuidv4 } from "../../lib/uuid";
 import { waitForThreadShellReady } from "../threads/threadForkNavigation";
 import type { GitActionProgress } from "../../state/use-vcs-action-state";
 import { GitActionProgressOverlay } from "../threads/GitActionProgressOverlay";
-import { useStartNewTask } from "../threads/use-start-new-task";
+import { readStartNewTaskDestination } from "../threads/use-start-new-task";
 import { CommandPalette } from "./CommandPalette";
 import {
   dispatchHardwareKeyboardCommand,
@@ -76,7 +76,6 @@ export function HardwareKeyboardCommandProvider({
   pathname,
 }: PropsWithChildren<{ readonly pathname: string }>) {
   const navigation = useNavigation();
-  const startNewTask = useStartNewTask();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
   const activeThreadRef = useMemo(() => parseActiveThreadPath(pathname), [pathname]);
@@ -190,7 +189,7 @@ export function HardwareKeyboardCommandProvider({
                 null,
             });
             if (!ready) {
-              Alert.alert(
+              Dialog.alert(
                 "Fork created",
                 "Its thread data did not reach this client. Reconnect and try opening it from the thread list.",
               );
@@ -229,7 +228,9 @@ export function HardwareKeyboardCommandProvider({
       }
 
       if (command === "newTask") {
-        startNewTask();
+        void readStartNewTaskDestination(uuidv4()).then((params) =>
+          navigation.navigate("Thread", params),
+        );
         return;
       }
       if (command === "back") {
@@ -262,7 +263,6 @@ export function HardwareKeyboardCommandProvider({
       navigation,
       pathname,
       showCopyFeedback,
-      startNewTask,
     ],
   );
 

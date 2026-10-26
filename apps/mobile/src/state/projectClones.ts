@@ -19,14 +19,10 @@ const EMPTY_CLONE_ATOM = Atom.make<ProjectCloneState>(null).pipe(
   Atom.withLabel("mobile-project-clone:empty"),
 );
 
-/**
- * Latest clone list an environment has streamed, `"pending"` until the first
- * one, and never subscribed on servers that predate clone tracking.
- */
 const environmentProjectClonesAtom = Atom.family((environmentId: EnvironmentId) =>
   Atom.make((get): ReadonlyArray<ProjectCloneSnapshot> | "pending" => {
     const config = get(serverEnvironment.configValueAtom(environmentId));
-    if (config?.environment.capabilities.projectCloneTracking !== true) return EMPTY_CLONES;
+    if (config == null) return EMPTY_CLONES;
     const result = get(sourceControlEnvironment.projectClones({ environmentId, input: {} }));
     // A failed subscription must not hold Start forever. Treating it as
     // "no clone tracked" lets the server's own dispatch guard decide; the
@@ -36,7 +32,6 @@ const environmentProjectClonesAtom = Atom.family((environmentId: EnvironmentId) 
   }).pipe(Atom.withLabel(`mobile-project-clones:${environmentId}`)),
 );
 
-/** The environment's tracked clones, empty until the stream's first list. */
 export const environmentProjectCloneListAtom = Atom.family((environmentId: EnvironmentId) =>
   Atom.make((get): ReadonlyArray<ProjectCloneSnapshot> => {
     const clones = get(environmentProjectClonesAtom(environmentId));
@@ -54,10 +49,6 @@ const projectCloneAtom = Atom.family((key: string) => {
   }).pipe(Atom.withLabel(`mobile-project-clone:${key}`));
 });
 
-/**
- * The tracked clone for a project: `"pending"` before the stream's first
- * list, null once it finished or never started.
- */
 export function useProjectClone(ref: ScopedProjectRef | null): ProjectCloneState {
   return useAtomValue(ref === null ? EMPTY_CLONE_ATOM : projectCloneAtom(scopedProjectKey(ref)));
 }

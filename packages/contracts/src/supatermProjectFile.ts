@@ -5,7 +5,6 @@ import { ThreadEnvMode, WorktreeSubmodules } from "./environment.ts";
 import { ProjectScriptIcon } from "./project.ts";
 import type { ProjectScopedServerSettingKey, ServerSettings } from "./settings.ts";
 
-/** File name of the checked-in Supaterm project file, resolved at the workspace root. */
 export const SUPATERM_PROJECT_FILE_NAME = "supaterm.json";
 
 /** Public URL of the published JSON Schema for {@link SupatermProjectFile}. */
@@ -43,10 +42,10 @@ export const SupatermProjectFileScript = Schema.Struct({
         "When true, the script runs automatically after a worktree is created for a new thread.",
     }),
   ),
-  runOnSettle: Schema.optionalKey(
+  runOnDone: Schema.optionalKey(
     Schema.Boolean.annotate({
       description:
-        "When true, the script runs in the thread's worktree each time the thread settles, for example to delete build output. Threads without their own worktree skip it.",
+        "When true, the script runs in the thread's worktree each time the thread is marked Done, for example to delete build output. Threads without their own worktree skip it.",
     }),
   ),
   async: Schema.optionalKey(
@@ -109,18 +108,15 @@ export const SupatermProjectFile = Schema.Struct({
 }).annotate({
   title: "Supaterm project file",
   description:
-    "Checked-in project configuration for Supaterm (supaterm.json at the repository root). See https://github.com/supabitapp/supacode-next for documentation.",
+    "Checked-in project configuration for Supaterm (supaterm.json at the repository root). See https://github.com/supabitapp/supaterm for documentation.",
 });
 export type SupatermProjectFile = typeof SupatermProjectFile.Type;
 
 /**
- * Settings a repository can also declare in supaterm.json. A key here must be
- * nullable on `ServerSettings` (null means inherit) so both the project
- * override and the environment value can defer to the file; `field` names
- * the supaterm.json field carrying the same value and `builtIn` is what applies
- * when every tier is unset. `resolveProjectSettings` walks project override,
- * environment value, file, built-in, so listing a key here is the whole
- * change for a new file-backed setting.
+ * A key here must be nullable on `ServerSettings` (null means inherit) so both
+ * the project override and the environment value can defer to the file; `field`
+ * names the supaterm.json field carrying the same value and `builtIn` is what applies
+ * when every tier is unset.
  */
 export const PROJECT_FILE_BACKED_SETTINGS = {
   // Supadesign: each card works in its own worktree unless the project says otherwise.
@@ -143,11 +139,6 @@ export const PROJECT_FILE_BACKED_SETTINGS = {
 };
 export type ProjectFileBackedSettingKey = keyof typeof PROJECT_FILE_BACKED_SETTINGS;
 
-/**
- * `ServerSettings` with every file-backed key resolved to a concrete value.
- * What `resolveProjectSettings(...).settings` produces once a supaterm.json (or
- * its absence) has been accounted for.
- */
 export type ResolvedServerSettings = Omit<ServerSettings, ProjectFileBackedSettingKey> & {
   readonly [K in ProjectFileBackedSettingKey]: Exclude<ServerSettings[K], null>;
 };

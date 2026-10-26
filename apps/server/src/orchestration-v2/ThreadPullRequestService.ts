@@ -11,6 +11,7 @@ import {
   type ThreadLinkedPullRequest,
 } from "@supaterm/contracts";
 import { makeDrainableWorker } from "@supaterm/shared/DrainableWorker";
+import * as NodeSqliteClient from "@supaterm/shared/nodeSqliteClient";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -61,7 +62,7 @@ function pullRequestMatchesProject(
   );
 }
 
-export const resolveProjectForPullRequestDiscovery = Effect.fn(
+const resolveProjectForPullRequestDiscovery = Effect.fn(
   "ThreadPullRequestServiceV2.resolveProject",
 )(function* (
   project: OrchestrationProjectShell,
@@ -121,15 +122,17 @@ export const make = Effect.gen(function* () {
   /**
    * A sweep for one thread reads only that thread's shell, not every thread's.
    * Finished runs and checkpoints queue one of these each. A sweep over all
-   * threads reads only active, unsettled ones, since discovery skips the rest;
-   * backfill looks up settled threads, so its passes read every active thread.
+   * threads reads only active, open ones, since discovery skips the rest;
+   * backfill looks up done threads, so its passes read every active thread.
    */
   const readThreadSnapshot = ({ threadId, backfill }: RefreshRequest) =>
     threadId === null
-      ? orchestrator.getShellSnapshot({
-          location: "active",
-          unsettledOnly: !(backfill || pendingBackfill.size > 0),
-        })
+      ? orchestrator
+          .getShellSnapshot({
+            location: "active",
+            openOnly: !(backfill || pendingBackfill.size > 0),
+          })
+          .pipe(NodeSqliteClient.readOnly)
       : Effect.gen(function* () {
           // Read the sequence first. The thread is then at least this new, so a
           // sync guarded by the sequence is rejected rather than missing a change.
@@ -149,16 +152,13 @@ export const make = Effect.gen(function* () {
     if (request.backfill) {
       for (const thread of threadSnapshot.threads) {
         if (
-          (thread.settledOverride === "settled" || thread.settledAt !== null) &&
+          (thread.doneOverride === "done" || thread.doneAt !== null) &&
           thread.branchPullRequest == null
         ) {
           pendingBackfill.set(thread.id, BACKFILL_ATTEMPTS);
         }
       }
     }
-    // A single-thread read only shows whether its own thread is gone. A thread
-    // with no branch has nothing to look up, and its entry would keep every
-    // periodic pass on the full read.
     const visibleThreadIds = new Set(
       threadSnapshot.threads.filter((thread) => thread.branch !== null).map((thread) => thread.id),
     );
@@ -169,7 +169,7 @@ export const make = Effect.gen(function* () {
     const threads = threadSnapshot.threads.filter(
       (thread) =>
         thread.archivedAt === null &&
-        ((thread.settledOverride !== "settled" && thread.settledAt === null) ||
+        ((thread.doneOverride !== "done" && thread.doneAt === null) ||
           request.threadId !== null ||
           pendingBackfill.has(thread.id)) &&
         (thread.branch !== null || thread.branchPullRequest != null),
@@ -228,7 +228,10 @@ export const make = Effect.gen(function* () {
                 const previous = yield* pullRequests.summary(thread.branchPullRequest, {
                   recoverTransientFailure: false,
                 });
-                if (previous.state === "merged" || previous.state === "closed") {
+                if (
+                  previous.headBranch === thread.branch &&
+                  (previous.state === "merged" || previous.state === "closed")
+                ) {
                   branchPullRequest = thread.branchPullRequest;
                 }
               }
@@ -307,7 +310,7 @@ export const make = Effect.gen(function* () {
                 if (!projectWorkspaceMatchesSnapshot(currentProject, project.workspaceRoot)) {
                   return failBackfill([thread]);
                 }
-                const uuid = yield* crypto.randomUUIDv4;
+                const uuid = yield* crypto.randomUUIDv4();
                 yield* orchestrator.dispatch({
                   type: "thread.pull-request.sync",
                   commandId: CommandId.make(`server:thread-pull-request:${thread.id}:${uuid}`),
@@ -371,7 +374,7 @@ export const make = Effect.gen(function* () {
       case "thread.unarchived":
       case "thread.metadata-updated":
         return worker.enqueue({ threadId: event.threadId, refresh: false });
-      case "thread.unsettled":
+      case "thread.reopened":
       case "checkpoint.captured":
         return worker.enqueue({ threadId: event.threadId, refresh: true });
       case "run.updated":

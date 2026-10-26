@@ -1,10 +1,4 @@
 // @effect-diagnostics nodeBuiltinImport:off globalTimers:off globalDate:off globalFetch:off globalConsole:off preferSchemaOverJson:off - Host-side process verifier retains raw wire evidence and owns deadline timers.
-/**
- * Real server/provider conformance check. Run from the repository root:
- * node apps/server/scripts/verify-background-live.ts --model claude-sonnet-4-6
- * Uses existing provider CLI authentication, a fresh Supaterm home and a disposable Git
- * project. Evidence is retained in the printed directory, including on failure.
- */
 import * as NodeAssert from "node:assert/strict";
 import * as NodeChildProcess from "node:child_process";
 import * as NodeCrypto from "node:crypto";
@@ -30,6 +24,8 @@ import {
   WsRpcGroup,
   type OrchestrationV2ThreadProjection,
 } from "@supaterm/contracts";
+
+import { currentDesktopBootstrapToken } from "@supaterm/shared/desktopBootstrapToken";
 
 const { values } = NodeUtil.parseArgs({
   options: {
@@ -159,7 +155,6 @@ NodeFS.writeFileSync(
   ),
 );
 
-// This is a real external dependency of the child command, not a provider stub.
 const secret = `RESULT_${NodeCrypto.randomUUID()}`;
 const gatePath = `/${NodeCrypto.randomUUID()}`;
 let response: NodeHttp.ServerResponse | undefined;
@@ -196,8 +191,6 @@ await new Promise<void>((done) => gate.once("listening", done));
 const gateAddress = gate.address();
 NodeAssert.ok(gateAddress && typeof gateAddress !== "string");
 
-// Reserve an ephemeral port, then give it to the real server. A bind race fails
-// the check; it never falls back to an existing environment.
 const reservation = NodeHttp.createServer();
 reservation.listen(0, "127.0.0.1");
 await new Promise<void>((done) => reservation.once("listening", done));
@@ -206,7 +199,8 @@ NodeAssert.ok(address && typeof address !== "string");
 await new Promise<void>((done) => reservation.close(() => done()));
 const port = address.port;
 const origin = `http://127.0.0.1:${port}`;
-const bootstrap = NodeCrypto.randomUUID();
+const bootstrapSecret = NodeCrypto.randomBytes(32).toString("hex");
+const bootstrap = currentDesktopBootstrapToken(bootstrapSecret, Date.now());
 function startServer() {
   const server = NodeChildProcess.spawn(
     process.execPath,
@@ -227,6 +221,7 @@ function startServer() {
       supatermHome: home,
       host: "127.0.0.1",
       desktopBootstrapToken: bootstrap,
+      desktopBootstrapSecret: bootstrapSecret,
       tailscaleServeEnabled: false,
       tailscaleServePort: 443,
     }),
@@ -235,7 +230,10 @@ function startServer() {
   let output = "";
   for (const pipe of [server.stdout, server.stderr])
     pipe?.on("data", (data: Buffer) => {
-      const text = data.toString().replaceAll(bootstrap, "[REDACTED]");
+      const text = data
+        .toString()
+        .replaceAll(bootstrap, "[REDACTED]")
+        .replaceAll(bootstrapSecret, "[REDACTED]");
       NodeFS.appendFileSync(NodePath.join(evidence, "server.log"), text);
       output = (output + text).slice(-8192);
       if (output.includes("startup phase: complete")) ready.resolve();
@@ -260,7 +258,7 @@ try {
     method: "POST",
     body: new URLSearchParams({
       grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
-      subject_token: bootstrap,
+      subject_token: currentDesktopBootstrapToken(bootstrapSecret, Date.now()),
       subject_token_type: "urn:supaterm:params:oauth:token-type:environment-bootstrap",
       requested_token_type: "urn:ietf:params:oauth:token-type:access_token",
     }),
@@ -486,7 +484,6 @@ try {
   }).pipe(Effect.scoped, Effect.provide(layerProtocol), Effect.timeout(timeoutMs));
   const finished = await Effect.runPromise(program, { signal: abort.signal });
   verdict = finished;
-  // Check persistence through an actual clean server restart on the same SQLite DB.
   await stopServer(server);
   ({ server, ready } = startServer());
   await ready;
@@ -559,7 +556,6 @@ async function stopServer(server: ReturnType<typeof NodeChildProcess.spawn>) {
     await stopped;
     clearTimeout(deadline);
   }
-  // Kill only the process group created above, including lingering provider pipes.
   if (server.pid) {
     try {
       process.kill(-server.pid, "SIGKILL");

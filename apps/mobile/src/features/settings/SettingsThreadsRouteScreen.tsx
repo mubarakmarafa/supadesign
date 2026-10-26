@@ -1,18 +1,21 @@
+import { Button } from "../../components/ui/Button";
 import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { readEnvironmentScope, useEnvironmentsWithScope } from "../../state/session";
-import { AutoSettleDaysField } from "./components/AutoSettleDaysField";
-import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
+import { AutoMarkDoneDaysField } from "./components/AutoMarkDoneDaysField";
+import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
 import { useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DEFAULT_SERVER_SETTINGS } from "@supaterm/contracts";
 import { supportsSharedSettingsSync } from "@supaterm/client-runtime/state/shared-settings";
-import { AppText as Text } from "../../components/AppText";
-import { showSkillsInSlashMenuAtom, updateMobilePreferencesAtom } from "../../state/preferences";
-import { serverEnvironment } from "../../state/server";
-import { useAtomCommand } from "../../state/use-atom-command";
+import { AppText as Text } from "../../components/ui/AppText";
+import {
+  showSkillsInSlashMenuAtom,
+  showToolImagesAtom,
+  updateMobilePreferencesAtom,
+} from "../../state/preferences";
 import { SettingsSection } from "./components/SettingsSection";
 import { SettingsProjectOverridesSection } from "./components/SettingsProjectOverridesSection";
 import { SettingsSwitchRow } from "./components/SettingsSwitchRow";
@@ -21,8 +24,13 @@ import {
   AndroidSettingsEnvironmentFilter,
   SettingsEnvironmentFilterHeader,
 } from "./components/SettingsEnvironmentFilterHeader";
-import { planAutoSettleSettingsSync, type AutoSettleSettings } from "./autoSettleSettingsSync";
+import {
+  AUTO_MARK_DONE_KEYS,
+  planAutoMarkDoneSettingsSync,
+  type AutoMarkDoneSettings,
+} from "./autoMarkDoneSettingsSync";
 import { useSettingsEnvironmentFilter } from "./settings-environment-filter";
+import { useSettingsWriter } from "./useSettingsWriter";
 import {
   planMobileScopedSettingsClear,
   planMobileScopedSettingsPatch,
@@ -30,6 +38,7 @@ import {
   uniformMobileSetting,
   type ScopedMobileSettingsTarget,
 } from "./settings-scoped-server";
+import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
 
 export function SettingsThreadsRouteScreen() {
   const insets = useSafeAreaInsets();
@@ -46,6 +55,7 @@ export function SettingsThreadsRouteScreen() {
           contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 18) + 18 }}
         >
           <ThreadBehaviorSettingsRows />
+          <ToolCallSettingsSection />
           <ComposerSettingsSection />
         </ScrollView>
       </SettingsScreen>
@@ -53,7 +63,7 @@ export function SettingsThreadsRouteScreen() {
   );
 }
 
-const AUTO_SETTLE_DEFAULT_DAYS = DEFAULT_SERVER_SETTINGS.sidebarAutoSettleAfterDays ?? 3;
+const AUTO_MARK_DONE_DEFAULT_DAYS = DEFAULT_SERVER_SETTINGS.sidebarAutoMarkDoneAfterDays ?? 3;
 
 function ThreadBehaviorSettingsRows() {
   const { selectedTargets, projectGroups, selectedProjectKey } = useSettingsEnvironmentFilter();
@@ -65,10 +75,7 @@ function ThreadBehaviorSettingsRows() {
   const [pendingTargets, setPendingTargets] = useState<
     readonly ScopedMobileSettingsTarget[] | null
   >(null);
-  const updateSettings = useAtomCommand(serverEnvironment.updateSettings, {
-    label: "server settings update",
-    reportFailure: true,
-  });
+  const writeSettings = useSettingsWriter();
 
   const syncEnvironments = selectedTargets.filter(supportsSharedSettingsSync);
   const syncTargets = resolveMobileSettingsTargets(
@@ -88,7 +95,7 @@ function ThreadBehaviorSettingsRows() {
   }
 
   const writeToAll = (
-    patch: Partial<AutoSettleSettings> & {
+    patch: Partial<AutoMarkDoneSettings> & {
       autoResumeLimitedThreads?: boolean;
       snoozeLimitedThreads?: boolean;
     },
@@ -105,18 +112,14 @@ function ThreadBehaviorSettingsRows() {
     writeInFlight.current = true;
     setPendingTargets(syncTargets);
     setPendingWrites((count) => count + 1);
-    void Promise.allSettled(
-      writes.map((entry) =>
-        updateSettings({ environmentId: entry.environmentId, input: { patch: entry.patch } }),
-      ),
-    ).finally(() => {
+    void writeSettings(syncTargets, writes).finally(() => {
       writeInFlight.current = false;
       setPendingTargets(null);
       setPendingWrites((count) => count - 1);
     });
   };
 
-  const { patch: autoSettlePatch, mismatches } = planAutoSettleSettingsSync(
+  const { patch: autoMarkDonePatch, mismatches } = planAutoMarkDoneSettingsSync(
     {
       environmentId: reference.environment.environmentId,
       projectId: reference.projectId,
@@ -131,17 +134,14 @@ function ThreadBehaviorSettingsRows() {
   );
 
   const supportsProjectOverrides = syncTargets.every(
-    (target) =>
-      target.environment.serverConfig.environment.capabilities.projectSettingsOverrides === true,
+    (target) => target.environment.serverConfig != null,
   );
   const disabled =
     !canWriteSettings || pendingWrites > 0 || (projectSelected && !supportsProjectOverrides);
   const hasProjectOverrides =
     projectSelected &&
-    syncTargets.some(
-      (target) =>
-        target.sources.sidebarAutoSettleOnMerge === "project" ||
-        target.sources.sidebarAutoSettleAfterDays === "project",
+    syncTargets.some((target) =>
+      AUTO_MARK_DONE_KEYS.some((key) => target.sources[key] === "project"),
     );
   const clearProjectOverrides = () => {
     if (
@@ -151,26 +151,19 @@ function ThreadBehaviorSettingsRows() {
       )
     )
       return;
-    const writes = planMobileScopedSettingsClear(syncTargets, [
-      "sidebarAutoSettleOnMerge",
-      "sidebarAutoSettleAfterDays",
-    ]);
+    const writes = planMobileScopedSettingsClear(syncTargets, AUTO_MARK_DONE_KEYS);
     if (writes.length === 0) return;
     writeInFlight.current = true;
     setPendingTargets(syncTargets);
     setPendingWrites((count) => count + 1);
-    void Promise.allSettled(
-      writes.map((entry) =>
-        updateSettings({ environmentId: entry.environmentId, input: { patch: entry.patch } }),
-      ),
-    ).finally(() => {
+    void writeSettings(syncTargets, writes).finally(() => {
       writeInFlight.current = false;
       setPendingTargets(null);
       setPendingWrites((count) => count - 1);
     });
   };
 
-  const afterDays = referenceSettings.sidebarAutoSettleAfterDays;
+  const afterDays = referenceSettings.sidebarAutoMarkDoneAfterDays;
 
   return (
     <View className="gap-6">
@@ -202,56 +195,81 @@ function ThreadBehaviorSettingsRows() {
           />
         </SettingsSection>
       ) : null}
-      <SettingsSection title="Auto-settle">
+      <SettingsSection title="Automatically mark as Done">
         <SettingsSwitchRow
           icon="arrow.triangle.branch"
-          label="Auto-settle merged threads"
-          value={referenceSettings.sidebarAutoSettleOnMerge}
+          label="Automatically mark merged threads as Done"
+          value={referenceSettings.sidebarAutoMarkDoneOnMerge}
           disabled={disabled}
-          onValueChange={(value) => writeToAll({ sidebarAutoSettleOnMerge: value })}
+          onValueChange={(value) => writeToAll({ sidebarAutoMarkDoneOnMerge: value })}
         />
         <SettingsSwitchRow
           icon="clock"
-          label="Auto-settle inactive threads"
+          label="Automatically mark inactive threads as Done"
           value={afterDays !== null}
           disabled={disabled}
           onValueChange={(value) =>
-            writeToAll({ sidebarAutoSettleAfterDays: value ? AUTO_SETTLE_DEFAULT_DAYS : null })
+            writeToAll({ sidebarAutoMarkDoneAfterDays: value ? AUTO_MARK_DONE_DEFAULT_DAYS : null })
           }
         />
         {afterDays !== null ? (
           <View className="flex-row items-center gap-4 px-4 py-4 android:min-h-14 android:py-3">
             <View className="w-[22px] android:w-6" />
             <Text className="flex-1 text-foreground text-lg android:text-base">Inactive days</Text>
-            <AutoSettleDaysField
+            <AutoMarkDoneDaysField
               value={afterDays}
               disabled={disabled}
-              onValueChange={(value) => writeToAll({ sidebarAutoSettleAfterDays: value })}
+              onValueChange={(value) => writeToAll({ sidebarAutoMarkDoneAfterDays: value })}
             />
           </View>
+        ) : null}
+        {afterDays !== null ? (
+          <SettingsSwitchRow
+            icon={PullRequestGlyph.pullRequest}
+            label="Keep threads with an open PR"
+            subtitle="Inactivity does not mark threads with an open pull request as Done."
+            value={referenceSettings.sidebarAutoMarkDoneKeepPullRequests}
+            disabled={disabled}
+            onValueChange={(value) => writeToAll({ sidebarAutoMarkDoneKeepPullRequests: value })}
+          />
         ) : null}
       </SettingsSection>
       {pendingWrites === 0 && mismatches.length > 0 ? (
         <SettingsSection title="Across environments">
           <View className="gap-3 p-4">
-            <Text className="text-base text-foreground">Auto-settle defaults differ</Text>
+            <Text className="text-base text-foreground">
+              Automatically mark as Done defaults differ
+            </Text>
             <Text className="text-sm text-foreground-muted">
               {mismatches.map((mismatch) => mismatch.label).join(", ")}
             </Text>
-            <Pressable
-              accessibilityRole="button"
+            <Button
+              label="Apply automatic completion defaults"
+              tone="secondary"
               disabled={disabled}
-              onPress={() => writeToAll(autoSettlePatch)}
-              className="self-start rounded-full bg-subtle px-4 py-2 active:opacity-70"
-            >
-              <Text className="text-sm font-supaterm-medium text-foreground">
-                Apply auto-settle defaults
-              </Text>
-            </Pressable>
+              onPress={() => writeToAll(autoMarkDonePatch)}
+            />
           </View>
         </SettingsSection>
       ) : null}
     </View>
+  );
+}
+
+function ToolCallSettingsSection() {
+  const savePreferences = useAtomSet(updateMobilePreferencesAtom);
+  const showToolImages = useAtomValue(showToolImagesAtom);
+
+  return (
+    <SettingsSection title="Tool calls">
+      <SettingsSwitchRow
+        icon="photo"
+        label="Tool images"
+        subtitle="Show images from tool calls under each tool group."
+        value={showToolImages}
+        onValueChange={(value) => savePreferences({ showToolImages: value })}
+      />
+    </SettingsSection>
   );
 }
 

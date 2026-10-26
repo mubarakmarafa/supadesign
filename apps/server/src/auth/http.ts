@@ -49,8 +49,9 @@ const currentEnvironmentTraceId = Effect.currentParentSpan.pipe(
   Effect.orElseSucceed(() => "unavailable"),
 );
 
-export function annotateEnvironmentRequest(endpoint: string) {
-  return Effect.gen(function* () {
+export const annotateEnvironmentRequest =
+  /* Request instrumentation already owns the span; keep this helper in that context. */
+  Effect.fnUntraced(function* (endpoint: string) {
     const request = yield* HttpServerRequest.HttpServerRequest;
     const url = HttpServerRequest.toURL(request);
     const traceId = yield* currentEnvironmentTraceId;
@@ -72,7 +73,6 @@ export function annotateEnvironmentRequest(endpoint: string) {
       "url.path": url._tag === "Some" ? url.value.pathname : "unknown",
     });
   });
-}
 
 export function failEnvironmentAuthInvalid(reason: EnvironmentAuthInvalidReason) {
   return currentEnvironmentTraceId.pipe(
@@ -139,8 +139,9 @@ export function failEnvironmentNotFound(reason: EnvironmentResourceNotFoundReaso
  * bearer clients. The upgrade authenticator already implements that
  * fallback order, so it is used for plain requests as well.
  */
-export const authenticateMediaRequest = (requiredScope: AuthEnvironmentScope) =>
-  Effect.gen(function* () {
+export const authenticateMediaRequest =
+  /* Request instrumentation already owns the span; keep this helper in that context. */
+  Effect.fnUntraced(function* (requiredScope: AuthEnvironmentScope) {
     const request = yield* HttpServerRequest.HttpServerRequest;
     const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
     const session = yield* serverAuth.authenticateWebSocketUpgrade(request).pipe(
@@ -161,8 +162,9 @@ export const authenticateMediaRequest = (requiredScope: AuthEnvironmentScope) =>
     return session;
   });
 
-export function failEnvironmentInternal(reason: EnvironmentInternalErrorReason, error?: unknown) {
-  return Effect.gen(function* () {
+export const failEnvironmentInternal =
+  /* Request instrumentation already owns the span; keep this helper in that context. */
+  Effect.fnUntraced(function* (reason: EnvironmentInternalErrorReason, error?: unknown) {
     const traceId = yield* currentEnvironmentTraceId;
     if (error !== undefined) {
       yield* Effect.logError("environment api operation failed", {
@@ -173,24 +175,6 @@ export function failEnvironmentInternal(reason: EnvironmentInternalErrorReason, 
     }
     return yield* new EnvironmentInternalError({ code: "internal_error", reason, traceId });
   });
-}
-
-const appendSessionCookie = (cookieName: string, token: string, expiresAt: DateTime.DateTime) =>
-  Effect.fromResult(
-    Cookies.set(Cookies.empty, cookieName, token, {
-      expires: DateTime.toDate(expiresAt),
-      httpOnly: true,
-      path: "/",
-      sameSite: "lax",
-    }),
-  ).pipe(
-    Effect.catch(() => failEnvironmentInternal("browser_session_cookie_failed")),
-    Effect.flatMap((cookies) =>
-      HttpEffect.appendPreResponseHandler((_request, response) =>
-        Effect.succeed(HttpServerResponse.mergeCookies(response, cookies)),
-      ),
-    ),
-  );
 
 export const requireEnvironmentScope = Effect.fn("environment.auth.requireScope")(function* (
   scope: AuthEnvironmentScope,
@@ -242,20 +226,6 @@ export const layer = HttpApiBuilder.group(
             yield* annotateEnvironmentRequest(args.endpoint.name);
             const request = yield* HttpServerRequest.HttpServerRequest;
             const result = yield* serverAuth.getSessionState(request);
-            const credential = EnvironmentAuth.selectRequestCredential(
-              request,
-              sessions.cookieName,
-              sessions.legacyCookieName,
-            );
-            if (
-              credential?.source === "legacy-cookie" &&
-              result.authenticated &&
-              result.sessionMethod === "browser-session-cookie" &&
-              result.expiresAt
-            ) {
-              yield* appendSessionCookie(sessions.cookieName, credential.token, result.expiresAt);
-              yield* appendCredentialResponseHeaders;
-            }
             return result;
           },
           Effect.catchIf(EnvironmentAuth.isServerAuthInternalError, (error) =>
@@ -272,7 +242,6 @@ export const layer = HttpApiBuilder.group(
             const previousCredential = EnvironmentAuth.selectRequestCredential(
               request,
               sessions.cookieName,
-              sessions.legacyCookieName,
             );
             const result = yield* serverAuth.createBrowserSession(
               args.payload.credential,

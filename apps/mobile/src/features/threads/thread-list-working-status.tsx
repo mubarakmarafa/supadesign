@@ -1,7 +1,7 @@
 import { formatWorkingDurationLabel } from "@supaterm/client-runtime/state/thread-timing";
 import { memo, useEffect, useState } from "react";
 import { AppState } from "react-native";
-import { AppText } from "../../components/AppText";
+import { AppText } from "../../components/ui/AppText";
 
 /** The clock updates only this label, leaving the row and its subscriptions idle. */
 export const ThreadListWorkingStatus = memo(function ThreadListWorkingStatus(props: {

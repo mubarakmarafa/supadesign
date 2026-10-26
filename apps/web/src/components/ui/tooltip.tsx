@@ -38,7 +38,6 @@ const TooltipScrollContext = createContext<ReturnType<typeof createTooltipHoverT
   null,
 );
 
-/** Dismisses hovered descendants on real scroll events without rerendering the timeline. */
 function TooltipScrollDismissArea({ onScrollCapture, ...props }: ComponentProps<"div">) {
   const [hovered] = useState(createTooltipHoverTracker);
   return (
@@ -106,11 +105,6 @@ function TooltipTrigger(props: TooltipPrimitive.Trigger.Props) {
   );
 }
 
-/**
- * Treats the native titlebar strip as off-screen, so a tooltip that would open
- * under the window controls flips to its other side. Rendered inside the
- * portal so only open tooltips track the titlebar.
- */
 function TooltipPositioner(props: TooltipPrimitive.Positioner.Props) {
   const titlebarHeight = useNativeTitlebarHeight();
   return (
@@ -142,7 +136,6 @@ function TooltipPopup({
   align?: TooltipPrimitive.Positioner.Props["align"];
   side?: TooltipPrimitive.Positioner.Props["side"];
   sideOffset?: TooltipPrimitive.Positioner.Props["sideOffset"];
-  /** `code` renders monospace content that breaks anywhere, for paths and commands. */
   variant?: "default" | "glass" | "code";
   anchor?: TooltipPrimitive.Positioner.Props["anchor"];
   /** The key that runs the same action as the trigger, shown after the content. */
@@ -158,7 +151,6 @@ function TooltipPopup({
             variant === "glass"
               ? "dropdown-glass shadow-xl shadow-black/25 before:hidden"
               : "border bg-popover not-dark:bg-clip-padding shadow-md/5",
-            // One wrap width for prose; code dumps get more room and break anywhere.
             variant === "code"
               ? "max-w-120 wrap-anywhere text-left font-mono text-[11px] leading-relaxed"
               : "max-w-80 wrap-anywhere whitespace-normal leading-snug",

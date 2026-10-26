@@ -1,11 +1,9 @@
-import { MoonIcon, SunIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 import {
   STANDARD_THEME_PREVIEW_COLORS as SHARED_STANDARD_THEME_PREVIEW_COLORS,
   THEME_PREVIEW_RENDER_SPECS,
 } from "@supaterm/shared/themePreview";
 import { cn } from "../../lib/utils";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
   getThemeColorsForMode,
   getThemeModes,
@@ -95,17 +93,11 @@ export function getThemeCardDefinition(theme: ThemeDefinition): ThemeCardDefinit
   };
 }
 
-// Interpolating in oklab keeps the glow falloff perceptually even (no gray
-// mid-tones or banding rings), and premultiplied alpha keeps the fade to
-// transparent clean.
 function getThemePreviewStyle(
   colors: ThemeCardPreviewColors,
   mode: ThemeAppearance,
 ): CSSProperties {
   const spec = THEME_PREVIEW_RENDER_SPECS[mode];
-  // The canvas carries the ball's light/dark identity, so it stays dominant:
-  // a near-true base with a contained accent glow, instead of an accent wash
-  // that makes both modes read alike.
   const modeBase = `color-mix(in oklab, ${colors.canvas} ${spec.baseWeight * 100}%, ${spec.baseTarget})`;
   const accentPosition = `${spec.accent.center[0] * 100}% ${spec.accent.center[1] * 100}%`;
   const actionPosition = `${spec.action.center[0] * 100}% ${spec.action.center[1] * 100}%`;
@@ -113,15 +105,11 @@ function getThemePreviewStyle(
     backgroundColor: modeBase,
     backgroundImage: [
       `radial-gradient(circle at ${accentPosition} in oklab, ${colors.accent} 0%, color-mix(in oklab, ${colors.accent} ${spec.accent.middleOpacity * 100}%, transparent) ${spec.accent.middleOffset * 100}%, transparent ${spec.accent.endOffset * 100}%)`,
-      // The action color is a soft tint from the opposite corner, not a second
-      // light source — two bright hotspots read as headlights.
       `radial-gradient(circle at ${actionPosition} in oklab, color-mix(in oklab, ${colors.messageAction} ${spec.action.startOpacity * 100}%, transparent) 0%, transparent ${spec.action.endOffset * 100}%)`,
     ].join(", "),
   };
 }
 
-// The gradient halves of each ball can match the card surface, so every ball
-// carries a faint mode-appropriate inner ring to keep its silhouette legible.
 function themePreviewEdgeShadow(mode: ThemeAppearance): string {
   return mode === "dark"
     ? "inset 0 0 0 1px rgb(255 255 255 / 0.14), 0 1px 2px rgb(0 0 0 / 0.18)"
@@ -155,76 +143,5 @@ export function ThemePreviewCircle({
         }}
       />
     </span>
-  );
-}
-
-/**
- * A theme card's light and dark balls. Clicking a ball assigns that theme to
- * that half of the appearance mix; assigned balls carry a ring and a sun or
- * moon badge.
- */
-export function ThemePreviewCircles({
-  label,
-  activeModes,
-  onSelectMode,
-  previews,
-}: {
-  label: string;
-  activeModes: ReadonlyArray<ThemeMode>;
-  onSelectMode: (mode: ThemeMode) => void;
-  previews: ThemeCardDefinition["previews"];
-}) {
-  return (
-    <div className="flex min-h-16 items-center justify-center gap-2.5 px-3 pt-3">
-      {previews.map((preview) => {
-        const mode = preview.mode;
-        const isPicked = activeModes.includes(mode);
-        return (
-          <Tooltip key={mode}>
-            <TooltipTrigger
-              render={
-                <button
-                  aria-label={`Use ${label} ${mode} mode`}
-                  aria-pressed={isPicked}
-                  className={cn(
-                    "relative flex size-[68px] shrink-0 transform-gpu cursor-pointer items-center justify-center rounded-full p-1 outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
-                    isPicked && "hover:scale-100",
-                  )}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelectMode(mode);
-                  }}
-                  type="button"
-                >
-                  <ThemePreviewCircle colors={preview.colors} mode={mode} />
-                  {isPicked ? (
-                    <>
-                      <span
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 rounded-full"
-                        style={{ boxShadow: "inset 0 0 0 2px var(--ring)" }}
-                      />
-                      <span
-                        aria-hidden
-                        className="pointer-events-none absolute bottom-0.5 right-0.5 flex size-5 items-center justify-center rounded-full border border-border/70 bg-background text-foreground shadow-sm"
-                      >
-                        {mode === "light" ? (
-                          <SunIcon className="size-3" />
-                        ) : (
-                          <MoonIcon className="size-3" />
-                        )}
-                      </span>
-                    </>
-                  ) : null}
-                </button>
-              }
-            />
-            <TooltipPopup>
-              {mode === "light" ? "Use for light mode only" : "Use for dark mode only"}
-            </TooltipPopup>
-          </Tooltip>
-        );
-      })}
-    </div>
   );
 }

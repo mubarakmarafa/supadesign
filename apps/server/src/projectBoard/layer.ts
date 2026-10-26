@@ -2,6 +2,7 @@ import {
   CommandId,
   MessageId,
   ProjectBoardError,
+  type ProjectId,
   type OrchestrationV2ThreadShell,
 } from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
@@ -31,8 +32,8 @@ export const make = Effect.gen(function* () {
   const banks = yield* ThreadBank.ThreadBankService;
   const liveEnvironments = yield* LiveEnvironment.LiveEnvironmentService;
   const crypto = yield* Crypto.Crypto;
-  const commandId = crypto.randomUUIDv4.pipe(Effect.orDie, Effect.map(CommandId.make));
-  const messageId = crypto.randomUUIDv4.pipe(Effect.orDie, Effect.map(MessageId.make));
+  const commandId = crypto.randomUUIDv4().pipe(Effect.orDie, Effect.map(CommandId.make));
+  const messageId = crypto.randomUUIDv4().pipe(Effect.orDie, Effect.map(MessageId.make));
   const cards = yield* CardWorkspace.make;
 
   const dispatch = (command: Parameters<typeof threads.dispatch>[0]) =>
@@ -49,35 +50,34 @@ export const make = Effect.gen(function* () {
     );
 
   const ops: ProjectBoard.ProjectBoardOps = {
-    readProject: (projectId) =>
-      Effect.gen(function* () {
-        const project = yield* projects.getById(projectId).pipe(
-          Effect.mapError(() => failure("The project could not be read.")),
-          Effect.map(Option.getOrUndefined),
-        );
-        if (project === undefined) return yield* failure("The project was not found.");
-        const snapshot = yield* projections
-          .getShellSnapshot({ projectId })
-          .pipe(Effect.mapError(() => failure("The project's cards could not be read.")));
-        const shells = [...snapshot.threads, ...snapshot.archivedThreads].filter(
-          (shell) =>
-            shell.projectId === projectId &&
-            shell.deletedAt === null &&
-            shell.lineage.relationshipToParent !== "subagent",
-        );
-        return {
-          board: project.board ?? null,
-          boardAgentThreadId: project.workspace?.boardAgentThreadId ?? null,
-          threads: shells.map((shell) => ({
-            id: shell.id,
-            title: shell.title,
-            createdAt: shell.createdAt,
-            archivedAt: shell.archivedAt,
-            board: shell.board ?? null,
-            working: isWorking(shell),
-          })),
-        };
-      }),
+    readProject: Effect.fn("ProjectBoard.readProject")(function* (projectId: ProjectId) {
+      const project = yield* projects.getById(projectId).pipe(
+        Effect.mapError(() => failure("The project could not be read.")),
+        Effect.map(Option.getOrUndefined),
+      );
+      if (project === undefined) return yield* failure("The project was not found.");
+      const snapshot = yield* projections
+        .getShellSnapshot({ projectId })
+        .pipe(Effect.mapError(() => failure("The project's cards could not be read.")));
+      const shells = [...snapshot.threads, ...snapshot.archivedThreads].filter(
+        (shell) =>
+          shell.projectId === projectId &&
+          shell.deletedAt === null &&
+          shell.lineage.relationshipToParent !== "subagent",
+      );
+      return {
+        board: project.board ?? null,
+        boardAgentThreadId: project.workspace?.boardAgentThreadId ?? null,
+        threads: shells.map((shell) => ({
+          id: shell.id,
+          title: shell.title,
+          createdAt: shell.createdAt,
+          archivedAt: shell.archivedAt,
+          board: shell.board ?? null,
+          working: isWorking(shell),
+        })),
+      };
+    }),
 
     projectOf: (threadId) =>
       projections.getThreadShell(threadId).pipe(
@@ -118,8 +118,12 @@ export const make = Effect.gen(function* () {
 
     stopLiveEnvironment: (threadId) => liveEnvironments.stop(threadId),
 
-    sendToCard: ({ threadId, text, senderThreadId }) =>
-      Effect.gen(function* () {
+    sendToCard: Effect.fn("ProjectBoard.sendToCard")(
+      function* ({
+        threadId,
+        text,
+        senderThreadId,
+      }: Parameters<ProjectBoard.ProjectBoardOps["sendToCard"]>[0]) {
         const message = {
           threadId,
           commandId: yield* commandId,
@@ -146,16 +150,16 @@ export const make = Effect.gen(function* () {
           creationSource: "mcp",
         });
         return { startedInWorktree: false };
-      }).pipe(
-        Effect.tapError((error) => Effect.logWarning("Could not hand work to a card", { error })),
-        Effect.mapError((error) =>
-          failure(
-            error instanceof Error && error.message.length > 0
-              ? `The card didn't get the brief: ${error.message}`
-              : "The card didn't get the brief. Try again.",
-          ),
+      },
+      Effect.tapError((error) => Effect.logWarning("Could not hand work to a card", { error })),
+      Effect.mapError((error) =>
+        failure(
+          error instanceof Error && error.message.length > 0
+            ? `The card didn't get the brief: ${error.message}`
+            : "The card didn't get the brief. Try again.",
         ),
       ),
+    ),
   };
 
   return yield* ProjectBoard.make(ops);

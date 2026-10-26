@@ -2,7 +2,7 @@ import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { LinkIcon, PlusIcon } from "lucide-react";
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
 import { isElectron } from "../env";
@@ -15,6 +15,7 @@ import { WorkspacePageHeader } from "../components/WorkspacePageHeader";
 import { useOpenProjectHome } from "../components/board/boardNavigation";
 import { useNewThreadHandler } from "../hooks/useHandleNewThread";
 import {
+  readProject,
   useAllEnvironmentShellsBootstrapped,
   useProjects,
   useThreadShells,
@@ -51,28 +52,32 @@ function IndexDraftLanding() {
   const isStillOnIndex = useEffectEvent(() => router.state.location.pathname === "/");
   const startingRef = useRef(false);
   const [startFailed, setStartFailed] = useState(false);
+  const [retryRequest, setRetryRequest] = useState(0);
 
-  const mostRecentProject = useMemo(
-    () =>
-      bootstrapped
-        ? (sortScopedProjectsForSidebar(projects, threads, "updated_at")[0] ?? null)
-        : null,
-    [bootstrapped, projects, threads],
-  );
+  const mostRecentProject =
+    sortScopedProjectsForSidebar(projects, threads, "updated_at")[0] ?? null;
 
   const startDraft = (project: NonNullable<typeof mostRecentProject>) => {
     if (startingRef.current) {
       return;
     }
-    startingRef.current = true;
     const projectRef = scopeProjectRef(project.environmentId, project.id);
+    if (readProject(projectRef) === null) {
+      return;
+    }
+    startingRef.current = true;
     if (openProjectHome(projectRef, { replace: true })) return;
-    void handleNewThread(projectRef, {
-      replace: true,
-    }).catch(() => {
-      startingRef.current = false;
-      setStartFailed(true);
-    });
+    void handleNewThread(projectRef, { replace: true })
+      .then((opened) => {
+        if (opened === null) {
+          startingRef.current = false;
+          setRetryRequest((request) => request + 1);
+        }
+      })
+      .catch(() => {
+        startingRef.current = false;
+        setStartFailed(true);
+      });
   };
 
   useEffect(() => {
@@ -81,11 +86,9 @@ function IndexDraftLanding() {
       return;
     }
     startDraft(mostRecentProject);
-  }, [mostRecentProject, startDraft]);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- A draft abandoned for a removed project retries with the next one.
+  }, [mostRecentProject, retryRequest, startDraft]);
 
-  if (!bootstrapped) {
-    return null;
-  }
   if (mostRecentProject !== null) {
     return startFailed ? (
       <DraftStartError
@@ -96,9 +99,8 @@ function IndexDraftLanding() {
       />
     ) : null;
   }
-  // First-run routing to the welcome wizard happens in FirstRunGate at the
-  // root, before this route ever renders.
-  return <NoProjectsHero />;
+  // A pending environment cannot prove the workspace is empty.
+  return bootstrapped ? <NoProjectsHero /> : null;
 }
 
 function DraftStartError({ onRetry }: { readonly onRetry: () => void }) {

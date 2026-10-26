@@ -45,20 +45,7 @@ export function resolveSessionCookieName(input: {
     return `${SESSION_COOKIE_NAME}_${instanceHash}`;
   }
 
-  // Cookies are scoped by host, not port. Loopback development servers need an
-  // instance-specific name or parallel agents overwrite each other's session,
-  // and a server that later reuses the port receives a token signed elsewhere.
   return `${SESSION_COOKIE_NAME}_${input.port}_${instanceHash}`;
-}
-
-export function resolveLegacySessionCookieName(input: {
-  readonly mode: "web" | "desktop";
-  readonly host: string | undefined;
-  readonly development: boolean;
-}): string | undefined {
-  return input.mode === "web" && !input.development && isRemoteReachableHost(input.host)
-    ? SESSION_COOKIE_NAME
-    : undefined;
 }
 
 export function isRemoteReachableHost(host: string | undefined): boolean {

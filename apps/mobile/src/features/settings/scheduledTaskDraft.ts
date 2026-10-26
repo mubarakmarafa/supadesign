@@ -4,7 +4,7 @@ import type {
   ProjectId,
   RuntimeMode,
   ScheduledTask,
-  ScheduledTaskUpsertSchedule,
+  ScheduledTaskSchedule,
 } from "@supaterm/contracts";
 
 import { DEFAULT_SERVER_SETTINGS } from "@supaterm/contracts";
@@ -71,10 +71,9 @@ export function scheduleDraftForTask(task: Pick<ScheduledTask, "schedule">): Sch
       };
 }
 
-export function scheduleFromDraft(draft: ScheduleDraft): ScheduledTaskUpsertSchedule | null {
+export function scheduleFromDraft(draft: ScheduleDraft): ScheduledTaskSchedule | null {
   if (draft.mode === "interval") {
     const minutes = Number(draft.intervalMinutes);
-    // Undo floating-point noise from displaying existing millisecond intervals as minutes.
     const everyMs = Math.round(minutes * 60_000);
     return minutes >= 1 && Number.isSafeInteger(everyMs) ? { type: "interval", everyMs } : null;
   }

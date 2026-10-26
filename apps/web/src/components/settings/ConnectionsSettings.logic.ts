@@ -1,9 +1,21 @@
+import * as DateTime from "effect/DateTime";
+
+import { resolveDesktopPairingUrl, resolveHostedPairingUrl } from "./pairingUrls";
+import { setPairingTokenOnUrl } from "../../pairingUrl";
+import {
+  type ServerClientSessionRecord,
+  type ServerPairingLinkRecord,
+} from "~/environments/primary";
 import {
   type AdvertisedEndpoint,
+  type AuthClientSession,
   type AuthGrantScope,
+  type AuthPairingLink,
   AuthTerminalOperateScope,
   AuthTerminalReadScope,
   type DesktopBridge,
+  type DesktopSshEnvironmentTarget,
+  type DesktopUpdateState,
   type DesktopWslState,
   type RelayConnectionInfo,
   type ServerSettings,
@@ -15,13 +27,13 @@ import type { PairingRouteHints } from "@supaterm/shared/remote";
 export function createRelayPairingEndpoint(relayEndpoint: string) {
   return createAdvertisedEndpoint({
     id: "public-relay",
-    label: "Public relay",
-    provider: { id: "public-relay", label: "Public relay", kind: "tunnel", isAddon: false },
+    label: "Encrypted Relay",
+    provider: { id: "public-relay", label: "Encrypted Relay", kind: "tunnel", isAddon: false },
     httpBaseUrl: relayEndpoint,
     reachability: "public",
     hostedHttpsCompatibility: "compatible",
     source: "server",
-    description: "End-to-end encrypted access through the public relay.",
+    description: "End-to-end encrypted access through the Encrypted Relay.",
   });
 }
 
@@ -43,6 +55,10 @@ export function resolvePairingLinkRoutes(
     pairingHints: { ...pairingHints, relayUrl: relay.relayUrl },
   };
 }
+import {
+  getDesktopUpdateDownloadedVersion,
+  resolveDesktopUpdateButtonAction,
+} from "../desktopUpdate.logic";
 
 /**
  * Operating terminals without being able to list them leaves a client
@@ -67,7 +83,6 @@ export function togglePairingScopeSelection(
     : next;
 }
 
-/** A missing access list says nothing about whether other clients exist. */
 export function canRevokeOtherClients(
   clientSessions: ReadonlyArray<{ readonly current: boolean }> | null,
 ): boolean {
@@ -85,6 +100,23 @@ export function isQrShareableEndpoint(endpoint: AdvertisedEndpoint): boolean {
   return endpoint.status !== "unavailable" && endpoint.reachability !== "loopback";
 }
 
+/**
+ * The row follows the saved Serve flag rather than probe health so a failed
+ * probe or a stopped Tailscale never hides the way to turn Serve off.
+ */
+export function resolveTailscaleHttpsRow(input: {
+  readonly endpoint: AdvertisedEndpoint | null;
+  readonly serveEnabled: boolean;
+}) {
+  const { endpoint, serveEnabled } = input;
+  return {
+    description: serveEnabled
+      ? (endpoint?.httpBaseUrl ?? "Start Tailscale to set up HTTPS access through MagicDNS.")
+      : "Use Tailscale Serve to expose this backend through a MagicDNS HTTPS URL.",
+    unreachable: serveEnabled && endpoint !== null && endpoint.status !== "available",
+  };
+}
+
 export function isWslSettingsRowVisible(input: {
   readonly state: DesktopWslState | null;
   readonly error: string | null;
@@ -93,24 +125,48 @@ export function isWslSettingsRowVisible(input: {
   return state ? state.available || state.enabled || state.wslOnly : error !== null;
 }
 
+/**
+ * Passive label for this machine's Version row once client and server versions
+ * match. The desktop bundles its server, so a pending app update is the only
+ * way it falls behind. Pending states follow the sidebar update control's
+ * action, including retryable failures, so the two never disagree; the sidebar
+ * is where to act. A recheck keeps a downloaded update while `checking`, so it
+ * keeps its label too. `state` is null outside the desktop app.
+ */
+export function resolveLocalVersionStatusLabel(state: DesktopUpdateState | null): string {
+  if (!state) return "Up to date";
+  if (state.status === "downloading") {
+    return state.availableVersion
+      ? `Downloading update ${state.availableVersion}`
+      : "Downloading update";
+  }
+  const action = resolveDesktopUpdateButtonAction(state);
+  if (
+    action === "install" ||
+    state.status === "downloaded" ||
+    (state.status === "checking" && state.downloadedVersion !== null)
+  ) {
+    const version = getDesktopUpdateDownloadedVersion(state);
+    return version ? `Update ${version} downloaded` : "Update downloaded";
+  }
+  if (action === "download") {
+    return state.availableVersion
+      ? `Update ${state.availableVersion} available`
+      : "Update available";
+  }
+  return "Up to date";
+}
+
 export type QrEndpointOption = {
-  /** Unique per endpoint instance (AdvertisedEndpoint.id); safe as a React key. */
   readonly id: string;
   /**
    * Stable per endpoint *type* (endpointDefaultPreferenceKey). Multiple
    * endpoints can share one, so it is only used to match the saved default.
    */
   readonly preferenceKey: string;
-  /** False for endpoints that stay copyable but must never render as a QR. */
   readonly qrShareable: boolean;
 };
 
-/**
- * Resolves which endpoint the share panel shows: the user's explicit pick,
- * else the saved default endpoint, else the first QR-shareable option (so the
- * panel never opens on a loopback QR), else the first option. A stale
- * selectedId (endpoint disappeared) falls back rather than blanking the panel.
- */
 export function selectQrEndpointOption<T extends QrEndpointOption>(
   options: ReadonlyArray<T>,
   selectedId: string | null,
@@ -143,4 +199,235 @@ export async function applyWslEnableSelection(input: {
     await bridge.setWslDistro(nextDistro);
   }
   return await bridge.setWslBackendEnabled(true);
+}
+
+const accessTimestampFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+export function formatAccessTimestamp(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return accessTimestampFormatter.format(parsed);
+}
+
+export function parseManualDesktopSshTarget(input: {
+  readonly host: string;
+  readonly username: string;
+  readonly port: string;
+}): DesktopSshEnvironmentTarget {
+  const rawHost = input.host.trim();
+  if (rawHost.length === 0) {
+    throw new Error("SSH host or alias is required.");
+  }
+
+  let hostname = rawHost;
+  let username = input.username.trim() || null;
+  let port: number | null = null;
+
+  const atIndex = hostname.lastIndexOf("@");
+  if (atIndex > 0) {
+    const inlineUsername = hostname.slice(0, atIndex).trim();
+    hostname = hostname.slice(atIndex + 1).trim();
+    if (!username && inlineUsername.length > 0) {
+      username = inlineUsername;
+    }
+  }
+
+  const bracketedHostMatch = /^\[([^\]]+)\](?::(\d+))?$/u.exec(hostname);
+  if (bracketedHostMatch) {
+    hostname = bracketedHostMatch[1]!.trim();
+    if (bracketedHostMatch[2]) {
+      port = Number.parseInt(bracketedHostMatch[2], 10);
+    }
+  } else {
+    const colonSegments = hostname.split(":");
+    if (colonSegments.length === 2 && /^\d+$/u.test(colonSegments[1] ?? "")) {
+      hostname = colonSegments[0]!.trim();
+      port = Number.parseInt(colonSegments[1]!, 10);
+    }
+  }
+
+  const rawPort = input.port.trim();
+  if (rawPort.length > 0) {
+    port = Number.parseInt(rawPort, 10);
+  }
+
+  if (hostname.length === 0) {
+    throw new Error("SSH host or alias is required.");
+  }
+
+  if (port !== null && (!Number.isInteger(port) || port <= 0 || port > 65_535)) {
+    throw new Error("SSH port must be between 1 and 65535.");
+  }
+
+  return {
+    alias: hostname,
+    hostname,
+    username,
+    port,
+  };
+}
+
+export function formatDesktopSshConnectionError(error: unknown): string {
+  const fallback = "Failed to connect SSH host.";
+  const rawMessage = error instanceof Error ? error.message : fallback;
+  const withoutIpcPrefix = rawMessage.replace(
+    /^Error invoking remote method 'desktop:ensure-ssh-environment':\s*/u,
+    "",
+  );
+  const withoutTaggedErrorPrefix = withoutIpcPrefix.replace(/^Ssh[A-Za-z]+Error:\s*/u, "");
+  return withoutTaggedErrorPrefix.trim() || fallback;
+}
+
+export function sortDesktopPairingLinks(links: ReadonlyArray<ServerPairingLinkRecord>) {
+  return [...links].toSorted(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  );
+}
+
+export function summarizeAuthorizedClients(
+  sessions: ReadonlyArray<ServerClientSessionRecord>,
+  links: ReadonlyArray<ServerPairingLinkRecord>,
+): string {
+  const parts = [
+    `${sessions.length} ${sessions.length === 1 ? "client" : "clients"}`,
+    links.length > 0
+      ? `${links.length} ${links.length === 1 ? "pairing link" : "pairing links"}`
+      : null,
+  ];
+  return parts.filter((part): part is string => part !== null).join(" · ");
+}
+
+export function sortDesktopClientSessions(sessions: ReadonlyArray<ServerClientSessionRecord>) {
+  return [...sessions].toSorted((left, right) => {
+    if (left.current !== right.current) {
+      return left.current ? -1 : 1;
+    }
+    if (left.connected !== right.connected) {
+      return left.connected ? -1 : 1;
+    }
+    return new Date(right.issuedAt).getTime() - new Date(left.issuedAt).getTime();
+  });
+}
+
+export function toDesktopPairingLinkRecord(pairingLink: AuthPairingLink): ServerPairingLinkRecord {
+  return {
+    ...pairingLink,
+    scopes: pairingLink.scopes,
+    createdAt: DateTime.formatIso(pairingLink.createdAt),
+    expiresAt: DateTime.formatIso(pairingLink.expiresAt),
+  };
+}
+
+export function toDesktopClientSessionRecord(
+  clientSession: AuthClientSession,
+): ServerClientSessionRecord {
+  return {
+    ...clientSession,
+    scopes: clientSession.scopes,
+    issuedAt: DateTime.formatIso(clientSession.issuedAt),
+    expiresAt: DateTime.formatIso(clientSession.expiresAt),
+    lastConnectedAt:
+      clientSession.lastConnectedAt === null
+        ? null
+        : DateTime.formatIso(clientSession.lastConnectedAt),
+  };
+}
+
+export function selectPairingEndpoint(
+  endpoints: ReadonlyArray<AdvertisedEndpoint>,
+  defaultEndpointKey?: string | null,
+): AdvertisedEndpoint | null {
+  const availableEndpoints = endpoints.filter((endpoint) => endpoint.status !== "unavailable");
+  if (defaultEndpointKey) {
+    const selectedEndpoint = availableEndpoints.find(
+      (endpoint) => endpointDefaultPreferenceKey(endpoint) === defaultEndpointKey,
+    );
+    if (selectedEndpoint) {
+      return selectedEndpoint;
+    }
+  }
+  return (
+    availableEndpoints.find((endpoint) => endpoint.isDefault) ??
+    availableEndpoints.find((endpoint) => endpoint.reachability !== "loopback") ??
+    availableEndpoints.find((endpoint) => endpoint.compatibility.hostedHttpsApp === "compatible") ??
+    null
+  );
+}
+
+export function isTailscaleHttpsEndpoint(endpoint: AdvertisedEndpoint): boolean {
+  return endpoint.id.startsWith("tailscale-magicdns:");
+}
+
+export function endpointDefaultPreferenceKey(endpoint: AdvertisedEndpoint): string {
+  if (endpoint.id.startsWith("desktop-loopback:")) {
+    return "desktop-core:loopback:http";
+  }
+  if (endpoint.id.startsWith("desktop-lan:")) {
+    return "desktop-core:lan:http";
+  }
+  if (endpoint.id.startsWith("tailscale-ip:")) {
+    return "tailscale:ip:http";
+  }
+  if (isTailscaleHttpsEndpoint(endpoint)) {
+    return "tailscale:magicdns:https";
+  }
+
+  let scheme = "unknown";
+  try {
+    scheme = new URL(endpoint.httpBaseUrl).protocol.replace(/:$/u, "");
+  } catch {}
+
+  return `${endpoint.provider.id}:${endpoint.reachability}:${scheme}:${endpoint.label}`;
+}
+
+export function resolveAdvertisedEndpointPairingUrl(
+  endpoint: AdvertisedEndpoint,
+  credential: string,
+  hints: PairingRouteHints,
+): string {
+  if (endpoint.compatibility.hostedHttpsApp === "compatible") {
+    return (
+      resolveHostedPairingUrl(endpoint.httpBaseUrl, credential, hints) ??
+      resolveDesktopPairingUrl(endpoint.httpBaseUrl, credential, hints)
+    );
+  }
+  return resolveDesktopPairingUrl(endpoint.httpBaseUrl, credential, hints);
+}
+
+export function resolveCurrentOriginPairingUrl(
+  credential: string,
+  hints: PairingRouteHints,
+): string {
+  const url = new URL("/pair", window.location.href);
+  return setPairingTokenOnUrl(url, credential, hints).toString();
+}
+
+export function isHostedAppPairingUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.pathname === "/pair" && url.searchParams.has("host");
+  } catch {
+    return false;
+  }
+}
+
+export function endpointShareHint(endpoint: AdvertisedEndpoint, url: string): string {
+  if (isHostedAppPairingUrl(url)) {
+    return "Opens the hosted app, no install needed";
+  }
+  switch (endpoint.reachability) {
+    case "lan":
+      return "Devices on the same network";
+    case "private-network":
+      return "Devices on your private network";
+    case "public":
+      return "Reachable from anywhere";
+    case "loopback":
+      return "Clients on this machine";
+  }
 }

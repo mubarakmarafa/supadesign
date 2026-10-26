@@ -20,9 +20,8 @@ type PreferencesUpdate =
     };
 
 /**
- * Owns the device preference blob for the lifetime of the app registry.
- * Optimistic patches are kept separately so writes made while persistence is
- * still loading cannot be replaced by the eventual read result.
+ * Optimistic patches are kept separately so writes made while persistence is still loading cannot
+ * be replaced by the eventual read result.
  */
 export function createMobilePreferencesState(
   runtime: Atom.AtomRuntime<MobilePreferences.MobilePreferencesStore>,
@@ -145,3 +144,7 @@ export const showSkillsInSlashMenuAtom = Atom.make((get) => {
   const preferences = get(mobilePreferencesAtom);
   return !AsyncResult.isSuccess(preferences) || preferences.value.showSkillsInSlashMenu !== false;
 }).pipe(Atom.withLabel("mobile:preferences:show-skills-in-slash-menu"));
+export const showToolImagesAtom = Atom.make((get) => {
+  const preferences = get(mobilePreferencesAtom);
+  return !AsyncResult.isSuccess(preferences) || preferences.value.showToolImages !== false;
+}).pipe(Atom.withLabel("mobile:preferences:show-tool-images"));

@@ -1,31 +1,39 @@
+import { Button } from "../../components/ui/Button";
+import {
+  applyPullRequestDraftFilterChange,
+  parsePullRequestQuery,
+} from "@supaterm/client-runtime/pull-request-query";
 import { WorkspaceDock } from "../workspace/WorkspaceDock";
 import { WorkspaceHeaderActions } from "../workspace/WorkspaceHeaderActions";
-import { useStartNewTask } from "../threads/use-start-new-task";
+import { useAdaptiveWorkspaceLayout } from "../layout/adaptiveWorkspaceContext";
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ProjectId } from "@supaterm/contracts";
+import { sortProjectsByGroupOrder } from "@supaterm/client-runtime/state/project-grouping";
 import { useAtomValue } from "@effect/atom-react";
 import {
-  ActivityIndicator,
   Keyboard,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   View,
   type ScrollViewProps,
 } from "react-native";
+import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 import { ScrollViewMarker } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { EmptyState } from "../../components/EmptyState";
+import { AppText as Text } from "../../components/ui/AppText";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { useRestingTopOffset } from "../../native/useRestingTopOffset";
 import { NativePrimaryColumnContext } from "../../native/v5-workspace-context";
 import { useWorkspaceState } from "../../state/workspace";
 import { useProjects } from "../../state/entities";
+import { useMobileProjectGroupingSettings } from "../../state/project-grouping";
+import { homeProjectOrderAtom } from "../home/homeProjectOrder";
 import { environmentServerConfigsAtom } from "../../state/server";
 import { PullRequestListRow } from "./PullRequestListRow";
+import { PullRequestCardRow } from "./PullRequestControls";
 import { createPullRequestListFilterMenu } from "./pullRequestListFilterMenu";
 import { usePullRequestList } from "./usePullRequestList";
 import { usePullRequestListControls } from "./usePullRequestListControls";
@@ -33,10 +41,11 @@ import { usePullRequestListActions } from "./usePullRequestListActions";
 import {
   filterPullRequestList,
   pullRequestListFacets,
+  pullRequestListInput,
   pullRequestListRowsAreEqual,
   scopedPullRequestListKey as pullRequestKey,
   type EnvironmentPullRequestListEntry,
-  PR_LIST_PAGE_SIZE,
+  withoutScratchProjectScope,
 } from "./pullRequestList";
 import { useDebouncedValue } from "../../state/queries";
 import { useWorkspaceTabs } from "../workspace/WorkspaceTabsContext";
@@ -44,15 +53,39 @@ import { useAndroidWorkspaceSelection } from "../workspace/useAndroidWorkspaceSe
 
 function PullRequestScrollView(props: ScrollViewProps) {
   const insets = useSafeAreaInsets();
+  const restingOffset = useRestingTopOffset(insets.top, props);
   return (
-    <ScrollViewMarker>
+    <ScrollViewMarker style={{ flex: 1 }}>
       <ScrollView
         {...props}
+        {...restingOffset}
         automaticallyAdjustContentInsets={false}
         contentInsetAdjustmentBehavior="never"
-        contentOffset={props.contentOffset ?? { x: 0, y: -insets.top }}
       />
     </ScrollViewMarker>
+  );
+}
+
+function PullRequestListErrors(props: { readonly messages: readonly string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const title = `${props.messages.length} ${props.messages.length === 1 ? "error" : "errors"} loading pull requests`;
+  return (
+    <View>
+      <PullRequestCardRow
+        title={title}
+        icon="exclamationmark.triangle"
+        compact
+        last
+        expanded={expanded}
+        accessibilityLabel={`${title}. ${expanded ? "Hide" : "Show"} details`}
+        onPress={() => setExpanded((value) => !value)}
+      />
+      {expanded ? (
+        <Text selectable className="px-4 pb-3 text-sm text-foreground-muted">
+          {props.messages.join("\n")}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -62,7 +95,7 @@ export function PullRequestsScreen(
     readonly selectedPullRequestKey?: string | null;
   } = {},
 ) {
-  const startNewTask = useStartNewTask();
+  const { startNewTask } = useAdaptiveWorkspaceLayout();
   const navigation = useNavigation();
   const primaryColumn = use(NativePrimaryColumnContext);
   const workspace = useWorkspaceTabs()!;
@@ -76,14 +109,14 @@ export function PullRequestsScreen(
   const maintainVisiblePosition = useMemo(
     () => ({
       data: tab.searchMode === "resting",
-      // At the top, reveal new PRs without pushing the filter strip out of view.
       shouldRestorePosition: () => workspace.getScrollOffset("pullRequests") > 0,
     }),
     [tab.searchMode, workspace],
   );
   const debouncedQuery = useDebouncedValue(tab.query.trim(), 180);
-  // Dismissal must restore the cached unfiltered list before restoring its offset.
   const query = tab.searchMode === "resting" ? "" : debouncedQuery;
+  const typedQuery = tab.searchMode === "resting" ? "" : tab.query;
+  const typedDraft = parsePullRequestQuery(typedQuery).filters.draft;
   const listControls = usePullRequestListControls();
   const selectedEnvironmentId = listControls.environmentId;
   const environmentId = environments.some((item) => item.environmentId === selectedEnvironmentId)
@@ -106,14 +139,18 @@ export function PullRequestsScreen(
     },
     [navigation, selectAndroidWorkspace],
   );
-  const controls = listControls.controlsFor(environmentId);
+  const allProjects = useProjects();
+  const savedControls = listControls.controlsFor(environmentId);
+  const controls = useMemo(
+    () => withoutScratchProjectScope(savedControls, allProjects),
+    [allProjects, savedControls],
+  );
   const targets = useMemo(
     () =>
       environments
         .filter(
           (environment) =>
-            configs.get(environment.environmentId)?.environment.capabilities.pullRequests ===
-              true &&
+            configs.has(environment.environmentId) &&
             (environmentId === null || environment.environmentId === environmentId) &&
             (!controls.projectEnvironmentId ||
               environment.environmentId === controls.projectEnvironmentId),
@@ -121,14 +158,7 @@ export function PullRequestsScreen(
         .sort((left, right) => left.environmentId.localeCompare(right.environmentId))
         .map((environment) => ({
           environmentId: environment.environmentId,
-          input: {
-            state: controls.state,
-            involvement: controls.involvement,
-            filters: controls.filters,
-            limit: PR_LIST_PAGE_SIZE,
-            ...(controls.projectId ? { projectId: ProjectId.make(controls.projectId) } : {}),
-            ...(query ? { query } : {}),
-          },
+          input: pullRequestListInput(controls, query),
         })),
     [environments, environmentId, configs, controls, query],
   );
@@ -179,8 +209,19 @@ export function PullRequestsScreen(
       ].sort(),
     }));
   }
-  const projects = useProjects().filter(
-    (project) => environmentId === null || project.environmentId === environmentId,
+  const { sidebarProjectGroupingMode } = useMobileProjectGroupingSettings();
+  const projectOrder = useAtomValue(homeProjectOrderAtom(sidebarProjectGroupingMode));
+  const projects = useMemo(
+    () =>
+      sortProjectsByGroupOrder(
+        allProjects.filter(
+          (project) =>
+            !project.isScratch &&
+            (environmentId === null || project.environmentId === environmentId),
+        ),
+        projectOrder,
+      ),
+    [allProjects, environmentId, projectOrder],
   );
   const renderPullRequest = useCallback(
     ({ item }: { readonly item: EnvironmentPullRequestListEntry }) => (
@@ -219,8 +260,15 @@ export function PullRequestsScreen(
     environmentId,
     onEnvironmentChange: listControls.setEnvironmentId,
     onReset: listControls.reset,
-    value: controls,
-    onChange: (next) => listControls.setControls(environmentId, next),
+    value: typedDraft
+      ? { ...controls, filters: { ...controls.filters, draft: typedDraft } }
+      : controls,
+    onChange: (next) => {
+      const update = applyPullRequestDraftFilterChange(typedQuery, controls.filters, next.filters);
+      listControls.setControls(environmentId, { ...next, filters: update.filters });
+      if (update.query !== typedQuery)
+        workspace.dispatch({ type: "query", tab: "pullRequests", query: update.query });
+    },
     authors: knownFacets.environmentId === environmentId ? knownFacets.authors : facets.authors,
     labels: knownFacets.environmentId === environmentId ? knownFacets.labels : facets.labels,
     projects,
@@ -243,9 +291,7 @@ export function PullRequestsScreen(
         extraData={`${selectedKey}:${busyKey}`}
         keyExtractor={pullRequestKey}
         itemsAreEqual={pullRequestListRowsAreEqual}
-        // Default-size rows measure about 78pt with one title line and 98pt with two.
         estimatedItemSize={88}
-        // Build roughly a screen ahead so a fling reaches already-mounted rows.
         drawDistance={1_000}
         maintainVisibleContentPosition={result.continued ? maintainVisiblePosition : false}
         onEndReached={() => void result.loadMore()}
@@ -255,7 +301,6 @@ export function PullRequestsScreen(
           <RefreshControl
             refreshing={result.refreshing}
             onRefresh={() => void result.onRefresh()}
-            // Place the 60pt native refresh control in the revealed pull-down space.
             // The list already accounts for the navigation header in its content inset.
             progressViewOffset={Platform.OS === "ios" ? 60 : undefined}
           />
@@ -301,41 +346,39 @@ export function PullRequestsScreen(
         ListHeaderComponent={
           <>
             {result.data?.errors.length ? (
-              <Text className="px-4 py-3 text-sm text-foreground-muted">
-                {result.data.errors
-                  .map(
-                    (error) =>
-                      `${error.projectTitle || environments.find((environment) => environment.environmentId === error.environmentId)?.environmentLabel || "Environment"}: ${error.message}`,
-                  )
-                  .join("\n")}
-              </Text>
+              <PullRequestListErrors
+                key={JSON.stringify(targets)}
+                messages={result.data.errors.map(
+                  (error) =>
+                    `${error.projectTitle || environments.find((environment) => environment.environmentId === error.environmentId)?.environmentLabel || "Environment"}: ${error.message}`,
+                )}
+              />
             ) : null}
           </>
         }
         ListFooterComponent={
           result.loadingMore ? (
             <View className="items-center py-5">
-              <ActivityIndicator
+              <AppActivityIndicator
                 colorClassName="accent-icon"
                 accessibilityLabel="Loading more pull requests"
               />
             </View>
           ) : result.loadMoreError ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Retry loading more pull requests"
-              onPress={() => void result.loadMore(true)}
-              className="items-center gap-2 px-8 py-4"
-            >
+            <View className="items-center gap-2 px-8 py-4">
               <Text className="text-xs text-foreground-muted">{result.loadMoreError}</Text>
-              <Text className="text-sm font-supaterm-medium text-link">Try again</Text>
-            </Pressable>
+              <Button
+                label="Try again"
+                accessibilityLabel="Retry loading more pull requests"
+                onPress={() => void result.loadMore(true)}
+              />
+            </View>
           ) : undefined
         }
         ListEmptyComponent={
           result.isPending && connectedTargets.length > 0 ? (
             <View className="items-center py-12">
-              <ActivityIndicator colorClassName="accent-icon" />
+              <AppActivityIndicator colorClassName="accent-icon" />
             </View>
           ) : (
             <View className="px-8 py-12">

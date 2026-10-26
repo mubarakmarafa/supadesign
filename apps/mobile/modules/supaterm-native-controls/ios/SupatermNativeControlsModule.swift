@@ -1,3 +1,4 @@
+import AVFoundation
 import ExpoModulesCore
 import Security
 import UIKit
@@ -19,21 +20,29 @@ public final class SupatermNativeControlsModule: Module {
       }
       return ["supportsWorkspaceColumns": false]
     }
+    View(SupatermSegmentedControlView.self) {
+      ViewName("SegmentedControl")
+      Events("onSelectionChange")
+      Prop("labels") { (view: SupatermSegmentedControlView, value: [String]) in view.labels = value }
+      Prop("selectedIndex") { (view: SupatermSegmentedControlView, value: Int) in view.selectedIndex = value }
+      Prop("trackColor") { (view: SupatermSegmentedControlView, value: UIColor) in view.trackColor = value }
+      Prop("selectedColor") { (view: SupatermSegmentedControlView, value: UIColor) in view.selectedColor = value }
+      Prop("textColor") { (view: SupatermSegmentedControlView, value: UIColor) in view.textColor = value }
+      Prop("mutedColor") { (view: SupatermSegmentedControlView, value: UIColor) in view.mutedColor = value }
+      Prop("appearance") { (view: SupatermSegmentedControlView, value: String) in view.appearance = value }
+    }
+
+    View(SupatermSidebarTabBarView.self) {
+      ViewName("SidebarTabBar")
+      Events("onSelectionChange")
+      Prop("selectedIndex") { (view: SupatermSidebarTabBarView, value: Int) in view.selectedIndex = value }
+      Prop("selectedColor") { (view: SupatermSidebarTabBarView, value: UIColor) in view.selectedColor = value }
+      Prop("appearance") { (view: SupatermSidebarTabBarView, value: String) in view.appearance = value }
+    }
+
     View(SupatermLayoutMetricsView.self) {
       ViewName("LayoutMetrics")
       Events("onMetricsChange")
-    }
-
-    View(SupatermWorkspaceDockView.self) {
-      ViewName("WorkspaceDock")
-      Events("onTabSelected", "onCompose", "onFilterAction", "onHeightChange")
-      Prop("selectedTab") { (view: SupatermWorkspaceDockView, value: String) in view.selectedTab = value }
-      Prop("showTabs") { (view: SupatermWorkspaceDockView, value: Bool) in view.showTabs = value }
-      Prop("filterCustomized") { (view: SupatermWorkspaceDockView, value: Bool) in view.filterCustomized = value }
-      Prop("filterLabel") { (view: SupatermWorkspaceDockView, value: String) in view.filterLabel = value }
-      Prop("filterTitle") { (view: SupatermWorkspaceDockView, value: String) in view.filterTitle = value }
-      Prop("filterActions") { (view: SupatermWorkspaceDockView, value: [[String: Any]]) in view.filterActions = value }
-      Prop("appearance") { (view: SupatermWorkspaceDockView, value: String) in view.appearance = value }
     }
 
     AsyncFunction("presentVideo") { (url: URL, title: String, sourceIdentifier: String, identifier: String, promise: Promise) in
@@ -51,11 +60,14 @@ public final class SupatermNativeControlsModule: Module {
                            identifier: identifier, promise: promise)
     }.runOnQueue(.main)
 
-    AsyncFunction("presentFiles") { (urls: [URL], titles: [String], selectedIndex: Int, identifier: String, promise: Promise) in
-      guard !urls.isEmpty, urls.count == titles.count, urls.indices.contains(selectedIndex) else {
+    AsyncFunction("presentFiles") { (urls: [URL], titles: [String], selectedIndex: Int, sourceIdentifiers: [String], identifier: String, promise: Promise) in
+      guard !urls.isEmpty, urls.count == titles.count, urls.count == sourceIdentifiers.count,
+        urls.indices.contains(selectedIndex)
+      else {
         throw URLError(.badURL)
       }
-      let file = try self.makeFilePresentation(sourceIdentifier: "", identifier: identifier, promise: promise)
+      let file = try self.makeFilePresentation(sourceIdentifiers: sourceIdentifiers, identifier: identifier,
+                                               promise: promise)
       guard let presenter = self.appContext?.utilities?.currentViewController() else {
         file.dismiss()
         return
@@ -109,6 +121,18 @@ public final class SupatermNativeControlsModule: Module {
     dismissVideoPresentation(identifier: identifier)
   }
 
+  // expo-video activates the session for inline playback but never deactivates
+  // it. Any other category or mode means another feature (recording) owns it.
+  @JS
+  @MainActor
+  func releaseVideoAudioSession() async {
+    // The fullscreen presentation releases the session in its own teardown.
+    guard videoPresentation == nil else { return }
+    let session = AVAudioSession.sharedInstance()
+    guard session.category == .playback, session.mode == .moviePlayback else { return }
+    try? session.setActive(false, options: [.notifyOthersOnDeactivation])
+  }
+
   @JS
   @MainActor
   func dismissFile(identifier: String) async {
@@ -149,6 +173,12 @@ public final class SupatermNativeControlsModule: Module {
     }
     let bounds = windowScene.screen.coordinateSpace.bounds
     return bounds.width > bounds.height ? "landscape" : "portrait"
+  }
+
+  @JS
+  @MainActor
+  func isProtectedDataAvailable() async -> Bool {
+    UIApplication.shared.isProtectedDataAvailable
   }
 
   private func launchArgument(_ flag: String) -> String? {
@@ -228,13 +258,16 @@ public final class SupatermNativeControlsModule: Module {
     if videoPresentation?.identifier == identifier { videoPresentation?.dismiss() }
   }
 
-  private func makeFilePresentation(sourceIdentifier: String, identifier: String,
+  private func makeFilePresentation(sourceIdentifiers: [String], identifier: String,
                                     promise: Promise) throws -> SupatermNativeFilePresentation {
     guard filePresentation == nil, videoPresentation == nil,
       appContext?.utilities?.currentViewController() != nil
     else { throw URLError(.cannotLoadFromNetwork) }
-    let file = SupatermNativeFilePresentation(identifier: identifier, sources: presentationSources,
-                                              sourceIdentifier: sourceIdentifier) { [weak self] error in
+    let file = SupatermNativeFilePresentation(
+      identifier: identifier,
+      sources: presentationSources,
+      sourceIdentifiers: sourceIdentifiers
+    ) { [weak self] error in
       self?.filePresentation = nil
       if let error { promise.reject(error) } else { promise.resolve(nil) }
     }
@@ -244,7 +277,7 @@ public final class SupatermNativeControlsModule: Module {
 
   private func presentFile(url: URL, title: String, sourceIdentifier: String,
                            identifier: String, promise: Promise) throws {
-    let file = try makeFilePresentation(sourceIdentifier: sourceIdentifier, identifier: identifier, promise: promise)
+    let file = try makeFilePresentation(sourceIdentifiers: [sourceIdentifier], identifier: identifier, promise: promise)
     guard let presenter = appContext?.utilities?.currentViewController() else { file.dismiss(); return }
     file.present(url: url, title: title, from: presenter)
   }

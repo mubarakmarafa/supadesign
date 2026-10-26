@@ -1,11 +1,12 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import { useHomeThreadRouteSelection } from "./home-thread-navigation";
 import { useCallback } from "react";
-import { Alert } from "react-native";
 
 import { withThreadDismissal } from "./thread-dismissal";
 import { appAtomRegistry } from "../../state/atom-registry";
-import { removeThreadOutboxMessage } from "../../state/thread-outbox-removal";
+import { removePendingThreadCreation } from "../../state/thread-outbox-removal";
 import { clearComposerDraftContent } from "../../state/use-composer-drafts";
 import type { PendingNewTask } from "../../state/use-pending-new-tasks";
 import {
@@ -14,37 +15,40 @@ import {
   releaseDeletingQueuedMessage,
 } from "../../state/use-thread-outbox";
 
-export function usePendingTaskListActions(): {
+export function usePendingTaskListActions(
+  selectRoute?: (params: ReactNavigation.RootParamList["Thread"]) => void,
+): {
   readonly openPendingTask: (pendingTask: PendingNewTask) => void;
   readonly confirmDeletePendingTask: (pendingTask: PendingNewTask) => void;
 } {
   const navigation = useNavigation();
+  const selectHomeRoute = useHomeThreadRouteSelection();
+  const selectThreadRoute = selectRoute ?? selectHomeRoute;
 
   const openPendingTask = useCallback(
     (pendingTask: PendingNewTask) => {
-      if (pendingTask.kind === "pending") {
-        navigation.navigate("Thread", {
-          environmentId: String(pendingTask.environmentId),
-          threadId: String(pendingTask.message.threadId),
-        });
-        return;
-      }
-      navigation.navigate("NewTaskSheet", {
-        screen: "NewTaskDraft",
-        params: {
-          environmentId: String(pendingTask.environmentId),
-          projectId: String(pendingTask.projectId),
-          draftId: pendingTask.draftKey,
-        },
-      });
+      selectThreadRoute(
+        pendingTask.kind === "pending"
+          ? {
+              environmentId: String(pendingTask.environmentId),
+              threadId: String(pendingTask.message.threadId),
+            }
+          : {
+              draft: {
+                environmentId: String(pendingTask.environmentId),
+                projectId: String(pendingTask.projectId),
+                draftId: pendingTask.draftKey,
+              },
+            },
+      );
     },
-    [navigation],
+    [selectThreadRoute],
   );
 
   const confirmDeletePendingTask = useCallback(
     (pendingTask: PendingNewTask) => {
       if (pendingTask.kind === "draft") {
-        Alert.alert("Discard draft?", `“${pendingTask.title}” will be removed.`, [
+        Dialog.alert("Discard draft?", `“${pendingTask.title}” will be removed.`, [
           { text: "Cancel", style: "cancel" },
           {
             text: "Discard",
@@ -67,7 +71,7 @@ export function usePendingTaskListActions(): {
         ]);
         return;
       }
-      Alert.alert(
+      Dialog.alert(
         "Delete pending task?",
         `“${pendingTask.title}” has not been sent yet and will be removed from the outbox.`,
         [
@@ -78,7 +82,7 @@ export function usePendingTaskListActions(): {
             onPress: () => {
               const messageId = pendingTask.message.messageId;
               if (!holdDeletingQueuedMessage(messageId)) {
-                Alert.alert(
+                Dialog.alert(
                   "Pending task is open",
                   "Close the pending task editor before deleting it.",
                 );
@@ -88,9 +92,8 @@ export function usePendingTaskListActions(): {
               void withThreadDismissal(
                 pendingTask.key,
                 async () => {
-                  const removed = await removeThreadOutboxMessage(
+                  const removed = await removePendingThreadCreation(
                     pendingTask.message,
-                    undefined,
                     () => appAtomRegistry.get(dispatchingQueuedMessageIdAtom) !== messageId,
                   );
                   releaseDeletingQueuedMessage(messageId, removed);
@@ -112,7 +115,7 @@ export function usePendingTaskListActions(): {
                 (result) => result,
               ).catch((error) => {
                 releaseDeletingQueuedMessage(messageId, false);
-                Alert.alert(
+                Dialog.alert(
                   "Could not delete pending task",
                   error instanceof Error ? error.message : "The pending task could not be removed.",
                 );

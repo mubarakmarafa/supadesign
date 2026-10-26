@@ -1,13 +1,16 @@
+import { settlePromise, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
+import { AsyncResult } from "effect/reactivity";
+import * as Dialog from "../../components/ui/Dialog";
 import { TextInputWrapper } from "expo-paste-input";
-import { AppTextInput as TextInput } from "../../components/AppText";
+import { AppTextInput as TextInput } from "../../components/ui/AppText";
 import { useNativePaste } from "../../lib/useNativePaste";
 import { convertPastedImagesToAttachments } from "../../lib/composerImages";
 import { PROVIDER_SEND_TURN_MAX_ATTACHMENTS, type UserInputQuestion } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
-import { Alert, View } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { View } from "react-native";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { ComposerAttachmentButton } from "../../components/ComposerAttachmentButton";
+import { ComposerAttachmentButton } from "./ComposerAttachmentButton";
 import { ComposerAttachmentStrip } from "../../components/ComposerAttachmentStrip";
 import { pickComposerFiles, pickComposerMedia } from "../../lib/composerImages";
 import { useThreadSelection } from "../../state/use-thread-selection";
@@ -27,7 +30,6 @@ import {
   questionAttachmentDraftKey,
   questionAttachmentPreparationAtom,
 } from "../../state/question-attachments";
-
 export function QuestionAttachments(props: {
   requestId: string;
   question: UserInputQuestion;
@@ -49,9 +51,23 @@ export function QuestionAttachments(props: {
     props.requestId,
     props.question.id,
   ]);
-  const pickerScope = useRef<{ key: string; active: boolean } | null>(null);
+  // A focused input that unmounts never delivers its onBlur, so release focus here or
+  // the screen would keep treating the keyboard as owned by a removed input.
+  const focusedRef = useRef(false);
+  const onInputFocusChange = props.onInputFocusChange;
+  const releaseFocus = useEffectEvent(() => {
+    if (focusedRef.current) onInputFocusChange?.(false);
+  });
+  useEffect(() => () => releaseFocus(), []);
+  const pickerScope = useRef<{
+    key: string;
+    active: boolean;
+  } | null>(null);
   useEffect(() => {
-    const scope = { key: scopeKey, active: true };
+    const scope = {
+      key: scopeKey,
+      active: true,
+    };
     pickerScope.current = scope;
     return () => {
       scope.active = false;
@@ -78,12 +94,7 @@ export function QuestionAttachments(props: {
   };
   const paste = useNativePaste((uris) => {
     const scope = pickerScope.current;
-    if (
-      !selectedThread ||
-      props.disabled ||
-      !configs.get(selectedThread.environmentId)?.environment.capabilities.questionAttachments
-    )
-      return;
+    if (!selectedThread || props.disabled || !configs.has(selectedThread.environmentId)) return;
     const key = questionAttachmentDraftKey(
       selectedThread.environmentId,
       selectedThread.id,
@@ -101,18 +112,21 @@ export function QuestionAttachments(props: {
           (appAtomRegistry.get(questionAttachmentPreparationAtom)[key] ?? 0) > 0
         ) {
           if (append(key, images) > 0)
-            Alert.alert("Could not paste image", "Too many attachments.");
+            Dialog.alert("Could not paste image", "Too many attachments.");
         } else await releaseUnusedComposerAttachmentFiles(images);
       })
       .catch((error) =>
-        Alert.alert("Could not paste image", error instanceof Error ? error.message : "Try again."),
+        Dialog.alert(
+          "Could not paste image",
+          error instanceof Error ? error.message : "Try again.",
+        ),
       )
       .finally(() => changeQuestionAttachmentPreparation(key, -1));
   });
   if (!selectedThread || props.question.allowCustomAnswer === false) return null;
   const { environmentId, id: threadId } = selectedThread;
   const capabilities = configs.get(environmentId)?.environment.capabilities;
-  const canAttach = capabilities?.questionAttachments === true;
+  const canAttach = capabilities !== undefined;
   const key = questionAttachmentDraftKey(
     environmentId,
     threadId,
@@ -123,7 +137,7 @@ export function QuestionAttachments(props: {
   const pick = async (kind: "media" | "files") => {
     const scope = pickerScope.current;
     changeQuestionAttachmentPreparation(key, 1);
-    try {
+    const picked = await settlePromise(async () => {
       const existingCount = appAtomRegistry.get(composerDraftsAtom)[key]?.attachments.length ?? 0;
       const result =
         kind === "files"
@@ -146,11 +160,12 @@ export function QuestionAttachments(props: {
       }
       const rejected = append(key, picked);
       if (result.error || rejected > 0)
-        Alert.alert("Could not attach file", result.error ?? "Too many attachments.");
-    } catch (error) {
-      Alert.alert("Could not attach file", error instanceof Error ? error.message : "Try again.");
-    } finally {
-      changeQuestionAttachmentPreparation(key, -1);
+        Dialog.alert("Could not attach file", result.error ?? "Too many attachments.");
+    });
+    changeQuestionAttachmentPreparation(key, -1);
+    if (AsyncResult.isFailure(picked)) {
+      const error = squashAtomCommandFailure(picked);
+      Dialog.alert("Could not attach file", error instanceof Error ? error.message : "Try again.");
     }
   };
   return (
@@ -173,7 +188,11 @@ export function QuestionAttachments(props: {
             }}
             onPressPreview={setPreviewFile}
             onPressVideo={(attachment, sourceIdentifier) =>
-              setPreviewVideo({ type: "local", attachment, sourceIdentifier })
+              setPreviewVideo({
+                type: "local",
+                attachment,
+                sourceIdentifier,
+              })
             }
             onPressDocument={(attachment) =>
               navigation.navigate("ThreadAttachment", {
@@ -198,8 +217,14 @@ export function QuestionAttachments(props: {
           submitBehavior={props.question.initialAnswer !== undefined ? "newline" : undefined}
           editable={!props.disabled}
           onChangeText={props.onChangeText}
-          onFocus={() => props.onInputFocusChange?.(true)}
-          onBlur={() => props.onInputFocusChange?.(false)}
+          onFocus={() => {
+            focusedRef.current = true;
+            onInputFocusChange?.(true);
+          }}
+          onBlur={() => {
+            focusedRef.current = false;
+            onInputFocusChange?.(false);
+          }}
           placeholder="Or type a custom answer"
           className="min-h-[54px] rounded-2xl border border-input-border bg-input px-3.5 py-3 font-sans text-base text-foreground"
         />

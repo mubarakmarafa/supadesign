@@ -12,16 +12,16 @@ import * as DateTime from "effect/DateTime";
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
-import { Screen, ScreenStack, ScreenStackHeaderConfig } from "react-native-screens";
+import { ScreenStack } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AndroidSheetHeader } from "../../components/AndroidScreenHeader";
-import { AppText as Text } from "../../components/AppText";
-import { useUniwindTheme } from "../../lib/useUniwindTheme";
+import { AndroidSheetHeader } from "../../components/ui/AndroidScreenHeader";
+import { AppText as Text } from "../../components/ui/AppText";
 import { environmentThreadDetails } from "../../state/threads";
 import { NativeStackScreenOptions, nativeHeaderScrollEdgeEffects } from "../../native/StackHeader";
+import { NativeHeader, NativeScreen } from "../../native/ThemedScreenStack";
 import { SubagentRow } from "./SubagentRow";
-import { MaterialScreenContent } from "../../components/MaterialScreenContent";
+import { ScreenContent } from "../../components/ui/ScreenContent";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 
 const HEADER_SCROLL_EDGE_EFFECTS = nativeHeaderScrollEdgeEffects(Platform.OS, Platform.Version);
@@ -37,7 +37,6 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
   const target = route.params;
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const theme = useUniwindTheme();
   const turn = useThreadTurnSubagents(target);
   const subagents = turn?.subagents ?? [];
   const hasLiveAgent = (turn?.liveCount ?? 0) > 0;
@@ -61,20 +60,20 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
       // The iOS header is translucent and floats over this view; UIKit has to
       // inset the content or the first row sits underneath the title.
       contentInsetAdjustmentBehavior={Platform.OS === "ios" ? "automatic" : "never"}
-      contentContainerClassName="px-5 pb-6"
       contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}
     >
       {subagents.length === 0 ? (
-        <Text className="pt-6 text-center text-sm text-foreground-muted">
+        <Text className="px-5 pt-6 text-center text-sm text-foreground-muted">
           No agents in this turn.
         </Text>
       ) : (
-        subagents.map((subagent) => (
+        subagents.map((subagent, index) => (
           <AgentRow
             key={subagent.id}
             subagent={subagent}
             environmentId={target.environmentId}
             tickSeconds={hasLiveAgent}
+            isLast={index === subagents.length - 1}
             onOpen={openChildThread}
           />
         ))
@@ -88,27 +87,27 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
     return (
       <View collapsable={false} className="flex-1 bg-sheet">
         <ScreenStack style={{ flex: 1 }}>
-          <Screen
+          <NativeScreen
             activityState={2}
             enabled
             isNativeStack
             screenId="thread-agents-sheet-native"
             scrollEdgeEffects={HEADER_SCROLL_EDGE_EFFECTS}
-            style={{ backgroundColor: theme["--color-sheet"], flex: 1 }}
+            className="flex-1 bg-sheet"
           >
             {content}
-            <ScreenStackHeaderConfig
+            <NativeHeader
               backgroundColor="rgba(0,0,0,0)"
-              color={theme["--color-foreground"]}
+              tintColorClassName="accent-foreground"
               hideBackButton
               hideShadow={false}
               title="Agents"
-              titleColor={theme["--color-foreground"]}
+              titleColorClassName="accent-foreground"
               titleFontSize={18}
               titleFontWeight="800"
               translucent
             />
-          </Screen>
+          </NativeScreen>
         </ScreenStack>
       </View>
     );
@@ -118,9 +117,7 @@ export function ThreadAgentsSheet({ route }: StaticScreenProps<AgentsTarget>) {
     <View collapsable={false} className="flex-1 bg-sheet">
       <NativeStackScreenOptions options={{ sheetCornerRadius: 28 }} />
       <AndroidSheetHeader title="Agents" onBack={() => navigation.goBack()} />
-      <MaterialScreenContent insetHorizontal={layout.usesSplitView}>
-        {content}
-      </MaterialScreenContent>
+      <ScreenContent insetHorizontal={layout.usesSplitView}>{content}</ScreenContent>
     </View>
   );
 }
@@ -129,18 +126,24 @@ function AgentRow(props: {
   readonly environmentId: EnvironmentId;
   readonly subagent: OrchestrationV2Subagent;
   readonly tickSeconds: boolean;
+  readonly isLast: boolean;
   readonly onOpen: (childThreadId: ThreadId) => void;
 }) {
   const { subagent } = props;
   const childThreadId = subagent.childThreadId;
 
   const row = (
-    <View className="border-b border-border py-3.5">
+    <View className="px-5 py-3.5">
       <SubagentRow
         environmentId={props.environmentId}
         subagent={subagent}
         elapsed={<AgentElapsed subagent={subagent} tickSeconds={props.tickSeconds} />}
       />
+      {props.isLast ? null : (
+        // left-10 is this row's padding plus SubagentRow's status dot and gap,
+        // so the rule starts at the text column and the dots sit in a gutter.
+        <View className="absolute right-0 bottom-0 left-10 h-px bg-border" />
+      )}
     </View>
   );
 
@@ -160,7 +163,7 @@ function AgentRow(props: {
       accessibilityRole="link"
       accessibilityHint="Opens this agent's thread"
       onPress={() => props.onOpen(childThreadId)}
-      className="active:opacity-70"
+      className="active:bg-subtle"
     >
       {row}
     </Pressable>
@@ -177,10 +180,6 @@ function AgentElapsed(props: {
   );
 }
 
-/**
- * Elapsed time for one agent. Only live work ticks, inside AgentElapsed,
- * so the timer never repaints the metadata or a settled sheet.
- */
 function useSubagentElapsed(
   subagent: Pick<OrchestrationV2Subagent, "status" | "startedAt" | "completedAt">,
   tickSeconds: boolean,

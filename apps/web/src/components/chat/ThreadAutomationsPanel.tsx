@@ -30,7 +30,6 @@ import {
   THREAD_DETAILS_PANEL_ICON_CLASS,
   THREAD_DETAILS_PANEL_ROW_CONTENT_CLASS,
   THREAD_DETAILS_PANEL_ROW_HEIGHT_CLASS,
-  THREAD_DETAILS_PANEL_TEXT_CLASS,
 } from "./threadDetailsPanelStyles";
 
 const STATUS_DOT_CLASS: Record<ScheduledTask["lastRunStatus"], string> = {
@@ -65,12 +64,13 @@ function AutomationStatusIcon({ task, now }: { task: ScheduledTask; now: number 
   );
 }
 
-/**
- * Thread details panel section listing the automations (scheduled tasks) bound
- * to this thread. Fed by the live scheduled-task subscription, so run status
- * and next-run times update as the scheduler works — no manual refresh.
- * Renders nothing when the thread has no bound automations.
- */
+function taskScheduleLine(task: ScheduledTask, now: number) {
+  const schedule = scheduleLabel(task.schedule);
+  if (!task.enabled) return `${schedule} · paused`;
+  if (task.nextRunAt === null) return schedule;
+  return `${schedule} · ${nextRunLabel(task, now)}`;
+}
+
 export function ThreadAutomationsPanel(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
@@ -94,9 +94,7 @@ export function ThreadAutomationsPanel(props: {
   const boundTasks = (tasksQuery.data?.tasks ?? []).filter(
     (task) => task.threadId === props.threadId,
   );
-  // A load error must not look like "no automations" — this thread may have
-  // tasks whose controls would silently vanish. Only hide the section when we
-  // positively know there is nothing bound to it.
+
   if (tasksQuery.error === null && boundTasks.length === 0) return null;
 
   const reportFailure = (title: string, error: unknown) => {
@@ -187,14 +185,20 @@ export function ThreadAutomationsPanel(props: {
             )}
           >
             <AutomationStatusIcon task={task} now={now} />
-            <div className="min-w-0 flex-1">
-              <span className={cn("block truncate", THREAD_DETAILS_PANEL_TEXT_CLASS)}>
-                {task.title}
-              </span>
-              <p className="truncate text-2xs text-muted-foreground">
-                {scheduleLabel(task.schedule)} · {nextRunLabel(task, now)}
-              </p>
-            </div>
+            <Tooltip>
+              <TooltipTrigger render={<div className="min-w-0 flex-1" />}>
+                <span className="block truncate text-sm font-medium text-foreground/80">
+                  {task.title}
+                </span>
+                <p className="truncate text-2xs text-muted-foreground">
+                  {taskScheduleLine(task, now)}
+                </p>
+              </TooltipTrigger>
+              <TooltipPopup side="left">
+                <p className="font-medium">{task.title}</p>
+                <p className="text-muted-foreground">{taskScheduleLine(task, now)}</p>
+              </TooltipPopup>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger
                 render={

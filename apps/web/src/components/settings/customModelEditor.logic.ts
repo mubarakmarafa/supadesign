@@ -3,9 +3,12 @@ import {
   ProviderDriverKind,
   type ProviderOptionDescriptor,
 } from "@supaterm/contracts";
-import { type CustomModelDefinition, createModelCapabilities } from "@supaterm/shared/model";
+import {
+  type CustomModelDefinition,
+  createModelCapabilities,
+  filterCustomModelCapabilities,
+} from "@supaterm/shared/model";
 
-/** Editable mirror of a `ProviderOptionChoice`. `key` is only a React key. */
 export interface EditorChoice {
   readonly key: string;
   readonly id: string;
@@ -14,7 +17,6 @@ export interface EditorChoice {
   readonly description?: string;
 }
 
-/** Editable mirror of a `ProviderOptionDescriptor`. `key` is only a React key. */
 export interface EditorDescriptor {
   readonly key: string;
   readonly type: "select" | "boolean";
@@ -45,11 +47,6 @@ const EFFORT_CHOICES = [
   { id: "xhigh", label: "Extra High" },
 ] as const;
 
-/**
- * Option ids each adapter actually reads off a turn's model selection, with
- * the usual choices pre-filled. Anything else the user types is stored
- * verbatim but will be ignored by the driver.
- */
 export const DESCRIPTOR_PRESETS_BY_KIND: Partial<
   Record<ProviderDriverKind, ReadonlyArray<DescriptorPreset>>
 > = {
@@ -78,7 +75,6 @@ export const DESCRIPTOR_PRESETS_BY_KIND: Partial<
         { id: "max", label: "Max" },
       ],
     },
-    { id: "fastMode", label: "Fast Mode", type: "boolean" },
     { id: "thinking", label: "Thinking", type: "boolean" },
   ],
   [ProviderDriverKind.make("cursor")]: [
@@ -186,11 +182,16 @@ function descriptorToEditor(descriptor: ProviderOptionDescriptor): EditorDescrip
   };
 }
 
-export function draftFromDefinition(entry: CustomModelDefinition): CustomModelDraft {
+export function draftFromDefinition(
+  entry: CustomModelDefinition,
+  driverKind: ProviderDriverKind | null = null,
+): CustomModelDraft {
   return {
     slug: entry.slug,
     name: entry.name === entry.slug ? "" : entry.name,
-    descriptors: (entry.capabilities?.optionDescriptors ?? []).map(descriptorToEditor),
+    descriptors: (
+      filterCustomModelCapabilities(driverKind, entry.capabilities)?.optionDescriptors ?? []
+    ).map(descriptorToEditor),
   };
 }
 
@@ -199,15 +200,11 @@ export function descriptorsFromCapabilities(
   capabilities: ModelCapabilities | null | undefined,
   driverKind: ProviderDriverKind | null,
 ): EditorDescriptor[] {
-  return (capabilities?.optionDescriptors ?? [])
+  return (filterCustomModelCapabilities(driverKind, capabilities)?.optionDescriptors ?? [])
     .filter((descriptor) => driverKind !== "claudeAgent" || descriptor.id !== "contextWindow")
     .map(descriptorToEditor);
 }
 
-/**
- * Validate the draft before saving. Returns the first problem in reading
- * order so the message is actionable, or `null` when the draft is sound.
- */
 export function validateDraft(draft: CustomModelDraft): string | null {
   const seenIds = new Set<string>();
   for (const [index, descriptor] of draft.descriptors.entries()) {
@@ -232,7 +229,6 @@ export function validateDraft(draft: CustomModelDraft): string | null {
   return null;
 }
 
-/** Convert a validated draft back into a definition. Blank name → slug. */
 export function definitionFromDraft(draft: CustomModelDraft): CustomModelDefinition {
   const descriptors: ProviderOptionDescriptor[] = draft.descriptors.map((descriptor) => {
     const id = descriptor.id.trim();

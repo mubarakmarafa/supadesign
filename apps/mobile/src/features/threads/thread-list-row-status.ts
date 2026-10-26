@@ -24,6 +24,6 @@ export function resolveThreadListV2RowStatusLabel(input: {
   // A native /goal keeps the agent going across turns until it is met.
   if (label && input.status === "working" && input.goalActive) return { ...label, label: "Goal" };
   if (label) return label;
-  if (input.isUnread) return { label: "Done", className: "text-adaptive-emerald-700-300" };
+  if (input.isUnread) return { label: "Ready", className: "text-adaptive-emerald-700-300" };
   return undefined;
 }

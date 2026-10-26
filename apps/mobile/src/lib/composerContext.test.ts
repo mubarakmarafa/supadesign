@@ -1,10 +1,12 @@
-import { upgradeLegacyContextMessage } from "@supaterm/shared/composerContextLegacy";
 import { buildProjectThreadStartTurnInput } from "./projectThreadStartTurn";
 import {
   ProjectId,
   ProviderInstanceId,
   ComposerContextId,
+  EnvironmentId,
+  ThreadId,
   type OrchestrationMessageContext,
+  type ServerProviderSkill,
 } from "@supaterm/contracts";
 import { collectComposerInlineTokens } from "@supaterm/shared/composerInlineTokens";
 import {
@@ -16,6 +18,7 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 import {
   composerContextEditorTokens,
+  composerSkillLabels,
   composerContextSendBlockReason,
   composerMentionPath,
   createComposerContextHistory,
@@ -24,6 +27,7 @@ import {
   uploadedComposerContext,
   serializeComposerMessageForServer,
   pullRequestComposerContext,
+  threadComposerContext,
 } from "./composerContext";
 
 const terminal = {
@@ -159,10 +163,66 @@ describe("mobile composer context", () => {
   });
   it("keeps exact source positions and repeated references alongside existing native tokens", () => {
     const reference = formatComposerContextReference(terminal);
-    const text = `Use $playwright and [app.ts](src/app.ts) with ${reference} then ${reference}`;
-    const tokens = composerContextEditorTokens(text, collectComposerInlineTokens(text));
-    expect(tokens.map((token) => token.type)).toEqual(["skill", "mention", "context", "context"]);
+    const text = `Use $babysit with $disabled $agentOnly $HOME $PATH $anything $notaskill $20 $20k and [app.ts](src/app.ts) with ${reference} then ${reference}`;
+    const babysit: ServerProviderSkill = {
+      name: "babysit",
+      path: "/skills/babysit",
+      enabled: true,
+    };
+    const disabled = { ...babysit, name: "disabled", enabled: false };
+    const agentOnly = { ...babysit, name: "agentOnly", userInvocable: false };
+    const skills = [babysit, disabled, agentOnly];
+    const tokens = composerContextEditorTokens(
+      text,
+      collectComposerInlineTokens(text),
+      composerSkillLabels(skills),
+    );
+    expect(tokens.map((token) => token.source)).toEqual([
+      "$babysit",
+      "[app.ts](src/app.ts)",
+      reference,
+      reference,
+    ]);
     for (const token of tokens) expect(text.slice(token.start, token.end)).toBe(token.source);
+    expect(
+      composerContextEditorTokens(
+        text,
+        collectComposerInlineTokens(text),
+        composerSkillLabels([]),
+      ).map((token) => token.type),
+    ).toEqual(["mention", "context", "context"]);
+    expect(
+      composerContextEditorTokens(
+        text,
+        collectComposerInlineTokens(text),
+        composerSkillLabels([{ ...babysit, name: "HOME" }]),
+      )
+        .filter((token) => token.type === "skill")
+        .map((token) => token.source),
+    ).toEqual(["$HOME"]);
+    const promoted = [
+      babysit,
+      { ...disabled, enabled: true },
+      { ...agentOnly, userInvocable: true },
+    ];
+    expect(
+      composerContextEditorTokens(
+        text,
+        collectComposerInlineTokens(text),
+        composerSkillLabels(promoted),
+      )
+        .filter((token) => token.type === "skill")
+        .map((token) => token.source),
+    ).toEqual(["$babysit", "$disabled", "$agentOnly"]);
+    expect(
+      composerContextEditorTokens(
+        text,
+        collectComposerInlineTokens(text),
+        composerSkillLabels(skills),
+      )
+        .filter((token) => token.type === "skill")
+        .map((token) => token.source),
+    ).toEqual(["$babysit"]);
   });
 
   it("removes deleted payloads but keeps the screenshot linked to a remaining annotation", () => {
@@ -207,16 +267,16 @@ describe("mobile composer context", () => {
   });
 });
 
-describe("host context compatibility", () => {
+describe("composer wire context", () => {
   it("sends an image-only prompt as the attachment-only prompt and keeps the image", () => {
     const context: OrchestrationMessageContext = { version: 1, records: [image] };
     const reference = formatComposerContextReference(image);
-    expect(serializeComposerMessageForServer(reference, context, true)).toEqual({
+    expect(serializeComposerMessageForServer(reference, context)).toEqual({
       text: ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
       context,
     });
     const withProse = `${reference} what is this?`;
-    expect(serializeComposerMessageForServer(withProse, context, true)).toEqual({
+    expect(serializeComposerMessageForServer(withProse, context)).toEqual({
       text: withProse,
       context,
     });
@@ -254,7 +314,7 @@ describe("host context compatibility", () => {
     expect(composerContextSendBlockReason({ version: 1, records: [large] })).toBeNull();
   });
 
-  it.each(["existing-thread", "new-task"])("serializes %s sends for an older host", (path) => {
+  it.each(["existing-thread", "new-task"])("preserves inline context in %s sends", (path) => {
     const pr = pullRequestComposerContext(
       {
         number: 42,
@@ -277,8 +337,7 @@ describe("host context compatibility", () => {
     };
     const context: OrchestrationMessageContext = { version: 1, records: [terminal, review, pr] };
     const text = context.records.map(formatComposerContextReference).join(" ");
-    // Missing capability on an old host is treated like false by both dispatch paths.
-    const wire = serializeComposerMessageForServer(text, context, false);
+    const wire = serializeComposerMessageForServer(text, context);
     const message =
       path === "existing-thread"
         ? wire
@@ -300,21 +359,25 @@ describe("host context compatibility", () => {
             startFromOrigin: false,
             worktreeBranchName: "unused",
           }).message;
-    expect(message).not.toHaveProperty("context");
-    expect(message.text).not.toContain("supaterm-context://");
-    expect(
-      upgradeLegacyContextMessage(message.text).records.find(
-        (record) => record.kind === "terminal",
-      ),
-    ).toMatchObject({
-      text: terminal.text,
-      lineStart: terminal.lineStart,
-      lineEnd: terminal.lineEnd,
-    });
-    expect(message.text).toContain(review.text);
-    expect(message.text).toContain(review.diff);
-    expect(message.text).toContain(pr.pullRequest!.url);
-    expect(serializeComposerMessageForServer(text, context, true)).toEqual({ text, context });
+    expect(message).toMatchObject({ text, context });
+    expect(serializeComposerMessageForServer(text, context)).toEqual({ text, context });
     expect(context.records).toEqual([terminal, review, pr]);
+  });
+});
+
+describe("threadComposerContext", () => {
+  it("mints a schema-valid, stable id for agent-spawned thread ids", () => {
+    const environmentId = EnvironmentId.make("env-1");
+    const ref = {
+      environmentId,
+      threadId: ThreadId.make(`thread:mcp:${encodeURIComponent("3f2b:delegate")}:review:0`),
+    };
+    const contextId = threadComposerContext(ref, "Review").contextId;
+
+    expect(() => ComposerContextId.make(contextId)).not.toThrow();
+    expect(threadComposerContext(ref, "Renamed").contextId).toBe(contextId);
+    expect(
+      threadComposerContext({ environmentId, threadId: ThreadId.make("abc-123") }, "t").contextId,
+    ).toBe("thread_abc-123");
   });
 });

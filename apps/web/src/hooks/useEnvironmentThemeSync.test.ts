@@ -77,7 +77,6 @@ async function setupThemeSync(mode: "dark" | "system" = "dark") {
     published = themes;
     useEnvironmentThemeSync();
     flushEffects();
-    // A changed store snapshot also runs the consumer's passive theme effect.
     const theme = useTheme();
     flushEffects();
     return theme;
@@ -97,38 +96,9 @@ afterEach(() => {
 });
 
 describe("published theme refresh", () => {
-  it.each(["dark", "system"] as const)(
-    "updates the React snapshot when appearance changes in %s mode",
-    async (mode) => {
-      const { publish, root, readSnapshot } = await setupThemeSync(mode);
-      const darkSnapshot = readSnapshot();
-
-      expect(publish([LIGHT_THEME]).resolvedTheme).toBe("light");
-      expect(root.classList.contains("dark")).toBe(false);
-      const lightSnapshot = readSnapshot();
-      expect(lightSnapshot).not.toBe(darkSnapshot);
-
-      expect(publish([NIGHTFALL_THEME]).resolvedTheme).toBe("dark");
-      expect(root.classList.contains("dark")).toBe(true);
-      expect(readSnapshot()).not.toBe(lightSnapshot);
-    },
-  );
-
-  it("keeps the React snapshot stable for color-only changes", async () => {
-    const { publish, palette, styles, readSnapshot } = await setupThemeSync();
-    const before = readSnapshot();
-    const accentVariable = palette.getThemeColorVariable("accent");
-    const previousAccent = styles.get(accentVariable);
-
-    publish([{ ...NIGHTFALL_THEME, accent: "#ff0000" }]);
-
-    expect(styles.get(accentVariable)).not.toBe(previousAccent);
-    expect(readSnapshot()).toBe(before);
-  });
-
   it("keeps a draft visible while updating the stored selection underneath it", async () => {
     const { publish, palette, root, styles } = await setupThemeSync();
-    const draft = { ...palette.getDefaultThemeColors("light"), canvas: "#234567" };
+    const draft = { ...palette.getStandardThemeColors("light"), canvas: "#234567" };
     palette.applyThemeColorPreview(draft, "light");
     const canvasVariable = palette.getThemeColorVariable("canvas");
 
@@ -161,12 +131,12 @@ describe("published theme refresh", () => {
   it("keeps a draft visible when default adoption changes the theme and appearance", async () => {
     const { publish, palette, root, readSnapshot } = await setupThemeSync();
     const current = publish([NIGHTFALL_THEME]);
-    palette.applyThemeColorPreview(palette.getDefaultThemeColors("dark"), "dark");
+    palette.applyThemeColorPreview(palette.getStandardThemeColors("dark"), "dark");
 
-    expect(current.setTheme("ocean")).toBe(true);
+    expect(current.setTheme("catppuccin-latte")).toBe(true);
     expect(current.setAppearanceMode("light")).toBe(true);
     expect(readSnapshot()).toMatchObject({
-      theme: "ocean",
+      theme: "catppuccin-latte",
       appearanceMode: "light",
       resolvedTheme: "light",
     });
@@ -174,7 +144,7 @@ describe("published theme refresh", () => {
     expect(root.classList.contains("dark")).toBe(true);
 
     current.refreshTheme();
-    expect(root.dataset.themeId).toBe("ocean");
+    expect(root.dataset.themeId).toBe("catppuccin-latte");
     expect(root.classList.contains("dark")).toBe(false);
     expect(palette.getThemePreviewAppearance()).toBeNull();
   });

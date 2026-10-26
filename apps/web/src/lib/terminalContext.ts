@@ -1,6 +1,8 @@
 import type { ThreadId } from "@supaterm/contracts";
-import { formatComposerContextReference } from "@supaterm/shared/composerContextReferences";
-import { toKindScopedComposerContextId } from "./composerContextReferences";
+import {
+  formatComposerContextReference,
+  toKindScopedComposerContextId,
+} from "@supaterm/shared/composerContextReferences";
 
 export interface TerminalContextSelection {
   terminalId: string;
@@ -16,9 +18,6 @@ export interface TerminalContextDraft extends TerminalContextSelection {
   createdAt: string;
 }
 
-/** Legacy ordinal placeholder from drafts saved before context references. Migration only. */
-export const INLINE_TERMINAL_CONTEXT_PLACEHOLDER = "\uFFFC";
-
 export interface TerminalContextReferenceSource {
   id: string;
   terminalLabel: string;
@@ -26,7 +25,6 @@ export interface TerminalContextReferenceSource {
   lineEnd: number;
 }
 
-/** The canonical inline link that stands for this context in the prompt. */
 export function formatTerminalContextReference(context: TerminalContextReferenceSource): string {
   return formatComposerContextReference({
     kind: "terminal",
@@ -39,7 +37,7 @@ export function normalizeTerminalContextText(text: string): string {
   return text.replace(/\r\n/g, "\n").replace(/^\n+|\n+$/g, "");
 }
 
-export function hasTerminalContextText(context: { text: string }): boolean {
+function hasTerminalContextText(context: { text: string }): boolean {
   return normalizeTerminalContextText(context.text).length > 0;
 }
 
@@ -65,18 +63,4 @@ export function formatTerminalContextLabel(selection: {
   lineEnd: number;
 }): string {
   return `${selection.terminalLabel} ${formatTerminalContextRange(selection)}`;
-}
-
-/** Binds legacy U+FFFC placeholders to contexts in array order; leftover placeholders vanish. */
-export function migrateLegacyTerminalContextPlaceholders(
-  prompt: string,
-  contexts: ReadonlyArray<TerminalContextReferenceSource>,
-): string {
-  if (!prompt.includes(INLINE_TERMINAL_CONTEXT_PLACEHOLDER)) return prompt;
-  let index = 0;
-  return prompt.replaceAll(INLINE_TERMINAL_CONTEXT_PLACEHOLDER, () => {
-    const context = contexts[index];
-    index += 1;
-    return context ? formatTerminalContextReference(context) : "";
-  });
 }

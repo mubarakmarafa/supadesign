@@ -1120,6 +1120,13 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
     ceil(codeFont.lineHeight)
   }
 
+  private func codeLayoutWidthLimit(font: UIFont) -> CGFloat? {
+    guard style.wordWrap else { return ReviewDiffCodeLayout.unboundedWidth }
+    let width = viewportWidth - codeStartX - style.codePadding
+    let characterWidth = monospaceCharacterWidth(font: font)
+    return characterWidth > 0 && width >= characterWidth ? width : nil
+  }
+
   func frameForRow(at index: Int) -> CGRect? {
     guard rows.indices.contains(index), rowOffsets.indices.contains(index) else {
       return nil
@@ -1141,9 +1148,8 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
     completion: @escaping () -> Void
   ) {
     let font = codeFont
-    let width = viewportWidth - codeStartX - style.codePadding
     let characterWidth = monospaceCharacterWidth(font: font)
-    guard style.wordWrap, width >= characterWidth, characterWidth > 0 else {
+    guard let width = codeLayoutWidthLimit(font: font) else {
       completion()
       return
     }
@@ -1160,7 +1166,7 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
       }
       DispatchQueue.main.async { [weak self] in
         guard let self, isCurrent() else { return }
-        if self.codeFont != font || self.viewportWidth - self.codeStartX - self.style.codePadding != width {
+        if self.codeFont != font || self.codeLayoutWidthLimit(font: font) != width {
           self.prepareRows(rows, on: queue, isCurrent: isCurrent, completion: completion)
           return
         }
@@ -1176,18 +1182,16 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
     var nextOffsets: [CGFloat] = []
     var nextFileHeaderRowIndices: [Int] = []
     nextOffsets.reserveCapacity(rows.count)
-    var maxColumnCountsByFileId: [String: Int] = [:]
+    var maxWidthsByFileId: [String: CGFloat] = [:]
     var nextCodeLayouts: [String: ReviewDiffCodeLayout] = [:]
     var offset: CGFloat = 0
     let font = codeFont
     let characterWidth = monospaceCharacterWidth(font: font)
-    let wrapAvailableWidth = viewportWidth - codeStartX - style.codePadding
-    let wrapColumns = style.wordWrap && characterWidth > 0 && wrapAvailableWidth >= characterWidth
-      ? Int(wrapAvailableWidth / characterWidth)
-      : nil
-    if codeLayoutWidth != wrapAvailableWidth || codeLayoutFont != font {
+    let layoutWidth = codeLayoutWidthLimit(font: font)
+    let wrapColumns = style.wordWrap ? layoutWidth.map { Int($0 / characterWidth) } : nil
+    if let layoutWidth, codeLayoutWidth != layoutWidth || codeLayoutFont != font {
       codeLayoutsByRowId.removeAll()
-      codeLayoutWidth = wrapAvailableWidth
+      codeLayoutWidth = layoutWidth
       codeLayoutFont = font
     }
 
@@ -1202,27 +1206,28 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
       switch row.kind {
       case "line":
         // UTF-16 columns match the word diff ranges and the segments drawCodeLines draws.
-        let columnCount = row.content?.utf16.count ?? 0
-        maxColumnCountsByFileId[fileId] = max(maxColumnCountsByFileId[fileId] ?? 0, columnCount)
-        if wrapColumns != nil, let content = row.content {
+        var width = CGFloat(row.content?.utf16.count ?? 0) * characterWidth
+        if let layoutWidth, let content = row.content {
           let cached = codeLayoutsByRowId[row.id]
           let layout: ReviewDiffCodeLayout
           if let cached, cached.text == content {
             layout = cached
           } else {
             layout = ReviewDiffCodeLayout(
-              text: content, font: font, width: wrapAvailableWidth, characterWidth: characterWidth
+              text: content, font: font, width: layoutWidth, characterWidth: characterWidth
             )
           }
           nextCodeLayouts[row.id] = layout
+          width = layout.usedWidth
           if rowHeight > 0 {
             rowHeight = max(rowHeight, layout.firstLineHeight) + layout.extraHeight
           }
         }
+        maxWidthsByFileId[fileId] = max(maxWidthsByFileId[fileId] ?? 0, width)
       case "hunk":
-        maxColumnCountsByFileId[fileId] = max(
-          maxColumnCountsByFileId[fileId] ?? 0,
-          row.text?.utf16.count ?? 0
+        maxWidthsByFileId[fileId] = max(
+          maxWidthsByFileId[fileId] ?? 0,
+          textWidth(row.text ?? "", font: hunkFont)
         )
       default:
         break
@@ -1233,25 +1238,34 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
     codeCharacterWidth = characterWidth
     codeWrapColumns = wrapColumns
     codeLayoutsByRowId = nextCodeLayouts
-    contentWidthsByFileId = maxColumnCountsByFileId.mapValues { maxColumnCount in
-      let measuredWidth = ceil(CGFloat(maxColumnCount) * characterWidth) + style.codePadding * 2
-      return max(0, min(style.contentWidth, measuredWidth))
-    }
+    contentWidthsByFileId = maxWidthsByFileId.mapValues { ceil($0) + style.codePadding * 2 }
     rowOffsets = nextOffsets
     fileHeaderRowIndices = nextFileHeaderRowIndices
     contentHeight = offset
   }
 
   private var codeFont: UIFont {
-    UIFont.monospacedSystemFont(ofSize: style.codeFontSize, weight: style.codeFontWeight)
+    monospaceFont(size: style.codeFontSize, weight: style.codeFontWeight)
   }
 
   private var lineNumberFont: UIFont {
-    UIFont.monospacedSystemFont(ofSize: style.lineNumberFontSize, weight: style.lineNumberFontWeight)
+    monospaceFont(size: style.lineNumberFontSize, weight: style.lineNumberFontWeight)
   }
 
   private var hunkFont: UIFont {
-    UIFont.monospacedSystemFont(ofSize: style.hunkFontSize, weight: style.hunkFontWeight)
+    monospaceFont(size: style.hunkFontSize, weight: style.hunkFontWeight)
+  }
+
+  private func monospaceFont(size: CGFloat, weight: UIFont.Weight) -> UIFont {
+    let name: String
+    if weight >= .semibold {
+      name = "JetBrainsMono-Bold"
+    } else if weight >= .medium {
+      name = "JetBrainsMono-Medium"
+    } else {
+      name = "JetBrainsMono-Regular"
+    }
+    return UIFont(name: name, size: size) ?? UIFont.monospacedSystemFont(ofSize: size, weight: weight)
   }
 
   private var fileHeaderFont: UIFont {
@@ -2375,7 +2389,7 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
         version: codeDecorationVersion
       )
       layout.draw(
-        at: CGPoint(x: codeStartX, y: rect.minY + max(0, (firstLineRect.height - layout.firstLineHeight) / 2)),
+        at: CGPoint(x: codeStartX - horizontalOffset, y: rect.minY + max(0, (firstLineRect.height - layout.firstLineHeight) / 2)),
         clip: context.boundingBoxOfClipPath
       )
       context.restoreGState()
@@ -2530,7 +2544,7 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
     let attributes: [NSAttributedString.Key: Any] = [
       .font: font,
       .foregroundColor: color,
-      .ligature: 0,
+      .ligature: 1,
     ]
     (text as NSString).draw(in: rect, withAttributes: attributes)
   }
@@ -2550,7 +2564,7 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
       .font: font,
       .foregroundColor: color,
       .paragraphStyle: paragraphStyle,
-      .ligature: 0,
+      .ligature: 1,
     ]
     let maxHeight = CGFloat(maximumLineCount) * (font.lineHeight + paragraphStyle.lineSpacing)
     (text as NSString).draw(
@@ -2577,7 +2591,7 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
     let attributes: [NSAttributedString.Key: Any] = [
       .font: font,
       .foregroundColor: color,
-      .ligature: 0,
+      .ligature: 1,
     ]
     context.saveGState()
     context.clip(to: rect)
@@ -2650,14 +2664,14 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
   }
 
   private func textWidth(_ text: String, font: UIFont) -> CGFloat {
-    let attributes: [NSAttributedString.Key: Any] = [.font: font, .ligature: 0]
+    let attributes: [NSAttributedString.Key: Any] = [.font: font, .ligature: 1]
     return ceil((text as NSString).size(withAttributes: attributes).width)
   }
 
   private func monospaceCharacterWidth(font: UIFont) -> CGFloat {
     let sampleLength = 64
     let sample = String(repeating: "M", count: sampleLength)
-    let attributes: [NSAttributedString.Key: Any] = [.font: font, .ligature: 0]
+    let attributes: [NSAttributedString.Key: Any] = [.font: font, .ligature: 1]
     return (sample as NSString).size(withAttributes: attributes).width / CGFloat(sampleLength)
   }
 
@@ -2679,7 +2693,7 @@ private final class ReviewDiffContentView: UIView, UIGestureRecognizerDelegate {
           attributes: [
             .font: font,
             .foregroundColor: tokenColor(for: token.color, fallbackColor: fallbackColor),
-            .ligature: 0,
+            .ligature: 1,
           ]
         )
       )

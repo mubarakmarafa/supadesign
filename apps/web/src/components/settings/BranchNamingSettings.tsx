@@ -28,7 +28,7 @@ const MODES = {
 
 const MODE_STATUS: Partial<Record<BranchNamingChoice, string>> = {
   repository:
-    "Branches start with the repository name, such as supacode-next/add-search. A fork uses its own name.",
+    "Branches start with the repository name, such as supaterm/add-search. A fork uses its own name.",
   semantic:
     "The model chooses a prefix that describes the work, such as feat/add-search, fix/login-timeout, or refactor/auth.",
 };

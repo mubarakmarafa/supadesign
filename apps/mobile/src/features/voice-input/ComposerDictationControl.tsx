@@ -13,17 +13,18 @@ import Animated, {
   LinearTransition,
   ReduceMotion,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
   type EntryExitAnimationFunction,
   type SharedValue,
 } from "react-native-reanimated";
 
-import { AppActivityIndicator } from "../../components/AppActivityIndicator";
+import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 import { COMPOSER_LAYOUT_TRANSITION } from "../../components/composerLayoutTransition";
-import { GlassSurface } from "../../components/GlassSurface";
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView, type AppSymbolName } from "../../components/AppSymbol";
+import { GlassSurface } from "../../components/ui/GlassSurface";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView, type AppSymbolName } from "../../components/ui/AppSymbol";
 import { cn } from "../../lib/cn";
 import type { VoiceComposerPresentation } from "./voiceInputPresentation";
 import { VOICE_WAVEFORM_SAMPLE_COUNT } from "./voiceInputMetering";
@@ -129,7 +130,6 @@ const WAVEFORM_TIMING = {
   reduceMotion: ReduceMotion.System,
 } as const;
 
-/** Rotates the compact draft away without unmounting or resizing its native editor. */
 export function ComposerDictationDraftContent(props: {
   readonly children: ReactNode;
   readonly className?: string;
@@ -177,6 +177,7 @@ export function ComposerDictationToolbar(props: {
   readonly visible?: boolean;
 }) {
   const face = TOOLBAR_FACES[props.statusKind ?? "draft"];
+  const reducedMotion = useReducedMotion();
   return (
     <Animated.View
       className="relative overflow-hidden"
@@ -187,8 +188,8 @@ export function ComposerDictationToolbar(props: {
         <Animated.View
           key={face.key}
           className="absolute inset-0"
-          entering={face.entering}
-          exiting={face.exiting}
+          entering={reducedMotion ? undefined : face.entering}
+          exiting={reducedMotion ? undefined : face.exiting}
           style={{ backfaceVisibility: "hidden" }}
         >
           {props.children}
@@ -231,7 +232,6 @@ const WaveformBar = memo(function WaveformBar(props: {
 const COMPACT_WAVEFORM_BAR_COUNT = 8;
 const COMPACT_WAVEFORM_BAR_HEIGHT = 14;
 
-/** A fixed-size waveform of the latest samples, for tight spaces like the global dictation pill. */
 export const CompactVoiceWaveform = memo(function CompactVoiceWaveform(props: {
   readonly audioLevels: SharedValue<number[]>;
 }) {
@@ -446,6 +446,29 @@ export function ComposerDictationLeadingAction(props: {
   );
 }
 
+export function ComposerDictationConfirmAction(props: {
+  readonly presentation: VoiceComposerPresentation;
+  readonly disabled?: boolean;
+  readonly onConfirm: () => void;
+  readonly submitsMessage?: boolean;
+}) {
+  const confirmationLabel = props.submitsMessage ? "Transcribe and send" : "Finish dictation";
+  return (
+    <SessionCapsuleButton
+      accessibilityLabel={
+        props.presentation.confirmationEnabled
+          ? confirmationLabel
+          : (props.presentation.statusLabel ?? "Preparing voice input")
+      }
+      disabled={props.disabled || !props.presentation.confirmationEnabled}
+      icon={props.submitsMessage ? "arrow.up" : "checkmark"}
+      loading={!props.presentation.confirmationEnabled}
+      onPress={props.onConfirm}
+      variant="primary"
+    />
+  );
+}
+
 export function ComposerDictationPrimaryAction(props: {
   readonly state: VoiceInputState;
   readonly presentation: VoiceComposerPresentation;
@@ -453,31 +476,44 @@ export function ComposerDictationPrimaryAction(props: {
   readonly disabled?: boolean;
   readonly onStart: () => void;
   readonly onConfirm: () => void;
-  readonly submitsMessage?: boolean;
   readonly onCancel: () => void;
 }) {
   if (props.presentation.trailingAction === "confirm") {
-    const confirmationLabel = props.submitsMessage ? "Transcribe and send" : "Finish dictation";
-    return (
-      <SessionCapsuleButton
-        accessibilityLabel={
-          props.presentation.confirmationEnabled
-            ? confirmationLabel
-            : (props.presentation.statusLabel ?? "Preparing voice input")
-        }
-        disabled={props.disabled || !props.presentation.confirmationEnabled}
-        icon={props.submitsMessage ? "arrow.up" : "checkmark"}
-        loading={!props.presentation.confirmationEnabled}
-        onPress={props.onConfirm}
-        variant="primary"
-      />
-    );
+    return <ComposerDictationConfirmAction {...props} />;
   }
 
   return <ComposerDictationStartAction {...props} />;
 }
 
+/**
+ * The dictation button beside a composer's send or stop button. `reservesSendWidth` keeps room
+ * for both while the draft is empty, so the first keystroke never shifts the toolbar.
+ */
+export function ComposerDictationTrailingActions(props: {
+  readonly children?: ReactNode;
+  readonly size?: "regular" | "large";
+  readonly state: VoiceInputState;
+  readonly isAvailable: boolean;
+  readonly disabled?: boolean;
+  readonly reservesSendWidth?: boolean;
+  readonly onStart: () => void;
+  readonly onCancel: () => void;
+}) {
+  return (
+    <View
+      className="shrink-0 flex-row items-center justify-end"
+      style={
+        props.reservesSendWidth && props.isAvailable ? { minWidth: TOOLBAR_HEIGHT * 2 } : undefined
+      }
+    >
+      <ComposerDictationStartAction {...props} />
+      {props.children}
+    </View>
+  );
+}
+
 export function ComposerDictationStartAction(props: {
+  readonly size?: "regular" | "large";
   readonly state: VoiceInputState;
   readonly isAvailable: boolean;
   readonly disabled?: boolean;
@@ -505,7 +541,7 @@ export function ComposerDictationStartAction(props: {
     >
       <SymbolView
         name="mic"
-        size={20}
+        size={props.size === "large" ? 24 : 20}
         weight="semibold"
         tintColorClassName="accent-icon"
         type="monochrome"

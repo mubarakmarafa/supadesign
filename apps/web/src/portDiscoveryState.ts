@@ -5,7 +5,6 @@ import {
   type EnvironmentId,
 } from "@supaterm/contracts";
 import { isLoopbackHost } from "@supaterm/shared/preview";
-import { useMemo } from "react";
 
 import { previewEnvironment } from "./state/preview";
 import { useEnvironmentQuery } from "./state/query";
@@ -35,9 +34,7 @@ export function boundConfiguredLocalServerUrls(
       seen.add(resourceUrl.href);
       bounded.push(url.href);
       if (bounded.length >= CONFIGURED_LOCAL_SERVER_URLS_MAX_ITEMS) break;
-    } catch {
-      // Invalid and non-local project preview URLs are not discovery candidates.
-    }
+    } catch {}
   }
   return bounded;
 }
@@ -55,11 +52,8 @@ export function useDiscoveredPortsState(
           input: boundedConfiguredUrls.length ? { configuredUrls: boundedConfiguredUrls } : {},
         }),
   );
-  return useMemo(
-    () => ({
-      servers: query.data?.servers ?? EMPTY_PORTS,
-      configuredUrlProbing: query.data?.configuredUrlProbing === true,
-    }),
-    [query.data?.configuredUrlProbing, query.data?.servers],
-  );
+  return {
+    servers: query.data?.servers ?? EMPTY_PORTS,
+    configuredUrlProbing: query.data?.configuredUrlProbing === true,
+  };
 }

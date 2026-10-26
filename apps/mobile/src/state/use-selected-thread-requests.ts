@@ -1,13 +1,17 @@
+import * as Dialog from "../components/ui/Dialog";
 import { useServerConfigs } from "./entities";
 import { CommandId } from "@supaterm/contracts";
 import { uuidv4 } from "../lib/uuid";
-import { Alert } from "react-native";
 import {
   questionAttachmentDraftKey,
   questionAttachmentDraftPrefix,
   questionAttachmentPreparationAtom,
 } from "./question-attachments";
-import { composerDraftsAtom, clearComposerDraft } from "./use-composer-drafts";
+import {
+  clearComposerDraft,
+  composerDraftsAtom,
+  questionAttachmentDraftsAtom,
+} from "./use-composer-drafts";
 import {
   composerAttachmentUploadsAtom,
   composerAttachmentUploadBlockReason,
@@ -138,8 +142,14 @@ export function useSelectedThreadRequests() {
   const canPauseUserInputAutoDismiss =
     questionTimerPermission &&
     questionTimerConfig?.settings.autoDismissQuestions !== false &&
-    questionTimerConfig?.environment.capabilities.questionAutoDismissPause === true;
-  const attachmentDrafts = useAtomValue(composerDraftsAtom);
+    questionTimerConfig != null;
+  const attachmentDrafts = useAtomValue(
+    questionAttachmentDraftsAtom(
+      selectedThreadShell
+        ? questionAttachmentDraftPrefix(selectedThreadShell.environmentId, selectedThreadShell.id)
+        : "",
+    ),
+  );
   const preparationCounts = useAtomValue(questionAttachmentPreparationAtom);
   const uploadStates = useAtomValue(composerAttachmentUploadsAtom);
   useEffect(() => {
@@ -203,8 +213,7 @@ export function useSelectedThreadRequests() {
                 attachmentsPreparing,
                 attachmentsBlocked:
                   (attachments.length > 0 &&
-                    questionServerConfigs.get(selectedThreadShell.environmentId)?.environment
-                      .capabilities.questionAttachments !== true) ||
+                    !questionServerConfigs.has(selectedThreadShell.environmentId)) ||
                   attachmentsPreparing ||
                   composerAttachmentsStillUploading(uploadInput) ||
                   composerAttachmentUploadBlockReason({
@@ -358,7 +367,7 @@ export function useSelectedThreadRequests() {
             attachment.uploadEnvironmentId !== selectedThreadShell.environmentId,
         )
       ) {
-        Alert.alert(
+        Dialog.alert(
           "Attachments are not ready",
           "Wait for uploads to finish, or retry failed uploads.",
         );
@@ -400,7 +409,6 @@ export function useSelectedThreadRequests() {
     selectedThreadShell,
   ]);
 
-  // Closes an async question without messaging the agent.
   const onDismissUserInput = useCallback(async () => {
     if (
       !selectedThreadShell ||
@@ -426,6 +434,7 @@ export function useSelectedThreadRequests() {
 
   return {
     activePendingApproval,
+    activePendingApprovals,
     activePendingUserInput,
     activePendingUserInputDrafts,
     activePendingUserInputAnswers,

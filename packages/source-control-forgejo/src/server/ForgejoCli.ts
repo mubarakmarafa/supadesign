@@ -64,7 +64,6 @@ export const ForgejoKeysSchema = Schema.Struct({
 
 const parseForgejoKeys = decodeJsonResult(ForgejoKeysSchema);
 
-/** Matches fj's directories::ProjectDirs, including its pre-0.6 organization name. */
 function forgejoKeysPaths(input: {
   readonly platform: string;
   readonly home: string;

@@ -24,8 +24,9 @@ const workspaceFiles = [
   "apps/marketing/package.json",
   "oxlint-plugin-supaterm/package.json",
   "packages/client-runtime/package.json",
+  "packages/codex-micro/package.json",
   "packages/contracts/package.json",
-  "packages/mermaid-ascii/package.json",
+  "packages/mermaid/package.json",
   "packages/shared/package.json",
   "packages/ssh/package.json",
   "packages/tailscale/package.json",
@@ -228,15 +229,13 @@ try {
     },
   );
 
-  NodeFS.rmSync(NodePath.resolve(tempRoot, "pnpm-lock.yaml"), { force: true });
-
   NodeChildProcess.execFileSync("vp", ["install", "--lockfile-only", "--ignore-scripts"], {
     cwd: tempRoot,
     stdio: "inherit",
   });
 
   const lockfile = NodeFS.readFileSync(NodePath.resolve(tempRoot, "pnpm-lock.yaml"), "utf8");
-  assertContains(lockfile, "lockfileVersion:", "Expected pnpm-lock.yaml to be regenerated.");
+  assertContains(lockfile, "lockfileVersion:", "Expected pnpm-lock.yaml to be refreshed.");
 
   for (const relativePath of [
     "apps/server/package.json",

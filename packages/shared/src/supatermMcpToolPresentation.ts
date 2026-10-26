@@ -58,6 +58,8 @@ export type SupatermMcpToolSummaryAction =
   | "list-prs"
   | "watch-pr"
   | "unwatch-pr"
+  | "watch-run"
+  | "unwatch-run"
   | "write-pr-guides"
   | "read-pr-guide"
   | "browser"
@@ -83,7 +85,6 @@ function tool(
 
 const SUPATERM_MCP_SERVER_NAME = "supaterm";
 
-// Cards, activity rows, summaries, and provider identity recovery share this inventory.
 const SUPATERM_MCP_TOOLS: Readonly<Record<string, SupatermMcpToolDefinition>> = {
   link_pull_request: tool(
     ["Link", "Linking", "Linked", "a pull request"],
@@ -106,12 +107,22 @@ const SUPATERM_MCP_TOOLS: Readonly<Record<string, SupatermMcpToolDefinition>> = 
     "pull-request",
   ),
   unwatch_pull_request: tool(
-    ["Stop watching", "Stopping watching", "Stopped watching", "a pull request"],
+    ["Stop watching", "Unwatching", "Stopped watching", "a pull request"],
     "unwatch-pr",
     "pull-request",
   ),
+  watch_workflow_run: tool(
+    ["Watch", "Watching", "Watching", "a workflow run"],
+    "watch-run",
+    "pull-request",
+  ),
+  unwatch_workflow_run: tool(
+    ["Stop watching", "Stopping watching", "Stopped watching", "a workflow run"],
+    "unwatch-run",
+    "pull-request",
+  ),
   write_pull_request_guides: tool(
-    ["Write", "Writing", "Started", "review guides"],
+    ["Write", "Writing", "Started writing", "review guides"],
     "write-pr-guides",
     "pull-request",
   ),
@@ -127,7 +138,7 @@ const SUPATERM_MCP_TOOLS: Readonly<Record<string, SupatermMcpToolDefinition>> = 
   delegate_task: tool(["Delegate", "Delegating", "Delegated", "a child task"], "delegate"),
   task_status: tool(["Get", "Getting", "Got", "delegated task status"], "task-status"),
   task_cancel: tool(
-    ["Cancel", "Canceling", "Requested cancellation of", "delegated task"],
+    ["Cancel", "Canceling", "Requested cancellation of", "a delegated task"],
     "task-cancel",
   ),
   schedule_task: tool(
@@ -375,10 +386,6 @@ const SUPATERM_MCP_TOOLS: Readonly<Record<string, SupatermMcpToolDefinition>> = 
   html_render: tool(["Render", "Rendering", "Rendered", "an HTML page"], "html-render"),
 };
 
-/**
- * The Supaterm orchestration tool inventory, used to gate loose name matching on
- * both the server (ACP MCP identity recovery) and the client (logo branding).
- */
 export const SUPATERM_MCP_TOOL_NAMES: ReadonlySet<string> = new Set(
   Object.keys(SUPATERM_MCP_TOOLS),
 );
@@ -425,7 +432,6 @@ function resolveSupatermMcpToolName(value: string): string | null {
   return longest;
 }
 
-/** The bare Supaterm tool name (`html_render`) for any provider's spelling of it. */
 export function resolveSupatermMcpToolId(toolName: string | null | undefined): string | null {
   const name = toolName == null ? null : resolveSupatermMcpToolName(toolName);
   return name !== null && Object.hasOwn(SUPATERM_MCP_TOOLS, name) ? name : null;
@@ -445,10 +451,4 @@ export function resolveSupatermMcpToolPresentation(
 ): SupatermMcpToolPresentation | null {
   const definition = resolveSupatermMcpToolDefinition(toolName);
   return definition === null ? null : { displayName: definition.displayName, logo: "supaterm" };
-}
-
-export function resolveSupatermMcpToolSummaryAction(
-  toolName: string | null | undefined,
-): SupatermMcpToolSummaryAction | null {
-  return resolveSupatermMcpToolDefinition(toolName)?.summaryAction ?? null;
 }

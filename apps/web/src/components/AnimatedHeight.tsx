@@ -1,5 +1,3 @@
-"use client";
-
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { observeResize } from "../lib/observeResize";
 
@@ -14,7 +12,6 @@ export function AnimatedHeight({
   animateKey,
 }: {
   readonly children: ReactNode;
-  /** Retain the previous content height while a replacement is loading. */
   readonly holdHeight?: boolean;
   /**
    * Animate only the resize that follows a change of this key, such as an
@@ -115,7 +112,10 @@ function TrackedHeight({
       style={
         heightState.height === null
           ? undefined
-          : { height: heightState.height, overflow: heightState.isClipping ? "clip" : "visible" }
+          : {
+              height: heightState.height,
+              overflow: holdHeight || heightState.isClipping ? "clip" : "visible",
+            }
       }
       onTransitionEnd={(event) => {
         if (event.target !== event.currentTarget || event.propertyName !== "height") return;

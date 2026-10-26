@@ -42,6 +42,8 @@ export function resolveThreadOutboxDeliveryAction(input: {
   readonly shellStatus: EnvironmentShellStatus;
   readonly environmentConnected: boolean;
   readonly threadBusy: boolean;
+  /** The thread's creation was delivered but its shell has not arrived yet. */
+  readonly awaitingCreatedThread: boolean;
 }): ThreadOutboxDeliveryAction {
   if (input.isCreation) {
     // A pending task creates its thread on delivery. If the thread already
@@ -54,8 +56,10 @@ export function resolveThreadOutboxDeliveryAction(input: {
     // look missing and get re-issued, duplicating the thread.
     return input.environmentConnected && input.shellStatus === "live" ? "send" : "wait";
   }
+  // A follow-up queued behind its thread's creation becomes the head as soon
+  // as the creation leaves the queue, which can be before the shell lands.
   if (!input.threadExists) {
-    return input.shellStatus === "live" ? "remove" : "wait";
+    return input.shellStatus === "live" && !input.awaitingCreatedThread ? "remove" : "wait";
   }
   return input.environmentConnected ? "send" : "wait";
 }

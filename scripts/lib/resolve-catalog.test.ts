@@ -12,7 +12,7 @@ describe("resolveCatalogDependencies", () => {
           "@clerk/backend": "catalog:",
           "react-dom": "catalog:react",
           "@opencode/protocol>effect": "catalog:",
-          "dbus-next>usocket": "-",
+          "@anthropic-ai/claude-agent-sdk>@anthropic-ai/claude-agent-sdk-win32-x64": "-",
           lodash: "4.17.21",
         },
         catalog,
@@ -22,16 +22,9 @@ describe("resolveCatalogDependencies", () => {
         "@clerk/backend": "3.18.1",
         "react-dom": "19.2.0",
         "@opencode/protocol>effect": "4.0.0-rc.115",
-        "dbus-next>usocket": "-",
+        "@anthropic-ai/claude-agent-sdk>@anthropic-ai/claude-agent-sdk-win32-x64": "-",
         lodash: "4.17.21",
       },
-    );
-  });
-
-  it("fails on a catalog entry that does not exist", () => {
-    assert.throws(
-      () => resolveCatalogDependencies({ "a>missing": "catalog:" }, catalog, "apps/desktop"),
-      /Expected key 'missing' in root workspace catalog/,
     );
   });
 

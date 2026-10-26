@@ -1,12 +1,11 @@
 // @effect-diagnostics globalTimers:off -- Bound session-bus registration at a native callback boundary.
-import { Message, MessageType, NameFlag, RequestNameReply, sessionBus } from "dbus-next";
+import { Message, MessageType, NameFlag, RequestNameReply, sessionBus } from "@particle/dbus-next";
 
 import {
   NIRI_CAPTURE_INTERFACE as INTERFACE,
   NIRI_CAPTURE_PATH as PATH,
 } from "./linuxCaptureSession.ts";
 
-/** Niri owns the keybinding; this endpoint triggers capture without first focusing Supaterm. */
 export async function startNiriCaptureShortcut(
   appId: string,
   onCapture: () => void,

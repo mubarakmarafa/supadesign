@@ -54,35 +54,6 @@ it("coalesces hinge edits behind acknowledgements and lets a preset replace queu
   queue.clear();
 });
 
-it("drops queued commands on failure, timeout and disconnect; late replies cannot acknowledge later work", () => {
-  vi.useFakeTimers();
-  const send = vi.fn((_request: { requestId: number; command: DuoCommand }) => true);
-  const onChange = vi.fn();
-  const queue = createDuoControl({ send, onChange, timeoutMs: 100 });
-  queue.enqueue({ control: "angle", value: 90 });
-  queue.enqueue({ control: "angle", value: 100 });
-  vi.advanceTimersByTime(100);
-  expect(onChange.mock.lastCall?.[0].error).toContain("timed out");
-  queue.enqueue({ control: "pose", value: "open" });
-  queue.receive({ requestId: 1, ok: true });
-  expect(onChange.mock.lastCall?.[0].pending).toBe(true);
-  queue.enqueue({ control: "angle", value: 130 });
-  queue.receive({ requestId: 2, ok: false, error: "native refused" });
-  expect(onChange.mock.lastCall?.[0]).toEqual({
-    pending: false,
-    requested: null,
-    error: "native refused",
-  });
-  queue.enqueue({ control: "pose", value: "book" });
-  queue.enqueue({ control: "pose", value: "closed" });
-  queue.clear();
-  queue.receive({ requestId: 3, ok: true });
-  expect(send).toHaveBeenCalledTimes(3);
-  queue.enqueue({ control: "angle", value: Infinity });
-  expect(send).toHaveBeenCalledTimes(3);
-  queue.clear();
-});
-
 it("pinches only a hit device, accumulates independently of native readback, clamps and cancels", () => {
   let confirmed = 90;
   const change = vi.fn();
@@ -114,7 +85,6 @@ it("pinches only a hit device, accumulates independently of native readback, cla
   expect(pinch.active).toBe(false);
 });
 
-// Screen configs as an iPhone Duo simulator reports them for each way of holding the device.
 it.each([
   [
     "vertical phone, closed",
@@ -169,7 +139,6 @@ it("falls back like the 3D view when hinge fields are missing", () => {
     fold: "closed",
     phoneVertical: true,
   });
-  // Without a display ID the 3D view draws the open inner panel, so the controls do too.
   expect(duoFoldState({ orientation: "landscape_left" })).toMatchObject({
     fold: "open",
     phoneVertical: true,

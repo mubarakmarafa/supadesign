@@ -2,12 +2,8 @@ import { scopeThreadRef, scopedThreadKey } from "@supaterm/client-runtime/enviro
 import { ThreadId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 
-import {
-  migratePersistedTerminalUiStateStoreState,
-  selectThreadTerminalUiState,
-  useTerminalUiStateStore,
-} from "./terminalUiStateStore";
-import { DEFAULT_THREAD_TERMINAL_ID } from "./types";
+import { selectThreadTerminalUiState, useTerminalUiStateStore } from "./terminalUiStateStore";
+import { DEFAULT_THREAD_TERMINAL_ID, terminalSplitLayoutMatches } from "./types";
 
 const THREAD_ID = ThreadId.make("thread-1");
 const THREAD_REF = scopeThreadRef("environment-a" as never, THREAD_ID);
@@ -19,81 +15,6 @@ describe("terminalUiStateStore actions", () => {
     useTerminalUiStateStore.setState({
       terminalUiStateByThreadKey: {},
       suppressedTerminalIdsByThreadKey: {},
-    });
-  });
-
-  it("returns an empty default terminal UI state for unknown threads", () => {
-    const terminalUiState = selectThreadTerminalUiState(
-      useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
-      THREAD_REF,
-    );
-    expect(terminalUiState).toEqual({
-      terminalOpen: false,
-      terminalHeight: 280,
-      terminalIds: [],
-      activeTerminalId: "",
-      terminalGroups: [],
-      activeTerminalGroupId: "",
-    });
-  });
-
-  it("opens and splits terminals into the active group", () => {
-    const store = useTerminalUiStateStore.getState();
-    store.setTerminalOpen(THREAD_REF, true);
-    store.splitTerminal(THREAD_REF, "terminal-2");
-
-    const terminalUiState = selectThreadTerminalUiState(
-      useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
-      THREAD_REF,
-    );
-    expect(terminalUiState.terminalOpen).toBe(true);
-    expect(terminalUiState.terminalIds).toEqual([DEFAULT_THREAD_TERMINAL_ID, "terminal-2"]);
-    expect(terminalUiState.activeTerminalId).toBe("terminal-2");
-    expect(terminalUiState.terminalGroups).toEqual([
-      {
-        id: `group-${DEFAULT_THREAD_TERMINAL_ID}`,
-        terminalIds: [DEFAULT_THREAD_TERMINAL_ID, "terminal-2"],
-      },
-    ]);
-  });
-
-  it("stacks vertically split terminals in the active group", () => {
-    const store = useTerminalUiStateStore.getState();
-    store.setTerminalOpen(THREAD_REF, true);
-    store.splitTerminalVertical(THREAD_REF, "terminal-2");
-
-    const terminalUiState = selectThreadTerminalUiState(
-      useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
-      THREAD_REF,
-    );
-    expect(terminalUiState.terminalGroups).toEqual([
-      {
-        id: `group-${DEFAULT_THREAD_TERMINAL_ID}`,
-        terminalIds: [DEFAULT_THREAD_TERMINAL_ID, "terminal-2"],
-        splitDirection: "vertical",
-      },
-    ]);
-  });
-
-  it("materializes the default terminal when opening an empty drawer", () => {
-    useTerminalUiStateStore.getState().setTerminalOpen(THREAD_REF, true);
-
-    const terminalUiState = selectThreadTerminalUiState(
-      useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
-      THREAD_REF,
-    );
-    expect(terminalUiState).toEqual({
-      terminalOpen: true,
-      terminalHeight: 280,
-      terminalIds: [DEFAULT_THREAD_TERMINAL_ID],
-      activeTerminalId: DEFAULT_THREAD_TERMINAL_ID,
-      terminalGroups: [
-        {
-          id: `group-${DEFAULT_THREAD_TERMINAL_ID}`,
-          terminalIds: [DEFAULT_THREAD_TERMINAL_ID],
-        },
-      ],
-      activeTerminalGroupId: `group-${DEFAULT_THREAD_TERMINAL_ID}`,
     });
   });
 
@@ -123,37 +44,6 @@ describe("terminalUiStateStore actions", () => {
     ]);
   });
 
-  it("creates new terminals in a separate group", () => {
-    useTerminalUiStateStore.getState().newTerminal(THREAD_REF, "terminal-2");
-
-    const terminalUiState = selectThreadTerminalUiState(
-      useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
-      THREAD_REF,
-    );
-    expect(terminalUiState.terminalIds).toEqual(["terminal-2"]);
-    expect(terminalUiState.activeTerminalId).toBe("terminal-2");
-    expect(terminalUiState.activeTerminalGroupId).toBe("group-terminal-2");
-    expect(terminalUiState.terminalGroups).toEqual([
-      { id: "group-terminal-2", terminalIds: ["terminal-2"] },
-    ]);
-  });
-
-  it("ensures unknown server terminals are registered, opened, and activated", () => {
-    const store = useTerminalUiStateStore.getState();
-    store.ensureTerminal(THREAD_REF, "setup-setup", { open: true, active: true });
-
-    const terminalUiState = selectThreadTerminalUiState(
-      useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
-      THREAD_REF,
-    );
-    expect(terminalUiState.terminalOpen).toBe(true);
-    expect(terminalUiState.terminalIds).toEqual(["setup-setup"]);
-    expect(terminalUiState.activeTerminalId).toBe("setup-setup");
-    expect(terminalUiState.terminalGroups).toEqual([
-      { id: "group-setup-setup", terminalIds: ["setup-setup"] },
-    ]);
-  });
-
   it("keeps state isolated per environment when raw thread ids collide", () => {
     const store = useTerminalUiStateStore.getState();
     store.setTerminalOpen(THREAD_REF, true);
@@ -171,45 +61,6 @@ describe("terminalUiStateStore actions", () => {
         OTHER_THREAD_REF,
       ).terminalIds,
     ).toEqual(["env-b-terminal"]);
-  });
-
-  it("drops persisted entries whose thread keys are not valid scoped keys", () => {
-    const migrated = migratePersistedTerminalUiStateStoreState(
-      {
-        terminalStateByThreadKey: {
-          [scopedThreadKey(THREAD_REF)]: {
-            terminalOpen: true,
-            terminalHeight: 320,
-            terminalIds: ["term-1"],
-            activeTerminalId: "term-1",
-            terminalGroups: [{ id: "group-term-1", terminalIds: ["term-1"] }],
-            activeTerminalGroupId: "group-term-1",
-          },
-          "legacy-thread-id": {
-            terminalOpen: true,
-            terminalHeight: 320,
-            terminalIds: ["term-1"],
-            activeTerminalId: "term-1",
-            terminalGroups: [{ id: "group-term-1", terminalIds: ["term-1"] }],
-            activeTerminalGroupId: "group-term-1",
-          },
-        },
-      },
-      2,
-    );
-
-    expect(migrated).toEqual({
-      terminalUiStateByThreadKey: {
-        [scopedThreadKey(THREAD_REF)]: {
-          terminalOpen: true,
-          terminalHeight: 320,
-          terminalIds: ["term-1"],
-          activeTerminalId: "term-1",
-          terminalGroups: [{ id: "group-term-1", terminalIds: ["term-1"] }],
-          activeTerminalGroupId: "group-term-1",
-        },
-      },
-    });
   });
 
   it("resets to default and clears persisted entry when closing the last terminal", () => {
@@ -245,21 +96,31 @@ describe("terminalUiStateStore actions", () => {
     ]);
   });
 
-  it("reconciles terminal ids from an external ordered list", () => {
+  it("keeps a split layout through splits and closes of its group", () => {
     const store = useTerminalUiStateStore.getState();
+    const groupId = `group-${DEFAULT_THREAD_TERMINAL_ID}`;
+    const layout = { [DEFAULT_THREAD_TERMINAL_ID]: 70, "terminal-2": 30 };
+    const readGroup = () =>
+      selectThreadTerminalUiState(
+        useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
+        THREAD_REF,
+      ).terminalGroups[0];
     store.setTerminalOpen(THREAD_REF, true);
-    store.reconcileTerminalIds(THREAD_REF, ["term-a", "term-b"]);
+    store.splitTerminal(THREAD_REF, "terminal-2");
+    store.setTerminalSplitLayout(THREAD_REF, "missing-group", layout);
+    expect(readGroup()?.layout).toBeUndefined();
 
-    const terminalUiState = selectThreadTerminalUiState(
-      useTerminalUiStateStore.getState().terminalUiStateByThreadKey,
-      THREAD_REF,
+    store.setTerminalSplitLayout(THREAD_REF, groupId, layout);
+    store.splitTerminal(THREAD_REF, "terminal-3");
+    expect(terminalSplitLayoutMatches(readGroup()?.layout, readGroup()?.terminalIds ?? [])).toBe(
+      false,
     );
-    expect(terminalUiState.terminalIds).toEqual(["term-a", "term-b"]);
-    expect(terminalUiState.activeTerminalId).toBe("term-a");
-    expect(terminalUiState.terminalGroups).toEqual([
-      { id: "group-term-a", terminalIds: ["term-a"] },
-      { id: "group-term-b", terminalIds: ["term-b"] },
-    ]);
+
+    store.closeTerminal(THREAD_REF, "terminal-3");
+    expect(readGroup()?.layout).toEqual(layout);
+    expect(terminalSplitLayoutMatches(readGroup()?.layout, readGroup()?.terminalIds ?? [])).toBe(
+      true,
+    );
   });
 
   it("does not import a closed panel terminal from stale metadata", () => {
@@ -283,14 +144,5 @@ describe("terminalUiStateStore actions", () => {
         THREAD_REF,
       ).terminalIds,
     ).toEqual(["term-2", "term-1"]);
-  });
-
-  it("is a no-op when clearing terminal UI state for a thread with no state", () => {
-    const store = useTerminalUiStateStore.getState();
-    const before = useTerminalUiStateStore.getState();
-
-    store.clearTerminalUiState(THREAD_REF);
-
-    expect(useTerminalUiStateStore.getState()).toBe(before);
   });
 });

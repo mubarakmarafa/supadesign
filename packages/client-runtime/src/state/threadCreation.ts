@@ -95,8 +95,8 @@ export function createOptimisticThreadCreation(
           createdAt,
           updatedAt: createdAt,
           archivedAt: null,
-          settledOverride: null,
-          settledAt: null,
+          doneOverride: null,
+          doneAt: null,
           deletedAt: null,
         };
         const pending = pendingAtom(target.environmentId);

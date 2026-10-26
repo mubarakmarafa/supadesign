@@ -20,12 +20,6 @@ const STANDS = [
   { id: "tent", label: "Tent stand" },
 ] as const;
 
-/**
- * Fold shapes move only the hinge, so the device opens around whichever edge it
- * currently rests on: a vertical phone opens as a book into a landscape tablet,
- * a horizontal one as a laptop into a portrait tablet. Stands are native presets
- * that also place the device. Pinching supplies continuous hinge control.
- */
 export function DeviceDuoControls(props: {
   screen: DeviceScreenSize;
   state: DuoControlState;

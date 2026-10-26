@@ -16,6 +16,14 @@ on:
         description: Mobile Production run containing the signed builds
         required: true
         type: string
+      screenshots_run_id:
+        description: Optional Mobile Store Review run containing captured screenshots
+        required: false
+        type: string
+      review_ref:
+        description: Optional ref containing the current store-review automation
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -23,18 +31,23 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-24.04
+    runs-on: depot-ubuntu-24.04
+    timeout-minutes: 10
     if: github.ref == 'refs/heads/main'
     outputs:
       enabled: ${{ steps.matrix.outputs.enabled }}
       platform: ${{ steps.matrix.outputs.platform }}
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup-mise
+        with:
+          cache: false
       - id: artifacts
         name: Verify the production workflow and available builds
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         env:
           BUILD_RUN_ID: ${{ inputs.build_run_id }}
         with:
@@ -68,7 +81,7 @@ jobs:
 
   capture:
     needs: prepare
-    if: needs.prepare.outputs.enabled == 'true'
+    if: needs.prepare.outputs.enabled == 'true' && inputs.screenshots_run_id == ''
     uses: ./.github/workflows/mobile-showcase-screenshots.yml
     with:
       source_sha: ${{ inputs.source_sha }}
@@ -79,8 +92,8 @@ jobs:
   submit:
     name: Submit ${{ matrix.platform }} for review
     needs: [prepare, capture]
-    if: needs.prepare.outputs.enabled == 'true'
-    runs-on: ubuntu-24.04
+    if: always() && needs.prepare.outputs.enabled == 'true' && (needs.capture.result == 'success' || inputs.screenshots_run_id != '')
+    runs-on: depot-ubuntu-24.04
     environment: release
     timeout-minutes: 90
     concurrency:
@@ -100,10 +113,13 @@ jobs:
       MOBILE_VERSION_CODE: ${{ matrix.versionCode }}
       MOBILE_STORE_ASSETS: ${{ github.workspace }}/artifacts/app-store/fastlane/${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          ref: ${{ inputs.review_ref || inputs.source_sha }}
       - uses: ./.github/actions/setup-mise
+        with:
+          cache: false
       - name: Install asset tooling
         run: mise exec -- vp install --filter=@supaterm/scripts...
       - name: Download captured screenshots
@@ -111,11 +127,13 @@ jobs:
         with:
           name: ${{ matrix.platform == 'ios' && 'app-store-connect-screenshots' || 'google-play-screenshots' }}
           path: artifacts/app-store/screenshots/${{ matrix.platform == 'ios' && 'apple' || 'google-play' }}
+          run-id: ${{ inputs.screenshots_run_id || github.run_id }}
+          github-token: ${{ github.token }}
       - name: Prepare validated Fastlane screenshot folders
         env:
           MOBILE_PLATFORM: ${{ matrix.platform }}
         run: node scripts/mobile-store-assets.ts "$MOBILE_PLATFORM"
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1.329.0
         with:
           ruby-version: "3.4.8"
           working-directory: apps/mobile

@@ -34,7 +34,6 @@ export function assertMuseWorkflowOutput(
   assert.isDefined(workflow, "the workflow shows as a row");
   assert.equal(workflow.status, "completed");
   assert.equal(workflow.runId, projection.runs[0]?.id);
-  // The settled row shows the workflow's own result, not its generic label.
   const finalSummary = transcript.entries
     .map((entry) =>
       entry.type === "emit_inbound"

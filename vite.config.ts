@@ -3,7 +3,32 @@ import { defineConfig } from "vite-plus";
 import * as NodeURL from "node:url";
 import antiSlop from "ultracite/oxlint/anti-slop";
 
-/** Import restrictions every file keeps, including the one module exempt from the glyph rule. */
+const DOM_TEST_ENVIRONMENT_ALLOWLIST: Array<string> = [];
+
+const TEST_EXCLUDE = [
+  "**/.supacode/**",
+  "**/.supaterm/**",
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/dist-electron/**",
+  "**/.{idea,git,cache,output,temp}/**",
+];
+
+// Directories whose tests belong to a package's own test config. desktop also
+// owns the kde-snap-shot tests through its `include`.
+const TEST_CONFIG_PACKAGES = [
+  "apps/desktop",
+  "apps/mobile",
+  "apps/server",
+  "apps/web",
+  "packages/client-runtime",
+];
+
+// `vp test run <file>` from the repo root hands each file to its package's
+// config. Packages that borrow this config (`--config ../../vite.config.ts`) run
+// from their own directory, as CI does, so they keep one plain project.
+const isRepoRootTestRun = process.cwd() === import.meta.dirname;
+
 const RESTRICTED_IMPORT_PATHS = [
   {
     name: "@supaterm/client-runtime",
@@ -17,11 +42,6 @@ const RESTRICTED_IMPORT_PATHS = [
   },
 ];
 
-/**
- * The cva functions behind components/ui exports. They style a foreign element to look
- * like a Button or Toggle, which bypasses the component's variants; render the component
- * instead (`render={<Button …/>}`, or `SelectButton` for a picker trigger).
- */
 const RESTRICTED_UI_VARIANT_PATTERNS = [
   {
     group: ["**/components/ui/*", "**/ui/*", "./ui/*"],
@@ -31,7 +51,6 @@ const RESTRICTED_UI_VARIANT_PATTERNS = [
   },
 ];
 
-/** Lucide's pull-request glyphs, which only `pullRequestIcons.tsx` may name. */
 const RESTRICTED_PULL_REQUEST_GLYPH_IMPORTS = {
   name: "lucide-react",
   importNames: [
@@ -62,24 +81,56 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    exclude: [
-      "**/.supacode/**",
-      "**/.supaterm/**",
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/dist-electron/**",
-      "**/.{idea,git,cache,output,temp}/**",
-    ],
+    exclude: TEST_EXCLUDE,
     hookTimeout: 60_000,
     testTimeout: 60_000,
+    allowOnly: !process.env.CI,
+    // Flaky tests are fixed, not retried.
+    retry: 0,
+    fakeTimers: {
+      toFake: [
+        "setTimeout",
+        "clearTimeout",
+        "setInterval",
+        "clearInterval",
+        "setImmediate",
+        "clearImmediate",
+        "Date",
+        "performance",
+        "requestAnimationFrame",
+        "cancelAnimationFrame",
+        "requestIdleCallback",
+        "cancelIdleCallback",
+      ],
+    },
     setupFiles: [
       NodeURL.fileURLToPath(
         new URL("./packages/shared/src/testing/longTempDir.ts", import.meta.url),
       ),
+      NodeURL.fileURLToPath(
+        new URL("./packages/shared/src/testing/providerEnv.ts", import.meta.url),
+      ),
     ],
+    ...(isRepoRootTestRun
+      ? {
+          projects: [
+            ...TEST_CONFIG_PACKAGES,
+            {
+              extends: true,
+              test: {
+                name: "root",
+                exclude: [
+                  ...TEST_EXCLUDE,
+                  ...TEST_CONFIG_PACKAGES.map((dir) => `${dir}/**`),
+                  "native/kde-snap-shot/**",
+                ],
+              },
+            },
+          ],
+        }
+      : {}),
   },
   staged: {
-    // Formatter only for now — no lint or typecheck on commit.
     "*": "vp fmt --no-error-on-unmatched-pattern",
   },
   fmt: {
@@ -94,6 +145,9 @@ export default defineConfig({
       "*.tsbuildinfo",
       ".mise/locks/**",
       "**/routeTree.gen.ts",
+      "**/*.graphql.ts",
+      "packages/source-control-github/schema/**",
+      "apps/server/schema/**",
       "apps/mobile/android/**",
       "apps/mobile/ios/**",
       "apps/mobile/uniwind-types.d.ts",
@@ -118,6 +172,9 @@ export default defineConfig({
       "pnpm-lock.yaml",
       "*.tsbuildinfo",
       "**/routeTree.gen.ts",
+      "**/*.graphql.ts",
+      "packages/source-control-github/schema/**",
+      "apps/server/schema/**",
       "apps/mobile/android/**",
       "apps/mobile/ios/**",
       "apps/mobile/uniwind-types.d.ts",
@@ -184,14 +241,21 @@ export default defineConfig({
       ],
       "supaterm/no-global-process-runtime": "error",
       "supaterm/no-inline-schema-compile": "error",
+      "supaterm/no-low-value-comments": "error",
       "supaterm/no-manual-effect-runtime-in-tests": "error",
       "supaterm/no-native-title-tooltip": "error",
+      // Test files only (the rule checks the filename). denyWarnings makes it fail lint like an error.
+      "supaterm/no-polling-loop-in-tests": "warn",
       "supaterm/no-raw-mcp-registration": "error",
+      "supaterm/no-real-time-wait-in-tests": "error",
       "supaterm/no-test-in-loop": "error",
+      "supaterm/no-test-timeout-or-retry": "error",
       "supaterm/no-rpc-permission-bypass": ["error", { allowRawClientAccess: true }],
       "supaterm/no-unscoped-has": "error",
+      "supaterm/no-wall-clock-in-tests": "error",
       "supaterm/namespace-node-imports": "error",
       "supaterm/prefer-catch-tags": "error",
+      "supaterm/prefer-effect-fn": "error",
       "supaterm/require-centered-scroll-gutter": "error",
       "supaterm/require-suppression-reason": "error",
     },
@@ -223,11 +287,35 @@ export default defineConfig({
         rules: { "test-waits/no-long-waits": "off" },
       },
       {
+        files: [
+          "**/*.{test,spec,testkit}.{ts,tsx}",
+          "**/{test,tests,testkit,testing,fixtures,integration}/**",
+          "packages/provider-testing/**",
+        ],
+        rules: { "supaterm/prefer-effect-fn": "off" },
+      },
+      {
+        files: ["apps/web/**/*.test.{ts,tsx}"],
+        rules: { "supaterm/require-disposable-render": "error" },
+      },
+      {
+        files: ["apps/web/src/**/*.browser.test.{ts,tsx}"],
+        rules: { "supaterm/no-frame-waits-in-browser-tests": "error" },
+      },
+      {
+        files: ["**/*.browser.test.*"],
+        rules: { "supaterm/no-real-time-wait-in-tests": "off" },
+      },
+      {
+        files: ["apps/**/src/**", "packages/**/src/**"],
+        excludeFiles: DOM_TEST_ENVIRONMENT_ALLOWLIST,
+        rules: { "supaterm/no-dom-test-environment": "error" },
+      },
+      {
         files: ["packages/client-runtime/src/state/**", "apps/{web,mobile,desktop}/src/**"],
         rules: { "supaterm/no-rpc-permission-bypass": ["error", { allowRawClientAccess: false }] },
       },
       {
-        // Only shared command boundaries install the session-backed permission guard.
         files: [
           "packages/client-runtime/src/state/runtime.ts",
           "packages/client-runtime/src/state/vcsAction.ts",
@@ -240,8 +328,8 @@ export default defineConfig({
         },
       },
       {
-        // These clients are session metadata, device streams, and an Expo update adapter.
         files: [
+          "apps/web/src/components/settings/AuthorizedClientsSettings.tsx",
           "apps/web/src/components/settings/ConnectionsSettings.tsx",
           "apps/mobile/src/features/updates/app-updates.ts",
           "apps/web/src/components/device/DevicePhoneViewport.tsx",
@@ -250,12 +338,10 @@ export default defineConfig({
         rules: { "supaterm/no-rpc-permission-bypass": ["error", { allowRawClientAccess: true }] },
       },
       {
-        // Incompatible hosts cannot open a normal session; their updater uses a dedicated socket.
         files: ["packages/client-runtime/src/connection/outdatedHostUpdate.ts"],
         rules: { "supaterm/no-rpc-permission-bypass": "off" },
       },
       {
-        // RPC implementation and transport test fixtures need the raw client.
         files: [
           "packages/client-runtime/src/rpc/**",
           "**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
@@ -263,12 +349,18 @@ export default defineConfig({
         rules: { "supaterm/no-rpc-permission-bypass": "off" },
       },
       {
-        // The one place that reads the host platform to seed the injected references.
         files: ["packages/shared/src/HostProcess.ts"],
         rules: { "supaterm/no-global-process-runtime": "off" },
       },
       {
-        // The registration helpers that only accept handlers built by McpToolAccess.
+        // The `supaterm` npm launcher is published as plain, dependency-free Node.
+        files: ["scripts/npm-launcher/**"],
+        rules: {
+          "supaterm/no-global-process-runtime": "off",
+          "supaterm/namespace-node-imports": "off",
+        },
+      },
+      {
         files: ["apps/server/src/mcp/McpHttpServer.ts"],
         rules: { "supaterm/no-raw-mcp-registration": "off" },
       },
@@ -286,14 +378,21 @@ export default defineConfig({
         },
       },
       {
-        // The one module allowed to name lucide's pull-request glyphs; everything else picks
-        // from its vocabulary. The other import restrictions still apply here.
         files: ["apps/web/src/components/pullRequest/pullRequestIcons.tsx"],
         rules: { "eslint/no-restricted-imports": ["error", { paths: RESTRICTED_IMPORT_PATHS }] },
       },
       {
         files: ["apps/mobile/src/**"],
         rules: { "supaterm/no-mobile-uniwind-theme-escape-hatches": "error" },
+      },
+      {
+        files: ["apps/mobile/src/**"],
+        excludeFiles: [
+          "apps/mobile/src/components/ui/AppSymbol.tsx",
+          "apps/mobile/src/components/ui/AppSymbol.ios.tsx",
+          "apps/mobile/src/features/pull-requests/pullRequestGlyphs.ts",
+        ],
+        rules: { "supaterm/no-mobile-pull-request-glyph-literals": "error" },
       },
       {
         // React commits state set in a raw ResizeObserver callback after the paint, so derived
@@ -306,19 +405,14 @@ export default defineConfig({
         rules: { "supaterm/no-raw-resize-observer": "error" },
       },
       {
-        // Every class in web code must be one Tailwind generates: a typo or a class nothing
-        // declares ships silently unstyled. JS hooks use data attributes, not class names.
         files: ["apps/web/src/**"],
         rules: { "shadcn/no-unknown-classes": "error" },
       },
       {
-        // State indicators paint inward; decorative rings keep their own geometry.
         files: ["apps/web/src/**"],
         rules: { "supaterm/no-outset-state-indicators": "error" },
       },
       {
-        // Colors come from theme tokens so status tones follow custom themes. components/ui
-        // has no findings and stays covered too.
         files: ["apps/web/src/**"],
         rules: { "shadcn/no-raw-colors": "error" },
       },
@@ -329,41 +423,24 @@ export default defineConfig({
         rules: { "shadcn/no-raw-colors": "off" },
       },
       {
-        // components/ui exports own their look. App code picks a variant or size instead
-        // of restyling with className; layout classes (width, flex, margin, position) stay
-        // allowed because placement belongs to the parent. components/ui is for generic
-        // primitives: a look that belongs to one feature stays in that feature's component.
         files: ["apps/web/src/**"],
         excludeFiles: ["apps/web/src/components/ui/**"],
         rules: {
-          // A className built at runtime on a ui component is one no-restyle cannot read.
           "shadcn/require-static-classes": "error",
-          // Appearance values come from the theme and Tailwind's scales. Layout stays free
-          // (placement belongs to the parent); the other entries are values no scale can hold.
           "shadcn/no-arbitrary-values": [
             "error",
             {
               allow: [
                 "layout",
-                // Which properties an element animates is per-element behaviour, like layout,
-                // not a design value; timing curves and durations still come from the theme.
                 "transition",
-                // Overlays that follow their frame's corner, which is set at runtime
-                // (floating preview) or by the element they decorate (composer outline).
                 "rounded-[inherit]",
-                // Inline chips size in em so they scale with the text they sit in
-                // (the composer honours the prompt font-size preference).
                 "gap-[0.33em]",
                 "px-[0.5em]",
                 "rounded-[0.5em]",
                 "text-[0.86em]",
-                // Project icons render from 14px to 48px and keep one proportional corner.
                 "rounded-[25%]",
-                // An emoji project icon fills its container, whatever size the parent gives it.
                 "text-[length:80cqh]",
-                // The platform's own selection colour on a selected composer chip.
                 "bg-[Highlight]",
-                // Brand marks keep their brand colours (Cursor, Grok, Claude).
                 "fill-[#26251E]",
                 "fill-[#EDECEC]",
                 "fill-[#0F0F0F]",
@@ -391,6 +468,29 @@ export default defineConfig({
         },
       },
       {
+        // Every web file must compile under the React Compiler. Its bailout rules are errors here,
+        // and manual memoization is redundant. No built-in oxlint rule bans useMemo/useCallback,
+        // hence supaterm/no-manual-memo.
+        files: ["apps/web/src/**/*.{ts,tsx}"],
+        rules: {
+          "react/exhaustive-effect-dependencies": "error",
+          "react/globals": "error",
+          "react/hooks": "error",
+          "react/immutability": "error",
+          // The compiler memoizes context values; this rule would ask for useMemo.
+          "react/jsx-no-constructed-context-values": "off",
+          "react/memo-dependencies": "error",
+          "react/preserve-manual-memoization": "error",
+          "react/purity": "error",
+          "react/refs": "error",
+          "react/set-state-in-effect": "error",
+          "react/set-state-in-render": "error",
+          "react/static-components": "error",
+          "react/unsupported-syntax": "error",
+          "supaterm/no-manual-memo": "error",
+        },
+      },
+      {
         // Shared client code must not call APIs missing from Hermes. Our ESNext
         // TypeScript target accepts them even when they would crash mobile at launch.
         // Tests run on Node and are exempt.
@@ -404,10 +504,25 @@ export default defineConfig({
         rules: { "supaterm/no-hermes-unsupported-apis": "error" },
       },
       {
-        // Reviewed native and third-party interop boundaries that cannot consume a className.
+        // Mobile is ratcheting toward full React Compiler coverage
+        // (apps/mobile/src/reactCompilerCoverage.test.ts). Directives would hide bailouts from it;
+        // the manual memo hooks go once the allowlist there is empty.
+        files: ["apps/mobile/src/**/*.{ts,tsx}"],
+        rules: {
+          "supaterm/no-manual-memo": ["error", { allowMemoHooks: true }],
+          "react/jsx-no-constructed-context-values": "off",
+        },
+      },
+      {
+        files: ["apps/web/src/**/*.{ts,tsx}", "apps/mobile/src/**/*.{ts,tsx}"],
+        excludeFiles: ["**/*.test.ts", "**/*.test.tsx"],
+        rules: { "supaterm/no-hookless-use-function": "error" },
+      },
+      {
         files: [
           "apps/mobile/src/features/archive/ArchivedThreadsScreen.tsx",
           "apps/mobile/src/features/connection/ConnectionsNewRouteScreen.tsx",
+          "apps/mobile/src/features/diagrams/MermaidDiagramScreen.tsx",
           "apps/mobile/src/features/files/FileMarkdownPreview.tsx",
           "apps/mobile/src/features/files/SourceFileSurface.tsx",
           "apps/mobile/src/features/files/AttachmentFileScreen.tsx",
@@ -424,16 +539,15 @@ export default defineConfig({
           "apps/mobile/src/features/settings/appearance/components/FontSizeSliderRow.tsx",
           "apps/mobile/src/features/threads/NewTaskContextPickerScreens.tsx",
           "apps/mobile/src/features/threads/ThreadQueueControl.tsx",
-          "apps/mobile/src/features/threads/ThreadAgentsSheet.tsx",
           "apps/mobile/src/features/review/ReviewCommentCard.tsx",
           "apps/mobile/src/features/threads/ThreadSettingsSheet.tsx",
-          "apps/mobile/src/features/threads/git/GitOverviewSheet.tsx",
           "apps/mobile/src/features/threads/thread-list-items.tsx",
           "apps/mobile/src/features/threads/thread-list-v2-items.tsx",
           "apps/mobile/src/lib/useMobileNavigationTheme.ts",
           "apps/mobile/src/native/SupatermComposerEditor.ios.tsx",
           "apps/mobile/src/native/SupatermComposerEditor.native.tsx",
           "apps/mobile/src/native/SelectableMarkdownText.tsx",
+          "apps/mobile/src/native/NativeMermaidSvg.tsx",
         ],
         rules: {
           "supaterm/no-mobile-uniwind-theme-escape-hatches": ["error", { allowUniwindTheme: true }],
@@ -443,7 +557,6 @@ export default defineConfig({
     options: {
       denyWarnings: true,
       reportUnusedDisableDirectives: "error",
-      // Revisit once Oxlint's tsgolint path can integrate with @effect/tsgo diagnostics.
       typeAware: false,
       typeCheck: false,
     },

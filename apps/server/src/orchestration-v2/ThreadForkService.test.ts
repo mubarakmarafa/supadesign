@@ -54,8 +54,8 @@ function makeSourceThread(): OrchestrationV2AppThread {
     createdAt: sourceCreatedAt,
     updatedAt: snoozedAt,
     archivedAt: null,
-    settledOverride: null,
-    settledAt: null,
+    doneOverride: null,
+    doneAt: null,
     lastVisitedAt: null,
     snoozedUntil,
     snoozedAt,
@@ -84,9 +84,12 @@ function makeSourceRun(status: OrchestrationV2Run["status"]): OrchestrationV2Run
   };
 }
 
-function makeSourceProjection(sourceRun: OrchestrationV2Run): OrchestrationV2ThreadProjection {
+function makeSourceProjection(
+  sourceRun: OrchestrationV2Run,
+  thread: OrchestrationV2AppThread,
+): OrchestrationV2ThreadProjection {
   return {
-    thread: makeSourceThread(),
+    thread,
     runs: [sourceRun],
     attempts: [],
     nodes: [],
@@ -107,11 +110,11 @@ function makeSourceProjection(sourceRun: OrchestrationV2Run): OrchestrationV2Thr
   };
 }
 
-const planFork = (sourceRun: OrchestrationV2Run) =>
+const planFork = (sourceRun: OrchestrationV2Run, sourceThread = makeSourceThread()) =>
   Effect.gen(function* () {
     const service = yield* ThreadForkService.ThreadForkServiceV2;
     return yield* service.plan({
-      sourceProjection: makeSourceProjection(sourceRun),
+      sourceProjection: makeSourceProjection(sourceRun, sourceThread),
       sourceRun,
       sourceProviderThread: undefined,
       canonicalSourcePoint: {
@@ -169,14 +172,48 @@ it.effect("keeps a fork awake when its source thread is snoozed", () =>
   }),
 );
 
-it.effect("forks from a usage-limited failed run", () =>
+it.effect("leaves the source's watches behind, so only the source is woken", () =>
   Effect.gen(function* () {
-    const result = yield* planFork(makeSourceRun("failed"));
-    assert.deepEqual(result.targetThread.forkedFrom, {
-      type: "run",
-      threadId: sourceThreadId,
-      runId: sourceRunId,
+    const startedAt = "2026-07-24T09:05:00.000Z";
+    const result = yield* planFork(makeSourceRun("completed"), {
+      ...makeSourceThread(),
+      pullRequests: [
+        {
+          host: "github.com",
+          repository: "supabitapp/supacode-next",
+          number: 7,
+          url: "https://github.com/supabitapp/supacode-next/pull/7",
+          source: "agent",
+          linkedAt: startedAt,
+          snapshot: null,
+          stack: null,
+          watch: {
+            startedAt,
+            headSha: null,
+            failedChecks: [],
+            passed: false,
+            passedChecks: [],
+            remarksThrough: startedAt,
+            remarkIds: [],
+            conflicting: false,
+            wakes: 0,
+          },
+        },
+      ],
+      workflowRunWatches: [
+        {
+          host: "github.com",
+          repository: "supabitapp/supacode-next",
+          runId: 42,
+          name: "CI",
+          url: null,
+          startedAt,
+        },
+      ],
     });
+    assert.equal(result.targetThread.pullRequests?.[0]?.number, 7);
+    assert.isUndefined(result.targetThread.pullRequests?.[0]?.watch);
+    assert.deepEqual(result.targetThread.workflowRunWatches, []);
   }),
 );
 

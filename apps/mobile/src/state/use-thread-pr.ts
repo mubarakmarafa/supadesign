@@ -10,7 +10,6 @@ import { useCallback, useEffect, useMemo } from "react";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 import { appAtomRegistry } from "./atom-registry";
-import { serverEnvironment } from "./server";
 import { useEnvironmentQuery } from "./query";
 import {
   resolveThreadPrSource,
@@ -39,26 +38,14 @@ export {
   type ThreadPrPresentation,
 } from "./thread-pr-presentation";
 
-/**
- * Linked PRs use server snapshots. Branch fallback and legacy references share
- * a live summary request across visible rows in the same environment.
- */
 export function useThreadPr(thread: EnvironmentThreadShell): ThreadPrPresentation | null {
-  const supportsLinks = useAtomValue(
-    serverEnvironment.configValueAtom(thread.environmentId),
-    (config) => config?.environment.capabilities.threadPullRequests === true,
-  );
   const { linkedPresentation, pullRequestRef } = useMemo(
     () =>
-      resolveThreadPrSource(
-        {
-          pullRequests: thread.pullRequests,
-          linkedPullRequest: thread.linkedPullRequest,
-          branchPullRequest: thread.branchPullRequest,
-        },
-        { threadPullRequests: supportsLinks },
-      ),
-    [thread.pullRequests, thread.linkedPullRequest, thread.branchPullRequest, supportsLinks],
+      resolveThreadPrSource({
+        pullRequests: thread.pullRequests,
+        branchPullRequest: thread.branchPullRequest,
+      }),
+    [thread.pullRequests, thread.branchPullRequest],
   );
   const threadKey = scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
   const snapshotIdentity = JSON.stringify(pullRequestRef);

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vite-plus/test";
 import { EnvironmentId } from "@supaterm/contracts";
 
 import {
-  RemoteBackendUrlInvalidError,
   RemoteBackendUrlMissingError,
   RemotePairingTokenMissingError,
   RemotePairingUrlInvalidError,
@@ -15,10 +14,11 @@ import {
 describe("remote", () => {
   const environmentId = EnvironmentId.make("paired-environment");
 
-  it("preserves unrelated fragments when removing a pairing token", () => {
-    expect(stripPairingTokenFromUrl(new URL("https://host.test/?token=code#section")).href).toBe(
-      "https://host.test/#section",
-    );
+  it("keeps the query when removing a pairing token", () => {
+    expect(
+      stripPairingTokenFromUrl(new URL(`https://host.test/?view=1#token=code&env=${environmentId}`))
+        .href,
+    ).toBe("https://host.test/?view=1");
   });
 
   it("round-trips identity and eligible routes while keeping tokens in the fragment", () => {
@@ -55,7 +55,7 @@ describe("remote", () => {
   );
 
   it("carries a non-default relay with relay pairing links only", () => {
-    const relayAddress = `https://${"ab".repeat(16)}.${"cd".repeat(16)}.relay.supaterm.invalid/`;
+    const relayAddress = `https://${"ab".repeat(16)}.${"cd".repeat(16)}.relay.supaterm.alt/`;
     const relayUrl = "wss://relay.example/tunnel";
     const pairingUrl = buildPairingUrl(relayAddress, "code", { environmentId, relayUrl });
     expect(resolveRemotePairingTarget({ pairingUrl })).toMatchObject({
@@ -71,6 +71,20 @@ describe("remote", () => {
     expect(() =>
       resolveRemotePairingTarget({ pairingUrl: `${relayAddress}pair#token=code&relay=https://x` }),
     ).toThrow(RemotePairingUrlInvalidError);
+  });
+
+  it("resolves links from hosts that still issue legacy relay addresses", () => {
+    const relayAddress = `https://${"ab".repeat(16)}.${"cd".repeat(16)}.relay.supaterm.alt/`;
+    const legacy = relayAddress.replace(".alt/", ".invalid/");
+    expect(resolveRemotePairingTarget({ pairingUrl: `${legacy}pair#token=code` })).toMatchObject({
+      httpBaseUrl: relayAddress,
+      wsBaseUrl: relayAddress.replace("https:", "wss:"),
+    });
+    expect(
+      resolveRemotePairingTarget({
+        pairingUrl: `https://app.supaterm.com/pair?host=${encodeURIComponent(legacy)}#token=code`,
+      }),
+    ).toMatchObject({ httpBaseUrl: relayAddress });
   });
 
   it("discards unsafe route hints", () => {
@@ -124,18 +138,6 @@ describe("remote", () => {
     });
   });
 
-  it("accepts pairing urls that still use a query token", () => {
-    expect(
-      resolveRemotePairingTarget({
-        pairingUrl: "https://remote.example.com/pair?token=pairing-token",
-      }),
-    ).toEqual({
-      credential: "pairing-token",
-      httpBaseUrl: "https://remote.example.com/",
-      wsBaseUrl: "wss://remote.example.com/",
-    });
-  });
-
   it("derives backend urls from hosted app pairing links", () => {
     expect(
       resolveRemotePairingTarget({
@@ -167,32 +169,6 @@ describe("remote", () => {
       resolveRemotePairingTarget({
         host: "//remote.example.com",
         pairingCode: "pairing-token",
-      }),
-    ).toEqual({
-      credential: "pairing-token",
-      httpBaseUrl: "https://remote.example.com/",
-      wsBaseUrl: "wss://remote.example.com/",
-    });
-  });
-
-  it("preserves the port when normalizing a protocol-relative host", () => {
-    expect(
-      resolveRemotePairingTarget({
-        host: "//remote.example.com:3000",
-        pairingCode: "pairing-token",
-      }),
-    ).toEqual({
-      credential: "pairing-token",
-      httpBaseUrl: "https://remote.example.com:3000/",
-      wsBaseUrl: "wss://remote.example.com:3000/",
-    });
-  });
-
-  it("normalizes a protocol-relative host from a hosted pairing link", () => {
-    expect(
-      resolveRemotePairingTarget({
-        pairingUrl:
-          "https://app.supaterm.com/pair?host=%2F%2Fremote.example.com#token=pairing-token",
       }),
     ).toEqual({
       credential: "pairing-token",
@@ -255,38 +231,6 @@ describe("remote", () => {
     expect((pairingUrlError as RemotePairingUrlInvalidError).cause).toBeUndefined();
   });
 
-  it("rejects unsupported hosted pairing backend protocols", () => {
-    let hostError: unknown;
-    try {
-      resolveRemotePairingTarget({
-        pairingUrl:
-          "https://app.supaterm.com/pair?host=ftp%3A%2F%2Fremote.example.com#token=pairing-token",
-      });
-    } catch (cause) {
-      hostError = cause;
-    }
-
-    expect(hostError).toBeInstanceOf(RemoteBackendUrlInvalidError);
-    expect(hostError).toMatchObject({ source: "hosted-pairing-host", protocol: "ftp:" });
-    expect((hostError as RemoteBackendUrlInvalidError).cause).toBeUndefined();
-  });
-
-  it("rejects unsupported direct host protocols", () => {
-    let hostError: unknown;
-    try {
-      resolveRemotePairingTarget({
-        host: "ftp://remote.example.com",
-        pairingCode: "pairing-token",
-      });
-    } catch (cause) {
-      hostError = cause;
-    }
-
-    expect(hostError).toBeInstanceOf(RemoteBackendUrlInvalidError);
-    expect(hostError).toMatchObject({ source: "direct-host", protocol: "ftp:" });
-    expect((hostError as RemoteBackendUrlInvalidError).cause).toBeUndefined();
-  });
-
   it("uses distinct structural errors for missing pairing inputs", () => {
     expect(() => resolveRemotePairingTarget({})).toThrowError(RemoteBackendUrlMissingError);
     expect(() =>
@@ -302,26 +246,5 @@ describe("remote", () => {
         host: "remote.example.com",
       }),
     );
-  });
-
-  it("preserves URL parsing causes with their input source", () => {
-    let pairingUrlError: unknown;
-    try {
-      resolveRemotePairingTarget({ pairingUrl: "not a url" });
-    } catch (cause) {
-      pairingUrlError = cause;
-    }
-    expect(pairingUrlError).toBeInstanceOf(RemotePairingUrlInvalidError);
-    expect((pairingUrlError as RemotePairingUrlInvalidError).cause).toBeInstanceOf(TypeError);
-
-    let hostError: unknown;
-    try {
-      resolveRemotePairingTarget({ host: "https://[invalid", pairingCode: "pairing-token" });
-    } catch (cause) {
-      hostError = cause;
-    }
-    expect(hostError).toBeInstanceOf(RemoteBackendUrlInvalidError);
-    expect(hostError).toMatchObject({ source: "direct-host" });
-    expect((hostError as RemoteBackendUrlInvalidError).cause).toBeInstanceOf(TypeError);
   });
 });

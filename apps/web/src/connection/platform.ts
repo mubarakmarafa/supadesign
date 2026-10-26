@@ -25,7 +25,9 @@ import {
   AuthStandardClientScopes,
   type DesktopBridge,
   type DesktopEnvironmentBootstrap,
+  type DesktopSshEnvironmentBootstrap,
   type DesktopSshEnvironmentTarget,
+  type EnvironmentId,
   PRIMARY_LOCAL_ENVIRONMENT_ID,
 } from "@supaterm/contracts";
 import * as Clock from "effect/Clock";
@@ -48,6 +50,7 @@ import {
 import { clearComposerDraftsEnvironment } from "../composerDraftStore";
 import { isHostedStaticApp } from "../hostedPairing";
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
+import { randomUUID } from "../lib/utils";
 import { acknowledgeRpcRequest, trackRpcRequestSent } from "../rpc/requestLatencyState";
 import {
   desktopLocalConnectionId,
@@ -91,11 +94,8 @@ interface NetworkInformationLike extends EventTarget {
 }
 
 /**
- * Wakes connections when the browser reports a different network type, such
- * as a laptop moving from Wi-Fi to a phone hotspot. `change` also fires for
- * bandwidth and latency estimates on the same network, so only a type change
- * counts. Browsers without `navigator.connection.type` rely on the periodic
- * route check instead.
+ * `change` also fires for bandwidth and latency estimates on the same network,
+ * so only a type change counts.
  */
 const networkPathChanges = Stream.callback<"network-changed">((queue) =>
   Effect.acquireRelease(
@@ -175,16 +175,44 @@ function sshPreparationError(cause: unknown) {
   });
 }
 
-export const provisionDesktopSshEnvironment = Effect.fn(
-  "web.connectionPlatform.ssh.provisionDesktop",
-)(function* (bridge: DesktopBridge, target: DesktopSshEnvironmentTarget) {
-  const bootstrap = yield* Effect.tryPromise({
-    try: () =>
-      bridge.ensureSshEnvironment(target, {
-        issuePairingToken: true,
-      }),
+// IPC keeps running after its waiter is interrupted. A retry can adopt only
+// that interrupted waiter's unfinished setup.
+const pendingSshSetups = new Map<
+  string,
+  { readonly promise: Promise<DesktopSshEnvironmentBootstrap>; signal: AbortSignal }
+>();
+
+const ensureDesktopSshEnvironment = (bridge: DesktopBridge, target: DesktopSshEnvironmentTarget) =>
+  Effect.tryPromise({
+    try: (signal) => {
+      const key = sshTargetKey(target);
+      const pending = pendingSshSetups.get(key);
+      if (pending?.signal.aborted) {
+        pending.signal = signal;
+        return pending.promise;
+      }
+      const setup = {
+        promise: bridge.ensureSshEnvironment(target, { issuePairingToken: true }),
+        signal,
+      };
+      pendingSshSetups.set(key, setup);
+      const forget = () => {
+        if (pendingSshSetups.get(key) === setup) pendingSshSetups.delete(key);
+      };
+      setup.promise.then(forget, forget);
+      return setup.promise;
+    },
     catch: sshPreparationError,
   });
+
+export const provisionDesktopSshEnvironment = Effect.fn(
+  "web.connectionPlatform.ssh.provisionDesktop",
+)(function* (
+  bridge: DesktopBridge,
+  target: DesktopSshEnvironmentTarget,
+  expectedEnvironmentId?: EnvironmentId,
+) {
+  const bootstrap = yield* ensureDesktopSshEnvironment(bridge, target);
   const pairingToken = bootstrap.pairingToken;
   if (pairingToken === null) {
     return yield* new ConnectionBlockedError({
@@ -196,6 +224,12 @@ export const provisionDesktopSshEnvironment = Effect.fn(
     try: () => bridge.fetchSshEnvironmentDescriptor(bootstrap.httpBaseUrl),
     catch: sshPreparationError,
   });
+  if (expectedEnvironmentId !== undefined && descriptor.environmentId !== expectedEnvironmentId) {
+    return yield* new ConnectionBlockedError({
+      reason: "configuration",
+      detail: `That host reaches ${descriptor.label}, a different machine. Add it as its own environment instead.`,
+    });
+  }
   const access = yield* Effect.tryPromise({
     try: () => bridge.bootstrapSshBearerSession(bootstrap.httpBaseUrl, pairingToken),
     catch: sshPreparationError,
@@ -207,6 +241,112 @@ export const provisionDesktopSshEnvironment = Effect.fn(
     bearerToken: access.access_token,
   };
 });
+
+// The bridge cannot cancel an SSH launch, and launches for one host run one at
+// a time, so a retry that gave up waiting joins the launch still running
+// instead of queueing another behind it.
+const pendingSshReconnects = new Map<string, Promise<DesktopSshEnvironmentBootstrap>>();
+
+const sshTargetKey = (target: DesktopSshEnvironmentTarget) =>
+  JSON.stringify([target.alias, target.hostname, target.username, target.port]);
+
+function ensureSshEnvironmentForReconnect(
+  bridge: DesktopBridge,
+  target: DesktopSshEnvironmentTarget,
+): Promise<DesktopSshEnvironmentBootstrap> {
+  const key = sshTargetKey(target);
+  const pending = pendingSshReconnects.get(key);
+  if (pending !== undefined) return pending;
+  const launch = bridge.ensureSshEnvironment(target, { issuePairingToken: false }).finally(() => {
+    if (pendingSshReconnects.get(key) === launch) pendingSshReconnects.delete(key);
+  });
+  pendingSshReconnects.set(key, launch);
+  return launch;
+}
+
+export const disconnectDesktopSshEnvironment = Effect.fn(
+  "web.connectionPlatform.ssh.disconnectDesktop",
+)(function* (bridge: DesktopBridge, target: DesktopSshEnvironmentTarget) {
+  // A disconnect queues behind the running launch and tears its tunnel down,
+  // so a later reconnect must start a launch of its own instead of joining it.
+  pendingSshReconnects.delete(sshTargetKey(target));
+  yield* Effect.tryPromise({
+    try: () => bridge.disconnectSshEnvironment(target),
+    catch: (cause) =>
+      new ConnectionTransientError({
+        reason: "remote-unavailable",
+        detail: `Could not disconnect the SSH environment: ${String(cause)}`,
+      }),
+  });
+});
+
+/**
+ * Connects a saved SSH environment. A token from an earlier pairing is kept
+ * while the host still accepts it with every standard scope, because every
+ * pairing adds a session there.
+ */
+export const prepareDesktopSshEnvironment = Effect.fn("web.connectionPlatform.ssh.prepareDesktop")(
+  function* (
+    bridge: DesktopBridge,
+    input: {
+      readonly target: DesktopSshEnvironmentTarget;
+      readonly expectedEnvironmentId: EnvironmentId;
+      readonly bearerToken?: string;
+    },
+  ) {
+    const bearerToken = input.bearerToken;
+    if (bearerToken !== undefined) {
+      const bootstrap = yield* Effect.tryPromise({
+        try: () => ensureSshEnvironmentForReconnect(bridge, input.target),
+        catch: sshPreparationError,
+      });
+      // Stop without sending the saved token, or pairing, when the forward
+      // reaches a different environment.
+      const descriptor = yield* Effect.tryPromise({
+        try: () => bridge.fetchSshEnvironmentDescriptor(bootstrap.httpBaseUrl),
+        catch: sshPreparationError,
+      });
+      if (descriptor.environmentId !== input.expectedEnvironmentId) {
+        return yield* new ConnectionBlockedError({
+          reason: "configuration",
+          detail: `That host reaches ${descriptor.label}, a different machine. Add it as its own environment instead.`,
+        });
+      }
+      const session = yield* Effect.tryPromise({
+        try: () => bridge.fetchSshSessionState(bootstrap.httpBaseUrl, bearerToken),
+        catch: sshPreparationError,
+      });
+      // Servers never widen a stored grant, so a token from before the standard
+      // scopes grew is replaced by pairing again.
+      const granted = session.scopes ?? [];
+      if (
+        session.authenticated &&
+        AuthStandardClientScopes.every((scope) => granted.includes(scope))
+      ) {
+        return { bootstrap, bearerToken };
+      }
+    }
+    const provisioned = yield* provisionDesktopSshEnvironment(
+      bridge,
+      input.target,
+      input.expectedEnvironmentId,
+    );
+    return { bootstrap: provisioned.bootstrap, bearerToken: provisioned.bearerToken };
+  },
+);
+
+const ANALYTICS_DEVICE_ID_KEY = "supaterm:analytics-device-id";
+
+// Lives as long as this browser profile's site data. Storage can be blocked, which only drops the id.
+const analyticsDevice = {
+  id: Effect.try(() => {
+    const existing = window.localStorage.getItem(ANALYTICS_DEVICE_ID_KEY);
+    if (existing) return existing;
+    const created = randomUUID();
+    window.localStorage.setItem(ANALYTICS_DEVICE_ID_KEY, created);
+    return created;
+  }).pipe(Effect.option),
+};
 
 const layerCapabilities = Layer.effectContext(
   Effect.sync(() => {
@@ -242,46 +382,20 @@ const layerCapabilities = Layer.effectContext(
             detail: "SSH environments are only available in the desktop app.",
           });
         }
-        const bootstrap = yield* Effect.tryPromise({
-          try: () =>
-            bridge.ensureSshEnvironment(input.target, {
-              issuePairingToken: true,
-            }),
-          catch: sshPreparationError,
-        });
-        if (bootstrap.pairingToken === null) {
-          return yield* new ConnectionBlockedError({
-            reason: "authentication",
-            detail: "The SSH environment did not issue a pairing credential.",
-          });
-        }
-        const access = yield* Effect.tryPromise({
-          try: () =>
-            bridge.bootstrapSshBearerSession(bootstrap.httpBaseUrl, bootstrap.pairingToken!),
-          catch: sshPreparationError,
-        });
-        return {
-          bootstrap,
-          bearerToken: access.access_token,
-        };
+        return yield* prepareDesktopSshEnvironment(bridge, input);
       }),
       disconnect: Effect.fn("web.connectionPlatform.ssh.disconnect")(function* (target) {
         const bridge = window.desktopBridge;
         if (bridge === undefined) {
           return;
         }
-        yield* Effect.tryPromise({
-          try: () => bridge.disconnectSshEnvironment(target),
-          catch: (cause) =>
-            new ConnectionTransientError({
-              reason: "remote-unavailable",
-              detail: `Could not disconnect the SSH environment: ${String(cause)}`,
-            }),
-        });
+        pendingSshSetups.delete(sshTargetKey(target));
+        yield* disconnectDesktopSshEnvironment(bridge, target);
       }),
     });
 
     return Context.make(ClientCapabilities.PrimaryEnvironmentAuth, primaryAuth).pipe(
+      Context.add(ClientCapabilities.AnalyticsDevice, analyticsDevice),
       Context.add(ClientCapabilities.ClientPresentation, presentation),
       Context.add(ClientCapabilities.SshEnvironmentGateway, ssh),
     );
@@ -307,9 +421,6 @@ const loadPrimaryConnectionRegistration = Effect.fn(
   });
 });
 
-// A desktop-local secondary backend (e.g. a parallel WSL backend) lives on its
-// own loopback origin, so — unlike the same-origin primary — it authenticates
-// with a bearer token minted from the bootstrap credential the desktop issues.
 const loadSecondaryConnectionRegistration = Effect.fn(
   "web.connectionPlatform.loadSecondaryConnectionRegistration",
 )(function* (entry: DesktopEnvironmentBootstrap) {
@@ -329,8 +440,6 @@ const loadSecondaryConnectionRegistration = Effect.fn(
     Effect.mapError(mapRemoteEnvironmentError),
   );
   const issuedAtEpochMs = yield* Clock.currentTimeMillis;
-  // The desktop seed grant is administrative so the primary window can manage
-  // access; a secondary backend session only needs to operate its environment.
   const access = yield* bootstrapRemoteBearerSession({
     httpBaseUrl,
     credential: entry.bootstrapToken,
@@ -342,9 +451,6 @@ const loadSecondaryConnectionRegistration = Effect.fn(
   // backend id lets desktop-only operations (notably the WSL folder picker)
   // route back to the instance that owns the environment.
   const connectionId = desktopLocalConnectionId(entry.id);
-  // Prefer the desktop's bootstrap label (it identifies the backend and distro,
-  // e.g. "WSL: Ubuntu") over the generic descriptor label, so consumers can show
-  // a meaningful name without recovering it from the bootstrap list later.
   const label = entry.label || descriptor.label;
   return {
     registration: new BearerConnectionRegistration({
@@ -373,14 +479,14 @@ const loadSecondaryConnectionRegistration = Effect.fn(
 const PLATFORM_POLL_INTERVAL = "3 seconds";
 const SECONDARY_BEARER_REFRESH_SKEW_MS = 5_000;
 
-export function secondaryBearerExpiresAtEpochMs(
+function secondaryBearerExpiresAtEpochMs(
   issuedAtEpochMs: number,
   expiresInSeconds: number,
 ): number {
   return issuedAtEpochMs + Math.max(0, expiresInSeconds * 1_000);
 }
 
-export function secondaryBearerRefreshAtEpochMs(
+function secondaryBearerRefreshAtEpochMs(
   issuedAtEpochMs: number,
   expiresInSeconds: number,
 ): number {
@@ -396,7 +502,6 @@ interface CachedPlatformRegistration {
   readonly registration: PlatformConnectionRegistration;
   readonly expiresAtEpochMs?: number;
   readonly refreshAtEpochMs?: number;
-  /** The bootstrap token a desktop-local bearer was exchanged for. */
   readonly bootstrapToken?: string;
 }
 
@@ -410,7 +515,7 @@ export type PrimaryEnvironmentTargetRead =
       readonly cause: unknown;
     };
 
-export function readPrimaryEnvironmentTargetResult(
+function readPrimaryEnvironmentTargetResult(
   readTarget: () => PrimaryEnvironmentTarget | null = readPrimaryEnvironmentTarget,
 ): PrimaryEnvironmentTargetRead {
   try {
@@ -453,7 +558,6 @@ export function canRetainCachedPlatformRegistrationAfterRefreshFailure(
 const REJECTED_BOOTSTRAP_RETRY_INITIAL_MS = 60_000;
 const REJECTED_BOOTSTRAP_RETRY_MAX_MS = 30 * 60_000;
 
-/** A bootstrap token a backend rejected, and when the poll may try it again. */
 export interface RejectedSecondaryBootstrap {
   readonly signature: string;
   readonly retryAtEpochMs: number;
@@ -463,10 +567,9 @@ export interface RejectedSecondaryBootstrap {
 /**
  * A backend that rejected a bootstrap token will usually keep rejecting it, so
  * the poll backs off on that exact signature instead of re-presenting a dead
- * credential every few seconds. It still retries on a capped backoff: a
- * backend that restarts on the same port seeds a fresh grant for the same
- * token, and nothing in the topology says it restarted. A new token or
- * endpoint retries at once.
+ * credential every few seconds. It still retries on a capped backoff: a backend
+ * that restarts on the same port seeds a fresh grant for the same token, and
+ * nothing in the topology says it restarted.
  */
 export function isRejectedSecondaryBootstrap(
   rejected: RejectedSecondaryBootstrap | undefined,
@@ -522,10 +625,6 @@ const layerPlatformConnectionSource = Layer.effect(
     const cacheRef = yield* Ref.make(new Map<string, CachedPlatformRegistration>());
     const rejectedRef = yield* Ref.make(new Map<string, RejectedSecondaryBootstrap>());
 
-    // Resolve the full set of platform-managed environments the host currently
-    // reports: the primary (same-origin cookie auth) plus any desktop-local
-    // backends running alongside it (bearer auth). Reused registrations come
-    // from the cache; a failed entry is skipped and retried on the next poll.
     const buildPlatformRegistrations = Effect.gen(function* () {
       const previous = yield* Ref.get(cacheRef);
       const nowEpochMs = yield* Clock.currentTimeMillis;
@@ -611,7 +710,6 @@ const layerPlatformConnectionSource = Layer.effect(
           const previouslyRejected = rejected.get(bootstrap.id);
           if (isRejectedSecondaryBootstrap(previouslyRejected, signature, nowEpochMs)) {
             nextRejected.set(bootstrap.id, previouslyRejected);
-            // The bearer minted before the token died is still good until it expires.
             if (
               cached !== undefined &&
               canRetainCachedPlatformRegistrationAfterRefreshFailure(
@@ -704,11 +802,11 @@ const layerEnvironmentOwnedDataCleanup = Layer.succeed(
 const layerRpcRequestObserver = Layer.succeed(
   EnvironmentRpcRequestObserver,
   EnvironmentRpcRequestObserver.of({
-    observe: ({ environmentId, method }) =>
+    observe: ({ environmentId, environmentLabel, method }) =>
       Effect.sync(() => {
         nextObservedRpcRequestId += 1;
         const requestId = `${environmentId}:${nextObservedRpcRequestId}`;
-        trackRpcRequestSent(requestId, method, `${method} · ${environmentId}`);
+        trackRpcRequestSent(requestId, method, `${method} · ${environmentLabel}`);
         return Effect.sync(() => {
           acknowledgeRpcRequest(requestId);
         });

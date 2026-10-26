@@ -9,7 +9,8 @@ yourself. Agents get the same device through `device_*` tools and the
 
 Open the right panel in a project thread and choose **Device**. On first use,
 the panel walks through three steps: starting the device hub, checking iOS and
-Android support, and choosing whether agents may control devices. Opening the
+Android support, and reviewing agent access. Enabling the hub also enables agent
+access; turn off **Agent device access** to keep manual control only. Opening the
 panel alone does not download or start anything. If the hub is already
 installed, the setup screen says so and reuses it.
 
@@ -31,7 +32,15 @@ macOS with Xcode. Android needs the SDK Platform-Tools, Android Emulator,
 and Command-line Tools (latest), plus a virtual device created in Android
 Studio's Device Manager. Supaterm detects standard SDK locations; set
 `ANDROID_HOME` for a custom location. The panel explains missing dependencies.
-After installing them, restart the environment server and refresh devices.
+After installing SDK tools, restart the environment server and refresh devices.
+
+Android emulator video also needs `ffmpeg` with the libx264 encoder on the device
+host's PATH, or an executable selected by `SERVE_EMU_FFMPEG` on that host. If
+opening an emulator reports an ffmpeg problem, install or fix the executable
+and retry opening it. After changing PATH or `SERVE_EMU_FFMPEG`, restart the
+environment server for local devices, or turn device support off and on for SSH
+devices, so the running tools inherit the new environment. Physical Android
+devices and iOS do not need ffmpeg.
 
 The screen is interactive: click and drag to touch, type while the screen is
 focused, and use the toolbar for Home, Back, and Recents on Android, rotate on
@@ -72,8 +81,8 @@ activity also appears in the thread timeline.
 Agents drive the device through the `agent-device` command line. Supaterm
 installs and starts it only after **Agent device access** is enabled. iOS
 taps build a small test runner on first use, which takes a couple of minutes
-once per server. Restart an existing agent session after granting access so it
-receives the device CLI environment.
+once per server. After enabling the device hub or agent access, restart existing
+agent sessions so they receive the device CLI environment.
 
 To keep agents away from simulators, turn off **Agent device access** in
 **Settings → Integrations → Devices**. This hides the device tools from agents
@@ -100,7 +109,9 @@ the environment’s own machine are skipped, since its devices are already local
 The first device listing installs pinned device tools on the host.
 Node 22 or newer and npm must be available to non-interactive SSH commands.
 Supaterm checks common Homebrew and Android SDK locations; custom installations need
-the appropriate PATH and ANDROID_HOME on the host.
+the appropriate PATH and ANDROID_HOME on the host. Android emulator video needs
+`ffmpeg` with libx264 on that host; physical Android devices use scrcpy and do
+not need ffmpeg.
 
 The picker identifies devices by host when several hosts are configured.
 Connections recover after interruptions. Removing a host closes its device

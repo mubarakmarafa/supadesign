@@ -21,7 +21,6 @@ interface ToolResult {
   readonly failed: boolean;
 }
 
-/** Reads the structured/JSON MCP result envelopes retained by the provider adapters. */
 function readResult(value: unknown, depth = 0): ToolResult {
   if (depth > 4) return { failed: false };
   if (typeof value === "string") {
@@ -60,7 +59,7 @@ function readResult(value: unknown, depth = 0): ToolResult {
 
 function readInput(value: unknown): Record<string, unknown> | undefined {
   const input = readResult(value).data;
-  // Cursor retains its MCP args envelope; other adapters retain the arguments directly.
+  // Historical Cursor items retain the MCP args envelope.
   return input && typeof input.toolName === "string" ? asRecord(input.args) : input;
 }
 
@@ -80,7 +79,6 @@ function quantity(count: number, noun: string, plural = `${noun}s`): string {
   return `${count} ${count === 1 ? noun : plural}`;
 }
 
-/** Counts successful effects separately from failed or unfinished tool calls. */
 export function summarizeSupatermToolCalls(
   action: SupatermMcpToolSummaryAction,
   calls: ReadonlyArray<SupatermToolSummaryCall>,
@@ -203,7 +201,6 @@ export function summarizeSupatermToolCalls(
       );
       break;
     case "schedule-delete":
-      // A successful delete can report deleted:false; it still represents a deletion request.
       label = phrase(
         "Requested deletion of",
         "delete",
@@ -348,7 +345,6 @@ export function summarizeSupatermToolCalls(
       );
       break;
     case "attachment-send": {
-      // A message can contain several attachments. Count retries by message identity.
       const messages = new Map<string, (typeof selected)[number]>();
       selected.forEach((call, index) =>
         messages.set(id(call.output?.messageId) ?? `call-${index}`, call),
@@ -389,6 +385,16 @@ export function summarizeSupatermToolCalls(
         quantity(selected.length, "pull request"),
       );
       break;
+    case "watch-run":
+      label = phrase("Watching", "watch", quantity(selected.length, "workflow run"));
+      break;
+    case "unwatch-run":
+      label = phrase(
+        "Stopped watching",
+        "stop watching",
+        quantity(selected.length, "workflow run"),
+      );
+      break;
     case "list-prs":
       label = phrase(
         "Checked",
@@ -406,15 +412,19 @@ export function summarizeSupatermToolCalls(
       const started = outcomes.filter((outcome) => outcome !== "failed").length;
       const failed = outcomes.length - started;
       failedCount += failed;
-      if (outcomes.length > 0 && started === 0) {
+      if (outcomes.length === 0) {
+        label = phrase(
+          "Started writing",
+          "start writing",
+          `review guides${selected.length === 1 ? "" : ` ${times}`}`,
+        );
+      } else if (started === 0) {
         label = `Could not start ${quantity(failed, "review guide")}`;
       } else {
         label = phrase(
           "Started",
           "start",
-          outcomes.length === 0
-            ? `review guides ${times}`
-            : `${quantity(started, "review guide")}${failed > 0 ? `, ${failed} failed` : ""}`,
+          `${quantity(started, "review guide")}${failed > 0 ? `, ${failed} failed` : ""}`,
         );
       }
       break;

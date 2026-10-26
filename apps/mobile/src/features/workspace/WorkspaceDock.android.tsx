@@ -1,4 +1,4 @@
-import { AndroidAnchoredMenu } from "../../components/AndroidAnchoredMenu";
+import { AndroidAnchoredMenu } from "../../components/ui/AndroidAnchoredMenu";
 import { AndroidWorkspaceNavigation } from "./AndroidWorkspaceNavigation";
 import { WorkspaceDockFrame } from "./WorkspaceDockFrame";
 import type { WorkspaceDockProps } from "./WorkspaceDock.types";
@@ -13,12 +13,10 @@ export function WorkspaceDock(props: WorkspaceDockProps) {
       >
         {(open) => (
           <AndroidWorkspaceNavigation
-            dock={{
-              showTabs: props.showTabs !== false,
-              filterCustomized: props.filterMenu?.customized ?? false,
-              onFilter: open,
-              onCompose: props.onNewTask,
-            }}
+            showTabs={props.showTabs !== false}
+            filterCustomized={props.filterMenu?.customized ?? false}
+            onFilter={open}
+            onCompose={props.onNewTask}
           />
         )}
       </AndroidAnchoredMenu>

@@ -1,3 +1,4 @@
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { makeLocalFileTracer, makeTraceSink } from "@supaterm/shared/observability";
 import * as SharedObservability from "@supaterm/shared/observability";
 import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
@@ -8,6 +9,7 @@ import * as Tracer from "effect/Tracer";
 import * as OtlpExporter from "effect/observability/OtlpExporter";
 import * as OtlpMetrics from "effect/observability/OtlpMetrics";
 import * as OtlpTracer from "effect/observability/OtlpTracer";
+import * as Statement from "effect/sql/Statement";
 
 import * as ServerConfig from "../config.ts";
 import * as ResourceAttribution from "../resourceTelemetry/ResourceAttribution.ts";
@@ -23,12 +25,15 @@ export const layer = Layer.unwrap(
     // The trace serializer stays in the returned context because the browser
     // trace forwarder exports on the same signal.
     const layerSerialization = SharedObservability.layerOtlpSerialization(traces.protocol);
-    const resource = ServerConfig.otlpResource(config);
+    const resource = ServerConfig.otlpResource(config, yield* HostProcess.Hostname);
     const attribution = yield* ResourceAttribution.ResourceAttribution;
 
     const layerTraceReferences = Layer.mergeAll(
       Layer.succeed(Tracer.MinimumTraceLevel, config.traceMinLevel),
       Layer.succeed(References.TracerTimingEnabled, config.traceTimingEnabled),
+      // Keeps each SQL statement's span current while it waits for a connection,
+      // so the client can record the lock wait on it.
+      Layer.succeed(Statement.SpanPropagationEnabled, true),
     );
 
     const layerTracer = Layer.unwrap(
@@ -83,7 +88,6 @@ export const layer = Layer.unwrap(
             resource,
           }).pipe(Layer.provide(SharedObservability.layerOtlpSerialization(metrics.protocol)));
 
-    // Logged once the server's loggers are installed, so the warnings use them.
     const layerOtelWarnings = Layer.effectDiscard(
       Effect.forEach(config.otelEnvironment.warnings, (warning) => Effect.logWarning(warning)),
     );

@@ -7,11 +7,11 @@ import {
   SettingsIcon,
 } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { parseKeybindingShortcut } from "@supaterm/shared/keybindings";
 
-import { APP_BASE_NAME, WEBSITE_URL } from "../../branding";
+import { APP_BASE_NAME, SOURCE_CODE_URL, WEBSITE_URL } from "../../branding";
 import { isElectron } from "../../env";
 import { useSendFeedback } from "../../hooks/useSendFeedback";
 import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
@@ -24,8 +24,9 @@ import {
   resolveEnvironmentIdentificationPillLabel,
   SidebarStageBackdrop,
   useEnvironmentStageLabel,
-  useSidebarStageBackdropVariant,
+  useSidebarStageBackdrop,
 } from "../SidebarStageBackdrop";
+import { GitHubIcon } from "../Icons";
 import { Badge } from "../ui/badge";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import {
@@ -53,36 +54,29 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
 }) {
   const stageLabel = useEnvironmentStageLabel();
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
-  const backdropVariant = useSidebarStageBackdropVariant(
-    environmentIdentificationMode === "artwork",
-  );
+  const showStageBackdrop = useSidebarStageBackdrop(environmentIdentificationMode === "artwork");
   const pillLabel =
     environmentIdentificationMode === "pill"
       ? resolveEnvironmentIdentificationPillLabel(stageLabel)
       : null;
 
   return (
-    // The titlebar row, not a padded SidebarHeader: it aligns to the window controls.
     <div
       className={cn(
         "relative flex h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center gap-2 pr-3",
         isElectron && "drag-region",
       )}
     >
-      {backdropVariant ? <SidebarStageBackdrop variant={backdropVariant} /> : null}
-      {/* Match the fixed control's inset and border compensation inside the sheet's safe area. */}
+      {showStageBackdrop ? <SidebarStageBackdrop /> : null}
       <div className="relative top-[calc(var(--workspace-controls-top)-env(safe-area-inset-top))] z-10 ml-[calc(var(--workspace-controls-left)+1px-env(safe-area-inset-left))] flex shrink-0 items-center md:hidden">
         <SidebarTrigger
-          // Over the stage artwork: the media viewer's control-on-imagery treatment.
-          variant={backdropVariant ? "media-navigation" : "ghost"}
+          variant={showStageBackdrop ? "media-navigation" : "ghost"}
           className="relative top-auto translate-y-0"
           aria-label="Toggle main sidebar"
         />
       </div>
-      {/* One visible line: the pill wraps onto the clipped second line once it no longer fits.
-          The padding keeps the brand's focus ring inside the clip. */}
       <div className="relative z-10 flex h-8 min-w-0 flex-1 flex-wrap content-start items-center gap-x-2 overflow-hidden py-0.5">
-        <SidebarBrand onBackdrop={backdropVariant !== null} />
+        <SidebarBrand onBackdrop={showStageBackdrop} />
         {pillLabel ? (
           <div className="ml-1 flex h-7 items-center">
             <Badge data-environment-identification="pill" size="sm" variant="secondary">
@@ -95,21 +89,16 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   );
 });
 
-// Measures the brand at its titlebar inset, plus the header's right padding and the
-// sidebar border, so the sidebar minimum follows font size, zoom and macOS window controls.
 export function SidebarBrandWidthProbe({
   onWidthChange,
 }: {
   onWidthChange: (width: number) => void;
 }) {
-  const observeWidth = useCallback(
-    (probe: HTMLDivElement) => {
-      return observeResize(probe, ([entry]) => {
-        if (entry) onWidthChange(entry.borderBoxSize[0]?.inlineSize ?? probe.offsetWidth);
-      });
-    },
-    [onWidthChange],
-  );
+  const observeWidth = (probe: HTMLDivElement) => {
+    return observeResize(probe, ([entry]) => {
+      if (entry) onWidthChange(entry.borderBoxSize[0]?.inlineSize ?? probe.offsetWidth);
+    });
+  };
 
   return (
     <div
@@ -181,6 +170,12 @@ function SidebarUtilityItem({
   );
 }
 
+function openExternalLink(url: string) {
+  void readLocalApi()
+    ?.shell.openExternal(url)
+    .catch(() => toastManager.add({ type: "error", title: "Unable to open the link" }));
+}
+
 function SidebarHelpItem({ closeMobileSidebar }: { closeMobileSidebar: () => void }) {
   const sendFeedback = useSendFeedback();
 
@@ -207,17 +202,13 @@ function SidebarHelpItem({ closeMobileSidebar }: { closeMobileSidebar: () => voi
             <MessageSquareTextIcon />
             Send feedback
           </MenuItem>
-          <MenuItem
-            onClick={() => {
-              void readLocalApi()
-                ?.shell.openExternal(WEBSITE_URL)
-                .catch(() =>
-                  toastManager.add({ type: "error", title: "Unable to open the website" }),
-                );
-            }}
-          >
+          <MenuItem onClick={() => openExternalLink(WEBSITE_URL)}>
             <GlobeIcon />
-            Visit website
+            supaterm.com
+          </MenuItem>
+          <MenuItem onClick={() => openExternalLink(SOURCE_CODE_URL)}>
+            <GitHubIcon />
+            View source on GitHub
           </MenuItem>
         </MenuPopup>
       </Menu>
@@ -235,34 +226,34 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   const pullRequestsSupported = usePullRequestsSupported();
   const usageShortcut = useShortcutLabel("usage.open");
   const settingsShortcut = isElectron ? formatShortcutLabel(DESKTOP_SETTINGS_SHORTCUT) : null;
-  const closeMobileSidebar = useCallback(() => {
+  const closeMobileSidebar = () => {
     if (isMobile) {
       setOpenMobile(false);
     }
-  }, [isMobile, setOpenMobile]);
-  const handlePullRequestsClick = useCallback(() => {
+  };
+  const handlePullRequestsClick = () => {
     closeMobileSidebar();
     void navigate({
       to: "/pull-requests",
       search: readPullRequestListPreferences(),
     });
-  }, [closeMobileSidebar, navigate]);
-  const handleSettingsClick = useCallback(() => {
+  };
+  const handleSettingsClick = () => {
     closeMobileSidebar();
     void navigate({ to: "/settings" });
-  }, [closeMobileSidebar, navigate]);
+  };
 
-  const handleUsageClick = useCallback(() => {
+  const handleUsageClick = () => {
     if (isMobile) {
       setOpenMobile(false);
     }
     void navigate({ to: "/usage" });
-  }, [isMobile, navigate, setOpenMobile]);
+  };
 
-  const handleBackClick = useCallback(() => {
+  const handleBackClick = () => {
     closeMobileSidebar();
     void navigateToMainApp();
-  }, [closeMobileSidebar, navigateToMainApp]);
+  };
 
   return (
     <SidebarMenu className="flex-row items-center">

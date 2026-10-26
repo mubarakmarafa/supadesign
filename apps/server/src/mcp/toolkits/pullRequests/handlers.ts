@@ -10,6 +10,7 @@ import {
   type SourceControlProviderKind,
   type ThreadId,
   type ThreadPullRequestLink,
+  type ThreadWorkflowRunWatch,
 } from "@supaterm/contracts";
 import { changeRequestUrlFor, parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
 import {
@@ -24,8 +25,11 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 
 import * as Orchestrator from "../../../orchestration-v2/Orchestrator.ts";
+import { sameWorkflowRun } from "../../../orchestration-v2/workflowRunWatch.ts";
 import * as ProjectService from "../../../project/ProjectService.ts";
+import * as RepositoryIdentityResolver from "../../../project/RepositoryIdentityResolver.ts";
 import * as PullRequestReviewGuideService from "../../../pullRequest/PullRequestReviewGuideService.ts";
+import * as PullRequestService from "../../../pullRequest/PullRequestService.ts";
 import { projectForPullRequest } from "../../../pullRequest/pullRequestSyncKey.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
@@ -47,6 +51,11 @@ import {
   PullRequestProjectNotFoundError,
   PullRequestsToolkit,
   type ThreadPullRequestEntry,
+  WorkflowRunTargetInvalidError,
+  type WorkflowRunTargetInput,
+  WorkflowRunUnreadableError,
+  WorkflowRunWatchFailedError,
+  WorkflowRunWatchFromSubagentError,
 } from "./tools.ts";
 
 interface ResolvedTarget {
@@ -56,7 +65,6 @@ interface ResolvedTarget {
   readonly url: string;
 }
 
-/** The project's host and provider supply defaults for a repository-and-number input. */
 function projectHostAndProvider(project: OrchestrationProjectShell | undefined): {
   readonly host: string | null;
   readonly kind: SourceControlProviderKind | null;
@@ -70,12 +78,6 @@ function projectHostAndProvider(project: OrchestrationProjectShell | undefined):
   };
 }
 
-/**
- * Turns whichever shape the agent passed into one host-level identity. A URL
- * wins outright; otherwise the repository and number are completed with the
- * thread's project host, which is where an agent working in that checkout
- * almost always opened the pull request.
- */
 const resolveTarget = Effect.fn("PullRequestsToolkit.resolveTarget")(function* (
   input: PullRequestTargetInput,
   project: OrchestrationProjectShell | undefined,
@@ -98,17 +100,49 @@ const resolveTarget = Effect.fn("PullRequestsToolkit.resolveTarget")(function* (
   const repository = input.repository.toLowerCase();
   const url =
     changeRequestUrlFor(
-      // The project's kind only describes its own host; another host gets no URL guess.
       host === projectHost.host ? projectHost.kind : null,
       host,
       repository,
       input.number,
       project?.repositoryIdentity?.locator.remoteUrl,
-    ) ?? `https://${host}/${repository}/pull/${input.number}`;
+    ) ??
+    (/(?:^|\/)_git\/[^/]+$/u.test(repository)
+      ? changeRequestUrlFor(
+          "azure-devops",
+          host,
+          repository,
+          input.number,
+          project?.repositoryIdentity?.locator.remoteUrl,
+        )
+      : null) ??
+    `https://${host}/${repository}/pull/${input.number}`;
   return {
     ...normalizeThreadPullRequestKey({ host, repository, number: input.number, url }),
     url,
   } satisfies ResolvedTarget;
+});
+
+const RUN_PATH = /^\/([^/]+\/[^/]+)\/actions\/runs\/([1-9]\d*)(?:\/|$)/u;
+
+/** The run an agent named: its URL's host, repository and id, or an id the checkout resolves. */
+const workflowRunTarget = Effect.fn("PullRequestsToolkit.workflowRunTarget")(function* (
+  input: WorkflowRunTargetInput,
+) {
+  if (input.url !== undefined) {
+    const url = URL.canParse(input.url) ? new URL(input.url) : null;
+    const match = url === null ? null : RUN_PATH.exec(url.pathname);
+    const runId = match === null ? Number.NaN : Number(match[2]);
+    if (url === null || match === null || !Number.isSafeInteger(runId)) {
+      return yield* new WorkflowRunTargetInvalidError({});
+    }
+    return { host: url.hostname.toLowerCase(), repository: match[1]!, runId };
+  }
+  if (input.runId === undefined) return yield* new WorkflowRunTargetInvalidError({});
+  return {
+    runId: input.runId,
+    ...(input.repository === undefined ? {} : { repository: input.repository }),
+    ...(input.host === undefined ? {} : { host: input.host.toLowerCase() }),
+  };
 });
 
 function entryOf(
@@ -121,7 +155,7 @@ function entryOf(
     if (chain.layers.length < 2) continue;
     const index = chain.layers.findIndex((layer) => threadPullRequestKeyOf(layer) === key);
     if (index !== -1) {
-      stack = { kind: chain.kind, position: index + 1, size: chain.layers.length };
+      stack = { kind: chain.kind, position: chain.depths[index]! + 1, size: chain.layers.length };
       break;
     }
   }
@@ -141,7 +175,6 @@ function entryOf(
   };
 }
 
-/** What the tools report from a thread shell; exported so the shape is testable without a layer. */
 export function listThreadPullRequests(
   thread: Pick<OrchestrationV2ThreadShell, "pullRequests">,
 ): ListThreadPullRequestsResult {
@@ -160,12 +193,21 @@ export function listThreadPullRequests(
 const make = Effect.gen(function* () {
   const engine = yield* Orchestrator.OrchestratorV2;
   const reviewGuides = yield* PullRequestReviewGuideService.PullRequestReviewGuideService;
+  const pullRequestService = yield* PullRequestService.PullRequestService;
 
   const projects = yield* ProjectService.ProjectService;
+  const repositoryIdentities = yield* RepositoryIdentityResolver.RepositoryIdentityResolver;
   const crypto = yield* Crypto.Crypto;
 
+  const withRepositoryIdentity = (project: OrchestrationProjectShell) =>
+    project.repositoryIdentity != null
+      ? Effect.succeed(project)
+      : repositoryIdentities
+          .resolve(project.workspaceRoot)
+          .pipe(Effect.map((repositoryIdentity) => ({ ...project, repositoryIdentity })));
+
   const commandId = (tag: string, threadId: ThreadId) =>
-    crypto.randomUUIDv4.pipe(
+    crypto.randomUUIDv4().pipe(
       Effect.orDie,
       Effect.map((uuid) => CommandId.make(`server:${tag}:${threadId}:${uuid}`)),
     );
@@ -175,7 +217,8 @@ const make = Effect.gen(function* () {
       | typeof PullRequestLinkFailedError
       | typeof PullRequestUnlinkFailedError
       | typeof PullRequestListFailedError
-      | typeof PullRequestWatchFailedError,
+      | typeof PullRequestWatchFailedError
+      | typeof WorkflowRunWatchFailedError,
     requested: ThreadId | undefined,
   ) {
     const scope = yield* McpInvocationContext.requireMcpCapability("pull-requests");
@@ -201,8 +244,10 @@ const make = Effect.gen(function* () {
       | typeof PullRequestWatchFailedError,
   ) =>
     projects.getShell(thread.projectId).pipe(
-      Effect.map(Option.getOrUndefined),
       Effect.mapError((cause) => new Failure({ cause })),
+      Effect.flatMap((shell) =>
+        Option.isSome(shell) ? withRepositoryIdentity(shell.value) : Effect.undefined,
+      ),
     );
 
   const dispatchFailure =
@@ -210,22 +255,22 @@ const make = Effect.gen(function* () {
       Failure:
         | typeof PullRequestLinkFailedError
         | typeof PullRequestUnlinkFailedError
-        | typeof PullRequestWatchFailedError,
+        | typeof PullRequestWatchFailedError
+        | typeof WorkflowRunWatchFailedError,
     ) =>
     <E>(
       cause: Cause.Cause<E>,
     ): Effect.Effect<
       never,
-      PullRequestLinkFailedError | PullRequestUnlinkFailedError | PullRequestWatchFailedError
+      | PullRequestLinkFailedError
+      | PullRequestUnlinkFailedError
+      | PullRequestWatchFailedError
+      | WorkflowRunWatchFailedError
     > =>
       Cause.hasInterruptsOnly(cause)
         ? Effect.failCause(cause as Cause.Cause<never>)
         : Effect.fail(new Failure({ cause }));
 
-  /**
-   * Starts or stops a watch. One command links an unlinked pull request and watches it, and the
-   * result reports the state the thread holds afterwards.
-   */
   const setWatching = Effect.fn("PullRequestsToolkit.setWatching")(function* (
     input: PullRequestTargetInput,
     watching: boolean,
@@ -241,8 +286,6 @@ const make = Effect.gen(function* () {
       return yield* new PullRequestWatchFromSubagentError();
     }
     const before = watchedLink(thread);
-    // A merged pull request cannot reopen. A closed one can, and its saved state may be stale,
-    // so the watch starts and its first read ends it if the host still says closed.
     if (watching && before?.snapshot?.state === "merged") {
       return yield* new PullRequestNotOpenError({ state: "merged" });
     }
@@ -269,10 +312,89 @@ const make = Effect.gen(function* () {
     };
   });
 
+  const workflowRunWatchesOf = (threadId: ThreadId) =>
+    engine.getThreadRecords(threadId, []).pipe(
+      Effect.map(({ thread }) => thread.workflowRunWatches ?? []),
+      Effect.mapError((cause) => new WorkflowRunWatchFailedError({ cause })),
+    );
+
   /**
-   * Resolves each requested pull request and the project it is read through. The caller's own
-   * project wins where it is a checkout of that repository; with no thread, any project here may.
+   * Starts a watch on a run that is still going, read first so a bare id resolves to the
+   * repository `gh` picks in the checkout, and a run that already completed reports how.
    */
+  const watchWorkflowRun = Effect.fn("PullRequestsToolkit.watchWorkflowRun")(function* (
+    input: WorkflowRunTargetInput,
+  ) {
+    const thread = yield* requireThread(WorkflowRunWatchFailedError, input.threadId);
+    if (thread.lineage.relationshipToParent === "subagent") {
+      return yield* new WorkflowRunWatchFromSubagentError();
+    }
+    const target = yield* workflowRunTarget(input);
+    // Read fresh: a run the agent just reran must not look completed from a cached read.
+    const run = yield* pullRequestService
+      .workflowRun({ projectId: thread.projectId, ...target }, { fresh: true })
+      .pipe(Effect.mapError((error) => new WorkflowRunUnreadableError({ detail: error.message })));
+    if (run === null) {
+      return yield* new WorkflowRunUnreadableError({
+        detail: "this thread's project is not on a host whose workflow runs Supaterm can read.",
+      });
+    }
+    const identity = { host: run.host, repository: run.repository, runId: target.runId };
+    const watched = (watches: ReadonlyArray<ThreadWorkflowRunWatch>) =>
+      watches.some((watch) => sameWorkflowRun(watch, identity));
+    const before = watched(yield* workflowRunWatchesOf(thread.id));
+    const result = { ...identity, name: run.name, url: run.url, status: run.status };
+    if (run.status !== "pending") return { ...result, watching: before, wasWatching: before };
+    yield* engine
+      .dispatch({
+        type: "thread.workflow-run-watch.start",
+        commandId: yield* commandId("mcp-run-watch", thread.id),
+        threadId: thread.id,
+        ...identity,
+        name: run.name,
+        url: run.url,
+      })
+      .pipe(Effect.catchCause(dispatchFailure(WorkflowRunWatchFailedError)));
+    return {
+      ...result,
+      watching: watched(yield* workflowRunWatchesOf(thread.id)),
+      wasWatching: before,
+    };
+  });
+
+  const unwatchWorkflowRun = Effect.fn("PullRequestsToolkit.unwatchWorkflowRun")(function* (
+    input: WorkflowRunTargetInput,
+  ) {
+    const thread = yield* requireThread(WorkflowRunWatchFailedError, input.threadId);
+    const target = yield* workflowRunTarget(input);
+    const existing = (yield* workflowRunWatchesOf(thread.id)).find(
+      (watch) =>
+        watch.runId === target.runId &&
+        (target.host === undefined || watch.host.toLowerCase() === target.host) &&
+        (target.repository === undefined ||
+          watch.repository.toLowerCase() === target.repository.toLowerCase()),
+    );
+    if (existing !== undefined) {
+      yield* engine
+        .dispatch({
+          type: "thread.workflow-run.unwatch",
+          commandId: yield* commandId("mcp-run-unwatch", thread.id),
+          threadId: thread.id,
+          host: existing.host,
+          repository: existing.repository,
+          runId: existing.runId,
+        })
+        .pipe(Effect.catchCause(dispatchFailure(WorkflowRunWatchFailedError)));
+    }
+    return {
+      host: existing?.host ?? target.host ?? null,
+      repository: existing?.repository ?? target.repository ?? null,
+      runId: target.runId,
+      watching: false,
+      wasWatching: existing !== undefined,
+    };
+  });
+
   const locateAll = Effect.fn("PullRequestsToolkit.locateAll")(function* (
     targets: ReadonlyArray<Omit<PullRequestTargetInput, "threadId">>,
   ) {
@@ -284,11 +406,13 @@ const make = Effect.gen(function* () {
             Effect.orElseSucceed(() => null),
             Effect.map((shell) => shell ?? undefined),
           );
-    const known = yield* projects
-      .listShells()
-      .pipe(Effect.mapError((cause) => new PullRequestListFailedError({ cause })));
+    const known = yield* projects.listShells().pipe(
+      Effect.mapError((cause) => new PullRequestListFailedError({ cause })),
+      Effect.flatMap((shells) =>
+        Effect.forEach(shells, withRepositoryIdentity, { concurrency: 8 }),
+      ),
+    );
     const callerProject = known.find((project) => project.id === callerThread?.projectId);
-    // Each target resolves on its own, so one bad URL in a batch is that entry's failure only.
     return yield* Effect.forEach(targets, (input) =>
       resolveTarget(input, callerProject).pipe(
         Effect.map((target) => ({
@@ -304,7 +428,6 @@ const make = Effect.gen(function* () {
     );
   });
 
-  /** The service reads a pull request through one project's checkout and credentials. */
   const guideReference = (
     project: OrchestrationProjectShell,
     target: { readonly host: string; readonly repository: string; readonly number: number },
@@ -315,11 +438,9 @@ const make = Effect.gen(function* () {
     number: target.number,
   });
 
-  /** A host or service error, said as its own detail rather than its operation's wrapper. */
   const guideFailureDetail = (error: { readonly message: string }) =>
     "detail" in error && typeof error.detail === "string" ? error.detail : error.message;
 
-  /** A tool that changes `threadId`, or the caller's own thread when it is omitted. */
   const writesThread = <P extends { readonly threadId?: ThreadId | undefined }, A, E, R>(
     handle: (params: P) => Effect.Effect<A, E, R>,
   ) => McpToolAccess.writesThreads((params: P) => [params.threadId], handle);
@@ -348,8 +469,6 @@ const make = Effect.gen(function* () {
           })
           .pipe(
             Effect.as(false),
-            // The decider rejects a second link of the same PR; for the agent that is
-            // the outcome it asked for, not an error.
 
             Effect.catchCause(dispatchFailure(PullRequestLinkFailedError)),
           );
@@ -397,10 +516,11 @@ const make = Effect.gen(function* () {
     ),
     watch_pull_request: writesThread((input) => setWatching(input, true)),
     unwatch_pull_request: writesThread((input) => setWatching(input, false)),
+    watch_workflow_run: writesThread(watchWorkflowRun),
+    unwatch_workflow_run: writesThread(unwatchWorkflowRun),
     write_pull_request_guides: McpToolAccess.writesWithCapability((input) =>
       Effect.gen(function* () {
         const located = yield* locateAll(input.pullRequests);
-        // One pull request that cannot be guided does not stop the rest; it reports why.
         const guides = yield* Effect.forEach(
           located,
           (entry) =>

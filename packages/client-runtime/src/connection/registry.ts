@@ -41,6 +41,7 @@ import * as Persistence from "../platform/persistence.ts";
 import * as EnvironmentSupervisor from "./supervisor.ts";
 import * as ConnectionDriver from "./driver.ts";
 import * as ConnectionWakeups from "./wakeups.ts";
+import { withEnvironmentLabel } from "./labels.ts";
 import type * as RpcSession from "../rpc/session.ts";
 import {
   GitHubRoutingPermissions,
@@ -53,6 +54,7 @@ import {
   type ConnectionRouteAdvertisements,
   entryWithRoutes,
   findRouteToSameAddress,
+  hasSavedBearerRoute,
   mergeLearnedRoutes,
   routeHttpBaseUrl,
   routesAfterRemoving,
@@ -102,9 +104,13 @@ export class EnvironmentRegistry extends Context.Service<
     >;
     readonly networkStatus: SubscriptionRef.SubscriptionRef<NetworkStatus>;
     readonly start: Effect.Effect<void>;
+    /**
+     * Succeeds with `false` and changes nothing when the environment is
+     * platform-managed, since the host owns that entry.
+     */
     readonly register: (
       registration: ConnectionRegistration,
-    ) => Effect.Effect<void, Persistence.ConnectionPersistenceError>;
+    ) => Effect.Effect<boolean, Persistence.ConnectionPersistenceError>;
     readonly registerPlatform: (registration: PrimaryConnectionRegistration) => Effect.Effect<void>;
     readonly reconcilePlatform: (
       registrations: ReadonlyArray<PlatformConnectionRegistration>,
@@ -139,11 +145,15 @@ export class EnvironmentRegistry extends Context.Service<
       | ConnectionBlockedError
     >;
     readonly retryNow: (environmentId: EnvironmentId) => Effect.Effect<void>;
-    /**
-     * Switches a saved environment on or off. Off drops the socket, stops the
-     * retry ladder, and persists so the next launch stays off. Registration,
-     * credentials, and cache are untouched.
-     */
+    readonly rename: (
+      environmentId: EnvironmentId,
+      label: string | null,
+    ) => Effect.Effect<
+      void,
+      | EnvironmentNotRegisteredError
+      | Persistence.ConnectionPersistenceError
+      | ConnectionBlockedError
+    >;
     readonly setEnabled: (
       environmentId: EnvironmentId,
       enabled: boolean,
@@ -248,6 +258,9 @@ export const make = Effect.gen(function* () {
   });
   const persistedTargets = yield* storage.list;
   const disabledEnvironmentIds = new Set(yield* storage.listDisabled);
+  const platformLabels = new Map(
+    (yield* storage.listPlatformLabels).map(({ environmentId, label }) => [environmentId, label]),
+  );
   const loadRoute = Effect.fn("EnvironmentRegistry.loadRoute")(function* (
     target: ConnectionTarget,
   ) {
@@ -391,7 +404,7 @@ export const make = Effect.gen(function* () {
           const scope = yield* Scope.fork(registryScope);
           const entryRef = yield* Ref.make(entry);
           const supervisor = yield* EnvironmentSupervisor.make(entry, {
-            initiallyDesired: false,
+            initiallyDesired: entry.enabled && entry.unsupportedReason === undefined,
             entryRef,
             learnRoutes: (input) => learnRoutes({ environmentId, ...input }),
           }).pipe(
@@ -401,9 +414,6 @@ export const make = Effect.gen(function* () {
             Scope.provide(scope),
             Effect.onError(() => Scope.close(scope, Exit.void)),
           );
-          if (entry.enabled) {
-            yield* supervisor.connect;
-          }
           yield* SubscriptionRef.update(serviceScopes, (current) => {
             const next = new Map(current);
             next.set(environmentId, { entry: entryRef, supervisor, scope });
@@ -412,14 +422,7 @@ export const make = Effect.gen(function* () {
           yield* SubscriptionRef.changes(supervisor.state).pipe(
             Stream.runForEach((state) =>
               state.phase === "blocked" && state.lastFailure?.reason === "unsupported"
-                ? setCompatibility(environmentId, state.lastFailure).pipe(
-                    Effect.catch((error) =>
-                      Effect.logWarning("Could not disable an unsupported environment.", {
-                        environmentId,
-                        error,
-                      }),
-                    ),
-                  )
+                ? setCompatibility(environmentId, state.lastFailure)
                 : Effect.void,
             ),
             Effect.forkIn(scope),
@@ -529,10 +532,16 @@ export const make = Effect.gen(function* () {
     if (
       options?.retainEquivalentRuntime === true &&
       previous !== undefined &&
-      Equal.equals(previous, entry) &&
+      Equal.equals({ ...previous, defaultLabel: entry.defaultLabel }, entry) &&
       existingScope !== undefined &&
-      Equal.equals(yield* Ref.get(existingScope.entry), entry)
+      Equal.equals(yield* Ref.get(existingScope.entry), previous)
     ) {
+      if (!Equal.equals(previous, entry)) {
+        yield* Ref.set(existingScope.entry, entry);
+        yield* SubscriptionRef.update(entries, (current) =>
+          new Map(current).set(target.environmentId, entry),
+        );
+      }
       return;
     }
 
@@ -562,10 +571,10 @@ export const make = Effect.gen(function* () {
   ) {
     const registered = connectionRegistrationCatalogEntry(registration);
     const environmentId = registered.target.environmentId;
-    yield* withLeaseLock(
+    return yield* withLeaseLock(
       environmentId,
       Effect.gen(function* () {
-        if ((yield* Ref.get(platformEnvironmentIds)).has(environmentId)) return;
+        if ((yield* Ref.get(platformEnvironmentIds)).has(environmentId)) return false;
         const previous = (yield* SubscriptionRef.get(entries)).get(environmentId);
         let entry = registered;
         if (previous !== undefined) {
@@ -596,6 +605,7 @@ export const make = Effect.gen(function* () {
           new Set(current).add(environmentId),
         );
         yield* installEntryLocked(entry);
+        return true;
       }),
     );
   });
@@ -643,16 +653,22 @@ export const make = Effect.gen(function* () {
 
   const installPlatformRegistration = Effect.fn("EnvironmentRegistry.installPlatformRegistration")(
     function* (registration: PlatformConnectionRegistration) {
-      const registered = connectionRegistrationCatalogEntry(registration);
-      const target = registered.target;
       yield* withLeaseLock(
-        target.environmentId,
+        registration.target.environmentId,
         Effect.gen(function* () {
+          const registered = withEnvironmentLabel(
+            {
+              ...connectionRegistrationCatalogEntry(registration),
+              defaultLabel: registration.target.label,
+            },
+            platformLabels.get(registration.target.environmentId) ?? registration.target.label,
+          );
+          const target = registered.target;
           const previous = (yield* SubscriptionRef.get(entries)).get(target.environmentId);
           const entry: ConnectionCatalogEntry =
             previous?.unsupportedReason !== undefined &&
             gitHubRoutingConnectionKey(previous) === gitHubRoutingConnectionKey(registered)
-              ? { ...registered, enabled: false, ...unsupportedState(previous) }
+              ? { ...registered, ...unsupportedState(previous) }
               : registered;
           const persisted = (yield* Ref.get(persistedEnvironmentIds)).has(target.environmentId);
           if (
@@ -729,12 +745,7 @@ export const make = Effect.gen(function* () {
 
           yield* installEntryLocked(entry, { retainEquivalentRuntime: true });
 
-          // The catalog entry carries no credential, so a fresh bearer keeps
-          // the equivalent runtime. Anything not yet connected may be using the
-          // old bearer: an attempt in flight would fail with it and then wait
-          // blocked for a manual retry. Retry with the new one instead. A
-          // connected session keeps its socket.
-          if (bearerReplaced) {
+          if (bearerReplaced && registration._tag === "BearerConnectionRegistration") {
             const scope = (yield* SubscriptionRef.get(serviceScopes)).get(target.environmentId);
             if (scope !== undefined) {
               const state = yield* SubscriptionRef.get(scope.supervisor.state);
@@ -746,6 +757,23 @@ export const make = Effect.gen(function* () {
                   state.lastFailure.reason === "authentication")
               ) {
                 yield* scope.supervisor.retryNow;
+              } else if (state.phase === "connected") {
+                const token = registration.credential.token;
+                yield* SubscriptionRef.updateSome(scope.supervisor.prepared, (current) =>
+                  Option.isSome(current) &&
+                  current.value.target._tag === "BearerConnectionTarget" &&
+                  credentialConnectionId(current.value.target.connectionId) ===
+                    registration.target.connectionId &&
+                  current.value.httpAuthorization?._tag === "Bearer" &&
+                  current.value.httpAuthorization.token !== token
+                    ? Option.some(
+                        Option.some({
+                          ...current.value,
+                          httpAuthorization: { _tag: "Bearer", token },
+                        }),
+                      )
+                    : Option.none(),
+                );
               }
             }
           }
@@ -754,10 +782,6 @@ export const make = Effect.gen(function* () {
     },
   );
 
-  // Tear down a platform-managed environment that the host no longer reports
-  // (e.g. the user turned the parallel WSL backend off). Platform environments
-  // bypass the user-facing `remove` guard since they are reconciled from the
-  // bootstrap rather than removed by hand.
   const removePlatformEnvironment = Effect.fn("EnvironmentRegistry.removePlatformEnvironment")(
     function* (environmentId: EnvironmentId) {
       yield* withLeaseLock(
@@ -823,9 +847,6 @@ export const make = Effect.gen(function* () {
     yield* installPlatformRegistration(registration);
   });
 
-  // Reconcile the full set of platform-managed environments against what the
-  // host currently reports: add/refresh the desired ones and tear down any
-  // platform environment that disappeared (WSL toggled off, distro switched).
   const reconcilePlatform = Effect.fn("EnvironmentRegistry.reconcilePlatform")(function* (
     platformRegistrations: ReadonlyArray<PlatformConnectionRegistration>,
   ) {
@@ -1009,6 +1030,52 @@ export const make = Effect.gen(function* () {
     );
   });
 
+  const rename = Effect.fn("EnvironmentRegistry.rename")(function* (
+    environmentId: EnvironmentId,
+    input: string | null,
+  ) {
+    const requestedLabel = input?.trim() ?? null;
+    if (requestedLabel === "") {
+      return yield* new ConnectionBlockedError({
+        reason: "configuration",
+        detail: "Environment label cannot be empty.",
+      });
+    }
+    yield* withLeaseLock(
+      environmentId,
+      Effect.gen(function* () {
+        const entry = yield* getEntry(environmentId);
+        const label = requestedLabel === entry.defaultLabel ? null : requestedLabel;
+        const nextLabel = label ?? entry.defaultLabel;
+        if (nextLabel === undefined) {
+          return yield* new ConnectionBlockedError({
+            reason: "configuration",
+            detail: "Only local environments can reset their label.",
+          });
+        }
+        const next = withEnvironmentLabel(entry, nextLabel);
+        if (entry.defaultLabel !== undefined) {
+          yield* registrations.setPlatformLabel(environmentId, label);
+          if (label === null) platformLabels.delete(environmentId);
+          else platformLabels.set(environmentId, label);
+        } else {
+          yield* registrations.setRoutes(
+            environmentId,
+            persistedRoutes(next),
+            connectionRoutes(next).flatMap((route) => Option.toArray(route.profile)),
+          );
+        }
+        const lease = (yield* SubscriptionRef.get(serviceScopes)).get(environmentId);
+        if (lease !== undefined) {
+          yield* Ref.set(lease.entry, next);
+        }
+        yield* SubscriptionRef.update(entries, (current) =>
+          new Map(current).set(environmentId, next),
+        );
+      }).pipe(Effect.uninterruptible),
+    );
+  });
+
   const retryNow = (environmentId: EnvironmentId) =>
     acquireSupervisor(environmentId).pipe(
       Effect.flatMap((supervisor) => supervisor.retryNow),
@@ -1023,21 +1090,22 @@ export const make = Effect.gen(function* () {
       environmentId,
       Effect.gen(function* () {
         const entry = yield* getEntry(environmentId);
-        if (enabled && entry.unsupportedReason !== undefined) {
+        const retryUnsupported = enabled && entry.unsupportedReason !== undefined;
+        if (retryUnsupported && !hasSavedBearerRoute(entry)) {
           return yield* new ConnectionBlockedError({
             reason: "unsupported",
             detail: entry.unsupportedReason,
           });
         }
-        if (entry.enabled === enabled) {
+        if (entry.enabled === enabled && !retryUnsupported) {
           return;
         }
-        // Platform-managed environments are reconciled from the host and are
-        // never persisted, so only user-saved ones write the flag.
         if (!(yield* Ref.get(platformEnvironmentIds)).has(environmentId)) {
           yield* registrations.setEnabled(environmentId, enabled);
         }
-        const next: ConnectionCatalogEntry = { ...entry, enabled };
+
+        const { unsupportedReason: _reason, serverUpdateRequired: _update, ...rest } = entry;
+        const next: ConnectionCatalogEntry = { ...(retryUnsupported ? rest : entry), enabled };
         // Update the lease in place so the supervisor keeps its generation and
         // durable streams; `installEntryLocked` would tear it down instead.
         const lease = (yield* SubscriptionRef.get(serviceScopes)).get(environmentId);
@@ -1111,26 +1179,20 @@ export const make = Effect.gen(function* () {
           serverUpdateRequired: _previousUpdateRequired,
           ...rest
         } = entry;
+        // Compatibility pauses connections without changing the user's saved on/off choice.
         const next: ConnectionCatalogEntry =
           error === null
             ? rest
             : {
                 ...rest,
-                enabled: false,
                 unsupportedReason: error.message,
                 ...(error.serverUpdateRequired === true ? { serverUpdateRequired: true } : {}),
               };
-        if (
-          error !== null &&
-          entry.enabled &&
-          !(yield* Ref.get(platformEnvironmentIds)).has(environmentId)
-        ) {
-          yield* registrations.setEnabled(environmentId, false);
-        }
         const lease = (yield* SubscriptionRef.get(serviceScopes)).get(environmentId);
         if (lease !== undefined) {
           yield* Ref.set(lease.entry, next);
           if (error !== null) yield* lease.supervisor.disconnect;
+          else if (next.enabled) yield* lease.supervisor.connect;
         }
         yield* SubscriptionRef.update(entries, (current) =>
           new Map(current).set(environmentId, next),
@@ -1149,6 +1211,7 @@ export const make = Effect.gen(function* () {
     remove,
     removeRoute,
     reorderRoutes,
+    rename,
     retryNow,
     setEnabled,
     setCompatibility,

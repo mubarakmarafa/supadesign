@@ -9,14 +9,17 @@ import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import { useNavigate } from "@tanstack/react-router";
 
 import { mergeEnvironmentSettings } from "../../hooks/useSettings";
-import { getCustomModelOptionsByInstance } from "../../modelSelection";
+import {
+  getCustomModelOptionsByInstance,
+  resolveEffectiveDefaultModelSelection,
+} from "../../modelSelection";
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
   resolveDefaultProviderModelSelection,
   sortProviderInstanceEntries,
 } from "../../providerInstances";
-import { useEnvironments } from "../../state/environments";
+import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
 import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
 import { resolveEnvModeLabel, WORKTREE_SUBMODULES_LABELS } from "../BranchToolbar.logic";
 import { ProviderModelPicker } from "../chat/ProviderModelPicker";
@@ -43,11 +46,6 @@ import {
   useUpdateScopedSettings,
 } from "./useScopedSettings";
 
-/**
- * Rows for the settings a project may override. The same rows edit
- * environment defaults at an environment scope and project overrides at a
- * project or checkout scope; the scoped hooks route the write.
- */
 const WORKTREE_SUBMODULES_OPTIONS = ["recursive", "top-level", "none"] as const;
 function isWorktreeSubmodules(value: string | null): value is WorktreeSubmodules {
   return value !== null && (WORKTREE_SUBMODULES_OPTIONS as readonly string[]).includes(value);
@@ -59,11 +57,21 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
   const updateSettings = useUpdateScopedSettings();
   const navigate = useNavigate();
   const { environments } = useEnvironments();
+  const providersByEnvironment = useEnvironmentProviders();
   const representative = target
     ? environments.find((environment) => environment.environmentId === target.environmentId)
     : undefined;
-  const providers = representative?.serverConfig?.providers ?? EMPTY_SERVER_PROVIDERS;
-  const selection = resolveDefaultProviderModelSelection(providers, settings.defaultModelSelection);
+  const providers =
+    (representative?.serverConfig
+      ? providersByEnvironment.get(representative.environmentId)
+      : undefined) ?? EMPTY_SERVER_PROVIDERS;
+  const storedSelection = resolveDefaultProviderModelSelection(
+    providers,
+    settings.defaultModelSelection,
+  );
+  const selection = storedSelection
+    ? resolveEffectiveDefaultModelSelection(settings, providers, storedSelection)
+    : null;
   const entries = sortProviderInstanceEntries(
     applyProviderInstanceSettings(
       deriveProviderInstanceEntries(providers),
@@ -89,11 +97,6 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
   const modelSource = useScopedSettingSource(["defaultModelSelection"]);
   const isProjectScope = scope.kind === "project" || scope.kind === "checkout";
   const unavailable = connectedEnvironments.length === 0;
-  // File-backed keys show their effective value; the target already carries
-  // the checkout's supaterm.json, and a null file here only fills the built-in.
-  // The reset arrow beside the title clears the tier (SettingsRow handles a
-  // project override, the environment value is cleared here), so the picker
-  // has no "inherit" item.
   const effective = target
     ? resolveProjectSettings(target.settings, null, null, null).settings
     : null;
@@ -104,16 +107,16 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
       const environment = environments.find(
         (entry) => entry.environmentId === candidate.environmentId,
       );
-      const config = environment?.serverConfig;
-      if (!config) continue;
+      const providers = providersByEnvironment.get(candidate.environmentId);
+      if (!environment?.serverConfig || !providers) continue;
       const entry = applyProviderInstanceSettings(
-        deriveProviderInstanceEntries(config.providers),
+        deriveProviderInstanceEntries(providers),
         candidate.settings,
         candidate.projectId,
       ).find((option) => option.instanceId === instanceId);
       const options = getCustomModelOptionsByInstance(
         mergeEnvironmentSettings(candidate.settings, settings),
-        config.providers,
+        providers,
       ).get(instanceId);
       if (
         !entry?.enabled ||
@@ -184,8 +187,6 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                 provider={activeEntry.driverKind}
                 models={activeEntry.models}
                 model={selection.model}
-                prompt=""
-                onPromptChange={() => {}}
                 modelOptions={selection.options ?? []}
                 allowPromptInjectedEffort={false}
                 triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
@@ -364,7 +365,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
               settings.newWorktreesStartFromOrigin !==
               DEFAULT_SERVER_SETTINGS.newWorktreesStartFromOrigin ? (
                 <SettingResetButton
-                  label="new worktrees start from origin"
+                  label="new worktrees start from remote"
                   onClick={() =>
                     updateSettings({
                       newWorktreesStartFromOrigin:
@@ -381,7 +382,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                 onCheckedChange={(checked) =>
                   updateSettings({ newWorktreesStartFromOrigin: Boolean(checked) })
                 }
-                aria-label="Start new worktrees from origin by default"
+                aria-label="Start new worktrees from remote by default"
               />
             }
           />
@@ -396,11 +397,12 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             title="Automatically pull"
             description="Fast-forward the default branch when the checkout is clean."
             resetAction={
-              settings.defaultAutoPull ? (
+              settings.defaultAutoPull !== DEFAULT_SERVER_SETTINGS.defaultAutoPull ? (
                 <SettingResetButton
                   label="default automatic pull"
-                  tooltip="Reset automatic pull to off"
-                  onClick={() => updateSettings({ defaultAutoPull: false })}
+                  onClick={() =>
+                    updateSettings({ defaultAutoPull: DEFAULT_SERVER_SETTINGS.defaultAutoPull })
+                  }
                 />
               ) : null
             }

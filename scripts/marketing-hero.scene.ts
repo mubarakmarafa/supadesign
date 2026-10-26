@@ -391,7 +391,7 @@ export const SIDEBAR_THREADS: ReadonlyArray<SceneSidebarThread> = [
   },
 ];
 
-const SETTLED_TITLES: ReadonlyArray<readonly [project: string, title: string]> = [
+const DONE_TITLES: ReadonlyArray<readonly [project: string, title: string]> = [
   ["orbit", "Paginate the activity feed"],
   ["orbit", "Drop the legacy avatar endpoint"],
   ["ledger", "Fix rounding in tax totals"],
@@ -405,15 +405,15 @@ const SETTLED_TITLES: ReadonlyArray<readonly [project: string, title: string]> =
   ["orbit", "Trace slow search queries"],
   ["ledger", "Stripe webhook signature check"],
 ];
-const SETTLED_MODELS = [CLAUDE_OPUS, CODEX_SOL, CLAUDE_SONNET, CODEX_ASTRA, CURSOR, GROK] as const;
+const DONE_MODELS = [CLAUDE_OPUS, CODEX_SOL, CLAUDE_SONNET, CODEX_ASTRA, CURSOR, GROK] as const;
 
-/** Settled threads only show up as the "Settled (n)" count below the active list. */
-export const SETTLED_THREADS: ReadonlyArray<SceneSidebarThread> = [0, 1, 2].flatMap((round) =>
-  SETTLED_TITLES.map(([project, title], index) => ({
+/** Done threads only show up as the "Done (n)" count below the active list. */
+export const DONE_THREADS: ReadonlyArray<SceneSidebarThread> = [0, 1, 2].flatMap((round) =>
+  DONE_TITLES.map(([project, title], index) => ({
     project,
     title: round === 0 ? title : `${title} (follow-up ${round})`,
     branch: "main",
-    model: SETTLED_MODELS[index % SETTLED_MODELS.length] ?? CLAUDE_OPUS,
+    model: DONE_MODELS[index % DONE_MODELS.length] ?? CLAUDE_OPUS,
     minutesAgo: (2 + index + round * 12) * 24 * 60,
   })),
 );

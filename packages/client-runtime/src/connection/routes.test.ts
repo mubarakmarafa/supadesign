@@ -1,4 +1,8 @@
-import { DEFAULT_PUBLIC_RELAY_URL, EnvironmentId } from "@supaterm/contracts";
+import {
+  DEFAULT_PUBLIC_RELAY_URL,
+  EnvironmentId,
+  ORCHESTRATION_PROTOCOL_VERSION,
+} from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import * as Option from "effect/Option";
 
@@ -22,6 +26,8 @@ import {
   pairingFallbackRoutes,
   routesAfterRemoving,
   routeHttpBaseUrl,
+  sendsTokenInClear,
+  usableRoutes,
 } from "./routes.ts";
 
 const environmentId = EnvironmentId.make("environment-routes");
@@ -66,7 +72,7 @@ describe("connection routes", () => {
   });
 
   it("learns both direct endpoint kinds while reusing the paired credential", () => {
-    const active = route("https://remote.example.test");
+    const active = route("http://192.168.1.30:4389");
     const entry = entryWithRoutes(
       { target: active.target, profile: active.profile, enabled: true },
       [active],
@@ -128,7 +134,7 @@ describe("connection routes", () => {
   );
 
   it("drops learned routes when the paired route is removed", () => {
-    const active = route("https://remote.example.test");
+    const active = route("http://192.168.1.30:4389");
     const learned = mergeLearnedRoutes({
       entry: { target: active.target, profile: active.profile, enabled: true },
       activeRoute: active,
@@ -209,7 +215,7 @@ describe("connection routes", () => {
   });
 });
 
-const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.invalid/`;
+const relayEndpoint = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.alt/`;
 const relayAdvertisement = { relayEndpoint, relayUrl: "wss://relay.example.test" };
 const active = route("http://192.168.1.20:4389/");
 const baseEntry = { ...active, enabled: true };
@@ -267,7 +273,7 @@ describe("relay route advertisements", () => {
 
   it("does not identify ordinary or malformed public addresses as encrypted relay", () => {
     const ordinary = route("https://remote.example.test");
-    const malformed = route("https://bad.relay.supaterm.invalid");
+    const malformed = route("https://bad.relay.supaterm.alt");
 
     expect(connectionRouteKind(ordinary)).toBe("public");
     expect(connectionRouteAddress(ordinary)).toBe("https://remote.example.test");
@@ -309,7 +315,7 @@ describe("relay route advertisements", () => {
   it.each([
     undefined,
     { relayEndpoint: "https://ordinary.example.test", relayUrl: "wss://relay.example.test" },
-    { relayEndpoint: "https://bad.relay.supaterm.invalid", relayUrl: "wss://relay.example.test" },
+    { relayEndpoint: "https://bad.relay.supaterm.alt", relayUrl: "wss://relay.example.test" },
     { relayEndpoint, relayUrl: "https://relay.example.test" },
   ])("preserves learned relay for unknown or malformed advertisements: %j", (advertisement) => {
     const routes = learnRelay()!;
@@ -363,26 +369,105 @@ describe("relay route advertisements", () => {
     ).toBeNull();
   });
 
-  it("distinguishes capable-server withdrawal from legacy missing or incomplete fields", () => {
+  it("treats missing relay fields as withdrawn and partial fields as unknown", () => {
     const environment = {
       environmentId,
       label: "Test",
       platform: { os: "linux", arch: "x64" } as const,
       serverVersion: "test",
-      capabilities: { repositoryIdentity: true },
+      orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+      capabilities: {},
     };
-    expect(advertisedConnectionRoutes({ environment }).relayAdvertisement).toBeUndefined();
+    expect(advertisedConnectionRoutes({ environment }).relayAdvertisement).toBeNull();
     expect(
       advertisedConnectionRoutes({ environment: { ...environment, ...relayAdvertisement } })
         .relayAdvertisement,
     ).toEqual(relayAdvertisement);
-    const capable = {
-      ...environment,
-      capabilities: { ...environment.capabilities, relayAdvertisement: true },
-    };
-    expect(advertisedConnectionRoutes({ environment: capable }).relayAdvertisement).toBeNull();
     expect(
-      advertisedConnectionRoutes({ environment: { ...capable, relayEndpoint } }).relayAdvertisement,
+      advertisedConnectionRoutes({ environment: { ...environment, relayEndpoint } })
+        .relayAdvertisement,
     ).toBeUndefined();
+  });
+});
+
+describe("plain HTTP learned routes", () => {
+  const LAN = route("http://192.168.1.10:3773/", "lan");
+  const PUBLIC = route("https://desk.example.com/", "public");
+  const RELAY = route(relayEndpoint, "relay");
+  const base = { target: PUBLIC.target, profile: PUBLIC.profile, enabled: true };
+  const ids = (routes: ReadonlyArray<ConnectionRoute> | null) =>
+    routes?.map((item) => connectionRouteId(item.target)) ?? null;
+  const learnedRoute = (connectionId: string, httpBaseUrl: string): ConnectionRoute => {
+    const plain = route(httpBaseUrl, connectionId);
+    const profile = Option.getOrThrow(plain.profile);
+    if (profile._tag !== "BearerConnectionProfile") throw new Error("Expected bearer profile");
+    return {
+      target: plain.target,
+      profile: Option.some(new BearerConnectionProfile({ ...profile, learned: true })),
+    };
+  };
+
+  it("keeps a token paired over HTTPS off plain HTTP addresses outside the tailnet", () => {
+    const routes = mergeLearnedRoutes({
+      entry: entryWithRoutes(base, [PUBLIC]),
+      activeRoute: PUBLIC,
+      reported: [
+        { kind: "lan", httpBaseUrl: "http://192.168.1.10:3773/" },
+        { kind: "tailnet", httpBaseUrl: "http://100.101.102.103:3773/" },
+        { kind: "tailnet", httpBaseUrl: "https://desk.tail1234.ts.net/" },
+      ],
+      allowInsecure: true,
+    });
+    expect(ids(routes)).toEqual([
+      `learned:${environmentId}:http://100.101.102.103:3773@public`,
+      `learned:${environmentId}:https://desk.tail1234.ts.net@public`,
+      "public",
+    ]);
+  });
+
+  it("keeps plain HTTP routes that don't borrow the active HTTPS-paired token", () => {
+    const lanOrigin = "http://10.0.0.42:3773";
+    const overLan = learnedRoute(`learned:${environmentId}:${lanOrigin}@lan`, `${lanOrigin}/`);
+    const routes = mergeLearnedRoutes({
+      entry: entryWithRoutes(base, [overLan, LAN, PUBLIC]),
+      activeRoute: PUBLIC,
+      reported: [{ kind: "lan", httpBaseUrl: `${lanOrigin}/` }],
+      allowInsecure: true,
+    });
+    expect(routes).toBeNull();
+  });
+
+  it("learns plain HTTP LAN addresses over a token paired over plain HTTP", () => {
+    const routes = mergeLearnedRoutes({
+      entry: entryWithRoutes(base, [LAN, RELAY]),
+      activeRoute: LAN,
+      reported: [{ kind: "lan", httpBaseUrl: "http://10.0.0.42:3773/" }],
+      allowInsecure: true,
+    });
+    expect(ids(routes)).toEqual([
+      "lan",
+      `learned:${environmentId}:http://10.0.0.42:3773@lan`,
+      "relay",
+    ]);
+  });
+
+  it("lets a token paired over the relay reach plain HTTP LAN addresses", () => {
+    const lanOrigin = "http://10.0.0.42:3773";
+    const stale = learnedRoute(`learned:${environmentId}:${lanOrigin}@public`, `${lanOrigin}/`);
+    const overRelay = learnedRoute(`learned:${environmentId}:${lanOrigin}@relay`, `${lanOrigin}/`);
+    const entry = entryWithRoutes(base, [stale, PUBLIC, RELAY]);
+    expect(ids(usableRoutes(entry))).toEqual(["public", "relay"]);
+    const routes = mergeLearnedRoutes({
+      entry,
+      activeRoute: RELAY,
+      reported: [{ kind: "lan", httpBaseUrl: `${lanOrigin}/` }],
+      allowInsecure: true,
+    });
+    expect(ids(routes)).toEqual([`learned:${environmentId}:${lanOrigin}@relay`, "public", "relay"]);
+    expect(sendsTokenInClear([overRelay, RELAY], overRelay)).toBe(false);
+    expect(ids(usableRoutes(entryWithRoutes(base, [overRelay, RELAY])))).toEqual([
+      `learned:${environmentId}:${lanOrigin}@relay`,
+      "relay",
+    ]);
   });
 });

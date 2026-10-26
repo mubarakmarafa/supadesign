@@ -1,7 +1,6 @@
 import { isLoopbackHost } from "./preview.ts";
 import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "./appIdentity.ts";
 
-/** Only return to a local client or the hosted Supaterm client, never an arbitrary OAuth-supplied URL. */
 export function providerAuthReturnUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
   try {

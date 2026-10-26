@@ -5,8 +5,9 @@ export interface WorkspaceConnectionStatusPresentation {
 }
 
 function shouldShowWorkspaceConnectionStatus(state: WorkspaceState): boolean {
+  if (state.networkStatus === "offline") return true;
+  if (state.hasReadyEnvironment) return state.hasSyncingConnectedEnvironment;
   return (
-    state.networkStatus === "offline" ||
     state.connectionError !== null ||
     state.hasConnectingEnvironment ||
     state.hasPendingShellSnapshot ||
@@ -16,6 +17,9 @@ function shouldShowWorkspaceConnectionStatus(state: WorkspaceState): boolean {
 
 function workspaceConnectionStatusLabel(state: WorkspaceState): string {
   if (state.networkStatus === "offline") return "You are offline";
+  if (state.hasReadyEnvironment && state.hasSyncingConnectedEnvironment) {
+    return state.hasLoadedShellSnapshot ? "Syncing threads..." : "Loading threads...";
+  }
   if (state.connectingEnvironments.length === 1) {
     return `Reconnecting to ${state.connectingEnvironments[0]!.environmentLabel}`;
   }
@@ -29,7 +33,6 @@ function workspaceConnectionStatusLabel(state: WorkspaceState): string {
   return "Not connected";
 }
 
-/** Header-title presentation of the connection state, or null while connected. */
 export function workspaceConnectionStatusPresentation(
   state: WorkspaceState,
 ): WorkspaceConnectionStatusPresentation | null {

@@ -1,21 +1,17 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, View, type AccessibilityActionEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import { cn } from "../../lib/cn";
-
 const ACCESSIBILITY_RESIZE_STEP = 24;
-
 interface WorkspacePaneDividerProps {
   readonly accessibilityLabel: string;
   readonly currentWidth: number;
-  /** 1 when dragging right grows the pane, -1 when dragging left grows it. */
   readonly resizeDirection: 1 | -1;
   readonly onResizeStart?: () => void;
   readonly onResizeBy: (delta: number) => void;
   readonly onResizeEnd?: () => void;
 }
-
 function createResizeGesture(
   onResizeStart: () => void,
   onResize: (translationX: number) => void,
@@ -34,7 +30,6 @@ function createResizeGesture(
       runOnJS(onResizeEnd)();
     });
 }
-
 function ResizeGestureDetector(props: {
   readonly onResizeStart: () => void;
   readonly onResize: (translationX: number) => void;
@@ -42,32 +37,26 @@ function ResizeGestureDetector(props: {
   readonly children: ReactNode;
 }) {
   const { onResizeStart, onResize, onResizeEnd } = props;
-  const resizeGesture = useMemo(
-    () => createResizeGesture(onResizeStart, onResize, onResizeEnd),
-    [onResize, onResizeEnd, onResizeStart],
-  );
+  const resizeGesture = createResizeGesture(onResizeStart, onResize, onResizeEnd);
   return <GestureDetector gesture={resizeGesture}>{props.children}</GestureDetector>;
 }
-
-/** A forgiving divider target for touch, pointer, and VoiceOver users. */
 export function WorkspacePaneDivider(props: WorkspacePaneDividerProps) {
   const latestProps = useRef(props);
   useLayoutEffect(() => {
     latestProps.current = props;
   });
   const [dragging, setDragging] = useState(false);
-  const handleResizeStart = useCallback(() => {
+  const handleResizeStart = () => {
     setDragging(true);
     latestProps.current.onResizeStart?.();
-  }, []);
-  const handleResize = useCallback((translationX: number) => {
+  };
+  const handleResize = (translationX: number) => {
     latestProps.current.onResizeBy(translationX * latestProps.current.resizeDirection);
-  }, []);
-  const handleResizeEnd = useCallback(() => {
+  };
+  const handleResizeEnd = () => {
     setDragging(false);
     latestProps.current.onResizeEnd?.();
-  }, []);
-
+  };
   const handleAccessibilityAction = (event: AccessibilityActionEvent) => {
     props.onResizeStart?.();
     if (event.nativeEvent.actionName === "increment") {
@@ -77,7 +66,6 @@ export function WorkspacePaneDivider(props: WorkspacePaneDividerProps) {
     }
     props.onResizeEnd?.();
   };
-
   return (
     <ResizeGestureDetector
       onResizeStart={handleResizeStart}
@@ -87,8 +75,14 @@ export function WorkspacePaneDivider(props: WorkspacePaneDividerProps) {
       <Pressable
         className="relative z-[100] -mx-[22px] w-11 self-stretch justify-center"
         accessibilityActions={[
-          { name: "increment", label: "Make pane wider" },
-          { name: "decrement", label: "Make pane narrower" },
+          {
+            name: "increment",
+            label: "Make pane wider",
+          },
+          {
+            name: "decrement",
+            label: "Make pane narrower",
+          },
         ]}
         accessibilityLabel={props.accessibilityLabel}
         accessibilityRole="adjustable"
@@ -110,7 +104,6 @@ export function WorkspacePaneDivider(props: WorkspacePaneDividerProps) {
     </ResizeGestureDetector>
   );
 }
-
 const styles = StyleSheet.create({
   line: {
     alignSelf: "center",

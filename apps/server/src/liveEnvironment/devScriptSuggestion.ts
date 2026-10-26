@@ -30,7 +30,7 @@ export function suggestDevScript(input: {
       (script) => script.previewUrl !== undefined && !script.runOnWorktreeCreate,
     ) ??
     input.scripts.find(
-      (script) => script.icon === "play" && !script.runOnWorktreeCreate && !script.runOnSettle,
+      (script) => script.icon === "play" && !script.runOnWorktreeCreate && !script.runOnDone,
     );
   if (action !== undefined) {
     return {

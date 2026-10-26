@@ -87,6 +87,11 @@ export SUPATERM_BITBUCKET_EMAIL="you@example.com"
 export SUPATERM_BITBUCKET_API_TOKEN="your-token"
 ```
 
+For a background service, put these `KEY=VALUE` entries in
+[`service.env`](./background-service.md#configure-the-service-environment)
+under Supaterm home, then run `supaterm service restart`. Service installation and updates
+preserve that file.
+
 ### Azure DevOps
 
 Install [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/), add the DevOps extension, and sign in:
@@ -111,7 +116,7 @@ kept in the server's secret store, applies right away, and is used before `CAFE_
 sent to `git.cafe`; `CAFE_TOKEN` follows `CAFE_HOST` if you set it. Repositories on
 `staging.git.cafe` need their own login with `--host https://staging.git.cafe/api`.
 
-Line comments, reviewer requests, and labels are not available for GitCafe pull requests yet.
+Line comments are not available for GitCafe pull requests yet.
 Merging a stack lands it through GitCafe, and updating a branch restacks the layers above it.
 
 ## Start, clone, or publish a project
@@ -130,7 +135,9 @@ Use **Add Project** in the command palette (`Cmd/Ctrl+K`) to clone a repository.
 provider or paste a Git URL, then choose where to save it. The project opens right away while the
 clone runs in the background: you can write your first prompt, and sending waits until the files
 are in place. A toast tracks progress and lets you cancel; if the clone fails, retry it from the
-toast or from the banner above the composer.
+toast or from the banner above the composer. When the host refuses the machine's SSH key, Supaterm
+clones over HTTPS with Git's credentials for that host instead, and the project's remote uses the
+HTTPS URL.
 
 For a local Git repository without a remote, **Publish Repository** creates a hosted repository,
 adds it as `origin`, and pushes your commits. If there are no commits yet, it creates the remote;
@@ -139,7 +146,8 @@ make your first commit before pushing.
 ## Create a pull request
 
 Use a thread's Git actions to commit, push, and create a pull request. Supaterm can generate commit
-messages, review titles, and descriptions from your changes.
+messages, review titles, and descriptions from your changes. Descriptions also draw on the work in
+the thread, including the checks it ran.
 
 An existing fork PR can appear beside the branch even if you pushed without setting an upstream.
 If its badge is missing because several remotes hold that branch, set the branch's upstream to
@@ -153,6 +161,10 @@ uses the project's instructions and recent commit subjects.
 Open **Pull requests** to review changes and comments, request reviewers, check out a branch,
 or merge. You can edit review titles and descriptions and your own comments where the host allows it.
 GitLab calls these merge requests.
+
+A GitHub checkout with an `upstream` remote lists the upstream repository's pull requests. To list
+your own repository's instead, run `gh repo set-default` in the checkout and choose it. The list
+follows within about 15 minutes.
 
 On mobile, **Pull requests** lists reviews across your connected environments. Open a review
 to read its description, activity, commits, and changed files. Line comments stay as drafts
@@ -271,13 +283,15 @@ on the Pull Requests page, **Link to thread** lets you search for an active thre
 also lists the threads that link to it, including archived threads, so you can return to their context.
 
 Thread badges show a stack's layer count or the current review number with a count of additional
-links. Clicking a badge with more than one review opens the **Linked pull requests** panel. On mobile, the Git overview lists linked reviews and their stacks; tap a review to open it.
-Linking and unlinking are available in the web and desktop clients.
+links. Clicking a badge with more than one review opens the **Linked pull requests** panel. On mobile,
+tapping a thread's badge opens its review, or the **Linked pull requests** sheet when it has more than
+one. The sheet's **+** and the Git overview's **Link pull request** take a URL, `123` or `#123`.
+Long-press a linked review there to copy it, open it in the browser, watch it, or unlink it.
 
 The **Linked pull requests** panel lists every review and groups stacks. Unlink a review from its
 row menu. An unlinked stack layer stays out of later syncs. Open linked reviews refresh on the server;
 closed reviews refresh periodically so reopening one on the host is detected. Merged reviews refresh
-when requested. A settled thread's reviews stop refreshing until you unsettle it. With **Auto-settle merged threads** enabled, a thread can settle after every linked
+when requested. A Done thread's reviews stop refreshing until you reopen it. With **Automatically mark merged threads as Done** enabled, a thread can be marked Done after every linked
 review is terminal. An open or unsynced link keeps it active.
 
 Ask the agent to watch, monitor, or babysit a pull request and it calls `watch_pull_request`. While
@@ -288,13 +302,22 @@ first asks whether anything changed and reads the pull request only when it did,
 watching inside GitHub's rate limit. Comments from your own account do not wake it. Watching ends
 when the pull request merges or closes, after 10 wakes in a row that bring only comments, after 8
 failed reads in a row, or when you press Stop on the thread. A rate limit only pauses watching.
-Settling or archiving a thread also ends all its watches. Unsettle the thread before starting a new
-watch. Subagents cannot watch pull requests; the thread that delegated to them does. To start or stop
+Marking a thread as Done or archiving it also ends all its watches. Reopen the thread before starting a new
+watch. Watching a pull request again does not repeat check or conflict news its last
+watch already reported; unlinking the pull request clears that. Subagents cannot watch pull requests; the thread that delegated to them does. To start or stop
 it yourself, use the row menu in the **Linked pull requests** panel. In the thread details card, a
 watched pull request shows an eye; click it to stop watching.
 
+Ask the agent to wait on a GitHub Actions run, such as CI, a release, or a deploy, and it calls
+`watch_workflow_run` instead of running a watcher in its shell. The server checks the run every
+minute and wakes the agent once when it completes, naming each job that failed, was cancelled, or
+was skipped. Watching ends when the run completes, after six hours, after 8 failed reads in a row,
+or when you press Stop on the thread.
+Marking Done or archiving the thread also ends it. Subagents cannot watch runs. On web and desktop,
+click the run's dot in the thread's background-work banner to see each job.
+
 A watched thread counts as working between wakes, so it stays in the **Working** section and does
-not auto-settle. Agents stop watching when they hand the work back to you, and the thread then
+not get marked Done automatically. Agents stop watching when they hand the work back to you, and the thread then
 returns to your inbox.
 
 Cross-repository links use a project on the same host. Azure DevOps reviews require a project checked

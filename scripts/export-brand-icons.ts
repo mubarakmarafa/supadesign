@@ -13,8 +13,24 @@ import * as Stream from "effect/Stream";
 import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-import { BRAND_ASSET_PATHS, DEVELOPMENT_PUBLIC_ICON_OVERRIDES } from "./lib/brand-assets.ts";
+import { generateAndroidIcons } from "./lib/android-icons.ts";
+import { BRAND_ASSET_PATHS, ICON_DOCUMENT } from "./lib/brand-assets.ts";
+import { generateBrandIconDerivatives } from "./lib/brand-icon-derivatives.ts";
 import { encodePngIco, readPngDimensions, WINDOWS_ICON_SIZES } from "./lib/icon-export.ts";
+import { bakeIconAppearance } from "./lib/icon-appearance.ts";
+import { generateIconProjects, ICON_LAYERS } from "./lib/icon-projects.ts";
+import {
+  MAC_ICON_NAME,
+  XCODE_REQUIREMENT,
+  isSupportedXcodeVersion,
+  macIconCompilerArguments,
+} from "./lib/mac-icon-assets.ts";
+import {
+  ICON_INPUTS_STAMP,
+  iconInputsDigest,
+  renderStudioIcons,
+  type LaunchIconArt,
+} from "./lib/studio-icon-render.ts";
 
 const DESIGN_GENERATION = 26;
 const ICON_COMPOSER_EXECUTABLE_PARTS = [
@@ -46,6 +62,7 @@ type IconPlatform = "iOS";
 interface VariantOutputs {
   readonly ios: string;
   readonly macos: string;
+  readonly macosDark: string;
   readonly universal: string;
   readonly appleTouch: string;
   readonly favicon16: string;
@@ -123,7 +140,7 @@ export class IconExportCommandFailedError extends Schema.TaggedError<IconExportC
   },
 ) {
   override get message(): string {
-    return `Icon Composer failed to export ${this.sourcePath} at ${this.size}x${this.size}.`;
+    return `${this.command} failed to export ${this.sourcePath} at ${this.size}x${this.size}.`;
   }
 }
 
@@ -156,6 +173,18 @@ export class IconExportSourceMissingError extends Schema.TaggedError<IconExportS
 ) {
   override get message(): string {
     return `Missing Icon Composer source project: ${this.sourcePath}`;
+  }
+}
+
+class IconExportXcodeError extends Schema.TaggedError<IconExportXcodeError>()(
+  "IconExportXcodeError",
+  {
+    details: Schema.optional(Schema.String),
+    cause: Schema.optional(Schema.Defect()),
+  },
+) {
+  override get message(): string {
+    return `${XCODE_REQUIREMENT} is required to export layered icons. Select full Xcode with DEVELOPER_DIR or xcode-select.${this.details ? `\n${this.details}` : ""}`;
   }
 }
 
@@ -209,6 +238,7 @@ const ICON_VARIANTS = [
     outputs: {
       ios: BRAND_ASSET_PATHS.developmentIosIconPng,
       macos: BRAND_ASSET_PATHS.developmentDesktopIconPng,
+      macosDark: BRAND_ASSET_PATHS.developmentDesktopDarkIconPng,
       universal: BRAND_ASSET_PATHS.developmentUniversalIconPng,
       appleTouch: BRAND_ASSET_PATHS.developmentWebAppleTouchIconPng,
       favicon16: BRAND_ASSET_PATHS.developmentWebFavicon16Png,
@@ -218,11 +248,12 @@ const ICON_VARIANTS = [
     },
   },
   {
-    label: "preview",
+    label: "nightly",
     source: BRAND_ASSET_PATHS.nightlyIconComposerProject,
     outputs: {
       ios: BRAND_ASSET_PATHS.nightlyIosIconPng,
       macos: BRAND_ASSET_PATHS.nightlyMacIconPng,
+      macosDark: BRAND_ASSET_PATHS.nightlyMacDarkIconPng,
       universal: BRAND_ASSET_PATHS.nightlyLinuxIconPng,
       appleTouch: BRAND_ASSET_PATHS.nightlyWebAppleTouchIconPng,
       favicon16: BRAND_ASSET_PATHS.nightlyWebFavicon16Png,
@@ -237,6 +268,7 @@ const ICON_VARIANTS = [
     outputs: {
       ios: BRAND_ASSET_PATHS.productionIosIconPng,
       macos: BRAND_ASSET_PATHS.productionMacIconPng,
+      macosDark: BRAND_ASSET_PATHS.productionMacDarkIconPng,
       universal: BRAND_ASSET_PATHS.productionLinuxIconPng,
       appleTouch: BRAND_ASSET_PATHS.productionWebAppleTouchIconPng,
       favicon16: BRAND_ASSET_PATHS.productionWebFavicon16Png,
@@ -539,15 +571,96 @@ const renderIcon = Effect.fn("iconExport.renderIcon")(function* (
   return buffer;
 });
 
+const renderMacIcon = Effect.fn("iconExport.renderMacIcon")(function* (
+  sourcePath: string,
+  outputDirectory: string,
+  iconsetImage: string,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  yield* fs.makeDirectory(outputDirectory, { recursive: true });
+  const iconset = path.join(outputDirectory, `${MAC_ICON_NAME}.iconset`);
+  const commands = [
+    { command: "xcrun", args: macIconCompilerArguments(sourcePath, outputDirectory) },
+    {
+      command: "iconutil",
+      args: ["-c", "iconset", path.join(outputDirectory, `${MAC_ICON_NAME}.icns`), "-o", iconset],
+    },
+  ];
+  for (const { command, args } of commands) {
+    const result = yield* runCommand(command, args);
+    if (result.exitCode !== 0) {
+      return yield* new IconExportCommandFailedError({
+        command,
+        argumentCount: args.length,
+        exitCode: result.exitCode,
+        sourcePath,
+        size: 1024,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
+    }
+  }
+  return Buffer.from(yield* fs.readFile(path.join(iconset, iconsetImage)));
+});
+
+// The Dock's launch animation lights the bolt LED by LED between the icon and the same icon with
+// its screen switched off, in whichever appearance the Dock is drawing.
+const renderDockMacIcon = Effect.fn("iconExport.renderDockMacIcon")(function* (
+  sourcePath: string,
+  outputDirectory: string,
+  look: { readonly screen?: Buffer; readonly dark: boolean },
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  // actool names the compiled icon after the project, so the copy keeps the original name.
+  const projectPath = path.join(outputDirectory, "project", `${MAC_ICON_NAME}.icon`);
+  yield* fs.makeDirectory(path.dirname(projectPath), { recursive: true });
+  yield* fs.copy(sourcePath, projectPath);
+  if (look.screen) {
+    yield* fs.writeFile(path.join(projectPath, "Assets", ICON_LAYERS.screen), look.screen);
+  }
+  if (look.dark) {
+    const documentPath = path.join(projectPath, "icon.json");
+    const document = yield* fs.readFileString(documentPath);
+    yield* fs.writeFileString(documentPath, bakeIconAppearance(document, "dark"));
+  }
+  // The animation blends each pair pixel for pixel, so both halves need the same rendition: light
+  // pairs with the brand's 1024px icon, dark with the 512px dark icon rendered here.
+  const rendition = look.dark ? "icon_256x256@2x.png" : "icon_512x512@2x.png";
+  return yield* renderMacIcon(projectPath, outputDirectory, rendition);
+});
+
+const LAUNCH_ICON_LEDS_MODULE = "apps/desktop/src/app/LaunchIconLeds.generated.ts";
+// actool draws an icon's canvas as an 824px body centred in the 1024px macOS tile.
+const MAC_ICON_BODY = 824 / 1024;
+
+/** The desktop app's map from the bolt's LEDs to the macOS icon tile, as a module. */
+const launchIconLedsModule = (leds: LaunchIconArt["leds"]) => {
+  const toTile = (fraction: number) => (1 - MAC_ICON_BODY) / 2 + fraction * MAC_ICON_BODY;
+  return Buffer.from(
+    [
+      "// Generated by scripts/export-brand-icons.ts. Do not edit.",
+      "/** Where the bolt's first LED lights on the macOS icon, and the step to the next, as fractions of the tile. */",
+      "export const LAUNCH_ICON_LEDS = {",
+      `  x: ${toTile(leds.x)},`,
+      `  y: ${toTile(leds.y)},`,
+      `  pitchX: ${leds.pitchX * MAC_ICON_BODY},`,
+      `  pitchY: ${leds.pitchY * MAC_ICON_BODY},`,
+      "} as const;",
+      "",
+    ].join("\n"),
+  );
+};
+
 const renderVariant = Effect.fn("iconExport.renderVariant")(function* (
   toolPath: string,
-  repositoryRoot: string,
   temporaryDirectory: string,
   variant: IconVariant,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const sourcePath = path.join(repositoryRoot, variant.source);
+  const sourcePath = path.join(temporaryDirectory, variant.source);
   const sourceExists = yield* fs.exists(sourcePath).pipe(
     Effect.mapError(
       (cause) =>
@@ -590,6 +703,22 @@ const renderVariant = Effect.fn("iconExport.renderVariant")(function* (
 
   return new Map<string, Buffer>([
     [variant.outputs.ios, ios],
+    [
+      variant.outputs.macos,
+      yield* renderMacIcon(
+        sourcePath,
+        path.join(temporaryDirectory, `${variant.label}-macos`),
+        "icon_512x512@2x.png",
+      ),
+    ],
+    [
+      variant.outputs.macosDark,
+      yield* renderDockMacIcon(
+        sourcePath,
+        path.join(temporaryDirectory, `${variant.label}-macos-dark`),
+        { dark: true },
+      ),
+    ],
     [variant.outputs.universal, ios],
     [variant.outputs.appleTouch, yield* render("iOS", 180)],
     [variant.outputs.favicon16, yield* render("iOS", 16)],
@@ -598,18 +727,6 @@ const renderVariant = Effect.fn("iconExport.renderVariant")(function* (
     [variant.outputs.windowsIco, ico],
   ]);
 });
-
-const logManualMacOsExportInstructions = Effect.fn("iconExport.logManualMacOsExportInstructions")(
-  function* () {
-    yield* Console.warn(
-      [
-        "macOS icons are rendered separately with actool and were not checked or updated.",
-        "Render each changed source as described in assets/README.md:",
-        ...ICON_VARIANTS.map((variant) => `- ${variant.source} -> ${variant.outputs.macos}`),
-      ].join("\n"),
-    );
-  },
-);
 
 const writeAtomically = Effect.fn("iconExport.writeAtomically")(function* (
   repositoryRoot: string,
@@ -703,7 +820,16 @@ const isCurrent = Effect.fn("iconExport.isCurrent")(function* (
 
 export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOnly: boolean) {
   const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
   const repositoryRoot = yield* RepositoryRoot;
+  const xcode = yield* runCommand("xcodebuild", ["-version"]).pipe(
+    Effect.mapError((cause) => new IconExportXcodeError({ cause })),
+  );
+  if (xcode.exitCode !== 0 || !isSupportedXcodeVersion(xcode.stdout)) {
+    return yield* new IconExportXcodeError({
+      details: [xcode.stdout, xcode.stderr].filter(Boolean).join("\n").trim(),
+    });
+  }
   const tool = yield* resolveIconComposerTool();
   const temporaryDirectory = yield* fs
     .makeTempDirectoryScoped({
@@ -723,28 +849,54 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
     `Exporting icons with Icon Composer ${tool.version}, design generation ${DESIGN_GENERATION}.`,
   );
 
+  yield* Console.log("Rendering the studio's bolt computer...");
+  const renders = yield* renderStudioIcons(repositoryRoot);
+  const projects = yield* generateIconProjects(repositoryRoot, renders.channels);
+  const source = path.join(BRAND_ASSET_PATHS.productionIconComposerProject, ICON_DOCUMENT);
   const generated = new Map<string, Buffer>();
+  for (const [relativePath, contents] of projects.files) {
+    const staged = path.join(temporaryDirectory, relativePath);
+    yield* fs.makeDirectory(path.dirname(staged), { recursive: true });
+    yield* fs.writeFile(staged, contents);
+    if (relativePath !== source) generated.set(relativePath, contents);
+  }
   for (const variant of ICON_VARIANTS) {
     yield* Console.log(`Rendering ${variant.label} from ${variant.source}...`);
-    const variantAssets = yield* renderVariant(
-      tool.path,
-      repositoryRoot,
-      temporaryDirectory,
-      variant,
-    );
+    const variantAssets = yield* renderVariant(tool.path, temporaryDirectory, variant);
     for (const [relativePath, contents] of variantAssets) {
       generated.set(relativePath, contents);
     }
   }
 
-  for (const override of DEVELOPMENT_PUBLIC_ICON_OVERRIDES) {
-    const sourceContents = generated.get(override.sourceRelativePath);
-    if (sourceContents === undefined) {
-      return yield* Effect.die(
-        new Error(`Generated development web icon is missing: ${override.sourceRelativePath}`),
-      );
-    }
-    generated.set(override.targetRelativePath, sourceContents);
+  const productionProject = path.join(
+    temporaryDirectory,
+    BRAND_ASSET_PATHS.productionIconComposerProject,
+  );
+  generated.set(
+    BRAND_ASSET_PATHS.macUnlitIconPng,
+    yield* renderDockMacIcon(productionProject, path.join(temporaryDirectory, "macos-unlit"), {
+      screen: renders.launch.unlitScreen,
+      dark: false,
+    }),
+  );
+  generated.set(
+    BRAND_ASSET_PATHS.macUnlitDarkIconPng,
+    yield* renderDockMacIcon(productionProject, path.join(temporaryDirectory, "macos-unlit-dark"), {
+      screen: renders.launch.unlitScreen,
+      dark: true,
+    }),
+  );
+  generated.set(LAUNCH_ICON_LEDS_MODULE, launchIconLedsModule(renders.launch.leds));
+
+  for (const [relativePath, contents] of yield* generateAndroidIcons(renders.channels)) {
+    generated.set(relativePath, contents);
+  }
+  generated.set(ICON_INPUTS_STAMP, Buffer.from(yield* iconInputsDigest(repositoryRoot)));
+  for (const [relativePath, contents] of yield* generateBrandIconDerivatives(
+    repositoryRoot,
+    generated,
+  )) {
+    generated.set(relativePath, contents);
   }
 
   if (checkOnly) {
@@ -754,13 +906,13 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
         isCurrent(repositoryRoot, relativePath, contents).pipe(Effect.map((current) => !current)),
       { concurrency: "unbounded" },
     );
-    if (stale.length > 0) {
+    const stalePaths = [...stale.map(([relativePath]) => relativePath), ...projects.obsolete];
+    if (stalePaths.length > 0) {
       return yield* new IconExportAssetsStaleError({
-        paths: stale.map(([relativePath]) => relativePath),
+        paths: stalePaths,
       });
     }
     yield* Console.log(`All ${generated.size} generated icon assets are current.`);
-    yield* logManualMacOsExportInstructions();
     return;
   }
 
@@ -769,8 +921,15 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
     ([relativePath, contents]) => writeAtomically(repositoryRoot, relativePath, contents),
     { concurrency: 1, discard: true },
   );
+  yield* Effect.forEach(
+    projects.obsolete,
+    (relativePath) => fs.remove(path.join(repositoryRoot, relativePath)),
+    {
+      concurrency: 1,
+      discard: true,
+    },
+  );
   yield* Console.log(`Updated ${generated.size} generated icon assets.`);
-  yield* logManualMacOsExportInstructions();
 });
 
 export const exportBrandIconsCommand = Command.make(
@@ -782,11 +941,7 @@ export const exportBrandIconsCommand = Command.make(
     ),
   },
   ({ check }) => exportBrandIcons(check).pipe(Effect.scoped),
-).pipe(
-  Command.withDescription(
-    "Export development, preview, and production assets from Icon Composer projects.",
-  ),
-);
+).pipe(Command.withDescription("Render all application icons from the studio's bolt computer."));
 
 if (import.meta.main) {
   Command.run(exportBrandIconsCommand, { version: "0.0.0" }).pipe(

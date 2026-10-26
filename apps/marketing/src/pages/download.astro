@@ -3,6 +3,7 @@ import type { ComponentProps } from "astro/types";
 import { Image } from "astro:assets";
 import iconStable from "../assets/icon.webp";
 import iconNightly from "../assets/icon-nightly.webp";
+import CommandLine from "../components/CommandLine.astro";
 import Layout from "../layouts/Layout.astro";
 import { RELEASES_URL } from "../lib/releases";
 
@@ -16,7 +17,15 @@ const imageProps = {
 ---
 
 <Layout title="Download — Supaterm" description="Download Supaterm for macOS, Windows, or Linux.">
-  <div class="download-page" id="download-page" data-channel="stable">
+  <div class="download-page" id="download-page" data-channel="stable" data-installer="true">
+    <script is:inline>
+      // Set the channel before first paint so ?channel=nightly never flashes the stable page.
+      if (new URLSearchParams(location.search).get("channel") === "nightly") {
+        const page = document.getElementById("download-page");
+        page.dataset.channel = "nightly";
+        page.dataset.installer = "false";
+      }
+    </script>
     <!-- The sky lives behind the header and fades to the page. It only shows on the nightly channel. -->
     <header class="download-head">
       <div class="sky" aria-hidden="true"></div>
@@ -47,20 +56,24 @@ const imageProps = {
           <h2 class="platform-name">macOS</h2>
         </div>
         <div class="download-cards">
-          <a class="download-card" data-asset="arm64.dmg" href={RELEASES_URL}>
+          <a id="macos-download" class="download-card" data-asset="arm64.dmg" href={RELEASES_URL}>
             <span class="card-icon">
               <Image class="card-icon--stable" src={iconStable} width={28} height={28} loading="lazy" {...imageProps} />
               <Image class="card-icon--nightly" src={iconNightly} width={28} height={28} loading="lazy" {...imageProps} />
             </span>
             <span class="card-text">
-              <span class="card-arch">Apple Silicon (arm64)</span>
-              <span class="card-format">.dmg</span>
+              <span class="card-arch with-installer">Apple Silicon and Intel</span>
+              <span class="card-arch without-installer">Apple Silicon (arm64)</span>
+              <span class="card-format with-installer">.dmg installer</span>
+              <span class="card-format without-installer">.dmg</span>
             </span>
           </a>
         </div>
-        <p class="intel-note">
+        <p class="intel-note without-installer">
           On an Intel Mac? <a data-asset="x64.dmg" href={RELEASES_URL}>Download the x64 build</a>.
         </p>
+        <p class="cli-note stable-only">Or install with Homebrew:</p>
+        <CommandLine class="stable-only" command="brew install supaterm" />
       </section>
 
       <!-- Windows -->
@@ -112,7 +125,7 @@ const imageProps = {
           </a>
         </div>
         <p class="intel-note">
-          On ARM? Download the arm64 <a data-asset="arm64.deb" href={RELEASES_URL}>.deb</a> or
+          On ARM? Download the arm64 <a data-asset="arm64.deb" href={RELEASES_URL}>.deb</a> or{" "}
           <a data-asset="arm64.AppImage" href={RELEASES_URL}>AppImage</a>.
         </p>
       </section>
@@ -122,13 +135,19 @@ const imageProps = {
           <svg class="platform-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7l5 5-5 5M12 17h7"/></svg>
           <h2 class="platform-name">Terminal</h2>
         </div>
-        <code class="cli-line cli-line--stable">curl -fsSL https://supaterm.com/install.sh | sh</code>
-        <code class="cli-line cli-line--stable">irm https://supaterm.com/install.ps1 | iex</code>
-        <code class="cli-line cli-line--nightly">curl -fsSL https://supaterm.com/install.sh | SUPATERM_CHANNEL=nightly sh</code>
-        <code class="cli-line cli-line--nightly">$env:SUPATERM_CHANNEL="nightly"; irm https://supaterm.com/install.ps1 | iex</code>
+        <CommandLine class="stable-only" command="curl -fsSL https://supaterm.com/install.sh | sh" />
+        <CommandLine class="stable-only" command="irm https://supaterm.com/install.ps1 | iex" />
+        <CommandLine
+          class="nightly-only"
+          command="curl -fsSL https://supaterm.com/install.sh | SUPATERM_CHANNEL=nightly sh"
+        />
+        <CommandLine
+          class="nightly-only"
+          command={'$env:SUPATERM_CHANNEL="nightly"; irm https://supaterm.com/install.ps1 | iex'}
+        />
         <p class="cli-note">Or try it once without installing:</p>
-        <code class="cli-line cli-line--stable">npx supaterm@latest</code>
-        <code class="cli-line cli-line--nightly">npx supaterm@nightly</code>
+        <CommandLine class="stable-only" command="npx supaterm@latest" />
+        <CommandLine class="nightly-only" command="npx supaterm@nightly" />
       </section>
     </div>
 
@@ -145,6 +164,7 @@ const imageProps = {
   import { fetchLatestRelease, RELEASES_URL, NIGHTLY_RELEASES_URL, type ReleaseChannel } from "../lib/releases";
 
   const page = document.getElementById("download-page")!;
+  const macCard = document.getElementById("macos-download") as HTMLAnchorElement;
   const versionLabel = document.getElementById("version-label")!;
   const changelogLink = document.getElementById("changelog-link") as HTMLAnchorElement;
   const releasesPageLink = document.getElementById("releases-page-link") as HTMLAnchorElement;
@@ -170,6 +190,8 @@ const imageProps = {
     releasesPageLink.href = fallback;
     changelogLink.href = fallback;
     versionLabel.textContent = "\u00a0";
+    // Only stable releases ship the installer; assume it until the release says otherwise.
+    page.dataset.installer = String(channel === "stable");
     cards.forEach((card) => {
       card.href = fallback;
     });
@@ -185,10 +207,16 @@ const imageProps = {
           ? `Built ${relativeAge(release.published_at)}`
           : release.tag_name;
       if (release.html_url) changelogLink.href = release.html_url;
+      const findAsset = (suffix: string | undefined) =>
+        (release.assets ?? []).find((a) => a.name.endsWith(`-${suffix}`));
       cards.forEach((card) => {
-        const match = (release.assets ?? []).find((a) => a.name.endsWith(`-${card.dataset.asset}`));
-        card.href = match?.browser_download_url ?? fallback;
+        card.href = findAsset(card.dataset.asset)?.browser_download_url ?? fallback;
       });
+      // The installer picks the build for the Mac's chip; without it, the card
+      // keeps the arm64 DMG and the copy says so.
+      const installer = findAsset("installer.dmg");
+      page.dataset.installer = String(Boolean(installer));
+      if (installer) macCard.href = installer.browser_download_url;
     } catch {
       if (page.dataset.channel === channel) versionLabel.textContent = "Releases";
     }
@@ -210,11 +238,6 @@ const imageProps = {
 
 <style>
   .download-page {
-    --night-highlight: #4ea4ff;
-    --night-secondary: #696fea;
-    --night-tertiary: #a85bea;
-    --night-glow: #5165d8;
-    --night-text: color-mix(in srgb, var(--night-glow) 90%, black);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -234,7 +257,7 @@ const imageProps = {
     margin-bottom: 2rem;
   }
 
-  /* Sky: a wash in the nightly icon's colors, masked so it dissolves into the page instead of ending at a line. */
+  /* Sky: the nightly DMG backdrop, masked so it dissolves into the page instead of ending at a line. */
   .sky {
     position: absolute;
     top: -80px;
@@ -244,12 +267,7 @@ const imageProps = {
     width: 100vw;
     margin-left: -50vw;
     z-index: -1;
-    background: linear-gradient(
-      115deg,
-      color-mix(in srgb, var(--night-highlight) 18%, transparent),
-      color-mix(in srgb, var(--night-secondary) 16%, transparent) 50%,
-      color-mix(in srgb, var(--night-tertiary) 16%, transparent)
-    );
+    background: url("/nightly-sky.svg") center / cover no-repeat;
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
     opacity: 0;
@@ -315,15 +333,15 @@ const imageProps = {
     display: inline-flex;
     margin-top: 1.5rem;
     padding: 3px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 999px;
-    background: var(--bg-muted);
+    background: rgba(255, 255, 255, 0.03);
     transition: border-color 0.45s ease, background 0.45s ease;
   }
 
   .download-page[data-channel="nightly"] .channel-toggle {
-    border-color: color-mix(in srgb, var(--night-glow) 30%, transparent);
-    background: color-mix(in srgb, var(--night-glow) 10%, var(--bg));
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(7, 21, 47, 0.5);
   }
 
   /* The thumb slides between the two tabs; both tabs are the same width. */
@@ -334,13 +352,13 @@ const imageProps = {
     left: 3px;
     width: calc(50% - 3px);
     border-radius: 999px;
-    background: var(--bg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+    background: rgba(255, 255, 255, 0.12);
+    transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), background 0.45s ease;
   }
 
   .download-page[data-channel="nightly"] .channel-thumb {
     transform: translateX(100%);
+    background: rgba(255, 255, 255, 0.16);
   }
 
   .channel-toggle button {
@@ -353,8 +371,9 @@ const imageProps = {
     color: var(--fg-muted);
     font: inherit;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    transition: color 0.25s ease;
+    transition: color 150ms ease-out;
   }
 
   .channel-toggle button:hover,
@@ -362,13 +381,14 @@ const imageProps = {
     color: var(--fg);
   }
 
-  .channel-toggle button[aria-selected="true"] {
-    font-weight: 500;
+  .channel-toggle button:focus-visible {
+    border-radius: 999px;
   }
 
   .head-meta {
     margin-top: 1rem;
     font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
     min-height: 1.2em;
   }
 
@@ -377,7 +397,9 @@ const imageProps = {
     text-decoration: underline;
     text-decoration-color: transparent;
     text-underline-offset: 3px;
-    transition: color 0.3s ease, text-decoration-color 0.3s ease;
+    transition-property: color, text-decoration-color;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
   }
 
   .changelog-link:hover {
@@ -386,7 +408,7 @@ const imageProps = {
   }
 
   .download-page[data-channel="nightly"] .changelog-link {
-    color: var(--night-text);
+    color: #b9bdff;
   }
 
   /* ── Platforms ── */
@@ -405,14 +427,16 @@ const imageProps = {
     gap: 0.75rem;
   }
 
-  /* The CLI ships on both trains; only the install command differs. */
-  .cli-line--nightly,
-  .download-page[data-channel="nightly"] .cli-line--stable {
+  /* The macOS copy follows whether the release ships the installer. */
+  .download-page[data-installer="true"] .without-installer,
+  .download-page:not([data-installer="true"]) .with-installer {
     display: none;
   }
 
-  .download-page[data-channel="nightly"] .cli-line--nightly {
-    display: block;
+  /* Install commands differ per channel, and Homebrew only carries stable. */
+  .download-page[data-channel="stable"] .nightly-only,
+  .download-page[data-channel="nightly"] .stable-only {
+    display: none;
   }
 
   .platform-header {
@@ -442,17 +466,6 @@ const imageProps = {
     margin-top: 0.5rem;
   }
 
-  .cli-line {
-    align-self: flex-start;
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    padding: 0.6rem 0.9rem;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg-code);
-    color: var(--fg);
-  }
-
   /* ── Download cards ── */
 
   .download-cards {
@@ -468,13 +481,19 @@ const imageProps = {
     padding: 0.85rem 1rem;
     border-radius: 10px;
     border: 1px solid var(--border);
-    background: var(--bg-raised);
-    transition: background 0.45s ease, border-color 0.45s ease, transform 0.2s ease;
+    background: rgba(255, 255, 255, 0.02);
+    transition-property: background-color, border-color, transform;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+
+  .download-card:focus-visible {
+    border-radius: 10px;
   }
 
   .download-card:hover {
-    background: var(--bg-muted);
-    border-color: var(--border-strong);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
     transform: translateY(-1px);
   }
 
@@ -483,16 +502,12 @@ const imageProps = {
   }
 
   .download-page[data-channel="nightly"] .download-card[data-asset] {
-    border-color: color-mix(in srgb, var(--night-secondary) 40%, transparent);
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--night-glow) 10%, transparent),
-      color-mix(in srgb, var(--night-tertiary) 6%, transparent)
-    );
+    border-color: rgba(105, 111, 234, 0.4);
+    background: linear-gradient(135deg, rgba(81, 101, 216, 0.1), rgba(168, 91, 234, 0.06));
   }
 
   .download-page[data-channel="nightly"] .download-card[data-asset]:hover {
-    border-color: color-mix(in srgb, var(--night-secondary) 70%, transparent);
+    border-color: rgba(105, 111, 234, 0.7);
   }
 
   .card-icon {
@@ -520,7 +535,7 @@ const imageProps = {
   }
 
   .download-page[data-channel="nightly"] .card-format {
-    color: var(--night-text);
+    color: #b6b0ff;
   }
 
   .intel-note {
@@ -532,9 +547,11 @@ const imageProps = {
   .releases-link a {
     color: var(--fg-muted);
     text-decoration: underline;
-    text-decoration-color: color-mix(in srgb, var(--fg-muted) 40%, transparent);
+    text-decoration-color: rgba(161, 161, 170, 0.4);
     text-underline-offset: 3px;
-    transition: color 0.3s ease, text-decoration-color 0.3s ease;
+    transition-property: color, text-decoration-color;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
   }
 
   .intel-note a:hover,

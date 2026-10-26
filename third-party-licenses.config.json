@@ -1,6 +1,176 @@
 {
   "customNotices": [
     {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Catppuccin themes",
+      "sourceUrl": "https://github.com/catppuccin/vscode",
+      "version": "3.19.0",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2021 Catppuccin"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "GitHub themes",
+      "sourceUrl": "https://github.com/primer/github-vscode-theme",
+      "version": "6.3.5",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2020 Primer"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "One Light theme",
+      "sourceUrl": "https://github.com/akamud/vscode-theme-onelight",
+      "version": "2.3.0",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2015 Mahmoud Ali"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Nord theme",
+      "sourceUrl": "https://github.com/arcticicestudio/nord-visual-studio-code",
+      "version": "0.19.0",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": [
+            "Copyright (C) 2017-present Arctic Ice Studio <development@arcticicestudio.com> (https://www.arcticicestudio.com)",
+            "Copyright (C) 2017-present Sven Greb <development@svengreb.de> (https://www.svengreb.de)"
+          ]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Dracula theme",
+      "sourceUrl": "https://github.com/dracula/visual-studio-code",
+      "version": "2.25.1",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2016 Dracula Theme"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Tokyo Night theme",
+      "sourceUrl": "https://github.com/enkia/tokyo-night-vscode-theme",
+      "version": "1.1.2",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2018-present Enkia"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Gruvbox themes",
+      "sourceUrl": "https://github.com/jdinhify/vscode-theme-gruvbox",
+      "version": "1.29.1",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright © 2017 JD"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Kanagawa Wave theme",
+      "sourceUrl": "https://github.com/metapho-re/kanagawa-vscode-theme",
+      "version": "0.5.0",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2025 Pierre-Alain Castella"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Rosé Pine themes",
+      "sourceUrl": "https://github.com/rose-pine/vscode",
+      "version": "2.15.2",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2021 Rosé Pine"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Night Owl themes",
+      "sourceUrl": "https://github.com/sdras/night-owl-vscode-theme",
+      "version": "2.1.1",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2018 Sarah Drasner"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "One Dark Pro theme",
+      "sourceUrl": "https://github.com/Binaryify/OneDark-Pro",
+      "version": "3.20.3",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2013-2022 Binaryify"]
+        }
+      ]
+    },
+    {
+      "bundles": ["assets", "desktop", "web", "mobile"],
+      "license": "MIT",
+      "name": "Solarized themes",
+      "sourceUrl": "https://github.com/microsoft/vscode/tree/main/extensions/theme-solarized-dark",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2015 - present Microsoft Corporation"]
+        }
+      ]
+    },
+    {
+      "bundles": ["desktop", "web"],
+      "license": "MIT",
+      "name": "Ionic keyboard assist",
+      "sourceUrl": "https://github.com/ionic-team/ionic-framework/blob/main/core/src/utils/keyboard/keyboard.ts",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2015-present Drifty Co."]
+        }
+      ]
+    },
+    {
       "bundles": ["assets", "desktop", "web"],
       "license": "CC0-1.0",
       "name": "Notification Sound 1 by deadrobotmusic",
@@ -147,9 +317,89 @@
       "name": "Expo text editor implementation",
       "noticeFile": "apps/mobile/modules/supaterm-composer-editor/LICENSE",
       "sourceUrl": "https://github.com/expo/expo"
+    },
+    {
+      "bundles": ["ios", "android", "mobile"],
+      "license": "MIT",
+      "name": "RaTeX",
+      "version": "0.1.15",
+      "sourceUrl": "https://github.com/erweixin/RaTeX/tree/v0.1.15",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) erweixin"]
+        }
+      ]
+    },
+    {
+      "bundles": ["ios", "android", "mobile", "web", "desktop"],
+      "license": "MIT",
+      "name": "micromark-extension-llm-math",
+      "version": "3.1.1-20250610",
+      "sourceUrl": "https://github.com/ofk/micromark-extension-llm-math",
+      "generatedNotices": [
+        {
+          "licenseId": "MIT",
+          "copyrights": ["Copyright (c) 2020 Titus Wormer <tituswormer@gmail.com>"]
+        }
+      ]
+    },
+    {
+      "bundles": ["ios", "android", "mobile", "web", "desktop"],
+      "license": "OFL-1.1",
+      "name": "KaTeX mathematical fonts",
+      "sourceUrl": "https://github.com/KaTeX/KaTeX",
+      "generatedNotices": [
+        {
+          "licenseId": "OFL-1.1",
+          "copyrights": [
+            "Copyright (c) 2009-2010, Design Science, Inc. (<www.mathjax.org>)",
+            "Copyright (c) 2014-2018 Khan Academy (<www.khanacademy.org>)"
+          ],
+          "preamble": [
+            "Unmodified KaTeX_* mathematical fonts. Reserved Font Names include KaTeX_Main, KaTeX_Math, KaTeX_AMS, and KaTeX_Caligraphic."
+          ]
+        }
+      ]
     }
   ],
   "packageOverrides": [
+    {
+      "name": "remark-math",
+      "version": "6.0.0",
+      "sourceUrl": "https://github.com/remarkjs/remark-math/blob/main/license",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) Junyoung Choi <fluke8259@gmail.com>"]
+      }
+    },
+    {
+      "name": "@react-native-async-storage/async-storage",
+      "version": "3.1.1",
+      "sourceUrl": "https://github.com/react-native-async-storage/async-storage",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) 2025 Krzysztof Borowy"]
+      }
+    },
+    {
+      "name": "deprecated-react-native-prop-types",
+      "version": "2.3.0",
+      "sourceUrl": "https://github.com/facebookarchive/react-native-deprecated-modules",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) Meta Platforms, Inc. and affiliates."]
+      }
+    },
+    {
+      "name": "@react-native/normalize-color",
+      "version": "2.1.0",
+      "sourceUrl": "https://github.com/facebook/react-native",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) Meta Platforms, Inc. and affiliates."]
+      }
+    },
     {
       "name": "@bufbuild/protobuf",
       "version": "1.10.0",

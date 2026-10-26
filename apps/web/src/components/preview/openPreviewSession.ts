@@ -26,9 +26,7 @@ interface OpenPreviewSessionInput<E> {
   }) => Promise<AtomCommandResult<PreviewSessionSnapshot, E>>;
   threadRef: ScopedThreadRef;
   url?: string;
-  /** Overrides the configured default; automation passes an explicit size. */
   viewport?: PreviewViewportSetting;
-  /** Overrides the configured default profile. */
   profileId?: string;
 
   runtime?: PreviewRuntime;

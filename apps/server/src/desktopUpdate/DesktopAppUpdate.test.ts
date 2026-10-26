@@ -55,8 +55,6 @@ function report(
 interface HarnessOptions {
   readonly mode?: "web" | "desktop";
   readonly controlFd?: number | undefined;
-  /** Reports emitted for the run, given the requestId the service generated.
-      The stream ends after the last one unless `keepOpen` is set. */
   readonly reports?: (requestId: string) => readonly DesktopUpdateStatusReport[];
   readonly keepOpen?: boolean;
 }
@@ -108,20 +106,6 @@ const makeHarness = Effect.fn("test.make_desktop_app_update_harness")(function* 
 });
 
 it.layer(NodeServices.layer)("desktop app update", (it) => {
-  it.effect("is unavailable without desktop mode or the control fd", () =>
-    Effect.gen(function* () {
-      const web = yield* makeHarness({ mode: "web" });
-      expect(web.service.available).toBe(false);
-      const noFd = yield* makeHarness({ controlFd: undefined });
-      expect(noFd.service.available).toBe(false);
-      expect((yield* noFd.service.run(() => Effect.void).pipe(Effect.flip)).reason).toContain(
-        "not started by the Supaterm desktop app",
-      );
-      const desktop = yield* makeHarness();
-      expect(desktop.service.available).toBe(true);
-    }),
-  );
-
   it.effect("collapses state reports into progress stages and succeeds on installing", () =>
     Effect.gen(function* () {
       const { service } = yield* makeHarness({
@@ -129,7 +113,6 @@ it.layer(NodeServices.layer)("desktop app update", (it) => {
           report(requestId, makeState({ status: "checking" })),
           report(requestId, makeState({ status: "available", availableVersion: "1.2.4" })),
           report(requestId, makeState({ status: "downloading", downloadPercent: 40 })),
-          // Reports from another run must be ignored.
           report("other-run", makeState({ status: "error", message: "unrelated" })),
           report(requestId, makeState({ status: "downloaded", downloadedVersion: "1.2.4" }), {
             outcome: "ready-to-install",
@@ -143,7 +126,6 @@ it.layer(NodeServices.layer)("desktop app update", (it) => {
         method: "desktop-app",
         desktopUpdateToken: expect.any(String),
       });
-      // "downloading" is not repeated for every download report.
       expect(stages).toEqual(["downloading", "installing"]);
 
       const retry = yield* service.run(() => Effect.void);

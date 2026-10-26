@@ -6,11 +6,12 @@ import { ScopedTheme, ScopedVariables } from "uniwind";
 
 import { mixThemePreviewBase, THEME_PREVIEW_RENDER_SPECS } from "@supaterm/shared/themePreview";
 
-import { SymbolView } from "../../../../components/AppSymbol";
-import { AppText as Text } from "../../../../components/AppText";
+import { SymbolView } from "../../../../components/ui/AppSymbol";
+import { AppText as Text } from "../../../../components/ui/AppText";
 import {
   getMobileThemePreviewColors,
   MOBILE_THEME_OPTIONS,
+  mobileThemeSupportsAppearance,
   type MobileThemeAppearance,
   type MobileThemeId,
   type MobileThemeIds,
@@ -123,6 +124,9 @@ function ThemeCard(props: {
   readonly onSelect: (appearance: MobileThemeAppearance) => void;
   readonly themeId: MobileThemeId;
 }) {
+  const appearances = (["light", "dark"] as const).filter((appearance) =>
+    mobileThemeSupportsAppearance(props.themeId, appearance),
+  );
   const choice = (appearance: MobileThemeAppearance, selected: boolean) => (
     <Pressable
       accessibilityHint={`Sets the ${appearance} appearance only`}
@@ -154,20 +158,29 @@ function ThemeCard(props: {
   return (
     <View className="min-w-36 flex-1 basis-[47%] gap-3 rounded-[24px] border border-border bg-grouped-card px-2 py-4">
       <Pressable
-        accessibilityHint="Sets both light and dark appearances"
+        accessibilityHint={
+          appearances.length === 2
+            ? "Sets both light and dark appearances"
+            : `Sets the ${appearances[0]} appearance only`
+        }
         accessibilityLabel={`${props.label} theme`}
         accessibilityRole="button"
         accessibilityState={{
           disabled: props.disabled,
-          selected: props.lightSelected && props.darkSelected,
+          selected: appearances.every((appearance) =>
+            appearance === "light" ? props.lightSelected : props.darkSelected,
+          ),
         }}
         className="absolute inset-0 rounded-[24px] active:bg-subtle"
         disabled={props.disabled}
         onPress={props.onSelectBoth}
       />
       <View className="flex-row items-center justify-center gap-2 py-1" pointerEvents="box-none">
-        {choice("light", props.lightSelected)}
-        {choice("dark", props.darkSelected)}
+        {appearances.map((appearance) => (
+          <View key={appearance}>
+            {choice(appearance, appearance === "light" ? props.lightSelected : props.darkSelected)}
+          </View>
+        ))}
       </View>
       <Text
         className="min-w-0 flex-1 px-1 text-lg font-supaterm-medium"
@@ -298,7 +311,8 @@ export function ThemeAppearanceSection() {
     systemColorsAvailable,
   } = useAppearancePreferences();
   const select = (changed: boolean, apply: () => void) => {
-    if (changed) void Haptics.selectionAsync();
+    if (!changed) return;
+    void Haptics.selectionAsync();
     apply();
   };
 
@@ -339,8 +353,13 @@ export function ThemeAppearanceSection() {
                 )
               }
               onSelectBoth={() =>
-                select(theme.id !== themeIds.light || theme.id !== themeIds.dark, () =>
-                  setThemeIdForBothAppearances(theme.id),
+                select(
+                  (["light", "dark"] as const).some(
+                    (appearance) =>
+                      mobileThemeSupportsAppearance(theme.id, appearance) &&
+                      theme.id !== themeIds[appearance],
+                  ),
+                  () => setThemeIdForBothAppearances(theme.id),
                 )
               }
               themeId={theme.id}

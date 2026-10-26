@@ -2,8 +2,8 @@ import {
   AntigravitySettings,
   ClaudeSettings,
   CodexSettings,
+  EasDeviceHostConfig,
   type ServerSettings,
-  UsageLimitSourceConfig,
   secretSettingsFields,
 } from "@supaterm/contracts";
 import { acpRegistryClient } from "@supaterm/provider-acp-registry/client";
@@ -19,7 +19,7 @@ import {
   writeSecretFieldValues,
 } from "./sourceControl/sourceControlHostSecrets.ts";
 
-export const SECRET_REDACTED = "\u2022\u2022\u2022\u2022\u2022\u2022";
+const SECRET_REDACTED = "\u2022\u2022\u2022\u2022\u2022\u2022";
 
 const providerSecretFields = new Map([
   ["codex", secretSettingsFields(CodexSettings)],
@@ -30,7 +30,7 @@ const providerSecretFields = new Map([
       [definition.driverKind, secretSettingsFields(definition.settingsSchema)] as const,
   ),
 ]);
-const usageLimitSecretFields = secretSettingsFields(UsageLimitSourceConfig);
+const easDeviceHostSecretFields = secretSettingsFields(EasDeviceHostConfig);
 const encode = (value: string) => Buffer.from(value, "utf8").toString("base64url");
 
 export interface SettingsSecret {
@@ -45,10 +45,6 @@ export interface SettingsSecret {
 
 type SecretValue = Pick<SettingsSecret, "value" | "redacted">;
 
-/**
- * Visits credential fields declared by schemas and dynamically sensitive environment variables.
- * Store keys and client representations stay here; callers supply only the secret operation.
- */
 export function mapSettingsSecrets(
   settings: ServerSettings,
   map: (secret: SettingsSecret) => SecretValue,
@@ -131,20 +127,16 @@ export function mapSettingsSecrets(
     ]),
   ) as ServerSettings["sourceControlHosts"];
 
-  const usageLimitSources = Object.fromEntries(
-    Object.entries(settings.usageLimitSources).map(([id, source]) => [
-      id,
+  const easDeviceHosts = settings.easDeviceHosts.map(
+    (host) =>
       mapFields(
-        source,
-        usageLimitSecretFields,
+        host,
+        easDeviceHostSecretFields,
         (field, serverHost) =>
-          `usage-limit-source-${encode(id)}` +
-          (field === "managementKey" && serverHost === null
-            ? ""
-            : `-${encode(field)}${serverHost === null ? "" : `-${encode(serverHost)}`}`),
-      ),
-    ]),
-  ) as ServerSettings["usageLimitSources"];
+          `device-host-${encode(host.id)}-${encode(field)}` +
+          (serverHost === null ? "" : `-${encode(serverHost)}`),
+      ) as EasDeviceHostConfig,
+  );
 
-  return { ...settings, providerInstances, sourceControlHosts, usageLimitSources };
+  return { ...settings, providerInstances, sourceControlHosts, easDeviceHosts };
 }

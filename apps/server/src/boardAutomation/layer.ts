@@ -61,7 +61,7 @@ export const make = Effect.gen(function* () {
   const services = yield* Effect.context<
     ServerConfig.ServerConfig | FileSystem.FileSystem | ThreadManagement.ThreadManagementService
   >();
-  const uuid = crypto.randomUUIDv4.pipe(Effect.orDie);
+  const uuid = crypto.randomUUIDv4().pipe(Effect.orDie);
   const cards = yield* CardWorkspace.make;
 
   const projectOf = (projectId: ProjectId) =>
@@ -88,8 +88,12 @@ export const make = Effect.gen(function* () {
         ),
       ),
 
-    send: ({ threadId, text, modelSelection }) =>
-      Effect.gen(function* () {
+    send: Effect.fn("BoardAutomation.send")(
+      function* ({
+        threadId,
+        text,
+        modelSelection,
+      }: Parameters<BoardAutomation.BoardAutomationOps["send"]>[0]) {
         const message = {
           threadId,
           commandId: CommandId.make(yield* uuid),
@@ -114,19 +118,19 @@ export const make = Effect.gen(function* () {
           createdBy: "user",
           creationSource: "server",
         });
-      }).pipe(
-        Effect.tapError((error) =>
-          Effect.logWarning("Could not send a column automation", { error }),
-        ),
-        Effect.mapError((error) =>
-          failure(
-            error instanceof Error && error.message.length > 0
-              ? error.message
-              : "The prompt couldn't be sent to the card.",
-          ),
-        ),
-        Effect.provide(services),
+      },
+      Effect.tapError((error) =>
+        Effect.logWarning("Could not send a column automation", { error }),
       ),
+      Effect.mapError((error) =>
+        failure(
+          error instanceof Error && error.message.length > 0
+            ? error.message
+            : "The prompt couldn't be sent to the card.",
+        ),
+      ),
+      Effect.provide(services),
+    ),
 
     sendBanked: ({ threadId, render, modelSelection }) =>
       banks
@@ -173,62 +177,62 @@ export const make = Effect.gen(function* () {
     ),
   );
 
-  const onCardEvent = (event: OrchestrationV2DomainEvent) =>
-    Effect.gen(function* () {
-      if (event.type === "thread.deleted") {
-        tracked.delete(event.threadId);
-        return yield* service.forget(event.threadId);
-      }
-      if (
-        event.type !== "thread.created" &&
-        event.type !== "thread.board-placed" &&
-        event.type !== "thread.archived" &&
-        event.type !== "thread.unarchived"
-      ) {
-        return;
-      }
-      const thread = event.payload;
-      if (!isCard(thread)) return;
-      const { board, boardAgentThreadId } = yield* boardContext(thread.projectId);
-      if (thread.id === boardAgentThreadId) return;
-      const columnId = boardCardColumnId(board, thread);
-      const previous = tracked.get(thread.id);
-      const now = yield* Clock.currentTimeMillis;
-      tracked.set(thread.id, {
-        projectId: thread.projectId,
-        columnId,
-        newUntil:
-          event.type === "thread.created"
-            ? DateTime.toEpochMillis(thread.createdAt) + NEW_CARD_PLACEMENT_WINDOW_MS
-            : null,
-      });
-      if (event.type === "thread.created") return;
-      if (previous?.newUntil != null && event.type === "thread.board-placed") {
-        if (now <= previous.newUntil) return;
-      }
-      // Archived cards aren't seeded; leaving Done always unarchives them.
-      const fromColumnId =
-        previous?.columnId ??
-        (event.type === "thread.unarchived"
-          ? (board ?? DEFAULT_PROJECT_BOARD).doneColumnId
-          : undefined);
-      if (fromColumnId === undefined || fromColumnId === columnId) return;
-      yield* service.cardMoved({
-        threadId: thread.id,
-        projectId: thread.projectId,
-        fromColumnId,
-        toColumnId: columnId,
-      });
+  const onCardEvent = Effect.fn("BoardAutomation.onCardEvent")(function* (
+    event: OrchestrationV2DomainEvent,
+  ) {
+    if (event.type === "thread.deleted") {
+      tracked.delete(event.threadId);
+      return yield* service.forget(event.threadId);
+    }
+    if (
+      event.type !== "thread.created" &&
+      event.type !== "thread.board-placed" &&
+      event.type !== "thread.archived" &&
+      event.type !== "thread.unarchived"
+    ) {
+      return;
+    }
+    const thread = event.payload;
+    if (!isCard(thread)) return;
+    const { board, boardAgentThreadId } = yield* boardContext(thread.projectId);
+    if (thread.id === boardAgentThreadId) return;
+    const columnId = boardCardColumnId(board, thread);
+    const previous = tracked.get(thread.id);
+    const now = yield* Clock.currentTimeMillis;
+    tracked.set(thread.id, {
+      projectId: thread.projectId,
+      columnId,
+      newUntil:
+        event.type === "thread.created"
+          ? DateTime.toEpochMillis(thread.createdAt) + NEW_CARD_PLACEMENT_WINDOW_MS
+          : null,
     });
+    if (event.type === "thread.created") return;
+    if (previous?.newUntil != null && event.type === "thread.board-placed") {
+      if (now <= previous.newUntil) return;
+    }
+    // Archived cards aren't seeded; leaving Done always unarchives them.
+    const fromColumnId =
+      previous?.columnId ??
+      (event.type === "thread.unarchived"
+        ? (board ?? DEFAULT_PROJECT_BOARD).doneColumnId
+        : undefined);
+    if (fromColumnId === undefined || fromColumnId === columnId) return;
+    yield* service.cardMoved({
+      threadId: thread.id,
+      projectId: thread.projectId,
+      fromColumnId,
+      toColumnId: columnId,
+    });
+  });
 
   /** A sent run shows until the card's agent has nothing left to do. */
-  const onTurnEnd = (threadId: ThreadId) =>
-    Effect.gen(function* () {
-      const shell = yield* projections.getThreadShell(threadId);
-      const status = shell?.activityRunStatus ?? null;
-      if (status === "preparing" || status === "starting" || status === "running") return;
-      yield* service.settled(threadId);
-    });
+  const onTurnEnd = Effect.fn("BoardAutomation.onTurnEnd")(function* (threadId: ThreadId) {
+    const shell = yield* projections.getThreadShell(threadId);
+    const status = shell?.activityRunStatus ?? null;
+    if (status === "preparing" || status === "starting" || status === "running") return;
+    yield* service.settled(threadId);
+  });
 
   yield* forkParked(
     seed.pipe(

@@ -7,7 +7,8 @@ import ChatView from "./ChatView";
 import { resolveDraftPromotionNavigationTarget, threadHasStarted } from "./ChatView.logic";
 import { waitForDraftHeroTransition } from "./chat/draftHeroTransition";
 import { ThreadTimelineLoading } from "./chat/ThreadTimelineLoading";
-import { SidebarInset } from "./ui/sidebar";
+import { isPaneInputOwner } from "../chatPanes/paneScope";
+import { useChatPaneStore } from "../chatPanes/store";
 import {
   finalizePromotedDraftThreadByRef,
   markPromotedDraftThreadByRef,
@@ -15,11 +16,11 @@ import {
   useComposerDraftStore,
 } from "../composerDraftStore";
 import { useSidebarPendingFileDropStore } from "../sidebarPendingFileDropStore";
-import { useEnvironmentThreadRefs, useThreadRefs, useThreadShell } from "../state/entities";
-import { useEnvironmentQuery } from "../state/query";
-import { environmentShell } from "../state/shell";
+import { useEnvironmentThreadRefs, useThreadRefs, useQuietThreadShell } from "../state/entities";
+import { useEnvironmentShellStatus } from "../state/shell";
 import { usePendingThreadCreation, useThreadOutboxLoaded } from "../state/threadOutbox";
 import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import { useThreadState } from "../state/entities";
 import {
   buildThreadRouteParams,
   isThreadRouteSnapshotAuthoritative,
@@ -28,27 +29,20 @@ import {
 } from "../threadRoutes";
 
 /**
- * The single chat surface behind both `/draft/$draftId` and
- * `/$environmentId/$threadId`. Each draft gets its own ChatView instance (so
- * a background send's state stays with the draft it came from), and that
- * instance carries the draft through its promotion to a server thread: the
- * thread route keeps keying by the draft id while the draft record exists,
- * so the route swap only changes props and the timeline never paints an
- * empty frame. Plain server threads are unkeyed, so navigating between them
- * reuses one instance as ChatView expects.
+ * Plain server threads are unkeyed, so navigating between them reuses one instance as ChatView
+ * expects. Each chat pane renders one, from the `_chat` layout rather than the two leaf routes,
+ * since an element only survives a route swap when the same parent renders it.
  *
- * Rendered by the `_chat` layout rather than by the two leaf routes, since
- * an element only survives a route swap when the same parent renders it.
+ * The focused pane follows the URL. A pane in the background changes its own thread instead,
+ * so a draft promoting or a thread disappearing behind the user never moves the URL.
  */
-export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
+export function ThreadRouteView({ target, paneId }: { target: ThreadRouteTarget; paneId: string }) {
   const navigate = useNavigate();
   const draftId = target.kind === "draft" ? target.draftId : null;
   const draftSession = useComposerDraftStore((store) =>
     draftId === null ? null : store.getDraftSession(draftId),
   );
   const threadRefs = useThreadRefs();
-  // The server thread this view is about: the route's own ref, or the draft's
-  // reserved ref once the server knows it.
   const inferredThreadRef = draftSession
     ? (threadRefs.find(
         (ref) =>
@@ -58,7 +52,7 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
     : null;
   const serverThreadRef: ScopedThreadRef | null =
     target.kind === "server" ? target.threadRef : (draftSession?.promotedTo ?? inferredThreadRef);
-  const serverThread = useThreadShell(serverThreadRef);
+  const serverThread = useQuietThreadShell(serverThreadRef);
   const pendingCreation = usePendingThreadCreation(
     serverThreadRef ??
       (draftSession ? scopeThreadRef(draftSession.environmentId, draftSession.threadId) : null),
@@ -83,12 +77,10 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
         })
       : null;
 
-  const shell = useEnvironmentQuery(
-    serverThreadRef === null ? null : environmentShell.stateAtom(serverThreadRef.environmentId),
-  );
+  const shellStatus = useEnvironmentShellStatus(serverThreadRef?.environmentId ?? null);
   const serverThreadShell = serverThread;
   const environmentThreadRefs = useEnvironmentThreadRefs(serverThreadRef?.environmentId ?? null);
-  const bootstrapComplete = isThreadRouteSnapshotAuthoritative(shell.data?.status);
+  const bootstrapComplete = isThreadRouteSnapshotAuthoritative(shellStatus);
   const draftThread = useComposerDraftStore((store) =>
     serverThreadRef ? store.getDraftThreadByRef(serverThreadRef) : null,
   );
@@ -114,10 +106,19 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
   const environmentHasDraftThreads = useComposerDraftStore((store) =>
     serverThreadRef ? store.hasDraftThreadsInEnvironment(serverThreadRef.environmentId) : false,
   );
+  // Until the shell lists the thread, its own load (HTTP, then the socket)
+  // decides whether it exists. Read only then: once listed, ChatView keeps
+  // this stream open and its updates need not re-render the route.
+  const unlistedThreadRef =
+    target.kind === "server" && serverThreadShell === null && draftThread === null
+      ? target.threadRef
+      : null;
+  const unlistedThreadDetail = useThreadState(unlistedThreadRef);
   const renderState = resolveThreadRouteRenderState({
     bootstrapComplete,
     serverThreadExists: serverThreadShell !== null,
     serverThreadDeleted: serverThreadShell?.deletedAt != null,
+    unlistedThreadDetail,
     draftThreadExists: draftThread !== null,
     pendingThreadExists: pendingCreation !== null,
     outboxLoaded,
@@ -141,6 +142,12 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
       if (cancelled) {
         return;
       }
+      if (!isPaneInputOwner(paneId)) {
+        useChatPaneStore
+          .getState()
+          .retarget(paneId, { kind: "server", threadRef: canonicalThreadRef });
+        return;
+      }
       void navigate({
         to: "/$environmentId/$threadId",
         params: buildThreadRouteParams(canonicalThreadRef),
@@ -150,30 +157,29 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
     return () => {
       cancelled = true;
     };
-  }, [canonicalThreadRef, navigate]);
+  }, [canonicalThreadRef, navigate, paneId]);
 
   useEffect(() => {
     if (target.kind !== "draft" || draftSession || canonicalThreadRef) {
       return;
     }
+    if (useChatPaneStore.getState().close(paneId, { remember: false })) return;
     void navigate({ to: "/", replace: true });
-  }, [canonicalThreadRef, draftSession, navigate, target.kind]);
+  }, [canonicalThreadRef, draftSession, navigate, paneId, target.kind]);
 
   useEffect(() => {
     if (target.kind !== "server" || !bootstrapComplete) {
       return;
     }
-    // Navigation already resolved onto this path, so a drop aimed here
-    // passed its landing check; once the thread reads as missing it can
-    // never be attached, release it even when there is nowhere to redirect.
     if (renderState === "missing") {
       const { clearPendingFileDropsForThread } = useSidebarPendingFileDropStore.getState();
       clearPendingFileDropsForThread(target.threadRef);
+      if (useChatPaneStore.getState().close(paneId, { remember: false })) return;
       if (environmentHasAnyThreads) {
         void navigate({ to: "/", replace: true });
       }
     }
-  }, [bootstrapComplete, environmentHasAnyThreads, navigate, renderState, target]);
+  }, [bootstrapComplete, environmentHasAnyThreads, navigate, paneId, renderState, target]);
 
   useEffect(() => {
     if (target.kind !== "server" || !serverThreadStarted || !draftThread) {
@@ -209,9 +215,5 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
     view = <ThreadTimelineLoading />;
   }
 
-  return (
-    <SidebarInset className="h-svh min-h-0 overflow-hidden overscroll-y-none md:h-dvh">
-      {view}
-    </SidebarInset>
-  );
+  return view;
 }

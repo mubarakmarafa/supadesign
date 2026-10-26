@@ -44,6 +44,18 @@ describe("GitHub routing trust across routes", () => {
       "read-write",
     );
   });
+  it("keeps a grant saved while the relay host still used its legacy address", () => {
+    const host = `${"ab".repeat(16)}.${"cd".repeat(16)}`;
+    const relay = savedRoute(`https://${host}.relay.supaterm.alt/`);
+    const legacy = savedRoute(`https://${host}.relay.supaterm.invalid/`);
+    expect(gitHubRoutingPermissionFor(relay, grant(legacy))).toBe("read-write");
+    expect(
+      gitHubRoutingPermissionFor(
+        entryWithRoutes(lan, [lan, relay]),
+        grant(entryWithRoutes(lan, [lan, legacy])),
+      ),
+    ).toBe("read-write");
+  });
   it("revokes a grant when an alternate address is added, changed, or removed", () => {
     const entry = entryWithRoutes(lan, [lan, tailnet]);
     const changed = entryWithRoutes(lan, [lan, savedRoute("https://other.example.test")]);
@@ -53,20 +65,20 @@ describe("GitHub routing trust across routes", () => {
   });
   it("retains a paired route's grant when learned LAN addresses change", () => {
     const learned = mergeLearnedRoutes({
-      entry: tailnet,
-      activeRoute: tailnet,
-      reported: [{ httpBaseUrl: "http://192.168.1.20:4389" }],
+      entry: lan,
+      activeRoute: lan,
+      reported: [{ httpBaseUrl: "http://192.168.1.21:4389" }],
       allowInsecure: true,
     })!;
-    const entry = entryWithRoutes(tailnet, learned);
-    expect(gitHubRoutingPermissionFor(entry, grant(tailnet))).toBe("read-write");
+    const entry = entryWithRoutes(lan, learned);
+    expect(gitHubRoutingPermissionFor(entry, grant(lan))).toBe("read-write");
     const changed = mergeLearnedRoutes({
       entry,
-      activeRoute: tailnet,
+      activeRoute: lan,
       reported: [{ httpBaseUrl: "http://192.168.1.30:4389" }],
       allowInsecure: true,
     })!;
-    expect(gitHubRoutingPermissionFor(entryWithRoutes(entry, changed), grant(tailnet))).toBe(
+    expect(gitHubRoutingPermissionFor(entryWithRoutes(entry, changed), grant(lan))).toBe(
       "read-write",
     );
   });

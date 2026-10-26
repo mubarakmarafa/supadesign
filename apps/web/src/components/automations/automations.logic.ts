@@ -9,7 +9,6 @@ import {
   type ProviderInteractionMode,
   type ServerSettings,
 } from "@supaterm/contracts";
-import { redirect } from "@tanstack/react-router";
 
 import {
   resolveProjectSettings,
@@ -77,19 +76,6 @@ export function automationsScopeSearch(search: SettingsScopeSearch): Automations
     ...(search.project === undefined ? {} : { project: search.project }),
     ...(search.machine === undefined ? {} : { machine: search.machine }),
   };
-}
-
-/**
- * Scheduled tasks moved from Settings to Automations. Old links keep their
- * project, environment, and task; a settings checkout scope has no equivalent
- * there.
- */
-export function redirectScheduledTasksToAutomations({
-  search,
-}: {
-  readonly search: Record<string, unknown>;
-}): never {
-  throw redirect({ to: "/automations", search: validateAutomationsSearch(search), replace: true });
 }
 
 export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
@@ -172,13 +158,11 @@ export interface DraftState {
   readonly startFromOrigin: boolean;
   readonly existingWorktreePath: string;
   readonly modelKey: string;
-  /** Not editable in the dialog, but preserved so editing an agent-created task keeps its modes. */
   readonly runtimeMode: RuntimeMode;
   readonly interactionMode: ProviderInteractionMode;
   /**
-   * The task's original model selection. The picker only edits
-   * `instanceId:model`; keeping the source object preserves provider options
-   * (reasoning, temperature, …) when the model itself is left unchanged.
+   * The picker only edits `instanceId:model`; keeping the source object preserves provider
+   * options (reasoning, temperature, …) when the model itself is left unchanged.
    */
   readonly baseModelSelection: ModelSelection | null;
 }
@@ -218,7 +202,6 @@ export function taskToDraft(task: ScheduledTask): DraftState {
   };
 }
 
-/** Use configured defaults before the catalog's advertised default model. */
 export function scheduledTaskDefaultModel(
   settings: ServerSettings,
   project: (LegacyProjectSettingsFields & { readonly id: ProjectId }) | null,

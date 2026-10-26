@@ -19,7 +19,8 @@ vi.mock("@effect/atom-react", () => ({
           : {},
 }));
 vi.mock("./use-composer-drafts", () => ({
-  composerDraftsAtom: "drafts",
+  composerDraftsAtom: "all-drafts",
+  questionAttachmentDraftsAtom: () => "drafts",
   clearComposerDraft: vi.fn(),
 }));
 vi.mock("./composer-attachment-uploads", async () => ({
@@ -39,8 +40,6 @@ vi.mock("./entities", () => ({
           settings: {},
           environment: {
             capabilities: {
-              questionAttachments: true,
-              attachmentUploads: true,
               fileAttachments: { maxUploadBytes: 20_000_000 },
             },
           },

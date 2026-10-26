@@ -21,7 +21,7 @@ import {
   ConnectionTransientError,
   PrimaryConnectionTarget,
 } from "./model.ts";
-import { updateOutdatedHost } from "./outdatedHostUpdate.ts";
+import { describeOutdatedHost, updateOutdatedHost } from "./outdatedHostUpdate.ts";
 import * as EnvironmentRegistry from "./registry.ts";
 import * as ConnectionResolver from "./resolver.ts";
 
@@ -32,14 +32,14 @@ const TARGET = new PrimaryConnectionTarget({
   wsBaseUrl: "wss://build.example.test",
 });
 
-const descriptor = (protocol: number | undefined, serverVersion: string) =>
+const descriptor = (protocol: number, serverVersion: string) =>
   ({
     environmentId: TARGET.environmentId,
     label: TARGET.label,
     platform: { os: "darwin", arch: "arm64" },
     serverVersion,
-    ...(protocol === undefined ? {} : { orchestrationProtocolVersion: protocol }),
-    capabilities: { repositoryIdentity: true, serverSelfUpdate: "boot-service" },
+    orchestrationProtocolVersion: protocol,
+    capabilities: { serverSelfUpdate: "boot-service" },
   }) satisfies ExecutionEnvironmentDescriptor;
 
 const RpcRequest = Schema.TaggedStruct("Request", {
@@ -52,9 +52,49 @@ const decodeJson = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown
 const encodeJson = Schema.encodeUnknownSync(Schema.fromJsonString(Schema.Unknown));
 const encodeDescriptor = Schema.encodeSync(Schema.fromJsonString(ExecutionEnvironmentDescriptor));
 
+describe("describeOutdatedHost", () => {
+  it.effect("discovers a disabled outdated host without opening a normal session", () =>
+    Effect.gen(function* () {
+      const expected = descriptor(1, "0.0.45");
+      const result = yield* describeOutdatedHost(TARGET.environmentId).pipe(
+        Effect.provideService(
+          EnvironmentRegistry.EnvironmentRegistry,
+          EnvironmentRegistry.EnvironmentRegistry.of({
+            entries: yield* SubscriptionRef.make<
+              ReadonlyMap<EnvironmentId, ConnectionCatalogEntry>
+            >(
+              new Map([
+                [TARGET.environmentId, { target: TARGET, profile: Option.none(), enabled: false }],
+              ]),
+            ),
+          } as unknown as EnvironmentRegistry.EnvironmentRegistry["Service"]),
+        ),
+        Effect.provideService(
+          ConnectionResolver.ConnectionResolver,
+          ConnectionResolver.ConnectionResolver.of({
+            prepare: () => Effect.die(new Error("normal sessions reject this protocol")),
+            prepareForUpdate: (entry) =>
+              Effect.succeed({
+                descriptor: expected,
+                prepared: {
+                  environmentId: entry.target.environmentId,
+                  label: entry.target.label,
+                  httpBaseUrl: TARGET.httpBaseUrl,
+                  socketUrl: "wss://build.example.test/ws",
+                  httpAuthorization: null,
+                  target: TARGET,
+                },
+              }),
+          }),
+        ),
+      );
+      expect(result).toEqual(expected);
+    }),
+  );
+});
+
 type Listener = (event: { readonly type: string; readonly data?: unknown }) => void;
 
-/** Answers update RPCs the way a protocol-1 server does. */
 class OutdatedHostSocket {
   static readonly OPEN = 1;
   readyState = 0;
@@ -119,11 +159,11 @@ describe("updateOutdatedHost", () => {
     "updates a protocol-1 host and resumes it (fallback route: %s)",
     (useFallback) =>
       Effect.gen(function* () {
-        const blocked = orchestrationProtocolCompatibilityError(descriptor(undefined, "0.0.45"));
+        const blocked = orchestrationProtocolCompatibilityError(descriptor(1, "0.0.45"));
         expect(blocked).toMatchObject({ serverUpdateRequired: true });
 
         const sockets: Array<OutdatedHostSocket> = [];
-        let served: ExecutionEnvironmentDescriptor = descriptor(undefined, "0.0.45");
+        let served: ExecutionEnvironmentDescriptor = descriptor(1, "0.0.45");
         const entries = yield* SubscriptionRef.make<
           ReadonlyMap<EnvironmentId, ConnectionCatalogEntry>
         >(
@@ -235,7 +275,6 @@ describe("updateOutdatedHost", () => {
               Layer.succeed(ConnectionResolver.ConnectionResolver, resolver),
               Layer.succeed(HttpClient.HttpClient, httpClient),
               Layer.succeed(Socket.WebSocketConstructor, (url) => {
-                // The host relaunches on a compatible protocol once the update lands.
                 const socket = new OutdatedHostSocket(url, () => {
                   served = descriptor(ORCHESTRATION_PROTOCOL_VERSION, "0.0.46");
                 });
@@ -264,8 +303,8 @@ describe("updateOutdatedHost", () => {
   it.effect("refuses a host that cannot update itself without opening a socket", () =>
     Effect.gen(function* () {
       const manual = {
-        ...descriptor(undefined, "0.0.45"),
-        capabilities: { repositoryIdentity: true },
+        ...descriptor(1, "0.0.45"),
+        capabilities: {},
       };
       let opened = false;
       const error = yield* Effect.flip(

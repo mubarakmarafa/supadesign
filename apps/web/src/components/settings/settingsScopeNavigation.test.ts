@@ -1,4 +1,4 @@
-import { EnvironmentId, ProviderInstanceId, ScheduledTaskId } from "@supaterm/contracts";
+import { EnvironmentId, ProviderInstanceId } from "@supaterm/contracts";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -10,11 +10,6 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { resolveSettingsScope } from "./settingsScope";
 import { retainSettingsScope, validateSettingsRouteSearch } from "./settingsScopeNavigation";
-
-import {
-  redirectScheduledTasksToAutomations,
-  validateAutomationsSearch,
-} from "../automations/automations.logic";
 
 const checkoutSearch = {
   project: "repository:supaterm",
@@ -51,17 +46,6 @@ function createSettingsRouter(initialEntry = "/settings/general") {
         : {}),
     }),
   });
-  const scheduledTasks = createRoute({
-    getParentRoute: () => settings,
-    path: "scheduled-tasks",
-    validateSearch: validateAutomationsSearch,
-    beforeLoad: redirectScheduledTasksToAutomations,
-  });
-  const automations = createRoute({
-    getParentRoute: () => root,
-    path: "automations",
-    validateSearch: validateAutomationsSearch,
-  });
   const legacyProject = createRoute({
     getParentRoute: () => root,
     path: "projects/$projectKey",
@@ -75,39 +59,17 @@ function createSettingsRouter(initialEntry = "/settings/general") {
   });
   return createRouter({
     routeTree: root.addChildren([
-      settings.addChildren([
-        general,
-        projects,
-        integrations,
-        sourceControl,
-        providers,
-        scheduledTasks,
-      ]),
+      settings.addChildren([general, projects, integrations, sourceControl, providers]),
       legacyProject,
-      automations,
     ]),
     history: createMemoryHistory({ initialEntries: [initialEntry] }),
   });
 }
 
 describe("settings scope navigation", () => {
-  it("replaces the default scope with an explicit environment, then replaces it with a project", async () => {
-    const router = createSettingsRouter();
-    await router.load();
-    await router.navigate({
-      to: "/settings/general",
-      search: { machine: "remote-server" },
-      hash: "",
-    });
-    expect(router.state.location.search).toEqual({ machine: "remote-server" });
-    await router.navigate({ to: "/settings/projects", search: { project: "another-project" } });
-    expect(router.state.location.search).toEqual({ project: "another-project" });
-  });
-
   it("clears a checkout when selecting all environments and all projects", async () => {
     const router = createSettingsRouter();
     await router.navigate({ to: "/settings/general", search: checkoutSearch, hash: "old-setting" });
-    // The scope selects send every axis explicitly so "all" does not read as "unchanged".
     await router.navigate({
       to: "/settings/general",
       search: { project: undefined, machine: undefined, checkout: undefined },
@@ -222,16 +184,6 @@ describe("settings scope navigation", () => {
     });
   });
 
-  it("respects explicit clearing keys instead of restoring the previous checkout", async () => {
-    const router = createSettingsRouter();
-    await router.navigate({ to: "/settings/general", search: checkoutSearch });
-    await router.navigate({
-      to: "/settings/projects",
-      search: { project: "different-project", machine: undefined },
-    });
-    expect(router.state.location.search).toEqual({ project: "different-project" });
-  });
-
   it("preserves escaped checkout identifiers across reload and browser history", async () => {
     const router = createSettingsRouter();
     await router.navigate({ to: "/settings/general", search: checkoutSearch });
@@ -267,39 +219,5 @@ describe("settings scope navigation", () => {
     await router.navigate(router.state.redirect!.options);
     expect(router.state.location.pathname).toBe("/settings/general");
     expect(router.state.location.search).toEqual({ machine: "remote-server" });
-  });
-});
-
-describe("scheduled task settings redirect", () => {
-  it("opens a task link on Automations, scoped to its environment", async () => {
-    const router = createSettingsRouter();
-    await router.navigate({
-      to: "/settings/scheduled-tasks",
-      search: {
-        environmentId: EnvironmentId.make("remote-server"),
-        taskId: ScheduledTaskId.make("task-1"),
-      },
-    });
-    expect(router.state.redirect).not.toBeUndefined();
-    await router.navigate(router.state.redirect!.options);
-    expect(router.state.location.pathname).toBe("/automations");
-    expect(router.state.location.search).toEqual({
-      machine: "remote-server",
-      environmentId: "remote-server",
-      taskId: "task-1",
-    });
-  });
-
-  it("keeps the settings project and environment as the Automations scope and drops checkout", async () => {
-    const router = createSettingsRouter();
-    await router.navigate({ to: "/settings/projects", search: checkoutSearch });
-    await router.navigate({ to: "/settings/scheduled-tasks" });
-    expect(router.state.redirect).not.toBeUndefined();
-    await router.navigate(router.state.redirect!.options);
-    expect(router.state.location.pathname).toBe("/automations");
-    expect(router.state.location.search).toEqual({
-      project: checkoutSearch.project,
-      machine: checkoutSearch.machine,
-    });
   });
 });

@@ -1,7 +1,7 @@
 import type { OrchestrationSkillsEnvironment } from "@supaterm/client-runtime/orchestrationSkills";
 import { useOrchestrationSkills } from "../../../state/useOrchestrationSkills";
 import { serverEnvironment } from "../../../state/server";
-import { AppText as Text } from "../../../components/AppText";
+import { AppText as Text } from "../../../components/ui/AppText";
 import { SettingsRow } from "./SettingsRow";
 import { SettingsSection } from "./SettingsSection";
 

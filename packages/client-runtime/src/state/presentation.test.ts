@@ -3,6 +3,7 @@ import { EnvironmentId, type ServerConfig } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 
+import type { ConnectionCatalogEntry } from "../connection/catalog.ts";
 import { AVAILABLE_CONNECTION_STATE, PrimaryConnectionTarget } from "../connection/model.ts";
 import { isEnvironmentConnected } from "../connection/presentation.ts";
 import {
@@ -25,10 +26,10 @@ function entry(environmentId: EnvironmentId, label = environmentId as string) {
     profile: Option.none(),
   };
 }
-function config(pullRequests = false, cwd = "/workspace"): ServerConfig {
+function config(cwd = "/workspace"): ServerConfig {
   return {
     cwd,
-    environment: { capabilities: { pullRequests }, platform: { machine: "desktop" } },
+    environment: { capabilities: {}, platform: { machine: "desktop" } },
   } as ServerConfig;
 }
 function harness() {
@@ -81,7 +82,7 @@ describe("environment summary subscriptions", () => {
         states(FIRST),
         AsyncResult.success({ ...AVAILABLE_CONNECTION_STATE, phase: "connecting" }),
       );
-      h.registry.set(h.configs(FIRST), config(false, "/updated-config"));
+      h.registry.set(h.configs(FIRST), config("/updated-config"));
       expect(changes).toEqual({ first: 0, second: 0 });
 
       h.registry.set(
@@ -140,14 +141,16 @@ describe("environment summary subscriptions", () => {
     const initialLabels = h.registry.get(h.identitiesAtom);
     try {
       for (let i = 0; i < 20; i++) {
-        const next = config(false, `/workspace-${i}`);
+        const next = config(`/workspace-${i}`);
         h.registry.set(h.configs(FIRST), next);
-        expect(h.registry.get(h.full.presentationsAtom).get(FIRST)?.serverConfig).toBe(next);
+        expect(h.registry.get(h.full.presentationsAtom).get(FIRST)?.serverConfig?.cwd).toBe(
+          next.cwd,
+        );
         expect(h.registry.get(h.environmentIdsAtom)).toBe(initialIds);
         expect(h.registry.get(h.identitiesAtom)).toBe(initialLabels);
         h.registry.get(h.environmentsAtom);
         expect(h.registry.get(h.machineByIdAtom).get(FIRST)).toBe("desktop");
-        expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(false);
+        expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(true);
       }
       expect(counts).toEqual({
         full: 20,
@@ -175,6 +178,43 @@ describe("environment summary subscriptions", () => {
     }
   });
 
+  it("keeps presentations identical when only provider statuses change", () => {
+    const h = harness();
+    const pushes = { presentations: 0, providers: 0, configs: 0 };
+    const stops = [
+      h.registry.subscribe(h.full.presentationsAtom, () => pushes.presentations++),
+      h.registry.subscribe(h.full.providersByEnvironmentAtom, () => pushes.providers++),
+      h.registry.subscribe(h.full.serverConfigsAtom, () => pushes.configs++),
+    ];
+    try {
+      const base = config();
+      h.registry.set(h.configs(FIRST), { ...base, providers: [] } as ServerConfig);
+      const presentations = h.registry.get(h.full.presentationsAtom);
+      const configs = h.registry.get(h.full.serverConfigsAtom);
+      const before = { ...pushes };
+      const providers = [{ instanceId: "codex" }] as unknown as ServerConfig["providers"];
+      h.registry.set(h.configs(FIRST), { ...base, providers } as ServerConfig);
+
+      expect(h.registry.get(h.full.presentationsAtom)).toBe(presentations);
+      expect(h.registry.get(h.full.providersByEnvironmentAtom).get(FIRST)).toBe(providers);
+      expect(
+        h.registry.get(h.full.presentationsWithProvidersAtom).get(FIRST)?.serverConfig,
+      ).toEqual({ ...base, providers });
+      expect(h.registry.get(h.full.serverConfigsAtom)).toBe(configs);
+      expect(pushes.presentations).toBe(before.presentations);
+      expect(pushes.configs).toBe(before.configs);
+      expect(pushes.providers).toBe(before.providers + 1);
+
+      h.registry.set(h.configs(FIRST), { ...base, cwd: "/moved", providers } as ServerConfig);
+      expect(h.registry.get(h.full.presentationsAtom).get(FIRST)?.serverConfig?.cwd).toBe("/moved");
+      expect(h.registry.get(h.full.serverConfigsAtom).get(FIRST)?.cwd).toBe("/moved");
+      expect(h.registry.get(h.full.providersByEnvironmentAtom).get(FIRST)).toBe(providers);
+    } finally {
+      stops.forEach((stop) => stop());
+      h.registry.dispose();
+    }
+  });
+
   it("keeps connected search targets stable through config refreshes and updates them on disconnect", () => {
     const h = harness();
     let changes = 0;
@@ -194,7 +234,7 @@ describe("environment summary subscriptions", () => {
       const connectionChanges = changes;
       expect(connectionChanges).toBeGreaterThan(0);
       for (let index = 0; index < 20; index++) {
-        h.registry.set(h.configs(FIRST), config(false, `/workspace-${index}`));
+        h.registry.set(h.configs(FIRST), config(`/workspace-${index}`));
         expect(h.registry.get(h.connectedEnvironmentIdsAtom)).toBe(connected);
       }
       expect(changes).toBe(connectionChanges);
@@ -228,15 +268,17 @@ describe("environment summary subscriptions", () => {
     }
   });
 
-  it("tracks capabilities across environments, config loss and removal", () => {
+  it("tracks loaded configs across environments, config loss and removal", () => {
     const h = harness();
     const stop = h.registry.subscribe(h.pullRequestsSupportedAtom, () => {});
     try {
+      h.registry.set(h.configs(FIRST), null);
+      h.registry.set(h.configs(SECOND), null);
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(false);
-      h.registry.set(h.configs(FIRST), config(true));
+      h.registry.set(h.configs(FIRST), config());
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(true);
-      // The first true result short-circuits: the second must be read when the first stops supporting it.
-      h.registry.set(h.configs(SECOND), config(true));
+      // The first true result short-circuits: the second must be read when the first loses its config.
+      h.registry.set(h.configs(SECOND), config());
       h.registry.set(h.configs(FIRST), null);
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(true);
       h.registry.set(h.catalog, { isReady: true, entries: new Map([[FIRST, entry(FIRST)]]) });
@@ -252,12 +294,58 @@ describe("environment summary subscriptions", () => {
       });
       expect(h.registry.get(h.environmentIdsAtom)).toEqual([SECOND, FIRST]);
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(true);
-      h.registry.set(h.configs(SECOND), config(false));
+      h.registry.set(h.configs(SECOND), null);
       expect(h.registry.get(h.pullRequestsSupportedAtom)).toBe(false);
       h.registry.set(h.catalog, { isReady: true, entries: new Map() });
       expect(h.registry.get(h.environmentIdsAtom)).toEqual([]);
       expect(h.registry.get(h.identitiesAtom)).toEqual([]);
       expect(h.registry.get(h.environmentsAtom)).toEqual([]);
+    } finally {
+      stop();
+      h.registry.dispose();
+    }
+  });
+});
+
+describe("presentations with providers", () => {
+  it("leaves out disabled connections until they are re-enabled", () => {
+    const h = harness();
+    const atom = h.full.presentationsWithProvidersAtom;
+    const withSecond = (enabled: boolean): EnvironmentCatalogState => ({
+      isReady: true,
+      entries: new Map([
+        [FIRST, entry(FIRST)],
+        [SECOND, { ...entry(SECOND), enabled }],
+      ]),
+    });
+    const stop = h.registry.subscribe(atom, () => {});
+    try {
+      h.registry.set(h.configs(SECOND), config("/second"));
+      h.registry.set(h.catalog, withSecond(false));
+      expect([...h.registry.get(atom).keys()]).toEqual([FIRST]);
+      expect(h.registry.get(h.full.presentationsAtom).has(SECOND)).toBe(true);
+      h.registry.set(h.catalog, withSecond(true));
+      expect([...h.registry.get(atom).keys()]).toEqual([FIRST, SECOND]);
+      expect(h.registry.get(atom).get(SECOND)?.serverConfig?.cwd).toBe("/second");
+    } finally {
+      stop();
+      h.registry.dispose();
+    }
+  });
+
+  it("leaves out unsupported environments", () => {
+    const h = harness();
+    const atom = h.full.presentationsWithProvidersAtom;
+    const stop = h.registry.subscribe(atom, () => {});
+    try {
+      h.registry.set(h.catalog, {
+        isReady: true,
+        entries: new Map<EnvironmentId, ConnectionCatalogEntry>([
+          [FIRST, entry(FIRST)],
+          [SECOND, { ...entry(SECOND), unsupportedReason: "Server is too old." }],
+        ]),
+      });
+      expect([...h.registry.get(atom).keys()]).toEqual([FIRST]);
     } finally {
       stop();
       h.registry.dispose();

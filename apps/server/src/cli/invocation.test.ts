@@ -1,104 +1,16 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { assert, expect, it } from "@effect/vitest";
+import { expect, it } from "@effect/vitest";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 
+import packageJson from "../../package.json" with { type: "json" };
 import {
-  formatCliCommand,
+  resolveHostCliCommand,
   resolveRootCliCommand,
   resolveServerInstallation,
 } from "./invocation.ts";
-
-it("formats package runner commands from their cache entry paths", () => {
-  for (const [entryPath, expected] of [
-    ["/home/theo/.npm/_npx/abc123/node_modules/supaterm/dist/bin.mjs", "npx supaterm serve"],
-    [
-      "C:\\Users\\theo\\AppData\\Local\\npm-cache\\_npx\\abc\\node_modules\\supaterm\\dist\\bin.mjs",
-      "npx supaterm serve",
-    ],
-    [
-      "/home/theo/.cache/pnpm/dlx/abc/node_modules/supaterm/dist/bin.mjs",
-      "pnpm dlx supaterm serve",
-    ],
-    [
-      "/home/theo/.local/share/pnpm/.pnpm/dlx/abc/node_modules/supaterm/dist/bin.mjs",
-      "pnpm dlx supaterm serve",
-    ],
-    [
-      "C:\\Users\\theo\\AppData\\Local\\pnpm-cache\\dlx\\abc\\node_modules\\supaterm\\dist\\bin.mjs",
-      "pnpm dlx supaterm serve",
-    ],
-    ["/home/theo/.bun/install/cache/supaterm@0.0.31/dist/bin.mjs", "bunx supaterm serve"],
-    ["/tmp/bunx-1000-supaterm@latest/node_modules/supaterm/dist/bin.mjs", "bunx supaterm serve"],
-    [
-      "C:\\Users\\theo\\AppData\\Local\\Temp\\bunx-0-supaterm@latest\\node_modules\\supaterm\\dist\\bin.mjs",
-      "bunx supaterm serve",
-    ],
-  ] as const) {
-    assert.equal(formatCliCommand({ subcommand: "serve", entryPath, version: "0.0.31" }), expected);
-  }
-});
-
-it("treats stable installs as direct invocations", () => {
-  for (const entryPath of [
-    "/usr/local/lib/node_modules/supaterm/dist/bin.mjs",
-    "/home/theo/Code/work/supaterm/apps/server/dist/bin.mjs",
-    "/home/theo/.supaterm/runtime/0.0.31/node_modules/supaterm/dist/bin.mjs",
-    "",
-  ]) {
-    assert.equal(
-      formatCliCommand({ subcommand: "serve", entryPath, version: "0.0.31" }),
-      "supaterm serve",
-    );
-  }
-});
-
-it("re-suggests the prerelease channel only for prerelease builds", () => {
-  for (const [version, expected] of [
-    ["0.0.31-nightly.20260729", "npx supaterm@nightly serve"],
-    ["0.0.31-preview.20260729.1", "npx supaterm@preview serve"],
-    ["0.0.31-foo-preview.20260729.1", "npx supaterm serve"],
-    ["0.0.31", "npx supaterm serve"],
-  ] as const) {
-    assert.equal(
-      formatCliCommand({
-        subcommand: "serve",
-        entryPath: "/home/theo/.npm/_npx/abc123/node_modules/supaterm/dist/bin.mjs",
-        version,
-      }),
-      expected,
-    );
-  }
-});
-
-it("formats serve suggestions to match the launching command", () => {
-  assert.equal(
-    formatCliCommand({
-      subcommand: "serve",
-      entryPath: "/home/theo/.npm/_npx/abc/node_modules/supaterm/dist/bin.mjs",
-      version: "0.0.31-nightly.20260729",
-    }),
-    "npx supaterm@nightly serve",
-  );
-  assert.equal(
-    formatCliCommand({
-      subcommand: "serve",
-      entryPath: "/tmp/bunx-1000-supaterm@latest/node_modules/supaterm/dist/bin.mjs",
-      version: "0.0.31",
-    }),
-    "bunx supaterm serve",
-  );
-  assert.equal(
-    formatCliCommand({
-      subcommand: "serve",
-      entryPath: "/usr/local/lib/node_modules/supaterm/dist/bin.mjs",
-      version: "0.0.31-nightly.20260729",
-    }),
-    "supaterm serve",
-  );
-});
 
 it.layer(NodeServices.layer)("root CLI commands", (it) => {
   const rootCommand = (input: {
@@ -204,25 +116,116 @@ it.layer(NodeServices.layer)("root CLI commands", (it) => {
   );
 });
 
+it.layer(NodeServices.layer)("host CLI commands", (it) => {
+  it.effect("renders a PowerShell command line on Windows", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const home = yield* fs.makeTempDirectoryScoped();
+      const shim = path.join(home, "supaterm.cmd");
+      yield* fs.writeFileString(shim, "@echo off\r\n");
+      const hostCommand = (platform: NodeJS.Platform, env: Record<string, string>) =>
+        resolveHostCliCommand("doctor", ["--base-dir", "C:\\Users\\Jane Doe\\.supaterm"]).pipe(
+          Effect.provideService(
+            HostProcess.ExecutablePath,
+            "C:\\Program Files\\Supaterm\\supaterm.exe",
+          ),
+          Effect.provideService(HostProcess.Arguments, [
+            "C:\\Program Files\\Supaterm\\supaterm.exe",
+            "C:\\Program Files\\Supaterm\\resources\\app.asar\\apps\\server\\dist\\bin.mjs",
+          ]),
+          Effect.provideService(HostProcess.IsExecutable, false),
+          Effect.provideService(HostProcess.Platform, platform),
+          Effect.provideService(HostProcess.Environment, { PATH: "", ...env }),
+        );
+      // The desktop shim is called through `&`, and each argument is quoted
+      // the PowerShell way: no POSIX single quotes anywhere.
+      expect((yield* hostCommand("win32", { SUPATERM_CLI_SHIM_PATH: shim })).command).toBe(
+        `& "${shim}" doctor "--base-dir" "C:\\Users\\Jane Doe\\.supaterm"`,
+      );
+      // Without a launcher, plain `supaterm` with PowerShell-quoted arguments.
+      expect((yield* hostCommand("win32", {})).command).toBe(
+        'supaterm doctor "--base-dir" "C:\\Users\\Jane Doe\\.supaterm"',
+      );
+      // Typographic quotes also delimit PowerShell strings; doubling keeps them.
+      expect(
+        (yield* resolveHostCliCommand("doctor", [
+          "--base-dir",
+          "C:\\Supaterm\\\u201CArchive\u201D",
+        ]).pipe(
+          Effect.provideService(HostProcess.Platform, "win32"),
+          Effect.provideService(HostProcess.Environment, { PATH: "" }),
+          Effect.provideService(HostProcess.ExecutablePath, "C:\\supaterm.exe"),
+          Effect.provideService(HostProcess.Arguments, ["C:\\supaterm.exe", "C:\\bin.mjs"]),
+          Effect.provideService(HostProcess.IsExecutable, false),
+        )).command,
+      ).toBe('supaterm doctor "--base-dir" "C:\\Supaterm\\\u201C\u201CArchive\u201D\u201D"');
+      // POSIX hosts keep single quotes for the same input. The shim prefix is
+      // a host path, so only the arguments are asserted.
+      expect((yield* hostCommand("linux", { SUPATERM_CLI_SHIM_PATH: shim })).command).toMatch(
+        / doctor --base-dir 'C:\\Users\\Jane Doe\\\.supaterm'$/,
+      );
+    }).pipe(Effect.scoped),
+  );
+});
+
+it.layer(NodeServices.layer)("host CLI commands through an Electron runtime", (it) => {
+  it.effect("runs the entrypoint as Node in the host's shell syntax", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const root = yield* fs.makeTempDirectoryScoped();
+      const entry = path.join(root, "bin.mjs");
+      yield* fs.writeFileString(entry, "");
+      const hostCommand = (platform: NodeJS.Platform) =>
+        resolveHostCliCommand("doctor", ["--base-dir", "/home/jane/.supaterm"]).pipe(
+          Effect.provideService(HostProcess.ExecutablePath, "/opt/supaterm/supaterm"),
+          Effect.provideService(HostProcess.Arguments, ["/opt/supaterm/supaterm", entry]),
+          Effect.provideService(HostProcess.IsExecutable, false),
+          Effect.provideService(HostProcess.Platform, platform),
+          Effect.provideService(HostProcess.Environment, { PATH: "", ELECTRON_RUN_AS_NODE: "1" }),
+        );
+      expect((yield* hostCommand("linux")).command).toBe(
+        `env ELECTRON_RUN_AS_NODE=1 /opt/supaterm/supaterm ${entry} doctor --base-dir /home/jane/.supaterm`,
+      );
+      expect((yield* hostCommand("win32")).command).toBe(
+        `$env:ELECTRON_RUN_AS_NODE=1; & "/opt/supaterm/supaterm" "${entry}" doctor "--base-dir" "/home/jane/.supaterm"`,
+      );
+    }).pipe(Effect.scoped),
+  );
+});
+
 it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
-  it.effect("recognizes runner caches for both script and executable packages", () =>
+  it.effect("recognizes runner caches for script packages and the npm launcher", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
+      const executable = path.join(root, ".supaterm/runtime/versions/26.10.1/supaterm");
+      yield* fs.makeDirectory(path.dirname(executable), { recursive: true });
+      yield* fs.writeFileString(executable, "");
       for (const [relative, kind] of [
         ["npm/_npx/hash/node_modules/supaterm/dist/bin.mjs", "npx"],
-        ["npm/_npx/hash/node_modules/@supabitapp/supaterm-linux-x64/supaterm", "npx"],
+        ["npm/_npx/hash/node_modules/supaterm/bin/supaterm.mjs", "npx"],
         ["pnpm/dlx/hash/node_modules/supaterm/dist/bin.mjs", "pnpm-dlx"],
         [".bun/install/cache/supaterm/dist/bin.mjs", "bunx"],
       ] as const) {
         const entry = path.join(root, relative);
         yield* fs.makeDirectory(path.dirname(entry), { recursive: true });
         yield* fs.writeFileString(entry, "");
+        yield* fs.writeFileString(
+          path.join(path.dirname(entry), "../package.json"),
+          `{"name":"supaterm","version":"${packageJson.version}","bin":{"supaterm":"./bin/supaterm.mjs"}}`,
+        );
+        const launchedBy = entry.endsWith("supaterm.mjs");
         const installation = yield* resolveServerInstallation.pipe(
-          Effect.provideService(HostProcess.Arguments, ["node", entry]),
-          Effect.provideService(HostProcess.ExecutablePath, entry),
-          Effect.provideService(HostProcess.IsExecutable, entry.endsWith("/supaterm")),
+          Effect.provideService(HostProcess.Arguments, [launchedBy ? executable : "node", entry]),
+          Effect.provideService(HostProcess.ExecutablePath, executable),
+          Effect.provideService(HostProcess.IsExecutable, launchedBy),
+          Effect.provideService(
+            HostProcess.Environment,
+            launchedBy ? { SUPATERM_NPM_LAUNCHER_PATH: entry } : {},
+          ),
         );
         expect(installation).toEqual({ kind });
       }
@@ -236,14 +239,14 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
       const root = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
       const prefix = path.join(root, "bunx-tools");
       const packageRoot = path.join(prefix, "lib/node_modules/supaterm");
-      const entry = path.join(packageRoot, "dist/bin.mjs");
+      const entry = path.join(packageRoot, "bin/supaterm.mjs");
       const globalBin = path.join(prefix, "bin/supaterm");
       yield* fs.makeDirectory(path.dirname(entry), { recursive: true });
       yield* fs.makeDirectory(path.dirname(globalBin), { recursive: true });
       yield* fs.writeFileString(entry, "");
       yield* fs.writeFileString(
         path.join(packageRoot, "package.json"),
-        '{"name":"supaterm","version":"0.0.45","bin":{"supaterm":"./dist/bin.mjs"}}',
+        '{"name":"supaterm","version":"0.0.45","bin":{"supaterm":"./bin/supaterm.mjs"}}',
       );
       const resolve = resolveServerInstallation.pipe(
         Effect.provideService(HostProcess.Arguments, ["node", entry]),
@@ -260,37 +263,37 @@ it.layer(NodeServices.layer)("manual server installation ownership", (it) => {
     }),
   );
 
-  it.effect("proves the native executable belongs to the npm launcher", () =>
+  it.effect("proves the downloaded executable was started by a global npm launcher", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped().pipe(Effect.flatMap(fs.realPath));
       const prefix = path.join(root, "bunx-tools");
       const packageRoot = path.join(prefix, "lib/node_modules/supaterm");
-      const launcher = path.join(packageRoot, "bin/supaterm.js");
-      const entry = path.join(packageRoot, "node_modules/@supabitapp/supaterm-linux-x64/supaterm");
+      const launcher = path.join(packageRoot, "bin/supaterm.mjs");
+      const executable = path.join(root, ".supaterm/runtime/versions/26.10.1/supaterm");
       yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
-      yield* fs.makeDirectory(path.dirname(entry), { recursive: true });
+      yield* fs.makeDirectory(path.dirname(executable), { recursive: true });
       yield* fs.makeDirectory(path.join(prefix, "bin"));
       yield* fs.writeFileString(launcher, "");
-      yield* fs.writeFileString(entry, "");
-      yield* fs.writeFileString(
-        path.join(packageRoot, "package.json"),
-        '{"name":"supaterm","version":"0.0.45","bin":{"supaterm":"./bin/supaterm.js"},"optionalDependencies":{"@supabitapp/supaterm-linux-x64":"0.0.45"}}',
-      );
+      yield* fs.writeFileString(executable, "");
       yield* fs.symlink(launcher, path.join(prefix, "bin/supaterm"));
       const resolve = resolveServerInstallation.pipe(
-        Effect.provideService(HostProcess.ExecutablePath, entry),
+        Effect.provideService(HostProcess.ExecutablePath, executable),
+        Effect.provideService(HostProcess.Arguments, [executable, executable]),
         Effect.provideService(HostProcess.IsExecutable, true),
         Effect.provideService(HostProcess.Platform, "linux"),
+        Effect.provideService(HostProcess.Environment, { SUPATERM_NPM_LAUNCHER_PATH: launcher }),
       );
+      // A launcher for another version is some other `supaterm` the server spawned
+      // (the variable is inherited), not the install this executable runs from.
       for (const [version, expected] of [
-        ["0.0.44", null],
-        ["0.0.45", { kind: "npm-global", prefix }],
-      ]) {
+        ["26.0.1", null],
+        [packageJson.version, { kind: "npm-global", prefix }],
+      ] as const) {
         yield* fs.writeFileString(
-          path.join(path.dirname(entry), "package.json"),
-          `{"name":"@supabitapp/supaterm-linux-x64","version":"${version}"}`,
+          path.join(packageRoot, "package.json"),
+          `{"name":"supaterm","version":"${version}","bin":{"supaterm":"./bin/supaterm.mjs"}}`,
         );
         expect(yield* resolve).toEqual(expected);
       }

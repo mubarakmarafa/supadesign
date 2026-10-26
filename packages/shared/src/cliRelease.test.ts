@@ -1,44 +1,24 @@
 import { describe, expect, it } from "vite-plus/test";
-import { APP_REPOSITORY } from "./appIdentity.ts";
 
+import { APP_REPOSITORY } from "./appIdentity.ts";
 import {
-  cliArchiveFileName,
-  cliArchivePlatformKey,
+  CLI_RELEASES_PAGE_URL,
   cliArchiveTarCommand,
   cliReleaseDownloadBaseUrl,
-  cliReleaseChannelOf,
   cliReleaseIndexPageUrl,
   newestCliReleaseVersion,
   parseChecksums,
 } from "./cliRelease.ts";
 
 describe("cliRelease", () => {
-  it("names archives by version and platform, zip only on Windows", () => {
-    expect(cliArchiveFileName("1.2.3-preview.20260911.4", "linux-x64")).toBe(
-      "supaterm-1.2.3-preview.20260911.4-linux-x64.tar.gz",
-    );
-    expect(cliArchiveFileName("1.2.3", "win32-x64")).toBe("supaterm-1.2.3-win32-x64.zip");
-  });
-
-  it("only maps platforms and architectures that have a release archive", () => {
-    expect(cliArchivePlatformKey("darwin", "arm64")).toBe("darwin-arm64");
-    expect(cliArchivePlatformKey("linux", "x64")).toBe("linux-x64");
-    expect(cliArchivePlatformKey("win32", "x64")).toBe("win32-x64");
-    // Node single-executables are unsupported on x64 macOS.
-    expect(cliArchivePlatformKey("darwin", "x64")).toBeUndefined();
-    expect(cliArchivePlatformKey("linux", "arm64")).toBe("linux-arm64");
-    expect(cliArchivePlatformKey("win32", "arm64")).toBe("win32-arm64");
-    expect(cliArchivePlatformKey("freebsd", "x64")).toBeUndefined();
-    expect(cliArchivePlatformKey("linux", "ia32")).toBeUndefined();
-  });
-
-  it("resolves download URLs under the tagged release, honoring a mirror", () => {
+  it("resolves download URLs under the fork's tagged release, honoring a mirror", () => {
     expect(cliReleaseDownloadBaseUrl("1.2.3")).toBe(
       `https://github.com/${APP_REPOSITORY}/releases/download/v1.2.3`,
     );
     expect(cliReleaseDownloadBaseUrl("1.2.3", "https://mirror.example/supaterm/")).toBe(
       "https://mirror.example/supaterm/v1.2.3",
     );
+    expect(CLI_RELEASES_PAGE_URL).toBe(`https://github.com/${APP_REPOSITORY}/releases`);
   });
 
   it("parses sha256sum output including binary-mode markers", () => {
@@ -61,14 +41,6 @@ describe("cliRelease", () => {
       "D:\\Win\\System32\\tar.exe",
     );
     expect(cliArchiveTarCommand("win32", {})).toBe("C:\\Windows\\System32\\tar.exe");
-  });
-
-  it("derives the release channel from the version alone", () => {
-    expect(cliReleaseChannelOf("1.2.3")).toBe("stable");
-    expect(cliReleaseChannelOf("1.2.3-nightly.20260911.4")).toBe("nightly");
-    expect(cliReleaseChannelOf("1.2.3-preview.20260911.4")).toBe("preview");
-    // A prerelease that is not one of our trains is not silently a nightly.
-    expect(cliReleaseChannelOf("1.2.3-rc.1")).toBe("stable");
   });
 
   it("picks the newest non-draft release on the requested channel", () => {

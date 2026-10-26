@@ -6,6 +6,7 @@ import {
   type ServerLifecycleStreamReadyEvent,
   type ServerSelfUpdateProgressEvent,
   type ServerSelfUpdateResult,
+  shouldRecommendDatabaseCompaction,
   WS_METHODS,
 } from "@supaterm/contracts";
 import * as Cause from "effect/Cause";
@@ -54,7 +55,6 @@ import {
   withoutEnvironmentThemes,
 } from "./serverConfigProjection.ts";
 
-// Exported server state includes this type in its inferred public return type.
 export type { ServerConfigProjection } from "./serverConfigProjection.ts";
 
 export type ServerUpdateStage = "downloading" | "installing" | "resuming";
@@ -84,7 +84,6 @@ const IDLE_SERVER_UPDATE_STATE: ServerUpdateState = { status: "idle" };
 const EMPTY_SERVER_UPDATE_STATE_ATOM = Atom.make<ServerUpdateState>(IDLE_SERVER_UPDATE_STATE).pipe(
   Atom.withLabel("environment-data:server:update-state:empty"),
 );
-/** Shared with the outdated-host update, which reports through the same state. */
 export const serverUpdateStateAtom = Atom.family((environmentId: EnvironmentId) =>
   Atom.make<ServerUpdateState>(IDLE_SERVER_UPDATE_STATE).pipe(
     Atom.withLabel(`environment-data:server:update-state:${environmentId}`),
@@ -127,9 +126,9 @@ export class ServerUpdateTerminalError extends Schema.TaggedError<ServerUpdateTe
   }
 }
 
-// Covers the 120-second trial deadline and a final restart of the previous
-// version when the trial rolls back.
-const SERVER_UPDATE_RESUME_TIMEOUT = Duration.minutes(4);
+// Covers the service launcher's 30-minute trial deadline (PREPARED_TIMEOUT_MS)
+// and a final restart of the previous version when the trial rolls back.
+const SERVER_UPDATE_RESUME_TIMEOUT = Duration.minutes(32);
 
 export function matchesServerUpdateReadyEvent(
   result: ServerSelfUpdateResult,
@@ -176,19 +175,8 @@ export function validateServerUpdateReadyEvent(
 }
 
 /**
- * Keeps reconnect attempts ~1s apart for the whole update restart.
- *
- * A restart takes the server down for ~15 seconds, but the supervisor's normal
- * backoff assumes an unexpected failure and doubles its delay after each failed
- * attempt, so a 15-second restart can be observed as a ~30-second "Resuming".
- * Nudging on every backoff entry (not just the first)
- * holds the retry cadence flat until the server answers again. The sleep before
- * each nudge is the pacer: a connection that fails instantly re-enters backoff
- * immediately and would otherwise spin a tight retry loop.
- *
- * A newly restarted server can also reject the first environment credential.
- * Authentication blocks need the same paced retry during this known restart;
- * permission and configuration failures remain blocked.
+ * The sleep before each nudge is the pacer: a connection that fails instantly
+ * re-enters backoff immediately and would otherwise spin a tight retry loop.
  *
  * Callers fork this as a child of the update command so it is interrupted as
  * soon as the update settles, whether it succeeds, fails, or times out.
@@ -291,7 +279,12 @@ export function serverUpdateStateForProgressEvent(
   if (event.type === "complete" && event.result.upToDate) return IDLE_SERVER_UPDATE_STATE;
   return {
     status: "running",
-    stage: event.type === "complete" ? "resuming" : event.stage,
+    stage:
+      event.type !== "complete"
+        ? event.stage
+        : event.result.method === "desktop-app" && event.result.desktopUpdateToken !== undefined
+          ? "installing"
+          : "resuming",
     fromVersion,
     targetVersion,
   };
@@ -362,8 +355,6 @@ const cachedConfigSnapshotEvent = (config: ServerConfig): ServerConfigStreamEven
 
 export interface ServerConfigSubscriptionOptions {
   readonly environmentThemes?: boolean;
-  readonly usageLimitSources?: boolean;
-  readonly usageLimitsCommand?: boolean;
 }
 
 export const makeEnvironmentServerConfigState = Effect.fn("EnvironmentServerConfigState.make")(
@@ -383,8 +374,6 @@ export const makeEnvironmentServerConfigState = Effect.fn("EnvironmentServerConf
       ),
     );
     const state = yield* SubscriptionRef.make<Option.Option<ServerConfigProjection>>(
-      // Stripped on load as well as on save: a cache written by an earlier
-      // build can still carry published themes.
       Option.map(cachedConfig, (cached) => ({
         config: withoutEnvironmentThemes(cached),
         latestEvent: cachedConfigSnapshotEvent(withoutEnvironmentThemes(cached)),
@@ -397,7 +386,9 @@ export const makeEnvironmentServerConfigState = Effect.fn("EnvironmentServerConf
     const persist = Effect.fn("EnvironmentServerConfigState.persist")(function* (
       config: ServerConfig,
     ) {
-      return yield* cache.saveServerConfig(environmentId, withoutEnvironmentThemes(config)).pipe(
+      // A cached stall would read as a fresh freeze on the next launch.
+      const { lastEventLoopStall: _stall, ...cacheable } = withoutEnvironmentThemes(config);
+      return yield* cache.saveServerConfig(environmentId, cacheable).pipe(
         Effect.as(true),
         Effect.catch((error) =>
           Effect.logWarning("Could not persist cached server configuration.").pipe(
@@ -435,11 +426,10 @@ export const makeEnvironmentServerConfigState = Effect.fn("EnvironmentServerConf
 
     yield* runCachePersistence(persistence, persistPending).pipe(Effect.forkScoped);
 
-    yield* subscribe(WS_METHODS.subscribeServerConfig, {
-      ...(subscription.environmentThemes === true ? { environmentThemes: true } : {}),
-      ...(subscription.usageLimitSources === true ? { usageLimitSources: true } : {}),
-      ...(subscription.usageLimitsCommand === true ? { usageLimitsCommand: true } : {}),
-    }).pipe(
+    yield* subscribe(
+      WS_METHODS.subscribeServerConfig,
+      subscription.environmentThemes === true ? { environmentThemes: true } : {},
+    ).pipe(
       Stream.runForEach((event) =>
         Effect.gen(function* () {
           const next = applyServerConfigProjection(yield* SubscriptionRef.get(state), event);
@@ -485,7 +475,7 @@ export function applyServerWelcomeEvent(
   current: EnvironmentServerWelcomeState,
   session: RpcSession,
   event: {
-    readonly type: "welcome" | "ready" | "legacyThreadMigration";
+    readonly type: "welcome" | "ready";
     readonly payload: unknown;
   },
 ): EnvironmentServerWelcomeState {
@@ -619,19 +609,10 @@ export function createServerEnvironmentAtoms<R, E>(
     readonly initialConfigValueAtom: (
       environmentId: EnvironmentId,
     ) => Atom.Atom<ServerConfig | null>;
-    /**
-     * Whether this surface renders themes the environment publishes. Mobile
-     * keeps its own appearance settings, so it neither asks for the stream nor
-     * receives the payload.
-     */
     readonly environmentThemes?: boolean;
-    /** Whether this surface renders quota from configured usage-limit sources. */
-    readonly usageLimitSources?: boolean;
-    readonly usageLimitsCommand?: boolean;
   },
 ) {
   const configScheduler = createAtomCommandScheduler();
-  // Updates stay serial end-to-end, but only their handoff phase occupies the config lane.
   const updateScheduler = createAtomCommandScheduler();
   const configConcurrency = {
     mode: "serial" as const,
@@ -640,11 +621,10 @@ export function createServerEnvironmentAtoms<R, E>(
   const configProjectionFamily = Atom.family((environmentId: EnvironmentId) =>
     runtime
       .atom(
-        serverConfigStateChanges(environmentId, {
-          ...(options.environmentThemes === true ? { environmentThemes: true } : {}),
-          ...(options.usageLimitSources === true ? { usageLimitSources: true } : {}),
-          ...(options.usageLimitsCommand === true ? { usageLimitsCommand: true } : {}),
-        }),
+        serverConfigStateChanges(
+          environmentId,
+          options.environmentThemes === true ? { environmentThemes: true } : {},
+        ),
       )
       .pipe(
         Atom.setIdleTTL(5 * 60_000),
@@ -754,11 +734,13 @@ export function createServerEnvironmentAtoms<R, E>(
                     .pipe(
                       Stream.runForEach((event) =>
                         Effect.sync(() => {
-                          currentStage = event.type === "complete" ? "resuming" : event.stage;
-                          atomRegistry.set(
-                            stateAtom,
-                            serverUpdateStateForProgressEvent(fromVersion, targetVersion, event),
+                          const state = serverUpdateStateForProgressEvent(
+                            fromVersion,
+                            targetVersion,
+                            event,
                           );
+                          if (state.status === "running") currentStage = state.stage;
+                          atomRegistry.set(stateAtom, state);
                         }).pipe(
                           Effect.andThen(
                             event.type === "complete"
@@ -784,7 +766,7 @@ export function createServerEnvironmentAtoms<R, E>(
                     return exit.value;
                   }
                   if (
-                    (selfUpdateMethod === "boot-service" || selfUpdateMethod === "respawn") &&
+                    selfUpdateMethod === "boot-service" &&
                     isLegacyUpdateHandoffLoss(exit.cause)
                   ) {
                     // Older servers can tear down the transport before their
@@ -835,9 +817,6 @@ export function createServerEnvironmentAtoms<R, E>(
           return result;
         }
 
-        // The update restart is intentional and the server stays unreachable
-        // for the whole restart, so hold the retry cadence flat instead of
-        // letting the supervisor climb its backoff ladder.
         yield* nudgeReconnectDuringUpdateRestart({
           stateChanges: environmentRegistry.stateChanges(target.environmentId),
           retryNow: environmentRegistry.retryNow(target.environmentId),
@@ -978,6 +957,34 @@ export function createServerEnvironmentAtoms<R, E>(
         : AsyncResult.success(result.value, result);
     }).pipe(Atom.withLabel(`environment-data:server:welcome:${environmentId}`)),
   );
+  const databaseStorage = createEnvironmentRpcSubscriptionAtomFamily(runtime, {
+    label: "environment-data:server:database-storage",
+    tag: WS_METHODS.serverGetDatabaseStorage,
+    idleTtlMs: 0,
+  });
+  // Keyed by a JSON array of environment ids so one notice can list every machine.
+  const databaseCompactionRecommendations = Atom.family((environmentIdsKey: string) => {
+    const sources = (JSON.parse(environmentIdsKey) as EnvironmentId[]).map((environmentId) => ({
+      environmentId,
+      atom: databaseStorage({ environmentId, input: {} }),
+    }));
+    return Atom.make((get) =>
+      sources
+        .flatMap(({ environmentId, atom }) => {
+          const result = get(atom);
+          return result._tag === "Success" &&
+            result.value !== null &&
+            shouldRecommendDatabaseCompaction(result.value)
+            ? [{ environmentId, status: result.value }]
+            : [];
+        })
+        .sort((left, right) => right.status.reclaimableBytes - left.status.reclaimableBytes),
+    ).pipe(
+      Atom.withLabel(
+        `environment-data:server:database-compaction-recommendations:${environmentIdsKey}`,
+      ),
+    );
+  });
   const welcome = (target: {
     readonly environmentId: EnvironmentId;
     readonly input: EnvironmentRpcInput<typeof WS_METHODS.subscribeServerLifecycle>;
@@ -996,6 +1003,8 @@ export function createServerEnvironmentAtoms<R, E>(
       tag: WS_METHODS.serverRunStorageCleanup,
       concurrency: { mode: "singleFlight", key: ({ environmentId }) => environmentId },
     }),
+    databaseStorage,
+    databaseCompactionRecommendations,
     storageCleanupReport: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:server:storage-cleanup-report",
       tag: WS_METHODS.serverGetStorageCleanupReport,
@@ -1115,7 +1124,6 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:server:process-resource-history",
       tag: WS_METHODS.serverGetProcessResourceHistory,
     }),
-    /** Live scheduled-task list: snapshot on subscribe, fresh list after every server-side change. */
     scheduledTasksLive: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:server:scheduled-tasks:live",
       tag: WS_METHODS.scheduledTasksSubscribe,
@@ -1161,25 +1169,11 @@ export function createServerEnvironmentAtoms<R, E>(
     searchAcpRegistry: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:server:acp-registry:search",
       tag: WS_METHODS.serverSearchAcpRegistry,
-      // Each submitted search refreshes the server-side registry. Dropping an
-      // abandoned query immediately also interrupts stale in-flight requests.
       staleTimeMs: 0,
       idleTtlMs: 0,
     }),
     configProjection,
     welcome,
-    legacyThreadMigration: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
-      label: "environment-data:server:legacy-thread-migration",
-      tag: WS_METHODS.subscribeServerLifecycle,
-      transform: (stream) =>
-        stream.pipe(
-          Stream.filterMap((event) =>
-            event.type === "legacyThreadMigration"
-              ? Result.succeed(event.payload)
-              : Result.failVoid,
-          ),
-        ),
-    }),
     consumeResetCredit: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:server:consume-reset-credit",
       tag: WS_METHODS.providerConsumeResetCredit,
@@ -1224,9 +1218,6 @@ export function createServerEnvironmentAtoms<R, E>(
       concurrency: configConcurrency,
     }),
     updateSettings,
-    // Provider-instance mutations share the settings command and its
-    // environment-serial scheduler. The named boundary keeps clients on the
-    // atomic map-entry payload instead of rebuilding a stale whole map.
     mutateProviderInstance: updateSettings,
     prepareAcpRegistryAgent: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:server:acp-registry:prepare",

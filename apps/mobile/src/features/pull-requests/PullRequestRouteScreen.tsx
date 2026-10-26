@@ -1,4 +1,6 @@
+import { Toolbar } from "../../components/ui/Toolbar";
 import { usePullRequestToolbarHeight } from "./usePullRequestToolbarHeight";
+import { Chip } from "../../components/ui/Chip";
 import { pullRequestTabOffset } from "./pullRequestTabScroll";
 
 import { PullRequestGuideContent } from "./guide/PullRequestGuideScreen";
@@ -18,18 +20,25 @@ import {
   PR_ROW_EXIT,
   PR_POSITION_LAYOUT,
 } from "./pullRequestAnimations";
-import { openOnProviderLabel } from "./pullRequestActions";
+import {
+  canPerformPullRequestAction,
+  openOnProviderLabel,
+  PR_ACTION_ICONS,
+  PR_ACTION_LABELS,
+} from "./pullRequestActions";
 import * as Clipboard from "expo-clipboard";
 
 import { usePullRequestPermissions } from "./usePullRequestPermissions";
+import { usePullRequestAction } from "./usePullRequestAction";
 
 import { useFocusEffect, useNavigation, type StaticScreenProps } from "@react-navigation/native";
-import { useAtomRefresh } from "@effect/atom-react";
+import { RegistryContext, useAtomRefresh } from "@effect/atom-react";
 
 import { type PullRequestDetail, type PullRequestListEntry } from "@supaterm/contracts";
 import { PullRequestOverviewLoading } from "./PullRequestOverviewLoading";
+import { copyPullRequestLink, sharePullRequestLink } from "./pullRequestLink";
 import { pullRequestStatus } from "./pullRequestStatus";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import {
   Linking,
   Platform,
@@ -41,19 +50,20 @@ import {
   View,
 } from "react-native";
 import { NativeScrollViewMarker as ScrollViewMarker } from "../../native/NativeScrollViewMarker";
+import { useRestingTopOffset } from "../../native/useRestingTopOffset";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { AndroidScreenHeader } from "../../components/AndroidScreenHeader";
+import { AppText as Text } from "../../components/ui/AppText";
+import { AndroidScreenHeader } from "../../components/ui/AndroidScreenHeader";
 
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import { AndroidWorkspaceSidebarButton } from "../layout/workspace-sidebar-toolbar";
 import { useAndroidWorkspaceBack } from "../workspace/useAndroidWorkspaceNavigation";
 
-import { SegmentedControl } from "../../components/SegmentedControl";
-import { SymbolView } from "../../components/AppSymbol";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { relativeTime } from "../../lib/time";
-import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
+import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { usePullRequestConnected } from "./usePullRequestConnected";
 import { composerPullRequests } from "../../state/pull-requests";
 import { useEnvironmentQuery } from "../../state/query";
@@ -67,8 +77,7 @@ import {
   PullRequestDiffStats,
   PullRequestReadStatus,
 } from "./PullRequestPresentation";
-import { usePullRequestFilesContent } from "./PullRequestFiles";
-
+import { usePullRequestFilesSection } from "./PullRequestFiles";
 import { PullRequestDescription } from "./PullRequestDescription";
 import { PullRequestMarkdownRepository } from "./PullRequestMarkdown";
 import {
@@ -84,13 +93,14 @@ import { usePullRequestEnvironmentFallback } from "./usePullRequestEnvironmentFa
 
 function PullRequestTabScrollView(props: ScrollViewProps) {
   const insets = useSafeAreaInsets();
+  const restingOffset = useRestingTopOffset(insets.top, props);
   return (
     <ScrollViewMarker style={{ flex: 1 }}>
       <ScrollView
         {...props}
+        {...restingOffset}
         automaticallyAdjustContentInsets={false}
         contentInsetAdjustmentBehavior="never"
-        contentOffset={props.contentOffset ?? { x: 0, y: -insets.top }}
       />
     </ScrollViewMarker>
   );
@@ -99,11 +109,8 @@ function PullRequestTabScrollView(props: ScrollViewProps) {
 function usePullRequestActivityRows(params: PullRequestParams, filter: ActivityFilter) {
   const navigation = useNavigation();
   const result = useEnvironmentQuery(composerPullRequests.activity(requestTarget(params)));
-  const filtered = useMemo(
-    () => (result.data ? filterPullRequestActivity(result.data, filter) : null),
-    [result.data, filter],
-  );
-  const rows = useMemo(() => {
+  const filtered = result.data ? filterPullRequestActivity(result.data, filter) : null;
+  const rows = (() => {
     if (!filtered) return [];
     const rows = pullRequestTimelineRows(filtered.activity, params, navigation);
     if (filter.newestFirst) {
@@ -122,11 +129,11 @@ function usePullRequestActivityRows(params: PullRequestParams, filter: ActivityF
         ),
       });
     return rows;
-  }, [filtered, filter.newestFirst, params, navigation]);
+  })();
   return {
     rows,
     hiddenCount: filtered?.hiddenCount ?? 0,
-    pending: result.isPending,
+    pending: result.isPending && !result.data,
     error: result.error,
   };
 }
@@ -222,9 +229,7 @@ function PullRequestOverview(props: {
       {pr.labels.length ? (
         <Animated.View layout={PR_ROW_LAYOUT} className="flex-row flex-wrap gap-2">
           {pr.labels.map((label) => (
-            <View key={label.name} className="rounded-full bg-grouped-card px-3 py-1">
-              <Text className="text-2xs text-foreground-muted">{label.name}</Text>
-            </View>
+            <Chip key={label.name} label={label.name} size="small" />
           ))}
         </Animated.View>
       ) : null}
@@ -253,11 +258,10 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
   usePullRequestEnvironmentFallback(params);
   const connected = usePullRequestConnected(params.environmentId);
   const [section, setSection] = useState<"overview" | "activity" | "guide">("overview");
-  // Keep each tab's native list and measured rows alive when it is hidden.
   const requestedSection = useRef(section);
   const [listAnimationsReady, setListAnimationsReady] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const filesContent = usePullRequestFilesContent({ params });
+  const filesContent = usePullRequestFilesSection(params);
   const guidesEnabled = useReviewGuidesEnabled(params);
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>(DEFAULT_ACTIVITY_FILTER);
   const activityContent = usePullRequestActivityRows(params, activityFilter);
@@ -267,11 +271,22 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
   const [headerHeight, setHeaderHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const scrollViews = useRef<Partial<Record<typeof section, LegendListRef | null>>>({});
+  // AnimatedLegendList re-attaches its handle and sets state whenever its ref changes,
+  // so an inline ref in the tab map loops the screen into "Maximum update depth exceeded".
+  const [listRefs] = useState(() => {
+    const listRef = (tab: typeof section) => (list: LegendListRef | null) => {
+      scrollViews.current[tab] = list;
+    };
+    return {
+      overview: listRef("overview"),
+      guide: listRef("guide"),
+      activity: listRef("activity"),
+    };
+  });
   const selectSection = (next: typeof section) => {
     if (next === section) return;
     scrollOffsets.current[section] = currentScrollOffset.current;
     const headerEnd = Math.max(-insets.top, bodyY.current - insets.top);
-    // The shared header stays in place. Once collapsed, retain each tab's own reading position.
     const offset = pullRequestTabOffset(
       currentScrollOffset.current,
       scrollOffsets.current[next],
@@ -301,21 +316,39 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
   const result = useEnvironmentQuery(detailAtom);
   const pullRefresh = usePullToRefresh(detailAtom);
   const { refresh: refreshDetail } = result;
-  useFocusEffect(useCallback(() => refreshDetail(), [refreshDetail]));
+  useFocusEffect(() => refreshDetail());
   const pr = result.data;
   const summary = params.initialSummary;
   const identity = pr ?? summary;
   const permissions = usePullRequestPermissions(params, pr);
+  const action = usePullRequestAction(params, pr);
+  const showsDeleteBranch = pr !== null && canPerformPullRequestAction(pr, "delete-branch");
+  const confirmDeleteBranch = () =>
+    pr &&
+    action.confirm(
+      "delete-branch",
+      PR_ACTION_LABELS["delete-branch"],
+      `Delete ${pr.headBranch} from ${pr.headRepositoryNameWithOwner ?? pr.repository}? Local branches and worktrees are not changed.`,
+    );
   const stack = usePullRequestStack(params, pr);
   const refreshActivity = useAtomRefresh(composerPullRequests.activity(requestTarget(params)));
   const refreshGuide = useAtomRefresh(composerPullRequests.reviewGuide(requestTarget(params)));
-  const refresh = () => {
-    pullRefresh.onRefresh();
-    if (guidesEnabled) refreshGuide();
-    stack.refresh();
-    refreshActivity();
-    filesContent.refresh();
-  };
+  const registry = use(RegistryContext);
+  const refresh = () =>
+    pullRefresh.onRefresh(async (signal) => {
+      const target = requestTarget(params);
+      await composerPullRequests.invalidate
+        .run(registry, {
+          environmentId: target.environmentId,
+          input: { reference: target.input },
+        })
+        .catch(() => undefined);
+      if (signal.aborted) return;
+      if (guidesEnabled) refreshGuide();
+      stack.refresh();
+      refreshActivity();
+      filesContent.refresh();
+    });
   const jumpToFiles = () => {
     scrollViews.current.overview?.scrollToOffset({
       offset: bodyY.current + filesY.current - insets.top,
@@ -373,56 +406,108 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                     },
                   ]
                 : []),
-              ...(pr
+              ...(identity
                 ? [
                     {
-                      accessibilityLabel: openOnProviderLabel(pr.provider),
+                      accessibilityLabel: openOnProviderLabel(identity.provider),
                       icon: "arrow.up.right" as const,
-                      onPress: () => void Linking.openURL(pr.url),
+                      onPress: () => void Linking.openURL(identity.url),
+                    },
+                    {
+                      accessibilityLabel: "Copy link",
+                      icon: "link" as const,
+                      overflowOnly: true,
+                      onPress: () => copyPullRequestLink(identity),
+                    },
+                    {
+                      accessibilityLabel: "Share…",
+                      icon: "square.and.arrow.up" as const,
+                      overflowOnly: true,
+                      onPress: () => sharePullRequestLink(identity),
+                    },
+                  ]
+                : []),
+              ...(showsDeleteBranch
+                ? [
+                    {
+                      accessibilityLabel: PR_ACTION_LABELS["delete-branch"],
+                      icon: PR_ACTION_ICONS["delete-branch"],
+                      disabled: !action.available("delete-branch"),
+                      destructive: true,
+                      overflowOnly: true,
+                      onPress: confirmDeleteBranch,
                     },
                   ]
                 : []),
             ]}
           />
         ) : null}
-        <NativeHeaderToolbar placement="right">
-          <NativeHeaderToolbar.Menu
+        <Toolbar placement="right">
+          <Toolbar.Menu
             title="Pull request"
             accessibilityLabel="Pull request actions"
             icon="ellipsis"
           >
             {permissions.verdicts.length ? (
-              <NativeHeaderToolbar.MenuAction
+              <Toolbar.MenuAction
                 icon="text.bubble"
                 onPress={() =>
                   navigation.navigate("PullRequestReview", { ...params, mode: "review" })
                 }
               >
-                <NativeHeaderToolbar.Label>Submit review</NativeHeaderToolbar.Label>
-              </NativeHeaderToolbar.MenuAction>
+                <Toolbar.Label>Submit review</Toolbar.Label>
+              </Toolbar.MenuAction>
             ) : null}
             {permissions.canComment ? (
-              <NativeHeaderToolbar.MenuAction
+              <Toolbar.MenuAction
                 icon="plus.bubble"
                 onPress={() =>
                   navigation.navigate("PullRequestReview", { ...params, mode: "comment" })
                 }
               >
-                <NativeHeaderToolbar.Label>Add comment</NativeHeaderToolbar.Label>
-              </NativeHeaderToolbar.MenuAction>
+                <Toolbar.Label>Add comment</Toolbar.Label>
+              </Toolbar.MenuAction>
             ) : null}
-            {pr ? (
-              <NativeHeaderToolbar.MenuAction
+            {identity ? (
+              <Toolbar.MenuAction
                 icon="arrow.up.right"
-                onPress={() => void Linking.openURL(pr.url)}
+                onPress={() => void Linking.openURL(identity.url)}
               >
-                <NativeHeaderToolbar.Label>
-                  {openOnProviderLabel(pr.provider)}
-                </NativeHeaderToolbar.Label>
-              </NativeHeaderToolbar.MenuAction>
+                <Toolbar.Label>{openOnProviderLabel(identity.provider)}</Toolbar.Label>
+              </Toolbar.MenuAction>
             ) : null}
-          </NativeHeaderToolbar.Menu>
-        </NativeHeaderToolbar>
+            {identity ? (
+              <Toolbar.MenuAction icon="link" onPress={() => copyPullRequestLink(identity)}>
+                <Toolbar.Label>Copy link</Toolbar.Label>
+              </Toolbar.MenuAction>
+            ) : null}
+            {identity ? (
+              <Toolbar.MenuAction
+                icon="square.and.arrow.up"
+                onPress={() => sharePullRequestLink(identity)}
+              >
+                <Toolbar.Label>Share…</Toolbar.Label>
+              </Toolbar.MenuAction>
+            ) : null}
+            {showsDeleteBranch ? (
+              <Toolbar.MenuAction
+                icon={PR_ACTION_ICONS["delete-branch"]}
+                destructive
+                disabled={!action.available("delete-branch")}
+                subtitle={
+                  action.busy
+                    ? "Deleting…"
+                    : connected
+                      ? pr.headBranch
+                      : "Reconnect to delete this branch."
+                }
+                onPress={confirmDeleteBranch}
+              >
+                <Toolbar.Label>{PR_ACTION_LABELS["delete-branch"]}</Toolbar.Label>
+              </Toolbar.MenuAction>
+            ) : null}
+          </Toolbar.Menu>
+        </Toolbar>
         <View
           style={{
             flex: 1,
@@ -447,10 +532,10 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                 importantForAccessibility={section === tab ? "auto" : "no-hide-descendants"}
               >
                 <AnimatedLegendList
-                  ref={(list) => {
-                    scrollViews.current[tab] = list;
-                  }}
-                  initialScrollOffset={-insets.top}
+                  ref={listRefs[tab]}
+                  // The scroll view owns its resting offset. LegendList keeps the first
+                  // initialScrollOffset it gets, and the first render has the window's top
+                  // inset (0 on the folded iPhone Duo), not the header's.
                   onScroll={(event) => {
                     const offset = event.nativeEvent.contentOffset.y;
                     scrollOffsets.current[tab] = offset;
@@ -612,7 +697,6 @@ export function PullRequestRouteScreen({ route }: StaticScreenProps<PullRequestP
                         >
                           <PullRequestIdentity pr={identity} params={params} />
                           <SegmentedControl
-                            className={Platform.OS === "android" ? undefined : "bg-grouped-card"}
                             options={[
                               { value: "overview", label: "Overview" },
                               ...(guidesEnabled

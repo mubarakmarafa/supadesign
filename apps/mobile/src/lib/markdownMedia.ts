@@ -16,16 +16,15 @@ import type { FilePreviewSource } from "../components/FilePreviewModal";
 import type { MediaVideoPreviewSource } from "./videoPreviewSource";
 import type { MediaActionsSource } from "./mediaActionsSource";
 
-/** Resolves only explicit media references. Ordinary links keep their existing navigation. */
 export function resolveMarkdownMediaPreview(
   href: string,
   input: {
     readonly environmentId: EnvironmentId;
     readonly threadId: ThreadId | undefined;
     readonly workspaceRoot: string | null | undefined;
-    /** Captured markdown may only open media with a direct URL. */
+    /** Bounds network paths when `workspaceRoot` is a nested directory relative images resolve from. */
+    readonly projectRoot?: string | null | undefined;
     readonly captured?: boolean;
-    /** Image syntax can target an endpoint without a recognizable extension. */
     readonly imageEmbed?: boolean;
   },
 ):
@@ -33,7 +32,8 @@ export function resolveMarkdownMediaPreview(
   | { readonly kind: "pdf"; readonly source: FilePreviewSource }
   | { readonly kind: "video"; readonly source: MediaVideoPreviewSource }
   | null {
-  const classified = classifyMarkdownImageSource(href, input.workspaceRoot);
+  const projectRoot = input.projectRoot === undefined ? input.workspaceRoot : input.projectRoot;
+  const classified = classifyMarkdownImageSource(href, input.workspaceRoot, projectRoot);
   if (classified._tag !== "Blocked") {
     const path =
       classified._tag === "Direct" ? classified.uri : splitFilePathPosition(classified.path).path;
@@ -63,8 +63,8 @@ export function resolveMarkdownMediaPreview(
       if (input.captured) return null;
       const resource = input.threadId
         ? { _tag: "media-file" as const, threadId: input.threadId, path }
-        : input.workspaceRoot
-          ? { _tag: "draft-workspace-file" as const, cwd: input.workspaceRoot, path }
+        : projectRoot
+          ? { _tag: "draft-workspace-file" as const, cwd: projectRoot, path }
           : null;
       if (!resource) return null;
       return {

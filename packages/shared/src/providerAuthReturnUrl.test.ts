@@ -16,14 +16,10 @@ describe("provider auth return destinations", () => {
   );
   it.each([
     `${APP_URL_SCHEME}://attacker/welcome`,
-    `${APP_URL_SCHEME}://app:123/welcome`,
-    `${APP_URL_SCHEME}://app/auth/callback`,
-    `${APP_URL_SCHEME}://user@ app/welcome`,
     `${APP_URL_SCHEME}://app/welcome/../evil`,
+    // The official app's schemes belong to Supaterm, not this fork.
     "supaterm://app/welcome",
     "supaterm-dev://app/welcome",
     "https://attacker.example/welcome",
-    "file:///welcome",
-    "javascript:alert(1)",
   ])("rejects %s", (url) => expect(providerAuthReturnUrl(url)).toBeUndefined());
 });

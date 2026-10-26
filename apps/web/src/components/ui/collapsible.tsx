@@ -1,5 +1,3 @@
-"use client";
-
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
 
 import { cn } from "~/lib/utils";
@@ -23,7 +21,6 @@ function CollapsiblePanel({
   animate = true,
   ...props
 }: CollapsiblePrimitive.Panel.Props & { animate?: boolean }) {
-  // https://ui.shadcn.com/docs/components/base/collapsible
   return (
     <CollapsiblePrimitive.Panel
       className={cn(

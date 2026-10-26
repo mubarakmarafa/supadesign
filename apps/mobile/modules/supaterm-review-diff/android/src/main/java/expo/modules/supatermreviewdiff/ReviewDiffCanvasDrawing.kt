@@ -10,17 +10,21 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.text.TextPaint
+import com.facebook.react.common.assets.ReactFontManager
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
 internal class ReviewDiffCanvasDrawing(context: Context) {
   private val density = context.resources.displayMetrics.density
+  private val typefaces = ReviewDiffTypefaces(context)
   var theme: DiffTheme = DiffTheme.fallback("light")
 
   val backgroundPaint = Paint()
   val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
   val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
     hinting = Paint.HINTING_ON
+    fontFeatureSettings = "'liga' 1, 'calt' 1"
     isSubpixelText = false
     clearShadowLayer()
   }
@@ -31,14 +35,14 @@ internal class ReviewDiffCanvasDrawing(context: Context) {
   }
 
   private val italicCodeTypeface by lazy {
-    Typeface.create(ReviewDiffTypefaces.regular, Typeface.ITALIC)
+    Typeface.create(typefaces.regular, Typeface.ITALIC)
   }
   private val boldItalicCodeTypeface by lazy {
-    Typeface.create(ReviewDiffTypefaces.bold, Typeface.ITALIC)
+    Typeface.create(typefaces.bold, Typeface.ITALIC)
   }
 
   init {
-    textPaint.typeface = ReviewDiffTypefaces.regular
+    textPaint.typeface = typefaces.regular
     uiPaint.typeface = Typeface.DEFAULT_BOLD
   }
 
@@ -161,7 +165,7 @@ internal class ReviewDiffCanvasDrawing(context: Context) {
   }
 
   fun configureMonospacePaint(color: Int, size: Float, weight: String) {
-    textPaint.typeface = ReviewDiffTypefaces.forWeight(weight)
+    textPaint.typeface = typefaces.forWeight(weight)
     configureTextPaint(textPaint, color, size)
   }
 
@@ -170,9 +174,9 @@ internal class ReviewDiffCanvasDrawing(context: Context) {
     val italic = fontStyle and 1 != 0
     textPaint.typeface = when {
       tokenBold && italic -> boldItalicCodeTypeface
-      tokenBold -> ReviewDiffTypefaces.bold
+      tokenBold -> typefaces.bold
       italic -> italicCodeTypeface
-      else -> ReviewDiffTypefaces.forWeight(style.codeFontWeight)
+      else -> typefaces.forWeight(style.codeFontWeight)
     }
     configureTextPaint(textPaint, color, style.codeFontSizePx)
     textPaint.isUnderlineText = fontStyle and 4 != 0
@@ -209,6 +213,68 @@ internal class ReviewDiffCanvasDrawing(context: Context) {
     val availableWidth = width - style.changeBarWidthPx - style.gutterWidthPx -
       style.codePaddingPx * 2f
     return codeLayouts.layout(rows, tokens, textPaint, style, theme, availableWidth.toInt())
+  }
+
+  private data class WidthEntry(val row: DiffRow, val tokens: List<DiffToken>?, val width: Float)
+  private var widthEntries = emptyMap<String, WidthEntry>()
+  private var widthRows: List<DiffRow>? = null
+  private var widthTokens: Map<String, List<DiffToken>>? = null
+  private var widthStyle: DiffStyle? = null
+  private var measuredContentWidth = 0
+
+  fun contentWidth(
+    rows: List<DiffRow>,
+    tokens: Map<String, List<DiffToken>>,
+    style: DiffStyle
+  ): Int {
+    if (style.wordWrap) {
+      widthEntries = emptyMap()
+      widthRows = null
+      widthTokens = null
+      widthStyle = null
+      return 0
+    }
+    // Comment heights and viewport resizing do not change unwrapped text widths.
+    if (widthRows !== rows || widthTokens !== tokens || widthStyle != style) {
+      if (widthStyle != style) widthEntries = emptyMap()
+      val next = HashMap<String, WidthEntry>()
+      var widest = 0f
+      for (row in rows) {
+        if (row.kind != "line" && row.kind != "hunk") continue
+        val rowTokens = if (row.kind == "line") tokens[row.id] else null
+        val cached = widthEntries[row.id]
+        val entry = if (cached?.row == row && cached.tokens == rowTokens) {
+          cached
+        } else {
+          WidthEntry(row, rowTokens, measureRowWidth(row, rowTokens, style))
+        }
+        next[row.id] = entry
+        widest = max(widest, entry.width)
+      }
+      widthEntries = next
+      widthRows = rows
+      widthTokens = tokens
+      widthStyle = style
+      measuredContentWidth = ceil(
+        style.changeBarWidthPx + style.gutterWidthPx + style.codePaddingPx * 2f + widest,
+      ).toInt()
+    }
+    return measuredContentWidth
+  }
+
+  private fun measureRowWidth(row: DiffRow, tokens: List<DiffToken>?, style: DiffStyle): Float {
+    if (row.kind == "hunk") {
+      configureMonospacePaint(theme.hunkText, style.hunkFontSizePx, style.hunkFontWeight)
+      return textPaint.measureText(row.text.ifEmpty { row.content })
+    }
+    val runs = if (tokens.isNullOrEmpty()) listOf(DiffToken(row.content, null, 0)) else tokens
+    var width = 0f
+    // Match drawCode's run boundaries and fonts, including fallback glyphs and tabs.
+    for (run in runs) {
+      configureCodePaint(run.color ?: theme.text, run.fontStyle, style)
+      width += textPaint.measureText(run.content)
+    }
+    return width
   }
 
   fun lineNumberColor(change: String): Int = when (change) {
@@ -392,10 +458,23 @@ internal class ReviewDiffCanvasDrawing(context: Context) {
     Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
 }
 
-private object ReviewDiffTypefaces {
-  val regular: Typeface = Typeface.create("monospace", Typeface.NORMAL)
-  private val medium: Typeface = Typeface.create("monospace-medium", Typeface.NORMAL)
-  val bold: Typeface = Typeface.create("monospace", Typeface.BOLD)
+private class ReviewDiffTypefaces(context: Context) {
+  val regular: Typeface = ReactFontManager.getInstance().getTypeface(
+    "JetBrainsMono",
+    Typeface.NORMAL,
+    context.assets
+  )
+  private val medium: Typeface = ReactFontManager.getInstance().getTypeface(
+    "JetBrainsMono",
+    Typeface.NORMAL,
+    500,
+    context.assets
+  )
+  val bold: Typeface = ReactFontManager.getInstance().getTypeface(
+    "JetBrainsMono",
+    Typeface.BOLD,
+    context.assets
+  )
 
   fun forWeight(weight: String): Typeface = when (weight.lowercase()) {
     "medium", "semibold", "semi-bold" -> medium

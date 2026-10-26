@@ -13,7 +13,7 @@ import {
 import { createModelSelection } from "@supaterm/shared/model";
 import { useAtomValue } from "@effect/atom-react";
 import { PlusIcon, Trash2Icon } from "lucide-react";
-import { useId, useMemo, useState } from "react";
+import { useId, useState } from "react";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { randomUUID } from "../../lib/utils";
@@ -96,28 +96,16 @@ function StepModelPicker({
   const settings = useEnvironmentSettings(environmentId);
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(environmentId)) ?? EMPTY_SERVER_PROVIDERS;
-  const instanceEntries = useMemo(
-    () =>
-      sortProviderInstanceEntries(
-        applyProviderInstanceSettings(
-          deriveProviderInstanceEntries(providers),
-          settings,
-          project.id,
-        ),
-      ),
-    [project.id, providers, settings],
+  const instanceEntries = sortProviderInstanceEntries(
+    applyProviderInstanceSettings(deriveProviderInstanceEntries(providers), settings, project.id),
   );
   const fallback = scheduledTaskDefaultModel(settings, project, instanceEntries);
   const selection = value ?? fallback;
-  const modelOptionsByInstance = useMemo(
-    () =>
-      getCustomModelOptionsByInstance(
-        settings,
-        providers,
-        selection?.instanceId ?? instanceEntries[0]?.instanceId,
-        selection?.model ?? "",
-      ),
-    [instanceEntries, providers, selection?.instanceId, selection?.model, settings],
+  const modelOptionsByInstance = getCustomModelOptionsByInstance(
+    settings,
+    providers,
+    selection?.instanceId ?? instanceEntries[0]?.instanceId,
+    selection?.model ?? "",
   );
   const entry = instanceEntries.find((candidate) => candidate.instanceId === selection?.instanceId);
   const switchId = useId();
@@ -151,8 +139,6 @@ function StepModelPicker({
               provider={entry.driverKind}
               models={entry.models}
               model={selection.model}
-              prompt=""
-              onPromptChange={() => {}}
               modelOptions={selection.options ?? []}
               allowPromptInjectedEffort={false}
               triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}

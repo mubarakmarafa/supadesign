@@ -1,14 +1,20 @@
+import { CODE_FONT_FAMILY } from "../lib/fonts";
 import { decodeComposerContextFragment } from "@supaterm/shared/composerContextClipboard";
 import {
   collectComposerContextReferences,
   formatComposerContextHref,
   formatComposerContextReference,
 } from "@supaterm/shared/composerContextReferences";
-import { markdownWithAuthoredWindowsPaths, markdownWithHtml } from "../lib/markdownDocument";
+import {
+  markdownWithAuthoredWindowsPaths,
+  markdownWithHtml,
+  markdownWithInlineFileLinks,
+  markdownWithTableBreaks,
+} from "../lib/markdownDocument";
 import { markdownMermaidMedia } from "../lib/markdownMermaidMedia";
 import { NativeMermaidBlock } from "./NativeMermaidBlock";
-import { useCallback, useMemo, useState } from "react";
-import { ActionSheetIOS, Platform, Share, StyleSheet, View } from "react-native";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { Platform, Share, StyleSheet, View } from "react-native";
 import {
   EnrichedMarkdownText,
   type DocumentAssetsEvent,
@@ -18,7 +24,7 @@ import {
 import type { SelectableMarkdownTextProps } from "./SelectableMarkdownText.types";
 
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
-import { AndroidAnchoredMenu } from "../components/AndroidAnchoredMenu";
+import { Menu } from "../components/ui/Menu";
 import { useEnrichedLinkVariants } from "./useEnrichedLinkVariants";
 import { copyTextWithHaptic } from "../lib/copyTextWithHaptic";
 import {
@@ -31,7 +37,6 @@ function enrichedStyle(
   style: SelectableMarkdownTextProps["textStyle"],
   dark: boolean,
 ): MarkdownStyle {
-  const monospace = Platform.OS === "ios" ? "Menlo" : "monospace";
   // Keep the radius modest: iOS clips square table-cell borders without stroking the corner arcs.
   const block = {
     marginTop: 4,
@@ -43,6 +48,7 @@ function enrichedStyle(
   const body = {
     color: style.color,
     fontFamily: style.fontFamily,
+    fontWeight: style.fontWeight,
     fontSize: style.fontSize,
     lineHeight: style.lineHeight,
     marginTop: 0,
@@ -54,6 +60,7 @@ function enrichedStyle(
       ...body,
       color: style.strongColor,
       fontFamily: style.headingFontFamily,
+      fontWeight: "bold",
       fontSize,
       lineHeight: fontSize * 1.35,
       marginTop: 8,
@@ -61,16 +68,25 @@ function enrichedStyle(
   };
   return {
     paragraph: body,
+    math: {
+      fontSize: style.fontSize,
+      color: style.color,
+      backgroundColor: "transparent",
+      padding: 8,
+      marginTop: 4,
+      marginBottom: 12,
+    },
+    inlineMath: { color: style.color },
     h1: heading(1),
     h2: heading(2),
     h3: heading(3),
     h4: heading(4),
     h5: heading(5),
     h6: heading(6),
-    strong: { color: style.strongColor, fontFamily: style.boldFontFamily, fontWeight: "normal" },
+    strong: { color: style.strongColor, fontFamily: style.boldFontFamily, fontWeight: "bold" },
     link: { color: style.linkColor, underline: true },
     code: {
-      fontFamily: monospace,
+      fontFamily: CODE_FONT_FAMILY,
       color: style.inlineCodeColor,
       backgroundColor: "transparent",
       borderColor: "transparent",
@@ -80,7 +96,7 @@ function enrichedStyle(
       ...body,
       color: style.codeColor,
       backgroundColor: style.codeBlockBackgroundColor,
-      fontFamily: monospace,
+      fontFamily: CODE_FONT_FAMILY,
       fontSize: style.fontSize * 0.9,
       ...block,
       padding: 12,
@@ -123,7 +139,6 @@ function enrichedStyle(
     table: {
       ...body,
       ...block,
-      headerFontFamily: style.boldFontFamily,
       headerTextColor: style.strongColor,
       headerBackgroundColor: style.codeBlockBackgroundColor,
       rowEvenBackgroundColor: "transparent",
@@ -142,11 +157,19 @@ function enrichedStyle(
 
 export function MobileEnrichedMarkdownText(props: SelectableMarkdownTextProps) {
   const { renderImage, resolveImageSource } = props;
+  const { themeAppearance, mathRenderingEnabled } = useAppearancePreferences();
   const { markdown, sources: mermaidSources } = useMemo(
-    () => markdownMermaidMedia(markdownWithAuthoredWindowsPaths(markdownWithHtml(props.markdown))),
+    () =>
+      markdownMermaidMedia(
+        markdownWithTableBreaks(
+          markdownWithInlineFileLinks(
+            markdownWithAuthoredWindowsPaths(markdownWithHtml(props.markdown)),
+            ENRICHED_INLINE_FILE_LINK_REGEX,
+          ),
+        ),
+      ),
     [props.markdown],
   );
-  const { themeAppearance } = useAppearancePreferences();
   const [documentAssets, setDocumentAssets] = useState<DocumentAssetsEvent["assets"]>([]);
   const onDocumentAssets = useCallback(({ assets }: DocumentAssetsEvent) => {
     setDocumentAssets((previous) =>
@@ -171,7 +194,6 @@ export function MobileEnrichedMarkdownText(props: SelectableMarkdownTextProps) {
   const linkRecognition = useMemo(
     () => ({
       text: enrichedSkillLinkRegex(props.skills) ?? undefined,
-      inlineCode: ENRICHED_INLINE_FILE_LINK_REGEX,
     }),
     [props.skills],
   );
@@ -282,37 +304,20 @@ export function MobileEnrichedMarkdownText(props: SelectableMarkdownTextProps) {
     [mermaidSources, resolveImageSource],
   );
   const renderMarkdown = (openAndroidMenu?: () => void) => {
-    const onLinkLongPress = props.fileContextMenu
-      ? ({ url }: { url: string }) => {
-          const menu = props.fileContextMenu?.(url) ?? {
-            title: url,
-            actions: [
-              { id: "enriched-open-link", title: "Open link" },
-              { id: "enriched-copy-link", title: "Copy link" },
-            ],
-          };
-          const actions = menu.actions;
-          if (Platform.OS === "ios") {
-            ActionSheetIOS.showActionSheetWithOptions(
-              {
-                title: menu.title,
-                options: [...actions.map((action) => action.title), "Cancel"],
-                cancelButtonIndex: actions.length,
-                disabledButtonIndices: actions.flatMap((action, index) =>
-                  action.disabled ? [index] : [],
-                ),
-              },
-              (index) => {
-                const action = actions[index];
-                if (action && !action.disabled) performMenuAction(url, action.id);
-              },
-            );
-          } else {
+    const onLinkLongPress =
+      Platform.OS === "android" && props.fileContextMenu
+        ? ({ url }: { url: string }) => {
+            const menu = props.fileContextMenu?.(url) ?? {
+              title: url,
+              actions: [
+                { id: "enriched-open-link", title: "Open link" },
+                { id: "enriched-copy-link", title: "Copy link" },
+              ],
+            };
             setActiveMenu({ url, menu });
             openAndroidMenu?.();
           }
-        }
-      : undefined;
+        : undefined;
 
     return (
       <View
@@ -342,11 +347,12 @@ export function MobileEnrichedMarkdownText(props: SelectableMarkdownTextProps) {
           selectionColor={props.textStyle.selectionColor}
           selectionHandleColor={props.textStyle.selectionHandleColor}
           md4cFlags={{
-            latexMath: false,
+            latexMath: mathRenderingEnabled,
             hardSoftBreaks: props.preserveSoftBreaks ?? false,
             admonitions: true,
           }}
           enableTaskListItemToggle={false}
+          enableCodeBlockWrapToggle
           spoilerOverlay="solid"
           onLinkPress={props.onLinkPress ? ({ url }) => props.onLinkPress?.(url) : undefined}
           onLinkLongPress={onLinkLongPress}
@@ -358,7 +364,8 @@ export function MobileEnrichedMarkdownText(props: SelectableMarkdownTextProps) {
   };
 
   return Platform.OS === "android" && props.fileContextMenu ? (
-    <AndroidAnchoredMenu
+    <Menu
+      shouldOpenOnLongPress
       title={activeMenu?.menu.title}
       actions={
         activeMenu?.menu.actions.map((action) => ({
@@ -372,9 +379,17 @@ export function MobileEnrichedMarkdownText(props: SelectableMarkdownTextProps) {
       }}
       style={{ flexShrink: 1, minWidth: 0 }}
     >
-      {renderMarkdown}
-    </AndroidAnchoredMenu>
+      <MarkdownMenuAnchor renderMarkdown={renderMarkdown} />
+    </Menu>
   ) : (
     renderMarkdown()
   );
+}
+
+/** Adapts the rich-text link gesture to Menu's long-press trigger without wrapping text in a Pressable. */
+function MarkdownMenuAnchor(props: {
+  readonly renderMarkdown: (openMenu?: () => void) => ReactNode;
+  readonly onLongPress?: () => void;
+}) {
+  return props.renderMarkdown(props.onLongPress);
 }

@@ -91,68 +91,68 @@ export const make = Effect.gen(function* () {
   const ops: ThreadProgress.ThreadProgressOps = {
     projectOf,
 
-    pageOf: (threadId) =>
-      Effect.gen(function* () {
-        const projectId = yield* projectOf(threadId);
-        const live = (yield* liveEnvironments.list(projectId)).find(
-          (snapshot) => snapshot.threadId === threadId,
-        );
-        if (live?.status === "ready" && live.url !== null) return live.url;
-        return yield* failure(
-          "This card has no running preview to capture. Make it the live card, or have its agent publish from its own dev server.",
-        );
-      }),
+    pageOf: Effect.fn("ThreadProgress.pageOf")(function* (threadId: ThreadId) {
+      const projectId = yield* projectOf(threadId);
+      const live = (yield* liveEnvironments.list(projectId)).find(
+        (snapshot) => snapshot.threadId === threadId,
+      );
+      if (live?.status === "ready" && live.url !== null) return live.url;
+      return yield* failure(
+        "This card has no running preview to capture. Make it the live card, or have its agent publish from its own dev server.",
+      );
+    }),
 
-    screenshot: (url) =>
-      Effect.gen(function* () {
-        if (!isWebUrl(url)) return yield* failure(`Only web pages can be captured, not ${url}.`);
-        const executable = yield* previewBrowser.executable.pipe(
-          Effect.mapError((error) =>
-            failure(
-              error._tag === "PreviewBrowserInstallingError"
-                ? "Supadesign is still installing its capture browser. Try again in a minute."
-                : "Supadesign's capture browser isn't available on this machine.",
-            ),
+    screenshot: Effect.fn("ThreadProgress.screenshot")(function* (url: string) {
+      if (!isWebUrl(url)) return yield* failure(`Only web pages can be captured, not ${url}.`);
+      const executable = yield* previewBrowser.executable.pipe(
+        Effect.mapError((error) =>
+          failure(
+            error._tag === "PreviewBrowserInstallingError"
+              ? "Supadesign is still installing its capture browser. Try again in a minute."
+              : "Supadesign's capture browser isn't available on this machine.",
           ),
-        );
-        const bytes = yield* Effect.tryPromise({
-          try: () => screenshotPage(executable, url),
-          catch: (cause) => failure(describeScreenshotFailure(url, cause)),
-        }).pipe(
-          Effect.timeoutOrElse({
-            duration: "45 seconds",
-            orElse: () => Effect.fail(failure(`${url} took too long to capture.`)),
-          }),
-        );
-        return { bytes, mimeType: "image/jpeg", ...PROGRESS_VIEWPORT };
-      }),
+        ),
+      );
+      const bytes = yield* Effect.tryPromise({
+        try: () => screenshotPage(executable, url),
+        catch: (cause) => failure(describeScreenshotFailure(url, cause)),
+      }).pipe(
+        Effect.timeoutOrElse({
+          duration: "45 seconds",
+          orElse: () => Effect.fail(failure(`${url} took too long to capture.`)),
+        }),
+      );
+      return { bytes, mimeType: "image/jpeg", ...PROGRESS_VIEWPORT };
+    }),
 
-    storeImage: ({ threadId, screenshot }) =>
-      Effect.gen(function* () {
-        const id = createAttachmentId(threadId);
-        if (id === null) return yield* failure("The capture could not be saved.");
-        const image: ChatImageAttachment = {
-          type: "image",
-          id: ChatAttachmentId.make(id),
-          name: "progress.jpg",
-          mimeType: screenshot.mimeType,
-          sizeBytes: screenshot.bytes.byteLength,
-        };
-        const target = imagePath(image);
-        if (target === null) return yield* failure("The capture could not be saved.");
-        yield* fs.makeDirectory(path.dirname(target), { recursive: true }).pipe(
-          Effect.andThen(fs.writeFile(target, screenshot.bytes)),
-          Effect.mapError(() => failure("The capture could not be saved.")),
-        );
-        return image;
-      }),
+    storeImage: Effect.fn("ThreadProgress.storeImage")(function* ({
+      threadId,
+      screenshot,
+    }: Parameters<ThreadProgress.ThreadProgressOps["storeImage"]>[0]) {
+      const id = createAttachmentId(threadId);
+      if (id === null) return yield* failure("The capture could not be saved.");
+      const image: ChatImageAttachment = {
+        type: "image",
+        id: ChatAttachmentId.make(id),
+        name: "progress.jpg",
+        mimeType: screenshot.mimeType,
+        sizeBytes: screenshot.bytes.byteLength,
+      };
+      const target = imagePath(image);
+      if (target === null) return yield* failure("The capture could not be saved.");
+      yield* fs.makeDirectory(path.dirname(target), { recursive: true }).pipe(
+        Effect.andThen(fs.writeFile(target, screenshot.bytes)),
+        Effect.mapError(() => failure("The capture could not be saved.")),
+      );
+      return image;
+    }),
 
     deleteImage: (image) => {
       const target = imagePath(image);
       return target === null ? Effect.void : fs.remove(target).pipe(Effect.ignore);
     },
 
-    newId: crypto.randomUUIDv4.pipe(Effect.orDie),
+    newId: crypto.randomUUIDv4().pipe(Effect.orDie),
     nowMs: Clock.currentTimeMillis,
 
     load: fs.readFileString(progressPath).pipe(
@@ -171,38 +171,38 @@ export const make = Effect.gen(function* () {
   const service = yield* ThreadProgress.make(ops);
 
   /** A card without a summary starts with its thread's first message as its brief. */
-  const fillBrief = (threadId: ThreadId) =>
-    Effect.gen(function* () {
-      const current = yield* service.get(threadId);
-      if (current?.summary != null) return;
-      const records = yield* threads.getThreadRecords(threadId, ["messages"], {
-        messageRoles: ["user"],
-      });
-      const first = records.messages.find(
-        (message) => !message.streaming && message.text.trim().length > 0,
-      );
-      if (first === undefined) return;
-      yield* service.setSummary({ threadId, text: first.text, source: "brief" });
+  const fillBrief = Effect.fn("ThreadProgress.fillBrief")(function* (threadId: ThreadId) {
+    const current = yield* service.get(threadId);
+    if (current?.summary != null) return;
+    const records = yield* threads.getThreadRecords(threadId, ["messages"], {
+      messageRoles: ["user"],
     });
+    const first = records.messages.find(
+      (message) => !message.streaming && message.text.trim().length > 0,
+    );
+    if (first === undefined) return;
+    yield* service.setSummary({ threadId, text: first.text, source: "brief" });
+  });
 
   /** After a turn on the live card, its cover follows the work, unless the agent just published. */
-  const captureLiveCard = (threadId: ThreadId) =>
-    Effect.gen(function* () {
-      const projectId = yield* projectOf(threadId);
-      const live = (yield* liveEnvironments.list(projectId)).find(
-        (snapshot) => snapshot.threadId === threadId,
-      );
-      if (live?.status !== "ready" || live.url === null) return;
-      const latest = (yield* service.get(threadId))?.updates.at(-1);
-      const now = yield* Clock.currentTimeMillis;
-      if (
-        latest !== undefined &&
-        now - Date.parse(latest.createdAt) < THREAD_PROGRESS_AGENT_INTERVAL_MS
-      ) {
-        return;
-      }
-      yield* service.capture({ threadId, source: "auto" });
-    });
+  const captureLiveCard = Effect.fn("ThreadProgress.captureLiveCard")(function* (
+    threadId: ThreadId,
+  ) {
+    const projectId = yield* projectOf(threadId);
+    const live = (yield* liveEnvironments.list(projectId)).find(
+      (snapshot) => snapshot.threadId === threadId,
+    );
+    if (live?.status !== "ready" || live.url === null) return;
+    const latest = (yield* service.get(threadId))?.updates.at(-1);
+    const now = yield* Clock.currentTimeMillis;
+    if (
+      latest !== undefined &&
+      now - Date.parse(latest.createdAt) < THREAD_PROGRESS_AGENT_INTERVAL_MS
+    ) {
+      return;
+    }
+    yield* service.capture({ threadId, source: "auto" });
+  });
 
   const onTurnEnd = (threadId: ThreadId) =>
     Effect.all([fillBrief(threadId), captureLiveCard(threadId)], {

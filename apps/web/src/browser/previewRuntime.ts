@@ -35,7 +35,6 @@ export function alternatePreviewRuntime(
   return snapshot.runtime === "server" ? "desktop" : "server";
 }
 
-/** Electron hosts its own browser tabs; other clients need the environment to host them. */
 export function isPreviewAvailableFor(environmentId: EnvironmentId): boolean {
   return isPreviewSupportedInRuntime() || readEnvironmentSupportsServerBrowser(environmentId);
 }

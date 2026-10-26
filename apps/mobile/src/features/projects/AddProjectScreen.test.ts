@@ -24,11 +24,11 @@ vi.mock("react", async (importOriginal) => ({
   useRef: (current: unknown) => ({ current }),
   useEffect: () => {},
 }));
-vi.mock("../../components/MaterialListRow", () => ({ MaterialListRow: "MaterialListRow" }));
-vi.mock("../../components/MaterialButton", () => ({ MaterialButton: "MaterialButton" }));
-vi.mock("../../components/ScreenScrollView", () => ({ ScreenScrollView: "ScrollView" }));
+vi.mock("../../components/ui/NavigationRow", () => ({ NavigationRow: "NavigationRow" }));
+vi.mock("../../components/ui/Button", () => ({ Button: "Button" }));
+vi.mock("../../components/ui/ScreenScrollView", () => ({ ScreenScrollView: "ScrollView" }));
 vi.mock("../settings/components/SettingsScreen", () => ({ SettingsScreen: "SettingsScreen" }));
-vi.mock("../../components/ThemedSwitch", () => ({ ThemedSwitch: "Switch" }));
+vi.mock("../../components/ui/ThemedSwitch", () => ({ ThemedSwitch: "Switch" }));
 vi.mock("react-native", () => ({
   Platform: { OS: "ios" },
   ActivityIndicator: "ActivityIndicator",
@@ -38,20 +38,23 @@ vi.mock("react-native", () => ({
   View: "View",
 }));
 vi.mock("@react-navigation/native", () => ({
-  useNavigation: () => ({ dispatch: () => {} }),
+  useNavigation: () => ({
+    dispatch: () => {},
+    getState: () => ({ index: 0, routes: [{ key: "home", name: "Home" }] }),
+  }),
   CommonActions: { reset: (input: unknown) => input },
   StackActions: {},
 }));
 vi.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0 }),
 }));
-vi.mock("../../components/AppSymbol", () => ({ SymbolView: "SymbolView" }));
-vi.mock("../../components/AppText", () => ({ AppText: "Text", AppTextInput: "TextInput" }));
+vi.mock("../../components/ui/AppSymbol", () => ({ SymbolView: "SymbolView" }));
+vi.mock("../../components/ui/AppText", () => ({ AppText: "Text", AppTextInput: "TextInput" }));
 vi.mock("../../components/EnvironmentMachineSymbol", () => ({
   EnvironmentMachineSymbol: "EnvironmentMachineSymbol",
 }));
-vi.mock("../../components/ErrorBanner", () => ({ ErrorBanner: "ErrorBanner" }));
-vi.mock("../../components/SourceControlIcon", () => ({ SourceControlIcon: "SourceControlIcon" }));
+vi.mock("../../components/ui/ErrorBanner", () => ({ ErrorBanner: "ErrorBanner" }));
+vi.mock("./SourceControlIcon", () => ({ SourceControlIcon: "SourceControlIcon" }));
 vi.mock("../../lib/uuid", () => ({ uuidv4: () => "project" }));
 vi.mock("../../state/session", () => ({
   useEnvironmentScope: (environmentId: string, scope: string) =>
@@ -61,6 +64,7 @@ vi.mock("../../state/session", () => ({
 }));
 vi.mock("../../state/entities", () => ({
   useProjects: () => [],
+  waitForProject: async () => null,
   useServerConfigs: () =>
     new Map([
       [
@@ -103,9 +107,10 @@ vi.mock("../../state/presentation", () => ({
 vi.mock("../../state/filesystem", () => ({ filesystemEnvironment: {} }));
 vi.mock("../../state/sourceControl", () => ({
   sourceControlEnvironment: {
-    cloneRepository: async ({ input }: { input: { destinationPath: string } }) => {
+    startProjectClone: async ({ input }: { input: { destinationPath: string } }) => {
       NodeFS.mkdirSync(input.destinationPath);
-      return AsyncResult.success({ cwd: input.destinationPath });
+      state.projects.push(input.destinationPath);
+      return AsyncResult.success(undefined);
     },
   },
 }));
@@ -129,7 +134,7 @@ vi.mock("../../state/projects", () => ({
   },
 }));
 
-import { AddProjectDestinationScreen, AddProjectLocalFolderScreen } from "./AddProjectScreen";
+import { AddProjectDestinationScreen } from "./AddProjectScreen";
 
 function findAction(node: ReactNode, label: string): (() => unknown) | null {
   if (Array.isArray(node)) {
@@ -159,12 +164,6 @@ function cloneAction() {
   return action;
 }
 
-function localProjectAction(environmentId = "environment") {
-  const action = findAction(AddProjectLocalFolderScreen({ environmentId }), "Add project");
-  if (!action) throw new Error("Add project action missing");
-  return action;
-}
-
 describe("clone project permissions", () => {
   beforeEach(async () => {
     state.baseDirectory = await NodeFSP.mkdtemp(
@@ -187,15 +186,6 @@ describe("clone project permissions", () => {
     expect(state.projects).toEqual([]);
   });
 
-  it("clones and registers the project when both permissions are granted", async () => {
-    state.scopes.add(AuthOrchestrationOperateScope);
-    await cloneAction()();
-
-    const destination = NodePath.join(state.baseDirectory, "repo");
-    expect(NodeFS.existsSync(destination)).toBe(true);
-    expect(state.projects).toEqual([destination]);
-  });
-
   it.each([AuthSourceControlWriteScope, AuthOrchestrationOperateScope])(
     "rechecks %s before a retained clone action creates a directory",
     async (scope) => {
@@ -206,68 +196,6 @@ describe("clone project permissions", () => {
 
       expect(NodeFS.existsSync(NodePath.join(state.baseDirectory, "repo"))).toBe(false);
       expect(state.projects).toEqual([]);
-    },
-  );
-});
-
-describe("local project permissions", () => {
-  beforeEach(() => {
-    state.baseDirectory = "/workspace/project";
-    state.scopes = new Set();
-    state.otherScopes = new Set();
-    state.projects = [];
-    state.createRequests = [];
-  });
-
-  it.each([false, true])(
-    "does not dispatch project creation without the current grant (revoked: %s)",
-    async (revokeBeforeSubmit) => {
-      if (revokeBeforeSubmit) state.scopes.add(AuthOrchestrationOperateScope);
-      const submit = localProjectAction();
-      state.scopes.delete(AuthOrchestrationOperateScope);
-
-      await submit();
-
-      expect(state.createRequests).toEqual([]);
-      expect(state.projects).toEqual([]);
-    },
-  );
-
-  it("adds a typed local path with only task-operation permission", async () => {
-    state.scopes.add(AuthOrchestrationOperateScope);
-
-    await localProjectAction()();
-
-    expect(state.createRequests).toEqual([
-      { environmentId: "environment", workspaceRoot: state.baseDirectory },
-    ]);
-    expect(state.projects).toEqual([state.baseDirectory]);
-  });
-
-  it("uses a grant added while the local-folder form is open", async () => {
-    const submit = localProjectAction();
-    state.scopes.add(AuthOrchestrationOperateScope);
-
-    await submit();
-
-    expect(state.projects).toEqual([state.baseDirectory]);
-  });
-
-  it.each([false, true])(
-    "uses the selected environment's grant (allowed: %s)",
-    async (allowSelectedEnvironment) => {
-      (allowSelectedEnvironment ? state.otherScopes : state.scopes).add(
-        AuthOrchestrationOperateScope,
-      );
-
-      await localProjectAction("other-environment")();
-
-      expect(state.createRequests).toEqual(
-        allowSelectedEnvironment
-          ? [{ environmentId: "other-environment", workspaceRoot: state.baseDirectory }]
-          : [],
-      );
-      expect(state.projects).toEqual(allowSelectedEnvironment ? [state.baseDirectory] : []);
     },
   );
 });

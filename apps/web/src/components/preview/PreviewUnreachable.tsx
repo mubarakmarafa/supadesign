@@ -6,9 +6,7 @@ import { describePreviewError } from "./errorCodeMessages";
 
 interface Props {
   url: string;
-  /** Chromium net error code, e.g. -105. */
   code: number;
-  /** Stringified Chromium error, e.g. "ERR_NAME_NOT_RESOLVED". */
   description: string;
   onReload: () => void;
 
@@ -54,7 +52,6 @@ export function PreviewFileNotShown({
   );
 }
 
-/** Theme-aware tailwind port of Chromium's "This site can't be reached" page. */
 export function PreviewUnreachable({ url, code, description, onReload, move }: Props) {
   const [showDetails, setShowDetails] = useState(false);
   const host = safeHost(url) ?? url;

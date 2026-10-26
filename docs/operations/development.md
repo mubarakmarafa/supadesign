@@ -37,6 +37,11 @@ Use `vp run dev` for server and web, or `vp run dev:desktop` for the Electron cl
 `dev:server` and `dev:web` start those processes separately.
 See the [mobile README](../../apps/mobile/README.md) for native builds and Metro.
 
+macOS desktop development and iOS builds require full Xcode 27 or newer. Select its developer
+directory with `DEVELOPER_DIR` or `xcode-select`; the Command Line Tools alone cannot compile the
+layered app icon. Native CI builds select Xcode 27.1 on the `xcode-27` preview runner image,
+preserving the iOS 27.1 SDK required for Duo support.
+
 Flags go directly after the task name, for example `vp run dev --home-dir /tmp/supaterm-dev`.
 Add `--browser` to open a browser automatically.
 
@@ -68,9 +73,21 @@ when changing this setup:
   chunks. Static imports can work on first load and fail after a route split.
 - Bundled dev rebuilds Tailwind through watched files. Its ordinary Vite hot-update hook expects
   a server/module graph that Rolldown does not provide.
+- The app and its routes are lazy chunks, built on first request. A plugin pre-bundles the
+  startup chain when the server starts. Renaming or moving a startup route or the app entry
+  silently drops it from that list.
 
-The workarounds live in the [web entry](../../apps/web/src/bootstrap.ts) and
-[Tailwind plugin](../../apps/web/vite/tailwind.ts).
+The workarounds live in the [web entry](../../apps/web/src/bootstrap.ts),
+[Tailwind plugin](../../apps/web/vite/tailwind.ts), and
+[startup warmup](../../apps/web/vite/warmBundledDev.ts).
+
+`vp run dev --share --built` skips the Vite dev server. It runs `vp build --watch` for the web
+app, and the backend serves `apps/web/dist` on the same tailnet URL and pairing flow. Use it when
+someone tests over a slow link or only needs to use the app: loads are production size, and the
+first load does not wait for dev bundling. There is no HMR. After an edit, wait for the
+`built in` line (about 6 s), then reload. Until the first build exists, the URL shows a page that
+reloads by itself. The license manifest is not generated in this mode. `--built` requires
+`--share` and the `dev` mode.
 
 #### Reusable dev credential
 
@@ -114,7 +131,15 @@ for the security model.
 
 ## Checks
 
-Run checks for the files and packages you changed:
+`vp run check:changed` runs CI's fast checks for your branch's changes: format and lint of the
+changed files, `knip:check` when code or a manifest changes, the generated GraphQL checks, typecheck
+of the affected packages and their dependents, and the test files beside the changed files. It maps
+files to packages with [changed-packages.ts](../../scripts/lib/changed-packages.ts) and compares
+against the merge base with `origin/main`, or with a ref you pass. A changed `package.json` or a path
+the mapping does not recognize affects every package. CI still runs the full test suites and the
+jobs the summary lists, so a local pass does not promise a green CI run.
+
+While you iterate, run single checks:
 
 ```sh
 vp test run <files>
@@ -122,11 +147,14 @@ vp lint <files>
 vp run --filter <package> typecheck
 ```
 
-TypeScript workspaces typecheck with tsc-rs, which has Effect diagnostics built in.
-Keep `typescript`, `@effect/tsgo`, and the `effect-tsgo patch` prepare step: editors
-still use them for Effect quick fixes and refactors. Keep `@effect/tsgo` on the
-effect-tsgo version that tsc-rs ports (see the tsc-rs README), or the two disagree
-on rule names.
+In `apps/web`, a test that renders React or touches the DOM is named `*.browser.test.{ts,tsx}`
+and runs in headless Chromium with the React Compiler on, like the app. There is no jsdom; other
+`*.test.ts` files run in Node. Install the browser once with
+`node apps/web/node_modules/playwright/cli.js install --only-shell chromium`.
+
+TypeScript workspaces typecheck with `tsc`. The `typescript` catalog entry is
+`@tsc-rs/typescript`, the tsc-rs drop-in, with Effect diagnostics, quick fixes, and
+refactors built in. VS Code uses it through `js/ts.tsdk.path` in `.vscode/settings.json`.
 Marketing keeps `astro check` for Astro files.
 
 Use `vp run lint:mobile` for native mobile changes. CI owns the full suite; see
@@ -163,38 +191,42 @@ vp run dist:desktop:win
 ```
 
 DMGs default to the host architecture. Use `--arch` to choose another target and `--keep-stage`
-to retain packaging files for inspection. Run `vp run dist:desktop:artifact --help` for other
+to retain packaging files for inspection. `--without-codex-micro` leaves out the Codex Micro
+keyboard and its native HID library; the app then hides that settings section. Run `vp run dist:desktop:artifact --help` for other
 options.
 
 ### Linux AppImage prerequisites
 
 Build on Linux because the browser-secret helper links against the host's libsecret. Install
-Rust, C/C++ build tools, libsecret development headers, pkg-config, and ImageMagick.
+Rust, C/C++ build tools, libsecret, libusb, and libudev development headers, pkg-config, and
+ImageMagick.
 
 Ubuntu and Debian:
 
 ```sh
 sudo apt-get update
-sudo apt-get install cargo rustc build-essential libsecret-1-dev pkg-config imagemagick
+sudo apt-get install cargo rustc build-essential libsecret-1-dev libusb-1.0-0-dev libudev-dev pkg-config imagemagick
 ```
 
 Fedora:
 
 ```sh
-sudo dnf install rust cargo gcc gcc-c++ make libsecret-devel pkgconf-pkg-config ImageMagick
+sudo dnf install rust cargo gcc gcc-c++ make libsecret-devel libusb1-devel systemd-devel pkgconf-pkg-config ImageMagick
 ```
 
 Arch Linux:
 
 ```sh
-sudo pacman -S rust base-devel libsecret pkgconf imagemagick
+sudo pacman -S rust base-devel libsecret libusb systemd-libs pkgconf imagemagick
 ```
 
 The C toolchain, pkg-config, and libsecret headers are also needed for Linux desktop development.
 
 ### macOS DMG prerequisites
 
-Install the Xcode Command Line Tools with `xcode-select --install` and install Rust.
+Install Xcode 27 or newer and Rust. Select Xcode's developer directory with `xcode-select`.
+The full Xcode installation provides `actool`, which compiles the adaptive macOS app icon for
+release bundles and the local desktop launcher.
 For a cross-architecture or universal build, add the requested Rust targets:
 
 ```sh

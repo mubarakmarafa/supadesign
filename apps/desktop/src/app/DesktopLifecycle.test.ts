@@ -36,8 +36,8 @@ function layerElectronApp(
     systemLocale: Effect.succeed("en-US"),
     environmentMachineIcons: Effect.succeed({}),
     whenReady: Effect.void,
-    quit,
     requestSingleInstanceLock: Effect.succeed(true),
+    quit,
     exit: () => Effect.void,
     relaunch: () => Effect.void,
     setPath: () => Effect.void,
@@ -58,6 +58,9 @@ function layerElectronApp(
 
 const layerElectronTheme = Layer.succeed(ElectronTheme.ElectronTheme, {
   shouldUseDarkColors: Effect.succeed(false),
+  iconAppearance: Effect.succeed(""),
+  systemDarkMode: Effect.succeed(false),
+  prefersReducedMotion: Effect.succeed(false),
   setSource: () => Effect.void,
   onUpdated: () => Effect.void,
 });

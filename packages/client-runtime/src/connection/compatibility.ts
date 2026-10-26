@@ -9,8 +9,7 @@ import { ConnectionBlockedError } from "./model.ts";
 export function orchestrationProtocolCompatibilityError(
   descriptor: ExecutionEnvironmentDescriptor,
 ): ConnectionBlockedError | null {
-  // Servers shipped before negotiation use the original wire protocol.
-  const serverProtocolVersion = descriptor.orchestrationProtocolVersion ?? 1;
+  const serverProtocolVersion = descriptor.orchestrationProtocolVersion;
   if (serverProtocolVersion === ORCHESTRATION_PROTOCOL_VERSION) {
     return null;
   }
@@ -26,7 +25,6 @@ export function orchestrationProtocolCompatibilityError(
       });
 }
 
-/** Whether this client can drive the host's update remotely. */
 function canSelfUpdate(descriptor: ExecutionEnvironmentDescriptor): boolean {
   const { serverSelfUpdate, desktopAppUpdate } = descriptor.capabilities;
   return (

@@ -1,56 +1,19 @@
 # Brand icons
 
-The three shared Icon Composer projects are the source of truth for exported application icons:
+The app icon is the bolt computer from the marketing site's [studio](https://supaterm.com/studio), drawn head-on. Its shape, materials and lighting live in `apps/marketing/src/lib/boltComputer`, and each channel's phosphor colour is `ICON_PHOSPHORS` in `icon.ts`: yellow for Latest, magenta for Nightly and cyan for Development. Change the model there, then run `vp run icons:export` from the repository root.
 
-- `dev/app-icon.icon`
-- `nightly/app-icon.icon`
-- `prod/app-icon.icon`
+The export draws the computer in headless Chromium as three Icon Composer layers per channel (housing, screen and bezel) and writes the `app-icon.icon` projects under `prod`, `nightly` and `dev`. The appearance settings in `prod/app-icon.icon/icon.json` are the only hand-edited part of the projects; edit them in Icon Composer and the export copies them to the other channels. Do not edit the rendered layers or any other generated image directly.
 
-Each project uses `text.svg` for the Supaterm mark and `background.svg` for the artwork behind it. Additional layers use semantic names that describe their role and placement.
+The same command regenerates every tracked icon: macOS, iOS, Android, Linux, Windows, web, marketing, and the icons embedded in installer and store artwork. Run `vp run icons:check` to detect stale outputs without modifying files.
 
-Run `vp run icons:export` from the repository root to regenerate the tracked iOS, Linux, Windows, and web assets. The development web exports are also copied to `apps/web/public` for the browser favicon and splash screen. Run `vp run icons:check` to verify that the generated assets and public copies match their sources without changing files.
+The export also records a digest of its sources in `icon-inputs.sha256`: every file the icon module bundles, and `icon.json`. CI and `vp run check:changed` run `vp run icons:check-inputs`, which needs neither Xcode nor Chromium and fails when those sources have changed since the last export, so a studio change cannot leave the committed icons behind. Any edit to those files trips it, including comment-only edits; rerun the export and commit the result.
 
-Exporting requires Icon Composer 2 or newer on macOS. The script selects the newest compatible exporter from Xcode or a standalone Icon Composer installation and pins design generation 26. Set `ICON_COMPOSER_TOOL` to the full path of `Icon Composer.app/Contents/Executables/ictool` to override automatic discovery.
+Exporting requires macOS with full Xcode 27 or newer and Icon Composer 2 or newer. The script selects the newest compatible Icon Composer exporter and pins design generation 26. Set `ICON_COMPOSER_TOOL` to the full path of `Icon Composer.app/Contents/Executables/ictool` to override discovery. Native macOS rendering uses the selected Xcode's `actool` through `xcrun`. The script installs Playwright's Chromium on first use.
 
-## macOS exports
+## Platform appearances
 
-The desktop app's macOS icons are 1024×1024 PNGs with the classic macOS safe area: the opaque icon body is 824×824, inset 100 pixels on every side, with only the native shadow extending into the surrounding transparent canvas. macOS 26 and later re-mask this rendition to the system shape, but show a full-bleed icon inside a gray tile.
+macOS release packaging and the local desktop launcher compile the generated Icon Composer project into `Assets.car` and declare `CFBundleIconName`, so macOS can select native light, dark, and tinted appearances. The compiled `.icns` provides the fallback for older macOS versions. The export command also uses `actool` to render the static macOS PNGs with the native safe area and shadow, plus the renders the Dock's launch animation blends between: each brand's `*-macos-dark-512.png`, and `prod/black-macos-unlit-1024.png` and `prod/black-macos-unlit-dark-512.png` with every LED off, each the size of the icon it pairs with. It also writes where the bolt's LEDs land on the macOS icon to `apps/desktop/src/app/LaunchIconLeds.generated.ts`. Brands differ only in the bolt, so the unlit renders serve all of them. The dark renders bake in the project's dark specializations, because `actool` only renders the default appearance into PNGs.
 
-Since Icon Composer 27, both its command-line `macOS` export and the app's `macOS pre-Tahoe` preset are full bleed, so the export script leaves the tracked macOS PNGs unchanged and prints a reminder after every run. Render them with Xcode's asset compiler instead, which still builds the classic rendition. Run this from the repository root; `actool` needs an absolute input path, and `--standalone-icon-behavior all` is what adds the 1024px entry to the compiled `.icns`:
+iOS uses the generated layered projects for native appearances. Other surfaces use static default renditions.
 
-```bash
-variant=nightly png=nightly-macos-1024.png
-work=$(mktemp -d)
-xcrun actool "$PWD/assets/$variant/app-icon.icon" --compile "$work" --platform macosx \
-  --minimum-deployment-target 11.0 --app-icon app-icon --standalone-icon-behavior all \
-  --output-partial-info-plist "$work/partial.plist"
-iconutil -c iconset "$work/app-icon.icns" -o "$work/app-icon.iconset"
-cp "$work/app-icon.iconset/icon_512x512@2x.png" "assets/$variant/$png"
-```
-
-The variants and their PNGs are:
-
-- `dev` -> `blueprint-macos-1024.png`
-- `nightly` -> `nightly-macos-1024.png`
-- `prod` -> `black-macos-1024.png`
-
-Do not resize, composite, or otherwise post-process the rendered PNG, and do not edit the generated PNG or ICO files directly.
-
-## Android launcher and splash artwork
-
-Android masks the central 72dp of a 108dp adaptive canvas, and the Android 12+ splash screen masks
-the central two thirds of a 288dp canvas, so the Icon Composer exports cannot be used directly:
-their rounded-square silhouette gets framed again and the wordmark is cropped. The Android artwork
-is instead rendered from the same Icon Composer SVG sources by `vp run icons:export:android`:
-
-- `apps/mobile/assets/android-icon-foreground.png`: the shared transparent wordmark, sized to stay
-  inside the safe zone
-- `apps/mobile/assets/android-icon-background-*.png`: the variant's artwork layers, placed as in
-  its `icon.json` and fitted into the masked central two thirds over a full-bleed copy that fills
-  the parallax margin. Dev's `annotations.svg` follows the wordmark instead, so the wireframe boxes
-  stay around the letters.
-- `apps/mobile/assets/android-splash-icon-*.png`: the two layers composed into one 288dp image, so
-  the splash mask reproduces the launcher icon's framing.
-
-Rerun the export after changing a layer SVG or its position in `icon.json`. `android-icon-mark.png` remains a flat silhouette for
-Android's monochrome themed icon.
+Android uses the computer's screen alone: the LED matrix fills the canvas with the bolt lit in its middle, inside the 66dp safe circle on the 108dp adaptive canvas and the central 192dp circle on the 288dp splash canvas. Legacy launcher icons and Android in-app branding use the visible crop of the same image.

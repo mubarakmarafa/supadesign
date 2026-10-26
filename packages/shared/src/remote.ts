@@ -4,6 +4,7 @@ import {
   EnvironmentId,
   normalizeRelayServerUrl,
 } from "@supaterm/contracts";
+import { deriveWsBaseUrl, normalizeHttpBaseUrl } from "./advertisedEndpoint.ts";
 import { parseRelayAddress } from "./relay/protocol.ts";
 import { isLocalLoopbackHost, isPrivateNetworkHost, isTailnetHost } from "./hostClassification.ts";
 
@@ -118,32 +119,6 @@ const normalizeRemoteBaseUrl = (
   return url;
 };
 
-const toHttpBaseUrl = (url: URL): string => {
-  const next = new URL(url.toString());
-  if (next.protocol === "ws:") {
-    next.protocol = "http:";
-  } else if (next.protocol === "wss:") {
-    next.protocol = "https:";
-  }
-  next.pathname = "/";
-  next.search = "";
-  next.hash = "";
-  return next.toString();
-};
-
-const toWsBaseUrl = (url: URL): string => {
-  const next = new URL(url.toString());
-  if (next.protocol === "http:") {
-    next.protocol = "ws:";
-  } else if (next.protocol === "https:") {
-    next.protocol = "wss:";
-  }
-  next.pathname = "/";
-  next.search = "";
-  next.hash = "";
-  return next.toString();
-};
-
 export interface ResolvedRemotePairingTarget extends PairingRouteHints {
   readonly credential: string;
   readonly httpBaseUrl: string;
@@ -224,12 +199,7 @@ export interface HostedPairingRequest {
 
 export const getPairingTokenFromUrl = (url: URL): string | null => {
   const hashToken = readHashParams(url).get(PAIRING_TOKEN_PARAM)?.trim() ?? "";
-  if (hashToken.length > 0) {
-    return hashToken;
-  }
-
-  const searchToken = url.searchParams.get(PAIRING_TOKEN_PARAM)?.trim() ?? "";
-  return searchToken.length > 0 ? searchToken : null;
+  return hashToken.length > 0 ? hashToken : null;
 };
 
 export const stripPairingTokenFromUrl = (url: URL): URL => {
@@ -246,7 +216,6 @@ export const stripPairingTokenFromUrl = (url: URL): URL => {
     hashParams.delete(PAIRING_RELAY_PARAM);
     next.hash = hashParams.toString();
   }
-  next.searchParams.delete(PAIRING_TOKEN_PARAM);
   return next;
 };
 
@@ -256,7 +225,6 @@ export const setPairingTokenOnUrl = (
   hints: PairingRouteHints = {},
 ): URL => {
   const next = new URL(url.toString());
-  next.searchParams.delete(PAIRING_TOKEN_PARAM);
   next.hash = new URLSearchParams([[PAIRING_TOKEN_PARAM, credential]]).toString();
   const mainOrigin = new URL(next.searchParams.get(HOSTED_PAIRING_HOST_PARAM) ?? next.href).origin;
   if (
@@ -342,8 +310,8 @@ export const resolveRemotePairingTarget = (input: {
       );
       return {
         credential: hostedPairingRequest.token,
-        httpBaseUrl: toHttpBaseUrl(hostedBackendUrl),
-        wsBaseUrl: toWsBaseUrl(hostedBackendUrl),
+        httpBaseUrl: normalizeHttpBaseUrl(hostedBackendUrl.href),
+        wsBaseUrl: deriveWsBaseUrl(hostedBackendUrl.href),
         ...hints,
       };
     }
@@ -354,8 +322,8 @@ export const resolveRemotePairingTarget = (input: {
     }
     return {
       credential,
-      httpBaseUrl: toHttpBaseUrl(url),
-      wsBaseUrl: toWsBaseUrl(url),
+      httpBaseUrl: normalizeHttpBaseUrl(url.href),
+      wsBaseUrl: deriveWsBaseUrl(url.href),
       ...hints,
     };
   }
@@ -372,7 +340,7 @@ export const resolveRemotePairingTarget = (input: {
 
   return {
     credential: pairingCode,
-    httpBaseUrl: toHttpBaseUrl(normalizedHost),
-    wsBaseUrl: toWsBaseUrl(normalizedHost),
+    httpBaseUrl: normalizeHttpBaseUrl(normalizedHost.href),
+    wsBaseUrl: deriveWsBaseUrl(normalizedHost.href),
   };
 };

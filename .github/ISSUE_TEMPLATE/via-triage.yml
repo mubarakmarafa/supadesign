@@ -37,8 +37,8 @@ body:
     id: version
     attributes:
       label: Version
-      description: Installed Supaterm version or commit.
-      placeholder: 0.0.33
+      description: Version the bug happened on (not the `supaterm triage` CLI version), or unknown.
+      placeholder: 26.10.1
     validations:
       required: true
 

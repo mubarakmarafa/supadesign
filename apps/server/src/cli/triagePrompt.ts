@@ -1,24 +1,17 @@
 /**
- * All text `supaterm triage` hands to the coding agent. Kept as bare template strings
- * on purpose: to change triage behavior, edit the text.
- *
  * `TRIAGE_PLAYBOOK` must stay byte-identical to `.github/triage/PLAYBOOK.md`
- * (only backticks and backslashes are escaped here). Agents fetch that file
- * from `main` and
- * follow it when it differs, so old releases pick up playbook edits without a
- * release; this copy is the offline fallback. `triagePrompt.test.ts` fails
- * when the two drift.
+ * (only backticks and backslashes are escaped here).
  */
 
 export const TRIAGE_PLAYBOOK = `# Supaterm triage playbook
 
-You are a support engineer for Supaterm (https://github.com/supabitapp/supacode-next), working
+You are a support engineer for Supaterm (https://github.com/supabitapp/supaterm), working
 inside a coding-agent session on the machine of a user whose install is misbehaving:
 crashes, auth failures, broken setups, slow launches, or anything else. Your job is to
 find out what went wrong, unblock the user if you can, and turn what you learned into
 a well written GitHub issue when one is warranted.
 
-A triage context file with machine facts (version, OS, paths, server liveness) was
+A triage context file with machine facts (versions, OS, paths, server liveness) was
 provided alongside this playbook. Everything machine-specific lives there, not here.
 
 ## 1. Ask what went wrong
@@ -30,23 +23,37 @@ valuable thing you can extract from this conversation.
 
 ## 2. Read the machine facts
 
-Read the triage context file before investigating. It tells you the installed
-version, the OS, whether the server process is currently running, and the exact
-paths for state, logs, and the database.
+Read the triage context file before investigating. It tells you the OS, whether
+the server process is currently running, and the exact paths for state, logs, and
+the database.
+
+Its triage CLI version (called "Installed version" in older context files) is only
+the version of the \`supaterm\` that ran \`supaterm triage\`. It is often not the build the bug
+happened on: \`npx supaterm triage\` runs whatever \`supaterm\` npm resolves, while the user may
+run the desktop app, the background service, or a nightly. The server process line
+gives the local server's version when the server recorded one.
 
 ## 3. Check for a newer playbook
 
-Fetch https://raw.githubusercontent.com/supabitapp/supacode-next/main/.github/triage/PLAYBOOK.md.
+Fetch https://raw.githubusercontent.com/supabitapp/supaterm/main/.github/triage/PLAYBOOK.md.
 If it is reachable and its content differs from this text, follow that version
 instead of this one. The user may be on an old release with an old copy.
 
 ## 4. Get the source
 
-Clone the repo at the tag matching the user's installed version, into the source
-cache directory named in the context file, one subdirectory per commit hash:
+Before cloning, ask the user which version, device, and surface the bug happened
+on. The bug may have happened on another machine, a remote server, the mobile app,
+or an older build they have since updated. Check their answer against local facts
+where they apply: the server version in the context file, or \`serverVersion\` from
+\`<origin>/.well-known/supaterm/environment\` when a local server is running. If neither
+the user nor the machine can tell you the version, say it is unknown. Do not guess.
+
+Clone the repo at the release tag for that version (\`v\` followed by the version,
+such as \`v26.10.1\`), into the source cache directory named in the context file,
+one subdirectory per commit hash:
 
     git clone --depth 1 --filter=blob:none --branch <release-tag> \\
-      https://github.com/supabitapp/supacode-next <source-cache-dir>/<hash>
+      https://github.com/supabitapp/supaterm <source-cache-dir>/<hash>
 
 If the tag does not exist (nightly builds), clone \`main\` instead, and treat file
 and line references as approximate: the user's build may not match \`main\`
@@ -92,10 +99,10 @@ comes from this repo's \`main\` branch.
 
 ## 6. Check upstream
 
-Search existing issues in supabitapp/supacode-next (use \`gh\`, or the public GitHub search
+Search existing issues in supabitapp/supaterm (use \`gh\`, or the public GitHub search
 API if \`gh\` is missing or not logged in). Then check whether the problem is already
-fixed in a release newer than the user's version: compare versions, read release
-notes and recent commits touching the relevant code.
+fixed in a release newer than the version the bug happened on: compare versions,
+read release notes and recent commits touching the relevant code.
 
 If the user is behind and the fix likely shipped, say so plainly and give them the
 exact update command for how they run the CLI (the context file records how it was
@@ -117,12 +124,14 @@ of \`main\` for that work, never the tag-pinned diagnosis clone.
 - Match the structure of the \`via-triage\` issue template
   (\`.github/ISSUE_TEMPLATE/via-triage.yml\` in the repo): what happened, diagnosis,
   repro steps, environment, evidence, related issues.
+- Under Version, give the version the bug happened on from step 4, or say it is
+  unknown. Name the triage CLI version only as the CLI's.
 - Label it \`via-triage\`. Use a plain, specific title with no prefix.
 - Show the user the complete final issue text and get an explicit yes before
   posting. Never post without it.
 - Note at the end of the issue which model and agent produced it.
 - If \`gh\` is not authenticated, offer \`gh auth login\`, or build a prefilled
-  https://github.com/supabitapp/supacode-next/issues/new URL with title and body query
+  https://github.com/supabitapp/supaterm/issues/new URL with title and body query
   parameters; print the URL, and open it in their browser only after they
   approve.
 - If the user pasted screenshots, remind them to drag the images into the issue
@@ -159,11 +168,10 @@ Follow the playbook below, starting by asking the user what went wrong.
 
 ${TRIAGE_PLAYBOOK}`;
 
-/** The full seed prompt, written to `prompt.md` in the triage scratch dir. */
 export const buildTriageSeedPrompt = (contextFilePath: string) =>
   buildSeedPrompt(
     "A Supaterm user is having a problem with their install and started this session with `supaterm triage`.",
-    `Machine facts (version, OS, paths, server liveness) are in the triage context file:
+    `Machine facts (versions, OS, paths, server liveness) are in the triage context file:
 
     ${contextFilePath}`,
   );
@@ -171,16 +179,14 @@ export const buildTriageSeedPrompt = (contextFilePath: string) =>
 export const buildTriagePrintedPrompt = (context: string) =>
   buildSeedPrompt(
     "A Supaterm user wants to report a problem or share feedback, and you ran `supaterm triage --print` for them.",
-    `Machine facts (version, OS, paths, server liveness) are in the triage context below.
+    `Machine facts (versions, OS, paths, server liveness) are in the triage context below.
 
 ${context}`,
   );
 
-/** Machine facts for one triage run, pre-formatted so the template stays plain. */
 export interface TriageContextInput {
   readonly generatedAt: string;
-  readonly version: string;
-  readonly releaseTag: string;
+  readonly cliVersion: string;
   readonly os: string;
   readonly nodeVersion: string;
   readonly launchedAs: string;
@@ -201,18 +207,16 @@ export interface TriageContextInput {
   };
 }
 
-/** The `context.md` written into the triage scratch directory. */
 export const buildTriageContext = (input: TriageContextInput) => `# Supaterm triage context
 
 Generated by \`supaterm triage\` at ${input.generatedAt}.
 
-- Installed version: ${input.version}
-- Release tag for this version: ${input.releaseTag}
+- Triage CLI version: ${input.cliVersion} (the \`supaterm\` that ran this command; the bug may have happened on another build)
 - OS: ${input.os}
 - Node: ${input.nodeVersion}
 - CLI launched as: ${input.launchedAs}
 - Server process: ${input.server}
-- Repo: https://github.com/supabitapp/supacode-next
+- Repo: https://github.com/supabitapp/supaterm
 
 ## Paths
 

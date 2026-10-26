@@ -1,47 +1,38 @@
 import { useAtomValue } from "@effect/atom-react";
-import type {
-  EnvironmentId,
-  ServerProvider,
-  ServerProviderUsageWindow,
-  UsageProviderKind,
+import {
+  type EnvironmentId,
+  type ServerProvider,
+  type ServerProviderUsageWindow,
 } from "@supaterm/contracts";
 import {
-  elapsedShare,
   formatResetsIn,
   limitsNotice,
   paceOf,
+  paceRemainingPercent,
   remainingPercent,
 } from "@supaterm/shared/usageLimits";
 import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from "react";
 import { refreshUsageLimits } from "@supaterm/client-runtime/state/usage";
 import { Linking, Pressable, View } from "react-native";
 
-import { AppText as Text } from "../../components/AppText";
+import { AppText as Text } from "../../components/ui/AppText";
 import { ProviderIcon } from "../../components/ProviderIcon";
 import { environmentPresentations } from "../../state/presentation";
 import { serverEnvironment } from "../../state/server";
 
 import { useAtomCommand } from "../../state/use-atom-command";
-import { useProviderColors } from "./usageProviders";
+import { usageProviderKind, useProviderColors } from "./usageProviders";
 
 const PACE_LABEL = { ahead: "ahead of pace", on: "on pace", under: "under pace" } as const;
 
 type Driver = ServerProvider["driver"];
 
-/** The series colour the usage chart uses for this driver, so the two views read as one. */
 function useBarColor(driver: Driver): string | null {
   const colors = useProviderColors();
-  const kind: UsageProviderKind | null =
-    driver === "codex" ? "codex" : driver === "claudeAgent" ? "claude" : null;
+  const kind = usageProviderKind(driver);
   return kind ? colors[kind] : null;
 }
 
-/**
- * One window as a bar spanning its whole duration: the fill is quota left,
- * the hairline is how much of the window is left, so even spending keeps the
- * fill on the line. Pace sits under the left edge, the countdown under the
- * right, so a row reads in one glance.
- */
 function WindowRow(props: {
   readonly window: ServerProviderUsageWindow;
   readonly color: string | null;
@@ -49,10 +40,35 @@ function WindowRow(props: {
 }) {
   const { window, now } = props;
   const remaining = remainingPercent(window);
-  const elapsed = elapsedShare(window, now);
-  const timeLeft = elapsed === null ? null : Math.round((1 - elapsed) * 100);
+  const timeLeft = paceRemainingPercent(window, now);
   const pace = paceOf(window, now);
   const resetsIn = formatResetsIn(window, now);
+  const [barWidth, setBarWidth] = useState(0);
+  const tickX =
+    timeLeft === null || barWidth < 6
+      ? null
+      : Math.min(Math.max((barWidth * timeLeft) / 100, 3), barWidth - 3);
+  const bar = (
+    <View
+      className="h-1.5 flex-row overflow-hidden rounded-full bg-subtle"
+      style={barWidth > 0 ? { width: barWidth } : undefined}
+    >
+      <View
+        className={
+          remaining <= 10
+            ? "h-full rounded-full bg-red-500"
+            : remaining <= 30
+              ? "h-full rounded-full bg-amber-500"
+              : "h-full rounded-full bg-foreground"
+        }
+        style={[
+          { flex: remaining },
+          remaining > 30 && props.color ? { backgroundColor: props.color } : null,
+        ]}
+      />
+      <View style={{ flex: 100 - remaining }} />
+    </View>
+  );
   return (
     <View className="gap-1">
       <View className="flex-row items-baseline justify-between gap-3">
@@ -61,27 +77,35 @@ function WindowRow(props: {
           {remaining}% left
         </Text>
       </View>
-      <View className="h-3 justify-center">
-        <View className="h-1.5 flex-row overflow-hidden rounded-full bg-subtle">
+      <View
+        className="h-3 justify-center"
+        onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
+      >
+        {tickX === null ? (
+          bar
+        ) : (
+          <View className="h-1.5">
+            {/* Clip the same full-width bar so neither fill proportions nor corner radii change. */}
+            {(
+              [
+                [0, tickX - 3],
+                [tickX + 3, barWidth],
+              ] as const
+            ).map(([start, end]) => (
+              <View
+                key={start}
+                className="absolute top-0 bottom-0 overflow-hidden"
+                style={{ left: start, width: end - start }}
+              >
+                <View style={{ marginLeft: -start }}>{bar}</View>
+              </View>
+            ))}
+          </View>
+        )}
+        {tickX !== null ? (
           <View
-            className={
-              remaining <= 10
-                ? "h-full rounded-full bg-red-500"
-                : remaining <= 30
-                  ? "h-full rounded-full bg-amber-500"
-                  : "h-full rounded-full bg-foreground"
-            }
-            style={[
-              { flex: remaining },
-              remaining > 30 && props.color ? { backgroundColor: props.color } : null,
-            ]}
-          />
-          <View style={{ flex: 100 - remaining }} />
-        </View>
-        {timeLeft !== null ? (
-          <View
-            className="absolute top-0 bottom-0 w-px bg-foreground"
-            style={{ left: `${timeLeft}%`, opacity: 0.6 }}
+            className="absolute top-px bottom-px w-0.5 rounded-full bg-foreground"
+            style={{ left: tickX - 1 }}
           />
         ) : null}
       </View>
@@ -118,7 +142,6 @@ function AccountInstanceLabel({ value }: { readonly value: string }) {
   );
 }
 
-/** One account: icon, name and plan on a single line, then its windows. */
 export function AccountLimits(props: {
   readonly driver: Driver;
   readonly label: string;
@@ -127,9 +150,7 @@ export function AccountLimits(props: {
   readonly limits: ServerProvider["usageLimits"];
   readonly now: number;
   readonly first: boolean;
-  /** Tighter padding for the composer card. */
   readonly dense?: boolean;
-  /** Sits at the end of the heading row, such as a close control. */
   readonly trailing?: ReactNode;
   readonly footer?: ReactNode;
 }) {
@@ -183,14 +204,6 @@ export function AccountLimits(props: {
   );
 }
 
-/**
- * Re-probes every provider (and usage-limit source) on each connected
- * environment; the fresh snapshots then arrive over the config stream.
- * Countdowns and pace anchor to `now` rather than ticking, so a refresh also
- * re-anchors the clock: quota and elapsed time move together, or not at all.
- * Environments whose probe failed are named, since their rows keep showing
- * the previous quota with nothing else to say so.
- */
 export function useRefreshLimits(
   selectedEnvironmentIds: ReadonlySet<EnvironmentId> | null = null,
   active = false,
@@ -211,27 +224,23 @@ export function useRefreshLimits(
         presentation.connection.phase === "connected" &&
         (selectedEnvironmentIds === null || selectedEnvironmentIds.has(environmentId)),
     );
-    try {
-      await Promise.all(
-        connected.map(async ([environmentId, presentation]) => {
-          const result = await refreshUsageLimits(
-            environmentId,
-            () => refreshProviders({ environmentId, input: {} }),
-            automatic,
-            afterPending,
-          );
-          if (result === undefined) return;
-          setFailedEnvironments((previous) => [
-            ...previous.filter((failed) => failed.environmentId !== environmentId),
-            ...(result._tag === "Failure"
-              ? [{ environmentId, label: presentation.entry.target.label }]
-              : []),
-          ]);
-        }),
-      );
-    } finally {
-      setNow(Date.now());
-    }
+    await Promise.all(
+      connected.map(async ([environmentId, presentation]) => {
+        const result = await refreshUsageLimits(
+          environmentId,
+          () => refreshProviders({ environmentId, input: {} }),
+          automatic,
+          afterPending,
+        );
+        if (result === undefined) return;
+        setFailedEnvironments((previous) => [
+          ...previous.filter((failed) => failed.environmentId !== environmentId),
+          ...(result._tag === "Failure"
+            ? [{ environmentId, label: presentation.entry.target.label }]
+            : []),
+        ]);
+      }),
+    ).finally(() => setNow(Date.now()));
   };
   // Always toggles `refreshing`, even with nothing to probe: Android's
   // RefreshControl keeps its spinner up until it sees true then false.
@@ -239,12 +248,10 @@ export function useRefreshLimits(
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     setRefreshing(true);
-    try {
-      await refresh();
-    } finally {
+    await refresh().finally(() => {
       refreshingRef.current = false;
       setRefreshing(false);
-    }
+    });
   };
   const connectedLimitsEnvironments = [...presentations]
     .flatMap(([environmentId, presentation]) =>

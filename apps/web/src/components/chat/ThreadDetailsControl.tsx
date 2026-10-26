@@ -16,6 +16,8 @@ import {
   THREAD_DETAILS_PANEL_SPLIT_CHECKS_CLASS,
   THREAD_DETAILS_PANEL_ICON_ACTION_CLASS,
   THREAD_DETAILS_PANEL_CHEVRON_CLASS,
+  THREAD_DETAILS_PANEL_SELECT_LABEL_CLASS,
+  THREAD_DETAILS_PANEL_SELECT_ICON_CLASS,
 } from "./threadDetailsPanelStyles";
 import { ChevronDownIcon } from "lucide-react";
 
@@ -31,7 +33,6 @@ const parts = {
   icon: THREAD_DETAILS_PANEL_ICON_ACTION_CLASS,
 };
 
-/** Panel controls own their fixed density; toolbar controls use the standard Button variants. */
 export function ThreadDetailsControl({
   panel = true,
   part = "row",
@@ -41,6 +42,7 @@ export function ThreadDetailsControl({
   size = "default",
   variant = "default",
   render,
+  children,
   ...props
 }: ComponentProps<typeof Button> & {
   panel?: boolean;
@@ -66,6 +68,21 @@ export function ThreadDetailsControl({
         ),
       },
       props,
+      {
+        children:
+          part === "select" ? (
+            <>
+              <span data-slot="select-label" className={THREAD_DETAILS_PANEL_SELECT_LABEL_CLASS}>
+                {children}
+              </span>
+              <span data-slot="select-icon" className={THREAD_DETAILS_PANEL_SELECT_ICON_CLASS}>
+                <ChevronDownIcon className={THREAD_DETAILS_PANEL_CHEVRON_CLASS} />
+              </span>
+            </>
+          ) : (
+            children
+          ),
+      },
     ),
   });
   if (!panel) {
@@ -76,7 +93,9 @@ export function ThreadDetailsControl({
         size={multiline ? "sm-multiline" : size}
         variant={variant}
         className={className}
-      />
+      >
+        {children}
+      </Button>
     );
   }
   return control;

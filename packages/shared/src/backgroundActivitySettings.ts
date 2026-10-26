@@ -75,7 +75,7 @@ export function getBackgroundActivityBaseProfile(
   return backgroundActivity.profile;
 }
 
-export function resolveBackgroundActivitySettings(
+function resolveBackgroundActivitySettings(
   backgroundActivity: BackgroundActivitySettings,
 ): ResolvedBackgroundActivitySettings {
   const baseProfile = getBackgroundActivityBaseProfile(backgroundActivity);
@@ -195,60 +195,13 @@ export function normalizeBackgroundActivitySettings(
 }
 
 export function resolveServerBackgroundActivitySettings(
-  settings: ServerSettings,
+  settings: Pick<ServerSettings, "backgroundActivity">,
 ): ResolvedBackgroundActivitySettings {
-  const defaultBackgroundActivity: BackgroundActivitySettings = {
-    schemaVersion: 1,
-    profile: DEFAULT_BACKGROUND_ACTIVITY_PROFILE,
-    overrides: {},
-  };
-  const backgroundActivityIsDefault =
-    settings.backgroundActivity.profile === defaultBackgroundActivity.profile &&
-    settings.backgroundActivity.baseProfile === undefined &&
-    Object.keys(settings.backgroundActivity.overrides).length === 0;
-  const legacyProfile = settings.backgroundActivityProfile;
-  const hasLegacyOverrides =
-    legacyProfile !== DEFAULT_BACKGROUND_ACTIVITY_PROFILE ||
-    Duration.toMillis(settings.automaticGitFetchInterval) !==
-      Duration.toMillis(DEFAULT_AUTOMATIC_GIT_FETCH_INTERVAL) ||
-    Duration.toMillis(settings.providerHealthRefreshInterval) !==
-      Duration.toMillis(DEFAULT_PROVIDER_HEALTH_REFRESH_INTERVAL);
-  if (backgroundActivityIsDefault && hasLegacyOverrides) {
-    return resolveBackgroundActivitySettings({
-      schemaVersion: 1,
-      profile:
-        Duration.toMillis(settings.automaticGitFetchInterval) ===
-          Duration.toMillis(
-            getBackgroundActivityPresetSettings(legacyProfile).automaticGitFetchInterval,
-          ) &&
-        Duration.toMillis(settings.providerHealthRefreshInterval) ===
-          Duration.toMillis(
-            getBackgroundActivityPresetSettings(legacyProfile).providerHealthRefreshInterval,
-          )
-          ? legacyProfile
-          : "custom",
-      baseProfile: legacyProfile,
-      overrides: {
-        ...(Duration.toMillis(settings.automaticGitFetchInterval) !==
-        Duration.toMillis(
-          getBackgroundActivityPresetSettings(legacyProfile).automaticGitFetchInterval,
-        )
-          ? { automaticGitFetchInterval: settings.automaticGitFetchInterval }
-          : {}),
-        ...(Duration.toMillis(settings.providerHealthRefreshInterval) !==
-        Duration.toMillis(
-          getBackgroundActivityPresetSettings(legacyProfile).providerHealthRefreshInterval,
-        )
-          ? { providerHealthRefreshInterval: settings.providerHealthRefreshInterval }
-          : {}),
-      },
-    });
-  }
   return resolveBackgroundActivitySettings(settings.backgroundActivity);
 }
 
 export function normalizeServerBackgroundActivitySettings(
-  settings: ServerSettings,
+  settings: Pick<ServerSettings, "backgroundActivity">,
 ): BackgroundActivitySettings {
   const resolved = resolveServerBackgroundActivitySettings(settings);
   return normalizeBackgroundActivitySettings({

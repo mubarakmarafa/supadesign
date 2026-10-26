@@ -14,7 +14,7 @@ You can add more computers before continuing. **Add a computer** connects
 directly to a server on your network or tailnet.
 [Install the CLI](./install.md#command-line), start the server with `supaterm serve`,
 then run `supaterm pair --tailscale` and paste the pairing link. You can also run
-`supaterm serve --host <address>` and use `supaterm pair` when the server is already
+`supaterm serve --host <address>` and use `supaterm pair --no-relay` when the server is already
 reachable on your network.
 
 Saved computers are selected by default. Uncheck any you do not want to set up;
@@ -50,7 +50,8 @@ one group. Directories that are not git repositories sit under "Other folders".
 
 The default selection includes git repositories active within the last 30 days
 with at least three conversations. Use the checkboxes, or "Select all" and
-"Select none", to change the selection. Linked git worktrees, Codex scratch
+"Select none", to change the selection. Linked worktrees of bare repositories
+can be offered as separate projects. Other linked git worktrees, Codex scratch
 directories under `Documents/Codex`, and anything under `Downloads` are not
 offered.
 
@@ -66,10 +67,12 @@ It omits tool activity and attachments. For Codex, it omits generated setup
 context only when a canonical user event and a valid shared turn ID identify the
 same user turn. Ambiguous legacy or response-only context stays in the imported
 conversation so Supaterm does not remove user text. It reads one conversation at
-a time and skips files larger than 16 MiB. It ignores malformed records and skips
+a time and skips files larger than 4 GiB. It also skips a conversation when the
+message text and metadata it keeps need more than 32 MiB of memory. Tool output
+does not count toward that limit. It ignores malformed records and skips
 unreadable or unparseable conversations.
 
-Each import attempt reads up to 100 conversation files and 64 MiB per project,
+Each import attempt reads up to 100 conversation files and 4 GiB per project,
 with up to 100,000 input records. Run import again to continue a large batch.
 Completed conversations are not imported again. You can continue without the
 remaining history.

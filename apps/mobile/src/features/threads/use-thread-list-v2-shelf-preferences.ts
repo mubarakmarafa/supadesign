@@ -1,14 +1,10 @@
 import { useAtomSet, useAtomValue } from "@effect/atom-react";
+import { toggleCollapsedThreadGroup } from "@supaterm/client-runtime/state/thread-grouping";
 import { AsyncResult } from "effect/reactivity";
-import { useCallback, useLayoutEffect, useRef } from "react";
-
 import { mobilePreferencesAtom, updateMobilePreferencesAtom } from "../../state/preferences";
 
-/**
- * Shared persisted shelf state for the compact Home list and iPad sidebar.
- * Refs advance before persistence starts so consecutive presses always toggle
- * the latest value, even if React has not rendered the optimistic patch yet.
- */
+const NO_COLLAPSED_GROUPS: readonly string[] = [];
+
 export function useThreadListV2ShelfPreferences() {
   const preferencesResult = useAtomValue(mobilePreferencesAtom);
   const savePreferences = useAtomSet(updateMobilePreferencesAtom);
@@ -19,65 +15,75 @@ export function useThreadListV2ShelfPreferences() {
     !loaded || preferencesResult.value.threadListActiveShelfExpanded !== false;
   const snoozedShelfExpanded =
     loaded && preferencesResult.value.threadListSnoozedShelfExpanded === true;
-  const settledShelfExpanded =
-    loaded && preferencesResult.value.threadListSettledShelfExpanded === true;
+  const doneShelfExpanded = loaded && preferencesResult.value.threadListDoneShelfExpanded === true;
   const workingShelfExpanded =
     loaded && preferencesResult.value.threadListWorkingShelfExpanded === true;
-  const pinnedShelfExpandedRef = useRef(pinnedShelfExpanded);
-  const activeShelfExpandedRef = useRef(activeShelfExpanded);
-  const snoozedShelfExpandedRef = useRef(snoozedShelfExpanded);
-  const settledShelfExpandedRef = useRef(settledShelfExpanded);
-  const workingShelfExpandedRef = useRef(workingShelfExpanded);
-  useLayoutEffect(() => {
-    pinnedShelfExpandedRef.current = pinnedShelfExpanded;
-    activeShelfExpandedRef.current = activeShelfExpanded;
-    snoozedShelfExpandedRef.current = snoozedShelfExpanded;
-    settledShelfExpandedRef.current = settledShelfExpanded;
-    workingShelfExpandedRef.current = workingShelfExpanded;
-  });
-
-  const togglePinnedShelf = useCallback(() => {
+  const collapsedGroups =
+    (loaded ? preferencesResult.value.threadListCollapsedGroups : undefined) ?? NO_COLLAPSED_GROUPS;
+  const togglePinnedShelf = () => {
     if (!loaded) return;
-    const expanded = !pinnedShelfExpandedRef.current;
-    pinnedShelfExpandedRef.current = expanded;
-    savePreferences({ threadListPinnedShelfExpanded: expanded });
-  }, [loaded, savePreferences]);
-  const toggleActiveShelf = useCallback(() => {
+    savePreferences({
+      transform: (current) => ({
+        threadListPinnedShelfExpanded: current.threadListPinnedShelfExpanded === false,
+      }),
+    });
+  };
+  const toggleActiveShelf = () => {
     if (!loaded) return;
-    const expanded = !activeShelfExpandedRef.current;
-    activeShelfExpandedRef.current = expanded;
-    savePreferences({ threadListActiveShelfExpanded: expanded });
-  }, [loaded, savePreferences]);
-  const toggleSnoozedShelf = useCallback(() => {
+    savePreferences({
+      transform: (current) => ({
+        threadListActiveShelfExpanded: current.threadListActiveShelfExpanded === false,
+      }),
+    });
+  };
+  const toggleSnoozedShelf = () => {
     if (!loaded) return;
-    const expanded = !snoozedShelfExpandedRef.current;
-    snoozedShelfExpandedRef.current = expanded;
-    savePreferences({ threadListSnoozedShelfExpanded: expanded });
-  }, [loaded, savePreferences]);
-  const toggleSettledShelf = useCallback(() => {
+    savePreferences({
+      transform: (current) => ({
+        threadListSnoozedShelfExpanded: current.threadListSnoozedShelfExpanded !== true,
+      }),
+    });
+  };
+  const toggleDoneShelf = () => {
     if (!loaded) return;
-    const expanded = !settledShelfExpandedRef.current;
-    settledShelfExpandedRef.current = expanded;
-    savePreferences({ threadListSettledShelfExpanded: expanded });
-  }, [loaded, savePreferences]);
-  const toggleWorkingShelf = useCallback(() => {
+    savePreferences({
+      transform: (current) => ({
+        threadListDoneShelfExpanded: current.threadListDoneShelfExpanded !== true,
+      }),
+    });
+  };
+  const toggleWorkingShelf = () => {
     if (!loaded) return;
-    const expanded = !workingShelfExpandedRef.current;
-    workingShelfExpandedRef.current = expanded;
-    savePreferences({ threadListWorkingShelfExpanded: expanded });
-  }, [loaded, savePreferences]);
-
+    savePreferences({
+      transform: (current) => ({
+        threadListWorkingShelfExpanded: current.threadListWorkingShelfExpanded !== true,
+      }),
+    });
+  };
+  const toggleGroup = (key: string) => {
+    if (!loaded) return;
+    savePreferences({
+      transform: (current) => ({
+        threadListCollapsedGroups: toggleCollapsedThreadGroup(
+          current.threadListCollapsedGroups ?? NO_COLLAPSED_GROUPS,
+          key,
+        ),
+      }),
+    });
+  };
   return {
     loaded,
     pinnedShelfExpanded,
     activeShelfExpanded,
-    settledShelfExpanded,
+    doneShelfExpanded,
     snoozedShelfExpanded,
     workingShelfExpanded,
+    collapsedGroups,
     togglePinnedShelf,
     toggleActiveShelf,
-    toggleSettledShelf,
+    toggleDoneShelf,
     toggleSnoozedShelf,
     toggleWorkingShelf,
+    toggleGroup,
   } as const;
 }
