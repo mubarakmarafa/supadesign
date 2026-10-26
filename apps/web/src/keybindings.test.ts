@@ -998,7 +998,8 @@ describe("composer and pull request shortcuts", () => {
 
   for (const platform of ["MacIntel", "Win32", "Linux"]) {
     it.each([
-      ["d", "thread.mark-done"],
+      ["s", "thread.mark-done"],
+      ["d", "preview.designMode"],
       ["p", "thread.pin"],
     ])(`resolves the %s thread shortcut on ${platform}`, (key, command) => {
       assert.strictEqual(
@@ -1018,7 +1019,7 @@ describe("composer and pull request shortcuts", () => {
   }
 
   it.each(["MacIntel", "Win32", "Linux"])(
-    "keeps mark Done and vertical terminal split separate on %s",
+    "keeps design mode, mark Done, and vertical terminal split separate on %s",
     (platform) => {
       const input = event({
         key: "D",
@@ -1033,11 +1034,19 @@ describe("composer and pull request shortcuts", () => {
         }),
         "terminal.splitVertical",
       );
-      assert.isNull(
+      assert.strictEqual(
+        resolveShortcutCommand(input, DEFAULT_RESOLVED_KEYBINDINGS, {
+          platform,
+          context: { terminalFocus: false },
+        }),
+        "preview.designMode",
+      );
+      assert.strictEqual(
         resolveShortcutCommand({ ...input, key: "S" }, DEFAULT_RESOLVED_KEYBINDINGS, {
           platform,
           context: { terminalFocus: false },
         }),
+        "thread.mark-done",
       );
     },
   );

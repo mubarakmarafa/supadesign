@@ -110,6 +110,15 @@ function hasSameShortcutContext(left: KeybindingRule, right: KeybindingRule): bo
   return leftContext === rightContext;
 }
 
+/**
+ * Supadesign shipped before Supaterm renamed Settle to Done, so its keybindings
+ * files still name the old command. Read it as the new one; the file picks the
+ * new name up on the next write.
+ */
+function renamePreLaunchCommands(rawConfig: string) {
+  return rawConfig.replaceAll('"thread.settle"', '"thread.mark-done"');
+}
+
 function migrateMarkDoneKeybinding(rules: readonly KeybindingRule[]) {
   const commandRules = rules.filter((rule) => rule.command === "thread.mark-done");
   const [previous] = commandRules;
@@ -301,6 +310,7 @@ const make = Effect.gen(function* () {
   );
 
   const readRawConfig = fs.readFileString(keybindingsConfigPath).pipe(
+    Effect.map(renamePreLaunchCommands),
     Effect.mapError(
       (cause) =>
         new KeybindingsConfigError({

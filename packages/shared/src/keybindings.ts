@@ -236,7 +236,8 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+]", command: "thread.next" },
   { key: "mod+shift+c", command: "thread.copyReference", when: "!terminalFocus" },
   { key: "mod+alt+f", command: "thread.fork", when: "!terminalFocus" },
-  { key: "mod+shift+d", command: "thread.mark-done", when: "!terminalFocus" },
+  // Supadesign keeps Supaterm's earlier shortcut: mod+shift+d is design mode.
+  { key: "mod+shift+s", command: "thread.mark-done", when: "!terminalFocus" },
   { key: "mod+shift+p", command: "thread.pin", when: "!terminalFocus" },
   { key: "mod+z", command: "thread.undo", when: "!terminalFocus && !editableFocus" },
   ...PANE_FOCUS_KEYBINDING_COMMANDS.map((command, index) => ({
