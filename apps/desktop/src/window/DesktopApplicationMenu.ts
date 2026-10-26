@@ -106,8 +106,10 @@ const handleCheckForUpdatesMenuClick = Effect.gen(function* () {
     return;
   }
 
+  // The result dialogs need no main window. Opening one before the backend
+  // answers strands the renderer on a failed auth bootstrap.
   const desktopWindow = yield* DesktopWindow.DesktopWindow;
-  yield* desktopWindow.ensureMain;
+  yield* desktopWindow.activate;
   yield* checkForUpdatesFromMenu;
 }).pipe(Effect.withSpan("desktop.menu.handleCheckForUpdatesClick"));
 
@@ -144,8 +146,7 @@ export const make = Effect.gen(function* () {
     // Chromium already pastes as plain text for this chord, so the accelerator
     // needs nothing from the menu: the composer and the terminal each arm
     // themselves from the same keydown. Routing it through the renderer anyway
-    // lands a second, injected paste and doubles the text. Only a menu click,
-    // which produces no keystroke for them to see, needs that round trip.
+    // lands a second, injected paste and doubles the text.
     const pasteAsTextClick = (
       _item: Electron.MenuItem,
       _window: Electron.BaseWindow | undefined,
@@ -257,7 +258,36 @@ export const make = Effect.gen(function* () {
             visible: false,
             click: zoomClick("in"),
           },
+          ...(environment.platform === "darwin"
+            ? [
+                {
+                  label: "Zoom In",
+                  accelerator: "CmdOrCtrl+Shift+=",
+                  visible: false,
+                  click: zoomClick("in"),
+                },
+              ]
+            : []),
           { label: "Zoom Out", accelerator: "CmdOrCtrl+-", click: zoomClick("out") },
+
+          {
+            label: "Actual Size",
+            accelerator: "CmdOrCtrl+num0",
+            visible: false,
+            click: zoomClick("reset"),
+          },
+          {
+            label: "Zoom In",
+            accelerator: "CmdOrCtrl+numadd",
+            visible: false,
+            click: zoomClick("in"),
+          },
+          {
+            label: "Zoom Out",
+            accelerator: "CmdOrCtrl+numsub",
+            visible: false,
+            click: zoomClick("out"),
+          },
           { type: "separator" },
           { role: "togglefullscreen" },
         ],

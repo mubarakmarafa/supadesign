@@ -11,12 +11,10 @@ export type SubagentRowTone = "working" | "completed" | "failed" | "stopped";
 
 export interface SubagentRowPresentation {
   readonly title: string;
-  /** Live agents lead with progress; settled ones lead with what came out. */
   readonly detail: string | null;
   readonly statusLabel: string;
   readonly tone: SubagentRowTone;
   readonly live: boolean;
-  /** Provider-native tasks have no thread of their own to open. */
   readonly canOpenThread: boolean;
 }
 
@@ -26,7 +24,7 @@ function rowTitle(subagent: Pick<OrchestrationV2Subagent, "title" | "prompt">): 
   const prompt = subagent.prompt.trim();
   if (prompt.length === 0) return "Subagent";
   return prompt.length > PROMPT_TITLE_LIMIT
-    ? `${prompt.slice(0, PROMPT_TITLE_LIMIT - 3)}...`
+    ? `${prompt.slice(0, PROMPT_TITLE_LIMIT - 1).trimEnd()}…`
     : prompt;
 }
 

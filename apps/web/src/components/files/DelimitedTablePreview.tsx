@@ -1,19 +1,14 @@
 import { parseDelimitedPreview } from "@supaterm/shared/delimitedPreview";
 import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
-import { useMemo } from "react";
 
 import { FileSurfaceNotice } from "./fileSurfaceChrome";
 
-/** A bounded, readable table for CSV and TSV text; the source view keeps every byte. */
 export function DelimitedTablePreview(props: {
   readonly name: string;
   readonly text: string;
   readonly delimiter: "," | "\t";
 }) {
-  const table = useMemo(
-    () => parseDelimitedPreview(props.text, props.delimiter),
-    [props.text, props.delimiter],
-  );
+  const table = parseDelimitedPreview(props.text, props.delimiter);
   const [header, ...body] = table.rows;
   return (
     <div className="flex min-h-0 flex-1 flex-col">

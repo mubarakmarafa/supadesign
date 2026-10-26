@@ -1,4 +1,3 @@
-import { EnvironmentId } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const mocks = vi.hoisted(() => {
@@ -38,13 +37,18 @@ const mocks = vi.hoisted(() => {
       closeAsync: vi.fn(() => Promise.resolve()),
       execAsync: vi.fn(() => Promise.resolve()),
       withExclusiveTransactionAsync: vi.fn(
-        (run: (transaction: { execAsync: () => Promise<void> }) => Promise<void>) =>
-          run({ execAsync: () => Promise.resolve() }),
+        (
+          run: (transaction: {
+            execAsync: () => Promise<void>;
+            getFirstAsync: () => Promise<{ readonly user_version: number }>;
+          }) => Promise<void>,
+        ) =>
+          run({
+            execAsync: () => Promise.resolve(),
+            getFirstAsync: () => Promise.resolve({ user_version: 0 }),
+          }),
       ),
-      getFirstAsync: vi.fn((sql: string) => {
-        if (sql.includes("PRAGMA user_version")) {
-          return Promise.resolve({ user_version: 1 });
-        }
+      getFirstAsync: vi.fn(() => {
         if (loadPreferencesFails) {
           return Promise.reject(new Error("database unavailable"));
         }
@@ -70,6 +74,10 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock("expo", () => ({
+  requireOptionalNativeModule: () => null,
+}));
+
 vi.mock("expo-secure-store", () => ({
   deleteItemAsync: mocks.deleteItemAsync,
   getItemAsync: mocks.getItemAsync,
@@ -89,134 +97,43 @@ vi.mock("expo-constants", () => ({
 }));
 
 vi.mock("react-native", () => ({
+  AppState: { currentState: "active" },
   Platform: {
     OS: "ios",
   },
 }));
 
-import {
-  loadPreferences,
-  loadSavedConnections,
-  saveConnection,
-  savePreferencesPatch,
-} from "../persistence/imperative";
+import { loadPreferences, savePreferencesPatch } from "../persistence/imperative";
 
-const bearerConnection = {
-  environmentId: EnvironmentId.make("environment-1"),
-  environmentLabel: "Desktop",
-  pairingUrl: "https://desktop.example/",
-  displayUrl: "https://desktop.example/",
-  httpBaseUrl: "https://desktop.example/",
-  wsBaseUrl: "wss://desktop.example/",
-  bearerToken: "bearer-token",
-} as const;
-
-describe("mobile connection storage", () => {
+describe("mobile storage", () => {
   beforeEach(() => {
     mocks.clear();
     vi.clearAllMocks();
   });
 
-  it("round-trips bearer connections", async () => {
-    await saveConnection(bearerConnection);
-
-    await expect(loadSavedConnections()).resolves.toEqual([bearerConnection]);
-  });
-
-  it("skips stored connections that have no bearer token", async () => {
-    await mocks.setItemAsync(
-      "supaterm.connections",
-      JSON.stringify({
-        connections: [
-          { ...bearerConnection, environmentId: "environment-2", bearerToken: null },
-          bearerConnection,
-        ],
-      }),
-    );
-
-    await expect(loadSavedConnections()).resolves.toEqual([bearerConnection]);
-  });
-
-  it("preserves secure-storage read failures with operation and key context", async () => {
-    const cause = new Error("keychain unavailable");
-    mocks.getItemAsync.mockRejectedValueOnce(cause);
-
-    await expect(loadSavedConnections()).rejects.toMatchObject({
-      _tag: "MobileSecureStorageError",
-      operation: "read",
-      key: "supaterm.connections",
-      cause,
-      message: "Mobile secure storage operation read failed for key supaterm.connections.",
-    });
-  });
-
-  it("logs structured decode failures before using the empty fallback", async () => {
-    await mocks.setItemAsync("supaterm.connections", "{");
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-    await expect(loadSavedConnections()).resolves.toEqual([]);
-    expect(warn).toHaveBeenCalledWith(
-      "[mobile-storage] ignored invalid JSON",
-      expect.objectContaining({
-        _tag: "MobileStorageDecodeError",
-        key: "supaterm.connections",
-        cause: expect.any(SyntaxError),
-        message: "Failed to decode mobile storage value for key supaterm.connections.",
-      }),
-    );
-
-    warn.mockRestore();
-  });
-
-  it("loads legacy preferences when SQLite is unavailable", async () => {
-    mocks.setDatabaseFailures(true, true);
-    await mocks.setItemAsync("supaterm.preferences", JSON.stringify({ baseFontSize: 17 }));
-
-    await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 17 });
-  });
-
   it("persists independent light and dark theme choices", async () => {
     mocks.setPreferencesJson(
       JSON.stringify({
-        themeId: "grove",
-        lightThemeId: "iris",
-        darkThemeId: "ocean",
+        lightThemeId: "catppuccin-latte",
+        darkThemeId: "nord",
         themeMode: "system",
       }),
       10,
     );
 
     await expect(loadPreferences()).resolves.toEqual({
-      themeId: "grove",
-      lightThemeId: "iris",
-      darkThemeId: "ocean",
+      lightThemeId: "catppuccin-latte",
+      darkThemeId: "nord",
       themeMode: "system",
     });
   });
 
   it("persists Material You independently for each appearance", async () => {
-    const themes = { lightThemeId: "material-you", darkThemeId: "ocean" } as const;
+    const themes = { lightThemeId: "material-you", darkThemeId: "nord" } as const;
     await savePreferencesPatch(themes);
     await expect(loadPreferences()).resolves.toEqual(themes);
-    await savePreferencesPatch({ lightThemeId: "supaterm-chat" });
-    await expect(loadPreferences()).resolves.toEqual({ ...themes, lightThemeId: "supaterm-chat" });
-  });
-
-  it.each([true, false])("drops the removed Android layout preference (%s)", async (enabled) => {
-    mocks.setPreferencesJson(
-      JSON.stringify({
-        materialYouStyleLayoutEnabled: enabled,
-        lightThemeId: "supaterm-chat",
-      }),
-      10,
-    );
-    await expect(loadPreferences()).resolves.toEqual({ lightThemeId: "supaterm-chat" });
-  });
-
-  it("drops the removed theme transition preference", async () => {
-    mocks.setPreferencesJson(JSON.stringify({ themeTransition: "circle-bottom-left" }), 10);
-
-    await expect(loadPreferences()).resolves.toEqual({});
+    await savePreferencesPatch({ lightThemeId: "one-light" });
+    await expect(loadPreferences()).resolves.toEqual({ ...themes, lightThemeId: "one-light" });
   });
 
   it("falls back to secure storage when SQLite cannot save preferences", async () => {
@@ -230,70 +147,36 @@ describe("mobile connection storage", () => {
     expect(fallback.updatedAt).toEqual(expect.any(Number));
   });
 
-  it("persists thread list shelf preferences", async () => {
-    await expect(
-      savePreferencesPatch({
-        threadListSettledShelfExpanded: false,
-        threadListSnoozedShelfExpanded: true,
-        threadListWorkingShelfExpanded: true,
-      }),
-    ).resolves.toEqual({
-      threadListSettledShelfExpanded: false,
-      threadListSnoozedShelfExpanded: true,
-      threadListWorkingShelfExpanded: true,
-    });
-
-    await expect(loadPreferences()).resolves.toEqual({
-      threadListSettledShelfExpanded: false,
-      threadListSnoozedShelfExpanded: true,
-      threadListWorkingShelfExpanded: true,
-    });
-    expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({
-      threadListSettledShelfExpanded: false,
-      threadListSnoozedShelfExpanded: true,
-      threadListWorkingShelfExpanded: true,
-    });
+  it.each(["status", "project"] as const)("persists %s thread grouping", async (threadGrouping) => {
+    await savePreferencesPatch({ threadGrouping });
+    await expect(loadPreferences()).resolves.toEqual({ threadGrouping });
   });
 
-  it("drops legacy and invalid thread list shelf expansion preferences", async () => {
+  it("drops invalid thread grouping without discarding other preferences", async () => {
+    mocks.setPreferencesJson(JSON.stringify({ threadGrouping: "unknown", baseFontSize: 17 }), 10);
+    await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 17 });
+  });
+
+  it("persists collapsed thread list groups and drops non-string keys", async () => {
+    await savePreferencesPatch({ threadListCollapsedGroups: ["project:a", "project:b"] });
+    await expect(loadPreferences()).resolves.toEqual({
+      threadListCollapsedGroups: ["project:a", "project:b"],
+    });
+    mocks.setPreferencesJson(JSON.stringify({ threadListCollapsedGroups: ["project:a", 1] }), 10);
+    await expect(loadPreferences()).resolves.toEqual({ threadListCollapsedGroups: ["project:a"] });
+  });
+
+  it("drops invalid thread list shelf expansion preferences", async () => {
     mocks.setPreferencesJson(
       JSON.stringify({
         baseFontSize: 17,
-        threadListV2SettledShelfExpanded: true,
-        threadListV2SnoozedShelfExpanded: true,
-        threadListSettledShelfExpanded: "false",
+        threadListDoneShelfExpanded: "false",
         threadListSnoozedShelfExpanded: 1,
       }),
       10,
     );
 
     await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 17 });
-  });
-
-  it("keeps valid list filters and drops malformed ones", async () => {
-    const threadListFilters = { environmentId: "environment-1", projectKey: null };
-    const pullRequestListFilters = {
-      environmentId: null,
-      controls: {
-        "": {
-          state: "all",
-          involvement: "reviewing",
-          filters: { labels: [["size:S"]] },
-          sort: "oldest",
-        },
-      },
-    };
-    mocks.setPreferencesJson(JSON.stringify({ threadListFilters, pullRequestListFilters }), 10);
-    await expect(loadPreferences()).resolves.toEqual({ threadListFilters, pullRequestListFilters });
-
-    mocks.setPreferencesJson(
-      JSON.stringify({
-        threadListFilters: { environmentId: 1, projectKey: null },
-        pullRequestListFilters: { environmentId: null, controls: { "": { sort: "newest" } } },
-      }),
-      11,
-    );
-    await expect(loadPreferences()).resolves.toEqual({});
   });
 
   it("reconciles fallback preferences after SQLite recovers", async () => {
@@ -324,28 +207,5 @@ describe("mobile connection storage", () => {
     await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 21 });
     expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({ baseFontSize: 21 });
     expect(mocks.getStoredValue("supaterm.preferences.fallback")).toBeNull();
-  });
-
-  it("ignores an invalid fallback even when it has a newer timestamp", async () => {
-    mocks.setPreferencesJson(JSON.stringify({ baseFontSize: 21 }), 30);
-    await mocks.setItemAsync(
-      "supaterm.preferences.fallback",
-      JSON.stringify({ payload: "{", updatedAt: 40 }),
-    );
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-    await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 21 });
-    expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({ baseFontSize: 21 });
-    expect(mocks.getStoredValue("supaterm.preferences.fallback")).toBeNull();
-
-    warn.mockRestore();
-  });
-
-  it("keeps SQLite authoritative when stale legacy preferences remain", async () => {
-    mocks.setPreferencesJson(JSON.stringify({ baseFontSize: 21 }), 30);
-    await mocks.setItemAsync("supaterm.preferences", JSON.stringify({ baseFontSize: 19 }));
-
-    await expect(loadPreferences()).resolves.toEqual({ baseFontSize: 21 });
-    expect(JSON.parse(mocks.getPreferencesJson() ?? "")).toEqual({ baseFontSize: 21 });
   });
 });

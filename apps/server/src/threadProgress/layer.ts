@@ -152,7 +152,7 @@ export const make = Effect.gen(function* () {
       return target === null ? Effect.void : fs.remove(target).pipe(Effect.ignore);
     },
 
-    newId: crypto.randomUUIDv4.pipe(Effect.orDie),
+    newId: crypto.randomUUIDv4().pipe(Effect.orDie),
     nowMs: Clock.currentTimeMillis,
 
     load: fs.readFileString(progressPath).pipe(

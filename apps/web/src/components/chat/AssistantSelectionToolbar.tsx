@@ -5,13 +5,14 @@ import {
   type ScopedThreadRef,
 } from "@supaterm/contracts";
 import { QuoteIcon } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   captureAssistantTextSelection,
   type AssistantCitationSourceAnchor,
 } from "~/lib/assistantTextSelection";
 import {
+  isSelectionRectVisible,
   observeSelectionActions,
   resolveSelectionActionPosition,
   type SelectionActionPoint,
@@ -38,13 +39,10 @@ export function AssistantSelectionToolbar({
   const actionsRef = useRef<ReturnType<typeof observeSelectionActions> | null>(null);
   const presence = usePresence(selection);
   const presenceRef = presence.props.ref;
-  const setToolbar = useCallback(
-    (node: HTMLButtonElement | null) => {
-      toolbarRef.current = node;
-      presenceRef(node);
-    },
-    [presenceRef],
-  );
+  const setToolbar = (node: HTMLButtonElement | null) => {
+    toolbarRef.current = node;
+    presenceRef(node);
+  };
   const shown = presence.value !== null;
 
   useLayoutEffect(() => {
@@ -83,7 +81,53 @@ export function AssistantSelectionToolbar({
       }
       const rect = captured.range.getBoundingClientRect();
       const viewportRect = viewport.getBoundingClientRect();
-      if (rect.bottom < viewportRect.top || rect.top > viewportRect.bottom || rect.width === 0) {
+      if (!isSelectionRectVisible(rect, [viewportRect])) {
+        clear();
+        return;
+      }
+      // A selection can cross blocks with different clipping ancestors.
+      const common = captured.range.commonAncestorContainer;
+      const walker = document.createTreeWalker(common, NodeFilter.SHOW_TEXT);
+      let node = common.nodeType === Node.TEXT_NODE ? common : walker.nextNode();
+      let visible = false;
+      for (; node && !visible; node = walker.nextNode()) {
+        if (!captured.range.intersectsNode(node)) continue;
+        if (node.parentElement && getComputedStyle(node.parentElement).userSelect === "none")
+          continue;
+        const fragment = document.createRange();
+        fragment.selectNodeContents(node);
+        if (node === captured.range.startContainer) {
+          fragment.setStart(node, captured.range.startOffset);
+        }
+        if (node === captured.range.endContainer) {
+          fragment.setEnd(node, captured.range.endOffset);
+        }
+        if (!fragment.toString().trim()) continue;
+        const lines = Array.from(fragment.getClientRects());
+        if (!lines.some((line) => isSelectionRectVisible(line, [viewportRect]))) continue;
+        const clips: Pick<DOMRect, "left" | "right" | "top" | "bottom">[] = [viewportRect];
+        for (
+          let element = node.parentElement;
+          element && element !== viewport;
+          element = element.parentElement
+        ) {
+          const style = getComputedStyle(element);
+          const clipX = style.overflowX !== "visible";
+          const clipY = style.overflowY !== "visible";
+          if (!clipX && !clipY) continue;
+          const bounds = element.getBoundingClientRect();
+          const left = bounds.left + element.clientLeft;
+          const top = bounds.top + element.clientTop;
+          clips.push({
+            left: clipX ? left : -Infinity,
+            right: clipX ? left + element.clientWidth : Infinity,
+            top: clipY ? top : -Infinity,
+            bottom: clipY ? top + element.clientHeight : Infinity,
+          });
+        }
+        visible = lines.some((line) => isSelectionRectVisible(line, clips));
+      }
+      if (!visible) {
         clear();
         return;
       }
@@ -116,6 +160,7 @@ export function AssistantSelectionToolbar({
     const actions = observeSelectionActions({
       element: viewport,
       getActionElement: () => toolbarRef.current,
+      restoreAfterScroll: true,
       onSelection: update,
       onDismiss: clear,
     });
@@ -171,7 +216,7 @@ export function AssistantSelectionToolbar({
       variant="glass"
       disabled={tooLong}
       inert={presence.exiting}
-      aria-label={tooLong ? "Selection is too long to cite" : "Cite selection in composer"}
+      aria-label={tooLong ? "Selection is too long to annotate" : "Add annotation in composer"}
       className="fixed z-50 max-w-[calc(100vw-1rem)] origin-top-left"
       style={{ left: shownSelection.position.x, top: shownSelection.position.y }}
       onPointerDown={(event) => event.preventDefault()}
@@ -185,7 +230,7 @@ export function AssistantSelectionToolbar({
       }}
     >
       <QuoteIcon aria-hidden="true" className="size-3.5" />
-      {tooLong ? "Shorten selection" : "Cite"}
+      {tooLong ? "Shorten selection" : "Add annotation"}
     </Button>,
     document.body,
   );

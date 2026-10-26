@@ -1,21 +1,6 @@
 // @effect-diagnostics nodeBuiltinImport:off - publish commits and rollbacks
 // move exact directory entries with rename, which the FileSystem service does
 // not expose atomically.
-/**
- * `supaterm theme` - inspect and set the environment's theme. Connected web and
- * desktop clients switch when it is set; mobile keeps its own appearance
- * settings. Each client applies one set once, so a theme the user picks in
- * Settings afterwards sticks until the next `supaterm theme set`.
- *
- * Writes `defaultTheme` (and `defaultThemeSetAt`, so a re-set of the same
- * value still acts) into the environment's `settings.json`. A running server
- * watches that file and pushes the change, so this works before the first
- * launch and on a live server alike.
- *
- * The edit is deliberately a minimal one on the parsed JSON object rather than
- * a schema round-trip. Settings files outlive the build that reads them, and a
- * provisioning command must not drop keys this version does not recognise.
- */
 import * as NodeFS from "node:fs";
 
 import {
@@ -49,8 +34,6 @@ const isEnvironmentThemeId = Schema.is(EnvironmentThemeId);
 
 export class ThemeFileUnreadableError extends Schema.TaggedError<ThemeFileUnreadableError>()(
   "ThemeFileUnreadableError",
-  // Optional: a path that never existed has no underlying failure to carry,
-  // and a manufactured string there would only look like a real one.
   { filePath: Schema.String, cause: Schema.optional(Schema.Defect()) },
 ) {
   override get message(): string {
@@ -115,7 +98,6 @@ export class ThemeIdInvalidError extends Schema.TaggedError<ThemeIdInvalidError>
   }
 }
 
-/** A filename that cannot be a theme id, where --id is the way out. */
 export class ThemeFileIdInvalidError extends Schema.TaggedError<ThemeFileIdInvalidError>()(
   "ThemeFileIdInvalidError",
   { themeId: Schema.String, filePath: Schema.String },
@@ -153,8 +135,6 @@ const writeDefaultTheme = Effect.fnUntraced(function* (input: {
   });
 });
 
-/** Publishes a theme file into the environment's themes directory and returns
- * the id it published under. */
 const publishThemeFile = Effect.fn(function* (input: {
   readonly themesDir: string;
   readonly filePath: string;
@@ -162,8 +142,6 @@ const publishThemeFile = Effect.fn(function* (input: {
 }) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  // A preflight for error quality only: it tells a FIFO from an oversized
-  // file. Enforcement happens at the guarded read below.
   const info = yield* fs
     .stat(input.filePath)
     .pipe(
@@ -179,12 +157,6 @@ const publishThemeFile = Effect.fn(function* (input: {
     });
   }
 
-  // An explicit source path is the user's own input, and a symlink there is a
-  // normal way to point at a theme (desktop hooks symlink the current
-  // palette), so it is resolved before the guarded read. The read still goes
-  // through one opened handle whose type and size checks bind to the file
-  // actually read, so a FIFO cannot hang the command and an oversized target
-  // is refused.
   const resolvedSource = yield* fs
     .realPath(input.filePath)
     .pipe(
@@ -224,19 +196,16 @@ const publishThemeFile = Effect.fn(function* (input: {
   const publishFailure = (cause: unknown) =>
     new ThemePublishError({ themesDir: input.themesDir, cause });
 
-  // Staged in full before anything moves, so the commit below is two adjacent
-  // renames with no I/O between them. The staging entry is created O_EXCL
-  // after clearing any stale leftover, so a symlink or file already at that
-  // predictable name is never followed or written through. Written verbatim:
-  // appending so much as a newline could push a file at the size limit past
-  // it and have the watcher skip what was just accepted.
+  // The staging entry is created O_EXCL after clearing any stale leftover, so a
+  // symlink or file already at that predictable name is never followed or
+  // written through. Written verbatim: appending so much as a newline could
+  // push a file at the size limit past it and have the watcher skip what was
+  // just accepted.
   const stagedIno = yield* Effect.try({
     try: () => {
       try {
         NodeFS.unlinkSync(stagingPath);
-      } catch {
-        // Nothing stale to clear.
-      }
+      } catch {}
       const fd = NodeFS.openSync(
         stagingPath,
         NodeFS.constants.O_WRONLY | NodeFS.constants.O_CREAT | NodeFS.constants.O_EXCL,
@@ -244,8 +213,6 @@ const publishThemeFile = Effect.fn(function* (input: {
       );
       try {
         NodeFS.writeFileSync(fd, raw);
-        // Rename preserves the inode, so this identifies our published file
-        // at the destination for as long as it is actually ours.
         return NodeFS.fstatSync(fd).ino;
       } finally {
         NodeFS.closeSync(fd);
@@ -257,9 +224,7 @@ const publishThemeFile = Effect.fn(function* (input: {
   // Whatever occupies the destination -- a theme, a symlink, anything -- is
   // moved aside in one atomic step rather than inspected and then replaced:
   // there is no window between a check and the commit, and rollback restores
-  // that exact directory entry instead of a re-read of it. Only "nothing
-  // there" continues; any other rename failure aborts before the destination
-  // is touched.
+  // that exact directory entry instead of a re-read of it.
   const hadPrevious = yield* Effect.try({
     try: () => {
       try {
@@ -276,9 +241,7 @@ const publishThemeFile = Effect.fn(function* (input: {
   const revert = Effect.sync(() => {
     try {
       NodeFS.unlinkSync(stagingPath);
-    } catch {
-      // Usually already renamed away; a stray staging file is watcher-inert.
-    }
+    } catch {}
     try {
       // The destination is touched only while it is empty or still holds
       // the exact file this process put there; a concurrent publisher's
@@ -299,16 +262,12 @@ const publishThemeFile = Effect.fn(function* (input: {
       } else if (destinationIno === stagedIno) {
         NodeFS.unlinkSync(destinationPath);
       }
-    } catch {
-      // Best effort; the failure that triggered the revert still surfaces.
-    }
+    } catch {}
   });
   const cleanup = Effect.sync(() => {
     try {
       if (hadPrevious) NodeFS.unlinkSync(backupPath);
-    } catch {
-      // A stray backup is inert: it is not `.json`, so nothing serves it.
-    }
+    } catch {}
   });
 
   yield* Effect.try({
@@ -320,11 +279,9 @@ const publishThemeFile = Effect.fn(function* (input: {
 });
 
 /**
- * Ids a client can actually resolve: this build's built-ins plus what the
- * machine publishes, read through the same function the watcher uses so a file
- * it would skip can never be accepted here. The mobile default is absent on
- * purpose -- web and desktop cannot resolve it and mobile does not follow this
- * setting, so naming it would be the silent no-op this check exists to stop.
+ * The mobile default is absent on purpose -- web and desktop cannot resolve it
+ * and mobile does not follow this setting, so naming it would be the silent
+ * no-op this check exists to stop.
  */
 const resolvableThemeIds = Effect.fn(function* (themesDir: string) {
   const published = yield* readPublishedThemes(themesDir);
@@ -353,10 +310,6 @@ const themeSetCommand = Command.make("set", {
       }
       const paths = yield* resolveThemePaths(flags.baseDir);
 
-      // An existing file publishes; anything path-shaped that does not exist
-      // is a mistake to surface, not an id to store; everything else must be
-      // a well-formed id, so a typo cannot be written as a theme no client
-      // will ever resolve.
       // Path-shaped first, existence second. Deciding on existence alone would
       // make `supaterm theme set ocean` publish ./ocean whenever the cwd happens to
       // hold a file by that name, instead of selecting the built-in.
@@ -371,9 +324,6 @@ const themeSetCommand = Command.make("set", {
       let revertPublish: Effect.Effect<void> = Effect.void;
       let cleanupPublish: Effect.Effect<void> = Effect.void;
       if (targetIsFile) {
-        // Settings are preflighted before publishing, so a settings file the
-        // set step cannot read or parse fails the command before it mutates
-        // the themes directory.
         yield* readSettingsObject(paths.settingsPath);
         const published = yield* publishThemeFile({
           themesDir: paths.themesDir,
@@ -395,9 +345,6 @@ const themeSetCommand = Command.make("set", {
         return yield* new ThemeIdInvalidError({ themeId: target });
       }
 
-      // set means set: if the default cannot be written, the publish that
-      // rode along with it is undone rather than left as a side effect of a
-      // command that reported failure.
       yield* writeDefaultTheme({ settingsPath: paths.settingsPath, themeId }).pipe(
         Effect.onError(() => revertPublish),
       );

@@ -1,13 +1,5 @@
 import { InfoIcon } from "lucide-react";
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { animationsSettled } from "~/lib/motion";
 import { cn } from "~/lib/utils";
@@ -20,7 +12,10 @@ export interface ComposerBannerStackItem {
   readonly id: string;
   readonly variant: ComposerBannerVariant;
   readonly priority?: "urgent" | "activity" | "notice";
+  readonly alwaysVisible?: boolean;
   readonly icon: ReactNode;
+  /** The icon holds a control, so it stays in the accessibility tree. */
+  readonly iconInteractive?: boolean;
   readonly title: ReactNode;
   readonly description?: ReactNode;
   readonly children?: ReactNode;
@@ -31,7 +26,7 @@ export interface ComposerBannerStackItem {
 
 export type ComposerBannerStackContent = Pick<
   ComposerBannerStackItem,
-  "id" | "variant" | "priority"
+  "id" | "variant" | "priority" | "alwaysVisible"
 > & { readonly content: ReactNode };
 
 type ComposerBannerStackEntry = ComposerBannerStackItem | ComposerBannerStackContent;
@@ -57,6 +52,9 @@ interface StackSlot {
 
 // The activity row trades places with the strip outside the stack, so it never animates.
 const animates = (item: ComposerBannerStackEntry) => item.priority !== "activity";
+
+const staysVisible = (item: ComposerBannerStackEntry) =>
+  item.priority === "activity" || item.alwaysVisible === true;
 
 function arrangeSlots(slots: ReadonlyArray<StackSlot>) {
   const ordered = slots.toSorted((a, b) => bannerPriority(a.item) - bannerPriority(b.item));
@@ -138,10 +136,7 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
   if (presentDismissedIds.length !== dismissedIds.size) {
     setDismissedIds(new Set(presentDismissedIds));
   }
-  const live = useMemo(
-    () => (dismissedIds.size === 0 ? items : items.filter((item) => !dismissedIds.has(item.id))),
-    [dismissedIds, items],
-  );
+  const live = dismissedIds.size === 0 ? items : items.filter((item) => !dismissedIds.has(item.id));
   const liveKey = live.map((item) => item.id).join("\n");
   const [stack, setStack] = useState<{
     readonly liveKey: string;
@@ -160,8 +155,8 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
   });
   const exitingKey = slots.flatMap((slot) => (slot.exiting ? [slot.item.id] : [])).join("\n");
   const { front, stacked } = arrangeSlots(slots);
-  const stackedActivity = stacked.filter((slot) => slot.item.priority === "activity");
-  const stackedNotices = stacked.filter((slot) => slot.item.priority !== "activity");
+  const stackedVisible = stacked.filter((slot) => staysVisible(slot.item));
+  const stackedNotices = stacked.filter((slot) => !staysVisible(slot.item));
   const hasStack = stackedNotices.length > 0;
 
   useEffect(() => {
@@ -226,6 +221,7 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
       {hasStack ? (
         <div
           ref={noticesRef}
+          data-composer-banner-stack="true"
           data-chat-composer-collapsed-controls="true"
           className={cn("relative z-20 min-h-3", stackExpanded && "z-50")}
           onPointerEnter={(event) => {
@@ -285,7 +281,7 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
               stackExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
             )}
           >
-            <div className="min-h-0 overflow-hidden">
+            <div className="min-h-0 overflow-y-clip">
               <div
                 className={cn(
                   "space-y-2 pb-2 transition-[opacity,translate,visibility] duration-150 ease-out motion-reduce:transition-none",
@@ -308,9 +304,9 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
           </div>
         </div>
       ) : null}
-      {stackedActivity.length > 0 ? (
+      {stackedVisible.length > 0 ? (
         <div className="relative z-20 space-y-2 pb-2" data-chat-composer-collapsed-controls="true">
-          {stackedActivity.map((slot) => (
+          {stackedVisible.map((slot) => (
             <div key={slot.item.id} {...slotProps(slot)} className={presenceClassName}>
               <ComposerBannerStackAlert
                 slot={slot}
@@ -352,32 +348,38 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
   );
 }
 
-/** Keep full descriptions reachable only when their inline copy is clipped. */
-function NoticeDescription({ children }: { children: ReactNode }) {
-  const descriptionRef = useRef<HTMLSpanElement>(null);
+function NoticeText({
+  children,
+  className,
+  detailsLabel,
+}: {
+  readonly children: ReactNode;
+  readonly className: string;
+  readonly detailsLabel: string;
+}) {
+  const textRef = useRef<HTMLSpanElement>(null);
   const detailsRef = useRef<HTMLButtonElement>(null);
   const [showDetails, setShowDetails] = useState(false);
 
   useLayoutEffect(() => {
-    const description = descriptionRef.current;
-    if (!description) return;
+    const text = textRef.current;
+    if (!text) return;
     const measure = () => {
       // Ignore the space taken by the details button itself so it cannot
-      // sustain its own overflow after the description would otherwise fit.
+      // sustain its own overflow after the text would otherwise fit.
       const recoveredWidth = detailsRef.current ? detailsRef.current.offsetWidth + 4 : 0;
-      const hidden = getComputedStyle(description).position === "absolute";
+      const hidden = getComputedStyle(text).position === "absolute";
       setShowDetails(
         hidden ||
-          [description, ...description.querySelectorAll("*")].some(
+          [text, ...text.querySelectorAll("*")].some(
             (element) => element.scrollWidth > element.clientWidth + recoveredWidth,
           ),
       );
     };
     measure();
-    const stopObserving = observeResize(description, measure);
-    // A child can reveal new text without resizing its clipped box.
+    const stopObserving = observeResize(text, measure);
     const mutations = new MutationObserver(measure);
-    mutations.observe(description, { childList: true, subtree: true, characterData: true });
+    mutations.observe(text, { childList: true, subtree: true, characterData: true });
     return () => {
       stopObserving();
       mutations.disconnect();
@@ -386,10 +388,7 @@ function NoticeDescription({ children }: { children: ReactNode }) {
 
   return (
     <span className="contents">
-      <span
-        ref={descriptionRef}
-        className="w-0 min-w-0 grow truncate text-muted-foreground @max-[400px]:sr-only"
-      >
+      <span ref={textRef} className={className}>
         {children}
       </span>
       {showDetails ? (
@@ -401,7 +400,7 @@ function NoticeDescription({ children }: { children: ReactNode }) {
                 ref={detailsRef}
                 size="icon-xs"
                 variant="ghost-muted"
-                aria-label="Show notice details"
+                aria-label={detailsLabel}
                 className="flex-none"
               />
             }
@@ -457,13 +456,28 @@ function ComposerBannerStackAlert({
       density="comfortable"
       {...presence}
     >
-      <ComposerBanner.Row layout="wrap-actions">
-        <ComposerBanner.Icon className="h-(--composer-banner-icon-column) self-start">
+      <ComposerBanner.Row layout={item.priority === "activity" ? "inline" : "wrap-actions"}>
+        <ComposerBanner.Icon
+          className="h-(--composer-banner-icon-column) self-start"
+          aria-hidden={item.iconInteractive ? undefined : true}
+        >
           {item.icon}
         </ComposerBanner.Icon>
         <ComposerBanner.Content className="whitespace-nowrap">
-          <span className="min-w-0 truncate font-medium leading-7 sm:leading-6">{item.title}</span>
-          {item.description ? <NoticeDescription>{item.description}</NoticeDescription> : null}
+          <NoticeText
+            detailsLabel="Show title details"
+            className="min-w-0 truncate font-medium leading-7 sm:leading-6"
+          >
+            {item.title}
+          </NoticeText>
+          {item.description ? (
+            <NoticeText
+              detailsLabel="Show notice details"
+              className="w-0 min-w-0 grow truncate text-muted-foreground @max-[400px]:sr-only"
+            >
+              {item.description}
+            </NoticeText>
+          ) : null}
         </ComposerBanner.Content>
         {item.actions || item.onDismiss ? (
           <ComposerBanner.Actions>

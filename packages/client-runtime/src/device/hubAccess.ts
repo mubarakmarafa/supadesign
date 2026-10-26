@@ -1,12 +1,9 @@
 /** Credentials for media requests that cannot set bearer headers. */
 export interface DeviceHubAccess {
-  /** Absolute environment URL ending in `/api/device-hub`. */
   readonly httpBase: string;
-  /** Same base with the `ws(s)` scheme. */
   readonly wsBase: string;
   /** Empty for cookie sessions; includes a short-lived ticket for bearer sessions. */
   readonly query: Readonly<Record<string, string>>;
-  /** Whether requests must include session cookies. */
   readonly credentials: boolean;
 }
 

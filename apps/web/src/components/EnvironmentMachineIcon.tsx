@@ -41,7 +41,6 @@ function NativeMachineIcon({ source, ...props }: SVGProps<SVGSVGElement> & { sou
   );
 }
 
-/** A Mac mini: squat rounded slab with a front-edge LED. */
 function MacMiniIcon(props: SVGProps<SVGSVGElement>) {
   if (nativeMachineIcons["mac-mini"]) {
     return <NativeMachineIcon source={nativeMachineIcons["mac-mini"]} {...props} />;
@@ -54,7 +53,6 @@ function MacMiniIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** A Mac Studio: the same slab twice as tall, ports along the front foot. */
 function MacStudioIcon(props: SVGProps<SVGSVGElement>) {
   if (nativeMachineIcons["mac-studio"]) {
     return <NativeMachineIcon source={nativeMachineIcons["mac-studio"]} {...props} />;

@@ -9,6 +9,47 @@
       "icon": "configure",
       "runOnWorktreeCreate": true,
       "async": false
+    },
+    {
+      "name": "Clean Worktree",
+      "command": "node scripts/clean-worktree.ts",
+      "icon": "build",
+      "runOnDone": true
+    },
+    {
+      "name": "Start Development",
+      "command": "vp run dev",
+      "icon": "play"
+    },
+    {
+      "name": "Start Desktop Development",
+      "command": "vp run dev:desktop",
+      "icon": "play"
+    },
+    {
+      "name": "Start Mobile Development",
+      "command": "vp run --filter @supaterm/mobile dev:client",
+      "icon": "play"
+    },
+    {
+      "name": "Run Test Suite",
+      "command": "vp run test",
+      "icon": "test"
+    },
+    {
+      "name": "Lint",
+      "command": "vp run lint",
+      "icon": "lint"
+    },
+    {
+      "name": "Typecheck",
+      "command": "vp run typecheck",
+      "icon": "configure"
+    },
+    {
+      "name": "Build",
+      "command": "vp run build",
+      "icon": "build"
     }
   ]
 }

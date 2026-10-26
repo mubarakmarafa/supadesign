@@ -3,28 +3,23 @@
  *
  * Every server keeps its own `settings.json`, but some keys are user
  * preferences that only live on the server because the server has to act on
- * them (auto-settlement runs with no client attached). A user does not want
+ * them (automatic completion runs with no client attached). A user does not want
  * those to differ per machine. Clients write these keys to every shared-settings
  * sync target, and warn when another target still holds a different value so
  * the user can push their current value out.
  */
-import type {
-  EnvironmentId,
-  ExecutionEnvironmentCapabilities,
-  ServerSettings,
-  ServerSettingsPatch,
-} from "@supaterm/contracts";
+import type { EnvironmentId, ServerSettings, ServerSettingsPatch } from "@supaterm/contracts";
 import { isModelSelectionProviderEnabled } from "@supaterm/shared/serverSettings";
 import * as Equal from "effect/Equal";
 import * as Struct from "effect/Struct";
 
 import type { EnvironmentConnectionPhase } from "../connection/presentation.ts";
 
-/** Server keys that hold a user preference rather than machine config. */
 const SHARED_SERVER_SETTING_KEYS = [
   "continueThreadsAfterServerUpdate",
-  "sidebarAutoSettleAfterDays",
-  "sidebarAutoSettleOnMerge",
+  "sidebarAutoMarkDoneAfterDays",
+  "sidebarAutoMarkDoneOnMerge",
+  "sidebarAutoMarkDoneKeepPullRequests",
   "autoResumeLimitedThreads",
   "snoozeLimitedThreads",
   "newWorktreesStartFromOrigin",
@@ -36,7 +31,6 @@ export type SharedServerSettingKey = (typeof SHARED_SERVER_SETTING_KEYS)[number]
 
 const SHARED_KEY_SET = new Set<string>(SHARED_SERVER_SETTING_KEYS);
 
-/** Split a server patch into the keys every environment should receive and the primary-only rest. */
 export function splitSharedServerPatch(patch: ServerSettingsPatch): {
   sharedPatch: ServerSettingsPatch;
   localPatch: ServerSettingsPatch;
@@ -56,10 +50,8 @@ export function splitSharedServerPatch(patch: ServerSettingsPatch): {
   };
 }
 
-/** Filter unsupported preferences; direct model writes retain the server's fallback behavior. */
 export function filterSharedServerPatch(
   patch: ServerSettingsPatch,
-  capabilities: Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation"> | undefined,
   settings?: ServerSettings,
   sourceSettings = settings,
   targetIsSource = false,
@@ -81,39 +73,19 @@ export function filterSharedServerPatch(
   ) {
     patch = Struct.omit(patch, ["textGenerationModelSelection"]);
   }
-  return capabilities?.threadRestartContinuation === true
-    ? patch
-    : Struct.omit(patch, ["continueThreadsAfterServerUpdate"]);
+  return patch;
 }
 
-/** The shared subset supported by one environment. */
-export function pickSharedServerSettings(
-  settings: ServerSettings,
-  capabilities?: Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation">,
-): ServerSettingsPatch {
-  return filterSharedServerPatch(
-    Struct.pick(settings, SHARED_SERVER_SETTING_KEYS),
-    capabilities,
-    settings,
-  );
+export function pickSharedServerSettings(settings: ServerSettings): ServerSettingsPatch {
+  return filterSharedServerPatch(Struct.pick(settings, SHARED_SERVER_SETTING_KEYS), settings);
 }
 
-/**
- * Whether an environment can participate in shared-settings sync right now.
- * Auto-settlement establishes baseline support; newer preferences are filtered separately.
- */
+/** Whether an environment can participate in shared-settings sync right now. */
 export function supportsSharedSettingsSync(environment: {
   readonly connection: { readonly phase: EnvironmentConnectionPhase };
-  readonly serverConfig: {
-    readonly environment: {
-      readonly capabilities: Pick<ExecutionEnvironmentCapabilities, "threadAutoSettlement">;
-    };
-  } | null;
+  readonly serverConfig: unknown;
 }): boolean {
-  return (
-    environment.connection.phase === "connected" &&
-    environment.serverConfig?.environment.capabilities.threadAutoSettlement === true
-  );
+  return environment.connection.phase === "connected" && environment.serverConfig != null;
 }
 
 export interface SharedSettingsEnvironment {
@@ -121,15 +93,12 @@ export interface SharedSettingsEnvironment {
   readonly label: string;
   readonly syncEligible: boolean;
   readonly settings: ServerSettings | null;
-  readonly capabilities?:
-    | Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation">
-    | undefined;
 }
 
 /**
  * Shared-settings sync targets whose values differ from the primary
  * environment's. Other environments are skipped: nothing can be read from or
- * written to them, or their server lacks baseline shared-settings support. With no
+ * written to them. With no
  * primary settings loaded there is nothing to compare against, so nothing is
  * reported. Callers must pass the real loaded settings, never a default
  * fallback, or "apply to all" would push defaults over real values.
@@ -137,18 +106,12 @@ export interface SharedSettingsEnvironment {
 export function findSharedSettingsMismatches(input: {
   readonly primaryEnvironmentId: EnvironmentId | null;
   readonly primarySettings: ServerSettings | null;
-  readonly primaryCapabilities?:
-    | Pick<ExecutionEnvironmentCapabilities, "threadRestartContinuation">
-    | undefined;
   readonly environments: ReadonlyArray<SharedSettingsEnvironment>;
 }): ReadonlyArray<{ readonly environmentId: EnvironmentId; readonly label: string }> {
   if (input.primaryEnvironmentId === null || input.primarySettings === null) {
     return [];
   }
-  const primarySettings = pickSharedServerSettings(
-    input.primarySettings,
-    input.primaryCapabilities,
-  );
+  const primarySettings = pickSharedServerSettings(input.primarySettings);
   return input.environments.flatMap((environment) => {
     if (
       environment.environmentId === input.primaryEnvironmentId ||
@@ -159,13 +122,11 @@ export function findSharedSettingsMismatches(input: {
     }
     const expected = filterSharedServerPatch(
       primarySettings,
-      environment.capabilities,
       environment.settings,
       input.primarySettings ?? undefined,
     );
     let actual = filterSharedServerPatch(
-      pickSharedServerSettings(environment.settings, environment.capabilities),
-      input.primaryCapabilities,
+      pickSharedServerSettings(environment.settings),
       environment.settings,
     );
     if (!expected.textGenerationModelSelection) {

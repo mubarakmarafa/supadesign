@@ -4,10 +4,8 @@ import { useAtomSet } from "@effect/atom-react";
 import {
   createContext,
   createElement,
-  useCallback,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type PropsWithChildren,
@@ -15,6 +13,8 @@ import {
   type SetStateAction,
 } from "react";
 
+import { useMobileThreadGrouping } from "../../state/thread-grouping";
+import type { SidebarThreadGrouping } from "@supaterm/contracts";
 import type { ThreadListFilters } from "../../persistence/mobile-preferences";
 import { updateMobilePreferencesAtom } from "../../state/preferences";
 import type { HomeProjectSortOrder } from "./homeThreadList";
@@ -26,6 +26,7 @@ export interface HomeListOptions {
 }
 
 export interface ResolvedHomeListOptions extends HomeListOptions {
+  readonly threadGrouping: SidebarThreadGrouping;
   readonly projectGroupingMode: SidebarProjectGroupingMode;
 }
 
@@ -48,10 +49,6 @@ interface HomeListOptionsContextValue {
 
 const HomeListOptionsContext = createContext<HomeListOptionsContextValue | null>(null);
 
-/**
- * Keeps list preferences stable while the app moves between compact and split shells.
- * Filters start from the saved preference, and changes are saved for the next launch.
- */
 export function HomeListOptionsProvider({
   children,
   projectGroupingMode,
@@ -73,15 +70,13 @@ export function HomeListOptionsProvider({
     saved.current = { environmentId, projectKey };
     savePreferences({ threadListFilters: saved.current });
   }, [environmentId, projectKey, savePreferences]);
-  const value = useMemo(
-    () => ({ options, setOptions, projectGroupingMode }),
-    [options, projectGroupingMode],
-  );
+  const value = { options, setOptions, projectGroupingMode };
   return createElement(HomeListOptionsContext, { value }, children);
 }
 
 export function useHomeListOptions(availableEnvironmentIds: ReadonlySet<EnvironmentId>) {
   const shared = useContext(HomeListOptionsContext);
+  const { grouping: threadGrouping, setGrouping: setThreadGrouping } = useMobileThreadGrouping();
   const [localOptions, setLocalOptions] = useState<HomeListOptions>(defaultHomeListOptions);
   const options = shared?.options ?? localOptions;
   const setOptions = shared?.setOptions ?? setLocalOptions;
@@ -96,31 +91,24 @@ export function useHomeListOptions(availableEnvironmentIds: ReadonlySet<Environm
       : { ...options, selectedEnvironmentId };
   const resolvedOptions: ResolvedHomeListOptions = {
     ...availableOptions,
+    threadGrouping,
     projectGroupingMode: shared?.projectGroupingMode ?? "repository",
   };
 
-  const setSelectedEnvironmentId = useCallback(
-    (value: EnvironmentId | null) => {
-      setOptions((current) => ({ ...current, selectedEnvironmentId: value }));
-    },
-    [setOptions],
-  );
-  const setSelectedProjectKey = useCallback(
-    (value: string | null) => {
-      setOptions((current) => ({ ...current, selectedProjectKey: value }));
-    },
-    [setOptions],
-  );
-  const setProjectSortOrder = useCallback(
-    (value: HomeProjectSortOrder) => {
-      setOptions((current) => ({ ...current, projectSortOrder: value }));
-    },
-    [setOptions],
-  );
+  const setSelectedEnvironmentId = (value: EnvironmentId | null) => {
+    setOptions((current) => ({ ...current, selectedEnvironmentId: value }));
+  };
+  const setSelectedProjectKey = (value: string | null) => {
+    setOptions((current) => ({ ...current, selectedProjectKey: value }));
+  };
+  const setProjectSortOrder = (value: HomeProjectSortOrder) => {
+    setOptions((current) => ({ ...current, projectSortOrder: value }));
+  };
   return {
     options: resolvedOptions,
     setSelectedEnvironmentId,
     setSelectedProjectKey,
     setProjectSortOrder,
+    setThreadGrouping,
   } as const;
 }

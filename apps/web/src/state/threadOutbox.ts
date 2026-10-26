@@ -9,19 +9,17 @@ import {
 } from "@supaterm/client-runtime/state/attachments";
 import {
   CommandId,
-  MessageId,
   ChatAttachment,
   AttachmentCreateUploadUrlInput,
   type EnvironmentId,
   type ScopedThreadRef,
 } from "@supaterm/contracts";
 import { remapComposerContextAttachments } from "@supaterm/shared/composerContextReferences";
-import { serializeLegacyContextMessage } from "@supaterm/shared/composerContextLegacySend";
 import { resolveDefaultWorktreeBaseBranch } from "@supaterm/shared/git";
 import { resolveAssetUrl } from "@supaterm/client-runtime/state/assets";
 import * as Schema from "effect/Schema";
 import { Atom } from "effect/reactivity";
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import {
@@ -31,7 +29,6 @@ import {
   restoreFailedBackgroundDraftThread,
   useComposerDraftStore,
 } from "../composerDraftStore";
-import { readFileAsDataUrl } from "../lib/imageCompression";
 import { attachmentEnvironment } from "./attachments";
 import { environmentPresentations } from "./presentation";
 import { environmentShell } from "./shell";
@@ -190,7 +187,6 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
       };
       await savePayload(payload);
     }
-    const supportsUploads = config.environment.capabilities.attachmentUploads === true;
     for (let index = 0; index < payload.localAttachments.length; index++) {
       let attachment = payload.localAttachments[index]!;
       if (attachment.uploaded) {
@@ -207,7 +203,6 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
         payload.localAttachments[index] = attachment;
         await savePayload(payload);
       }
-      if (!supportsUploads) continue;
       if (attachment.type === "file") {
         const step = resolveThreadOutboxDispatchStep({
           deliveryAction: "send",
@@ -226,28 +221,11 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
     const attachments =
       local.length === 0
         ? payload.input.message.attachments
-        : await Promise.all(
-            local.map(async (attachment) => {
-              if (attachment.uploaded) return attachment.uploaded;
-              if (attachment.type !== "image")
-                throw new Error("This server does not support file attachments.");
-              if (attachment.bytes === null)
-                throw new Error(`Attach '${attachment.name}' again before sending.`);
-              return {
-                type: "image" as const,
-                id: attachment.id,
-                name: attachment.name,
-                mimeType: attachment.mimeType,
-                sizeBytes: attachment.sizeBytes,
-                dataUrl: await readFileAsDataUrl(
-                  new File([attachment.bytes], attachment.name, { type: attachment.mimeType }),
-                ),
-                ...(attachment.source && !("_tag" in attachment.source)
-                  ? { source: attachment.source }
-                  : {}),
-              };
-            }),
-          );
+        : local.map((attachment) => {
+            if (!attachment.uploaded)
+              throw new Error(`Attach '${attachment.name}' again before sending.`);
+            return attachment.uploaded;
+          });
     const context =
       local.length === 0
         ? payload.input.message.context
@@ -298,48 +276,17 @@ export const webThreadOutbox = createBrowserThreadOutbox<OutboxTurn>({
         });
       }
     }
-    const liveConfig = appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId);
-    if (!liveConfig) throw new Error("Environment is not connected.");
-    const supportsContext = liveConfig.environment.capabilities.inlineMessageContext === true;
+    if (!appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId))
+      throw new Error("Environment is not connected.");
     const { context: _, ...message } = payload.input.message;
-    if (payload.compactBeforeSend && payload.compactAccepted !== true) {
-      // Both IDs survive reconnects and retries, so acknowledgement loss cannot compact twice.
-      await command(directThreadEnvironment.startTurn, {
-        ...target,
-        input: {
-          commandId: CommandId.make(`${payload.input.commandId}:compact`),
-          threadId: payload.input.threadId,
-          message: {
-            messageId: MessageId.make(`${payload.input.message.messageId}:compact`),
-            role: "user",
-            text: "/compact",
-            attachments: [],
-          },
-          ...(payload.input.modelSelection ? { modelSelection: payload.input.modelSelection } : {}),
-          runtimeMode: payload.input.runtimeMode,
-          interactionMode: payload.input.interactionMode,
-          dispatchMode: "queue",
-        },
-      });
-      // Once the compact command is acknowledged, a failed prompt retry must not compact again.
-      // If its acknowledgement was lost, this save never happens and the stable command ID
-      // replays the original compact receipt on reconnect.
-      payload = { ...payload, compactAccepted: true };
-      await savePayload(payload);
-    }
     await command(directThreadEnvironment.startTurn, {
       ...target,
       input: {
         ...payload.input,
-        ...(payload.compactBeforeSend ? { dispatchMode: "queue" as const } : {}),
         message: {
           ...message,
           attachments,
-          text:
-            context && !supportsContext
-              ? serializeLegacyContextMessage({ text: message.text, records: context.records })
-              : message.text,
-          ...(context && supportsContext ? { context } : {}),
+          ...(context ? { context } : {}),
         },
       },
     });
@@ -359,7 +306,6 @@ function prepareThreadOutboxTurn(target: {
   readonly branch?: string;
   readonly draftId?: DraftId;
   readonly background?: boolean;
-  readonly compactBeforeSend?: boolean;
 }) {
   const commandId = target.input.commandId ?? CommandId.make(randomUUID());
   const payload = decodeTurn({
@@ -367,7 +313,6 @@ function prepareThreadOutboxTurn(target: {
     input: { ...target.input, commandId },
     localAttachments: target.localAttachments ?? [],
     ...(target.pendingWorktree ? { pendingWorktree: target.pendingWorktree } : {}),
-    ...(target.compactBeforeSend ? { compactBeforeSend: true } : {}),
     ...(target.branch === undefined ? {} : { branch: target.branch }),
     ...(target.draftId === undefined ? {} : { draftId: target.draftId }),
     ...(target.background === undefined ? {} : { background: target.background }),
@@ -390,28 +335,33 @@ export function enqueueThreadOutboxTurns(
   return webThreadOutbox.enqueueMany(targets.map(prepareThreadOutboxTurn));
 }
 
+/** Cancelling a pending task also cancels the follow-ups queued behind it. */
+export async function cancelThreadOutboxTurn(entry: PendingThreadTurn) {
+  const cancelled = entry.payload.input.bootstrap?.createThread
+    ? await webThreadOutbox.cancelWithFollowing(entry.id)
+    : await webThreadOutbox.cancel(entry.id);
+  if (!cancelled) throw new Error("Delivery has already started.");
+}
+
 /** Rejected thread creation needs fresh identifiers; uncertain sends cannot be edited. */
 export async function replaceThreadOutboxTurn(entry: PendingThreadTurn, payload: OutboxTurn) {
   const threadId =
     entry.status === "failed" && payload.input.bootstrap?.createThread
       ? newThreadId()
       : payload.input.threadId;
-  const compactBeforeSend =
-    payload.compactBeforeSend === true &&
-    threadId === entry.payload.input.threadId &&
-    payload.input.modelSelection?.instanceId === entry.payload.input.modelSelection?.instanceId &&
-    payload.input.message.text.trim().toLowerCase() !== "/compact";
-  const { compactAccepted, ...payloadWithoutCompactAccepted } = payload;
-  const changed = await webThreadOutbox.edit(
-    entry.id,
-    decodeTurn({
-      ...payloadWithoutCompactAccepted,
-      compactBeforeSend,
-      ...(compactBeforeSend && compactAccepted === true ? { compactAccepted: true } : {}),
-      input: { ...payload.input, threadId, commandId: CommandId.make(randomUUID()) },
-    }),
-    scopedThreadKey(scopeThreadRef(payload.environmentId, threadId)),
-  );
+  const scope = scopedThreadKey(scopeThreadRef(payload.environmentId, threadId));
+  const edited = decodeTurn({
+    ...payload,
+    input: { ...payload.input, threadId, commandId: CommandId.make(randomUUID()) },
+  });
+  // Follow-ups queued behind a rejected task move with it to its new thread.
+  const changed =
+    scope === entry.scope
+      ? await webThreadOutbox.edit(entry.id, edited, scope)
+      : await webThreadOutbox.editWithFollowing(entry.id, edited, scope, (followUp) => ({
+          ...followUp,
+          input: { ...followUp.input, threadId },
+        }));
   if (!changed) throw new Error("Delivery has already started. Reconnect to confirm the message.");
   if (threadId !== entry.payload.input.threadId && payload.draftId) {
     const draftId = DraftId.make(payload.draftId);
@@ -429,16 +379,13 @@ export function useThreadOutbox() {
 
 export function usePendingThreadCreation(ref: ScopedThreadRef | null) {
   const scope = ref ? scopedThreadKey(ref) : null;
-  const snapshot = useCallback(
-    () =>
-      webThreadOutbox
-        .getSnapshot()
-        .find(
-          (entry) =>
-            entry.scope === scope && entry.payload.input.bootstrap?.createThread !== undefined,
-        ) ?? null,
-    [scope],
-  );
+  const snapshot = () =>
+    webThreadOutbox
+      .getSnapshot()
+      .find(
+        (entry) =>
+          entry.scope === scope && entry.payload.input.bootstrap?.createThread !== undefined,
+      ) ?? null;
   return useSyncExternalStore(webThreadOutbox.subscribe, snapshot);
 }
 

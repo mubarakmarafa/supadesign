@@ -4,11 +4,9 @@
  *
  * Discovery reads the `server-runtime.json` a live server persists next to its
  * database, then confirms the process is actually answering by fetching its
- * public environment descriptor. Inside a linked git worktree the worktree's
- * own `.supaterm` is checked first (matching dev-runner precedence); otherwise the
- * shared Supaterm home. `--tailscale` publishes the server over Tailscale Serve
- * HTTPS and pairs through the tailnet URL instead; `--relay` pairs through the
- * server's public relay address, which works for hosts no client manages directly.
+ * public environment descriptor. Inside a linked git worktree only the
+ * worktree's own `.supaterm` is checked (matching dev-runner precedence);
+ * otherwise the shared Supaterm home.
  */
 import {
   type AuthEnvironmentScope,
@@ -18,7 +16,6 @@ import {
   ExecutionEnvironmentDescriptor,
   PortSchema,
 } from "@supaterm/contracts";
-import { resolveWorktreeSupatermHome } from "@supaterm/shared/devHome";
 import { buildPairingUrl } from "@supaterm/shared/remote";
 import { relayName } from "@supaterm/shared/relay/name";
 import * as NodeOS from "node:os";
@@ -60,7 +57,12 @@ import {
   resolveHeadlessConnectionString,
 } from "../startupAccess.ts";
 import { authScopesFlag } from "./authScopes.ts";
-import { baseDirFlag, DurationFromString } from "./config.ts";
+import {
+  baseDirFlag,
+  DurationFromString,
+  requireMatchingServerVersion,
+  resolveCliWorktreeHome,
+} from "./config.ts";
 
 const WELL_KNOWN_ENVIRONMENT_PATH = "/.well-known/supaterm/environment";
 const PAIR_PROBE_TIMEOUT = Duration.millis(2_500);
@@ -79,19 +81,21 @@ export class NoRunningServerError extends Schema.TaggedError<NoRunningServerErro
   "NoRunningServerError",
   {
     checkedStatePaths: Schema.Array(Schema.String),
+    inLinkedWorktree: Schema.Boolean,
   },
 ) {
   override get message(): string {
     return [
       "No running Supaterm server found.",
       ...this.checkedStatePaths.map((statePath) => `  checked ${statePath}`),
+      ...(this.inLinkedWorktree
+        ? ["In a linked worktree, pass --base-dir to pair with a server outside it."]
+        : []),
       "Start one with `supaterm serve`.",
     ].join("\n");
   }
 }
 
-// Each tailscale failure gets its own class (same reasoning as
-// scripts/lib/dev-share.ts): distinct caller-visible message, distinct remedy.
 export class TailscaleUnavailableError extends Schema.TaggedError<TailscaleUnavailableError>()(
   "TailscaleUnavailableError",
   { cause: Schema.Defect() },
@@ -107,6 +111,15 @@ export class MagicDnsNameMissingError extends Schema.TaggedError<MagicDnsNameMis
 ) {
   override get message(): string {
     return "This machine has no MagicDNS name. Run `tailscale up` and enable MagicDNS.";
+  }
+}
+
+export class TailscaleServeNotEnabledError extends Schema.TaggedError<TailscaleServeNotEnabledError>()(
+  "TailscaleServeNotEnabledError",
+  {},
+) {
+  override get message(): string {
+    return "Tailscale Serve is not enabled on your tailnet. Enable HTTPS certificates at https://login.tailscale.com/admin/dns, then run this command again.";
   }
 }
 
@@ -137,8 +150,7 @@ export class ServePortOccupiedError extends Schema.TaggedError<ServePortOccupied
   }
 }
 
-/** The URL a browser or phone should pair through, absent Tailscale. */
-export const resolveDirectPairingBaseUrl = (state: PersistedServerRuntimeState): string =>
+const resolveDirectPairingBaseUrl = (state: PersistedServerRuntimeState): string =>
   state.devUrl ?? resolveHeadlessConnectionString(state.host, state.port);
 
 export class DevServerNotProxiableError extends Schema.TaggedError<DevServerNotProxiableError>()(
@@ -157,7 +169,7 @@ export class PublicRelayOffError extends Schema.TaggedError<PublicRelayOffError>
   { settingsPath: Schema.String },
 ) {
   override get message(): string {
-    return `Public relay is off for this server. Turn it on in Settings → Connections, or set "publicRelayEnabled": true in ${this.settingsPath}, then run this again.`;
+    return `Encrypted Relay is off for this server. Turn it on in Settings → Connections, or set "publicRelayEnabled": true in ${this.settingsPath}, then run this again.`;
   }
 }
 
@@ -171,10 +183,9 @@ export class PairRouteConflictError extends Schema.TaggedError<PairRouteConflict
 }
 
 /**
- * The local endpoint Tailscale Serve should proxy to. Dev servers are
- * single-origin, so the web dev server's port is the one to publish; the
- * backend rides along behind Vite's proxy. Serve targets are always plain
- * HTTP, so an HTTPS dev URL cannot be proxied and is rejected.
+ * Dev servers are single-origin, so the web dev server's port is the one to publish; the
+ * backend rides along behind Vite's proxy. Serve targets are always plain HTTP, so an HTTPS dev
+ * URL cannot be proxied and is rejected.
  */
 export const resolveTailscaleLocalTarget = (
   state: PersistedServerRuntimeState,
@@ -189,9 +200,7 @@ export const resolveTailscaleLocalTarget = (
       ? { localPort }
       : { localPort, localHost: devUrl.hostname };
   }
-  // A server bound to one specific interface does not answer on loopback, so
-  // the proxy has to target that interface directly.
-  if (state.host !== undefined && !isWildcardHost(state.host) && !isLoopbackHost(state.host)) {
+  if (state.host !== undefined && !isWildcardHost(state.host)) {
     return { localPort: state.port, localHost: formatHostForUrl(state.host) };
   }
   return { localPort: state.port };
@@ -217,25 +226,21 @@ const formatPairOutput = (input: {
     "",
   ].join("\n");
 
-/**
- * Three outcomes, because they drive different decisions: a Supaterm descriptor
- * (pair with it), nothing answering (safe to configure Tailscale Serve), or
- * something answering that is not a Supaterm server (do NOT overwrite its mapping).
- */
 type EnvironmentProbeResult =
   | { readonly _tag: "descriptor"; readonly descriptor: ExecutionEnvironmentDescriptor }
   | { readonly _tag: "unreachable" }
   | { readonly _tag: "not-a-supaterm-server" };
 
-const probeEnvironmentDescriptor = (
+const probeEnvironmentDescriptor: (
   baseUrl: string,
-): Effect.Effect<EnvironmentProbeResult, never, HttpClient.HttpClient> =>
-  Effect.gen(function* () {
+) => Effect.Effect<EnvironmentProbeResult, never, HttpClient.HttpClient> = Effect.fn(
+  "pair.probeEnvironmentDescriptor",
+)(
+  function* (baseUrl: string) {
     const client = yield* HttpClient.HttpClient;
     const request = HttpClientRequest.get(new URL(WELL_KNOWN_ENVIRONMENT_PATH, baseUrl).toString());
     const response = yield* client.execute(request).pipe(
       Effect.timeout(PAIR_PROBE_TIMEOUT),
-      // Transport failure or timeout: nothing (reachable) is listening there.
       Effect.mapError(() => ({ _tag: "unreachable" }) as const),
     );
     // Bad-gateway family means a proxy (Tailscale Serve) answered for a
@@ -245,14 +250,14 @@ const probeEnvironmentDescriptor = (
     if (response.status === 502 || response.status === 503 || response.status === 504) {
       return { _tag: "unreachable" } as const;
     }
-    // Anything else that answered HTTP but not with a valid descriptor is
-    // some other service.
     const descriptor = yield* HttpClientResponse.filterStatusOk(response).pipe(
       Effect.flatMap(HttpClientResponse.schemaBodyJson(ExecutionEnvironmentDescriptor)),
       Effect.mapError(() => ({ _tag: "not-a-supaterm-server" }) as const),
     );
     return { _tag: "descriptor", descriptor } as const;
-  }).pipe(Effect.catch((outcome) => Effect.succeed(outcome)));
+  },
+  Effect.catch((outcome) => Effect.succeed(outcome)),
+);
 
 interface DiscoveredPairTarget {
   readonly baseDir: string;
@@ -265,16 +270,12 @@ const discoverPairTarget = Effect.fn("pair.discoverPairTarget")(function* (
   explicitBaseDir: string | undefined,
 ) {
   const bases: Array<string> = [];
-  if (explicitBaseDir !== undefined && explicitBaseDir.trim().length > 0) {
+  const worktreeHome = yield* resolveCliWorktreeHome(Option.fromUndefinedOr(explicitBaseDir));
+  if (worktreeHome !== undefined) {
+    bases.push(worktreeHome);
+  } else if (explicitBaseDir !== undefined && explicitBaseDir.trim().length > 0) {
     bases.push(yield* resolveBaseDir(explicitBaseDir));
   } else {
-    // Same precedence as dev-runner: inside a linked worktree its own `.supaterm`
-    // outranks the shared home, so `supaterm pair` in a worktree pairs with the dev
-    // server under test rather than the daily-driver install.
-    const worktreeHome = yield* resolveWorktreeSupatermHome(process.cwd());
-    if (worktreeHome !== undefined) {
-      bases.push(worktreeHome);
-    }
     const envHome = yield* Config.String("SUPATERM_HOME").pipe(Config.option);
     bases.push(yield* resolveBaseDir(Option.getOrUndefined(envHome)));
   }
@@ -311,15 +312,16 @@ const discoverPairTarget = Effect.fn("pair.discoverPairTarget")(function* (
       } satisfies DiscoveredPairTarget;
     }
   }
-  return yield* new NoRunningServerError({ checkedStatePaths });
+  return yield* new NoRunningServerError({
+    checkedStatePaths,
+    inLinkedWorktree: worktreeHome !== undefined,
+  });
 });
 
 /**
- * Server config pointed at the discovered server's state directory, so the
- * minted token lands in the database the running server reads from. Built by
- * hand rather than through `resolveServerConfig` to keep the dev-vs-userdata
- * choice pinned to where the runtime state was actually found, independent of
- * ambient environment variables.
+ * Built by hand rather than through `resolveServerConfig` to keep the dev-vs-userdata choice
+ * pinned to where the runtime state was actually found, independent of ambient environment
+ * variables.
  */
 const makePairServerConfig = Effect.fn(function* (input: {
   readonly target: DiscoveredPairTarget;
@@ -393,6 +395,11 @@ const resolveTailscalePairingBase = Effect.fn("pair.resolveTailscalePairingBase"
     );
     if (status.magicDnsName === null) {
       return yield* new MagicDnsNameMissingError();
+    }
+    // Without the capability `tailscale serve` blocks on an enablement URL
+    // until it times out, which names neither the setting nor where to change it.
+    if (status.httpsServeEnabled === false) {
+      return yield* new TailscaleServeNotEnabledError();
     }
     const baseUrl = buildTailscaleHttpsBaseUrl({
       magicDnsName: status.magicDnsName,
@@ -518,9 +525,9 @@ const tailscaleFlag = Flag.Boolean("tailscale").pipe(
 
 const relayFlag = Flag.Boolean("relay").pipe(
   Flag.withDescription(
-    "Pair through the server's public relay address. Public relay must be on for the server.",
+    "Activate and pair through Encrypted Relay by default, unless --tailscale is selected. Use --no-relay for direct pairing. Encrypted Relay must be enabled in server settings.",
   ),
-  Flag.withDefault(false),
+  Flag.optional,
 );
 
 const tailscaleServePortFlag = Flag.Int("tailscale-serve-port").pipe(
@@ -544,18 +551,18 @@ export const pairCommand = Command.make("pair", {
   Command.withHandler((flags) =>
     Effect.gen(function* () {
       const cliLogLevel = yield* GlobalFlag.LogLevel;
-      // Default to Warn so storage/migration chatter cannot bury the QR code;
-      // an explicit --log-level still wins.
       const logLevel = Option.getOrElse(cliLogLevel, () => "Warn" as const);
 
-      if (flags.relay && flags.tailscale) return yield* new PairRouteConflictError();
+      const useRelay = Option.getOrElse(flags.relay, () => !flags.tailscale);
+      if (useRelay && flags.tailscale) return yield* new PairRouteConflictError();
       const target = yield* discoverPairTarget(Option.getOrUndefined(flags.baseDir));
+      yield* requireMatchingServerVersion(target.state);
       const config = yield* makePairServerConfig({ target, logLevel });
 
       const notes: Array<string> = [];
       let relayUrl = target.descriptor.relayUrl;
       let pairingBaseUrl: string;
-      if (flags.relay) {
+      if (useRelay) {
         const prepared = yield* prepareRelay(target, config).pipe(
           Effect.catchTags({
             RelayPreparationError: (error) =>
@@ -563,6 +570,7 @@ export const pairCommand = Command.make("pair", {
                 ? Effect.fail(new PublicRelayOffError({ settingsPath: config.settingsPath }))
                 : Effect.fail(error),
           }),
+          Effect.tapError(() => Console.error("Pass --no-relay to pair directly instead.")),
         );
         const { relayEndpoint } = prepared;
         relayUrl = prepared.relayUrl;

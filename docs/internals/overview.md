@@ -18,24 +18,26 @@ versioned clients and servers. Subscriptions send the state a client needs, so a
 thread does not pay for every thread's history. Authentication of a socket does not authorize every
 method on it. See [environment auth](./environment-auth.md).
 
-### Pull request linking compatibility
+### Mixed versions
 
-Web, desktop, mobile, and environments upgrade independently. Negotiate linking through the
-environment descriptor, never through a client version or an assumed coordinated release:
+Web, desktop, mobile, and environments upgrade independently, and every build with the same
+[protocol version](./connection-runtime.md#protocol-version-gate) connects to every other.
+Environments advertise almost no per-feature capabilities, so compatibility rests on how each side
+reads what the other sends:
 
-| Environment capability                | Client behavior                                                                                                   |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `threadPullRequests: true`            | Use persisted `pullRequests[]`, multi-link commands, stack UI, and reverse thread lookup.                         |
-| Only `threadPullRequestLinking: true` | Use `linkedPullRequest` and the existing `thread.meta.update` single-link operation. Do not call multi-link RPCs. |
-| Neither flag                          | Hide linking actions; existing branch-discovered PR display remains available.                                    |
-
-New environments continue advertising the legacy flag, accepting legacy metadata commands, and
-emitting the derived `linkedPullRequest` field for older clients. That hostless field includes only
-links in the thread project's own repository; cross-host and cross-repository links require the
-multi-link protocol. New clients accept snapshots that
-omit `pullRequests`. Retain the legacy wire fields, projection column, and replay support; this feature
-does not schedule their removal. Missing new capabilities must also override cached multi-link data
-after an environment downgrade.
+- A server-to-client closed set (a literal union, a tagged union, or an array of either) decodes
+  through the forward-compatible helpers in
+  [`baseSchemas.ts`](../../packages/contracts/src/baseSchemas.ts), so an unknown value is dropped,
+  absent, or skipped. A decode failure ends the whole subscription: the config stream takes the
+  connection down with it, and the shell stream freezes the sidebar.
+- A field added to a response is optional, because older servers omit it. A field a supported
+  older client reads stays, even an optional one, or that client silently loses the feature.
+- A value that a supported older client decodes as a closed set stays out of server output. Carry
+  it some other way, as pull request listings carry branch deletion through `deleteBranch`.
+- Clients resend a project's whole settings override entry. A key added after a shipped client goes
+  in `OVERRIDE_KEYS_OLDER_CLIENTS_OMIT` in
+  [`serverSettings.ts`](../../packages/shared/src/serverSettings.ts), or that client erases it.
+- An RPC an older server lacks fails only that request, and the socket stays up.
 
 Provider-specific behavior belongs behind an adapter. Orchestration works with normalized commands
 and events, so adding a provider should not require branches throughout the domain or clients.
@@ -84,16 +86,16 @@ capture workspace state without adding commits to the user's branch. A revert mu
 workspace state with the provider conversation. A provider that cannot roll back its conversation
 must reject that operation before changing the filesystem.
 
-Thread settlement is server-owned. The
-[settlement service](../../apps/server/src/orchestration-v2/ThreadSettlementService.ts) evaluates PR
+Thread completion is server-owned. The
+[thread completion service](../../apps/server/src/orchestration-v2/ThreadDoneService.ts) evaluates PR
 and inactivity settings without a connected client. Merge notifications invalidate cached PR state
 and trigger a check. A merge outside Supaterm, such as an agent running `gh pr merge`, sends no
 notification, so the [PR sync reactor](../../apps/server/src/orchestration-v2/PullRequestSyncReactor.ts)
 re-reads a thread's open links when a run that ran a merge or close command ends. The guarded
-`thread.auto-settle` command rejects newer activity, explicit settlement overrides, and live or
+`thread.auto-mark-done` command rejects newer activity, explicit done overrides, and live or
 blocked work. It records the activity timestamp for stable
 sorting and detaches idle provider sessions. Clients render the persisted result; they do not
-derive settlement from their own clocks or PR caches.
+decide when threads are done from their own clocks or PR caches.
 
 ## Waiting for asynchronous work
 

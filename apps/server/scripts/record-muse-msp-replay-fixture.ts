@@ -263,7 +263,6 @@ const record = Effect.gen(function* () {
       model: variant.modelSelection.model,
       commandIds,
     },
-    // The verbatim root first: it contains the canonical path.
     entries: normalizeEntries(entries, [
       yield* museWorkspaceRoot(canonicalWorkspace),
       canonicalWorkspace,

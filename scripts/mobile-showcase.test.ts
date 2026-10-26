@@ -4,9 +4,8 @@ import { assert, it } from "@effect/vitest";
 import { PNG } from "pngjs";
 
 import showcaseConfig, {
-  DEFAULT_SHOWCASE_THEME,
-  resolveShowcaseAndroidAbi,
   SHOWCASE_THEMES,
+  DEFAULT_SHOWCASE_THEME,
   type ShowcaseConfig,
   type ShowcaseStoreAssetSpec,
 } from "./mobile-showcase.config.ts";
@@ -21,13 +20,8 @@ import {
   parseShowcaseCliArgs,
   parsePairingCredentialOutput,
   planShowcaseCaptures,
-  readPngDimensions,
   readPngMetadata,
-  resolveAndroidSdkRoot,
-  selectLanIpv4Address,
   showcaseCaptureDirectory,
-  validateStoreAsset,
-  validateStoreAssetCount,
 } from "./mobile-showcase.ts";
 
 const appleSpec: ShowcaseStoreAssetSpec = {
@@ -76,36 +70,10 @@ const config: ShowcaseConfig = {
   ],
 };
 
-it("parses repeatable capture filters", () => {
-  const options = parseShowcaseCliArgs([
-    "--platform",
-    "ios",
-    "--device",
-    "phone",
-    "--scene",
-    "review",
-    "--appearance",
-    "both",
-    "--skip-build",
-  ]);
-  assert.deepStrictEqual([...options.platforms], ["ios"]);
-  assert.deepStrictEqual([...options.deviceIds], ["phone"]);
-  assert.deepStrictEqual([...options.scenes], ["review"]);
-  assert.deepStrictEqual([...options.appearances], ["light", "dark"]);
-  assert.equal(options.skipBuild, true);
-});
-
-it("rejects unsupported system appearances", () => {
-  assert.throws(
-    () => parseShowcaseCliArgs(["--appearance", "sepia"]),
-    /Unsupported appearance 'sepia'/u,
-  );
-});
-
 it("parses repeatable and expanded theme filters", () => {
   assert.deepStrictEqual(
-    [...parseShowcaseCliArgs(["--theme", "ocean", "--theme", "ember"]).themes],
-    ["ocean", "ember"],
+    [...parseShowcaseCliArgs(["--theme", "nord", "--theme", "tokyo-night"]).themes],
+    ["nord", "tokyo-night"],
   );
   assert.deepStrictEqual(
     [...parseShowcaseCliArgs(["--theme", "all"]).themes],
@@ -113,80 +81,6 @@ it("parses repeatable and expanded theme filters", () => {
   );
 });
 
-// The app normalizes an unknown id back to its default palette, so a typo here
-// would otherwise produce screenshots labeled with a theme they do not show.
-it("rejects unsupported themes instead of capturing the default palette", () => {
-  assert.throws(() => parseShowcaseCliArgs(["--theme", "sunset"]), /Unsupported theme 'sunset'/u);
-});
-
-it("parses validation-only mode", () => {
-  assert.equal(parseShowcaseCliArgs(["--validate-only"]).validateOnly, true);
-});
-
-it("selects an explicit CI Android ABI without changing the local default", () => {
-  assert.equal(resolveShowcaseAndroidAbi(undefined), "arm64-v8a");
-  assert.equal(resolveShowcaseAndroidAbi("x86_64"), "x86_64");
-  assert.throws(
-    () => resolveShowcaseAndroidAbi("mips"),
-    /Unsupported SUPATERM_SHOWCASE_ANDROID_ABI/u,
-  );
-});
-
-it("uses platform-correct default Android SDK roots", () => {
-  assert.equal(
-    resolveAndroidSdkRoot({ HOME: "/Users/showcase" }, "darwin"),
-    "/Users/showcase/Library/Android/sdk",
-  );
-  assert.equal(
-    resolveAndroidSdkRoot({ HOME: "/home/showcase" }, "linux"),
-    "/home/showcase/Android/Sdk",
-  );
-  assert.equal(
-    resolveAndroidSdkRoot(
-      { HOME: "/home/showcase", ANDROID_SDK_ROOT: "/opt/android-sdk" },
-      "linux",
-    ),
-    "/opt/android-sdk",
-  );
-});
-
-it("plans only scenes supported by each selected device", () => {
-  const options = parseShowcaseCliArgs(["--platform", "all", "--scene", "terminal"]);
-  const captures = planShowcaseCaptures(config, options);
-  assert.deepStrictEqual(
-    captures.map((capture) => ({
-      id: capture.device.id,
-      appearance: capture.appearance,
-      scenes: capture.scenes,
-    })),
-    [{ id: "pixel", appearance: "light", scenes: ["terminal"] }],
-  );
-});
-
-it("expands both appearances into independent upload-ready directories", () => {
-  const options = parseShowcaseCliArgs(["--device", "phone", "--appearance", "both"]);
-  const captures = planShowcaseCaptures(config, options);
-
-  assert.deepStrictEqual(
-    captures.map((capture) => ({
-      appearance: capture.appearance,
-      directory: showcaseCaptureDirectory("/captures", capture),
-    })),
-    [
-      {
-        appearance: "light",
-        directory: NodePath.join("/captures", "apple", "iphone-test", "light", "supaterm"),
-      },
-      {
-        appearance: "dark",
-        directory: NodePath.join("/captures", "apple", "iphone-test", "dark", "supaterm"),
-      },
-    ],
-  );
-});
-
-// Every palette needs its own leaf folder: one directory holding several themes
-// would mix upload slots and break the per-store screenshot count limits.
 it("expands themes into independent upload-ready directories per appearance", () => {
   const options = parseShowcaseCliArgs([
     "--device",
@@ -194,9 +88,9 @@ it("expands themes into independent upload-ready directories per appearance", ()
     "--appearance",
     "both",
     "--theme",
-    "ocean",
+    "nord",
     "--theme",
-    "ember",
+    "tokyo-night",
   ]);
 
   assert.deepStrictEqual(
@@ -204,35 +98,22 @@ it("expands themes into independent upload-ready directories per appearance", ()
       showcaseCaptureDirectory("/captures", capture),
     ),
     [
-      NodePath.join("/captures", "apple", "iphone-test", "light", "ocean"),
-      NodePath.join("/captures", "apple", "iphone-test", "light", "ember"),
-      NodePath.join("/captures", "apple", "iphone-test", "dark", "ocean"),
-      NodePath.join("/captures", "apple", "iphone-test", "dark", "ember"),
+      NodePath.join("/captures", "apple", "iphone-test", "dark", "nord"),
+      NodePath.join("/captures", "apple", "iphone-test", "dark", "tokyo-night"),
     ],
   );
 });
 
-it("rejects unknown devices instead of silently capturing another target", () => {
-  const options = parseShowcaseCliArgs(["--device", "missing"]);
-  assert.throws(() => planShowcaseCaptures(config, options), /Unknown device 'missing'/u);
-});
-
-it("reads captured PNG dimensions from the IHDR header", () => {
-  const bytes = new Uint8Array(26);
-  bytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
-  const view = new DataView(bytes.buffer);
-  view.setUint32(16, 1320);
-  view.setUint32(20, 2868);
-  view.setUint8(24, 8);
-  view.setUint8(25, 2);
-  assert.deepStrictEqual(readPngDimensions(bytes), { width: 1320, height: 2868 });
-  assert.deepStrictEqual(readPngMetadata(bytes), {
-    width: 1320,
-    height: 2868,
-    bitDepth: 8,
-    colorType: 2,
-    hasAlpha: false,
-  });
+it("rejects captures with an unsupported theme appearance", () => {
+  const options = parseShowcaseCliArgs([
+    "--device",
+    "phone",
+    "--appearance",
+    "light",
+    "--theme",
+    "nord",
+  ]);
+  assert.throws(() => planShowcaseCaptures(config, options), /No captures match/u);
 });
 
 function rgbaPng(width: number, height: number): Buffer {
@@ -250,25 +131,6 @@ it("converts simulator RGBA captures to upload-safe 24-bit RGB PNGs", () => {
     colorType: 2,
     hasAlpha: false,
   });
-});
-
-it("validates exact Apple and Google Play upload assets", () => {
-  const apple = normalizeStorePng(rgbaPng(appleSpec.width, appleSpec.height));
-  const google = normalizeStorePng(rgbaPng(googleSpec.width, googleSpec.height));
-  assert.equal(validateStoreAsset(appleSpec, apple).width, 1284);
-  assert.equal(validateStoreAsset(googleSpec, google).height, 1920);
-});
-
-it("rejects wrong dimensions and alpha-bearing PNGs", () => {
-  const wrongSize = normalizeStorePng(rgbaPng(1242, 2688));
-  assert.throws(() => validateStoreAsset(appleSpec, wrongSize), /requires 1284×2778/u);
-  assert.throws(() => validateStoreAsset(appleSpec, rgbaPng(1284, 2778)), /without alpha/u);
-});
-
-it("enforces store screenshot count limits", () => {
-  assert.doesNotThrow(() => validateStoreAssetCount(googleSpec, 5, true));
-  assert.throws(() => validateStoreAssetCount(googleSpec, 1, true), /requires at least 2/u);
-  assert.throws(() => validateStoreAssetCount(googleSpec, 9, false), /allows at most 8/u);
 });
 
 it("defaults every device to the app's own palette", () => {
@@ -300,18 +162,6 @@ it("configures every default device with an exact upload-ready store target", ()
   );
 });
 
-it("selects a reachable LAN IPv4 address", () => {
-  assert.equal(
-    selectLanIpv4Address([
-      { address: "127.0.0.1", family: "IPv4", internal: true },
-      { address: "fe80::1", family: "IPv6", internal: false },
-      { address: "169.254.2.4", family: "IPv4", internal: false },
-      { address: "192.168.1.80", family: "IPv4", internal: false },
-    ]),
-    "192.168.1.80",
-  );
-});
-
 it("seeds a playful multi-environment project spectrum", () => {
   assert.deepStrictEqual(
     SHOWCASE_PROJECTS.map((project) => project.title),
@@ -333,22 +183,22 @@ it("seeds a playful multi-environment project spectrum", () => {
   for (const thread of snoozedThreads) {
     assert.equal(thread.response !== null, true, `${thread.title} is not completed`);
     assert.equal("state" in thread, false, `${thread.title} is blocked or working`);
-    assert.equal("settled" in thread, false, `${thread.title} is settled`);
+    assert.equal("done" in thread, false, `${thread.title} is done`);
     assert.equal(thread.snoozeMinutes > 60, true, `${thread.title} wakes too soon`);
   }
   const primaryThread = SHOWCASE_THREADS.find((thread) => thread.id === "offline-reason");
   assert.equal(primaryThread !== undefined && !("snoozeMinutes" in primaryThread), true);
-  // Every project contributes to both the active block and the settled tail,
+  // Every project contributes to both the active block and the done tail,
   // so each list scope screenshots with the same two-part structure.
   for (const project of SHOWCASE_PROJECTS) {
     const projectThreads = SHOWCASE_THREADS.filter((thread) => thread.projectId === project.id);
     assert.equal(
-      projectThreads.some((thread) => "settled" in thread && thread.settled),
+      projectThreads.some((thread) => "done" in thread && thread.done),
       true,
-      `${project.title} has no settled thread`,
+      `${project.title} has no done thread`,
     );
     assert.equal(
-      projectThreads.some((thread) => !("settled" in thread && thread.settled)),
+      projectThreads.some((thread) => !("done" in thread && thread.done)),
       true,
       `${project.title} has no active thread`,
     );

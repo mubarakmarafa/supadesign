@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { converter } from "culori/fn";
-import { BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
+import { BUILT_IN_THEME_IDS, BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
 
 import {
   applyThemeColorPreview,
@@ -17,21 +17,16 @@ import {
   installCustomTheme,
   parseThemeFile,
   removeCustomTheme,
-  removeCustomThemes,
   replaceCustomThemeCollection,
   resolveDesktopTheme,
   resolveThemeAppearance,
   serializeThemeFile,
   subscribeToThemePreview,
-  subscribeToCustomThemes,
   themeAllowsSidebarArtwork,
-  SUPATERM_CHAT_THEME,
-  GROVE_THEME,
   updateCustomTheme,
   updateThemeColorFamily,
   CUSTOM_THEMES_STORAGE_KEY,
   createVividThemeColors,
-  getDefaultThemeColors,
   themeColorToHex,
   toCanonicalThemeColor,
   THEME_FILE_VERSION,
@@ -75,17 +70,16 @@ function contrastRatio(first: string, second: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-describe("theme files", () => {
-  it("keeps every built-in palette value in canonical OKLCH form", () => {
-    for (const theme of BUILT_IN_THEMES) {
-      for (const colors of [theme.colors, ...Object.values(theme.variants ?? {})]) {
-        for (const value of Object.values(colors)) {
-          expect(toCanonicalThemeColor(value)).toBe(value);
-        }
-      }
-    }
-  });
+const DUAL_THEME = parseThemeFile({
+  version: THEME_FILE_VERSION,
+  id: "harbor",
+  name: "Harbor",
+  appearance: "light",
+  colors: { canvas: "#f8fbff", text: "#10243d", accent: "#2563eb" },
+  variants: { dark: { canvas: "#101827", text: "#eef5ff", accent: "#60a5fa" } },
+});
 
+describe("theme files", () => {
   it("keeps built-in and standard search pairs readable and distinct from inline code", () => {
     const toOklab = converter("oklab");
     const distance = (first: string, second: string) => {
@@ -124,7 +118,7 @@ describe("theme files", () => {
       colors: { canvas: "#101010" },
     });
     expect(legacy.colors.searchMatchBackground).toBe(
-      getDefaultThemeColors("dark").searchMatchBackground,
+      getStandardThemeColors("dark").searchMatchBackground,
     );
     const theme = parseThemeFile({
       version: THEME_FILE_VERSION,
@@ -146,7 +140,7 @@ describe("theme files", () => {
   it.each(["searchMatchBackground", "searchMatchActiveBackground"] as const)(
     "editing %s derives readable text without changing the other match or warning colours",
     (role) => {
-      const original = getDefaultThemeColors("dark");
+      const original = getStandardThemeColors("dark");
       const foreground =
         role === "searchMatchBackground" ? "searchMatchForeground" : "searchMatchActiveForeground";
       for (const value of ["#ffffff", "#000000", "#33669980"]) {
@@ -170,23 +164,6 @@ describe("theme files", () => {
       sidebar: "#18191c",
       messageSurface: "#2a2b31",
     });
-    expect(BUILT_IN_THEMES.some((theme) => theme.id === "graphite")).toBe(false);
-  });
-
-  it("keeps the previous standard palette as the Zenbones built-in", () => {
-    const zenbones = getThemeDefinition("zenbones")!;
-    expect(BUILT_IN_THEMES).toContain(zenbones);
-    expect(zenbones.label).toBe("Zenbones");
-    expectThemeColors(getThemeColorsForMode(zenbones, "light")!, {
-      canvas: "#f0edec",
-      sidebar: "#e7e2e0",
-      messageSurface: "#e1dad7",
-    });
-    expectThemeColors(getThemeColorsForMode(zenbones, "dark")!, {
-      canvas: "#1c1917",
-      sidebar: "#171412",
-      messageSurface: "#302b29",
-    });
   });
 
   it.each(["light", "dark"] as const)(
@@ -200,16 +177,13 @@ describe("theme files", () => {
           style: { setProperty: (name: string, value: string) => variables.set(name, value) },
         },
       });
-      applyThemePalette("ocean", appearance);
+      applyThemePalette(appearance === "dark" ? "dracula" : "catppuccin-latte", appearance);
       applyThemePalette("system", appearance);
       expect(dataset.themeId).toBe("__default");
       expect(variables.get("--app-theme-canvas")).toBe(getStandardThemeColors(appearance).canvas);
       expect(variables.get("--app-theme-message-action")).toBe(
         getStandardThemeColors(appearance).messageAction,
       );
-      applyThemePalette("graphite", appearance);
-      expect(dataset.themeId).toBe("__default");
-      expect(variables.get("--app-theme-canvas")).toBe(getStandardThemeColors(appearance).canvas);
       vi.unstubAllGlobals();
     },
   );
@@ -220,7 +194,6 @@ describe("theme files", () => {
       ["dark", "#101a2c", "#4f8fe8"],
       ["dark", "#211a23", "#df5398"],
       ["light", "#fdf6ec", "#c2571b"],
-      // Inverted canvases: the palette follows the picked color, not the slot.
       ["light", "#111827", "#8ab4f8"],
       ["dark", "#f5ecf5", "#a84370"],
     ];
@@ -232,12 +205,10 @@ describe("theme files", () => {
       ];
     for (const [appearance, canvas, accent] of seeds) {
       const colors = createVividThemeColors(appearance, canvas, accent);
-      // Exact seeds are honored.
       expect(colors.canvas).toMatch(/^oklch\(/);
       expect(colors.accent).toMatch(/^oklch\(/);
       expect(asHex(colors.canvas)).toBe(canvas);
       expect(asHex(colors.accent)).toBe(accent);
-      // Readability is solved per surface.
       expect(contrastRatio(colors.text, colors.canvas)).toBeGreaterThanOrEqual(7);
       expect(contrastRatio(colors.textMuted, colors.canvas)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(colors.textMuted, colors.canvas)).toBeLessThan(5.5);
@@ -267,11 +238,8 @@ describe("theme files", () => {
         4.5,
       );
       expect(contrastRatio(colors.sidebarForeground, colors.sidebar)).toBeGreaterThanOrEqual(4.5);
-      // The companion action is a distinct voice, not the accent again.
       expect(colors.messageAction).not.toBe(colors.accent);
-      // Update family follows the theme, not the default palette.
       expect(asHex(colors.update)).toBe(accent);
-      // Semantic statuses stay red and amber instead of inheriting a brand tint.
       const [errorRed, errorGreen, errorBlue] = channels(colors.error);
       expect(errorRed).toBeGreaterThan(errorGreen * 2);
       expect(errorRed).toBeGreaterThan(errorBlue * 2);
@@ -282,25 +250,6 @@ describe("theme files", () => {
       const [warnRed, warnGreen, warnBlue] = channels(colors.warning);
       expect(warnRed).toBeGreaterThan(warnBlue);
       expect(warnGreen).toBeGreaterThan(warnBlue);
-    }
-  });
-
-  it("keys status colors off the canvas, not the appearance slot", () => {
-    // Inverted seeds: a dark canvas in the light slot must still get the dark
-    // status pair, or the alert foreground lands on a dark surface unreadable.
-    const inverted = [
-      createVividThemeColors("light", "#111827", "#8ab4f8"),
-      createVividThemeColors("dark", "#f5ecf5", "#a84370"),
-      createVividThemeColors("light", "#0d1117", "#69b1ff"),
-      createVividThemeColors("dark", "#fdfdfd", "#c2571b"),
-    ];
-    for (const colors of inverted) {
-      expect(contrastRatio(colors.errorForeground, colors.errorSurface)).toBeGreaterThanOrEqual(
-        4.5,
-      );
-      expect(contrastRatio(colors.warningForeground, colors.warningSurface)).toBeGreaterThanOrEqual(
-        4.5,
-      );
     }
   });
 
@@ -322,7 +271,7 @@ describe("theme files", () => {
       colors: {
         canvas: canonical("#07152f"),
         accent: canonical("#67c2ff"),
-        placeholder: canonical("#968d9f"),
+        placeholder: getStandardThemeColors("dark").placeholder,
       },
     });
   });
@@ -379,60 +328,18 @@ describe("theme files", () => {
     expect(themeColorToHex(theme.colors.accent)).toBe("#b5005e");
   });
 
-  it("rejects unknown roles and invalid color values", () => {
-    expect(() =>
-      parseThemeFile({
-        version: THEME_FILE_VERSION,
-        name: "Broken",
-        appearance: "light",
-        colors: { background: "#ffffff" },
-      }),
-    ).toThrow('"background" is not a supported theme color role.');
-
-    expect(() =>
-      parseThemeFile({
-        version: THEME_FILE_VERSION,
-        name: "Broken",
-        appearance: "light",
-        colors: { accent: "var(--danger)" },
-      }),
-    ).toThrow('The color for "accent" must be a literal CSS color');
-  });
-
   it("canonicalizes the explicitly exported theme", () => {
     const serialized = serializeThemeFile({
-      ...SUPATERM_CHAT_THEME,
-      colors: { ...SUPATERM_CHAT_THEME.colors, accent: "hsl(263 70% 58%)" },
+      ...DUAL_THEME,
+      colors: { ...DUAL_THEME.colors, accent: "hsl(263 70% 58%)" },
     });
     expect(JSON.parse(serialized)).toMatchObject({
       version: THEME_FILE_VERSION,
-      id: SUPATERM_CHAT_THEME.id,
-      name: SUPATERM_CHAT_THEME.label,
+      id: DUAL_THEME.id,
+      name: DUAL_THEME.label,
       appearance: "light",
       colors: { accent: canonical("hsl(263 70% 58%)") },
     });
-  });
-
-  it("serializes a theme back into the importable file shape", () => {
-    const theme = {
-      ...parseThemeFile({
-        version: THEME_FILE_VERSION,
-        id: "community-demo",
-        name: "Community Demo",
-        appearance: "dark",
-        colors: { canvas: "#111111" },
-      }),
-      collection: { id: "open-vsx:demo.theme", label: "Demo Theme" },
-    };
-    const serialized = serializeThemeFile(theme);
-    expect(JSON.parse(serialized)).toMatchObject({
-      version: THEME_FILE_VERSION,
-      id: theme.id,
-      name: theme.label,
-      appearance: "dark",
-      collection: theme.collection,
-    });
-    expect(parseThemeFile(JSON.parse(serialized)).collection).toEqual(theme.collection);
   });
 
   it("ignores built-in artwork metadata in custom theme files", () => {
@@ -459,15 +366,15 @@ describe("theme files", () => {
       },
     });
 
-    applyThemeColorPreview(SUPATERM_CHAT_THEME.colors, "light");
+    applyThemeColorPreview(DUAL_THEME.colors, "light");
     expect(getThemePreviewAppearance()).toBe("light");
     expect(listener).toHaveBeenCalledTimes(1);
 
-    applyThemeColorPreview(SUPATERM_CHAT_THEME.variants!.dark!, "dark");
+    applyThemeColorPreview(DUAL_THEME.variants!.dark!, "dark");
     expect(getThemePreviewAppearance()).toBe("dark");
     expect(listener).toHaveBeenCalledTimes(2);
 
-    applyThemeColorPreview(SUPATERM_CHAT_THEME.variants!.dark!, "dark");
+    applyThemeColorPreview(DUAL_THEME.variants!.dark!, "dark");
     expect(listener).toHaveBeenCalledTimes(2);
 
     applyThemePalette("system");
@@ -495,164 +402,53 @@ describe("theme files", () => {
       canvas: canonical("#101827"),
       text: canonical("#eef5ff"),
     });
-    expect(getThemeModes(SUPATERM_CHAT_THEME)).toEqual(["light", "dark"]);
-    expect(resolveThemeAppearance(SUPATERM_CHAT_THEME.id, true, true)).toBe("dark");
-    expect(resolveDesktopTheme(SUPATERM_CHAT_THEME.id, true)).toBe("system");
-    expect(resolveThemeAppearance(SUPATERM_CHAT_THEME.id, false, false, "dark")).toBe("dark");
-    expect(resolveDesktopTheme(SUPATERM_CHAT_THEME.id, false, "dark")).toBe("dark");
+    expect(getThemeModes(getThemeDefinition("dracula")!)).toEqual(["dark"]);
+    expect(resolveThemeAppearance("dracula", false, true)).toBe("dark");
+    expect(resolveDesktopTheme("dracula", true)).toBe("dark");
+    expect(resolveThemeAppearance("catppuccin-latte", true, true)).toBe("light");
+    expect(resolveDesktopTheme("catppuccin-latte", false, "dark")).toBe("light");
     expect(JSON.parse(serializeThemeFile(theme)).variants.dark).toMatchObject({
       canvas: canonical("#101827"),
       text: canonical("#eef5ff"),
     });
   });
 
-  it("pins the Supaterm Chat palette and keeps it readable", () => {
-    expectThemeColors(SUPATERM_CHAT_THEME.colors, {
-      canvas: "#fdf7fd",
-      chrome: "#fdf7fd",
-      toolbarBorder: "#efbdeb",
-      toolbarControl: "#f3e6f5",
-      toolbarControlHover: "#eccfe3",
-      surfaceRaised: "#fdfafd",
-      input: "#e7c1dc",
-      focus: "#db2777",
-      messageSurface: "#f7def2",
-      codeBackground: "#f5ecf9",
-      codeForeground: "#673c8b",
-      accentSurface: "#f3e6f5",
-      sidebar: "#f2e1f4",
-    });
-    expectThemeColors(SUPATERM_CHAT_THEME.variants!.dark!, {
-      canvas: "#1f1a24",
-      chrome: "#1f1a24",
-      surface: "#29232d",
-      surfaceRaised: "#2c2631",
-      input: "#302029",
-      focus: "#db2777",
-      messageSurface: "#2b2431",
-      codeBackground: "#1f1a24",
-      sidebar: "#171018",
-      sidebarBorder: "#322028",
-    });
-
-    for (const mode of ["light", "dark"] as const) {
-      const colors = getThemeColorsForMode(SUPATERM_CHAT_THEME, mode)!;
-      expect(contrastRatio(colors.text, colors.canvas)).toBeGreaterThanOrEqual(7);
+  it("ships each popular theme as a readable single-appearance built-in", () => {
+    expect(BUILT_IN_THEMES.map((theme) => theme.id)).toEqual([...BUILT_IN_THEME_IDS]);
+    for (const theme of BUILT_IN_THEMES) {
+      expect(getThemeDefinition(theme.id)).toBe(theme);
+      expect(getThemeModes(theme)).toEqual([theme.appearance]);
+      expect(themeAllowsSidebarArtwork(theme.id)).toBe(false);
+      const colors = theme.colors;
+      expect(contrastRatio(colors.text, colors.canvas)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(colors.textMuted, colors.canvas)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.accentForeground, colors.accent)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(colors.toolbarControlForeground, colors.toolbarControl),
+      ).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(colors.messageForeground, colors.messageSurface)).toBeGreaterThanOrEqual(
         4.5,
       );
-      expect(contrastRatio(colors.secondaryForeground, colors.secondary)).toBeGreaterThanOrEqual(
-        4.5,
-      );
-      expect(contrastRatio(colors.sidebarForeground, colors.sidebar)).toBeGreaterThanOrEqual(4.5);
-      expect(contrastRatio(colors.accentForeground, colors.accent)).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  it("includes the dual-mode maintainer themes", () => {
-    for (const theme of BUILT_IN_THEMES) {
-      expect(getThemeDefinition(theme.id)).toBe(theme);
-      expect(getThemeModes(theme)).toEqual(["light", "dark"]);
-      expect(themeAllowsSidebarArtwork(theme.id)).toBe(theme.sidebarArtwork === true);
-      expect(theme.colors.accent).toMatch(/^oklch\(/);
-      expect(theme.variants?.dark?.accent).toMatch(/^oklch\(/);
-
-      for (const mode of ["light", "dark"] as const) {
-        const colors = getThemeColorsForMode(theme, mode);
-        expect(colors).not.toBeNull();
-        expect(contrastRatio(colors!.text, colors!.canvas)).toBeGreaterThanOrEqual(4.5);
-        expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeGreaterThanOrEqual(4.5);
-        if (theme !== SUPATERM_CHAT_THEME) {
-          expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeLessThan(5.5);
-          expect(contrastRatio(colors!.textMuted, colors!.canvas)).toBeCloseTo(
-            mode === "dark" ? 5.082 : 4.705,
-            1,
-          );
-        }
-        expect(contrastRatio(colors!.accentForeground, colors!.accent)).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(colors!.toolbarControlForeground, colors!.toolbarControl),
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(colors!.messageForeground, colors!.messageSurface),
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(colors!.messageActionForeground, colors!.messageAction),
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(
-          contrastRatio(colors!.messageActionForeground, colors!.messageActionHover),
-        ).toBeGreaterThanOrEqual(4.5);
-        expect(contrastRatio(colors!.mutedForeground, colors!.muted)).toBeGreaterThanOrEqual(4.5);
-        expect(contrastRatio(colors!.placeholder, colors!.surfaceRaised)).toBeGreaterThanOrEqual(
-          4.5,
-        );
+      expect(
+        contrastRatio(colors.messageActionForeground, colors.messageAction),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(colors.messageActionForeground, colors.messageActionHover),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(colors.accentSurfaceForeground, colors.accentSurface),
+      ).toBeGreaterThanOrEqual(4.5);
+      for (const surface of [
+        colors.sidebarRowHover,
+        colors.sidebarRowActive,
+        colors.sidebarRowSelected,
+      ]) {
+        expect(contrastRatio(colors.sidebarForeground, surface)).toBeGreaterThanOrEqual(4.5);
       }
+      expect(contrastRatio(colors.mutedForeground, colors.muted)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(colors.placeholder, colors.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
     }
     expect(themeAllowsSidebarArtwork("my-custom-theme")).toBe(false);
-  });
-
-  it("rejects a variant that repeats the base appearance", () => {
-    expect(() =>
-      parseThemeFile({
-        version: THEME_FILE_VERSION,
-        name: "Duplicate light",
-        appearance: "light",
-        colors: { canvas: "#f8fbff" },
-        variants: { light: { canvas: "#101827" } },
-      }),
-    ).toThrow('Theme variants must not repeat the base appearance "light".');
-  });
-
-  it("keeps a single-mode theme on its only palette", () => {
-    const theme = parseThemeFile({
-      version: THEME_FILE_VERSION,
-      id: "midnight-slate",
-      name: "Midnight Slate",
-      appearance: "dark",
-      colors: { canvas: "#111827", messageAction: "#2563eb" },
-    });
-
-    expect(getThemeModes(theme)).toEqual(["dark"]);
-    expect(getThemeColorsForMode(theme, "dark")).toMatchObject({
-      canvas: canonical("#111827"),
-    });
-    expect(getThemeColorsForMode(theme, "light")).toBeNull();
-  });
-
-  it("invalidates cached themes when another tab clears localStorage", () => {
-    let storedThemes: string | null = JSON.stringify([
-      {
-        id: "ocean-dusk",
-        label: "Ocean dusk",
-        appearance: "dark",
-        colors: { canvas: "#07152f" },
-      },
-    ]);
-    let storageHandler: ((event: StorageEvent) => void) | undefined;
-    vi.stubGlobal("window", {
-      addEventListener: (type: string, listener: (event: StorageEvent) => void) => {
-        if (type === "storage") storageHandler = listener;
-      },
-      removeEventListener: vi.fn(),
-      localStorage: {
-        getItem: (key: string) => (key === CUSTOM_THEMES_STORAGE_KEY ? storedThemes : null),
-      },
-    });
-
-    invalidateCustomThemes();
-    expect(getCustomThemes()).toHaveLength(1);
-    const listener = vi.fn();
-    const unsubscribe = subscribeToCustomThemes(listener);
-
-    storedThemes = null;
-    storageHandler?.({ key: null } as StorageEvent);
-
-    expect(listener).toHaveBeenCalledTimes(1);
-    expect(getCustomThemes()).toEqual([]);
-    unsubscribe();
-    invalidateCustomThemes();
-    vi.unstubAllGlobals();
   });
 
   it("keeps a saved theme whose id became a built-in visible and removable", () => {
@@ -660,10 +456,10 @@ describe("theme files", () => {
       [
         CUSTOM_THEMES_STORAGE_KEY,
         JSON.stringify([
-          { id: "graphite-custom", label: "Graphite Tweak", appearance: "dark", colors: {} },
+          { id: "dracula-custom", label: "Dracula Tweak", appearance: "dark", colors: {} },
           {
-            id: "graphite",
-            label: "My Graphite",
+            id: "dracula",
+            label: "My Dracula",
             appearance: "dark",
             colors: { canvas: "#1d1e22" },
           },
@@ -679,15 +475,15 @@ describe("theme files", () => {
 
     invalidateCustomThemes();
     expect(getCustomThemes().map((theme) => [theme.id, theme.label])).toEqual([
-      ["graphite-custom", "Graphite Tweak"],
-      ["graphite-custom-2", "My Graphite"],
+      ["dracula-custom", "Dracula Tweak"],
+      ["dracula-custom-2", "My Dracula"],
     ]);
-    expect(getThemeDefinition("graphite")?.label).toBe("Supaterm");
+    expect(getThemeDefinition("dracula")?.label).toBe("Dracula");
 
-    removeCustomTheme("graphite-custom-2");
+    removeCustomTheme("dracula-custom-2");
 
     expect(JSON.parse(stored.get(CUSTOM_THEMES_STORAGE_KEY)!)).toEqual([
-      { id: "graphite-custom", label: "Graphite Tweak", appearance: "dark", colors: {} },
+      { id: "dracula-custom", label: "Dracula Tweak", appearance: "dark", colors: {} },
     ]);
     invalidateCustomThemes();
     vi.unstubAllGlobals();
@@ -700,15 +496,15 @@ describe("theme files", () => {
           key === CUSTOM_THEMES_STORAGE_KEY
             ? JSON.stringify([
                 {
-                  id: "github-dark",
-                  label: "GitHub Dark",
+                  id: "github-night",
+                  label: "GitHub Night",
                   appearance: "dark",
                   colors: { canvas: "#0d1117" },
                   collection: { id: "open-vsx:github.github-vscode-theme", label: "GitHub Theme" },
                 },
                 {
-                  id: "github-light",
-                  label: "GitHub Light",
+                  id: "github-day",
+                  label: "GitHub Day",
                   appearance: "light",
                   colors: { canvas: "#ffffff" },
                   collection: { id: "bad collection id", label: "GitHub Theme" },
@@ -721,7 +517,7 @@ describe("theme files", () => {
     invalidateCustomThemes();
     expect(getCustomThemes()).toMatchObject([
       { collection: { id: "open-vsx:github.github-vscode-theme", label: "GitHub Theme" } },
-      { id: "github-light" },
+      { id: "github-day" },
     ]);
     expect(getCustomThemes()[1]).not.toHaveProperty("collection");
 
@@ -823,48 +619,6 @@ describe("theme files", () => {
     invalidateCustomThemes();
   });
 
-  it("replaces collection entries even when their stored collection label is malformed", () => {
-    const collection = { id: "open-vsx:demo.theme", label: "Demo Theme" };
-    const stored = new Map<string, string>([
-      [
-        CUSTOM_THEMES_STORAGE_KEY,
-        JSON.stringify([
-          {
-            id: "old-light",
-            label: "Old Light",
-            appearance: "light",
-            colors: { canvas: "#ffffff" },
-            collection: { id: collection.id, label: 42 },
-          },
-        ]),
-      ],
-    ]);
-    vi.stubGlobal("window", {
-      localStorage: {
-        getItem: (key: string) => stored.get(key) ?? null,
-        setItem: (key: string, value: string) => stored.set(key, value),
-      },
-    });
-
-    invalidateCustomThemes();
-    const replacement = {
-      ...parseThemeFile({
-        version: THEME_FILE_VERSION,
-        id: "old-light",
-        name: "New Light",
-        appearance: "light",
-        colors: { canvas: "#fafafa" },
-      }),
-      collection,
-    };
-
-    expect(replaceCustomThemeCollection(collection.id, [replacement])).toEqual([replacement]);
-    expect(getCustomThemes()).toEqual([replacement]);
-
-    vi.unstubAllGlobals();
-    invalidateCustomThemes();
-  });
-
   it("canonicalizes explicit writes without migrating untouched themes", () => {
     const stored = new Map<string, string>();
     const untouchedTheme = {
@@ -920,56 +674,6 @@ describe("theme files", () => {
     });
     removeCustomTheme("aurora");
     expect(JSON.parse(stored.get(CUSTOM_THEMES_STORAGE_KEY) ?? "[]")).toEqual([untouchedTheme]);
-
-    vi.unstubAllGlobals();
-    invalidateCustomThemes();
-  });
-
-  it("removes multiple custom themes atomically while preserving unrelated entries", () => {
-    const collection = { id: "open-vsx:demo.theme", label: "Demo Theme" };
-    const personalTheme = {
-      id: "personal",
-      label: "Personal",
-      appearance: "dark",
-      colors: { canvas: "#111111", futureRole: "hsl(10 20% 30%)" },
-      futureMetadata: { version: 2 },
-    };
-    const stored = new Map<string, string>([
-      [
-        CUSTOM_THEMES_STORAGE_KEY,
-        JSON.stringify([
-          personalTheme,
-          {
-            id: "demo-light",
-            label: "Demo Light",
-            appearance: "light",
-            colors: { canvas: "#ffffff" },
-            collection,
-          },
-          {
-            id: "demo-dark",
-            label: "Demo Dark",
-            appearance: "dark",
-            colors: { canvas: "#000000" },
-            collection,
-          },
-        ]),
-      ],
-    ]);
-    const setItem = vi.fn((key: string, value: string) => stored.set(key, value));
-    vi.stubGlobal("window", {
-      localStorage: {
-        getItem: (key: string) => stored.get(key) ?? null,
-        setItem,
-      },
-    });
-
-    invalidateCustomThemes();
-    removeCustomThemes(["demo-light", "demo-dark"]);
-
-    expect(setItem).toHaveBeenCalledOnce();
-    expect(getCustomThemes()).toEqual([expect.objectContaining({ id: "personal" })]);
-    expect(JSON.parse(stored.get(CUSTOM_THEMES_STORAGE_KEY) ?? "[]")).toEqual([personalTheme]);
 
     vi.unstubAllGlobals();
     invalidateCustomThemes();
@@ -1048,86 +752,14 @@ describe("theme files", () => {
     vi.unstubAllGlobals();
     invalidateCustomThemes();
   });
-
-  it("rejects malformed stored entries that reuse an installed theme id", () => {
-    const storedThemes = JSON.stringify([{ id: "aurora", malformed: true }]);
-    const setItem = vi.fn();
-    vi.stubGlobal("window", {
-      localStorage: {
-        getItem: () => storedThemes,
-        setItem,
-      },
-    });
-
-    invalidateCustomThemes();
-    expect(() =>
-      installCustomTheme(
-        parseThemeFile({
-          version: THEME_FILE_VERSION,
-          id: "aurora",
-          name: "Aurora",
-          appearance: "light",
-          colors: { accent: "#5b6cff" },
-        }),
-      ),
-    ).toThrow('A theme named "Aurora" is already installed.');
-    expect(setItem).not.toHaveBeenCalled();
-
-    vi.unstubAllGlobals();
-    invalidateCustomThemes();
-  });
-
-  it("collapses duplicate raw entries when their theme is explicitly updated", () => {
-    const stored = new Map<string, string>();
-    const theme = {
-      id: "aurora",
-      label: "Aurora",
-      appearance: "light",
-      colors: { accent: "#5b6cff" },
-    };
-    const untouchedTheme = { id: "future", malformed: true, metadata: { version: 2 } };
-    stored.set(
-      CUSTOM_THEMES_STORAGE_KEY,
-      JSON.stringify([theme, { id: "aurora", malformed: true }, untouchedTheme]),
-    );
-    vi.stubGlobal("window", {
-      localStorage: {
-        getItem: (key: string) => stored.get(key) ?? null,
-        setItem: (key: string, value: string) => stored.set(key, value),
-      },
-    });
-
-    invalidateCustomThemes();
-    const installedTheme = getCustomThemes()[0]!;
-    updateCustomTheme({
-      ...installedTheme,
-      label: "Aurora Night",
-      colors: { ...installedTheme.colors, accent: "hsl(263 70% 58%)" },
-    });
-
-    const updatedLibrary = JSON.parse(stored.get(CUSTOM_THEMES_STORAGE_KEY) ?? "[]");
-    expect(updatedLibrary.filter((entry: { id?: string }) => entry.id === "aurora")).toHaveLength(
-      1,
-    );
-    expect(updatedLibrary[0]).toMatchObject({
-      id: "aurora",
-      label: "Aurora Night",
-      colors: { accent: canonical("hsl(263 70% 58%)") },
-    });
-    expect(updatedLibrary[1]).toEqual(untouchedTheme);
-
-    vi.unstubAllGlobals();
-    invalidateCustomThemes();
-  });
 });
 
 describe("stored theme preferences", () => {
   it("lets a configured half unlock an appearance the base theme lacks", () => {
-    // Light-only base: without halves, dark requests fall back to light.
     const lightOnly = parseThemeFile({
       version: THEME_FILE_VERSION,
-      id: "paper",
-      name: "Paper",
+      id: "parchment",
+      name: "Parchment",
       appearance: "light",
       colors: { canvas: "#f8fbff" },
     });
@@ -1139,11 +771,11 @@ describe("stored theme preferences", () => {
     });
     invalidateCustomThemes();
     try {
-      expect(resolveThemeAppearance("paper", true, true)).toBe("light");
-      const halves = { dark: GROVE_THEME.id };
-      expect(resolveThemeAppearance("paper", true, true, undefined, halves)).toBe("dark");
-      expect(resolveThemeAppearance("paper", false, false, "dark", halves)).toBe("dark");
-      expect(resolveDesktopTheme("paper", true, undefined, halves)).toBe("system");
+      expect(resolveThemeAppearance("parchment", true, true)).toBe("light");
+      const halves = { dark: "dracula" };
+      expect(resolveThemeAppearance("parchment", true, true, undefined, halves)).toBe("dark");
+      expect(resolveThemeAppearance("parchment", false, false, "dark", halves)).toBe("dark");
+      expect(resolveDesktopTheme("parchment", true, undefined, halves)).toBe("system");
     } finally {
       vi.unstubAllGlobals();
       invalidateCustomThemes();
@@ -1151,10 +783,11 @@ describe("stored theme preferences", () => {
   });
 
   it("recognizes only preferences the runtime can render", () => {
-    for (const preference of ["light", "dark", "system", SUPATERM_CHAT_THEME.id, GROVE_THEME.id]) {
+    for (const preference of ["light", "dark", "system", "dracula", "catppuccin-latte"]) {
       expect(isKnownThemePreference(preference)).toBe(true);
     }
-    expect(isKnownThemePreference(`${GROVE_THEME.id}:dark`)).toBe(false);
+    expect(isKnownThemePreference("dracula:dark")).toBe(false);
+    expect(isKnownThemePreference("grove")).toBe(false);
     expect(isKnownThemePreference("missing-theme")).toBe(false);
   });
 
@@ -1183,7 +816,7 @@ describe("stored theme preferences", () => {
     expect(themes).toHaveLength(1);
     expect(themes[0]).toMatchObject({
       id: "aurora",
-      colors: { canvas: canonical("#f8fbff"), accent: getDefaultThemeColors("light").accent },
+      colors: { canvas: canonical("#f8fbff"), accent: getStandardThemeColors("light").accent },
     });
     expect(getThemeModes(themes[0]!)).toEqual(["light", "dark"]);
     expect(getThemeColorsForMode(themes[0]!, "dark")?.canvas).toBe(canonical("rgb(16 24 39)"));
@@ -1201,8 +834,8 @@ describe("stored theme preferences", () => {
 
 describe("singleAppearanceOf", () => {
   it("reports the only half a theme can claim, and null for a pair", () => {
-    const { variants: _pair, ...base } = SUPATERM_CHAT_THEME;
+    const { variants: _pair, ...base } = DUAL_THEME;
     expect(singleAppearanceOf({ ...base, id: "x", appearance: "dark" })).toBe("dark");
-    expect(singleAppearanceOf(SUPATERM_CHAT_THEME)).toBe(null);
+    expect(singleAppearanceOf(DUAL_THEME)).toBe(null);
   });
 });

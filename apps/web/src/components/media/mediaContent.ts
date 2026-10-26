@@ -6,7 +6,6 @@ export function resolveProtocolRelativeMediaUrl(src: string): string {
   return `${protocol}${src}`;
 }
 
-/** Reads media only for an explicit save/copy action; remote hosts must allow browser CORS. */
 async function readMediaBlob(src: string): Promise<Blob> {
   let response: Response;
   try {
@@ -25,7 +24,6 @@ async function readMediaBlob(src: string): Promise<Blob> {
   return blob;
 }
 
-/** Downloads the original bytes with their original filename, without changing playback URLs. */
 export async function downloadMedia(src: string, name: string): Promise<void> {
   const url = URL.createObjectURL(await readMediaBlob(src));
   try {
@@ -38,7 +36,6 @@ export async function downloadMedia(src: string, name: string): Promise<void> {
   }
 }
 
-/** Converts browser-decodable images, including SVG, into the clipboard's portable PNG format. */
 export async function readMediaPng(src: string): Promise<Blob> {
   const blob = await readMediaBlob(src);
   if (blob.type.split(";", 1)[0] === "image/png") return blob;
@@ -70,11 +67,16 @@ export async function readMediaPng(src: string): Promise<Blob> {
     if (!context) throw new Error("Image copying is unavailable in this browser.");
     context.drawImage(image, 0, 0);
     return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (png) =>
-          png ? resolve(png) : reject(new Error("The image could not be converted to PNG.")),
-        "image/png",
-      );
+      try {
+        canvas.toBlob(
+          (png) =>
+            png ? resolve(png) : reject(new Error("The image could not be converted to PNG.")),
+          "image/png",
+        );
+      } catch (cause) {
+        // SVG with HTML inside foreignObject, such as typeset diagram labels, taints the canvas.
+        reject(new Error("This image cannot be copied. Try saving it instead.", { cause }));
+      }
     });
   } finally {
     URL.revokeObjectURL(url);

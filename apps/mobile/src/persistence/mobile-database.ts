@@ -1,4 +1,3 @@
-import { loadExpoFileSystem } from "../lib/expoFileSystem";
 import type { EnvironmentId } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -8,14 +7,70 @@ import * as Schema from "effect/Schema";
 import type { SQLiteDatabase } from "expo-sqlite";
 
 const DATABASE_NAME = "supaterm-client.db";
-const DATABASE_SCHEMA_VERSION = 1;
-const LEGACY_CACHE_DIRECTORIES = [
-  "connection-shell-snapshots",
-  "shell-snapshots",
-  "connection-thread-snapshots",
-  "connection-server-configs",
-  "connection-vcs-refs",
-] as const;
+export const DATABASE_SCHEMA_VERSION = 1;
+
+const DATABASE_SCHEMA_SQL = `
+  CREATE TABLE IF NOT EXISTS client_cache (
+    environment_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    cache_key TEXT NOT NULL,
+    schema_version INTEGER NOT NULL,
+    payload TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (environment_id, kind, cache_key)
+  ) WITHOUT ROWID;
+
+  CREATE INDEX IF NOT EXISTS client_cache_environment_updated
+    ON client_cache (environment_id, updated_at DESC);
+
+  CREATE TABLE IF NOT EXISTS client_preferences (
+    singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
+    payload TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`;
+
+interface DatabaseMigration {
+  readonly version: number;
+  readonly migrate: (transaction: SQLiteDatabase) => Promise<void>;
+}
+
+const DATABASE_MIGRATIONS: ReadonlyArray<DatabaseMigration> = [
+  {
+    version: 1,
+    migrate: (transaction) => transaction.execAsync(DATABASE_SCHEMA_SQL),
+  },
+];
+
+async function migrateDatabase(database: SQLiteDatabase): Promise<void> {
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    const schema = await transaction.getFirstAsync<{ readonly user_version: number }>(
+      "PRAGMA user_version",
+    );
+    if (schema === null) {
+      throw new Error("Could not read the mobile database schema version");
+    }
+    if (schema.user_version > DATABASE_SCHEMA_VERSION) {
+      throw new Error(
+        `Mobile database schema ${schema.user_version} is newer than supported schema ${DATABASE_SCHEMA_VERSION}`,
+      );
+    }
+
+    let currentVersion = schema.user_version;
+    for (const migration of DATABASE_MIGRATIONS) {
+      if (migration.version <= currentVersion) continue;
+      if (migration.version !== currentVersion + 1) {
+        throw new Error(`Missing mobile database migration for schema ${currentVersion + 1}`);
+      }
+      await migration.migrate(transaction);
+      await transaction.execAsync(`PRAGMA user_version = ${migration.version}`);
+      currentVersion = migration.version;
+    }
+    if (currentVersion !== DATABASE_SCHEMA_VERSION) {
+      throw new Error(`Missing mobile database migration for schema ${currentVersion + 1}`);
+    }
+  });
+}
 
 export const ClientCacheKind = Schema.Literals([
   "shell",
@@ -77,120 +132,6 @@ export class MobileDatabaseError extends Schema.TaggedError<MobileDatabaseError>
 
 function databaseError(operation: typeof MobileDatabaseOperation.Type) {
   return (cause: unknown) => new MobileDatabaseError({ operation, cause });
-}
-
-interface LegacyCacheRecord {
-  readonly environmentId: string;
-  readonly kind: ClientCacheKind;
-  readonly cacheKey: string;
-  readonly schemaVersion: number;
-  readonly payload: string;
-}
-
-function objectRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
-}
-
-export function decodeLegacyCacheRecord(
-  directoryName: (typeof LEGACY_CACHE_DIRECTORIES)[number],
-  payload: string,
-): LegacyCacheRecord | null {
-  let parsed: Record<string, unknown> | null;
-  try {
-    parsed = objectRecord(JSON.parse(payload));
-  } catch {
-    return null;
-  }
-  if (
-    parsed === null ||
-    typeof parsed.environmentId !== "string" ||
-    typeof parsed.schemaVersion !== "number"
-  ) {
-    return null;
-  }
-
-  switch (directoryName) {
-    case "connection-shell-snapshots":
-    case "shell-snapshots":
-      return {
-        environmentId: parsed.environmentId,
-        kind: "shell",
-        cacheKey: "snapshot",
-        schemaVersion: parsed.schemaVersion,
-        payload,
-      };
-    case "connection-thread-snapshots":
-      return typeof parsed.threadId === "string"
-        ? {
-            environmentId: parsed.environmentId,
-            kind: "thread",
-            cacheKey: parsed.threadId,
-            schemaVersion: parsed.schemaVersion,
-            payload,
-          }
-        : null;
-    case "connection-server-configs":
-      return {
-        environmentId: parsed.environmentId,
-        kind: "server-config",
-        cacheKey: "config",
-        schemaVersion: parsed.schemaVersion,
-        payload,
-      };
-    case "connection-vcs-refs":
-      return typeof parsed.cwd === "string"
-        ? {
-            environmentId: parsed.environmentId,
-            kind: "vcs-refs",
-            cacheKey: parsed.cwd,
-            schemaVersion: parsed.schemaVersion,
-            payload,
-          }
-        : null;
-  }
-}
-
-async function migrateLegacyFileCaches(database: SQLiteDatabase): Promise<boolean> {
-  try {
-    const { Directory, File, Paths } = await loadExpoFileSystem();
-    let complete = true;
-    const listFiles = (
-      directory: InstanceType<typeof Directory>,
-    ): Array<InstanceType<typeof File>> =>
-      directory.list().flatMap((entry) => (entry instanceof File ? [entry] : listFiles(entry)));
-
-    for (const directoryName of LEGACY_CACHE_DIRECTORIES) {
-      try {
-        const directory = new Directory(Paths.document, directoryName);
-        if (!directory.exists) continue;
-        for (const file of listFiles(directory)) {
-          const payload = await file.text();
-          const record = decodeLegacyCacheRecord(directoryName, payload);
-          if (record === null) continue;
-          await database.runAsync(
-            `INSERT INTO client_cache
-              (environment_id, kind, cache_key, schema_version, payload, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?)
-             ON CONFLICT (environment_id, kind, cache_key) DO NOTHING`,
-            record.environmentId,
-            record.kind,
-            record.cacheKey,
-            record.schemaVersion,
-            record.payload,
-            Date.now(),
-          );
-        }
-        directory.delete();
-      } catch (cause) {
-        complete = false;
-        console.warn(`[mobile-database] could not migrate legacy cache ${directoryName}`, cause);
-      }
-    }
-    return complete;
-  } catch (cause) {
-    console.warn("[mobile-database] could not load legacy cache migration", cause);
-    return false;
-  }
 }
 
 export class MobileDatabase extends Context.Service<
@@ -255,37 +196,7 @@ const makeAvailable = Effect.gen(function* () {
   yield* Effect.tryPromise({
     try: async () => {
       await database.execAsync("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
-      const schema = await database.getFirstAsync<{ readonly user_version: number }>(
-        "PRAGMA user_version",
-      );
-      await database.withExclusiveTransactionAsync(async (transaction) => {
-        await transaction.execAsync(`
-              CREATE TABLE IF NOT EXISTS client_cache (
-                environment_id TEXT NOT NULL,
-                kind TEXT NOT NULL,
-                cache_key TEXT NOT NULL,
-                schema_version INTEGER NOT NULL,
-                payload TEXT NOT NULL,
-                updated_at INTEGER NOT NULL,
-                PRIMARY KEY (environment_id, kind, cache_key)
-              ) WITHOUT ROWID;
-
-              CREATE INDEX IF NOT EXISTS client_cache_environment_updated
-                ON client_cache (environment_id, updated_at DESC);
-
-              CREATE TABLE IF NOT EXISTS client_preferences (
-                singleton INTEGER PRIMARY KEY NOT NULL CHECK (singleton = 1),
-                payload TEXT NOT NULL,
-                updated_at INTEGER NOT NULL
-              );
-            `);
-      });
-      if ((schema?.user_version ?? 0) < DATABASE_SCHEMA_VERSION) {
-        const migrated = await migrateLegacyFileCaches(database);
-        if (migrated) {
-          await database.execAsync(`PRAGMA user_version = ${DATABASE_SCHEMA_VERSION};`);
-        }
-      }
+      await migrateDatabase(database);
     },
     catch: databaseError("migrate"),
   });

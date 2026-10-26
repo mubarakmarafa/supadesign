@@ -1,5 +1,6 @@
 import {
   AuthOrchestrationOperateScope,
+  AuthProvidersManageScope,
   EnvironmentId,
   type AuthSessionState,
 } from "@supaterm/contracts";
@@ -47,7 +48,6 @@ const session = (canOperate: boolean): AuthSessionState => ({
     sessionCookieName: "session",
   },
 });
-// The production atom is read-only; the fake session source is writable.
 const source = (id: EnvironmentId) =>
   environmentSession.sessionStateAtom(id) as unknown as Atom.Writable<
     AsyncResult.AsyncResult<AuthSessionState, Error>
@@ -99,17 +99,30 @@ it("reacts to grant revocation, failure, and regrant without a connection list c
   expect(changes).not.toHaveLength(0);
 });
 
-it("uses exact new-server permissions and keeps old-server grants usable", () => {
-  // A legacy representation must never override an explicitly narrowed grant.
-  appAtomRegistry.set(source(primary), AsyncResult.success({ ...session(true), permissions: [] }));
-  expect(useEnvironmentScope(primary, AuthOrchestrationOperateScope)).toBe(false);
-  expect(readEnvironmentScope(primary, AuthOrchestrationOperateScope)).toBe(false);
+it("limits provider accounts to environments granting provider management", () => {
+  const environments = [{ environmentId: primary }, { environmentId: secondary }];
+  const permitted = () => useEnvironmentsWithScope(environments, AuthProvidersManageScope);
+  expect(permitted()).toEqual(new Set());
+  appAtomRegistry.set(
+    source(secondary),
+    AsyncResult.success({ ...session(false), scopes: [AuthProvidersManageScope] }),
+  );
+  expect(permitted()).toEqual(new Set([secondary]));
   appAtomRegistry.set(
     source(primary),
-    AsyncResult.success({ ...session(false), permissions: [AuthOrchestrationOperateScope] }),
+    AsyncResult.success({
+      ...session(true),
+      scopes: [AuthOrchestrationOperateScope, AuthProvidersManageScope],
+    }),
   );
-  expect(useEnvironmentScope(primary, AuthOrchestrationOperateScope)).toBe(true);
-  expect(readEnvironmentScope(primary, AuthOrchestrationOperateScope)).toBe(true);
-  appAtomRegistry.set(source(primary), AsyncResult.success(session(true)));
-  expect(useEnvironmentScope(primary, AuthOrchestrationOperateScope)).toBe(true);
+  expect(permitted()).toEqual(new Set([primary, secondary]));
+  appAtomRegistry.set(
+    source(secondary),
+    AsyncResult.success({
+      ...session(false),
+      authenticated: false,
+      scopes: [AuthProvidersManageScope],
+    }),
+  );
+  expect(permitted()).toEqual(new Set([primary]));
 });

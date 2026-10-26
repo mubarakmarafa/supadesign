@@ -2,26 +2,27 @@ import {
   ServerSelfUpdateError,
   type ServerSelfUpdateCapability,
   type ServerSelfUpdateInput,
+  type ServerSelfUpdateProgressEvent,
   type ServerSelfUpdateProgressStage,
   type ServerSelfUpdateResult,
-  type ThreadId,
 } from "@supaterm/contracts";
 import * as HostProcess from "@supaterm/shared/HostProcess";
-import * as Cause from "effect/Cause";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
-import * as HashSet from "effect/HashSet";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as Queue from "effect/Queue";
+import * as Stream from "effect/Stream";
 import { HttpClient } from "effect/http";
 
 import { CLI_RELEASE_BASE_URL_ENV } from "@supaterm/shared/cliRelease";
 
+import packageJson from "../../package.json" with { type: "json" };
 import * as ServerConfig from "../config.ts";
 import * as DesktopAppUpdate from "../desktopUpdate/DesktopAppUpdate.ts";
 import * as ProcessRunner from "../processRunner.ts";
@@ -29,7 +30,9 @@ import {
   ensurePinnedRuntimeInstalled,
   pinnedRuntimeCommand,
   PinnedRuntimeInstallError,
+  pinnedRuntimePaths,
   PinnedRuntimePreflightBlockedError,
+  prunePinnedRuntimes,
 } from "./pinnedRuntime.ts";
 import { decodeServicePreflightResult } from "./servicePreflight.ts";
 import * as ServiceLauncherClient from "./serviceLauncherClient.ts";
@@ -62,112 +65,33 @@ export class ServerSelfUpdate extends Context.Service<
   }
 >()("supaterm/service/selfUpdate/ServerSelfUpdate") {}
 
-export const withRunningThreadContinuation = Effect.fn(
-  "cloud.server_self_update.withRunningThreadContinuation",
-)(function* (input: {
-  readonly mode: ServerConfig.RuntimeMode;
-  readonly selfUpdate: ServerSelfUpdate["Service"];
-  readonly prepare: Effect.Effect<ReadonlyArray<ThreadId>, ServerSelfUpdateError>;
-  readonly clear: (
-    threadIds: ReadonlyArray<ThreadId>,
-  ) => Effect.Effect<void, ServerSelfUpdateError>;
-}) {
-  const desktopContinuationTokens = yield* Ref.make(HashSet.empty<string>());
-  const clearOnError = <A>(
-    effect: Effect.Effect<A, ServerSelfUpdateError>,
-    threadIds: () => ReadonlyArray<ThreadId>,
-    handoffAccepted: () => boolean,
-  ): Effect.Effect<A, ServerSelfUpdateError> =>
-    effect.pipe(
-      Effect.catchCause((cause) =>
-        (handoffAccepted() && Cause.hasInterruptsOnly(cause)
-          ? Effect.void
-          : input.clear(threadIds())
-        ).pipe(Effect.andThen(Effect.failCause(cause))),
-      ),
-    );
-
-  const update: ServerSelfUpdate["Service"]["update"] = (
-    request,
-    reportProgress = () => Effect.void,
-  ) => {
-    let prepared = false;
-    let handoffAccepted = false;
-    let continuationThreadIds: ReadonlyArray<ThreadId> = [];
-    return clearOnError(
-      input.selfUpdate
-        .update(
-          request,
-          (stage) =>
-            (request.continueRunningThreads === true &&
-            input.mode !== "desktop" &&
-            stage === "installing" &&
-            !prepared
-              ? input.prepare.pipe(
-                  Effect.tap((threadIds) =>
-                    Effect.sync(() => {
-                      prepared = true;
-                      continuationThreadIds = threadIds;
-                    }),
-                  ),
-                  Effect.asVoid,
-                )
-              : Effect.void
-            ).pipe(Effect.andThen(reportProgress(stage))),
-          () =>
-            Effect.sync(() => {
-              handoffAccepted = true;
-            }),
-        )
-        .pipe(
-          Effect.tap((result) => {
-            if (
-              result.method === "desktop-app" &&
-              result.desktopUpdateToken !== undefined &&
-              request.continueRunningThreads === true
-            ) {
-              return Ref.update(desktopContinuationTokens, HashSet.add(result.desktopUpdateToken));
-            }
-            return Effect.void;
-          }),
-        ),
-      () => continuationThreadIds,
-      () => handoffAccepted,
-    );
-  };
-
-  return ServerSelfUpdate.of({
-    update,
-    commitDesktopUpdate: (requestId) =>
-      Effect.gen(function* () {
-        const shouldContinue = yield* Ref.modify(desktopContinuationTokens, (tokens) => [
-          HashSet.has(tokens, requestId),
-          HashSet.remove(tokens, requestId),
-        ]);
-        let handoffAccepted = false;
-        let continuationThreadIds: ReadonlyArray<ThreadId> = [];
-        return yield* clearOnError(
-          Effect.gen(function* () {
-            continuationThreadIds = shouldContinue ? yield* input.prepare : [];
-            return yield* input.selfUpdate.commitDesktopUpdate(requestId, () =>
-              Effect.sync(() => {
-                handoffAccepted = true;
-              }),
-            );
-          }),
-          () => continuationThreadIds,
-          () => handoffAccepted,
-        ).pipe(
-          Effect.catchCause((cause) =>
-            (shouldContinue && !handoffAccepted
-              ? Ref.update(desktopContinuationTokens, HashSet.add(requestId))
-              : Effect.void
-            ).pipe(Effect.andThen(Effect.failCause(cause))),
-          ),
-        );
-      }),
-  });
-});
+/**
+ * A server starting from the runtime its launcher settled on means runtimes left by earlier
+ * updates can go. The boot service says so through its IPC context. The SSH launcher and the
+ * install script's `supaterm` start this home's pinned runtime directly, without one.
+ */
+export const pruneRuntimesOnStart = Effect.fn("cloud.server_self_update.prune_on_start")(
+  function* (input: { readonly baseDir: string; readonly managed: boolean }) {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const platform = yield* HostProcess.Platform;
+    const executablePath = yield* HostProcess.ExecutablePath;
+    const { entryPath } = pinnedRuntimePaths(path, input.baseDir, packageJson.version, platform);
+    // The executable path is resolved, so it names the real path of a symlinked Supaterm home.
+    const realEntryPath = yield* fs.realPath(entryPath).pipe(Effect.orElseSucceed(() => entryPath));
+    if (!input.managed && executablePath !== entryPath && executablePath !== realEntryPath) {
+      return [];
+    }
+    const removed = yield* prunePinnedRuntimes({
+      baseDir: input.baseDir,
+      keep: [packageJson.version],
+    });
+    if (removed.length > 0) {
+      yield* Effect.logInfo("Removed unused supaterm runtimes.", { versions: removed });
+    }
+    return removed;
+  },
+);
 
 export const make = Effect.fn("cloud.server_self_update.make")(function* () {
   const serverConfig = yield* ServerConfig.ServerConfig;
@@ -178,13 +102,15 @@ export const make = Effect.fn("cloud.server_self_update.make")(function* () {
   const path = yield* Path.Path;
   const platform = yield* HostProcess.Platform;
   const arch = yield* HostProcess.Architecture;
-  // Archive-distributed targets download from GitHub Releases. The client is
-  // optional so callers without one (tests, npm-only hosts) still construct.
   const httpClient = yield* HttpClient.HttpClient;
   const releaseBaseUrl = Option.getOrUndefined(
     yield* Config.String(CLI_RELEASE_BASE_URL_ENV).pipe(Config.option),
   );
   const inFlight = yield* Ref.make(false);
+
+  yield* pruneRuntimesOnStart({ baseDir: serverConfig.baseDir, managed: launcher.managed }).pipe(
+    Effect.forkScoped,
+  );
 
   const capability: ServerSelfUpdateCapability | null =
     serverConfig.mode === "desktop" ? "desktop-managed" : launcher.managed ? "boot-service" : null;
@@ -197,9 +123,6 @@ export const make = Effect.fn("cloud.server_self_update.make")(function* () {
     "cloud.server_self_update.update",
   )(function* (input, reportProgress = () => Effect.void, onHandoffAccepted = () => Effect.void) {
     if (capability === "desktop-managed") {
-      // input.targetVersion is meaningless here: the desktop app's own
-      // update feed decides what it downloads, and the result carries what
-      // it actually got.
       if (desktopAppUpdate.available) {
         return yield* desktopAppUpdate.run(reportProgress);
       }
@@ -240,8 +163,6 @@ export const make = Effect.fn("cloud.server_self_update.make")(function* () {
               args: [
                 ...pinnedRuntimeCommand(runtime).args,
                 "__service-preflight",
-                "--database-path",
-                serverConfig.dbPath,
                 "--launcher-protocol",
                 String(SERVICE_LAUNCHER_PROTOCOL),
               ],
@@ -344,3 +265,23 @@ export const make = Effect.fn("cloud.server_self_update.make")(function* () {
 export const layer = Layer.effect(ServerSelfUpdate, make()).pipe(
   Layer.provide(ProcessRunner.layer),
 );
+
+export const updateProgressStream = (
+  selfUpdate: ServerSelfUpdate["Service"],
+  input: ServerSelfUpdateInput,
+) =>
+  Stream.callback<ServerSelfUpdateProgressEvent, ServerSelfUpdateError>((queue) => {
+    const offer = (event: ServerSelfUpdateProgressEvent) =>
+      Queue.offer(queue, event).pipe(Effect.ignore);
+
+    return selfUpdate
+      .update(input, (stage) => offer({ type: "progress", stage }))
+      .pipe(
+        Effect.flatMap((result) => offer({ type: "complete", result })),
+        Effect.catchTags({
+          ServerSelfUpdateError: (error) => Queue.fail(queue, error).pipe(Effect.ignore),
+        }),
+        Effect.andThen(Queue.end(queue).pipe(Effect.ignore)),
+        Effect.forkDetach,
+      );
+  });

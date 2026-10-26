@@ -69,7 +69,7 @@ export const make = Effect.gen(function* () {
         return note?.text ?? null;
       }),
 
-    newId: crypto.randomUUIDv4.pipe(Effect.orDie),
+    newId: crypto.randomUUIDv4().pipe(Effect.orDie),
     now: Clock.currentTimeMillis.pipe(
       Effect.map((ms) => DateTime.formatIso(DateTime.makeUnsafe(ms))),
     ),

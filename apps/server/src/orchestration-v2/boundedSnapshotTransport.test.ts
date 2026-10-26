@@ -5,6 +5,7 @@ import {
   EnvironmentAuthenticatedAuth,
   EnvironmentAuthenticatedPrincipal,
   EnvironmentHttpApi,
+  EnvironmentId,
   EventId,
   MessageId,
   NodeId,
@@ -34,6 +35,7 @@ import * as HttpApi from "effect/http-api/HttpApi";
 import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
 import { Etag, HttpRouter } from "effect/http";
 
+import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as OrchestrationEventStore from "../persistence/OrchestrationEventStore.ts";
 import * as ProjectEnrichmentService from "../project/ProjectEnrichmentService.ts";
@@ -68,7 +70,6 @@ const management = Layer.unwrap(
   Effect.gen(function* () {
     const projections = yield* ProjectionStore.ProjectionStoreV2;
     return Layer.mock(ThreadManagementService.ThreadManagementService)({
-      ensureLegacyTranscript: () => Effect.void,
       getThreadSnapshot: (id) => projections.getThreadSnapshot(id).pipe(Effect.orDie),
       getThreadSnapshotWindow: (id, options) =>
         projections.getThreadSnapshotWindow(id, options).pipe(Effect.orDie),
@@ -118,8 +119,8 @@ function threadCreated(id: ThreadId, at: DateTime.Utc, forkOf?: RunId): Orchestr
       createdAt: at,
       updatedAt: at,
       archivedAt: null,
-      settledOverride: null,
-      settledAt: null,
+      doneOverride: null,
+      doneAt: null,
       lastVisitedAt: null,
       deletedAt: null,
     },
@@ -224,6 +225,9 @@ const seed = Effect.gen(function* () {
 
 const TestLayer = Layer.mergeAll(
   management,
+  Layer.succeed(ServerEnvironment.ServerEnvironmentIdentity, {
+    getEnvironmentId: Effect.succeed(EnvironmentId.make("compact-transport")),
+  }),
   Layer.effectDiscard(seed),
   Layer.mock(OrchestrationEventStore.OrchestrationEventStore)({}),
   Layer.mock(ProjectStore.ProjectStoreV2)({}),

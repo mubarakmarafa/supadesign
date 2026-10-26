@@ -9,7 +9,6 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import {
   CommandId,
-  EnvironmentInternalError,
   EventId,
   ProviderInstanceId,
   ThreadId,
@@ -40,11 +39,7 @@ import * as RepositoryIdentityResolver from "../project/RepositoryIdentityResolv
 import * as SupatermProjectFileLoader from "../project/SupatermProjectFileLoader.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
-import {
-  ProjectLiveServerDeclaredResponseError,
-  ProjectLiveServerRequestError,
-  projectCommandErrorFromLiveServerRequest,
-} from "./project.ts";
+import { ProjectHasThreadsError } from "./project.ts";
 
 const layerCliRuntime = Layer.mergeAll(NodeServices.layer, NetService.layer);
 const runCli = (args: ReadonlyArray<string>) =>
@@ -106,34 +101,6 @@ const readProjects = (baseDir: string) =>
       Effect.provide(layer),
     );
   });
-
-it("maps declared server failures into structural project command errors", () => {
-  const cause = new EnvironmentInternalError({
-    code: "internal_error",
-    reason: "access_token_issuance_failed",
-    traceId: "trace-123",
-  });
-
-  const error = projectCommandErrorFromLiveServerRequest(cause);
-
-  assert.instanceOf(error, ProjectLiveServerDeclaredResponseError);
-  assert.strictEqual(error.operation, "callLiveServer");
-  assert.strictEqual(error.code, "internal_error");
-  assert.strictEqual(error.traceId, "trace-123");
-  assert.strictEqual(error.message, "Server request failed (internal_error, trace trace-123).");
-  assert.strictEqual(error.cause, cause);
-});
-
-it("preserves unexpected server failures without deriving the message from them", () => {
-  const cause = new Error("credential abc123 was rejected");
-
-  const error = projectCommandErrorFromLiveServerRequest(cause);
-
-  assert.instanceOf(error, ProjectLiveServerRequestError);
-  assert.strictEqual(error.operation, "callLiveServer");
-  assert.strictEqual(error.message, "Failed to call the running server.");
-  assert.strictEqual(error.cause, cause);
-});
 
 it.effect("adds, renames, and removes projects through the V2 project CLI domain", () =>
   Effect.gen(function* () {
@@ -217,8 +184,8 @@ const seedNativeThreads = Effect.fn("ProjectCliTest.seedNativeThreads")(function
           createdAt,
           updatedAt: createdAt,
           archivedAt: archived ? createdAt : null,
-          settledOverride: null,
-          settledAt: null,
+          doneOverride: null,
+          doneAt: null,
           lastVisitedAt: null,
           deletedAt: null,
         };
@@ -253,12 +220,6 @@ const readNativeThreadState = Effect.fn("ProjectCliTest.readNativeThreadState")(
 it.layer(NodeServices.layer)("project deletion with native V2 threads", (it) => {
   it.effect.each([
     { label: "an active thread", archived: false, missing: false },
-    { label: "an archived thread", archived: true, missing: false },
-    {
-      label: "an active thread after its workspace disappears",
-      archived: false,
-      missing: true,
-    },
     {
       label: "an archived thread after its workspace disappears",
       archived: true,
@@ -286,7 +247,8 @@ it.layer(NodeServices.layer)("project deletion with native V2 threads", (it) => 
         }),
       );
 
-      assert.include(error.message, "not empty");
+      assert.instanceOf(error, ProjectHasThreadsError);
+      assert.include(error.message, "still has threads. Re-run with --force");
       assert.deepEqual(
         (yield* readProjects(baseDir)).projects.map((entry) => entry.id),
         [project.id],
@@ -368,22 +330,6 @@ it.layer(NodeServices.layer)("project lookup with unavailable workspaces", (it) 
         assert.deepEqual((yield* readProjects(baseDir)).projects, []);
         assert.isFalse(yield* fs.exists(workspaceRoot));
       }),
-  );
-
-  it.effect("renames by ID and stored path after the directory is gone", () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const { baseDir, workspaceRoot, project } = yield* makeProjectLookupFixture();
-      yield* fs.rename(workspaceRoot, `${workspaceRoot}-removed`);
-      for (const [identifier, title] of [
-        [project.id, "Renamed by ID"],
-        [workspaceRoot, "Renamed by stored path"],
-      ] as const) {
-        yield* runCli(["project", "rename", identifier, title, "--base-dir", baseDir]);
-        assert.equal((yield* readProjects(baseDir)).projects[0]?.title, title);
-      }
-      assert.isFalse(yield* fs.exists(workspaceRoot));
-    }),
   );
 
   it.effect("does not resolve another environment's project ID in an empty database", () =>

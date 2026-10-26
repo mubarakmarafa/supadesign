@@ -56,17 +56,24 @@ On web and desktop, choose **Settings → General → Follow-up behavior** to qu
 new messages for a later turn or steer the running turn immediately. The setting
 applies to this client; already queued messages keep their place. Queued messages
 are saved on the server and can be edited, reordered, or removed above the composer.
-`Cmd+Enter` on macOS or `Ctrl+Enter` on Windows and Linux uses the opposite action:
-it steers when your default is Queue and queues when your default is Steer.
+When Enter sends, `Cmd+Enter` on macOS or `Ctrl+Enter` on Windows and Linux uses
+the opposite action: it steers when your default is Queue and queues when your
+default is Steer.
+If your **Send shortcut** requires `Cmd+Enter` or `Ctrl+Enter`, that shortcut uses
+your default follow-up behavior; add **Shift** to use the opposite action. This
+applies only to multiline messages when you choose the multiline send option.
 
 Use `Cmd+Shift+Enter` on macOS or `Ctrl+Shift+Enter` on Windows and Linux to send
-the oldest queued message as a steer. This leaves the current draft intact and
-requires an active turn that supports steering. Change
-`thread.steerQueuedMessage` in **Settings → Keybindings** to use another shortcut.
+the oldest queued message. This leaves the current draft intact. While a turn that supports
+steering runs, the message steers it; once the agent is stopped, it starts a new turn. If that
+shortcut sends the opposite action for your draft, move focus outside the composer to send the
+queued message. Change `thread.steerQueuedMessage` in **Settings → Keybindings** to use another
+shortcut.
 
-Press `Option+Up` on macOS or `Alt+Up` on Windows and Linux with the cursor at the
-start of the composer to edit the most recently queued message. Change
-`thread.editQueuedMessage` to use another shortcut.
+Press `ArrowUp` in an empty composer to edit the most recently queued message,
+including one still waiting to send. When the composer has text, press `Option+Up`
+on macOS or `Alt+Up` on Windows and Linux with the cursor at the start instead. Change
+`thread.editQueuedMessage` to use another shortcut for the latter.
 
 Mobile has the same choice under **Settings → Follow-ups**. While a turn is
 running the send button shows which action it will take. Long-press it to use the
@@ -79,6 +86,10 @@ Web, desktop, and mobile save sent messages locally until the environment accept
 them. You can queue messages in an existing thread or start a new task in a project
 you have already opened. Pending messages and their attachments survive app restarts
 and send automatically after reconnecting.
+
+Messages sent into a task that has not started yet wait behind it and follow once it
+starts. They stay with the task if it fails to start, and cancelling or deleting the
+task removes them too.
 
 Edit or cancel a pending message before delivery starts. If a connection drops during
 sending, Supaterm keeps that message until it can confirm delivery. Approvals and
@@ -118,10 +129,13 @@ returns to the remembered selection.
 
 Leaving reasoning level or service tier unset uses the provider's own configuration.
 
+On mobile, long-press the bolt in the composer to choose from the selected model's
+service tiers. Tap it to toggle fast mode.
+
 ## Quote an assistant response
 
 On web and desktop, select text within one assistant response and choose
-**Cite in composer**. You can add a comment about the quote and write instructions
+**Add annotation**. You can add a comment about the quote and write instructions
 around it.
 
 Select the quote in a draft or sent message to return to its source. If the source
@@ -143,7 +157,8 @@ Press `ArrowUp` in an empty composer to bring back the last prompt you sent in t
 `ArrowUp` again to go further back, and `ArrowDown` to come forward. Moving forward past the newest
 prompt clears the composer. Recall walks the prompts loaded in the thread. Attachments, terminal
 context, and other extras from the original message are not restored, only the text you typed. A
-composer that holds an attachment or a picked element does not count as empty.
+composer that holds an attachment or a picked element does not count as empty. While messages are
+queued, `ArrowUp` edits the newest [queued message](#queued-messages) instead.
 
 When the composer has text, the arrow keys move the caret as usual. Recall takes over only while
 the text is an unedited recalled prompt, with the caret on the first visual line for `ArrowUp` or
@@ -154,7 +169,8 @@ into a normal draft.
 
 On web and desktop, choose **Edit from here** beneath a sent message to rewind
 the conversation to before that message. Choose **Revert and keep changes** to
-leave workspace files as they are, or **Revert files too** to restore them as well.
+leave workspace files as they are, or **Revert files too** to put the workspace back
+to its checkpoint from before that message. That also undoes edits you made yourself.
 File restore is only offered for threads running in a worktree, and it is
 refused when another thread or agent session also uses that directory, a folder
 inside it, or a folder that contains it, since
@@ -173,6 +189,12 @@ the current prompt and its attachments for later. Wait for uploads to finish fir
 With an empty composer, the same shortcut restores a single stash or opens the
 stash menu when there are several. To delete a stash, press its **X** twice;
 Escape cancels.
+
+To send every stash, press **Send all** in the stash menu twice. Each stash goes out
+as its own message, oldest first, and waits in the queue while the agent works, so you
+can still edit or remove it there. Send all needs an empty composer in a thread that
+has already started. It stops at a stash that cannot be sent as saved, such as one
+with missing images, and leaves it in the composer for you to check.
 
 Stashes containing uploaded files must be restored in their original environment.
 Those files are retained for 24 hours. After an upload expires, restore the prompt
@@ -205,25 +227,29 @@ transcription or cancellation; only the message text is sent when you submit.
 ## Queued messages
 
 On web and desktop, the composer shows **Interrupt** while the agent is working and the draft is
-empty. Adding text or attachments replaces it with a steer arrow. Click it to send a message into
-the active turn, or press `Enter` on desktop. Hold `Cmd` on macOS or `Ctrl` on Windows and Linux to
-switch the button to a queue icon. Click while holding that key, or press `Cmd+Enter` or
-`Ctrl+Enter` on desktop, to queue the message for after the active turn.
+empty. Adding text or attachments replaces it with a send button that shows your
+[Follow-up behavior](#send-while-the-agent-is-working): a queue icon for Queue or a steer arrow for
+Steer. Click it or press your send shortcut to use that action. Hold `Cmd` on macOS or `Ctrl` on
+Windows and Linux to switch the button to the opposite action, then click, or use the opposite-action
+shortcut described above.
 
 Queued messages appear above the composer. Rows show a thumbnail of any attached image alongside
 the text. Drag a row by its handle to reorder it, use the handle's arrow keys, promote the message
 to a steer, or remove it. On web and desktop, removing takes two presses of the row's **X**
 because the message is discarded, not returned to the composer.
 
-If the server restarts, saved queued messages keep their order and are held. Press
-**Resume** in an empty composer on web or desktop, or **Resume queue** in the queue
-sheet on mobile, to continue. You can edit, reorder, or remove held messages without starting them.
+If you stop the agent or the server restarts, queued messages keep their order and are held.
+Press **Resume** in an empty composer on web and desktop, or **Resume queue** on mobile, to
+continue. Sending a new message also resumes the queue, unless it steers a turn that is already
+running. You can edit, reorder, or remove held messages without starting them. **Send now** on a
+held row starts a turn with that message ahead of the others.
 
 The pencil on a queued row opens that message in the composer for editing. The original message
 stays in the queue until you save, and its row is highlighted while you edit. The message's
 attachments appear above the text with a remove control, and new images can be added the usual way.
-The checkmark saves the queued message in place; **Cancel** on its row leaves it unchanged. Whatever
-you had typed in the composer before starting the edit is restored afterwards. If the queued
+The checkmark saves the queued message in place; **Cancel** on its row, or `Escape` in the
+composer, leaves it unchanged. Whatever you had typed in the composer before starting the edit is
+restored afterwards. If the queued
 message starts or is removed while you are editing, the edit ends: changed content moves into the
 composer when it is empty, and is discarded otherwise.
 
@@ -286,10 +312,12 @@ excerpt, Terminal 1 lines 3-4" and similar to screen readers.
 A pull request appears as its icon and number. Its color reflects whether it was open, draft,
 merged, or closed when it was attached. Select it to inspect the captured title and branches,
 then choose **Open pull request** to visit the pull request. On web and desktop, type `#` to browse the newest
-pull requests in the current project's repository. Continue typing digits to filter the recent list
+pull requests in the current project's repository. Pull requests linked to the thread are included
+from any repository and listed first, after any exact number match. Continue typing digits to filter the recent list
 by any part of its pull request numbers. A complete number is also resolved directly, even when that
 pull request is older than the recent list. Type a single word after `#` to search pull requests in
-the repository by text. Choose a result to insert it as a chip.
+the repository by text. Choose a result to insert it as a chip. You can also drag a pull request
+from the thread's linked pull requests panel onto the composer.
 
 Another thread can be context too. Type `@` followed by part of its title to pick one from
 the same server, or on web and desktop drag a thread out of the sidebar and drop it on the
@@ -297,6 +325,12 @@ composer; a multi-selection drops together. The chip shows the thread's current 
 opens it when selected. Your prompt only carries a reference: the agent reads the thread's
 history on demand, so attaching a long thread costs nothing until the agent looks. Attaching a
 thread does not change it, and the agent cannot send messages to it unless you ask.
+
+Dropping a thread from another environment attaches a saved transcript file. The source
+environment must be connected and up to date. The transcript includes the visible history and
+saved text context at the time of the drop; later messages and the contents of attached files
+are not copied. The agent can read the saved transcript after the source disconnects. Normal
+file attachment limits apply.
 
 Images keep their thumbnail shelf above the text and also get a chip at your cursor, so you can
 say exactly which image you mean. Deleting an image chip leaves the image on the shelf; removing

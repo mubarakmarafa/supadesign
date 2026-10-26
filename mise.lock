@@ -2,86 +2,86 @@
 
 lockfile_version = 2
 
-[[tools.actionlint]]
-version = "1.7.12"
-backend = "aqua:rhysd/actionlint"
-specifiers = ["1.7.12"]
+[[tools."github:jdx/jactionlint"]]
+version = "2.2.0"
+backend = "github:jdx/jactionlint"
+specifiers = ["2.2.0"]
 
-[tools.actionlint."platforms.linux-arm64"]
-checksum = "sha256:325e971b6ba9bfa504672e29be93c24981eeb1c07576d730e9f7c8805afff0c6"
-url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/384924897"
+[tools."github:jdx/jactionlint"."platforms.linux-arm64"]
+checksum = "sha256:6d4c3831cc360b14550fb2f4605b4de9d2761515cd3fd5c1da718528b314647d"
+url = "https://github.com/jdx/jactionlint/releases/download/v2.2.0/jactionlint_2.2.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/jdx/jactionlint/releases/assets/640875713"
 provenance = "github-attestations"
 
-[tools.actionlint."platforms.linux-x64"]
-checksum = "sha256:8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
-url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/384924896"
+[tools."github:jdx/jactionlint"."platforms.linux-x64"]
+checksum = "sha256:8137d5bfe266dd5e48d2af2306827785ce07c6988e04b1c3d6ad4776e97d27d2"
+url = "https://github.com/jdx/jactionlint/releases/download/v2.2.0/jactionlint_2.2.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/jdx/jactionlint/releases/assets/640875708"
 provenance = "github-attestations"
 
-[tools.actionlint."platforms.macos-arm64"]
-checksum = "sha256:aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e6953f"
-url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/384924893"
+[tools."github:jdx/jactionlint"."platforms.macos-arm64"]
+checksum = "sha256:622b29b15a59618bc032163073209ffc434252e9a19eafd451e69207a50f266a"
+url = "https://github.com/jdx/jactionlint/releases/download/v2.2.0/jactionlint_2.2.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/jdx/jactionlint/releases/assets/640875646"
 provenance = "github-attestations"
 
-[tools.actionlint."platforms.macos-x64"]
-checksum = "sha256:5b44c3bc2255115c9b69e30efc0fecdf498fdb63c5d58e17084fd5f16324c644"
-url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/384924880"
+[tools."github:jdx/jactionlint"."platforms.macos-x64"]
+checksum = "sha256:74efa76b1c200a2b7778c28e9aa0c3ba1c843863006a2f8916f252f8c048d42b"
+url = "https://github.com/jdx/jactionlint/releases/download/v2.2.0/jactionlint_2.2.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/jdx/jactionlint/releases/assets/640875655"
 provenance = "github-attestations"
 
-[tools.actionlint."platforms.windows-arm64"]
-checksum = "sha256:cadcf7ea4efe3a68728893813643cebe1185e5b1d4be5b96245f65c9a4d5ea41"
-url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_windows_arm64.zip"
-url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/384924915"
+[tools."github:jdx/jactionlint"."platforms.windows-arm64"]
+checksum = "sha256:c23e76e2382f9d5ae6b2a0d74df80b2e13179a62bee4885f5ca4eedf2a85b588"
+url = "https://github.com/jdx/jactionlint/releases/download/v2.2.0/jactionlint_2.2.0_windows_arm64.zip"
+url_api = "https://api.github.com/repos/jdx/jactionlint/releases/assets/640875753"
 provenance = "github-attestations"
 
-[tools.actionlint."platforms.windows-x64"]
-checksum = "sha256:6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9"
-url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_windows_amd64.zip"
-url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/384924919"
+[tools."github:jdx/jactionlint"."platforms.windows-x64"]
+checksum = "sha256:97300770d2bea28110736e34edfc9a21d80840090af64dc4b6116b6467f537a4"
+url = "https://github.com/jdx/jactionlint/releases/download/v2.2.0/jactionlint_2.2.0_windows_amd64.zip"
+url_api = "https://api.github.com/repos/jdx/jactionlint/releases/assets/640875792"
 provenance = "github-attestations"
 
 [[tools."github:voidzero-dev/vite-plus"]]
-version = "1.0.0"
+version = "1.3.0"
 backend = "github:voidzero-dev/vite-plus"
-specifiers = ["1.0.0"]
+specifiers = ["1.3.0"]
 
 [tools."github:voidzero-dev/vite-plus"."platforms.linux-arm64"]
-checksum = "sha256:113958a622191be25362749aad123c6b2b646f27d69751ec1edd073b33a1bc46"
-url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.0.0/vp-aarch64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/594610036"
+checksum = "sha256:c8a39c92ac65241f58c25011e41be3c111fc48dbb0c3aabfa1891915eb4cdff4"
+url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.3.0/vp-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/646340013"
 provenance = "github-attestations"
 
 [tools."github:voidzero-dev/vite-plus"."platforms.linux-x64"]
-checksum = "sha256:2adca8386c8f7e158eea4abe1a3eda9f89313c869145f788409a0be45979dd6a"
-url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.0.0/vp-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/594610028"
+checksum = "sha256:3fb3a668472e1312eedd7598b3f6c511acebc2f6497c293a5ee04eba248eee7e"
+url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.3.0/vp-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/646340011"
 provenance = "github-attestations"
 
 [tools."github:voidzero-dev/vite-plus"."platforms.macos-arm64"]
-checksum = "sha256:309d42550348aa156e34a9a2eb6e9e8b1c5886126b14cd9a88f42d158a944b35"
-url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.0.0/vp-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/594610033"
+checksum = "sha256:4f021a73d675ffc78ac77359ffd40d89a62f262ac75625e5e0fd56722112f838"
+url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.3.0/vp-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/646340014"
 provenance = "github-attestations"
 
 [tools."github:voidzero-dev/vite-plus"."platforms.macos-x64"]
-checksum = "sha256:27d61dc87e3f456d086fb865aba853a1937a112881d4a7f0dfc03ad0f472fba8"
-url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.0.0/vp-x86_64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/594610032"
+checksum = "sha256:23c091e36d503a00eeba17caf8f26c60c1abc66387a72993af10794bb76df3c2"
+url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.3.0/vp-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/646340019"
 provenance = "github-attestations"
 
 [tools."github:voidzero-dev/vite-plus"."platforms.windows-arm64"]
-checksum = "sha256:dc2799e70881c1d9935ab80fb2d058bc7de76b194853405d509e0350a2f9e6a6"
-url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.0.0/vp-aarch64-pc-windows-msvc.zip"
-url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/594610026"
+checksum = "sha256:013571af6aba079fd2a2d4e5873d4c92682c5c997d62bc556b464cf2a1949d98"
+url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.3.0/vp-aarch64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/646340012"
 provenance = "github-attestations"
 
 [tools."github:voidzero-dev/vite-plus"."platforms.windows-x64"]
-checksum = "sha256:8128e4a9d8561e0c5c5c6102557ac412f6e6d466deef632891d382e168c55ff2"
-url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.0.0/vp-x86_64-pc-windows-msvc.zip"
-url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/594610027"
+checksum = "sha256:4ed146df3143a45cb7ec43084e3ada5952ac2f457f4cd7c5ffddf93ec1b04735"
+url = "https://github.com/voidzero-dev/vite-plus/releases/download/v1.3.0/vp-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/voidzero-dev/vite-plus/releases/assets/646340017"
 provenance = "github-attestations"
 
 [[tools.gitleaks]]
@@ -120,103 +120,103 @@ url = "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8
 url_api = "https://api.github.com/repos/gitleaks/gitleaks/releases/assets/378333178"
 
 [[tools.hk]]
-version = "2.6.0"
+version = "2.7.0"
 backend = "packslip:github.com/jdx/hk"
-specifiers = ["2.6.0"]
+specifiers = ["2.7.0"]
 
 [tools.hk."platforms.linux-arm64"]
-checksum = "sha256:bcccd60f962a784bcf602b3a1ee6aac4dc53c76b298bffe38c4f9101725d2fb0"
-url = "https://github.com/jdx/hk/releases/download/v2.6.0/hk-aarch64-unknown-linux-gnu.tar.gz"
+checksum = "sha256:a64c8cead6f9a47e6bf4d639122ca3eeba60480763076330ba230a8cb7821520"
+url = "https://github.com/jdx/hk/releases/download/v2.7.0/hk-aarch64-unknown-linux-gnu.tar.gz"
 signer = "sigstore-oidc:https://github.com/jdx/hk/.github/workflows/release.yml"
 
 [tools.hk."platforms.linux-x64"]
-checksum = "sha256:dfc2e1140a114c28f42fa6d1b958fac7008de3b96b19bbf74d693c0f86bcff60"
-url = "https://github.com/jdx/hk/releases/download/v2.6.0/hk-x86_64-unknown-linux-gnu.tar.gz"
+checksum = "sha256:2d5819ee2bc3e5b424d90fb05928c05297bfa4d36490628b075b8f8afe14b7b1"
+url = "https://github.com/jdx/hk/releases/download/v2.7.0/hk-x86_64-unknown-linux-gnu.tar.gz"
 signer = "sigstore-oidc:https://github.com/jdx/hk/.github/workflows/release.yml"
 
 [tools.hk."platforms.macos-arm64"]
-checksum = "sha256:40a336e793397d5940b284aae674477d430b24dc86167be92e080120d80e42f2"
-url = "https://github.com/jdx/hk/releases/download/v2.6.0/hk-aarch64-apple-darwin.tar.gz"
+checksum = "sha256:3b98dd45e493a421de5b327c87b3e0fdfac39383e11b6a2b48b43bbc5a9ce0d6"
+url = "https://github.com/jdx/hk/releases/download/v2.7.0/hk-aarch64-apple-darwin.tar.gz"
 signer = "sigstore-oidc:https://github.com/jdx/hk/.github/workflows/release.yml"
 
 [tools.hk."platforms.windows-arm64"]
-checksum = "sha256:5ad64ea69dc0635bcbb7894baaea52b27728a4ef3498f2f689637bcfa75bef8d"
-url = "https://github.com/jdx/hk/releases/download/v2.6.0/hk-aarch64-pc-windows-msvc.zip"
+checksum = "sha256:c2862122dabcfc1b68444926c6408f8676b0dca2dd291e0991e59c116be5b50f"
+url = "https://github.com/jdx/hk/releases/download/v2.7.0/hk-aarch64-pc-windows-msvc.zip"
 signer = "sigstore-oidc:https://github.com/jdx/hk/.github/workflows/release.yml"
 
 [tools.hk."platforms.windows-x64"]
-checksum = "sha256:5afd28127f09f6b5a5d246413611b4494ad38d30930dd0cd009a8d6aff0f4c3d"
-url = "https://github.com/jdx/hk/releases/download/v2.6.0/hk-x86_64-pc-windows-msvc.zip"
+checksum = "sha256:69fa61c4ef0ea7d25ccb2804b52c31e91be8f7c9cc1176aabe8ea780f3c5b0bb"
+url = "https://github.com/jdx/hk/releases/download/v2.7.0/hk-x86_64-pc-windows-msvc.zip"
 signer = "sigstore-oidc:https://github.com/jdx/hk/.github/workflows/release.yml"
 
 [[tools.node]]
-version = "24.21.0"
+version = "24.22.1"
 backend = "core:node"
-specifiers = ["24.21.0"]
+specifiers = ["24.22.1"]
 
 [tools.node."platforms.linux-arm64"]
-checksum = "sha256:724282c3b43aec998aa9527380465b45d229e021b58035f5f4f63095eabfe5d5"
-url = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-arm64.tar.gz"
+checksum = "sha256:33c37be234ba8bee041961047b19160f4d7d0f164e8e246f78bdd10feff148b3"
+url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-arm64.tar.gz"
 
 [tools.node."platforms.linux-x64"]
-checksum = "sha256:6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff"
-url = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.gz"
+checksum = "sha256:eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c"
+url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-linux-x64.tar.gz"
 
 [tools.node."platforms.macos-arm64"]
-checksum = "sha256:bed7eea5325e1108f32ce5228ddd6a5f0f08a499ee42aa7442aea583702f6057"
-url = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-darwin-arm64.tar.gz"
+checksum = "sha256:89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7"
+url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-darwin-arm64.tar.gz"
 
 [tools.node."platforms.macos-x64"]
-checksum = "sha256:1462cb3b3046b815cf8ea436d3da450ec1a9f11dac7e5a46b0ada5305d7e8097"
-url = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-darwin-x64.tar.gz"
+checksum = "sha256:d132557e7ee2b85af08b0c8c34338e65c6430f2238d01f727728ef42dc83b035"
+url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-darwin-x64.tar.gz"
 
 [tools.node."platforms.windows-arm64"]
-checksum = "sha256:8779b1bde1d39f8d420e3b57aa657b39891af434d3de44a919044cec06785921"
-url = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-arm64.zip"
+checksum = "sha256:a0c807319fede24c4a0d8f84564c82a619bd313b16b10c007c383c2609e99171"
+url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-arm64.zip"
 
 [tools.node."platforms.windows-x64"]
-checksum = "sha256:158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541"
-url = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip"
+checksum = "sha256:d2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5"
+url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-x64.zip"
 
 [[tools.pnpm]]
-version = "12.10.1"
+version = "12.14.0"
 backend = "aqua:pnpm/pnpm"
-specifiers = ["12.10.1"]
+specifiers = ["12.14.0"]
 
 [tools.pnpm."platforms.linux-arm64"]
-checksum = "sha256:18dbb118de1dbef0e4516c17bf847d6ee206fc4deffb2bb488ec8e1d2814e078"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.10.1/pnpm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/616153643"
+checksum = "sha256:cfc780b9e690549e6633e1045fb1fb6ef84e390711e2099e6ccbae91c32456ea"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.14.0/pnpm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/643957409"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.linux-x64"]
-checksum = "sha256:502a275984a4cd01e5579ac72049a241091cac5118e44becf84951130c3e079e"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.10.1/pnpm-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/616153639"
+checksum = "sha256:3910c3852136bed5bc1511b9137a45fd4357ed6b3970d9d08893641e9005867e"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.14.0/pnpm-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/643957410"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.macos-arm64"]
-checksum = "sha256:a617ae6a55c8b3cd494c611ada88d65cb7c3cf6d7828e91b2f44b4bed1bee217"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.10.1/pnpm-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/616153633"
+checksum = "sha256:50f48e0e17508952790a3fbf58fcf14f3b82efa5f594ca04ad904e29aaf854b0"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.14.0/pnpm-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/643957413"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.macos-x64"]
-checksum = "sha256:be78adee6612302667836dcde5a344c6ec03c231de34091868e6f272a6484fe6"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.10.1/pnpm-darwin-x64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/616153641"
+checksum = "sha256:2c412e07382049b4edb04fa6da78f3d4ef7810b75853c80544dcfb7c0ed79880"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.14.0/pnpm-darwin-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/643957411"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.windows-arm64"]
-checksum = "sha256:67c0980c2223d2f89b46ceedb09caaa37bfab075d8319d0e651eb659d00c66e9"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.10.1/pnpm-win32-arm64.zip"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/616153640"
+checksum = "sha256:97f707ce677b7591bad9d95c1f74635b5b2b9468da92ef94d426db4453524357"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.14.0/pnpm-win32-arm64.zip"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/643957415"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.windows-x64"]
-checksum = "sha256:299009317554b82905927f8e9782ec5f0afb08eb7b5cc5eb2b15a923cb1a56ef"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.10.1/pnpm-win32-x64.zip"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/616153638"
+checksum = "sha256:6f0f38e917c8ce76ef31db528c357e2bfa354a1bcb16464e3cdec39e6530d784"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.14.0/pnpm-win32-x64.zip"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/643957404"
 provenance = "github-attestations"
 
 [[tools.shellcheck]]

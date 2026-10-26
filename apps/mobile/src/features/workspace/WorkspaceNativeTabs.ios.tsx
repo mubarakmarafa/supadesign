@@ -1,4 +1,4 @@
-import { useNativeLayoutMetrics } from "../../native/native-layout-metrics";
+import { useDeviceType, useNativeLayoutMetrics } from "../../native/native-layout-metrics";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Keyboard, Platform, View, type NativeSyntheticEvent } from "react-native";
 import {
@@ -13,7 +13,6 @@ import type { WorkspaceTab } from "./workspace-tabs-state";
 import { NativeWorkspaceTabActivityContext } from "../../native/v5-workspace-context";
 import { useSystemWorkspaceTabBar } from "./useSystemWorkspaceTabBar";
 
-// Tabler's git-pull-request geometry, rasterized at 1x/2x/3x for UIKit template images.
 const PULL_REQUEST_ICON = require("../../../modules/supaterm-native-controls/ios/Resources/pull-request.png");
 const COMPOSE_TAB = "compose";
 
@@ -53,8 +52,11 @@ export function WorkspaceNativeTabs(props: {
 }) {
   const workspace = useWorkspaceTabs()!;
   const metrics = useNativeLayoutMetrics();
+  const deviceType = useDeviceType();
   const phoneBar =
-    Platform.OS === "ios" && !Platform.isPad && (metrics?.verticalBarEdge ?? "none") === "none";
+    Platform.OS === "ios" &&
+    deviceType !== "pad" &&
+    (metrics?.verticalBarEdge ?? "none") === "none";
   const [provenance, setProvenance] = useState(0);
   const systemTabBar = useSystemWorkspaceTabBar();
   const selectedTab = workspace.state.selectedTab;

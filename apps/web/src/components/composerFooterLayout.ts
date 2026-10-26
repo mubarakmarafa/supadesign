@@ -1,5 +1,5 @@
-export const COMPOSER_FOOTER_COMPACT_BREAKPOINT_PX = 620;
-export const COMPOSER_FOOTER_WIDE_ACTIONS_COMPACT_BREAKPOINT_PX = 780;
+const COMPOSER_FOOTER_COMPACT_BREAKPOINT_PX = 620;
+const COMPOSER_FOOTER_WIDE_ACTIONS_COMPACT_BREAKPOINT_PX = 780;
 const RESTING_COMPOSER_IMAGE_THUMBNAIL_LIMIT = 3;
 
 export function getRestingComposerImagePreviewCounts(imageCount: number): {
@@ -29,7 +29,6 @@ export function shouldUseRestingComposerLayout(input: {
   isScrollCollapsed: boolean;
   hasExpandedChrome: boolean;
   hasMultilinePrompt: boolean;
-  /** Whether the timeline has more content than fits above the composer. */
   timelineOverflows: boolean;
 }): boolean {
   // Multiline drafts stay readable. Resting only clamps a single prompt
@@ -63,38 +62,36 @@ export function shouldUseRestingComposerLayout(input: {
  * 8px of top padding, the prompt clamps from min-h-17.5 (70px) to 32px, and
  * the 48px footer leaves flow.
  */
-export const COMPOSER_RESTING_EXPANSION_MIN_PX = 94;
+const COMPOSER_RESTING_EXPANSION_MIN_PX = 94;
 
 /**
- * The space the timeline reserves at its end for the composer overlay.
- *
- * The overlay is measured live, but a resting composer is much shorter than
- * an expanded one. Reserving only the resting height lets a scroll to the end
- * land flush against the short composer, and the expansion that follows then
- * covers the last rows because the timeline never moves for footer growth.
- * While resting, keep the measured expanded height. Estimate the empty
- * expansion only before that measurement exists: strip mounting can otherwise
- * inflate the estimate mid-transition and move the timeline. An expanded
- * measurement is authoritative and may shrink the reservation.
+ * Reserving only the resting height lets a scroll to the end land flush against the short
+ * composer, and the expansion that follows then covers the last rows because the timeline never
+ * moves for footer growth.
  */
 export function resolveComposerTimelineInset(input: {
   currentInset: number;
   overlayHeight: number;
   isResting: boolean;
+  restingOnlyHeight?: number;
+  expandedNoticesHeight?: number;
 }): number {
+  // Expanded notices temporarily cover the timeline. Remove their growth before
+  // rounding so fractional measurements reserve exactly the collapsed height.
+  const overlayHeight = Math.ceil(input.overlayHeight - (input.expandedNoticesHeight ?? 0));
   return input.isResting
     ? Math.max(
         input.currentInset,
-        input.overlayHeight + (input.currentInset === 0 ? COMPOSER_RESTING_EXPANSION_MIN_PX : 0),
+        overlayHeight + (input.currentInset === 0 ? COMPOSER_RESTING_EXPANSION_MIN_PX : 0),
       )
-    : input.overlayHeight;
+    : overlayHeight;
 }
 
 type ComposerUsageMeterSlot = "row" | "context-strip";
 
 /**
- * Where the usage meter goes. It shares the context strip with the branch and worktree controls;
- * without that strip, both pieces stay hidden together.
+ * Where the usage meter goes. A new thread shows it in a row under the composer; a started
+ * thread shows it in the context strip, so it stays hidden whenever that strip is not mounted.
  */
 export function resolveComposerUsageMeterSlot(input: {
   hasUsageWindows: boolean;
@@ -107,11 +104,6 @@ export function resolveComposerUsageMeterSlot(input: {
   return "context-strip";
 }
 
-/**
- * Whether the overlay's composer is resting. Only a mounted composer can be:
- * a status bar in its place (a native subagent thread) never is, even if the
- * composer it replaced last reported resting.
- */
 export function overlayComposerIsResting(input: {
   composerMounted: boolean;
   composerReportedResting: boolean;
@@ -172,12 +164,10 @@ function restingComposerControlsWidth(
 }
 
 /**
- * The width the resting controls take with nothing moved into overflow.
- *
- * The context strip reserves this much for the composer before deciding
- * whether its own labels may expand. Judging against the currently visible
- * controls instead lets the strip expand into space the composer just gave
- * up, which shrinks the host, hides the controls again, and repeats.
+ * The context strip reserves this much for the composer before deciding whether its own labels
+ * may expand. Judging against the currently visible controls instead lets the strip expand into
+ * space the composer just gave up, which shrinks the host, hides the controls again, and
+ * repeats.
  */
 export function resolveRestingComposerControlsNaturalWidth(
   input: RestingComposerControlsMeasurement,
@@ -185,15 +175,6 @@ export function resolveRestingComposerControlsNaturalWidth(
   return restingComposerControlsWidth(input, 0);
 }
 
-/**
- * Fit footer controls using natural widths: remove trailing labels first,
- * then move trailing blocks into overflow. Resting and expanded share this
- * decision, including the slack needed to safely restore controls.
- *
- * Trailing blocks compact before the model picker shrinks. Once they are all in
- * the overflow menu, the picker may contract to its minimum readable width;
- * below that the whole cluster hides rather than clipping.
- */
 const RESTING_CONTROLS_SLACK_PX = 1;
 
 export function resolveRestingComposerControlsLayout(

@@ -1,12 +1,17 @@
-"use client";
-
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
+import { ControlledOpenContext, renderRetainedPopup } from "~/components/ui/dialog";
 
-const Sheet = SheetPrimitive.Root;
+function Sheet<Payload>(props: SheetPrimitive.Root.Props<Payload>) {
+  return (
+    <ControlledOpenContext value={props.open}>
+      <SheetPrimitive.Root {...props} />
+    </ControlledOpenContext>
+  );
+}
 
 const SheetPortal = SheetPrimitive.Portal;
 
@@ -14,8 +19,6 @@ const SheetPortal = SheetPrimitive.Portal;
 const SHEET_TRANSITION_TIMING_CLASS =
   "[--sheet-duration:200ms] duration-(--sheet-duration) ease-drawer data-ending-style:duration-[calc(var(--sheet-duration)*0.75)] data-ending-style:ease-in motion-reduce:transition-none";
 
-// Sheets are docked panels, not dialogs: their layer (--z-sheet) sits under dialogs that open
-// from inside them and under anything the app floats above panels.
 function SheetBackdrop({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
     <SheetPrimitive.Backdrop
@@ -61,6 +64,7 @@ function SheetPopup({
   children,
   showCloseButton = true,
   keepMounted = false,
+  container,
   transitionDurationMs,
   side = "right",
   variant = "default",
@@ -69,6 +73,8 @@ function SheetPopup({
 }: SheetPrimitive.Popup.Props & {
   showCloseButton?: boolean;
   keepMounted?: boolean;
+  /** Renders inside this element instead of the page, for a sheet that belongs to one region. */
+  container?: SheetPrimitive.Portal.Props["container"];
   transitionDurationMs?: number;
   side?: "right" | "left" | "top" | "bottom";
   variant?: "default" | "inset";
@@ -80,7 +86,7 @@ function SheetPopup({
   const instant = transitionDurationMs === 0;
 
   return (
-    <SheetPortal keepMounted={keepMounted}>
+    <SheetPortal keepMounted={keepMounted} container={container}>
       <SheetBackdrop
         className={
           instant
@@ -109,6 +115,7 @@ function SheetPopup({
             className,
           )}
           data-slot="sheet-popup"
+          render={keepMounted ? undefined : renderRetainedPopup}
           style={{ ...transitionStyle, ...style }}
           {...props}
         >

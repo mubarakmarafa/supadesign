@@ -1,3 +1,4 @@
+import { PullRequestChangeBreakdownRows } from "../pullRequest/PullRequestChangeBreakdownStat";
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
 /**
@@ -15,6 +16,7 @@ import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
  * Until the detail arrives — or where pull requests are not supported at all — the row renders
  * from the linked snapshot or branch summary, or just the link when status is unavailable.
  */
+import { selectEnvironmentQueryData } from "@supaterm/client-runtime/state/runtime";
 import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import type { EnvironmentId, ProjectId, PullRequestRef } from "@supaterm/contracts";
 import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
@@ -26,6 +28,7 @@ import {
   GitBranchIcon,
   TriangleAlertIcon,
 } from "lucide-react";
+import { AsyncResult } from "effect/reactivity";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
 import { useInlineConfirm } from "~/hooks/useInlineConfirm";
@@ -34,7 +37,12 @@ import { usePullRequestChecksRefresh } from "~/hooks/usePullRequestChecksRefresh
 import { cn } from "~/lib/utils";
 import { useServerConfigs } from "~/state/entities";
 import { pullRequestEnvironment } from "~/state/pullRequests";
-import { useEnvironmentQuery } from "~/state/query";
+import { useUiStateStore } from "~/uiStateStore";
+import {
+  useEnvironmentQueryIsNewer,
+  useEnvironmentQueryRefresh,
+  useEnvironmentQuerySelector,
+} from "~/state/query";
 
 import {
   buildFixFindingsHandoff,
@@ -42,7 +50,7 @@ import {
   classifyPullRequestChecks,
   describePullRequestChecks,
   isPullRequestConflicting,
-  resolveSelectedMergeMethod,
+  resolvePullRequestMergeMethod,
   allowedPullRequestMergeMethods,
   resolveThreadPanelPullRequestAction,
 } from "../pullRequest/pullRequestDetail.logic";
@@ -55,6 +63,7 @@ import {
 } from "../pullRequest/pullRequestPresentation";
 import {
   usePullRequestActionRunner,
+  usePullRequestDefaultMergeMethod,
   usePullRequestHandoffs,
 } from "../pullRequest/usePullRequestActions";
 import {
@@ -69,6 +78,10 @@ import {
   THREAD_DETAILS_PANEL_LINK_SPLIT_GROUP_CLASS,
   THREAD_DETAILS_PANEL_SPLIT_SEPARATOR_CLASS,
 } from "./threadDetailsPanelStyles";
+
+// A server without checks for this pull request answers null; polling it again finds nothing new.
+const isSettledWithoutChecks = (result: AsyncResult.AsyncResult<unknown, unknown>) =>
+  result._tag === "Success" && result.value === null;
 
 export function ThreadDetailsPrRow({
   environmentId,
@@ -88,19 +101,15 @@ export function ThreadDetailsPrRow({
   number: number;
   reference?: Pick<PullRequestRef, "host" | "repository" | "number"> | null;
   status: PrStatusIndicator | null;
-  /** The thread's project, which is what the pull request is read through on the host. */
   project: EnvironmentProject | null;
   label: string;
   openAriaLabel: string;
   onOpen: (event: ReactMouseEvent<HTMLElement>) => void;
-  /** An action changed the pull request on the host, so the vcs status behind the row is stale. */
   onActed?: () => void;
-  /** Set while the server watches this pull request for the thread; stops the watch. */
   onStopWatching?: (() => void) | undefined;
 }) {
   const serverConfigs = useServerConfigs();
-  const supportsPullRequests =
-    serverConfigs.get(environmentId)?.environment.capabilities.pullRequests === true;
+  const supportsPullRequests = serverConfigs.has(environmentId);
   const repository = sourceControlRepositorySelector(project?.repositoryIdentity);
   const reference: PullRequestRef | null =
     supportsPullRequests && project !== null
@@ -110,37 +119,45 @@ export function ThreadDetailsPrRow({
           ? { projectId: project.id as ProjectId, repository, number }
           : null
       : null;
-  const detailQuery = useEnvironmentQuery(
+  const detailAtom =
     reference === null
       ? null
       : pullRequestEnvironment.detail({
           environmentId,
           input: { ...reference, allowStale: false },
-        }),
-  );
-  const supportsChecks =
-    serverConfigs.get(environmentId)?.environment.capabilities.pullRequestChecks === true;
-  const checksQuery = useEnvironmentQuery(
-    supportsChecks && reference !== null && detailQuery.data !== null
+        });
+  // Read the queries part by part: every poll publishes a new result (a new
+  // timestamp, `waiting` on and off) even when nothing in it changed.
+  const detailData = useEnvironmentQuerySelector(detailAtom, selectEnvironmentQueryData);
+  const detailQuery = useEnvironmentQueryRefresh(detailAtom);
+  const supportsChecks = serverConfigs.has(environmentId);
+  const checksAtom =
+    supportsChecks && reference !== null && detailData !== null
       ? pullRequestEnvironment.checks({ environmentId, input: reference })
-      : null,
-  );
+      : null;
+  const checksData = useEnvironmentQuerySelector(checksAtom, selectEnvironmentQueryData);
+  const checksSettledEmpty = useEnvironmentQuerySelector(checksAtom, isSettledWithoutChecks);
+  const checksQuery = useEnvironmentQueryRefresh(checksAtom);
+  const checksAreNewer = useEnvironmentQueryIsNewer(checksAtom, detailAtom);
   const detail =
-    detailQuery.data === null
+    detailData === null
       ? null
-      : checksQuery.data !== null && checksQuery.dataUpdatedAt >= detailQuery.dataUpdatedAt
-        ? { ...detailQuery.data, ...checksQuery.data }
-        : detailQuery.data;
+      : checksData !== null && checksAreNewer
+        ? { ...detailData, ...checksData }
+        : detailData;
   const open = reference !== null && (detail?.state ?? pr?.state) === "open";
   const refreshKey = `${environmentId}:${project?.id}:${reference?.host}:${reference?.repository}:${number}`;
-  useLiveRefresh(detailQuery.isPending ? null : detailQuery.refresh, {
-    enabled: open,
-    key: `workspace-pr:${refreshKey}`,
-    intervalMs: 10 * 60_000,
-  });
+  useLiveRefresh(
+    () => {
+      if (!detailQuery.isPending()) detailQuery.refresh();
+    },
+    { enabled: open, key: `workspace-pr:${refreshKey}`, intervalMs: 10 * 60_000 },
+  );
   usePullRequestChecksRefresh({
-    refresh: checksQuery.isPending || detailQuery.isPending ? null : checksQuery.refresh,
-    enabled: open && supportsChecks && !(checksQuery.isSuccess && checksQuery.data === null),
+    refresh: () => {
+      if (!checksQuery.isPending() && !detailQuery.isPending()) checksQuery.refresh();
+    },
+    enabled: open && supportsChecks && !checksSettledEmpty,
     key: `workspace-pr-checks:${refreshKey}`,
     checks: detail?.checks ?? [],
   });
@@ -155,15 +172,24 @@ export function ThreadDetailsPrRow({
     },
   });
   const { handoff, startHandoff } = usePullRequestHandoffs({ environmentId, detail });
+  const lastSelectedMergeMethod = useUiStateStore((state) => state.pullRequestMergeMethod);
+  const projectDefaultMergeMethod = usePullRequestDefaultMergeMethod(
+    environmentId,
+    (project?.id as ProjectId | undefined) ?? null,
+  );
   const confirm = useInlineConfirm<"merge">();
 
   const rowAction = resolveThreadPanelPullRequestAction(detail);
   const conflicting = isPullRequestConflicting(detail);
   const checksState = detail === null ? "none" : classifyPullRequestChecks(detail.checks);
-  const checksRollup = detail === null ? null : pullRequestChecksState(detail.checks);
-  const selectedMergeMethod = resolveSelectedMergeMethod(
+  // Checks stop refreshing once the pull request is no longer open, so jobs that start on merge or
+  // close would otherwise show as pending forever.
+  const checksRollup = detail?.state === "open" ? pullRequestChecksState(detail.checks) : null;
+  const selectedMergeMethod = resolvePullRequestMergeMethod(
     allowedPullRequestMergeMethods(detail),
-    "merge",
+    null,
+    projectDefaultMergeMethod,
+    lastSelectedMergeMethod,
   );
 
   const startResolveConflicts = () => {
@@ -180,8 +206,6 @@ export function ThreadDetailsPrRow({
 
   const startFixChecks = () => {
     if (detail === null) return;
-    // The compact row fetches no conversation, so the handoff carries the failing checks alone;
-    // review threads keep arriving through the full panel's richer version of this action.
     void startHandoff(
       "findings",
       buildFixFindingsHandoff({
@@ -198,7 +222,6 @@ export function ThreadDetailsPrRow({
     );
   };
 
-  // Host details distinguish drafts; all panels share the same PR-state glyph.
   const statePresentation =
     detail === null
       ? null
@@ -272,7 +295,7 @@ export function ThreadDetailsPrRow({
             {detail.isDraft && conflicting ? (
               <div className="flex min-w-0 items-start gap-2 text-destructive">
                 <TriangleAlertIcon aria-hidden className="mt-0.5 size-3 shrink-0 stroke-current" />
-                <div className="min-w-0 flex-1 wrap-break-word leading-5">
+                <div className="min-w-0 flex-1 wrap-break-word">
                   Merge conflicts with {detail.baseBranch}
                 </div>
               </div>
@@ -285,6 +308,13 @@ export function ThreadDetailsPrRow({
                 <PullRequestDiffStat additions={detail.additions} deletions={detail.deletions} />
               </div>
             </div>
+            {reference !== null && (detail.additions > 0 || detail.deletions > 0) ? (
+              <PullRequestChangeBreakdownRows
+                environmentId={environmentId}
+                reference={reference}
+                className="pl-5 text-foreground/75"
+              />
+            ) : null}
           </div>
         </div>
       </TooltipPopup>
@@ -400,6 +430,7 @@ export function ThreadDetailsPrRow({
                   part="link-primary"
                   aria-label={openAriaLabel}
                   onClick={onOpen}
+                  onAuxClick={onOpen}
                 />
               }
             >
@@ -456,6 +487,7 @@ export function ThreadDetailsPrRow({
                   part="link-primary"
                   aria-label={openAriaLabel}
                   onClick={onOpen}
+                  onAuxClick={onOpen}
                 />
               }
             >
@@ -476,6 +508,7 @@ export function ThreadDetailsPrRow({
                 part="row"
                 aria-label={openAriaLabel}
                 onClick={onOpen}
+                onAuxClick={onOpen}
               />
             }
           >

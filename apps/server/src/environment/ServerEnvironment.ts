@@ -156,7 +156,7 @@ const makeIdentity = Effect.gen(function* () {
       return persisted;
     }
 
-    const generated = yield* crypto.randomUUIDv4;
+    const generated = yield* crypto.randomUUIDv4();
     yield* persistEnvironmentId(generated, "create");
     let winner = yield* readPersistedEnvironmentId;
     if (winner === null) {
@@ -178,7 +178,7 @@ const makeIdentity = Effect.gen(function* () {
   });
 });
 
-/** @public Service construction is part of the canonical Effect module API. */
+/** @public */
 export const make = Effect.gen(function* () {
   const path = yield* Path.Path;
   const serverConfig = yield* ServerConfig.ServerConfig;
@@ -196,9 +196,9 @@ export const make = Effect.gen(function* () {
   });
   const serverInstallation = serverSelfUpdate === null ? yield* resolveServerInstallation : null;
   // Static is correct: the control fd is known at bootstrap, and the desktop
-  // app and its bundled server ship in one artifact, so a present fd means
-  // the app speaks the requestDesktopUpdate protocol. WSL backends never get
-  // the fd and correctly do not advertise.
+  // app and its bundled server ship in one artifact, so a present fd means the
+  // app speaks the requestDesktopUpdate protocol.
+
   const desktopAppUpdate =
     serverSelfUpdate === "desktop-managed" && serverConfig.desktopTelemetryControlFd !== undefined;
 
@@ -213,36 +213,11 @@ export const make = Effect.gen(function* () {
     serverVersion: packageJson.version,
     orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
     capabilities: {
-      repositoryIdentity: true,
-      connectionProbe: true,
-      attachmentUploads: true,
-      questionAttachments: true,
       fileAttachments: { maxUploadBytes: PROVIDER_SEND_TURN_MAX_FILE_BYTES },
-      pullRequests: true,
-      pullRequestChecks: true,
-      inlineMessageContext: true,
-      requiredWorktreeBootstrap: true,
-      threadSettlement: true,
-      threadAutoSettlement: true,
-      questionAutoDismiss: true,
-      questionAutoDismissPause: true,
-      storageCleanup: true,
-      storageCleanupRun: true,
-      otlpEndpointCheck: true,
-      projectWorktreeCleanup: true,
-      worktreesDirectory: true,
-      threadRestartContinuation: true,
-      projectSettingsOverrides: true,
-      projectProviderInstanceOverrides: true,
-      modelPreferences: true,
-      threadSnooze: true,
-      environmentThemes: true,
-      usageLimitSources: true,
-      usagePriceOverrides: true,
-      usageModelAliases: true,
-      threadPinning: true,
-      threadPinReorder: true,
-      threadActiveReorder: true,
+      threadStop: true,
+      queuedRunStart: true,
+      ignoredFileListing: true,
+      // Supadesign: project board features, which clients gate on.
       projectBoard: true,
       projectWorkspace: true,
       projectWorkspaceLayout: true,
@@ -252,25 +227,12 @@ export const make = Effect.gen(function* () {
       threadProgress: true,
       threadBrief: true,
       projectSummary: true,
-      threadAutoSettleOptOut: true,
-      threadTitleRegeneration: true,
-      threadVisitedTracking: true,
-      threadPullRequests: true,
-      threadPullRequestWatch: true,
-      pullRequestStackActions: true,
-      threadPullRequestLinking: true,
-      serverResolvedCommandContext: true,
-      environmentIcon: true,
-      projectCloneTracking: true,
       ...(serverSelfUpdate === null ? {} : { serverSelfUpdate }),
       ...(serverInstallation === null ? {} : { serverInstallation }),
-      // V2 restart recovery uses the environment-owned opt-in. The old
-      // per-update request flag is not wired into the V2 update RPC path.
       ...(serverSelfUpdate === "boot-service" || desktopAppUpdate
         ? { serverSelfUpdateProgress: true }
         : {}),
       ...(desktopAppUpdate ? { desktopAppUpdate: true } : {}),
-      serverBrowser: true,
     },
   };
 

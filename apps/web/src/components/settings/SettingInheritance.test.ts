@@ -17,15 +17,15 @@ describe("settingInheritanceLayers", () => {
     );
     expect(layers.map((layer) => [layer.label, layer.value, layer.effective])).toEqual([
       ["Laptop", "Inherits", false],
-      ["Default", "Off", true],
+      ["Default", "On", true],
     ]);
   });
 
   it("walks project override, environment value, then built-in default", () => {
     const settings = {
       ...DEFAULT_SERVER_SETTINGS,
-      defaultAutoPull: true,
-      projectSettingsOverrides: { [projectId]: { defaultAutoPull: false } },
+      defaultAutoPull: false,
+      projectSettingsOverrides: { [projectId]: { defaultAutoPull: true } },
     };
     const resolved = resolveProjectSettings(settings, projectId);
     const layers = settingInheritanceLayers(
@@ -34,9 +34,9 @@ describe("settingInheritanceLayers", () => {
       "defaultAutoPull",
     );
     expect(layers.map((layer) => [layer.label, layer.value, layer.effective])).toEqual([
-      ["Project", "Off", true],
-      ["Laptop", "On", false],
-      ["Default", "Off", false],
+      ["Project", "On", true],
+      ["Laptop", "Off", false],
+      ["Default", "On", false],
     ]);
     const inherited = settingInheritanceLayers(
       {
@@ -50,8 +50,8 @@ describe("settingInheritanceLayers", () => {
     );
     expect(inherited.map((layer) => [layer.value, layer.effective])).toEqual([
       ["Inherits", false],
-      ["On", true],
-      ["Off", false],
+      ["Off", true],
+      ["On", false],
     ]);
   });
 
@@ -71,7 +71,7 @@ describe("settingInheritanceLayers", () => {
       ["Project", "Inherits", false],
       ["Laptop", "Inherits", false],
       ["supaterm.json", "New worktree", true],
-      ["Default", "Current checkout", false],
+      ["Default", "New worktree", false],
     ]);
     const settings = { ...DEFAULT_SERVER_SETTINGS, defaultThreadEnvMode: "local" as const };
     const fromEnvironment = settingInheritanceLayers(
@@ -88,7 +88,7 @@ describe("settingInheritanceLayers", () => {
       ["Inherits", false],
       ["Current checkout", true],
       ["Inherits", false],
-      ["Current checkout", false],
+      ["New worktree", false],
     ]);
   });
 });

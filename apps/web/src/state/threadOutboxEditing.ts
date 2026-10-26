@@ -1,6 +1,7 @@
 import {
   ChatAttachment,
   PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+  type EnvironmentId,
   type OrchestrationMessageContext,
 } from "@supaterm/contracts";
 import {
@@ -8,11 +9,16 @@ import {
   collectComposerContextReferences,
 } from "@supaterm/shared/composerContextReferences";
 import * as Schema from "effect/Schema";
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { DraftId, useComposerDraftStore } from "../composerDraftStore";
+import {
+  DraftId,
+  useComposerDraftStore,
+  type ComposerFileAttachment,
+  type ComposerImageAttachment,
+} from "../composerDraftStore";
 import { removeInlineContextReference } from "../lib/composerContextReferences";
-import { releaseDraftAttachments } from "../lib/attachmentUploadQueue";
+import { getUploadedAttachments, releaseDraftAttachments } from "../lib/attachmentUploadQueue";
 import { replaceThreadOutboxTurn, webThreadOutbox, type PendingThreadTurn } from "./threadOutbox";
 import type { OutboxTurn } from "./threadOutboxSchema";
 
@@ -34,6 +40,31 @@ function threadOutboxEditAttachments(entry: PendingThreadTurn) {
       url: "dataUrl" in attachment ? attachment.dataUrl : null,
     })),
   ];
+}
+
+/** The outbox owns its own bytes; an attachment without them must already be uploaded. */
+export function captureOutboxAttachments(
+  environmentId: EnvironmentId,
+  attachments: ReadonlyArray<ComposerImageAttachment | ComposerFileAttachment>,
+) {
+  return attachments.map((attachment) => {
+    const uploaded =
+      attachment.file === null
+        ? getUploadedAttachments({ environmentId, images: [attachment] })?.[0]
+        : undefined;
+    if (attachment.file === null && uploaded === undefined)
+      throw new Error(`Attach '${attachment.name}' again before sending.`);
+    return {
+      id: attachment.id,
+      type: attachment.type,
+      name: attachment.name,
+      mimeType: attachment.mimeType,
+      sizeBytes: attachment.sizeBytes,
+      bytes: attachment.file,
+      ...(attachment.source ? { source: attachment.source } : {}),
+      ...(uploaded ? { uploaded } : {}),
+    };
+  });
 }
 
 /** Keep saved context and bytes while applying the composer's attachment edits. */
@@ -194,7 +225,16 @@ export function createThreadOutboxEditor(routeKey: string) {
 }
 
 export function useThreadOutboxEditor(routeKey: string) {
-  const editor = useMemo(() => createThreadOutboxEditor(routeKey), [routeKey]);
+  // The editor holds the edit session, so it is replaced only when the route changes.
+  const [current, setCurrent] = useState(() => ({
+    routeKey,
+    editor: createThreadOutboxEditor(routeKey),
+  }));
+  let editor = current.editor;
+  if (current.routeKey !== routeKey) {
+    editor = createThreadOutboxEditor(routeKey);
+    setCurrent({ routeKey, editor });
+  }
   const editing = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
   const entry = editing?.entry;
   const editingId = entry?.id;
@@ -213,20 +253,29 @@ export function useThreadOutboxEditor(routeKey: string) {
   return { editor, editing, attachments };
 }
 
+function threadOutboxAttachmentPreviews(entry: PendingThreadTurn | undefined) {
+  return entry
+    ? threadOutboxEditAttachments(entry).map((item) => ({
+        attachment: item.attachment,
+        url:
+          item.attachment.type === "image" && item.bytes
+            ? URL.createObjectURL(item.bytes)
+            : item.url,
+      }))
+    : [];
+}
+
 export function useThreadOutboxAttachments(entry: PendingThreadTurn | undefined) {
-  const previews = useMemo(
-    () =>
-      entry
-        ? threadOutboxEditAttachments(entry).map((item) => ({
-            attachment: item.attachment,
-            url:
-              item.attachment.type === "image" && item.bytes
-                ? URL.createObjectURL(item.bytes)
-                : item.url,
-          }))
-        : [],
-    [entry],
-  );
+  // The effect revokes each preview set's object URLs, so a set is rebuilt only for a new entry.
+  const [current, setCurrent] = useState(() => ({
+    entry,
+    previews: threadOutboxAttachmentPreviews(entry),
+  }));
+  let previews = current.previews;
+  if (current.entry !== entry) {
+    previews = threadOutboxAttachmentPreviews(entry);
+    setCurrent({ entry, previews });
+  }
   useEffect(
     () => () => {
       for (const item of previews) if (item.url?.startsWith("blob:")) URL.revokeObjectURL(item.url);

@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { cn } from "../lib/utils";
 
-/** Keeps text measurable while the composer's outer label box collapses. */
 export function ComposerContextLabel({
   children,
   displayMode = "toolbar",

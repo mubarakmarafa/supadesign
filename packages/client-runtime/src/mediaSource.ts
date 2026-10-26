@@ -18,7 +18,6 @@ import {
 
 export type MediaSourceResource = Extract<AssetResource, { readonly _tag: "media-file" }>;
 
-/** What a piece of authored media is and how its bytes can be reached. */
 export type ResolvedMediaSource = {
   readonly kind: "image" | "video";
   readonly mimeType: string;
@@ -42,6 +41,8 @@ export type ResolvedMediaSource = {
 export interface ResolveMediaSourceInput {
   readonly threadId: ThreadId | undefined;
   readonly workspaceRoot?: string | null | undefined;
+  /** Bounds network paths when `workspaceRoot` is a nested directory relative images resolve from. */
+  readonly projectRoot?: string | null | undefined;
   readonly resolvedFilePath?: string | undefined;
   /** Image syntax can target an endpoint without a recognizable extension. */
   readonly imageEmbed?: boolean | undefined;
@@ -49,7 +50,11 @@ export interface ResolveMediaSourceInput {
 
 function classify(source: string, input: ResolveMediaSourceInput): MarkdownImageSource {
   return input.resolvedFilePath === undefined
-    ? classifyMarkdownImageSource(source, input.workspaceRoot)
+    ? classifyMarkdownImageSource(
+        source,
+        input.workspaceRoot,
+        input.projectRoot === undefined ? input.workspaceRoot : input.projectRoot,
+      )
     : { _tag: "WorkspaceFile", path: input.resolvedFilePath };
 }
 

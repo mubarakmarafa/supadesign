@@ -1,14 +1,17 @@
-import { StackActions, useNavigation } from "@react-navigation/native";
+import * as Dialog from "../../components/ui/Dialog";
+import { useNavigation } from "@react-navigation/native";
 import { buildFeedbackPrompt } from "@supaterm/client-runtime/feedback-prompt";
 import {
   isAtomCommandInterrupted,
+  settlePromise,
   squashAtomCommandFailure,
 } from "@supaterm/client-runtime/state/runtime";
 import type { EnvironmentId, ServerConfig } from "@supaterm/contracts";
 import Constants from "expo-constants";
 import { useRef, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 
+import { uuidv4 } from "../../lib/uuid";
 import { projectEnvironment } from "../../state/projects";
 import { useAtomCommand } from "../../state/use-atom-command";
 import {
@@ -16,9 +19,11 @@ import {
   setComposerDraftText,
   waitForComposerDraftsLoaded,
 } from "../../state/use-composer-drafts";
+import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 
 export function useSendFeedback() {
   const navigation = useNavigation();
+  const { selectThreadRoute } = useAdaptiveWorkspaceLayout();
   const openScratch = useAtomCommand(projectEnvironment.openScratch, { reportFailure: false });
   const inFlight = useRef(false);
   const [isPending, setIsPending] = useState(false);
@@ -30,46 +35,43 @@ export function useSendFeedback() {
     if (inFlight.current) return;
     inFlight.current = true;
     setIsPending(true);
-    try {
-      const result = await openScratch({ environmentId: target.environmentId, input: {} });
-      if (result._tag === "Failure") {
-        if (!isAtomCommandInterrupted(result)) {
-          const error = squashAtomCommandFailure(result);
-          Alert.alert(
-            "Could not start feedback",
-            error instanceof Error ? error.message : "Try again.",
-          );
-        }
-        return;
-      }
-      const project = result.value;
-      await waitForComposerDraftsLoaded();
-      if (!navigation.isFocused()) return;
-      const draftKey = createNewTaskDraft({
-        environmentId: project.environmentId,
-        projectId: project.id,
-      });
-      setComposerDraftText(
-        draftKey,
-        buildFeedbackPrompt({
-          serverVersion: target.serverConfig.environment.serverVersion,
-          client: `${Platform.OS === "ios" ? "iOS" : "Android"} app ${Constants.expoConfig?.version ?? "0.0.0"}`,
-        }),
+    const opened = await openScratch({ environmentId: target.environmentId, input: {} });
+    const result =
+      opened._tag === "Failure"
+        ? opened
+        : await settlePromise(async () => {
+            const project = opened.value;
+            await waitForComposerDraftsLoaded();
+            if (!navigation.isFocused()) return;
+            const draftKey = createNewTaskDraft({
+              environmentId: project.environmentId,
+              projectId: project.id,
+            });
+            setComposerDraftText(
+              draftKey,
+              buildFeedbackPrompt({
+                serverVersion: target.serverConfig.environment.serverVersion,
+                client: `${Platform.OS === "ios" ? "iOS" : "Android"} app ${Constants.expoConfig?.version ?? "0.0.0"}`,
+              }),
+            );
+            selectThreadRoute({
+              draft: {
+                requestId: uuidv4(),
+                draftId: draftKey,
+                environmentId: String(project.environmentId),
+                projectId: String(project.id),
+                title: project.title,
+              },
+            });
+          });
+    inFlight.current = false;
+    setIsPending(false);
+    if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+      const error = squashAtomCommandFailure(result);
+      Dialog.alert(
+        "Could not start feedback",
+        error instanceof Error ? error.message : "Try again.",
       );
-      navigation.dispatch(
-        StackActions.replace("NewTaskSheet", {
-          screen: "NewTaskDraft",
-          params: {
-            draftId: draftKey,
-            environmentId: String(project.environmentId),
-            projectId: String(project.id),
-            title: project.title,
-          },
-        }),
-      );
-    } finally {
-      inFlight.current = false;
-      setIsPending(false);
     }
   }
 

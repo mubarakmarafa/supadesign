@@ -26,7 +26,7 @@ function statusDescription(status: RelayHostStatus): string | null {
         ? "Connected. Paired clients can reach this host from anywhere."
         : `Connected as ${name}. Paired clients can reach this host from anywhere.`;
     case "superseded":
-      return "Another host is using this relay identity. Turn Public relay off and on to reconnect here.";
+      return "Another host is using this relay identity. Turn Encrypted Relay off and on to reconnect here.";
     case "invalid-url":
       return "The relay server URL is invalid.";
   }
@@ -61,7 +61,7 @@ export function PublicRelaySettings({
       }
       control={
         <Switch
-          aria-label="Enable public relay"
+          aria-label="Enable Encrypted Relay"
           disabled={disabled}
           checked={enabled}
           onCheckedChange={(publicRelayEnabled) => update({ publicRelayEnabled })}

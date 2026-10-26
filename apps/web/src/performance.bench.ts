@@ -23,7 +23,7 @@ const threads = Array.from({ length: 1_000 }, (_, index) => {
     createdAt: timestamp,
     updatedAt: timestamp,
     latestUserMessageAt: timestamp,
-    unsettledAt: null,
+    reopenedAt: null,
   };
 });
 const baseProjection = makeThreadProjectionFixture();

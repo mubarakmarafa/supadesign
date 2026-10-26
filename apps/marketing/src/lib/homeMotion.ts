@@ -1,17 +1,8 @@
-/** Runs homepage motion (mark drift, caret, parallax) only while its content is visible. */
-export function startHomeMotion({
-  hero,
-  field,
-  caret,
-}: {
-  hero: HTMLElement;
-  field: HTMLElement;
-  caret: HTMLElement;
-}) {
+/** Runs homepage motion (mark drift, parallax) only while its content is visible. */
+export function startHomeMotion({ hero, field }: { hero: HTMLElement; field: HTMLElement }) {
   if (typeof IntersectionObserver === "undefined") return () => {};
 
   const marks = Array.from(field.querySelectorAll<HTMLElement>(".hero-float-mark"));
-  const gated = [...marks, caret];
   const visible = new Set<Element>();
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const finePointer = window.matchMedia("(pointer: fine)");
@@ -37,7 +28,7 @@ export function startHomeMotion({
   }
 
   function update() {
-    for (const element of gated) {
+    for (const element of marks) {
       element.style.setProperty("--home-motion-state", canMove(element) ? "running" : "paused");
     }
     const parallax = canParallax();
@@ -53,7 +44,7 @@ export function startHomeMotion({
     }
     update();
   });
-  for (const element of gated) observer.observe(element);
+  for (const element of marks) observer.observe(element);
 
   hero.addEventListener(
     "pointermove",

@@ -18,10 +18,7 @@ import type { ChatMessage, Thread } from "./types";
 const DEFAULT_TIMESTAMP = "2026-01-01T00:00:00.000Z";
 
 export type ThreadFixtureOverrides = Partial<Thread> & {
-  /** Test-only fallback data for the generic thread-sort contract. */
   readonly messages?: ReadonlyArray<ChatMessage>;
-  /** Accepted while older unit cases are migrated; never consumed by production code. */
-  readonly proposedPlans?: ReadonlyArray<unknown>;
 };
 
 export function makeThreadProjectionFixture(): OrchestrationV2ThreadProjection {
@@ -47,8 +44,8 @@ export function makeThreadProjectionFixture(): OrchestrationV2ThreadProjection {
       createdAt: now,
       updatedAt: now,
       archivedAt: null,
-      settledOverride: null,
-      settledAt: null,
+      doneOverride: null,
+      doneAt: null,
       lastVisitedAt: null,
       deletedAt: null,
     },
@@ -72,7 +69,6 @@ export function makeThreadProjectionFixture(): OrchestrationV2ThreadProjection {
   };
 }
 
-/** Creates a structurally complete V2 shell for UI unit tests. */
 export function makeThreadFixture(overrides: ThreadFixtureOverrides = {}): Thread {
   const environmentId = overrides.environmentId ?? EnvironmentId.make("environment-test");
   const id = overrides.id ?? ThreadId.make("thread-test");
@@ -129,18 +125,17 @@ export function makeThreadFixture(overrides: ThreadFixtureOverrides = {}): Threa
     createdAt,
     updatedAt,
     archivedAt,
-    settledOverride: overrides.settledOverride ?? null,
-    settledAt:
-      overrides.settledAt === null || overrides.settledAt === undefined
+    doneOverride: overrides.doneOverride ?? null,
+    doneAt:
+      overrides.doneAt === null || overrides.doneAt === undefined
         ? null
-        : DateTime.makeUnsafe(overrides.settledAt),
+        : DateTime.makeUnsafe(overrides.doneAt),
     deletedAt,
   });
 
   return { ...shell, ...overrides };
 }
 
-/** Canonical v2 history and a live response for streaming projection tests. */
 export function makeStreamingTimelineFixture(text = "") {
   const threadId = ThreadId.make("streaming-thread");
   const runId = RunId.make("live-run");

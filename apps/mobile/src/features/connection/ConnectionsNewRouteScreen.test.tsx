@@ -21,7 +21,7 @@ const state = vi.hoisted(() => ({
     >(),
 }));
 
-vi.mock("../../components/ScreenScrollView", () => ({ ScreenScrollView: "ScrollView" }));
+vi.mock("../../components/ui/ScreenScrollView", () => ({ ScreenScrollView: "ScrollView" }));
 vi.mock("expo-camera", () => ({
   CameraView: "CameraView",
   useCameraPermissions: () => [{ granted: true }, state.requestCameraPermission],
@@ -64,9 +64,9 @@ vi.mock("../settings/appearance/AppearancePreferencesProvider", () => ({
   useAppearancePreferences: () => ({ themeAppearance: "light" }),
 }));
 vi.mock("../settings/components/SettingsScreen", () => ({ SettingsScreen: "SettingsScreen" }));
-vi.mock("../../components/AppText", () => ({ AppText: "Text", AppTextInput: "TextInput" }));
-vi.mock("../../components/FrostedCutout", () => ({ FrostedCutout: "FrostedCutout" }));
-vi.mock("../../components/AppSymbol", () => ({ SymbolView: "SymbolView" }));
+vi.mock("../../components/ui/AppText", () => ({ AppText: "Text", AppTextInput: "TextInput" }));
+vi.mock("../../components/ui/FrostedCutout", () => ({ FrostedCutout: "FrostedCutout" }));
+vi.mock("../../components/ui/AppSymbol", () => ({ SymbolView: "SymbolView" }));
 vi.mock("../../state/use-remote-environment-registry", () => ({
   setPendingConnectionError: (error: string | null) => {
     state.pairingConnectionError = error;
@@ -157,6 +157,20 @@ describe("QR pairing", () => {
       payload: { name: "Home" },
     });
     expect(state.goBack).not.toHaveBeenCalled();
+  });
+
+  it("returns to the opener after a dev pairing link connects", async () => {
+    vi.stubGlobal("__DEV__", true);
+    state.onConnectPress.mockResolvedValue(AsyncResult.success(null));
+    await act(() => {
+      renderer = create(
+        <ConnectionsNewRouteScreen route={{ params: { pairingUrl, autoConnect: "1" } }} />,
+      );
+    });
+
+    expect(state.onConnectPress).toHaveBeenCalledExactlyOnceWith(pairingUrl, undefined);
+    expect(state.goBack).toHaveBeenCalledTimes(1);
+    expect(state.dispatch).not.toHaveBeenCalled();
   });
 
   it("keeps a failed route pairing open and accepts a fresh scan", async () => {

@@ -1,4 +1,5 @@
 import type { ProviderDriverKind } from "@supaterm/contracts";
+import type * as Effect from "effect/Effect";
 
 export interface ProviderMaintenanceCapabilities {
   readonly provider: ProviderDriverKind;
@@ -7,7 +8,9 @@ export interface ProviderMaintenanceCapabilities {
 
   readonly latestVersion?: string | null;
 
+  readonly lookupLatestVersion?: Effect.Effect<string | null>;
   readonly compareVersions?: (current: string, latest: string) => number;
+  readonly installPath?: string;
 }
 
 export interface ProviderMaintenanceCommandAction {

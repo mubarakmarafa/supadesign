@@ -13,7 +13,7 @@ import {
   workEntryViewedImagePath,
 } from "@supaterm/client-runtime/work-log/presentation";
 
-import { AppText as Text } from "../../components/AppText";
+import { AppText as Text } from "../../components/ui/AppText";
 import type { FilePreviewSource } from "../../components/FilePreviewModal";
 import type { MarkdownImageRenderer } from "../../native/SelectableMarkdownText";
 import { cn } from "../../lib/cn";
@@ -21,6 +21,7 @@ import { formatItemFullDetail, type ThreadFeedActivity } from "../../lib/threadA
 import { useTurnItemDetail } from "../../state/queries";
 import { useMarkdownCodeHighlight } from "./markdownCodeHighlightState";
 import { QuestionAnswerHistory } from "./QuestionAnswerHistory";
+import { ThreadCommandOutput, useCommandOutputStreaming } from "./thread-command-output";
 import { ThreadMarkdownImage } from "./ThreadMarkdownImage";
 
 function ReplCodeText({
@@ -65,8 +66,12 @@ export function ThreadWorkLogDetail(props: {
   readonly themeAppearance: "light" | "dark";
 }) {
   const { row } = props;
+  // Command rows stream their output, including the final output, from the server.
+  const streamsOutput = useCommandOutputStreaming(props.environmentId, row.projectedItem);
   const fetchedDetail = useTurnItemDetail(
-    row.fetchesDetail ? { environmentId: props.environmentId, row: row.projectedItem } : null,
+    row.fetchesDetail && !streamsOutput
+      ? { environmentId: props.environmentId, row: row.projectedItem }
+      : null,
   );
   const reasoning = row.projectedItem.item.type === "reasoning" ? row.projectedItem.item : null;
   const fetchedItem = fetchedDetail.data?.item ?? null;
@@ -98,8 +103,9 @@ export function ThreadWorkLogDetail(props: {
       : null;
   const outputImages = fetchedItem ? turnItemOutputImages(fetchedItem) : [];
   const viewedImagePath = workEntryViewedImagePath(row.workEntry);
-  const fetchedOutput =
-    shownItem.type === "file_search" || shownItem.type === "web_search"
+  const fetchedOutput = streamsOutput
+    ? null
+    : shownItem.type === "file_search" || shownItem.type === "web_search"
       ? turnItemOutputText(shownItem)
       : fetchedItem
         ? (turnItemOutputText(fetchedItem) ??
@@ -111,6 +117,12 @@ export function ThreadWorkLogDetail(props: {
               ? "Output is no longer available."
               : "Loading output…"
             : null;
+  const exitLine =
+    failedExitCode === null ? null : (
+      <Text className="mt-1.5 font-mono text-2xs leading-normal text-danger-foreground">
+        exit {failedExitCode}
+      </Text>
+    );
   return (
     <View className={reasoning ? "ml-7 py-1" : "pb-1 pt-0.5"}>
       {row.workEntry.questionAnswer ? (
@@ -187,12 +199,19 @@ export function ThreadWorkLogDetail(props: {
             {fetchedOutput}
           </Text>
         ) : null}
-        {failedExitCode !== null ? (
-          <Text className="mt-1.5 font-mono text-2xs leading-normal text-danger-foreground">
-            exit {failedExitCode}
-          </Text>
-        ) : null}
+        {streamsOutput ? null : exitLine}
       </ScrollView>
+      {streamsOutput ? (
+        <>
+          <ThreadCommandOutput
+            environmentId={props.environmentId}
+            threadId={row.projectedItem.sourceThreadId}
+            itemId={row.projectedItem.sourceItemId}
+            themeAppearance={props.themeAppearance}
+          />
+          {exitLine}
+        </>
+      ) : null}
     </View>
   );
 }

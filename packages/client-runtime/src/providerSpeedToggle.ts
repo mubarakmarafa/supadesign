@@ -10,6 +10,7 @@ export type SpeedToggle = {
   level: SpeedToggleLevel;
   onValue: string | boolean;
   offValue: string | boolean;
+  ultrafastValue?: string | undefined;
   coversDescriptor: boolean;
 };
 
@@ -51,6 +52,7 @@ export function getSpeedToggle(
       level,
       onValue: onTier.id,
       offValue: CODEX_STANDARD_SERVICE_TIER,
+      ultrafastValue: ultrafastTier?.id,
       coversDescriptor: descriptor.options.every(
         ({ id }) => id === CODEX_STANDARD_SERVICE_TIER || id === onTier.id,
       ),
@@ -59,6 +61,10 @@ export function getSpeedToggle(
   return null;
 }
 
-export function getSpeedToggleNextValue(toggle: SpeedToggle): string | boolean {
+export function getSpeedToggleNextValue(
+  toggle: SpeedToggle,
+  preferUltrafast = false,
+): string | boolean {
+  if (preferUltrafast && toggle.ultrafastValue !== undefined) return toggle.ultrafastValue;
   return toggle.level === "off" ? toggle.onValue : toggle.offValue;
 }

@@ -12,7 +12,7 @@ vi.mock("expo-secure-store", () => ({
   setItemAsync: vi.fn(),
 }));
 
-import { CONNECTION_CATALOG_KEY, LEGACY_CONNECTIONS_KEY, make } from "./catalog-store";
+import { CONNECTION_CATALOG_KEY, make } from "./catalog-store";
 import * as MobileSecureStorage from "../persistence/mobile-secure-storage";
 
 function makeStorage(initial: Readonly<Record<string, string>>) {
@@ -45,91 +45,6 @@ describe("mobile connection catalog storage", () => {
 
       expect((yield* catalog.read).targets).toEqual([]);
       expect(memory.deleted).toEqual([CONNECTION_CATALOG_KEY]);
-    }),
-  );
-
-  it.effect("keeps saved connections when the catalog still lists a retired relay target", () =>
-    Effect.gen(function* () {
-      const memory = makeStorage({
-        [CONNECTION_CATALOG_KEY]: JSON.stringify({
-          schemaVersion: 1,
-          targets: [
-            { _tag: "RelayConnectionTarget", environmentId: "relay-environment", label: "Relay" },
-            {
-              _tag: "BearerConnectionTarget",
-              environmentId: "bearer-environment",
-              label: "Desktop",
-              connectionId: "bearer:bearer-environment",
-            },
-          ],
-          profiles: [],
-          credentials: [
-            {
-              connectionId: "bearer:bearer-environment",
-              credential: { _tag: "BearerConnectionCredential", token: "bearer-token" },
-            },
-          ],
-          remoteDpopTokens: [],
-          disabledEnvironmentIds: [],
-        }),
-      });
-      const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
-      );
-
-      const document = yield* catalog.read;
-      expect(document.targets.map((target) => target.environmentId)).toEqual([
-        "bearer-environment",
-      ]);
-      expect(document.credentials).toHaveLength(1);
-      expect(memory.deleted).toEqual([]);
-    }),
-  );
-
-  it.effect("replaces and removes a corrupt legacy catalog", () =>
-    Effect.gen(function* () {
-      const memory = makeStorage({
-        [LEGACY_CONNECTIONS_KEY]: JSON.stringify({ connections: [{ invalid: true }] }),
-      });
-      const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
-      );
-
-      expect((yield* catalog.read).targets).toEqual([]);
-      expect(memory.deleted).toEqual([LEGACY_CONNECTIONS_KEY]);
-      expect(memory.values.has(CONNECTION_CATALOG_KEY)).toBe(true);
-    }),
-  );
-
-  it.effect("falls back to valid legacy data when the current catalog is corrupt", () =>
-    Effect.gen(function* () {
-      const memory = makeStorage({
-        [CONNECTION_CATALOG_KEY]: "{not-json",
-        [LEGACY_CONNECTIONS_KEY]: JSON.stringify({
-          connections: [
-            {
-              environmentId: "legacy-environment",
-              environmentLabel: "Legacy",
-              pairingUrl: "https://legacy.example.test/pair",
-              displayUrl: "https://legacy.example.test",
-              httpBaseUrl: "https://legacy.example.test",
-              wsBaseUrl: "wss://legacy.example.test",
-              bearerToken: "legacy-token",
-              authenticationMethod: "bearer",
-            },
-          ],
-        }),
-      });
-      const catalog = yield* make().pipe(
-        Effect.provideService(MobileSecureStorage.MobileSecureStorage, memory.storage),
-      );
-
-      expect((yield* catalog.read).targets).toHaveLength(1);
-      expect(memory.deleted).toEqual([CONNECTION_CATALOG_KEY, LEGACY_CONNECTIONS_KEY]);
-
-      yield* catalog.update((document) => document);
-      expect(memory.values.has(CONNECTION_CATALOG_KEY)).toBe(true);
-      expect(memory.values.has(LEGACY_CONNECTIONS_KEY)).toBe(false);
     }),
   );
 });

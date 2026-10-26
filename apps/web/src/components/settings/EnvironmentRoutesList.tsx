@@ -52,8 +52,6 @@ export function EnvironmentRoutesList({
   const registry = useContext(RegistryContext);
   const saved = connectionRoutes(environment.entry);
   const savedIds = saved.map((route) => connectionRouteId(route.target));
-  // A dropped order shows until the catalog matches it, so the row does not
-  // jump back while the reorder is being saved.
   const [pending, setPending] = useState<ReadonlyArray<string> | null>(null);
   const order: Array<string> =
     pending !== null &&
@@ -76,8 +74,6 @@ export function EnvironmentRoutesList({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  // Removing a paired route forgets its credential, so it asks first, like
-  // on mobile. No mounted confirm host means no removal.
   const confirmRemove = async (route: ConnectionRoute) => {
     const address = connectionRouteAddress(route);
     const confirmed = await requestConfirmDialog(

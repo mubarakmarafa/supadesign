@@ -11,6 +11,7 @@ import * as NodeProcess from "node:process";
 import * as NodeURL from "node:url";
 
 import { PNG } from "pngjs";
+import { BUILT_IN_THEMES, getThemeColorsForAppearance } from "@supaterm/shared/themePalettes";
 
 import showcaseConfig, {
   type ShowcaseAppearance,
@@ -66,6 +67,7 @@ const MOBILE_BUILD_ENV = {
   ...NodeProcess.env,
   ANDROID_HOME: ANDROID_SDK_ROOT,
   APP_VARIANT: "production",
+  MOBILE_VERSION_POLICY: "appVersion",
   EXPO_NO_GIT_STATUS: "1",
   // Lets the capture build require full screen on iPad so the app can rotate
   // itself to landscape (see app.config.ts).
@@ -234,8 +236,6 @@ export function showcaseCaptureDirectory(
   outputDirectory: string,
   capture: Pick<ShowcaseCapture, "device" | "appearance" | "theme">,
 ): string {
-  // Each palette owns a leaf folder so one upload slot never mixes themes and
-  // every folder keeps a store-legal screenshot count of its own.
   return NodePath.join(
     outputDirectory,
     capture.device.storeAsset.directory,
@@ -401,7 +401,11 @@ export function planShowcaseCaptures(
         })),
       );
     })
-    .filter((capture) => capture.scenes.length > 0);
+    .filter((capture) => {
+      if (capture.scenes.length === 0) return false;
+      const theme = BUILT_IN_THEMES.find((candidate) => candidate.id === capture.theme);
+      return theme === undefined || getThemeColorsForAppearance(theme, capture.appearance) !== null;
+    });
 
   const knownDeviceIds = new Set(config.devices.map((device) => device.id));
   for (const id of options.deviceIds) {
@@ -410,7 +414,9 @@ export function planShowcaseCaptures(
     }
   }
   if (captures.length === 0) {
-    throw new Error("No captures match the selected platform, device, and scene filters.");
+    throw new Error(
+      "No captures match the selected platform, device, scene, theme, and appearance filters.",
+    );
   }
   return captures;
 }
@@ -723,8 +729,23 @@ async function warmMetroBundle(
   host: string,
   config: ShowcaseConfig,
 ): Promise<void> {
-  const url = `http://${host}:${config.metroPort}/apps/mobile/index.bundle?platform=${platform}&dev=true&minify=false`;
-  await runCommand("curl", ["--fail", "--silent", "--show-error", "--output", "/dev/null", url]);
+  const url = `http://${host}:${config.metroPort}/`;
+  const curlOptions = ["--fail", "--silent", "--show-error", "--max-time", "300"];
+  const manifest = JSON.parse(
+    await commandOutput("curl", [
+      ...curlOptions,
+      "--header",
+      `Expo-Platform: ${platform}`,
+      "--header",
+      "Accept: application/expo+json",
+      url,
+    ]),
+  ) as { readonly launchAsset?: { readonly url?: unknown } };
+  const bundleUrl = manifest.launchAsset?.url;
+  if (typeof bundleUrl !== "string" || bundleUrl.length === 0) {
+    throw new Error(`Metro's ${platform} manifest did not contain a launch asset URL.`);
+  }
+  await runCommand("curl", [...curlOptions, "--output", "/dev/null", bundleUrl]);
 }
 
 async function buildIos(): Promise<string> {
@@ -842,11 +863,10 @@ async function iosSimulatorDataPath(udid: string): Promise<string> {
 }
 
 // generativeexperiencesd posts a "Ready for Apple Intelligence" follow-up
-// banner on an eligible device's first boot, and CoreFollowUp re-surfaces it
-// on every boot until the user dismisses it. Stamping the readiness marker
-// before boot makes the daemon skip the post, and dropping the CoreFollowUp
-// store clears a banner that a previous boot already queued. Runs while the
-// device is shut down so the files are read fresh on the next boot.
+// banner on an eligible device's first boot, and CoreFollowUp re-surfaces it on
+// every boot until the user dismisses it. Stamping the readiness marker before
+// boot makes the daemon skip the post, and dropping the CoreFollowUp store
+// clears a banner that a previous boot already queued.
 async function suppressIosSystemFollowUps(udid: string): Promise<void> {
   const dataPath = await iosSimulatorDataPath(udid);
   const preferences = NodePath.join(dataPath, "Library/Preferences");
@@ -891,8 +911,7 @@ async function normalizeIosSimulator(appearance: ShowcaseAppearance, udid: strin
 
 // iPadOS 26 windowing ("Chamois") runs UIRequiresFullScreen apps in a fixed
 // portrait compatibility window, which defeats the in-app landscape rotation
-// the capture build relies on. Switch the device to Full Screen Apps mode
-// (Settings > Multitasking & Gestures) and restart SpringBoard to apply it.
+// the capture build relies on.
 async function ensureIosFullScreenAppsMode(udid: string): Promise<void> {
   const current = await commandOutput("xcrun", [
     "simctl",
@@ -974,15 +993,13 @@ async function captureIos(
   outputDirectory: string,
   config: ShowcaseConfig,
   metroHost: string,
-  pairingUrls: ReadonlyArray<string>,
+  createPairingUrls: () => Promise<ReadonlyArray<string>>,
   registerCleanup: (cleanup: IosCaptureCleanup) => void,
 ): Promise<void> {
   const { simulator, createdByRunner } = await ensureIosSimulator(capture.device);
   const startedByRunner = simulator.state !== "Booted";
   registerCleanup({ udid: simulator.udid, startedByRunner, createdByRunner });
   if (!startedByRunner) {
-    // Clear transient SpringBoard state (permission prompts, stale URL-open
-    // confirmations, keyboards) without erasing the developer's simulator.
     await runCommand("xcrun", ["simctl", "shutdown", simulator.udid]);
   }
   await suppressIosSystemFollowUps(simulator.udid);
@@ -999,8 +1016,6 @@ async function captureIos(
     await runCommand("xcrun", ["simctl", "install", simulator.udid, appPath]);
   }
 
-  // The dev-client launch URL carries the dev menu preferences (SDK 58), so
-  // nothing is written into the app container ahead of launch.
   const metroUrl = `http://${metroHost}:${config.metroPort}?${DEV_CLIENT_LAUNCH_FLAGS}`;
   const scenePath = NodePath.join(
     await iosAppContainer(simulator.udid),
@@ -1013,6 +1028,8 @@ async function captureIos(
   );
   const firstScene = capture.scenes[0] ?? "threads";
   const launchShowcaseApp = async (terminateRunningProcess: boolean) => {
+    const pairingUrls = await createPairingUrls();
+    await NodeFSP.rm(readyPath, { force: true });
     await runCommand("xcrun", [
       "simctl",
       "launch",
@@ -1033,7 +1050,6 @@ async function captureIos(
       capture.device.orientation ?? "portrait",
     ]);
   };
-  await NodeFSP.rm(readyPath, { force: true });
   await NodeFSP.writeFile(scenePath, firstScene);
   await launchShowcaseApp(false);
   for (const [sceneIndex, scene] of capture.scenes.entries()) {
@@ -1448,12 +1464,13 @@ async function main(): Promise<void> {
 
     for (const capture of captures) {
       const pairingHost = capture.device.platform === "ios" ? "127.0.0.1" : "10.0.2.2";
-      const pairingUrls = await Promise.all(
-        showcaseEnvironments.map(async (environment) => {
-          const credential = await issuePairingCredential(environment.baseDir);
-          return buildShowcasePairingUrl(pairingHost, environment.port, credential);
-        }),
-      );
+      const createPairingUrls = () =>
+        Promise.all(
+          showcaseEnvironments.map(async (environment) => {
+            const credential = await issuePairingCredential(environment.baseDir);
+            return buildShowcasePairingUrl(pairingHost, environment.port, credential);
+          }),
+        );
       if (capture.device.platform === "ios") {
         await captureIos(
           capture as ShowcaseCapture & { readonly device: ShowcaseIosDevice },
@@ -1461,7 +1478,7 @@ async function main(): Promise<void> {
           outputDirectory,
           showcaseConfig,
           metroHost,
-          pairingUrls,
+          createPairingUrls,
           (cleanup) => iosCleanups.push(cleanup),
         );
       } else {
@@ -1470,7 +1487,7 @@ async function main(): Promise<void> {
           androidApkPath,
           outputDirectory,
           showcaseConfig,
-          pairingUrls,
+          await createPairingUrls(),
           (cleanup) => androidCleanups.push(cleanup),
         );
       }
@@ -1527,9 +1544,6 @@ async function main(): Promise<void> {
 
 if (import.meta.main) {
   void main().catch((error: unknown) => {
-    // Stack over message: the harness only fails in CI, where the line that
-    // threw is the whole diagnosis and there is nobody at a terminal to
-    // re-run it with more output.
     NodeProcess.stderr.write(
       `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
     );

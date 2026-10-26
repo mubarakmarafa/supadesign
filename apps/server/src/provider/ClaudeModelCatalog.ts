@@ -8,6 +8,7 @@ import {
 } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 import {
+  filterCustomModelCapabilities,
   getModelSelectionStringOptionValue,
   getProviderOptionCurrentValue,
   getProviderOptionDescriptors,
@@ -77,14 +78,6 @@ export const BUNDLED_CLAUDE_MODEL_CATALOG = resolveClaudeModelCatalog(
   BUNDLED_CLAUDE_PROVIDER_CATALOG,
 );
 
-/**
- * Scope the catalog to one instance's settings: custom model slugs stay opaque
- * (a built-in alias they shadow is dropped, canonical slugs and capabilities
- * are preserved), and custom entries that declare their own capabilities are
- * appended so the adapter resolves effort / fast mode / thinking against the
- * user's descriptors instead of the empty default. Custom entries carry no
- * runtime profile, so option values pass through to Claude Code verbatim.
- */
 export function scopeClaudeModelCatalog(
   catalog: ClaudeModelCatalog,
   customModels: ReadonlyArray<CustomModelSetting>,
@@ -114,7 +107,7 @@ export function scopeClaudeModelCatalog(
         slug: entry.slug,
         name: entry.name,
         isCustom: true,
-        capabilities: entry.capabilities,
+        capabilities: filterCustomModelCapabilities(CLAUDE, entry.capabilities),
       },
       runtime: {},
       compatibility: {},
@@ -217,6 +210,13 @@ export function resolveClaudeCatalogEffort(
   model: string | null | undefined,
   raw: string | null | undefined,
 ): string | undefined {
+  if (!resolveClaudeCatalogModel(catalog, model)) {
+    const effort = raw?.trim();
+    return effort && ["low", "medium", "high", "xhigh", "max"].includes(effort)
+      ? effort
+      : undefined;
+  }
+
   const caps = getClaudeCatalogModelCapabilities(catalog, model);
   const descriptors = getProviderOptionDescriptors({
     caps,

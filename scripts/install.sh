@@ -17,7 +17,7 @@
 # instead of fetching the release again.
 set -eu
 
-repo="supabitapp/supacode-next"
+repo="supabitapp/supaterm"
 base_url="${SUPATERM_RELEASE_BASE_URL:-https://github.com/${repo}/releases/download}"
 supaterm_home="${SUPATERM_HOME:-$HOME/.supaterm}"
 bin_dir="${SUPATERM_INSTALL_BIN_DIR:-$HOME/.local/bin}"
@@ -187,7 +187,7 @@ else
   fetch_status=0
   fetch "${base_url}/v${version}/SHA256SUMS" "${staging}/SHA256SUMS" || fetch_status=$?
   if [ "$fetch_status" -eq 44 ]; then
-    fail "Supaterm ${version} has no release archive for ${platform}-${arch}; releases before the self-contained CLI can only be installed with \`npm install -g supaterm@${version}\`"
+    fail "Supaterm ${version} has no release archive for ${platform}-${arch}"
   elif [ "$fetch_status" -ne 0 ]; then
     fail "could not download the release checksums"
   fi
@@ -213,6 +213,10 @@ fi
 step "Setting up the supaterm command..."
 mkdir -p "$bin_dir"
 ln -sfn "${target_dir}/supaterm" "${bin_dir}/supaterm"
+# Pruning keeps what this launcher points at; a background service cannot see bin_dir otherwise.
+launcher="$(CDPATH='' cd -P -- "$bin_dir" && pwd)/supaterm"
+launchers="${supaterm_home}/runtime/launchers"
+grep -qxF "$launcher" "$launchers" 2>/dev/null || printf '%s\n' "$launcher" >> "$launchers"
 if "$interactive"; then printf '\r\033[2K' >&2; fi
 printf '  %sInstalled Supaterm %s%s\n\n' "$green" "$version" "$reset" >&2
 case ":${PATH}:" in

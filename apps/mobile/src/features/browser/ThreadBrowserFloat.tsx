@@ -1,13 +1,16 @@
 import { useIsFocused } from "@react-navigation/native";
 import { shouldShowFloatingBrowser } from "@supaterm/client-runtime/preview/floating-browser";
 import type { EnvironmentId, PreviewSessionSnapshot, ThreadId } from "@supaterm/contracts";
+import { previewPdfAssetUrl } from "@supaterm/shared/preview";
+import * as Option from "effect/Option";
 import { type ComponentProps, useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Pressable, View } from "react-native";
 
-import { SymbolView } from "../../components/AppSymbol";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { browserTabTitle } from "./browserTabs";
 import { PreviewStreamWebView } from "./PreviewStreamWebView";
+import { usePreparedConnection } from "../../state/session";
 
 const PLAYER_LONG_SIDE = 184;
 
@@ -25,7 +28,6 @@ export function ThreadBrowserFloat(props: {
     if (!props.loaded) return;
     const previous = known.current;
     known.current = new Map(props.tabs.map((tab) => [tab.tabId, tab.revealRequest?.id]));
-    // The first list is a baseline, so reopening a thread does not resurface old tabs.
     if (previous === null) return;
     const opened = props.tabs.findLast(
       (tab) =>
@@ -85,9 +87,10 @@ function FloatingBrowserPlayer(props: {
 
 function FloatingBrowserStream(props: ComponentProps<typeof FloatingBrowserPlayer>) {
   const { themeVariables } = useAppearancePreferences();
+  const prepared = usePreparedConnection(props.environmentId);
+  const httpBaseUrl = Option.isSome(prepared) ? prepared.value.httpBaseUrl : null;
   const [viewport, setViewport] = useState<{ width: number; height: number } | null>(null);
   const [streaming, setStreaming] = useState(false);
-  // The page keeps its own size; the player scales it into a box of the same shape.
   const aspect = Math.min(Math.max(viewport ? viewport.width / viewport.height : 16 / 10, 0.5), 2);
   const width = aspect >= 1 ? PLAYER_LONG_SIDE : Math.round(PLAYER_LONG_SIDE * aspect);
   const height = Math.round(width / aspect);
@@ -118,6 +121,11 @@ function FloatingBrowserStream(props: ComponentProps<typeof FloatingBrowserPlaye
             environmentId={props.environmentId}
             threadId={props.threadId}
             tabId={props.tab.tabId}
+            pdfUri={
+              props.tab.navStatus._tag === "Success"
+                ? previewPdfAssetUrl(props.tab.navStatus.url, httpBaseUrl)
+                : null
+            }
             interactive={false}
             background={background}
             compact

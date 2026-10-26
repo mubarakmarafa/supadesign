@@ -12,15 +12,9 @@ const EMPTY_CLONE_ATOM = Atom.make<ProjectCloneSnapshot | null>(null).pipe(
   Atom.withLabel("web-project-clone:empty"),
 );
 
-/**
- * Latest clone list an environment has streamed; empty until the subscription
- * delivers, and never subscribed on servers that predate clone tracking.
- */
 export const environmentProjectClonesAtom = Atom.family((environmentId: EnvironmentId) =>
   Atom.make((get): ReadonlyArray<ProjectCloneSnapshot> => {
-    const supported =
-      get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities
-        .projectCloneTracking === true;
+    const supported = get(environmentServerConfigsAtom).has(environmentId);
     if (!supported) return EMPTY_CLONES;
     const result = get(sourceControlEnvironment.projectClones({ environmentId, input: {} }));
     return Option.getOrElse(AsyncResult.value(result), () => EMPTY_CLONES);
@@ -36,11 +30,6 @@ const projectCloneAtom = Atom.family((key: string) => {
   }).pipe(Atom.withLabel(`web-project-clone:${key}`));
 });
 
-/**
- * The tracked clone for a project, or null once it finished (or never
- * existed). Subscribing here opens the environment's clone stream, which is
- * cheap: the server sends an empty list and stays quiet until a clone starts.
- */
 export function useProjectClone(ref: ScopedProjectRef | null): ProjectCloneSnapshot | null {
   return useAtomValue(ref === null ? EMPTY_CLONE_ATOM : projectCloneAtom(scopedProjectKey(ref)));
 }
@@ -49,4 +38,19 @@ export function useEnvironmentProjectClones(
   environmentId: EnvironmentId,
 ): ReadonlyArray<ProjectCloneSnapshot> {
   return useAtomValue(environmentProjectClonesAtom(environmentId));
+}
+
+const silencedCloneToasts = new Set<string>();
+
+/**
+ * Keeps a clone's progress out of toasts once the user is looking at its
+ * project, whose composer shows the same progress. Failures still toast
+ * whenever the project is not on screen.
+ */
+export function silenceProjectCloneToasts(ref: ScopedProjectRef) {
+  silencedCloneToasts.add(scopedProjectKey(ref));
+}
+
+export function isProjectCloneToastSilenced(ref: ScopedProjectRef): boolean {
+  return silencedCloneToasts.has(scopedProjectKey(ref));
 }

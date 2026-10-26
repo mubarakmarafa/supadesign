@@ -6,9 +6,7 @@ import * as HostProcess from "@supaterm/shared/HostProcess";
 import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
-import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
-import * as NodePath from "@effect/platform-node/NodePath";
 import { vi } from "vite-plus/test";
 
 import * as ElectronApp from "../electron/ElectronApp.ts";
@@ -49,8 +47,6 @@ const makeDesktopDeepLinksLayer = ({
     stateDir: "/tmp/supaterm-state",
     isDevelopment,
     appDataDirectory: "/tmp/app-data",
-    userDataDirName: isDevelopment ? "supaterm-dev" : "supaterm",
-    legacyUserDataDirName: isDevelopment ? "Supaterm (Dev)" : "Supaterm (Alpha)",
     path: { join: (...parts: ReadonlyArray<string>) => parts.join("/") },
   } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]);
 
@@ -79,8 +75,6 @@ const makeDesktopDeepLinksLayer = ({
         Layer.succeed(DesktopEnvironment.DesktopEnvironment, environment),
         Layer.succeed(ElectronApp.ElectronApp, electronApp),
         Layer.succeed(ElectronShell.ElectronShell, shell),
-        FileSystem.layerNoop({ exists: () => Effect.succeed(false) }),
-        NodePath.layerPosix,
       ),
     ),
     Layer.provideMerge(Layer.succeed(DesktopEnvironment.DesktopEnvironment, environment)),
@@ -120,7 +114,7 @@ describe("DesktopDeepLinks", () => {
     });
   });
 
-  it.effect("registers the protocol client without the single-instance lock on macOS", () => {
+  it.effect("acquires the single-instance lock before registering the protocol on macOS", () => {
     const events: string[] = [];
 
     return Effect.gen(function* () {
@@ -129,7 +123,7 @@ describe("DesktopDeepLinks", () => {
           makeDesktopDeepLinksLayer({
             platform: "darwin",
             isDevelopment: false,
-            hasSingleInstanceLock: false,
+            hasSingleInstanceLock: true,
             events,
           }),
         ),
@@ -137,42 +131,33 @@ describe("DesktopDeepLinks", () => {
 
       assert.deepEqual(events, [
         `setPath:userData:/tmp/app-data/${APP_SLUG}-v2`,
+        "requestSingleInstanceLock",
         `setAsDefaultProtocolClient:${APP_URL_SCHEME}`,
       ]);
     });
   });
 
-  it.effect("quits and interrupts startup in a secondary instance", () => {
-    const events: string[] = [];
-    const listeners = new Map<string, (...args: unknown[]) => void>();
-
-    return Effect.gen(function* () {
-      const deepLinks = yield* DesktopDeepLinks.DesktopDeepLinks;
-      const exit = yield* Effect.exit(
-        Effect.scoped(
-          deepLinks.configure.pipe(
-            Effect.provide(earlyEventsLayer),
-            Effect.provideService(DesktopWebLinks.DesktopWebLinks, ignoreWebLinks),
+  it.effect.each(["darwin", "linux", "win32"] as const)(
+    "interrupts construction in a secondary instance on %s",
+    (platform) => {
+      const events: string[] = [];
+      return Effect.gen(function* () {
+        const exit = yield* Effect.exit(
+          Effect.scoped(
+            Layer.build(
+              makeDesktopDeepLinksLayer({ platform, hasSingleInstanceLock: false, events }),
+            ),
           ),
-        ),
-      );
-
-      assert.isTrue(Exit.hasInterrupts(exit));
-      assert.deepEqual(events, [
-        `setPath:userData:/tmp/app-data/${APP_SLUG}-dev`,
-        "requestSingleInstanceLock",
-        "quit",
-      ]);
-      assert.deepEqual([...listeners.keys()], ["open-url", "open-file", "second-instance"]);
-    }).pipe(
-      Effect.provide(makeDesktopDeepLinksLayer({ hasSingleInstanceLock: false, events })),
-      Effect.provideService(ElectronApp.ElectronApp, makeListenerApp(listeners)),
-      Effect.provideService(
-        ElectronWindow.ElectronWindow,
-        {} as ElectronWindow.ElectronWindow["Service"],
-      ),
-    );
-  });
+        );
+        assert.isTrue(Exit.hasInterrupts(exit));
+        assert.deepEqual(events, [
+          `setPath:userData:/tmp/app-data/${APP_SLUG}-dev`,
+          "requestSingleInstanceLock",
+          "quit",
+        ]);
+      });
+    },
+  );
 
   it.effect("registers the open-url and second-instance handlers in the primary instance", () => {
     const listeners = new Map<string, (...args: unknown[]) => void>();

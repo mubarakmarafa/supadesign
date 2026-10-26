@@ -1,19 +1,8 @@
 import { useMemo } from "react";
-import type { ControlPillMenuProps } from "../../components/ControlPillMenu.types";
-import { buildHomeListFilterMenu } from "./home-list-filter-menu";
-import type { HomeHeaderProps } from "./HomeHeader.types";
+import type { MenuProps } from "../../components/ui/Menu.types";
+import { buildHomeListFilterMenu, type HomeListFilterMenuInput } from "./home-list-filter-menu";
 
-type ThreadListFilterProps = Pick<
-  HomeHeaderProps,
-  | "environments"
-  | "projects"
-  | "selectedEnvironmentId"
-  | "selectedProjectKey"
-  | "onEnvironmentChange"
-  | "onProjectChange"
->;
-
-export function useThreadListFilterMenu(props: ThreadListFilterProps) {
+export function useThreadListFilterMenu(props: HomeListFilterMenuInput) {
   const {
     environments,
     projects,
@@ -21,6 +10,8 @@ export function useThreadListFilterMenu(props: ThreadListFilterProps) {
     selectedProjectKey,
     onEnvironmentChange,
     onProjectChange,
+    grouping,
+    onGroupingChange,
   } = props;
   const menu = useMemo(() => {
     const definition = buildHomeListFilterMenu({
@@ -30,13 +21,15 @@ export function useThreadListFilterMenu(props: ThreadListFilterProps) {
       selectedProjectKey,
       onEnvironmentChange,
       onProjectChange,
+      grouping,
+      onGroupingChange,
     });
     const handlers = new Map<string, () => void>();
     const actions = definition.items.map((item, index) => {
       const id = String(index);
       if (item.type === "action") {
         handlers.set(id, item.onPress);
-        return { id, title: item.title, state: item.state };
+        return { id, title: item.title, state: item.state, subtitle: item.subtitle };
       }
       return {
         id,
@@ -44,11 +37,16 @@ export function useThreadListFilterMenu(props: ThreadListFilterProps) {
         subactions: item.items.map((action, childIndex) => {
           const childId = `${id}:${childIndex}`;
           handlers.set(childId, action.onPress);
-          return { id: childId, title: action.title, state: action.state };
+          return {
+            id: childId,
+            title: action.title,
+            state: action.state,
+            subtitle: action.subtitle,
+          };
         }),
       };
     });
-    const onPressAction: NonNullable<ControlPillMenuProps["onPressAction"]> = ({ nativeEvent }) => {
+    const onPressAction: NonNullable<MenuProps["onPressAction"]> = ({ nativeEvent }) => {
       handlers.get(nativeEvent.event)?.();
     };
     return { title: definition.title, actions, onPressAction };
@@ -59,6 +57,8 @@ export function useThreadListFilterMenu(props: ThreadListFilterProps) {
     selectedProjectKey,
     onEnvironmentChange,
     onProjectChange,
+    grouping,
+    onGroupingChange,
   ]);
   return {
     ...menu,

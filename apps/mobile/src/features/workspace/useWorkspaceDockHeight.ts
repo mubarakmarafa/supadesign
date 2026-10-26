@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { useAndroidControlSizing } from "../../components/useAndroidControlSizing";
+import { useAndroidControlSizing } from "../../components/ui/useAndroidControlSizing";
 import { WORKSPACE_DOCK } from "./workspace-tabs-state";
 
 export function useWorkspaceDockHeight() {

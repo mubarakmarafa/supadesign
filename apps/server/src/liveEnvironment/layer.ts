@@ -153,7 +153,7 @@ export const make = Effect.gen(function* () {
   const threadLaunch = yield* ThreadLaunch.ThreadLaunchService;
   const threadManagement = yield* ThreadManagement.ThreadManagementService;
   const crypto = yield* Crypto.Crypto;
-  const newCommandId = crypto.randomUUIDv4.pipe(Effect.orDie, Effect.map(CommandId.make));
+  const newCommandId = crypto.randomUUIDv4().pipe(Effect.orDie, Effect.map(CommandId.make));
 
   const readThread = (threadId: ThreadId) =>
     projections.getThreadShell(threadId).pipe(

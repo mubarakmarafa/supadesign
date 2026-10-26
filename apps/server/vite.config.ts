@@ -2,16 +2,10 @@ import "vite-plus/test/config";
 import { defineConfig, mergeConfig } from "vite-plus";
 
 import baseConfig from "../../vite.config.ts";
+import { SEA_NODE_VERSION } from "./scripts/seaNodeVersion.ts";
 import { WeightedShardSequencer } from "./src/testUtils/weightedShardSequencer.ts";
 
-// The bundle used to inline only workspace packages, leaving every third-party
-// runtime dep external. External deps must exist on the real filesystem (the WSL
-// backend runs plain `wsl.exe -- node`, which cannot read inside an asar), so the
-// desktop build unpacked `**\/node_modules\/**` wholesale: 13,875 loose files to
-// support 20 native binaries. NSIS install time tracks file count, not bytes.
-//
-// Inverted here — bundle everything except the packages that genuinely cannot be
-// inlined. See scripts/lib/cli-external-packages.ts for what earns an exemption.
+// NSIS install time tracks file count, not bytes.
 import {
   isExternalCliDependency,
   shouldBundleCliDependency,
@@ -19,20 +13,19 @@ import {
 
 export { shouldBundleCliDependency };
 
+const TELEMETRY_CHANNELS = ["stable", "nightly", "preview", "dev"];
+const telemetryChannel = process.env.SUPATERM_TELEMETRY_CHANNEL?.trim() || "dev";
+if (!TELEMETRY_CHANNELS.includes(telemetryChannel)) {
+  throw new Error(
+    `SUPATERM_TELEMETRY_CHANNEL must be one of ${TELEMETRY_CHANNELS.join(", ")}, got "${telemetryChannel}".`,
+  );
+}
+
 // `build:exe` wraps the same bundle in a Node single-executable. tsdown's exe
 // step refuses multi-chunk output and counts the sourcemap as a chunk, and the
 // executable needs a host Node that supports `--build-sea` (25.7+), so this is
 // a separate mode rather than a second entry in the default build.
 const packExecutable = process.env.SUPATERM_PACK_EXE === "1";
-// `<platform>-<arch>` in nodejs.org naming (darwin-x64, linux-arm64, win-x64).
-// When set, tsdown injects the bundle into a downloaded Node of that target
-// instead of the host Node, which is how the arm64 macOS runner produces the
-// x64 archive. Cross-building is safe because the code cache is off.
-//
-// The Node inside the executable is pinned here rather than taken from the
-// build host, so every archive of a release embeds the same runtime no matter
-// which Node happens to run the build.
-const SEA_NODE_VERSION = "26.8.2";
 const SEA_TARGETS = {
   "darwin-arm64": { platform: "darwin", arch: "arm64" },
   "darwin-x64": { platform: "darwin", arch: "x64" },
@@ -42,6 +35,11 @@ const SEA_TARGETS = {
   "win-x64": { platform: "win", arch: "x64" },
 } as const;
 const packExecutableTarget = process.env.SUPATERM_PACK_EXE_TARGET?.trim();
+if (packExecutable && !packExecutableTarget && process.versions.node !== SEA_NODE_VERSION) {
+  throw new Error(
+    `Native CLI executables must be built with Node ${SEA_NODE_VERSION}; running ${process.versions.node}.`,
+  );
+}
 if (packExecutableTarget && !Object.hasOwn(SEA_TARGETS, packExecutableTarget)) {
   throw new Error(
     `SUPATERM_PACK_EXE_TARGET must be one of ${Object.keys(SEA_TARGETS).join(", ")}, got "${packExecutableTarget}".`,
@@ -56,8 +54,12 @@ const packExecutableTargets = packExecutableTarget
     ]
   : undefined;
 
+// The root config's `projects` route repo-root runs to package configs,
+// including this one. Inheriting them would make this config a container.
+const { projects: _rootTestProjects, ...baseTestConfig } = baseConfig.test ?? {};
+
 export default mergeConfig(
-  baseConfig,
+  { ...baseConfig, test: baseTestConfig },
   defineConfig({
     run: {
       tasks: {
@@ -82,20 +84,16 @@ export default mergeConfig(
               outDir: "dist-exe",
               ...(packExecutableTargets ? { targets: packExecutableTargets } : {}),
               // Node's SEA docs: `import()` does not work when useCodeCache is
-              // true, and the server reaches several modules that way. The
-              // cache is also platform-bound, so leaving it off keeps the
-              // build correct on any host.
+              // true, and the server reaches several modules that way.
               seaConfig: { useCodeCache: false },
             },
           }
         : {}),
       deps: {
-        // Both halves are required. `alwaysBundle` forces the JS dependencies in
-        // (declared deps are external by default, which is what this change is
-        // undoing). `neverBundle` forces the native packages out: returning
-        // false from `alwaysBundle` only means "no opinion", so a transitive
-        // dependency would still be bundled — which silently inlined native
-        // loaders such as node-gyp-build, losing native acceleration.
+        // `neverBundle` forces the native packages out: returning false from
+        // `alwaysBundle` only means "no opinion", so a transitive dependency
+        // would still be bundled — which silently inlined native loaders such
+        // as node-gyp-build, losing native acceleration.
         alwaysBundle: shouldBundleCliDependency,
         neverBundle: (id: string) => isExternalCliDependency(id),
         onlyBundle: false,
@@ -103,17 +101,17 @@ export default mergeConfig(
       banner: {
         js: "#!/usr/bin/env node\n",
       },
+      define: {
+        __SUPATERM_TELEMETRY_CHANNEL__: JSON.stringify(telemetryChannel),
+      },
     },
     test: {
       // The server suite exercises sqlite, git, temp worktrees, and orchestration
       // runtimes heavily. Running files in parallel introduces load-sensitive flakes.
       fileParallelism: false,
-      // CI runs the suite as `--shard` runs of equal recorded duration.
       sequence: { sequencer: WeightedShardSequencer },
       // Appended to the root setup, which mergeConfig concatenates.
       setupFiles: ["./src/testUtils/gitConfig.setup.ts"],
-      // Server integration tests exercise sqlite, git, and orchestration together.
-      // Under package-wide runs they can exceed the default budget on loaded CI hosts.
       hookTimeout: 120_000,
       testTimeout: 120_000,
     },

@@ -4,6 +4,7 @@ import {
   ComposerContextId,
   EnvironmentId,
   MessageId,
+  ProjectId,
   ThreadId,
   TurnItemId,
 } from "@supaterm/contracts";
@@ -25,42 +26,59 @@ const pending = (id: string): QueuedThreadMessage => ({
 });
 
 describe("pending timeline messages", () => {
-  it.each([false, true])("hides a trailing tool image behind pending messages, live=%s", (live) => {
-    const imageGroup = {
-      type: "work-toggle",
-      id: "image-group",
-      groupId: "image-group",
-      createdAt: "2026-09-06T10:00:00.000Z",
-      runId: null,
-      hiddenCount: 1,
-      expanded: false,
-      summary: "Screenshot",
-      summaryKind: "dynamic-tool",
-      hasFailure: false,
-      live,
-      shimmer: live,
-      latestImage: {
-        alt: "Screenshot",
-        resource: {
-          _tag: "tool-output-image",
-          threadId: ThreadId.make("thread"),
-          itemId: TurnItemId.make("screenshot"),
-          index: 0,
-        },
+  it("marks the synthetic creation prompt pending without duplicating it", () => {
+    const queued = {
+      ...pending("creation"),
+      creation: {
+        projectId: ProjectId.make("project"),
+        workspaceMode: "local" as const,
+        branch: "main",
+        worktreePath: null,
       },
-    } satisfies ThreadFeedEntry;
-    const queued = pending("queued");
-    const entries = appendPendingThreadMessages([imageGroup], [], [queued]);
-    expect(entries).toMatchObject([
-      { type: "work-toggle", latestImage: null },
-      { type: "message", pendingMessage: queued },
-    ]);
-    expect(appendPendingThreadMessages([imageGroup], [], [queued])[0]).toBe(entries[0]);
-    expect(appendPendingThreadMessages([imageGroup], [], [])[0]).toBe(imageGroup);
-    const delivered = entries[1]!;
-    expect(appendPendingThreadMessages([imageGroup], [delivered], [queued])[0]).toBe(imageGroup);
-    expect(imageGroup.latestImage).not.toBeNull();
+    };
+    const prompt = appendPendingThreadMessages([], [], [queued])[0]!;
+    const synthetic = { ...prompt, pendingMessage: undefined };
+    const result = appendPendingThreadMessages([synthetic], [synthetic], [queued]);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.pendingMessage).toEqual(queued);
+    expect(result[0]?.acknowledged).toBe(false);
   });
+
+  it.each([false, true])(
+    "keeps a trailing tool group's images behind pending messages, live=%s",
+    (live) => {
+      const imageGroup = {
+        type: "work-toggle",
+        id: "image-group",
+        groupId: "image-group",
+        createdAt: "2026-09-06T10:00:00.000Z",
+        runId: null,
+        hiddenCount: 1,
+        expanded: false,
+        summary: "Screenshot",
+        summaryKind: "dynamic-tool",
+        hasFailure: false,
+        live,
+        shimmer: live,
+        images: [
+          {
+            key: "screenshot:0",
+            alt: "Screenshot",
+            resource: {
+              _tag: "tool-output-image",
+              threadId: ThreadId.make("thread"),
+              itemId: TurnItemId.make("screenshot"),
+              index: 0,
+            },
+          },
+        ],
+      } satisfies ThreadFeedEntry;
+      const queued = pending("queued");
+      const entries = appendPendingThreadMessages([imageGroup], [], [queued]);
+      expect(entries).toMatchObject([imageGroup, { type: "message", pendingMessage: queued }]);
+      expect(entries[0]).toBe(imageGroup);
+    },
+  );
 
   it("retains context records while a message is waiting for delivery", () => {
     const record = {
@@ -154,7 +172,6 @@ describe("pending timeline messages", () => {
     const optimistic = appendPendingThreadMessages([], [], [queued])[0]!;
     const delivered = { ...optimistic, pendingMessage: undefined };
     expect(appendPendingThreadMessages([delivered], [delivered], [queued])).toEqual([delivered]);
-    // Folded messages still count as delivered even when absent from the presented rows.
     expect(appendPendingThreadMessages([], [delivered], [queued])).toEqual([]);
   });
 });

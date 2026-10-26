@@ -11,7 +11,7 @@ launch Supaterm and configure providers afterwards.
 ## From source
 
 Use Node.js 24 and the Mise-managed project tools. Get the source from
-[supabitapp/supacode-next](https://github.com/supabitapp/supacode-next), install Mise using the
+[supabitapp/supaterm](https://github.com/supabitapp/supaterm), install Mise using the
 [development runbook](../operations/development.md#first-checkout),
 and run these commands from the repository root:
 
@@ -52,21 +52,30 @@ mise exec -- vp run dev
 
 If you have a packaged `supaterm` executable installed, these commands are available:
 
-| Task                                             | Command                                                         |
-| ------------------------------------------------ | --------------------------------------------------------------- |
-| Start the server and open the web app            | `supaterm`                                                      |
-| Start the server without a browser               | `supaterm serve`                                                |
-| Keep it running in the background (macOS, Linux) | `supaterm service install` ([details](./background-service.md)) |
-| Move to the newest release                       | `supaterm update`                                               |
-| Remove it again                                  | `supaterm uninstall`                                            |
-| List supported server settings                   | `supaterm settings list`                                        |
+| Task                                             | Command                                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Start the server and open the web app            | `supaterm`                                                                    |
+| Start the server without a browser               | `supaterm serve`                                                              |
+| Keep it running in the background (macOS, Linux) | `supaterm service install` ([details](./background-service.md))               |
+| Move to the newest release                       | `supaterm update`                                                             |
+| Reclaim database space                           | `supaterm doctor` ([details](./background-service.md#reclaim-database-space)) |
+| Remove it again                                  | `supaterm uninstall`                                                          |
+| List supported server settings                   | `supaterm settings list`                                                      |
 
 Run `supaterm --help` for the full reference.
 
 ## Desktop app
 
 Build the desktop client from this repository. Distribution artifacts belong to
-Supaterm's [GitHub Releases](https://github.com/supabitapp/supacode-next/releases).
+Supaterm's [GitHub Releases](https://github.com/supabitapp/supaterm/releases).
+
+On macOS, download the installer from [supaterm.com/download](https://supaterm.com/download),
+open it, and double-click **Install Supaterm**. It downloads the latest stable release for your
+Mac's chip, installs it in Applications, and opens it. If your account cannot write to
+Applications, it installs in the Applications folder in your home folder instead. If Supaterm is
+already open, the installer asks you to quit it first. To install with Homebrew instead, run
+`brew install supaterm`. Nightly builds and the full disk images for Apple Silicon and Intel are on
+the releases page.
 
 ### The `supaterm` command
 
@@ -102,7 +111,9 @@ command cannot reach the app, start or update the desktop app and try again.
 
 ## Mobile app
 
-Build the mobile client using the [mobile development guide](../../apps/mobile/README.md).
+On iPhone and iPad, [join the Supaterm beta on TestFlight](https://testflight.apple.com/join/VUJkRPwq).
+The link and a QR code are also in **Settings → General → Mobile app** on web and desktop.
+On Android, build the client using the [mobile development guide](../../apps/mobile/README.md).
 The phone connects to a server on another machine. Follow
 [remote access](./remote-access.md) to pair it with a pairing URL or QR code.
 

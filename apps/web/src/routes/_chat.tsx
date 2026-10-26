@@ -1,15 +1,15 @@
-import { AuthPreviewOperateScope } from "@supaterm/contracts";
+import { AuthPreviewOperateScope, type KeybindingCommand } from "@supaterm/contracts";
 import { APP_BASE_NAME } from "../branding";
-import { Outlet, createFileRoute, redirect, useParams } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { useAtomValue } from "@effect/atom-react";
 import { useEffect } from "react";
 
+import { registerAppCommandHandler } from "../appCommandBus";
 import { isCommandPaletteOpen, openCommandPalette } from "../commandPaletteBus";
-import { ThreadRouteView } from "../components/ThreadRouteView";
 import { BoardShortcuts } from "../components/board/BoardShortcuts";
 import { LiveEnvironmentDriver } from "../components/board/LiveEnvironmentDriver";
+import { ChatPaneWorkspace } from "../components/chatPanes/ChatPaneWorkspace";
 import { ThreadLinkPrompt } from "../components/promptLinks/ThreadLinkPrompt";
-import { resolveThreadRouteTarget } from "../threadRoutes";
 import { isPreviewAvailableFor } from "../browser/previewRuntime";
 import { usePrimaryEnvironmentId } from "../state/environments";
 import { useEnvironmentScope } from "../state/session";
@@ -21,13 +21,32 @@ import { isPreviewFocused } from "../lib/previewFocus";
 import { isTerminalFocused } from "../lib/terminalFocus";
 import { isEditableFocused } from "../lib/editableFocus";
 import { isModelPickerOpen } from "../modelPickerVisibility";
-import { undoLatestThreadAction } from "../hooks/showThreadUndoNotice";
 import { resolveShortcutCommand } from "../keybindings";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../terminalUiStateStore";
 import { selectActiveRightPanel, useRightPanelStore } from "../rightPanelStore";
 import { useThreadSelectionStore } from "../threadSelectionStore";
 import { stackedThreadToast, toastManager } from "~/components/ui/toast";
 import { primaryServerKeybindingsAtom } from "~/state/server";
+import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
+
+function previewActionForCommand(command: KeybindingCommand | null) {
+  switch (command) {
+    case "preview.refresh":
+      return "refresh";
+    case "preview.focusUrl":
+      return "focus-url";
+    case "preview.zoomIn":
+      return "zoom-in";
+    case "preview.zoomOut":
+      return "zoom-out";
+    case "preview.resetZoom":
+      return "reset-zoom";
+    case "preview.designMode":
+      return "design-mode";
+    default:
+      return null;
+  }
+}
 
 function ChatRouteGlobalShortcuts() {
   const clearSelection = useThreadSelectionStore((state) => state.clearSelection);
@@ -55,6 +74,63 @@ function ChatRouteGlobalShortcuts() {
       : false,
   );
   useEffect(() => {
+    const runCommand = (command: KeybindingCommand | null, repeat: boolean): boolean => {
+      if (command === "chat.new" || command === "chat.newLocal") {
+        void startNewThreadFromContext({
+          activeDraftThread,
+          activeThread: activeThread ?? undefined,
+          defaultProjectRef,
+          handleNewThread,
+        });
+        return true;
+      }
+
+      if (command === "chat.newWithoutProject") {
+        const environmentId = scratchEnvironmentId(
+          activeThread?.environmentId ?? activeDraftThread?.environmentId ?? primaryEnvironmentId,
+        );
+        if (environmentId === null) return false;
+        void startScratchThread(environmentId);
+        return true;
+      }
+
+      if (command === "projectPicker.toggle") {
+        if (repeat) return true;
+        const projectTrigger =
+          document.querySelector<HTMLButtonElement>(
+            '[data-chat-pane][data-focused="true"] [data-draft-project-trigger]',
+          ) ?? document.querySelector<HTMLButtonElement>("[data-draft-project-trigger]");
+        if (projectTrigger) {
+          projectTrigger.focus({ preventScroll: true });
+          projectTrigger.click();
+        } else {
+          openCommandPalette({ open: "new-thread-in" });
+        }
+        return true;
+      }
+
+      if (command === "preview.toggle") {
+        if (!routeThreadRef || (!canOperatePreview && !previewOpen)) return true;
+        if (!isPreviewAvailableFor(routeThreadRef.environmentId)) {
+          toastManager.add(
+            stackedThreadToast({
+              type: "info",
+              title: "Preview is desktop-only",
+              description: `Open ${APP_BASE_NAME} in the desktop app to use the in-app preview.`,
+            }),
+          );
+          return true;
+        }
+        dispatchPreviewAction("toggle-panel");
+        return true;
+      }
+
+      const previewAction = previewActionForCommand(command);
+      if (previewAction === null) return false;
+      if (canOperatePreview) dispatchPreviewAction(previewAction);
+      return true;
+    };
+
     const onWindowKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       const command = resolveShortcutCommand(event, keybindings, {
@@ -72,128 +148,24 @@ function ChatRouteGlobalShortcuts() {
         return;
       }
 
-      if (command === "thread.undo") {
-        if (event.repeat || isModelPickerOpen()) return;
-        if (undoLatestThreadAction()) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        return;
-      }
-
       if (event.key === "Escape" && selectedThreadKeysSize > 0) {
         event.preventDefault();
         clearSelection();
         return;
       }
 
-      if (command === "chat.newLocal") {
-        event.preventDefault();
-        event.stopPropagation();
-        void startNewThreadFromContext({
-          activeDraftThread,
-          activeThread: activeThread ?? undefined,
-          defaultProjectRef,
-          handleNewThread,
-        });
-        return;
-      }
-
-      if (command === "chat.newWithoutProject") {
-        const environmentId = scratchEnvironmentId(
-          activeThread?.environmentId ?? activeDraftThread?.environmentId ?? primaryEnvironmentId,
-        );
-        if (environmentId === null) return;
-        event.preventDefault();
-        event.stopPropagation();
-        void startScratchThread(environmentId);
-        return;
-      }
-
-      if (command === "chat.new") {
-        event.preventDefault();
-        event.stopPropagation();
-        void startNewThreadFromContext({
-          activeDraftThread,
-          activeThread: activeThread ?? undefined,
-          defaultProjectRef,
-          handleNewThread,
-        });
-        return;
-      }
-
-      if (command === "projectPicker.toggle") {
-        event.preventDefault();
-        event.stopPropagation();
-        if (event.repeat) return;
-        const projectTrigger = document.querySelector<HTMLButtonElement>(
-          "[data-draft-project-trigger]",
-        );
-        if (projectTrigger) {
-          projectTrigger.focus({ preventScroll: true });
-          projectTrigger.click();
-        } else {
-          openCommandPalette({ open: "new-thread-in" });
-        }
-        return;
-      }
-
-      if (command === "preview.toggle") {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!routeThreadRef || (!canOperatePreview && !previewOpen)) return;
-        if (!isPreviewAvailableFor(routeThreadRef.environmentId)) {
-          toastManager.add(
-            stackedThreadToast({
-              type: "info",
-              title: "Preview is desktop-only",
-              description: `Open ${APP_BASE_NAME} in the desktop app to use the in-app preview.`,
-            }),
-          );
-          return;
-        }
-        dispatchPreviewAction("toggle-panel");
-        return;
-      }
-
-      if (command === "preview.designMode") {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!canOperatePreview) return;
-        dispatchPreviewAction("design-mode");
-        return;
-      }
-
-      // The remaining preview commands only fire when the panel is the
-      // currently-focused tenant. The `when: previewFocus` rule already
-      // gates this, but defend against the keybinding being misconfigured.
-      if (
-        command === "preview.refresh" ||
-        command === "preview.focusUrl" ||
-        command === "preview.zoomIn" ||
-        command === "preview.zoomOut" ||
-        command === "preview.resetZoom"
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!canOperatePreview) return;
-        const action =
-          command === "preview.refresh"
-            ? "refresh"
-            : command === "preview.focusUrl"
-              ? "focus-url"
-              : command === "preview.zoomIn"
-                ? "zoom-in"
-                : command === "preview.zoomOut"
-                  ? "zoom-out"
-                  : "reset-zoom";
-        dispatchPreviewAction(action);
-      }
+      if (!runCommand(command, event.repeat)) return;
+      event.preventDefault();
+      event.stopPropagation();
     };
 
     window.addEventListener("keydown", onWindowKeyDown);
+    const unregister = registerAppCommandHandler(
+      (command) => !isCommandPaletteOpen() && runCommand(command, false),
+    );
     return () => {
       window.removeEventListener("keydown", onWindowKeyDown);
+      unregister();
     };
   }, [
     activeDraftThread,
@@ -218,10 +190,7 @@ function ChatRouteGlobalShortcuts() {
 function ChatRouteLayout() {
   // Both thread routes render here, not in their own leaf components, so the
   // draft-to-thread promotion keeps one ChatView mounted across the swap.
-  const threadTarget = useParams({
-    strict: false,
-    select: (params) => resolveThreadRouteTarget(params),
-  });
+  const threadTarget = useThreadRouteTarget();
   return (
     <>
       <ChatRouteGlobalShortcuts />
@@ -231,7 +200,7 @@ function ChatRouteLayout() {
       {threadTarget?.kind === "server" ? (
         <ThreadLinkPrompt threadRef={threadTarget.threadRef} />
       ) : null}
-      {threadTarget ? <ThreadRouteView target={threadTarget} /> : <Outlet />}
+      {threadTarget ? <ChatPaneWorkspace target={threadTarget} /> : <Outlet />}
     </>
   );
 }

@@ -12,11 +12,6 @@ const defaults = defaultThemeVariables as Readonly<
   Record<MobileThemeAppearance, MobileThemeVariables>
 >;
 
-/**
- * Complete palette for native and third-party APIs that cannot consume a
- * Uniwind className. Every palette shares the source that generates its
- * registered CSS theme.
- */
 export function getMobileThemeRuntimeVariables(
   themeId: MobileThemeId,
   appearance: MobileThemeAppearance,

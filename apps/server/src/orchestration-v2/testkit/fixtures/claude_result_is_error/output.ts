@@ -12,8 +12,9 @@ import {
 } from "../shared.ts";
 
 const AUTH_ERROR_TEXT = "Failed to authenticate. API Error: 401 Invalid authentication credentials";
-const AUTH_FAILURE_TEXT =
-  "Claude could not authenticate. For subscription login, run `claude auth login` on this environment's machine, then start a new thread. For API-key authentication, check this instance's configured credentials.";
+// The replay harness points CLAUDE_CONFIG_DIR at a scenario-owned directory.
+const AUTH_FAILURE_PATTERN =
+  /^Claude could not authenticate\. For subscription login, run `claude auth login` on this environment's machine from ".+", with CLAUDE_CONFIG_DIR set to ".+claude-config", then start a new thread\. For API-key authentication, check this instance's configured credentials\.$/;
 
 export function assertClaudeResultIsErrorOutput(
   result: OrchestratorV2ScenarioResult,
@@ -33,9 +34,6 @@ export function assertClaudeResultIsErrorOutput(
     CLAUDE_RESULT_IS_ERROR_FOLLOW_UP,
   ]);
 
-  // Run 1 ended with subtype "success" + is_error: the run and its provider
-  // turn must be failed. The failure gives actionable authentication guidance
-  // while retaining the provider's status code and failure class.
   const failedRun = projection.runs.find((run) => run.ordinal === 1);
   assert.isDefined(failedRun);
   assert.equal(failedRun?.status, "failed");
@@ -49,20 +47,15 @@ export function assertClaudeResultIsErrorOutput(
   );
   assert.isDefined(errorItem);
   if (errorItem?.type !== "error") throw new Error("expected error item");
-  assert.equal(errorItem.failure.message, AUTH_FAILURE_TEXT);
+  assert.match(errorItem.failure.message, AUTH_FAILURE_PATTERN);
   assert.equal(errorItem.failure.code, "api_error_401");
   assert.equal(errorItem.failure.class, "provider_error");
 
-  // The SDK's synthetic assistant message still surfaces as ordinary
-  // assistant text (that is what the stream contained), but the error text
-  // must not be duplicated a second time via the result-text fallback.
   const run1AssistantTexts = projection.turnItems.flatMap((item) =>
     item.runId === failedRun?.id && item.type === "assistant_message" ? [item.text] : [],
   );
   assert.deepEqual(run1AssistantTexts, [AUTH_ERROR_TEXT]);
 
-  // The failed turn must not poison the thread: the follow-up run reuses the
-  // same open query and completes.
   const recoveredRun = projection.runs.find((run) => run.ordinal === 2);
   assert.isDefined(recoveredRun);
   assert.equal(recoveredRun?.status, "completed");

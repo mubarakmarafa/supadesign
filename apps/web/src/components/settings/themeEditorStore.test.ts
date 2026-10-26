@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
-import { OCEAN_THEME_ID, SUPATERM_CHAT_THEME_ID } from "../../themePalette";
 import { toggleThemeEditorForTheme, useThemeEditorStore } from "./themeEditorStore";
 
 afterEach(() => {
@@ -10,14 +9,14 @@ afterEach(() => {
 describe("toggleThemeEditorForTheme", () => {
   it("opens a new editor seeded from the theme active for the current appearance", () => {
     toggleThemeEditorForTheme({
-      theme: SUPATERM_CHAT_THEME_ID,
-      themeHalves: { dark: OCEAN_THEME_ID },
+      theme: "catppuccin-latte",
+      themeHalves: { dark: "dracula" },
       initialAppearance: "dark",
     });
 
     expect(useThemeEditorStore.getState().session).toMatchObject({
       editingThemeId: null,
-      seedThemeId: OCEAN_THEME_ID,
+      seedThemeId: "dracula",
       seedName: null,
       initialAppearance: "dark",
     });
@@ -25,12 +24,12 @@ describe("toggleThemeEditorForTheme", () => {
 
   it("closes an open editor", () => {
     toggleThemeEditorForTheme({
-      theme: SUPATERM_CHAT_THEME_ID,
+      theme: "catppuccin-latte",
       themeHalves: null,
       initialAppearance: "light",
     });
     toggleThemeEditorForTheme({
-      theme: SUPATERM_CHAT_THEME_ID,
+      theme: "catppuccin-latte",
       themeHalves: null,
       initialAppearance: "light",
     });

@@ -28,13 +28,13 @@ import {
   type ThreadEnvMode,
   type UploadChatAttachment,
 } from "@supaterm/contracts";
-import { modelSelectionCommandType } from "@supaterm/shared/model";
 import { derivePendingBackgroundWork } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
 import { visibleThreadPullRequests } from "@supaterm/shared/threadPullRequests";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 
 import { getInitialServerConfig, request } from "../rpc/client.ts";
+import { deriveThreadQueueWorkflowState } from "../state/threadWorkflows.ts";
 
 interface CommandMetadata {
   readonly commandId?: CommandId;
@@ -90,25 +90,22 @@ export interface ThreadCommandInput extends CommandMetadata {
 export type DeleteThreadInput = ThreadCommandInput;
 export type ArchiveThreadInput = ThreadCommandInput;
 export type UnarchiveThreadInput = ThreadCommandInput;
-export type SettleThreadInput = ThreadCommandInput;
+export type MarkThreadDoneInput = ThreadCommandInput;
 
-export interface UnsettleThreadInput extends ThreadCommandInput {
+export interface ReopenThreadInput extends ThreadCommandInput {
   readonly reason: "user";
 }
 
 export interface PinThreadInput extends ThreadCommandInput {
-  /** Initial slot in the user-arranged pinned order; omit to pin keyless. */
   readonly orderKey?: string;
 }
 export type UnpinThreadInput = ThreadCommandInput;
 
 export interface ReorderPinnedThreadInput extends ThreadCommandInput {
-  /** Fractional-index key that sorts between the drop position's neighbors. */
   readonly orderKey: string;
 }
 
 export interface ReorderActiveThreadInput extends ThreadCommandInput {
-  /** Fractional-index key that sorts between the drop position's neighbors. */
   readonly orderKey: string;
 }
 
@@ -129,7 +126,6 @@ export interface UnsnoozeThreadInput extends ThreadCommandInput {
 }
 
 export interface VisitThreadInput extends ThreadCommandInput {
-  /** Watermark of the thread state the viewer has seen (ISO timestamp). */
   readonly visitedAt: string;
 }
 
@@ -141,9 +137,7 @@ export interface UpdateThreadMetadataInput extends ThreadCommandInput {
   readonly modelSelection?: ModelSelection;
   readonly branch?: string | null;
   readonly worktreePath?: string | null;
-  /** Kick off an async title regeneration for the thread. */
   readonly regenerateTitle?: boolean;
-  /** Link (object) or unlink (null) a pull request (#8160). */
   readonly linkedPullRequest?: ThreadLinkedPullRequest | null;
 }
 
@@ -167,7 +161,6 @@ interface StartThreadBootstrap {
     readonly createdAt: string;
   };
   readonly prepareWorktree?: {
-    /** V2 worktree launches always fail rather than falling back to the project checkout. */
     readonly requireWorktree?: boolean;
     readonly projectCwd: string;
     readonly baseBranch: string;
@@ -198,8 +191,6 @@ export interface StartThreadTurnInput extends ThreadCommandInput {
 export interface InterruptThreadTurnInput extends ThreadCommandInput {
   readonly runId?: RunId;
   readonly subagentId?: NodeId;
-  /** Temporary caller compatibility while UI naming moves from turns to runs. */
-  readonly turnId?: string;
 }
 
 export interface RespondToThreadApprovalInput extends ThreadCommandInput {
@@ -237,6 +228,10 @@ export interface MergeThreadBackInput extends CommandMetadata {
   readonly runId: RunId;
 }
 
+export interface ResumeThreadQueueInput extends ThreadCommandInput {
+  readonly runId?: RunId;
+}
+
 export interface ReorderQueuedRunInput extends ThreadCommandInput {
   readonly runId: RunId;
   readonly beforeRunId: RunId | null;
@@ -260,9 +255,7 @@ export interface EditQueuedRunInput extends ThreadCommandInput {
   readonly text: string;
   /**
    * Full replacement attachment list for the queued message. Omitted =
-   * text-only edit that leaves attachments untouched. `dataUrl` entries are
-   * persisted against `messageId` (the queued run's user message) before
-   * dispatch, so `messageId` is required whenever attachments are present.
+   * text-only edit that leaves attachments untouched.
    */
   readonly edit?: {
     readonly messageId: MessageId;
@@ -276,7 +269,7 @@ const allocateCommandId = Effect.fn("EnvironmentCommands.allocateCommandId")(fun
 ) {
   if (input.commandId !== undefined) return input.commandId;
   const crypto = yield* Crypto.Crypto;
-  return CommandId.make(yield* crypto.randomUUIDv4.pipe(Effect.orDie));
+  return CommandId.make(yield* crypto.randomUUIDv4().pipe(Effect.orDie));
 });
 
 const dispatch = (command: OrchestrationV2Command) =>
@@ -284,13 +277,6 @@ const dispatch = (command: OrchestrationV2Command) =>
 
 const getProjection = (threadId: ThreadId) =>
   request(ORCHESTRATION_V2_WS_METHODS.getThreadProjection, { threadId });
-
-const supportsServerResolvedCommandContext = Effect.fn(
-  "EnvironmentCommands.supportsServerResolvedCommandContext",
-)(function* () {
-  const config = yield* getInitialServerConfig();
-  return config.environment.capabilities.serverResolvedCommandContext === true;
-});
 
 const persistAttachments = Effect.fn("EnvironmentCommands.persistAttachments")(function* (
   threadId: ThreadId,
@@ -429,7 +415,7 @@ function simpleThreadCommand(
     | "thread.delete"
     | "thread.archive"
     | "thread.unarchive"
-    | "thread.settle"
+    | "thread.mark-done"
     | "thread.pin"
     | "thread.unpin",
   input: ThreadCommandInput,
@@ -457,10 +443,10 @@ export const unarchiveThread = Effect.fn("EnvironmentCommands.unarchiveThread")(
   return yield* simpleThreadCommand("thread.unarchive", input);
 });
 
-export const settleThread = Effect.fn("EnvironmentCommands.settleThread")(function* (
-  input: SettleThreadInput,
+export const markThreadDone = Effect.fn("EnvironmentCommands.markThreadDone")(function* (
+  input: MarkThreadDoneInput,
 ) {
-  return yield* simpleThreadCommand("thread.settle", input);
+  return yield* simpleThreadCommand("thread.mark-done", input);
 });
 
 export const pinThread = Effect.fn("EnvironmentCommands.pinThread")(function* (
@@ -475,19 +461,19 @@ export const pinThread = Effect.fn("EnvironmentCommands.pinThread")(function* (
   });
 });
 
-export interface SetThreadAutoSettleInput extends ThreadCommandInput {
+export interface SetThreadAutoMarkDoneInput extends ThreadCommandInput {
   readonly enabled: boolean;
 }
-export const setThreadAutoSettle = Effect.fn("EnvironmentCommands.setThreadAutoSettle")(function* (
-  input: SetThreadAutoSettleInput,
-) {
-  return yield* dispatch({
-    type: "thread.auto-settle.set",
-    commandId: yield* allocateCommandId(input),
-    threadId: input.threadId,
-    enabled: input.enabled,
-  });
-});
+export const setThreadAutoMarkDone = Effect.fn("EnvironmentCommands.setThreadAutoMarkDone")(
+  function* (input: SetThreadAutoMarkDoneInput) {
+    return yield* dispatch({
+      type: "thread.auto-mark-done.set",
+      commandId: yield* allocateCommandId(input),
+      threadId: input.threadId,
+      enabled: input.enabled,
+    });
+  },
+);
 
 export const reorderPinnedThread = Effect.fn("EnvironmentCommands.reorderPinnedThread")(function* (
   input: ReorderPinnedThreadInput,
@@ -531,11 +517,11 @@ export const unpinThread = Effect.fn("EnvironmentCommands.unpinThread")(function
   return yield* simpleThreadCommand("thread.unpin", input);
 });
 
-export const unsettleThread = Effect.fn("EnvironmentCommands.unsettleThread")(function* (
-  input: UnsettleThreadInput,
+export const reopenThread = Effect.fn("EnvironmentCommands.reopenThread")(function* (
+  input: ReopenThreadInput,
 ) {
   return yield* dispatch({
-    type: "thread.unsettle",
+    type: "thread.reopen",
     commandId: yield* allocateCommandId(input),
     threadId: input.threadId,
     reason: input.reason,
@@ -612,14 +598,8 @@ export const updateThreadMetadata = Effect.fn("EnvironmentCommands.updateThreadM
       });
     }
     if (input.modelSelection !== undefined) {
-      const type = (yield* supportsServerResolvedCommandContext())
-        ? ("thread.model-selection.set" as const)
-        : modelSelectionCommandType(
-            (yield* getProjection(input.threadId)).thread.providerInstanceId,
-            input.modelSelection,
-          );
       result = yield* dispatch({
-        type,
+        type: "thread.model-selection.set",
         commandId: result === null ? commandId : CommandId.make(`${commandId}:model-selection`),
         threadId: input.threadId,
         modelSelection: input.modelSelection,
@@ -737,49 +717,6 @@ export const startThreadTurn = Effect.fn("EnvironmentCommands.startThreadTurn")(
     });
   }
 
-  const serverResolvesCommandContext = yield* supportsServerResolvedCommandContext();
-  const projection = serverResolvesCommandContext ? null : yield* getProjection(input.threadId);
-  const activeRun = projection?.runs.findLast(
-    (run) =>
-      run.status === "preparing" ||
-      run.status === "starting" ||
-      run.status === "running" ||
-      run.status === "waiting",
-  );
-  const activeProviderThread =
-    activeRun === undefined
-      ? undefined
-      : projection?.providerThreads.find((thread) => thread.id === activeRun.providerThreadId);
-  const activeProviderSession =
-    activeProviderThread?.providerSessionId === null ||
-    activeProviderThread?.providerSessionId === undefined
-      ? undefined
-      : projection?.providerSessions.find(
-          (session) => session.id === activeProviderThread.providerSessionId,
-        );
-  const turnCapabilities = activeProviderSession?.capabilities.turns;
-  const dispatchMode = serverResolvesCommandContext
-    ? requestedMode === "queue"
-      ? ({ type: "queue_after_active" } as const)
-      : ({ type: "start_immediately" } as const)
-    : activeRun === undefined
-      ? ({ type: "start_immediately" } as const)
-      : requestedMode === "steer"
-        ? ({ type: "steer_active", targetRunId: activeRun.id } as const)
-        : requestedMode === "restart"
-          ? ({ type: "restart_active", targetRunId: activeRun.id } as const)
-          : requestedMode === "queue"
-            ? ({ type: "queue_after_active" } as const)
-            : turnCapabilities?.supportsActiveSteering === true
-              ? ({ type: "steer_active", targetRunId: activeRun.id } as const)
-              : turnCapabilities?.supportsQueuedMessages === true
-                ? ({ type: "queue_after_active" } as const)
-                : turnCapabilities?.supportsSteeringByInterruptRestart === true
-                  ? ({ type: "restart_active", targetRunId: activeRun.id } as const)
-                  : ({ type: "queue_after_active" } as const);
-  const shouldSendTitleSeed =
-    input.titleSeed !== undefined &&
-    (serverResolvesCommandContext || projection?.messages.length === 0);
   return yield* dispatch({
     type: "message.dispatch",
     commandId,
@@ -790,39 +727,66 @@ export const startThreadTurn = Effect.fn("EnvironmentCommands.startThreadTurn")(
     text: input.message.text,
     ...(context ? { context } : {}),
     attachments,
-    ...(shouldSendTitleSeed ? { titleSeed: input.titleSeed } : {}),
+    ...(input.titleSeed === undefined ? {} : { titleSeed: input.titleSeed }),
     ...(input.modelSelection === undefined ? {} : { modelSelection: input.modelSelection }),
     ...(input.sourceProposedPlan === undefined ? {} : { sourcePlanRef: input.sourceProposedPlan }),
-    ...(serverResolvesCommandContext && requestedMode !== "queue"
-      ? { deliveryIntent: requestedMode }
-      : {}),
-    dispatchMode,
+    ...(requestedMode === "queue" ? {} : { deliveryIntent: requestedMode }),
+    dispatchMode:
+      requestedMode === "queue" ? { type: "queue_after_active" } : { type: "start_immediately" },
   });
 });
 
 /**
  * Stop for the thread's latest work: interrupts the active run, or the settled run whose
- * background work still runs. With no run to stop, it ends the thread's pull request
- * watches, the only background work that has no run.
+ * background work still runs. With no run to stop, it ends the thread's pull request and
+ * workflow run watches, the only background work that has no run.
  */
 export const interruptThreadTurn = Effect.fn("EnvironmentCommands.interruptThreadTurn")(function* (
   input: InterruptThreadTurnInput,
 ) {
+  let threadId = input.threadId;
   if (input.subagentId !== undefined) {
     const projection = yield* getProjection(input.threadId);
     const subagent = projection.subagents.find((agent) => agent.id === input.subagentId);
-    if (subagent?.runId == null) return { sequence: 0 };
-    return yield* dispatch({
-      type: "subagent.stop",
-      commandId: yield* allocateCommandId(input),
-      threadId: input.threadId,
-      runId: subagent.runId,
-      subagentId: subagent.id,
-    });
+    if (subagent?.origin === "app_owned" && subagent.childThreadId !== null) {
+      // The parent ends the task even when its child lost track of it (#19002). Older
+      // servers reject this for app-owned tasks, so the child stop below still runs.
+      if (subagent.runId !== null) {
+        yield* dispatch({
+          type: "subagent.stop",
+          commandId: yield* allocateCommandId({}),
+          threadId: input.threadId,
+          runId: subagent.runId,
+          subagentId: subagent.id,
+        }).pipe(Effect.ignore);
+      }
+      threadId = subagent.childThreadId;
+    } else {
+      if (subagent?.runId == null) return { sequence: 0 };
+      return yield* dispatch({
+        type: "subagent.stop",
+        commandId: yield* allocateCommandId(input),
+        threadId: input.threadId,
+        runId: subagent.runId,
+        subagentId: subagent.id,
+      });
+    }
   }
-  let runId = input.runId ?? (input.turnId as RunId | undefined);
+  // A run named by the caller belongs to the parent, not the rerouted child.
+  let runId = threadId === input.threadId ? input.runId : undefined;
   if (runId === undefined) {
-    const projection = yield* getProjection(input.threadId);
+    const config = yield* getInitialServerConfig();
+    if (config.environment.capabilities.threadStop === true) {
+      // A paginated projection can omit commands still running from earlier turns.
+      return yield* dispatch({
+        type: "thread.stop",
+        commandId: yield* allocateCommandId(input),
+        threadId,
+      });
+    }
+  }
+  if (runId === undefined) {
+    const projection = yield* getProjection(threadId);
     runId = projection.runs.findLast(
       (run) =>
         run.status === "preparing" ||
@@ -851,11 +815,21 @@ export const interruptThreadTurn = Effect.fn("EnvironmentCommands.interruptThrea
         result = yield* dispatch({
           type: "thread.pull-request.watch",
           commandId: yield* allocateCommandId(result.sequence === 0 ? input : {}),
-          threadId: input.threadId,
+          threadId,
           host: link.host,
           repository: link.repository,
           number: link.number,
           watching: false,
+        });
+      }
+      for (const watch of projection.thread.workflowRunWatches ?? []) {
+        result = yield* dispatch({
+          type: "thread.workflow-run.unwatch",
+          commandId: yield* allocateCommandId(result.sequence === 0 ? input : {}),
+          threadId: input.threadId,
+          host: watch.host,
+          repository: watch.repository,
+          runId: watch.runId,
         });
       }
       return result;
@@ -865,7 +839,7 @@ export const interruptThreadTurn = Effect.fn("EnvironmentCommands.interruptThrea
   return yield* dispatch({
     type: "run.interrupt",
     commandId: yield* allocateCommandId(input),
-    threadId: input.threadId,
+    threadId,
     runId,
     holdQueue: true,
   });
@@ -981,9 +955,34 @@ export const mergeThreadBack = Effect.fn("EnvironmentCommands.mergeThreadBack")(
   });
 });
 
+/** With a run id, sends that queued message now instead of the first one. */
 export const resumeThreadQueue = Effect.fn("EnvironmentCommands.resumeThreadQueue")(function* (
-  input: ThreadCommandInput,
+  input: ResumeThreadQueueInput,
 ) {
+  if (input.runId !== undefined) {
+    const config = yield* getInitialServerConfig();
+    if (config.environment.capabilities.queuedRunStart === true) {
+      return yield* dispatch({
+        type: "queued-run.start",
+        commandId: yield* allocateCommandId(input),
+        threadId: input.threadId,
+        runId: input.runId,
+      });
+    }
+    // Older servers reject queued-run.start, so the message moves to the front
+    // of the queue and the queue resumes from it.
+    const first = deriveThreadQueueWorkflowState(yield* getProjection(input.threadId)).queuedRuns[0]
+      ?.run;
+    if (first !== undefined && first.id !== input.runId) {
+      yield* dispatch({
+        type: "queued-run.reorder",
+        commandId: yield* allocateCommandId({}),
+        threadId: input.threadId,
+        runId: input.runId,
+        beforeRunId: first.id,
+      });
+    }
+  }
   return yield* dispatch({
     type: "queue.resume",
     commandId: yield* allocateCommandId(input),

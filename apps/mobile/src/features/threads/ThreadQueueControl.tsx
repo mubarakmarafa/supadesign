@@ -1,6 +1,11 @@
 import { type StaticScreenProps, useNavigation } from "@react-navigation/native";
 import { useAtomValue } from "@effect/atom-react";
-import type { EnvironmentId, RunId, ThreadId } from "@supaterm/contracts";
+import {
+  AuthOrchestrationOperateScope,
+  type EnvironmentId,
+  type RunId,
+  type ThreadId,
+} from "@supaterm/contracts";
 import * as Haptics from "expo-haptics";
 import { type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated, Platform, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
@@ -16,14 +21,15 @@ import Reanimated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { MaterialButton } from "../../components/MaterialButton";
-import { AppText as Text } from "../../components/AppText";
-import { SymbolView } from "../../components/AppSymbol";
+import { Button } from "../../components/ui/Button";
+import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { scopedThreadKey } from "../../lib/scopedEntities";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { beginQueuedRunEdit, useQueuedRunEdit } from "../../state/queued-run-edit";
 import { environmentThreadDetails, threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import {
   REMOVE_QUEUED_MESSAGE_ACCESSIBILITY_LABEL,
   buildCancelQueuedRunCommand,
@@ -46,6 +52,7 @@ export function useThreadQueueWorkflow(target: QueueTarget) {
 
 export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
   const target = route.params;
+  const canOperate = useEnvironmentScope(target.environmentId, AuthOrchestrationOperateScope);
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -75,7 +82,8 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
   const [translation] = useState(() => new Animated.Value(0));
   const reducedMotion = useReducedMotionPreference();
   const queuedRuns = workflow?.queuedRuns ?? [];
-  const canSteerQueuedMessages = workflow?.canPromoteToSteer === true;
+  const canSendNow = workflow?.canSendNow === true;
+  const canSendQueuedMessages = workflow?.canPromoteToSteer === true || canSendNow;
   const showResume = workflow?.isHeld === true && queuedRuns.length > 0;
   const sheetHeight = contentHeight + (showResume ? footerHeight : 0);
   const order = queuedRuns.map(({ run }) => run.id).join(",");
@@ -99,8 +107,6 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
     }
   }, [order, translation]);
 
-  // Nothing left to manage: the sheet closes rather than sitting on an empty
-  // list the user has to dismiss themselves.
   const hadQueuedRuns = useRef(queuedRuns.length > 0);
   useEffect(() => {
     if (queuedRuns.length > 0) {
@@ -111,20 +117,26 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
   }, [navigation, queuedRuns.length]);
 
   const move = async (runId: RunId, beforeRunId: RunId | null) => {
-    if (busyRef.current || !workflow?.canReorder) return;
+    if (
+      !readEnvironmentScope(target.environmentId, AuthOrchestrationOperateScope) ||
+      busyRef.current ||
+      !workflow?.canReorder
+    )
+      return;
     busyRef.current = true;
     setBusyRunId(runId);
     void Haptics.selectionAsync();
-    try {
-      await reorder({ ...target, input: { threadId: target.threadId, runId, beforeRunId } });
-    } finally {
-      busyRef.current = false;
-      setBusyRunId(null);
-    }
+    await reorder({ ...target, input: { threadId: target.threadId, runId, beforeRunId } });
+    busyRef.current = false;
+    setBusyRunId(null);
   };
 
   const act = async (runId: RunId, action: QueueMessageAction) => {
-    if (busyRef.current) return;
+    if (
+      !readEnvironmentScope(target.environmentId, AuthOrchestrationOperateScope) ||
+      busyRef.current
+    )
+      return;
     const index = queuedRuns.findIndex(({ run }) => run.id === runId);
     if (index < 0) return;
     if (action === "up" && index > 0) {
@@ -156,26 +168,25 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
     busyRef.current = true;
     setBusyRunId(runId);
     void Haptics.selectionAsync();
-    try {
-      if (action === "remove") {
-        await cancel(buildCancelQueuedRunCommand({ ...target, runId }));
-      } else if (workflow?.activeRun && workflow.canPromoteToSteer) {
-        await promote({
-          ...target,
-          input: {
-            threadId: target.threadId,
-            queuedRunId: runId,
-            targetRunId: workflow.activeRun.id,
-          },
-        });
-      }
-    } finally {
-      busyRef.current = false;
-      setBusyRunId(null);
+    if (action === "remove") {
+      await cancel(buildCancelQueuedRunCommand({ ...target, runId }));
+    } else if (workflow?.canSendNow) {
+      await resume({ ...target, input: { threadId: target.threadId, runId } });
+    } else if (workflow?.activeRun && workflow.canPromoteToSteer) {
+      await promote({
+        ...target,
+        input: {
+          threadId: target.threadId,
+          queuedRunId: runId,
+          targetRunId: workflow.activeRun.id,
+        },
+      });
     }
+    busyRef.current = false;
+    setBusyRunId(null);
   };
 
-  const canReorder = workflow?.canReorder === true && queuedRuns.length > 1;
+  const canReorder = canOperate && workflow?.canReorder === true && queuedRuns.length > 1;
   const sourceLayout = dragRows?.find((row) => row.id === draggedRunId);
   const lastLayout = dragRows?.at(-1);
   const insertionOffset =
@@ -212,11 +223,13 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
               {queuedRuns.length}
             </Text>
           </View>
-          <Text className="text-sm text-foreground-muted">
-            {canSteerQueuedMessages
-              ? "Tap to edit · Steer or swipe for more"
-              : "Tap to edit · Swipe for actions"}
-          </Text>
+          {canOperate ? (
+            <Text className="text-sm text-foreground-muted">
+              {canSendQueuedMessages
+                ? `Tap to edit · ${canSendNow ? "Send now" : "Steer"} or swipe for more`
+                : "Tap to edit · Swipe for actions"}
+            </Text>
+          ) : null}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -247,8 +260,10 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
             ? threadDragGapOffset(layout.y, sourceLayout.y, sourceLayout.height, insertionOffset)
             : 0;
         const controls = resolveThreadQueueRowControls({
+          canOperate,
           busy: busyRunId !== null || draggedRunId !== null,
           canPromoteToSteer: workflow?.canPromoteToSteer ?? false,
+          canSendNow,
           canReorder: workflow?.canReorder ?? false,
           index,
           isEditing: editing?.runId === run.id,
@@ -278,7 +293,7 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
                 // Outside the swipeable: two pans on one row would race, and
                 // the handle owns vertical movement while the row owns sideways.
                 <QueueDragHandle
-                  disabled={busyRunId !== null}
+                  disabled={!canOperate || busyRunId !== null}
                   title={title}
                   canMoveUp={controls.canMoveUp}
                   canMoveDown={controls.canMoveDown}
@@ -313,7 +328,6 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
                       setDragRows(null);
                       translation.setValue(0);
                     };
-                    // A remote reorder or a newly started run invalidates this drag.
                     if (!success || started?.order !== order || started.runId !== run.id) {
                       stop();
                       return;
@@ -363,13 +377,15 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
                       title={title}
                       attachments={attachments}
                       controls={controls}
-                      canPromoteToSteer={canSteerQueuedMessages}
+                      canPromoteToSteer={workflow?.canPromoteToSteer ?? false}
+                      canSendNow={canSendNow}
                       onAction={(action) => void act(run.id, action)}
                     />
                   </View>
-                  {canSteerQueuedMessages ? (
-                    <QueueSteerButton
-                      canSteer={controls.canSteer}
+                  {canSendQueuedMessages ? (
+                    <QueueSendButton
+                      canSend={controls.canSend}
+                      sendsNow={canSendNow}
                       onPress={() => void act(run.id, "steer")}
                     />
                   ) : null}
@@ -395,22 +411,23 @@ export function ThreadQueueSheet({ route }: StaticScreenProps<QueueTarget>) {
             style={{ paddingBottom: Math.max(insets.bottom, 16) + 12 }}
           >
             <Text className="text-center text-sm text-foreground-muted">Paused after restart</Text>
-            <MaterialButton
+            <Button
               label={resuming ? "Resuming…" : "Resume queue"}
               tone="primary"
               fullWidth
               loading={resuming}
-              disabled={resuming || busyRunId !== null}
+              disabled={!canOperate || resuming || busyRunId !== null}
               onPress={async () => {
-                if (busyRef.current) return;
+                if (
+                  !readEnvironmentScope(target.environmentId, AuthOrchestrationOperateScope) ||
+                  busyRef.current
+                )
+                  return;
                 busyRef.current = true;
                 setResuming(true);
-                try {
-                  await resume({ ...target, input: { threadId: target.threadId } });
-                } finally {
-                  busyRef.current = false;
-                  setResuming(false);
-                }
+                await resume({ ...target, input: { threadId: target.threadId } });
+                busyRef.current = false;
+                setResuming(false);
               }}
             />
           </View>
@@ -503,14 +520,22 @@ function QueueRowSwipeable(props: {
   );
 }
 
-function QueueSteerButton(props: { readonly canSteer: boolean; readonly onPress: () => void }) {
+function QueueSendButton(props: {
+  readonly canSend: boolean;
+  readonly sendsNow: boolean;
+  readonly onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Steer with queued message"
-      accessibilityHint="Send this queued message to the active turn"
-      accessibilityState={{ disabled: !props.canSteer }}
-      disabled={!props.canSteer}
+      accessibilityLabel={props.sendsNow ? "Send queued message now" : "Steer with queued message"}
+      accessibilityHint={
+        props.sendsNow
+          ? "Start a turn with this message"
+          : "Send this queued message to the active turn"
+      }
+      accessibilityState={{ disabled: !props.canSend }}
+      disabled={!props.canSend}
       onPress={props.onPress}
       className="min-h-16 items-center justify-center border-l border-border bg-subtle px-2 active:opacity-70"
       style={{ width: QUEUE_ACTION_WIDTH }}
@@ -518,16 +543,16 @@ function QueueSteerButton(props: { readonly canSteer: boolean; readonly onPress:
       <SymbolView
         name="arrow.turn.left.up"
         size={16}
-        tintColorClassName={props.canSteer ? "accent-primary-text" : "accent-foreground-muted"}
+        tintColorClassName={props.canSend ? "accent-primary-text" : "accent-foreground-muted"}
       />
       <Text
         className={
-          props.canSteer
+          props.canSend
             ? "pt-1 text-2xs font-supaterm-medium text-primary-text"
             : "pt-1 text-2xs font-supaterm-medium text-foreground-muted"
         }
       >
-        Steer
+        {props.sendsNow ? "Send now" : "Steer"}
       </Text>
     </Pressable>
   );

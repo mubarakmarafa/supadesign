@@ -16,7 +16,7 @@
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$repo = "supabitapp/supacode-next"
+$repo = "supabitapp/supaterm"
 $baseUrl = if ($env:SUPATERM_RELEASE_BASE_URL) { $env:SUPATERM_RELEASE_BASE_URL.TrimEnd("/") } else { "https://github.com/$repo/releases/download" }
 $supatermHome = if ($env:SUPATERM_HOME) { $env:SUPATERM_HOME } else { Join-Path $HOME ".supaterm" }
 $binDir = if ($env:SUPATERM_INSTALL_BIN_DIR) { $env:SUPATERM_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }
@@ -158,7 +158,7 @@ if ((Test-Path $marker) -and ((Get-Content $marker -Raw).Trim() -eq $version)) {
     } catch {
       $status = $_.Exception.Response.StatusCode.value__
       if ($status -eq 404) {
-        Fail "Supaterm $version has no release archive for win32-$arch; releases before the self-contained CLI can only be installed with 'npm install -g supaterm@$version'"
+        Fail "Supaterm $version has no release archive for win32-$arch"
       }
       throw
     }
@@ -201,6 +201,12 @@ $shim = Join-Path $binDir "supaterm.cmd"
 # UTF-8 without a BOM: cmd.exe reads the shim as-is, and ASCII would corrupt
 # non-ASCII characters in the user's home path.
 [System.IO.File]::WriteAllText($shim, "@echo off`r`n`"$(Join-Path $targetDir 'supaterm.exe')`" %*", (New-Object System.Text.UTF8Encoding $false))
+# Pruning keeps what this shim points at; a background service cannot see $binDir otherwise.
+$launchers = Join-Path $supatermHome "runtime\launchers"
+$shimPath = (Resolve-Path $shim).Path
+if (-not ((Test-Path $launchers) -and ((Get-Content $launchers) -contains $shimPath))) {
+  [System.IO.File]::AppendAllText($launchers, "$shimPath`r`n", (New-Object System.Text.UTF8Encoding $false))
+}
 if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
 [Console]::Error.WriteLine("  ${green}Installed Supaterm $version$reset`n")
 if (($env:PATH -split ";") -notcontains $binDir) {

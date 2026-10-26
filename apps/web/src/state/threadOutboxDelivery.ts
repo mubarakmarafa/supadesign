@@ -56,13 +56,15 @@ export function createBrowserThreadOutbox<Payload>(options: {
   ) => Promise<void>;
   readonly shouldRetry?: (error: unknown) => boolean;
 }) {
+  const queueOrder = (a: ThreadOutboxEntry<Payload>, b: ThreadOutboxEntry<Payload>) =>
+    a.createdAt.localeCompare(b.createdAt) || a.position - b.position;
   const manager = createThreadOutboxManager<ThreadOutboxEntry<Payload>>({
     registry: options.registry,
     identify: (entry) => ({
       ...options.identify(entry.payload),
       messageId: MessageId.make(entry.id),
     }),
-    compare: (a, b) => a.createdAt.localeCompare(b.createdAt) || a.position - b.position,
+    compare: queueOrder,
     // Raw bytes are immutable for each attachment ID; edits replace the command ID.
     equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
     storage: {
@@ -164,9 +166,16 @@ export function createBrowserThreadOutbox<Payload>(options: {
     return enqueueMany([input]);
   }
 
-  async function mutate(
+  function queuedBehind(head: ThreadOutboxEntry<Payload>) {
+    return getEntries().filter(
+      (entry) => entry.scope === head.scope && queueOrder(entry, head) > 0,
+    );
+  }
+
+  /** Runs `action` under the entry's delivery lease while the entry may still change. */
+  async function withChangeableEntry(
     id: string,
-    change: (entry: ThreadOutboxEntry<Payload>) => ThreadOutboxEntry<Payload> | null,
+    action: (entry: ThreadOutboxEntry<Payload>) => Promise<boolean>,
   ) {
     await load();
     const candidate = getEntries().find((entry) => entry.id === id);
@@ -177,12 +186,21 @@ export function createBrowserThreadOutbox<Payload>(options: {
         const live = getEntries().find((entry) => entry.id === id);
         if (!live || live.status === "delivered" || (live.attempted && live.status !== "failed"))
           return false;
-        const next = change(live);
-        if (next === null) await remove(id);
-        else if (!(await save(next))) return false;
-        return true;
+        return action(live);
       })) ?? false
     );
+  }
+
+  function mutate(
+    id: string,
+    change: (entry: ThreadOutboxEntry<Payload>) => ThreadOutboxEntry<Payload> | null,
+  ) {
+    return withChangeableEntry(id, async (live) => {
+      const next = change(live);
+      if (next === null) await remove(id);
+      else if (!(await save(next))) return false;
+      return true;
+    });
   }
 
   function edit(id: string, payload: Payload, scope?: string) {
@@ -198,6 +216,43 @@ export function createBrowserThreadOutbox<Payload>(options: {
       paused: false,
       pauseUntil: 0,
     }));
+  }
+
+  /**
+   * Edits an entry into another scope and carries the entries queued behind it
+   * along. Holding the source scope keeps the drain from sending any of them to
+   * the old thread between the writes.
+   */
+  async function editWithFollowing(
+    id: string,
+    payload: Payload,
+    scope: string,
+    retarget: (payload: Payload) => Payload,
+  ): Promise<boolean> {
+    await load();
+    const head = getEntries().find((entry) => entry.id === id);
+    if (!head) return false;
+    const moved = await options.storage.withLock(head.scope, async () => {
+      await reload();
+      // Another tab moved the task since the snapshot: follow it to its scope.
+      if (getEntries().find((entry) => entry.id === id)?.scope !== head.scope) return "moved";
+      if (!(await edit(id, payload, scope))) return false;
+      // The edit reloaded the queue: whatever is still queued for the old
+      // thread follows the task, including a follow-up sent while it moved.
+      for (const entry of getEntries().filter((candidate) => candidate.scope === head.scope))
+        await mutate(entry.id, (live) => ({ ...live, scope, payload: retarget(live.payload) }));
+      return true;
+    });
+    return moved === "moved" ? editWithFollowing(id, payload, scope, retarget) : (moved ?? false);
+  }
+
+  /** Cancels an entry and the entries queued behind it, those first so none is left at the head. */
+  function cancelWithFollowing(id: string) {
+    return withChangeableEntry(id, async (live) => {
+      for (const entry of queuedBehind(live)) await remove(entry.id);
+      await remove(id);
+      return true;
+    });
   }
 
   function pause(id: string, paused: boolean) {
@@ -218,7 +273,7 @@ export function createBrowserThreadOutbox<Payload>(options: {
       await reload();
       const candidate = getEntries()
         .filter((entry) => entry.scope === scope)
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.position - b.position)[0];
+        .sort(queueOrder)[0];
       if (!candidate) {
         return { next: null };
       }
@@ -317,8 +372,10 @@ export function createBrowserThreadOutbox<Payload>(options: {
     enqueue,
     enqueueMany,
     edit,
+    editWithFollowing,
     pause,
     cancel,
+    cancelWithFollowing,
     drain,
     getSnapshot,
     isLoaded: () => loaded,

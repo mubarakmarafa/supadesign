@@ -25,17 +25,17 @@ describe("getMobileTerminalTheme", () => {
   });
   it("applies the selected palette without replacing ANSI status colors", () => {
     const standard = getMobileTerminalTheme("supaterm", "dark");
-    const ocean = getMobileTerminalTheme("ocean", "dark");
+    const nord = getMobileTerminalTheme("nord", "dark");
 
-    expect(ocean.background).not.toBe(standard.background);
-    expect(ocean.cursorForeground).not.toBe(standard.cursorForeground);
-    expect(ocean.palette).toEqual(standard.palette);
+    expect(nord.background).not.toBe(standard.background);
+    expect(nord.cursorForeground).not.toBe(standard.cursorForeground);
+    expect(nord.palette).toEqual(standard.palette);
   });
 
   it("uses the canonical desktop terminal roles for built-in themes", () => {
-    const theme = BUILT_IN_THEMES.find((candidate) => candidate.id === "ocean")!;
+    const theme = BUILT_IN_THEMES.find((candidate) => candidate.id === "nord")!;
     const colors = getThemeColorsForAppearance(theme, "dark")!;
-    const terminal = getMobileTerminalTheme("ocean", "dark");
+    const terminal = getMobileTerminalTheme("nord", "dark");
 
     expect(terminal.background).toBe(themeColorToNativeColor(colors.terminalBackground));
     expect(terminal.foreground).toBe(themeColorToNativeColor(colors.terminalForeground));

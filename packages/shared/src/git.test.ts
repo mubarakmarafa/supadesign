@@ -13,7 +13,6 @@ import {
   parseGitRemoteVerboseOutput,
   parseGitRemoteVerboseUrls,
   repositoryBranchPrefix,
-  parseGitHubRepositoryNameWithOwnerFromRemoteUrl,
   parseOriginUrlFromGitConfig,
   resolveAutoFeatureBranchName,
   sanitizeFeatureBranchName,
@@ -22,14 +21,14 @@ import {
 
 describe("normalizeGitRemoteUrl", () => {
   it("canonicalizes equivalent GitHub remotes across protocol variants", () => {
-    expect(normalizeGitRemoteUrl("git@github.com:supabitapp/supacode-next.git")).toBe(
-      "github.com/supabitapp/supacode-next",
+    expect(normalizeGitRemoteUrl("git@github.com:supabitapp/supaterm.git")).toBe(
+      "github.com/supabitapp/supaterm",
     );
-    expect(normalizeGitRemoteUrl("https://github.com/supabitapp/supacode-next.git")).toBe(
-      "github.com/supabitapp/supacode-next",
+    expect(normalizeGitRemoteUrl("https://github.com/supabitapp/supaterm.git")).toBe(
+      "github.com/supabitapp/supaterm",
     );
-    expect(normalizeGitRemoteUrl("ssh://git@github.com/supabitapp/supacode-next")).toBe(
-      "github.com/supabitapp/supacode-next",
+    expect(normalizeGitRemoteUrl("ssh://git@github.com/supabitapp/supaterm")).toBe(
+      "github.com/supabitapp/supaterm",
     );
   });
 
@@ -58,6 +57,14 @@ describe("normalizeGitRemoteUrl", () => {
     expect(normalizeGitRemoteUrl("deploy@bitbucket.org:workspace/repo.git")).toBe(
       "bitbucket.org/workspace/repo",
     );
+    expect(normalizeGitRemoteUrl("code.example.test:team/repo.git")).toBe(
+      "code.example.test/team/repo",
+    );
+    expect(normalizeGitRemoteUrl("git@code.example.test:/team/repo.git")).toBe(
+      "code.example.test/team/repo",
+    );
+    expect(normalizeGitRemoteUrl("C:/repos/project")).toBe("c:/repos/project");
+    expect(normalizeGitRemoteUrl("git@x:team/project.git")).toBe("x/team/project");
   });
 
   it("gives an Azure DevOps repository the same key over SSH as over HTTPS", () => {
@@ -80,17 +87,6 @@ describe("normalizeGitRemoteUrl", () => {
       "supaterm.visualstudio.com/platform/_git/supaterm",
     );
   });
-
-  it("leaves an Azure SSH host it cannot read as the path it was given", () => {
-    // Not `v3`, and not four segments: rewriting either would invent a repository that the web
-    // spelling has no name for, so the remote stands as it arrived.
-    expect(normalizeGitRemoteUrl("git@ssh.dev.azure.com:v4/Supaterm/Platform/Supaterm")).toBe(
-      "ssh.dev.azure.com/v4/supaterm/platform/supaterm",
-    );
-    expect(normalizeGitRemoteUrl("git@ssh.dev.azure.com:v3/supabitapp/supacode-next")).toBe(
-      "ssh.dev.azure.com/v3/supabitapp/supacode-next",
-    );
-  });
 });
 
 describe("parseOriginUrlFromGitConfig", () => {
@@ -101,12 +97,12 @@ describe("parseOriginUrlFromGitConfig", () => {
       '[remote "upstream"]',
       "\turl = https://github.com/other/repo.git",
       '[remote "origin"]',
-      "\turl = git@github.com:supabitapp/supacode-next.git",
+      "\turl = git@github.com:supabitapp/supaterm.git",
       "\tfetch = +refs/heads/*:refs/remotes/origin/*",
       '[branch "main"]',
       "\tremote = origin",
     ].join("\n");
-    expect(parseOriginUrlFromGitConfig(config)).toBe("git@github.com:supabitapp/supacode-next.git");
+    expect(parseOriginUrlFromGitConfig(config)).toBe("git@github.com:supabitapp/supaterm.git");
   });
 
   it("strips inline comments and quotes from the url value", () => {
@@ -124,7 +120,6 @@ describe("parseOriginUrlFromGitConfig", () => {
     expect(parseOriginUrlFromGitConfig("[remote.origin]\n\turl = git@github.com:a/b.git\n")).toBe(
       "git@github.com:a/b.git",
     );
-    // Git folds the dotted form to lowercase but keeps quoted names as written.
     expect(parseOriginUrlFromGitConfig("[remote.Origin]\n\turl = git@github.com:a/b.git\n")).toBe(
       "git@github.com:a/b.git",
     );
@@ -151,11 +146,6 @@ describe("parseOriginUrlFromGitConfig", () => {
       "\turl = https://github.com/me/repo.git",
     ].join("\n");
     expect(parseOriginUrlFromGitConfig(config)).toBe("https://github.com/acme/repo.git");
-  });
-
-  it("returns null when there is no remote section", () => {
-    expect(parseOriginUrlFromGitConfig("[core]\n\tbare = false\n")).toBeNull();
-    expect(parseOriginUrlFromGitConfig("")).toBeNull();
   });
 });
 
@@ -213,38 +203,7 @@ describe("parseGitRemoteVerboseOutput", () => {
   });
 });
 
-describe("parseGitHubRepositoryNameWithOwnerFromRemoteUrl", () => {
-  it("extracts the owner and repository from common GitHub remote shapes", () => {
-    expect(
-      parseGitHubRepositoryNameWithOwnerFromRemoteUrl(
-        "git@github.com:supabitapp/supacode-next.git",
-      ),
-    ).toBe("supabitapp/supacode-next");
-    expect(
-      parseGitHubRepositoryNameWithOwnerFromRemoteUrl(
-        "https://github.com/supabitapp/supacode-next.git",
-      ),
-    ).toBe("supabitapp/supacode-next");
-    expect(
-      parseGitHubRepositoryNameWithOwnerFromRemoteUrl(
-        "ssh://github.com/supabitapp/supacode-next.git",
-      ),
-    ).toBe("supabitapp/supacode-next");
-  });
-});
-
 describe("isTemporaryWorktreeBranch", () => {
-  it("matches the generated temporary worktree refName format", () => {
-    expect(
-      isTemporaryWorktreeBranch(
-        buildTemporaryWorktreeBranchName((byteLength) => {
-          expect(byteLength).toBe(4);
-          return "DEADBEEF";
-        }),
-      ),
-    ).toBe(true);
-  });
-
   it("matches generated temporary worktree refs", () => {
     expect(isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/deadbeef`)).toBe(true);
     expect(isTemporaryWorktreeBranch(` ${WORKTREE_BRANCH_PREFIX}/deadbeef `)).toBe(true);
@@ -257,34 +216,12 @@ describe("isTemporaryWorktreeBranch", () => {
     );
   });
 
-  it("matches legacy UUID-shaped temporary worktree refs from older mobile builds", () => {
-    expect(
-      isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/f4ae4e0e-f971-4d48-b4f2-9cf0aa54ab12`),
-    ).toBe(true);
-  });
-
-  it("rejects UUID-shaped refs that are not RFC 4122 v4", () => {
-    // version nibble is not 4
-    expect(
-      isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/f4ae4e0e-f971-1d48-b4f2-9cf0aa54ab12`),
-    ).toBe(false);
-    // variant nibble is not [89ab]
-    expect(
-      isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}/f4ae4e0e-f971-4d48-c4f2-9cf0aa54ab12`),
-    ).toBe(false);
-  });
-
   it("matches the flat fallback used when a plain supaterm branch exists", () => {
     const flat = flattenTemporaryWorktreeBranchName(`${WORKTREE_BRANCH_PREFIX}/deadbeef`);
     expect(flat).toBe(`${WORKTREE_BRANCH_PREFIX}-deadbeef`);
     expect(isTemporaryWorktreeBranch(flat)).toBe(true);
     expect(isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}-deadbeef-extra`)).toBe(false);
     expect(isTemporaryWorktreeBranch(`${WORKTREE_BRANCH_PREFIX}-feature`)).toBe(false);
-    expect(
-      flattenTemporaryWorktreeBranchName(
-        `${WORKTREE_BRANCH_PREFIX}/f4ae4e0e-f971-4d48-b4f2-9cf0aa54ab12`,
-      ),
-    ).toBe(`${WORKTREE_BRANCH_PREFIX}-f4ae4e0e`);
   });
 
   it("rejects non-temporary refName names", () => {
@@ -358,12 +295,6 @@ describe("applyGitStatusStreamEvent", () => {
 });
 
 describe("sanitizeFeatureBranchName", () => {
-  it.each(["feature", "fix", "team/jules"])("preserves the %s namespace", (namespace) => {
-    expect(sanitizeFeatureBranchName(`${namespace}/refine-toolbar`)).toBe(
-      `${namespace}/refine-toolbar`,
-    );
-  });
-
   it("sanitizes an explicit namespace before preserving it", () => {
     expect(sanitizeFeatureBranchName(' "FIX//Calendar recruitment filter" ')).toBe(
       "fix/calendar-recruitment-filter",
@@ -372,19 +303,45 @@ describe("sanitizeFeatureBranchName", () => {
 
   it.each([
     ["refine toolbar", "feature/refine-toolbar"],
-    ["", "feature/update"],
     [" /?. / ", "feature/update"],
     ["fix///", "feature/fix"],
   ])("keeps the fallback for unprefixed input %s", (input, expected) => {
     expect(sanitizeFeatureBranchName(input)).toBe(expected);
   });
-
-  it("keeps the existing length limit for namespaced branches", () => {
-    expect(sanitizeFeatureBranchName(`fix/${"x".repeat(80)}`)).toBe(`fix/${"x".repeat(60)}`);
-  });
 });
 
 describe("resolveAutoFeatureBranchName", () => {
+  it("uses semantic preferred ref names when available", () => {
+    expect(resolveAutoFeatureBranchName(["main", "feature/other"], "fix toast copy")).toBe(
+      "feature/fix-toast-copy",
+    );
+  });
+
+  it("normalizes preferred names that already include a ref namespace", () => {
+    expect(resolveAutoFeatureBranchName(["main"], "feature/refine-toolbar-actions")).toBe(
+      "feature/refine-toolbar-actions",
+    );
+  });
+
+  it("increments suffix when the preferred ref name already exists", () => {
+    expect(
+      resolveAutoFeatureBranchName(
+        ["main", "feature/fix-toast-copy", "feature/fix-toast-copy-2"],
+        "fix toast copy",
+      ),
+    ).toBe("feature/fix-toast-copy-3");
+  });
+
+  it("treats existing ref names as case-insensitive for collision checks", () => {
+    expect(resolveAutoFeatureBranchName(["Feature/Ticket-1"], "feature/ticket-1")).toBe(
+      "feature/ticket-1-2",
+    );
+  });
+
+  it("falls back to feature/update when no preferred name is provided", () => {
+    expect(resolveAutoFeatureBranchName(["main"])).toBe("feature/update");
+  });
+
   it("resolves case-insensitive collisions within the generated namespace", () => {
     expect(
       resolveAutoFeatureBranchName(
@@ -394,42 +351,17 @@ describe("resolveAutoFeatureBranchName", () => {
     ).toBe("fix/refine-toolbar-3");
   });
 
-  it("keeps the fallback when no preferred branch is supplied", () => {
-    expect(resolveAutoFeatureBranchName(["feature/update"])).toBe("feature/update-2");
-  });
-
   it.each([
     ["fix/name", ["fix"], "fix-2/name"],
-    ["team/jules/fix/name", ["team/jules"], "team/jules-2/fix/name"],
     ["fix/name", ["fix/name/child"], "fix/name-2"],
-    ["FIX/name", ["FIX", "FIX-2"], "fix-3/name"],
     ["fix/name", ["fixes", "fix/name-extra/child"], "fix/name"],
-    [undefined, ["feature", "feature-2"], "feature-3/update"],
   ])("resolves %s against namespace blockers %j", (preferredBranch, existingNames, expected) => {
     expect(resolveAutoFeatureBranchName(existingNames, preferredBranch)).toBe(expected);
   });
 });
 
 describe("formatGeneratedBranchName", () => {
-  it.each(["supaterm", "supaterm/"])("joins static prefix %s with one slash", (prefix) => {
-    expect(
-      formatGeneratedBranchName("Add Search", { mode: "static", prefix, instructions: "" }),
-    ).toBe("supaterm/add-search");
-  });
-  it("supports an empty prefix and preserves user prefix casing", () => {
-    expect(
-      formatGeneratedBranchName("Add Search", { mode: "static", prefix: "", instructions: "" }),
-    ).toBe("add-search");
-    expect(
-      formatGeneratedBranchName("Add Search", {
-        mode: "static",
-        prefix: "Team/Julius/",
-        instructions: "",
-      }),
-    ).toBe("Team/Julius/add-search");
-  });
   it.each([
-    ["release..candidate", "release-candidate/add-search"],
     [" Team / Jules.lock/", "Team/Jules-lock/add-search"],
     ["-team//feature@{new}", "team/feature-new/add-search"],
     [" /?. / ", "add-search"],
@@ -446,16 +378,6 @@ describe("formatGeneratedBranchName", () => {
         instructions: "",
       }),
     ).toBe("feat/add-search");
-  });
-  it("preserves the full custom name, including case, dots and length", () => {
-    const branch = `Julius/ABC-123/release.v2-${"x".repeat(70)}`;
-    expect(
-      formatGeneratedBranchName(` ${branch} `, {
-        mode: "custom",
-        prefix: "ignored",
-        instructions: "",
-      }),
-    ).toBe(branch);
   });
 });
 

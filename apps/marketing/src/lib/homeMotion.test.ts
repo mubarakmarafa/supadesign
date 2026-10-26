@@ -65,11 +65,8 @@ function fixture() {
   const mark = new ElementStub();
   const otherMark = new ElementStub();
   field.children = [mark, otherMark];
-  const caret = new ElementStub();
-  dispose = startHomeMotion({ hero, field, caret } as unknown as Parameters<
-    typeof startHomeMotion
-  >[0]);
-  return { hero, field, mark, otherMark, caret, observer: observers[0]! };
+  dispose = startHomeMotion({ hero, field } as unknown as Parameters<typeof startHomeMotion>[0]);
+  return { hero, field, mark, otherMark, observer: observers[0]! };
 }
 
 function movePointer(hero: ElementStub, x = 400, y = 600) {
@@ -77,15 +74,12 @@ function movePointer(hero: ElementStub, x = 400, y = 600) {
 }
 
 describe("homepage motion", () => {
-  it("gates each mark and the caret and batches pointer input into one frame", () => {
-    const { hero, field, mark, otherMark, caret, observer } = fixture();
+  it("gates each mark and batches pointer input into one frame", () => {
+    const { hero, field, mark, otherMark, observer } = fixture();
     expect(mark.properties.get("--home-motion-state")).toBe("paused");
-    expect(caret.properties.get("--home-motion-state")).toBe("paused");
     observer.report(mark, true);
-    observer.report(caret, true);
     expect(mark.properties.get("--home-motion-state")).toBe("running");
     expect(otherMark.properties.get("--home-motion-state")).toBe("paused");
-    expect(caret.properties.get("--home-motion-state")).toBe("running");
 
     movePointer(hero, 100, 100);
     movePointer(hero);
@@ -103,7 +97,6 @@ describe("homepage motion", () => {
     expect(frames.size).toBe(0);
     expect(field.properties.get("--px")).toBe("0px");
     expect(mark.properties.get("--home-motion-state")).toBe("paused");
-    expect(caret.properties.get("--home-motion-state")).toBe("paused");
     page.visibilityState = "visible";
     page.dispatchEvent(new Event("visibilitychange"));
     reduced.matches = true;
@@ -117,20 +110,5 @@ describe("homepage motion", () => {
     movePointer(hero);
     expect(frames.size).toBe(0);
     expect(mark.properties.get("--home-motion-state")).toBe("running");
-  });
-
-  it("cancels pending work and ignores events after cleanup", () => {
-    const { hero, mark, caret, observer } = fixture();
-    observer.report(mark, true);
-    observer.report(caret, true);
-    movePointer(hero);
-    dispose?.();
-    observer.report(mark, true);
-    movePointer(hero);
-    reduced.dispatchEvent(new Event("change"));
-    expect(observer.disconnect).toHaveBeenCalledTimes(1);
-    expect(frames.size).toBe(0);
-    expect(mark.properties.get("--home-motion-state")).toBe("paused");
-    expect(caret.properties.get("--home-motion-state")).toBe("paused");
   });
 });

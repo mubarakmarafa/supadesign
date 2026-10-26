@@ -32,7 +32,7 @@ describe("pairing redirects", () => {
                 platform: { os: "linux", arch: "x64" },
                 serverVersion: "0.0.0-test",
                 orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
-                capabilities: { repositoryIdentity: true },
+                capabilities: {},
               }),
             );
           });

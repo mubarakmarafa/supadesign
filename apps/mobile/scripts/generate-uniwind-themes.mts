@@ -7,6 +7,7 @@ import { BUILT_IN_THEME_IDS, type BuiltInThemeId } from "@supaterm/shared/themeP
 
 import {
   getMobileThemeVariables,
+  mobileThemeSupportsAppearance,
   DEFAULT_MOBILE_THEME_ID,
   type MobileThemeAppearance,
 } from "../src/lib/mobileTheme.ts";
@@ -48,9 +49,9 @@ const color = (family: TailwindColorFamily, shade?: TailwindColorShade, opacity 
   return `color-mix(in srgb, ${value} ${percentage}%, transparent)`;
 };
 
-// These replace the remaining dark:* utility pairs. A registered palette theme is
-// neither literally `light` nor `dark`, so appearance-sensitive values must also be
-// represented as semantic variables for custom themes.
+// A registered palette theme is neither literally `light` nor `dark`, so
+// appearance-sensitive values must also be represented as semantic variables for
+// custom themes.
 const ADAPTIVE_COLORS: Readonly<Record<string, readonly [light: string, dark: string]>> = {
   "--color-adaptive-amber-50-950-a40": [color("amber", 50), color("amber", 950, 0.4)],
   "--color-adaptive-amber-200-900-a60": [color("amber", 200), color("amber", 900, 0.6)],
@@ -152,7 +153,9 @@ const ADAPTIVE_COLORS: Readonly<Record<string, readonly [light: string, dark: st
 };
 
 export const customThemeNames = BUILT_IN_THEME_IDS.flatMap((themeId) =>
-  APPEARANCES.map((appearance) => `${themeId}-${appearance}`),
+  APPEARANCES.flatMap((appearance) =>
+    mobileThemeSupportsAppearance(themeId, appearance) ? [`${themeId}-${appearance}`] : [],
+  ),
 );
 
 const adaptiveVariablesFor = (appearance: MobileThemeAppearance) =>
@@ -184,8 +187,10 @@ export const renderUniwindThemesCSS = () => {
       }),
     ),
     ...BUILT_IN_THEME_IDS.flatMap((themeId) =>
-      APPEARANCES.map((appearance) =>
-        renderVariant(`${themeId}-${appearance}`, variablesFor(themeId, appearance)),
+      APPEARANCES.flatMap((appearance) =>
+        mobileThemeSupportsAppearance(themeId, appearance)
+          ? [renderVariant(`${themeId}-${appearance}`, variablesFor(themeId, appearance))]
+          : [],
       ),
     ),
   ];

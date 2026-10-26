@@ -2,6 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createHashHistory, createBrowserHistory } from "@tanstack/react-router";
 
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
+import "@fontsource/jetbrains-mono/700.css";
+import "@fontsource/jetbrains-mono/400-italic.css";
+import "@fontsource/jetbrains-mono/700-italic.css";
 import "./index.css";
 
 import { prepareProviderAuthDelivery } from "./providerAuthDelivery";
@@ -46,9 +51,7 @@ export const startup = router
   .load()
   .then(() => {
     // A route chunk failure still resolves router.load(): the error is parked in
-    // the lazy component and surfaces through the route error boundary. Skip the
-    // paint when a reload is on its way, and only re-arm the guard after a boot
-    // that fetched every chunk it asked for.
+    // the lazy component and surfaces through the route error boundary.
     if (reloadScheduled) return;
     if (!chunkLoadFailed) clearChunkReloadGuard();
     ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
@@ -58,7 +61,6 @@ export const startup = router
     );
   })
   .catch((error: unknown) => {
-    // Let the bootstrap entry show the error unless a reload is already scheduled.
     if (reloadScheduled) return;
     throw error;
   });

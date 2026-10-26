@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema";
 import { ForwardCompatibleArray, TrimmedString } from "./baseSchemas.ts";
 
-export const MAX_KEYBINDING_VALUE_LENGTH = 64;
+const MAX_KEYBINDING_VALUE_LENGTH = 64;
 const MAX_KEYBINDING_WHEN_LENGTH = 256;
 export const MAX_WHEN_EXPRESSION_DEPTH = 64;
 export const MAX_SCRIPT_ID_LENGTH = 24;
@@ -70,15 +70,34 @@ export const BRANCH_PICKER_JUMP_KEYBINDING_COMMANDS = [
   "branchPicker.jump.9",
 ] as const;
 
+export const PANE_FOCUS_KEYBINDING_COMMANDS = [
+  "pane.focus.1",
+  "pane.focus.2",
+  "pane.focus.3",
+  "pane.focus.4",
+] as const;
+
+const PANE_KEYBINDING_COMMANDS = [
+  "pane.splitRight",
+  "pane.splitDown",
+  "pane.close",
+  "pane.closeOthers",
+  "pane.focusNext",
+  "pane.focusPrevious",
+  ...PANE_FOCUS_KEYBINDING_COMMANDS,
+] as const;
+
 const THREAD_KEYBINDING_COMMANDS = [
   "thread.stop",
+  "thread.approve",
+  "thread.decline",
   "thread.steerQueuedMessage",
   "thread.editQueuedMessage",
   "thread.previous",
   "thread.next",
   "thread.copyReference",
   "thread.fork",
-  "thread.settle",
+  "thread.mark-done",
   "thread.pin",
   "thread.undo",
   ...THREAD_JUMP_KEYBINDING_COMMANDS,
@@ -136,6 +155,8 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "themeEditor.toggle",
   "composer.stash",
   "composer.bank",
+  "composer.submit",
+  "composer.toggleFastMode",
   "composer.sendAlternate",
   "composer.sendBackground",
   "composer.sendAndNewThread",
@@ -143,6 +164,8 @@ export const STATIC_KEYBINDING_COMMANDS = [
   ...HOST_PICKER_JUMP_KEYBINDING_COMMANDS,
   "composer.cycleHost",
   "composer.effort",
+  "composer.increaseEffort",
+  "composer.decreaseEffort",
   "composer.mode",
   "composer.workspace",
   "composer.previousWorktree",
@@ -152,6 +175,9 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "chat.newLocal",
   "chat.newWithoutProject",
   "chat.find",
+  "conversation.scrollUp",
+  "conversation.scrollDown",
+  "conversation.scrollToEnd",
   "editor.openFavorite",
   "usage.cost",
   "usage.tokens",
@@ -162,6 +188,7 @@ export const STATIC_KEYBINDING_COMMANDS = [
   "usage.period.quarter",
   ...MODEL_PICKER_KEYBINDING_COMMANDS,
   ...THREAD_KEYBINDING_COMMANDS,
+  ...PANE_KEYBINDING_COMMANDS,
 ] as const;
 
 export const SCRIPT_RUN_COMMAND_PATTERN = Schema.TemplateLiteral([
@@ -253,8 +280,6 @@ export const ResolvedKeybindingRule = Schema.Struct({
 export type ResolvedKeybindingRule = typeof ResolvedKeybindingRule.Type;
 
 /**
- * The command set grows over time, so a client may receive rules it cannot
- * represent (a command or `when` node added after that client shipped).
  * Decoding drops those rules instead of failing the whole payload —
  * rejecting the config would take down the connection over a shortcut the
  * client couldn't dispatch anyway.

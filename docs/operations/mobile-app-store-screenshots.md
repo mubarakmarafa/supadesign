@@ -105,9 +105,8 @@ appearance settings can never drift apart.
 Run the `Mobile Showcase Screenshots` workflow from GitHub's Actions tab, choose `all`, `ios`, or
 `android`, select `light`, `dark`, or `both`, and pick a palette (or `all`, which raises each job's
 timeout from 120 to 350 minutes). The default dispatch captures both appearances of the `supaterm`
-palette and runs iOS and Android concurrently: iPhone and iPad capture on a
-8-vCPU Depot macOS runner, while Android phone, 7-inch tablet, and 10-inch tablet capture on a
-GitHub-hosted Ubuntu runner with a KVM-accelerated x86_64 emulator.
+palette and runs iOS and Android concurrently: iPhone and iPad capture on macOS, while Android
+phone, 7-inch tablet, and 10-inch tablet capture on Ubuntu with a KVM-accelerated x86_64 emulator.
 
 Every job uploads its PNGs even when capture fails, which makes partial runs useful for diagnosis.
 The separate validation step is success-gated: it runs before upload only when capture succeeds. If

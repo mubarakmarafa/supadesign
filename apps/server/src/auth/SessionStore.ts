@@ -1,6 +1,5 @@
 import {
   AuthSessionId,
-  AuthAdministrativeScopes,
   AuthStandardClientScopes,
   AuthEnvironmentScopes,
   type AuthClientMetadata,
@@ -34,7 +33,6 @@ import {
 import {
   base64UrlDecodeUtf8,
   base64UrlEncode,
-  resolveLegacySessionCookieName,
   resolveSessionCookieName,
   signPayload,
   timingSafeEqualBase64Url,
@@ -57,7 +55,6 @@ export interface VerifiedSession {
   readonly expiresAt?: DateTime.DateTime;
   readonly subject: string;
   readonly scopes: ReadonlyArray<AuthEnvironmentScope>;
-  /** The most an MCP client approved through OAuth may hand to the threads it drives. */
   readonly runtimeModeCeiling?: RuntimeMode;
 }
 
@@ -370,7 +367,6 @@ export class SessionStore extends Context.Service<
   SessionStore,
   {
     readonly cookieName: string;
-    readonly legacyCookieName: string | undefined;
     readonly issue: (input?: {
       readonly ttl?: Duration.Duration;
       readonly subject?: string;
@@ -378,12 +374,7 @@ export class SessionStore extends Context.Service<
       readonly scopes?: ReadonlyArray<AuthEnvironmentScope>;
       readonly client?: AuthClientMetadata;
       readonly runtimeModeCeiling?: RuntimeMode;
-      /**
-       * Atomically revoke active sessions with the same subject and method
-       * before storing this session.
-       */
       readonly replaceActiveForSubjectAndMethod?: boolean;
-      /** Replace only this session, of the same method, in the issuance transaction. */
       readonly replaceSessionId?: AuthSessionId;
     }) => Effect.Effect<IssuedSession, SessionCredentialInternalError>;
     readonly verify: (token: string) => Effect.Effect<VerifiedSession, SessionCredentialError>;
@@ -433,7 +424,7 @@ const DEFAULT_SESSION_TTL = Duration.days(30);
 const DEFAULT_WEBSOCKET_TOKEN_TTL = Duration.minutes(5);
 
 const SessionClaims = Schema.Struct({
-  v: Schema.Literals([1, 2]),
+  v: Schema.Literal(1),
   kind: Schema.Literal("session"),
   sid: AuthSessionId,
   sub: Schema.String,
@@ -488,7 +479,7 @@ function toAuthClientSession(input: Omit<AuthClientSession, "current">): AuthCli
   };
 }
 
-export const make = Effect.gen(function* () {
+const make = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto;
   const serverConfig = yield* ServerConfig.ServerConfig;
   const serverEnvironment = yield* ServerEnvironment.ServerEnvironmentIdentity;
@@ -506,14 +497,13 @@ export const make = Effect.gen(function* () {
     development: serverConfig.devUrl !== undefined,
   } as const;
   const cookieName = resolveSessionCookieName(cookieInput);
-  const legacyCookieName = resolveLegacySessionCookieName(cookieInput);
   const devAuth = resolveReusableDevAuth(serverConfig);
   if (devAuth) {
     yield* authSessions
       .createIfAbsent({
         sessionId: devAuth.sessionId,
         subject: "reusable-dev-token",
-        scopes: AuthAdministrativeScopes,
+        scopes: AuthStandardClientScopes,
         method: "browser-session-cookie",
         client: {
           label: "Reusable dev token",
@@ -545,33 +535,34 @@ export const make = Effect.gen(function* () {
       sessionId,
     }).pipe(Effect.asVoid);
 
-  const loadActiveSession = (sessionId: AuthSessionId) =>
-    Effect.gen(function* () {
-      const row = yield* authSessions.getById({ sessionId });
-      if (Option.isNone(row) || row.value.revokedAt !== null) {
-        return Option.none<AuthClientSession>();
-      }
+  const loadActiveSession = Effect.fn("SessionStore.loadActiveSession")(function* (
+    sessionId: AuthSessionId,
+  ) {
+    const row = yield* authSessions.getById({ sessionId });
+    if (Option.isNone(row) || row.value.revokedAt !== null) {
+      return Option.none<AuthClientSession>();
+    }
 
-      const connectedSessions = yield* Ref.get(connectedSessionsRef);
-      const connected = connectedSessions.has(row.value.sessionId);
-      const now = yield* DateTime.now;
-      if (!connected && row.value.expiresAt.epochMilliseconds <= now.epochMilliseconds) {
-        return Option.none<AuthClientSession>();
-      }
-      return Option.some(
-        toAuthClientSession({
-          sessionId: row.value.sessionId,
-          subject: row.value.subject,
-          scopes: row.value.scopes,
-          method: row.value.method,
-          client: toClientMetadata(row.value.client),
-          issuedAt: row.value.issuedAt,
-          expiresAt: row.value.expiresAt,
-          lastConnectedAt: row.value.lastConnectedAt,
-          connected,
-        }),
-      );
-    });
+    const connectedSessions = yield* Ref.get(connectedSessionsRef);
+    const connected = connectedSessions.has(row.value.sessionId);
+    const now = yield* DateTime.now;
+    if (!connected && row.value.expiresAt.epochMilliseconds <= now.epochMilliseconds) {
+      return Option.none<AuthClientSession>();
+    }
+    return Option.some(
+      toAuthClientSession({
+        sessionId: row.value.sessionId,
+        subject: row.value.subject,
+        scopes: row.value.scopes,
+        method: row.value.method,
+        client: toClientMetadata(row.value.client),
+        issuedAt: row.value.issuedAt,
+        expiresAt: row.value.expiresAt,
+        lastConnectedAt: row.value.lastConnectedAt,
+        connected,
+      }),
+    );
+  });
 
   const markConnected: SessionStore["Service"]["markConnected"] = (sessionId) =>
     Ref.modify(connectedSessionsRef, (current) => {
@@ -607,7 +598,6 @@ export const make = Effect.gen(function* () {
       Effect.withSpan("SessionStore.markConnected"),
     );
 
-  // Best-effort: connection metadata must never block or fail a connect.
   const recordClientConnection: SessionStore["Service"]["recordClientConnection"] = (
     sessionId,
     client,
@@ -659,9 +649,9 @@ export const make = Effect.gen(function* () {
   const issue: SessionStore["Service"]["issue"] = Effect.fn("SessionStore.issue")(
     function* (input) {
       const sessionId = AuthSessionId.make(
-        yield* crypto.randomUUIDv4.pipe(
-          Effect.mapError((cause) => new SessionCredentialIssueError({ cause })),
-        ),
+        yield* crypto
+          .randomUUIDv4()
+          .pipe(Effect.mapError((cause) => new SessionCredentialIssueError({ cause }))),
       );
       const issuedAt = yield* DateTime.now;
       const expiresAt = DateTime.add(issuedAt, {
@@ -1076,7 +1066,6 @@ export const make = Effect.gen(function* () {
 
   return SessionStore.of({
     cookieName,
-    legacyCookieName,
     issue,
     verify,
     issueWebSocketToken,

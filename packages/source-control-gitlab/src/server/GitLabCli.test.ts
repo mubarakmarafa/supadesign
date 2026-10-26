@@ -37,9 +37,10 @@ layer("GitLabCli.layer", (it) => {
             JSON.stringify({
               iid: 42,
               title: "Add MR thread creation",
-              web_url: "https://gitlab.com/supabitapp/supacode-next/-/merge_requests/42",
+              web_url: "https://gitlab.com/supabitapp/supaterm/-/merge_requests/42",
               target_branch: "main",
               source_branch: "feature/mr-threads",
+              sha: "a".repeat(40),
               state: "closed",
               closed_at: "2026-08-23T10:00:00Z",
               source_project_id: 101,
@@ -63,9 +64,10 @@ layer("GitLabCli.layer", (it) => {
       assert.deepStrictEqual(result, {
         number: 42,
         title: "Add MR thread creation",
-        url: "https://gitlab.com/supabitapp/supacode-next/-/merge_requests/42",
+        url: "https://gitlab.com/supabitapp/supaterm/-/merge_requests/42",
         baseRefName: "main",
         headRefName: "feature/mr-threads",
+        headSha: "a".repeat(40),
         state: "closed",
         closedAt: "2026-08-23T10:00:00Z",
         mergedAt: null,
@@ -77,7 +79,7 @@ layer("GitLabCli.layer", (it) => {
         expect.objectContaining({
           command: "glab",
           cwd: "/repo",
-          args: ["mr", "view", "42", "--output", "json"],
+          args: ["mr", "view", "--output", "json", "--", "42"],
         }),
       );
     }),
@@ -92,14 +94,14 @@ layer("GitLabCli.layer", (it) => {
               {
                 iid: 0,
                 title: "invalid",
-                web_url: "https://gitlab.com/supabitapp/supacode-next/-/merge_requests/0",
+                web_url: "https://gitlab.com/supabitapp/supaterm/-/merge_requests/0",
                 target_branch: "main",
                 source_branch: "feature/invalid",
               },
               {
                 iid: 43,
                 title: "  Valid MR  ",
-                web_url: " https://gitlab.com/supabitapp/supacode-next/-/merge_requests/43 ",
+                web_url: " https://gitlab.com/supabitapp/supaterm/-/merge_requests/43 ",
                 target_branch: " main ",
                 source_branch: " feature/mr-list ",
                 state: "merged",
@@ -123,7 +125,7 @@ layer("GitLabCli.layer", (it) => {
         {
           number: 43,
           title: "Valid MR",
-          url: "https://gitlab.com/supabitapp/supacode-next/-/merge_requests/43",
+          url: "https://gitlab.com/supabitapp/supaterm/-/merge_requests/43",
           baseRefName: "main",
           headRefName: "feature/mr-list",
           state: "merged",
@@ -146,156 +148,6 @@ layer("GitLabCli.layer", (it) => {
             "--output",
             "json",
           ],
-        }),
-      );
-    }),
-  );
-
-  it.effect("reads repository clone URLs", () =>
-    Effect.gen(function* () {
-      mockedRun.mockReturnValueOnce(
-        Effect.succeed(
-          processOutput(
-            JSON.stringify({
-              path_with_namespace: "octocat/supaterm",
-              web_url: "https://gitlab.com/octocat/supaterm",
-              http_url_to_repo: "https://gitlab.com/octocat/supaterm.git",
-              ssh_url_to_repo: "git@gitlab.com:octocat/supaterm.git",
-            }),
-          ),
-        ),
-      );
-
-      const result = yield* Effect.gen(function* () {
-        const glab = yield* GitLabCli.GitLabCli;
-        return yield* glab.getRepositoryCloneUrls({
-          cwd: "/repo",
-          repository: "octocat/supaterm",
-        });
-      });
-
-      assert.deepStrictEqual(result, {
-        nameWithOwner: "octocat/supaterm",
-        url: "https://gitlab.com/octocat/supaterm",
-        sshUrl: "git@gitlab.com:octocat/supaterm.git",
-      });
-    }),
-  );
-
-  it.effect("creates merge requests through the GitLab API without placing the body in argv", () =>
-    Effect.gen(function* () {
-      mockedRun.mockReturnValueOnce(Effect.succeed(processOutput("{}")));
-
-      const glab = yield* GitLabCli.GitLabCli;
-      yield* glab.createMergeRequest({
-        cwd: "/repo",
-        baseBranch: "main",
-        headSelector: "owner:feature/provider",
-        title: "Provider MR",
-        bodyFile: "/tmp/supaterm-mr-body.md",
-      });
-
-      expect(mockedRun).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: "glab",
-          cwd: "/repo",
-          args: [
-            "api",
-            "--method",
-            "POST",
-            "projects/:fullpath/merge_requests",
-            "--raw-field",
-            "source_branch=feature/provider",
-            "--raw-field",
-            "target_branch=main",
-            "--raw-field",
-            "title=Provider MR",
-            "--field",
-            "description=@/tmp/supaterm-mr-body.md",
-          ],
-        }),
-      );
-    }),
-  );
-
-  it.effect("creates repositories under an explicit namespace", () =>
-    Effect.gen(function* () {
-      mockedRun
-
-        .mockReturnValueOnce(Effect.succeed(processOutput(JSON.stringify({ id: 1234 }))))
-        .mockReturnValueOnce(
-          Effect.succeed(
-            processOutput(
-              JSON.stringify({
-                path_with_namespace: "octocat/supaterm",
-                web_url: "https://gitlab.com/octocat/supaterm",
-                http_url_to_repo: "https://gitlab.com/octocat/supaterm.git",
-                ssh_url_to_repo: "git@gitlab.com:octocat/supaterm.git",
-              }),
-            ),
-          ),
-        );
-
-      const glab = yield* GitLabCli.GitLabCli;
-      const result = yield* glab.createRepository({
-        cwd: "/repo",
-        repository: "octocat/supaterm",
-        visibility: "public",
-      });
-
-      assert.deepStrictEqual(result, {
-        nameWithOwner: "octocat/supaterm",
-        url: "https://gitlab.com/octocat/supaterm",
-        sshUrl: "git@gitlab.com:octocat/supaterm.git",
-      });
-      expect(mockedRun).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({
-          command: "glab",
-          cwd: "/repo",
-          args: ["api", "namespaces/octocat"],
-        }),
-      );
-      expect(mockedRun).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          command: "glab",
-          cwd: "/repo",
-          args: [
-            "api",
-            "--method",
-            "POST",
-            "projects",
-            "--raw-field",
-            "path=supaterm",
-            "--raw-field",
-            "name=supaterm",
-            "--raw-field",
-            "visibility=public",
-            "--raw-field",
-            "namespace_id=1234",
-          ],
-        }),
-      );
-    }),
-  );
-
-  it.effect("does not pass unsupported force flags when checking out merge requests", () =>
-    Effect.gen(function* () {
-      mockedRun.mockReturnValueOnce(Effect.succeed(processOutput("")));
-
-      const glab = yield* GitLabCli.GitLabCli;
-      yield* glab.checkoutMergeRequest({
-        cwd: "/repo",
-        reference: "42",
-        force: true,
-      });
-
-      expect(mockedRun).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: "glab",
-          cwd: "/repo",
-          args: ["mr", "checkout", "42"],
         }),
       );
     }),

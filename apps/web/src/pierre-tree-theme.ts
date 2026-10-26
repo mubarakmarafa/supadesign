@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 
-/** Shadow-root overrides that make a Pierre file tree read as part of the app chrome. */
 export const PIERRE_TREE_UNSAFE_CSS = `
   :host {
     --trees-bg-override: transparent;
@@ -10,11 +9,12 @@ export const PIERRE_TREE_UNSAFE_CSS = `
     --trees-font-family-override: var(--font-sans);
     --trees-font-size-override: 0.75rem;
   }
+  [data-truncate-content='visible'] { overflow: hidden; text-overflow: ellipsis; }
+  [data-truncate-marker] { display: none; }
   button[data-type='item'], button[data-type='item']::before { border-radius: var(--radius-md); }
   svg[data-icon-name='supaterm-tree-icon-loading'] { opacity: 0.6; }
 `;
 
-/** Host styles that keep a Pierre tree on the active color scheme and foreground. */
 export function pierreTreeStyle(colorScheme: "light" | "dark"): CSSProperties {
   return {
     colorScheme,

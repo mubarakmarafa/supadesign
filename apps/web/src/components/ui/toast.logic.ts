@@ -20,8 +20,6 @@ export function shouldHideCollapsedToastContent(
   visibleToastIndex: number,
   visibleToastCount: number,
 ): boolean {
-  // Keep the front-most toast readable even if Base UI marks it as "behind"
-  // due to toasts hidden by thread filtering.
   if (visibleToastCount <= 1) return false;
   return visibleToastIndex > 0;
 }
@@ -48,15 +46,6 @@ export function buildVisibleToastLayout<TToast extends object>(
   frontmostHeight: number;
   items: VisibleToastLayoutItem<TToast & ToastWithLayoutProps>[];
 } {
-  // Two parallel cursors:
-  //   - `full*`  advances on every toast, so an ending toast keeps the slot it
-  //     occupied before dismissal and its data-ending-style exit transform
-  //     originates from the correct position (critical for dismissing a
-  //     non-front toast in the expanded stack — otherwise it would snap to
-  //     Y=0 and slide off diagonally).
-  //   - `live*`  advances only on non-ending toasts, so live toasts reflow
-  //     past the vacated slot in parallel with the exit animation instead of
-  //     waiting for it to finish (which caused a visible "stop and bump").
   let fullIndex = 0;
   let fullOffsetY = 0;
   let liveIndex = 0;
@@ -91,8 +80,6 @@ export function buildVisibleToastLayout<TToast extends object>(
     },
   );
 
-  // Frontmost height should reflect the first non-ending (live) toast so the
-  // stack sizes to what's actually staying on screen.
   const frontmostLiveToast = visibleToasts.find((toast) => toast.transitionStatus !== "ending");
 
   return {
@@ -112,13 +99,14 @@ export function shouldRenderThreadScopedToast(
         threadId?: ThreadId | null;
       }
     | undefined,
-  activeThreadRef: ScopedThreadRef | null,
+  visibleThreadRefs: ReadonlyArray<ScopedThreadRef>,
 ): boolean {
-  if (data?.threadRef) {
-    return (
-      activeThreadRef !== null &&
-      data.threadRef.environmentId === activeThreadRef.environmentId &&
-      data.threadRef.threadId === activeThreadRef.threadId
+  const threadRef = data?.threadRef;
+  if (threadRef) {
+    return visibleThreadRefs.some(
+      (visible) =>
+        visible.environmentId === threadRef.environmentId &&
+        visible.threadId === threadRef.threadId,
     );
   }
 
@@ -127,5 +115,5 @@ export function shouldRenderThreadScopedToast(
     return true;
   }
 
-  return activeThreadRef?.threadId === toastThreadId;
+  return visibleThreadRefs.some((visible) => visible.threadId === toastThreadId);
 }

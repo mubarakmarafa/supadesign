@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-  type KeyboardEvent,
-} from "react";
+import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
 import {
   ArchiveIcon,
   BlocksIcon,
@@ -24,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 
+import { CodexMicroIcon } from "../codexMicro/CodexMicroIcon";
 import { Button } from "../ui/button";
 import { Kbd } from "../ui/kbd";
 import {
@@ -40,7 +33,7 @@ import { SidebarUtilityMenu } from "../sidebar/SidebarChrome";
 import { scrollToSettingsTarget } from "./settingsLayout";
 import {
   searchSettings,
-  isSettingsOverviewVisible,
+  isSettingsSectionAvailable,
   SETTINGS_SECTION_LABELS,
   type SettingsPath,
   type SettingsSearchItem,
@@ -69,6 +62,7 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/projects": PanelsTopLeftIcon,
   "/settings/keybindings": KeyboardIcon,
   "/settings/snap-shot": SnapShotIcon,
+  "/settings/codex-micro": CodexMicroIcon,
   "/settings/providers": BotIcon,
   "/settings/integrations": BlocksIcon,
   "/settings/source-control": GitBranchIcon,
@@ -82,7 +76,7 @@ const SETTINGS_NAV_ITEMS: ReadonlyArray<{
   to: SettingsPath;
   icon: ComponentType<{ className?: string }>;
 }> = (Object.keys(SETTINGS_SECTION_LABELS) as SettingsPath[])
-  .filter((to) => to !== "/settings/diagnostics")
+  .filter((to) => to !== "/settings/diagnostics" && isSettingsSectionAvailable(to))
   .map((to) => ({
     to,
     label: SETTINGS_SECTION_LABELS[to],
@@ -91,29 +85,26 @@ const SETTINGS_NAV_ITEMS: ReadonlyArray<{
 
 function SettingsSectionIcon({ to }: { to: SettingsPath }) {
   const Icon = SETTINGS_SECTION_ICONS[to];
-  return <Icon className="mt-0.5 size-3.5 shrink-0 text-sidebar-muted-foreground/60" />;
+  return <Icon className="size-3.5 h-5 shrink-0 text-sidebar-muted-foreground/60" />;
 }
 
 export function SettingsSidebarNav({ pathname }: { pathname: string }) {
   const navigate = useNavigate();
   const currentHash = useLocation({ select: (location) => location.hash });
   const currentSearch = useLocation({ select: (location) => location.search });
-  const scopeSearch = useMemo(() => validateSettingsScopeSearch(currentSearch), [currentSearch]);
-  const navItems = SETTINGS_NAV_ITEMS.filter(
-    (item) => item.to !== "/settings/projects" || isSettingsOverviewVisible(scopeSearch),
-  );
+  const scopeSearch = validateSettingsScopeSearch(currentSearch);
   const { isMobile, setOpenMobile, open, setOpen } = useSidebar();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [activeResultIndex, setActiveResultIndex] = useState(0);
   const searchableItems = useAvailableSettingsSearchItems(scopeSearch);
-  const results = useMemo(() => searchSettings(query, searchableItems), [query, searchableItems]);
+  const results = searchSettings(query, searchableItems);
   const isSearching = query.trim().length > 0;
   const hasResults = results.length > 0;
-
-  const lastResultIndex = Math.max(results.length - 1, 0);
-  if (activeResultIndex > lastResultIndex) {
-    setActiveResultIndex(lastResultIndex);
+  const maxResultIndex = Math.max(results.length - 1, 0);
+  // Persist the clamp so a shrink-then-recover of results keeps the clamped highlight.
+  if (activeResultIndex > maxResultIndex) {
+    setActiveResultIndex(maxResultIndex);
   }
 
   useEffect(() => {
@@ -143,8 +134,6 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
           (target.tagName === "INPUT" ||
             target.tagName === "TEXTAREA" ||
             target.isContentEditable)) ||
-          // Preserve dialog and popup focus traps, and let shortcut recorders
-          // capture the keypress without moving focus into the sidebar search.
           target.closest(
             '[role="dialog"], [aria-modal="true"], [data-slot$="popup"], [data-keybinding-capture]',
           ) !== null)
@@ -167,72 +156,66 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isMobile, open, setOpen, setOpenMobile]);
 
-  const handleSectionClick = useCallback(
-    (to: SettingsPath) => {
-      if (isMobile) {
-        setOpenMobile(false);
-      }
-      void navigate({
-        to,
-        hash: "",
-        replace: true,
-        hashScrollIntoView: false,
-      });
-    },
-    [isMobile, navigate, setOpenMobile],
-  );
-  const clearSearch = useCallback(() => {
+  const handleSectionClick = (to: SettingsPath) => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+    void navigate({
+      to,
+      hash: "",
+      replace: true,
+      hashScrollIntoView: false,
+    });
+  };
+
+  const clearSearch = () => {
     setQuery("");
     setActiveResultIndex(0);
-  }, []);
-  const handleSearchResultClick = useCallback(
-    (item: SettingsSearchItem) => {
+  };
+  const handleSearchResultClick = (item: SettingsSearchItem) => {
+    clearSearch();
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+    const targetId = item.targetId ?? item.id;
+    if (pathname === item.to && currentHash.replace(/^#/, "") === targetId) {
+      scrollToSettingsTarget(targetId);
+      return;
+    }
+    void navigate({
+      to: item.to,
+      hash: targetId,
+      replace: true,
+      hashScrollIntoView: false,
+      state: { settingsTargetHighlight: true },
+    });
+  };
+
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape" && isSearching) {
+      event.preventDefault();
+      event.stopPropagation();
       clearSearch();
-      if (isMobile) {
-        setOpenMobile(false);
-      }
-      const targetId = item.targetId ?? item.id;
-      if (pathname === item.to && currentHash.replace(/^#/, "") === targetId) {
-        scrollToSettingsTarget(targetId);
-        return;
-      }
-      void navigate({
-        to: item.to,
-        hash: targetId,
-        replace: true,
-        hashScrollIntoView: false,
-        state: { settingsTargetHighlight: true },
-      });
-    },
-    [clearSearch, currentHash, isMobile, navigate, pathname, setOpenMobile],
-  );
-  const handleSearchKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === "Escape" && isSearching) {
-        event.preventDefault();
-        event.stopPropagation();
-        clearSearch();
-        return;
-      }
-      if (results.length === 0) return;
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        setActiveResultIndex((index) => (index + 1) % results.length);
-        return;
-      }
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        setActiveResultIndex((index) => (index - 1 + results.length) % results.length);
-        return;
-      }
-      if (event.key === "Enter") {
-        event.preventDefault();
-        const result = results[activeResultIndex];
-        if (result) handleSearchResultClick(result);
-      }
-    },
-    [activeResultIndex, clearSearch, handleSearchResultClick, isSearching, results],
-  );
+      return;
+    }
+    if (results.length === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveResultIndex((activeResultIndex + 1) % results.length);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveResultIndex((activeResultIndex - 1 + results.length) % results.length);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const result = results[activeResultIndex];
+      if (result) handleSearchResultClick(result);
+    }
+  };
+
   return (
     <>
       <SidebarContent className="overflow-x-hidden">
@@ -323,7 +306,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
               </SidebarMenu>
             ) : (
               <SidebarMenu>
-                {navItems.map((item) => {
+                {SETTINGS_NAV_ITEMS.map((item) => {
                   const Icon = item.icon;
                   const isGeneralDetailPage =
                     item.to === "/settings/general" &&

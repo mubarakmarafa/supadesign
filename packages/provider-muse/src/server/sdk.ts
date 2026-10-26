@@ -31,7 +31,6 @@ export interface MuseSdkHost {
   readonly close: () => Promise<void>;
 }
 
-/** The program that runs `binaryPath`, and the arguments that go before the binary's own. */
 export interface MuseLaunch {
   readonly command: string;
   readonly args: ReadonlyArray<string>;
@@ -39,9 +38,7 @@ export interface MuseLaunch {
 
 export interface MuseSdkHostOptions {
   readonly binaryPath: string;
-  /** Arguments before the serve arguments, for a launcher in front of the binary. */
   readonly launchArgs?: ReadonlyArray<string>;
-  /** How to start `binaryPath`, from `museLaunch`; without it the binary path is run as is. */
   readonly launch?: MuseLaunch;
   readonly cwd?: string;
   readonly environment?: NodeJS.ProcessEnv;
@@ -67,16 +64,14 @@ export function makeMuseEnvironment(
   };
 }
 
-/** Windows' verbatim form of a canonical path: `\\?\C:\…`, or `\\?\UNC\server\share\…`. */
 export function museVerbatimPath(path: string): string {
   if (path.startsWith("\\\\?\\")) return path;
   return path.startsWith("\\\\") ? `\\\\?\\UNC\\${path.slice(2)}` : `\\\\?\\${path}`;
 }
 
 /**
- * A workspace root in the form `turn/start` accepts. On Windows Muse rejects
- * anything but the verbatim canonical path, true case and long names
- * included, so resolve with the native realpath, which unlike
+ * On Windows Muse rejects anything but the verbatim canonical path, true case
+ * and long names included, so resolve with the native realpath, which unlike
  * FileSystem.realPath fixes case and expands 8.3 names. Muse itself still
  * starts in the plain path: the `muse.cmd` launcher runs under cmd.exe, which
  * cannot use a verbatim directory.
@@ -90,7 +85,6 @@ export const museWorkspaceRoot = Effect.fn("museWorkspaceRoot")(function* (path:
   return museVerbatimPath(canonical);
 });
 
-/** A Windows environment variable; their names are case-insensitive there. */
 function windowsEnvironmentValue(environment: NodeJS.ProcessEnv, name: string) {
   const key = Object.keys(environment).find(
     (candidate) => candidate.toUpperCase() === name.toUpperCase(),
@@ -99,13 +93,11 @@ function windowsEnvironmentValue(environment: NodeJS.ProcessEnv, name: string) {
 }
 
 /**
- * How to start Muse. The SDK spawns without a shell, which finds the `muse`
- * launcher on PATH everywhere but Windows. There Node neither looks a bare
- * `muse` up with PATHEXT (ENOENT) nor runs a `.cmd` file such as Muse's own
- * launcher (EINVAL) without a shell, so resolve the binary like any other
- * command and run a `.cmd` or `.bat` under cmd.exe. Node quotes a path with
- * spaces, and inside those quotes cmd takes every character literally. A path
- * without spaces is not quoted, so its metacharacters are escaped instead.
+ * The SDK spawns without a shell, which finds the `muse` launcher on PATH
+ * everywhere but Windows. There Node neither looks a bare `muse` up with
+ * PATHEXT (ENOENT) nor runs a `.cmd` file such as Muse's own launcher (EINVAL)
+ * without a shell, so resolve the binary like any other command and run a
+ * `.cmd` or `.bat` under cmd.exe.
  */
 export const museLaunch = Effect.fn("museLaunch")(function* (
   binaryPath: string,
@@ -134,6 +126,10 @@ export const museLaunch = Effect.fn("museLaunch")(function* (
 
 export function museApprovalMode(runtimeMode: RuntimeMode) {
   return runtimeMode === "full-access" ? "allowAll" : "promptUnmatched";
+}
+
+export function musePermissionProfile(runtimeMode: RuntimeMode) {
+  return runtimeMode === "full-access" ? ":unrestricted" : ":ask-me";
 }
 
 export function museServeArgs(

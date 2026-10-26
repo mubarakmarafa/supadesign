@@ -28,6 +28,7 @@ import {
   removeConnectionFromCatalog,
   setRoutesInCatalog,
   setConnectionEnabledInCatalog,
+  setPlatformLabelInCatalog,
 } from "./storageDocument.ts";
 
 const decodeConnectionCatalogDocument = Schema.decodeUnknownEffect(ConnectionCatalogDocument);
@@ -63,6 +64,35 @@ const SSH_PROFILE = new SshConnectionProfile({
 });
 
 describe("ConnectionCatalogDocument", () => {
+  it("persists local labels without saving platform connections or replacing remote labels", () => {
+    const initial = registerConnectionInCatalog(
+      EMPTY_CONNECTION_CATALOG_DOCUMENT,
+      new BearerConnectionRegistration({
+        target: BEARER_TARGET,
+        profile: BEARER_PROFILE,
+        credential: BEARER_CREDENTIAL,
+      }),
+    );
+    const localId = EnvironmentId.make("local");
+    const otherId = EnvironmentId.make("other-local");
+    const named = setPlatformLabelInCatalog(
+      setPlatformLabelInCatalog(initial, localId, "My workstation"),
+      otherId,
+      "Other workstation",
+    );
+    const restored = decodeCatalogDocument(JSON.parse(JSON.stringify(named)));
+    expect(restored.targets).toEqual(initial.targets);
+    expect(restored.profiles).toEqual(initial.profiles);
+    expect(restored.credentials).toEqual(initial.credentials);
+    expect(restored.platformLabels).toEqual([
+      { environmentId: localId, label: "My workstation" },
+      { environmentId: otherId, label: "Other workstation" },
+    ]);
+    const renamed = setPlatformLabelInCatalog(restored, localId, "Build machine");
+    const reset = setPlatformLabelInCatalog(renamed, localId, null);
+    expect(reset.platformLabels).toEqual([{ environmentId: otherId, label: "Other workstation" }]);
+  });
+
   it("persists learned relay metadata with its routes and keeps the paired credential", () => {
     const initial = registerConnectionInCatalog(
       EMPTY_CONNECTION_CATALOG_DOCUMENT,
@@ -79,7 +109,7 @@ describe("ConnectionCatalogDocument", () => {
     const profile = new BearerConnectionProfile({
       ...BEARER_PROFILE,
       connectionId: target.connectionId,
-      httpBaseUrl: `https://${"a".repeat(32)}.${"b".repeat(32)}.relay.supaterm.invalid/`,
+      httpBaseUrl: `https://${"a".repeat(32)}.${"b".repeat(32)}.relay.supaterm.alt/`,
       relayUrl: "wss://relay-a.example",
       learned: true,
     });
@@ -94,6 +124,22 @@ describe("ConnectionCatalogDocument", () => {
     const withdrawn = setRoutesInCatalog(restored, ENVIRONMENT_ID, [BEARER_TARGET]);
     expect(withdrawn.profiles).toEqual([BEARER_PROFILE]);
     expect(withdrawn.credentials).toEqual(initial.credentials);
+  });
+
+  it("moves relay profiles saved under the legacy suffix to the current address", () => {
+    const host = `${"a".repeat(32)}.${"b".repeat(32)}`;
+    const relay = new BearerConnectionProfile({
+      ...BEARER_PROFILE,
+      httpBaseUrl: `https://${host}.relay.supaterm.alt/`,
+      wsBaseUrl: `wss://${host}.relay.supaterm.alt/`,
+    });
+    const saved = JSON.parse(
+      JSON.stringify({ ...EMPTY_CONNECTION_CATALOG_DOCUMENT, profiles: [relay] }).replaceAll(
+        ".relay.supaterm.alt/",
+        ".relay.supaterm.invalid/",
+      ),
+    );
+    expect(decodeCatalogDocument(saved).profiles).toEqual([relay]);
   });
 
   it.effect("persists explicit GitHub trust and forgets it when a connection is removed", () =>
@@ -206,26 +252,6 @@ describe("ConnectionCatalogDocument", () => {
     }),
   );
 
-  it("registers a bearer connection as one catalog mutation", () => {
-    const document = registerConnectionInCatalog(
-      EMPTY_CONNECTION_CATALOG_DOCUMENT,
-      new BearerConnectionRegistration({
-        target: BEARER_TARGET,
-        profile: BEARER_PROFILE,
-        credential: BEARER_CREDENTIAL,
-      }),
-    );
-
-    expect(document.targets).toEqual([BEARER_TARGET]);
-    expect(document.profiles).toEqual([BEARER_PROFILE]);
-    expect(document.credentials).toEqual([
-      {
-        connectionId: BEARER_TARGET.connectionId,
-        credential: BEARER_CREDENTIAL,
-      },
-    ]);
-  });
-
   it("replaces obsolete connection metadata when an environment changes connection kind", () => {
     const bearer = registerConnectionInCatalog(
       EMPTY_CONNECTION_CATALOG_DOCUMENT,
@@ -237,12 +263,18 @@ describe("ConnectionCatalogDocument", () => {
     );
     const ssh = registerConnectionInCatalog(
       bearer,
-      new SshConnectionRegistration({ target: SSH_TARGET, profile: SSH_PROFILE }),
+      new SshConnectionRegistration({
+        target: SSH_TARGET,
+        profile: SSH_PROFILE,
+        credential: BEARER_CREDENTIAL,
+      }),
     );
 
     expect(ssh.targets).toEqual([SSH_TARGET]);
     expect(ssh.profiles).toEqual([SSH_PROFILE]);
-    expect(ssh.credentials).toEqual([]);
+    expect(ssh.credentials).toEqual([
+      { connectionId: SSH_TARGET.connectionId, credential: BEARER_CREDENTIAL },
+    ]);
   });
 
   it("removes every catalog record owned by an explicit disconnect", () => {
@@ -360,7 +392,6 @@ describe("ConnectionCatalogDocument", () => {
     expect(disabled.disabledEnvironmentIds).toEqual([ENVIRONMENT_ID]);
     expect(disabled.targets).toEqual(registered.targets);
     expect(disabled.credentials).toEqual(registered.credentials);
-    // Idempotent: switching off twice stores the id once.
     expect(
       setConnectionEnabledInCatalog(disabled, ENVIRONMENT_ID, false).disabledEnvironmentIds,
     ).toEqual([ENVIRONMENT_ID]);
@@ -368,7 +399,6 @@ describe("ConnectionCatalogDocument", () => {
     expect(
       setConnectionEnabledInCatalog(disabled, ENVIRONMENT_ID, true).disabledEnvironmentIds,
     ).toEqual([]);
-    // Re-registering (editing label or URL) keeps the flag.
     expect(
       registerConnectionInCatalog(
         disabled,
@@ -382,7 +412,7 @@ describe("ConnectionCatalogDocument", () => {
     expect(removeConnectionFromCatalog(disabled, BEARER_TARGET).disabledEnvironmentIds).toEqual([]);
   });
 
-  it("persists the normalized SSH profile beside its target", () => {
+  it("persists the normalized SSH profile and its paired token beside its target", () => {
     const target = new SshConnectionTarget({
       environmentId: ENVIRONMENT_ID,
       label: "SSH",
@@ -401,11 +431,15 @@ describe("ConnectionCatalogDocument", () => {
     });
     const document = registerConnectionInCatalog(
       EMPTY_CONNECTION_CATALOG_DOCUMENT,
-      new SshConnectionRegistration({ target, profile }),
+      new SshConnectionRegistration({ target, profile, credential: BEARER_CREDENTIAL }),
     );
 
     expect(document.targets).toEqual([target]);
     expect(document.profiles).toEqual([profile]);
-    expect(document.credentials).toEqual([]);
+    expect(document.credentials).toEqual([
+      { connectionId: target.connectionId, credential: BEARER_CREDENTIAL },
+    ]);
+    // Removing the route forgets its token too.
+    expect(removeConnectionFromCatalog(document, ENVIRONMENT_ID).credentials).toEqual([]);
   });
 });

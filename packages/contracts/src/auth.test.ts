@@ -3,157 +3,42 @@ import * as Schema from "effect/Schema";
 
 import {
   AuthEnvironmentScopes,
-  AuthEnvironmentScope,
   authScopeRequiredResponse,
-  AuthGrantScopes,
   AuthStandardClientScopes,
   authScopeResponse,
   AuthSessionState,
   sessionGrantsScope,
-  sessionHasLegacyPermissions,
 } from "./auth.ts";
 
 describe("authorization grants", () => {
-  it("decodes legacy review credentials without offering them in new grants", () => {
-    expect(decodeScopes(["review:write"])).toEqual(["review:write"]);
-    expect(() => decodeGrants(["review:write"])).toThrow();
-    expect(AuthStandardClientScopes).not.toContain("review:write");
-  });
-
-  // Frozen vocabulary from the client before granular scopes shipped. Do not
-  // derive it from the current enum: that would hide compatibility regressions.
-  const oldScopes = Schema.Array(
-    Schema.Literals([
-      "orchestration:read",
-      "orchestration:operate",
-      "terminal:operate",
-      "review:write",
-      "access:read",
-      "access:write",
-      "relay:read",
-      "relay:write",
-    ]),
-  );
-
-  const decodeOldScopes = Schema.decodeUnknownSync(oldScopes);
-
-  it.each(AuthEnvironmentScope.literals)(
-    "keeps %s permission errors decodable by old clients",
-    (scope) => {
-      const response = authScopeRequiredResponse(scope);
-      expect(decodeOldScopes([response.requiredScope])).toEqual([response.requiredScope]);
-      expect(response.requiredPermission).toBe(scope);
-    },
-  );
-
-  it("keeps old clients able to decode grants with new permissions", () => {
-    const response = authScopeResponse(AuthStandardClientScopes);
-    expect(decodeOldScopes(response.scopes)).toEqual(response.scopes);
-    expect(response.permissions).toEqual(AuthStandardClientScopes);
-    expect(response.scopes).not.toContain("filesystem:read");
-  });
-
-  it("ignores unknown response permissions without falling back to broader scopes", () => {
-    const session = decodeSessionState({
-      authenticated: true,
-      auth: {
-        policy: "loopback-browser",
-        bootstrapMethods: [],
-        sessionMethods: [],
-        sessionCookieName: "session",
-      },
-      scopes: ["orchestration:operate"],
-      permissions: ["future:permission"],
+  it("reports the full grant", () => {
+    expect(authScopeResponse(AuthStandardClientScopes)).toEqual({
+      scopes: AuthStandardClientScopes,
     });
-    expect(session.permissions).toEqual([]);
-    expect(sessionGrantsScope(session, "orchestration:operate")).toBe(false);
+  });
+
+  it("names the exact scope a denial needs", () => {
+    expect(authScopeRequiredResponse("settings:write")).toEqual({
+      requiredScope: "settings:write",
+    });
+  });
+
+  it("does not expand broad scopes into other permissions", () => {
+    const session = { authenticated: true, scopes: ["orchestration:operate"] as const };
+    expect(sessionGrantsScope(session, "orchestration:operate")).toBe(true);
     expect(sessionGrantsScope(session, "settings:write")).toBe(false);
   });
 
   it.each([
-    {
-      label: "exact permissions over the legacy presentation",
-      session: {
-        authenticated: true,
-        scopes: ["orchestration:operate"],
-        permissions: ["filesystem:read"],
-      },
-      scope: "settings:write",
-      expected: false,
-    },
-    {
-      label: "a permission absent from the legacy presentation",
-      session: { authenticated: true, scopes: [], permissions: ["filesystem:read"] },
-      scope: "filesystem:read",
-      expected: true,
-    },
-
-    {
-      label: "the parent on a server that predates the split",
-      session: { authenticated: true, scopes: ["orchestration:operate"], auth: {} },
-      scope: "settings:write",
-      expected: true,
-    },
-    {
-      label: "only the exact scope on a server that knows the split",
-      session: {
-        authenticated: true,
-        scopes: ["orchestration:operate"],
-        auth: { serverUpdateScope: "environment:maintain" },
-      },
-      scope: "settings:write",
-      expected: false,
-    },
-    {
-      label: "the exact scope regardless of server version",
-      session: { authenticated: true, scopes: ["settings:write"], auth: {} },
-      scope: "settings:write",
-      expected: true,
-    },
-    {
-      label: "nothing for an unauthenticated session",
-      session: { authenticated: false, scopes: ["orchestration:operate"], auth: {} },
-      scope: "settings:write",
-      expected: false,
-    },
-    {
-      label: "no parent for scopes that were never split",
-      session: { authenticated: true, scopes: ["orchestration:operate"], auth: {} },
-      scope: "access:write",
-      expected: false,
-    },
-  ] as const)("sessionGrantsScope accepts $label", ({ session, scope, expected }) => {
-    expect(sessionGrantsScope(session, scope)).toBe(expected);
+    { session: { authenticated: true, scopes: ["settings:write"] }, expected: true },
+    { session: { authenticated: false, scopes: ["settings:write"] }, expected: false },
+    { session: { authenticated: true, scopes: [] }, expected: false },
+    { session: { authenticated: true }, expected: false },
+  ] as const)("checks an explicit grant: $expected", ({ session, expected }) => {
+    expect(sessionGrantsScope(session, "settings:write")).toBe(expected);
   });
 });
 
-describe("legacy permission notice", () => {
-  it.each(["orchestration:read", "orchestration:operate", "terminal:operate"] as const)(
-    "recognizes an old %s grant on an upgraded server",
-    (scope) =>
-      expect(sessionHasLegacyPermissions({ authenticated: true, permissions: [scope] })).toBe(true),
-  );
-  it("waits for a new server and an authenticated session", () => {
-    expect(
-      sessionHasLegacyPermissions({ authenticated: true, scopes: ["orchestration:operate"] }),
-    ).toBe(false);
-    expect(
-      sessionHasLegacyPermissions({ authenticated: false, permissions: ["orchestration:operate"] }),
-    ).toBe(false);
-  });
-  it("skips new grants and old grants that lost no implied permissions", () => {
-    for (const permissions of [
-      AuthStandardClientScopes,
-      ["orchestration:read", "filesystem:read"] as const,
-      ["access:read"] as const,
-      [],
-    ]) {
-      expect(sessionHasLegacyPermissions({ authenticated: true, permissions })).toBe(false);
-    }
-  });
-});
-
-const decodeGrants = Schema.decodeUnknownSync(AuthGrantScopes);
 const decodeScopes = Schema.decodeUnknownSync(AuthEnvironmentScopes);
 const decodeSessionState = Schema.decodeUnknownSync(AuthSessionState);
 
@@ -170,7 +55,7 @@ describe("AuthEnvironmentScopes", () => {
       auth: {
         policy: "remote-reachable",
         bootstrapMethods: ["one-time-token"],
-        sessionMethods: ["browser-session-cookie", "bearer-access-token", "dpop-access-token"],
+        sessionMethods: ["browser-session-cookie", "bearer-access-token"],
         sessionCookieName: "supaterm_session",
       },
       sessionMethod: "bearer-access-token",

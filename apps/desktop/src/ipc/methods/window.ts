@@ -13,6 +13,7 @@ import {
   SystemSettingsPaneSchema,
   type DesktopEnvironmentBootstrap,
   type PickedThemeFile,
+  type SystemSettingsPane,
 } from "@supaterm/contracts";
 import { PROJECT_FAVICON_EXTENSIONS } from "@supaterm/shared/projectFavicon";
 import { resolveEditorCommand } from "@supaterm/shared/editor";
@@ -38,6 +39,7 @@ import * as ElectronTheme from "../../electron/ElectronTheme.ts";
 import * as ElectronWindow from "../../electron/ElectronWindow.ts";
 import * as Electron from "electron";
 import * as MacPermissions from "../../permissions/MacPermissions.ts";
+import * as MacInputMonitoring from "../../permissions/MacInputMonitoring.ts";
 import { safariPermissionCheck } from "../../preview/BrowserImport/SafariPermission.ts";
 import * as IpcChannels from "../channels.ts";
 import * as DesktopIpc from "../DesktopIpc.ts";
@@ -112,21 +114,7 @@ export const getLocalEnvironmentBootstraps = DesktopIpc.makeSyncIpcMethod({
       const isPrimary = instance.id === PRIMARY_LOCAL_ENVIRONMENT_ID;
       const config = yield* instance.currentConfig;
       const snapshot = yield* instance.snapshot;
-      // A secondary backend (e.g. a parallel WSL backend) that hasn't produced
-      // a config yet (mid-registration, before its first start cycle) or that
-      // is retrying a *transient* preflight failure (WSL VM still booting, a
-      // not-yet-built linux server entry) is not listening on a port. We
-      // surface it as a *pending* bootstrap (null endpoints, no token) so the
-      // renderer can show a "Connecting…" indicator while it retries — null
-      // endpoints keep the renderer from dialing the dead port, avoiding the
-      // needless /api/auth/bootstrap/bearer error cycles a real endpoint would
-      // trigger.
       if (Option.isNone(config) || Option.isSome(config.value.preflightFailure)) {
-        // Skip the primary (same-origin, no "connecting" affordance) and skip a
-        // secondary whose preflight failed *fatally* (no node, wrong version,
-        // missing build tools): it has stopped retrying, so an indefinite
-        // "Connecting…" would be misleading — its error is surfaced by the
-        // WSL-state UI instead.
         const fatalPreflight =
           Option.isSome(config) &&
           Option.isSome(config.value.preflightFailure) &&
@@ -145,7 +133,7 @@ export const getLocalEnvironmentBootstraps = DesktopIpc.makeSyncIpcMethod({
         });
         continue;
       }
-      const { bootstrap, httpBaseUrl } = config.value;
+      const { httpBaseUrl } = config.value;
       const runningDistro = config.value.runningDistro ?? null;
       bootstraps.push({
         id: instance.id,
@@ -153,26 +141,13 @@ export const getLocalEnvironmentBootstraps = DesktopIpc.makeSyncIpcMethod({
         runningDistro,
         httpBaseUrl: httpBaseUrl.href,
         wsBaseUrl: toWebSocketBaseUrl(httpBaseUrl),
-        // A backend launched with the desktop secret accepts whichever token
-        // the secret derives for the current window, so hand out that one
-        // rather than the token frozen into its launch config. Every backend
-        // the desktop launches (primary, staged or mounted WSL runtime) is the
-        // server build bundled with this desktop, so it understands the secret.
-        ...(bootstrap.desktopBootstrapSecret
-          ? { bootstrapToken: yield* configuration.currentBootstrapToken }
-          : bootstrap.desktopBootstrapToken
-            ? { bootstrapToken: bootstrap.desktopBootstrapToken }
-            : {}),
+        bootstrapToken: yield* configuration.currentBootstrapToken,
       });
     }
     return bootstraps;
   }),
 });
 
-// Pull the distro selection out of a backend instance id like
-// "wsl:ubuntu". Returns null for "wsl:default", which is the sentinel
-// for "track the user's WSL default distro" and maps to the
-// wslEnv-derived default at picker time.
 function extractWslDistroFromEnvironmentId(envId: string): string | null {
   if (!envId.startsWith(DesktopWslBackend.WSL_INSTANCE_ID_PREFIX)) {
     return null;
@@ -206,15 +181,6 @@ export const pickFolder = DesktopIpc.makeIpcMethod({
     if (!settings.localEnvironmentEnabled) {
       return null;
     }
-    // Three picker modes:
-    //   - targetEnvironmentId omitted: default to the primary picker. Keeps
-    //     the historical behavior unchanged for users who never enabled the
-    //     WSL backend, and is what unfamiliar callers should get out of the
-    //     box.
-    //   - targetEnvironmentId starts with "wsl:": route to the WSL picker
-    //     using the distro encoded in the id (or the user's selected
-    //     wslDistro when the id is the "wsl:default" sentinel).
-    //   - anything else (incl. PRIMARY_LOCAL_ENVIRONMENT_ID): primary picker.
     const targetId = options?.targetEnvironmentId;
     const wslDistroFromTarget =
       targetId !== undefined && targetId.startsWith(DesktopWslBackend.WSL_INSTANCE_ID_PREFIX)
@@ -329,6 +295,19 @@ export const openExternal = DesktopIpc.makeIpcMethod({
   }),
 });
 
+const systemPermissionCheck = Effect.fnUntraced(function* (pane: SystemSettingsPane) {
+  switch (pane) {
+    case "full-disk-access":
+      return yield* safariPermissionCheck;
+    case "input-monitoring": {
+      const inputMonitoring = yield* MacInputMonitoring.MacInputMonitoring;
+      const runPromise = Effect.runPromiseWith(yield* Effect.context<never>());
+      return () =>
+        runPromise(inputMonitoring.status.pipe(Effect.map((status) => status === "granted")));
+    }
+  }
+});
+
 export const openSystemSettings = DesktopIpc.makeIpcMethod({
   channel: IpcChannels.OPEN_SYSTEM_SETTINGS_CHANNEL,
   payload: SystemSettingsPaneSchema,
@@ -341,7 +320,7 @@ export const openSystemSettings = DesktopIpc.makeIpcMethod({
     const opened = yield* shell.openSystemSettings(pane);
     if (opened && environment.isPackaged) {
       const permissions = yield* MacPermissions.MacPermissions;
-      const isGranted = yield* safariPermissionCheck;
+      const isGranted = yield* systemPermissionCheck(pane);
       yield* permissions.showHelper(pane, owner, isGranted);
     }
     return opened;
@@ -391,8 +370,24 @@ export const pasteAsText = DesktopIpc.makeIpcMethod({
   }),
 });
 
-/** Theme files are a few KB; anything larger returns empty text and lets the
- *  renderer reject it by size without the contents ever crossing the bridge. */
+export const revealWindow = DesktopIpc.makeIpcMethod({
+  channel: IpcChannels.REVEAL_WINDOW_CHANNEL,
+  payload: Schema.Undefined,
+  result: Schema.Void,
+  handler: Effect.fn("desktop.ipc.window.revealWindow")(function* (_input, event) {
+    const electronWindow = yield* ElectronWindow.ElectronWindow;
+    const window = yield* electronWindow.main;
+    if (
+      event === undefined ||
+      Option.isNone(window) ||
+      window.value.webContents.id !== event.sender.id
+    ) {
+      return;
+    }
+    yield* electronWindow.reveal(window.value);
+  }),
+});
+
 const PICKED_THEME_FILE_MAX_BYTES = 256 * 1024;
 
 export const pickThemeFiles = DesktopIpc.makeIpcMethod({
@@ -404,9 +399,6 @@ export const pickThemeFiles = DesktopIpc.makeIpcMethod({
     const electronWindow = yield* ElectronWindow.ElectronWindow;
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    // The VS Code extensions directory is the same dotfolder on Windows,
-    // macOS, and Linux; when it is missing the picker opens wherever the
-    // platform would by default.
     const extensionsDir = path.join(yield* HostProcess.HomeDirectory, ".vscode", "extensions");
     const defaultPath = yield* fileSystem
       .exists(extensionsDir)
@@ -430,10 +422,7 @@ export const pickThemeFiles = DesktopIpc.makeIpcMethod({
         }
         const text = yield* fileSystem.readFileString(filePath);
         return { name, size, text } satisfies PickedThemeFile;
-      }).pipe(
-        // An unreadable file degrades to an entry the renderer reports.
-        Effect.orElseSucceed((): PickedThemeFile => ({ name, size: 0, text: "" })),
-      );
+      }).pipe(Effect.orElseSucceed((): PickedThemeFile => ({ name, size: 0, text: "" })));
     });
   }),
 });
@@ -442,10 +431,10 @@ export const checkSystemPermission = DesktopIpc.makeIpcMethod({
   channel: IpcChannels.CHECK_SYSTEM_PERMISSION_CHANNEL,
   payload: SystemSettingsPaneSchema,
   result: Schema.Boolean,
-  handler: Effect.fn("desktop.ipc.window.checkSystemPermission")(function* () {
+  handler: Effect.fn("desktop.ipc.window.checkSystemPermission")(function* (pane) {
     const environment = yield* DesktopEnvironment.DesktopEnvironment;
     if (environment.platform !== "darwin") return false;
-    const check = yield* safariPermissionCheck;
+    const check = yield* systemPermissionCheck(pane);
     return yield* Effect.promise(check);
   }),
 });

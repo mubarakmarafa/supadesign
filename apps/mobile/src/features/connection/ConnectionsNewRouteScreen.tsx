@@ -1,4 +1,5 @@
-import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
+import * as Dialog from "../../components/ui/Dialog";
+import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import {
@@ -10,22 +11,22 @@ import {
 } from "@react-navigation/native";
 import type { EnvironmentId } from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "../../lib/cn";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
 import { SettingsScreen } from "../settings/components/SettingsScreen";
-import { AppText as Text, AppTextInput, type AppTextInputProps } from "../../components/AppText";
-import { FrostedCutout } from "../../components/FrostedCutout";
+import { AppText as Text, AppTextInput, type AppTextInputProps } from "../../components/ui/AppText";
+import { FrostedCutout } from "../../components/ui/FrostedCutout";
 import { pairingUrlForFields, extractPairingUrlFromQrPayload, parsePairingUrl } from "./pairing";
 import {
   setPendingConnectionError,
   useRemoteConnections,
 } from "../../state/use-remote-environment-registry";
-import { SymbolView } from "../../components/AppSymbol";
+import { SymbolView } from "../../components/ui/AppSymbol";
 
 type ConnectionsNewRouteParams = {
   readonly mode?: string;
@@ -101,7 +102,7 @@ export function ConnectionsNewRouteScreen({
     }
   }
 
-  const handleHostChange = useCallback((value: string) => {
+  const handleHostChange = (value: string) => {
     const parsed = parsePairingUrl(value);
     if (parsed.code) {
       setOriginalPairingUrl(value.trim());
@@ -111,16 +112,16 @@ export function ConnectionsNewRouteScreen({
     }
     setHostInput(value);
     setPendingConnectionError(null);
-  }, []);
+  };
 
-  const handleCodeChange = useCallback((value: string) => {
+  const handleCodeChange = (value: string) => {
     setCodeInput(value);
     setPendingConnectionError(null);
-  }, []);
+  };
 
   useEffect(() => () => setPendingConnectionError(null), []);
 
-  const handleScanPress = useCallback(async () => {
+  const handleScanPress = async () => {
     if (isSubmitting) return;
     const permission = await requestCameraPermission();
     if (permission.granted) {
@@ -129,7 +130,7 @@ export function ConnectionsNewRouteScreen({
       return;
     }
     if (permission.canAskAgain) return;
-    Alert.alert(
+    Dialog.alert(
       "Camera access needed",
       "Camera access was denied for this app. Open Settings to enable it.",
       [
@@ -137,66 +138,62 @@ export function ConnectionsNewRouteScreen({
         { text: "Open Settings", onPress: () => void Linking.openSettings() },
       ],
     );
-  }, [isSubmitting, requestCameraPermission]);
+  };
 
-  const connectAndClose = useCallback(
-    async (pairingUrl: string, replaceWithHome: boolean) => {
-      setIsSubmitting(true);
-      onChangeConnectionPairingUrl(pairingUrl);
-      const connect = async () => {
-        const result = await onConnectPress(pairingUrl, params.routeFor);
-        void Haptics.notificationAsync(
-          AsyncResult.isSuccess(result)
-            ? Haptics.NotificationFeedbackType.Success
-            : Haptics.NotificationFeedbackType.Error,
-        );
-        if (AsyncResult.isSuccess(result)) {
-          if (replaceWithHome || !navigation.canGoBack()) {
-            navigation.dispatch(StackActions.replace("Home"));
-          } else {
-            navigation.goBack();
-          }
+  const connectAndClose = async (pairingUrl: string) => {
+    setIsSubmitting(true);
+    onChangeConnectionPairingUrl(pairingUrl);
+    const connect = async () => {
+      const result = await onConnectPress(pairingUrl, params.routeFor);
+      void Haptics.notificationAsync(
+        AsyncResult.isSuccess(result)
+          ? Haptics.NotificationFeedbackType.Success
+          : Haptics.NotificationFeedbackType.Error,
+      );
+      if (AsyncResult.isSuccess(result)) {
+        // Return to whatever opened the sheet. Replacing it with Home would
+        // nest Home inside any sheet still below it.
+        if (!navigation.canGoBack()) {
+          navigation.dispatch(StackActions.replace("Home"));
+        } else {
+          navigation.goBack();
         }
-      };
-      await connect().finally(() => setIsSubmitting(false));
-    },
-    [navigation, onChangeConnectionPairingUrl, onConnectPress, params.routeFor],
-  );
-
-  const handleQrScan = useCallback(
-    ({ data }: { readonly data: string }) => {
-      if (scannerLockedRef.current || isSubmitting) {
-        return;
       }
+    };
+    await connect().finally(() => setIsSubmitting(false));
+  };
 
-      scannerLockedRef.current = true;
+  const handleQrScan = ({ data }: { readonly data: string }) => {
+    if (scannerLockedRef.current || isSubmitting) {
+      return;
+    }
 
-      try {
-        const pairingUrl = extractPairingUrlFromQrPayload(data);
-        const { host, code } = parsePairingUrl(pairingUrl);
-        setOriginalPairingUrl(pairingUrl);
-        setHostInput(host);
-        setCodeInput(code);
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setScanComplete(true);
-        void connectAndClose(pairingUrl, false);
-      } catch (error) {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert(
-          "Invalid QR code",
-          error instanceof Error ? error.message : "Scanned QR code was not recognized.",
-        );
-        setTimeout(() => {
-          scannerLockedRef.current = false;
-        }, 600);
-      }
-    },
-    [connectAndClose, isSubmitting],
-  );
+    scannerLockedRef.current = true;
 
-  const handleSubmit = useCallback(async () => {
-    await connectAndClose(pairingUrlForFields(hostInput, codeInput, originalPairingUrl), false);
-  }, [codeInput, connectAndClose, hostInput, originalPairingUrl]);
+    try {
+      const pairingUrl = extractPairingUrlFromQrPayload(data);
+      const { host, code } = parsePairingUrl(pairingUrl);
+      setOriginalPairingUrl(pairingUrl);
+      setHostInput(host);
+      setCodeInput(code);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setScanComplete(true);
+      void connectAndClose(pairingUrl);
+    } catch (error) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Dialog.alert(
+        "Invalid QR code",
+        error instanceof Error ? error.message : "Scanned QR code was not recognized.",
+      );
+      setTimeout(() => {
+        scannerLockedRef.current = false;
+      }, 600);
+    }
+  };
+
+  const handleSubmit = async () => {
+    await connectAndClose(pairingUrlForFields(hostInput, codeInput, originalPairingUrl));
+  };
 
   useEffect(() => {
     if (!shouldAutoConnect || attemptedAutoConnectRef.current === routePairingUrl) {
@@ -204,7 +201,7 @@ export function ConnectionsNewRouteScreen({
     }
 
     attemptedAutoConnectRef.current = routePairingUrl;
-    void connectAndClose(routePairingUrl, true);
+    void connectAndClose(routePairingUrl);
   }, [connectAndClose, routePairingUrl, shouldAutoConnect]);
 
   return (

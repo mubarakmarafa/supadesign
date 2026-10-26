@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useAtomValue } from "@effect/atom-react";
 import { createDeviceEnvironmentAtoms } from "@supaterm/client-runtime/state/device";
 import {
@@ -8,7 +7,7 @@ import {
 import type { DeviceServiceState, EnvironmentId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import { AsyncResult, Atom } from "effect/reactivity";
+import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 
 import { connectionAtomRuntime } from "../connection/runtime";
 import { appAtomRegistry } from "../rpc/atomRegistry";
@@ -63,13 +62,9 @@ export function useDeviceHubAccess(
   const result = useAtomValue(
     environmentId === null ? EMPTY_ACCESS_ATOM : deviceHubAccessAtom(environmentId),
   );
-  return useMemo(
-    () =>
-      AsyncResult.isSuccess(result)
-        ? { ...result.value, query: { ...result.value.query, hostId } }
-        : null,
-    [result, hostId],
-  );
+  return AsyncResult.isSuccess(result)
+    ? { ...result.value, query: { ...result.value.query, hostId } }
+    : null;
 }
 
 const EMPTY_ACCESS_ATOM = Atom.make(AsyncResult.initial<DeviceHubAccess, never>()).pipe(
@@ -78,4 +73,19 @@ const EMPTY_ACCESS_ATOM = Atom.make(AsyncResult.initial<DeviceHubAccess, never>(
 
 export function refreshDeviceHubAccess(environmentId: EnvironmentId): void {
   appAtomRegistry.refresh(deviceHubAccessAtom(environmentId));
+}
+
+export function renewDeviceHubAccess(
+  environmentId: EnvironmentId,
+  hostId = "local",
+): Promise<DeviceHubAccess | null> {
+  const atom = deviceHubAccessAtom(environmentId);
+  appAtomRegistry.refresh(atom);
+  return Effect.runPromise(
+    AtomRegistry.getResult(appAtomRegistry, atom, { suspendOnWaiting: true }).pipe(
+      Effect.map((access) => ({ ...access, query: { ...access.query, hostId } })),
+      Effect.timeout("10 seconds"),
+      Effect.orElseSucceed(() => null),
+    ),
+  );
 }

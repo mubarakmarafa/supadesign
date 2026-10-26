@@ -10,7 +10,7 @@ export function validateStoreBuild(build) {
     !/^[a-f0-9]{40}$/.test(build.sha) ||
     !/^\d+\.\d+\.\d+$/.test(build.version) ||
     build.identifier !== "com.supaterm.mobile" ||
-    build.projectFullName !== "@supabitapp/supacode"
+    build.projectFullName !== "@supabitapp/supaterm"
   ) {
     throw new Error("Invalid production mobile build manifest.");
   }
@@ -100,7 +100,7 @@ if (process.argv[1] && NodeURL.pathToFileURL(process.argv[1]).href === import.me
       schema: 1,
       platform: process.env.MOBILE_PLATFORM,
       sha: process.env.MOBILE_SOURCE_SHA,
-      projectFullName: "@supabitapp/supacode",
+      projectFullName: "@supabitapp/supaterm",
       ...identity,
     });
     await NodeFSP.writeFile(process.env.MOBILE_BUILD_MANIFEST, JSON.stringify(build, null, 2));
@@ -120,6 +120,23 @@ if (process.argv[1] && NodeURL.pathToFileURL(process.argv[1]).href === import.me
         throw new Error("Store build artifact platform does not match its manifest.");
       if (build.platform === requestedPlatform)
         candidates.push({ build, attempt: Number(match[2]) });
+    }
+    if (candidates.length === 0) {
+      const manifestPath = NodePath.join(root, "manifest.json");
+      try {
+        const build = JSON.parse(await NodeFSP.readFile(manifestPath, "utf8"));
+        if (build.platform === requestedPlatform) {
+          const attempts = JSON.parse(process.env.MOBILE_BINARY_ARTIFACTS)
+            .map((name) =>
+              name.match(new RegExp(`^mobile-store-build-${requestedPlatform}-(\\d+)$`)),
+            )
+            .filter(Boolean)
+            .map((match) => Number(match[1]));
+          candidates.push({ build, attempt: Math.max(...attempts, 1) });
+        }
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
     }
     const builds = selectReviewBuilds(
       candidates,

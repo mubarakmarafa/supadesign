@@ -2,9 +2,10 @@ import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef, scopedThreadKey } from "@supaterm/client-runtime/environment";
 import type { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { CircleAlertIcon, Clock3Icon, PencilIcon, RotateCwIcon, XIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, type Ref, useImperativeHandle, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
+import { settlePromise, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 
 import { newThreadId } from "../../lib/utils";
 import {
@@ -13,6 +14,7 @@ import {
   useComposerDraftStore,
 } from "../../composerDraftStore";
 import {
+  cancelThreadOutboxTurn,
   useThreadOutbox,
   webThreadOutbox,
   replaceThreadOutboxTurn,
@@ -37,7 +39,15 @@ const STATUS_HEADERS = {
   { icon: ReactNode; label: string; variant: ComposerBannerVariant }
 >;
 
-export function ThreadOutboxControl(props: {
+export interface ThreadOutboxControlHandle {
+  editLatest: (repeat: boolean) => boolean;
+}
+
+export function ThreadOutboxControl({
+  ref,
+  ...props
+}: {
+  readonly ref?: Ref<ThreadOutboxControlHandle>;
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
   readonly editingMessageId: string | null;
@@ -68,14 +78,24 @@ export function ThreadOutboxControl(props: {
   async function act(action: () => Promise<void>) {
     setBusy(true);
     setError(null);
-    try {
-      await action();
-    } catch (cause) {
+    const result = await settlePromise(action);
+    if (result._tag === "Failure") {
+      const cause = squashAtomCommandFailure(result);
       setError(cause instanceof Error ? cause.message : "Could not update the pending message.");
-    } finally {
-      setBusy(false);
     }
+    setBusy(false);
   }
+
+  // Takes the key while the last message is mid-send rather than editing an
+  // older one.
+  useImperativeHandle(ref, () => ({
+    editLatest(repeat) {
+      const latest = pending.at(-1);
+      if (!latest) return false;
+      if (!repeat && !busy && canChangeEntry(latest)) void act(() => props.onEditMessage(latest));
+      return true;
+    },
+  }));
 
   return (
     <ComposerBanner.Drawer open={open}>
@@ -98,7 +118,7 @@ export function ThreadOutboxControl(props: {
         <ComposerBanner.Scroll className="max-h-56">
           <ComposerBanner.Children render={<ol />}>
             {pending.map((entry) => {
-              const canChange = !entry.attempted || entry.status === "failed";
+              const canChange = canChangeEntry(entry);
               const isEditing = props.editingMessageId === entry.id;
               const deliveryError = webThreadOutbox.isSending(entry.id) ? null : entry.error;
               return (
@@ -182,8 +202,7 @@ export function ThreadOutboxControl(props: {
                         disabled={busy || !canChange}
                         onClick={() => {
                           void act(async () => {
-                            if (!(await webThreadOutbox.cancel(entry.id)))
-                              throw new Error("Delivery has already started.");
+                            await cancelThreadOutboxTurn(entry);
                             if (entry.payload.draftId) {
                               const draftId = DraftId.make(entry.payload.draftId);
                               const draft = useComposerDraftStore
@@ -219,4 +238,8 @@ export function ThreadOutboxControl(props: {
       </ComposerBanner.Root>
     </ComposerBanner.Drawer>
   );
+}
+
+function canChangeEntry(entry: PendingThreadTurn) {
+  return !entry.attempted || entry.status === "failed";
 }

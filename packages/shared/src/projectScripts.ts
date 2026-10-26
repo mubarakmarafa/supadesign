@@ -2,17 +2,13 @@ import type { ProjectId, ProjectScript, ServerSettings } from "@supaterm/contrac
 
 type ProjectScriptSettings = Pick<
   ServerSettings,
-  | "defaultProjectScripts"
-  | "projectScriptOverrides"
-  | "projectSettingsOverrides"
-  | "projectSettingsFolded"
+  "defaultProjectScripts" | "projectSettingsOverrides" | "projectSettingsFolded"
 >;
 
 /**
- * The project's override wins, then environment defaults. Until the legacy
- * fields have been folded into `projectSettingsOverrides`, the old map (null
- * there meant "reset to machine defaults") and the aggregate's own scripts
- * still count, so a server that has not run the fold yet behaves as before.
+ * The project's override wins, then environment defaults. Until the project
+ * aggregate's own scripts have been folded into `projectSettingsOverrides`,
+ * they still count.
  */
 export function resolveProjectScripts(
   settings: ProjectScriptSettings,
@@ -21,9 +17,7 @@ export function resolveProjectScripts(
   const override = settings.projectSettingsOverrides[project.id]?.defaultProjectScripts;
   if (override !== undefined) return override;
   if (settings.projectSettingsFolded) return settings.defaultProjectScripts;
-  const legacy = settings.projectScriptOverrides[project.id];
-  if (legacy === null) return settings.defaultProjectScripts;
-  return legacy ?? (project.scripts.length > 0 ? project.scripts : settings.defaultProjectScripts);
+  return project.scripts.length > 0 ? project.scripts : settings.defaultProjectScripts;
 }
 
 export function projectScriptsInheritDefaults(
@@ -34,8 +28,7 @@ export function projectScriptsInheritDefaults(
     return false;
   }
   if (settings.projectSettingsFolded) return true;
-  const legacy = settings.projectScriptOverrides[project.id];
-  return legacy === null || (legacy === undefined && project.scripts.length === 0);
+  return project.scripts.length === 0;
 }
 
 interface ProjectScriptRuntimeEnvInput {
@@ -74,15 +67,19 @@ export function setupProjectScript(scripts: readonly ProjectScript[]): ProjectSc
   return scripts.find((script) => script.runOnWorktreeCreate) ?? null;
 }
 
-/** Menu label naming the lifecycle roles a script runs in, e.g. "Clean (on settle)". */
+/** Menu label naming the lifecycle roles a script runs in, e.g. "Clean (on done)". */
 export function projectScriptMenuLabel(script: ProjectScript): string {
   const roles = [
     ...(script.runOnWorktreeCreate ? ["setup"] : []),
-    ...(script.runOnSettle ? ["on settle"] : []),
+    ...(script.runOnDone ? ["on done"] : []),
   ];
   return roles.length === 0 ? script.name : `${script.name} (${roles.join(", ")})`;
 }
 
-export function settleProjectScript(scripts: readonly ProjectScript[]): ProjectScript | null {
-  return scripts.find((script) => script.runOnSettle === true) ?? null;
+export function doneProjectScript(scripts: readonly ProjectScript[]): ProjectScript | null {
+  return scripts.find((script) => script.runOnDone === true) ?? null;
+}
+
+export function projectScriptTerminalInput(command: string): string {
+  return ` ${command}\r`;
 }

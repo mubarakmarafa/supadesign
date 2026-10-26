@@ -7,19 +7,18 @@ import {
   type AuthEnvironmentScope,
 } from "@supaterm/contracts";
 import { encodeOAuthScope } from "@supaterm/shared/oauthScope";
+import { hashTelemetryId } from "@supaterm/shared/telemetryId";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import { environmentEndpointUrl } from "../environment/endpoint.ts";
+import * as ClientCapabilities from "../platform/capabilities.ts";
 import {
   executeEnvironmentHttpRequest,
   makeEnvironmentHttpApiGroupClient,
   type RemoteEnvironmentRequestError,
 } from "../rpc/http.ts";
 
-export {
-  RemoteEnvironmentAuthInvalidJsonError,
-  RemoteEnvironmentAuthTimeoutError,
-  RemoteEnvironmentAuthUndeclaredStatusError,
-} from "../rpc/http.ts";
+export { RemoteEnvironmentAuthUndeclaredStatusError } from "../rpc/http.ts";
 export type RemoteEnvironmentAuthError = RemoteEnvironmentRequestError;
 
 const DEFAULT_REMOTE_REQUEST_TIMEOUT_MS = 10_000;
@@ -37,12 +36,16 @@ const clientMetadataTokenExchangeFields = (
   };
 };
 
-// The server reads these off the /ws upgrade URL next to wsTicket. Optional on
-// both ends: old servers ignore unknown params, old clients never send them.
+export const readClientDeviceHash = Effect.gen(function* () {
+  const device = yield* (yield* ClientCapabilities.AnalyticsDevice).id;
+  return Option.isSome(device) ? hashTelemetryId(device.value) : undefined;
+});
+
 export const appendClientConnectionParams = (
   url: URL,
   clientMetadata: AuthClientPresentationMetadata | undefined,
   connectionMethod?: ClientConnectionMethod,
+  clientDeviceHash?: string,
 ): void => {
   if (clientMetadata?.surface) {
     url.searchParams.set("clientSurface", clientMetadata.surface);
@@ -80,6 +83,9 @@ export const appendClientConnectionParams = (
   }
   if (connectionMethod) {
     url.searchParams.set("connectionMethod", connectionMethod);
+  }
+  if (clientDeviceHash) {
+    url.searchParams.set("clientDevice", clientDeviceHash);
   }
 };
 
@@ -168,6 +174,11 @@ export const resolveRemoteWebSocketConnectionUrl = Effect.fn(
     url.pathname = "/ws";
   }
   url.searchParams.set("wsTicket", issued.ticket);
-  appendClientConnectionParams(url, input.clientMetadata, input.connectionMethod);
+  appendClientConnectionParams(
+    url,
+    input.clientMetadata,
+    input.connectionMethod,
+    yield* readClientDeviceHash,
+  );
   return url.toString();
 });

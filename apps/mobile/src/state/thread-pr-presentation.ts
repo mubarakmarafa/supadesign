@@ -1,9 +1,5 @@
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
-import type {
-  ExecutionEnvironmentCapabilities,
-  ThreadPullRequestLink,
-  VcsStatusResult,
-} from "@supaterm/contracts";
+import type { ThreadPullRequestLink, VcsStatusResult } from "@supaterm/contracts";
 import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 
 import {
@@ -19,12 +15,9 @@ export interface ThreadPrPresentation {
   readonly kind: "pull-request" | "stack";
   readonly others: number;
   readonly isDraft: boolean;
-  /** Provider-side last activity, bounding when a terminal state landed. */
   readonly updatedAt: string | null;
   readonly url: string;
-  /** Compact pull request number or linked count, e.g. "3774" or "+2". */
   readonly label: string;
-  /** Full, provider-aware label for assistive technologies. */
   readonly accessibilityLabel: string;
   readonly textClassName: string;
 }
@@ -55,7 +48,6 @@ export function presentThreadPr(
   };
 }
 
-/** Persisted links render immediately, including links awaiting their first host sync. */
 export function presentThreadLinkedPullRequests(
   links: ReadonlyArray<ThreadPullRequestLink>,
 ): ThreadPrPresentation | null {
@@ -103,22 +95,16 @@ export function presentThreadLinkedPullRequests(
   };
 }
 
-/** Only the array capability replaces legacy references with persisted snapshots. */
 export function resolveThreadPrSource(
-  thread: Pick<EnvironmentThreadShell, "pullRequests" | "linkedPullRequest" | "branchPullRequest">,
-  capabilities:
-    | Pick<ExecutionEnvironmentCapabilities, "threadPullRequests" | "threadPullRequestLinking">
-    | undefined,
+  thread: Pick<EnvironmentThreadShell, "pullRequests" | "branchPullRequest">,
 ) {
-  const supportsSnapshots = capabilities?.threadPullRequests === true;
-  const linkedPresentation = supportsSnapshots
-    ? presentThreadLinkedPullRequests(thread.pullRequests)
-    : null;
-  const pullRequestRef =
-    linkedPresentation !== null
-      ? null
-      : ((supportsSnapshots
-          ? thread.branchPullRequest
-          : (thread.linkedPullRequest ?? thread.branchPullRequest)) ?? null);
+  const linkedPresentation = presentThreadLinkedPullRequests(thread.pullRequests);
+  const pullRequestRef = linkedPresentation === null ? (thread.branchPullRequest ?? null) : null;
   return { linkedPresentation, pullRequestRef };
+}
+
+export function resolveThreadPrBadgeAction(pr: ThreadPrPresentation) {
+  return pr.kind === "stack" || pr.others > 0
+    ? { kind: "list" as const, accessibilityLabel: `Show ${pr.accessibilityLabel}` }
+    : { kind: "open" as const, accessibilityLabel: `Open ${pr.accessibilityLabel}` };
 }

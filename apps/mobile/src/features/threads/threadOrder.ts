@@ -1,24 +1,23 @@
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import { planPinnedReorder } from "@supaterm/client-runtime/state/thread-sort";
-import { effectiveSnoozed } from "@supaterm/client-runtime/state/thread-settled";
-import type { EnvironmentId, ExecutionEnvironmentCapabilities } from "@supaterm/contracts";
+import { effectiveSnoozed } from "@supaterm/client-runtime/state/thread-snooze";
+import type { EnvironmentId } from "@supaterm/contracts";
 
 export type ThreadMoveDestination =
   | "up"
   | "down"
   | {
       readonly targetId: string | null;
-      readonly section?: "pinned" | "active" | "settled";
+      readonly section?: "pinned" | "active" | "done";
       readonly placement: "before" | "after";
     };
 
-/** Resolve against stable row identities, including rows hidden by a filter. */
 export function threadOrderAfterMove(
   orderedIds: readonly string[],
   movedId: string,
   destination: ThreadMoveDestination,
 ): string[] | null {
-  if (typeof destination === "object" && destination.section === "settled") return null;
+  if (typeof destination === "object" && destination.section === "done") return null;
   const from = orderedIds.indexOf(movedId);
   if (from < 0 && (typeof destination === "string" || destination.section === undefined))
     return null;
@@ -49,7 +48,7 @@ export type OrderRow = Pick<
   | "pinOrderKey"
   | "activeOrderKey"
   | "createdAt"
-  | "unsettledAt"
+  | "reopenedAt"
   | "pinnedAt"
 >;
 
@@ -69,12 +68,10 @@ function rowId(row: OrderRow): string {
 function rowOrder(row: OrderRow, section: PendingThreadOrder["section"]) {
   return {
     key: (section === "pinned" ? row.pinOrderKey : row.activeOrderKey) ?? null,
-    anchor: section === "pinned" ? (row.pinnedAt ?? "") : (row.unsettledAt ?? row.createdAt),
+    anchor: section === "pinned" ? (row.pinnedAt ?? "") : (row.reopenedAt ?? row.createdAt),
   };
 }
 
-/** Keep every visible row as an anchor, but only offer plans whose key writes
- * are supported. Menu availability and execution use this same planner. */
 export function createThreadMovePlanner(input: {
   readonly ordered: readonly OrderRow[];
   readonly allThreads?: readonly OrderRow[];
@@ -146,7 +143,6 @@ export function reconcilePendingThreadOrder(
   return confirmed.size === pending.confirmed.size ? pending : { ...pending, confirmed };
 }
 
-/** Apply the full section's pending order after search/environment filtering. */
 export function applyPendingThreadOrder<T extends OrderRow>(
   rows: readonly T[],
   section: PendingThreadOrder["section"],
@@ -166,40 +162,29 @@ export function threadDropLifecycle(
   section: "pinned" | "active",
   now: string,
 ) {
-  if (section === "pinned") return { pin: true, unpin: false, unsettle: false, unsnooze: false };
+  if (section === "pinned") return { pin: true, unpin: false, reopen: false, unsnooze: false };
   return {
     pin: false,
     unpin: thread.pinnedAt != null,
-    unsettle: thread.settledOverride === "settled",
+    reopen: thread.doneOverride === "done",
     unsnooze: effectiveSnoozed(thread, { now }),
   };
 }
 
-export type ThreadDragSection = "pinned" | "active" | "snoozed" | "settled";
+export type ThreadDragSection = "pinned" | "active" | "snoozed" | "done";
 
-/** The inbox is time-ordered, so entering Active only unpins, un-settles, or
- * wakes the thread. Each of those needs its server capability. */
-export function canMoveThreadToActive(
-  thread: Pick<EnvironmentThreadShell, "pinnedAt">,
-  source: ThreadDragSection,
-  capabilities:
-    | Pick<ExecutionEnvironmentCapabilities, "threadPinning" | "threadSettlement" | "threadSnooze">
-    | undefined,
-) {
-  if (source === "active") return false;
-  if (thread.pinnedAt != null && capabilities?.threadPinning !== true) return false;
-  if (source === "settled" && capabilities?.threadSettlement !== true) return false;
-  if (source === "snoozed" && capabilities?.threadSnooze !== true) return false;
-  return true;
+/** The inbox is time-ordered, so entering Active only unpins, reopens, or
+ * wakes the thread, which needs the environment's config. */
+export function canMoveThreadToActive(source: ThreadDragSection, loaded: boolean) {
+  return loaded && source !== "active";
 }
 
-/** The action shown during hover describes the lifecycle change made on drop. */
 export function threadDragAction(source: ThreadDragSection, destination: ThreadDragSection) {
   if (destination === "snoozed") return null;
-  if (destination === "settled") return source === "settled" ? null : "Settle";
+  if (destination === "done") return source === "done" ? null : "Mark as Done";
   if (source === destination) return "Reorder";
   if (destination === "pinned") return "Pin";
   if (source === "pinned") return "Unpin";
-  if (source === "settled") return "Unsettle";
+  if (source === "done") return "Reopen";
   return "Unsnooze";
 }

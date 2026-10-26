@@ -6,6 +6,7 @@ import {
   MARK_TO_TIPTAP,
   type RichTextMark,
 } from "~/composer-rich-text";
+import { composerMathRanges } from "@supaterm/shared/composerInlineTokens";
 
 export type SkillMeta = { label: string; description: string | null };
 
@@ -122,10 +123,11 @@ interface DocLine {
   inline: InlineJson[];
 }
 
+/** Null for a `$name` that is not one of the provider's skills: it stays editable text. */
 function atomJsonForSegment(
   segment: Exclude<ReturnType<typeof splitPromptIntoComposerSegments>[number], { type: "text" }>,
-  skillLabelFor: (name: string) => SkillMeta,
-): InlineJson {
+  skillLabelFor: (name: string) => SkillMeta | null,
+): InlineJson | null {
   if (segment.type === "mention") {
     return {
       type: "composer-mention",
@@ -134,6 +136,7 @@ function atomJsonForSegment(
   }
   if (segment.type === "skill") {
     const meta = skillLabelFor(segment.name);
+    if (!meta) return null;
     return {
       type: "composer-skill",
       attrs: {
@@ -219,13 +222,13 @@ function textJsonForSpan(text: string, marks: RichTextMark[]): Record<string, un
 }
 
 /**
- * Document content for a prompt. `literalLength` keeps that many leading
- * characters as plain text, for a paste that continues a path query: markers
- * inside a path such as `src/__init__.py` must reach file search unstyled.
+ * `literalLength` keeps that many leading characters as plain text, for a paste
+ * that continues a path query: markers inside a path such as `src/__init__.py`
+ * must reach file search unstyled.
  */
 export function buildTiptapContent(
   value: string,
-  skillLabelFor: (name: string) => SkillMeta,
+  skillLabelFor: (name: string) => SkillMeta | null,
   options?: { styling?: boolean; blocks?: boolean; literalText?: boolean; literalLength?: number },
 ): Record<string, unknown>[] {
   if (options?.literalText) {
@@ -237,8 +240,6 @@ export function buildTiptapContent(
   const styling = options?.styling ?? true;
 
   const blockSyntax = styling && (options?.blocks ?? true);
-  // Hide token source from the markdown parser, then restore the atoms with
-  // the marks of their surrounding text. Choose a sentinel absent from input.
   let sentinel = "\uFFFC";
   for (let codePoint = 0xe000; value.includes(sentinel); codePoint += 1) {
     sentinel = String.fromCodePoint(codePoint);
@@ -247,12 +248,34 @@ export function buildTiptapContent(
 
   const atomSources: string[] = [];
   const literal = value.slice(0, options?.literalLength ?? 0);
-  const text = splitPromptIntoComposerSegments(value.slice(literal.length))
-    .map((segment) => {
-      if (segment.type === "text") return segment.text;
-      atoms.push(atomJsonForSegment(segment, skillLabelFor));
-      atomSources.push(segment.source);
-      return sentinel;
+  const remainder = value.slice(literal.length);
+  const formulas = composerMathRanges(remainder);
+  let offset = 0;
+  const chunks: Array<{ text: string } | { source: string }> = [];
+  for (const formula of formulas) {
+    chunks.push({ text: remainder.slice(offset, formula.start) }, { source: formula.source });
+    offset = formula.end;
+  }
+  chunks.push({ text: remainder.slice(offset) });
+  // Math stays editable source. Shield its commands and Markdown-like markers
+  // from styling and context-chip parsing, then restore ordinary text nodes.
+  const text = chunks
+    .map((chunk) => {
+      if ("source" in chunk) {
+        atoms.push(textJsonForSpan(chunk.source, []));
+        atomSources.push(chunk.source);
+        return sentinel;
+      }
+      return splitPromptIntoComposerSegments(chunk.text)
+        .map((segment) => {
+          if (segment.type === "text") return segment.text;
+          const atom = atomJsonForSegment(segment, skillLabelFor);
+          if (!atom) return segment.source;
+          atoms.push(atom);
+          atomSources.push(segment.source);
+          return sentinel;
+        })
+        .join("");
     })
     .join("");
   let atomIndex = 0;
@@ -293,8 +316,6 @@ export function buildTiptapContent(
 
   for (let index = 0; index < sourceLines.length; index += 1) {
     const line = sourceLines[index]!;
-    // The rest of the literal's line continues the text before the caret, so
-    // it cannot open a block.
     if (index === 0 && literal) {
       entries.push({
         line: { list: null, inline: [textJsonForSpan(literal, []), ...buildInline(line)] },
@@ -413,7 +434,6 @@ export function buildTiptapContent(
     for (;;) {
       const top = stack[stack.length - 1];
       if (!top) {
-        // A leading indented item with no parent flattens but keeps indent.
         stack.push({ indent, list: openList(rootLists, key), container: rootLists });
         continue;
       }
@@ -450,7 +470,7 @@ export function buildTiptapContent(
 
 export function buildDocJson(
   value: string,
-  skillLabelFor: (name: string) => SkillMeta,
+  skillLabelFor: (name: string) => SkillMeta | null,
   options?: { styling?: boolean; literalText?: boolean },
 ) {
   const content = buildTiptapContent(value, skillLabelFor, options);

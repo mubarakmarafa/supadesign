@@ -1,4 +1,5 @@
 import {
+  isOrchestrationV2WorkActive,
   isToolLifecycleItemType,
   type AssetResource,
   type RuntimeItemStatus,
@@ -31,7 +32,6 @@ import {
 
 export type WorkLogToolLifecycleStatus = RuntimeItemStatus | "stopped" | "idle";
 
-/** Inspection and copying omit raw outputs, including values from older caches. */
 export function toolItemForDisplay(item: OrchestrationV2TurnItem): OrchestrationV2TurnItem {
   switch (item.type) {
     case "command_execution":
@@ -51,17 +51,33 @@ export function toolItemForDisplay(item: OrchestrationV2TurnItem): Orchestration
   }
 }
 
-export function contextCompactionLabel(
-  item: Pick<
-    Extract<OrchestrationV2TurnItem, { type: "compaction" }>,
-    "status" | "beforeTokenCount" | "afterTokenCount"
-  >,
-): string {
-  if (item.status === "running") return "Compacting context";
-  if (item.beforeTokenCount !== undefined && item.afterTokenCount !== undefined) {
-    return `Context compacted ${formatTokens(item.beforeTokenCount)} → ${formatTokens(item.afterTokenCount)} tokens`;
+type CompactionLabelItem = Pick<
+  Extract<OrchestrationV2TurnItem, { type: "compaction" }>,
+  "status" | "beforeTokenCount" | "afterTokenCount"
+>;
+
+export function contextCompactionTokenCounts(
+  item: CompactionLabelItem,
+): { readonly before: string; readonly after: string } | null {
+  if (
+    item.status === "running" ||
+    item.beforeTokenCount === undefined ||
+    item.afterTokenCount === undefined
+  ) {
+    return null;
   }
-  return "Context compacted";
+  return { before: formatTokens(item.beforeTokenCount), after: formatTokens(item.afterTokenCount) };
+}
+
+export function contextCompactionLabel(item: CompactionLabelItem): string {
+  if (item.status === "failed") return "Context compaction failed";
+  if (item.status === "cancelled" || item.status === "interrupted")
+    return "Context compaction stopped";
+  if (isOrchestrationV2WorkActive(item.status)) return "Compacting context";
+  const tokens = contextCompactionTokenCounts(item);
+  return tokens
+    ? `Context compacted ${tokens.before} → ${tokens.after} tokens`
+    : "Context compacted";
 }
 
 export interface WorkLogPresentationEntry {
@@ -116,7 +132,6 @@ export function normalizeCompactToolLabel(value: string): string {
   return value.replace(/\s+(?:complete|completed)\s*$/i, "").trim();
 }
 
-/** Structured identity is authoritative, including when it identifies a foreign server. */
 function workEntryToolName(
   entry: Pick<WorkLogPresentationEntry, "label" | "toolTitle" | "toolData" | "structuredPayload">,
 ): string | undefined {
@@ -188,7 +203,6 @@ function resolveSupatermMcpToolPresentation(
   };
 }
 
-/** Only active or completed calls can inherit the live group’s present tense. */
 export function liveActivityToolStatus(status: string | undefined, presentTense: boolean) {
   if (status === "failed" || status === "declined" || status === "stopped" || status === "idle") {
     return status;
@@ -197,7 +211,6 @@ export function liveActivityToolStatus(status: string | undefined, presentTense:
   return "completed";
 }
 
-/** Resolves tool identity before choosing labels or icons in either client. */
 export function resolveWorkEntryToolPresentation(
   entry: Pick<
     WorkLogPresentationEntry,
@@ -245,7 +258,6 @@ function commandResultContent(value: unknown): string | null {
   return chunks.length > 0 ? chunks.join("\n") : null;
 }
 
-/** Returns provider command output before it is formatted for a work-log row. */
 export function extractCommandOutputText(dataValue: unknown): string | null {
   const data = asRecord(dataValue);
   const item = asRecord(data?.item);
@@ -308,12 +320,11 @@ function textRepeatsCommand(text: string, commands: ReadonlyArray<string | null>
 }
 
 /**
- * Decides whether a command row's `detail` is a synthetic echo of the command
- * rather than real output. OpenCode stores completed output in `detail` with no
- * other output channel, so plain equality is only treated as synthetic when the
- * payload shape shows the detail came from the command: Codex item metadata,
- * an ACP tool call (`data.toolCallId`, `kind: "execute"`), a Claude tool-name
- * prefix, or no structured command at all.
+ * OpenCode stores completed output in `detail` with no other output channel, so
+ * plain equality is only treated as synthetic when the payload shape shows the
+ * detail came from the command: Codex item metadata, an ACP tool call
+ * (`data.toolCallId`, `kind: "execute"`), a Claude tool-name prefix, or no
+ * structured command at all.
  */
 export function commandDetailRepeatsCommand(input: {
   readonly detail: string;
@@ -375,7 +386,10 @@ function workEntryIndicatesToolFailureFromOutput(
   ) {
     return true;
   }
-  if (!workLogEntryIsToolLike(entry)) return false;
+  // Reasoning detail is the model's own prose (often tens of KB), not tool
+  // output: scanning it is slow on long threads and misreads phrases like
+  // "that exit code 2 is expected" as a failed tool.
+  if (!workLogEntryIsToolLike(entry) || entry.itemType === "reasoning") return false;
   if (
     resolveSupatermMcpToolDefinition(workEntryToolName(entry)) &&
     supatermToolResultIndicatesFailure(workEntryToolOutput(entry))
@@ -387,8 +401,6 @@ function workEntryIndicatesToolFailureFromOutput(
     if (item.outputIndicatesFailure || (item.exitCode !== undefined && item.exitCode !== 0)) {
       return true;
     }
-    // Older servers/caches can still carry output. Read only the previous
-    // preview-sized prefix for status, without exposing it in the row detail.
     if (item.output && toolOutputIndicatesFailure(item.output.slice(0, 32_768))) {
       return true;
     }
@@ -399,17 +411,14 @@ function workEntryIndicatesToolFailureFromOutput(
   return output.length > 0 && toolOutputIndicatesFailure(output);
 }
 
-/** Includes legacy activities that stored error output in the command field. */
 export function workEntryIndicatesToolFailure(entry: WorkLogPresentationEntry): boolean {
   return workEntryIndicatesToolFailureFromOutput(entry, true);
 }
 
-/** Checks rendered output without treating the user's command as an error. */
 export function workEntryDisplayIndicatesToolFailure(entry: WorkLogPresentationEntry): boolean {
   return workEntryIndicatesToolFailureFromOutput(entry, false);
 }
 
-/** Decides whether the row can show a success marker. */
 export function workEntryIndicatesToolSuccess(entry: WorkLogPresentationEntry): boolean {
   return (
     workLogEntryIsToolLike(entry) &&
@@ -436,7 +445,6 @@ export function toolGroupAction(entry: WorkLogPresentationEntry): ToolGroupActio
   if (presentation?.icon === "browser") return "browser";
   if (presentation?.icon === "device") return "device";
   if (entry.requestKind === "file-read" || entry.viewedImagePath !== undefined) return "read";
-  // Approvals and questions describe requested work, not work that ran.
   if (entry.itemType === "approval_request" || entry.itemType === "user_input_request") {
     return workLogEntryIsToolLike(entry) ? "other" : "update";
   }
@@ -503,36 +511,46 @@ export interface ViewedImageAsset {
 }
 
 export interface ToolGroupImage {
+  /** Unique per tool call, so the same file read twice still gets two thumbnails. */
+  readonly key: string;
   readonly resource: Extract<AssetResource, { readonly _tag: "media-file" | "tool-output-image" }>;
   readonly alt: string;
   readonly srcFragment?: string;
 }
 
-export function latestToolGroupImage(
+/** Newest first, so a strip shows what just happened without scrolling. */
+export function toolGroupImages(
   rows: ReadonlyArray<OrchestrationV2ProjectedTurnItem>,
   workspaceRoot?: string,
-): ToolGroupImage | null {
-  const row = rows.at(-1);
-  if (!row || row.item.type !== "dynamic_tool") return null;
-  const item = row.item;
-  const imageCount = item.outputImageCount ?? turnItemOutputImages(item).length;
-  if (imageCount > 0) {
-    return {
-      resource: {
-        _tag: "tool-output-image",
-        threadId: row.sourceThreadId,
-        itemId: row.sourceItemId,
-        index: imageCount - 1,
-      },
-      alt: item.title || "Tool output image",
-    };
+): ReadonlyArray<ToolGroupImage> {
+  const images: ToolGroupImage[] = [];
+  for (let rowIndex = rows.length - 1; rowIndex >= 0; rowIndex -= 1) {
+    const row = rows[rowIndex]!;
+    if (row.item.type !== "dynamic_tool") continue;
+    const item = row.item;
+    const imageCount = item.outputImageCount ?? turnItemOutputImages(item).length;
+    for (let index = imageCount - 1; index >= 0; index -= 1) {
+      images.push({
+        key: `${row.sourceItemId}:${index}`,
+        resource: {
+          _tag: "tool-output-image",
+          threadId: row.sourceThreadId,
+          itemId: row.sourceItemId,
+          index,
+        },
+        alt: item.title || "Tool output image",
+      });
+    }
+    const viewedImage =
+      imageCount === 0 && item.viewedImagePath
+        ? resolveViewedImageAsset(item.viewedImagePath, {
+            threadId: row.sourceThreadId,
+            workspaceRoot,
+          })
+        : null;
+    if (viewedImage) images.push({ ...viewedImage, key: `${row.sourceItemId}:viewed` });
   }
-  return item.viewedImagePath
-    ? resolveViewedImageAsset(item.viewedImagePath, {
-        threadId: row.sourceThreadId,
-        workspaceRoot,
-      })
-    : null;
+  return images;
 }
 
 export function resolveViewedImageAsset(
@@ -542,8 +560,6 @@ export function resolveViewedImageAsset(
     readonly workspaceRoot?: string | null | undefined;
   },
 ): ViewedImageAsset | null {
-  // A relative path with no known workspace still names a media-file relative
-  // to the thread's workspace, so classify against "." and drop the prefix.
   const imageSource = classifyMarkdownImageSource(source, input.workspaceRoot ?? ".");
   if (imageSource._tag !== "WorkspaceFile") return null;
   const resolvedFilePath =
@@ -679,7 +695,6 @@ function summaryActionPriority(action: ToolGroupAction | SupatermMcpToolSummaryA
   }
 }
 
-/** Summarizes at most two action categories; every omitted call still counts in the remainder. */
 export function summarizeToolGroup(entries: ReadonlyArray<WorkLogPresentationEntry>): {
   summary: string;
   hasFailure: boolean;

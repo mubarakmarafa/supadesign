@@ -1,10 +1,16 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { expect, it } from "@effect/vitest";
-import { DEFAULT_SERVER_SETTINGS, EnvironmentId, ProjectId } from "@supaterm/contracts";
+import {
+  DEFAULT_SERVER_SETTINGS,
+  EnvironmentId,
+  ProjectId,
+  ORCHESTRATION_PROTOCOL_VERSION,
+} from "@supaterm/contracts";
 import { DEFAULT_SIGNAL_EXPORT } from "@supaterm/shared/observability";
 import * as OtelEnvironment from "@supaterm/shared/otelEnvironment";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import { HttpServer } from "effect/http";
@@ -17,7 +23,6 @@ import * as ServerEnvironment from "./environment/ServerEnvironment.ts";
 import * as DirectEndpoints from "./environment/DirectEndpoints.ts";
 import * as Keybindings from "./keybindings.ts";
 import * as EffectWorker from "./orchestration-v2/EffectWorker.ts";
-import * as LegacyV1ThreadImporter from "./orchestration-v2/legacy/LegacyV1ThreadImporter.ts";
 import * as Orchestrator from "./orchestration-v2/Orchestrator.ts";
 import * as ProjectStore from "./orchestration-v2/ProjectStore.ts";
 import * as ProviderRuntimeRecovery from "./orchestration-v2/ProviderRuntimeRecoveryService.ts";
@@ -30,6 +35,7 @@ import { ServerActivation } from "./serverActivation.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as ServerSettings from "./serverSettings.ts";
+import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
 import * as AnalyticsService from "./telemetry/AnalyticsService.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
 
@@ -69,7 +75,6 @@ it.effect("parks automatic pull until activation without delaying command readin
         retiredEffects: 0,
         requeuedEffects: 0,
       };
-      const importSummary = { importedThreadCount: 0, importedMessageCount: 0 };
       const dependencies: Layer.Layer<
         Layer.Services<ReturnType<typeof ServerRuntimeStartup.layerWithOptions>>
       > = Layer.mergeAll(
@@ -111,11 +116,6 @@ it.effect("parks automatic pull until activation without delaying command readin
           autoBootstrapProjectFromCwd: false,
         }),
         Layer.mock(Keybindings.Keybindings)({ start: Effect.void }),
-        Layer.mock(LegacyV1ThreadImporter.LegacyV1ThreadImporter)({
-          pendingThreadCount: Effect.succeed(0),
-          reconcileShells: Effect.succeed(importSummary),
-          importPendingTranscripts: Effect.succeed(importSummary),
-        }),
         Layer.mock(ProviderRuntimeRecovery.ProviderRuntimeRecoveryService)({
           recover: Effect.succeed(recovery),
           prepareForShutdown: Effect.void,
@@ -137,7 +137,8 @@ it.effect("parks automatic pull until activation without delaying command readin
             label: "Test environment",
             platform: { os: "darwin", arch: "arm64" },
             serverVersion: "0.0.0-test",
-            capabilities: { repositoryIdentity: true },
+            orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+            capabilities: {},
           }),
         }),
         Layer.mock(ProjectStore.ProjectStoreV2)({
@@ -169,6 +170,9 @@ it.effect("parks automatic pull until activation without delaying command readin
             ),
         }),
         Layer.mock(AnalyticsService.AnalyticsService)({ record: () => Effect.void }),
+        // No provider logins or Connect link, so startup records no owners.
+        FileSystem.layerNoop({}),
+        Layer.mock(ServerSecretStore.ServerSecretStore)({ get: () => Effect.succeedNone }),
         NodeCrypto.layer,
         Layer.mock(EnvironmentAuth.EnvironmentAuth)({
           issueStartupPairingUrl: () =>
@@ -187,8 +191,6 @@ it.effect("parks automatic pull until activation without delaying command readin
         const startup = yield* ServerRuntimeStartup.ServerRuntimeStartup;
         yield* startup.markHttpListening;
 
-        // A reverted, awaited pull reaches statusDetails instead of prepareTrial.
-        // Race the two receipts so that regression fails without a timeout.
         yield* Effect.raceFirst(Deferred.await(prepared), Deferred.await(statusCalled));
         expect(yield* Deferred.isDone(activation)).toBe(false);
         expect(yield* Deferred.isDone(statusCalled)).toBe(false);
@@ -197,7 +199,6 @@ it.effect("parks automatic pull until activation without delaying command readin
         yield* Deferred.succeed(commitTrial, undefined);
         yield* Deferred.await(activation);
         expect(yield* Deferred.await(statusCalled)).toBe(cwd);
-        // statusDetails can never finish; readiness must not depend on it.
         yield* startup.awaitCommandReady;
         yield* Deferred.await(pairingEndpointsWaiting);
         expect(yield* Deferred.isDone(pairingIssued)).toBe(false);

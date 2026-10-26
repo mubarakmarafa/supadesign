@@ -1,38 +1,34 @@
+import { Toolbar } from "../../components/ui/Toolbar";
 import { guideFocusedRows, type GuideDiffFocus } from "./guide/guideDiffFocus";
 
 import * as Clipboard from "expo-clipboard";
-import { ControlPillMenu } from "../../components/ControlPillMenu";
-import { MaterialIconButton } from "../../components/MaterialIconButton";
-import { MaterialButton } from "../../components/MaterialButton";
+import { Menu } from "../../components/ui/Menu";
+import { IconButton } from "../../components/ui/IconButton";
+import { Button } from "../../components/ui/Button";
 import { usePullRequestReviewDraft } from "./usePullRequestReviewDraft";
 import { usePullRequestFilesViewed } from "./usePullRequestFilesViewed";
 import { usePullRequestPermissions } from "./usePullRequestPermissions";
 import { annotatePullRequestDiff, reviewPosition } from "./pullRequestDiffComments";
 import { usePullRequestFileFilter } from "./usePullRequestFileFilter";
 import { isPullRequestTestFile } from "./pullRequestFileFilters";
-import {
-  StackActions,
-  useFocusEffect,
-  useNavigation,
-  useRoute,
-  type StaticScreenProps,
-} from "@react-navigation/native";
+import { useFocusEffect, useNavigation, type StaticScreenProps } from "@react-navigation/native";
 
 import { pullRequestReviewKey } from "./pullRequestReviewDrafts";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Platform, StyleSheet, View } from "react-native";
+import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppText as Text } from "../../components/AppText";
-import { AndroidScreenHeader } from "../../components/AndroidScreenHeader";
+import { AppText as Text } from "../../components/ui/AppText";
+import { AndroidScreenHeader } from "../../components/ui/AndroidScreenHeader";
 
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 
-import { EmptyState } from "../../components/EmptyState";
+import { EmptyState } from "../../components/ui/EmptyState";
 
-import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
+import { NativeStackScreenOptions } from "../../native/StackHeader";
 
 import { composerPullRequests } from "../../state/pull-requests";
 import { useEnvironmentQuery } from "../../state/query";
@@ -58,38 +54,11 @@ import {
   type PullRequestDiffParams,
 } from "./usePullRequestDiff";
 import { PullRequestReadStatus } from "./PullRequestPresentation";
-import { PullRequestFiles } from "./PullRequestFiles";
-import { PullRequestSheetContent } from "./PullRequestSheetContent";
+export { PullRequestFilesSheet as PullRequestFilesRouteScreen } from "./PullRequestFiles";
 
 import { usePullRequestToolbarHeight } from "./usePullRequestToolbarHeight";
 
 const EMPTY_IDS: readonly string[] = [];
-
-export function PullRequestFilesRouteScreen({ route }: StaticScreenProps<PullRequestDiffParams>) {
-  const navigation = useNavigation();
-  const fileSelectionId = useRoute().key;
-  return (
-    <PullRequestSheetContent
-      title="Changed files"
-      scrollable={false}
-      subtitle={`#${route.params.number}${route.params.commit ? ` · ${route.params.commit.slice(0, 7)}` : ` · ${route.params.repository}`}`}
-    >
-      <PullRequestFiles
-        params={route.params}
-        groupByDirectory
-        onSelectFile={(path) =>
-          navigation.dispatch(
-            StackActions.popTo("PullRequestFile", {
-              ...route.params,
-              path,
-              fileSelectionId,
-            }),
-          )
-        }
-      />
-    </PullRequestSheetContent>
-  );
-}
 
 export function PullRequestFileRouteScreen({
   route,
@@ -113,7 +82,7 @@ export function PullRequestFileRouteScreen({
   );
   const detail = useEnvironmentQuery(composerPullRequests.detail(requestTarget(route.params)));
   const { refresh: refreshDetail } = detail;
-  useFocusEffect(useCallback(() => refreshDetail(), [refreshDetail]));
+  useFocusEffect(() => refreshDetail());
   const { loadMore } = result;
   const parsed = filter.parsed;
   const reviewDraft = usePullRequestReviewDraft(route.params);
@@ -135,16 +104,12 @@ export function PullRequestFileRouteScreen({
     !result.isPending &&
     !result.error;
   const activity = useEnvironmentQuery(composerPullRequests.activity(requestTarget(route.params)));
-  const baseData = useMemo(() => buildNativeReviewDiffData(parsed), [parsed]);
-  const data = useMemo(
-    () =>
-      annotatePullRequestDiff(
-        baseData,
-        staleDiff || commit ? [] : (activity.data?.reviewThreads ?? []),
-        commit ? [] : reviewDraft.draft.comments,
-        diffHead.sha ?? undefined,
-      ),
-    [baseData, activity.data, reviewDraft.draft.comments, diffHead.sha, staleDiff, commit],
+  const baseData = buildNativeReviewDiffData(parsed);
+  const data = annotatePullRequestDiff(
+    baseData,
+    staleDiff || commit ? [] : (activity.data?.reviewThreads ?? []),
+    commit ? [] : reviewDraft.draft.comments,
+    diffHead.sha ?? undefined,
   );
   const viewedIds = data.files
     .filter((file) => (commit ? commitViewedPaths.has(file.path) : viewed.isViewed(file.path)))
@@ -210,7 +175,16 @@ export function PullRequestFileRouteScreen({
     void nativeView.current.scrollToFile(file.id, false).catch(() => {
       jumpStarted.current = false;
     });
-  }, [route.params.path, route.params.fileSelectionId, route.params.focus, data.files, navigation]);
+  }, [
+    route.params.path,
+    route.params.fileSelectionId,
+    route.params.focus,
+    data.files,
+    navigation,
+    setCollapsedIds,
+    lastSelection,
+    nativeView,
+  ]);
   const appliedFilter = useRef(filter.hideTestFiles);
   useEffect(() => {
     if (appliedFilter.current === filter.hideTestFiles) return;
@@ -240,50 +214,43 @@ export function PullRequestFileRouteScreen({
     if (!targetFile) loadMore();
   }, [targetFile, loadMore]);
   const { onDebug: updateVisibleRange } = bridge;
-  const onDebug = useCallback<NonNullable<NativeReviewDiffViewProps["onDebug"]>>(
-    (event) => {
-      const drawn = isNativeReviewDiffDrawEvent(event.nativeEvent);
-      const decoded =
-        event.nativeEvent.message === "rows-decoded" && event.nativeEvent.rows === data.rows.length;
-      if (!drawn && !decoded) return;
-      // Filtering replaces the native row payload asynchronously. Old draw events
-      // must not consume the file jump or highlight the new payload's row indices.
-      if (
-        typeof event.nativeEvent.totalRows === "number" &&
-        event.nativeEvent.totalRows !== data.rows.length
-      )
-        return;
-      if (drawn) updateVisibleRange(event);
-      if (
-        targetFile &&
-        !jumpStarted.current &&
-        nativeView.current &&
-        (Platform.OS !== "ios" || decoded)
-      ) {
-        jumpStarted.current = true;
-        if (focusIndex >= 0) return;
-        void nativeView.current.scrollToFile(targetFile.id, false).catch(() => {
-          jumpStarted.current = false;
-        });
-        return;
-      }
-      if (!drawn) return;
-      const lastRow = event.nativeEvent.lastRowIndex;
-      if (typeof lastRow === "number" && lastRow >= data.rows.length - 40) loadMore();
-    },
-    [updateVisibleRange, data.rows.length, loadMore, targetFile, focusIndex],
-  );
-  const onToggleFile = useCallback<NonNullable<NativeReviewDiffViewProps["onToggleFile"]>>(
-    (event) => {
-      const id = event.nativeEvent.fileId;
-      if (!id) return;
-      setCollapsedIds((ids) =>
-        ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id],
-      );
-    },
-    // oxlint-disable-next-line react/preserve-manual-memoization -- A state setter is stable.
-    [],
-  );
+  const onDebug = ((event) => {
+    const drawn = isNativeReviewDiffDrawEvent(event.nativeEvent);
+    const decoded =
+      event.nativeEvent.message === "rows-decoded" && event.nativeEvent.rows === data.rows.length;
+    if (!drawn && !decoded) return;
+    // Filtering replaces the native row payload asynchronously. Old draw events
+    // must not consume the file jump or highlight the new payload's row indices.
+    if (
+      typeof event.nativeEvent.totalRows === "number" &&
+      event.nativeEvent.totalRows !== data.rows.length
+    )
+      return;
+    if (drawn) updateVisibleRange(event);
+    if (
+      targetFile &&
+      !jumpStarted.current &&
+      nativeView.current &&
+      (Platform.OS !== "ios" || decoded)
+    ) {
+      jumpStarted.current = true;
+      if (focusIndex >= 0) return;
+      void nativeView.current.scrollToFile(targetFile.id, false).catch(() => {
+        jumpStarted.current = false;
+      });
+      return;
+    }
+    if (!drawn) return;
+    const lastRow = event.nativeEvent.lastRowIndex;
+    if (typeof lastRow === "number" && lastRow >= data.rows.length - 40) loadMore();
+  }) satisfies NonNullable<NativeReviewDiffViewProps["onDebug"]>;
+  const onToggleFile = ((event) => {
+    const id = event.nativeEvent.fileId;
+    if (!id) return;
+    setCollapsedIds((ids) =>
+      ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id],
+    );
+  }) satisfies NonNullable<NativeReviewDiffViewProps["onToggleFile"]>;
   const visibleFile = data.files.find((file) => file.id === visibleFileId) ?? targetFile;
   const toggleTestFiles = () => {
     setJumpPath(visibleFile?.path ?? route.params.path);
@@ -307,7 +274,7 @@ export function PullRequestFileRouteScreen({
           title={title}
           onBack={() => navigation.goBack()}
           trailing={
-            <ControlPillMenu
+            <Menu
               actions={[
                 {
                   id: "word-wrap",
@@ -350,69 +317,65 @@ export function PullRequestFileRouteScreen({
               }}
             >
               <View pointerEvents="none">
-                <MaterialIconButton icon="ellipsis" accessibilityLabel="Diff options" />
+                <IconButton icon="ellipsis" accessibilityLabel="Diff options" />
               </View>
-            </ControlPillMenu>
+            </Menu>
           }
         />
       ) : null}
-      <NativeHeaderToolbar placement="right">
-        <NativeHeaderToolbar.Menu
-          title="Diff options"
-          accessibilityLabel="Diff options"
-          icon="ellipsis"
-        >
+      <Toolbar placement="right">
+        <Toolbar.Menu title="Diff options" accessibilityLabel="Diff options" icon="ellipsis">
           {permissions.verdicts.length ? (
-            <NativeHeaderToolbar.MenuAction
+            <Toolbar.MenuAction
               icon="text.bubble"
               onPress={() =>
                 navigation.navigate("PullRequestReview", { ...route.params, mode: "review" })
               }
             >
-              <NativeHeaderToolbar.Label>Submit review</NativeHeaderToolbar.Label>
-            </NativeHeaderToolbar.MenuAction>
+              <Toolbar.Label>Submit review</Toolbar.Label>
+            </Toolbar.MenuAction>
           ) : null}
           {permissions.canComment ? (
-            <NativeHeaderToolbar.MenuAction
+            <Toolbar.MenuAction
               icon="plus.bubble"
               onPress={() =>
                 navigation.navigate("PullRequestReview", { ...route.params, mode: "comment" })
               }
             >
-              <NativeHeaderToolbar.Label>Add comment</NativeHeaderToolbar.Label>
-            </NativeHeaderToolbar.MenuAction>
+              <Toolbar.Label>Add comment</Toolbar.Label>
+            </Toolbar.MenuAction>
           ) : null}
-          <NativeHeaderToolbar.MenuAction
+          <Toolbar.MenuAction
             icon="text.alignleft"
             isOn={appearance.codeWordBreak}
             onPress={() => setCodeWordBreak(!appearance.codeWordBreak)}
           >
-            <NativeHeaderToolbar.Label>Word wrap</NativeHeaderToolbar.Label>
-          </NativeHeaderToolbar.MenuAction>
-          <NativeHeaderToolbar.MenuAction
+            <Toolbar.Label>Word wrap</Toolbar.Label>
+          </Toolbar.MenuAction>
+          <Toolbar.MenuAction
             icon="line.3.horizontal.decrease"
             isOn={filter.hideTestFiles}
             onPress={toggleTestFiles}
           >
-            <NativeHeaderToolbar.Label>Hide test files</NativeHeaderToolbar.Label>
-          </NativeHeaderToolbar.MenuAction>
+            <Toolbar.Label>Hide test files</Toolbar.Label>
+          </Toolbar.MenuAction>
           {selectedRow && selectedFile && canCommentOnDiff ? (
-            <NativeHeaderToolbar.MenuAction icon="bubble.left" onPress={() => commentOnLine()}>
-              <NativeHeaderToolbar.Label>
+            <Toolbar.MenuAction icon="bubble.left" onPress={() => commentOnLine()}>
+              <Toolbar.Label>
                 {route.params.replacingDraftId ? "Move draft to this line" : "Add review comment"}
-              </NativeHeaderToolbar.Label>
-            </NativeHeaderToolbar.MenuAction>
+              </Toolbar.Label>
+            </Toolbar.MenuAction>
           ) : null}
           {selectedRow && selectedFile ? (
-            <NativeHeaderToolbar.MenuAction
+            <Toolbar.MenuAction
               icon="document.on.document"
               onPress={() => void Clipboard.setStringAsync(selectedRow.content ?? "")}
             >
-              <NativeHeaderToolbar.Label>Copy line</NativeHeaderToolbar.Label>
-            </NativeHeaderToolbar.MenuAction>
+              <Toolbar.Label>Copy line</Toolbar.Label>
+            </Toolbar.MenuAction>
           ) : null}
-        </NativeHeaderToolbar.Menu>
-      </NativeHeaderToolbar>
+        </Toolbar.Menu>
+      </Toolbar>
       {route.params.replacingDraftId ? (
         <Text className="px-4 py-2 text-xs text-foreground-muted">
           Select a current line, then choose “Move draft to this line” from its menu.
@@ -429,7 +392,7 @@ export function PullRequestFileRouteScreen({
           <Text className="min-w-0 flex-1 text-xs text-foreground-muted">
             The branch changed. Reload before adding line comments.
           </Text>
-          <MaterialButton
+          <Button
             label="Reload changes"
             onPress={() => {
               result.refresh();
@@ -537,9 +500,7 @@ export function PullRequestFileRouteScreen({
             <EmptyState
               title="Only test files changed"
               detail="Test files are hidden from this review."
-              action={
-                <MaterialButton label="Show test files" tone="contrast" onPress={filter.showAll} />
-              }
+              action={<Button label="Show test files" tone="contrast" onPress={filter.showAll} />}
               variant="plain"
             />
           </View>
@@ -552,18 +513,14 @@ export function PullRequestFileRouteScreen({
         ) : null}
         {result.nextCursor && result.isPending && data.rows.length && !seekingFile ? (
           <View className="flex-row items-center justify-center gap-2 py-2">
-            <ActivityIndicator size="small" />
+            <AppActivityIndicator size="small" />
             <Text className="text-xs text-foreground-muted">Loading more files…</Text>
           </View>
         ) : null}
         {result.error && result.nextCursor ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={result.refresh}
-            className="min-h-11 items-center justify-center py-2"
-          >
-            <Text className="text-sm font-supaterm-medium">Retry loading remaining files</Text>
-          </Pressable>
+          <View className="self-center">
+            <Button label="Retry loading remaining files" tone="text" onPress={result.refresh} />
+          </View>
         ) : null}
         {parsed.kind === "files" && parsed.notice ? (
           <Text className="px-4 py-2 text-2xs text-foreground-muted">{parsed.notice}</Text>

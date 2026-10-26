@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import type {
   EnvironmentId,
   ModelSelection,
@@ -58,6 +58,7 @@ import { Textarea } from "../ui/textarea";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { ToggleGroup, Toggle } from "../ui/toggle-group";
 import type { ResolvedSettingsScope } from "../settings/settingsScope";
+import { settingsScopeEnvironmentLabels } from "../settings/settingsScopeAxis";
 import {
   matchesAutomationScope,
   scheduledTaskDefaultModel,
@@ -164,14 +165,10 @@ export function AutomationEditorDialog({
     connected ? serverEnvironment.scheduledTasksLive({ environmentId, input: {} }) : null,
   );
   const allProjects = useProjects();
-  const projects = useMemo(
-    () =>
-      allProjects.filter(
-        (project) =>
-          project.environmentId === environmentId &&
-          matchesAutomationScope(scope, environmentId, project.id),
-      ),
-    [allProjects, environmentId, scope],
+  const projects = allProjects.filter(
+    (project) =>
+      project.environmentId === environmentId &&
+      matchesAutomationScope(scope, environmentId, project.id),
   );
   const settings = useEnvironmentSettings(environmentId);
   const providers =
@@ -190,16 +187,12 @@ export function AutomationEditorDialog({
     !tasksQuery.data.tasks.some((entry) => entry.id === draft.editingId);
   const selectedProjectId = draft.projectId || projects[0]?.id || "";
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
-  const instanceEntries = useMemo(
-    () =>
-      sortProviderInstanceEntries(
-        applyProviderInstanceSettings(
-          deriveProviderInstanceEntries(providers),
-          settings,
-          selectedProject?.id ?? null,
-        ),
-      ),
-    [providers, settings, selectedProject?.id],
+  const instanceEntries = sortProviderInstanceEntries(
+    applyProviderInstanceSettings(
+      deriveProviderInstanceEntries(providers),
+      settings,
+      selectedProject?.id ?? null,
+    ),
   );
 
   // The real model picker is keyed by a `${instanceId}:${model}` string, which
@@ -214,9 +207,11 @@ export function AutomationEditorDialog({
   const activeInstanceId =
     activeSelection?.instanceId ?? firstInstance?.instanceId ?? ("" as ProviderInstanceId);
   const activeModel = activeSelection?.model ?? "";
-  const modelOptionsByInstance = useMemo(
-    () => getCustomModelOptionsByInstance(settings, providers, activeInstanceId, activeModel),
-    [settings, providers, activeInstanceId, activeModel],
+  const modelOptionsByInstance = getCustomModelOptionsByInstance(
+    settings,
+    providers,
+    activeInstanceId,
+    activeModel,
   );
 
   const reportFailure = (title: string, error: unknown) => {
@@ -364,15 +359,34 @@ export function AutomationEditorDialog({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
-                  {connectedEnvironments.map((entry) => (
-                    <SelectItem key={entry.environmentId} value={entry.environmentId}>
-                      <EnvironmentMachineIcon
-                        kind={resolveEnvironmentMachineKind(entry.serverConfig)}
-                        className="size-4"
-                      />
-                      {entry.label}
-                    </SelectItem>
-                  ))}
+                  {connectedEnvironments.map((entry) => {
+                    const { secondary } = settingsScopeEnvironmentLabels(
+                      entry,
+                      connectedEnvironments,
+                    );
+                    return (
+                      <SelectItem
+                        key={entry.environmentId}
+                        value={entry.environmentId}
+                        label={entry.label}
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <EnvironmentMachineIcon
+                            kind={resolveEnvironmentMachineKind(entry.serverConfig)}
+                            className="size-4"
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate">{entry.label}</span>
+                            {secondary ? (
+                              <span className="block max-w-72 truncate text-xs text-muted-foreground">
+                                {secondary}
+                              </span>
+                            ) : null}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectPopup>
               </Select>
             </Field>
@@ -412,8 +426,18 @@ export function AutomationEditorDialog({
                   </SelectTrigger>
                   <SelectPopup>
                     {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.title}
+                      <SelectItem key={project.id} value={project.id} label={project.title}>
+                        <span className="block truncate">{project.title}</span>
+                        {allProjects.some(
+                          (other) =>
+                            other.title === project.title &&
+                            (other.environmentId !== project.environmentId ||
+                              other.id !== project.id),
+                        ) ? (
+                          <span className="block max-w-72 truncate text-xs text-muted-foreground">
+                            {project.workspaceRoot}
+                          </span>
+                        ) : null}
                       </SelectItem>
                     ))}
                   </SelectPopup>
@@ -504,13 +528,6 @@ export function AutomationEditorDialog({
             </Field>
 
             <div className="space-y-3">
-              {task?.schedule.type === "interval" &&
-              task.schedule.everyMs < MIN_SCHEDULED_TASK_INTERVAL_MS ? (
-                <p className="text-sm text-muted-foreground" role="status">
-                  This automation uses a legacy interval below one minute. Saving updates it to at
-                  least one minute.
-                </p>
-              ) : null}
               <div className="flex items-center justify-between gap-2">
                 <Label>Schedule</Label>
                 <ToggleGroup

@@ -5,12 +5,11 @@ import {
 } from "@supaterm/client-runtime/environment";
 import type { DesktopPreviewFavicon, ScopedProjectRef, ScopedThreadRef } from "@supaterm/contracts";
 import * as Option from "effect/Option";
-import { useMemo } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { normalizeHostname } from "~/browser/browserTargetResolver";
-import { useThreadShell } from "~/state/entities";
+import { useQuietThreadShell } from "~/state/entities";
 import { usePreparedConnection } from "~/state/session";
 
 import {
@@ -22,7 +21,7 @@ import {
   faviconStorageLocation,
   isStorableFaviconDataUrl,
   isValidFaviconCapturedAt,
-  migratePersistedBrowserFaviconState,
+  sanitizePersistedBrowserFaviconState,
 } from "./browserFaviconLogic";
 import { createMemoryStorage, type StateStorage } from "./lib/storage";
 
@@ -36,9 +35,7 @@ type PendingFaviconsByOrigin = Record<string, PendingFavicon>;
 
 export interface BrowserFaviconStoreState {
   byKey: Record<string, BrowserFaviconEntry>;
-  /** Capture buffering only. */
   pendingByThreadKey: Record<string, PendingFaviconsByOrigin>;
-  /** Non-persisted fallback for draft/background threads without a hydrated shell. */
   projectRefByThreadKey: Record<string, ScopedProjectRef>;
   recordFavicon: (
     key: string,
@@ -159,19 +156,18 @@ export const useBrowserFaviconStore = create<BrowserFaviconStoreState>()(
       version: 1,
       storage: createJSONStorage(resolveBrowserFaviconStorage),
       partialize: (state) => ({ byKey: state.byKey }),
-      migrate: migratePersistedBrowserFaviconState,
       merge: mergeBrowserFaviconState,
     },
   ),
 );
 
-export function mergeBrowserFaviconState(
+function mergeBrowserFaviconState(
   persistedState: unknown,
   currentState: BrowserFaviconStoreState,
 ): BrowserFaviconStoreState {
   return {
     ...currentState,
-    ...migratePersistedBrowserFaviconState(persistedState),
+    ...sanitizePersistedBrowserFaviconState(persistedState),
   };
 }
 
@@ -199,12 +195,10 @@ export function registerFaviconProjectForThread(
 }
 
 export function useFaviconProjectRefForThread(threadRef: ScopedThreadRef): ScopedProjectRef | null {
-  const shell = useThreadShell(threadRef);
+  const shell = useQuietThreadShell(threadRef);
   const shellProjectId = shell?.projectId ?? null;
-  const shellProjectRef = useMemo(
-    () => (shellProjectId ? scopeProjectRef(threadRef.environmentId, shellProjectId) : null),
-    [shellProjectId, threadRef.environmentId],
-  );
+  const environmentId = threadRef.environmentId;
+  const shellProjectRef = shellProjectId ? scopeProjectRef(environmentId, shellProjectId) : null;
   const registered = useBrowserFaviconStore(
     (state) => state.projectRefByThreadKey[scopedThreadKey(threadRef)] ?? null,
   );

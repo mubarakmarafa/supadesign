@@ -1,18 +1,21 @@
-import { describe, expect, it } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it } from "@effect/vitest";
+import { vi } from "vite-plus/test";
 
 import { ProviderInstanceId, type ProviderOptionSelection } from "@supaterm/contracts";
+import { getProviderOptionDescriptors } from "@supaterm/shared/model";
 
 import type { ModelOption } from "../../lib/modelOptions";
+import { appAtomRegistry } from "../../state/atom-registry";
+import { modelOptionMemoryAtom } from "../../state/use-composer-drafts";
+import {
+  rememberModelOptions,
+  withRememberedModelOptions,
+} from "../../state/use-model-option-memory";
 import {
   applyProviderOptionSelection,
   resolveProviderOptionDescriptors,
 } from "../../lib/providerOptions";
-import {
-  canCommitPendingModel,
-  favoritesFirst,
-  modelMatchesCatalogQuery,
-  pendingModelAfterPress,
-} from "./thread-settings-sheet-state";
+import { canCommitPendingModel, pendingModelAfterPress } from "./thread-settings-sheet-state";
 
 function modelOption(
   model: string,
@@ -27,7 +30,30 @@ function modelOption(
     providerDriver: "codex",
     isDefault: false,
     isLegacy: false,
-    capabilities: null,
+    capabilities: {
+      optionDescriptors: [
+        {
+          id: "effort",
+          label: "Reasoning",
+          type: "select",
+          options: [
+            { id: "medium", label: "Medium", isDefault: true },
+            { id: "high", label: "High" },
+          ],
+          currentValue: "medium",
+        },
+        {
+          id: "serviceTier",
+          label: "Service Tier",
+          type: "select",
+          options: [
+            { id: "default", label: "Standard", isDefault: true },
+            { id: "priority", label: "Fast" },
+          ],
+          currentValue: "default",
+        },
+      ],
+    },
     selection: {
       instanceId: ProviderInstanceId.make("codex"),
       model,
@@ -36,77 +62,19 @@ function modelOption(
   };
 }
 
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+  appAtomRegistry.set(modelOptionMemoryAtom, {});
+});
+
 describe("thread settings sheet state", () => {
-  it("keeps favorites in catalog order ahead of other models", () => {
-    const models = [
-      modelOption("first"),
-      modelOption("second"),
-      modelOption("third"),
-      modelOption("fourth"),
-    ];
-    const favorites = new Set([models[2]!.key, models[0]!.key]);
-
-    expect(favoritesFirst(models, favorites).map((model) => model.selection.model)).toEqual([
-      "first",
-      "third",
-      "second",
-      "fourth",
-    ]);
-    expect(models.map((model) => model.selection.model)).toEqual([
-      "first",
-      "second",
-      "third",
-      "fourth",
-    ]);
-  });
-
-  it("matches visible model and provider terms", () => {
-    const model = modelOption("gpt-next");
-
-    expect(modelMatchesCatalogQuery({ model, providerLabel: "Codex", query: "NEXT" })).toBe(true);
-    expect(modelMatchesCatalogQuery({ model, providerLabel: "Codex", query: "codex" })).toBe(true);
-    expect(modelMatchesCatalogQuery({ model, providerLabel: "Codex", query: "claude" })).toBe(
-      false,
-    );
-  });
-
-  it("treats whitespace-only catalog searches as empty", () => {
-    expect(
-      modelMatchesCatalogQuery({
-        model: modelOption("gpt-next"),
-        providerLabel: "Codex",
-        query: "   ",
-      }),
-    ).toBe(true);
-  });
-
-  it("matches the upstream provider's display name", () => {
-    const model = {
-      ...modelOption("opencode/claude-fable-5"),
-      label: "Claude Fable 5",
-      subtitle: "OpenCode Zen",
-    };
-
-    expect(modelMatchesCatalogQuery({ model, providerLabel: "OpenCode", query: " ZEN " })).toBe(
-      true,
-    );
-    expect(modelMatchesCatalogQuery({ model, providerLabel: "OpenCode", query: "copilot" })).toBe(
-      false,
-    );
-  });
-
-  it("clears staging when the applied model is pressed", () => {
-    expect(
-      pendingModelAfterPress({
-        current: modelOption("gpt-next"),
-        pressed: modelOption("gpt-current"),
-        pressedIsApplied: true,
-        rememberedOptions: [{ id: "effort", value: "medium" }],
-      }),
-    ).toBeNull();
-  });
-
-  it("preserves staged options when the highlighted model is pressed again", () => {
+  it("preserves in-progress edits when the staged model is pressed again", () => {
+    rememberModelOptions("codex", "gpt-next", [{ id: "effort", value: "medium" }]);
     const pending = modelOption("gpt-next", [{ id: "effort", value: "high" }]);
 
     expect(
@@ -114,21 +82,59 @@ describe("thread settings sheet state", () => {
         current: pending,
         pressed: modelOption("gpt-next"),
         pressedIsApplied: false,
-        rememberedOptions: [{ id: "effort", value: "medium" }],
-      }),
-    ).toBe(pending);
+        restoreSelection: withRememberedModelOptions,
+      })?.selection.options,
+    ).toEqual([{ id: "effort", value: "high" }]);
   });
 
-  it("stages a different model", () => {
+  it("previews remembered options before Save when switching models", () => {
+    const remembered = [
+      { id: "effort", value: "high" },
+      { id: "serviceTier", value: "priority" },
+    ];
+    rememberModelOptions("codex", "gpt-other", remembered);
     const pressed = modelOption("gpt-other");
 
-    expect(
-      pendingModelAfterPress({
-        current: modelOption("gpt-next"),
-        pressed,
-        pressedIsApplied: false,
-      }),
-    ).toBe(pressed);
+    const pending = pendingModelAfterPress({
+      current: modelOption("gpt-next"),
+      pressed,
+      pressedIsApplied: false,
+      restoreSelection: withRememberedModelOptions,
+    });
+
+    expect(pending?.selection).toEqual({ ...pressed.selection, options: remembered });
+    const preview = getProviderOptionDescriptors({
+      caps: pressed.capabilities!,
+      selections: pending?.selection.options,
+    });
+    expect(preview.map(({ id, currentValue }) => ({ id, value: currentValue }))).toEqual(
+      remembered,
+    );
+    expect(pending?.selection).toEqual(withRememberedModelOptions(pressed.selection));
+  });
+
+  it("keeps catalog defaults for scheduled-task picks even when options are remembered", () => {
+    rememberModelOptions("codex", "gpt-other", [
+      { id: "effort", value: "high" },
+      { id: "serviceTier", value: "priority" },
+    ]);
+    const pressed = modelOption("gpt-other");
+
+    const pending = pendingModelAfterPress({
+      current: modelOption("gpt-next"),
+      pressed,
+      pressedIsApplied: false,
+    });
+
+    expect(pending?.selection).toEqual(pressed.selection);
+    const preview = getProviderOptionDescriptors({
+      caps: pressed.capabilities!,
+      selections: pending?.selection.options,
+    });
+    expect(preview.map(({ id, currentValue }) => ({ id, value: currentValue }))).toEqual([
+      { id: "effort", value: "medium" },
+      { id: "serviceTier", value: "default" },
+    ]);
   });
 
   it("restores a model's saved reasoning before another option is changed", () => {
@@ -155,7 +161,7 @@ describe("thread settings sheet state", () => {
       current: modelOption("gpt-other"),
       pressed,
       pressedIsApplied: false,
-      rememberedOptions,
+      restoreSelection: (selection) => ({ ...selection, options: rememberedOptions }),
     });
     const descriptors = resolveProviderOptionDescriptors({
       capabilities: pending?.capabilities,

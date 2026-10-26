@@ -1,8 +1,8 @@
 # Appearance and themes
 
 On web and desktop, open **Settings → Appearance** to choose a theme and follow the system
-appearance or stay in light or dark mode. To use different themes for light and dark mode, select
-the corresponding preview within each theme. Appearance preferences are saved separately on each
+appearance or stay in light or dark mode. Choose the palettes independently with **Light theme**
+and **Dark theme**. Appearance preferences are saved separately on each
 device or browser.
 
 On web and desktop, use **Change theme** in the command palette to select a theme without leaving chat.
@@ -24,10 +24,23 @@ of the selected theme.
 ## Composer context
 
 While you create a thread, the project, machine, branch, and worktree controls sit above the composer. They
-leave when the composer docks after you send the first message.
+leave when the composer docks after you send the first message. A started thread shows its machine
+and branch in the thread details card.
 
-Turn on **Composer context** to keep the branch and worktree controls below the composer after the
+Turn on **Usage limits** to keep the current model's usage limits below the composer after the
 thread starts. This preference applies to the web and desktop clients.
+
+## Math
+
+Turn on **Render math** in **Settings → Appearance** to typeset LaTeX in messages and Markdown
+previews on web, desktop, and mobile. It reads `$…$`, `$$…$$`, `\(…\)`, and `\[…\]`, outside of code.
+Fenced `math` blocks also render. Formulas work in tables, including absolute-value bars.
+Dollar amounts such as `$5 and $10` stay text; write `\$` to keep any other dollar sign literal.
+Wide formulas scroll horizontally while the surrounding text wraps. Copying a formula or
+exporting a table preserves the TeX.
+
+The composer keeps TeX source editable, including when rich text is enabled. The Render math
+preference is saved separately on each device.
 
 ## Motion
 

@@ -1,8 +1,3 @@
-/**
- * The built-in transcript formats by provider, for engine and cache tests.
- *
- * @module usageTestFormats
- */
 import type { UsageProviderKind } from "@supaterm/contracts";
 import type { TranscriptUsageFormat } from "@supaterm/provider-core/server/usage";
 import { piUsageFormat } from "@supaterm/provider-pi/server/usage";

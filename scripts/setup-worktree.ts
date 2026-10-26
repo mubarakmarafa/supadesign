@@ -3,8 +3,8 @@
  * Worktree setup, run by the supaterm.json "Setup Worktree" action as
  * `node scripts/setup-worktree.ts`. Plain Node keeps one command working in
  * every shell Supaterm spawns (zsh, bash, fish, PowerShell): it installs
- * dependencies, links the main checkout's gitignored `.env` into this
- * worktree, then warms the web dependency cache.
+ * dependencies and links the main checkout's gitignored `.env` into this
+ * worktree. The first `vp run dev` warms the web dependency cache.
  */
 import * as NodeChildProcess from "node:child_process";
 import * as NodeFS from "node:fs";
@@ -29,10 +29,13 @@ const miseInstall = NodeChildProcess.spawnSync("mise", ["install"], {
 if (miseInstall.status !== 0) process.exit(miseInstall.status ?? 1);
 
 // `-- --yes` passes pnpm's confirmation flag through vp.
-const install = NodeChildProcess.spawnSync("mise", ["exec", "--", "vp", "i", "--", "--yes"], {
-  cwd: worktree,
-  stdio: unattended,
-});
+// Install exactly the locked dependencies so setup never rewrites the lockfile.
+// A stale lockfile must fail setup rather than silently resolving a new one.
+const install = NodeChildProcess.spawnSync(
+  "mise",
+  ["exec", "--", "vp", "i", "--frozen-lockfile", "--", "--yes"],
+  { cwd: worktree, stdio: unattended },
+);
 if (install.status !== 0) process.exit(install.status ?? 1);
 
 // Env files live as real files in the main checkout; worktrees only get
@@ -53,10 +56,3 @@ for (const file of ENV_FILES) {
   if (existing) NodeFS.rmSync(target);
   NodeFS.symlinkSync(source, target);
 }
-
-const warm = NodeChildProcess.spawnSync(
-  "mise",
-  ["exec", "--", "node", NodePath.join(worktree, "apps", "web", "scripts", "warm-dep-cache.ts")],
-  { cwd: worktree, stdio: "inherit" },
-);
-process.exit(warm.status ?? 1);

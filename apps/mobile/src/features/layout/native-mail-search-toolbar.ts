@@ -4,7 +4,6 @@ import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
 
 export const NATIVE_MAIL_SEARCH_TOOLBAR_SUPPORTED = NATIVE_LIQUID_GLASS_SUPPORTED;
 
-/** Clearance for scroll content that must come to rest above the floating toolbar. */
 export const NATIVE_MAIL_SEARCH_TOOLBAR_CONTENT_INSET = 56;
 
 type NativeMailSearchToolbarInput = Omit<

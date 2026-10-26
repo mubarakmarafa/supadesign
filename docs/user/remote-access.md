@@ -3,11 +3,11 @@
 Connect a phone, browser, or another desktop app to Supaterm running on a different
 machine. That machine must stay running and reachable while you work.
 
-## Pair through the public relay
+## Pair through the Encrypted Relay
 
 Connect across networks without opening a port on the host. On the machine
 running your agents, open **Settings → Connections** and create a pairing link.
-**Public relay** is enabled by default. If you turned it off, enable it first.
+**Encrypted Relay** is enabled by default. If you turned it off, enable it first.
 The relay connects when you create the first link;
 the app waits until it is ready before making the link available. Paste that link into
 **Add environment** on another desktop or mobile client, or scan it with the
@@ -18,10 +18,14 @@ Connections settings show the same name once it connects.
 On a host you reach only over SSH, print a relay pairing link there:
 
 ```bash
-supaterm pair --relay
+supaterm pair
 ```
 
-If public relay is off, enable it from the terminal before creating the link:
+The command activates the relay before printing the link. Pass `--no-relay` to
+pair directly, or `--tailscale` to pair through Tailscale Serve. Run the
+`supaterm` CLI from the same Supaterm release as the server.
+
+If Encrypted Relay is off, enable it from the terminal before creating the link:
 
 ```bash
 supaterm settings set publicRelayEnabled true
@@ -49,18 +53,31 @@ inside the app; opening it as a website does not load Supaterm.
 
 The host and client encrypt the connection end to end. The relay forwards
 encrypted bytes, including HTTP requests. Pairing permissions and authorized
-client revocation work as they do for direct connections. Turning off **Public
-relay** closes relay connections; turning it back on lets already authorized
+client revocation work as they do for direct connections. Turning off **Encrypted Relay**
+closes relay connections; turning it back on lets already authorized
 clients reconnect. The host must stay running and have internet access.
 After the first activation, the host reconnects automatically when Supaterm starts
-while **Public relay** is enabled.
+while **Encrypted Relay** is enabled.
 
 New pairing links carry the configured relay server to the clients that pair
 with them. Automatically learned relay routes follow a server change through a
 working connection; routes paired explicitly through relay need a new link. If Connections reports that
 another host is using the relay identity, the same Supaterm data is running on a
-second machine. Turn **Public relay** off and on to bring the relay back to this
+second machine. Turn **Encrypted Relay** off and on to bring the relay back to this
 host.
+
+## Add a connection from a terminal
+
+With the desktop app running on your receiving Mac or Linux machine, run:
+
+```bash
+supaterm app connection add "<pairing-link>"
+```
+
+Replace `<pairing-link>` with the full URL created in **Settings → Connections** or by `supaterm pair` on the host.
+The command pairs and saves the connection in your local desktop app. Run it
+on the receiving machine, outside an SSH session. Manage or remove the saved
+connection in **Settings → Connections**.
 
 ## Pair over a LAN or private network
 
@@ -80,7 +97,7 @@ supaterm serve --host <private-ip>
 If a server is already running, generate a fresh link without restarting it:
 
 ```bash
-supaterm pair
+supaterm pair --no-relay
 ```
 
 Scan the QR code on your phone or paste the pairing URL into **Add environment**
@@ -124,8 +141,8 @@ through another saved route to learn the change.
 
 Routes are tried in your saved preference order. Relay is last by default;
 moving it higher makes it take priority over the routes below it.
-Supaterm checks higher-priority direct addresses before opening a relay connection,
-so a reachable preferred LAN or Tailscale route avoids relay traffic.
+Supaterm checks every route at once, including relay, and prefers the
+highest-priority route that answers.
 Supaterm checks for a preferred route when your network changes, when you return
 to the app, and periodically while using a fallback.
 A browser opened over HTTPS needs HTTPS routes; it cannot connect to plain HTTP
@@ -168,7 +185,8 @@ set to **Manual only** remains excluded. Mobile keeps its manual environment sel
 ### Tailscale HTTPS
 
 Join both devices to the same tailnet. In the desktop app, enable **Tailscale
-HTTPS** in **Settings → Connections**. Turn it off there to remove that route.
+HTTPS** in **Settings → Connections**. **Network access** can stay off; Tailscale
+reaches the backend on this machine. Turn it off there to remove that route.
 
 To start a command-line server with Tailscale HTTPS:
 
@@ -199,7 +217,7 @@ A web app served over HTTPS needs an HTTPS endpoint for direct connections. It c
 to your server; a hosted pairing link does not make an unreachable backend
 reachable or convert HTTP to HTTPS.
 
-For a public relay connection in a browser, use the [local companion](#pair-through-the-public-relay).
+For an Encrypted Relay connection in a browser, use the [local companion](#pair-through-the-encrypted-relay).
 
 For a plain HTTP LAN endpoint, use the direct pairing URL in a browser that can
 open it, or pair from the desktop app. On mobile, an IP address entered without a
@@ -226,6 +244,12 @@ ssh user@example.com 'sh -lc "command -v claude codex"'
 If SSH reconnecting fails after an app update, retry the launch once. Removing
 the connection stops a server that Supaterm launched; a server that was already
 running is left alone.
+
+Each desktop app keeps one session on the host for its SSH connection and reuses
+it when it reconnects. Revoke sessions you no longer use in **Settings →
+Connections** on the host, or on a headless host with `supaterm auth session list` and
+`supaterm auth session revoke <id>`. A desktop that can still sign in over SSH pairs
+again on its next connect.
 
 For Antigravity's Google callback on a remote host, see
 [remote sign-in](./providers-antigravity.md#sign-in-from-a-remote-device).
@@ -273,8 +297,9 @@ The server shows the exact line for how you started it, such as
 `sudo npx supaterm browser setup`, and keeps your `PATH` when Node is installed only
 for your user. Where `supaterm` is not on your `PATH`, such as with only the
 desktop app installed, it names the full path of the app's own `supaterm` instead. It allows Chrome's sandbox with an AppArmor profile and installs
-any missing libraries with apt. It is safe to run again. Without `sudo`, it
-only reports what it would change.
+any missing libraries and system fonts with apt; pages that load without text
+can mean the host has no fonts. It is safe to run again. Without `sudo`, it only
+reports what it would change.
 
 The browser always runs in Chrome's sandbox. Where you cannot change the host,
 set `SUPATERM_SERVER_BROWSER_SANDBOX=0` for the environment to run without it.
@@ -308,9 +333,11 @@ npx supaterm pair --scope orchestration:read --scope terminal:read
 
 The selected scopes replace the default permissions. The same option works with
 `npx supaterm auth pairing create` and `npx supaterm auth session issue`; each command's
-`--help` lists the available scopes. Without `--scope`, pairing tokens retain
-standard client permissions and issued bearer sessions retain administrative
-permissions.
+`--help` lists the available scopes. Without `--scope`, pairing tokens and issued
+bearer sessions get every permission, including managing access. A terminal or a
+full-access agent on the host can reach that as well, so a client that should
+not manage access also needs to go without `terminal:operate` and
+`orchestration:operate`.
 
 To change an existing client's permissions, create a fresh pairing link with the
 scopes it needs. In a browser opened directly on the environment, open that link
@@ -329,12 +356,13 @@ worktrees. It does not restrict what a task does. Starting a task in a new
 worktree still creates that branch and worktree with `orchestration:operate`,
 and the agent it runs can use Git however the environment allows.
 
-Settings changes, provider management, and environment maintenance can be granted
-separately from access administration. New standard pairings include these
-permissions. Existing clients can stay connected after an update, but newly separated
-features may require pairing again with the permissions they need. Older clients
-may show controls that the server denies. Create a fresh pairing link to change
-a client's permissions.
+Settings changes, provider management, environment maintenance, and access
+management can each be granted separately. New pairings without `--scope`
+include all of them. Existing clients keep the
+permissions they paired with and can stay connected after an update, but newly
+separated features may require pairing again with the permissions they need.
+Older clients may show controls that the server denies. Create a fresh pairing
+link to change a client's permissions.
 
 `filesystem:read` allows browsing host files, opening workspace files, and viewing
 local changes. Add `filesystem:write` to allow editing files or saving plans to

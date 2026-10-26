@@ -1,6 +1,8 @@
+import type { SidebarThreadGrouping } from "@supaterm/contracts";
 import { useThreadListV2Layout } from "../threads/use-thread-list-v2-layout";
-import { AppActivityIndicator } from "../../components/AppActivityIndicator";
-import { useAndroidControlSizing } from "../../components/useAndroidControlSizing";
+import { useActiveNewTask } from "../../state/active-new-task";
+import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
+import { useAndroidControlSizing } from "../../components/ui/useAndroidControlSizing";
 import { type LegendListRef } from "@legendapp/list/react-native";
 import { AnimatedLegendList } from "@legendapp/list/reanimated";
 import Animated from "react-native-reanimated";
@@ -15,21 +17,12 @@ import {
 } from "@supaterm/client-runtime/state/thread-search";
 import { type EnvironmentId, type SidebarProjectGroupingMode } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
-import { HeaderHeightContext } from "@react-navigation/elements";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import {
-  use,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentProps,
-} from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { use, useEffect, useRef, useState, type ComponentProps, type ReactElement } from "react";
 import {
   Platform,
   ScrollView,
+  useWindowDimensions,
   View,
   type ScrollViewProps,
   type GestureResponderEvent,
@@ -39,12 +32,15 @@ import {
 import { ScrollViewMarker } from "react-native-screens";
 import { GestureDetector, useNativeGesture } from "react-native-gesture-handler";
 import type { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
-import { useKeyboardState } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { cn } from "../../lib/cn";
-import { EmptyState } from "../../components/EmptyState";
-import { MaterialFloatingActionButton } from "../../components/MaterialFloatingActionButton";
+import {
+  ANDROID_READING_MAX_WIDTH,
+  deriveCenteredContentHorizontalPadding,
+} from "../../lib/layout";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { FloatingActionButton } from "../../components/ui/FloatingActionButton";
 import type { WorkspaceEnvironment, WorkspaceState } from "../../state/workspaceModel";
 import type { SavedRemoteConnection } from "../../lib/connection";
 import { scopedProjectKey, scopedThreadKey } from "../../lib/scopedEntities";
@@ -53,6 +49,7 @@ import {
   NativeWorkspaceTabActivityContext,
 } from "../../native/v5-workspace-context";
 import { nativeHeaderScrollEdgeEffects } from "../../native/scrollEdgeEffects";
+import { useRestingTopOffset } from "../../native/useRestingTopOffset";
 import {
   useNativeColumnLayoutMetrics,
   useNativeLayoutMetrics,
@@ -68,19 +65,22 @@ import { useQueuedThreadKeys } from "../../state/use-thread-outbox";
 import {
   ThreadListV2PendingRow,
   ThreadListV2Row,
-  ThreadListV2SettledShelfHeader,
+  ThreadListV2DoneShelfHeader,
   ThreadListV2ShowMoreRow,
   ThreadListV2SnoozedShelfHeader,
   ThreadListV2PinnedShelfHeader,
   ThreadListV2ActiveShelfHeader,
+  ThreadListV2GroupHeader,
   ThreadListV2WorkingShelfHeader,
 } from "../threads/thread-list-v2-items";
 import { useThreadRowProviderInstanceResolver } from "../threads/thread-provider-instance";
+import { useOpenThreadPullRequests } from "../threads/use-open-thread-pull-requests";
+import type { ThreadPrPresentation } from "../../state/thread-pr-presentation";
 import {
   buildThreadListV2ListItems,
   threadListV2ListItemsAreEqual,
-  THREAD_LIST_V2_SETTLED_INITIAL_COUNT,
-  THREAD_LIST_V2_SETTLED_PAGE_COUNT,
+  THREAD_LIST_V2_DONE_INITIAL_COUNT,
+  THREAD_LIST_V2_DONE_PAGE_COUNT,
   type ThreadListV2ListItem,
 } from "../threads/threadListV2";
 import { useThreadListV2ShelfPreferences } from "../threads/use-thread-list-v2-shelf-preferences";
@@ -92,10 +92,8 @@ import {
 } from "./homeThreadList";
 import { createSwipeRowActivation } from "./swipe-row-activation";
 import { SwipeableScrollGateProvider, useSwipeableScrollGate } from "./thread-swipe-actions";
-import { useMaterialFabScroll } from "./MaterialFabScrollContext";
+import { useFabScroll } from "./FabScrollContext";
 import { useWorkspaceTabs } from "../workspace/WorkspaceTabsContext";
-
-/* ─── Types ──────────────────────────────────────────────────────────── */
 
 interface HomeScreenProps {
   readonly projects: ReadonlyArray<EnvironmentProject>;
@@ -111,26 +109,25 @@ interface HomeScreenProps {
   readonly selectedProjectKey: string | null;
   readonly projectSortOrder: HomeProjectSortOrder;
   readonly projectGroupingMode: SidebarProjectGroupingMode;
+  readonly threadGrouping: SidebarThreadGrouping;
   readonly onSearchQueryChange: (query: string) => void;
-  readonly onEnvironmentChange: (environmentId: EnvironmentId | null) => void;
-  readonly onProjectChange: (projectKey: string | null) => void;
   readonly onAddConnection: () => void;
   readonly onOpenSettings: () => void;
   readonly onStartNewTask: () => void;
   readonly onSelectThread: (thread: EnvironmentThreadShell) => void;
   readonly onArchiveThread: (thread: EnvironmentThreadShell) => void;
   readonly onDeleteThread: (thread: EnvironmentThreadShell) => void;
-  /** Resolves true iff the settle was dispatched and succeeded. */
-  readonly onSettleThread: (thread: EnvironmentThreadShell) => Promise<boolean>;
+  /** Resolves true iff marking done was dispatched and succeeded. */
+  readonly onMarkThreadDone: (thread: EnvironmentThreadShell) => Promise<boolean>;
   readonly onSnoozeThread: (
     thread: EnvironmentThreadShell,
     snoozedUntil: string,
   ) => Promise<boolean>;
   readonly onUnsnoozeThread: (thread: EnvironmentThreadShell) => Promise<boolean>;
-  readonly onUnsettleThread: (thread: EnvironmentThreadShell) => void;
+  readonly onReopenThread: (thread: EnvironmentThreadShell) => void;
   readonly onPinThread: (thread: EnvironmentThreadShell) => Promise<boolean>;
   readonly onUnpinThread: (thread: EnvironmentThreadShell) => Promise<boolean>;
-  readonly onSetThreadAutoSettle: (
+  readonly onSetThreadAutoMarkDone: (
     thread: EnvironmentThreadShell,
     enabled: boolean,
   ) => Promise<boolean>;
@@ -140,11 +137,10 @@ interface HomeScreenProps {
   readonly onDeletePendingTask: (pendingTask: PendingNewTask) => void;
   readonly onNewThreadOnBranch: (thread: EnvironmentThreadShell) => void;
   readonly onNewThreadInProject: (project: EnvironmentProject) => void;
+  readonly listHeader: ReactElement | undefined;
 }
 
-/* ─── Layout constants ───────────────────────────────────────────────── */
-
-// v2 rows are mixed-height: settled slim rows run ~60dp, single-line cards
+// v2 rows are mixed-height: done slim rows run ~60dp, single-line cards
 // measured ~74dp on device (252px on the Pixel 10 Pro screenshot), two-line
 // cards ~94dp. The estimate seeds the recycler's initial container count,
 // `ceil((scrollLength + 2 * INITIAL_DRAW_DISTANCE) / estimate)` with the
@@ -159,16 +155,10 @@ interface HomeScreenProps {
 // measured-height pool expansion. The old tallest-card estimate (~92) fired
 // that warning on every ordinary shelf expand, so the average wins.
 const ESTIMATED_THREAD_LIST_V2_ROW_HEIGHT = 72;
-// Rows away from the viewport are cheap dormant frames (see
+// Rows away from the viewport skip their swipe actions (see
 // swipe-row-activation), so render further ahead: a fast fling then reaches
 // rows that are already built instead of rows still being rebuilt.
 const THREAD_LIST_V2_DRAW_DISTANCE = 1_000;
-/**
- * Top spacing between the list and the Android custom header. The Android
- * header is rendered in-flow above this screen and
- * already consumes the top safe-area inset, so the list only needs breathing
- * room here.
- */
 
 function deriveEmptyState(props: {
   readonly catalogState: WorkspaceState;
@@ -244,6 +234,7 @@ function HomeTopContentSpacer() {
 function HomeScrollView(props: ComponentProps<typeof ScrollView>) {
   const insets = useSafeAreaInsets();
   const primaryColumn = use(NativePrimaryColumnContext);
+  const restingOffset = useRestingTopOffset(insets.top, props);
   if (Platform.OS !== "ios") return <ScrollView {...props} />;
 
   return (
@@ -257,12 +248,11 @@ function HomeScrollView(props: ComponentProps<typeof ScrollView>) {
     >
       <ScrollView
         {...props}
-
+        {...restingOffset}
         className={cn(props.className, primaryColumn ? "bg-drawer" : "bg-screen")}
 
         automaticallyAdjustContentInsets={false}
         contentInsetAdjustmentBehavior="never"
-        contentOffset={props.contentOffset ?? { x: 0, y: -insets.top }}
       />
     </ScrollViewMarker>
   );
@@ -271,8 +261,6 @@ function HomeScrollView(props: ComponentProps<typeof ScrollView>) {
 function renderHomeScrollView(props: ScrollViewProps) {
   return <HomeScrollView {...props} />;
 }
-
-/* ─── Main screen ────────────────────────────────────────────────────── */
 
 export function HomeScreen(props: HomeScreenProps) {
   const tabActivity = use(NativeWorkspaceTabActivityContext);
@@ -286,52 +274,51 @@ export function HomeScreen(props: HomeScreenProps) {
     Platform.OS === "android" ? "bg-header" : contentBackground,
   );
   const columnMetrics = useNativeColumnLayoutMetrics();
-  const selectedThreadKey = primaryColumn?.selectedThreadKey ?? null;
+  const activeNewTask = useActiveNewTask();
+  const selectedThreadKey = activeNewTask ? null : (primaryColumn?.selectedThreadKey ?? null);
   const fullSwipeWidth = primaryColumn && columnMetrics ? columnMetrics.width - 20 : undefined;
   const queuedThreadKeys = useQueuedThreadKeys();
   const openSwipeableRef = useRef<SwipeableMethods | null>(null);
-  // Let trackpad scrolling coexist with each row's horizontal swipe gesture.
   const homeScrollGesture = useNativeGesture();
   const insets = useSafeAreaInsets();
-  const navigationHeaderHeight = useContext(HeaderHeightContext) ?? insets.top + 44;
-  const navigation = useNavigation();
-  // Sample focus on keyboard events so returning from a sheet cannot claim its still-dismissing keyboard.
-  const searchKeyboardVisible = useKeyboardState(
-    (state) => state.isVisible && navigation.isFocused(),
-  );
   const { fabClearance } = useAndroidControlSizing();
   const screenMetrics = useNativeLayoutMetrics();
   const contentSideInsets = usesNativeWorkspaceColumns
     ? (columnMetrics ?? screenMetrics)?.safeArea
     : undefined;
-  const listTopInset =
-    Platform.OS === "ios" && NATIVE_LIQUID_GLASS_SUPPORTED ? navigationHeaderHeight : 0;
-  // UIKit's column safe area already includes its bottom toolbar.
+  // Android lists that span a wide window (foldables in portrait) keep the
+  // reading width, so rows stay clear of the edges and the camera cutout.
+  const { width: windowWidth } = useWindowDimensions();
+  const androidListGutter =
+    Platform.OS === "android"
+      ? deriveCenteredContentHorizontalPadding({
+          viewportWidth: windowWidth,
+          maxContentWidth: ANDROID_READING_MAX_WIDTH,
+          minimumPadding: 0,
+        })
+      : 0;
   const iosBottomClearance = Math.max(
     columnMetrics?.safeArea.bottom ?? insets.bottom,
     24,
     workspace?.bottomClearance ?? 0,
   );
-  const searchEnvironmentIds = useMemo(
-    () =>
-      props.selectedEnvironmentId === null
-        ? props.environments
-            .filter((environment) => environment.connectionState === "connected")
-            .map((environment) => environment.environmentId)
-        : props.environments.some(
-              (environment) =>
-                environment.environmentId === props.selectedEnvironmentId &&
-                environment.connectionState === "connected",
-            )
-          ? [props.selectedEnvironmentId]
-          : [],
-    [props.environments, props.selectedEnvironmentId],
-  );
+  const searchEnvironmentIds =
+    props.selectedEnvironmentId === null
+      ? props.environments
+          .filter((environment) => environment.connectionState === "connected")
+          .map((environment) => environment.environmentId)
+      : props.environments.some(
+            (environment) =>
+              environment.environmentId === props.selectedEnvironmentId &&
+              environment.connectionState === "connected",
+          )
+        ? [props.selectedEnvironmentId]
+        : [];
   const threadSearch = useThreadSearch(
     searchEnvironmentIds,
     tabActivity?.active === false ? "" : props.searchQuery,
   );
-  const threadSearchMatchByKey = useMemo(() => {
+  const threadSearchMatchByKey = (() => {
     const matches = new Map<string, EnvironmentThreadSearchMatch>();
     for (const match of threadSearch.matches) {
       if (match.source === "user" || match.source === "assistant") {
@@ -339,28 +326,33 @@ export function HomeScreen(props: HomeScreenProps) {
       }
     }
     return matches;
-  }, [threadSearch.matches]);
-  const matchedThreadKeys = useMemo(
-    () => new Set(threadSearch.matches.map(threadSearchMatchKey)),
-    [threadSearch.matches],
-  );
-  const handleSwipeableWillOpen = useCallback((methods: SwipeableMethods) => {
+  })();
+  const matchedThreadKeys = new Set(threadSearch.matches.map(threadSearchMatchKey));
+  const handleSwipeableWillOpen = (methods: SwipeableMethods) => {
     if (openSwipeableRef.current !== methods) {
       openSwipeableRef.current?.close();
       openSwipeableRef.current = methods;
     }
-  }, []);
+  };
 
-  const handleSwipeableClose = useCallback((methods: SwipeableMethods) => {
+  const handleSwipeableClose = (methods: SwipeableMethods) => {
     if (openSwipeableRef.current === methods) {
       openSwipeableRef.current = null;
     }
-  }, []);
+  };
 
-  const handleScrollBeginDrag = useCallback(() => {
+  const handleScrollBeginDrag = () => {
     openSwipeableRef.current?.close();
-  }, []);
-  const onMaterialFabScroll = useMaterialFabScroll();
+  };
+  const openThreadPullRequests = useOpenThreadPullRequests();
+  const handleOpenThreadPullRequests = (
+    thread: EnvironmentThreadShell,
+    pr: ThreadPrPresentation,
+  ) => {
+    openSwipeableRef.current?.close();
+    openThreadPullRequests(thread, pr);
+  };
+  const onFabScroll = useFabScroll();
   const listRef = useRef<LegendListRef>(null);
   const searchMode = workspace?.state.tabs.threads.searchMode;
   const restoredOffset = workspace?.state.tabs.threads.scrollOffset;
@@ -371,191 +363,137 @@ export function HomeScreen(props: HomeScreenProps) {
       animated: false,
     });
   }, [searchMode, insets.top, restoredOffset]);
-  const swipeRowActivation = useMemo(() => createSwipeRowActivation(), []);
-  const activateVisibleRows = useCallback(
-    (rows: ReadonlyArray<ThreadListV2ListItem>) => {
-      const state = listRef.current?.getState();
-      if (state === undefined || !(state.end >= 0)) return;
-      swipeRowActivation.activate(
-        rows.slice(Math.max(0, state.start - 2), state.end + 3).map((row) => row.key),
-      );
-    },
-    [swipeRowActivation],
-  );
+  const swipeRowActivation = createSwipeRowActivation();
+  const activateVisibleRows = (rows: ReadonlyArray<ThreadListV2ListItem>) => {
+    const state = listRef.current?.getState();
+    if (state === undefined || !(state.end >= 0)) return;
+    swipeRowActivation.activate(
+      rows.slice(Math.max(0, state.start - 2), state.end + 3).map((row) => row.key),
+    );
+  };
   // Status-bar, accessibility and programmatic scrolls never arm the scroll
   // gate, so every scroll also activates the visible rows once it settles.
   const activationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(activationTimerRef.current), []);
-  const handleListScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      onMaterialFabScroll?.(event);
-      if (workspace)
-        workspace.recordScrollOffset(
-          "threads",
-          Math.max(0, event.nativeEvent.contentOffset.y + (Platform.OS === "ios" ? insets.top : 0)),
-        );
-      clearTimeout(activationTimerRef.current);
-      activationTimerRef.current = setTimeout(
-        () => activateVisibleRows(listRef.current?.getState().data ?? []),
-        200,
+  const handleListScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onFabScroll?.(event);
+    if (workspace)
+      workspace.recordScrollOffset(
+        "threads",
+        Math.max(0, event.nativeEvent.contentOffset.y + (Platform.OS === "ios" ? insets.top : 0)),
       );
-    },
-    [activateVisibleRows, onMaterialFabScroll, workspace, insets.top],
-  );
-  const trackListTouches = useCallback(
-    (event: GestureResponderEvent, started: boolean) => {
-      const { changedTouches, touches } = event.nativeEvent;
-      swipeRowActivation.trackTouches(
-        started ? changedTouches.map((touch) => String(touch.identifier)) : [],
-        touches.map((touch) => String(touch.identifier)),
-      );
-    },
-    [swipeRowActivation],
-  );
+    clearTimeout(activationTimerRef.current);
+    activationTimerRef.current = setTimeout(
+      () => activateVisibleRows(listRef.current?.getState().data ?? []),
+      200,
+    );
+  };
+  const trackListTouches = (event: GestureResponderEvent, started: boolean) => {
+    const { changedTouches, touches } = event.nativeEvent;
+    swipeRowActivation.trackTouches(
+      started ? changedTouches.map((touch) => String(touch.identifier)) : [],
+      touches.map((touch) => String(touch.identifier)),
+    );
+  };
   const { swipeEnabled, scrollGateHandlers } = useSwipeableScrollGate({
     onScroll: handleListScroll,
     onScrollBeginDrag: handleScrollBeginDrag,
   });
 
-  const projectScopes = useMemo(
-    () =>
-      buildHomeProjectScopes({
-        projects: props.projects,
-        environmentId: props.selectedEnvironmentId,
-        projectGroupingMode: props.projectGroupingMode,
-      }),
-    [props.projectGroupingMode, props.projects, props.selectedEnvironmentId],
-  );
+  const projectScopes = buildHomeProjectScopes({
+    projects: props.projects,
+    environmentId: props.selectedEnvironmentId,
+    projectGroupingMode: props.projectGroupingMode,
+  });
   const hasSearchQuery = props.searchQuery.trim().length > 0;
-  const projectByKey = useMemo(() => {
+  const projectByKey = (() => {
     const map = new Map<string, EnvironmentProject>();
     for (const project of props.projects) {
       map.set(scopedProjectKey(project.environmentId, project.id), project);
     }
     return map;
-  }, [props.projects]);
+  })();
 
   const v2ProjectScopeKey = props.selectedProjectKey;
-  const v2ScopedProjectGroup = useMemo(
-    () => findHomeProjectScope(projectScopes, v2ProjectScopeKey),
-    [v2ProjectScopeKey, projectScopes],
-  );
-  const v2ProjectTitleByProjectKey = useMemo(
-    () =>
-      new Map(
-        projectScopes.flatMap((scope) =>
-          scope.projectRefs.map(
-            (projectRef) =>
-              [
-                scopedProjectKey(projectRef.environmentId, projectRef.projectId),
-                scope.title,
-              ] as const,
-          ),
-        ),
+  const v2ScopedProjectGroup = findHomeProjectScope(projectScopes, v2ProjectScopeKey);
+  const v2ProjectTitleByProjectKey = new Map(
+    projectScopes.flatMap((scope) =>
+      scope.projectRefs.map(
+        (projectRef) =>
+          [scopedProjectKey(projectRef.environmentId, projectRef.projectId), scope.title] as const,
       ),
-    [projectScopes],
+    ),
   );
-  const v2ScopedProjectKeys = useMemo(
-    () =>
-      v2ScopedProjectGroup === null
-        ? null
-        : new Set(
-            v2ScopedProjectGroup.projectRefs.map((projectRef) =>
-              scopedProjectKey(projectRef.environmentId, projectRef.projectId),
-            ),
+  const v2ScopedProjectKeys =
+    v2ScopedProjectGroup === null
+      ? null
+      : new Set(
+          v2ScopedProjectGroup.projectRefs.map((projectRef) =>
+            scopedProjectKey(projectRef.environmentId, projectRef.projectId),
           ),
-    [v2ScopedProjectGroup],
-  );
+        );
   // Thread List v2 (beta): one flat list in creation order, no grouping.
-  // Settled threads collapse into a recency tail below the card block.
-  // Settled threads stay in the live shell stream (settled ≠ archived), so
+  // Done threads collapse into a recency tail below the card block.
+  // Done threads stay in the live shell stream (done ≠ archived), so
   // the partition works directly off live shells — no snapshot merging or
   // optimistic holds.
-  const handleSettleThread = props.onSettleThread;
+  const handleMarkThreadDone = props.onMarkThreadDone;
   const {
     onSnoozeThread,
     onUnsnoozeThread,
     onPinThread,
     onUnpinThread,
-    onSetThreadAutoSettle,
+    onSetThreadAutoMarkDone,
     onRegenerateThreadTitle,
     onRenameThread,
   } = props;
-  const handleSnoozeThread = useCallback(
-    (thread: EnvironmentThreadShell, snoozedUntil: string) => {
-      void onSnoozeThread(thread, snoozedUntil);
-    },
-    [onSnoozeThread],
-  );
-  const handleUnsnoozeThread = useCallback(
-    (thread: EnvironmentThreadShell) => {
-      void onUnsnoozeThread(thread);
-    },
-    [onUnsnoozeThread],
-  );
-  const handlePinThread = useCallback(
-    (thread: EnvironmentThreadShell) => {
-      void onPinThread(thread);
-    },
-    [onPinThread],
-  );
-  const handleUnpinThread = useCallback(
-    (thread: EnvironmentThreadShell) => {
-      void onUnpinThread(thread);
-    },
-    [onUnpinThread],
-  );
-  const handleSetThreadAutoSettle = useCallback(
-    (thread: EnvironmentThreadShell, enabled: boolean) => {
-      void onSetThreadAutoSettle(thread, enabled);
-    },
-    [onSetThreadAutoSettle],
-  );
-  const handleRegenerateThreadTitle = useCallback(
-    (thread: EnvironmentThreadShell) => {
-      void onRegenerateThreadTitle(thread);
-    },
-    [onRegenerateThreadTitle],
-  );
-  const handleRenameThread = useCallback(
-    (thread: EnvironmentThreadShell) => onRenameThread(thread),
-    [onRenameThread],
-  );
+  const handleSnoozeThread = (thread: EnvironmentThreadShell, snoozedUntil: string) => {
+    void onSnoozeThread(thread, snoozedUntil);
+  };
+  const handleUnsnoozeThread = (thread: EnvironmentThreadShell) => {
+    void onUnsnoozeThread(thread);
+  };
+  const handlePinThread = (thread: EnvironmentThreadShell) => {
+    void onPinThread(thread);
+  };
+  const handleUnpinThread = (thread: EnvironmentThreadShell) => {
+    void onUnpinThread(thread);
+  };
+  const handleSetThreadAutoMarkDone = (thread: EnvironmentThreadShell, enabled: boolean) => {
+    void onSetThreadAutoMarkDone(thread, enabled);
+  };
+  const handleRegenerateThreadTitle = (thread: EnvironmentThreadShell) => {
+    void onRegenerateThreadTitle(thread);
+  };
+  const handleRenameThread = (thread: EnvironmentThreadShell) => onRenameThread(thread);
   const handleDeleteThread = props.onDeleteThread;
-  const handleUnsettleThread = props.onUnsettleThread;
-  // The settled tail renders in pages; expansion resets when the filter
+  const handleReopenThread = props.onReopenThread;
+  // The done tail renders in pages; expansion resets when the filter
   // context changes so environment/search flips never inherit a deep page.
-  const [settledVisibleCount, setSettledVisibleCount] = useState(
-    THREAD_LIST_V2_SETTLED_INITIAL_COUNT,
-  );
-  const settledResetKey = `${props.selectedEnvironmentId ?? "all"}:${v2ProjectScopeKey ?? "all"}:${props.searchQuery.trim()}`;
-  const [lastSettledResetKey, setLastSettledResetKey] = useState(settledResetKey);
-  if (lastSettledResetKey !== settledResetKey) {
-    setLastSettledResetKey(settledResetKey);
-    setSettledVisibleCount(THREAD_LIST_V2_SETTLED_INITIAL_COUNT);
+  const [doneVisibleCount, setDoneVisibleCount] = useState(THREAD_LIST_V2_DONE_INITIAL_COUNT);
+  const doneResetKey = `${props.selectedEnvironmentId ?? "all"}:${v2ProjectScopeKey ?? "all"}:${props.searchQuery.trim()}`;
+  const [lastDoneResetKey, setLastDoneResetKey] = useState(doneResetKey);
+  if (lastDoneResetKey !== doneResetKey) {
+    setLastDoneResetKey(doneResetKey);
+    setDoneVisibleCount(THREAD_LIST_V2_DONE_INITIAL_COUNT);
   }
-  const showMoreSettled = useCallback(
-    () => setSettledVisibleCount((count) => count + THREAD_LIST_V2_SETTLED_PAGE_COUNT),
-    [],
-  );
+  const showMoreDone = () => setDoneVisibleCount((count) => count + THREAD_LIST_V2_DONE_PAGE_COUNT);
   const {
     loaded: shelfPreferencesLoaded,
-    settledShelfExpanded,
+    doneShelfExpanded,
     snoozedShelfExpanded,
     pinnedShelfExpanded,
     activeShelfExpanded,
     workingShelfExpanded,
-    toggleSettledShelf,
+    collapsedGroups,
+    toggleDoneShelf,
     toggleSnoozedShelf,
     togglePinnedShelf,
     toggleActiveShelf,
     toggleWorkingShelf,
+    toggleGroup,
   } = useThreadListV2ShelfPreferences();
-  // The queued-start and snooze helpers need a clock while the list stays open.
   const [nowMinute, setNowMinute] = useState(() => new Date().toISOString().slice(0, 16));
-  // Snooze wake times are second-precise; a counter bumped exactly at the
-  // next wake boundary re-runs the partition with a fresh clock so a woken
-  // thread reappears immediately instead of on the next minute tick.
   const [snoozeWakeTick, bumpSnoozeWakeTick] = useState(0);
   const [listClock, setListClock] = useState(() => ({
     nowMinute,
@@ -563,52 +501,43 @@ export function HomeScreen(props: HomeScreenProps) {
     now: new Date().toISOString(),
   }));
   if (listClock.nowMinute !== nowMinute || listClock.snoozeWakeTick !== snoozeWakeTick) {
+    // oxlint-disable-next-line react/purity -- Resamples the clock only when the minute or a snooze wake changes; the sample lives in state.
     setListClock({ nowMinute, snoozeWakeTick, now: new Date().toISOString() });
   }
-  useFocusEffect(
-    useCallback(() => {
-      // Refresh immediately on enable or focus because the previous value can be hours old.
-      setNowMinute(new Date().toISOString().slice(0, 16));
-      const id = setInterval(() => setNowMinute(new Date().toISOString().slice(0, 16)), 60_000);
-      return () => clearInterval(id);
-    }, []),
-  );
-  // Threads on servers without the settlement capability never classify as
-  // settled (the user could neither un-settle nor pin them).
+  useFocusEffect(() => {
+    setNowMinute(new Date().toISOString().slice(0, 16));
+    const id = setInterval(() => setNowMinute(new Date().toISOString().slice(0, 16)), 60_000);
+    return () => clearInterval(id);
+  });
   const listEnvironments = useAtomValue(threadListEnvironmentsAtom);
-  const {
-    providersByEnvironmentId,
-    machineByEnvironmentId,
-    settlementEnvironmentIds,
-    snoozeEnvironmentIds,
-    pinningEnvironmentIds,
-    autoSettleOptOutEnvironmentIds,
-    pinReorderEnvironmentIds,
-    titleRegenerationEnvironmentIds,
-  } = listEnvironments;
+  const { providersByEnvironmentId, machineByEnvironmentId, loadedEnvironmentIds } =
+    listEnvironments;
   const resolveProviderInstance = useThreadRowProviderInstanceResolver(providersByEnvironmentId);
   const pendingOrder = usePendingThreadOrder(nowMinute, snoozeWakeTick);
   const { threadListV2Layout } = useThreadListV2Layout({
+    grouping: props.threadGrouping,
+    groupingProjects: projectScopes.map((scope) => ({
+      key: scope.key,
+      label: scope.title,
+      memberProjectRefs: scope.projectRefs,
+    })),
     threads: props.threads,
     environmentId: props.selectedEnvironmentId,
     projectRefs: v2ScopedProjectGroup === null ? null : v2ScopedProjectGroup.projectRefs,
     searchQuery: props.searchQuery,
     matchedThreadKeys,
     pendingOrder,
-    settlementEnvironmentIds,
-    snoozeEnvironmentIds,
     queuedThreadKeys,
-    settledLimit: settledVisibleCount,
+    doneLimit: doneVisibleCount,
     now: listClock.now,
     pinnedShelfExpanded,
     activeShelfExpanded,
     workingShelfExpanded,
+    collapsedGroups,
     snoozedShelfExpanded,
-    settledShelfExpanded,
-    selectedThreadKey: null,
+    doneShelfExpanded,
+    selectedThreadKey,
   });
-  // Re-partition the moment the earliest snooze expires (clamped to the
-  // signed-32-bit setTimeout range; far-future wakes re-arm at the clamp).
   const nextSnoozeWakeAt = threadListV2Layout.nextSnoozeWakeAt;
   useEffect(() => {
     if (nextSnoozeWakeAt === null) return;
@@ -621,55 +550,30 @@ export function HomeScreen(props: HomeScreenProps) {
     // unchanged: after a clamped fire (wake beyond the 32-bit setTimeout
     // range) the boundary string is identical and the chain would die.
   }, [nextSnoozeWakeAt, snoozeWakeTick]);
-  // Queued tasks are not thread shells, so the v2 partition never sees them;
-  // they are spliced in below the active block and stay visible and deletable
-  // while their environment is offline. Same environment scope and search
-  // filter as the list itself.
   const v2SearchQuery = props.searchQuery.trim().toLocaleLowerCase();
-  const v2PendingTasks = useMemo(
-    () =>
-      props.pendingTasks.filter(
-        (pendingTask) =>
-          (props.selectedEnvironmentId === null ||
-            pendingTask.environmentId === props.selectedEnvironmentId) &&
-          (v2ScopedProjectKeys === null ||
-            v2ScopedProjectKeys.has(
-              scopedProjectKey(pendingTask.environmentId, pendingTask.projectId),
-            )) &&
-          (v2SearchQuery.length === 0 ||
-            pendingTask.title.toLocaleLowerCase().includes(v2SearchQuery)),
-      ),
-    [props.pendingTasks, props.selectedEnvironmentId, v2ScopedProjectKeys, v2SearchQuery],
+  const v2PendingTasks = props.pendingTasks.filter(
+    (pendingTask) =>
+      (props.selectedEnvironmentId === null ||
+        pendingTask.environmentId === props.selectedEnvironmentId) &&
+      (v2ScopedProjectKeys === null ||
+        v2ScopedProjectKeys.has(
+          scopedProjectKey(pendingTask.environmentId, pendingTask.projectId),
+        )) &&
+      (v2SearchQuery.length === 0 || pendingTask.title.toLocaleLowerCase().includes(v2SearchQuery)),
   );
-  const threadListV2Items = useMemo(
-    () =>
-      buildThreadListV2ListItems({
-        ...threadListV2Layout,
-        pendingTasks: v2PendingTasks,
-        pinnedShelfExpanded,
-        activeShelfExpanded,
-        workingShelfExpanded,
-        snoozedShelfExpanded,
-        settledShelfExpanded,
-        snoozeLabelNow: `${nowMinute}:00.000Z`,
-        snoozeEnvironmentIds,
-        queuedThreadKeys,
-        shelfPreferencesLoading: !shelfPreferencesLoaded,
-      }),
-    [
-      nowMinute,
-      queuedThreadKeys,
-      settledShelfExpanded,
-      shelfPreferencesLoaded,
-      snoozedShelfExpanded,
-      snoozeEnvironmentIds,
-      threadListV2Layout,
-      v2PendingTasks,
-      pinnedShelfExpanded,
-      activeShelfExpanded,
-      workingShelfExpanded,
-    ],
-  );
+  const threadListV2Items = buildThreadListV2ListItems({
+    ...threadListV2Layout,
+    pendingTasks: v2PendingTasks,
+    pinnedShelfExpanded,
+    activeShelfExpanded,
+    workingShelfExpanded,
+    snoozedShelfExpanded,
+    doneShelfExpanded,
+    snoozeLabelNow: `${nowMinute}:00.000Z`,
+    loadedEnvironmentIds,
+    queuedThreadKeys,
+    shelfPreferencesLoading: !shelfPreferencesLoaded,
+  });
 
   useThreadJumpShortcuts(threadListV2Items, props.onSelectThread);
   useEffect(() => {
@@ -678,251 +582,212 @@ export function HomeScreen(props: HomeScreenProps) {
 
   const listMotion = useThreadListMotion({
     items: threadListV2Items,
-    settledLimit: settledVisibleCount,
-    scope: settledResetKey,
-    searching: hasSearchQuery || searchKeyboardVisible,
+    doneLimit: doneVisibleCount,
+    scope: doneResetKey,
+    searching: hasSearchQuery,
     scrolling: !swipeEnabled,
     ready: shelfPreferencesLoaded && !props.catalogState.isLoadingConnections,
   });
   const prepareListMotion = listMotion.prepare;
-  const renderV2ItemContent = useCallback(
-    ({ item }: { readonly item: ThreadListV2ListItem }) => {
-      if (item.type === "v2-pending") {
-        const pendingScopeKey = scopedProjectKey(
-          item.pendingTask.environmentId,
-          item.pendingTask.projectId,
-        );
-        return (
-          <ThreadListV2PendingRow
-            pendingTask={item.pendingTask}
-            project={projectByKey.get(pendingScopeKey) ?? null}
-            projectTitle={v2ProjectTitleByProjectKey.get(pendingScopeKey)}
-            environmentLabel={
-              Object.keys(props.savedConnectionsById).length > 1
-                ? (props.savedConnectionsById[item.pendingTask.environmentId]?.environmentLabel ??
-                  null)
-                : null
-            }
-            environmentMachine={machineByEnvironmentId.get(item.pendingTask.environmentId)}
-            showPendingDivider={item.showPendingDivider}
-            showTrailingDivider={item.showTrailingDivider}
-            onSelectPendingTask={props.onSelectPendingTask}
-            onDeletePendingTask={props.onDeletePendingTask}
-            onSwipeableClose={handleSwipeableClose}
-            onSwipeableWillOpen={handleSwipeableWillOpen}
-            activationKey={item.key}
-          />
-        );
-      }
-      if (item.type === "v2-active-header") {
-        return (
-          <ThreadListV2ActiveShelfHeader
-            count={item.count}
-            disabled={item.disabled}
-            expanded={item.expanded}
-            onToggle={toggleActiveShelf}
-          />
-        );
-      }
-      if (item.type === "v2-show-more") {
-        return <ThreadListV2ShowMoreRow hiddenCount={item.hiddenCount} onPress={showMoreSettled} />;
-      }
-      if (item.type === "v2-pinned-shelf") {
-        return (
-          <ThreadListV2PinnedShelfHeader
-            count={item.count}
-            disabled={item.disabled}
-            expanded={item.expanded}
-            onToggle={togglePinnedShelf}
-          />
-        );
-      }
-      if (item.type === "v2-working-shelf") {
-        return (
-          <ThreadListV2WorkingShelfHeader
-            count={item.count}
-            disabled={item.disabled}
-            expanded={item.expanded}
-            onToggle={toggleWorkingShelf}
-          />
-        );
-      }
-      if (item.type === "v2-snoozed-shelf") {
-        return (
-          <ThreadListV2SnoozedShelfHeader
-            count={item.count}
-            disabled={item.disabled}
-            expanded={item.expanded}
-            onToggle={toggleSnoozedShelf}
-          />
-        );
-      }
-      if (item.type === "v2-settled-shelf") {
-        return (
-          <ThreadListV2SettledShelfHeader
-            count={item.count}
-            disabled={item.disabled}
-            expanded={item.expanded}
-            onToggle={() => {
-              prepareListMotion();
-              toggleSettledShelf();
-            }}
-          />
-        );
-      }
-      const thread = item.item.thread;
+  const renderV2ItemContent = ({ item }: { readonly item: ThreadListV2ListItem }) => {
+    if (item.type === "v2-pending") {
+      const pendingScopeKey = scopedProjectKey(
+        item.pendingTask.environmentId,
+        item.pendingTask.projectId,
+      );
       return (
-        <ThreadListV2Row
+        <ThreadListV2PendingRow
           pane={primaryColumn ? "sidebar" : "screen"}
-          selected={scopedThreadKey(thread.environmentId, thread.id) === selectedThreadKey}
-          fullSwipeWidth={fullSwipeWidth}
-          onNewThreadOnBranch={props.onNewThreadOnBranch}
-          thread={thread}
-          variant={item.item.variant}
-          hasQueuedMessages={item.hasQueuedMessages}
-          snoozed={item.item.snoozed}
-          pinned={item.item.pinned}
-          snoozePresetMinute={item.snoozePresetMinute ?? ""}
-          snoozeWakeLabelText={item.snoozeWakeLabelText}
-          timeLabel={item.timeLabel}
-          showTrailingDivider={item.showTrailingDivider}
-          project={
-            projectByKey.get(scopedProjectKey(thread.environmentId, thread.projectId)) ?? null
+          pendingTask={item.pendingTask}
+          selected={
+            activeNewTask?.pendingKey === item.pendingTask.key ||
+            (item.pendingTask.kind === "pending" &&
+              scopedThreadKey(item.pendingTask.environmentId, item.pendingTask.message.threadId) ===
+                selectedThreadKey)
           }
-          projectTitle={v2ProjectTitleByProjectKey.get(
-            scopedProjectKey(thread.environmentId, thread.projectId),
-          )}
-          providerInstance={resolveProviderInstance(thread)}
-          providers={providersByEnvironmentId.get(thread.environmentId)}
+          project={projectByKey.get(pendingScopeKey) ?? null}
+          projectTitle={v2ProjectTitleByProjectKey.get(pendingScopeKey)}
           environmentLabel={
             Object.keys(props.savedConnectionsById).length > 1
-              ? (props.savedConnectionsById[thread.environmentId]?.environmentLabel ?? null)
+              ? (props.savedConnectionsById[item.pendingTask.environmentId]?.environmentLabel ??
+                null)
               : null
           }
-          environmentMachine={machineByEnvironmentId.get(thread.environmentId)}
-          searchMatch={threadSearchMatchByKey.get(
-            threadSearchMatchKey({
-              environmentId: thread.environmentId,
-              threadId: thread.id,
-            }),
-          )}
-          searchQuery={props.searchQuery}
-          onSelectThread={props.onSelectThread}
-          onDeleteThread={handleDeleteThread}
-          onArchiveThread={props.onArchiveThread}
-          onRenameThread={handleRenameThread}
-          onRegenerateThreadTitle={handleRegenerateThreadTitle}
-          titleRegenerationSupported={titleRegenerationEnvironmentIds.has(thread.environmentId)}
-          settlementSupported={settlementEnvironmentIds.has(thread.environmentId)}
-          onSettleThread={handleSettleThread}
-          snoozeSupported={snoozeEnvironmentIds.has(thread.environmentId)}
-          pinningSupported={pinningEnvironmentIds.has(thread.environmentId)}
-          autoSettleOptOutSupported={autoSettleOptOutEnvironmentIds.has(thread.environmentId)}
-          arrangeSupported={pinReorderEnvironmentIds.has(thread.environmentId)}
-          onSnoozeThread={handleSnoozeThread}
-          onUnsnoozeThread={handleUnsnoozeThread}
-          onUnsettleThread={handleUnsettleThread}
-          onPinThread={handlePinThread}
-          onUnpinThread={handleUnpinThread}
-          onSetThreadAutoSettle={handleSetThreadAutoSettle}
+          environmentMachine={machineByEnvironmentId.get(item.pendingTask.environmentId)}
+          showPendingDivider={item.showPendingDivider}
+          showTrailingDivider={item.showTrailingDivider}
+          onSelectPendingTask={props.onSelectPendingTask}
+          onDeletePendingTask={props.onDeletePendingTask}
           onSwipeableClose={handleSwipeableClose}
           onSwipeableWillOpen={handleSwipeableWillOpen}
-          simultaneousSwipeGesture={homeScrollGesture}
           activationKey={item.key}
         />
       );
-    },
-    [
-      handleDeleteThread,
-      handlePinThread,
-      handleRegenerateThreadTitle,
-      handleRenameThread,
-      handleSettleThread,
-      handleSnoozeThread,
-      handleUnpinThread,
-      handleUnsnoozeThread,
-      handleSwipeableClose,
-      handleSwipeableWillOpen,
-      handleUnsettleThread,
-      handleSetThreadAutoSettle,
-      homeScrollGesture,
-      autoSettleOptOutEnvironmentIds,
-      pinningEnvironmentIds,
-      autoSettleOptOutEnvironmentIds,
-      machineByEnvironmentId,
-      pinReorderEnvironmentIds,
-      projectByKey,
-      props.onArchiveThread,
-      props.onDeletePendingTask,
-      props.onSelectPendingTask,
-      props.onSelectThread,
-      primaryColumn,
-      selectedThreadKey,
-      fullSwipeWidth,
-      props.onNewThreadOnBranch,
-      props.savedConnectionsById,
-      resolveProviderInstance,
-      providersByEnvironmentId,
-      settlementEnvironmentIds,
-      snoozeEnvironmentIds,
-      threadSearchMatchByKey,
-      titleRegenerationEnvironmentIds,
-      showMoreSettled,
-      toggleSettledShelf,
-      prepareListMotion,
-      toggleSnoozedShelf,
-      togglePinnedShelf,
-      toggleActiveShelf,
-      toggleWorkingShelf,
-      v2ProjectTitleByProjectKey,
-      props.searchQuery,
-    ],
-  );
-  const v2KeyExtractor = useCallback((item: ThreadListV2ListItem) => item.key, []);
-  const renderV2Item = useCallback(
-    (itemProps: Parameters<typeof renderV2ItemContent>[0]) => (
-      <Animated.View
-        key={itemProps.item.key}
-        collapsable={false}
-        entering={listMotion.entering}
-        exiting={listMotion.exiting}
-      >
-        {renderV2ItemContent(itemProps)}
-      </Animated.View>
-    ),
-    [listMotion, renderV2ItemContent],
+    }
+    if (item.type === "v2-group-header") {
+      return (
+        <ThreadListV2GroupHeader
+          groupKey={item.groupKey}
+          label={item.label}
+          project={findHomeProjectScope(projectScopes, item.projectKey)?.representative ?? null}
+          count={item.count}
+          disabled={item.disabled}
+          expanded={item.expanded}
+          onToggle={toggleGroup}
+        />
+      );
+    }
+    if (item.type === "v2-active-header") {
+      return (
+        <ThreadListV2ActiveShelfHeader
+          count={item.count}
+          disabled={item.disabled}
+          expanded={item.expanded}
+          onToggle={toggleActiveShelf}
+        />
+      );
+    }
+    if (item.type === "v2-show-more") {
+      return <ThreadListV2ShowMoreRow hiddenCount={item.hiddenCount} onPress={showMoreDone} />;
+    }
+    if (item.type === "v2-pinned-shelf") {
+      return (
+        <ThreadListV2PinnedShelfHeader
+          count={item.count}
+          disabled={item.disabled}
+          expanded={item.expanded}
+          onToggle={togglePinnedShelf}
+        />
+      );
+    }
+    if (item.type === "v2-working-shelf") {
+      return (
+        <ThreadListV2WorkingShelfHeader
+          count={item.count}
+          disabled={item.disabled}
+          expanded={item.expanded}
+          onToggle={toggleWorkingShelf}
+        />
+      );
+    }
+    if (item.type === "v2-snoozed-shelf") {
+      return (
+        <ThreadListV2SnoozedShelfHeader
+          count={item.count}
+          disabled={item.disabled}
+          expanded={item.expanded}
+          onToggle={toggleSnoozedShelf}
+        />
+      );
+    }
+    if (item.type === "v2-done-shelf") {
+      return (
+        <ThreadListV2DoneShelfHeader
+          count={item.count}
+          disabled={item.disabled}
+          expanded={item.expanded}
+          onToggle={() => {
+            prepareListMotion();
+            toggleDoneShelf();
+          }}
+        />
+      );
+    }
+    const thread = item.item.thread;
+    return (
+      <ThreadListV2Row
+        pane={primaryColumn ? "sidebar" : "screen"}
+        selected={scopedThreadKey(thread.environmentId, thread.id) === selectedThreadKey}
+        fullSwipeWidth={fullSwipeWidth}
+        onNewThreadOnBranch={props.onNewThreadOnBranch}
+        thread={thread}
+        variant={item.item.variant}
+        hasQueuedMessages={item.hasQueuedMessages}
+        snoozed={item.item.snoozed}
+        pinned={item.item.pinned}
+        wokeAt={item.item.wokeAt}
+        snoozePresetMinute={item.snoozePresetMinute ?? ""}
+        snoozeWakeLabelText={item.snoozeWakeLabelText}
+        timeLabel={item.timeLabel}
+        showTrailingDivider={item.showTrailingDivider}
+        showProjectIcon={item.showProjectIcon}
+        project={projectByKey.get(scopedProjectKey(thread.environmentId, thread.projectId)) ?? null}
+        projectTitle={v2ProjectTitleByProjectKey.get(
+          scopedProjectKey(thread.environmentId, thread.projectId),
+        )}
+        providerInstance={resolveProviderInstance(thread)}
+        providers={providersByEnvironmentId.get(thread.environmentId)}
+        environmentLabel={
+          Object.keys(props.savedConnectionsById).length > 1
+            ? (props.savedConnectionsById[thread.environmentId]?.environmentLabel ?? null)
+            : null
+        }
+        environmentMachine={machineByEnvironmentId.get(thread.environmentId)}
+        searchMatch={threadSearchMatchByKey.get(
+          threadSearchMatchKey({
+            environmentId: thread.environmentId,
+            threadId: thread.id,
+          }),
+        )}
+        searchQuery={props.searchQuery}
+        onSelectThread={props.onSelectThread}
+        onOpenThreadPullRequests={handleOpenThreadPullRequests}
+        onDeleteThread={handleDeleteThread}
+        onArchiveThread={props.onArchiveThread}
+        onRenameThread={handleRenameThread}
+        onRegenerateThreadTitle={handleRegenerateThreadTitle}
+        titleRegenerationSupported={loadedEnvironmentIds.has(thread.environmentId)}
+        markDoneSupported={loadedEnvironmentIds.has(thread.environmentId)}
+        onMarkThreadDone={handleMarkThreadDone}
+        snoozeSupported={loadedEnvironmentIds.has(thread.environmentId)}
+        pinningSupported={loadedEnvironmentIds.has(thread.environmentId)}
+        autoMarkDoneOptOutSupported={loadedEnvironmentIds.has(thread.environmentId)}
+        arrangeSupported={loadedEnvironmentIds.has(thread.environmentId)}
+        onSnoozeThread={handleSnoozeThread}
+        onUnsnoozeThread={handleUnsnoozeThread}
+        onReopenThread={handleReopenThread}
+        onPinThread={handlePinThread}
+        onUnpinThread={handleUnpinThread}
+        onSetThreadAutoMarkDone={handleSetThreadAutoMarkDone}
+        onSwipeableClose={handleSwipeableClose}
+        onSwipeableWillOpen={handleSwipeableWillOpen}
+        simultaneousSwipeGesture={homeScrollGesture}
+        activationKey={item.key}
+      />
+    );
+  };
+  const v2KeyExtractor = (item: ThreadListV2ListItem) => item.key;
+  const renderV2Item = (itemProps: Parameters<typeof renderV2ItemContent>[0]) => (
+    <Animated.View
+      key={itemProps.item.key}
+      collapsable={false}
+      entering={listMotion.entering}
+      exiting={listMotion.exiting}
+    >
+      {renderV2ItemContent(itemProps)}
+    </Animated.View>
   );
 
   // FlatList/LegendList treat a changed extraData identity as "re-render every
   // visible row", so an inline object literal would invalidate all rows on
   // every HomeScreen render — and the minute clock must stay out of it for
   // the same reason: the clock text is precomputed per item instead.
-  const v2ExtraData = useMemo(
-    () => ({
-      projectByKey,
-      projectTitleByProjectKey: v2ProjectTitleByProjectKey,
-      listEnvironments,
-      savedConnectionsById: props.savedConnectionsById,
-      searchQuery: props.searchQuery,
-      selectedThreadKey,
-      threadSearchMatchByKey,
-    }),
-    [
-      projectByKey,
-      props.searchQuery,
-      selectedThreadKey,
-      props.savedConnectionsById,
-      listEnvironments,
-      threadSearchMatchByKey,
-      v2ProjectTitleByProjectKey,
-    ],
-  );
+  const v2ExtraData = {
+    activeNewTask,
+    projectByKey,
+    projectScopes,
+    projectTitleByProjectKey: v2ProjectTitleByProjectKey,
+    listEnvironments,
+    savedConnectionsById: props.savedConnectionsById,
+    searchQuery: props.searchQuery,
+    selectedThreadKey,
+    threadSearchMatchByKey,
+  };
 
-  /* Empty states */
   // The signal must ignore the search/environment filters: an active query
   // that matches nothing needs the in-list "No results" state, not the
-  // full-page "No threads yet". Settled threads are unarchived live shells,
-  // so the archived-at check already covers the settled shelf.
+  // full-page "No threads yet". Done threads are unarchived live shells,
+  // so the archived-at check already covers the done shelf.
   const hasAnyThreads =
     props.threads.some((thread) => thread.archivedAt === null) || props.pendingTasks.length > 0;
   const selectedEnvironmentLabel =
@@ -930,9 +795,6 @@ export function HomeScreen(props: HomeScreenProps) {
       ? null
       : (props.savedConnectionsById[props.selectedEnvironmentId]?.environmentLabel ??
         "this environment");
-  // Connection state surfaces in the header title slot
-  // (WorkspaceConnectionTitle) — nothing renders inside the list, so
-  // reconnects never shift the rows.
   const emptyState = deriveEmptyState({
     catalogState: props.catalogState,
     projectCount: props.projects.length,
@@ -962,7 +824,7 @@ export function HomeScreen(props: HomeScreenProps) {
               onAction={!props.catalogState.hasReadyEnvironment ? props.onAddConnection : undefined}
               action={
                 Platform.OS === "android" && !props.catalogState.hasReadyEnvironment ? (
-                  <MaterialFloatingActionButton
+                  <FloatingActionButton
                     label="Add environment"
                     icon="plus"
                     variant="extended"
@@ -984,12 +846,6 @@ export function HomeScreen(props: HomeScreenProps) {
     );
   }
 
-  const listHeader = Platform.OS === "ios" ? undefined : <HomeTopContentSpacer />;
-
-  const v2ListHeader = <>{listHeader}</>;
-
-  // Use the v2 project scope for its empty state. Snoozed threads need no
-  // special empty state: their shelf header is a list row even while collapsed.
   const v2ListEmpty =
     hasSearchQuery && threadSearch.isPending ? undefined : hasSearchQuery ? (
       <EmptyState
@@ -1038,11 +894,7 @@ export function HomeScreen(props: HomeScreenProps) {
             ? "flex-1 overflow-hidden rounded-t-[28px] bg-screen"
             : cn("flex-1", contentBackground)
         }
-        style={{ marginTop: listTopInset }}
       >
-        {/* Shared with the iPad sidebar: cells are reused across data
-            rebuilds and `itemsAreEqual` keeps a minute tick (or an unrelated
-            shell update) from re-rendering untouched rows. */}
         <SwipeableScrollGateProvider enabled={swipeEnabled} activation={swipeRowActivation}>
           <GestureDetector gesture={homeScrollGesture}>
             <AnimatedLegendList
@@ -1062,22 +914,11 @@ export function HomeScreen(props: HomeScreenProps) {
               recycleItems
               itemLayoutAnimation={listMotion.layout}
               extraData={v2ExtraData}
-              ListHeaderComponent={v2ListHeader}
-              ListEmptyComponent={
-                v2ListEmpty && (
-                  // The list's flex-end empty layout ignores the iOS start inset.
-                  <View
-                    className="w-full"
-                    style={{ marginBottom: Platform.OS === "ios" ? insets.top : 0 }}
-                  >
-                    {v2ListEmpty}
-                  </View>
-                )
+              ListHeaderComponent={
+                Platform.OS === "ios" ? props.listHeader : <HomeTopContentSpacer />
               }
+              ListEmptyComponent={v2ListEmpty}
               style={{ flex: 1 }}
-              sharedValues={listMotion.sharedValues}
-              itemsContainerStyle={listMotion.alignmentStyle}
-              alignItemsAtEnd
               automaticallyAdjustsScrollIndicatorInsets={Platform.OS === "ios"}
               contentInsetAdjustmentBehavior="never"
               contentInset={Platform.OS === "ios" ? { top: insets.top } : undefined}
@@ -1093,8 +934,10 @@ export function HomeScreen(props: HomeScreenProps) {
               {...scrollGateHandlers}
               scrollEventThrottle={16}
               contentContainerStyle={{
-                paddingLeft: (contentSideInsets?.left ?? 0) + (primaryColumn ? 8 : 0),
-                paddingRight: (contentSideInsets?.right ?? 0) + (primaryColumn ? 8 : 0),
+                paddingLeft:
+                  (contentSideInsets?.left ?? 0) + (primaryColumn ? 8 : 0) + androidListGutter,
+                paddingRight:
+                  (contentSideInsets?.right ?? 0) + (primaryColumn ? 8 : 0) + androidListGutter,
                 paddingBottom:
                   Platform.OS === "ios"
                     ? iosBottomClearance

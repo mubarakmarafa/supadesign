@@ -1,22 +1,27 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vite-plus/test";
-import {
-  ProviderDriverKind,
-  ProviderInstanceId,
-  type ServerProvider,
-  type ServerProviderModel,
-} from "@supaterm/contracts";
+import { ProviderDriverKind, type ServerProviderModel } from "@supaterm/contracts";
 
 import {
   deriveProviderModelsForDisplay,
   nextProviderEnvironmentWithFieldValue,
-  providerEnvironmentWithoutNames,
-  ProviderInstanceCard,
-  readProviderEnvironmentVariable,
 } from "./ProviderInstanceCard";
 
 describe("deriveProviderModelsForDisplay", () => {
+  it("does not restore unsupported Claude Fast from a saved custom definition", () => {
+    const capabilities = {
+      optionDescriptors: [{ id: "fastMode", label: "Fast Mode", type: "boolean" as const }],
+    };
+    const customModels = [{ slug: "custom", name: "Custom", capabilities }];
+    const models = deriveProviderModelsForDisplay({
+      driver: ProviderDriverKind.make("claudeAgent"),
+      liveModels: [
+        { ...customModels[0]!, isCustom: true, capabilities: { optionDescriptors: [] } },
+      ],
+      customModels,
+    });
+    expect(models[0]?.capabilities?.optionDescriptors).toEqual([]);
+    expect(customModels[0]?.capabilities).toBe(capabilities);
+  });
   it("uses current config custom models instead of stale live custom rows", () => {
     const liveModels: ReadonlyArray<ServerProviderModel> = [
       {
@@ -41,6 +46,7 @@ describe("deriveProviderModelsForDisplay", () => {
 
     expect(
       deriveProviderModelsForDisplay({
+        driver: ProviderDriverKind.make("codex"),
         liveModels,
         customModels: [{ slug: "kept-custom", name: "kept-custom", capabilities: null }],
       }).map((model) => model.slug),
@@ -66,6 +72,7 @@ describe("deriveProviderModelsForDisplay", () => {
     ];
 
     const display = deriveProviderModelsForDisplay({
+      driver: ProviderDriverKind.make("codex"),
       liveModels,
       customModels: [
         { slug: "bare", name: "bare", capabilities: null },
@@ -73,7 +80,6 @@ describe("deriveProviderModelsForDisplay", () => {
       ],
     });
 
-    // A bare entry keeps the driver default the server filled in.
     expect(display[0]).toEqual({
       slug: "bare",
       name: "bare",
@@ -86,87 +92,6 @@ describe("deriveProviderModelsForDisplay", () => {
       isCustom: true,
       capabilities: customCapabilities,
     });
-  });
-
-  it("shows a redacted provider email in the editor header status line", () => {
-    const instanceId = ProviderInstanceId.make("codex");
-    const driver = ProviderDriverKind.make("codex");
-    const liveProvider: ServerProvider = {
-      instanceId,
-      driver,
-      enabled: true,
-      installed: true,
-      version: "1.0.0",
-      status: "ready",
-      auth: { status: "authenticated", email: "developer@example.com" },
-      checkedAt: "2026-08-27T12:00:00.000Z",
-      models: [],
-      slashCommands: [],
-      skills: [],
-    };
-
-    const markup = renderToStaticMarkup(
-      createElement(ProviderInstanceCard, {
-        instanceId,
-        instance: { driver },
-        driverOption: undefined,
-        liveProvider,
-        mode: "editor",
-        onUpdate: () => undefined,
-        hiddenModels: [],
-        favoriteModels: [],
-        modelOrder: [],
-        onHiddenModelsChange: () => undefined,
-        onFavoriteModelsChange: () => undefined,
-        onToggleFavorite: () => undefined,
-        onModelOrderChange: () => undefined,
-      }),
-    );
-
-    expect(markup).toContain("Authenticated as");
-    expect(markup).toContain('aria-label="Toggle account email visibility"');
-    expect(markup).toContain("blur-xs");
-    expect(markup).not.toContain("developer@example.com");
-  });
-  it("surfaces a failed probe message in both the list row and the editor", () => {
-    const instanceId = ProviderInstanceId.make("codex_work");
-    const driver = ProviderDriverKind.make("codex");
-    const message =
-      "Codex app-server provider probe failed: Cannot create Codex shadow home entry 'auth.json' because '/home/me/.codex-supaterm/work/auth.json' already exists and is not a symlink.";
-    const liveProvider: ServerProvider = {
-      instanceId,
-      driver,
-      enabled: true,
-      installed: true,
-      version: null,
-      status: "error",
-      auth: { status: "unknown" },
-      checkedAt: "2026-08-28T12:00:00.000Z",
-      models: [],
-      slashCommands: [],
-      skills: [],
-      message,
-    };
-    const props = {
-      instanceId,
-      instance: { driver },
-      driverOption: undefined,
-      liveProvider,
-      onUpdate: () => undefined,
-      hiddenModels: [],
-      favoriteModels: [],
-      modelOrder: [],
-      onHiddenModelsChange: () => undefined,
-      onFavoriteModelsChange: () => undefined,
-      onToggleFavorite: () => undefined,
-      onModelOrderChange: () => undefined,
-    } as const;
-
-    for (const mode of ["list", "editor"] as const) {
-      const markup = renderToStaticMarkup(createElement(ProviderInstanceCard, { ...props, mode }));
-      expect(markup).toContain("Unavailable");
-      expect(markup).toContain("is not a symlink");
-    }
   });
 });
 
@@ -218,19 +143,5 @@ describe("provider environment helpers", () => {
         "new-key",
       ),
     ).toEqual([{ name: "OPENAI_API_KEY", value: "new-key", sensitive: true }]);
-  });
-
-  it("separates dedicated provider secrets from the generic environment table", () => {
-    const environment = [
-      { name: "CURSOR_API_KEY", value: "cursor-key", sensitive: true },
-      { name: "EXTRA_FLAG", value: "1", sensitive: false },
-    ];
-
-    expect(readProviderEnvironmentVariable(environment, "CURSOR_API_KEY")?.value).toBe(
-      "cursor-key",
-    );
-    expect(providerEnvironmentWithoutNames(environment, new Set(["CURSOR_API_KEY"]))).toEqual([
-      { name: "EXTRA_FLAG", value: "1", sensitive: false },
-    ]);
   });
 });

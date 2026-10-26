@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "@effect/atom-react";
 import type { ServerProvider } from "@supaterm/contracts";
 import { CircleCheckIcon, DownloadIcon, TriangleAlertIcon, XIcon } from "lucide-react";
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useEffectEvent, useState, type CSSProperties } from "react";
 
 import { primaryServerProvidersAtom } from "../../state/server";
 import {
@@ -11,6 +11,9 @@ import {
   type ProviderUpdateSidebarPillView,
 } from "../ProviderUpdateLaunchNotification.logic";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+
+// Matches the pill's `duration-180` class.
+const PROVIDER_UPDATE_PILL_EXIT_MS = 180;
 
 const PROVIDER_UPDATE_PILL_STYLES = {
   loading:
@@ -60,9 +63,9 @@ export function SidebarProviderUpdatePill() {
     setVisibleAfterIso(effectiveVisibleAfterIso);
   }
 
-  const openProviderSettings = useCallback(() => {
+  const openProviderSettings = () => {
     void navigate({ to: "/settings/providers" });
-  }, [navigate]);
+  };
   const displayedView = renderedView ?? view;
   const dismissAfterVisibleMs = displayedView?.dismissAfterVisibleMs;
   const viewKey = displayedView?.key ?? null;
@@ -71,17 +74,18 @@ export function SidebarProviderUpdatePill() {
     displayedView?.tone !== "loading" &&
     exitingKey !== viewKey;
 
-  const startExit = useCallback(
-    (key: string, nextView: ProviderUpdateSidebarPillView | null, dismissKey?: string) => {
-      if (exitingKey === key) {
-        return;
-      }
-      setPendingView(nextView);
-      setExitingKey(key);
-      setDismissAfterExitKey(dismissKey ?? null);
-    },
-    [exitingKey],
-  );
+  const startExit = (
+    key: string,
+    nextView: ProviderUpdateSidebarPillView | null,
+    dismissKey?: string,
+  ) => {
+    if (exitingKey === key) {
+      return;
+    }
+    setPendingView(nextView);
+    setExitingKey(key);
+    setDismissAfterExitKey(dismissKey ?? null);
+  };
 
   if (exitingKey === null) {
     if (!renderedView) {
@@ -95,6 +99,25 @@ export function SidebarProviderUpdatePill() {
     }
   }
 
+  const exitAfterVisible = useEffectEvent((key: string) => startExit(key, null, key));
+
+  const finishExit = useEffectEvent(() => {
+    if (dismissAfterExitKey !== null) {
+      setDismissedKeys((previous) => new Set(previous).add(dismissAfterExitKey));
+    }
+    setRenderedView(pendingView);
+    setPendingView(null);
+    setExitingKey(null);
+    setDismissAfterExitKey(null);
+  });
+
+  useEffect(() => {
+    if (exitingKey === null) return;
+    // A cancelled or skipped CSS transition must not keep a hidden spinner mounted.
+    const timeoutId = window.setTimeout(finishExit, PROVIDER_UPDATE_PILL_EXIT_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [exitingKey]);
+
   useEffect(() => {
     if (!dismissAfterVisibleMs || !viewKey) {
       return;
@@ -103,11 +126,11 @@ export function SidebarProviderUpdatePill() {
       return;
     }
     const timeoutId = window.setTimeout(() => {
-      startExit(viewKey, null, viewKey);
+      exitAfterVisible(viewKey);
     }, dismissAfterVisibleMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [dismissAfterVisibleMs, exitingKey, startExit, viewKey]);
+  }, [dismissAfterVisibleMs, exitingKey, viewKey]);
 
   if (!displayedView) {
     return null;
@@ -122,21 +145,6 @@ export function SidebarProviderUpdatePill() {
           ? "pointer-events-none translate-y-1.5 opacity-0"
           : "translate-y-0 opacity-100"
       }`}
-      onTransitionEnd={(event) => {
-        if (event.target !== event.currentTarget) {
-          return;
-        }
-        if (!displayedView || exitingKey !== displayedView.key) {
-          return;
-        }
-        if (dismissAfterExitKey === displayedView.key) {
-          setDismissedKeys((previous) => new Set(previous).add(displayedView.key));
-        }
-        setRenderedView(pendingView);
-        setPendingView(null);
-        setExitingKey(null);
-        setDismissAfterExitKey(null);
-      }}
     >
       {showDismissProgress ? (
         <div

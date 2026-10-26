@@ -1,3 +1,4 @@
+import * as Dialog from "../../components/ui/Dialog";
 import { loadExpoFileSystem } from "../../lib/expoFileSystem";
 import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
@@ -10,7 +11,7 @@ import {
   type SharePayload,
 } from "expo-sharing";
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { Alert, AppState, Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 
 import {
   buildIncomingShareDraft,
@@ -279,7 +280,7 @@ export function IncomingShareProvider(props: React.PropsWithChildren) {
     if (!error) {
       return;
     }
-    Alert.alert("Could not import shared content", error.message, [
+    Dialog.alert("Could not import shared content", error.message, [
       { text: "Dismiss", style: "cancel", onPress: () => setError(null) },
       {
         text: "Retry",

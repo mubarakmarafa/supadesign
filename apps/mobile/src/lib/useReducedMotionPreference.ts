@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { AccessibilityInfo, AppState } from "react-native";
+import { ReduceMotion } from "react-native-reanimated";
 
 let reducedMotion = true;
 let generation = 0;
@@ -53,4 +54,9 @@ function subscribe(listener: () => void) {
 /** Shares the live OS preference; motion stays off until the first native read. */
 export function useReducedMotionPreference() {
   return useSyncExternalStore(subscribe, () => reducedMotion);
+}
+
+/** Live preference as a Reanimated `ReduceMotion`, for `.reduceMotion(...)` and timing configs. */
+export function useReduceMotion() {
+  return useReducedMotionPreference() ? ReduceMotion.Always : ReduceMotion.Never;
 }

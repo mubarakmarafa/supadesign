@@ -1,6 +1,8 @@
 import { DesktopSshEnvironmentTargetSchema, EnvironmentId } from "@supaterm/contracts";
+import { upgradeRelayAddresses } from "@supaterm/shared/relay/protocol";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
+import * as SchemaTransformation from "effect/SchemaTransformation";
 
 import {
   BearerConnectionTarget,
@@ -8,6 +10,16 @@ import {
   SshConnectionTarget,
   type ConnectionTarget,
 } from "./model.ts";
+
+const BaseUrl = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.transform({
+      decode: upgradeRelayAddresses,
+      encode: (value) => value,
+    }),
+  ),
+);
 
 const ConnectionProfileBase = {
   connectionId: Schema.String,
@@ -19,8 +31,8 @@ export class BearerConnectionProfile extends Schema.TaggedClass<BearerConnection
   "BearerConnectionProfile",
   {
     ...ConnectionProfileBase,
-    httpBaseUrl: Schema.String,
-    wsBaseUrl: Schema.String,
+    httpBaseUrl: BaseUrl,
+    wsBaseUrl: BaseUrl,
     /** Learned from the server's direct endpoint advertisement. */
     learned: Schema.optionalKey(Schema.Literal(true)),
     network: Schema.optionalKey(Schema.Literal("tailscale")),
@@ -46,14 +58,13 @@ export interface ConnectionRoute {
 
 export interface ConnectionCatalogEntry {
   readonly target: ConnectionTarget;
+  readonly defaultLabel?: string;
   readonly profile: Option.Option<ConnectionProfile>;
   /** Additional direct or SSH routes, in fallback order. */
   readonly alternateRoutes?: ReadonlyArray<ConnectionRoute>;
-  /** False when the user switched the environment off: saved, but never connects. */
   readonly enabled: boolean;
   /** Protocol rejection stays visible while the saved connection is switched off. */
   readonly unsupportedReason?: string;
-  /** The rejection came from an outdated host, which can still be updated remotely. */
   readonly serverUpdateRequired?: boolean;
 }
 
@@ -88,6 +99,8 @@ export class SshConnectionRegistration extends Schema.TaggedClass<SshConnectionR
   {
     target: SshConnectionTarget,
     profile: SshConnectionProfile,
+    /** The token from pairing over SSH, which later connects reuse. */
+    credential: BearerConnectionCredential,
   },
 ) {}
 
@@ -98,13 +111,10 @@ export const ConnectionRegistration = Schema.Union([
 export type ConnectionRegistration = typeof ConnectionRegistration.Type;
 
 /**
- * Platform-managed registrations are reconciled from the host (the desktop
- * bootstrap IPC) rather than persisted by the user. They cover the primary
- * local environment plus any additional desktop-local backends running
- * alongside it (e.g. a parallel WSL backend). The primary stays on same-origin
- * cookie auth (`PrimaryConnectionRegistration`); secondary local backends live
- * on a separate loopback origin and authenticate with a bearer token minted
- * from their bootstrap credential (`BearerConnectionRegistration`).
+ * The primary stays on same-origin cookie auth
+ * (`PrimaryConnectionRegistration`); secondary local backends live on a
+ * separate loopback origin and authenticate with a bearer token minted from
+ * their bootstrap credential (`BearerConnectionRegistration`).
  */
 export const PlatformConnectionRegistration = Schema.Union([
   PrimaryConnectionRegistration,

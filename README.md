@@ -8,7 +8,7 @@ Download at https://supaterm.com
 
 ## iOS app
 
-[Join the Supaterm beta on TestFlight](https://testflight.apple.com/join/ga2vGT3h).
+[Join the Supaterm beta on TestFlight](https://testflight.apple.com/join/VUJkRPwq).
 
 ## Command line
 

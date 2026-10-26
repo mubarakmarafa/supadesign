@@ -2,12 +2,11 @@
 // @effect-diagnostics globalTimers:off -- Bound calls into the user's desktop session.
 import * as NodeFSP from "node:fs/promises";
 import * as NodePath from "node:path";
-import { Message, sessionBus, type MessageBus, type MessageLike } from "dbus-next";
+import { Message, sessionBus, type MessageBus, type MessageLike } from "@particle/dbus-next";
 import * as Schema from "effect/Schema";
 import type { DesktopCaptureExtensionState } from "@supaterm/contracts";
 
 import { GNOME_CAPTURE_FILES, GNOME_CAPTURE_UUID } from "./gnomeCaptureBundle.ts";
-export { isGnomeCaptureSession } from "./linuxCaptureSession.ts";
 
 const SHELL = "org.gnome.Shell";
 const SHELL_PATH = "/org/gnome/Shell";
@@ -35,7 +34,6 @@ const decodeMetadata = Schema.decodeUnknownSync(Schema.fromJsonString(Metadata))
 
 type SetupPaths = { readonly bundle: string; readonly dataHome: string };
 
-/** Copies only the shipped extension, offline. Replaced versions are kept for recovery. */
 export async function installGnomeCaptureBundle({ bundle, dataHome }: SetupPaths) {
   const metadata = decodeMetadata(
     await NodeFSP.readFile(NodePath.join(bundle, "metadata.json"), "utf8"),
@@ -86,7 +84,6 @@ export async function installGnomeCaptureBundle({ bundle, dataHome }: SetupPaths
   }
 }
 
-/** A short-lived, read-only probe unless the user explicitly invokes an action. */
 export class GnomeCaptureSetup {
   private readonly disconnected: Promise<never>;
   private readonly paths: SetupPaths;

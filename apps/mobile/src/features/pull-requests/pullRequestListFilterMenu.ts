@@ -1,4 +1,4 @@
-import type { ControlPillMenuProps } from "../../components/ControlPillMenu.types";
+import type { MenuProps } from "../../components/ui/Menu.types";
 import type { PullRequestListControls } from "./pullRequestList";
 
 const STATES = { open: "Open", closed: "Closed", merged: "Merged", all: "All states" } as const;
@@ -145,7 +145,7 @@ export function createPullRequestListFilterMenu(props: {
     Number(Boolean(value.filters.review)) +
     Number(Boolean(value.filters.checks)) +
     Number(Boolean(value.projectId));
-  const more: ControlPillMenuProps["actions"] = [
+  const more: MenuProps["actions"] = [
     {
       id: "drafts",
       title: value.filters.draft ? DRAFTS[value.filters.draft] : "Drafts",
@@ -193,7 +193,7 @@ export function createPullRequestListFilterMenu(props: {
   const authors = [
     ...new Set([...(author && author !== "me" ? [author] : []), ...props.authors]),
   ].slice(0, 60);
-  const actions: ControlPillMenuProps["actions"] = [
+  const actions: MenuProps["actions"] = [
     {
       id: "environment",
       title: "Environment",
@@ -244,9 +244,7 @@ export function createPullRequestListFilterMenu(props: {
     title: "Pull request filters",
     accessibilityLabel: "Filter pull requests",
     actions,
-    onPressAction: ({
-      nativeEvent,
-    }: Parameters<NonNullable<ControlPillMenuProps["onPressAction"]>>[0]) =>
+    onPressAction: ({ nativeEvent }: Parameters<NonNullable<MenuProps["onPressAction"]>>[0]) =>
       select(nativeEvent.event),
     customized,
   };

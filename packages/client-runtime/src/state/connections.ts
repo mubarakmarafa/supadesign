@@ -25,16 +25,11 @@ export interface EnvironmentCatalogState {
   readonly entries: ReadonlyMap<EnvironmentIdType, ConnectionCatalogEntry>;
 }
 
-/**
- * Environments that take part in the workspace: projects, threads, and shell
- * summaries only come from these. Disabled environments stay in `entries` so
- * Settings can list them and switch them back on.
- */
 export function* enabledEnvironmentIds(
   catalog: EnvironmentCatalogState,
 ): Generator<EnvironmentIdType> {
   for (const [environmentId, entry] of catalog.entries) {
-    if (entry.enabled) {
+    if (entry.enabled && entry.unsupportedReason === undefined) {
       yield environmentId;
     }
   }
@@ -174,6 +169,19 @@ export function createEnvironmentCatalogAtoms<R, E>(
       ),
   });
 
+  const rename = createRuntimeCommand(runtime, {
+    label: "environment-catalog:rename",
+    scheduler: commandScheduler,
+    concurrency: serial,
+    execute: (input: {
+      readonly environmentId: EnvironmentIdType;
+      readonly label: string | null;
+    }) =>
+      EnvironmentRegistry.EnvironmentRegistry.pipe(
+        Effect.flatMap((registry) => registry.rename(input.environmentId, input.label)),
+      ),
+  });
+
   const retryNow = createRuntimeCommand(runtime, {
     label: "environment-catalog:retry-now",
     scheduler: commandScheduler,
@@ -196,6 +204,7 @@ export function createEnvironmentCatalogAtoms<R, E>(
     remove,
     removeRoute,
     reorderRoutes,
+    rename,
     retryNow,
     setEnabled,
   };

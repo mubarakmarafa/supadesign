@@ -17,16 +17,17 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.widget.OverScroller
+import com.facebook.react.common.assets.ReactFontManager
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
-/**
- * Bundled terminal font with Nerd Font glyphs (powerline, file icons).
- * MesloLGS NF is the powerlevel10k-tuned Meslo Nerd Font patch.
- */
 internal object TerminalTypefaces {
   private var loaded = false
+  var symbolsRegular: Typeface = Typeface.MONOSPACE
+    private set
+  var symbolsBold: Typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+    private set
   var regular: Typeface = Typeface.MONOSPACE
     private set
   var bold: Typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
@@ -36,11 +37,15 @@ internal object TerminalTypefaces {
   fun ensureLoaded(context: Context) {
     if (loaded) return
     loaded = true
+    regular =
+      ReactFontManager.getInstance().getTypeface("JetBrainsMono", Typeface.NORMAL, context.assets)
+    bold =
+      ReactFontManager.getInstance().getTypeface("JetBrainsMono", Typeface.BOLD, context.assets)
     try {
-      regular = Typeface.createFromAsset(context.assets, "fonts/MesloLGS-NF-Regular.ttf")
-      bold = Typeface.createFromAsset(context.assets, "fonts/MesloLGS-NF-Bold.ttf")
+      symbolsRegular = Typeface.createFromAsset(context.assets, "fonts/MesloLGS-NF-Regular.ttf")
+      symbolsBold = Typeface.createFromAsset(context.assets, "fonts/MesloLGS-NF-Bold.ttf")
     } catch (error: RuntimeException) {
-      Log.w("TerminalCanvasView", "bundled terminal font unavailable, using monospace", error)
+      Log.w("TerminalCanvasView", "terminal symbol font unavailable", error)
     }
   }
 }
@@ -71,6 +76,9 @@ internal class TerminalCanvasView(context: Context) : View(context) {
     const val FLAG_UNDERLINE = 1 shl 7
     const val FLAG_SELECTED = 1 shl 8
 
+    private const val TEXT_STYLE_MASK =
+      FLAG_BOLD or FLAG_ITALIC or FLAG_INVISIBLE or FLAG_UNDERLINE or FLAG_STRIKETHROUGH or
+        FLAG_OVERLINE
     private const val MENU_COPY = 1
     private const val MENU_SELECT_ALL = 2
     private const val HANDLE_COLOR = 0xFF7AA2F7.toInt()
@@ -78,7 +86,9 @@ internal class TerminalCanvasView(context: Context) : View(context) {
 
   private val density = resources.displayMetrics.density
   private val scaledDensity = density * resources.configuration.fontScale
-  private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
+  private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply {
+    fontFeatureSettings = "'liga' 1, 'calt' 1"
+  }
 
   init {
     TerminalTypefaces.ensureLoaded(context)
@@ -229,16 +239,8 @@ internal class TerminalCanvasView(context: Context) : View(context) {
         if (paint.color != currentFrame.background || flags and FLAG_SELECTED != 0) {
           canvas.drawRect(left, top, right + 0.5f, bottom + 0.5f, paint)
         }
-
-        val text = currentFrame.cellText[index]
-        if (text.isNotEmpty() && flags and FLAG_INVISIBLE == 0) {
-          configureTextPaint(flags, currentFrame.cellForegrounds[index])
-          canvas.drawText(text, left, top + baselineOffsetPx, paint)
-          if (flags and FLAG_OVERLINE != 0) {
-            canvas.drawRect(left, top + 1f, right, top + max(2f, density), paint)
-          }
-        }
       }
+      drawTextRow(canvas, currentFrame, row, top)
     }
 
     if (currentFrame.cursorVisible && cursorOn &&
@@ -250,6 +252,57 @@ internal class TerminalCanvasView(context: Context) : View(context) {
     canvas.restore()
     drawSelectionHandles(canvas)
   }
+
+  private fun drawTextRow(canvas: Canvas, currentFrame: TerminalFrame, row: Int, top: Float) {
+    val rowStart = row * currentFrame.cols
+    var column = 0
+    while (column < currentFrame.cols) {
+      val index = rowStart + column
+      val flags = currentFrame.cellFlags[index]
+      val first = currentFrame.cellText[index]
+      if (first.isEmpty() || flags and FLAG_INVISIBLE != 0) {
+        column += 1
+        continue
+      }
+      val color = currentFrame.cellForegrounds[index]
+      val end = findTextRunEnd(currentFrame, rowStart, column)
+      val text = if (end == column + 1) {
+        first
+      } else {
+        buildString {
+          for (position in column until end) {
+            append(currentFrame.cellText[rowStart + position])
+          }
+        }
+      }
+      configureTextPaint(flags, color, text)
+      val left = contentPadding + column * cellWidthPx
+      val right = contentPadding + end * cellWidthPx
+      canvas.drawText(text, left, top + baselineOffsetPx, paint)
+      if (flags and FLAG_OVERLINE != 0) {
+        canvas.drawRect(left, top + 1f, right, top + max(2f, density), paint)
+      }
+      column = end
+    }
+  }
+
+  private fun findTextRunEnd(currentFrame: TerminalFrame, rowStart: Int, column: Int): Int {
+    val index = rowStart + column
+    var end = column + 1
+    if (!isAsciiCell(currentFrame.cellText[index])) return end
+    while (end < currentFrame.cols && cellsShareTextRun(currentFrame, index, rowStart + end)) {
+      end += 1
+    }
+    return end
+  }
+
+  private fun cellsShareTextRun(currentFrame: TerminalFrame, first: Int, next: Int): Boolean =
+    isAsciiCell(currentFrame.cellText[next]) &&
+      (currentFrame.cellFlags[next] and TEXT_STYLE_MASK) ==
+      (currentFrame.cellFlags[first] and TEXT_STYLE_MASK) &&
+      currentFrame.cellForegrounds[next] == currentFrame.cellForegrounds[first]
+
+  private fun isAsciiCell(text: String): Boolean = text.length == 1 && text[0] in ' '..'~'
 
   override fun onTouchEvent(event: MotionEvent): Boolean {
     if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -289,7 +342,7 @@ internal class TerminalCanvasView(context: Context) : View(context) {
   private fun updateCellMetrics() {
     paint.textSize = fontSizeSp * scaledDensity
     paint.typeface = regularTypeface
-    cellWidthPx = ceil(paint.measureText("M").toDouble()).toFloat().coerceAtLeast(1f)
+    cellWidthPx = paint.measureText("M").coerceAtLeast(1f)
     val metrics = paint.fontMetrics
     val glyphHeight = metrics.descent - metrics.ascent
     cellHeightPx = ceil((glyphHeight * 1.12f).toDouble()).toFloat().coerceAtLeast(1f)
@@ -298,7 +351,7 @@ internal class TerminalCanvasView(context: Context) : View(context) {
     invalidate()
   }
 
-  private fun configureTextPaint(flags: Int, color: Int) {
+  private fun configureTextPaint(flags: Int, color: Int, text: String) {
     val bold = flags and FLAG_BOLD != 0
     val italic = flags and FLAG_ITALIC != 0
     paint.typeface = when {
@@ -306,6 +359,9 @@ internal class TerminalCanvasView(context: Context) : View(context) {
       bold -> boldTypeface
       italic -> italicTypeface
       else -> regularTypeface
+    }
+    if (text.codePointCount(0, text.length) == 1 && !paint.hasGlyph(text)) {
+      paint.typeface = if (bold) TerminalTypefaces.symbolsBold else TerminalTypefaces.symbolsRegular
     }
     paint.textSize = fontSizeSp * scaledDensity
     paint.color = color
@@ -336,7 +392,7 @@ internal class TerminalCanvasView(context: Context) : View(context) {
         val index = currentFrame.cursorY * currentFrame.cols + currentFrame.cursorX
         val text = currentFrame.cellText[index]
         if (text.isNotEmpty()) {
-          configureTextPaint(currentFrame.cellFlags[index], currentFrame.background)
+          configureTextPaint(currentFrame.cellFlags[index], currentFrame.background, text)
           canvas.drawText(text, left, top + baselineOffsetPx, paint)
         }
       }

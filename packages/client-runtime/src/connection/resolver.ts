@@ -10,7 +10,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 
-import { appendClientConnectionParams } from "../authorization/remote.ts";
+import { appendClientConnectionParams, readClientDeviceHash } from "../authorization/remote.ts";
 import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
 import * as ClientCapabilities from "../platform/capabilities.ts";
 import {
@@ -75,12 +75,13 @@ const isBearerCredential = Schema.is(BearerConnectionCredential);
 function primarySocketUrl(
   target: PrimaryConnectionTarget,
   clientMetadata: AuthClientPresentationMetadata | undefined,
+  clientDeviceHash: string | undefined,
 ): string {
   const url = new URL(target.wsBaseUrl);
   if (url.pathname === "" || url.pathname === "/") {
     url.pathname = "/ws";
   }
-  appendClientConnectionParams(url, clientMetadata, "direct");
+  appendClientConnectionParams(url, clientMetadata, "direct", clientDeviceHash);
   return url.toString();
 }
 
@@ -98,7 +99,7 @@ const makePrimaryBroker = Effect.fn("clientRuntime.connection.broker.makePrimary
         environmentId: target.environmentId,
         label: target.label,
         httpBaseUrl: target.httpBaseUrl,
-        socketUrl: primarySocketUrl(target, presentation.metadata),
+        socketUrl: primarySocketUrl(target, presentation.metadata, yield* readClientDeviceHash),
         httpAuthorization: null,
         connectionMethod: "direct",
         target,
@@ -178,6 +179,7 @@ const makeBearerBroker = Effect.fn("clientRuntime.connection.broker.makeBearer")
 
 const makeSshBroker = Effect.fn("clientRuntime.connection.broker.makeSsh")(function* () {
   const profiles = yield* ConnectionProfileStore.ConnectionProfileStore;
+  const credentials = yield* ConnectionCredentialStore.ConnectionCredentialStore;
   const ssh = yield* ClientCapabilities.SshEnvironmentGateway;
   const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
 
@@ -200,11 +202,21 @@ const makeSshBroker = Effect.fn("clientRuntime.connection.broker.makeSsh")(funct
         actual: profile.environmentId,
       });
     }
+    // Each pairing adds a session on the host, so connects reuse the saved token.
+    const saved = Option.getOrUndefined(yield* credentials.get(target.connectionId));
+    const savedToken = saved !== undefined && isBearerCredential(saved) ? saved.token : undefined;
     const prepared = yield* ssh.prepare({
       connectionId: target.connectionId,
       expectedEnvironmentId: target.environmentId,
       target: profile.target,
+      ...(savedToken === undefined ? {} : { bearerToken: savedToken }),
     });
+    if (prepared.bearerToken !== savedToken) {
+      yield* credentials.put(
+        target.connectionId,
+        new BearerConnectionCredential({ token: prepared.bearerToken }),
+      );
+    }
     const preparedProfile = new SshConnectionProfile({
       connectionId: profile.connectionId,
       environmentId: profile.environmentId,
@@ -266,7 +278,7 @@ export const make = Effect.gen(function* () {
     const descriptor = yield* fetchRemoteEnvironmentDescriptor({
       httpBaseUrl: prepared.httpBaseUrl,
     }).pipe(
-      Effect.mapError(mapRemoteEnvironmentError),
+      Effect.mapError((error) => mapRemoteEnvironmentError(error, prepared.connectionMethod)),
       Effect.provideService(HttpClient.HttpClient, httpClient),
     );
     if (descriptor.environmentId !== target.environmentId) {

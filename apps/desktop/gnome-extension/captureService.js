@@ -1,4 +1,3 @@
-// This policy is independent of Shell so lifecycle and authorization can be tested without a desktop.
 export const CLIENT_NAMES = [
   "com.supaterm.desktop.SnapShot",
   "com.supaterm.desktop.Development.SnapShot",

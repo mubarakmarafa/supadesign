@@ -9,7 +9,6 @@ import {
 import { sourceControlRepositorySelector } from "@supaterm/shared/sourceControl";
 import { normalizeThreadPullRequestKey } from "@supaterm/shared/threadPullRequests";
 
-/** Convert checkout-scoped references to the host-level identity used by linked threads. */
 export function pullRequestSyncKey(
   reference: Pick<PullRequestRef, "host" | "repository" | "number"> &
     Partial<Pick<PullRequestRef, "projectId">>,

@@ -11,10 +11,8 @@ export interface BrowserViewportLayout {
   readonly canvasHeight: number;
   readonly viewportX: number;
   readonly viewportY: number;
-  /** Visible footprint inside the preview panel after fit-to-panel scaling. */
   readonly viewportWidth: number;
   readonly viewportHeight: number;
-  /** Presentation-only scale; the guest keeps its requested CSS viewport. */
   readonly viewportScale: number;
   readonly fillsPanel: boolean;
 }
@@ -39,6 +37,12 @@ export const browserViewportSettingKey = (setting: PreviewViewportSetting): stri
 
 const normalizeZoomFactor = (zoomFactor: number): number =>
   Number.isFinite(zoomFactor) && zoomFactor > 0 ? zoomFactor : 1;
+
+// Convert guest CSS pixels to host CSS pixels without changing the guest's page zoom.
+export const resolveBrowserLayoutZoomFactor = (
+  previewZoomFactor: number,
+  windowZoomFactor: number,
+): number => normalizeZoomFactor(previewZoomFactor) / normalizeZoomFactor(windowZoomFactor);
 
 export function resolveFittedBrowserViewport(
   setting: PreviewViewportSetting,

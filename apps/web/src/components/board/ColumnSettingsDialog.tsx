@@ -151,8 +151,6 @@ function StepModelPicker({
               provider={entry.driverKind}
               models={entry.models}
               model={selection.model}
-              prompt=""
-              onPromptChange={() => {}}
               modelOptions={selection.options ?? []}
               allowPromptInjectedEffort={false}
               triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}

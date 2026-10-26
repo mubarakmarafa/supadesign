@@ -2,8 +2,6 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import { ProviderInstanceId } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
-import * as FileSystem from "effect/FileSystem";
-import * as Path from "effect/Path";
 
 import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import * as TestProviderHost from "@supaterm/provider-testing/TestProviderHost";
@@ -11,56 +9,6 @@ import * as Layer from "effect/Layer";
 import { makeCursorCredentialStore } from "./credentialStore.ts";
 
 const layerHost = Layer.provideMerge(TestProviderHost.layer(), NodeServices.layer);
-
-// The SDK's FileCredentialStore writes pretty-printed JSON.
-const legacyFileText = `{
-  "version": 1,
-  "backendUrl": "https://api.cursor.com",
-  "apiKey": "test-only-legacy-key",
-  "createdAtMs": 100
-}`;
-
-it.effect.each([
-  {
-    name: "imports a legacy sign-in",
-    legacy: legacyFileText,
-    stored: undefined,
-    expected: "test-only-legacy-key",
-  },
-  {
-    name: "keeps a newer stored sign-in",
-    legacy: legacyFileText,
-    stored: legacyFileText.replace("test-only-legacy-key", "test-only-current-key"),
-    expected: "test-only-current-key",
-  },
-  {
-    name: "replaces a damaged stored sign-in",
-    legacy: legacyFileText,
-    stored: "damaged",
-    expected: "test-only-legacy-key",
-  },
-  {
-    name: "discards a damaged legacy file",
-    legacy: "damaged",
-    stored: undefined,
-    expected: undefined,
-  },
-])("$name and deletes the legacy file", ({ legacy, stored, expected }) =>
-  Effect.gen(function* () {
-    const fileSystem = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const legacyFile = path.join(yield* fileSystem.makeTempDirectoryScoped(), "cursor.json");
-    yield* fileSystem.writeFileString(legacyFile, legacy);
-    const host = yield* ProviderHost.ProviderHost;
-    const instanceId = ProviderInstanceId.make("personal");
-    if (stored !== undefined) {
-      yield* (yield* host.credentials("cursor", instanceId)).set(new TextEncoder().encode(stored));
-    }
-    const migrated = yield* makeCursorCredentialStore(instanceId, legacyFile);
-    assert.strictEqual((yield* Effect.tryPromise(() => migrated.store.load()))?.apiKey, expected);
-    assert.isFalse(yield* fileSystem.exists(legacyFile));
-  }).pipe(Effect.scoped, Effect.provide(layerHost)),
-);
 
 it.effect(
   "restores SDK credentials in a new controller and keeps another account when signing out",

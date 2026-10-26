@@ -37,7 +37,7 @@ machine's setting. Every other provider setting stays per machine.
 
 On mobile, open **Settings** and use the filter in its header to choose connected environments
 and a project. The filter stays available in server-setting pages. With **All projects** selected,
-the **Server settings** categories and auto-settle controls in **Thread behavior** edit the
+the **Server settings** categories and automatic completion controls in **Thread behavior** edit the
 selected environments' defaults. Choosing a project edits its overrides on the selected
 environments. Use **Use defaults** in a page to remove that page's project overrides.
 Open **Settings → Projects & threads → Overview** to rename the project across its selected
@@ -62,6 +62,20 @@ to override its environment defaults. Worktree directories keep their original n
 If generation fails, or a custom name is invalid or already taken, the temporary
 branch name remains.
 
+## Scheduled tasks on mobile
+
+Open **Settings → Scheduled tasks** to create recurring tasks or manage existing
+ones across your connected environments. Use the settings filter to narrow the
+list by environment or project. Each task runs on the environment you choose,
+using its project, model, and workspace settings. Fixed-time schedules use that
+environment's time zone, which may differ from your phone's.
+
+Deleting a thread also deletes tasks that post into that thread. Tasks that start
+a new thread on each run survive deletion of their previous threads.
+
+You can edit, pause, resume, run immediately, or delete a task from the list.
+Leaving an edited form asks before discarding unsaved changes.
+
 ## Defaults and inheritance
 
 General contains the model and workspace for new threads. The workspace defaults to a new
@@ -70,8 +84,8 @@ access. Source Control contains automatic pull, the default pull request merge m
 generation. The same rows edit environment defaults or project overrides depending on the
 project crumb.
 
-The Project category, shown while a project is selected, holds the project's name, icon, actions,
-checkouts and removal. Actions belong to a project: editing them creates the project's own list
+The Project category holds the project's name, icon, actions, checkouts and removal. Open it and
+choose a project to manage. Actions belong to a project: editing them creates the project's own list
 on each selected environment, and reset returns to the environment's shared list. A project's
 `supaterm.json` actions can be imported there.
 
@@ -98,18 +112,23 @@ are, and cleanup covers both the default folder and the custom one.
 
 Open **Settings → Storage** to configure automatic cleanup on one machine or all connected
 environments. Cleanup rules for merged, unchanged, and deleted-thread worktrees are on by default;
-inactive-worktree cleanup remains disabled until you choose an age. Policies run on the server at
-startup, when changed, hourly, and when a thread is archived, such as a card moved to Done. Offline
-machines keep their existing policies.
+inactive-worktree and done-worktree cleanup remain disabled until you choose an age. Policies run on
+the server at startup, when changed, hourly, and when a thread is archived, such as a card moved to
+Done. Offline machines keep their existing policies.
 
 Select a project to set **Automatic worktree cleanup** to **Inherit**, **Off**, or **Custom**.
 Inherit follows each machine's rules; Off keeps that project's worktrees until you remove them
 manually. Custom applies separate worktree rules to the selected project or checkout. Browser
 captures and log retention remain machine-wide.
 
-Worktrees can be removed after a chosen number of inactive days, after merging, or when they
-have no commits beyond the default branch. Only Supaterm-managed worktrees are eligible. Active
-sessions and shared worktrees prevent removal. **Keep worktrees with local changes** defaults
+Worktrees can be removed after a chosen number of inactive days, a chosen number of days after
+their thread is marked done, after merging, or when they have no commits beyond the default
+branch. Set **Delete done worktrees** to 0 days to remove a worktree at the next cleanup after its
+thread is marked done. A thread marked done automatically counts its done days from its last
+activity, not from when it was marked done. Only Supaterm-managed worktrees are eligible. Active
+sessions prevent removal, and so do other threads sharing the worktree, except a thread's own
+subagents: their shared worktree is removed once the parent qualifies and every subagent is idle.
+**Keep worktrees with local changes** defaults
 to **Uncommitted changes**, which protects tracked edits and untracked files but deletes ignored
 files such as `.env` and build output. **Any local files** also protects ignored files other than
 `node_modules`. **Edited tracked files** protects only tracked edits and allows untracked and
@@ -125,6 +144,7 @@ keep those worktrees and retain the existing prompts for deleting one manually.
 
 Choose **Delete now**, then click again to confirm, to run the enabled rules immediately. The
 latest results show which worktrees were removed or kept and why, plus any failures.
+Results also list folders in the worktree folder that no thread uses, with their sizes; cleanup never removes them, so remove them manually if you want.
 
 Browser captures and rotated logs have separate retention periods. Expired capture links stop
 working. Current logs, message attachments, and browser profiles are kept.
@@ -137,14 +157,16 @@ Supaterm detect an icon again.
 
 Choose **Monogram** in the icon picker to set one or two letters or numbers and a color.
 
-When no image is found, web and desktop show a two-character monogram with a color
-from the icon palette, derived from the saved project name. For example, `Nebula` becomes `NA`,
-`Silver Orchard` becomes `SO`, and `M7 Forge` becomes `M7`.
+When no image is found, web and desktop show a two-character monogram derived from the saved
+project name. For example, `Nebula` becomes `NA`, `Silver Orchard` becomes `SO`, and `M7 Forge`
+becomes `M7`. Each project keeps its own color as you add projects; colors repeat only after nine
+projects. To pick a different color, choose **Monogram** in the icon picker.
 
 ## Keep the default branch current
 
-In Source Control, enable **Automatically pull** to keep the default-branch checkout up to date
-with its configured upstream. Choose an environment to set the default or a project to override it.
+**Automatically pull** is enabled by default to keep the default-branch checkout up to date
+with its configured upstream. In Source Control, choose an environment to change the default or a
+project to override it.
 On mobile, use **Settings → Source control** to change selected environment defaults or project overrides.
 
 Supaterm only pulls when it can fast-forward and the checkout has no changed files, untracked files,

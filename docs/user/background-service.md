@@ -37,8 +37,32 @@ installing one.
 
 `supaterm uninstall` removes the background service, the `supaterm` launcher, and the
 downloaded versions after showing you the list and asking once. Your projects,
-threads, and settings under `~/.supaterm/userdata` are kept. Pass `--yes` from a
-script.
+threads, and settings under `~/.supaterm/userdata` are kept, along with `service.env`
+under Supaterm home. Pass `--yes` from a script.
+
+## Configure the service environment
+
+Put custom environment variables in `service.env` under the service's Supaterm home
+directory, normally `~/.supaterm/service.env`. This file survives service installation
+and updates. For example:
+
+```dotenv
+SUPATERM_PORT=3773
+SUPATERM_HOST=127.0.0.1
+```
+
+Use `KEY=VALUE` entries, quoting values that contain spaces or `#`. Values are
+literal: shell commands and variable expansion are not evaluated. Entries
+override the inherited service environment, except for `PATH`, `SUPATERM_HOME`,
+`SUPATERM_BOOT_SERVICE_UNIT`, and `SUPATERM_SERVICE_LAUNCHER_CONTEXT` (including case variants).
+
+Run `supaterm service restart` after changing the file. Changes apply when the service
+starts again; switching the server version alone keeps the current values.
+For a service installed before env-file support, run `supaterm service install` once
+with an up-to-date CLI.
+A missing file is ignored; other read failures stop service startup.
+If the file contains credentials, restrict access to that file with `chmod 600`
+(for the default Supaterm home, `chmod 600 ~/.supaterm/service.env`).
 
 ## Platform support
 
@@ -92,3 +116,27 @@ longer starts at login. If agent work cannot access Desktop, Documents, or
 Downloads, it may need Full Disk Access for the `supaterm` executable listed in
 `ProgramArguments` in
 `~/Library/LaunchAgents/com.supaterm.desktop.service.plist`.
+
+## Reclaim database space
+
+Supaterm removes superseded internal history on its own while it runs; your
+conversations are kept. Databases created before this shrank automatically
+still hold the freed space on disk until a one-time offline repair returns it
+and turns on automatic shrinking. Settings > Storage (web and desktop) or
+Settings > Maintenance (mobile) suggests the repair when at least 1 GiB can be
+reclaimed.
+
+Run `supaterm doctor` on the machine that hosts the environment. It reports the
+database size and the space it can reclaim, then asks which repairs to run;
+pass `--fix` to run the recommended ones without a prompt (for scripts), or
+`--dry-run` to only report. An installed background service for the same data
+directory is stopped for the repair and started again afterwards, also when
+the repair fails. Quit a server you started by hand, or the desktop app, first:
+the repair refuses to touch a database that is in use. Use `--base-dir` for a
+different data directory.
+
+The repair can take several minutes on a large database. It rebuilds the
+database through a temporary copy, so it needs free space of about the
+database's size twice over: once in the system temporary directory (`TMPDIR`
+or `/tmp` on Linux and macOS) and once next to the database for its
+write-ahead log.

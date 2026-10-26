@@ -25,8 +25,7 @@ const OptionalTimeoutMs = Schema.optional(
     .annotate({ description: "Maximum wait in milliseconds. Defaults to 15000; maximum 60000." }),
 ).annotate({ description: "Maximum wait in milliseconds. Defaults to 15000; maximum 60000." });
 
-/** Operations understood by desktop hosts predating viewport resizing. */
-export const PREVIEW_AUTOMATION_V1_OPERATIONS = [
+export const PREVIEW_AUTOMATION_SERVER_OPERATIONS = [
   "status",
   "open",
   "navigate",
@@ -39,17 +38,8 @@ export const PREVIEW_AUTOMATION_V1_OPERATIONS = [
   "waitFor",
   "recordingStart",
   "recordingStop",
-] as const;
-
-/** Advertised by current desktop hosts for mixed-version routing. */
-const PREVIEW_AUTOMATION_OPERATIONS = [
-  ...PREVIEW_AUTOMATION_V1_OPERATIONS,
   "resize",
   "setColorScheme",
-] as const;
-
-export const PREVIEW_AUTOMATION_SERVER_OPERATIONS = [
-  ...PREVIEW_AUTOMATION_OPERATIONS,
   "dialog",
   "close",
   "upload",
@@ -107,15 +97,11 @@ export const PreviewAutomationStatus = Schema.Struct({
       }),
     ),
   ),
-  /** Optional for compatibility with desktop hosts predating viewport sizing. */
   viewportSetting: Schema.optional(PreviewViewportSetting),
-  /** Measured guest-page viewport in CSS pixels when a webview is ready. */
   viewport: Schema.optional(PreviewRenderedViewportSize),
-  /** Server hosts: a file picker the page opened, answered with preview_upload. */
   fileChooser: Schema.optional(
     Schema.NullOr(Schema.Struct({ multiple: Schema.Boolean, accept: Schema.String })),
   ),
-  /** Server hosts: files this tab downloaded, saved on the environment until the tab closes. */
   downloads: Schema.optional(
     Schema.Array(
       Schema.Struct({
@@ -168,12 +154,6 @@ export const PreviewAutomationOpenInput = Schema.Struct({
     Schema.Boolean.annotate({
       description:
         "Whether to open the thread-bound inline preview for the human. Defaults to true; set false for background-only automation.",
-    }),
-  ),
-  show: Schema.optional(
-    Schema.Boolean.annotate({
-      description:
-        "Deprecated alias for open. Whether to reveal the thread-bound inline preview to the human.",
     }),
   ),
   reuseExistingTab: Schema.optional(
@@ -476,7 +456,7 @@ export const PreviewAutomationSelectResult = Schema.Struct({
 });
 export type PreviewAutomationSelectResult = typeof PreviewAutomationSelectResult.Type;
 
-/** A required locator field. Its JSON schema keeps only the description on its last check. */
+/** Its JSON schema keeps only the description on its last check. */
 const DescribedLocator = (description: string) =>
   Schema.String.check(Schema.isTrimmed())
     .check(Schema.isNonEmpty({ description }))
@@ -769,11 +749,7 @@ export type PreviewAutomationHostIdentity = typeof PreviewAutomationHostIdentity
 
 export const PreviewAutomationHost = Schema.Struct({
   ...PreviewAutomationHostIdentity.fields,
-  /**
-   * Missing means the pre-capability-negotiation V1 operation set. This lets
-   * a newer server safely coexist with an older desktop during rollout.
-   */
-  supportedOperations: Schema.optional(Schema.Array(PreviewAutomationOperation)),
+  supportedOperations: Schema.Array(PreviewAutomationOperation),
 });
 export type PreviewAutomationHost = typeof PreviewAutomationHost.Type;
 
@@ -835,7 +811,6 @@ export const PreviewAutomationResponse = Schema.Struct({
 });
 export type PreviewAutomationResponse = typeof PreviewAutomationResponse.Type;
 
-// Thread fields are absent when the caller signed in from outside a Supaterm thread.
 const McpCapabilityErrorFields = {
   environmentId: EnvironmentId,
   threadId: Schema.optional(ThreadId),
@@ -843,7 +818,6 @@ const McpCapabilityErrorFields = {
   providerInstanceId: Schema.optional(ProviderInstanceId),
 };
 
-/** Agents read this message, so it names the next step and not only the failure. */
 export class PreviewAutomationUnavailableError extends Schema.TaggedError<PreviewAutomationUnavailableError>()(
   "PreviewAutomationUnavailableError",
   {
@@ -856,7 +830,6 @@ export class PreviewAutomationUnavailableError extends Schema.TaggedError<Previe
   }
 }
 
-/** A `supaterm` MCP tool was called with a credential that does not carry its capability. */
 export class McpCapabilityUnavailableError extends Schema.TaggedError<McpCapabilityUnavailableError>()(
   "McpCapabilityUnavailableError",
   {
@@ -877,7 +850,6 @@ const PreviewAutomationScopeErrorFields = {
   providerInstanceId: ProviderInstanceId,
 };
 
-/** The automation host id of an environment's own server browser. */
 export const SERVER_BROWSER_AUTOMATION_CLIENT_ID = "server-browser";
 
 const PreviewAutomationRequestErrorFields = {
@@ -1005,10 +977,6 @@ export class PreviewAutomationExecutionError extends Schema.TaggedError<PreviewA
   {
     ...PreviewAutomationRequestErrorFields,
     ...PreviewAutomationRemoteDiagnosticFields,
-    /**
-     * What went wrong, as the server's own browser reported it, such as a
-     * page that refused the connection. Absent for other hosts.
-     */
     reason: Schema.optional(Schema.String),
   },
 ) {
@@ -1026,7 +994,6 @@ export class PreviewAutomationInvalidSelectorError extends Schema.TaggedError<Pr
     ...PreviewAutomationRemoteDiagnosticFields,
     selectorKind: Schema.optional(Schema.Literals(["locator", "selector"])),
     selectorLength: Schema.optional(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))),
-    /** The selector was an `aria-ref` from an older snapshot. */
     staleRef: Schema.optional(Schema.Boolean),
   },
 ) {

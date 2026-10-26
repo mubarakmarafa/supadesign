@@ -7,16 +7,21 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: pr-size-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   prepare-config:
     name: Prepare PR size config
     runs-on: depot-ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       labels_json: ${{ steps.config.outputs.labels_json }}
     steps:
       - id: config
         name: Build PR size label config
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           result-encoding: string
           script: |
@@ -59,12 +64,13 @@ jobs:
     needs: prepare-config
     if: github.event_name != 'pull_request_target'
     runs-on: depot-ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       issues: write
     steps:
       - name: Ensure PR size labels exist
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         env:
           PR_SIZE_LABELS_JSON: ${{ needs.prepare-config.outputs.labels_json }}
         with:
@@ -116,23 +122,22 @@ jobs:
     needs: prepare-config
     if: github.event_name == 'pull_request_target'
     runs-on: depot-ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       issues: read
       pull-requests: write
-    concurrency:
-      group: pr-size-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
     steps:
       # This pull_request_target job may fetch untrusted PR commits only as passive
       # git data. Do not add dependency installs, build/test scripts, or cache
       # actions here; use pull_request plus workflow_run for that pattern instead.
       - name: Checkout base repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Sync PR size label
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         env:
           PR_SIZE_LABELS_JSON: ${{ needs.prepare-config.outputs.labels_json }}
         with:

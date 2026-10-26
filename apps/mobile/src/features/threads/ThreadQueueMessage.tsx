@@ -3,8 +3,8 @@ import { Image } from "expo-image";
 import { useRef } from "react";
 import { type AccessibilityActionEvent, Platform, Pressable, View } from "react-native";
 
-import { AppText as Text } from "../../components/AppText";
-import { ControlPillMenu } from "../../components/ControlPill";
+import { AppText as Text } from "../../components/ui/AppText";
+import { Menu } from "../../components/ui/Menu";
 import { assetImageSource } from "../../lib/assetImageSource";
 import { useAssetUrl } from "../../state/assets";
 import type { ThreadQueueRowControls } from "./threadQueueControlPresentation";
@@ -20,16 +20,17 @@ export function ThreadQueueMessage(props: {
   readonly attachments: ReadonlyArray<ChatAttachment>;
   readonly controls: ThreadQueueRowControls;
   readonly canPromoteToSteer: boolean;
+  readonly canSendNow: boolean;
   readonly onAction: (action: QueueMessageAction) => void;
 }) {
   const touchRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const actions = [
-    ...(props.canPromoteToSteer
+    ...(props.canPromoteToSteer || props.canSendNow
       ? [
           {
             id: "steer",
-            title: "Steer now",
-            attributes: { disabled: !props.controls.canSteer },
+            title: props.canSendNow ? "Send now" : "Steer now",
+            attributes: { disabled: !props.controls.canSend },
             image: Platform.OS === "ios" ? "arrow.turn.left.up" : "arrow_upward",
           },
         ]
@@ -66,7 +67,7 @@ export function ThreadQueueMessage(props: {
   };
 
   return (
-    <ControlPillMenu
+    <Menu
       {...accessibilityProps}
       shouldOpenOnLongPress
       actions={actions}
@@ -105,7 +106,7 @@ export function ThreadQueueMessage(props: {
           attachments={props.attachments}
         />
       </Pressable>
-    </ControlPillMenu>
+    </Menu>
   );
 }
 

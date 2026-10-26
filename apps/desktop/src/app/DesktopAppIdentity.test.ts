@@ -5,22 +5,16 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import * as PlatformError from "effect/PlatformError";
 
 import type * as Electron from "electron";
 
-import { APP_PRODUCT_NAME, APP_SLUG } from "@supaterm/shared/appIdentity";
+import { APP_PRODUCT_NAME } from "@supaterm/shared/appIdentity";
 
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as DesktopAppIdentity from "./DesktopAppIdentity.ts";
 import * as DesktopAssets from "./DesktopAssets.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
-import * as DesktopUserData from "./DesktopUserData.ts";
-
-/** Profiles the official Supaterm app owns; this fork must never select them. */
-const OFFICIAL_PROFILE_PATTERN =
-  /\/(?:Supaterm(?: \((?:Alpha|Dev)\))?|supaterm-(?:v2|dev)|supa3-(?:v2|dev))$/;
 
 const defaultEnvironmentInput = {
   dirname: "/repo/apps/desktop/dist-electron",
@@ -40,7 +34,7 @@ type TestEnvironmentInput = Partial<DesktopEnvironment.MakeDesktopEnvironmentInp
 
 interface ElectronAppCalls {
   readonly setAboutPanelOptions: Array<Electron.AboutPanelOptionsOptions>;
-  readonly setDockIcon: string[];
+  readonly setDockIcon: Array<Electron.NativeImage | null>;
   readonly setName: string[];
 }
 
@@ -51,8 +45,8 @@ const layerElectronApp = (calls: ElectronAppCalls) =>
     systemLocale: Effect.succeed("en-US"),
     environmentMachineIcons: Effect.succeed({}),
     whenReady: Effect.void,
-    quit: Effect.void,
     requestSingleInstanceLock: Effect.succeed(true),
+    quit: Effect.void,
     exit: () => Effect.void,
     relaunch: () => Effect.void,
     setPath: () => Effect.void,
@@ -68,9 +62,9 @@ const layerElectronApp = (calls: ElectronAppCalls) =>
     getAppMetrics: Effect.succeed([]),
     setAsDefaultProtocolClient: () => Effect.succeed(true),
     setDesktopName: () => Effect.void,
-    setDockIcon: (iconPath) =>
+    setDockIcon: (image) =>
       Effect.sync(() => {
-        calls.setDockIcon.push(iconPath);
+        calls.setDockIcon.push(image);
       }),
     appendCommandLineSwitch: () => Effect.void,
     onBeforeQuitForUpdate: () => Effect.void,
@@ -85,6 +79,7 @@ const layerAssets = (png: Option.Option<string>) =>
       icns: Option.none(),
       png,
     }),
+    launchIconPaths: () => Effect.succeedNone,
     resolveResourcePath: () => Effect.succeedNone,
   } satisfies DesktopAssets.DesktopAssets["Service"]);
 
@@ -118,8 +113,6 @@ const withIdentity = <A, E, R>(
   input: {
     readonly calls?: ElectronAppCalls;
     readonly environment?: TestEnvironmentInput;
-    readonly legacyPathExists?: boolean;
-    readonly legacyPathProbeError?: PlatformError.PlatformError;
     readonly packageJson?: string;
     readonly pngIconPath?: Option.Option<string>;
   } = {},
@@ -136,12 +129,6 @@ const withIdentity = <A, E, R>(
         Layer.provide(NodePath.layerPosix),
         Layer.provideMerge(
           FileSystem.layerNoop({
-            exists: (path) =>
-              input.legacyPathProbeError
-                ? Effect.fail(input.legacyPathProbeError)
-                : Effect.succeed(
-                    input.legacyPathExists === true && OFFICIAL_PROFILE_PATTERN.test(path),
-                  ),
             readFileString: () =>
               Effect.succeed(input.packageJson ?? '{"supatermCommitHash":"abcdef1234567890"}'),
           }),
@@ -155,96 +142,6 @@ const withIdentity = <A, E, R>(
 };
 
 describe("DesktopAppIdentity", () => {
-  it.effect("isolates the V2 profile even when the official app's profiles exist", () =>
-    withIdentity(
-      Effect.gen(function* () {
-        const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
-        const userDataPath = yield* identity.resolveUserDataPath;
-
-        assert.equal(userDataPath, `/Users/alice/Library/Application Support/${APP_SLUG}-v2`);
-      }),
-      { legacyPathExists: true },
-    ),
-  );
-
-  it.effect("never reuses the official app's development profile", () =>
-    withIdentity(
-      Effect.gen(function* () {
-        const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
-        assert.equal(
-          yield* identity.resolveUserDataPath,
-          `/Users/alice/Library/Application Support/${APP_SLUG}-dev`,
-        );
-      }),
-      {
-        legacyPathExists: true,
-        environment: { env: { VITE_DEV_SERVER_URL: "http://localhost:5173" } },
-      },
-    ),
-  );
-
-  it.effect("preserves failures while inspecting the userData path", () => {
-    const legacyPath = `/Users/alice/Library/Application Support/${APP_SLUG}-dev`;
-    const cause = PlatformError.systemError({
-      _tag: "PermissionDenied",
-      module: "FileSystem",
-      method: "exists",
-      description: "permission denied",
-      pathOrDescriptor: legacyPath,
-    });
-
-    return withIdentity(
-      Effect.gen(function* () {
-        const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
-        const error = yield* identity.resolveUserDataPath.pipe(Effect.flip);
-
-        assert.instanceOf(error, DesktopUserData.DesktopUserDataInitializationError);
-        assert.equal(error.resourcePath, legacyPath);
-        assert.strictEqual(error.cause, cause);
-        assert.equal(
-          error.message,
-          `Could not initialize Electron user data during inspect at ${legacyPath} (PermissionDenied).`,
-        );
-      }),
-      {
-        legacyPathProbeError: cause,
-        environment: { env: { VITE_DEV_SERVER_URL: "http://localhost:5173" } },
-      },
-    );
-  });
-
-  it.effect("configures app identity from the environment commit override", () => {
-    const calls: ElectronAppCalls = {
-      setAboutPanelOptions: [],
-      setDockIcon: [],
-      setName: [],
-    };
-
-    return withIdentity(
-      Effect.gen(function* () {
-        const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
-        yield* identity.configure;
-
-        assert.deepEqual(calls.setName, [APP_PRODUCT_NAME]);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, APP_PRODUCT_NAME);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationVersion, "1.2.3");
-        assert.equal(calls.setAboutPanelOptions[0]?.version, "0123456789ab");
-        // Packaged: the bundle's own icon stands, so a custom one the user
-        // attached survives.
-        assert.deepEqual(calls.setDockIcon, []);
-      }),
-      {
-        calls,
-        environment: {
-          env: {
-            SUPATERM_COMMIT_HASH: "0123456789abcdef",
-          },
-        },
-        pngIconPath: Option.some("/icon.png"),
-      },
-    );
-  });
-
   it.effect.each([
     {
       stage: "Stable",
@@ -255,13 +152,13 @@ describe("DesktopAppIdentity", () => {
     {
       stage: "Nightly",
       runtimeName: `${APP_PRODUCT_NAME} Nightly`,
-      aboutName: `${APP_PRODUCT_NAME} (Nightly)`,
+      aboutName: APP_PRODUCT_NAME,
       environment: { appVersion: "0.0.43-nightly.20260929.2428" },
     },
     {
       stage: "Dev",
       runtimeName: `${APP_PRODUCT_NAME} Dev`,
-      aboutName: `${APP_PRODUCT_NAME} (Dev)`,
+      aboutName: APP_PRODUCT_NAME,
       environment: { env: { VITE_DEV_SERVER_URL: "http://localhost:5173" } },
     },
   ])(
@@ -290,7 +187,7 @@ describe("DesktopAppIdentity", () => {
     },
   );
 
-  it.effect("sets the dock icon only when running unpackaged", () => {
+  it.effect("preserves the adaptive bundle icon when running unpackaged", () => {
     const calls: ElectronAppCalls = {
       setAboutPanelOptions: [],
       setDockIcon: [],
@@ -302,9 +199,7 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         yield* identity.configure;
 
-        // Electron shows a generic icon for an unpackaged run, which is the
-        // reason this call exists at all.
-        assert.deepEqual(calls.setDockIcon, ["/icon.png"]);
+        assert.deepEqual(calls.setDockIcon, []);
       }),
       {
         calls,

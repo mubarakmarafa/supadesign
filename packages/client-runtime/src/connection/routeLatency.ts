@@ -1,14 +1,12 @@
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
 import { FetchHttpClient } from "effect/http";
 
 import type { ConnectionRoute } from "./catalog.ts";
-import { ROUTE_CHECK_TIMEOUT_MS } from "./driver.ts";
+import { leaseRouteOrigin, ROUTE_CHECK_TIMEOUT_MS } from "./driver.ts";
 import type { ConnectionAttemptError } from "./model.ts";
 import { routeHttpBaseUrl } from "./routes.ts";
 import { fetchRemoteEnvironmentDescriptor } from "../environment/descriptor.ts";
-import { resolveRelayOrigin } from "../relay/gateway.ts";
 
 export type ConnectionRouteLatency =
   | { readonly status: "reachable"; readonly latencyMs: number }
@@ -25,17 +23,13 @@ export const measureConnectionRouteLatency = Effect.fn("connection.measureRouteL
     if (httpBaseUrl === null && input.sshProbe === undefined) {
       return { status: "unmeasured" } as const;
     }
-    const profile = Option.getOrNull(input.route.profile);
     const probe =
       httpBaseUrl === null
         ? input.sshProbe!.pipe(
             Effect.as(true),
             Effect.orElseSucceed(() => false),
           )
-        : resolveRelayOrigin(
-            httpBaseUrl,
-            profile?._tag === "BearerConnectionProfile" ? profile.relayUrl : undefined,
-          ).pipe(
+        : leaseRouteOrigin(input.route, httpBaseUrl).pipe(
             Effect.flatMap((origin) =>
               fetchRemoteEnvironmentDescriptor({
                 httpBaseUrl: origin,
@@ -50,6 +44,7 @@ export const measureConnectionRouteLatency = Effect.fn("connection.measureRouteL
               credentials: "omit",
             }),
             Effect.orElseSucceed(() => false),
+            Effect.scoped,
           );
     const [duration, answered] = yield* probe.pipe(
       Effect.timeoutOrElse({

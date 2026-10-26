@@ -1,11 +1,12 @@
-import { ScreenScrollView as ScrollView } from "../../components/ScreenScrollView";
+import { Toolbar } from "../../components/ui/Toolbar";
+import { ScreenScrollView as ScrollView } from "../../components/ui/ScreenScrollView";
 import { useNavigation } from "@react-navigation/native";
 import { Platform, View } from "react-native";
 import { deriveProjectGroupLabel } from "@supaterm/client-runtime/state/project-grouping";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
-import { NativeHeaderToolbar, NativeStackScreenOptions } from "../../native/StackHeader";
+import { NativeStackScreenOptions } from "../../native/StackHeader";
 import { useSavedRemoteConnections } from "../../state/use-remote-environment-registry";
 import { SettingsRow } from "./components/SettingsRow";
 import { SettingsSection } from "./components/SettingsSection";
@@ -28,13 +29,13 @@ export function SettingsRouteScreen() {
       ) : null}
       {Platform.OS === "ios" && layout.usesSplitView ? (
         <>
-          <NativeHeaderToolbar placement="left">
-            <NativeHeaderToolbar.Button
+          <Toolbar placement="left">
+            <Toolbar.Button
               accessibilityLabel="Go back"
               icon="chevron.left"
               onPress={() => navigation.goBack()}
             />
-          </NativeHeaderToolbar>
+          </Toolbar>
         </>
       ) : null}
       <SettingsEnvironmentFilterHeader closeSettings />
@@ -115,14 +116,12 @@ function SettingsIndexSections() {
       </SettingsSection>
 
       <SettingsSection title="Projects & threads">
-        {selectedProjectKey !== null ? (
-          <SettingsRow
-            icon="folder"
-            label="Overview"
-            value={projectLabel}
-            target="SettingsProjectOverview"
-          />
-        ) : null}
+        <SettingsRow
+          icon="folder"
+          label="Overview"
+          value={selectedProjectKey === null ? "Choose a project" : projectLabel}
+          target="SettingsProjectOverview"
+        />
         <SettingsRow icon="folder" label="Organization" target="SettingsOrganization" />
         <SettingsRow icon="text.bubble" label="Thread behavior" target="SettingsThreads" />
         <SettingsRow icon="arrow.turn.left.up" label="Follow-ups" target="SettingsFollowUp" />

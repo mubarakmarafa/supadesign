@@ -1,3 +1,5 @@
+import { Button } from "./ui/Button";
+import * as Dialog from "./ui/Dialog";
 import { withOccurrenceKeys } from "@supaterm/shared/occurrenceKeys";
 import { useOpenPullRequest } from "../native/useOpenPullRequest";
 import { SourceFileSurface } from "../features/files/SourceFileSurface";
@@ -11,7 +13,7 @@ import type {
 } from "@supaterm/contracts";
 import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
 import { videoMimeType } from "@supaterm/shared/video";
-import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { REVIEW_MONO_FONT_FAMILY } from "../features/review/reviewDiffRendering";
 import { ReviewCommentCard, useReviewCommentColors } from "../features/review/ReviewCommentCard";
@@ -24,8 +26,8 @@ import { contextImageGallery } from "../lib/contextImageGallery";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { VideoPreviewModal } from "./VideoPreviewModal";
 import { ComposerContextAttachment } from "./ComposerContextAttachment";
-import { AppText as Text } from "./AppText";
-import { AppSheet } from "./AppSheet";
+import { AppText as Text } from "./ui/AppText";
+import { Sheet } from "./ui/Sheet";
 import { useAppearancePreferences } from "../features/settings/appearance/AppearancePreferencesProvider";
 import { getMobileTerminalTheme } from "../features/terminal/terminalTheme";
 
@@ -73,7 +75,6 @@ function ContextSource(props: { source: ElementContextSource | null }) {
   );
 }
 
-/** Touch equivalent of the web context popover; snapshots remain readable offline. */
 export function ComposerContextSheet(props: {
   readonly label: string;
   readonly record: ComposerContextRecord | undefined;
@@ -184,8 +185,9 @@ export function ComposerContextSheet(props: {
       : undefined;
   const terminal = record?.kind === "terminal" && !("payload" in record) ? record : null;
   return (
-    <AppSheet title={terminal?.terminalLabel ?? props.label} onClose={props.onClose}>
+    <Sheet title={terminal?.terminalLabel ?? props.label} onClose={props.onClose}>
       <ScrollView
+        nestedScrollEnabled
         className="flex-1"
         contentInsetAdjustmentBehavior={Platform.OS === "ios" ? "automatic" : "never"}
         contentContainerStyle={{
@@ -302,18 +304,17 @@ export function ComposerContextSheet(props: {
               <View className="gap-3">
                 <ContextField label="Thread" value={record.title} />
                 {props.onOpenThread ? (
-                  <Pressable
-                    accessibilityRole="button"
+                  <Button
+                    label="Open thread"
+                    tone="secondary"
                     onPress={() =>
                       props.onOpenThread?.({
                         environmentId: record.environmentId,
                         threadId: record.threadId,
                       })
                     }
-                    className="rounded-xl bg-subtle p-4"
-                  >
-                    <Text className="text-foreground">Open thread</Text>
-                  </Pressable>
+                    fullWidth
+                  />
                 ) : null}
               </View>
             ) : null}
@@ -325,13 +326,12 @@ export function ComposerContextSheet(props: {
                   value={props.skillDescription ?? "No description is available for this skill."}
                 />
                 {props.onOpenSkill ? (
-                  <Pressable
-                    accessibilityRole="button"
+                  <Button
+                    label="View instructions"
+                    tone="secondary"
                     onPress={props.onOpenSkill}
-                    className="rounded-xl bg-subtle p-4"
-                  >
-                    <Text className="text-foreground">View instructions</Text>
-                  </Pressable>
+                    fullWidth
+                  />
                 ) : null}
               </View>
             ) : null}
@@ -358,7 +358,7 @@ export function ComposerContextSheet(props: {
             onPress={() => {
               props.onClose();
               void openPullRequest(pullRequestUrl).catch(() =>
-                Alert.alert("Could not open pull request", "Try again when connected."),
+                Dialog.alert("Could not open pull request", "Try again when connected."),
               );
             }}
             className="rounded-xl bg-subtle p-4"
@@ -367,33 +367,25 @@ export function ComposerContextSheet(props: {
           </Pressable>
         ) : null}
         {props.onOpenAttachment ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            label="Open attachment"
+            tone="secondary"
             onPress={props.onOpenAttachment}
-            className="rounded-xl bg-subtle p-4"
-          >
-            <Text className="text-foreground">Open attachment</Text>
-          </Pressable>
+            fullWidth
+          />
         ) : null}
         {props.onOpenPullRequest && !pullRequestUrl ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            label="Open pull request"
+            tone="secondary"
             onPress={props.onOpenPullRequest}
-            className="rounded-xl bg-subtle p-4"
-          >
-            <Text className="text-foreground">Open pull request</Text>
-          </Pressable>
+            fullWidth
+          />
         ) : null}
         {props.onRemove ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={props.onRemove}
-            className="rounded-xl bg-subtle p-4"
-          >
-            <Text className="text-foreground">Remove from draft</Text>
-          </Pressable>
+          <Button label="Remove from draft" tone="secondary" onPress={props.onRemove} fullWidth />
         ) : null}
       </ScrollView>
-    </AppSheet>
+    </Sheet>
   );
 }

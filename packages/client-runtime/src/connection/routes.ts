@@ -262,18 +262,17 @@ export function connectionRouteAddress(route: ConnectionRoute): string | null {
   return routeHttpBaseUrl(route);
 }
 
+export const hasSavedBearerRoute = (entry: ConnectionCatalogEntry) =>
+  connectionRoutes(entry).some((r) => !isLearned(r) && r.target._tag === "BearerConnectionTarget");
+
 export function advertisedConnectionRoutes(
   config: Pick<ServerConfig, "environment" | "directEndpoints">,
 ) {
-  const { relayEndpoint, relayUrl, capabilities } = config.environment;
+  const { relayEndpoint, relayUrl } = config.environment;
   let relayAdvertisement: RelayConnectionInfo | null | undefined;
   if (relayEndpoint !== undefined && relayUrl !== undefined) {
     relayAdvertisement = { relayEndpoint, relayUrl };
-  } else if (
-    relayEndpoint === undefined &&
-    relayUrl === undefined &&
-    capabilities.relayAdvertisement === true
-  ) {
+  } else if (relayEndpoint === undefined && relayUrl === undefined) {
     relayAdvertisement = null;
   }
   return { reported: config.directEndpoints, relayAdvertisement };
@@ -357,6 +356,7 @@ export function mergeLearnedRoutes(input: {
     }
     const advertised = reported.get(key);
     if (advertised === undefined || known.has(key)) return [];
+    if (sendsTokenInClear(saved, route, tailscaleOrigins.has(key))) return [];
     known.add(key);
     const profile = Option.getOrNull(route.profile);
     if (
@@ -378,6 +378,13 @@ export function mergeLearnedRoutes(input: {
   let next: ReadonlyArray<ConnectionRoute> = kept;
   for (const { url, relayUrl } of reported.values()) {
     if (known.has(url.origin)) continue;
+    if (
+      url.protocol === "http:" &&
+      !tailscaleOrigins.has(url.origin) &&
+      !tokenAllowsPlainHttp(saved, sharedCredential)
+    ) {
+      continue;
+    }
     const httpBaseUrl = `${url.origin}/`;
     const connectionId = learnedConnectionId(
       entry.target.environmentId,
@@ -405,6 +412,52 @@ export function mergeLearnedRoutes(input: {
     });
   }
   return Equal.equals(saved, next) ? null : next;
+}
+
+// A paired token goes to a plain HTTP address outside the tailnet only when
+// it was paired that way, so a token paired over HTTPS, loopback, or the
+// tailnet keeps to the transports it was issued for. A token paired over the
+// relay is exempt: it is the only credential a relay-paired phone holds, and
+// its direct LAN path reuses it.
+function tokenAllowsPlainHttp(
+  routes: ReadonlyArray<ConnectionRoute>,
+  credentialId: string,
+): boolean {
+  const credentialRoute = routes.find((route) => connectionRouteId(route.target) === credentialId);
+  if (credentialRoute === undefined) return false;
+  const kind = connectionRouteKind(credentialRoute);
+  return (
+    kind === "relay" ||
+    (routeHttpBaseUrl(credentialRoute)?.startsWith("http:") === true &&
+      (kind === "lan" || kind === "public"))
+  );
+}
+
+/**
+ * Whether connecting over `route` would send a paired token over plain HTTP
+ * that it wasn't paired over. Checked against the token the route borrows,
+ * so a route learned before this rule existed is refused too.
+ */
+export function sendsTokenInClear(
+  routes: ReadonlyArray<ConnectionRoute>,
+  route: ConnectionRoute,
+  tailscale?: boolean,
+): boolean {
+  const profile = Option.getOrNull(route.profile);
+  if (profile?._tag !== "BearerConnectionProfile") return false;
+  if ((tailscale ?? profile.network === "tailscale") || !profile.httpBaseUrl.startsWith("http:")) {
+    return false;
+  }
+  const credentialId = credentialConnectionId(connectionRouteId(route.target));
+  return (
+    credentialId !== connectionRouteId(route.target) && !tokenAllowsPlainHttp(routes, credentialId)
+  );
+}
+
+/** Routes a connect may use: none sends a paired token over plain HTTP it wasn't paired over. */
+export function usableRoutes(entry: ConnectionCatalogEntry): ReadonlyArray<ConnectionRoute> {
+  const routes = connectionRoutes(entry);
+  return routes.filter((route) => !sendsTokenInClear(routes, route));
 }
 
 export interface ReportedEndpoint {

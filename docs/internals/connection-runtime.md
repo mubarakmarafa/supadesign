@@ -11,10 +11,13 @@ several views need the same environment.
 The [supervisor](../../packages/client-runtime/src/connection/supervisor.ts) owns
 transport retry policy; resolving an endpoint and opening an RPC session are single
 attempts. Transient failures retry with jittered exponential backoff, capped at
-five minutes, that resets only after a connection stays up. Without jitter, every
-client of a restarted server reconnects in the same second; with a short cap, a
-client that can never connect retries all day. Offline states and authentication
-failures wait for a wakeup instead of spending attempts on unchanged conditions.
+30 seconds, that resets only after a connection stays up. Jitter, not the cap,
+keeps every client of a restarted server from reconnecting in the same second.
+The cap bounds how long a client stays idle after its host becomes reachable
+again, which no signal reports while the network interface stays up; it matches
+the host's own relay reconnect cap. Offline states and authentication failures
+wait for a wakeup instead of spending attempts on unchanged conditions, so the cap
+only paces failures that may clear on their own.
 
 Foregrounding, an explicit retry, and an offline report probe the established
 session, and only a failed probe reconnects. Offline reports are often wrong, for
@@ -25,12 +28,26 @@ even while the network reports offline. Returning to mobile also restarts an
 in-flight connection attempt, whose routes may belong to the previous network.
 Desktop foregrounding leaves ordinary in-flight attempts alone.
 
-The native mobile relay owns the bounded background grace period and checks its
-tunnel on foreground before the RPC probe times out. An RPC session replacement
-alone cannot repair a dead native tunnel. While mobile is backgrounded, the
-supervisor retains established sessions but parks connection attempts and
-retries. Expected background disconnects do not become connection failures in the
-foreground UI.
+A replacement session to the same server process may resume the shell from the
+in-memory cursor instead of reloading the HTTP snapshot. Resume covers only rows
+with events after the cursor, but some thread rows read another thread's state: a
+fork counts its source's items, threads bound to one provider session share its
+last error, and a provider-thread move changes the previous owner. Neither resume
+nor the live tail resends those rows. A reload on every reconnect used to repair
+them, so a new session resumes only while the last authoritative snapshot is
+younger than six hours.
+
+The native mobile relay, not the supervisor, decides when a backgrounded tunnel
+suspends. iOS suspends when its background task expires, so the tunnel lasts as
+long as the OS grants. Android has no such deadline, so it suspends after a fixed
+grace instead of holding the tunnel and its keepalives until the process is
+frozen or killed, which can take hours on devices without the cached-app
+freezer. Where the freezer runs, it usually ends the tunnel first. On foreground
+the relay probes its tunnel before the RPC probe times out, because an RPC
+session replacement alone cannot repair a dead native tunnel. While mobile is
+backgrounded, the supervisor retains established
+sessions but parks connection attempts and retries. Expected background
+disconnects do not become connection failures in the foreground UI.
 
 Native tunnels ([iOS](../../apps/mobile/modules/supaterm-relay-tunnel/Sources/RelayTunnelCore/RelayTunnel.swift),
 [Android](../../apps/mobile/modules/supaterm-relay-tunnel/android/src/main/java/expo/modules/supatermrelaytunnel/core/NativeTunnel.kt))
@@ -46,6 +63,17 @@ The [registry](../../packages/client-runtime/src/connection/registry.ts) scopes
 connections by environment. An involuntary disconnect retains the registration
 and cached data. Explicit removal closes the scope and clears credentials,
 projections, and platform-owned state such as drafts.
+
+## Protocol version gate
+
+Clients and servers must agree on `ORCHESTRATION_PROTOCOL_VERSION`. The client runtime appends
+`orchestrationProtocol=<version>` to the socket URL, and the `/ws` route rejects a missing or
+mismatched version with HTTP 426 (`orchestration_protocol_incompatible`) before any RPC or auth
+work runs. The client checks the environment descriptor the same way. Either direction blocks the
+connection as `unsupported` with a message naming the machine to update rather than running
+half-upgraded. See `packages/client-runtime/src/connection/compatibility.ts` and
+`apps/server/src/ws.ts`. The descriptor is decoded before the comparison, so it must read any newer
+server's descriptor: a decode failure there replaces the update message with a generic error.
 
 ## HTTP authorization
 

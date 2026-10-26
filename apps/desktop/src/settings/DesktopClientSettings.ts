@@ -14,17 +14,7 @@ import * as Ref from "effect/Ref";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 
 const ClientSettingsJson = fromLenientJson(ClientSettingsSchema);
-const decodeClientSettingsDocument = Schema.decodeEffect(
-  fromLenientJson(Schema.Record(Schema.String, Schema.Unknown)),
-);
-const decodeClientSettingsValue = Schema.decodeUnknownEffect(ClientSettingsSchema);
-const decodeClientSettingsJson = Effect.fnUntraced(function* (raw: string) {
-  const document = yield* decodeClientSettingsDocument(raw);
-  // Select the shape before validation so invalid legacy settings cannot become defaults.
-  return yield* decodeClientSettingsValue(
-    Object.hasOwn(document, "settings") ? document.settings : document,
-  );
-});
+const decodeClientSettingsJson = Schema.decodeEffect(ClientSettingsJson);
 const encodeClientSettingsJson = Schema.encodeEffect(ClientSettingsJson);
 
 export class DesktopClientSettingsReadError extends Schema.TaggedError<DesktopClientSettingsReadError>()(
@@ -195,7 +185,7 @@ export const make = Effect.gen(function* () {
       Effect.withSpan("desktop.clientSettings.get"),
     ),
     set: (settings) =>
-      crypto.randomUUIDv4.pipe(
+      crypto.randomUUIDv4().pipe(
         Effect.map((uuid) => uuid.replace(/-/g, "")),
         Effect.mapError(
           (cause) =>

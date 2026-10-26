@@ -151,9 +151,6 @@ const parseStableTag = (tag: string): StableVersion | undefined => {
   if (!major || !minor || !patch) return undefined;
 
   const prereleaseIdentifiers = prerelease ? prerelease.split(".") : [];
-  // Nightly and preview tags also start with `v` and carry their channel as
-  // the prerelease identifier. They must not be considered stable candidates
-  // when resolving the previous stable tag.
   if (prereleaseIdentifiers[0] === "nightly" || prereleaseIdentifiers[0] === "preview") {
     return undefined;
   }
@@ -178,11 +175,7 @@ const parseNightlyTag = (
   tag: string,
   channel: "nightly" | "preview" = "nightly",
 ): NightlyVersion | undefined => {
-  // Accept both the current `v<semver>` format and the legacy `nightly-v<semver>`
-  // format so release note diffs keep working across the tag-format transition.
-  const match = new RegExp(
-    `^(?:nightly-)?v(\\d+)\\.(\\d+)\\.(\\d+)-${channel}\\.(\\d{8})\\.(\\d+)$`,
-  ).exec(tag);
+  const match = new RegExp(`^v(\\d+)\\.(\\d+)\\.(\\d+)-${channel}\\.(\\d{8})\\.(\\d+)$`).exec(tag);
   if (!match) return undefined;
 
   const [, major, minor, patch, date, runNumber] = match;
@@ -197,46 +190,43 @@ const parseNightlyTag = (
   };
 };
 
-export const resolvePreviousReleaseTag = (
-  channel: ReleaseChannel,
-  currentTag: string,
-  tags: ReadonlyArray<string>,
-) =>
-  Effect.gen(function* () {
-    if (channel === "stable") {
-      const current = parseStableTag(currentTag);
-      if (!current) {
-        return yield* new InvalidReleaseTagError({ channel, currentTag });
-      }
-
-      const candidates = tags
-        .flatMap((tag) => {
-          const parsed = parseStableTag(tag);
-          return parsed !== undefined && compareStableVersions(parsed, current) < 0
-            ? [{ tag, parsed }]
-            : [];
-        })
-        .toSorted((left, right) => compareStableVersions(right.parsed, left.parsed));
-
-      return candidates[0]?.tag;
-    }
-
-    const current = parseNightlyTag(currentTag, channel);
+export const resolvePreviousReleaseTag = Effect.fn(
+  "resolve-previous-release-tag.resolvePreviousReleaseTag",
+)(function* (channel: ReleaseChannel, currentTag: string, tags: ReadonlyArray<string>) {
+  if (channel === "stable") {
+    const current = parseStableTag(currentTag);
     if (!current) {
       return yield* new InvalidReleaseTagError({ channel, currentTag });
     }
 
     const candidates = tags
       .flatMap((tag) => {
-        const parsed = parseNightlyTag(tag, channel);
-        return parsed !== undefined && compareNightlyVersions(parsed, current) < 0
+        const parsed = parseStableTag(tag);
+        return parsed !== undefined && compareStableVersions(parsed, current) < 0
           ? [{ tag, parsed }]
           : [];
       })
-      .toSorted((left, right) => compareNightlyVersions(right.parsed, left.parsed));
+      .toSorted((left, right) => compareStableVersions(right.parsed, left.parsed));
 
     return candidates[0]?.tag;
-  });
+  }
+
+  const current = parseNightlyTag(currentTag, channel);
+  if (!current) {
+    return yield* new InvalidReleaseTagError({ channel, currentTag });
+  }
+
+  const candidates = tags
+    .flatMap((tag) => {
+      const parsed = parseNightlyTag(tag, channel);
+      return parsed !== undefined && compareNightlyVersions(parsed, current) < 0
+        ? [{ tag, parsed }]
+        : [];
+    })
+    .toSorted((left, right) => compareNightlyVersions(right.parsed, left.parsed));
+
+  return candidates[0]?.tag;
+});
 
 const collectStreamAsString = <E>(stream: Stream.Stream<Uint8Array, E>): Effect.Effect<string, E> =>
   stream.pipe(

@@ -133,7 +133,6 @@ const PRIVATE_FAVICON_TLDS = [
 ];
 const INTERNAL_HOST_LABELS: ReadonlySet<string> = new Set(["corp", "internal", "intranet"]);
 
-/** Whether a hostname is eligible to be disclosed to a public favicon provider. */
 export const isPublicFaviconHost = (host: string): boolean => {
   // A single trailing dot is a valid absolute DNS name. Repeated trailing
   // dots are malformed and can conceal legacy numeric forms such as 127.1.

@@ -61,7 +61,7 @@ export const make = Effect.gen(function* () {
   const services = yield* Effect.context<
     ServerConfig.ServerConfig | FileSystem.FileSystem | ThreadManagement.ThreadManagementService
   >();
-  const uuid = crypto.randomUUIDv4.pipe(Effect.orDie);
+  const uuid = crypto.randomUUIDv4().pipe(Effect.orDie);
   const cards = yield* CardWorkspace.make;
 
   const projectOf = (projectId: ProjectId) =>

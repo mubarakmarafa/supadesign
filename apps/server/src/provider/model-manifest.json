@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-09T23:31:10Z",
+  "updatedAt": "2026-10-23T12:00:00Z",
   "compatibility": [
     {
       "driver": "codex",
@@ -134,7 +134,9 @@
         { "slug": "gpt-5.6-sol", "name": "GPT-5.6 Sol", "status": "legacy" },
         { "slug": "gpt-5.6-terra", "name": "GPT-5.6 Terra", "status": "legacy" },
         { "slug": "gpt-5.6-luna", "name": "GPT-5.6 Luna", "status": "legacy" },
-        { "slug": "gpt-5.5", "name": "GPT-5.5", "status": "legacy" }
+        { "slug": "gpt-5.5", "name": "GPT-5.5", "status": "legacy" },
+        { "slug": "gpt-5.4-mini", "name": "GPT-5.4 Mini", "status": "legacy" },
+        { "slug": "gpt-5.3-codex-spark", "name": "GPT-5.3 Codex Spark", "status": "legacy" }
       ]
     },
     "claudeAgent": {
@@ -378,11 +380,6 @@
                   }
                 ],
                 "promptInjectedValues": ["ultrathink"]
-              },
-              {
-                "id": "fastMode",
-                "label": "Fast Mode",
-                "type": "boolean"
               }
             ]
           },
@@ -427,11 +424,6 @@
                   }
                 ],
                 "promptInjectedValues": ["ultrathink"]
-              },
-              {
-                "id": "fastMode",
-                "label": "Fast Mode",
-                "type": "boolean"
               },
               {
                 "id": "contextWindow",
@@ -494,11 +486,6 @@
                     "label": "Max"
                   }
                 ]
-              },
-              {
-                "id": "fastMode",
-                "label": "Fast Mode",
-                "type": "boolean"
               }
             ]
           },
@@ -653,7 +640,8 @@
               {
                 "id": "thinking",
                 "label": "Thinking",
-                "type": "boolean"
+                "type": "boolean",
+                "currentValue": true
               }
             ]
           },

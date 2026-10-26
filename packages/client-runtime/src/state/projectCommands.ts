@@ -72,7 +72,6 @@ function writtenFilePaths(
   );
 }
 
-/** The Scratch project was created, but its event never reached this client. */
 export class ScratchProjectNotLoadedError extends Schema.TaggedError<ScratchProjectNotLoadedError>()(
   "ScratchProjectNotLoadedError",
   { projectId: ProjectId },
@@ -85,7 +84,6 @@ export class ScratchProjectNotLoadedError extends Schema.TaggedError<ScratchProj
 export function createProjectEnvironmentAtoms<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry | Crypto.Crypto | R, E>,
   options: {
-    /** The client store's project; openScratch waits here for the created project. */
     readonly projectAtom: (ref: ScopedProjectRef) => Atom.Atom<EnvironmentProject | null>;
     readonly projectsAtom: Atom.Atom<ReadonlyArray<EnvironmentProject>>;
     readonly serverConfigValueAtom: (
@@ -106,6 +104,42 @@ export function createProjectEnvironmentAtoms<R, E>(
     key: ({ environmentId, input }: { environmentId: string; input: { projectId: string } }) =>
       JSON.stringify([environmentId, input.projectId]),
   };
+  const openScratch = Effect.fn("Project.openScratch")(
+    (
+      input: EnvironmentRpcInput<typeof WS_METHODS.projectsEnsureScratch>,
+      registry: AtomRegistry.AtomRegistry,
+      environmentId: EnvironmentId,
+    ) =>
+      Effect.gen(function* () {
+        const workspaceRoot = registry.get(
+          options.serverConfigValueAtom(environmentId),
+        )?.scratchWorkspaceRoot;
+        const existing = workspaceRoot
+          ? findExistingAddProject({
+              projects: registry.get(options.projectsAtom),
+              environmentId,
+              path: workspaceRoot,
+            })
+          : null;
+        if (existing) return existing;
+        const { projectId } = yield* request(WS_METHODS.projectsEnsureScratch, input);
+        return yield* AtomRegistry.toStream(
+          registry,
+          options.projectAtom({ environmentId, projectId }),
+        ).pipe(
+          Stream.filter(Predicate.isNotNull),
+          Stream.runHead,
+          Effect.timeoutOption("10 seconds"),
+          Effect.map(Option.flatten),
+          Effect.flatMap(
+            Option.match({
+              onSome: Effect.succeed,
+              onNone: () => Effect.fail(new ScratchProjectNotLoadedError({ projectId })),
+            }),
+          ),
+        );
+      }),
+  );
   return {
     fileMetadata: fileMetadata.metadata,
     fileMetadataThread: fileMetadata.retainThread,
@@ -143,6 +177,11 @@ export function createProjectEnvironmentAtoms<R, E>(
           (result, isCurrent) => fileMetadata.rememberEntries(input.cwd, result.entries, isCurrent),
         ),
     }),
+    listIgnoredFiles: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:projects:list-ignored-files",
+      tag: WS_METHODS.projectsListIgnoredFiles,
+      staleTimeMs: 15_000,
+    }),
     readFile: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:projects:read-file",
       tag: WS_METHODS.projectsReadFile,
@@ -151,7 +190,10 @@ export function createProjectEnvironmentAtoms<R, E>(
       execute: (input) =>
         fileMetadata.seedAfterRead(
           request(WS_METHODS.projectsReadFile, input),
-          (result, isCurrent) => fileMetadata.rememberFile(input.cwd, result, isCurrent),
+          (result, isCurrent) =>
+            result.exists === false
+              ? Effect.void
+              : fileMetadata.rememberFile(input.cwd, result, isCurrent),
         ),
     }),
     optimisticFile: (target: OptimisticProjectFileTarget) =>
@@ -180,40 +222,10 @@ export function createProjectEnvironmentAtoms<R, E>(
         input: EnvironmentRpcInput<typeof WS_METHODS.projectsEnsureScratch>,
         registry,
         environmentId,
-      ) =>
-        Effect.gen(function* () {
-          const workspaceRoot = registry.get(
-            options.serverConfigValueAtom(environmentId),
-          )?.scratchWorkspaceRoot;
-          const existing = workspaceRoot
-            ? findExistingAddProject({
-                projects: registry.get(options.projectsAtom),
-                environmentId,
-                path: workspaceRoot,
-              })
-            : null;
-          if (existing) return existing;
-          const { projectId } = yield* request(WS_METHODS.projectsEnsureScratch, input);
-          return yield* AtomRegistry.toStream(
-            registry,
-            options.projectAtom({ environmentId, projectId }),
-          ).pipe(
-            Stream.filter(Predicate.isNotNull),
-            Stream.runHead,
-            Effect.timeoutOption("10 seconds"),
-            Effect.map(Option.flatten),
-            Effect.flatMap(
-              Option.match({
-                onSome: Effect.succeed,
-                onNone: () => Effect.fail(new ScratchProjectNotLoadedError({ projectId })),
-              }),
-            ),
-          );
-        }),
+      ) => openScratch(input, registry, environmentId),
       scheduler: projectScheduler,
       concurrency: { mode: "serial", key: ({ environmentId }) => environmentId },
     }),
-    // Makes a new folder and repository from just a name, then the project.
     createNew: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:projects:create-new",
       tag: WS_METHODS.projectsCreateNew,

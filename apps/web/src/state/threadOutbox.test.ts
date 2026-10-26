@@ -19,7 +19,6 @@ const harness = vi.hoisted(() => ({
   verify: vi.fn(),
   marked: vi.fn(),
   finalized: vi.fn(),
-  supportsUploads: false,
   online: false,
   existingThread: false,
   archivedThread: false,
@@ -58,8 +57,6 @@ vi.mock("../rpc/atomRegistry", async () => {
             {
               environment: {
                 capabilities: {
-                  attachmentUploads: harness.supportsUploads,
-                  inlineMessageContext: true,
                   fileAttachments: { maxUploadBytes: 1_000 },
                 },
               },
@@ -172,13 +169,51 @@ function worktreeTarget() {
   };
 }
 
+function pendingTaskWithFollowUp() {
+  const original = target();
+  return [
+    {
+      ...original,
+      input: {
+        ...original.input,
+        createdAt: "2026-10-06T00:00:00Z",
+        bootstrap: {
+          createThread: {
+            projectId: ProjectId.make("project"),
+            title: "Task",
+            modelSelection: original.input.modelSelection,
+            runtimeMode: original.input.runtimeMode,
+            interactionMode: original.input.interactionMode,
+            branch: null,
+            worktreePath: null,
+            createdAt: "2026-10-06T00:00:00Z",
+          },
+        },
+      },
+    },
+    {
+      ...original,
+      input: {
+        ...original.input,
+        commandId: CommandId.make("follow-up-command"),
+        message: {
+          ...original.input.message,
+          messageId: MessageId.make("follow-up"),
+          text: "Follow-up",
+        },
+        dispatchMode: "queue" as const,
+        createdAt: "2026-10-06T00:01:00Z",
+      },
+    },
+  ] as const;
+}
+
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.unstubAllGlobals();
   harness.records.clear();
   harness.online = false;
-  harness.supportsUploads = false;
   harness.existingThread = false;
   harness.archivedThread = false;
   harness.run.mockResolvedValue(AsyncResult.success({ sequence: 1 }));
@@ -187,22 +222,10 @@ beforeEach(() => {
 
 describe("web thread outbox delivery", () => {
   it.each(["default", "current"])(
-    "resolves the %s branch for a restored offline worktree with an attachment",
+    "resolves the %s branch for a restored offline worktree",
     async (branchKind) => {
       const { enqueueThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
-      await enqueueThreadOutboxTurn({
-        ...worktreeTarget(),
-        localAttachments: [
-          {
-            id: "local-image",
-            type: "image",
-            name: "image.png",
-            mimeType: "image/png",
-            sizeBytes: 5,
-            bytes: new Blob(["image"], { type: "image/png" }),
-          },
-        ],
-      });
+      await enqueueThreadOutboxTurn(worktreeTarget());
       await webThreadOutbox.drain();
       expect(harness.run).not.toHaveBeenCalled();
       vi.resetModules();
@@ -238,7 +261,6 @@ describe("web thread outbox delivery", () => {
         message: {
           messageId: "message",
           text: "Saved prompt",
-          attachments: [{ id: "local-image", dataUrl: "data:image/png;base64,aW1hZ2U=" }],
         },
         bootstrap: {
           createThread: { branch: expectedBranch },
@@ -328,99 +350,75 @@ describe("web thread outbox delivery", () => {
     },
   );
 
-  it("retries compaction with the same IDs and queues the saved prompt only after acknowledgement", async () => {
+  it.each([undefined, false, true])(
+    "delivers legacy compaction-marked prompts without compacting: accepted=%s",
+    async (compactAccepted) => {
+      const { enqueueThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
+      await enqueueThreadOutboxTurn(target());
+      const saved = harness.records.get("message")!;
+      const legacyPayload = {
+        ...saved.payload,
+        compactBeforeSend: true,
+        compactAccepted,
+        input: { ...saved.payload.input, dispatchMode: "queue" as const },
+      };
+      harness.records.set("message", { ...saved, payload: legacyPayload });
+      harness.online = true;
+
+      await webThreadOutbox.drain();
+
+      expect(harness.run).toHaveBeenCalledTimes(1);
+      expect(harness.run.mock.calls[0]![2].input).toMatchObject({
+        commandId: "stable-command",
+        message: { messageId: "message", text: "Saved prompt" },
+        dispatchMode: "queue",
+      });
+      expect(harness.records.size).toBe(0);
+    },
+  );
+
+  it("retries the saved prompt with stable IDs and without prepending compaction", async () => {
     const { enqueueThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
-    await enqueueThreadOutboxTurn({ ...target(), compactBeforeSend: true });
+    await enqueueThreadOutboxTurn(target());
     harness.online = true;
     harness.run.mockResolvedValueOnce(AsyncResult.fail({ _tag: "RpcClientError" }));
     await webThreadOutbox.drain();
     expect(harness.run).toHaveBeenCalledTimes(1);
-    const compact = harness.run.mock.calls[0]![2];
-    expect(compact.input).toMatchObject({
-      commandId: "stable-command:compact",
-      message: { messageId: "message:compact", text: "/compact", attachments: [] },
-      dispatchMode: "queue",
-    });
     const saved = harness.records.get("message")!;
-    expect(saved.payload.input.message.text).toBe("Saved prompt");
-    expect(saved.payload.compactAccepted).toBeUndefined();
     harness.records.set("message", { ...saved, retryAt: 0 });
-    await webThreadOutbox.drain();
-    expect(harness.run.mock.calls[1]![2]).toEqual(compact);
-    expect(harness.run.mock.calls[2]![2].input).toMatchObject({
-      commandId: "stable-command",
-      message: { messageId: "message", text: "Saved prompt" },
-      dispatchMode: "queue",
-    });
-    expect(harness.records.size).toBe(0);
-  });
-
-  it("does not compact again when a failed prompt is retried after compaction was accepted", async () => {
-    const { enqueueThreadOutboxTurn, replaceThreadOutboxTurn, webThreadOutbox } =
-      await import("./threadOutbox");
-    await enqueueThreadOutboxTurn({ ...target(), compactBeforeSend: true });
-    harness.online = true;
-    harness.run
-      .mockResolvedValueOnce(AsyncResult.success({ sequence: 1 }))
-      .mockImplementationOnce(async () => {
-        expect(harness.records.get("message")?.payload.compactAccepted).toBe(true);
-        return AsyncResult.fail({
-          _tag: "OrchestrationDispatchCommandError",
-          message: "Prompt dispatch was rejected.",
-        });
-      });
 
     await webThreadOutbox.drain();
 
     expect(harness.run).toHaveBeenCalledTimes(2);
-    const failed = webThreadOutbox.getSnapshot()[0]!;
-    expect(failed.status).toBe("failed");
-    expect(failed.payload.compactBeforeSend).toBe(true);
-    expect(failed.payload.compactAccepted).toBe(true);
-    expect(harness.run.mock.calls[0]![2].input.message.text).toBe("/compact");
-    expect(harness.run.mock.calls[1]![2].input.message.text).toBe("Saved prompt");
-
-    await replaceThreadOutboxTurn(failed, failed.payload);
-    await webThreadOutbox.drain();
-
-    expect(harness.run).toHaveBeenCalledTimes(3);
-    expect(harness.run.mock.calls[2]![2].input).toMatchObject({
-      commandId: "generated-command",
+    expect(harness.run.mock.calls[1]![2]).toEqual(harness.run.mock.calls[0]![2]);
+    expect(harness.run.mock.calls[1]![2].input).toMatchObject({
+      commandId: "stable-command",
       message: { messageId: "message", text: "Saved prompt" },
-      dispatchMode: "queue",
     });
-    expect(harness.run.mock.calls[2]![2].input.message.text).not.toBe("/compact");
     expect(harness.records.size).toBe(0);
   });
 
-  it.each([
-    { instanceId: "different-provider", text: "Edited prompt" },
-    { instanceId: "codex", text: "/compact" },
-  ])("drops automatic compaction when an edit changes its target: %j", async (edit) => {
-    const { enqueueThreadOutboxTurn, webThreadOutbox, replaceThreadOutboxTurn } =
-      await import("./threadOutbox");
-    await enqueueThreadOutboxTurn({ ...target(), compactBeforeSend: true });
-    await webThreadOutbox.pause("message", true);
-    const entry = webThreadOutbox.getSnapshot()[0]!;
-    await replaceThreadOutboxTurn(entry, {
-      ...entry.payload,
-      compactAccepted: true,
-      input: {
-        ...entry.payload.input,
-        modelSelection: {
-          instanceId: ProviderInstanceId.make(edit.instanceId),
-          model: "test-model",
+  it.each(["/compact", "/compact Keep the interface decisions"])(
+    "delivers the explicit command once: %s",
+    async (text) => {
+      const { enqueueThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
+      const original = target();
+      await enqueueThreadOutboxTurn({
+        ...original,
+        input: {
+          ...original.input,
+          message: { ...original.input.message, text },
         },
-        message: { ...entry.payload.input.message, text: edit.text },
-      },
-    });
-    expect(webThreadOutbox.getSnapshot()[0]?.payload.compactAccepted).toBeUndefined();
-    harness.online = true;
-    await webThreadOutbox.drain();
-    expect(harness.run).toHaveBeenCalledTimes(1);
-    expect(harness.run.mock.calls[0]![2].input.message.text).toBe(edit.text);
-    expect(harness.records.size).toBe(0);
-  });
+      });
+      harness.online = true;
+
+      await webThreadOutbox.drain();
+
+      expect(harness.run).toHaveBeenCalledTimes(1);
+      expect(harness.run.mock.calls[0]![2].input.message.text).toBe(text);
+      expect(harness.records.size).toBe(0);
+    },
+  );
 
   it("persists an edited message with a new command ID before delivering it", async () => {
     const { enqueueThreadOutboxTurn, webThreadOutbox, replaceThreadOutboxTurn } =
@@ -516,45 +514,7 @@ describe("web thread outbox delivery", () => {
     expect(harness.records.size).toBe(0);
   });
 
-  it("retains local image bytes across reload and prepares the legacy upload only at delivery", async () => {
-    const { enqueueThreadOutboxTurn } = await import("./threadOutbox");
-    await enqueueThreadOutboxTurn({
-      ...target(),
-      localAttachments: [
-        {
-          id: "local-image",
-          type: "image",
-          name: "image.png",
-          mimeType: "image/png",
-          sizeBytes: 5,
-          bytes: new Blob(["image"], { type: "image/png" }),
-        },
-      ],
-    });
-    vi.resetModules();
-    harness.online = true;
-    await (await import("./threadOutbox")).webThreadOutbox.drain();
-    expect(harness.run).toHaveBeenCalledWith(
-      expect.anything(),
-      { label: "send" },
-      expect.objectContaining({
-        input: expect.objectContaining({
-          message: expect.objectContaining({
-            attachments: [
-              expect.objectContaining({
-                id: "local-image",
-                dataUrl: "data:image/png;base64,aW1hZ2U=",
-              }),
-            ],
-          }),
-        }),
-      }),
-      expect.anything(),
-    );
-  });
-
   it("persists an uploaded file reference before dispatch and reuses it after a transport failure", async () => {
-    harness.supportsUploads = true;
     harness.online = true;
     const transfer = vi.fn(async () => new Response(null, { status: 200 }));
     vi.stubGlobal("fetch", transfer);
@@ -608,7 +568,6 @@ describe("web thread outbox delivery", () => {
   });
 
   it("retains an oversized attachment as a failed pending message", async () => {
-    harness.supportsUploads = true;
     harness.online = true;
     const { enqueueThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
     await enqueueThreadOutboxTurn({
@@ -733,6 +692,90 @@ describe("web thread outbox delivery", () => {
         input: { threadId: "replacement-thread", commandId: "generated-command" },
       },
     });
+  });
+
+  async function rejectPendingTaskWithFollowUp() {
+    const { enqueueThreadOutboxTurns, webThreadOutbox } = await import("./threadOutbox");
+    await enqueueThreadOutboxTurns(pendingTaskWithFollowUp());
+    harness.online = true;
+    harness.run.mockResolvedValueOnce(
+      AsyncResult.fail({ _tag: "OrchestrationDispatchCommandError", message: "Rejected." }),
+    );
+    await webThreadOutbox.drain();
+    expect(harness.run).toHaveBeenCalledTimes(1);
+    const failed = webThreadOutbox.getSnapshot()[0]!;
+    expect(failed.status).toBe("failed");
+    harness.online = false;
+    return failed;
+  }
+
+  const movedToReplacementThread = [
+    expect.objectContaining({ id: "message", scope: "environment:replacement-thread" }),
+    expect.objectContaining({
+      id: "follow-up",
+      scope: "environment:replacement-thread",
+      paused: false,
+      payload: expect.objectContaining({
+        input: expect.objectContaining({
+          threadId: "replacement-thread",
+          commandId: "follow-up-command",
+        }),
+      }),
+    }),
+  ];
+
+  it("carries follow-ups queued behind a rejected creation to its replacement thread", async () => {
+    const { replaceThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
+    const failed = await rejectPendingTaskWithFollowUp();
+
+    await replaceThreadOutboxTurn(failed, failed.payload);
+
+    expect(webThreadOutbox.getSnapshot()).toEqual(movedToReplacementThread);
+  });
+
+  it("follows a rejected creation another tab already moved", async () => {
+    const { replaceThreadOutboxTurn, webThreadOutbox } = await import("./threadOutbox");
+    const failed = await rejectPendingTaskWithFollowUp();
+    for (const [id, record] of harness.records) {
+      harness.records.set(id, {
+        ...record,
+        scope: "environment:other-tab-thread",
+        payload: {
+          ...record.payload,
+          input: { ...record.payload.input, threadId: ThreadId.make("other-tab-thread") },
+        },
+      });
+    }
+
+    await replaceThreadOutboxTurn(failed, failed.payload);
+
+    expect(webThreadOutbox.getSnapshot()).toEqual(movedToReplacementThread);
+  });
+
+  it("cancels the follow-ups queued behind a cancelled pending task", async () => {
+    const { cancelThreadOutboxTurn, enqueueThreadOutboxTurns, webThreadOutbox } =
+      await import("./threadOutbox");
+    await enqueueThreadOutboxTurns(pendingTaskWithFollowUp());
+
+    await cancelThreadOutboxTurn(webThreadOutbox.getSnapshot()[0]!);
+
+    expect(webThreadOutbox.getSnapshot()).toEqual([]);
+  });
+
+  it("keeps the follow-ups when a pending task is already being delivered", async () => {
+    const { cancelThreadOutboxTurn, enqueueThreadOutboxTurns, webThreadOutbox } =
+      await import("./threadOutbox");
+    await enqueueThreadOutboxTurns(pendingTaskWithFollowUp());
+    harness.records.set("message", { ...harness.records.get("message")!, attempted: true });
+
+    await expect(cancelThreadOutboxTurn(webThreadOutbox.getSnapshot()[0]!)).rejects.toThrow(
+      "Delivery has already started.",
+    );
+
+    expect(webThreadOutbox.getSnapshot().map((entry) => entry.id)).toEqual([
+      "message",
+      "follow-up",
+    ]);
   });
 
   it.each(["arrived", "archived"])(

@@ -106,16 +106,6 @@ it.effect(
           thread_id, project_id, title, default_provider, runtime_mode, interaction_mode,
           created_at, updated_at, payload_json
         ) VALUES (
-          'legacy-single', 'project-1', 'legacy-single', 'codex', 'full-access', 'default',
-          ${createdAt}, ${createdAt},
-          '{"linkedPullRequest":{"projectId":"project-1","repository":"acme/web","number":7,"url":"https://github.com/acme/web/pull/7"}}'
-        )
-      `;
-      yield* sql`
-        INSERT INTO orchestration_v2_projection_threads (
-          thread_id, project_id, title, default_provider, runtime_mode, interaction_mode,
-          created_at, updated_at, payload_json
-        ) VALUES (
           'explicitly-unlinked', 'project-1', 'explicitly-unlinked', 'codex', 'full-access', 'default',
           ${createdAt}, ${createdAt},
           '{"linkedPullRequest":{"projectId":"project-1","repository":"acme/web","number":7,"url":"https://github.com/acme/web/pull/7"},"pullRequests":[]}'
@@ -125,18 +115,6 @@ it.effect(
         INSERT INTO projection_projects (
           project_id, title, workspace_root, scripts_json, created_at, updated_at
         ) VALUES ('project-1', 'Project', '/tmp/project', '[]', ${createdAt}, ${createdAt})
-      `;
-      yield* sql`
-        INSERT INTO projection_threads (
-          thread_id, project_id, title, model_selection_json, created_at, updated_at
-        ) VALUES ('v1-only', 'project-1', 'v1-only',
-          '{"instanceId":"codex","model":"gpt-5.4"}', ${createdAt}, ${createdAt})
-      `;
-      yield* sql`
-        INSERT INTO projection_thread_pull_requests (
-          thread_id, host, repository, number, url, source, linked_at
-        ) VALUES ('v1-only', 'github.com', 'acme/web', 7,
-          'https://github.com/acme/web/pull/7', 'manual', ${createdAt})
       `;
 
       expect(
@@ -169,7 +147,6 @@ it.effect(
         threads: [
           { id: "archived", projectId: "project-1", title: "archived", archivedAt },
           { id: "active", projectId: "project-1", title: "active", archivedAt: null },
-          { id: "legacy-single", projectId: "project-1", title: "legacy-single", archivedAt: null },
         ],
       });
       assert.deepStrictEqual(

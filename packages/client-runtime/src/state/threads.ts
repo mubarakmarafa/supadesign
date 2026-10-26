@@ -79,7 +79,6 @@ function historyMetaFromCachedSnapshot(
     hasMoreHistory,
     loading: false,
     error: null,
-    // Cache never stores expanded progressive history (load-earlier growth).
     expanded: false,
     latestLocalTurnOrdinal: snapshot.latestLocalTurnOrdinal ?? null,
   };
@@ -148,11 +147,6 @@ function matchesThreadSnapshot(
   );
 }
 
-// A retained "live" state stays live: the cursor resume that follows only
-// replays what the thread missed, and on servers that send the completion
-// marker the first replayed event moves the status to "synchronizing" on its
-// own. Downgrading here would flash a sync label on every return to a
-// recently viewed thread.
 function cachedThreadState(value: EnvironmentThreadState): EnvironmentThreadState {
   return {
     ...value,
@@ -209,8 +203,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
         }),
       };
   const state = yield* SubscriptionRef.make(initialState);
-  // Paging support belongs to the client, even when the initial HTTP request
-  // fails. A bounded socket reset retains a cursor so history can be retried.
   const canLoadHistory = Option.isSome(httpClient) && Option.isSome(historyController);
   const acceptsBoundedSocketSnapshots = yield* Ref.make(canLoadHistory);
   // Seed the resume cursor from the cached snapshot so a warm cache can catch up
@@ -230,7 +222,7 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
   const applyLock = yield* Semaphore.make(1);
   // Save only completed data/cursor updates. A canceled scope must not cache
   // a cursor whose event has not reached the data yet.
-  const remember = Effect.gen(function* () {
+  const remember = Effect.fnUntraced(function* (retention: "retain" | "recheck" = "retain") {
     const current = yield* SubscriptionRef.get(state);
     const sequence = yield* SubscriptionRef.get(lastSequence);
     committed = {
@@ -241,7 +233,9 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
         committed.persisted &&
         matchesThreadSnapshot(committed, Option.getOrNull(current.data), sequence, current.history),
     };
-    if (resumeCache?.owner === owner) resumeCache.snapshot = committed;
+    if (resumeCache?.owner === owner) {
+      resumeCache.snapshot = retention === "retain" ? committed : undefined;
+    }
   });
   const persistence = yield* Queue.sliding<OrchestrationV2ThreadDetailSnapshot>(1);
 
@@ -249,7 +243,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
     snapshot: OrchestrationV2ThreadDetailSnapshot,
   ) {
     if (resumeCache !== undefined && resumeCache.owner !== owner) return;
-    // A deletion can arrive while an older snapshot waits in the persistence queue.
     if (committed.state.status === "deleted") return;
     if (
       committed.persisted &&
@@ -351,12 +344,7 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
   const setThread = Effect.fn("EnvironmentThreadState.setThread")(function* (
     thread: OrchestrationV2ThreadProjection,
     options?: {
-      /** Socket/full snapshots: drop progressive meta with the new timeline. */
       readonly resetHistory?: boolean;
-      /**
-       * Explicit progressive meta installed atomically with the projection
-       * (bounded HTTP). Wins over resetHistory when both are supplied.
-       */
       readonly history?: ThreadHistoryMeta;
     },
   ) {
@@ -374,7 +362,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
       return {
         ...previous,
         data: Option.some(thread),
-        // Buffered values from a failed attempt can arrive after its error.
         status: Option.isSome(previous.error)
           ? ("cached" as const)
           : waiting
@@ -407,7 +394,9 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
       history: patch(current.history),
     }));
 
-  const setDeleted = Effect.fn("EnvironmentThreadState.setDeleted")(function* () {
+  const setDeleted = Effect.fn("EnvironmentThreadState.setDeleted")(function* (
+    retention: "retain" | "recheck" = "retain",
+  ) {
     yield* Ref.set(awaitingCompletion, false);
     yield* SubscriptionRef.set(state, {
       data: Option.none(),
@@ -415,7 +404,7 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
       error: Option.none(),
       history: EMPTY_THREAD_HISTORY_META,
     });
-    yield* remember;
+    yield* remember(retention);
     if (resumeCache !== undefined && resumeCache.owner !== owner) return;
     yield* cache.removeThread(environmentId, threadId).pipe(
       Effect.catch((error) =>
@@ -443,7 +432,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
     const fresh: EventItem[] = [];
     for (const item of items) {
       if (item.sequence <= sequence) continue;
-      // An event type from a newer server still moves the resume cursor past it.
       sequence = item.sequence;
       if (item.kind === "event") {
         fresh.push(item);
@@ -453,7 +441,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
         Effect.annotateLogs({
           environmentId,
           threadId,
-          // Bounded: the type comes from a newer server and is not validated here.
           eventType: item.eventType.slice(0, 64),
           sequence: item.sequence,
         }),
@@ -495,7 +482,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
 
       // Incomplete progressive windows only (hasMore or open cursor). Do not
       // use expanded: it remains true after the last page as a cache marker.
-      // Full/web and fully-loaded timelines keep default append-on-miss.
       const partial =
         current.history.hasMoreHistory || current.history.historyCursor !== null
           ? {
@@ -504,9 +490,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
             }
           : undefined;
       const next = applyOrchestrationV2ProjectionEvent(current.data.value, item.event, partial);
-      // True no-op when the reducer deliberately returns the current projection
-      // reference (e.g. dropped old partial-timeline turn-item). Do not clear
-      // stream error/status or enqueue persistence.
       if (next === null || next === current.data.value) {
         return [{ _tag: "noop" }, current];
       }
@@ -581,8 +564,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
         item.historyCursor !== undefined ||
         item.hasMoreHistory !== undefined ||
         item.latestLocalTurnOrdinal !== undefined;
-      // Bounded socket fallbacks carry their cursor. Legacy-compatible full
-      // snapshots omit these fields and still replace progressive state.
       yield* setThread(
         boundedSnapshotProjection(item),
         hasProgressiveHistory
@@ -623,7 +604,7 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
           yield* applyItemLocked(item);
         }
         yield* applyEventsLocked(events);
-        yield* remember;
+        yield* remember();
       }),
     );
   });
@@ -722,13 +703,11 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
           ),
         );
         if (result._tag !== "loaded") return result;
-        if (complete) yield* remember;
+        if (complete) yield* remember();
       }
       return { _tag: "loaded" } satisfies ThreadHistoryController.ThreadHistoryLoadEarlierResult;
     });
 
-    // On Effect interruption only: clear loading when this request cursor is
-    // still active. Never mutate stream status/error from the interrupt path.
     return yield* runLoad.pipe(
       Effect.onInterrupt(() =>
         SubscriptionRef.update(state, (latest) => ({
@@ -774,8 +753,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
   const resumingLive = yield* Ref.make(initialState.status === "live");
   const markSynchronizing = Effect.gen(function* () {
     if (yield* Ref.get(resumingLive)) return;
-    // Connection notifications do not establish that a terminated load restarted.
-    // Clear its diagnostic only when this subscription actually tries again.
     yield* SubscriptionRef.update(state, (current) =>
       current.status === "deleted"
         ? current
@@ -789,9 +766,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
       ORCHESTRATION_V2_WS_METHODS.subscribeThread,
       Effect.fn("EnvironmentThreadState.makeSubscribeInput")(function* (session) {
         let current = yield* SubscriptionRef.get(state);
-        // A prior definitive miss (or delete event) already cleared this thread.
-        // Park the subscription attempt without opening the socket so we do not
-        // retry forever against a known-missing id.
         if (current.status === "deleted") {
           return yield* Effect.never;
         }
@@ -844,20 +818,17 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
                         }
                       : EMPTY_THREAD_HISTORY_META;
                   yield* setThread(httpResult.snapshot.projection, { history });
-                  yield* remember;
+                  yield* remember();
                 }),
               );
               current = yield* SubscriptionRef.get(state);
               break;
             }
             case "missing": {
-              // Definitive HTTP 404: clear any stale cache and do not open or
-              // retry a socket subscription for this attempt.
-              yield* setDeleted();
+              yield* setDeleted("recheck");
               return yield* Effect.never;
             }
             case "unavailable": {
-              // Transient HTTP failure: fall through to the socket path.
               break;
             }
           }
@@ -964,7 +935,6 @@ export * from "./archivedThreads.ts";
 export * from "./checkpointDiff.ts";
 export * as BoundedThreadSnapshotLoader from "./boundedThreadSnapshotHttp.ts";
 export * as ThreadHistoryController from "./threadHistoryController.ts";
-// Flat so consumers' inferred types can name it.
 export type { ThreadHistoryLoadEarlierResult } from "./threadHistoryController.ts";
 export * from "./threadHistoryMerge.ts";
 export * from "./threadSnapshotHttp.ts";

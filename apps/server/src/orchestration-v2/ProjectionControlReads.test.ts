@@ -64,8 +64,8 @@ function fixtureEvents(now: DateTime.Utc): ReadonlyArray<OrchestrationV2DomainEv
         createdAt: now,
         updatedAt: now,
         archivedAt: null,
-        settledOverride: null,
-        settledAt: null,
+        doneOverride: null,
+        doneAt: null,
         lastVisitedAt: null,
         deletedAt: null,
       },
@@ -339,8 +339,6 @@ it.effect.each(storageCases)(
           occurredAt: now,
           payload: { ...turn, status: "completed", completedAt: now },
         });
-        // A settled turn's Stop still reaches the adapter, which alone knows
-        // whether it runs background work for the thread.
         yield* control.interrupt({ threadId, providerThreadId, providerTurnId, providerSessionId });
         assert.deepEqual(calls, ["interrupt", "Use the smaller fix.", "reply", "interrupt"]);
       }).pipe(

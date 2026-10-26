@@ -1,8 +1,9 @@
 import {
-  AuthAdministrativeScopes,
+  AuthStandardClientScopes,
   CommandId,
   EnvironmentHttpApi,
   EnvironmentHttpCommonError,
+  EnvironmentRequestInvalidError,
   type ProjectMutation,
   type ProjectSnapshot,
   ProjectId,
@@ -26,6 +27,8 @@ import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 
 import * as ServerConfig from "../config.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
+import * as ProcessRunner from "../processRunner.ts";
+import * as ServerOwnership from "../serverOwnership.ts";
 import * as RuntimeLayer from "../orchestration-v2/runtimeLayer.ts";
 import * as ProjectEnrichmentService from "../project/ProjectEnrichmentService.ts";
 import * as ProjectFaviconResolver from "../project/ProjectFaviconResolver.ts";
@@ -51,6 +54,7 @@ type ProjectCommandExecutionMode = "live" | "offline";
 type ProjectCliDispatchCommand = ProjectMutation;
 
 const isEnvironmentHttpCommonError = Schema.is(EnvironmentHttpCommonError);
+const isEnvironmentRequestInvalidError = Schema.is(EnvironmentRequestInvalidError);
 
 export class ProjectCommandIdGenerationError extends Schema.TaggedError<ProjectCommandIdGenerationError>()(
   "ProjectCommandIdGenerationError",
@@ -155,6 +159,19 @@ export class ProjectAlreadyExistsError extends Schema.TaggedError<ProjectAlready
   }
 }
 
+export class ProjectHasThreadsError extends Schema.TaggedError<ProjectHasThreadsError>()(
+  "ProjectHasThreadsError",
+  {
+    operation: Schema.Literal("removeProject"),
+    projectId: ProjectId,
+    title: Schema.String,
+  },
+) {
+  override get message(): string {
+    return `Project '${this.title}' still has threads. Re-run with --force to remove it and delete all of its threads.`;
+  }
+}
+
 export const ProjectCommandError = Schema.Union([
   ProjectCommandIdGenerationError,
   ProjectLiveServerDeclaredResponseError,
@@ -164,10 +181,13 @@ export const ProjectCommandError = Schema.Union([
   ProjectIdentifierEmptyError,
   ProjectNotFoundError,
   ProjectAlreadyExistsError,
+  ProjectHasThreadsError,
 ]);
 export type ProjectCommandError = typeof ProjectCommandError.Type;
 
-export function projectCommandErrorFromLiveServerRequest(cause: unknown): ProjectCommandError {
+const isProjectNotEmptyError = Schema.is(ProjectService.ProjectNotEmptyError);
+
+function projectCommandErrorFromLiveServerRequest(cause: unknown): ProjectCommandError {
   if (isEnvironmentHttpCommonError(cause)) {
     return new ProjectLiveServerDeclaredResponseError({
       operation: "callLiveServer",
@@ -188,7 +208,7 @@ export function projectCommandErrorFromLiveServerRequest(cause: unknown): Projec
 }
 
 const projectCommandUuid = Crypto.Crypto.pipe(
-  Effect.flatMap((crypto) => crypto.randomUUIDv4),
+  Effect.flatMap((crypto) => crypto.randomUUIDv4()),
   Effect.mapError(
     (cause) =>
       new ProjectCommandIdGenerationError({
@@ -219,7 +239,7 @@ const withProjectCliSessionToken = <A, E, R>(
 ) =>
   Effect.acquireUseRelease(
     environmentAuth.issueSession({
-      scopes: AuthAdministrativeScopes,
+      scopes: AuthStandardClientScopes,
       label: "supaterm project cli",
     }),
     (issued) => run(issued.token),
@@ -314,32 +334,38 @@ const findActiveProjectTarget = Effect.fn("findActiveProjectTarget")(function* (
   } satisfies ProjectMutationTarget;
 });
 
-const fetchLiveOrchestrationSnapshot = (origin: string, bearerToken: string) =>
-  Effect.gen(function* () {
+const fetchLiveOrchestrationSnapshot = Effect.fn("project.fetchLiveOrchestrationSnapshot")(
+  function* (origin: string, bearerToken: string) {
     const client = yield* makeLiveServerClient(origin);
     return yield* client.projects.snapshot({
       headers: { authorization: `Bearer ${bearerToken}` },
     });
-  }).pipe(
-    withProjectCliLiveServerTimeout,
-    Effect.mapError(projectCommandErrorFromLiveServerRequest),
-  );
+  },
+  (effect, _origin, _bearerToken) =>
+    effect.pipe(
+      withProjectCliLiveServerTimeout,
+      Effect.mapError(projectCommandErrorFromLiveServerRequest),
+    ),
+);
 
-const dispatchLiveOrchestrationCommand = (
-  origin: string,
-  bearerToken: string,
-  command: ProjectCliDispatchCommand,
-) =>
-  Effect.gen(function* () {
+const dispatchLiveOrchestrationCommand = Effect.fn("project.dispatchLiveOrchestrationCommand")(
+  function* (origin: string, bearerToken: string, command: ProjectCliDispatchCommand) {
     const client = yield* makeLiveServerClient(origin);
     yield* client.projects.mutate({
       headers: { authorization: `Bearer ${bearerToken}` },
       payload: command,
     } as Parameters<typeof client.projects.mutate>[0]);
-  }).pipe(
-    withProjectCliLiveServerTimeout,
-    Effect.mapError(projectCommandErrorFromLiveServerRequest),
-  );
+  },
+  (effect, _origin, _bearerToken, command) =>
+    effect.pipe(
+      withProjectCliLiveServerTimeout,
+      Effect.mapError((cause) =>
+        isEnvironmentRequestInvalidError(cause) && cause.reason === "project_not_empty"
+          ? new ProjectService.ProjectNotEmptyError({ projectId: command.projectId })
+          : projectCommandErrorFromLiveServerRequest(cause),
+      ),
+    ),
+);
 
 const getOfflineSnapshot = Effect.fn("getOfflineSnapshot")(function* () {
   const projects = yield* ProjectService.ProjectService;
@@ -373,7 +399,6 @@ const tryResolveLiveProjectExecutionMode = Effect.fn("tryResolveLiveProjectExecu
       origin: runtimeState.value.origin,
       cause: attempted.failure,
     });
-    yield* clearPersistedServerRuntimeState(config.serverRuntimeStatePath);
     return Option.none<{ readonly origin: string }>();
   },
 );
@@ -424,6 +449,11 @@ const runProjectMutation = Effect.fn("runProjectMutation")(function* (
       Layer.provide(Layer.succeed(References.MinimumLogLevel, minimumLogLevel)),
     );
 
+    // An unreachable server may still be running; never write behind it.
+    yield* ServerOwnership.acquireServerOwnership(config.serverRuntimeStatePath).pipe(
+      Effect.provide(ProcessRunner.layer),
+    );
+    yield* clearPersistedServerRuntimeState(config.serverRuntimeStatePath);
     return yield* Effect.gen(function* () {
       const snapshot = yield* getOfflineSnapshot();
       const projects = yield* ProjectService.ProjectService;
@@ -435,6 +465,7 @@ const runProjectMutation = Effect.fn("runProjectMutation")(function* (
       yield* Console.log(output);
     }).pipe(Effect.provide(layerOfflineRuntime));
   }).pipe(
+    Effect.scoped,
     Effect.provide(
       Layer.mergeAll(EnvironmentAuth.layerRuntime, WorkspacePaths.layer).pipe(
         Layer.provideMerge(FetchHttpClient.layer),
@@ -524,7 +555,17 @@ const projectRemoveCommand = Command.make("remove", {
           commandId: CommandId.make(yield* projectCommandUuid),
           projectId: project.id,
           force: flags.force,
-        });
+        }).pipe(
+          Effect.catchIf(isProjectNotEmptyError, () =>
+            Effect.fail(
+              new ProjectHasThreadsError({
+                operation: "removeProject",
+                projectId: project.id,
+                title: project.title,
+              }),
+            ),
+          ),
+        );
         return `Removed project ${project.id} (${project.title}).`;
       }),
     ),

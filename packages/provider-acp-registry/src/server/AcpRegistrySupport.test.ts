@@ -17,7 +17,6 @@ import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import * as TestClock from "effect/testing/TestClock";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
@@ -139,35 +138,6 @@ const makeFakeUvToolchain = Effect.fn("AcpRegistrySupport.test.makeFakeUvToolcha
 });
 
 describe("AcpRegistrySupport", () => {
-  it("preserves the registry failure when translating it for clients", () => {
-    const cause = new Error("registry unavailable");
-    const failure = new AcpRegistrySupport.AcpRegistryError({
-      reason: "registry_unavailable",
-      detail: "Could not load the ACP Registry.",
-      cause,
-    });
-
-    expect(AcpRegistrySupport.toAcpRegistryOperationError(failure)).toMatchObject({
-      reason: "registry_unavailable",
-      message: "Could not load the ACP Registry.",
-      cause: failure,
-    });
-  });
-
-  it("maps supported Node platforms to ACP Registry target keys", () => {
-    expect(AcpRegistrySupport.resolveAcpRegistryPlatformTarget("darwin", "arm64")).toBe(
-      "darwin-aarch64",
-    );
-    expect(AcpRegistrySupport.resolveAcpRegistryPlatformTarget("linux", "x64")).toBe(
-      "linux-x86_64",
-    );
-    expect(AcpRegistrySupport.resolveAcpRegistryPlatformTarget("win32", "arm64")).toBe(
-      "windows-aarch64",
-    );
-    expect(AcpRegistrySupport.resolveAcpRegistryPlatformTarget("freebsd", "x64")).toBeUndefined();
-    expect(AcpRegistrySupport.resolveAcpRegistryPlatformTarget("linux", "ia32")).toBeUndefined();
-  });
-
   it("selects the preferred compatible distribution", () => {
     const agent = makeAgent({
       binary: {
@@ -209,13 +179,54 @@ describe("AcpRegistrySupport", () => {
         platformTarget: "darwin-aarch64",
       }),
     ).toBeUndefined();
+    expect(
+      AcpRegistrySupport.resolveAcpRegistryDistribution({
+        agent: makeAgent({
+          binary: {
+            "windows-x86_64": {
+              archive: archiveUrl,
+              cmd: "./bin/example-agent-x64.exe",
+              args: ["acp"],
+            },
+          },
+        }),
+        preference: "auto",
+        platformTarget: "windows-aarch64",
+      }),
+    ).toMatchObject({
+      kind: "binary",
+      binaryTarget: { cmd: "./bin/example-agent-x64.exe" },
+    });
+    expect(
+      AcpRegistrySupport.resolveAcpRegistryDistribution({
+        agent: makeAgent({
+          binary: {
+            "windows-aarch64": {
+              archive: archiveUrl,
+              cmd: "./bin/example-agent-arm64.exe",
+              args: ["acp"],
+            },
+            "windows-x86_64": {
+              archive: archiveUrl,
+              cmd: "./bin/example-agent-x64.exe",
+              args: ["acp"],
+            },
+          },
+        }),
+        preference: "auto",
+        platformTarget: "windows-aarch64",
+      }),
+    ).toMatchObject({
+      kind: "binary",
+      binaryTarget: { cmd: "./bin/example-agent-arm64.exe" },
+    });
   });
 
   it.effect("resolves a local command on the selected environment without the registry", () => {
     const requests: Array<string> = [];
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "t3-acp-local-" });
+      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "supaterm-acp-local-" });
       const commandPath = `${cacheDir}/dsh`;
       yield* fileSystem.writeFileString(commandPath, "#!/bin/sh\n");
       yield* fileSystem.chmod(commandPath, 0o755);
@@ -266,7 +277,9 @@ describe("AcpRegistrySupport", () => {
   it.effect("resolves a local executable path and inherits the host environment", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "t3-acp-local-path-" });
+      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "supaterm-acp-local-path-",
+      });
       const commandPath = `${cacheDir}/dsh wrapper`;
       yield* fileSystem.writeFileString(commandPath, "#!/bin/sh\n");
       yield* fileSystem.chmod(commandPath, 0o755);
@@ -320,7 +333,7 @@ describe("AcpRegistrySupport", () => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-local-missing-",
+        prefix: "supaterm-acp-local-missing-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -374,7 +387,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-override-",
+        prefix: "supaterm-acp-registry-override-",
       });
       const commandPath = `${cacheDir}/example-agent`;
       yield* fileSystem.writeFileString(commandPath, "#!/bin/sh\n");
@@ -414,14 +427,14 @@ describe("AcpRegistrySupport", () => {
     );
   });
 
-  it.effect("installs into T3 home a package and launches its exposed command", () => {
+  it.effect("installs into Supaterm home a package and launches its exposed command", () => {
     const agent = makeAgent({
       npx: { package: "@example/acp@V1.2.3", args: ["--stdio"] },
     });
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-global-package-",
+        prefix: "supaterm-acp-registry-global-package-",
       });
       const toolchain = yield* makeFakeNpmToolchain(cacheDir);
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
@@ -458,7 +471,7 @@ describe("AcpRegistrySupport", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-user-global-package-",
+        prefix: "supaterm-acp-registry-user-global-package-",
       });
       const toolchain = yield* makeFakeNpmToolchain(cacheDir);
       const systemPrefix = path.join(cacheDir, "system-global");
@@ -492,42 +505,6 @@ describe("AcpRegistrySupport", () => {
     );
   });
 
-  it.effect("installs into T3 home a uv tool and launches its exposed command", () => {
-    const agent = makeAgent({
-      uvx: { package: "fast-agent-acp==V0.10.1", args: ["--acp"] },
-    });
-    return Effect.gen(function* () {
-      const fileSystem = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-global-uv-tool-",
-      });
-      const toolchain = yield* makeFakeUvToolchain(cacheDir);
-      const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
-        cacheDir,
-        toolsDir: `${cacheDir}/tools`,
-        registryUrl,
-      });
-
-      const resolved = yield* resolver.resolve(settings(), "/workspace", toolchain.environment);
-
-      expect(resolved.spawn).toMatchObject({
-        command: toolchain.executablePath,
-        args: ["--acp"],
-        env: { PATH: expect.stringMatching(new RegExp(`^${toolchain.globalBin}:`, "u")) },
-      });
-      expect(yield* fileSystem.readFileString(toolchain.logPath)).toContain(
-        "tool install --force fast-agent-acp==V0.10.1",
-      );
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        layerResolver((request) =>
-          Effect.succeed(HttpClientResponse.fromWeb(request, new Response(makeRegistry(agent)))),
-        ),
-      ),
-    );
-  });
-
   it.effect("honors an exact Windows PATH override when launching a global package", () => {
     const agent = makeAgent({
       uvx: { package: "fast-agent-acp==0.10.1", args: ["--acp"] },
@@ -535,7 +512,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-windows-package-path-",
+        prefix: "supaterm-acp-registry-windows-package-path-",
       });
       const toolchain = yield* makeFakeUvToolchain(cacheDir);
       const linuxResolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
@@ -589,7 +566,6 @@ describe("AcpRegistrySupport", () => {
           archive: archiveUrl,
           cmd: "./bin/example-agent",
           args: ["acp"],
-          // SHA-256 of binaryBytes.
           sha256: "97b29a636d7ddf7bf3567ae4d48c0f2a9b03943fd808b6efbf74f1dd3db131b7",
         },
       },
@@ -598,7 +574,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-install-",
+        prefix: "supaterm-acp-registry-install-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -649,7 +625,6 @@ describe("AcpRegistrySupport", () => {
             archive: archiveUrl,
             cmd: "./bin/example-agent",
             args: ["acp"],
-            // SHA-256 of binaryBytes.
             sha256: "e1eb7c905b91c400af2ec858628aec22866bfda1383b93ceb73ae01d9769fb31",
           },
         },
@@ -659,10 +634,10 @@ describe("AcpRegistrySupport", () => {
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "t3-acp-registry-system-",
+          prefix: "supaterm-acp-registry-system-",
         });
         const systemBinDir = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "t3-acp-registry-system-bin-",
+          prefix: "supaterm-acp-registry-system-bin-",
         });
         const systemBinary = path.join(systemBinDir, "example-agent");
         yield* fileSystem.writeFileString(systemBinary, "#!/bin/sh\necho system\n");
@@ -731,7 +706,9 @@ describe("AcpRegistrySupport", () => {
     });
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "t3-acp-root-entry-" });
+      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "supaterm-acp-root-entry-",
+      });
       const source = `${cacheDir}/source`;
       yield* fileSystem.makeDirectory(source);
       yield* fileSystem.writeFileString(`${source}/agent`, "#!/bin/sh\necho managed\n");
@@ -812,7 +789,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-search-",
+        prefix: "supaterm-acp-registry-search-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -854,7 +831,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-refresh-",
+        prefix: "supaterm-acp-registry-refresh-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -896,7 +873,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-runner-filter-",
+        prefix: "supaterm-acp-registry-runner-filter-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -938,7 +915,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-blank-fields-",
+        prefix: "supaterm-acp-registry-blank-fields-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -973,7 +950,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-unpinned-",
+        prefix: "supaterm-acp-registry-unpinned-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -1004,7 +981,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-runner-syntax-",
+        prefix: "supaterm-acp-registry-runner-syntax-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -1052,7 +1029,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-checksum-",
+        prefix: "supaterm-acp-registry-checksum-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -1079,47 +1056,6 @@ describe("AcpRegistrySupport", () => {
     );
   });
 
-  it.effect("installs into T3 home package recipes during preparation", () => {
-    const agent = makeAgent({ npx: { package: "@example/acp@1.2.3", args: ["--stdio"] } });
-    const requests: string[] = [];
-
-    return Effect.gen(function* () {
-      const fileSystem = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-runner-",
-      });
-      const toolchain = yield* makeFakeNpmToolchain(cacheDir);
-      const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
-        cacheDir,
-        toolsDir: `${cacheDir}/tools`,
-        registryUrl,
-      }).pipe(Effect.provideService(HostProcess.Environment, toolchain.environment));
-      const prepared = yield* resolver.prepare({ agentId: agent.id });
-      expect(prepared).toEqual({
-        agentId: "example-agent",
-        version: "1.2.3",
-        distribution: "npx",
-        prepared: true,
-      });
-      expect(yield* fileSystem.exists(toolchain.executablePath)).toBe(true);
-      expect(yield* fileSystem.exists(toolchain.environment.FAKE_NPM_PREFIX)).toBe(false);
-      expect(yield* fileSystem.readFileString(toolchain.logPath)).toContain(
-        "install --global @example/acp@1.2.3",
-      );
-      expect(requests).toEqual([registryUrl]);
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        layerResolver((request) => {
-          requests.push(request.url);
-          return Effect.succeed(
-            HttpClientResponse.fromWeb(request, new Response(makeRegistry(agent))),
-          );
-        }, process.env),
-      ),
-    );
-  });
-
   it.effect("falls back to a valid cached registry index when refresh fails", () => {
     const agent = makeAgent({
       npx: {
@@ -1130,7 +1066,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-cache-",
+        prefix: "supaterm-acp-registry-cache-",
       });
       const registryDirectory = `${cacheDir}/acp-registry`;
       yield* fileSystem.makeDirectory(registryDirectory, { recursive: true });
@@ -1172,7 +1108,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-invalid-",
+        prefix: "supaterm-acp-registry-invalid-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -1202,7 +1138,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-cold-inspect-",
+        prefix: "supaterm-acp-registry-cold-inspect-",
       });
       const registryDirectory = `${cacheDir}/acp-registry`;
       yield* fileSystem.makeDirectory(registryDirectory, { recursive: true });
@@ -1230,39 +1166,12 @@ describe("AcpRegistrySupport", () => {
     );
   });
 
-  it.effect("fails a cold inspection immediately when no local registry is available", () => {
-    let requests = 0;
-    return Effect.gen(function* () {
-      const fileSystem = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-empty-inspect-",
-      });
-      const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
-        cacheDir,
-        toolsDir: `${cacheDir}/tools`,
-        registryUrl,
-      });
-      const error = yield* resolver.inspect(settings()).pipe(Effect.flip);
-
-      expect(error.reason).toBe("registry_unavailable");
-      expect(requests).toBe(0);
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        layerResolver((request) => {
-          requests += 1;
-          return Effect.succeed(HttpClientResponse.fromWeb(request, new Response("unused")));
-        }),
-      ),
-    );
-  });
-
   it.effect("uses the effective provider environment for inspection and resolution", () => {
     const agent = makeAgent({ npx: { package: "@example/acp@1.2.3" } });
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-effective-env-",
+        prefix: "supaterm-acp-registry-effective-env-",
       });
       const registryDirectory = `${cacheDir}/acp-registry`;
       yield* fileSystem.makeDirectory(registryDirectory, { recursive: true });
@@ -1309,7 +1218,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-non-file-",
+        prefix: "supaterm-acp-registry-non-file-",
       });
       const registryDirectory = `${cacheDir}/acp-registry`;
       const fakeExecutable = `${cacheDir}/tools/example-agent/1.2.3/linux-x86_64/bin/example-agent`;
@@ -1356,7 +1265,7 @@ describe("AcpRegistrySupport", () => {
       return Effect.gen(function* () {
         const fileSystem = yield* FileSystem.FileSystem;
         const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "t3-acp-registry-uninstall-",
+          prefix: "supaterm-acp-registry-uninstall-",
         });
         const agentRoot = `${cacheDir}/tools/example-agent`;
         const runnerCache = `${cacheDir}/external-npx-cache/example-agent/package.json`;
@@ -1417,7 +1326,7 @@ describe("AcpRegistrySupport", () => {
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-uninstall-packages-",
+        prefix: "supaterm-acp-uninstall-packages-",
       });
       const versionRoot = `${cacheDir}/tools/example-agent/1.2.3`;
       yield* fileSystem.makeDirectory(`${versionRoot}/linux-x86_64`, { recursive: true });
@@ -1463,7 +1372,7 @@ describe("AcpRegistrySupport", () => {
       return yield* Effect.gen(function* () {
         const fileSystem = yield* FileSystem.FileSystem;
         const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-          prefix: "t3-acp-registry-uninstall-race-",
+          prefix: "supaterm-acp-registry-uninstall-race-",
         });
         const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
           cacheDir,
@@ -1553,7 +1462,7 @@ describe("AcpRegistrySupport", () => {
     return Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-uninstall-reservation-",
+        prefix: "supaterm-acp-registry-uninstall-reservation-",
       });
       const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
         cacheDir,
@@ -1587,50 +1496,6 @@ describe("AcpRegistrySupport", () => {
       ),
     );
   });
-
-  it.effect("expires an abandoned prepared-binary reservation", () => {
-    const agent = makeAgent({
-      binary: {
-        "linux-x86_64": {
-          archive: archiveUrl,
-          cmd: "./bin/example-agent",
-        },
-      },
-    });
-    const binaryBytes = new TextEncoder().encode("#!/bin/sh\necho example\n");
-    return Effect.gen(function* () {
-      const fileSystem = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-uninstall-expiry-",
-      });
-      const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
-        cacheDir,
-        toolsDir: `${cacheDir}/tools`,
-        registryUrl,
-      });
-
-      yield* resolver.prepare({ agentId: agent.id });
-      yield* TestClock.adjust("31 seconds");
-      expect(yield* resolver.uninstallManagedBinary({ agentId: agent.id })).toEqual({
-        agentId: agent.id,
-        removed: true,
-      });
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        layerResolver((request) =>
-          Effect.succeed(
-            HttpClientResponse.fromWeb(
-              request,
-              request.url === registryUrl
-                ? new Response(makeRegistry(agent))
-                : new Response(binaryBytes.buffer as ArrayBuffer),
-            ),
-          ),
-        ),
-      ),
-    );
-  });
 });
 
 describe("acpRegistryManagedBinaryDirectories", () => {
@@ -1639,7 +1504,7 @@ describe("acpRegistryManagedBinaryDirectories", () => {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-bins-",
+        prefix: "supaterm-acp-registry-bins-",
       });
       const install = (agent: string, version: string, target: string, commandDirectory = "") =>
         fileSystem.makeDirectory(

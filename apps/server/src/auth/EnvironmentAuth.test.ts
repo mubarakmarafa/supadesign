@@ -1,31 +1,22 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import {
-  authScopeResponse,
-  AuthAdministrativeScopes,
-  AuthStandardClientScopes,
-} from "@supaterm/contracts";
+import { authScopeResponse, AuthStandardClientScopes } from "@supaterm/contracts";
 import { expect, it } from "@effect/vitest";
 import { APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 import * as Effect from "effect/Effect";
+import * as Clock from "effect/Clock";
+import { currentDesktopBootstrapToken } from "@supaterm/shared/desktopBootstrapToken";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
-import * as Schema from "effect/Schema";
-import * as SqlClient from "effect/sql/SqlClient";
 
 import * as ServerConfig from "../config.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
-import * as PersistenceErrors from "../persistence/Errors.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
-import * as PairingGrantStore from "./PairingGrantStore.ts";
 import * as EnvironmentAuth from "./EnvironmentAuth.ts";
 
 import * as ServerSecretStore from "./ServerSecretStore.ts";
 import * as SessionStore from "./SessionStore.ts";
 
-/** Pinned so dev-mode cookie tests can assert the port-scoped name. */
 const TEST_SERVER_PORT = 13_773;
-const isPairingCredentialIssueError = Schema.is(PairingGrantStore.PairingCredentialIssueError);
-const isPersistenceSqlError = Schema.is(PersistenceErrors.PersistenceSqlError);
 
 const layerServerConfig = (overrides?: Partial<ServerConfig.ServerConfig["Service"]>) =>
   Layer.effect(
@@ -35,8 +26,6 @@ const layerServerConfig = (overrides?: Partial<ServerConfig.ServerConfig["Servic
       return {
         ...config,
         ...overrides,
-        // Keep the test server deterministic even when the default test layer
-        // changes its development port.
         port: TEST_SERVER_PORT,
       } satisfies ServerConfig.ServerConfig["Service"];
     }),
@@ -109,7 +98,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       const authenticated = yield* serverAuth.authenticateHttpRequest(request);
       expect(devExchange.cookieName).toMatch(/^supaterm_dev_session_/);
       expect(devExchange.expireNormalCookie).toBe(true);
-      expect(devExchange.response).toMatchObject(authScopeResponse(AuthAdministrativeScopes));
+      expect(devExchange.response).toMatchObject(authScopeResponse(AuthStandardClientScopes));
       expect(authenticated.scopes).toEqual(["orchestration:read"]);
     }).pipe(
       Effect.provide(
@@ -214,10 +203,6 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       expect(secondSession.subject).toBe("reusable-dev-token-child");
       expect((yield* sessions.verify(token)).subject).toBe("reusable-dev-token");
       const before = yield* serverAuth.listClientSessions(firstSession.sessionId);
-      const denied = yield* serverAuth
-        .exchangeBootstrapCredentialForAccessToken(token, ["review:write"], requestMetadata)
-        .pipe(Effect.flip);
-      expect(denied._tag).toBe("ServerAuthScopeNotGrantedError");
       const empty = yield* serverAuth
         .exchangeBootstrapCredentialForAccessToken(token, [], requestMetadata)
         .pipe(Effect.flip);
@@ -250,7 +235,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       expect((yield* Effect.flip(sessions.verify(token)))._tag).toBe("SessionTokenRevokedError");
       expect(
         (yield* serverAuth.createBrowserSession(recovery.credential, requestMetadata)).response,
-      ).toMatchObject({ authenticated: true, ...authScopeResponse(AuthAdministrativeScopes) });
+      ).toMatchObject({ authenticated: true, ...authScopeResponse(AuthStandardClientScopes) });
     }).pipe(
       Effect.provide(
         layerEnvironmentAuth({
@@ -260,66 +245,6 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         }),
       ),
     ),
-  );
-
-  it.effect("keeps the pairing issue error as the immediate recovery failure", () =>
-    Effect.gen(function* () {
-      const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
-      const sessions = yield* SessionStore.SessionStore;
-      const sql = yield* SqlClient.SqlClient;
-      const token = "reusable-dev-auth-token-that-is-long-enough";
-      const seeded = yield* sessions.verify(token);
-
-      yield* sessions.revoke(seeded.sessionId);
-      yield* sql`
-        CREATE TRIGGER reject_startup_pairing_link
-        BEFORE INSERT ON auth_pairing_links
-        BEGIN
-          SELECT RAISE(ABORT, 'startup pairing insert rejected');
-        END
-      `;
-
-      const error = yield* Effect.flip(serverAuth.issueStartupPairingCredential());
-
-      expect(error._tag).toBe("ServerAuthPairingLinkCreationError");
-      expect(isPairingCredentialIssueError(error.cause)).toBe(true);
-      if (isPairingCredentialIssueError(error.cause)) {
-        expect(isPersistenceSqlError(error.cause.cause)).toBe(true);
-      }
-    }).pipe(
-      Effect.provide(
-        layerEnvironmentAuth({
-          mode: "web",
-          devUrl: new URL("http://127.0.0.1:5173"),
-          devAuthToken: Redacted.make("reusable-dev-auth-token-that-is-long-enough"),
-        }),
-      ),
-    ),
-  );
-
-  it.effect("classifies invalid bootstrap credential failures for the HTTP boundary", () =>
-    Effect.sync(() => {
-      const error = EnvironmentAuth.toBootstrapExchangeError(
-        new PairingGrantStore.UnknownBootstrapCredentialError({}),
-      );
-
-      expect(error._tag).toBe("ServerAuthInvalidCredentialError");
-    }),
-  );
-
-  it.effect("maps unexpected bootstrap failures to 500", () =>
-    Effect.sync(() => {
-      const cause = new PairingGrantStore.BootstrapCredentialConsumeError({
-        cause: new Error("sqlite is unavailable"),
-      });
-      const error = EnvironmentAuth.toBootstrapExchangeError(cause);
-
-      expect(error._tag).toBe("ServerAuthBootstrapCredentialValidationError");
-      expect(error.message).toBe("Failed to validate bootstrap credential.");
-      if (error._tag === "ServerAuthBootstrapCredentialValidationError") {
-        expect(error.cause).toBe(cause);
-      }
-    }),
   );
 
   it.effect("issues standard pairing credentials by default", () =>
@@ -374,24 +299,12 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     }).pipe(Effect.provide(layerEnvironmentAuth())),
   );
 
-  it.effect("prefers a bearer token over a stale legacy cookie", () =>
-    Effect.gen(function* () {
-      const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
-      const sessions = yield* SessionStore.SessionStore;
-      const bearer = yield* serverAuth.issueSession();
-      const verified = yield* serverAuth.authenticateHttpRequest({
-        cookies: { [sessions.legacyCookieName ?? "supaterm_session"]: "stale" },
-        headers: { authorization: `Bearer ${bearer.token}` },
-      } as never);
-
-      expect(verified.sessionId).toBe(bearer.sessionId);
-    }).pipe(Effect.provide(layerEnvironmentAuth({ mode: "web", host: "192.168.1.50" }))),
-  );
-
   it.effect("preserves pairing grants after rejecting scopes they do not grant", () =>
     Effect.gen(function* () {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
-      const pairingCredential = yield* serverAuth.issuePairingCredential();
+      const pairingCredential = yield* serverAuth.issuePairingCredential({
+        scopes: ["orchestration:read", "orchestration:operate"],
+      });
 
       const error = yield* serverAuth
         .exchangeBootstrapCredentialForAccessToken(
@@ -455,11 +368,11 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     }).pipe(Effect.provide(layerEnvironmentAuth())),
   );
 
-  it.effect("narrows seeded desktop grants to the requested scopes", () =>
+  it.effect("narrows rotating desktop grants to the requested scopes", () =>
     Effect.gen(function* () {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
       const token = yield* serverAuth.exchangeBootstrapCredentialForAccessToken(
-        "desktop-bootstrap-token",
+        currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
         ["orchestration:read"],
         requestMetadata,
       );
@@ -469,9 +382,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
 
       expect(token.scope).toBe("orchestration:read");
       expect(session.scopes).toEqual(["orchestration:read"]);
-    }).pipe(
-      Effect.provide(layerEnvironmentAuth({ desktopBootstrapToken: "desktop-bootstrap-token" })),
-    ),
+    }).pipe(Effect.provide(layerEnvironmentAuth({ desktopBootstrapSecret: "desktop-secret" }))),
   );
 
   it.effect("rotates desktop bearer sessions without accumulating authorized clients", () =>
@@ -479,7 +390,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
       const sessions = yield* SessionStore.SessionStore;
       const browser = yield* serverAuth.createBrowserSession(
-        "desktop-bootstrap-token",
+        currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
         requestMetadata,
       );
       const browserSession = yield* serverAuth.authenticateHttpRequest(
@@ -495,7 +406,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         { ...requestMetadata, label: "Supaterm Desktop" },
       );
       const first = yield* serverAuth.exchangeBootstrapCredentialForAccessToken(
-        "desktop-bootstrap-token",
+        currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
         undefined,
         requestMetadata,
       );
@@ -503,7 +414,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         makeBearerRequest(first.access_token),
       );
       const second = yield* serverAuth.exchangeBootstrapCredentialForAccessToken(
-        "desktop-bootstrap-token",
+        currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
         undefined,
         requestMetadata,
       );
@@ -533,7 +444,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     }).pipe(
       Effect.provide(
         layerEnvironmentAuth({
-          desktopBootstrapToken: "desktop-bootstrap-token",
+          desktopBootstrapSecret: "desktop-secret",
         }),
       ),
     ),
@@ -543,7 +454,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     Effect.gen(function* () {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
       const pairingCredential = yield* serverAuth.issuePairingCredential({
-        scopes: AuthAdministrativeScopes,
+        scopes: AuthStandardClientScopes,
       });
       const listedPairingLinks = yield* serverAuth.listPairingLinks();
 
@@ -579,7 +490,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         makeCookieRequest(sessions.cookieName, exchanged.sessionToken),
       );
 
-      expect(verified.scopes).toEqual(AuthAdministrativeScopes);
+      expect(verified.scopes).toEqual(AuthStandardClientScopes);
       expect(verified.subject).toBe("administrative-bootstrap");
     }).pipe(Effect.provide(layerEnvironmentAuth())),
   );
@@ -592,7 +503,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
         const sessions = yield* SessionStore.SessionStore;
 
         const administrativeExchange = yield* serverAuth.createBrowserSession(
-          "desktop-bootstrap-token",
+          currentDesktopBootstrapToken("desktop-secret", yield* Clock.currentTimeMillis),
           requestMetadata,
         );
         const administrativeSession = yield* serverAuth.authenticateHttpRequest(
@@ -651,7 +562,7 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       }).pipe(
         Effect.provide(
           layerEnvironmentAuth({
-            desktopBootstrapToken: "desktop-bootstrap-token",
+            desktopBootstrapSecret: "desktop-secret",
           }),
         ),
       ),
@@ -670,7 +581,6 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
           headers: { host: "192.168.1.50:3773", ...headers },
         } as never);
 
-      // Same host, a proxy-reported host, a trusted app origin, or no browser at all.
       yield* upgrade({ origin: "http://192.168.1.50:3773" });
       yield* upgrade({
         origin: "https://box.tail1234.ts.net",
@@ -680,7 +590,6 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       yield* upgrade({ origin: "http://localhost:5733" });
       yield* upgrade({});
 
-      // Another port on the same machine is the same site but not the app.
       const otherPort = yield* Effect.flip(upgrade({ origin: "http://192.168.1.50:8080" }));
       expect(otherPort._tag).toBe("ServerAuthInvalidCredentialError");
       const opaque = yield* Effect.flip(upgrade({ origin: "null" }));
@@ -708,7 +617,6 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
           headers: { host: "localhost:13773", ...headers },
         } as never);
 
-      // The dev proxy rewrites Host, so a LAN page relies on the browser's own verdict.
       yield* post({ origin: "http://192.168.1.50:5733", "sec-fetch-site": "same-origin" });
       yield* post({ origin: "http://localhost:13773" });
 

@@ -1,7 +1,7 @@
 import type { ViewStyle } from "react-native";
 import type { MobileThemeVariables } from "../../lib/mobileTheme";
 
-export const THREAD_LIST_V2_MONO_FONT = "Menlo";
+export { CODE_FONT_FAMILY as THREAD_LIST_V2_MONO_FONT } from "../../lib/fonts";
 export const THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME = "px-5 py-2.5";
 export const THREAD_LIST_V2_ROW_DIVIDERS = true;
 export const THREAD_LIST_V2_SIDEBAR_ROW_STYLE = {
@@ -62,7 +62,6 @@ export function getThreadListV2RowAppearance(
     cardStyle: sidebarPane ? { ...style, ...THREAD_LIST_V2_SIDEBAR_ROW_STYLE } : undefined,
     swipeContainerStyle,
     swipeBackgroundColor: theme[sidebarPane ? "--color-drawer" : "--color-screen"],
-    // Provider badges blend into the surface beneath them.
     providerIconSurfaceColor: sidebarPane
       ? selected
         ? selectedBackgroundColor

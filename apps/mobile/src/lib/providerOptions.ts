@@ -31,11 +31,6 @@ export function getReasoningOptionDescriptor(descriptors: ReadonlyArray<Provider
   );
 }
 
-/**
- * Applies one option change (by descriptor id) and returns the full selection
- * list to store on the model selection, or null when the change doesn't match
- * an advertised descriptor / choice.
- */
 export function applyProviderOptionSelection(
   descriptors: ReadonlyArray<ProviderOptionDescriptor>,
   change: ProviderOptionSelection,

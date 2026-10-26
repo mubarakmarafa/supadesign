@@ -14,6 +14,7 @@ import * as Schema from "effect/Schema";
 import type { ConnectionProfile, ConnectionRegistration } from "../connection/catalog.ts";
 import type { DeferredShellSnapshot } from "../state/shellPullRequests.ts";
 import type { ConnectionTarget, PersistedConnectionTarget } from "../connection/model.ts";
+import type { StoredPlatformLabel } from "./storageDocument.ts";
 
 export class ConnectionPersistenceError extends Schema.TaggedError<ConnectionPersistenceError>()(
   "ConnectionPersistenceError",
@@ -21,10 +22,12 @@ export class ConnectionPersistenceError extends Schema.TaggedError<ConnectionPer
     operation: Schema.Literals([
       "list-targets",
       "list-disabled-targets",
+      "list-platform-labels",
       "register-connection",
       "set-connection-routes",
       "remove-connection",
       "set-connection-enabled",
+      "set-platform-label",
       "load-shell",
       "save-shell",
       "load-thread",
@@ -46,8 +49,11 @@ export class ConnectionTargetStore extends Context.Service<
   ConnectionTargetStore,
   {
     readonly list: Effect.Effect<ReadonlyArray<ConnectionTarget>, ConnectionPersistenceError>;
-    /** Saved environments the user switched off. See `ConnectionRegistrationStore.setEnabled`. */
     readonly listDisabled: Effect.Effect<ReadonlyArray<EnvironmentId>, ConnectionPersistenceError>;
+    readonly listPlatformLabels: Effect.Effect<
+      ReadonlyArray<StoredPlatformLabel>,
+      ConnectionPersistenceError
+    >;
   }
 >()("@supaterm/client-runtime/platform/persistence/ConnectionTargetStore") {}
 
@@ -67,6 +73,10 @@ export class ConnectionRegistrationStore extends Context.Service<
     readonly setEnabled: (
       environmentId: EnvironmentId,
       enabled: boolean,
+    ) => Effect.Effect<void, ConnectionPersistenceError>;
+    readonly setPlatformLabel: (
+      environmentId: EnvironmentId,
+      label: string | null,
     ) => Effect.Effect<void, ConnectionPersistenceError>;
   }
 >()("@supaterm/client-runtime/platform/persistence/ConnectionRegistrationStore") {}
@@ -96,10 +106,6 @@ export class EnvironmentCacheStore extends Context.Service<
       environmentId: EnvironmentId,
       threadId: ThreadId,
     ) => Effect.Effect<void, ConnectionPersistenceError>;
-    /**
-     * The last complete server configuration. This deliberately includes provider
-     * metadata so offline task creation can still offer the models a user last saw.
-     */
     readonly loadServerConfig: (
       environmentId: EnvironmentId,
     ) => Effect.Effect<Option.Option<ServerConfig>, ConnectionPersistenceError>;
@@ -108,8 +114,8 @@ export class EnvironmentCacheStore extends Context.Service<
       config: ServerConfig,
     ) => Effect.Effect<void, ConnectionPersistenceError>;
     /**
-     * The unfiltered branch list for a workspace. Query-specific lists are not
-     * cached because they are incomplete and unsafe to present as a full picker.
+     * Query-specific lists are not cached because they are incomplete and unsafe
+     * to present as a full picker.
      */
     readonly loadVcsRefs: (
       environmentId: EnvironmentId,
@@ -125,9 +131,8 @@ export class EnvironmentCacheStore extends Context.Service<
       cwd: string,
     ) => Effect.Effect<void, ConnectionPersistenceError>;
     /**
-     * Removes every persisted branch-list snapshot for an environment. Git ref
-     * mutations are repository-wide, and linked worktrees may have cached the
-     * same refs under different working-directory keys.
+     * Git ref mutations are repository-wide, and linked worktrees may have
+     * cached the same refs under different working-directory keys.
      */
     readonly clearVcsRefs: (
       environmentId: EnvironmentId,

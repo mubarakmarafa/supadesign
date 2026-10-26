@@ -31,8 +31,8 @@ export const make = Effect.gen(function* () {
   const banks = yield* ThreadBank.ThreadBankService;
   const liveEnvironments = yield* LiveEnvironment.LiveEnvironmentService;
   const crypto = yield* Crypto.Crypto;
-  const commandId = crypto.randomUUIDv4.pipe(Effect.orDie, Effect.map(CommandId.make));
-  const messageId = crypto.randomUUIDv4.pipe(Effect.orDie, Effect.map(MessageId.make));
+  const commandId = crypto.randomUUIDv4().pipe(Effect.orDie, Effect.map(CommandId.make));
+  const messageId = crypto.randomUUIDv4().pipe(Effect.orDie, Effect.map(MessageId.make));
   const cards = yield* CardWorkspace.make;
 
   const dispatch = (command: Parameters<typeof threads.dispatch>[0]) =>

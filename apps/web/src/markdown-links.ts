@@ -1,8 +1,9 @@
-import { fileBasename, workspaceRelativeFilePath } from "@supaterm/shared/path";
+import { fileBasename, isAbsolutePath, workspaceRelativeFilePath } from "@supaterm/shared/path";
 import {
   inlineCodeFilePathCandidate,
   isRelativeFilePath,
   normalizeMarkdownLinkDestination,
+  parseMarkdownFileLink,
   resolveMarkdownFileLinkTarget,
 } from "@supaterm/shared/markdownLinks";
 import { parseFileUrlHref, splitFilePathPosition } from "@supaterm/shared/fileLinks";
@@ -12,6 +13,7 @@ import { isTerminalLinkActivation } from "./terminal-links";
 
 export interface MarkdownFileLinkMeta {
   filePath: string;
+  workspaceLookupPath: string | null;
   targetPath: string;
   displayPath: string;
   workspaceRelativePath: string | null;
@@ -37,12 +39,6 @@ export function rewriteMarkdownFileUriHref(href: string | undefined): string | n
   return target ? `${target.path}${target.hash}` : null;
 }
 
-/**
- * Inline code spans mostly hold identifiers, commands, and refs (`node.meta`,
- * `origin/main`) rather than deliberate link destinations, so auto-linking
- * them demands stronger path evidence than an explicit markdown link does:
- * an unambiguous path prefix, a file extension, or a :line suffix.
- */
 export function resolveInlineCodeFileLinkMeta(
   codeText: string,
   cwd?: string,
@@ -76,10 +72,20 @@ export function resolveMarkdownFileLinkMeta(
 ): MarkdownFileLinkMeta | null {
   const targetPath = resolveMarkdownFileLinkTarget(href, cwd, baseDir);
   if (!targetPath) return null;
-  return buildFileLinkMetaFromTarget(targetPath, cwd);
+  const source = href ? parseMarkdownFileLink(href) : null;
+  return {
+    ...buildFileLinkMetaFromTarget(targetPath, cwd),
+    workspaceLookupPath:
+      source !== null &&
+      !isAbsolutePath(source.path) &&
+      baseDir !== undefined &&
+      workspaceRelativeFilePath(baseDir, cwd) === "."
+        ? source.path
+        : null,
+  };
 }
 
-function buildFileLinkMetaFromTarget(targetPath: string, cwd?: string): MarkdownFileLinkMeta {
+function buildFileLinkMetaFromTarget(targetPath: string, cwd?: string) {
   const { path, line, column } = splitFilePathPosition(targetPath);
   return {
     filePath: path,
