@@ -188,19 +188,18 @@ export const make = Effect.gen(function* () {
       );
     });
 
-  const readSuggestionInputs = (root: string) =>
-    Effect.gen(function* () {
-      const present = yield* Effect.filter(SUGGESTION_FILES, (name) =>
-        exists(path.join(root, name)),
-      );
-      const files = new Set<string>(present);
-      const packageJsonText = files.has("package.json")
-        ? yield* fs
-            .readFileString(path.join(root, "package.json"))
-            .pipe(Effect.orElseSucceed(() => null))
-        : null;
-      return { files, packageJsonText };
-    });
+  const readSuggestionInputs = Effect.fn("LiveEnvironment.readSuggestionInputs")(function* (
+    root: string,
+  ) {
+    const present = yield* Effect.filter(SUGGESTION_FILES, (name) => exists(path.join(root, name)));
+    const files = new Set<string>(present);
+    const packageJsonText = files.has("package.json")
+      ? yield* fs
+          .readFileString(path.join(root, "package.json"))
+          .pipe(Effect.orElseSucceed(() => null))
+      : null;
+    return { files, packageJsonText };
+  });
 
   /** Folders at the project root that could hold the app, skipping tooling and dependencies. */
   const childFolders = (root: string) =>
@@ -222,243 +221,252 @@ export const make = Effect.gen(function* () {
     );
 
   /** What the root's files suggest, else the one app one folder down. */
-  const suggestFor = (root: string, scripts: ReadonlyArray<ProjectScript>) =>
-    Effect.gen(function* () {
-      const inputs = yield* readSuggestionInputs(root);
-      const atRoot = suggestDevScript({ scripts, ...inputs });
-      if (atRoot.command !== null || inputs.packageJsonText !== null) return atRoot;
-      const names = yield* childFolders(root);
-      const folders = yield* Effect.forEach(names, (name) =>
-        readSuggestionInputs(path.join(root, name)).pipe(
-          Effect.map((found) => ({ name, ...found })),
-        ),
-      );
-      return suggestNestedDevScript(folders) ?? atRoot;
-    });
+  const suggestFor = Effect.fn("LiveEnvironment.suggestFor")(function* (
+    root: string,
+    scripts: ReadonlyArray<ProjectScript>,
+  ) {
+    const inputs = yield* readSuggestionInputs(root);
+    const atRoot = suggestDevScript({ scripts, ...inputs });
+    if (atRoot.command !== null || inputs.packageJsonText !== null) return atRoot;
+    const names = yield* childFolders(root);
+    const folders = yield* Effect.forEach(names, (name) =>
+      readSuggestionInputs(path.join(root, name)).pipe(Effect.map((found) => ({ name, ...found }))),
+    );
+    return suggestNestedDevScript(folders) ?? atRoot;
+  });
 
   const ops: LiveEnvironment.LiveEnvironmentOps = {
-    plan: (threadId) =>
-      Effect.gen(function* () {
-        const shell = yield* readThread(threadId);
-        const project = yield* projects.getById(shell.projectId).pipe(
-          Effect.mapError(() => failure("The card's project could not be read.")),
-          Effect.flatMap(
-            Option.match({
-              onNone: () => Effect.fail(failure("The card's project no longer exists.")),
-              onSome: Effect.succeed,
-            }),
-          ),
-        );
-        const current = yield* settings.getSettings.pipe(
-          Effect.mapError(() => failure("Settings could not be read.")),
-        );
-        const scripts = resolveProjectScripts(current, project);
-        const devScript =
-          scripts.find((script) => script.id === LIVE_ENVIRONMENT_DEV_SCRIPT_ID) ?? null;
-        return { projectId: project.id, projectRoot: project.workspaceRoot, devScript };
-      }),
+    plan: Effect.fn("LiveEnvironment.plan")(function* (threadId: ThreadId) {
+      const shell = yield* readThread(threadId);
+      const project = yield* projects.getById(shell.projectId).pipe(
+        Effect.mapError(() => failure("The card's project could not be read.")),
+        Effect.flatMap(
+          Option.match({
+            onNone: () => Effect.fail(failure("The card's project no longer exists.")),
+            onSome: Effect.succeed,
+          }),
+        ),
+      );
+      const current = yield* settings.getSettings.pipe(
+        Effect.mapError(() => failure("Settings could not be read.")),
+      );
+      const scripts = resolveProjectScripts(current, project);
+      const devScript =
+        scripts.find((script) => script.id === LIVE_ENVIRONMENT_DEV_SCRIPT_ID) ?? null;
+      return { projectId: project.id, projectRoot: project.workspaceRoot, devScript };
+    }),
 
-    suggestDevScript: ({ projectId, directory }) =>
-      Effect.gen(function* () {
-        const project = yield* projects.getById(projectId).pipe(
-          Effect.map(Option.getOrNull),
-          Effect.orElseSucceed(() => null),
-        );
-        const current = yield* settings.getSettings.pipe(Effect.orElseSucceed(() => null));
-        const scripts =
-          project === null || current === null ? [] : resolveProjectScripts(current, project);
-        return yield* suggestFor(directory, scripts);
-      }),
+    suggestDevScript: Effect.fn("LiveEnvironment.suggestDevScript")(function* ({
+      projectId,
+      directory,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["suggestDevScript"]>[0]) {
+      const project = yield* projects.getById(projectId).pipe(
+        Effect.map(Option.getOrNull),
+        Effect.orElseSucceed(() => null),
+      );
+      const current = yield* settings.getSettings.pipe(Effect.orElseSucceed(() => null));
+      const scripts =
+        project === null || current === null ? [] : resolveProjectScripts(current, project);
+      return yield* suggestFor(directory, scripts);
+    }),
 
-    prepareWorkspace: ({ threadId, projectRoot }) =>
-      Effect.gen(function* () {
-        const shell = yield* readThread(threadId);
-        const pullRequest = shell.linkedPullRequest ?? shell.branchPullRequest ?? null;
-        if (shell.worktreePath !== null) {
-          // The agent's own worktree has its latest work, pushed or not.
-          if (yield* exists(shell.worktreePath)) {
-            return { worktreePath: shell.worktreePath, created: false };
-          }
-          // Deleted outside the app: check its branch out again where the agent
-          // expects it, as the next message would.
-          const branch = shell.branch;
-          const restored =
-            branch !== null &&
-            (yield* git.pruneWorktrees({ cwd: projectRoot }).pipe(
-              Effect.andThen(
-                git.createWorktree({ cwd: projectRoot, refName: branch, path: shell.worktreePath }),
-              ),
-              Effect.as(true),
-              Effect.tapError((error) =>
-                Effect.logInfo("Could not restore a live card's deleted worktree", {
-                  worktreePath: shell.worktreePath,
-                  error,
-                }),
-              ),
-              Effect.orElseSucceed(() => false),
-            ));
-          if (restored) return { worktreePath: shell.worktreePath, created: false, restored: true };
-          // Previewing the project folder instead would show some other branch's code.
-          if (pullRequest === null) {
-            if (branch === null) {
-              return yield* failure(
-                "The card's worktree folder was deleted, and it has no branch to check out again.",
-              );
-            }
-            // A merge usually deletes the branch with its worktree; say so rather than guess.
-            const branchExists = yield* git
-              .resolveCommit({ cwd: projectRoot, revision: `refs/heads/${branch}` })
-              .pipe(
-                Effect.as(true),
-                Effect.orElseSucceed(() => false),
-              );
-            return yield* failure(
-              branchExists
-                ? `The card's worktree folder was deleted and its branch “${branch}” couldn't be checked out again. It may be open in another worktree.`
-                : `The card's worktree folder and its branch “${branch}” were both deleted, so there's nothing left to preview. If its work was merged, move the card to Done.`,
-            );
-          }
+    prepareWorkspace: Effect.fn("LiveEnvironment.prepareWorkspace")(function* ({
+      threadId,
+      projectRoot,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["prepareWorkspace"]>[0]) {
+      const shell = yield* readThread(threadId);
+      const pullRequest = shell.linkedPullRequest ?? shell.branchPullRequest ?? null;
+      if (shell.worktreePath !== null) {
+        // The agent's own worktree has its latest work, pushed or not.
+        if (yield* exists(shell.worktreePath)) {
+          return { worktreePath: shell.worktreePath, created: false };
         }
-        if (pullRequest === null) {
-          const branch = shell.branch;
-          const rootBranch = yield* git.statusDetailsLocal(projectRoot).pipe(
-            Effect.map((details) => details.branch),
-            Effect.orElseSucceed(() => null),
-          );
-          // The project folder already shows this branch, unsaved work included.
-          if (branch === null || rootBranch === null || rootBranch === branch) {
-            return { worktreePath: projectRoot, created: false };
-          }
-          // A worktree already on the branch, such as one left by a restart, is reused as is.
-          const worktreePaths = yield* git
-            .listWorktreePaths(projectRoot)
-            .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
-          for (const candidate of worktreePaths) {
-            if (path.resolve(candidate) === path.resolve(projectRoot)) continue;
-            const candidateBranch = yield* git.statusDetailsLocal(candidate).pipe(
-              Effect.map((details) => details.branch),
-              Effect.orElseSucceed(() => null),
-            );
-            if (candidateBranch === branch) {
-              return {
-                worktreePath: candidate,
-                created: createdWorktrees.has(path.resolve(candidate)),
-              };
-            }
-          }
-          // Never switch the project folder's branch; check the card's out beside it.
-          const checkout = yield* git
-            .createWorktree({ cwd: projectRoot, refName: branch, path: null })
-            .pipe(
-              Effect.tapError((error) =>
-                Effect.logInfo("Could not check out a live card's branch", { branch, error }),
-              ),
-              Effect.mapError(() =>
-                failure(
-                  `The card's branch “${branch}” couldn't be checked out. It may be open in another worktree.`,
-                ),
-              ),
-            );
-          yield* rememberCreated(checkout.worktree.path, true);
-          return { worktreePath: checkout.worktree.path, created: true };
-        }
-        const before = yield* git
-          .listWorktreePaths(projectRoot)
-          .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
-        const prepared = yield* gitManager
-          .preparePullRequestThread({
-            cwd: projectRoot,
-            reference: pullRequest.url,
-            mode: "worktree",
-          })
-          .pipe(
+        // Deleted outside the app: check its branch out again where the agent
+        // expects it, as the next message would.
+        const branch = shell.branch;
+        const restored =
+          branch !== null &&
+          (yield* git.pruneWorktrees({ cwd: projectRoot }).pipe(
+            Effect.andThen(
+              git.createWorktree({ cwd: projectRoot, refName: branch, path: shell.worktreePath }),
+            ),
+            Effect.as(true),
             Effect.tapError((error) =>
-              Effect.logInfo("Could not check out a live card's pull request", {
-                pullRequest: pullRequest.number,
+              Effect.logInfo("Could not restore a live card's deleted worktree", {
+                worktreePath: shell.worktreePath,
                 error,
               }),
             ),
-            // Git's own reason, such as the branch being open elsewhere, says what to fix.
-            Effect.mapError((error) =>
+            Effect.orElseSucceed(() => false),
+          ));
+        if (restored) return { worktreePath: shell.worktreePath, created: false, restored: true };
+        // Previewing the project folder instead would show some other branch's code.
+        if (pullRequest === null) {
+          if (branch === null) {
+            return yield* failure(
+              "The card's worktree folder was deleted, and it has no branch to check out again.",
+            );
+          }
+          // A merge usually deletes the branch with its worktree; say so rather than guess.
+          const branchExists = yield* git
+            .resolveCommit({ cwd: projectRoot, revision: `refs/heads/${branch}` })
+            .pipe(
+              Effect.as(true),
+              Effect.orElseSucceed(() => false),
+            );
+          return yield* failure(
+            branchExists
+              ? `The card's worktree folder was deleted and its branch “${branch}” couldn't be checked out again. It may be open in another worktree.`
+              : `The card's worktree folder and its branch “${branch}” were both deleted, so there's nothing left to preview. If its work was merged, move the card to Done.`,
+          );
+        }
+      }
+      if (pullRequest === null) {
+        const branch = shell.branch;
+        const rootBranch = yield* git.statusDetailsLocal(projectRoot).pipe(
+          Effect.map((details) => details.branch),
+          Effect.orElseSucceed(() => null),
+        );
+        // The project folder already shows this branch, unsaved work included.
+        if (branch === null || rootBranch === null || rootBranch === branch) {
+          return { worktreePath: projectRoot, created: false };
+        }
+        // A worktree already on the branch, such as one left by a restart, is reused as is.
+        const worktreePaths = yield* git
+          .listWorktreePaths(projectRoot)
+          .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
+        for (const candidate of worktreePaths) {
+          if (path.resolve(candidate) === path.resolve(projectRoot)) continue;
+          const candidateBranch = yield* git.statusDetailsLocal(candidate).pipe(
+            Effect.map((details) => details.branch),
+            Effect.orElseSucceed(() => null),
+          );
+          if (candidateBranch === branch) {
+            return {
+              worktreePath: candidate,
+              created: createdWorktrees.has(path.resolve(candidate)),
+            };
+          }
+        }
+        // Never switch the project folder's branch; check the card's out beside it.
+        const checkout = yield* git
+          .createWorktree({ cwd: projectRoot, refName: branch, path: null })
+          .pipe(
+            Effect.tapError((error) =>
+              Effect.logInfo("Could not check out a live card's branch", { branch, error }),
+            ),
+            Effect.mapError(() =>
               failure(
-                error._tag === "GitManagerError"
-                  ? `Pull request #${pullRequest.number} could not be checked out. ${error.detail}`
-                  : `Pull request #${pullRequest.number} could not be checked out.`,
+                `The card's branch “${branch}” couldn't be checked out. It may be open in another worktree.`,
               ),
             ),
           );
-        const worktreePath = prepared.worktreePath ?? projectRoot;
-        const known = new Set(before.map((entry) => path.resolve(entry)));
-        const created =
-          prepared.worktreePath !== null &&
-          (!known.has(path.resolve(worktreePath)) ||
-            createdWorktrees.has(path.resolve(worktreePath)));
-        if (created) yield* rememberCreated(worktreePath, true);
-        return { worktreePath, created };
-      }),
-
-    runSetup: ({ threadId, projectId, worktreePath, onLine }) =>
-      Effect.gen(function* () {
-        const result = yield* setupRunner
-          .runForThread({
-            threadId,
-            projectId,
-            worktreePath,
-            observeCompletion: { onOutputLine: onLine },
-          })
-          .pipe(Effect.mapError(() => failure("The setup script could not start.")));
-        if (result.status !== "started" || result.completion === undefined) return;
-        const stopSetup = terminals
-          .close({ threadId, terminalId: result.terminalId })
-          .pipe(Effect.ignore);
-        // Stopping the card mid-setup ends the script too.
-        const finished = yield* result.completion.pipe(
-          Effect.timeoutOption(SETUP_SCRIPT_TIMEOUT),
-          Effect.onInterrupt(() => stopSetup),
+        yield* rememberCreated(checkout.worktree.path, true);
+        return { worktreePath: checkout.worktree.path, created: true };
+      }
+      const before = yield* git
+        .listWorktreePaths(projectRoot)
+        .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
+      const prepared = yield* gitManager
+        .preparePullRequestThread({
+          cwd: projectRoot,
+          reference: pullRequest.url,
+          mode: "worktree",
+        })
+        .pipe(
+          Effect.tapError((error) =>
+            Effect.logInfo("Could not check out a live card's pull request", {
+              pullRequest: pullRequest.number,
+              error,
+            }),
+          ),
+          // Git's own reason, such as the branch being open elsewhere, says what to fix.
+          Effect.mapError((error) =>
+            failure(
+              error._tag === "GitManagerError"
+                ? `Pull request #${pullRequest.number} could not be checked out. ${error.detail}`
+                : `Pull request #${pullRequest.number} could not be checked out.`,
+            ),
+          ),
         );
-        if (finished._tag === "None") {
-          yield* stopSetup;
-          return yield* failure(
-            "The setup script was still running after 15 minutes, so it was stopped. It may be waiting for input.",
-          );
-        }
-        const { exitCode } = finished.value;
-        if (exitCode !== 0) {
-          return yield* failure(
-            exitCode === null
-              ? "The setup script stopped before it finished."
-              : `The setup script failed with code ${exitCode}.`,
-          );
-        }
-      }),
+      const worktreePath = prepared.worktreePath ?? projectRoot;
+      const known = new Set(before.map((entry) => path.resolve(entry)));
+      const created =
+        prepared.worktreePath !== null &&
+        (!known.has(path.resolve(worktreePath)) ||
+          createdWorktrees.has(path.resolve(worktreePath)));
+      if (created) yield* rememberCreated(worktreePath, true);
+      return { worktreePath, created };
+    }),
 
-    startDevServer: ({ threadId, projectId, worktreePath, onLine }) =>
-      Effect.gen(function* () {
-        // A dev server left from an earlier run would read the new command as input.
-        yield* terminals
-          .close({ threadId, terminalId: DEV_SERVER_TERMINAL_ID })
-          .pipe(Effect.ignore);
-        const result = yield* setupRunner
-          .runForThread({
-            threadId,
-            projectId,
-            worktreePath,
-            scriptId: LIVE_ENVIRONMENT_DEV_SCRIPT_ID,
-            preferredTerminalId: DEV_SERVER_TERMINAL_ID,
-            observeCompletion: { onOutputLine: onLine },
-          })
-          .pipe(Effect.mapError(() => failure("The dev server could not start.")));
-        if (result.status !== "started") {
-          return yield* failure("The project has no dev server script.");
-        }
-        return {
-          terminalId: result.terminalId,
-          exited:
-            result.completion === undefined
-              ? Effect.never
-              : result.completion.pipe(Effect.map((completion) => completion.exitCode)),
-        };
-      }),
+    runSetup: Effect.fn("LiveEnvironment.runSetup")(function* ({
+      threadId,
+      projectId,
+      worktreePath,
+      onLine,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["runSetup"]>[0]) {
+      const result = yield* setupRunner
+        .runForThread({
+          threadId,
+          projectId,
+          worktreePath,
+          observeCompletion: { onOutputLine: onLine },
+        })
+        .pipe(Effect.mapError(() => failure("The setup script could not start.")));
+      if (result.status !== "started" || result.completion === undefined) return;
+      const stopSetup = terminals
+        .close({ threadId, terminalId: result.terminalId })
+        .pipe(Effect.ignore);
+      // Stopping the card mid-setup ends the script too.
+      const finished = yield* result.completion.pipe(
+        Effect.timeoutOption(SETUP_SCRIPT_TIMEOUT),
+        Effect.onInterrupt(() => stopSetup),
+      );
+      if (finished._tag === "None") {
+        yield* stopSetup;
+        return yield* failure(
+          "The setup script was still running after 15 minutes, so it was stopped. It may be waiting for input.",
+        );
+      }
+      const { exitCode } = finished.value;
+      if (exitCode !== 0) {
+        return yield* failure(
+          exitCode === null
+            ? "The setup script stopped before it finished."
+            : `The setup script failed with code ${exitCode}.`,
+        );
+      }
+    }),
+
+    startDevServer: Effect.fn("LiveEnvironment.startDevServer")(function* ({
+      threadId,
+      projectId,
+      worktreePath,
+      onLine,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["startDevServer"]>[0]) {
+      // A dev server left from an earlier run would read the new command as input.
+      yield* terminals.close({ threadId, terminalId: DEV_SERVER_TERMINAL_ID }).pipe(Effect.ignore);
+      const result = yield* setupRunner
+        .runForThread({
+          threadId,
+          projectId,
+          worktreePath,
+          scriptId: LIVE_ENVIRONMENT_DEV_SCRIPT_ID,
+          preferredTerminalId: DEV_SERVER_TERMINAL_ID,
+          observeCompletion: { onOutputLine: onLine },
+        })
+        .pipe(Effect.mapError(() => failure("The dev server could not start.")));
+      if (result.status !== "started") {
+        return yield* failure("The project has no dev server script.");
+      }
+      return {
+        terminalId: result.terminalId,
+        exited:
+          result.completion === undefined
+            ? Effect.never
+            : result.completion.pipe(Effect.map((completion) => completion.exitCode)),
+      };
+    }),
 
     waitForServer: ({ threadId, terminalId, script }) =>
       ports.scan().pipe(
@@ -485,137 +493,149 @@ export const make = Effect.gen(function* () {
         ),
       ),
 
-    stopDevServer: ({ threadId, terminalId }) =>
-      Effect.gen(function* () {
-        // Ctrl-C lets the dev server shut down cleanly before its shell goes.
-        yield* terminals.write({ threadId, terminalId, data: "\u0003" }).pipe(Effect.ignore);
-        yield* Effect.sleep(INTERRUPT_GRACE);
-        yield* terminals.close({ threadId, terminalId }).pipe(Effect.ignore);
-      }),
+    stopDevServer: Effect.fn("LiveEnvironment.stopDevServer")(function* ({
+      threadId,
+      terminalId,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["stopDevServer"]>[0]) {
+      // Ctrl-C lets the dev server shut down cleanly before its shell goes.
+      yield* terminals.write({ threadId, terminalId, data: "\u0003" }).pipe(Effect.ignore);
+      yield* Effect.sleep(INTERRUPT_GRACE);
+      yield* terminals.close({ threadId, terminalId }).pipe(Effect.ignore);
+    }),
 
-    stopAgentServers: ({ threadId, worktreePath }) =>
-      Effect.gen(function* () {
-        const shell = yield* projections
-          .getThreadShell(threadId)
-          .pipe(Effect.orElseSucceed(() => null));
-        const status = shell?.activityRunStatus ?? null;
-        if (status === "preparing" || status === "starting" || status === "running") return;
-        const root = path.resolve(worktreePath);
-        const within = (cwd: string) => {
-          const relative = path.relative(root, path.resolve(cwd));
-          return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-        };
-        // The scanner reports a cwd only for listeners outside the app's terminals.
-        const pids = new Set(
-          (yield* ports.scan()).flatMap((server) =>
-            server.terminal === null &&
-            server.pid !== null &&
-            server.pid !== process.pid &&
-            server.cwd != null &&
-            within(server.cwd)
-              ? [server.pid]
-              : [],
-          ),
-        );
-        for (const pid of pids) {
-          yield* Effect.try(() => process.kill(pid, "SIGTERM")).pipe(
-            Effect.tap(() =>
-              Effect.logInfo("Stopped a server a live card's agent left running", {
-                threadId,
-                pid,
-              }),
-            ),
-            Effect.ignore,
-          );
-        }
-      }),
-
-    saveDevScript: ({ projectId, command, previewUrl }) =>
-      Effect.gen(function* () {
-        const project = yield* projects.getById(projectId).pipe(
-          Effect.mapError(() => failure("The project could not be read.")),
-          Effect.flatMap(
-            Option.match({
-              onNone: () => Effect.fail(failure("The project no longer exists.")),
-              onSome: Effect.succeed,
+    stopAgentServers: Effect.fn("LiveEnvironment.stopAgentServers")(function* ({
+      threadId,
+      worktreePath,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["stopAgentServers"]>[0]) {
+      const shell = yield* projections
+        .getThreadShell(threadId)
+        .pipe(Effect.orElseSucceed(() => null));
+      const status = shell?.activityRunStatus ?? null;
+      if (status === "preparing" || status === "starting" || status === "running") return;
+      const root = path.resolve(worktreePath);
+      const within = (cwd: string) => {
+        const relative = path.relative(root, path.resolve(cwd));
+        return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+      };
+      // The scanner reports a cwd only for listeners outside the app's terminals.
+      const pids = new Set(
+        (yield* ports.scan()).flatMap((server) =>
+          server.terminal === null &&
+          server.pid !== null &&
+          server.pid !== process.pid &&
+          server.cwd != null &&
+          within(server.cwd)
+            ? [server.pid]
+            : [],
+        ),
+      );
+      for (const pid of pids) {
+        yield* Effect.try(() => process.kill(pid, "SIGTERM")).pipe(
+          Effect.tap(() =>
+            Effect.logInfo("Stopped a server a live card's agent left running", {
+              threadId,
+              pid,
             }),
           ),
+          Effect.ignore,
         );
-        const current = yield* settings.getSettings.pipe(
-          Effect.mapError(() => failure("Settings could not be read.")),
-        );
-        const devScript: ProjectScript = {
-          id: LIVE_ENVIRONMENT_DEV_SCRIPT_ID,
-          name: "Dev server",
-          command,
-          icon: "play",
-          runOnWorktreeCreate: false,
-          ...(previewUrl === undefined ? {} : { previewUrl, autoOpenPreview: false }),
-        };
-        const scripts = resolveProjectScripts(current, project);
-        const nextScripts = scripts.some((script) => script.id === devScript.id)
-          ? scripts.map((script) => (script.id === devScript.id ? devScript : script))
-          : [...scripts, devScript];
-        // Same write the project actions settings make, so the script shows there too.
-        yield* settings
-          .updateSettings({
-            projectSettingsOverrides: {
-              [projectId]: {
-                ...projectSettingsOverridesForWrite(current, projectId),
-                defaultProjectScripts: nextScripts,
-              },
-            },
-          })
-          .pipe(Effect.mapError(() => failure("The dev server script could not be saved.")));
-      }),
+      }
+    }),
 
-    launchSetupAgent: ({ cardThreadId, projectId, projectRoot, worktreePath, failed }) =>
-      Effect.gen(function* () {
-        const blocked = yield* fs.readDirectory(worktreePath).pipe(
-          Effect.as(false),
-          // The agent explores with its own tools; only a block macOS shows the user stops it.
-          Effect.catchTags({
-            PlatformError: (error) =>
-              Effect.logWarning("Could not read a live preview checkout", {
-                worktreePath,
-                error,
-              }).pipe(Effect.as(isAccessDenied(error))),
+    saveDevScript: Effect.fn("LiveEnvironment.saveDevScript")(function* ({
+      projectId,
+      command,
+      previewUrl,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["saveDevScript"]>[0]) {
+      const project = yield* projects.getById(projectId).pipe(
+        Effect.mapError(() => failure("The project could not be read.")),
+        Effect.flatMap(
+          Option.match({
+            onNone: () => Effect.fail(failure("The project no longer exists.")),
+            onSome: Effect.succeed,
           }),
+        ),
+      );
+      const current = yield* settings.getSettings.pipe(
+        Effect.mapError(() => failure("Settings could not be read.")),
+      );
+      const devScript: ProjectScript = {
+        id: LIVE_ENVIRONMENT_DEV_SCRIPT_ID,
+        name: "Dev server",
+        command,
+        icon: "play",
+        runOnWorktreeCreate: false,
+        ...(previewUrl === undefined ? {} : { previewUrl, autoOpenPreview: false }),
+      };
+      const scripts = resolveProjectScripts(current, project);
+      const nextScripts = scripts.some((script) => script.id === devScript.id)
+        ? scripts.map((script) => (script.id === devScript.id ? devScript : script))
+        : [...scripts, devScript];
+      // Same write the project actions settings make, so the script shows there too.
+      yield* settings
+        .updateSettings({
+          projectSettingsOverrides: {
+            [projectId]: {
+              ...projectSettingsOverridesForWrite(current, projectId),
+              defaultProjectScripts: nextScripts,
+            },
+          },
+        })
+        .pipe(Effect.mapError(() => failure("The dev server script could not be saved.")));
+    }),
+
+    launchSetupAgent: Effect.fn("LiveEnvironment.launchSetupAgent")(function* ({
+      cardThreadId,
+      projectId,
+      projectRoot,
+      worktreePath,
+      failed,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["launchSetupAgent"]>[0]) {
+      const blocked = yield* fs.readDirectory(worktreePath).pipe(
+        Effect.as(false),
+        // The agent explores with its own tools; only a block macOS shows the user stops it.
+        Effect.catchTags({
+          PlatformError: (error) =>
+            Effect.logWarning("Could not read a live preview checkout", {
+              worktreePath,
+              error,
+            }).pipe(Effect.as(isAccessDenied(error))),
+        }),
+      );
+      if (blocked) return yield* failure(FOLDER_ACCESS_DENIED);
+      const current = yield* settings.getSettings.pipe(
+        Effect.mapError(() => failure("Settings could not be read.")),
+      );
+      const launched = yield* threadLaunch
+        .launch({
+          commandId: yield* newCommandId,
+          projectId,
+          parentThreadId: cardThreadId,
+          title: "Set up live preview",
+          // The cheap model the app already uses for small jobs.
+          modelSelection: resolveProjectSettings(current, projectId).settings
+            .textGenerationModelSelection,
+          // Nobody watches it, so it can't stop to ask before running commands.
+          runtimeMode: "full-access",
+          interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+          workspaceStrategy:
+            worktreePath === projectRoot
+              ? { type: "root" }
+              : { type: "existing_worktree", worktreePath },
+          initialMessage: { text: setupAgentPrompt(failed), attachments: [] },
+          createdBy: "system",
+          creationSource: "server",
+        })
+        .pipe(
+          Effect.tapError((error) =>
+            Effect.logWarning("Could not start the live preview setup agent", { error }),
+          ),
+          Effect.mapError(() =>
+            failure("Supadesign couldn't start an agent to set up the preview."),
+          ),
         );
-        if (blocked) return yield* failure(FOLDER_ACCESS_DENIED);
-        const current = yield* settings.getSettings.pipe(
-          Effect.mapError(() => failure("Settings could not be read.")),
-        );
-        const launched = yield* threadLaunch
-          .launch({
-            commandId: yield* newCommandId,
-            projectId,
-            parentThreadId: cardThreadId,
-            title: "Set up live preview",
-            // The cheap model the app already uses for small jobs.
-            modelSelection: resolveProjectSettings(current, projectId).settings
-              .textGenerationModelSelection,
-            // Nobody watches it, so it can't stop to ask before running commands.
-            runtimeMode: "full-access",
-            interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
-            workspaceStrategy:
-              worktreePath === projectRoot
-                ? { type: "root" }
-                : { type: "existing_worktree", worktreePath },
-            initialMessage: { text: setupAgentPrompt(failed), attachments: [] },
-            createdBy: "system",
-            creationSource: "server",
-          })
-          .pipe(
-            Effect.tapError((error) =>
-              Effect.logWarning("Could not start the live preview setup agent", { error }),
-            ),
-            Effect.mapError(() =>
-              failure("Supadesign couldn't start an agent to set up the preview."),
-            ),
-          );
-        return launched.threadId;
-      }),
+      return launched.threadId;
+    }),
 
     awaitSetupAgent: ({ projectId, setupThreadId }) =>
       threadManagement
@@ -626,30 +646,32 @@ export const make = Effect.gen(function* () {
         })
         .pipe(Effect.ignore),
 
-    removeSetupAgent: ({ projectId, setupThreadId }) =>
-      Effect.gen(function* () {
-        yield* threadManagement
-          .interruptThread({
-            projectId,
-            commandId: yield* newCommandId,
-            threadId: setupThreadId,
-            reason: "The live preview setup is done.",
-          })
-          .pipe(Effect.ignore);
-        // Deleting a thread never removes a worktree another thread uses.
-        yield* threadManagement
-          .dispatch({
-            type: "thread.delete",
-            commandId: yield* newCommandId,
-            threadId: setupThreadId,
-          })
-          .pipe(
-            Effect.tapError((error) =>
-              Effect.logInfo("Could not remove the live preview setup agent", { error }),
-            ),
-            Effect.ignore,
-          );
-      }),
+    removeSetupAgent: Effect.fn("LiveEnvironment.removeSetupAgent")(function* ({
+      projectId,
+      setupThreadId,
+    }: Parameters<LiveEnvironment.LiveEnvironmentOps["removeSetupAgent"]>[0]) {
+      yield* threadManagement
+        .interruptThread({
+          projectId,
+          commandId: yield* newCommandId,
+          threadId: setupThreadId,
+          reason: "The live preview setup is done.",
+        })
+        .pipe(Effect.ignore);
+      // Deleting a thread never removes a worktree another thread uses.
+      yield* threadManagement
+        .dispatch({
+          type: "thread.delete",
+          commandId: yield* newCommandId,
+          threadId: setupThreadId,
+        })
+        .pipe(
+          Effect.tapError((error) =>
+            Effect.logInfo("Could not remove the live preview setup agent", { error }),
+          ),
+          Effect.ignore,
+        );
+    }),
 
     removeWorkspace: ({ projectRoot, worktreePath }) =>
       // Without force, git keeps a worktree that has changes.

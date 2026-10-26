@@ -56,18 +56,17 @@ export const make = Effect.gen(function* () {
       ),
 
     // A started card's note was sent as its first message, so that comes first.
-    seedText: (threadId) =>
-      Effect.gen(function* () {
-        const records = yield* threads
-          .getThreadRecords(threadId, ["messages"], { messageRoles: ["user"] })
-          .pipe(Effect.mapError(() => failure("The card's thread could not be read.")));
-        const first = records.messages.find(
-          (message) => !message.streaming && message.text.trim().length > 0,
-        );
-        if (first !== undefined) return first.text;
-        const note = (yield* banks.get(threadId)).find((entry) => entry.text.trim().length > 0);
-        return note?.text ?? null;
-      }),
+    seedText: Effect.fn("ThreadBrief.seedText")(function* (threadId: ThreadId) {
+      const records = yield* threads
+        .getThreadRecords(threadId, ["messages"], { messageRoles: ["user"] })
+        .pipe(Effect.mapError(() => failure("The card's thread could not be read.")));
+      const first = records.messages.find(
+        (message) => !message.streaming && message.text.trim().length > 0,
+      );
+      if (first !== undefined) return first.text;
+      const note = (yield* banks.get(threadId)).find((entry) => entry.text.trim().length > 0);
+      return note?.text ?? null;
+    }),
 
     newId: crypto.randomUUIDv4().pipe(Effect.orDie),
     now: Clock.currentTimeMillis.pipe(
