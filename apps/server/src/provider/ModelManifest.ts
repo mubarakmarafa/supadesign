@@ -14,6 +14,7 @@
  * payload separately.
  */
 import {
+  DEFAULT_MODEL_BY_PROVIDER,
   ModelCapabilities,
   TrimmedNonEmptyString,
   type ProviderDriverKind,
@@ -165,7 +166,15 @@ export function resolveProviderCatalog(
 
   if (catalog.defaults?.chat !== undefined && !seen.has(catalog.defaults.chat)) return null;
 
-  return { models, defaultChatModel: catalog.defaults?.chat };
+  // The manifest is fetched from upstream, whose chat default can be a model
+  // this fork does not start new work on (Claude Fable). Where the manifest
+  // names a default and lists ours, ours wins.
+  const preferred = DEFAULT_MODEL_BY_PROVIDER[driverKind];
+  const defaultChatModel =
+    catalog.defaults?.chat !== undefined && preferred !== undefined && seen.has(preferred)
+      ? preferred
+      : catalog.defaults?.chat;
+  return { models, defaultChatModel };
 }
 
 /** On-disk shape of the last successfully fetched manifest. */
