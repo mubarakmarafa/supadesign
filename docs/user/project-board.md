@@ -104,6 +104,12 @@ open the card and select **Send all**.
 A card added to the live preview column goes under the live card, so it doesn't
 change what is running.
 
+The bottom of each card shows the model and effort its agent will use and its
+[permission mode](./permission-modes.md); **Full access** is highlighted. A new
+card starts with the project's defaults from **Settings → General → New
+threads**. To change them before the card starts, open the card and pick another
+model or mode in its composer.
+
 Drag a card to
 reorder it or move it to another column. Order within a column is kept. On
 touch screens and narrow windows, use the card's **…** menu and **Move to**.

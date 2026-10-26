@@ -136,6 +136,7 @@ import {
   applyClaudePromptEffortPrefix,
   createModelSelection,
   formatModelSlugName,
+  modelSelectionsEqual,
   resolvePromptInjectedEffort,
   resolveSelectableModel,
 } from "@supaterm/shared/model";
@@ -5549,6 +5550,14 @@ export default function ChatView(props: ChatViewProps) {
       if (isLocalDraftThread) {
         setDraftThreadContext(composerDraftTarget, { runtimeMode: mode });
       }
+      // Saved now, not with the next message: a board card is sent with the
+      // thread's saved mode, and its face shows that mode.
+      if (serverThread && mode !== serverThread.runtimeMode) {
+        void setThreadRuntimeMode({
+          environmentId: serverThread.environmentId,
+          input: { threadId: serverThread.id, runtimeMode: mode },
+        });
+      }
       scheduleComposerFocus();
     },
     [
@@ -5556,10 +5565,38 @@ export default function ChatView(props: ChatViewProps) {
       runtimeMode,
       scheduleComposerFocus,
       composerDraftTarget,
+      serverThread,
       setComposerDraftRuntimeMode,
       setDraftThreadContext,
+      setThreadRuntimeMode,
     ],
   );
+  // A card that hasn't started is sent from the board with the thread's saved
+  // model, so its composer's model and effort are saved as they change. Once
+  // a session exists, a model change waits for the next message as before.
+  const threadNotStarted =
+    serverThread !== null &&
+    serverThread.latestRun == null &&
+    serverThread.latestUserMessageAt == null;
+  const persistNotStartedModelSelection = useCallback(
+    (selection: ModelSelection) => {
+      if (!serverThread || modelSelectionsEqual(selection, serverThread.modelSelection)) return;
+      void updateThreadMetadata({
+        environmentId: serverThread.environmentId,
+        input: { threadId: serverThread.id, modelSelection: selection },
+      });
+    },
+    [serverThread, updateThreadMetadata],
+  );
+  // The same for a mode chosen before this was saved on change, so the card
+  // and the composer never disagree about what the card will run with.
+  useEffect(() => {
+    if (!threadNotStarted || !serverThread || runtimeMode === serverThread.runtimeMode) return;
+    void setThreadRuntimeMode({
+      environmentId: serverThread.environmentId,
+      input: { threadId: serverThread.id, runtimeMode },
+    });
+  }, [runtimeMode, serverThread, setThreadRuntimeMode, threadNotStarted]);
 
   const openProviderSetup = useCallback(
     (instanceId: ProviderInstanceId) => {
@@ -11269,6 +11306,9 @@ export default function ChatView(props: ChatViewProps) {
                                   onOpenProviderSetup={openProviderSetup}
                                   getModelDisabledReason={getModelDisabledReason}
                                   handleRuntimeModeChange={handleRuntimeModeChange}
+                                  persistModelSelection={
+                                    threadNotStarted ? persistNotStartedModelSelection : null
+                                  }
                                   focusComposer={focusComposer}
                                   scheduleComposerFocus={scheduleComposerFocus}
                                   setThreadError={setThreadError}

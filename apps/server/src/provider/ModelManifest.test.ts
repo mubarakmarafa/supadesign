@@ -74,6 +74,42 @@ describe("resolveProviderCatalog", () => {
     assert.strictEqual(catalog?.defaultChatModel, "model-next");
   });
 
+  it("prefers this fork's default over the manifest's when the manifest lists it", () => {
+    const claude = ProviderDriverKind.make("claudeAgent");
+    const manifest: ModelManifest.ModelManifestData = {
+      version: 1,
+      currentModels: {},
+      providers: {
+        claudeAgent: {
+          defaults: { chat: "claude-fable-5-1" },
+          profiles: {},
+          models: ["claude-fable-5-1", "claude-sonnet-5-5"].map((slug) => ({
+            slug,
+            name: slug,
+            status: "current" as const,
+          })),
+        },
+      },
+    };
+    assert.strictEqual(
+      ModelManifest.resolveProviderCatalog(manifest, claude)?.defaultChatModel,
+      "claude-sonnet-5-5",
+    );
+    const withoutOurs = {
+      ...manifest,
+      providers: {
+        claudeAgent: {
+          ...manifest.providers!.claudeAgent!,
+          models: manifest.providers!.claudeAgent!.models.slice(0, 1),
+        },
+      },
+    };
+    assert.strictEqual(
+      ModelManifest.resolveProviderCatalog(withoutOurs, claude)?.defaultChatModel,
+      "claude-fable-5-1",
+    );
+  });
+
   it("rejects invalid catalog references", () => {
     const invalidCatalog = (input: {
       readonly models: NonNullable<ModelManifest.ModelManifestData["providers"]>[string]["models"];

@@ -1,4 +1,5 @@
 import {
+  DEFAULT_MODEL_BY_PROVIDER,
   EnvironmentId,
   type ProjectId,
   ScheduledTaskId,
@@ -247,8 +248,13 @@ export function scheduledTaskDefaultModel(
   const models = available.flatMap((entry) =>
     entry.models
       .filter((model) => !model.isLegacy)
-      .map((model) => ({ instanceId: entry.instanceId, model })),
+      .map((model) => ({ instanceId: entry.instanceId, driverKind: entry.driverKind, model })),
   );
-  const fallback = models.find(({ model }) => model.isDefault) ?? models[0];
+  // A provider that marks no default (Claude) would otherwise get its first
+  // listed model, which is its most expensive one.
+  const fallback =
+    models.find(({ model }) => model.isDefault) ??
+    models.find(({ driverKind, model }) => model.slug === DEFAULT_MODEL_BY_PROVIDER[driverKind]) ??
+    models[0];
   return fallback ? { instanceId: fallback.instanceId, model: fallback.model.slug } : null;
 }

@@ -1689,6 +1689,8 @@ export interface ChatComposerProps {
   onOpenProviderSetup: (instanceId: ProviderInstanceId) => void;
   getModelDisabledReason: (instanceId: ProviderInstanceId, model: string) => string | null;
   handleRuntimeModeChange: (mode: RuntimeMode) => void;
+  /** Saves the model and its options to the thread as they change; null leaves them for the next send. */
+  persistModelSelection?: ((selection: ModelSelection) => void) | null;
 
   focusComposer: () => void;
   scheduleComposerFocus: () => void;
@@ -1792,6 +1794,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     onOpenProviderSetup,
     getModelDisabledReason,
     handleRuntimeModeChange,
+    persistModelSelection,
     focusComposer,
     scheduleComposerFocus,
     setThreadError,
@@ -2370,6 +2373,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     () => createModelSelection(selectedInstanceId, selectedModel, selectedModelOptionsForDispatch),
     [selectedInstanceId, selectedModel, selectedModelOptionsForDispatch],
   );
+  useEffect(() => {
+    persistModelSelection?.(selectedModelSelection);
+  }, [persistModelSelection, selectedModelSelection]);
   const selectedModelForPicker = selectedModel;
   // Instance-keyed option list so the picker can show each configured
   // instance (built-in + custom) as a first-class sidebar entry. The

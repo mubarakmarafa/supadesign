@@ -253,6 +253,30 @@ describe("scheduled task model defaults", () => {
       resolve({ ...config, settings: { ...config.settings, defaultModelSelection: null } }, null),
     ).toEqual({ instanceId, model: "catalog-default" });
   });
+  it("uses the provider's built-in default when the catalog marks none", () => {
+    const claudeId = ProviderInstanceId.make("claudeAgent");
+    const claude = {
+      ...config.providers[0],
+      instanceId: claudeId,
+      driver: "claudeAgent",
+      models: ["claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5"].map((slug) => ({
+        slug,
+        name: slug,
+        isCustom: false,
+        capabilities: null,
+      })),
+    };
+    expect(
+      resolve(
+        {
+          ...config,
+          settings: { ...config.settings, defaultModelSelection: null },
+          providers: [claude],
+        } as unknown as ServerConfig,
+        null,
+      ),
+    ).toEqual({ instanceId: claudeId, model: "claude-sonnet-5-5" });
+  });
   it("falls back to the environment default when the project provider is unavailable", () => {
     expect(
       resolve(config, {
