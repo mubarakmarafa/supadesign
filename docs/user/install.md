@@ -85,13 +85,13 @@ and Linux it creates a link in a writable command folder; on Windows it adds the
 app's command folder to your `PATH`. Open a new terminal afterwards. If the command
 folder is not on your `PATH`, add it to run `supaterm` by name.
 
-**Settings → General → About → supaterm command** lets you retry installation or
+**Settings → About → supaterm command** lets you retry installation or
 remove the command. **Remove** also disables automatic installation until you
 choose **Install** again. The bundled command follows desktop app updates.
 
 ### Windows Subsystem for Linux
 
-Choose a WSL distro in **Settings → Connections** to run agents and projects
+Choose a WSL distro in **Settings → Sharing & access** to run agents and projects
 there. Install the provider CLIs inside that distro. Supaterm installs its own
 server runtime there automatically; the first launch after an app update can
 take longer.
@@ -112,7 +112,7 @@ command cannot reach the app, start or update the desktop app and try again.
 ## Mobile app
 
 On iPhone and iPad, [join the Supaterm beta on TestFlight](https://testflight.apple.com/join/VUJkRPwq).
-The link and a QR code are also in **Settings → General → Mobile app** on web and desktop.
+The link and a QR code are also in **Settings → About → Mobile app** on web and desktop.
 On Android, build the client using the [mobile development guide](../../apps/mobile/README.md).
 The phone connects to a server on another machine. Follow
 [remote access](./remote-access.md) to pair it with a pairing URL or QR code.
@@ -140,6 +140,7 @@ computer.
 | Antigravity | Install and sign in with Google from Supaterm's provider settings.                                                                                        |
 | Pi          | Install [Pi](./providers-pi.md#set-up-pi) with Node.js 22.19 or newer, then run `pi` and `/login`.                                                        |
 | Muse Code   | Install [Muse Code](https://dev.meta.ai/docs/muse-code) on the server, run `muse login`, then enable it in Settings → Providers.                          |
+| fx          | Install [fx](https://fx.sh) with `curl -fsSL https://fx.sh/setup.sh \| bash`, then run `fx login`.                                                        |
 
 Provider CLIs must be on the server's `PATH`. If Supaterm cannot find one, set its
 **Binary path** in provider settings, especially when using a version manager.
@@ -157,9 +158,10 @@ When a provider CLI is behind its latest release, its provider card shows the
 available version. **Update now** runs the installer that owns the CLI
 (Homebrew, or a global npm, pnpm, Yarn, Bun, Volta, or Vite+ install), or the
 CLI's own update command when Supaterm cannot tell. Update a CLI installed with
-mise through mise. Cursor and Antigravity update with Supaterm. Homebrew installs
-compare against the version Homebrew offers, which can trail the npm release by
-a few hours.
+mise through mise. Cursor and Antigravity update with Supaterm. Homebrew and
+Chocolatey installs compare against the version their package manager offers,
+which can trail the npm release; update Claude installed with Chocolatey
+through Chocolatey.
 
 Add another provider instance for a separate account or configuration. Each
 instance can have its own environment variables, such as API keys or a custom
@@ -168,8 +170,8 @@ their original values.
 
 For provider-specific setup and accounts, see [Codex](./providers-codex.md),
 [Claude](./providers-claude.md), [OpenCode](./providers-opencode.md),
-[Antigravity](./providers-antigravity.md), [Pi](./providers-pi.md), and
-[Muse Code](./providers-muse.md).
+[Antigravity](./providers-antigravity.md), [Pi](./providers-pi.md),
+[Muse Code](./providers-muse.md), and [fx](./providers-fx.md).
 
 ## Next steps
 

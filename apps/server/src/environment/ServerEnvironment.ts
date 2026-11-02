@@ -18,6 +18,7 @@ import { resolveServerInstallation } from "../cli/invocation.ts";
 import { resolveServerSelfUpdateCapability } from "../service/selfUpdate.ts";
 import { resolveServiceLauncherMode } from "../service/serviceLauncherClient.ts";
 import * as ServerConfig from "../config.ts";
+import { databaseMigrationHead } from "../persistence/databaseMigrationHead.ts";
 import * as ProcessRunner from "../processRunner.ts";
 import { resolveServerEnvironmentLabel } from "./ServerEnvironmentLabel.ts";
 import { detectServerEnvironmentMachineKind } from "./ServerEnvironmentMachine.ts";
@@ -202,6 +203,7 @@ export const make = Effect.gen(function* () {
   const desktopAppUpdate =
     serverSelfUpdate === "desktop-managed" && serverConfig.desktopTelemetryControlFd !== undefined;
 
+  const databaseMigration = databaseMigrationHead(serverConfig.dbPath);
   const descriptor: ExecutionEnvironmentDescriptor = {
     environmentId,
     label,
@@ -212,10 +214,15 @@ export const make = Effect.gen(function* () {
     },
     serverVersion: packageJson.version,
     orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
+    ...(databaseMigration === undefined ? {} : { databaseMigration }),
     capabilities: {
       fileAttachments: { maxUploadBytes: PROVIDER_SEND_TURN_MAX_FILE_BYTES },
       threadStop: true,
+      sideChats: true,
+      threadForceStop: true,
+      ...(hostPlatform === "win32" ? {} : { localServerStop: true }),
       queuedRunStart: true,
+      projectOrganization: true,
       ignoredFileListing: true,
       // Supadesign: project board features, which clients gate on.
       projectBoard: true,
@@ -227,12 +234,18 @@ export const make = Effect.gen(function* () {
       threadProgress: true,
       threadBrief: true,
       projectSummary: true,
+      triage: true,
+      threadProjectFromScratch: true,
+      oneTimeSchedules: true,
+      npmReleaseLookup: true,
+      // Supadesign leaves out the product usage switch: its events would reach Supaterm's
+      // analytics. SUPATERM_TELEMETRY_ENABLED still opts in.
       ...(serverSelfUpdate === null ? {} : { serverSelfUpdate }),
       ...(serverInstallation === null ? {} : { serverInstallation }),
       ...(serverSelfUpdate === "boot-service" || desktopAppUpdate
         ? { serverSelfUpdateProgress: true }
         : {}),
-      ...(desktopAppUpdate ? { desktopAppUpdate: true } : {}),
+      ...(desktopAppUpdate ? { desktopAppUpdate: true, desktopAppChannelSwitch: true } : {}),
     },
   };
 

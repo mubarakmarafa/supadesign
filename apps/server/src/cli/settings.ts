@@ -28,7 +28,9 @@ const SETTABLE_SETTINGS = {
   publicRelayUrl: { kind: "string", expected: "a ws:// or wss:// URL" },
   responseStreamingMode: { kind: "string", expected: ResponseStreamingMode.literals.join(" | ") },
   enableProviderUpdateChecks: BOOLEAN_SETTING,
+  nextPromptSuggestionsEnabled: BOOLEAN_SETTING,
   continueThreadsAfterServerUpdate: BOOLEAN_SETTING,
+  telemetryEnabled: BOOLEAN_SETTING,
   enableAgentBrowserAccess: BOOLEAN_SETTING,
   defaultAutoPull: BOOLEAN_SETTING,
   defaultRuntimeMode: { kind: "string", expected: RuntimeMode.literals.join(" | ") },
@@ -56,6 +58,7 @@ const SETTABLE_SETTINGS = {
   branchNamePrefix: STRING_SETTING,
   branchNamePrefixFromRepository: BOOLEAN_SETTING,
   branchNameInstructions: STRING_SETTING,
+  threadTitleInstructions: STRING_SETTING,
   removeAgentCreditsOnMerge: BOOLEAN_SETTING,
   pullRequestMergeMethod: {
     kind: "string-or-null",

@@ -40,7 +40,7 @@ import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
 import { FetchHttpClient } from "effect/http";
 
-import { APP_VERSION } from "../branding";
+import { APP_VERSION, APP_BASE_NAME } from "../branding";
 import { readDesktopPrimaryBearerToken } from "../environments/primary/desktopAuth";
 import * as PrimaryEnvironmentHttpLayer from "../environments/primary/httpLayer";
 import {
@@ -148,7 +148,7 @@ const layerWakeups = Wakeups.layer({
   ),
 });
 
-function clientMetadata() {
+export function currentClientMetadata() {
   return clientPresentationMetadata({
     appVersion: APP_VERSION,
     hosted: isHostedStaticApp(),
@@ -232,7 +232,22 @@ export const provisionDesktopSshEnvironment = Effect.fn(
   }
   const access = yield* Effect.tryPromise({
     try: () => bridge.bootstrapSshBearerSession(bootstrap.httpBaseUrl, pairingToken),
-    catch: sshPreparationError,
+    catch: (cause) => {
+      const error = sshPreparationError(cause);
+      // A reused remote server on another build can fail to decode the grant
+      // the desktop's runner just minted, and answers 500 on every retry.
+      if (
+        error._tag === "ConnectionBlockedError" ||
+        descriptor.serverVersion === APP_VERSION ||
+        !error.detail.includes("[ssh_http:500]")
+      ) {
+        return error;
+      }
+      return new ConnectionBlockedError({
+        reason: "configuration",
+        detail: `${descriptor.label} runs ${APP_BASE_NAME} ${descriptor.serverVersion}, but this desktop is ${APP_VERSION}, and that server could not accept its pairing. Restart the Supaterm server on ${descriptor.label} so it runs ${APP_VERSION}, then retry.`,
+      });
+    },
   });
   return {
     environmentId: descriptor.environmentId,
@@ -351,7 +366,7 @@ const analyticsDevice = {
 const layerCapabilities = Layer.effectContext(
   Effect.sync(() => {
     const presentation = ClientCapabilities.ClientPresentation.of({
-      metadata: clientMetadata(),
+      metadata: currentClientMetadata(),
     });
     const primaryAuth = ClientCapabilities.PrimaryEnvironmentAuth.of({
       bearerToken: Effect.tryPromise({
@@ -444,7 +459,7 @@ const loadSecondaryConnectionRegistration = Effect.fn(
     httpBaseUrl,
     credential: entry.bootstrapToken,
     scopes: AuthStandardClientScopes,
-    clientMetadata: clientMetadata(),
+    clientMetadata: currentClientMetadata(),
   }).pipe(Effect.mapError(mapRemoteEnvironmentError));
   // Keep the desktop pool's stable backend id in the connection id. The
   // descriptor environment id still scopes projects and RPC state, while the
@@ -565,11 +580,9 @@ export interface RejectedSecondaryBootstrap {
 }
 
 /**
- * A backend that rejected a bootstrap token will usually keep rejecting it, so
- * the poll backs off on that exact signature instead of re-presenting a dead
- * credential every few seconds. It still retries on a capped backoff: a backend
- * that restarts on the same port seeds a fresh grant for the same token, and
- * nothing in the topology says it restarted.
+ * A rejected bootstrap token usually stays rejected, so the poll backs off on that exact
+ * signature. It still retries on a capped backoff: a backend restarting on the same port seeds a
+ * fresh grant for the same token, and nothing in the topology says it restarted.
  */
 export function isRejectedSecondaryBootstrap(
   rejected: RejectedSecondaryBootstrap | undefined,
@@ -790,27 +803,30 @@ const layerPlatformConnectionSource = Layer.effect(
 const layerEnvironmentOwnedDataCleanup = Layer.succeed(
   Persistence.EnvironmentOwnedDataCleanup,
   Persistence.EnvironmentOwnedDataCleanup.of({
-    clear: (environmentId) =>
-      Effect.promise(async () => {
+    clear: Effect.fn("Persistence.EnvironmentOwnedDataCleanup.clear")(function (environmentId) {
+      return Effect.promise(async () => {
         const { clearThreadOutboxEnvironment } = await import("../state/threadOutbox");
         await clearThreadOutboxEnvironment(environmentId);
         clearComposerDraftsEnvironment(environmentId);
-      }),
+      });
+    }),
   }),
 );
 
 const layerRpcRequestObserver = Layer.succeed(
   EnvironmentRpcRequestObserver,
   EnvironmentRpcRequestObserver.of({
-    observe: ({ environmentId, environmentLabel, method }) =>
-      Effect.sync(() => {
+    // Every RPC passes through this observer; the request owns its span.
+    observe: Effect.fnUntraced(function* ({ environmentId, environmentLabel, method }) {
+      return yield* Effect.sync(() => {
         nextObservedRpcRequestId += 1;
         const requestId = `${environmentId}:${nextObservedRpcRequestId}`;
         trackRpcRequestSent(requestId, method, `${method} · ${environmentLabel}`);
         return Effect.sync(() => {
           acknowledgeRpcRequest(requestId);
         });
-      }),
+      });
+    }),
   }),
 );
 

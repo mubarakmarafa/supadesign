@@ -1,3 +1,4 @@
+import type { ToolCallDiffTarget } from "../../diffPanelStore";
 import type { WorkGroupScrollAnchor, MessagesTimelineRow } from "./MessagesTimeline.logic";
 import type {
   ScopedThreadRef,
@@ -8,6 +9,7 @@ import type {
   OrchestrationV2TurnItem,
   ThreadId,
   RunAttemptId,
+  TurnItemId,
   WorktreeSetupSnapshot,
 } from "@supaterm/contracts";
 import type { WorkflowOpening } from "@supaterm/client-runtime/state/subagentRuntime";
@@ -19,6 +21,7 @@ import type { ExpandedImagePreview } from "./ExpandedImagePreview";
 import type { AssistantCitationTarget } from "./AssistantCitationSource";
 import type { TimestampFormat } from "@supaterm/contracts/settings";
 import type { HandoffTimelineRun } from "./V2LifecycleRow";
+import type { PinnableProjectedItem } from "./PinnedMessages";
 
 export interface TimelineRowSharedState {
   citationRequest: AssistantCitationTarget | null;
@@ -29,7 +32,7 @@ export interface TimelineRowSharedState {
   markdownCwd: string | undefined;
   resolvedTheme: "light" | "dark";
   workspaceRoot: string | undefined;
-  skills: ReadonlyArray<Pick<ServerProviderSkill, "name" | "displayName">>;
+  skills: ReadonlyArray<ServerProviderSkill>;
   runs: ReadonlyArray<HandoffTimelineRun>;
   activeThreadEnvironmentId: EnvironmentId;
   onRevertToTurnCount: (targetTurnCount: number, messageId: MessageId) => void;
@@ -43,12 +46,15 @@ export interface TimelineRowSharedState {
   onImageExpand: (preview: ExpandedImagePreview) => void;
   displayThreadKey?: string;
   onOpenTurnDiff: (runId: RunId, filePath?: string) => void;
+  onOpenToolDiff: ((target: ToolCallDiffTarget) => void) | undefined;
   onOpenThread: (threadId: OrchestrationV2TurnItem["threadId"]) => void;
   workflowOpening: WorkflowOpening | null;
-  onForkFromRun: (input: {
-    readonly sourceThreadId: ThreadId;
-    readonly runId: RunId;
-  }) => Promise<void>;
+  /** Null where forking is not offered, as in a side chat. */
+  onForkFromRun:
+    | ((input: { readonly sourceThreadId: ThreadId; readonly runId: RunId }) => Promise<void>)
+    | null;
+  pinnedItemIds: ReadonlySet<TurnItemId>;
+  onTogglePinnedMessage: ((projectedItem: PinnableProjectedItem, pinned: boolean) => void) | null;
   onToggleTurnFold: (runId: RunId) => void;
   onToggleAttemptFold: (attemptId: RunAttemptId) => void;
   onFileOpen: (attachment: ChatFileAttachment) => void;
@@ -67,9 +73,8 @@ export interface TimelineRowSharedState {
 export interface TimelineRowActivityState {
   isWorking: boolean;
   isCompacting: boolean;
+  compactionStartedAt: string | null;
   isRevertingCheckpoint: boolean;
-  activeTurnInProgress: boolean;
-
   awaitingUser: boolean;
   isPreparingWorktree: boolean;
   latestRunId: RunId | null;

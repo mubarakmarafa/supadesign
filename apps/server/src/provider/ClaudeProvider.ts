@@ -3,6 +3,7 @@ import {
   type ModelCapabilities,
   type ServerProvider,
   type ServerProviderSlashCommand,
+  type ServerProviderTranscription,
   type ServerProviderResetCredits,
 } from "@supaterm/contracts";
 import * as Cache from "effect/Cache";
@@ -40,7 +41,7 @@ import {
 } from "@supaterm/provider-core/server/snapshotProbe";
 import { resolveClaudeSdkExecutablePath } from "./Drivers/ClaudeExecutable.ts";
 import { hasClaudeManagedMcpConfig, makeClaudeEnvironment } from "./Drivers/ClaudeHome.ts";
-import { discoverClaudeSkills } from "./Drivers/ClaudeSkills.ts";
+import { discoverClaudeSkills, readClaudeSettingsBaseUrl } from "./Drivers/ClaudeSkills.ts";
 import type { ProviderWorkspaceSnapshot } from "@supaterm/provider-core/server/driver";
 import { makeUnavailableUsageLimits } from "@supaterm/provider-core/server/usageLimits";
 import {
@@ -81,11 +82,10 @@ function claudeSubscriptionLabel(subscriptionType: string | undefined): string |
 
   switch (normalized) {
     case "claudemaxsubscription":
-      return "Max";
     case "claudemax5xsubscription":
-      return "Max 5x";
+      return "Max";
     case "claudemax20xsubscription":
-      return "Max 20x";
+      return "Ultra";
     case "claudeenterprisesubscription":
       return "Enterprise";
     case "claudeteamsubscription":
@@ -96,11 +96,10 @@ function claudeSubscriptionLabel(subscriptionType: string | undefined): string |
       return "Free";
     case "max":
     case "maxplan":
-      return "Max";
     case "max5":
-      return "Max 5x";
+      return "Max";
     case "max20":
-      return "Max 20x";
+      return "Ultra";
     case "enterprise":
       return "Enterprise";
     case "team":
@@ -186,6 +185,34 @@ function claudeAuthStatus(
   return hasApiKey || capabilities.email || capabilities.subscriptionType
     ? "authenticated"
     : "unauthenticated";
+}
+
+// The CLI names a signed-in claude.ai login by its subscription and leaves the token source out;
+// it reports a source only for a token passed in through its variable. A token handed over a
+// file descriptor can't be read from outside the CLI.
+const CLAUDE_SUBSCRIPTION_TOKEN_SOURCES: ReadonlySet<string> = new Set([
+  "claude.ai",
+  "CLAUDE_CODE_OAUTH_TOKEN",
+]);
+
+function claudeTranscriptionStatus(
+  capabilities: Pick<
+    ClaudeCapabilitiesProbe,
+    "subscriptionType" | "tokenSource" | "apiKeySource" | "apiProvider"
+  >,
+  customApiEndpoint: boolean,
+): ServerProviderTranscription {
+  const firstParty =
+    capabilities.apiProvider === undefined || capabilities.apiProvider === "firstParty";
+  const subscriptionLogin =
+    capabilities.subscriptionType !== undefined ||
+    (capabilities.tokenSource !== undefined &&
+      CLAUDE_SUBSCRIPTION_TOKEN_SOURCES.has(capabilities.tokenSource));
+  // Turns follow an API key over a stored login, so that login would be another account.
+  const apiKey = capabilities.apiKeySource !== undefined && capabilities.apiKeySource !== "none";
+  return firstParty && !customApiEndpoint && subscriptionLogin && !apiKey
+    ? { status: "ready" }
+    : { status: "unavailable", reason: "unsupportedLogin" };
 }
 
 // Amazon Bedrock initializes far slower than first-party auth: the SDK boots the Bedrock
@@ -507,9 +534,14 @@ export const probeClaudeWorkspaceSnapshot = Effect.fn("probeClaudeWorkspaceSnaps
 ): Effect.fn.Return<ProviderWorkspaceSnapshot, never, FileSystem.FileSystem | Path.Path> {
   if (!claudeSettings.enabled) return machineSnapshot;
   const skills = yield* discoverClaudeSkills(claudeSettings, cwd, environment);
-  const capabilities = yield* probeClaudeCapabilities(claudeSettings, environment, cwd, false).pipe(
-    Effect.orElseSucceed(() => undefined),
-  );
+  const fileSystem = yield* FileSystem.FileSystem;
+  // A deleted worktree can never answer the probe. Pending would make clients rescan it forever.
+  const cwdExists = yield* fileSystem.exists(cwd).pipe(Effect.orElseSucceed(() => true));
+  const capabilities = cwdExists
+    ? yield* probeClaudeCapabilities(claudeSettings, environment, cwd, false).pipe(
+        Effect.orElseSucceed(() => undefined),
+      )
+    : undefined;
   return {
     ...machineSnapshot,
     skills,
@@ -517,7 +549,7 @@ export const probeClaudeWorkspaceSnapshot = Effect.fn("probeClaudeWorkspaceSnaps
       COMPACT_SLASH_COMMAND,
       ...(capabilities?.slashCommands ?? []),
     ]),
-    slashCommandsPending: !capabilities,
+    slashCommandsPending: cwdExists && !capabilities,
   };
 });
 
@@ -674,7 +706,10 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
   }
 
   // First-party account fields cannot verify custom endpoint credentials.
-  const endpoint = URL.parse(resolvedEnvironment.ANTHROPIC_BASE_URL?.trim() ?? "");
+  const baseUrl =
+    (yield* readClaudeSettingsBaseUrl(claudeSettings, cwd, resolvedEnvironment)) ??
+    resolvedEnvironment.ANTHROPIC_BASE_URL;
+  const endpoint = URL.parse(baseUrl?.trim() ?? "");
   const customApiEndpoint =
     endpoint !== null &&
     (endpoint.protocol === "http:" || endpoint.protocol === "https:") &&
@@ -686,6 +721,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
       enabled: claudeSettings.enabled,
       checkedAt,
       models,
+      updateRequiredModels,
       slashCommands: dedupedSlashCommands,
       skills,
       probe: {
@@ -694,17 +730,19 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
         status: "error",
         auth: { status: "unauthenticated" },
         message: "Claude Code is not authenticated. Run `claude auth login` and try again.",
+        transcription: { status: "unavailable", reason: "signedOut" },
       },
     });
   }
 
+  // A proxy's ANTHROPIC_AUTH_TOKEN reads as an API key; the endpoint is what the token is for.
   const authMetadata =
+    apiProviderAuthMetadata(capabilities.apiProvider) ??
+    (customApiEndpoint ? { type: "customEndpoint", label: "Custom API endpoint" } : undefined) ??
     claudeAuthMetadata({
       subscriptionType: capabilities.subscriptionType,
       authMethod: capabilities.tokenSource,
-    }) ??
-    apiProviderAuthMetadata(capabilities.apiProvider) ??
-    (customApiEndpoint ? { type: "customEndpoint", label: "Custom API endpoint" } : undefined);
+    });
   const usageCheckedAt = capabilities.usageCheckedAt ?? checkedAt;
   const usageLimits = !capabilities.usage
     ? makeUnavailableUsageLimits({ checkedAt, reason: "probeFailed" })
@@ -744,6 +782,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
       },
       ...(versionUpgradeMessage ? { message: versionUpgradeMessage } : {}),
       usageLimits: resetCredits ? { ...usageLimits, resetCredits } : usageLimits,
+      transcription: claudeTranscriptionStatus(capabilities, customApiEndpoint),
     },
   });
 });

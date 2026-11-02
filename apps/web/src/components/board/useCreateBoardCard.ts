@@ -12,11 +12,7 @@ import { useCallback } from "react";
 import { useComposerDraftStore } from "../../composerDraftStore";
 import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { newThreadId } from "../../lib/utils";
-import {
-  applyProviderInstanceSettings,
-  deriveProviderInstanceEntries,
-  sortProviderInstanceEntries,
-} from "../../providerInstances";
+import { providerInstanceEntriesFor } from "../../providerInstances";
 import { EMPTY_SERVER_PROVIDERS, serverEnvironment } from "../../state/server";
 import { threadBank } from "../../state/threadBank";
 import { threadEnvironment } from "../../state/threads";
@@ -54,13 +50,7 @@ export function useCreateBoardCard(project: EnvironmentProject) {
       /** A known id, for a caller that has to record the thread before it exists. */
       threadId?: ThreadId;
     }): Promise<CreateBoardCardResult> => {
-      const entries = sortProviderInstanceEntries(
-        applyProviderInstanceSettings(
-          deriveProviderInstanceEntries(providers),
-          settings,
-          project.id,
-        ),
-      );
+      const entries = providerInstanceEntriesFor(providers, settings, project.id);
       const modelSelection = scheduledTaskDefaultModel(settings, project, entries);
       if (modelSelection === null) return { _tag: "no-model" };
       const runtimeMode =

@@ -3,8 +3,6 @@ import ExpoModulesCore
 import Security
 import UIKit
 
-// Expo Modules 2.0: plain members marked @JS are bound by the macro, while the
-// views and main-queue presenters stay in definition(). Both are merged.
 @ExpoModule("SupatermNativeControls")
 public final class SupatermNativeControlsModule: Module {
   private let presentationSources = SupatermPresentationSources()
@@ -12,6 +10,7 @@ public final class SupatermNativeControlsModule: Module {
   private var filePresentation: SupatermNativeFilePresentation?
 
   public func definition() -> ModuleDefinition {
+    Events("videoPlaybackChange")
     Constants {
       if #available(iOS 26.0, *) {
         return [
@@ -34,15 +33,22 @@ public final class SupatermNativeControlsModule: Module {
 
     View(SupatermSidebarTabBarView.self) {
       ViewName("SidebarTabBar")
-      Events("onSelectionChange")
-      Prop("selectedIndex") { (view: SupatermSidebarTabBarView, value: Int) in view.selectedIndex = value }
+      Events("onSelectionChange", "onCompose")
+      Prop("tabs") { (view: SupatermSidebarTabBarView, value: [String]) in view.tabs = value }
+      Prop("selectedTab") { (view: SupatermSidebarTabBarView, value: String) in view.selectedTab = value }
       Prop("selectedColor") { (view: SupatermSidebarTabBarView, value: UIColor) in view.selectedColor = value }
+      Prop("showsCompose") { (view: SupatermSidebarTabBarView, value: Bool) in view.showsCompose = value }
+      Prop("compact") { (view: SupatermSidebarTabBarView, value: Bool) in view.compact = value }
       Prop("appearance") { (view: SupatermSidebarTabBarView, value: String) in view.appearance = value }
     }
 
     View(SupatermLayoutMetricsView.self) {
       ViewName("LayoutMetrics")
       Events("onMetricsChange")
+    }
+
+    View(SupatermScrollEdgeBleedView.self) {
+      ViewName("ScrollEdgeBleed")
     }
 
     AsyncFunction("presentVideo") { (url: URL, title: String, sourceIdentifier: String, identifier: String, promise: Promise) in
@@ -155,12 +161,8 @@ public final class SupatermNativeControlsModule: Module {
     }
   }
 
-  // The geometry request above can fail transiently (for example before the
-  // scene is foreground-active), so callers poll this until it settles.
-  // Screen bounds — not the scene's interface orientation — decide the
-  // answer because they match the captured framebuffer: with iPadOS
-  // windowing active, a floating landscape window still reports a portrait
-  // screen, and screenshots would come out portrait.
+  // Geometry requests can fail before foreground activation; callers retry until bounds match.
+  // Use screen bounds because iPadOS floating-window orientation can differ from the captured framebuffer.
   @JS
   @MainActor
   func getInterfaceOrientation() async -> String {
@@ -246,10 +248,16 @@ public final class SupatermNativeControlsModule: Module {
         userInfo: [NSLocalizedDescriptionKey: "The video preview is no longer available."]
       )
     }
-    let presentation = SupatermNativeVideoPresentation(identifier: identifier, url: url, title: title) { [weak self] error in
-      self?.videoPresentation = nil
-      if let error { promise.reject(error) } else { promise.resolve(nil) }
-    }
+    let presentation = SupatermNativeVideoPresentation(
+      identifier: identifier, url: url, title: title,
+      onPlaybackChange: { [weak self] isPlaying in
+        self?.sendEvent("videoPlaybackChange", ["identifier": identifier, "isPlaying": isPlaying])
+      },
+      completion: { [weak self] error in
+        self?.videoPresentation = nil
+        if let error { promise.reject(error) } else { promise.resolve(nil) }
+      }
+    )
     videoPresentation = presentation
     presentation.present(from: presenter, sources: presentationSources, sourceIdentifier: sourceIdentifier)
   }

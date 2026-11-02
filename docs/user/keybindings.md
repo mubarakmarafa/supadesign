@@ -5,7 +5,7 @@ also lists the command IDs and defaults available in your version.
 
 ## Composer controls
 
-In **Settings → General → Send shortcut**, choose whether Enter sends, requires
+In **Settings → Chat → Send shortcut**, choose whether Enter sends, requires
 `mod+Enter` for multiline prompts, or always requires `mod+Enter`. `Shift+Enter`
 inserts a new line. This applies to the web and desktop composer at desktop widths.
 
@@ -30,6 +30,10 @@ To step a new thread to the next machine instead of opening the menu, bind
 The workspace menu includes the current checkout, a new worktree, and the previous
 worktree when available. Use `mod+shift+l` to reuse the previous worktree directly.
 
+`ctrl+m` starts [voice input](./composer.md#voice-input) in the focused composer.
+Press it again to stop and review the transcript, or `Escape` to discard the recording.
+Hold it to record only until you let go.
+
 To change effort one step without opening the picker, bind
 **Composer: Increase Effort** and **Composer: Decrease Effort** in Keybindings.
 Both are unbound by default. Increase wraps from the highest level to the
@@ -47,10 +51,12 @@ in Settings.
 
 ## Copy pull request references
 
-With a PR open in the right panel or on the Pull Requests page, use `mod+shift+c`
+With a PR open in the right panel or on the Pull requests page, use `mod+shift+c`
 to copy its URL and `mod+shift+k` to copy its number with a `#` prefix.
-Both shortcuts can be changed in Settings. Search for “Copy Link or Thread ID”
+Both shortcuts can be changed in Settings. Search for “Copy Link or Thread”
 or “Copy Number”. They copy the selected PR and leave terminal input alone.
+Without a PR, `mod+shift+c` copies the thread itself, which pastes into a
+composer as a thread chip.
 
 ## Find in a diff
 
@@ -111,10 +117,11 @@ Join modifiers and a key with `+`, such as `mod+shift+d` or `ctrl+l`.
 
 Available context keys are `terminalFocus`, `terminalOpen`, `previewFocus`,
 `previewOpen`, `modelPickerOpen`, `projectPickerOpen`, `hostPickerOpen`,
-`branchPickerOpen`, `usagePageOpen`, `composerFocus`, `composerDraft`,
+`branchPickerOpen`, `usagePageOpen`, `composerFocus`, `draftThreadRoute`,
 `turnRunning`, `editableFocus`, `textSelected`, `paneClosable`, `isWeb`, and `isDesktop`.
 `paneClosable` is true while [threads are side by side](./thread-sidebar.md#open-threads-side-by-side)
 and the focused pane has no right panel open.
+`draftThreadRoute` is true on a draft thread, including a restored draft, until it is first sent.
 `editableFocus` is true while a text field, the composer, or another editor has
 the keyboard. `textSelected` is true while text is selected in the page or a focused
 text field. `isWeb` is true in a browser tab. `isDesktop` is true in the
@@ -157,6 +164,9 @@ a shortcut.
 including on macOS. The default shortcut skips terminals, previews, and selected
 text so copying keeps working. Change it in **Settings → Keybindings**.
 
+`thread.sideChat` opens an empty side chat beside the focused thread. It has no
+default shortcut; assign one in **Settings → Keybindings**.
+
 `thread.undo` (`mod+z` by default) reverses the actions shown in the notice at the
 bottom of the sidebar, such as unpin, mark as Done, snooze, archive, or discarding a
 draft. Consecutive
@@ -167,6 +177,8 @@ field gets its own undo back. Terminals always keep their native shortcut.
 
 `navigation.back` (`mod+[` by default) and `navigation.forward` (`mod+]`) move
 through the pages you have visited, like a browser's back and forward buttons.
+In the desktop app, the arrows beside the app name and a two-finger horizontal
+swipe on a trackpad do the same.
 
 `thread.approve` and `thread.decline` answer the first pending approval in the focused thread.
 `composer.submit` sends the draft as the send button would, and `composer.toggleFastMode` turns
@@ -190,7 +202,7 @@ with `mod+w` once its right panel is closed. `pane.splitRight` and
 
 In the desktop app, `mod+w` closes the focused terminal or the active right-panel
 tab, then the focused pane when threads are side by side. When nothing remains to
-close, it closes the window. In a browser, `mod+w`
+close, it does nothing; it never closes the window. In a browser, `mod+w`
 closes the browser tab; rebind `rightPanel.close` and `terminal.close` to an available
 shortcut such as `alt+w`.
 

@@ -19,7 +19,7 @@ import {
   squashAtomCommandFailure,
   type AtomCommandResult,
 } from "@supaterm/client-runtime/state/runtime";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useFocusEffect, useNavigation, usePreventRemove } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppState, Platform, Pressable, TextInput as RNTextInput, View } from "react-native";
@@ -57,13 +57,18 @@ import { SettingsSection } from "./components/SettingsSection";
 import { useSettingsEnvironmentFilter, type SettingsTarget } from "./settings-environment-filter";
 import {
   editDraft,
+  parseIntervalMinutes,
   scheduledTaskDefaultModel,
   scheduleFromDraft,
   type ScheduledTaskDraft as Draft,
 } from "./scheduledTaskDraft";
 import { settingsTargetsForProject } from "./settings-environment-filter.logic";
 import { useScheduledTaskEditor } from "./scheduled-task-editor";
-import { scheduledTaskEditorSessionAtom } from "./scheduled-task-editor-state";
+import {
+  discardScheduledTaskEditor,
+  markScheduledTaskEditorSaved,
+  scheduledTaskEditorSessionAtom,
+} from "./scheduled-task-editor-state";
 import { appAtomRegistry } from "../../state/atom-registry";
 import {
   formatNextScheduledTaskRun,
@@ -88,6 +93,10 @@ const DAYS = [
 ] as const;
 
 function describeSchedule(task: ScheduledTask): string {
+  if (task.schedule.type === "once") {
+    const runAt = new Date(task.schedule.runAt);
+    return `Once, ${formatRunAtDate(runAt)} at ${formatRunAtTime(runAt)}`;
+  }
   if (task.schedule.type === "interval") return formatScheduledTaskInterval(task.schedule.everyMs);
   const days = task.schedule.weekdays?.length ? repeatLabel(task.schedule.weekdays) : "Every day";
   return `${days} at ${formatTime(task.schedule.timeOfDay)}`;
@@ -99,6 +108,14 @@ function formatTime(value: string): string {
   const time = new Date();
   time.setHours(hours ?? 9, minutes ?? 0, 0, 0);
   return time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatRunAtDate(value: Date): string {
+  return value.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatRunAtTime(value: Date): string {
+  return value.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 function timePickerValue(value: string): Date {
@@ -164,7 +181,11 @@ function SelectRow(props: {
   const value = (
     <View className="min-w-0 flex-1 flex-row items-center justify-end gap-2">
       {props.valueIcon}
-      <Text className="shrink text-right text-base text-foreground-muted" numberOfLines={1}>
+      <Text
+        textRole="footnote"
+        className="shrink text-right text-foreground-muted"
+        numberOfLines={1}
+      >
         {props.value}
       </Text>
     </View>
@@ -178,7 +199,9 @@ function SelectRow(props: {
             : "min-h-14 flex-row items-center gap-3 px-4 py-3"
         }
       >
-        <Text className="text-lg text-foreground">{props.label}</Text>
+        <Text textRole="body" className="text-foreground">
+          {props.label}
+        </Text>
         {value}
       </View>
     );
@@ -197,7 +220,9 @@ function SelectRow(props: {
             : "min-h-14 flex-row items-center gap-3 px-4 py-3 active:opacity-70"
         }
       >
-        <Text className="text-lg text-foreground">{props.label}</Text>
+        <Text textRole="body" className="text-foreground">
+          {props.label}
+        </Text>
         {value}
         <SymbolView
           name="chevron.down"
@@ -230,8 +255,14 @@ function PickerRow(props: {
           : "min-h-14 flex-row items-center gap-3 px-4 py-3 active:opacity-70 disabled:opacity-50"
       }
     >
-      <Text className="text-lg text-foreground">{props.label}</Text>
-      <Text className="min-w-0 flex-1 text-right text-base text-foreground-muted" numberOfLines={1}>
+      <Text textRole="body" className="text-foreground">
+        {props.label}
+      </Text>
+      <Text
+        textRole="footnote"
+        className="min-w-0 flex-1 text-right text-foreground-muted"
+        numberOfLines={1}
+      >
         {props.value}
       </Text>
       <SymbolView
@@ -289,7 +320,7 @@ export function SettingsScheduledTasksRouteScreen() {
         ]}
       />
       <SettingsScreen
-        title="Scheduled Tasks"
+        title="Scheduled tasks"
         trailing={
           <View className="flex-row items-center">
             <AndroidSettingsEnvironmentFilter />
@@ -353,15 +384,9 @@ export function SettingsScheduledTasksRouteScreen() {
   );
 }
 
+// The "New task" action and takeScheduledTaskNewLink clear the editor before
+// this screen opens, so it starts from the default target.
 export function SettingsScheduledTaskNewRouteScreen() {
-  const { resetEditor } = useScheduledTaskEditor();
-  const { availableTargets } = useSettingsEnvironmentFilter();
-  const initialized = useRef(false);
-  useLayoutEffect(() => {
-    if (initialized.current || availableTargets.length === 0) return;
-    initialized.current = true;
-    resetEditor();
-  }, [availableTargets.length, resetEditor]);
   return <SettingsScheduledTaskEditorScreen title="New scheduled task" />;
 }
 
@@ -370,20 +395,14 @@ export function SettingsScheduledTaskEditRouteScreen() {
 }
 
 function SettingsScheduledTaskEditorScreen({ title }: { readonly title: string }) {
-  const {
-    editor,
-    voiceOwnerKey,
-    readEditor,
-    setEditor,
-    startEditor,
-    hasChanges,
-    draftForEnvironment,
-  } = useScheduledTaskEditor();
+  const { editor, voiceOwnerKey, readEditor, setEditor, hasChanges, draftForEnvironment } =
+    useScheduledTaskEditor();
   const { availableTargets } = useSettingsEnvironmentFilter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  // Set once the save lands, so the removal guard lets the editor close.
+  const saved = useRef(false);
   const ownerKey = editor ? `${voiceOwnerKey}:${editor.environmentId}` : null;
   const prompt = editor?.draft.prompt ?? "";
   const [selectionState, setSelectionState] = useState<{
@@ -421,9 +440,15 @@ function SettingsScheduledTaskEditorScreen({ title }: { readonly title: string }
       if (readEditor()?.environmentId === editor?.environmentId) setPrompt(text);
     },
     disabled: saving,
+    environmentId: editor?.environmentId ?? null,
+    ...(editor?.draft.projectId ? { context: { projectId: editor.draft.projectId } } : {}),
   });
-  const preventRemove = !saved && (hasChanges || saving);
+  const preventRemove = hasChanges || saving;
   usePreventRemove(preventRemove, ({ data }) => {
+    if (saved.current) {
+      navigation.dispatch(data.action);
+      return;
+    }
     if (saving) {
       Dialog.alert("Saving task", "Wait for the task to finish saving before leaving.");
       return;
@@ -435,19 +460,12 @@ function SettingsScheduledTaskEditorScreen({ title }: { readonly title: string }
         style: "destructive",
         onPress: () => {
           if (voiceInput.isBusy) voiceInput.cancel();
-          startEditor(null);
+          discardScheduledTaskEditor();
           navigation.dispatch(data.action);
         },
       },
     ]);
   });
-  useEffect(() => {
-    if (!saved) return;
-    const frame = requestAnimationFrame(() => {
-      if (navigation.isFocused()) navigation.goBack();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [navigation, saved]);
   return (
     <SettingsScreen title={title}>
       {Platform.OS === "ios" ? (
@@ -504,7 +522,11 @@ function SettingsScheduledTaskEditorScreen({ title }: { readonly title: string }
             setDraft={(draft) => {
               if (!saving) setEditor({ ...editor, draft });
             }}
-            onSaved={() => setSaved(true)}
+            onSaved={() => {
+              saved.current = true;
+              markScheduledTaskEditorSaved();
+              if (navigation.isFocused()) navigation.goBack();
+            }}
             onChangeEnvironment={(target) => {
               if (target.environmentId === editor.environmentId) return;
               setEditor({
@@ -561,7 +583,16 @@ function TaskForm({
   const tasks = useEnvironmentQuery(
     serverEnvironment.scheduledTasksLive({ environmentId, input: {} }),
   );
-  const projects = useProjects().filter((project) => project.environmentId === environmentId);
+  // Pinned first. The chosen project stays listed after it is archived.
+  const projects = useProjects()
+    .filter(
+      (project) =>
+        project.environmentId === environmentId &&
+        (project.archivedAt == null ||
+          project.id === draft.projectId ||
+          project.id === draft.task?.projectId),
+    )
+    .sort((left, right) => Number(right.pinnedAt != null) - Number(left.pinnedAt != null));
   const config = useEnvironmentServerConfig(environmentId);
   const modelOptions = buildModelOptions(config, null, undefined, draft.projectId);
   const canOperate = useAtomValue(
@@ -573,6 +604,7 @@ function TaskForm({
   });
   const submissionPending = useRef(false);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [runAtPicker, setRunAtPicker] = useState<"date" | "time" | null>(null);
   const taskMissing =
     draft.task !== null &&
     tasks.data !== null &&
@@ -587,6 +619,9 @@ function TaskForm({
     }
   };
 
+  const offersOnce =
+    config?.environment.capabilities.oneTimeSchedules === true ||
+    draft.task?.schedule.type === "once";
   const save = async () => {
     if (
       !readEnvironmentScope(environmentId, AuthOrchestrationOperateScope) ||
@@ -614,6 +649,13 @@ function TaskForm({
     }
     if (!projects.some((project) => project.id === draft.projectId)) {
       Dialog.alert("Project unavailable", "Choose a project in this environment.");
+      return;
+    }
+    if (draft.schedule.mode === "once" && !offersOnce) {
+      Dialog.alert(
+        "Once is not available here",
+        "This environment runs an older Supaterm. Update it to schedule a one-time task, or pick another schedule.",
+      );
       return;
     }
     const input: ScheduledTaskUpsertInput = {
@@ -819,14 +861,30 @@ function TaskForm({
         <SettingsSection title="Schedule">
           <View className="px-4 py-3">
             <SegmentedControl
+              variant="card"
               options={[
                 { value: "fixed_time", label: "At a time" },
+                // Older servers reject one-time schedules on save.
+                ...(offersOnce || draft.schedule.mode === "once"
+                  ? [{ value: "once" as const, label: "Once" }]
+                  : []),
                 { value: "interval", label: "Every interval" },
               ]}
               selected={draft.schedule.mode}
               onSelect={(mode) => {
                 setTimePickerOpen(false);
-                setDraft({ ...draft, schedule: { ...draft.schedule, mode } });
+                setRunAtPicker(null);
+                setDraft({
+                  ...draft,
+                  schedule: {
+                    ...draft.schedule,
+                    mode,
+                    runAt:
+                      mode === "once" && !draft.schedule.runAt
+                        ? new Date(Math.ceil(Date.now() / 3_600_000) * 3_600_000).toISOString()
+                        : draft.schedule.runAt,
+                  },
+                });
               }}
             />
           </View>
@@ -838,8 +896,13 @@ function TaskForm({
                 onPress={() => setTimePickerOpen((open) => !open)}
                 className="min-h-14 flex-row items-center gap-3 border-t border-border-subtle px-4 py-3 active:opacity-70"
               >
-                <Text className="text-lg text-foreground">Time</Text>
-                <Text className="min-w-0 flex-1 text-right text-base text-foreground-muted">
+                <Text textRole="body" className="text-foreground">
+                  Time
+                </Text>
+                <Text
+                  textRole="footnote"
+                  className="min-w-0 flex-1 text-right text-foreground-muted"
+                >
                   {formatTime(draft.schedule.timeOfDay)}
                 </Text>
                 <SymbolView
@@ -902,6 +965,50 @@ function TaskForm({
                 }}
               />
             </>
+          ) : draft.schedule.mode === "once" ? (
+            (["date", "time"] as const).map((field) => {
+              const runAt = new Date(draft.schedule.runAt);
+              const label = field === "date" ? formatRunAtDate(runAt) : formatRunAtTime(runAt);
+              return (
+                <View key={field}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${field === "date" ? "Date" : "Time"}, ${label}`}
+                    onPress={() => setRunAtPicker((open) => (open === field ? null : field))}
+                    className="min-h-14 flex-row items-center gap-3 border-t border-border-subtle px-4 py-3 active:opacity-70"
+                  >
+                    <Text className="text-lg text-foreground">
+                      {field === "date" ? "Date" : "Time"}
+                    </Text>
+                    <Text className="min-w-0 flex-1 text-right text-base text-foreground-muted">
+                      {label}
+                    </Text>
+                    <SymbolView
+                      name="chevron.right"
+                      size={14}
+                      tintColorClassName="accent-chevron"
+                      type="monochrome"
+                    />
+                  </Pressable>
+                  {runAtPicker === field ? (
+                    <DateTimePicker
+                      value={runAt}
+                      mode={field}
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
+                      onDismiss={() => setRunAtPicker(null)}
+                      onValueChange={(_, selected) => {
+                        // Android shows a dialog that closes on pick; iOS stays inline.
+                        if (Platform.OS === "android") setRunAtPicker(null);
+                        setDraft({
+                          ...draft,
+                          schedule: { ...draft.schedule, runAt: selected.toISOString() },
+                        });
+                      }}
+                    />
+                  ) : null}
+                </View>
+              );
+            })
           ) : (
             <>
               <FormField
@@ -914,7 +1021,7 @@ function TaskForm({
                   setDraft({ ...draft, schedule: { ...draft.schedule, intervalMinutes } })
                 }
               />
-              {Number(draft.schedule.intervalMinutes) < 1 ? (
+              {!(parseIntervalMinutes(draft.schedule.intervalMinutes) >= 1) ? (
                 <Text className="px-4 pb-3 text-sm text-danger-foreground">
                   Intervals must be at least 1 minute. Update this interval before saving.
                 </Text>
@@ -928,7 +1035,9 @@ function TaskForm({
             </>
           )}
           <View className="min-h-14 flex-row items-center gap-3 border-t border-border-subtle px-4 py-3">
-            <Text className="min-w-0 flex-1 text-lg text-foreground">Enabled</Text>
+            <Text textRole="body" className="min-w-0 flex-1 text-foreground">
+              Enabled
+            </Text>
             <ThemedSwitch
               accessibilityLabel="Task enabled"
               value={draft.enabled}
@@ -1029,8 +1138,8 @@ function EnvironmentTasks({
                 key={task.id}
                 className={
                   index === 0
-                    ? "flex-row items-start gap-1 px-4 py-4"
-                    : "flex-row items-start gap-1 border-t border-border-subtle px-4 py-4"
+                    ? "flex-row items-start gap-1 px-4 py-3"
+                    : "flex-row items-start gap-1 border-t border-border-subtle px-4 py-3"
                 }
                 entering={FadeIn.duration(140)}
                 exiting={FadeOut.duration(120)}
@@ -1044,7 +1153,7 @@ function EnvironmentTasks({
                   }}
                   className="min-w-0 flex-1 gap-1 active:opacity-70"
                 >
-                  <Text className="text-lg font-supaterm-medium text-foreground" numberOfLines={1}>
+                  <Text textRole="body" className="text-foreground" numberOfLines={1}>
                     {task.title}
                   </Text>
                   <Text className="text-sm text-foreground-muted" numberOfLines={2}>

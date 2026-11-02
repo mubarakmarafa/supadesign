@@ -7,7 +7,7 @@ import {
   remainingPercent,
 } from "@supaterm/shared/usageLimits";
 import { Link } from "@tanstack/react-router";
-import { GaugeIcon } from "lucide-react";
+import { GaugeIcon } from "@supaterm/icons";
 import { useMemo } from "react";
 
 import { serverEnvironment } from "../../../state/server";
@@ -152,7 +152,7 @@ function UsageTotal({
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-lg font-medium tabular-nums">{costKnown ? formatUsd(costUsd) : "—"}</dd>
+      <dd className="text-lg font-medium tabular-nums">{costKnown ? formatUsd(costUsd) : "-"}</dd>
       <dd className="text-xs text-muted-foreground tabular-nums">{formatTokens(tokens)} tokens</dd>
     </div>
   );

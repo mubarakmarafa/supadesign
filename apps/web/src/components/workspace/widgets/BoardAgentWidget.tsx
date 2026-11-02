@@ -1,7 +1,7 @@
 import { scopedThreadKey, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import type { ProjectWorkspaceWidget } from "@supaterm/contracts";
-import { BotIcon, Maximize2Icon } from "lucide-react";
+import { BotIcon, ExpandIcon } from "@supaterm/icons";
 import { useMemo, useState } from "react";
 
 import { newThreadId } from "../../../lib/utils";
@@ -77,7 +77,7 @@ export function BoardAgentWidget({
             aria-label="Open full page"
             onClick={() => openThread(threadRef, project.id)}
           >
-            <Maximize2Icon />
+            <ExpandIcon />
           </Button>
         ) : null
       }

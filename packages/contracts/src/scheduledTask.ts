@@ -20,48 +20,64 @@ import { ProviderInteractionMode, RuntimeMode } from "./providerPolicy.ts";
 /** 24-hour "HH:MM" wall-clock time. Mirrors `parseTimeOfDay` on the server. */
 const TimeOfDay = TrimmedNonEmptyString.check(
   Schema.isPattern(/^([01]?\d|2[0-3]):([0-5]\d)$/),
-).annotate({ description: "Local wall-clock time in 24-hour HH:MM form, such as 09:30." });
+).annotate({ description: "Local time as HH:MM, such as 09:30." });
 
 export const MIN_SCHEDULED_TASK_INTERVAL_MS = 60_000;
 
 const ScheduledTaskIntervalSchedule = Schema.Struct({
-  type: Schema.Literal("interval").annotate({
-    description: "Select interval scheduling.",
-  }),
+  type: Schema.Literal("interval"),
   everyMs: Schema.Int.check(Schema.isGreaterThanOrEqualTo(MIN_SCHEDULED_TASK_INTERVAL_MS)).annotate(
-    {
-      description: "Interval in milliseconds, with a minimum of 60000 (one minute).",
-    },
+    { description: "Min 60000." },
   ),
-}).annotate({
-  description: "Run repeatedly after a fixed number of milliseconds.",
 });
 
 const ScheduledTaskFixedTimeSchedule = Schema.Struct({
-  type: Schema.Literal("fixed_time").annotate({
-    description: "Select a fixed local wall-clock time.",
-  }),
+  type: Schema.Literal("fixed_time"),
   timeOfDay: TimeOfDay,
   weekdays: Schema.optional(
     Schema.Array(
       Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 6 })).annotate({
-        description: "Weekday number where 0 is Sunday and 6 is Saturday.",
+        description: "Weekday. 0 is Sunday, 6 is Saturday.",
       }),
     ).annotate({
-      description: "Optional weekdays; omit to run every day.",
+      description: "Default: every day.",
     }),
   ),
-}).annotate({
-  description: "Run at a fixed local wall-clock time on selected weekdays.",
+});
+
+const ISO_WITH_OFFSET =
+  /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
+const YEAR_0000 = Date.parse("0000-01-01T00:00:00Z");
+const YEAR_10000 = Date.parse("+010000-01-01T00:00:00Z");
+
+/** Date.parse rolls impossible days like Feb 30 into the next month, so check the day too. */
+function isIsoWithOffset(value: string): boolean {
+  const match = ISO_WITH_OFFSET.exec(value);
+  // The server stores UTC, which must stay a four-digit year to decode again.
+  const time = Date.parse(value);
+  if (!match || !(time >= YEAR_0000 && time < YEAR_10000)) return false;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  return days !== undefined && day >= 1 && day <= days;
+}
+
+// Checked by filter, not pattern, to keep the MCP tool schema small.
+const ScheduledTaskOnceSchedule = Schema.Struct({
+  type: Schema.Literal("once"),
+  runAt: TrimmedNonEmptyString.check(
+    Schema.makeFilter(
+      (value) => isIsoWithOffset(value) || "Expected an ISO date and time with an offset.",
+    ),
+  ),
 });
 
 export const ScheduledTaskSchedule = Schema.Union([
   ScheduledTaskIntervalSchedule,
   ScheduledTaskFixedTimeSchedule,
-]).annotate({
-  description:
-    "Structured recurring schedule. Pass an object with type 'interval' or 'fixed_time'.",
-});
+  ScheduledTaskOnceSchedule,
+]);
 export type ScheduledTaskSchedule = typeof ScheduledTaskSchedule.Type;
 
 export const ScheduledTaskRunStatus = Schema.Literals(["never", "running", "succeeded", "failed"]);

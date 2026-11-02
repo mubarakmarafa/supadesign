@@ -1,5 +1,5 @@
 import { isFigmaUrl, type ProjectWorkspaceWidget } from "@supaterm/contracts";
-import { ExternalLinkIcon, PenToolIcon } from "lucide-react";
+import { ExternalLinkIcon, PenToolIcon } from "@supaterm/icons";
 import { type FormEvent, useState } from "react";
 
 import { Button } from "../../ui/button";

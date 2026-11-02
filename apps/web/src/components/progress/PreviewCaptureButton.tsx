@@ -4,7 +4,7 @@ import {
   type ThreadProgressScreen,
   type ThreadProgressUpdateId,
 } from "@supaterm/contracts";
-import { CameraIcon } from "lucide-react";
+import { CameraIcon } from "@supaterm/icons";
 import { useState } from "react";
 
 import { useThreadShell } from "../../state/entities";

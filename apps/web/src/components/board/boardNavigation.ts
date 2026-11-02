@@ -12,7 +12,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
-import { firstOrderedProjectRef } from "../../hooks/useHandleNewThread";
+import { resolveDefaultProjectRef } from "../../hooks/useHandleNewThread";
 import { useScratchProject } from "../../hooks/useScratchProject";
 import { readProject, readProjects, readThreadShell } from "../../state/entities";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
@@ -90,7 +90,7 @@ export function useOpenProjectBoard() {
       const ref =
         contextRef !== null && readProjectBoardSupported(contextRef.environmentId)
           ? contextRef
-          : firstOrderedProjectRef(
+          : resolveDefaultProjectRef(
               readProjects().filter((project) => readProjectBoardSupported(project.environmentId)),
               useUiStateStore.getState().projectOrder,
             );

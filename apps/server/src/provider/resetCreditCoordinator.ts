@@ -1,8 +1,4 @@
-/**
- * Redeeming a reset credit is an account-level action: instances that share the
- * directory holding a provider's login share the credit, so their redemptions
- * must serialise on that directory, not the instance.
- */
+/** Instances sharing a login directory share credits; serialize redemptions on that directory. */
 import type { ProviderConsumeResetCreditOutcome } from "@supaterm/contracts";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
@@ -20,28 +16,29 @@ interface AccountRedemptionState {
 export class ResetCreditCoordinator extends Context.Service<
   ResetCreditCoordinator,
   {
-    /**
-     * The key is cleared when the provider reports an outcome, or when
-     * `isSettled` says a failure was a final answer (such as a cooldown). Any
-     * other failure (timeout included) keeps it so the next attempt is the same
-     * attempt.
-     */
+    /** Reuse the idempotency key until an outcome or settled failure; timeouts keep it for retry. */
     readonly redeem: <E, R>(
       accountKey: string,
       consume: (idempotencyKey: string) => Effect.Effect<ProviderConsumeResetCreditOutcome, E, R>,
       isSettled?: (error: E) => boolean,
     ) => Effect.Effect<ProviderConsumeResetCreditOutcome, E | PlatformError.PlatformError, R>;
+    /**
+     * Runs `effect` alone on the account, for other changes to the same login
+     * such as a token refresh, which rotates the refresh token.
+     */
+    readonly withAccountLock: <A, E, R>(
+      accountKey: string,
+      effect: Effect.Effect<A, E, R>,
+    ) => Effect.Effect<A, E, R>;
   }
 >()("supaterm/provider/resetCreditCoordinator") {}
 
 /** @public */
-/** @public Service construction is part of the canonical Effect module API. */
 export const make = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto;
   const statesRef = yield* Ref.make<ReadonlyMap<string, AccountRedemptionState>>(new Map());
 
-  // Get-or-create through one Ref.modify so two first redemptions for the
-  // same account cannot each install their own lock.
+  // Create account locks atomically so concurrent first redemptions cannot use separate locks.
   const stateFor = Effect.fn("ResetCreditCoordinator.stateFor")(function* (accountKey: string) {
     const existing = (yield* Ref.get(statesRef)).get(accountKey);
     if (existing) return existing;
@@ -78,7 +75,12 @@ export const make = Effect.gen(function* () {
     );
   });
 
-  return { redeem } satisfies ResetCreditCoordinator["Service"];
+  const withAccountLock: ResetCreditCoordinator["Service"]["withAccountLock"] = (
+    accountKey,
+    effect,
+  ) => Effect.flatMap(stateFor(accountKey), (state) => state.lock.withPermits(1)(effect));
+
+  return { redeem, withAccountLock } satisfies ResetCreditCoordinator["Service"];
 });
 
 export const layer = Layer.effect(ResetCreditCoordinator, make);

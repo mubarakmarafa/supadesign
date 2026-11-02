@@ -8,6 +8,21 @@ export interface VoiceRecordingInput {
   readonly type: string;
 }
 
+/** The subset of expo-audio's recording events that both recorders report. */
+export interface VoiceRecordingStatusEvent {
+  readonly isFinished: boolean;
+  readonly hasError: boolean;
+  readonly error: string | null;
+  readonly url: string | null;
+  readonly mediaServicesDidReset?: boolean;
+}
+
+export interface VoiceRecordingState {
+  readonly isRecording: boolean;
+  readonly durationMillis: number;
+  readonly metering?: number;
+}
+
 export interface NativeVoiceRecorder<TStatus, TRecorderState> {
   readonly uri: string | null;
   prepareToRecordAsync(): Promise<void>;
@@ -28,10 +43,7 @@ export interface LazyVoiceRecorder<TRecorderState> extends VoiceRecorder {
   release(): void;
 }
 
-/**
- * Construction blocks the JS thread for tens of milliseconds on a cold
- * composer, and most composer mounts never record.
- */
+/** Construct lazily: cold startup blocks JS for tens of milliseconds and most composers never record. */
 export function createLazyVoiceRecorder<TStatus, TRecorderState>(input: {
   readonly create: () => NativeVoiceRecorder<TStatus, TRecorderState>;
   readonly onStatus: (status: TStatus) => void;

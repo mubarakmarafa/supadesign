@@ -18,11 +18,15 @@ import { buildMessageContext, reviewCommentContextReference } from "~/lib/compos
 
 import {
   buildAddSelectionToAgentHandoff,
+  buildExplainPullRequestHandoff,
+  buildResolveConflictsPrompt,
   resolveThreadPanelPullRequestAction,
+  resolvePullRequestMenuActions,
   buildPullRequestReferenceContext,
   buildFixFindingHandoff,
   canDeletePullRequestBranch,
   buildFixFindingsHandoff,
+  buildSubagentFixChecksPrompt,
   groupPullRequestTimelineConversations,
   filterPullRequestConversationItems,
   pagePullRequestConversationItems,
@@ -51,6 +55,7 @@ import {
   resolveBaseFreshness,
   buildPullRequestTimeline,
   writePullRequestDetailSnapshot,
+  readableFailure,
 } from "./pullRequestDetail.logic";
 import type { ReviewCommentContext } from "~/reviewCommentContext";
 
@@ -82,7 +87,7 @@ describe("pull request checkout commands", () => {
       remoteName: "origin",
       remoteUrl: "git@github.com:acme/web.git",
     },
-    provider,
+    provider: SourceControlProviderKind.make(provider),
   });
 
   it("uses a matching enterprise identity and rejects an explicit host mismatch", () => {
@@ -106,8 +111,9 @@ describe("pull request checkout commands", () => {
 
 const TIMELINE_SOURCE: Pick<
   PullRequestDetailView,
-  "createdAt" | "author" | "commits" | "comments" | "mergedAt" | "closedAt"
+  "provider" | "createdAt" | "author" | "commits" | "comments" | "mergedAt" | "closedAt"
 > = {
+  provider: SourceControlProviderKind.make("github"),
   createdAt: "2026-07-01T00:00:00Z",
   author: { login: "octocat", name: null, avatarUrl: null },
   commits: [
@@ -347,6 +353,19 @@ describe("pull request timeline", () => {
     expect(events.some((event) => event.id === "closed")).toBe(false);
   });
 
+  it("names the change request in its host's own term", () => {
+    const titles = (provider: string) =>
+      buildPullRequestTimeline({
+        ...TIMELINE_SOURCE,
+        provider: SourceControlProviderKind.make(provider),
+        closedAt: "2026-07-04T00:00:00Z",
+      })
+        .filter((event) => event.kind === "opened" || event.kind === "closed")
+        .map((event) => event.title);
+    expect(titles("github")).toEqual(["Pull request closed", "opened this pull request"]);
+    expect(titles("gitlab")).toEqual(["Merge request closed", "opened this merge request"]);
+  });
+
   it("groups conversation sections without crossing commits or PR updates", () => {
     const events = buildPullRequestTimeline({
       ...TIMELINE_SOURCE,
@@ -549,6 +568,28 @@ describe("review thread conversations", () => {
     );
   });
 
+  it("keeps bot review verdicts when bot comments are hidden", () => {
+    const review = (id: string, reviewState: string) => ({
+      ...comment(id, 9),
+      author: bot,
+      kind: "review" as const,
+      reviewState,
+    });
+    const items = pullRequestConversationItems(
+      [
+        review("approved", "APPROVED"),
+        review("changes", "CHANGES_REQUESTED"),
+        review("commented", "COMMENTED"),
+      ],
+      [],
+    );
+    expect(
+      filterPullRequestConversationItems(items, { bots: false, resolved: false }).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["approved", "changes"]);
+  });
+
   it("distinguishes unloaded replies from complete threads, even when the host only supplies a cursor", () => {
     const timeline = (reviewThread: PullRequestReviewThread) =>
       buildPullRequestTimeline({
@@ -655,6 +696,44 @@ describe("fix findings handoff", () => {
     expect(texts).not.toContain("reviewer: finding 0");
     expect(handoff.prompt).toContain("typecheck");
     expect(handoff.prompt).toContain("6 further findings were omitted");
+  });
+
+  it("names a GitLab merge request as one", () => {
+    const handoff = buildFixFindingsHandoff({
+      ...base,
+      title: "Add the page",
+      url: "https://gitlab.com/supabitapp/supaterm/-/merge_requests/42",
+      reviewThreads: [],
+      checks: [],
+    });
+    expect(handoff.prompt).toContain("Fix the actionable findings on MR #42");
+    expect(handoff.prompt).toContain("The MR branch is `feat/page`");
+    expect(handoff.prompt).toContain("inspect the merge request and its failing checks");
+    expect(handoff.prompt).not.toMatch(/\bPR\b|pull request/u);
+  });
+});
+
+describe("subagent fix for failing checks", () => {
+  it("lists only failing checks, each linked to its run when the host gave one", () => {
+    expect(
+      buildSubagentFixChecksPrompt({
+        url: "https://github.com/owner/repo/pull/7",
+        checks: [
+          { name: "Lint [web]", status: "failure", description: null, url: "https://ci/lint" },
+          { name: "Check", status: "cancelled", description: null, url: null },
+          { name: "Test", status: "success", description: null, url: "https://ci/test" },
+          { name: "Build", status: "pending", description: null, url: null },
+        ],
+      }),
+    ).toBe(
+      [
+        "Spawn a subagent to fix the CI failures on https://github.com/owner/repo/pull/7",
+        "",
+        "Failing checks:",
+        "> [Lint \\[web\\]](https://ci/lint)",
+        "> Check",
+      ].join("\n"),
+    );
   });
 });
 
@@ -831,6 +910,23 @@ describe("asking about a change rather than working on it", () => {
     ]);
     expect(handoff.reviewComments[0]?.text).not.toContain("Do not change any code");
     expect(handoff.reviewComments[1]?.text).toBe("");
+  });
+
+  it("explains a GitLab merge request in its own term", () => {
+    const handoff = buildExplainPullRequestHandoff({
+      ...base,
+      title: "Add the page",
+      url: "https://gitlab.com/supabitapp/supaterm/-/merge_requests/42",
+    });
+    expect(handoff.prompt).toBe("Explain this merge request.");
+    expect(handoff.reviewComments[0]?.text).toContain("The merge request is #42");
+    expect(handoff.reviewComments[0]?.text).not.toContain("pull request");
+    expect(
+      buildResolveConflictsPrompt({
+        ...base,
+        url: "https://gitlab.com/supabitapp/supaterm/-/merge_requests/42",
+      }),
+    ).toMatch(/^MR #42 /u);
   });
 });
 
@@ -1132,39 +1228,27 @@ describe("the compact row's single action slot", () => {
       checks: [check("success")],
       ...overrides,
     }) as NonNullable<Parameters<typeof resolveThreadPanelPullRequestAction>[0]>;
+  const rowAction = (detail: Parameters<typeof resolveThreadPanelPullRequestAction>[0]) =>
+    resolveThreadPanelPullRequestAction(detail, true);
 
   it("holds the slot while checks run rather than offering a merge that races them", () => {
-    expect(
-      resolveThreadPanelPullRequestAction(
-        openDetail({ checks: [check("success"), check("pending")] }),
-      ),
-    ).toBeNull();
-    expect(
-      resolveThreadPanelPullRequestAction(openDetail({ checks: [check("action-required")] })),
-    ).toBeNull();
+    expect(rowAction(openDetail({ checks: [check("success"), check("pending")] }))).toBeNull();
+    expect(rowAction(openDetail({ checks: [check("action-required")] }))).toBeNull();
   });
 
   it("ranks conflicts above everything, then draft, then failing checks", () => {
     expect(
-      resolveThreadPanelPullRequestAction(
+      rowAction(
         openDetail({ mergeability: "conflicting", isDraft: true, checks: [check("failure")] }),
       ),
     ).toBe("resolve");
-    expect(
-      resolveThreadPanelPullRequestAction(
-        openDetail({ isDraft: true, checks: [check("failure")] }),
-      ),
-    ).toBe("ready");
-    expect(
-      resolveThreadPanelPullRequestAction(
-        openDetail({ checks: [check("failure"), check("pending")] }),
-      ),
-    ).toBe("fix");
+    expect(rowAction(openDetail({ isDraft: true, checks: [check("failure")] }))).toBe("ready");
+    expect(rowAction(openDetail({ checks: [check("failure"), check("pending")] }))).toBe("fix");
   });
 
   it("offers nothing the viewer may not do, and nothing on settled pull requests", () => {
     expect(
-      resolveThreadPanelPullRequestAction(
+      rowAction(
         openDetail({
           viewerPermissions: {
             actions: [],
@@ -1172,8 +1256,140 @@ describe("the compact row's single action slot", () => {
         }),
       ),
     ).toBeNull();
-    expect(resolveThreadPanelPullRequestAction(openDetail({ state: "merged" }))).toBeNull();
-    expect(resolveThreadPanelPullRequestAction(null)).toBeNull();
+    expect(rowAction(openDetail({ state: "merged" }))).toBeNull();
+    expect(rowAction(null)).toBeNull();
+  });
+
+  const autoMergeActions = [
+    "merge",
+    "ready",
+    "draft",
+    "close",
+    "reopen",
+    "enable-auto-merge",
+    "disable-auto-merge",
+  ];
+  const autoMergeDetail = (
+    overrides: Partial<Parameters<typeof resolveThreadPanelPullRequestAction>[0] & object> = {},
+  ) =>
+    openDetail({
+      capabilities: {
+        actions: autoMergeActions,
+        mergeMethods: ["merge", "squash"],
+      } as unknown as PullRequestDetailView["capabilities"],
+      viewerPermissions: {
+        actions: autoMergeActions,
+      } as unknown as PullRequestDetailView["viewerPermissions"],
+      autoMergeEnabled: false,
+      ...overrides,
+    });
+  const running = [check("success"), check("pending")];
+
+  it("offers auto-merge while checks run, only where the host reports it", () => {
+    expect(rowAction(autoMergeDetail({ checks: running }))).toBe("enable-auto-merge");
+    expect(rowAction(autoMergeDetail({ checks: running, autoMergeEnabled: true }))).toBeNull();
+    expect(rowAction(autoMergeDetail({ checks: running, autoMergeEnabled: undefined }))).toBeNull();
+    expect(rowAction(autoMergeDetail())).toBe("merge");
+  });
+
+  it("offers no single merge for a pull request that merges with its stack", () => {
+    expect(resolveThreadPanelPullRequestAction(autoMergeDetail(), false)).toBeNull();
+    expect(
+      resolveThreadPanelPullRequestAction(autoMergeDetail({ checks: running }), false),
+    ).toBeNull();
+    expect(
+      resolvePullRequestMenuActions({
+        detail: autoMergeDetail({ checks: running }),
+        primaryAction: null,
+        canMergeSinglePullRequest: false,
+      }),
+    ).toMatchObject({ showsMergeNow: false, showsAutoMerge: false, showsMergeMethods: true });
+  });
+});
+
+describe("pull request menu actions", () => {
+  const check = (status: PullRequestCheck["status"]): PullRequestCheck => ({
+    name: "ci",
+    status,
+    description: null,
+    url: null,
+  });
+  const actions = [
+    "merge",
+    "ready",
+    "draft",
+    "close",
+    "reopen",
+    "enable-auto-merge",
+    "disable-auto-merge",
+  ];
+  const detail = (
+    overrides: Partial<Parameters<typeof resolveThreadPanelPullRequestAction>[0] & object> = {},
+  ) =>
+    ({
+      state: "open",
+      isDraft: false,
+      mergeability: "mergeable",
+      capabilities: {
+        actions,
+        mergeMethods: ["merge", "squash"],
+      } as unknown as PullRequestDetailView["capabilities"],
+      viewerPermissions: { actions } as unknown as PullRequestDetailView["viewerPermissions"],
+      mergeCapabilities: { merge: true, squash: true, rebase: false },
+      checks: [check("success")],
+      autoMergeEnabled: false,
+      ...overrides,
+    }) as NonNullable<Parameters<typeof resolveThreadPanelPullRequestAction>[0]>;
+  const menu = (
+    pullRequest: ReturnType<typeof detail> | null,
+    primaryAction: Parameters<typeof resolvePullRequestMenuActions>[0]["primaryAction"],
+  ) =>
+    resolvePullRequestMenuActions({
+      detail: pullRequest,
+      primaryAction,
+      canMergeSinglePullRequest: true,
+    });
+
+  it("never repeats the surface's primary action", () => {
+    expect(menu(detail(), "merge")).toMatchObject({
+      showsMergeNow: false,
+      showsAutoMerge: true,
+      showsMergeMethods: true,
+    });
+    expect(menu(detail({ checks: [check("pending")] }), "enable-auto-merge")).toMatchObject({
+      showsMergeNow: true,
+      showsAutoMerge: false,
+    });
+    expect(menu(detail({ isDraft: true }), "ready").showsDraftToggle).toBe(false);
+  });
+
+  it("turns an armed auto-merge off instead of arming it again", () => {
+    expect(menu(detail({ autoMergeEnabled: true }), null)).toMatchObject({
+      showsMergeNow: true,
+      showsAutoMerge: false,
+      showsDisableAutoMerge: true,
+    });
+  });
+
+  it("offers no merge on a conflicting draft, only the draft toggle", () => {
+    expect(menu(detail({ isDraft: true, mergeability: "conflicting" }), "resolve")).toEqual({
+      showsDraftToggle: true,
+      showsMergeNow: false,
+      showsAutoMerge: false,
+      showsDisableAutoMerge: false,
+      showsMergeMethods: false,
+    });
+  });
+
+  it("offers nothing on a settled pull request", () => {
+    expect(menu(detail({ state: "merged", autoMergeEnabled: true }), "merged")).toEqual({
+      showsDraftToggle: false,
+      showsMergeNow: false,
+      showsAutoMerge: false,
+      showsDisableAutoMerge: false,
+      showsMergeMethods: false,
+    });
+    expect(menu(null, null).showsDraftToggle).toBe(false);
   });
 });
 
@@ -1427,4 +1643,19 @@ describe("single-PR merge compatibility during stack discovery", () => {
       ).toBe(allowed);
     },
   );
+});
+
+describe("readableFailure", () => {
+  it("replaces a host tool's bare failure with the hint, for every host", () => {
+    for (const message of [
+      "GitHub CLI failed.",
+      "Azure DevOps API failed",
+      "Forgejo command failed",
+    ]) {
+      expect(readableFailure(new Error(message), "Try again.")).toBe("Try again.");
+    }
+    expect(readableFailure(new Error("Branch is protected."), "Try again.")).toBe(
+      "Branch is protected.",
+    );
+  });
 });

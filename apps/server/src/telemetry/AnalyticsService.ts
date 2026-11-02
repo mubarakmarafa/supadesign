@@ -13,12 +13,14 @@ import * as Random from "effect/Random";
 import * as Ref from "effect/Ref";
 import * as Result from "effect/Result";
 import * as Semaphore from "effect/Semaphore";
+import * as Stream from "effect/Stream";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 
 import packageJson from "../../package.json" with { type: "json" };
 import * as ServerConfig from "../config.ts";
+import * as ServerSettings from "../serverSettings.ts";
 import { getTelemetryIdentity, type TelemetryOwner } from "./Identify.ts";
 
 interface BufferedAnalyticsEvent {
@@ -31,14 +33,26 @@ interface BufferedAnalyticsEvent {
 interface DeliveryState {
   readonly failedBatch: ReadonlyArray<BufferedAnalyticsEvent>;
   readonly batchAttempts: number;
+  readonly firstFailedAt: number;
   readonly failures: number;
   readonly retryAt: number;
 }
 
+const IDLE_DELIVERY: DeliveryState = {
+  failedBatch: [],
+  batchAttempts: 0,
+  firstFailedAt: 0,
+  failures: 0,
+  retryAt: 0,
+};
+
 const FLUSH_INTERVAL_MS = 10_000;
 // A hung send would hold the flush lock, and with it the shutdown flush.
 const SEND_TIMEOUT = "10 seconds";
-const MAX_BATCH_ATTEMPTS = 5;
+// A failed batch is tried again until it has failed for this long. Ingest answers 503 when it
+// cannot store a batch, and a broken Cloudflare location can take about 5 minutes to fail over.
+// The waiting batch holds newer events back; `maxBufferedEvents` bounds them meanwhile.
+const MAX_BATCH_RETRY_MS = 30 * 60_000;
 const RETRY_BASE_DELAY_MS = 2_000;
 // Clients can report any number of owner ids; past this many per observer, new ones
 // are not sent. Each observer has its own cap, so client reports never crowd out the
@@ -47,8 +61,6 @@ const MAX_RECORDED_OWNERS = 1_000;
 const RETRY_MAX_DELAY_MS = 300_000;
 
 const REJECTED_BATCH_STATUSES = new Set([400, 401, 413]);
-
-declare const __SUPATERM_TELEMETRY_CHANNEL__: "stable" | "nightly" | "preview" | "dev" | undefined;
 
 /** `random` is in [0, 1). */
 function retryDelayMs(failures: number, random: number): number {
@@ -63,7 +75,7 @@ const TelemetryEnvConfig = Config.all({
   posthogHost: Config.String("SUPATERM_POSTHOG_HOST").pipe(
     Config.withDefault("https://ingest.supaterm.com"),
   ),
-  enabled: Config.Boolean("SUPATERM_TELEMETRY_ENABLED").pipe(Config.withDefault(false)),
+  enabled: Config.Boolean("SUPATERM_TELEMETRY_ENABLED").pipe(Config.option),
   flushBatchSize: Config.Number("SUPATERM_TELEMETRY_FLUSH_BATCH_SIZE").pipe(Config.withDefault(20)),
   maxBufferedEvents: Config.Number("SUPATERM_TELEMETRY_MAX_BUFFERED_EVENTS").pipe(
     Config.withDefault(1_000),
@@ -91,16 +103,7 @@ export class AnalyticsService extends Context.Service<
       observedBy: "server" | "client",
     ) => Effect.Effect<void>;
   }
->()("supaterm/telemetry/AnalyticsService") {
-  static readonly layerTest = Layer.succeed(
-    AnalyticsService,
-    AnalyticsService.of({
-      record: () => Effect.void,
-      flush: Effect.void,
-      recordOwners: () => Effect.void,
-    }),
-  );
-}
+>()("supaterm/telemetry/AnalyticsService") {}
 
 function serverOsFromNodePlatform(platform: string): ClientOs {
   switch (platform) {
@@ -118,30 +121,35 @@ function serverOsFromNodePlatform(platform: string): ClientOs {
 }
 
 /** @public */
-/** @public Service construction is part of the canonical Effect module API. */
+/** @public */
 export const make = Effect.gen(function* () {
   const telemetryConfig = yield* TelemetryEnvConfig;
   const httpClient = yield* HttpClient.HttpClient;
   const serverConfig = yield* ServerConfig.ServerConfig;
+  const serverSettings = yield* ServerSettings.ServerSettingsService;
   const { distinctId, installId } = yield* getTelemetryIdentity;
   const crypto = yield* Crypto.Crypto;
   const bufferRef = yield* Ref.make<ReadonlyArray<BufferedAnalyticsEvent>>([]);
-  const deliveryRef = yield* Ref.make<DeliveryState>({
-    failedBatch: [],
-    batchAttempts: 0,
-    failures: 0,
-    retryAt: 0,
-  });
+  const deliveryRef = yield* Ref.make(IDLE_DELIVERY);
   const recordedOwnersRef = yield* Ref.make<
     Readonly<Record<"server" | "client", ReadonlySet<string>>>
   >({ server: new Set(), client: new Set() });
   // The background flush and the shutdown flush must not send the same batch at once.
   const flushLock = yield* Semaphore.make(1);
   const clientType = serverConfig.mode === "desktop" ? "desktop-app" : "cli-web-client";
-  const telemetryChannel =
-    typeof __SUPATERM_TELEMETRY_CHANNEL__ === "undefined" ? "dev" : __SUPATERM_TELEMETRY_CHANNEL__;
   const hostPlatform = yield* HostProcess.Platform;
   const hostArchitecture = yield* HostProcess.Architecture;
+
+  // The variable wins when set. An unreadable setting counts as off so a read failure cannot
+  // lose an opt-out.
+  const isEnabled = Option.match(telemetryConfig.enabled, {
+    onSome: Effect.succeed,
+    onNone: () =>
+      serverSettings.getSettings.pipe(
+        Effect.map((settings) => settings.telemetryEnabled),
+        Effect.orElseSucceed(() => false),
+      ),
+  });
 
   const enqueueBufferedEvent = (
     uuid: string,
@@ -178,7 +186,7 @@ export const make = Effect.gen(function* () {
   const sendBatch = Effect.fn("AnalyticsService.sendBatch")(function* (
     events: ReadonlyArray<BufferedAnalyticsEvent>,
   ) {
-    if (!telemetryConfig.enabled || !distinctId) return;
+    if (!distinctId) return;
 
     const payload = {
       api_key: telemetryConfig.posthogKey,
@@ -194,7 +202,7 @@ export const make = Effect.gen(function* () {
           wsl: Option.getOrUndefined(telemetryConfig.wslDistroName),
           arch: hostArchitecture,
           supatermVersion: packageJson.version,
-          telemetryChannel,
+          telemetryChannel: ServerConfig.telemetryChannel,
           clientType,
           serverOs: serverOsFromNodePlatform(hostPlatform),
           serverArch: hostArchitecture,
@@ -214,6 +222,16 @@ export const make = Effect.gen(function* () {
     );
   });
 
+  // Discarded owner events must go out again after opting back in.
+  const discardPending = Effect.all(
+    [
+      Ref.set(bufferRef, []),
+      Ref.set(deliveryRef, IDLE_DELIVERY),
+      Ref.set(recordedOwnersRef, { server: new Set<string>(), client: new Set<string>() }),
+    ],
+    { discard: true },
+  );
+
   const takeBatch = Ref.modify(bufferRef, (current) => {
     const nextBatch = current.slice(0, telemetryConfig.flushBatchSize);
     return [nextBatch, current.slice(nextBatch.length)] as const;
@@ -221,6 +239,11 @@ export const make = Effect.gen(function* () {
 
   const flush: AnalyticsService["Service"]["flush"] = Effect.gen(function* () {
     while (true) {
+      // Checked per batch so nothing recorded before an opt-out is sent after it.
+      if (!(yield* isEnabled)) {
+        yield* discardPending;
+        return;
+      }
       const delivery = yield* Ref.get(deliveryRef);
       const batch = delivery.failedBatch.length > 0 ? delivery.failedBatch : yield* takeBatch;
       if (batch.length === 0) {
@@ -229,27 +252,41 @@ export const make = Effect.gen(function* () {
 
       const sent = yield* Effect.result(sendBatch(batch));
       if (Result.isSuccess(sent)) {
-        yield* Ref.set(deliveryRef, { failedBatch: [], batchAttempts: 0, failures: 0, retryAt: 0 });
+        yield* Ref.set(deliveryRef, IDLE_DELIVERY);
         continue;
       }
 
+      const now = yield* Clock.currentTimeMillis;
       const failures = delivery.failures + 1;
       const batchAttempts = delivery.batchAttempts + 1;
-      const retryAt = (yield* Clock.currentTimeMillis) + retryDelayMs(failures, yield* Random.next);
+      const firstFailedAt = delivery.batchAttempts === 0 ? now : delivery.firstFailedAt;
+      const retryAt = now + retryDelayMs(failures, yield* Random.next);
       const error = sent.failure;
       const rejected =
         error._tag === "HttpClientError" &&
         error.reason._tag === "StatusCodeError" &&
         REJECTED_BATCH_STATUSES.has(error.reason.response.status);
-      if (!rejected && batchAttempts < MAX_BATCH_ATTEMPTS) {
-        yield* Ref.set(deliveryRef, { failedBatch: batch, batchAttempts, failures, retryAt });
+      if (!rejected && now - firstFailedAt < MAX_BATCH_RETRY_MS) {
+        yield* Ref.set(deliveryRef, {
+          failedBatch: batch,
+          batchAttempts,
+          firstFailedAt,
+          failures,
+          retryAt,
+        });
         yield* Effect.logDebug("Failed to send telemetry batch; will retry", {
           attempt: batchAttempts,
           cause: error,
         });
         return;
       }
-      yield* Ref.set(deliveryRef, { failedBatch: [], batchAttempts: 0, failures, retryAt });
+      yield* Ref.set(deliveryRef, {
+        failedBatch: [],
+        batchAttempts: 0,
+        firstFailedAt: 0,
+        failures,
+        retryAt,
+      });
       yield* Effect.logWarning(
         rejected
           ? "Dropped telemetry batch the endpoint rejected"
@@ -269,7 +306,7 @@ export const make = Effect.gen(function* () {
 
   const record: AnalyticsService["Service"]["record"] = Effect.fn("AnalyticsService.record")(
     function* (event, properties) {
-      if (!telemetryConfig.enabled || !distinctId) return;
+      if (!distinctId || !(yield* isEnabled)) return;
 
       // Telemetry is best effort: an event without a uuid is not sent. The
       // Node implementation throws (a defect) rather than failing, so catch both.
@@ -288,8 +325,10 @@ export const make = Effect.gen(function* () {
 
   const recordOwners: AnalyticsService["Service"]["recordOwners"] = Effect.fn(
     "AnalyticsService.recordOwners",
-  )((owners, observedBy) =>
-    Effect.forEach(
+  )(function* (owners, observedBy) {
+    // An owner seen while collection is off must still be sent once it is back on.
+    if (!(yield* isEnabled)) return;
+    yield* Effect.forEach(
       owners,
       ({ source, ownerId }) =>
         Ref.modify(recordedOwnersRef, (recorded) => {
@@ -306,10 +345,22 @@ export const make = Effect.gen(function* () {
           ),
         ),
       { discard: true },
-    ),
-  );
+    );
+  });
 
-  yield* Effect.forever(Effect.sleep(FLUSH_INTERVAL_MS).pipe(Effect.flatMap(() => flushWhenDue)), {
+  // Discard on the change itself, so turning the setting back on before a flush cannot send
+  // events recorded before the opt-out. The lock waits out a send already in flight. Events
+  // recorded just after a quick re-enable may be dropped with them, which is the safe side.
+  if (Option.isNone(telemetryConfig.enabled)) {
+    const settingsChanges = yield* serverSettings.subscribeChanges;
+    yield* settingsChanges.pipe(
+      Stream.filter((settings) => !settings.telemetryEnabled),
+      Stream.runForEach(() => flushLock.withPermit(discardPending)),
+      Effect.forkScoped,
+    );
+  }
+
+  yield* Effect.forever(Effect.sleep(FLUSH_INTERVAL_MS).pipe(Effect.andThen(flushWhenDue)), {
     disableYield: true,
   }).pipe(Effect.forkScoped);
 

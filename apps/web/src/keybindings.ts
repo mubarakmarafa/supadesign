@@ -15,6 +15,7 @@ import {
   matchesKeybindingShortcutModifiers,
   normalizeEventKey,
   resolveEventKeys,
+  shortcutConflictKey,
   type ShortcutEventLike,
   type ShortcutModifierStateLike,
 } from "@supaterm/shared/keybindings";
@@ -87,22 +88,6 @@ function matchesWhenClause(
 ): boolean {
   if (!whenAst) return true;
   return evaluateWhenNode(whenAst, context);
-}
-
-export function shortcutConflictKey(
-  shortcut: KeybindingShortcut,
-  platform = navigator.platform,
-): string {
-  const useMetaForMod = isMacPlatform(platform);
-  const metaKey = shortcut.metaKey || (shortcut.modKey && useMetaForMod);
-  const ctrlKey = shortcut.ctrlKey || (shortcut.modKey && !useMetaForMod);
-  return [
-    shortcut.key,
-    metaKey ? "meta" : "",
-    ctrlKey ? "ctrl" : "",
-    shortcut.shiftKey ? "shift" : "",
-    shortcut.altKey ? "alt" : "",
-  ].join("|");
 }
 
 function shortcutForContext(binding: ResolvedKeybindingRule, context: ShortcutMatchContext) {
@@ -358,27 +343,22 @@ export function isDiffToggleShortcut(
   return matchesCommandShortcut(event, keybindings, "diff.toggle", options);
 }
 
-export function isOpenFavoriteEditorShortcut(
-  event: ShortcutEventLike,
-  keybindings: ResolvedKeybindingsConfig,
-  options?: ShortcutMatchOptions,
-): boolean {
-  return (
-    event.repeat !== true &&
-    matchesCommandShortcut(event, keybindings, "editor.openFavorite", options)
-  );
-}
-
 /**
- * Whether the keypress is the rich-text bold chord (Mod+B without extra
- * modifiers). Tiptap binds the same chord, so app shortcuts captured ahead
- * of the editor must yield when the rich-text composer is focused.
+ * Whether the keypress should bold text in the rich-text composer: Mod+B
+ * without extra modifiers, with text selected. Tiptap binds the same chord, so
+ * app shortcuts captured ahead of the editor yield only in that case. With no
+ * selection the chord stays with the app (the sidebar toggle by default).
  */
-export function isRichTextBoldShortcut(event: ShortcutEventLike): boolean {
+export function isRichTextBoldShortcut(
+  event: ShortcutEventLike,
+  selection: Pick<Selection, "isCollapsed"> | null,
+): boolean {
   if (event.type !== undefined && event.type !== "keydown") {
     return false;
   }
   return (
+    selection !== null &&
+    !selection.isCollapsed &&
     resolveEventKeys(event).has("b") &&
     (event.metaKey || event.ctrlKey) &&
     !event.altKey &&
@@ -458,10 +438,6 @@ export function terminalNavigationShortcutData(
       return moveLine;
     }
     return null;
-  }
-
-  if (event.ctrlKey && !event.metaKey && !event.altKey) {
-    return moveWord;
   }
 
   if (event.altKey && !event.metaKey && !event.ctrlKey) {

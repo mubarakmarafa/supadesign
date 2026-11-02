@@ -1,3 +1,5 @@
+import { MinusIcon, PlusIcon } from "@supaterm/icons";
+import { pipe } from "effect/Function";
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import type { EnvironmentId, ScopedThreadRef, ThreadPullRequestLink } from "@supaterm/contracts";
 import {
@@ -5,17 +7,17 @@ import {
   resolveThreadPullRequestChains,
   threadPullRequestKeyOf,
   visibleThreadPullRequests,
-} from "@supaterm/shared/threadPullRequests";
-import { Minus, Plus } from "lucide";
+} from "@supaterm/client-runtime/thread-pull-requests";
+
 import { useState, type ComponentProps, type MouseEvent as ReactMouseEvent } from "react";
 
-import { findProjectOnChangeRequestHost, parseChangeRequestUrl } from "~/lib/openPullRequestLink";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
+import { findProjectOnChangeRequestHost } from "@supaterm/client-runtime/change-request-links";
 
 import { useProjects } from "~/state/entities";
 import { threadEnvironment } from "~/state/threads";
 import { useAtomCommand } from "~/state/use-atom-command";
 
-import { MorphIcon } from "~/components/MorphIcon";
 import { Collapsible, CollapsiblePanel } from "~/components/ui/collapsible";
 import { linkedPullRequestSnapshotStatus, prStatusIndicator } from "../ThreadStatusIndicators";
 
@@ -24,20 +26,22 @@ import { ThreadDetailsPrRow } from "./ThreadDetailsPrRow";
 function ThreadDetailsPrLinkRow({
   environmentId,
   link,
+  composerTarget,
   onOpen,
   onActed,
   onStopWatching,
 }: {
   environmentId: EnvironmentId;
   link: ThreadPullRequestLink;
+  composerTarget: ComponentProps<typeof ThreadDetailsPrRow>["composerTarget"];
   onOpen: (event: ReactMouseEvent<HTMLElement>) => void;
   onActed?: (() => void) | undefined;
   onStopWatching?: (() => void) | undefined;
 }) {
   const projects = useProjects();
-  const parsed = parseChangeRequestUrl(link.url);
+  const parsed = sourceControlClients.parseChangeRequestUrl(link.url)?.link;
   const project =
-    parsed === null
+    parsed === undefined
       ? null
       : (findProjectOnChangeRequestHost(
           projects.filter((candidate) => candidate.environmentId === environmentId),
@@ -55,6 +59,7 @@ function ThreadDetailsPrLinkRow({
       project={project}
       label={`#${link.number}${link.snapshot === null ? "" : `: ${link.snapshot.title}`}`}
       openAriaLabel={link.url}
+      composerTarget={composerTarget}
       onOpen={onOpen}
       onStopWatching={onStopWatching}
       {...(onActed ? { onActed } : {})}
@@ -94,11 +99,12 @@ export function ThreadDetailsPrRows({
   const rest =
     currentLink === null
       ? []
-      : pullRequestListLines(resolveThreadPullRequestChains(visibleThreadPullRequests(links)))
+      : pipe(visibleThreadPullRequests(links), resolveThreadPullRequestChains, pullRequestListLines)
           .map((line) => line.link)
           .filter((link) => threadPullRequestKeyOf(link) !== threadPullRequestKeyOf(currentLink));
   if (rest.length === 0) return currentRow;
 
+  const Icon = expanded ? MinusIcon : PlusIcon;
   return (
     <>
       {currentRow}
@@ -110,6 +116,7 @@ export function ThreadDetailsPrRows({
                 key={threadPullRequestKeyOf(link)}
                 environmentId={row.environmentId}
                 link={link}
+                composerTarget={row.composerTarget}
                 onOpen={(event) => onOpenLink(event, link.url)}
                 onActed={row.onActed}
                 onStopWatching={stopWatching(link)}
@@ -126,7 +133,7 @@ export function ThreadDetailsPrRows({
         tone="muted"
         className="w-full active:scale-100"
       >
-        <MorphIcon aria-hidden className="size-4 shrink-0" icon={expanded ? Minus : Plus} />
+        <Icon aria-hidden className="size-4 shrink-0" />
         {expanded ? "Show less" : `Show ${rest.length} more`}
       </ThreadDetailsControl>
     </>

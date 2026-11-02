@@ -63,26 +63,25 @@ export const make = Effect.gen(function* () {
   >();
 
   /** The default branch, else the checked-out one; none outside a git repository. */
-  const baseRefOf = (cwd: string) =>
-    Effect.gen(function* () {
-      const status = yield* git.statusDetailsLocal(cwd);
-      if (!status.isRepo) return Option.none<string>();
-      const remote = yield* git.resolvePrimaryRemoteName(cwd).pipe(Effect.option);
-      const defaultBranch = Option.isNone(remote)
-        ? null
-        : yield* git
-            .resolveDefaultBranchName(cwd, remote.value)
-            .pipe(Effect.orElseSucceed(() => null));
-      return Option.fromNullishOr(defaultBranch ?? status.branch);
-    });
+  const baseRefOf = Effect.fn("baseRefOf")(function* (cwd: string) {
+    const status = yield* git.statusDetailsLocal(cwd);
+    if (!status.isRepo) return Option.none<string>();
+    const remote = yield* git.resolvePrimaryRemoteName(cwd).pipe(Effect.option);
+    const defaultBranch = Option.isNone(remote)
+      ? null
+      : yield* git
+          .resolveDefaultBranchName(cwd, remote.value)
+          .pipe(Effect.orElseSucceed(() => null));
+    return Option.fromNullishOr(defaultBranch ?? status.branch);
+  });
 
   /**
    * How a card that hasn't started should start: in a new worktree when its
    * project's new threads start in one. None leaves the message to the
    * thread's own checkout, as for a started card or the board agent.
    */
-  const worktreeLaunchFor = (threadId: ThreadId) =>
-    Effect.gen(function* () {
+  const worktreeLaunchFor = Effect.fn("worktreeLaunchFor")(
+    function* (threadId: ThreadId) {
       const shell = yield* projections.getThreadShell(threadId);
       if (
         shell === null ||
@@ -129,48 +128,45 @@ export const make = Effect.gen(function* () {
         baseRef: baseRef.value,
         startFromOrigin: projectSettings.settings.newWorktreesStartFromOrigin,
       });
-    }).pipe(
-      // Anything unreadable leaves the card where it is, as before.
-      Effect.catchCause((cause) =>
-        Effect.logWarning("Could not plan a card's worktree", { cause }).pipe(
-          Effect.as(Option.none()),
-        ),
+    },
+    // Anything unreadable leaves the card where it is, as before.
+    Effect.catchCause((cause) =>
+      Effect.logWarning("Could not plan a card's worktree", { cause }).pipe(
+        Effect.as(Option.none()),
       ),
-    );
+    ),
+  );
 
   /**
    * Sends a card that hasn't started its first message in a new worktree.
    * None means the card takes the message as usual, so the caller sends it.
    */
-  const startInWorktree = (message: CardStartMessage) =>
-    Effect.gen(function* () {
-      const plan = yield* worktreeLaunchFor(message.threadId);
-      if (Option.isNone(plan)) return Option.none<ThreadLaunch.ThreadLaunchResult>();
-      const { shell, baseRef, startFromOrigin } = plan.value;
-      const result = yield* ThreadMessageIntake.launchThread({
-        commandId: message.commandId,
-        threadId: message.threadId,
-        reuseExistingThread: true,
-        projectId: shell.projectId,
-        title: shell.title,
-        modelSelection: message.modelSelection ?? shell.modelSelection,
-        runtimeMode: shell.runtimeMode,
-        interactionMode: shell.interactionMode,
-        workspaceStrategy: { type: "worktree", baseRef, startFromOrigin },
-        initialMessage: {
-          messageId: message.messageId,
-          ...(message.senderThreadId === undefined
-            ? {}
-            : { senderThreadId: message.senderThreadId }),
-          text: message.text,
-          attachments: message.attachments,
-          ...(message.context === undefined ? {} : { context: message.context }),
-        },
-        createdBy: message.createdBy,
-        creationSource: message.creationSource,
-      }).pipe(Effect.provide(services));
-      return Option.some(result);
-    });
+  const startInWorktree = Effect.fn("startInWorktree")(function* (message: CardStartMessage) {
+    const plan = yield* worktreeLaunchFor(message.threadId);
+    if (Option.isNone(plan)) return Option.none<ThreadLaunch.ThreadLaunchResult>();
+    const { shell, baseRef, startFromOrigin } = plan.value;
+    const result = yield* ThreadMessageIntake.launchThread({
+      commandId: message.commandId,
+      threadId: message.threadId,
+      reuseExistingThread: true,
+      projectId: shell.projectId,
+      title: shell.title,
+      modelSelection: message.modelSelection ?? shell.modelSelection,
+      runtimeMode: shell.runtimeMode,
+      interactionMode: shell.interactionMode,
+      workspaceStrategy: { type: "worktree", baseRef, startFromOrigin },
+      initialMessage: {
+        messageId: message.messageId,
+        ...(message.senderThreadId === undefined ? {} : { senderThreadId: message.senderThreadId }),
+        text: message.text,
+        attachments: message.attachments,
+        ...(message.context === undefined ? {} : { context: message.context }),
+      },
+      createdBy: message.createdBy,
+      creationSource: message.creationSource,
+    }).pipe(Effect.provide(services));
+    return Option.some(result);
+  });
 
   return { startInWorktree };
 });

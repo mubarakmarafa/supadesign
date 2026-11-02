@@ -1,4 +1,4 @@
-import { CheckIcon, CircleDotIcon, CircleIcon, ListTodoIcon } from "lucide-react";
+import { CheckIcon, CircleDotIcon, CircleIcon, ListChecksIcon } from "@supaterm/icons";
 import { memo, type ComponentProps } from "react";
 
 import { formatDuration } from "../../session-logic";
@@ -76,7 +76,7 @@ function TaskSummary({
   return (
     <>
       <ComposerBanner.Icon>
-        <ListTodoIcon />
+        <ListChecksIcon />
       </ComposerBanner.Icon>
       <ComposerBanner.Content>
         <span className="shrink-0 text-muted-foreground">Tasks</span>
@@ -193,7 +193,7 @@ export const ComposerTasksContent = memo(function ComposerTasksContent({
                   </ComposerBanner.Content>
                   <ComposerBanner.Actions>
                     <span
-                      className="w-12 text-right text-3xs/4 text-muted-foreground/45 tabular-nums"
+                      className="min-w-12 text-right text-3xs/4 whitespace-nowrap text-muted-foreground/45 tabular-nums"
                       data-composer-task-duration="true"
                     >
                       {step.durationMs !== undefined

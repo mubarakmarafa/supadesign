@@ -17,6 +17,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
 import * as ServerConfig from "../config.ts";
+import * as DocumentText from "../provider/DocumentText.ts";
 import * as AttachmentClaims from "../orchestration-v2/AttachmentClaims.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
@@ -48,7 +49,10 @@ export const make = Effect.gen(function* () {
   const banksPath = path.join((yield* ServerConfig.ServerConfig).stateDir, "thread-banks.json");
   // Claims and dispatch read these services per call, as client sends do.
   const services = yield* Effect.context<
-    ServerConfig.ServerConfig | FileSystem.FileSystem | ThreadManagement.ThreadManagementService
+    | ServerConfig.ServerConfig
+    | FileSystem.FileSystem
+    | ThreadManagement.ThreadManagementService
+    | DocumentText.DocumentText
   >();
   const uuid = crypto.randomUUIDv4().pipe(Effect.orDie);
   const cards = yield* CardWorkspace.make;

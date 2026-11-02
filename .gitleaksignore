@@ -1,0 +1,2 @@
+# Fake key in an upstream test fixture (sk-test-SECRET123).
+packages/provider-pi/src/server/textGeneration.test.ts:generic-api-key:103

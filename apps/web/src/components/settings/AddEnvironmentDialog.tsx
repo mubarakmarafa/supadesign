@@ -1,4 +1,5 @@
-import { ChevronsLeftRightEllipsisIcon, PlusIcon, TerminalIcon } from "lucide-react";
+import { pipe } from "effect/Function";
+import { ChevronsLeftRightIcon, PlusIcon, TerminalIcon } from "@supaterm/icons";
 import { useAtomValue } from "@effect/atom-react";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import {
@@ -110,6 +111,7 @@ export function AddEnvironmentDialog({
   const [sshHostSuggestionsOpen, setSshHostSuggestionsOpen] = useState(false);
   const highlightedSshHostRef = useRef<DesktopDiscoveredSshHost | undefined>(undefined);
   const [isAddingSavedBackend, setIsAddingSavedBackend] = useState(false);
+  const savedBackendSessionRef = useRef(0);
   const isSshDiscoveryActive = desktopBridge !== undefined && open && savedBackendMode === "ssh";
   const desktopSshHosts = useEnvironmentQuery(
     isSshDiscoveryActive ? desktopSshHostsStateAtom : null,
@@ -117,6 +119,7 @@ export function AddEnvironmentDialog({
   // The discovery atom is kept alive across dialog opens, so re-read SSH config
   // each time the SSH tab is shown; stale hosts stay visible while it refreshes.
   const refreshDesktopSshHosts = desktopSshHosts.refresh;
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- rereads desktop SSH config through the bridge each time the SSH tab is shown
   useEffect(() => {
     if (isSshDiscoveryActive) refreshDesktopSshHosts();
   }, [isSshDiscoveryActive, refreshDesktopSshHosts]);
@@ -137,7 +140,19 @@ export function AddEnvironmentDialog({
   const hasSshHostSuggestionContent =
     desktopBridge !== undefined &&
     (isLoadingDiscoveredSshHosts || unsavedDiscoveredSshHosts.length > 0);
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      savedBackendSessionRef.current += 1;
+      setSavedBackendMode("remote");
+      setSavedBackendForm(emptyRemotePairingForm);
+      setSavedBackendSshHost("");
+      setSavedBackendSshUsername("");
+      setSavedBackendSshPort("");
+    }
+    onOpenChange(nextOpen);
+  };
   const connectSavedBackendSshTarget = async (target: DesktopSshEnvironmentTarget) => {
+    const session = savedBackendSessionRef.current;
     setIsAddingSavedBackend(true);
     onErrorChange(null);
     const result = await connectSshEnvironment({
@@ -146,18 +161,14 @@ export function AddEnvironmentDialog({
       ...(routeTarget ? { expectedEnvironmentId: routeTarget.environmentId } : {}),
     });
     if (result._tag === "Failure") {
-      if (!isAtomCommandInterrupted(result)) {
-        onErrorChange(formatDesktopSshConnectionError(squashAtomCommandFailure(result)));
+      if (session === savedBackendSessionRef.current && !isAtomCommandInterrupted(result)) {
+        pipe(squashAtomCommandFailure(result), formatDesktopSshConnectionError, onErrorChange);
       }
       setIsAddingSavedBackend(false);
       return;
     }
 
-    setSavedBackendForm(emptyRemotePairingForm);
-    setSavedBackendSshHost("");
-    setSavedBackendSshUsername("");
-    setSavedBackendSshPort("");
-    onOpenChange(false);
+    handleOpenChange(false);
     toastManager.add({
       type: "success",
       title: "Environment connected",
@@ -224,11 +235,7 @@ export function AddEnvironmentDialog({
       return;
     }
 
-    setSavedBackendForm(emptyRemotePairingForm);
-    setSavedBackendSshHost("");
-    setSavedBackendSshUsername("");
-    setSavedBackendSshPort("");
-    onOpenChange(false);
+    handleOpenChange(false);
     toastManager.add(
       routeTarget
         ? {
@@ -256,6 +263,7 @@ export function AddEnvironmentDialog({
   const handleSelectSshHostSuggestion = async (target: DesktopDiscoveredSshHost) => {
     if (isAddingSavedBackend || !desktopBridge) return;
 
+    const session = savedBackendSessionRef.current;
     setIsAddingSavedBackend(true);
     onErrorChange(null);
     setSavedBackendSshHost(target.alias);
@@ -263,7 +271,13 @@ export function AddEnvironmentDialog({
     try {
       resolved = await desktopBridge.resolveSshHost(target.alias);
     } catch (error) {
-      onErrorChange(formatDesktopSshConnectionError(error));
+      if (session === savedBackendSessionRef.current) {
+        onErrorChange(formatDesktopSshConnectionError(error));
+      }
+      setIsAddingSavedBackend(false);
+      return;
+    }
+    if (session !== savedBackendSessionRef.current) {
       setIsAddingSavedBackend(false);
       return;
     }
@@ -364,7 +378,7 @@ export function AddEnvironmentDialog({
           <Input
             value={savedBackendForm.host}
             onChange={(event) => handleSavedBackendHostChange(event.target.value)}
-            placeholder="backend.example.com"
+            placeholder="http://192.168.1.100:7007"
             disabled={isAddingSavedBackend}
             spellCheck={false}
           />
@@ -529,7 +543,7 @@ export function AddEnvironmentDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <Tooltip>
         <TooltipTrigger
           render={
@@ -563,7 +577,7 @@ export function AddEnvironmentDialog({
                 mode: "remote",
                 title: "Remote link",
                 description: "Enter a backend host and pairing code.",
-                icon: <ChevronsLeftRightEllipsisIcon aria-hidden className="size-4" />,
+                icon: <ChevronsLeftRightIcon aria-hidden className="size-4" />,
               })}
               {desktopBridge
                 ? renderConnectionModeCard({

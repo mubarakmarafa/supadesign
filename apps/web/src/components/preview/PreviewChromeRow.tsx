@@ -1,18 +1,17 @@
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import {
-  ArrowLeft,
-  ArrowRight,
-  Camera,
-  ExternalLink,
-  MousePointerClick,
-  PictureInPicture2,
-} from "lucide-react";
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CameraIcon,
+  ExternalLinkIcon,
+  MousePointerClickIcon,
+  PictureInPictureIcon,
+} from "@supaterm/icons";
 import {
   type FormEvent,
   type KeyboardEvent,
   type ReactNode,
-  useEffect,
-  useRef,
+  type RefObject,
   useState,
 } from "react";
 
@@ -30,7 +29,8 @@ interface Props {
   canGoForward: boolean;
   refreshDisabled: boolean;
   inputDisabled?: boolean | undefined;
-  focusUrlNonce?: number | undefined;
+  /** Owned by the caller so its shortcut handler can focus the address bar directly. */
+  urlInputRef: RefObject<HTMLInputElement | null>;
   onBack: () => void;
   onForward: () => void;
   onRefresh: () => void;
@@ -59,7 +59,7 @@ export function PreviewChromeRow({
   canGoForward,
   refreshDisabled,
   inputDisabled,
-  focusUrlNonce,
+  urlInputRef: inputRef,
   onBack,
   onForward,
   onRefresh,
@@ -80,16 +80,8 @@ export function PreviewChromeRow({
 }: Props) {
   const refreshShortcut = useShortcutLabel("preview.refresh", PREVIEW_FOCUS_SHORTCUT_OPTIONS);
   const designModeShortcutLabel = useShortcutLabel("preview.designMode");
-  const inputRef = useRef<HTMLInputElement | null>(null);
   const [draft, setDraft] = useState(url);
   const [inputFocused, setInputFocused] = useState(false);
-
-  useEffect(() => {
-    if (focusUrlNonce == null) return;
-    const node = inputRef.current;
-    if (!node) return;
-    node.focus();
-  }, [focusUrlNonce]);
 
   const submit = (event?: FormEvent | KeyboardEvent) => {
     event?.preventDefault();
@@ -120,7 +112,7 @@ export function PreviewChromeRow({
                 />
               }
             >
-              <ArrowLeft />
+              <ArrowLeftIcon />
             </TooltipTrigger>
             <TooltipPopup>Back</TooltipPopup>
           </Tooltip>
@@ -137,7 +129,7 @@ export function PreviewChromeRow({
                 />
               }
             >
-              <ArrowRight />
+              <ArrowRightIcon />
             </TooltipTrigger>
             <TooltipPopup>Forward</TooltipPopup>
           </Tooltip>
@@ -189,6 +181,8 @@ export function PreviewChromeRow({
                     }
                   }}
                   placeholder="Search or enter URL"
+                  aria-label="Search or enter URL"
+                  data-workspace-focus-default
                   spellCheck={false}
                   disabled={inputDisabled}
                   data-preview-url-input
@@ -213,7 +207,7 @@ export function PreviewChromeRow({
                       />
                     }
                   >
-                    <ExternalLink />
+                    <ExternalLinkIcon />
                   </TooltipTrigger>
                   <TooltipPopup>Open in system browser</TooltipPopup>
                 </Tooltip>
@@ -237,7 +231,7 @@ export function PreviewChromeRow({
                 />
               }
             >
-              <MousePointerClick className={cn(pickActive && "text-primary")} />
+              <MousePointerClickIcon className={cn(pickActive && "text-primary")} />
             </TooltipTrigger>
             {pickDisabled && pickDisabledReason ? (
               <TooltipPopup>{pickDisabledReason}</TooltipPopup>
@@ -265,7 +259,7 @@ export function PreviewChromeRow({
                 />
               }
             >
-              <Camera className={cn(recording && "text-destructive")} />
+              <CameraIcon className={cn(recording && "text-destructive")} />
               {recording ? (
                 <span className="absolute right-0.5 top-0.5 size-1.5 motion-safe:animate-status-pulse rounded-full bg-destructive" />
               ) : null}
@@ -292,7 +286,7 @@ export function PreviewChromeRow({
                 />
               }
             >
-              <PictureInPicture2 className={cn(pictureInPicture && "text-primary")} />
+              <PictureInPictureIcon className={cn(pictureInPicture && "text-primary")} />
             </TooltipTrigger>
             <TooltipPopup>
               {pictureInPicture ? "Close floating preview" : "Float preview over chat"}

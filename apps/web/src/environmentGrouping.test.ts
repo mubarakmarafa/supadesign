@@ -1,11 +1,16 @@
 import { EnvironmentId, ProjectId, ProviderInstanceId } from "@supaterm/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { deriveLogicalProjectKeyFromSettings } from "./logicalProject";
+import {
+  deriveLogicalProjectKeyFromSettings,
+  pickableProjectGroups,
+} from "@supaterm/client-runtime/state/project-grouping";
 import {
   buildSidebarProjectPickerEntries,
   buildSidebarProjectSnapshots,
+  resolveSidebarProjectScope,
   resolveSidebarProjectScopeKey,
+  resolveSidebarProjectScopeKeys,
   getSidebarProjectSettingsKey,
 } from "./sidebarProjectGrouping";
 import type { Project } from "./types";
@@ -120,6 +125,64 @@ describe("environment grouping", () => {
     });
     const key = deriveLogicalProjectKeyFromSettings(ordinary, defaultGroupingSettings);
     expect(resolveSidebarProjectScopeKey({ groups, key, canClearMissingScope: true })).toBe(key);
+  });
+
+  it("keeps each chosen project once and drops projects that are gone", () => {
+    const first = makeProject({ id: ProjectId.make("first"), workspaceRoot: "/first" });
+    const second = makeProject({ id: ProjectId.make("second"), workspaceRoot: "/second" });
+    const groups = buildSidebarProjectSnapshots({
+      projects: [first, second],
+      groupScratchProjects: true,
+      settings: defaultGroupingSettings,
+      primaryEnvironmentId,
+      resolveEnvironmentLabel: () => null,
+    });
+    const keys = groups.map((group) => group.projectKey);
+    expect(keys).toHaveLength(2);
+
+    expect(
+      resolveSidebarProjectScopeKeys({
+        groups,
+        keys: [keys[1]!, keys[0]!, keys[1]!, "gone"],
+        canClearMissingScope: true,
+      }),
+    ).toEqual([keys[1], keys[0]]);
+    expect(
+      resolveSidebarProjectScopeKeys({
+        groups,
+        keys: [keys[0]!, "gone"],
+        canClearMissingScope: false,
+      }),
+    ).toEqual([keys[0], "gone"]);
+  });
+
+  it("reads an archived project's scope as all projects", () => {
+    const open = makeProject({ id: ProjectId.make("open"), workspaceRoot: "/open" });
+    const archived = makeProject({
+      id: ProjectId.make("archived"),
+      workspaceRoot: "/archived",
+      archivedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const groups = buildSidebarProjectSnapshots({
+      projects: [open, archived],
+      settings: defaultGroupingSettings,
+      primaryEnvironmentId,
+      resolveEnvironmentLabel: () => null,
+    });
+    const [openKey, archivedKey] = [open, archived].map(
+      (project) => groups.find((group) => group.id === project.id)!.projectKey,
+    );
+
+    expect(resolveSidebarProjectScope({ groups, keys: [archivedKey!] })).toEqual({
+      keys: [],
+      groups: [],
+      memberKeys: null,
+    });
+    expect(
+      resolveSidebarProjectScope({ groups, keys: [archivedKey!, openKey!] }).groups.map(
+        (group) => group.projectKey,
+      ),
+    ).toEqual([openKey]);
   });
 
   it("dedupes stale project rows with the same environment and workspace path", () => {
@@ -274,5 +337,28 @@ describe("environment grouping", () => {
       environmentId: primaryEnvironmentId,
       id: fallbackPrimary.id,
     });
+  });
+
+  it("puts the preferred project after pinned projects", () => {
+    const project = (title: string, pinnedAt: string | null = null) =>
+      makeProject({
+        id: ProjectId.make(title),
+        title,
+        workspaceRoot: `/tmp/${title}`,
+        repositoryIdentity: null,
+        pinnedAt,
+      });
+    const current = project("current");
+    const groups = buildSidebarProjectSnapshots({
+      projects: [project("other"), project("pinned", "2026-01-01T00:00:00.000Z"), current],
+      settings: defaultGroupingSettings,
+      primaryEnvironmentId,
+      resolveEnvironmentLabel: () => null,
+    });
+    const entries = buildSidebarProjectPickerEntries({
+      groups: pickableProjectGroups(groups),
+      preferredProjectRef: { environmentId: current.environmentId, projectId: current.id },
+    });
+    expect(entries.map((entry) => entry.group.displayName)).toEqual(["pinned", "current", "other"]);
   });
 });

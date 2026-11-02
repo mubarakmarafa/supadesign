@@ -1,5 +1,5 @@
 import type { DesktopPreviewPointerEvent } from "@supaterm/contracts";
-import { MousePointer2 } from "lucide-react";
+import { MousePointerIcon, MousePointerFilledIcon } from "@supaterm/icons";
 import { useEffect, useState } from "react";
 
 import { useBrowserPointerStore } from "~/browser/browserPointerStore";
@@ -66,6 +66,7 @@ export function AgentCursorMark(props: {
   const [inactiveSequence, setInactiveSequence] = useState<number | null>(null);
   const active = inactiveSequence !== sequence;
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- timer fades the agent cursor after each move or click
   useEffect(() => {
     const timeout = window.setTimeout(() => setInactiveSequence(sequence), CURSOR_ACTIVE_MS);
     return () => window.clearTimeout(timeout);
@@ -87,10 +88,10 @@ export function AgentCursorMark(props: {
           className="absolute left-0.5 top-0.5 size-4 animate-status-ping rounded-full bg-primary/25 motion-reduce:animate-none"
         />
       ) : null}
-      <MousePointer2
-        className="relative size-5 -translate-x-0.5 -translate-y-0.5 fill-background text-primary drop-shadow-sm"
-        strokeWidth={2}
-      />
+      <span className="relative block size-5 -translate-x-0.5 -translate-y-0.5 drop-shadow-sm">
+        <MousePointerFilledIcon className="absolute inset-0 size-5 text-background" />
+        <MousePointerIcon className="absolute inset-0 size-5 text-primary" />
+      </span>
     </div>
   );
 }

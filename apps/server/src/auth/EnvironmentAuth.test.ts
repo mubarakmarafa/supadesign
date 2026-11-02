@@ -299,6 +299,20 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     }).pipe(Effect.provide(layerEnvironmentAuth())),
   );
 
+  it.effect("prefers a bearer token over an empty primary cookie", () =>
+    Effect.gen(function* () {
+      const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
+      const sessions = yield* SessionStore.SessionStore;
+      const bearer = yield* serverAuth.issueSession();
+      const verified = yield* serverAuth.authenticateHttpRequest({
+        cookies: { [sessions.cookieName]: "" },
+        headers: { authorization: `Bearer ${bearer.token}` },
+      } as never);
+
+      expect(verified.sessionId).toBe(bearer.sessionId);
+    }).pipe(Effect.provide(layerEnvironmentAuth({ mode: "web", host: "192.168.1.50" }))),
+  );
+
   it.effect("preserves pairing grants after rejecting scopes they do not grant", () =>
     Effect.gen(function* () {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
@@ -366,6 +380,35 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
 
       expect(token.scope).toBe("orchestration:read");
     }).pipe(Effect.provide(layerEnvironmentAuth())),
+  );
+
+  it.effect(
+    "preserves a rejected MCP pairing code for exactly one concurrent lower-access retry",
+    () =>
+      Effect.gen(function* () {
+        const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
+        const pairing = yield* serverAuth.issuePairingCredential({
+          scopes: ["orchestration:read"],
+        });
+
+        const rejected = yield* Effect.flip(
+          serverAuth.consumeMcpApprovalCode(pairing.credential, "full-access"),
+        );
+        expect(rejected).toMatchObject({
+          _tag: "ServerAuthMcpApprovalCodeError",
+          reason: "insufficient_scope",
+        });
+
+        const retry = Effect.result(
+          serverAuth.consumeMcpApprovalCode(pairing.credential, "read-only"),
+        );
+        const results = yield* Effect.all([retry, retry], { concurrency: "unbounded" });
+
+        expect(results.filter((result) => result._tag === "Success")).toHaveLength(1);
+        expect(results.filter((result) => result._tag === "Failure")).toMatchObject([
+          { failure: { _tag: "ServerAuthMcpApprovalCodeError", reason: "unknown_or_used" } },
+        ]);
+      }).pipe(Effect.provide(layerEnvironmentAuth())),
   );
 
   it.effect("narrows rotating desktop grants to the requested scopes", () =>
@@ -575,11 +618,14 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
       const pairing = yield* serverAuth.issuePairingCredential();
       const exchanged = yield* serverAuth.createBrowserSession(pairing.credential, requestMetadata);
       const upgrade = (headers: Record<string, string>) =>
-        serverAuth.authenticateWebSocketUpgrade({
-          url: "/ws",
-          cookies: { [sessions.cookieName]: exchanged.sessionToken },
-          headers: { host: "192.168.1.50:3773", ...headers },
-        } as never);
+        serverAuth.authenticateWebSocketUpgrade(
+          {
+            url: "/ws",
+            cookies: { [sessions.cookieName]: exchanged.sessionToken },
+            headers: { host: "192.168.1.50:3773", ...headers },
+          } as never,
+          "rpc",
+        );
 
       yield* upgrade({ origin: "http://192.168.1.50:3773" });
       yield* upgrade({
@@ -636,16 +682,57 @@ it.layer(NodeServices.layer)("EnvironmentAuth.layer", (it) => {
     Effect.gen(function* () {
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
       const bearer = yield* serverAuth.issueSession();
-      const verified = yield* serverAuth.authenticateWebSocketUpgrade({
-        url: "/ws",
-        cookies: {},
-        headers: {
-          host: "192.168.1.50:3773",
-          origin: "http://192.168.1.50:8080",
-          authorization: `Bearer ${bearer.token}`,
-        },
-      } as never);
+      const verified = yield* serverAuth.authenticateWebSocketUpgrade(
+        {
+          url: "/ws",
+          cookies: {},
+          headers: {
+            host: "192.168.1.50:3773",
+            origin: "http://192.168.1.50:8080",
+            authorization: `Bearer ${bearer.token}`,
+          },
+        } as never,
+        "rpc",
+      );
       expect(verified.sessionId).toBe(bearer.sessionId);
+    }).pipe(Effect.provide(layerEnvironmentAuth({ mode: "web", host: "192.168.1.50" }))),
+  );
+
+  it.effect("opens only the route a websocket ticket was minted for", () =>
+    Effect.gen(function* () {
+      const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
+      const bearer = yield* serverAuth.issueSession();
+      const upgrade = (ticket: string, use: "rpc" | "media") =>
+        serverAuth.authenticateWebSocketUpgrade(
+          {
+            method: "GET",
+            url: `/ws?orchestrationProtocol=2&wsTicket=${ticket}`,
+            cookies: {},
+            headers: { host: "192.168.1.50:3773" },
+          } as never,
+          use,
+        );
+
+      const rpc = yield* serverAuth.issueWebSocketTicket(bearer, { use: "rpc" });
+      expect((yield* upgrade(Redacted.value(rpc.ticket), "rpc")).sessionId).toBe(bearer.sessionId);
+      const rpcOnMedia = yield* Effect.flip(upgrade(Redacted.value(rpc.ticket), "media"));
+      expect(rpcOnMedia._tag).toBe("ServerAuthInvalidCredentialError");
+
+      const media = yield* serverAuth.issueWebSocketTicket(bearer, { use: "media" });
+      expect((yield* upgrade(Redacted.value(media.ticket), "media")).sessionId).toBe(
+        bearer.sessionId,
+      );
+      const mediaOnRpc = yield* Effect.flip(upgrade(Redacted.value(media.ticket), "rpc"));
+      expect(mediaOnRpc._tag).toBe("ServerAuthInvalidCredentialError");
+
+      // Clients that predate ticket audiences, and the relay tunnel, mint at the bare path.
+      const legacy = yield* serverAuth.issueWebSocketTicket(bearer);
+      expect((yield* upgrade(Redacted.value(legacy.ticket), "rpc")).sessionId).toBe(
+        bearer.sessionId,
+      );
+      expect((yield* upgrade(Redacted.value(legacy.ticket), "media")).sessionId).toBe(
+        bearer.sessionId,
+      );
     }).pipe(Effect.provide(layerEnvironmentAuth({ mode: "web", host: "192.168.1.50" }))),
   );
 });

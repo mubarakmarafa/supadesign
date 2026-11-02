@@ -46,6 +46,21 @@ describe("buildProjectsGrid", () => {
     expect(grid[2]?.lastActivityMs).toBe(Date.parse("2026-10-01T00:00:00.000Z"));
   });
 
+  it("puts pinned projects first and leaves archived ones out", () => {
+    const grid = buildProjectsGrid(
+      [
+        project("a", "Alpha"),
+        { ...project("b", "Beta"), pinnedAt: "2026-10-02T00:00:00.000Z" },
+        { ...project("c", "Gamma"), archivedAt: "2026-10-03T00:00:00.000Z" },
+      ],
+      [
+        thread("a1", "a", "2026-10-10T00:00:00.000Z"),
+        thread("c1", "c", "2026-10-12T00:00:00.000Z"),
+      ],
+    );
+    expect(grid.map((entry) => entry.project.id)).toEqual(["b", "a"]);
+  });
+
   it("does not mix up projects with the same id in different environments", () => {
     const grid = buildProjectsGrid(
       [project("a", "Alpha")],

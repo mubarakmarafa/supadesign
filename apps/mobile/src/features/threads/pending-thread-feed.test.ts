@@ -6,13 +6,15 @@ import {
   MessageId,
   ProjectId,
   ThreadId,
-  TurnItemId,
 } from "@supaterm/contracts";
-import { deriveThreadFeedPresentation, type ThreadFeedEntry } from "../../lib/threadActivity";
+import { deriveThreadFeedPresentation } from "../../lib/threadActivity";
 import type { QueuedThreadMessage } from "../../state/thread-outbox-model";
 import {
   appendPendingThreadMessages,
+  createThreadFeedGrouping,
+  isCompactionCommandFeedEntry,
   retainPendingCreationAttachments,
+  selectPendingAcknowledgedMessages,
 } from "./pending-thread-feed";
 
 const pending = (id: string): QueuedThreadMessage => ({
@@ -26,6 +28,100 @@ const pending = (id: string): QueuedThreadMessage => ({
 });
 
 describe("pending timeline messages", () => {
+  it("keeps unchanged row identities while text streams and updates adjacent grouping", () => {
+    const group = createThreadFeedGrouping();
+    const [first, second, third] = appendPendingThreadMessages(
+      [],
+      [],
+      [pending("first"), pending("second"), pending("third")],
+    );
+    if (first?.type !== "message" || second?.type !== "message" || third?.type !== "message") {
+      throw new Error("Expected message rows");
+    }
+    const reply = {
+      ...third,
+      id: "reply",
+      message: { ...third.message, role: "assistant" as const, text: "start" },
+    };
+    const initial = group([first, second, reply], {});
+    const streamed = group(
+      [first, second, { ...reply, message: { ...reply.message, text: "streamed" } }],
+      {},
+    );
+    expect(streamed[0]).toBe(initial[0]);
+    expect(streamed[1]).toBe(initial[1]);
+    expect(streamed[2]).not.toBe(initial[2]);
+    const appended = group([first, second, third, reply], {});
+    expect(appended[0]).toBe(initial[0]);
+    expect(appended[1]).not.toBe(initial[1]);
+    expect(appended[1]?.userMessageGrouping.groupedWithNext).toBe(true);
+    expect(appended[2]?.userMessageGrouping.groupedWithPrevious).toBe(true);
+    const removed = group([first, second, reply], {});
+    expect(removed[1]?.userMessageGrouping.groupedWithNext).toBe(false);
+    const steer = {
+      ...second,
+      message: { ...second.message, inputIntent: "promoted_queued_to_steer" as const },
+    };
+    const singleSteer = group([first, steer], {});
+    const steers = group(
+      [{ ...first, message: { ...first.message, inputIntent: "steer" } }, steer],
+      {},
+    );
+    expect(steers[1]?.userMessageGrouping.continuesSteer).toBe(true);
+    expect(singleSteer[1]?.userMessageGrouping.continuesSteer).toBe(false);
+    expect(steers[1]).not.toBe(singleSteer[1]);
+  });
+
+  it("preserves setup, workflow, and compaction grouping boundaries", () => {
+    const group = createThreadFeedGrouping();
+    const feed = appendPendingThreadMessages([], [], [pending("first"), pending("second")]);
+    expect(group(feed, {})[0]?.userMessageGrouping.groupedWithNext).toBe(true);
+    for (const options of [{ setupAnchorIndex: 0 }, { workflowOpeningMessageId: "first" }]) {
+      const rows = group(feed, options);
+      expect(rows[0]?.userMessageGrouping.groupedWithNext).toBe(false);
+      expect(rows[1]?.userMessageGrouping.groupedWithPrevious).toBe(false);
+    }
+    const compact = appendPendingThreadMessages(
+      [],
+      [],
+      [{ ...pending("compact"), text: "/compact" }],
+    )[0]!;
+    expect(group([feed[0]!, compact], {})[0]?.userMessageGrouping.groupedWithNext).toBe(true);
+    expect(
+      group([feed[0]!, { ...compact, pendingMessage: undefined }], {})[0]?.userMessageGrouping
+        .groupedWithNext,
+    ).toBe(false);
+  });
+
+  it.each([false, true])(
+    "keeps a queued compact command in the pending message row (attachment: %s)",
+    (withAttachment) => {
+      const queued = {
+        ...pending("compact"),
+        text: "/compact",
+        attachments: withAttachment
+          ? [
+              {
+                id: "image-1",
+                type: "image" as const,
+                name: "photo.png",
+                mimeType: "image/png",
+                sizeBytes: 3,
+                fileUri: "file:///documents/photo.png",
+                previewUri: "file:///documents/photo.png",
+              },
+            ]
+          : [],
+      };
+      const entry = appendPendingThreadMessages([], [], [queued])[0]!;
+      expect(isCompactionCommandFeedEntry(entry)).toBe(false);
+      expect(entry.pendingMessage).toEqual(queued);
+      if (!withAttachment) {
+        expect(isCompactionCommandFeedEntry({ ...entry, pendingMessage: undefined })).toBe(true);
+      }
+    },
+  );
+
   it("marks the synthetic creation prompt pending without duplicating it", () => {
     const queued = {
       ...pending("creation"),
@@ -43,42 +139,6 @@ describe("pending timeline messages", () => {
     expect(result[0]?.pendingMessage).toEqual(queued);
     expect(result[0]?.acknowledged).toBe(false);
   });
-
-  it.each([false, true])(
-    "keeps a trailing tool group's images behind pending messages, live=%s",
-    (live) => {
-      const imageGroup = {
-        type: "work-toggle",
-        id: "image-group",
-        groupId: "image-group",
-        createdAt: "2026-09-06T10:00:00.000Z",
-        runId: null,
-        hiddenCount: 1,
-        expanded: false,
-        summary: "Screenshot",
-        summaryKind: "dynamic-tool",
-        hasFailure: false,
-        live,
-        shimmer: live,
-        images: [
-          {
-            key: "screenshot:0",
-            alt: "Screenshot",
-            resource: {
-              _tag: "tool-output-image",
-              threadId: ThreadId.make("thread"),
-              itemId: TurnItemId.make("screenshot"),
-              index: 0,
-            },
-          },
-        ],
-      } satisfies ThreadFeedEntry;
-      const queued = pending("queued");
-      const entries = appendPendingThreadMessages([imageGroup], [], [queued]);
-      expect(entries).toMatchObject([imageGroup, { type: "message", pendingMessage: queued }]);
-      expect(entries[0]).toBe(imageGroup);
-    },
-  );
 
   it("retains context records while a message is waiting for delivery", () => {
     const record = {
@@ -173,5 +233,24 @@ describe("pending timeline messages", () => {
     const delivered = { ...optimistic, pendingMessage: undefined };
     expect(appendPendingThreadMessages([delivered], [delivered], [queued])).toEqual([delivered]);
     expect(appendPendingThreadMessages([], [delivered], [queued])).toEqual([]);
+  });
+
+  it("stops showing an acknowledged message once the thread catches up, even when the feed hides it", () => {
+    // A rolled-back or cancelled queued run keeps its message in projection.messages
+    // while its user_message item leaves the visible feed.
+    const echoed = pending("rolled-back");
+    // A bounded projection pages an applied message out; it must not come back as pending.
+    const pagedOut = { ...pending("paged-out"), sequence: 40 };
+    const waiting = { ...pending("waiting"), sequence: 50 };
+    const shown = selectPendingAcknowledgedMessages([echoed, pagedOut, waiting], {
+      threadKey: "env:thread",
+      queuedMessages: [],
+      sequence: 45,
+      projectedMessages: [{ id: echoed.messageId }],
+    });
+    expect(shown).toEqual([waiting]);
+    expect(appendPendingThreadMessages([], [], shown).map((entry) => entry.id)).toEqual([
+      "waiting",
+    ]);
   });
 });

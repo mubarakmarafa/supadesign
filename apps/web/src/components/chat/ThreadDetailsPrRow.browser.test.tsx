@@ -1,5 +1,6 @@
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import { EnvironmentId, ProjectId, ThreadId, type PullRequestCheck } from "@supaterm/contracts";
-import { DraftId } from "~/composerDraftStore";
+import { DraftId, useComposerDraftStore } from "~/composerDraftStore";
 import { AsyncResult } from "effect/reactivity";
 import { expect, it, vi } from "vite-plus/test";
 
@@ -74,7 +75,11 @@ vi.mock(import("~/state/query"), async (importOriginal) => ({
 }));
 vi.mock(import("../pullRequest/usePullRequestActions"), async (importOriginal) => ({
   ...(await importOriginal()),
-  usePullRequestActionRunner: () => ({ actionPending: false, perform: state.perform }),
+  usePullRequestActionRunner: () => ({
+    actionPending: false,
+    pendingAction: null,
+    perform: state.perform,
+  }),
 }));
 
 import { clickAt } from "~/test/inlineConfirm";
@@ -82,7 +87,7 @@ vi.mock(import("~/hooks/useHandleNewThread"), async (original) => ({
   ...(await original()),
   useNewThreadHandler: (() => state.newThread) as never,
 }));
-vi.mock(import("~/lib/sourceControlActions"), async (original) => ({
+vi.mock(import("~/state/sourceControlActions"), async (original) => ({
   ...(await original()),
   usePreparePullRequestThreadAction: (() => ({
     run: state.prepareThread,
@@ -106,6 +111,8 @@ import { act, render as renderUi } from "../../../test/render";
 import { useUiStateStore } from "~/uiStateStore";
 import { ThreadDetailsPrRow } from "./ThreadDetailsPrRow";
 
+const threadRef = scopeThreadRef(EnvironmentId.make("environment"), ThreadId.make("thread"));
+
 const renderRow = () => (
   <ThreadDetailsPrRow
     environmentId={EnvironmentId.make("environment")}
@@ -115,9 +122,27 @@ const renderRow = () => (
     project={null}
     label="Test PR"
     openAriaLabel="Open PR"
+    composerTarget={threadRef}
     onOpen={vi.fn()}
   />
 );
+
+it("fills this thread's composer with a subagent hand-off for failing checks", async () => {
+  await using screen = await setup();
+
+  state.status = "failure";
+  await act(async () => await screen.rerender(renderRow()));
+  const fixButton = [...screen.container.querySelectorAll("button")].find(
+    (button) => button.textContent?.trim() === "Fix",
+  )!;
+  await act(() => fixButton.click());
+
+  const prompt = useComposerDraftStore.getState().getComposerDraft(threadRef)?.prompt ?? "";
+  expect(prompt).toContain("subagent");
+  expect(prompt).toContain("CI-failure");
+  expect(state.newThread).not.toHaveBeenCalled();
+  expect(state.prepareThread).not.toHaveBeenCalled();
+});
 
 it("merges with the last selected merge method", async () => {
   await using screen = await setup();
@@ -176,10 +201,9 @@ it("merges only on a deliberate second click", async () => {
   await screen.rerender(renderRow());
   await clickMerge(start);
   await clickMerge(start + 150);
-  await clickMerge(start + 300);
   expect(state.perform).not.toHaveBeenCalled();
   expect(armed()).toBe(true);
-  await clickMerge(start + 900);
+  await clickMerge(start + 300);
   expect(state.perform).toHaveBeenCalledExactlyOnceWith("merge", "merge");
   expect(armed()).toBe(false);
 });

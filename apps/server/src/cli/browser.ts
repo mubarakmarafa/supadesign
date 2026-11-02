@@ -40,10 +40,7 @@ const runStep = Effect.fn("browserSetup.runStep")(function* (
   }
 });
 
-/**
- * Under `sudo` the process home is root's, so an unspecified home falls back to
- * the invoking user's `~/.supaterm`.
- */
+/** Under sudo, an unspecified home uses the invoking user's ~/.supaterm. */
 const setupBaseDir = Effect.fn("browserSetup.baseDir")(function* (explicit: Option.Option<string>) {
   const env = yield* HostProcess.Environment;
   const raw = Option.getOrUndefined(explicit) ?? env.SUPATERM_HOME;
@@ -116,16 +113,23 @@ const browserSetupCommand = Command.make("setup", { baseDir: baseDirFlag }).pipe
       }
       const fs = yield* FileSystem.FileSystem;
       const isRoot = (yield* HostProcess.UserId) === 0;
-      const setupCommand = yield* resolveRootCliCommand(PreviewBrowserHost.SETUP_SUBCOMMAND);
-
       const env = yield* HostProcess.Environment;
+      const baseDirPath = yield* setupBaseDir(baseDir);
+      // sudo resets the environment, so a chosen home has to be on the command line.
+      const setupCommand = yield* resolveRootCliCommand(
+        PreviewBrowserHost.SETUP_SUBCOMMAND,
+        Option.isSome(baseDir) || env.SUPATERM_HOME !== undefined
+          ? ["--base-dir", baseDirPath]
+          : [],
+      );
+      // Root, unless sudo came from another user, is likely the server's own account.
       const rootWarning =
         isRoot && (env.SUDO_USER ?? "root") === "root" && !PreviewBrowserHost.sandboxDisabled(env)
           ? new PreviewBrowserHost.PreviewBrowserRootError().message
           : undefined;
 
       const needsProfile = yield* PreviewBrowserHost.sandboxBlocked;
-      const browser = yield* installedBrowser(yield* setupBaseDir(baseDir));
+      const browser = yield* installedBrowser(baseDirPath);
       const missing = Option.isSome(browser)
         ? yield* PreviewBrowserHost.missingLibraries(browser.value)
         : [];

@@ -1,7 +1,10 @@
+import { SourceControlProviderKind } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
+import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Result from "effect/Result";
+import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 
 import * as BitbucketApi from "./BitbucketApi.ts";
 import * as BitbucketPullRequestApi from "./BitbucketPullRequestApi.ts";
@@ -176,6 +179,30 @@ it.effect("reads checks and PR state without diff, mergeability, or permission r
   }),
 );
 
+it.effect("serves only Bitbucket Cloud hosts unless an API base url is configured", () =>
+  Effect.gen(function* () {
+    const servedHosts = (env: Record<string, string>) =>
+      make.pipe(
+        Effect.map(({ servesHost }) =>
+          ["bitbucket.org", "altssh.bitbucket.org", "bitbucket.example.com"].filter(
+            (host) => servesHost?.(host) === true,
+          ),
+        ),
+        Effect.provide(
+          Layer.merge(
+            Layer.mock(BitbucketPullRequestApi.BitbucketPullRequestApi)({}),
+            ConfigProvider.layer(ConfigProvider.fromEnv({ env })),
+          ),
+        ),
+      );
+
+    expect(yield* servedHosts({})).toEqual(["bitbucket.org", "altssh.bitbucket.org"]);
+    expect(
+      yield* servedHosts({ SUPATERM_BITBUCKET_API_BASE_URL: "https://bitbucket.example.com/api" }),
+    ).toEqual(["bitbucket.org", "altssh.bitbucket.org", "bitbucket.example.com"]);
+  }),
+);
+
 describe("bitbucketProviderFailure", () => {
   it("treats only an HTTP 401 as unusable credentials", () => {
     const responseError = (status: number) =>
@@ -187,6 +214,16 @@ describe("bitbucketProviderFailure", () => {
 
     expect(bitbucketProviderFailure(responseError(401)).reason).toBe("unauthenticated");
     expect(bitbucketProviderFailure(responseError(403)).reason).toBe("failed");
+  });
+
+  it("reports a request held back by the host-wide pause as rate limited until it ends", () => {
+    const paused = new SourceControlRateLimit.SourceControlRateLimitPausedError({
+      provider: SourceControlProviderKind.make("bitbucket"),
+      host: "bitbucket.org",
+      retryAt: 120_000,
+    });
+
+    expect(bitbucketProviderFailure(paused)).toEqual({ reason: "rate-limited", retryAt: 120_000 });
   });
 });
 

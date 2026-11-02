@@ -1,33 +1,32 @@
 import {
   ArrowLeftIcon,
-  ChartNoAxesColumnIcon,
-  CircleQuestionMarkIcon,
+  ArrowRightIcon,
+  ChartColumnIcon,
+  CircleHelpIcon,
   GlobeIcon,
   MessageSquareTextIcon,
   SettingsIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import type { MouseEvent, ReactNode } from "react";
 import { memo } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { parseKeybindingShortcut } from "@supaterm/shared/keybindings";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 
 import { APP_BASE_NAME, SOURCE_CODE_URL, WEBSITE_URL } from "../../branding";
 import { isElectron } from "../../env";
-import { useSendFeedback } from "../../hooks/useSendFeedback";
-import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
+import { useStartTriage, useTriageEnvironmentId } from "../../hooks/useStartTriage";
 import { useShortcutLabel } from "../../hooks/useShortcutLabel";
 import { formatShortcutLabel } from "../../keybindings";
 import { cn } from "../../lib/utils";
 import { readLocalApi } from "../../localApi";
-import { usePullRequestsSupported } from "../../state/environments";
 import {
-  resolveEnvironmentIdentificationPillLabel,
-  SidebarStageBackdrop,
-  useEnvironmentStageLabel,
-  useSidebarStageBackdrop,
-} from "../SidebarStageBackdrop";
-import { GitHubIcon } from "../Icons";
-import { Badge } from "../ui/badge";
+  navigateHistory,
+  useCanNavigateHistory,
+  type HistoryDirection,
+} from "../../navigationHistory";
+import { usePullRequestsSupported } from "../../state/environments";
+import { Button } from "../ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import {
   SidebarFooter,
@@ -40,48 +39,38 @@ import {
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { readPullRequestListPreferences } from "../pullRequest/pullRequestListPreferences";
+import { useEnvironmentStageLabel } from "./environmentIdentification";
 import { isSidebarUtilityPage, useNavigateToMainApp } from "./mainAppLocation";
 import { SidebarThreadUndoNotice } from "./SidebarThreadUndoNotice";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
+import { sourceControlIcon } from "~/sourceControlPresentation";
 import { observeResize } from "~/lib/observeResize";
+
+const GitHubIcon = sourceControlIcon(sourceControlClients.get("github"));
 
 export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   isElectron,
 }: {
   isElectron: boolean;
 }) {
-  const stageLabel = useEnvironmentStageLabel();
-  const environmentIdentificationMode = useEnvironmentIdentificationMode();
-  const showStageBackdrop = useSidebarStageBackdrop(environmentIdentificationMode === "artwork");
-  const pillLabel =
-    environmentIdentificationMode === "pill"
-      ? resolveEnvironmentIdentificationPillLabel(stageLabel)
-      : null;
-
   return (
     <div
       className={cn(
-        "relative flex h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center gap-2 pr-3",
+        "flex h-[calc((var(--workspace-topbar-height)+var(--workspace-titlebar-control-size))/2)] shrink-0 flex-row items-end gap-2 pr-3",
         isElectron && "drag-region",
       )}
     >
-      {showStageBackdrop ? <SidebarStageBackdrop /> : null}
-      <div className="relative top-[calc(var(--workspace-controls-top)-env(safe-area-inset-top))] z-10 ml-[calc(var(--workspace-controls-left)+1px-env(safe-area-inset-left))] flex shrink-0 items-center md:hidden">
-        <SidebarTrigger
-          variant={showStageBackdrop ? "media-navigation" : "ghost"}
-          className="relative top-auto translate-y-0"
-          aria-label="Toggle main sidebar"
-        />
+      <div className="relative top-[calc(var(--workspace-controls-top)-env(safe-area-inset-top))] ml-[calc(var(--workspace-controls-left)+1px-env(safe-area-inset-left))] flex shrink-0 items-center md:hidden">
+        <SidebarTrigger aria-label="Toggle main sidebar" />
       </div>
-      <div className="relative z-10 flex h-8 min-w-0 flex-1 flex-wrap content-start items-center gap-x-2 overflow-hidden py-0.5">
-        <SidebarBrand onBackdrop={showStageBackdrop} />
-        {pillLabel ? (
-          <div className="ml-1 flex h-7 items-center">
-            <Badge data-environment-identification="pill" size="sm" variant="secondary">
-              {pillLabel}
-            </Badge>
+      <div className="flex h-[var(--workspace-titlebar-control-size)] min-w-0 flex-1 items-center gap-1 overflow-hidden">
+        <SidebarBrand />
+        {isElectron ? (
+          <div className="hidden shrink-0 items-center [-webkit-app-region:no-drag] md:flex">
+            <HistoryNavigationButton direction="back" />
+            <HistoryNavigationButton direction="forward" />
           </div>
         ) : null}
       </div>
@@ -90,10 +79,13 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
 });
 
 export function SidebarBrandWidthProbe({
+  isElectron,
   onWidthChange,
 }: {
+  isElectron: boolean;
   onWidthChange: (width: number) => void;
 }) {
+  const title = useSidebarBrandTitle();
   const observeWidth = (probe: HTMLDivElement) => {
     return observeResize(probe, ([entry]) => {
       if (entry) onWidthChange(entry.borderBoxSize[0]?.inlineSize ?? probe.offsetWidth);
@@ -106,34 +98,65 @@ export function SidebarBrandWidthProbe({
       className="pointer-events-none invisible fixed top-0 left-0 flex w-max border-r border-transparent pr-3"
       ref={observeWidth}
     >
-      <div className="ml-[var(--workspace-titlebar-content-left)] flex">
-        <SidebarBrandMark onBackdrop={false} />
+      <div className="ml-[var(--workspace-titlebar-content-left)] flex gap-1">
+        <SidebarBrandMark title={title} />
+        {isElectron ? <div className="w-[calc(2*var(--workspace-titlebar-control-size))]" /> : null}
       </div>
     </div>
   );
 }
 
-function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
+const HISTORY_BUTTONS = {
+  back: { label: "Go back", command: "navigation.back", Icon: ArrowLeftIcon },
+  forward: { label: "Go forward", command: "navigation.forward", Icon: ArrowRightIcon },
+} as const;
+
+function HistoryNavigationButton({ direction }: { direction: HistoryDirection }) {
+  const { label, command, Icon } = HISTORY_BUTTONS[direction];
+  const enabled = useCanNavigateHistory(direction);
+  const shortcut = useShortcutLabel(command);
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            aria-label={label}
+            disabled={!enabled}
+            onClick={() => navigateHistory(direction)}
+            size="icon-sm"
+            variant="ghost"
+          />
+        }
+      >
+        <Icon className="size-3.5" />
+      </TooltipTrigger>
+      <TooltipPopup side="bottom" shortcut={shortcut}>
+        {label}
+      </TooltipPopup>
+    </Tooltip>
+  );
+}
+
+function SidebarBrand() {
+  const title = useSidebarBrandTitle();
   return (
     <Link
-      aria-label="Go to threads"
-      className={cn(
-        "relative z-10 ml-[var(--workspace-titlebar-content-left)] hidden h-7 w-fit min-w-0 shrink-0 items-center overflow-hidden rounded-md outline-hidden ring-ring focus-visible:ring-2 focus-visible:ring-inset md:flex",
-        onBackdrop ? "text-white" : "text-foreground",
-      )}
+      aria-label={`${title}, go to threads`}
+      className="flex h-7 w-fit min-w-0 shrink-0 items-center overflow-hidden rounded-md text-foreground outline-hidden ring-ring focus-visible:ring-2 focus-visible:ring-inset md:ml-[var(--workspace-titlebar-content-left)]"
       to="/"
     >
-      <SidebarBrandMark onBackdrop={onBackdrop} />
+      <SidebarBrandMark title={title} />
     </Link>
   );
 }
 
-function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
-  return (
-    <span className={cn("truncate text-sm font-semibold", onBackdrop && "text-white")}>
-      {APP_BASE_NAME}
-    </span>
-  );
+function useSidebarBrandTitle() {
+  const stageLabel = useEnvironmentStageLabel();
+  return stageLabel ? `${APP_BASE_NAME} (${stageLabel})` : APP_BASE_NAME;
+}
+
+function SidebarBrandMark({ title }: { title: string }) {
+  return <span className="truncate text-sm font-semibold">{title}</span>;
 }
 
 // The desktop app's Settings menu item owns Mod+, so it is not in the keybinding registry.
@@ -177,7 +200,8 @@ function openExternalLink(url: string) {
 }
 
 function SidebarHelpItem({ closeMobileSidebar }: { closeMobileSidebar: () => void }) {
-  const sendFeedback = useSendFeedback();
+  const startTriage = useStartTriage();
+  const triageEnvironmentId = useTriageEnvironmentId();
 
   return (
     <SidebarMenuItem className="ml-auto shrink-0">
@@ -186,17 +210,17 @@ function SidebarHelpItem({ closeMobileSidebar }: { closeMobileSidebar: () => voi
           <TooltipTrigger
             render={<MenuTrigger render={<SidebarMenuButton aria-label="Help" size="icon" />} />}
           >
-            <CircleQuestionMarkIcon />
+            <CircleHelpIcon />
           </TooltipTrigger>
           <TooltipPopup side="top">Help</TooltipPopup>
         </Tooltip>
         <MenuPopup side="top" align="end">
           <MenuItem
-            disabled={sendFeedback === null}
+            disabled={triageEnvironmentId === null}
             onClick={() => {
-              if (!sendFeedback) return;
+              if (triageEnvironmentId === null) return;
               closeMobileSidebar();
-              void sendFeedback();
+              void startTriage(triageEnvironmentId);
             }}
           >
             <MessageSquareTextIcon />
@@ -216,7 +240,7 @@ function SidebarHelpItem({ closeMobileSidebar }: { closeMobileSidebar: () => voi
   );
 }
 
-export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
+const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   const navigate = useNavigate();
   const navigateToMainApp = useNavigateToMainApp();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -264,7 +288,8 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
             <span>Back</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
-      ) : (
+      ) : null}
+      {isOnUtilityPage ? null : (
         <>
           <SidebarUtilityItem
             icon={<SettingsIcon />}
@@ -275,18 +300,19 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
           {pullRequestsSupported ? (
             <SidebarUtilityItem
               icon={<PullRequestGlyph.pullRequest />}
-              label="Pull Requests"
+              label="Pull requests"
               onClick={handlePullRequestsClick}
             />
           ) : null}
           <SidebarUtilityItem
-            icon={<ChartNoAxesColumnIcon />}
+            icon={<ChartColumnIcon />}
             label="Usage"
             shortcut={usageShortcut}
             onClick={handleUsageClick}
           />
         </>
       )}
+      <SidebarThreadUndoNotice />
       <SidebarHelpItem closeMobileSidebar={closeMobileSidebar} />
       <SidebarUpdatePill />
     </SidebarMenu>
@@ -296,7 +322,6 @@ export const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
 export const SidebarChromeFooter = memo(function SidebarChromeFooter() {
   return (
     <SidebarFooter>
-      <SidebarThreadUndoNotice />
       <SidebarProviderUpdatePill />
       <SidebarUpdateArchitectureWarning />
       <SidebarUtilityMenu />

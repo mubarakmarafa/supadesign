@@ -43,9 +43,6 @@ function environment(
         ? null
         : {
             settings: { ...DEFAULT_SERVER_SETTINGS, ...options.settings },
-            environment: {
-              capabilities: {},
-            },
           },
   };
 }
@@ -93,6 +90,8 @@ const group: SidebarProjectSnapshot = {
   allRemoteMembersAreDesktopLocal: false,
   allRemoteMembersAreWsl: false,
   remoteEnvironmentLabels: [server.label, laptop.label],
+  pinned: false,
+  archived: false,
 };
 const project = resolveSettingsScope({ project: group.projectKey }, [group], environments);
 const checkout = resolveSettingsScope(

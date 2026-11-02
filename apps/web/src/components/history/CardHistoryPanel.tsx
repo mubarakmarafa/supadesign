@@ -7,7 +7,7 @@ import type {
 } from "@supaterm/contracts";
 import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 import * as DateTime from "effect/DateTime";
-import { CheckIcon, HistoryIcon, PencilIcon, SparklesIcon } from "lucide-react";
+import { CheckIcon, HistoryIcon, PencilIcon, SparklesIcon } from "@supaterm/icons";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAssetUrls } from "../../assets/assetUrls";
@@ -87,6 +87,7 @@ export function CardHistoryPanel({ threadRef }: { threadRef: ScopedThreadRef }) 
   // Earlier briefs aren't streamed, so fetch them again whenever the brief changes.
   const briefVersion = brief?.brief?.version ?? 0;
   const refreshVersions = versionsQuery.refresh;
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- refetches the server's brief-versions query when the streamed brief's version moves, since the versions themselves are not streamed
   useEffect(() => {
     if (briefVersion > 0) refreshVersions();
   }, [briefVersion, refreshVersions]);

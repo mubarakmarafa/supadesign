@@ -1,7 +1,7 @@
-import { Check, Copy } from "lucide";
-import { PlayIcon, WrapTextIcon } from "lucide-react";
+import { PlayIcon, WrapTextIcon, CheckIcon, CopyIcon } from "@supaterm/icons";
+
 import { toHtml } from "hast-util-to-html";
-import React, { use, useEffect, useState, type ReactNode } from "react";
+import React, { use, useState, type ReactNode } from "react";
 
 import { useIncrementalHighlightedDocument } from "../../hooks/useIncrementalHighlightedDocument";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
@@ -15,7 +15,6 @@ import {
   hasSpecificPierreIconForFileName,
   syntheticFileNameForLanguageId,
 } from "../../pierre-icons";
-import { MorphIcon } from "../MorphIcon";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { HighlightedCodeLines } from "./HighlightedCodeLines";
@@ -26,6 +25,7 @@ import {
 } from "./MarkdownCodeBlock.logic";
 import { reportMarkdownActionFailure } from "./markdownActionFailure";
 import { PierreEntryIcon } from "./PierreEntryIcon";
+import { RunShellCommandDialog } from "./RunShellCommandDialog";
 
 const MAX_HIGHLIGHT_CACHE_ENTRIES = 500;
 const MAX_HIGHLIGHT_CACHE_MEMORY_BYTES = 50 * 1024 * 1024;
@@ -63,7 +63,7 @@ export function MarkdownCodeBlockFrame({
   return (
     <Wrapper
       dir="ltr"
-      className="chat-markdown-codeblock my-[0.65rem] overflow-hidden rounded-lg border border-border/70 bg-secondary leading-snug dark:border-transparent dark:bg-input/32"
+      className="chat-markdown-codeblock my-[0.65rem] text-start overflow-hidden rounded-lg border border-border/70 bg-secondary leading-snug dark:border-transparent dark:bg-input/32"
       data-language={language}
       data-wrap={wrapped ? "true" : "false"}
     >
@@ -150,6 +150,7 @@ export function MarkdownCodeBlock({
   children: ReactNode;
 }) {
   const [wrapped, setWrapped] = useState(() => getClientSettings().wordWrap);
+  const [confirmingCommand, setConfirmingCommand] = useState<string | null>(null);
   // The shared clipboard helper falls back to execCommand where navigator.clipboard is missing,
   // such as remote clients served over plain HTTP.
   const { copyToClipboard, isCopied: copied } = useCopyToClipboard({
@@ -168,6 +169,9 @@ export function MarkdownCodeBlock({
   const wrapLabel = wrapped ? "Disable line wrap" : "Wrap lines";
   const copyLabel = copied ? "Copied" : "Copy code";
   const command = code.trim();
+  if (confirmingCommand !== null && confirmingCommand !== command) setConfirmingCommand(null);
+  const lineCount = command.split("\n").length;
+  const runLabel = lineCount > 1 ? `Run ${lineCount} lines in terminal` : "Run in terminal";
   const canRun =
     onRunShellCommand !== undefined &&
     !isStreaming &&
@@ -175,10 +179,13 @@ export function MarkdownCodeBlock({
     code.endsWith("\n") &&
     command.length > 0 &&
     !command.endsWith("\\") &&
+    !/^[$>] /m.test(command) &&
     // Control and invisible format characters (bidi overrides, zero-width) can
     // make the rendered command differ from what the terminal would receive.
-    !/[\p{Cc}\p{Cf}]/u.test(code.slice(0, -1));
+    // Multi-line scripts are pasted, so their tabs stay literal instead of completing.
+    !/[\p{Cc}\p{Cf}]/u.test(code.slice(0, -1).replace(lineCount > 1 ? /[\n\t]/g : /\n/g, ""));
 
+  const Icon = copied ? CheckIcon : CopyIcon;
   const copyButton = (
     <Tooltip>
       <TooltipTrigger
@@ -192,7 +199,7 @@ export function MarkdownCodeBlock({
           />
         }
       >
-        <MorphIcon className="size-3" icon={copied ? Check : Copy} />
+        <Icon className="size-3" />
       </TooltipTrigger>
       <TooltipPopup side="top">{copyLabel}</TooltipPopup>
     </Tooltip>
@@ -246,14 +253,20 @@ export function MarkdownCodeBlock({
                     type="button"
                     variant="ghost-muted"
                     size="icon-xs"
-                    onClick={() => onRunShellCommand(command)}
-                    aria-label="Run in terminal"
+                    onClick={() => {
+                      if (lineCount > 1) {
+                        setConfirmingCommand(command);
+                      } else {
+                        onRunShellCommand(command);
+                      }
+                    }}
+                    aria-label={runLabel}
                   />
                 }
               >
                 <PlayIcon className="size-3" />
               </TooltipTrigger>
-              <TooltipPopup side="top">Run in terminal</TooltipPopup>
+              <TooltipPopup side="top">{runLabel}</TooltipPopup>
             </Tooltip>
           ) : null}
           {viewToggle}
@@ -262,6 +275,16 @@ export function MarkdownCodeBlock({
       }
     >
       {children}
+      {canRun && confirmingCommand === command ? (
+        <RunShellCommandDialog
+          command={command}
+          lineCount={lineCount}
+          onClose={() => setConfirmingCommand(null)}
+          onRun={onRunShellCommand}
+        >
+          {children}
+        </RunShellCommandDialog>
+      ) : null}
     </MarkdownCodeBlockFrame>
   );
 }
@@ -334,31 +357,32 @@ function UncachedShikiCodeBlock({
     themeName,
   );
   const highlighted = (() => {
-    try {
-      if (incrementalHighlight) return incrementalHighlight(code);
-      return highlighter.codeToHtml(code, { lang: language, theme: themeName });
-    } catch (error) {
-      incrementalHighlight?.dispose();
-      console.warn(
-        `Code highlighting failed for language "${language}", falling back to plain text.`,
-        error instanceof Error ? error.message : error,
-      );
-      return preserveLines
-        ? highlightCodeDocument(highlighter, code, "text", themeName)
-        : highlighter.codeToHtml(code, { lang: "text", theme: themeName });
-    }
-  })();
-
-  useEffect(() => {
+    const result = (() => {
+      try {
+        if (incrementalHighlight) return incrementalHighlight(code);
+        return highlighter.codeToHtml(code, { lang: language, theme: themeName });
+      } catch (error) {
+        incrementalHighlight?.dispose();
+        console.warn(
+          `Code highlighting failed for language "${language}", falling back to plain text.`,
+          error instanceof Error ? error.message : error,
+        );
+        return preserveLines
+          ? highlightCodeDocument(highlighter, code, "text", themeName)
+          : highlighter.codeToHtml(code, { lang: "text", theme: themeName });
+      }
+    })();
+    // A finished block is cached for the next mount; a streaming one is still changing.
     if (!isStreaming) {
-      const highlightedHtml = typeof highlighted === "string" ? highlighted : toHtml(highlighted);
+      const highlightedHtml = typeof result === "string" ? result : toHtml(result);
       highlightedCodeCache.set(
         cacheKey,
         highlightedHtml,
         estimateHighlightedSize(highlightedHtml, code),
       );
     }
-  }, [cacheKey, code, highlighted, isStreaming]);
+    return result;
+  })();
 
   return typeof highlighted === "string" ? (
     <div className="chat-markdown-shiki" dangerouslySetInnerHTML={{ __html: highlighted }} />

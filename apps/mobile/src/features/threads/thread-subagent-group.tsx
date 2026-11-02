@@ -1,47 +1,41 @@
 import { useAtomValue } from "@effect/atom-react";
-import { StackActions, useIsFocused, useNavigation } from "@react-navigation/native";
+import { StackActions, useNavigation } from "@react-navigation/native";
 import { scopeThreadRef } from "@supaterm/client-runtime/environment";
+import {
+  resolveProviderInstanceDisplayName,
+  shouldShowInstanceBadge,
+} from "@supaterm/client-runtime/state/provider-instance-display";
 import { summarizeSubagentStatuses } from "@supaterm/client-runtime/state/subagent-display";
 import { isActiveSubagentStatus } from "@supaterm/client-runtime/state/subagentRuntime";
 import type {
   EnvironmentId,
   OrchestrationV2Subagent,
   OrchestrationV2TurnItem,
+  ServerConfig,
 } from "@supaterm/contracts";
-import { useEffect, useState } from "react";
-import { AppState, Pressable, View, type ColorValue } from "react-native";
+import { Pressable, View, type ColorValue } from "react-native";
 
 import { AppText as Text } from "../../components/ui/AppText";
-import { ProviderIcon } from "../../components/ProviderIcon";
+import { ProviderIcon, ProviderInstanceIcon } from "../../components/ProviderIcon";
 import { cn } from "../../lib/cn";
 import type { ThreadFeedActivity } from "../../lib/threadActivity";
 import { serverEnvironment } from "../../state/server";
 import { environmentThreadDetails } from "../../state/threads";
 import { subagentCardElapsed } from "./subagent-card-presentation";
 import { SubagentRow } from "./SubagentRow";
+import { useVisibleSecondClock } from "./use-visible-second-clock";
 import { WorkLogBlock } from "./work-log-layout";
 import { DisclosureChevron } from "../../components/ui/DisclosureChevron";
 import { MotionPresence } from "../../components/ui/MotionPresence";
+
+import { useOpenThreadInspector } from "./thread-inspector-navigation";
 
 type SubagentItem = Extract<OrchestrationV2TurnItem, { type: "subagent" }>;
 type AgentTiming = Pick<OrchestrationV2Subagent, "status" | "startedAt" | "completedAt">;
 
 function SubagentElapsed({ agents }: { readonly agents: ReadonlyArray<AgentTiming> }) {
-  const focused = useIsFocused();
   const live = agents.some((agent) => isActiveSubagentStatus(agent.status));
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  const [appActive, setAppActive] = useState(() => AppState.currentState === "active");
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (state) =>
-      setAppActive(state === "active"),
-    );
-    return () => subscription.remove();
-  }, []);
-  useEffect(() => {
-    if (!live || !focused || !appActive) return;
-    const intervalId = setInterval(() => setNowMs(Date.now()), 1_000);
-    return () => clearInterval(intervalId);
-  }, [appActive, focused, live]);
+  const nowMs = useVisibleSecondClock(live);
   const elapsed = subagentCardElapsed(agents, nowMs);
   return elapsed ? (
     <Text className="shrink-0 text-xs tabular-nums text-foreground-muted">{elapsed}</Text>
@@ -50,14 +44,53 @@ function SubagentElapsed({ agents }: { readonly agents: ReadonlyArray<AgentTimin
 
 function SubagentAvatar(props: {
   readonly item: SubagentItem;
-  readonly iconUrl?: string | null | undefined;
+  readonly config: ServerConfig | null | undefined;
 }) {
+  const providers = props.config?.providers ?? [];
+  const provider = providers.find(
+    (candidate) => candidate.instanceId === props.item.providerInstanceId,
+  );
+  const badgeEntries = providers.map((candidate) => {
+    const rawConfig = props.config?.settings.providerInstances[candidate.instanceId]?.config;
+    const instanceConfig =
+      rawConfig !== null && typeof rawConfig === "object"
+        ? (rawConfig as Readonly<Record<string, unknown>>)
+        : null;
+    const agentId = instanceConfig?.source === "local" ? undefined : instanceConfig?.agentId;
+    return {
+      ...candidate,
+      driverKind: candidate.driver,
+      acpRegistryAgentId: typeof agentId === "string" ? agentId.trim() || undefined : undefined,
+    };
+  });
+  const badgeEntry = badgeEntries.find(
+    (candidate) => candidate.instanceId === props.item.providerInstanceId,
+  );
+  const showBadge =
+    provider !== undefined &&
+    badgeEntry !== undefined &&
+    shouldShowInstanceBadge(badgeEntry, badgeEntries);
   return (
     <View
       accessible={false}
       className="h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-card"
     >
-      <ProviderIcon provider={props.item.driver} iconUrl={props.iconUrl} size={15} />
+      {showBadge ? (
+        <ProviderInstanceIcon
+          provider={provider.driver}
+          iconUrl={provider.iconUrl}
+          size={15}
+          displayName={resolveProviderInstanceDisplayName(provider)}
+          accentColor={provider.accentColor}
+          showBadge
+        />
+      ) : (
+        <ProviderIcon
+          provider={provider?.driver ?? props.item.driver}
+          iconUrl={provider?.iconUrl}
+          size={15}
+        />
+      )}
     </View>
   );
 }
@@ -72,6 +105,7 @@ export function ThreadSubagentGroup(props: {
 }) {
   const config = useAtomValue(serverEnvironment.configValueAtom(props.environmentId));
   const navigation = useNavigation();
+  const openInspector = useOpenThreadInspector();
   const members = props.activities.flatMap(({ projectedItem }) =>
     projectedItem.item.type === "subagent" ? [projectedItem.item] : [],
   );
@@ -96,8 +130,6 @@ export function ThreadSubagentGroup(props: {
   const label = `${agents.length} subagents`;
   const summary = summarizeSubagentStatuses(agents.map((agent) => agent.status));
   const expanded = props.expandedRows[props.anchorKey] ?? false;
-  const iconUrl = (item: SubagentItem) =>
-    config?.providers.find((provider) => provider.instanceId === item.providerInstanceId)?.iconUrl;
   return (
     <WorkLogBlock>
       {grouped ? (
@@ -111,7 +143,7 @@ export function ThreadSubagentGroup(props: {
           <View className="flex-row items-center">
             {agents.slice(0, 3).map((agent, index) => (
               <View key={agent.item.id} style={{ marginLeft: index === 0 ? 0 : -7 }}>
-                <SubagentAvatar item={agent.item} iconUrl={iconUrl(agent.item)} />
+                <SubagentAvatar item={agent.item} config={config} />
               </View>
             ))}
             {agents.length > 3 ? (
@@ -156,15 +188,22 @@ export function ThreadSubagentGroup(props: {
                   }
                   disabled={threadId === null}
                   onPress={() => {
+                    if (threadId === null) return;
+                    if (
+                      openInspector(
+                        { environmentId: props.environmentId, threadId: members[0]!.threadId },
+                        { type: "thread", environmentId: props.environmentId, threadId },
+                      )
+                    )
+                      return;
                     // Push, not navigate: navigate reuses this Thread route, so back
                     // would skip the parent thread.
-                    if (threadId !== null)
-                      navigation.dispatch(
-                        StackActions.push("Thread", {
-                          environmentId: String(props.environmentId),
-                          threadId: String(threadId),
-                        }),
-                      );
+                    navigation.dispatch(
+                      StackActions.push("Thread", {
+                        environmentId: String(props.environmentId),
+                        threadId: String(threadId),
+                      }),
+                    );
                   }}
                   className="rounded-lg px-3 py-3 active:bg-subtle"
                 >

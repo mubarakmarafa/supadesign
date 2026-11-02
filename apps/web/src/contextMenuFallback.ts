@@ -1,186 +1,84 @@
 import type { ContextMenuItem } from "@supaterm/contracts";
+import {
+  Archive,
+  Check,
+  ChevronRight,
+  CircleCheck,
+  Clock,
+  Columns,
+  Copy,
+  Folder,
+  FolderPlus,
+  FolderTree,
+  GitBranch,
+  Globe,
+  Hash,
+  iconSvgElements,
+  type IconNode,
+  MailUnread,
+  MessageSquare,
+  MessageSquarePlus,
+  MessageSquareText,
+  Pencil,
+  Pin,
+  PinOff,
+  RefreshCw,
+  Settings,
+  TextSearch,
+  Timer,
+  Trash,
+} from "@supaterm/icons/nodes";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-const ICON_PATHS: Record<string, ReadonlyArray<{ tag: string; attrs: Record<string, string> }>> = {
-  archive: [
-    { tag: "rect", attrs: { width: "20", height: "5", x: "2", y: "3", rx: "1" } },
-    { tag: "path", attrs: { d: "M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" } },
-    { tag: "path", attrs: { d: "M10 12h4" } },
-  ],
-  check: [{ tag: "path", attrs: { d: "M20 6 9 17l-5-5" } }],
-  timer: [
-    { tag: "line", attrs: { x1: "10", x2: "14", y1: "2", y2: "2" } },
-    { tag: "line", attrs: { x1: "12", x2: "15", y1: "14", y2: "11" } },
-    { tag: "circle", attrs: { cx: "12", cy: "14", r: "8" } },
-  ],
-  "chevron-right": [{ tag: "path", attrs: { d: "m9 19 7-7-7-7" } }],
-  "columns-2": [
-    { tag: "rect", attrs: { width: "18", height: "18", x: "3", y: "3", rx: "2" } },
-    { tag: "path", attrs: { d: "M12 3v18" } },
-  ],
-  "circle-check": [
-    { tag: "circle", attrs: { cx: "12", cy: "12", r: "10" } },
-    { tag: "path", attrs: { d: "m9 12 2 2 4-4" } },
-  ],
-  clock: [
-    { tag: "path", attrs: { d: "M12 6v6l4 2" } },
-    { tag: "circle", attrs: { cx: "12", cy: "12", r: "10" } },
-  ],
-  pencil: [
-    {
-      tag: "path",
-      attrs: {
-        d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
-      },
-    },
-    { tag: "path", attrs: { d: "m15 5 4 4" } },
-  ],
-  copy: [
-    { tag: "rect", attrs: { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2" } },
-    { tag: "path", attrs: { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" } },
-  ],
-  folder: [
-    {
-      tag: "path",
-      attrs: {
-        d: "M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z",
-      },
-    },
-  ],
-  "git-branch": [
-    { tag: "line", attrs: { x1: "6", x2: "6", y1: "3", y2: "15" } },
-    { tag: "circle", attrs: { cx: "18", cy: "6", r: "3" } },
-    { tag: "circle", attrs: { cx: "6", cy: "18", r: "3" } },
-    { tag: "path", attrs: { d: "M18 9a9 9 0 0 1-9 9" } },
-  ],
-  hash: [
-    { tag: "line", attrs: { x1: "4", x2: "20", y1: "9", y2: "9" } },
-    { tag: "line", attrs: { x1: "4", x2: "20", y1: "15", y2: "15" } },
-    { tag: "line", attrs: { x1: "10", x2: "8", y1: "3", y2: "21" } },
-    { tag: "line", attrs: { x1: "16", x2: "14", y1: "3", y2: "21" } },
-  ],
-  "mail-open": [
-    {
-      tag: "path",
-      attrs: {
-        d: "M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z",
-      },
-    },
-    { tag: "path", attrs: { d: "m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10" } },
-  ],
-  globe: [
-    { tag: "circle", attrs: { cx: "12", cy: "12", r: "10" } },
-    { tag: "path", attrs: { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" } },
-    { tag: "path", attrs: { d: "M2 12h20" } },
-  ],
-  "message-square-plus": [
-    {
-      tag: "path",
-      attrs: {
-        d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z",
-      },
-    },
-    { tag: "path", attrs: { d: "M12 8v6" } },
-    { tag: "path", attrs: { d: "M9 11h6" } },
-  ],
-  "message-square-text": [
-    {
-      tag: "path",
-      attrs: {
-        d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z",
-      },
-    },
-    { tag: "path", attrs: { d: "M7 11h10" } },
-    { tag: "path", attrs: { d: "M7 15h6" } },
-    { tag: "path", attrs: { d: "M7 7h8" } },
-  ],
-  pin: [
-    { tag: "path", attrs: { d: "M12 17v5" } },
-    {
-      tag: "path",
-      attrs: {
-        d: "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z",
-      },
-    },
-  ],
-  "pin-off": [
-    { tag: "path", attrs: { d: "M12 17v5" } },
-    { tag: "path", attrs: { d: "M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89" } },
-    { tag: "path", attrs: { d: "m2 2 20 20" } },
-    {
-      tag: "path",
-      attrs: {
-        d: "M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11",
-      },
-    },
-  ],
-  "refresh-cw": [
-    { tag: "path", attrs: { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" } },
-    { tag: "path", attrs: { d: "M21 3v5h-5" } },
-    { tag: "path", attrs: { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" } },
-    { tag: "path", attrs: { d: "M8 16H3v5" } },
-  ],
-  settings: [
-    {
-      tag: "path",
-      attrs: {
-        d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z",
-      },
-    },
-    { tag: "circle", attrs: { cx: "12", cy: "12", r: "3" } },
-  ],
-  "folder-tree": [
-    {
-      tag: "path",
-      attrs: {
-        d: "M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z",
-      },
-    },
-    {
-      tag: "path",
-      attrs: {
-        d: "M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z",
-      },
-    },
-    { tag: "path", attrs: { d: "M3 5a2 2 0 0 0 2 2h3" } },
-    { tag: "path", attrs: { d: "M3 3v13a2 2 0 0 0 2 2h3" } },
-  ],
-  trash: [
-    { tag: "path", attrs: { d: "M3 6h18" } },
-    { tag: "path", attrs: { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" } },
-    { tag: "path", attrs: { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" } },
-    { tag: "line", attrs: { x1: "10", x2: "10", y1: "11", y2: "17" } },
-    { tag: "line", attrs: { x1: "14", x2: "14", y1: "11", y2: "17" } },
-  ],
+// Keys are the `icon` names callers put on context menu items; desktop maps the same
+// names to native symbols.
+const ICONS: Readonly<Record<string, IconNode>> = {
+  archive: Archive,
+  check: Check,
+  timer: Timer,
+  "chevron-right": ChevronRight,
+  "columns-2": Columns,
+  "circle-check": CircleCheck,
+  clock: Clock,
+  pencil: Pencil,
+  copy: Copy,
+  folder: Folder,
+  "folder-plus": FolderPlus,
+  "git-branch": GitBranch,
+  hash: Hash,
+  "mail-open": MailUnread,
+  globe: Globe,
+  "message-square": MessageSquare,
+  "message-square-plus": MessageSquarePlus,
+  "message-square-text": MessageSquareText,
+  pin: Pin,
+  "pin-off": PinOff,
+  "refresh-cw": RefreshCw,
+  settings: Settings,
+  "folder-tree": FolderTree,
+  "text-search": TextSearch,
+  trash: Trash,
 };
 
 function createIconElement(name: string, tone: "neutral" | "destructive"): SVGSVGElement | null {
-  const paths = ICON_PATHS[name];
-  if (!paths || typeof document.createElementNS !== "function") {
+  const node = ICONS[name];
+  if (!node || typeof document.createElementNS !== "function") {
     return null;
   }
   const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("xmlns", SVG_NS);
   svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "2");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("fill", "currentColor");
+  svg.setAttribute("stroke", "none");
   svg.setAttribute(
     "class",
     tone === "destructive"
       ? "size-4.5 shrink-0 sm:size-4"
       : "size-4.5 shrink-0 text-muted-foreground sm:size-4",
   );
-  for (const node of paths) {
-    const child = document.createElementNS(SVG_NS, node.tag);
-    for (const [key, value] of Object.entries(node.attrs)) {
-      child.setAttribute(key, value);
-    }
-    svg.appendChild(child);
-  }
+  svg.innerHTML = iconSvgElements(node);
   return svg;
 }
 
@@ -224,14 +122,14 @@ function isNodeWithinMenuStack(target: EventTarget | null, menuStack: readonly H
   return false;
 }
 
-let activeContextMenuDismiss: (() => void) | null = null;
+let activeContextMenuDismiss: ((restoreFocus?: boolean) => void) | null = null;
 
 export function isContextMenuOpen(): boolean {
   return activeContextMenuDismiss !== null;
 }
 
-export function dismissContextMenu(): void {
-  activeContextMenuDismiss?.();
+export function dismissContextMenu(restoreFocus = true): void {
+  activeContextMenuDismiss?.(restoreFocus);
   activeContextMenuDismiss = null;
 }
 
@@ -239,17 +137,21 @@ export function showContextMenuFallback<T extends string>(
   items: readonly ContextMenuItem<T>[],
   position?: { x: number; y: number },
 ): Promise<T | null> {
+  dismissContextMenu();
   return new Promise<T | null>((resolve) => {
-    const previouslyFocusedElement =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    let focusedElement = document.activeElement;
+    while (focusedElement?.shadowRoot?.activeElement) {
+      focusedElement = focusedElement.shadowRoot.activeElement;
+    }
+    const previouslyFocusedElement = focusedElement instanceof HTMLElement ? focusedElement : null;
     const menuStack: HTMLDivElement[] = [];
     const submenuTriggerStack: Array<HTMLButtonElement | undefined> = [];
     let isDisposed = false;
     let canDismissFromPointer = false;
 
-    const dismiss = () => cleanup(null);
+    const dismiss = (restoreFocus = true) => cleanup(null, restoreFocus);
 
-    const cleanup = (result: T | null) => {
+    const cleanup = (result: T | null, restoreFocus = true) => {
       if (isDisposed) {
         return;
       }
@@ -260,7 +162,10 @@ export function showContextMenuFallback<T extends string>(
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("contextmenu", onContextMenu, true);
-      const shouldRestoreFocus = isNodeWithinMenuStack(document.activeElement, menuStack);
+      document.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("blur", onWindowBlur);
+      const shouldRestoreFocus =
+        restoreFocus && isNodeWithinMenuStack(document.activeElement, menuStack);
       for (const menu of menuStack) {
         menu.remove();
       }
@@ -271,11 +176,77 @@ export function showContextMenuFallback<T extends string>(
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        cleanup(null);
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey
+      )
+        return;
+      const level = menuStack.findIndex((menu) =>
+        isNodeWithinMenuStack(document.activeElement, [menu]),
+      );
+      if (level < 0) return;
+      const menu = menuStack[level]!;
+      const buttons = [...menu.querySelectorAll<HTMLButtonElement>("button")].filter(
+        (button) => !button.disabled,
+      );
+      const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+      let target: HTMLButtonElement | undefined;
+      switch (event.key) {
+        case "ArrowDown":
+          target = buttons[(index + 1) % buttons.length];
+          break;
+        case "ArrowUp":
+          target =
+            buttons[(index < 0 ? buttons.length - 1 : index - 1 + buttons.length) % buttons.length];
+          break;
+        case "Home":
+          target = buttons[0];
+          break;
+        case "End":
+          target = buttons.at(-1);
+          break;
+        case "ArrowRight":
+          if (buttons[index]?.getAttribute("aria-haspopup") !== "menu") return;
+          buttons[index]?.click();
+          break;
+        case " ":
+        case "Enter":
+          // Keyboard activation must not depend on the opening pointer gesture's frame.
+          canDismissFromPointer = true;
+          buttons[index]?.click();
+          break;
+        case "ArrowLeft":
+          if (level === 0) return;
+        // Fall through to cancel this submenu only.
+        case "Escape": {
+          const parent = submenuTriggerStack[level];
+          if (parent) {
+            parent.focus({ preventScroll: true });
+            closeMenusFromLevel(level);
+          } else cleanup(null);
+          break;
+        }
+        case "Tab":
+          // Tab closes the menu and continues from the element that opened it.
+          cleanup(null);
+          return;
+        default:
+          return;
       }
+      event.preventDefault();
+      event.stopPropagation();
+      if (target && target !== submenuTriggerStack[level + 1]) closeMenusFromLevel(level + 1);
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView({ block: "nearest" });
     };
+
+    const onFocusIn = (event: FocusEvent) => {
+      if (!isNodeWithinMenuStack(event.target, menuStack)) cleanup(null, false);
+    };
+    const onWindowBlur = () => cleanup(null, false);
 
     const onPointerDown = (event: PointerEvent) => {
       if (!canDismissFromPointer || isNodeWithinMenuStack(event.target, menuStack)) {
@@ -316,6 +287,10 @@ export function showContextMenuFallback<T extends string>(
       menu.style.left = `${preferredLeft}px`;
       menu.style.top = `${preferredTop}px`;
       menu.dataset.level = String(level);
+      menu.dataset.contextMenu = "true";
+      menu.setAttribute("role", "menu");
+      menu.setAttribute("aria-label", parentTrigger?.textContent ?? "Context menu");
+      menu.tabIndex = -1;
 
       const inner = document.createElement("div");
       inner.className =
@@ -350,6 +325,9 @@ export function showContextMenuFallback<T extends string>(
         button.type = "button";
         const isDisabled = item.disabled === true;
         button.disabled = isDisabled;
+        button.tabIndex = -1;
+        button.setAttribute("role", "menuitem");
+        button.setAttribute("aria-disabled", String(isDisabled));
         const rowBase =
           "flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1 text-left outline-none transition-colors sm:min-h-7 sm:text-sm min-h-8 text-base";
         button.className = isDisabled
@@ -505,13 +483,17 @@ export function showContextMenuFallback<T extends string>(
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("contextmenu", onContextMenu, true);
     openMenu(items, position?.x ?? 0, position?.y ?? 0, 0);
-    // Only one fallback menu can be open at a time: a new show must dismiss
-    // any prior one, or its DOM and listeners leak and close() can only ever
-    // reach the newest menu.
-    if (activeContextMenuDismiss) {
-      activeContextMenuDismiss();
-    }
     activeContextMenuDismiss = dismiss;
+    // A keyboard-opened menu starts on its first action, a pointer-opened one on the menu itself.
+    // Text fields always match :focus-visible, so they say nothing about how the menu opened.
+    const firstAction =
+      previouslyFocusedElement?.matches(":focus-visible") &&
+      !previouslyFocusedElement.matches('input, textarea, select, [contenteditable="true"]')
+        ? menuStack[0]?.querySelector<HTMLButtonElement>("button:not(:disabled)")
+        : null;
+    (firstAction ?? menuStack[0])?.focus({ preventScroll: true });
+    document.addEventListener("focusin", onFocusIn);
+    window.addEventListener("blur", onWindowBlur);
 
     requestAnimationFrame(() => {
       canDismissFromPointer = true;

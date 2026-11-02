@@ -7,7 +7,6 @@ import {
   type ToolActivitySurface,
   type ToolActivityIcon,
   type OrchestrationV2TurnItem,
-  type OrchestrationV2ProjectedTurnItem,
   type ThreadId,
 } from "@supaterm/contracts";
 import {
@@ -17,11 +16,10 @@ import {
 } from "@supaterm/shared/supatermMcpToolPresentation";
 import { classifyMarkdownImageSource } from "@supaterm/client-runtime/markdown-images";
 import { resolveMediaSource } from "@supaterm/client-runtime/media-source";
-import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
-import { isWorkspaceImagePreviewPath } from "@supaterm/shared/filePreview";
+import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
+import { isWorkspaceImagePreviewPath } from "@supaterm/shared/mediaPreview";
 import { formatTokens } from "@supaterm/shared/usageFormat";
 import { classifyToolActivity } from "@supaterm/shared/toolActivity";
-import { turnItemOutputImages } from "./itemDetail.ts";
 import { toolOutputIndicatesFailure } from "@supaterm/shared/toolOutput";
 
 import {
@@ -186,15 +184,18 @@ function resolveSupatermMcpToolPresentation(
   const payload = asRecord(data);
   const input =
     asRecord(payload?.arguments) ?? asRecord(payload?.input) ?? asRecord(payload?.rawInput);
-  const urlTarget = typeof input?.url === "string" ? parseChangeRequestUrl(input.url) : null;
-  const number = urlTarget?.number ?? input?.number;
+  const urlTarget =
+    typeof input?.url === "string" ? sourceControlClients.parseChangeRequestUrl(input.url) : null;
+  const number = urlTarget?.link.number ?? input?.number;
+  const { shortLabel } = (urlTarget?.definition ?? sourceControlClients.get(undefined))
+    .changeRequest;
   const target =
     actionKind !== undefined &&
     actionKind !== "list-prs" &&
     typeof number === "number" &&
     Number.isSafeInteger(number) &&
     number > 0
-      ? `PR #${number}`
+      ? `${shortLabel} #${number}`
       : detail;
   return {
     displayName: `${verb} ${target}`,
@@ -235,139 +236,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function nonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value : null;
-}
-
-function commandResultContent(value: unknown): string | null {
-  const direct = nonEmptyString(value);
-  if (direct) return direct;
-
-  const directContent = Array.isArray(value) ? value : null;
-  const record = asRecord(value);
-  const content = record?.content;
-  const contentText = nonEmptyString(content);
-  if (contentText) return contentText;
-  const blocks = directContent ?? (Array.isArray(content) ? content : null);
-  if (!blocks) return null;
-
-  const chunks = blocks.flatMap((entry) => {
-    const text = nonEmptyString(entry) ?? nonEmptyString(asRecord(entry)?.text);
-    return text ? [text] : [];
-  });
-  return chunks.length > 0 ? chunks.join("\n") : null;
-}
-
-export function extractCommandOutputText(dataValue: unknown): string | null {
-  const data = asRecord(dataValue);
-  const item = asRecord(data?.item);
-  const itemResult = asRecord(item?.result);
-  const rawOutput = asRecord(data?.rawOutput);
-  const outputStreams = [
-    nonEmptyString(rawOutput?.stdout),
-    nonEmptyString(rawOutput?.stderr),
-  ].filter((value): value is string => value !== null);
-  const acpContent = Array.isArray(data?.content)
-    ? data.content
-        .flatMap((entryValue) => {
-          const entry = asRecord(entryValue);
-          const content = asRecord(entry?.content);
-          const text = entry?.type === "content" ? nonEmptyString(content?.text) : null;
-          return text ? [text] : [];
-        })
-        .join("\n")
-    : null;
-
-  const candidates = [
-    item?.aggregatedOutput,
-    itemResult?.content,
-    data?.rawOutput,
-    rawOutput?.content,
-    outputStreams.length > 0 ? outputStreams.join("\n") : null,
-    rawOutput?.output,
-    acpContent,
-    data?.result,
-  ];
-  for (const candidate of candidates) {
-    const text = commandResultContent(candidate);
-    if (text) return text;
-  }
-  return null;
-}
-
-/**
- * Ingestion caps tool details at 180 chars and appends "...", so a long command
- * echo no longer equals the command it repeats. Treat a truncated prefix of the
- * command as the same echo.
- */
-function textRepeatsCommand(text: string, commands: ReadonlyArray<string | null>): boolean {
-  const truncated = text.endsWith("...")
-    ? text.slice(0, -3)
-    : text.endsWith("\u2026")
-      ? text.slice(0, -1)
-      : null;
-  return commands.some((candidate) => {
-    const command = candidate?.trim();
-    if (!command) return false;
-    if (command === text) return true;
-    return (
-      truncated !== null &&
-      truncated.length > 0 &&
-      command.length > truncated.length &&
-      command.startsWith(truncated)
-    );
-  });
-}
-
-/**
- * OpenCode stores completed output in `detail` with no other output channel, so
- * plain equality is only treated as synthetic when the payload shape shows the
- * detail came from the command: Codex item metadata, an ACP tool call
- * (`data.toolCallId`, `kind: "execute"`), a Claude tool-name prefix, or no
- * structured command at all.
- */
-export function commandDetailRepeatsCommand(input: {
-  readonly detail: string;
-  readonly command: string | null;
-  readonly rawCommand: string | null;
-  readonly toolName: unknown;
-  readonly data: unknown;
-}): boolean {
-  const toolName = nonEmptyString(input.toolName)?.trim();
-  const detail = input.detail.trim();
-  const commands = [input.command, input.rawCommand];
-  if (toolName) {
-    const prefix = `${toolName}:`;
-    if (detail.toLowerCase().startsWith(prefix.toLowerCase())) {
-      const unprefixed = detail.slice(prefix.length).trim();
-      if (textRepeatsCommand(unprefixed, commands)) return true;
-    }
-  }
-
-  if (!textRepeatsCommand(detail, commands)) return false;
-
-  const data = asRecord(input.data);
-  const item = asRecord(data?.item);
-  const itemInput = asRecord(item?.input);
-  const itemResult = asRecord(item?.result);
-  const hasStructuredCommand = [
-    item?.command,
-    itemInput?.command,
-    itemResult?.command,
-    data?.command,
-  ].some((value) =>
-    Array.isArray(value)
-      ? value.some((part) => nonEmptyString(part) !== null)
-      : nonEmptyString(value) !== null,
-  );
-  return (
-    !hasStructuredCommand ||
-    item !== null ||
-    data?.toolCallId !== undefined ||
-    nonEmptyString(data?.kind)?.toLowerCase() === "execute"
-  );
-}
-
 function workLogEntryIsToolLike(entry: WorkLogPresentationEntry): boolean {
   if (entry.tone === "tool" || entry.tone === "thinking" || entry.tone === "error") return true;
   if (entry.command !== undefined && entry.command.trim().length > 0) return true;
@@ -398,9 +266,9 @@ function workEntryIndicatesToolFailureFromOutput(
   }
   const item = entry.structuredPayload;
   if (item?.type === "command_execution") {
-    if (item.outputIndicatesFailure || (item.exitCode !== undefined && item.exitCode !== 0)) {
-      return true;
-    }
+    // The exit code outranks text in the output or the command itself.
+    if (item.exitCode !== undefined) return item.exitCode !== 0;
+    if (item.outputIndicatesFailure) return true;
     if (item.output && toolOutputIndicatesFailure(item.output.slice(0, 32_768))) {
       return true;
     }
@@ -417,17 +285,6 @@ export function workEntryIndicatesToolFailure(entry: WorkLogPresentationEntry): 
 
 export function workEntryDisplayIndicatesToolFailure(entry: WorkLogPresentationEntry): boolean {
   return workEntryIndicatesToolFailureFromOutput(entry, false);
-}
-
-export function workEntryIndicatesToolSuccess(entry: WorkLogPresentationEntry): boolean {
-  return (
-    workLogEntryIsToolLike(entry) &&
-    !workEntryIndicatesToolFailure(entry) &&
-    entry.tone !== "thinking" &&
-    entry.toolLifecycleStatus !== "idle" &&
-    entry.toolLifecycleStatus !== "inProgress" &&
-    entry.toolLifecycleStatus !== "stopped"
-  );
 }
 
 function workLogEntryIsLocalCodeSearch(entry: WorkLogPresentationEntry): boolean {
@@ -508,49 +365,6 @@ export interface ViewedImageAsset {
   readonly resource: Extract<AssetResource, { readonly _tag: "media-file" }>;
   readonly alt: string;
   readonly srcFragment: string;
-}
-
-export interface ToolGroupImage {
-  /** Unique per tool call, so the same file read twice still gets two thumbnails. */
-  readonly key: string;
-  readonly resource: Extract<AssetResource, { readonly _tag: "media-file" | "tool-output-image" }>;
-  readonly alt: string;
-  readonly srcFragment?: string;
-}
-
-/** Newest first, so a strip shows what just happened without scrolling. */
-export function toolGroupImages(
-  rows: ReadonlyArray<OrchestrationV2ProjectedTurnItem>,
-  workspaceRoot?: string,
-): ReadonlyArray<ToolGroupImage> {
-  const images: ToolGroupImage[] = [];
-  for (let rowIndex = rows.length - 1; rowIndex >= 0; rowIndex -= 1) {
-    const row = rows[rowIndex]!;
-    if (row.item.type !== "dynamic_tool") continue;
-    const item = row.item;
-    const imageCount = item.outputImageCount ?? turnItemOutputImages(item).length;
-    for (let index = imageCount - 1; index >= 0; index -= 1) {
-      images.push({
-        key: `${row.sourceItemId}:${index}`,
-        resource: {
-          _tag: "tool-output-image",
-          threadId: row.sourceThreadId,
-          itemId: row.sourceItemId,
-          index,
-        },
-        alt: item.title || "Tool output image",
-      });
-    }
-    const viewedImage =
-      imageCount === 0 && item.viewedImagePath
-        ? resolveViewedImageAsset(item.viewedImagePath, {
-            threadId: row.sourceThreadId,
-            workspaceRoot,
-          })
-        : null;
-    if (viewedImage) images.push({ ...viewedImage, key: `${row.sourceItemId}:viewed` });
-  }
-  return images;
 }
 
 export function resolveViewedImageAsset(
@@ -663,6 +477,7 @@ function summaryActionPriority(action: ToolGroupAction | SupatermMcpToolSummaryA
     case "thread-send":
     case "thread-interrupt":
     case "workflow-stop":
+    case "background-wait":
     case "schedule-create":
     case "schedule-update":
     case "schedule-delete":
@@ -686,6 +501,7 @@ function summaryActionPriority(action: ToolGroupAction | SupatermMcpToolSummaryA
     case "attachment-prepare":
     case "attachment-discard":
     case "attachment-send":
+    case "transcription-cancel":
       return 0;
     case "other":
     case "update":

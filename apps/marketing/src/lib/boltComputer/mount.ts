@@ -12,6 +12,8 @@ export interface BoltComputerSettings {
   readonly phosphor: string;
   /** `#rrggbb`, the round knob and the slider's handle. */
   readonly knobs: string;
+  /** Show the round knob and the slider. */
+  readonly controls: boolean;
   /** Multiplier on every animation. */
   readonly speed: number;
   /** Hold the state's still pose. */
@@ -26,6 +28,7 @@ export const DEFAULT_SETTINGS: BoltComputerSettings = {
   shell: "#e2dbca",
   phosphor: "#fff06a",
   knobs: "#686c3a",
+  controls: true,
   speed: 1,
   paused: false,
   interactive: true,
@@ -47,16 +50,14 @@ export const lookOf = (settings: BoltComputerSettings): Look => ({
   shell: shellMaterial(hexToRgb(settings.shell)),
   phosphor: hexToRgb(settings.phosphor),
   knobs: hexToRgb(settings.knobs),
+  controls: settings.controls,
   floorShadow: settings.floorShadow,
 });
 
 /**
- * Adds a canvas with the app icon's computer to `container`, filling it. It switches on, turns
- * toward a nearby pointer and hops with a spin on a click. Frames are drawn only while it moves
- * on screen. The canvas reaches past the container so hops and the floor's shadow take no layout
- * space.
- * The error state shakes on forever unless `restAfter` seconds lets it rest between shakes.
- * Returns null, adding nothing, if the browser refuses a 2D context.
+ * Frames are drawn only while the computer moves on screen. The canvas reaches past `container` so
+ * hops and the floor's shadow take no layout space. The error state shakes forever unless
+ * `restAfter` lets it rest. Returns null, adding nothing, if the browser refuses a 2D context.
  */
 export function mountBoltComputer(
   container: HTMLElement,

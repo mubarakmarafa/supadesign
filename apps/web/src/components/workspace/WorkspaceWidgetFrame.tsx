@@ -1,5 +1,5 @@
 import type { ProjectWorkspace, ProjectWorkspaceWidget } from "@supaterm/contracts";
-import { EllipsisIcon, GripVerticalIcon, Minimize2Icon } from "lucide-react";
+import { EllipsisIcon, GripVerticalIcon, ShrinkIcon } from "@supaterm/icons";
 import { createContext, type ReactNode, useContext } from "react";
 
 import { cn } from "~/lib/utils";
@@ -103,7 +103,7 @@ export function WorkspaceWidgetFrame({
             aria-label="Restore size"
             onClick={tile.toggleMaximized}
           >
-            <Minimize2Icon />
+            <ShrinkIcon />
           </Button>
         ) : null}
         <Menu>

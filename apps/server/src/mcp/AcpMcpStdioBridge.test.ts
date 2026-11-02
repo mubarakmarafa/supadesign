@@ -2,10 +2,17 @@
 import * as NodeStream from "node:stream";
 
 import { describe, expect, it } from "@effect/vitest";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
+import { vi } from "vite-plus/test";
 
-import { callAcpMcpTool, runAcpMcpStdioBridge } from "./AcpMcpStdioBridge.ts";
+import {
+  callAcpMcpTool,
+  mcpToolSession,
+  runAcpMcpCliFastPath,
+  runAcpMcpStdioBridge,
+} from "./AcpMcpStdioBridge.ts";
 
 function makeHarness(responder: (request: Request) => Promise<Response> | Response) {
   const input = new NodeStream.PassThrough();
@@ -27,6 +34,13 @@ function makeHarness(responder: (request: Request) => Promise<Response> | Respon
     },
   });
   return { input, written, requests, bridge };
+}
+
+function pendingFetch(started: Deferred.Deferred<AbortSignal | undefined>) {
+  return (_url: string, init?: RequestInit): Promise<Response> => {
+    Deferred.doneUnsafe(started, Effect.succeed(init?.signal ?? undefined));
+    return new Promise(() => {});
+  };
 }
 
 describe("AcpMcpStdioBridge", () => {
@@ -79,6 +93,54 @@ describe("AcpMcpStdioBridge", () => {
       expect(requests[3]?.headers.get("mcp-session-id")).toBe("session-42");
     }),
   );
+
+  it("prints structured results once in the terminal while retaining other content and errors", async () => {
+    const originalEnvironment = process.env;
+    using _environment = {
+      [Symbol.dispose]: () => {
+        process.env = originalEnvironment;
+      },
+    };
+    process.env = {
+      ...originalEnvironment,
+      SUPATERM_ACP_MCP_ENDPOINT: "http://127.0.0.1:1/mcp",
+      SUPATERM_ACP_MCP_AUTHORIZATION: "Bearer bridge-test",
+    };
+    const structuredContent = { taskId: "task-1", status: "failed" };
+    const explanation = { type: "text", text: "The command failed." };
+    const image = { type: "image", data: "image-data", mimeType: "image/png" };
+    const result = {
+      structuredContent,
+      content: [{ type: "text", text: JSON.stringify(structuredContent) }, explanation, image],
+      isError: true,
+    };
+    using fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (init?.method === "DELETE") return new Response(null, { status: 204 });
+      const message = JSON.parse(String(init?.body)) as { id?: string; method: string };
+      if (message.method === "notifications/initialized") {
+        return new Response(null, { status: 202 });
+      }
+      return Response.json(
+        {
+          jsonrpc: "2.0",
+          id: message.id,
+          result: message.method === "initialize" ? { protocolVersion: "2025-06-18" } : result,
+        },
+        { headers: { "mcp-session-id": "session-42" } },
+      );
+    });
+    using output = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+
+    await runAcpMcpCliFastPath("acp-mcp-call", ["task_status", '{"taskId":"task-1"}']);
+
+    expect(output).toHaveBeenCalledExactlyOnceWith(
+      `${JSON.stringify({ ...result, content: [explanation, image] })}\n`,
+    );
+    expect(fetch).toHaveBeenLastCalledWith(
+      "http://127.0.0.1:1/mcp",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
 
   it.effect("forwards requests and replays the session id and protocol version", () =>
     Effect.gen(function* () {
@@ -330,6 +392,45 @@ describe("AcpMcpStdioBridge", () => {
 
       expect(methods).toEqual(["tools/call", "notifications/cancelled"]);
       expect(JSON.parse(written[0]!)).toMatchObject({ id: 7, result: {} });
+    }),
+  );
+
+  it.effect("aborts the pending fetch when a tool call is interrupted", () =>
+    Effect.gen(function* () {
+      const started = yield* Deferred.make<AbortSignal | undefined>();
+      const fiber = yield* mcpToolSession({
+        endpoint: "http://127.0.0.1:1/mcp",
+        authorization: "Bearer bridge-test",
+        clientName: "supaterm-acp-cli",
+        fetchImplementation: pendingFetch(started),
+      }).pipe(
+        Effect.flatMap((session) => session.call("orchestrator_capabilities", {})),
+        Effect.scoped,
+        Effect.forkChild,
+      );
+
+      const signal = yield* Deferred.await(started);
+      yield* Fiber.interrupt(fiber);
+      expect(signal?.aborted).toBe(true);
+    }),
+  );
+
+  it.effect("aborts the pending fetch when the stdio bridge is interrupted", () =>
+    Effect.gen(function* () {
+      const started = yield* Deferred.make<AbortSignal | undefined>();
+      const input = new NodeStream.PassThrough();
+      const fiber = yield* runAcpMcpStdioBridge({
+        endpoint: "http://127.0.0.1:1/mcp",
+        authorization: "Bearer bridge-test",
+        input,
+        output: { write: () => undefined },
+        fetchImplementation: pendingFetch(started),
+      }).pipe(Effect.forkChild);
+
+      input.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" })}\n`);
+      const signal = yield* Deferred.await(started);
+      yield* Fiber.interrupt(fiber);
+      expect(signal?.aborted).toBe(true);
     }),
   );
 });

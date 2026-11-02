@@ -147,125 +147,128 @@ const fail = (message: string) => new ProjectBoardError({ message });
 
 const DEFAULT_READ_LIMIT = 50;
 
-export const make = (ops: ProjectBoardOps) =>
-  Effect.gen(function* () {
-    // Moves are planned from the board as it stands, so one runs at a time.
-    const moves = yield* Semaphore.make(1);
+export const make = Effect.fn("make")(function* (ops: ProjectBoardOps) {
+  // Moves are planned from the board as it stands, so one runs at a time.
+  const moves = yield* Semaphore.make(1);
 
-    const load = (projectId: ProjectId) =>
-      Effect.map(ops.readProject(projectId), ({ board, threads: all, boardAgentThreadId }) => {
-        const threads = all.filter((thread) => thread.id !== boardAgentThreadId);
-        return {
-          board,
-          threads,
-          boardAgentThreadId,
-          layout: board ?? DEFAULT_PROJECT_BOARD,
-          resolved: resolveBoardColumns(board, threads),
-        };
-      });
-
-    const read: ProjectBoardService["Service"]["read"] = ({ projectId, limit }) =>
-      Effect.map(load(projectId), ({ board, layout, resolved }) =>
-        resolved.map(({ column, cards }) => ({
-          id: column.id,
-          title: column.title,
-          inbox: column.id === layout.inboxColumnId,
-          live: column.id === layout.liveColumnId,
-          send: column.id === layout.sendColumnId,
-          done: column.id === layout.doneColumnId,
-          onEnter: (column.onEnter ?? []).map((step) => step.name),
-          onLeave: (column.onLeave ?? []).map((step) => step.name),
-          moveWhenDone: boardMoveWhenDone(board, column.id),
-          cardCount: cards.length,
-          cards: cards.slice(0, limit ?? DEFAULT_READ_LIMIT).map(({ thread }) => ({
-            threadId: thread.id,
-            title: thread.title,
-            archived: thread.archivedAt !== null,
-          })),
-        })),
-      );
-
-    const move = (input: {
-      readonly threadId: ThreadId;
-      readonly columnId: BoardColumnId | undefined;
-      readonly index: (board: ProjectBoard, columnId: BoardColumnId, count: number) => number;
-    }) =>
-      Effect.gen(function* () {
-        const projectId = yield* ops.projectOf(input.threadId);
-        const { board, threads, boardAgentThreadId, layout, resolved } = yield* load(projectId);
-        if (input.threadId === boardAgentThreadId) {
-          return yield* fail(
-            "That thread is the board agent, not a card. Pass the threadId of the card to move.",
-          );
-        }
-        const thread = threads.find((entry) => entry.id === input.threadId);
-        if (thread === undefined) return yield* fail("The card's thread is not on this board.");
-        const toColumnId = input.columnId ?? layout.inboxColumnId;
-        const target = resolved.find((entry) => entry.column.id === toColumnId);
-        if (target === undefined) {
-          const known = layout.columns.map((column) => `${column.id} (${column.title})`);
-          return yield* fail(`There is no column ${toColumnId}. Columns: ${known.join(", ")}.`);
-        }
-        const archived = thread.archivedAt !== null;
-        if (toColumnId === layout.doneColumnId && !archived && thread.working) {
-          return yield* fail("The card is still working. Stop its turn before moving it to Done.");
-        }
-        const fromColumnId = findBoardCardColumn(resolved, thread.id) ?? layout.inboxColumnId;
-        const others = target.cards.filter((card) => card.thread.id !== thread.id).length;
-        const index = Math.max(
-          0,
-          Math.min(Math.trunc(input.index(layout, toColumnId, others)), others),
-        );
-        const steps = planBoardCardMove({
-          board,
-          resolved,
-          threadId: thread.id,
-          archived,
-          toColumnId,
-          index,
-        });
-        for (const step of steps) {
-          if (step.type === "place") yield* ops.place(step);
-          else yield* ops.setArchived(step.threadId, step.type === "archive");
-        }
-        if (fromColumnId !== toColumnId) {
-          if (toColumnId === layout.sendColumnId) {
-            yield* ops
-              .sendBank(thread.id)
-              .pipe(Effect.mapError((error) => fail(`The card moved. ${error.message}`)));
-          }
-          if (fromColumnId === layout.liveColumnId) yield* ops.stopLiveEnvironment(thread.id);
-        }
-        return { columnId: toColumnId, index };
-      });
-
-    return ProjectBoardService.of({
-      read,
-      moveCard: (input) =>
-        move({
-          threadId: input.threadId,
-          columnId: input.columnId,
-          index: () => input.index ?? 0,
-        }).pipe(moves.withPermits(1)),
-      placeNewCard: (input) =>
-        move({ threadId: input.threadId, columnId: input.columnId, index: newBoardCardIndex }).pipe(
-          moves.withPermits(1),
-        ),
-      handOff: ({ threadId, brief, senderThreadId }) =>
-        Effect.gen(function* () {
-          const text = brief.trim();
-          if (text.length === 0) return yield* fail("The brief is empty.");
-          const { boardAgentThreadId, threads } = yield* load(yield* ops.projectOf(threadId));
-          if (threadId === boardAgentThreadId) {
-            return yield* fail(
-              "That thread is the board agent, not a card. Pass the threadId of the card to hand work to.",
-            );
-          }
-          const card = threads.find((thread) => thread.id === threadId);
-          if (card !== undefined && card.archivedAt !== null) {
-            return yield* fail("That card is in Done. Move it out of Done first.");
-          }
-          return yield* ops.sendToCard({ threadId, text, senderThreadId });
-        }),
+  const load = (projectId: ProjectId) =>
+    Effect.map(ops.readProject(projectId), ({ board, threads: all, boardAgentThreadId }) => {
+      const threads = all.filter((thread) => thread.id !== boardAgentThreadId);
+      return {
+        board,
+        threads,
+        boardAgentThreadId,
+        layout: board ?? DEFAULT_PROJECT_BOARD,
+        resolved: resolveBoardColumns(board, threads),
+      };
     });
+
+  const read: ProjectBoardService["Service"]["read"] = ({ projectId, limit }) =>
+    Effect.map(load(projectId), ({ board, layout, resolved }) =>
+      resolved.map(({ column, cards }) => ({
+        id: column.id,
+        title: column.title,
+        inbox: column.id === layout.inboxColumnId,
+        live: column.id === layout.liveColumnId,
+        send: column.id === layout.sendColumnId,
+        done: column.id === layout.doneColumnId,
+        onEnter: (column.onEnter ?? []).map((step) => step.name),
+        onLeave: (column.onLeave ?? []).map((step) => step.name),
+        moveWhenDone: boardMoveWhenDone(board, column.id),
+        cardCount: cards.length,
+        cards: cards.slice(0, limit ?? DEFAULT_READ_LIMIT).map(({ thread }) => ({
+          threadId: thread.id,
+          title: thread.title,
+          archived: thread.archivedAt !== null,
+        })),
+      })),
+    );
+
+  const move = Effect.fn("move")(function* (input: {
+    readonly threadId: ThreadId;
+    readonly columnId: BoardColumnId | undefined;
+    readonly index: (board: ProjectBoard, columnId: BoardColumnId, count: number) => number;
+  }) {
+    const projectId = yield* ops.projectOf(input.threadId);
+    const { board, threads, boardAgentThreadId, layout, resolved } = yield* load(projectId);
+    if (input.threadId === boardAgentThreadId) {
+      return yield* fail(
+        "That thread is the board agent, not a card. Pass the threadId of the card to move.",
+      );
+    }
+    const thread = threads.find((entry) => entry.id === input.threadId);
+    if (thread === undefined) return yield* fail("The card's thread is not on this board.");
+    const toColumnId = input.columnId ?? layout.inboxColumnId;
+    const target = resolved.find((entry) => entry.column.id === toColumnId);
+    if (target === undefined) {
+      const known = layout.columns.map((column) => `${column.id} (${column.title})`);
+      return yield* fail(`There is no column ${toColumnId}. Columns: ${known.join(", ")}.`);
+    }
+    const archived = thread.archivedAt !== null;
+    if (toColumnId === layout.doneColumnId && !archived && thread.working) {
+      return yield* fail("The card is still working. Stop its turn before moving it to Done.");
+    }
+    const fromColumnId = findBoardCardColumn(resolved, thread.id) ?? layout.inboxColumnId;
+    const others = target.cards.filter((card) => card.thread.id !== thread.id).length;
+    const index = Math.max(
+      0,
+      Math.min(Math.trunc(input.index(layout, toColumnId, others)), others),
+    );
+    const steps = planBoardCardMove({
+      board,
+      resolved,
+      threadId: thread.id,
+      archived,
+      toColumnId,
+      index,
+    });
+    for (const step of steps) {
+      if (step.type === "place") yield* ops.place(step);
+      else yield* ops.setArchived(step.threadId, step.type === "archive");
+    }
+    if (fromColumnId !== toColumnId) {
+      if (toColumnId === layout.sendColumnId) {
+        yield* ops
+          .sendBank(thread.id)
+          .pipe(Effect.mapError((error) => fail(`The card moved. ${error.message}`)));
+      }
+      if (fromColumnId === layout.liveColumnId) yield* ops.stopLiveEnvironment(thread.id);
+    }
+    return { columnId: toColumnId, index };
   });
+
+  return ProjectBoardService.of({
+    read,
+    moveCard: Effect.fn("ProjectBoardService.moveCard")((input) =>
+      move({
+        threadId: input.threadId,
+        columnId: input.columnId,
+        index: () => input.index ?? 0,
+      }).pipe(moves.withPermits(1)),
+    ),
+    placeNewCard: Effect.fn("ProjectBoardService.placeNewCard")((input) =>
+      move({ threadId: input.threadId, columnId: input.columnId, index: newBoardCardIndex }).pipe(
+        moves.withPermits(1),
+      ),
+    ),
+    handOff: Effect.fn("ProjectBoardService.handOff")(function* ({
+      threadId,
+      brief,
+      senderThreadId,
+    }) {
+      const text = brief.trim();
+      if (text.length === 0) return yield* fail("The brief is empty.");
+      const { boardAgentThreadId, threads } = yield* load(yield* ops.projectOf(threadId));
+      if (threadId === boardAgentThreadId) {
+        return yield* fail(
+          "That thread is the board agent, not a card. Pass the threadId of the card to hand work to.",
+        );
+      }
+      const card = threads.find((thread) => thread.id === threadId);
+      if (card !== undefined && card.archivedAt !== null) {
+        return yield* fail("That card is in Done. Move it out of Done first.");
+      }
+      return yield* ops.sendToCard({ threadId, text, senderThreadId });
+    }),
+  });
+});

@@ -1,3 +1,10 @@
+import {
+  ConnectionBlockedError,
+  ConnectionTransientError,
+} from "@supaterm/client-runtime/connection";
+import { EnvironmentRpcUnavailableError } from "@supaterm/client-runtime/rpc";
+import * as Cause from "effect/Cause";
+import * as Schema from "effect/Schema";
 import type { RefObject } from "react";
 import type { ChatComposerProps } from "./ChatComposer";
 import type { ComposerDraftContextRecords } from "../composerContextPresentation";
@@ -31,6 +38,7 @@ import {
 } from "~/lib/composerContextRecords";
 import { copiedComposerAttachmentFile } from "~/lib/copiedComposerAttachments";
 import type { ComposerContextClipboardFragment, ComposerContextRecord } from "@supaterm/contracts";
+import { collectInlineContextIds } from "../../lib/composerContextReferences";
 import { resolveAssetUrl } from "~/assets/assetUrls";
 import { assetEnvironment } from "~/state/assets";
 import { readPreparedConnection } from "~/state/session";
@@ -42,6 +50,11 @@ import { toastManager } from "../ui/toast";
 import type { PendingUserInput } from "../../session-logic";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { useAtomCommand } from "../../state/use-atom-command";
+import { countPreparingComposerImages } from "./preparingComposerImages";
+
+const isUnreachable = Schema.is(
+  Schema.Union([ConnectionTransientError, ConnectionBlockedError, EnvironmentRpcUnavailableError]),
+);
 
 async function downloadAttachmentBlob(url: string): Promise<Blob | null> {
   try {
@@ -69,7 +82,7 @@ export function useComposerContextImport(input: {
   readonly composerContextRecords: ComposerDraftContextRecords;
   readonly composerImages: ReadonlyArray<ComposerImageAttachment>;
   readonly composerFilesRef: ChatComposerProps["composerFilesRef"];
-  readonly pendingImageCompressionsRef: RefObject<Map<string, number>>;
+  readonly promptRef: RefObject<string>;
   readonly pendingThreadImportsRef: RefObject<Map<string, number>>;
   readonly addComposerFilesToDraft: (files: ComposerFileAttachment[]) => string[];
 }) {
@@ -86,7 +99,7 @@ export function useComposerContextImport(input: {
     composerContextRecords,
     composerImages,
     composerFilesRef,
-    pendingImageCompressionsRef,
+    promptRef,
     pendingThreadImportsRef,
     addComposerFilesToDraft,
   } = input;
@@ -123,7 +136,7 @@ export function useComposerContextImport(input: {
     return (
       (draft?.images.length ?? 0) +
       (draft?.files.length ?? 0) +
-      (pendingImageCompressionsRef.current.get(attachmentTargetKey) ?? 0) +
+      countPreparingComposerImages(attachmentTargetKey) +
       (pendingThreadImportsRef.current.get(attachmentTargetKey) ?? 0) +
       countQuestionAttachments(otherQuestionKeys)
     );
@@ -158,7 +171,12 @@ export function useComposerContextImport(input: {
           ? resolveAssetUrl(sourceConnection.httpBaseUrl, result.value.relativeUrl)
           : null;
       if (!url) {
-        fail("The original attachment is no longer available.");
+        const cause = result._tag === "Failure" ? Cause.squash(result.cause) : null;
+        fail(
+          isUnreachable(cause)
+            ? "The environment it came from is not reachable right now."
+            : "The original attachment is no longer available.",
+        );
         return;
       }
       const blob = await downloadAttachmentBlob(url);
@@ -166,6 +184,20 @@ export function useComposerContextImport(input: {
         fail("Downloading it from the source failed.");
         return;
       }
+      // Question attachments have no inline reference; annotations can own their screenshots.
+      const references = new Set(collectInlineContextIds(promptRef.current));
+      if (
+        !questionAttachmentTarget &&
+        !references.has(toKindScopedComposerContextId(record.kind, localId)) &&
+        !(
+          record.kind === "image" &&
+          references.has(previewAnnotationContextId(localId)) &&
+          getComposerDraft(composerDraftTarget)?.previewAnnotations.some(
+            (annotation) => annotation.id === localId,
+          )
+        )
+      )
+        return;
       file = new File([blob], record.name, { type: record.mimeType || blob.type });
     }
     // The draft these bytes belong to may have been sent or switched away from while they

@@ -109,6 +109,7 @@ export interface PreviewTabState {
   audioMuted: boolean;
   audible: boolean;
   controller: "human" | "agent" | "none";
+  capturing: boolean;
   favicon?: DesktopPreviewFavicon;
   serverTab?: { readonly threadId: string; readonly tabId: string };
   updatedAt: string;
@@ -322,11 +323,9 @@ const cropAnnotationScreenshot = (
 };
 
 /**
- * Electron converts `toBitmap()` output to sRGB by default. Captures on P3 Macs are
- * P3, so that conversion costs more per tick than the JPEG encode the fingerprint
- * replaces. An invalid target color space has no Skia color space, so `readPixels`
- * copies the pixels without a color transform. The fingerprint only compares frames
- * with each other, so color accuracy is irrelevant.
+ * Electron's default sRGB conversion of P3 captures costs more per tick than the JPEG encode the
+ * fingerprint replaces. An invalid color space makes `readPixels` skip the transform, and the
+ * fingerprint only compares frames with each other.
  */
 const FINGERPRINT_BITMAP_OPTIONS: Electron.ToBitmapOptions = {
   colorSpace: { primaries: "invalid", transfer: "invalid", matrix: "invalid", range: "invalid" },
@@ -374,7 +373,6 @@ const nextZoomLevel = (current: number, direction: "in" | "out"): number => {
 };
 
 type Listener = (tabId: string, state: PreviewTabState) => Effect.Effect<void>;
-type RecordingFrameListener = (frame: DesktopPreviewRecordingFrame) => Effect.Effect<void>;
 
 type PreviewInputSignal =
   | { readonly kind: "pointer"; readonly x: number; readonly y: number; readonly button: number }
@@ -440,21 +438,23 @@ type PointerEventListener = (event: DesktopPreviewPointerEvent) => Effect.Effect
 type OpenLinkListener = (event: DesktopPreviewOpenLinkEvent) => Effect.Effect<void>;
 
 /**
- * `about:blank` stays out: Chromium skips browser-side navigation for it, so the child copies
- * the guest's `contextIsolation: false` preferences and Electron gives no way to override them.
- * Deliberately not `ElectronShell.parseSafeExternalUrl`: that also admits
- * `vscode://vscode-remote/...` deep links, which belong in `shell.openExternal` and not in a
- * window spawned by a third-party page in the preview.
+ * `about:blank` stays out: Chromium skips browser-side navigation for it, so the child copies the
+ * guest's `contextIsolation: false` and Electron cannot override it. Not `parseSafeExternalUrl`,
+ * which admits `vscode://` deep links that belong in `shell.openExternal`, not a preview popup.
  */
 const POPUP_PROTOCOLS = new Set(["http:", "https:"]);
 
-const isPopupUrl = (rawUrl: string): boolean => {
-  try {
-    return POPUP_PROTOCOLS.has(new URL(rawUrl).protocol);
-  } catch {
-    return false;
-  }
-};
+// Main-process loadURL bypasses Chromium's renderer-side restrictions on local and inline URLs.
+const IN_PLACE_DENIED_PROTOCOLS = new Set([
+  "about:",
+  "chrome:",
+  "data:",
+  "devtools:",
+  "file:",
+  "filesystem:",
+  "javascript:",
+  "view-source:",
+]);
 
 /**
  * A popup is not a webview attach, so the `will-attach-webview` hardening in `DesktopWindow`
@@ -470,13 +470,19 @@ const POPUP_WINDOW_OPTIONS = {
   },
 } satisfies Electron.BrowserWindowConstructorOptions;
 
+/**
+ * OAuth needs a surviving popup opener. `blob:`, app links (behind the session's `openExternal`
+ * prompt) and form POSTs stay in place.
+ */
 export const previewWindowOpenAction = (details: {
   readonly url: string;
   readonly disposition: Electron.HandlerDetails["disposition"];
   readonly postBody?: Electron.PostBody;
 }): "popup" | "new-tab" | "navigate" | "deny" => {
-  if (details.url === "" || details.url === "about:blank") return "deny";
-  if (!isPopupUrl(details.url)) return "navigate";
+  const protocol = URL.parse(details.url)?.protocol;
+  // MSAL redirects on a denied blank popup; navigating the tab would destroy that fallback.
+  if (protocol === undefined || IN_PLACE_DENIED_PROTOCOLS.has(protocol)) return "deny";
+  if (!POPUP_PROTOCOLS.has(protocol)) return "navigate";
   if (details.disposition === "new-window") return "popup";
   return !details.postBody &&
     (details.disposition === "foreground-tab" || details.disposition === "background-tab")
@@ -559,9 +565,6 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
   const pointerEventListenersRef = yield* Ref.make<ReadonlySet<PointerEventListener>>(new Set());
   const openLinkListenersRef = yield* Ref.make<ReadonlySet<OpenLinkListener>>(new Set());
   const recordingInputListenersRef = yield* Ref.make<ReadonlySet<RecordingInputListener>>(
-    new Set(),
-  );
-  const recordingFrameListenersRef = yield* Ref.make<ReadonlySet<RecordingFrameListener>>(
     new Set(),
   );
   const pickSessionsRef = yield* Ref.make<ReadonlyMap<string, PickSession>>(new Map());
@@ -828,12 +831,7 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
   });
 
   const deliverEvent = (
-    eventKind:
-      | "state-change"
-      | "recording-frame"
-      | "recording-input"
-      | "pointer-event"
-      | "open-link",
+    eventKind: "state-change" | "recording-input" | "pointer-event" | "open-link",
     tabId: string,
     delivery: () => Effect.Effect<void>,
   ) =>
@@ -1096,35 +1094,6 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
                   },
                   () => wcDebugger.sendCommand("Page.screencastFrameAck", { sessionId }),
                 ).pipe(Effect.ignore);
-              }
-              const tabId = yield* tabIdForWebContents(wc.id);
-              const metadata =
-                typeof params["metadata"] === "object" && params["metadata"] !== null
-                  ? (params["metadata"] as Record<string, unknown>)
-                  : {};
-              if (tabId && typeof params["data"] === "string") {
-                const captureSession = (yield* SynchronizedRef.get(frameCaptureSessionsRef)).get(
-                  tabId,
-                );
-                if (captureSession?.consumers.has("recording")) {
-                  const receivedAt = yield* currentIso;
-                  const listeners = yield* Ref.get(recordingFrameListenersRef);
-                  const frame: DesktopPreviewRecordingFrame = {
-                    tabId,
-                    data: params["data"],
-                    width:
-                      typeof metadata["deviceWidth"] === "number" ? metadata["deviceWidth"] : 0,
-                    height:
-                      typeof metadata["deviceHeight"] === "number" ? metadata["deviceHeight"] : 0,
-                    receivedAt,
-                  };
-                  yield* Effect.forEach(
-                    listeners,
-                    (listener) =>
-                      deliverEvent("recording-frame", frame.tabId, () => listener(frame)),
-                    { discard: true },
-                  );
-                }
               }
             }
           });
@@ -1525,7 +1494,17 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
         );
       if (forwarded && host) {
         event.preventDefault();
-        if (!input.isAutoRepeat) host.send(MENU_ACTION_CHANNEL, forwarded.command);
+        if (!input.isAutoRepeat) {
+          if (
+            forwarded.command === "workspace.focusNext" ||
+            forwarded.command === "workspace.focusPrevious" ||
+            forwarded.command === "preview.focusUrl"
+          ) {
+            // DOM focus in the renderer cannot by itself release the guest's native keyboard focus.
+            host.focus();
+          }
+          host.send(MENU_ACTION_CHANNEL, forwarded.command);
+        }
         return;
       }
       if (isPreviewRefreshShortcut(input)) {
@@ -1671,6 +1650,7 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
           audioMuted: false,
           audible: false,
           controller: "none",
+          capturing: false,
           updatedAt,
         };
         return [
@@ -1744,6 +1724,7 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
       audioMuted: false,
       audible: false,
       controller: "none",
+      capturing: false,
       updatedAt,
     };
     yield* emit(tabId, closed);
@@ -1976,7 +1957,9 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
         audioMuted: current?.audioMuted ?? false,
         audible: current?.audible ?? false,
         controller: current?.controller ?? "none",
+        capturing: current?.capturing ?? false,
         ...(current?.favicon ? { favicon: current.favicon } : {}),
+        ...(current?.serverTab ? { serverTab: current.serverTab } : {}),
         updatedAt,
       };
       return [
@@ -2354,7 +2337,7 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
         return;
       }
       if (afterAttach.serverTab) {
-        yield* listenForAgentPointers;
+        yield* listenToBrowserHost;
         browserHost.attach(afterAttach.serverTab, { webContents: wc, debugger: control.debugger });
       }
       if (afterAttach.colorScheme !== "system") {
@@ -2523,13 +2506,13 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
     if (!captureSession?.consumers.has("picture-in-picture") || captureSession.scope === null)
       return;
     const wc = yield* requireWebContents(tabId);
-    const image = yield* attemptPromise(
-      {
-        operation: "frameCapture.capturePage",
-        tabId,
-        webContentsId: wc.id,
-      },
-      () => wc.capturePage(),
+    const captureContext = { operation: "frameCapture.capturePage", tabId, webContentsId: wc.id };
+    const image = yield* attemptPromise(captureContext, () => wc.capturePage()).pipe(
+      Effect.timeout(CAPTURE_PAGE_ATTEMPT_TIMEOUT_MS),
+      Effect.catchTags({
+        TimeoutError: (cause) =>
+          Effect.fail(new PreviewOperationError({ ...captureContext, cause })),
+      }),
     );
     const currentCaptureSession = yield* Effect.all(
       [SynchronizedRef.get(frameCaptureSessionsRef), SynchronizedRef.get(tabsRef)],
@@ -2587,78 +2570,66 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
       height: size.height,
       receivedAt,
     };
-    const deliveries: Array<Effect.Effect<void>> = [];
-    if (pictureInPicture) {
-      const pictureInPictureWindow = (yield* SynchronizedRef.get(pictureInPictureSessionsRef)).get(
-        tabId,
-      )?.window;
-      if (pictureInPictureWindow && !pictureInPictureWindow.isDestroyed()) {
-        deliveries.push(
-          Effect.gen(function* () {
-            const previousAspectRatio = (yield* Ref.get(pictureInPictureAspectRatiosRef)).get(
-              tabId,
+    const pictureInPictureWindow = (yield* SynchronizedRef.get(pictureInPictureSessionsRef)).get(
+      tabId,
+    )?.window;
+    if (!pictureInPictureWindow || pictureInPictureWindow.isDestroyed()) return;
+    yield* Effect.gen(function* () {
+      const previousAspectRatio = (yield* Ref.get(pictureInPictureAspectRatiosRef)).get(tabId);
+      const aspectRatio = frame.width / frame.height;
+      if (
+        previousAspectRatio === undefined ||
+        Math.abs(previousAspectRatio - aspectRatio) > PICTURE_IN_PICTURE_ASPECT_RATIO_EPSILON
+      ) {
+        yield* attempt(
+          {
+            operation: "pictureInPicture.setAspectRatio",
+            tabId,
+            webContentsId: wc.id,
+          },
+          () => {
+            const contentSize = fitPictureInPictureContentSize(
+              pictureInPictureWindow.getContentSize(),
+              aspectRatio,
             );
-            const aspectRatio = frame.width / frame.height;
-            if (
-              previousAspectRatio === undefined ||
-              Math.abs(previousAspectRatio - aspectRatio) > PICTURE_IN_PICTURE_ASPECT_RATIO_EPSILON
-            ) {
-              yield* attempt(
-                {
-                  operation: "pictureInPicture.setAspectRatio",
-                  tabId,
-                  webContentsId: wc.id,
-                },
-                () => {
-                  const contentSize = fitPictureInPictureContentSize(
-                    pictureInPictureWindow.getContentSize(),
-                    aspectRatio,
-                  );
-                  pictureInPictureWindow.setAspectRatio(0);
-                  pictureInPictureWindow.setContentSize(contentSize[0], contentSize[1], false);
-                  pictureInPictureWindow.setAspectRatio(aspectRatio);
-                },
-              );
-              yield* Ref.update(pictureInPictureAspectRatiosRef, (aspectRatios) =>
-                replaceMap(aspectRatios, (copy) => {
-                  copy.set(tabId, aspectRatio);
-                }),
-              );
-            }
-            yield* attempt(
-              {
-                operation: "pictureInPicture.deliverFrame",
-                tabId,
-                webContentsId: wc.id,
-              },
-              () => {
-                pictureInPictureWindow.webContents.send(
-                  PREVIEW_PICTURE_IN_PICTURE_FRAME_CHANNEL,
-                  frame,
-                );
-              },
-            );
-            yield* SynchronizedRef.update(frameCaptureSessionsRef, (sessions) => {
-              if (sessions.get(tabId) !== frameSession) return sessions;
-              return replaceMap(sessions, (copy) => {
-                copy.set(tabId, {
-                  ...frameSession,
-                  lastPictureInPictureFingerprint: fingerprint,
-                });
-              });
-            });
-          }).pipe(
-            Effect.catch((error) =>
-              Effect.logWarning("Picture-in-picture frame delivery failed.", {
-                tabId,
-                error,
-              }),
-            ),
-          ),
+            pictureInPictureWindow.setAspectRatio(0);
+            pictureInPictureWindow.setContentSize(contentSize[0], contentSize[1], false);
+            pictureInPictureWindow.setAspectRatio(aspectRatio);
+          },
+        );
+        yield* Ref.update(pictureInPictureAspectRatiosRef, (aspectRatios) =>
+          replaceMap(aspectRatios, (copy) => {
+            copy.set(tabId, aspectRatio);
+          }),
         );
       }
-    }
-    yield* Effect.all(deliveries, { concurrency: 2, discard: true });
+      yield* attempt(
+        {
+          operation: "pictureInPicture.deliverFrame",
+          tabId,
+          webContentsId: wc.id,
+        },
+        () => {
+          pictureInPictureWindow.webContents.send(PREVIEW_PICTURE_IN_PICTURE_FRAME_CHANNEL, frame);
+        },
+      );
+      yield* SynchronizedRef.update(frameCaptureSessionsRef, (sessions) => {
+        if (sessions.get(tabId) !== frameSession) return sessions;
+        return replaceMap(sessions, (copy) => {
+          copy.set(tabId, {
+            ...frameSession,
+            lastPictureInPictureFingerprint: fingerprint,
+          });
+        });
+      });
+    }).pipe(
+      Effect.catch((error) =>
+        Effect.logWarning("Picture-in-picture frame delivery failed.", {
+          tabId,
+          error,
+        }),
+      ),
+    );
   });
 
   const startFrameCapture = Effect.fn("PreviewManager.startFrameCapture")(function* (
@@ -3315,14 +3286,33 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
       { discard: true },
     );
   });
-  let pointersStarted = false;
-  const listenForAgentPointers = Effect.suspend(() => {
-    if (pointersStarted) return Effect.void;
-    pointersStarted = true;
-    return browserHost.pointers.pipe(
-      Stream.runForEach(emitAgentPointer),
-      Effect.forkIn(parentScope),
-      Effect.asVoid,
+  const updateServerTabCapturing = Effect.fn("PreviewManager.updateServerTabCapturing")(
+    function* (painting: {
+      readonly key: { readonly threadId: string; readonly tabId: string };
+      readonly active: boolean;
+    }) {
+      const tab = [...(yield* SynchronizedRef.get(tabsRef)).values()].find(
+        (candidate) =>
+          candidate.serverTab?.threadId === painting.key.threadId &&
+          candidate.serverTab.tabId === painting.key.tabId,
+      );
+      if (tab && tab.capturing !== painting.active) {
+        yield* update(tab.tabId, { capturing: painting.active });
+      }
+    },
+  );
+  let browserHostStarted = false;
+  // Subscribes before the attach that follows, so no event falls between the two.
+  const listenToBrowserHost = Effect.suspend(() => {
+    if (browserHostStarted) return Effect.void;
+    browserHostStarted = true;
+    const listen = Effect.forkIn(parentScope, { startImmediately: true });
+    return Effect.all(
+      [
+        browserHost.pointers.pipe(Stream.runForEach(emitAgentPointer), listen),
+        browserHost.painting.pipe(Stream.runForEach(updateServerTabCapturing), listen),
+      ],
+      { discard: true },
     );
   });
 
@@ -3358,7 +3348,6 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
         Ref.set(listenersRef, new Set()),
         Ref.set(pointerEventListenersRef, new Set()),
         Ref.set(openLinkListenersRef, new Set()),
-        Ref.set(recordingFrameListenersRef, new Set()),
         Ref.set(recordingInputListenersRef, new Set()),
       ],
       { discard: true },
@@ -3407,8 +3396,6 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
     subscribeOpenLinks: (listener: OpenLinkListener) => subscribe(openLinkListenersRef, listener),
     subscribeRecordingInputs: (listener: RecordingInputListener) =>
       subscribe(recordingInputListenersRef, listener),
-    subscribeRecordingFrames: (listener: RecordingFrameListener) =>
-      subscribe(recordingFrameListenersRef, listener),
     subscribeStateChanges: (listener: Listener) => subscribe(listenersRef, listener),
     zoomIn: (tabId: string) => applyZoom(tabId, (current) => nextZoomLevel(current, "in")),
     zoomOut: (tabId: string) => applyZoom(tabId, (current) => nextZoomLevel(current, "out")),
@@ -3653,13 +3640,10 @@ export class PreviewManager extends Context.Service<
     readonly subscribeRecordingInputs: (
       listener: RecordingInputListener,
     ) => Effect.Effect<void, never, Scope.Scope>;
-    readonly subscribeRecordingFrames: (
-      listener: RecordingFrameListener,
-    ) => Effect.Effect<void, never, Scope.Scope>;
   }
 >()("@supaterm/desktop/preview/Manager/PreviewManager") {}
 
-/** @public Service construction is part of the canonical Effect module API. */
+/** @public */
 export const make = Effect.gen(function* PreviewManagerMake() {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const browserSession = yield* BrowserSession.BrowserSession;
@@ -3791,7 +3775,6 @@ export const make = Effect.gen(function* PreviewManagerMake() {
     subscribeStateChanges: operations.subscribeStateChanges,
     subscribePointerEvents: operations.subscribePointerEvents,
     subscribeOpenLinks: operations.subscribeOpenLinks,
-    subscribeRecordingFrames: operations.subscribeRecordingFrames,
     subscribeRecordingInputs: operations.subscribeRecordingInputs,
   });
 }).pipe(Effect.withSpan("PreviewManager.make"));

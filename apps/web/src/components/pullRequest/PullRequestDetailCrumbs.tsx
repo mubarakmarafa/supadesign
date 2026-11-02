@@ -1,12 +1,12 @@
 import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
-import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
+import { ArrowLeftIcon, ExternalLinkIcon } from "@supaterm/icons";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
 import { cn } from "~/lib/utils";
 import { readLocalApi } from "~/localApi";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { openOnHostLabel, showPullRequestLinkContextMenu } from "./pullRequestLinkContextMenu";
+import { showPullRequestLinkContextMenu } from "./pullRequestLinkContextMenu";
 
 interface CrumbsPullRequest {
   readonly url: string;
@@ -21,7 +21,7 @@ const openNumberContextMenu = (event: ReactMouseEvent, detail: CrumbsPullRequest
   event.stopPropagation();
   void showPullRequestLinkContextMenu({
     url: detail.url,
-    openLabel: openOnHostLabel(sourceControlClients.get(detail.provider)),
+    host: sourceControlClients.get(detail.provider),
     position: { x: event.clientX, y: event.clientY },
   });
 };
@@ -78,7 +78,7 @@ function NumberLink({
               "inline-flex shrink-0 cursor-pointer items-center gap-0.5 font-medium underline-offset-2 hover:underline",
               toneClassName,
             )}
-            aria-label={`Open pull request #${detail.number} on host`}
+            aria-label={`Open ${sourceControlClients.get(detail.provider).changeRequest.singular} #${detail.number} on host`}
           >
             #{detail.number}
             <ExternalLinkIcon aria-hidden className="size-2.5" />

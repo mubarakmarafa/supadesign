@@ -8,7 +8,7 @@ import {
   MonitorIcon,
   RotateCcwIcon,
   RotateCwIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { useMemo, useState } from "react";
 
 import { resolveDiscoveredServerUrl } from "~/browser/browserTargetResolver";

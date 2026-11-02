@@ -12,7 +12,7 @@ import {
   type ServerProvider,
 } from "@supaterm/contracts";
 import { useRef, useState } from "react";
-import { Trash2Icon } from "lucide-react";
+import { TrashIcon } from "@supaterm/icons";
 
 import { useInlineConfirm } from "../../hooks/useInlineConfirm";
 import { useEnvironmentQuery } from "../../state/query";
@@ -133,21 +133,23 @@ function ProviderSetupActions({
   const queryError = authQuery.error ?? installQuery.error;
   const actionsDisabled = pendingLabel !== null || queryError !== null;
   const installationStatusMessage =
-    installation?.phase === "downloading"
-      ? `Downloading ${(installation.downloadedBytes / 1_000_000).toFixed(1)} MB${installation.totalBytes === null ? "" : ` of ${(installation.totalBytes / 1_000_000).toFixed(1)} MB`}.`
-      : installation?.phase === "extracting"
-        ? "Extracting Antigravity."
-        : installation?.phase === "verifying"
-          ? "Checking the downloaded runtime."
-          : installed
-            ? "Installed."
-            : usesCustomBinary
-              ? enabled
-                ? "The configured Antigravity runtime is unavailable."
-                : "The configured Antigravity runtime has not been checked."
-              : installation?.totalBytes
-                ? `${Math.ceil(installation.totalBytes / 1_000_000)} MB download.`
-                : "Not installed.";
+    installation === null
+      ? "Checking the Antigravity runtime."
+      : installation?.phase === "downloading"
+        ? `Downloading ${(installation.downloadedBytes / 1_000_000).toFixed(1)} MB${installation.totalBytes === null ? "" : ` of ${(installation.totalBytes / 1_000_000).toFixed(1)} MB`}.`
+        : installation?.phase === "extracting"
+          ? "Extracting Antigravity."
+          : installation?.phase === "verifying"
+            ? "Checking the downloaded runtime."
+            : installed
+              ? "Installed."
+              : usesCustomBinary
+                ? enabled
+                  ? "The configured Antigravity runtime is unavailable."
+                  : "The configured Antigravity runtime has not been checked."
+                : installation?.totalBytes
+                  ? `${Math.ceil(installation.totalBytes / 1_000_000)} MB download.`
+                  : "Not installed.";
 
   async function runCommand<A, E>(
     label: string,
@@ -247,7 +249,7 @@ function ProviderSetupActions({
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={actionsDisabled || installation === null || authActive}
+                    disabled={actionsDisabled || authActive}
                     onClick={() =>
                       void runCommand("Starting installation", () => startInstall(target))
                     }
@@ -335,7 +337,7 @@ function RemoveRuntimeButton({
         }
       >
         <InlineConfirmIcon armed={armed}>
-          <Trash2Icon className="size-3.5" />
+          <TrashIcon className="size-3.5" />
         </InlineConfirmIcon>
       </TooltipTrigger>
       <TooltipPopup>

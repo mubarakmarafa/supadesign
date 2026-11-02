@@ -12,6 +12,7 @@ import {
   NonNegativeInt,
   PositiveInt,
   ProjectId,
+  ThreadId,
   TrimmedNonEmptyString,
   TrimmedString,
   type UnknownUnionMember,
@@ -68,7 +69,7 @@ export const ProjectIconColor = Schema.Literals([
 ]);
 export type ProjectIconColor = typeof ProjectIconColor.Type;
 
-const ProjectLucideIconName = TrimmedNonEmptyString.check(
+const ProjectIconName = TrimmedNonEmptyString.check(
   Schema.isMaxLength(64),
   Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 );
@@ -81,9 +82,16 @@ export const ProjectMonogramText = TrimmedNonEmptyString.check(
   Schema.isPattern(/^[\p{L}\p{N}][\p{L}\p{N}\p{M}\u200c\u200d]*$/u),
 );
 
+const ProjectSymbolIcon = Schema.Struct({
+  kind: Schema.Literal("icon"),
+  name: ProjectIconName,
+  color: ProjectIconColor,
+});
+// Projects saved before Supaterm switched icon sets name a Lucide icon; clients map
+// those names onto the current set.
 const ProjectLucideIcon = Schema.Struct({
   kind: Schema.Literal("lucide"),
-  name: ProjectLucideIconName,
+  name: ProjectIconName,
   color: ProjectIconColor,
 });
 const ProjectEmojiIcon = Schema.Struct({
@@ -102,17 +110,25 @@ export const ProjectFaviconPath = TrimmedNonEmptyString.check(
 export type ProjectFaviconPath = typeof ProjectFaviconPath.Type;
 
 export const ProjectIconOverride = Schema.Union([
+  ProjectSymbolIcon,
   ProjectLucideIcon,
   ProjectEmojiIcon,
   ProjectMonogramIcon,
 ]);
 export type ProjectIconOverride = typeof ProjectIconOverride.Type;
 
+/** An override that names an icon from the project icon set, saved now or before the switch. */
+export type ProjectSymbolIconOverride = Extract<ProjectIconOverride, { kind: "icon" | "lucide" }>;
+
+export function isProjectSymbolIcon(icon: ProjectIconOverride): icon is ProjectSymbolIconOverride {
+  return icon.kind === "icon" || icon.kind === "lucide";
+}
+
 /** An icon the server stores. */
 export const StoredProjectIcon = ProjectIconOverride;
 
 export const ReceivedProjectIcon = ForwardCompatibleUnion(
-  [ProjectLucideIcon, ProjectEmojiIcon, ProjectMonogramIcon],
+  [ProjectSymbolIcon, ProjectLucideIcon, ProjectEmojiIcon, ProjectMonogramIcon],
   "kind",
 ).pipe(
   Schema.decodeTo(
@@ -143,6 +159,8 @@ export const Project = Schema.Struct({
   /** Widgets and look; absent on servers without workspaces, null when unset. */
   workspace: Schema.optional(Schema.NullOr(ReceivedProjectWorkspace)),
   scripts: Schema.Array(ProjectScript),
+  pinnedAt: Schema.optional(Schema.NullOr(IsoDateTime)),
+  archivedAt: Schema.optional(Schema.NullOr(IsoDateTime)),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
   deletedAt: Schema.NullOr(IsoDateTime),
@@ -154,16 +172,6 @@ export const ProjectSnapshot = Schema.Struct({
   updatedAt: IsoDateTime,
 });
 export type ProjectSnapshot = typeof ProjectSnapshot.Type;
-
-export const ProjectChange = Schema.Union([
-  Schema.Struct({ type: Schema.Literal("project.upserted"), project: Project }),
-  Schema.Struct({
-    type: Schema.Literal("project.deleted"),
-    projectId: ProjectId,
-    deletedAt: IsoDateTime,
-  }),
-]);
-export type ProjectChange = typeof ProjectChange.Type;
 
 export const ProjectCreatePayload = Schema.Struct({
   title: TrimmedNonEmptyString,
@@ -187,6 +195,12 @@ export const ProjectUpdatePayload = Schema.Struct({
   board: Schema.optional(Schema.NullOr(ProjectBoard)),
   /** Replaces the whole workspace; null resets it to the board alone. */
   workspace: Schema.optional(Schema.NullOr(ProjectWorkspace)),
+  pinned: Schema.optional(Schema.Boolean),
+  archived: Schema.optional(
+    Schema.Boolean.annotate({
+      description: "Threads and files are kept.",
+    }),
+  ),
 });
 export type ProjectUpdatePayload = typeof ProjectUpdatePayload.Type;
 
@@ -248,8 +262,7 @@ export type ProjectSearchEntriesResult = typeof ProjectSearchEntriesResult.Type;
 
 export const ProjectSearchContentsInput = Schema.Struct({
   cwd: TrimmedNonEmptyString,
-  // Whitespace is significant in content queries (" foo", regex trailing
-  // spaces), so the query is deliberately not trimmed on the wire.
+  // Preserve whitespace because it is significant in content queries.
   query: Schema.String.check(Schema.isNonEmpty(), Schema.isMaxLength(256)),
   limit: PositiveInt.check(Schema.isLessThanOrEqualTo(PROJECT_SEARCH_CONTENTS_MAX_LIMIT)),
   caseSensitive: Schema.Boolean,
@@ -421,8 +434,7 @@ export class ProjectListEntriesError extends Schema.TaggedError<ProjectListEntri
 
 export const ProjectReadFileInput = Schema.Struct({
   cwd: TrimmedNonEmptyString,
-  // Workspace-relative, or an absolute host path for a file outside the
-  // workspace. Only workspace-relative paths can be written back.
+  // Workspace-relative or absolute host path; only workspace-relative paths are writable.
   relativePath: TrimmedNonEmptyString.check(Schema.isMaxLength(PROJECT_READ_FILE_PATH_MAX_LENGTH)),
   // Optional files can be absent without failing the read.
   allowMissing: Schema.optional(Schema.Boolean),
@@ -525,6 +537,16 @@ export const ProjectCreateNewResult = Schema.Struct({
   commitError: Schema.optionalKey(TrimmedNonEmptyString),
 });
 export type ProjectCreateNewResult = typeof ProjectCreateNewResult.Type;
+
+export const ProjectCreateFromThreadInput = Schema.Struct({
+  threadId: ThreadId,
+});
+export type ProjectCreateFromThreadInput = typeof ProjectCreateFromThreadInput.Type;
+
+export const ProjectCreateFromThreadResult = Schema.Struct({
+  projectId: ProjectId,
+});
+export type ProjectCreateFromThreadResult = typeof ProjectCreateFromThreadResult.Type;
 
 export class ProjectWriteFileError extends Schema.TaggedError<ProjectWriteFileError>()(
   "ProjectWriteFileError",

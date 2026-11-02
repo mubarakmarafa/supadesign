@@ -6,7 +6,7 @@ import type {
   PullRequestMergeMethod,
 } from "@supaterm/contracts";
 import { squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
-import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
+import { RefreshCwIcon, TriangleAlertIcon } from "@supaterm/icons";
 import { useState } from "react";
 import { useInlineConfirm } from "~/hooks/useInlineConfirm";
 import { useAtomCommand } from "~/state/use-atom-command";
@@ -14,13 +14,16 @@ import { pullRequestEnvironment } from "~/state/pullRequests";
 import { Button } from "../ui/button";
 import { Menu, MenuPopup, MenuTrigger, MenuItem, MenuGroup, MenuSeparator } from "../ui/menu";
 import { toastManager } from "../ui/toast";
-import { InlineConfirmIcon, InlineConfirmLabel } from "../InlineConfirm";
+import { InlineConfirmIcon, InlineConfirmLabel, InlineConfirmTooltip } from "../InlineConfirm";
+import type { ChangeRequestTerminology } from "~/sourceControlPresentation";
 import { PullRequestStackLayers } from "./PullRequestStackLayers";
 import { PullRequestStackHeader } from "./PullRequestStackHeader";
 import { PullRequestGlyph } from "./pullRequestIcons";
+import { readableFailure } from "./pullRequestDetail.logic";
 
 export function PullRequestStackMenu({
   hostLabel,
+  terminology,
   stack,
   reference,
   environmentId,
@@ -33,6 +36,7 @@ export function PullRequestStackMenu({
   onRetry,
 }: {
   hostLabel: string;
+  terminology: ChangeRequestTerminology;
   notice?: string | null;
   onRetry?: (() => void) | undefined;
   stack: PullRequestStack;
@@ -97,7 +101,12 @@ export function PullRequestStackMenu({
       toastManager.update(toastId, {
         type: "error",
         title: action === "merge" ? "Could not merge the stack" : "Could not rebase the stack",
-        description: String(squashAtomCommandFailure(result)),
+        description: readableFailure(
+          squashAtomCommandFailure(result),
+          action === "merge"
+            ? "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting."
+            : "The host refused the rebase. A rebase stops at the first commit that does not apply cleanly.",
+        ),
       });
     } else {
       toastManager.update(toastId, {
@@ -110,7 +119,7 @@ export function PullRequestStackMenu({
       });
     }
   };
-  const mergeCountLabel = `${mergeLayers.length} ${mergeLayers.length === 1 ? "pull request" : "pull requests"}`;
+  const mergeCountLabel = `${mergeLayers.length} ${mergeLayers.length === 1 ? terminology.singular : terminology.plural}`;
   return (
     <>
       <Menu open={open} onOpenChange={setOpen}>
@@ -195,34 +204,28 @@ export function PullRequestStackMenu({
         </MenuPopup>
       </Menu>
       {canMerge && selectedLayer?.state === "open" ? (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <span className="inline-flex">
-                <Button
-                  {...confirm.bind("merge", () => void run("merge"))}
-                  variant="default"
-                  size="xs"
-                  disabled={mergeDisabled}
-                >
-                  <InlineConfirmIcon armed={confirm.armed === "merge"}>
-                    <PullRequestGlyph.merged aria-hidden className="size-3.5" />
-                  </InlineConfirmIcon>
-                  <InlineConfirmLabel
-                    armed={confirm.armed === "merge"}
-                    idle={pending ? "Working…" : "Merge stack"}
-                    confirm="Confirm merge"
-                  />
-                </Button>
-              </span>
-            }
-          />
-          <TooltipPopup>
-            {confirm.armed === "merge"
-              ? `Click again to merge ${mergeCountLabel} into ${stack.base} using ${mergeMethod}`
-              : `Merge stack through #${reference.number} into ${stack.base} (${mergeCountLabel})`}
-          </TooltipPopup>
-        </Tooltip>
+        <InlineConfirmTooltip
+          armed={confirm.armed === "merge"}
+          render={<span className="inline-flex" />}
+          tip={`Merge stack through #${reference.number} into ${stack.base} (${mergeCountLabel})`}
+          armedTip={`Click again to merge ${mergeCountLabel} into ${stack.base} using ${mergeMethod}`}
+        >
+          <Button
+            {...confirm.bind("merge", () => void run("merge"))}
+            variant="default"
+            size="xs"
+            disabled={mergeDisabled}
+          >
+            <InlineConfirmIcon armed={confirm.armed === "merge"}>
+              <PullRequestGlyph.merged aria-hidden className="size-3.5" />
+            </InlineConfirmIcon>
+            <InlineConfirmLabel
+              armed={confirm.armed === "merge"}
+              idle={pending ? "Working…" : "Merge stack"}
+              confirm="Confirm merge"
+            />
+          </Button>
+        </InlineConfirmTooltip>
       ) : null}
     </>
   );

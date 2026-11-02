@@ -23,14 +23,13 @@ import {
   FolderIcon,
   GitBranchIcon,
   TerminalIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { ThreadHoverCard } from "../ThreadHoverCard";
 import { MiddleTruncate } from "../ui/middle-truncate";
 import { ProviderInstanceIcon } from "./ProviderInstanceIcon";
 import { cn } from "~/lib/utils";
 import { deriveProviderInstanceEntries, shouldShowInstanceBadge } from "../../providerInstances";
 
-/** Geometry and preview limits stay identical in lineage and timeline tooltips. */
 export function SubagentTooltipContent(props: {
   title: string;
   model: string | null;

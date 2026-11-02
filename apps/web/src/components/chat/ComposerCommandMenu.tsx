@@ -15,12 +15,12 @@ import {
 import {
   BlocksIcon,
   FolderIcon,
+  type IconComponent,
   MessagesSquareIcon,
   PackageIcon,
   SettingsIcon,
-  UserRoundIcon,
-  type LucideIcon,
-} from "lucide-react";
+  UserIcon,
+} from "@supaterm/icons";
 import { memo, useLayoutEffect, useRef } from "react";
 
 import type { ComposerSlashCommand, ComposerTriggerKind } from "@supaterm/shared/composerTrigger";
@@ -92,6 +92,7 @@ export const ComposerCommandMenu = memo(function ComposerCommandMenu(props: {
 }) {
   const listRef = useRef<HTMLDivElement>(null);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- scrolls the highlighted menu item's DOM node into view
   useLayoutEffect(() => {
     if (!props.activeItemId || !listRef.current) return;
     const el = listRef.current.querySelector<HTMLElement>(
@@ -140,7 +141,9 @@ export const ComposerCommandMenu = memo(function ComposerCommandMenu(props: {
           <div className="px-5 pt-3.5 pb-7">
             <p className="text-secondary-label text-xs">
               {props.isLoading
-                ? props.triggerKind === "skill"
+                ? props.triggerKind === "skill" ||
+                  props.triggerKind === "slash-command" ||
+                  props.triggerKind === "slash-skill"
                   ? "Searching workspace skills..."
                   : props.triggerKind === "pull-request"
                     ? "Finding pull request..."
@@ -247,11 +250,11 @@ const LISTBOX_LABEL_BY_TRIGGER: Record<ComposerTriggerKind, string> = {
   "slash-skill": "Skills",
 };
 
-const SKILL_SOURCE_ICON_BY_KIND: Record<ProviderSkillSourceKind, LucideIcon> = {
+const SKILL_SOURCE_ICON_BY_KIND: Record<ProviderSkillSourceKind, IconComponent> = {
   app: BlocksIcon,
   repo: FolderIcon,
   project: FolderIcon,
-  personal: UserRoundIcon,
+  personal: UserIcon,
   system: SettingsIcon,
   other: PackageIcon,
 };

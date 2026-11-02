@@ -41,15 +41,14 @@ export function PullRequestRowGlyph({
     <span className={cn("flex w-4 shrink-0 flex-col items-center gap-0.5", className)}>
       <span className="relative inline-flex">
         <PullRequestStateGlyph state={state} isDraft={isDraft} />
-        {/* The wrapper takes the offset, not the icon, so the tooltip trigger inside keeps the
-            badge's size and anchors the popup to it. */}
+        {/* Offset the wrapper to keep the badge-sized tooltip trigger anchored. */}
         <span className="absolute -right-1 -bottom-1 inline-flex">
           <PullRequestConflictGlyph
             state={state}
             isDraft={isDraft}
             {...(mergeability === undefined ? {} : { mergeability })}
             {...(baseBranch === undefined ? {} : { baseBranch })}
-            className="size-3 fill-background [stroke-width:2.5]"
+            className="size-3 rounded-sm bg-background"
           />
         </span>
       </span>

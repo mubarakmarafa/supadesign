@@ -7,8 +7,8 @@ import {
   resolveTimelineMinimapInteractiveWidth,
 } from "./MessagesTimeline.logic";
 import { type TimelineMinimapItem, resolveTimelineMinimapPreview } from "./timelineMinimapItems";
-import { useState, useRef, useEffect, type MouseEvent } from "react";
-import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
+import { useState, useRef, type MouseEvent } from "react";
+import { ChevronDownIcon, ChevronUpIcon } from "@supaterm/icons";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import { cn } from "~/lib/utils";
@@ -49,6 +49,7 @@ export function TimelineMinimap({
   stripMap,
   onWheel,
   onSelect,
+  onStep,
 }: {
   hasPersistentGutter: boolean;
   hitStripWidth: number;
@@ -57,6 +58,7 @@ export function TimelineMinimap({
   stripMap: Map<string, HTMLSpanElement>;
   onWheel: (event: WheelEvent) => void;
   onSelect: (item: TimelineMinimapItem) => void;
+  onStep: (item: TimelineMinimapItem) => void;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const wheelTargetRef = (node: HTMLDivElement | null) => {
@@ -67,11 +69,6 @@ export function TimelineMinimap({
 
   const pressedOnStripRef = useRef(false);
   const [passThrough, setPassThrough] = useState(false);
-
-  useEffect(() => {
-    if (!passThrough) return;
-    return onMouseButtonsReleased(() => setPassThrough(false));
-  }, [passThrough]);
 
   const resolvedActiveIndex =
     activeIndex !== null && activeIndex < items.length ? activeIndex : null;
@@ -147,7 +144,9 @@ export function TimelineMinimap({
             });
           }}
           onMouseMove={(event) => {
-            if (event.buttons !== 0 && !pressedOnStripRef.current) setPassThrough(true);
+            if (event.buttons === 0 || pressedOnStripRef.current || passThrough) return;
+            setPassThrough(true);
+            onMouseButtonsReleased(() => setPassThrough(false));
           }}
           style={{
             height: resolveTimelineMinimapHeightStyle(items.length),
@@ -159,11 +158,15 @@ export function TimelineMinimap({
             disabled={previousItem === null}
             interactive={navigationInteractive}
             onClick={() => {
-              if (previousItem) onSelect(previousItem);
+              if (previousItem) onStep(previousItem);
             }}
           />
           <button
-            aria-label={`Jump to message: ${activeItem?.userText ?? "User message"}`}
+            aria-label={
+              activeItem?.pin
+                ? `Jump to pinned message: ${activeItem.pin.preview}`
+                : `Jump to message: ${activeItem?.userText ?? "User message"}`
+            }
             className="absolute inset-y-0 left-0 w-full cursor-pointer bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
             onBlur={() => setActiveIndex(null)}
             onClick={(event) => {
@@ -223,8 +226,15 @@ export function TimelineMinimap({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "group/strip pointer-events-none absolute left-0 h-0.5 w-6 origin-left -translate-y-1/2 rounded-full transition-transform duration-150",
-                    activeDistance === 0 ? "bg-muted-foreground/75" : "bg-muted-foreground/35",
+                    "pointer-events-none absolute left-0 h-0.5 w-6 origin-left -translate-y-1/2 rounded-full transition-transform duration-150 after:absolute after:inset-0 after:rounded-full after:opacity-0 after:transition-opacity after:duration-150 data-[in-view=true]:after:opacity-100",
+                    item.pin
+                      ? activeDistance === 0
+                        ? "bg-info"
+                        : "bg-info/60"
+                      : activeDistance === 0
+                        ? "bg-muted-foreground/75"
+                        : "bg-muted-foreground/35",
+                    item.pin ? "after:bg-info" : "after:bg-foreground/90",
                     activeDistance === 0
                       ? "scale-x-100"
                       : activeDistance === 1
@@ -244,9 +254,7 @@ export function TimelineMinimap({
                     }
                   }}
                   style={{ top }}
-                >
-                  <span className="absolute inset-0 rounded-full bg-foreground/90 opacity-0 transition-opacity duration-150 group-data-[in-view=true]/strip:opacity-100" />
-                </span>
+                />
               );
             })}
             {preview.value ? (
@@ -290,7 +298,7 @@ export function TimelineMinimap({
             disabled={nextItem === null}
             interactive={navigationInteractive}
             onClick={() => {
-              if (nextItem) onSelect(nextItem);
+              if (nextItem) onStep(nextItem);
             }}
           />
         </div>

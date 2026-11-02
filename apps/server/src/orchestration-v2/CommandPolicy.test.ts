@@ -226,6 +226,53 @@ it.each([
   );
 });
 
+// regression: #26695 an interrupt-restart steer cancels Copilot's background agents
+it("queues a steer for a provider that cannot steer either way", () => {
+  const projection = dispatchProjection(
+    capabilities((current) => ({
+      ...current,
+      turns: {
+        ...current.turns,
+        supportsActiveSteering: false,
+        supportsSteeringByInterruptRestart: false,
+        supportsQueuedMessages: true,
+      },
+    })),
+  );
+  for (const deliveryIntent of ["auto", "steer"] as const) {
+    assert.deepEqual(
+      CommandPolicy.resolveMessageDispatchIntent(
+        projection,
+        { type: "start_immediately" },
+        deliveryIntent,
+      ),
+      { type: "queue_after_active" },
+    );
+  }
+  assert.deepEqual(
+    CommandPolicy.resolveMessageDispatchIntent(projection, {
+      type: "steer_active",
+      targetRunId: activeRunId,
+    }),
+    { type: "queue_after_active" },
+  );
+  assert.deepEqual(
+    CommandPolicy.resolveMessageDispatchIntent(
+      projection,
+      { type: "start_immediately" },
+      "restart",
+    ),
+    { type: "restart_active", targetRunId: activeRunId },
+  );
+  assert.deepEqual(
+    CommandPolicy.resolveMessageDispatchIntent(projection, {
+      type: "steer_active",
+      targetRunId: RunId.make("command-policy-missing-run"),
+    }),
+    { type: "steer_active", targetRunId: RunId.make("command-policy-missing-run") },
+  );
+});
+
 it.each(["/compact", " /LOGOUT "])("queues a steer sent while %s runs", (text) => {
   const projection = dispatchProjection(baseCapabilities);
   const maintenance = {
@@ -275,9 +322,37 @@ layer("CommandPolicyV2", (it) => {
         hasStrongNativeSource: true,
         sourceRunStatus: "completed",
         fromSpecificTurn: true,
+        sourceBusy: false,
       });
 
       assert.equal(result, "portable_context");
+    }),
+  );
+
+  it.effect("forks a busy source natively only where the provider forks a busy thread", () =>
+    Effect.gen(function* () {
+      const policy = yield* CommandPolicy.CommandPolicyV2;
+      const decide = (sourceBusy: boolean, forkWhileSourceActive: "none" | "stable" | "live") =>
+        policy.decideForkExecution({
+          commandId,
+          threadId,
+          providerInstanceId: ProviderInstanceId.make("codex"),
+          capabilities: {
+            ...CodexProviderCapabilitiesV2,
+            threads: { ...CodexProviderCapabilitiesV2.threads, forkWhileSourceActive },
+          },
+          sameProvider: true,
+          hasStrongNativeSource: true,
+          sourceRunStatus: "completed",
+          fromSpecificTurn: true,
+          sourceBusy,
+        });
+
+      assert.equal(CodexProviderCapabilitiesV2.threads.forkWhileSourceActive, "none");
+      assert.equal(yield* decide(false, "none"), "native_fork");
+      assert.equal(yield* decide(true, "none"), "portable_context");
+      assert.equal(yield* decide(true, "stable"), "native_fork");
+      assert.equal(yield* decide(true, "live"), "native_fork");
     }),
   );
 });

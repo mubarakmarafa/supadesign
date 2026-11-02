@@ -1,7 +1,8 @@
+import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { scopeProjectRef } from "@supaterm/client-runtime/environment";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { LinkIcon, PlusIcon } from "lucide-react";
+import { LinkIcon, PlusIcon } from "@supaterm/icons";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
@@ -47,15 +48,18 @@ function IndexDraftLanding() {
   const handleNewThread = useNewThreadHandler();
   const openProjectHome = useOpenProjectHome();
   const router = useRouter();
-  // Read at effect time: this page stays mounted while a navigation away from
-  // "/" is still loading, but the router already points at the new location.
+  // Read at effect time; this page can stay mounted while the router is already navigating away.
   const isStillOnIndex = useEffectEvent(() => router.state.location.pathname === "/");
   const startingRef = useRef(false);
   const [startFailed, setStartFailed] = useState(false);
   const [retryRequest, setRetryRequest] = useState(0);
 
   const mostRecentProject =
-    sortScopedProjectsForSidebar(projects, threads, "updated_at")[0] ?? null;
+    sortScopedProjectsForSidebar(
+      projects.filter((project) => project.archivedAt == null),
+      threads,
+      "updated_at",
+    )[0] ?? null;
 
   const startDraft = (project: NonNullable<typeof mostRecentProject>) => {
     if (startingRef.current) {
@@ -80,6 +84,7 @@ function IndexDraftLanding() {
       });
   };
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- starts a draft thread in the most recent project and navigates to it while still on the index
   useEffect(() => {
     // Starting a draft after the user has left would replace the page they picked.
     if (mostRecentProject === null || !isStillOnIndex()) {
@@ -104,8 +109,13 @@ function IndexDraftLanding() {
 }
 
 function DraftStartError({ onRetry }: { readonly onRetry: () => void }) {
+  const contentArea = workspaceAreaProps("home", 1, "Home");
   return (
-    <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
+    <SidebarInset
+      {...contentArea}
+      role="main"
+      className="h-dvh min-h-0 overflow-hidden overscroll-y-none"
+    >
       {isElectron ? <WorkspacePageHeader electron /> : null}
       <Empty className="flex-1">
         <EmptyHeader className="max-w-md">
@@ -132,8 +142,8 @@ export const Route = createFileRoute("/_chat/")({
 function HostedStaticOnboardingState() {
   const localEnvironmentOff = isLocalEnvironmentDisabled();
   const description = localEnvironmentOff
-    ? "The local environment is turned off. Connect a remote environment, or turn the local environment back on in Connections."
-    : "Open Connections and add that machine using its pairing link. This app must be able to reach it.";
+    ? "The local environment is turned off. Connect a remote environment, or turn the local environment back on in Environments."
+    : "Open Environments and add that machine using its pairing link. This app must be able to reach it.";
 
   return (
     <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
@@ -161,7 +171,7 @@ function HostedStaticOnboardingState() {
               <div className="mt-6 flex justify-center">
                 <Button render={<Link to="/settings/connections" />} size="sm">
                   <PlusIcon className="size-4" />
-                  Open Connections
+                  Open Environments
                 </Button>
               </div>
             </EmptyHeader>

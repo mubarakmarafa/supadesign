@@ -1,6 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalTimers:off - Playwright callbacks run outside the Effect runtime.
 
 import {
+  type BrowserRecordingFrameRate,
   PROVIDER_SEND_TURN_MAX_FILE_BYTES,
   type PreviewAutomationClickInput,
   type PreviewAutomationConsoleEntry,
@@ -18,6 +19,7 @@ import {
   type PreviewAutomationWaitForInput,
 } from "@supaterm/contracts";
 import { constVoid } from "effect/Function";
+import { MousePointer, MousePointerFilled } from "@supaterm/icons/nodes";
 import type { CDPSession, ConsoleMessage, Frame, Locator, Page } from "playwright-core";
 import * as NodeCrypto from "node:crypto";
 import { BrowserControlInterrupted } from "./SessionControl.ts";
@@ -39,7 +41,10 @@ export class ServerBrowserOperationError extends Error {
   }
 }
 
-export const toOperationError = (cause: unknown): ServerBrowserOperationError => {
+export const toOperationError = (
+  cause: unknown,
+  timeoutMs?: number,
+): ServerBrowserOperationError => {
   if (cause instanceof BrowserControlInterrupted)
     return new ServerBrowserOperationError(
       "PreviewAutomationControlInterruptedError",
@@ -50,7 +55,11 @@ export const toOperationError = (cause: unknown): ServerBrowserOperationError =>
   const message = cause instanceof Error ? cause.message : String(cause);
   const firstLine = message.split("\n")[0] ?? message;
   if (cause instanceof Error && cause.name === "TimeoutError") {
-    return new ServerBrowserOperationError("PreviewAutomationTimeoutError", firstLine);
+    return new ServerBrowserOperationError(
+      "PreviewAutomationTimeoutError",
+      firstLine,
+      timeoutMs === undefined ? undefined : { timeoutMs },
+    );
   }
   if (
     /while parsing selector|Unknown engine|Unexpected token|strict mode violation/i.test(message)
@@ -167,7 +176,6 @@ export const withoutDataPayload = (url: string) => {
         : ({ t: "\t", n: "\n", r: "\r", '"': '"', "\\": "\\" }[code] ?? "\u0001"),
     )
     .replace(/[\t\n\r]/g, "")
-    // eslint-disable-next-line no-control-regex -- URL parsing ignores these controls.
     .replace(/^[\u0000-\u0020]+/, "");
   const parsed = /^data:([^,;]*)/i.exec(value);
   if (!parsed) return url;
@@ -249,12 +257,10 @@ const answered = <A>(promise: Promise<A>) => {
 };
 
 /**
- * Reads dotted values in isolated worlds, where page script can't change what `value`
- * returns, through the CDP session of the process each frame renders in. A frame in
- * another process that can't be attached, as in desktop tabs where only the page can,
- * is read in the page's own world, where its script can change `value`. `read` gives
- * each reader's values, or undefined for one that didn't answer, and fails when the
- * page's own frames don't or frames came or went.
+ * Reads dotted values in isolated worlds, where page script can't change `value`, through each
+ * frame's process CDP session. An unattachable out-of-process frame (desktop tabs attach only the
+ * page) falls back to the page's own world. `read` yields undefined for a reader that didn't
+ * answer and fails when the page's own frames don't or frames came or went.
  */
 const openReaders = async (page: Page, cdp: CDPSession) => {
   const frames = page.frames();
@@ -427,8 +433,6 @@ const pngSize = (base64: string) => {
   return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
 };
 
-type Viewport = { readonly width: number; readonly height: number };
-
 /**
  * A page's display ratio and CSS viewport, read in an isolated world since page script can
  * reassign `devicePixelRatio`, `innerWidth`, and `innerHeight` in its own, and its page zoom.
@@ -455,13 +459,7 @@ const readPageMetrics = async (cdp: CDPSession) => {
         readonly width: number;
         readonly height: number;
       };
-      return {
-        ratio,
-        width,
-        height,
-        zoom,
-        offset: { x: cssVisualViewport.pageX * zoom, y: cssVisualViewport.pageY * zoom },
-      };
+      return { ratio, width, height, zoom };
     }
   }
   throw new Error(
@@ -469,39 +467,54 @@ const readPageMetrics = async (cdp: CDPSession) => {
   );
 };
 
-// Scaled captures repaint live screencasts, so callers pause them. Clips use document offsets.
+// Never pass a clip scale: Chromium mirrors the top-left of the page into a `backdrop-filter`
+// in any capture it shrinks.
 export const captureViewport = async (
-  page: Page,
   cdp: CDPSession,
-  options: {
-    readonly format: "png" | "jpeg";
-    readonly quality?: number;
-    readonly scale: number;
-    readonly viewport?: Viewport;
-    readonly offset?: { readonly x: number; readonly y: number } | undefined;
-  },
+  options: { readonly format: "png" | "jpeg"; readonly quality?: number },
 ) => {
-  let clip;
-  if (options.scale < 1) {
-    const viewport = options.viewport ?? page.viewportSize() ?? { width: 1280, height: 800 };
-    let offset = options.offset;
-    if (!offset) {
-      const { cssVisualViewport } = await cdp.send("Page.getLayoutMetrics");
-      const zoom = cssVisualViewport.zoom ?? 1;
-      offset = { x: cssVisualViewport.pageX * zoom, y: cssVisualViewport.pageY * zoom };
-    }
-    clip = {
-      ...offset,
-      ...viewport,
-      scale: options.scale,
-    };
-  }
   const { data } = await cdp.send("Page.captureScreenshot", {
     format: options.format,
     ...(options.quality === undefined ? {} : { quality: options.quality }),
-    ...(clip ? { clip } : {}),
   });
   return data;
+};
+
+/** Runs in the page's own isolated world, as the server has no image library. */
+const SHRINK_PNG = `async function (png, width, height) {
+  const bytes = Uint8Array.from(atob(png), (char) => char.charCodeAt(0));
+  const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+  // Namespaced, as an XML document's createElement makes a plain element with no getContext.
+  const canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  context.imageSmoothingQuality = "high";
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  return canvas.toDataURL("image/png").slice("data:image/png;base64,".length);
+}`;
+
+const shrinkPng = async (cdp: CDPSession, png: string, scale: number) => {
+  const size = pngSize(png);
+  const { frameTree } = await cdp.send("Page.getFrameTree");
+  const { executionContextId } = await cdp.send("Page.createIsolatedWorld", {
+    frameId: frameTree.frame.id,
+    worldName: "supaterm-preview-screenshot",
+  });
+  const { result, exceptionDetails } = await cdp.send("Runtime.callFunctionOn", {
+    functionDeclaration: SHRINK_PNG,
+    executionContextId,
+    arguments: [
+      { value: png },
+      { value: Math.round(size.width * scale) },
+      { value: Math.round(size.height * scale) },
+    ],
+    awaitPromise: true,
+    returnByValue: true,
+  });
+  if (exceptionDetails) throw new Error("The snapshot could not shrink its screenshot.");
+  return result.value as string;
 };
 
 type SnapshotInput = {
@@ -514,17 +527,16 @@ type SnapshotInput = {
   readonly actionTimeline: PreviewAutomationSnapshot["actionTimeline"];
 };
 
-/** The scale a page renders at and its viewport in device-independent pixels, a clip's units. */
+/** The scale a page renders at and its viewport in device-independent pixels. */
 const renderingOf = async (input: SnapshotInput) => {
   if (input.renderScale !== "display") {
     const viewport = input.page.viewportSize() ?? { width: 1280, height: 800 };
-    return { renderScale: input.renderScale, viewport, offset: undefined };
+    return { renderScale: input.renderScale, viewport };
   }
   // The display ratio a desktop page reports includes its page zoom, and its sizes are CSS pixels.
   const page = await readPageMetrics(input.cdp);
   return {
     renderScale: page.ratio / page.zoom,
-    offset: page.offset,
     viewport: {
       width: Math.round(page.width * page.zoom),
       height: Math.round(page.height * page.zoom),
@@ -536,7 +548,7 @@ const capture = async (
   input: SnapshotInput,
   deadline: number,
 ): Promise<PreviewAutomationSnapshot> => {
-  const { renderScale, viewport, offset } = await renderingOf(input);
+  const { renderScale, viewport } = await renderingOf(input);
   // A late metrics reply must not begin a capture after viewers have resumed.
   if (Date.now() >= deadline) throw tooBusy();
   const scale = Math.min(1, MAX_SCREENSHOT_WIDTH / (viewport.width * renderScale));
@@ -554,7 +566,9 @@ const capture = async (
         "url" | "title" | "loading" | "visibleText" | "interactiveElements"
       >
     >,
-    captureViewport(input.page, input.cdp, { format: "png", scale, viewport, offset }),
+    captureViewport(input.cdp, { format: "png" }).then((png) =>
+      scale < 1 ? shrinkPng(input.cdp, png, scale) : png,
+    ),
   ]);
   void pageAndScreenshot.catch(constVoid);
   // Leaves time for the second read; a frame that never loads holds the tree until then.
@@ -594,6 +608,7 @@ const capture = async (
     });
   return {
     ...page,
+    url: withoutDataPayload(page.url),
     // Text that holds a value would otherwise show where the tree masked it. Masked before
     // the cut, so a value crossing it can't leave its start showing.
     visibleText: mask(page.visibleText).slice(0, MAX_VISIBLE_TEXT_LENGTH),
@@ -911,11 +926,12 @@ const NET_ERROR_CODES: Readonly<Record<string, number>> = {
 };
 
 export const parseNetError = (errorText: string) => {
-  const description = /ERR_[A-Z_]+/.exec(errorText)?.[0] ?? errorText;
+  // Names can hold digits, as in ERR_HTTP2_PROTOCOL_ERROR.
+  const description = /ERR_[A-Z\d_]+/.exec(errorText)?.[0] ?? errorText;
   return { description, code: NET_ERROR_CODES[description] ?? -2 };
 };
 
-export const RECORDING_ENCODER_SCRIPT = `(() => {
+export const recordingEncoderScript = (frameRate: BrowserRecordingFrameRate) => `(() => {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   const chunks = [];
@@ -927,7 +943,8 @@ export const RECORDING_ENCODER_SCRIPT = `(() => {
   let frame = null;
   let cursor = null;
   let ring = null;
-  const AGENT_CURSOR_PATH = new Path2D("M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z");
+  const AGENT_CURSOR_PATH = new Path2D(${JSON.stringify(MousePointer)});
+  const AGENT_CURSOR_FILL_PATH = new Path2D(${JSON.stringify(MousePointerFilled)});
   let ringTimer = null;
   let scale = 1;
   let offsetX = 0;
@@ -956,21 +973,18 @@ export const RECORDING_ENCODER_SCRIPT = `(() => {
       }
     }
     if (cursor) {
-      // The agent cursor (lucide MousePointer2, as in the live panel), never the human arrow.
+      // The agent cursor (MousePointerIcon, as in the live panel), never the human arrow.
       const s = 20 / 24 * scale;
       context.save();
       context.translate(offsetX + cursor.x * scale - 2 * scale, offsetY + cursor.y * scale - 2 * scale);
       context.scale(s, s);
-      context.lineWidth = 2;
-      context.lineJoin = "round";
-      context.lineCap = "round";
       context.fillStyle = "#fff";
-      context.strokeStyle = "#2563eb";
       context.shadowColor = "rgba(0,0,0,0.25)";
       context.shadowBlur = 2;
-      context.fill(AGENT_CURSOR_PATH);
+      context.fill(AGENT_CURSOR_FILL_PATH);
+      context.fillStyle = "#2563eb";
       context.shadowColor = "transparent";
-      context.stroke(AGENT_CURSOR_PATH);
+      context.fill(AGENT_CURSOR_PATH);
       context.restore();
     }
   };
@@ -984,8 +998,8 @@ export const RECORDING_ENCODER_SCRIPT = `(() => {
         canvas.width = bitmap.width;
         canvas.height = bitmap.height;
         const mimeType = ["video/mp4;codecs=avc1.640033", "video/webm;codecs=vp9", "video/webm"].find((type) => MediaRecorder.isTypeSupported(type));
-        const bitsPerSecond = Math.min(50e6, Math.max(2.5e6, bitmap.width * bitmap.height * 30 * 0.05));
-        recorder = new MediaRecorder(canvas.captureStream(30), { mimeType, videoBitsPerSecond: bitsPerSecond });
+        const bitsPerSecond = Math.min(50e6, Math.max(2.5e6, bitmap.width * bitmap.height * ${frameRate} * 0.05));
+        recorder = new MediaRecorder(canvas.captureStream(${frameRate}), { mimeType, videoBitsPerSecond: bitsPerSecond });
         started = new Promise((resolve, reject) => {
           recorder.onstart = resolve;
           recorder.onerror = (event) => reject(event.error);

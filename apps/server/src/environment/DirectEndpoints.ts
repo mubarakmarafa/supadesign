@@ -1,10 +1,7 @@
 /**
- * DirectEndpoints - the LAN and tailnet addresses this server listens on now.
- *
- * Clients save these as extra routes so they can move to a faster path when one is reachable,
- * and replace a saved LAN address when DHCP or a new Wi-Fi network changes it. Only addresses the
- * server is actually bound to are listed: a loopback-only server lists none,
- * because its loopback address means a different machine to every client.
+ * The LAN and tailnet addresses this server listens on now, which clients save as faster routes.
+ * Only bound addresses are listed: a loopback-only server lists none, because its loopback
+ * address means a different machine to every client.
  */
 import type { ServerDirectEndpoint } from "@supaterm/contracts";
 import {
@@ -22,6 +19,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as NodeNet from "node:net";
 import * as NodeOS from "node:os";
 
+import * as HostProcess from "@supaterm/shared/HostProcess";
 import { isPrivateNetworkHost, isTailnetHost } from "@supaterm/shared/hostClassification";
 
 import * as ServerConfig from "../config.ts";
@@ -64,7 +62,11 @@ const isTailscaleInterface = (
   /^tailscale/i.test(name) ||
   entries.some((entry) => entry.family === "IPv6" && isTailnetHost(entry.address));
 
+// Windows adapter names are mutable; Linux bridges can inherit these MACs.
+const WINDOWS_HOST_ADAPTER_MAC = /^(0a:00:27|00:50:56:c0:00):/i;
+
 export function resolveBoundEndpoints(input: {
+  readonly platform: NodeJS.Platform;
   readonly host: string | undefined;
   readonly port: number;
   readonly interfaces: NetworkInterfacesMap;
@@ -80,7 +82,10 @@ export function resolveBoundEndpoints(input: {
         .flatMap(([name, entries]) => (VIRTUAL_INTERFACE.test(name) ? [] : (entries ?? [])))
         .filter(
           (entry) =>
-            !entry.internal && entry.family === "IPv4" && isAdvertisableAddress(entry.address),
+            !entry.internal &&
+            entry.family === "IPv4" &&
+            isAdvertisableAddress(entry.address) &&
+            !(input.platform === "win32" && WINDOWS_HOST_ADAPTER_MAC.test(entry.mac)),
         )
         .map((entry) => entry.address)
     : [input.host!].filter(isAdvertisableAddress);
@@ -90,25 +95,25 @@ export function resolveBoundEndpoints(input: {
   }));
 }
 
-/** @public Service construction is part of the canonical Effect module API. */
+/** @public */
 export const make = Effect.gen(function* () {
   const config = yield* ServerConfig.ServerConfig;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const httpClient = yield* HttpClient.HttpClient;
+  const platform = yield* HostProcess.Platform;
 
   const resolve = Effect.gen(function* () {
     const endpoints = [
       ...resolveBoundEndpoints({
+        platform,
         host: config.host,
         port: config.port,
         interfaces: NodeOS.networkInterfaces(),
       }),
     ];
-    // Tailscale Serve terminates HTTPS on the tailnet name and forwards to
-    // loopback, so it works even for a loopback-only server. The name is only
-    // listed once it answers as this server: Serve setup can fail without
-    // stopping startup. Anything slower than the probe leaves it out rather
-    // than holding back the addresses already found.
+    // Tailscale Serve forwards to loopback, so it works even for a loopback-only server. The
+    // name is listed only once it answers as this server, since Serve setup can fail without
+    // stopping startup; a slow probe leaves it out rather than holding back the rest.
     if (config.tailscaleServeEnabled) {
       const servedUrl = yield* readTailscaleStatus.pipe(
         Effect.map((status) => status.magicDnsName),
@@ -135,7 +140,11 @@ export const make = Effect.gen(function* () {
     return endpoints;
   });
 
-  return DirectEndpoints.of({ resolve: () => resolve });
+  return DirectEndpoints.of({
+    resolve: Effect.fn("DirectEndpoints.resolve")(function () {
+      return resolve;
+    }),
+  });
 });
 
 export const layer = Layer.effect(DirectEndpoints, make);

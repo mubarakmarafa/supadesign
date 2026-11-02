@@ -65,7 +65,8 @@ describe("adoptPreLaunchHistory", () => {
         )
       `;
 
-      assert.deepStrictEqual(yield* runMigrations(), []);
+      // Adopted as the baseline, so only the migrations after it run.
+      assert.deepStrictEqual(yield* runMigrations(), migrationManifest.slice(1));
 
       const ledger = yield* sql<{ readonly migration_id: number; readonly name: string }>`
         SELECT migration_id, name FROM effect_sql_migrations ORDER BY migration_id

@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { AppBar } from "../../components/ui/AppBar";
 import { ScreenHeaderButton } from "../../components/ui/ScreenHeaderButton";
+import type { AppBarAction } from "../../components/ui/AppBar.types";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import type { ThreadInspectorMode } from "./thread-inspector-content-stack";
 import { useThreadHeaderOptions } from "./useThreadHeaderOptions";
 import { useWorkspaceBackNavigation } from "../workspace/useAndroidWorkspaceNavigation";
-
-import type { AppBarMenu, AppBarMenuItem } from "../../components/ui/AppBar.types";
+import { PullRequestGlyph } from "../pull-requests/pullRequestGlyphs";
+import { pinnedMessageCaption, pinnedMessageTitle } from "./pinnedMessageLabels";
 
 export function ThreadHeader(
   props: Parameters<typeof useThreadHeaderOptions>[0] & {
@@ -24,37 +25,63 @@ export function ThreadHeader(
     useAdaptiveWorkspaceLayout();
   const { onOpenTerminal, onMergeBack } = props.gitControls;
   const native = useThreadHeaderOptions(props);
-  const androidHeaderMenu = useMemo<AppBarMenu>(() => {
-    const items: AppBarMenuItem[] = [];
-    if (props.hasWorkspaceRoot) {
-      items.push({
-        id: "thread-terminal",
-        title: "Terminal",
-        onPress: () => onOpenTerminal(null),
+  const { pinnedMessages, onJumpToPinnedMessage } = props;
+  const pinsMenu = useMemo(
+    () =>
+      !pinnedMessages?.length || !onJumpToPinnedMessage
+        ? undefined
+        : [
+            {
+              title: "Pinned messages",
+              icon: "pin" as const,
+              items: pinnedMessages.map((pin) => ({
+                id: pin.itemId,
+                title: pinnedMessageTitle(pin),
+                subtitle: pinnedMessageCaption(pin),
+                onPress: () => onJumpToPinnedMessage(pin),
+              })),
+            },
+          ],
+    [pinnedMessages, onJumpToPinnedMessage],
+  );
+  const androidHeaderActions = useMemo<ReadonlyArray<AppBarAction>>(() => {
+    const actions: AppBarAction[] = [];
+    if (props.onReturnToThread) {
+      actions.push({
+        accessibilityLabel: "Return to chat",
+        icon: "chevron.left",
+        onPress: props.onReturnToThread,
       });
     }
     if (props.hasThreadCwd) {
       const filesVisible = props.inspectorMode === "files" && panes.auxiliaryPaneVisible;
-      items.push({
-        id: "thread-files",
-        title: filesVisible ? "Close files" : "Files",
+      actions.push({
+        accessibilityLabel: filesVisible ? "Close files" : "Open files",
         selected: filesVisible,
+        icon: "folder",
         onPress: filesVisible ? toggleAuxiliaryPane : props.onOpenFilesInspector,
       });
     }
-    items.push({
-      id: "thread-git",
-      title: "Git",
+    if (props.hasWorkspaceRoot && props.gitControls.canOpenTerminal) {
+      actions.push({
+        accessibilityLabel: "Open terminal",
+        icon: "terminal",
+        onPress: () => onOpenTerminal(null),
+      });
+    }
+    actions.push({
+      accessibilityLabel: "Open git controls",
+      icon: "point.topleft.down.curvedto.point.bottomright.up",
       onPress: props.onOpenGitInspector,
     });
     if (onMergeBack) {
-      items.push({
-        id: "thread-merge-back",
-        title: "Merge back to source",
+      actions.push({
+        accessibilityLabel: "Merge back to source",
+        icon: PullRequestGlyph.merged,
         onPress: onMergeBack,
       });
     }
-    return { title: "More actions", icon: "ellipsis", items };
+    return actions;
   }, [
     props.inspectorMode,
     panes.auxiliaryPaneVisible,
@@ -63,8 +90,10 @@ export function ThreadHeader(
     onMergeBack,
     props.onOpenGitInspector,
     toggleAuxiliaryPane,
+    props.onReturnToThread,
     props.hasThreadCwd,
     props.hasWorkspaceRoot,
+    props.gitControls.canOpenTerminal,
   ]);
 
   return (
@@ -90,18 +119,8 @@ export function ThreadHeader(
           ) : null
         }
         onBack={layout.usesSplitView ? undefined : goBack}
-        actions={
-          props.onReturnToThread
-            ? [
-                {
-                  accessibilityLabel: "Return to chat",
-                  icon: "chevron.left",
-                  onPress: props.onReturnToThread,
-                },
-              ]
-            : undefined
-        }
-        menus={[androidHeaderMenu]}
+        actions={androidHeaderActions}
+        {...(pinsMenu ? { menus: pinsMenu } : {})}
         hideBottomBorder
         compact={composerKeyboardActive}
       />

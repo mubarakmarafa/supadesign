@@ -1,25 +1,26 @@
-import type { DevicePlatform } from "@supaterm/contracts";
+import type { DeviceHostSummary, DevicePlatform } from "@supaterm/contracts";
 import {
-  Camera,
-  ChevronLeft,
-  Home,
-  Keyboard,
-  Box,
-  Maximize,
-  MoreHorizontal,
-  PictureInPicture2,
-  Power,
-  RotateCcw,
-  SlidersHorizontal,
-  Smartphone,
-  Square,
-  Type,
-  X,
-} from "lucide-react";
-import { Moon, Sun } from "lucide";
+  BoxIcon,
+  CameraIcon,
+  ChevronLeftIcon,
+  EllipsisIcon,
+  HouseIcon,
+  KeyboardIcon,
+  MaximizeIcon,
+  PictureInPictureIcon,
+  PowerIcon,
+  RotateCcwIcon,
+  SlidersHorizontalIcon,
+  SmartphoneIcon,
+  SquareIcon,
+  TypeIcon,
+  XIcon,
+  MoonIcon,
+  SunIcon,
+} from "@supaterm/icons";
+
 import type { ReactNode } from "react";
 import { Button } from "~/components/ui/button";
-import { MorphIcon } from "~/components/MorphIcon";
 import {
   Menu,
   MenuItem,
@@ -37,6 +38,7 @@ import type { DeviceControls } from "./useDeviceControls";
 
 export function DeviceControlsRail(props: {
   platform: DevicePlatform;
+  hostKind: DeviceHostSummary["kind"] | undefined;
   handle: DeviceStreamHandle | null;
   view: DeviceViewControls;
   controls: DeviceControls;
@@ -53,7 +55,9 @@ export function DeviceControlsRail(props: {
   const popupSide = "left";
   const settings = controls.detail?.settings;
   const inputDisabled = !handle?.inputConnected;
+  const runsHostCommands = props.hostKind === "local" || props.hostKind === "ssh";
   const nextAppearance = settings?.appearance === "dark" ? "light" : "dark";
+  const Icon = settings?.appearance === "dark" ? SunIcon : MoonIcon;
   return (
     <aside
       aria-label="Device controls"
@@ -67,7 +71,7 @@ export function DeviceControlsRail(props: {
           disabled={inputDisabled}
           onClick={() => handle?.pressButton("home")}
         >
-          <Home />
+          <HouseIcon />
         </RailButton>
         {props.platform === "android" ? (
           <>
@@ -77,7 +81,7 @@ export function DeviceControlsRail(props: {
               disabled={inputDisabled}
               onClick={() => handle?.pressButton("back")}
             >
-              <ChevronLeft />
+              <ChevronLeftIcon />
             </RailButton>
             <RailButton
               tooltipSide={popupSide}
@@ -85,36 +89,38 @@ export function DeviceControlsRail(props: {
               disabled={inputDisabled}
               onClick={() => handle?.pressButton("recents")}
             >
-              <Square />
+              <SquareIcon />
             </RailButton>
-            <Menu>
-              <MenuTrigger
-                render={
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    aria-label="Rotate device"
-                    disabled={controls.disabled}
-                  />
-                }
-              >
-                <RotateCcw />
-              </MenuTrigger>
-              <MenuPopup side={popupSide}>
-                <MenuItem
-                  onClick={() => void controls.act({ type: "setOrientation", value: "portrait" })}
-                >
-                  Portrait
-                </MenuItem>
-                <MenuItem
-                  onClick={() =>
-                    void controls.act({ type: "setOrientation", value: "landscape_left" })
+            {runsHostCommands ? (
+              <Menu>
+                <MenuTrigger
+                  render={
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label="Rotate device"
+                      disabled={controls.disabled}
+                    />
                   }
                 >
-                  Landscape
-                </MenuItem>
-              </MenuPopup>
-            </Menu>
+                  <RotateCcwIcon />
+                </MenuTrigger>
+                <MenuPopup side={popupSide}>
+                  <MenuItem
+                    onClick={() => void controls.act({ type: "setOrientation", value: "portrait" })}
+                  >
+                    Portrait
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() =>
+                      void controls.act({ type: "setOrientation", value: "landscape_left" })
+                    }
+                  >
+                    Landscape
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
+            ) : null}
           </>
         ) : (
           <RailButton
@@ -123,78 +129,82 @@ export function DeviceControlsRail(props: {
             disabled={inputDisabled || !!view.keyboard?.attached}
             onClick={() => handle?.rotate()}
           >
-            <RotateCcw />
+            <RotateCcwIcon />
           </RailButton>
         )}
-        <RailDivider />
-        <RailButton
-          tooltipSide={popupSide}
-          label={`Switch device to ${nextAppearance} mode`}
-          disabled={controls.disabled || !settings?.appearance}
-          onClick={() => void controls.act({ type: "setAppearance", value: nextAppearance })}
-        >
-          <MorphIcon icon={settings?.appearance === "dark" ? Sun : Moon} />
-        </RailButton>
-        <Menu>
-          <MenuTrigger
-            render={
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label="Device text size"
-                title="Device text size"
-                disabled={controls.disabled || !settings?.textSize}
-              />
-            }
-          >
-            <Type />
-          </MenuTrigger>
-          <MenuPopup side={popupSide} className="min-w-40">
-            <MenuRadioGroup
-              value={settings?.textSize ?? ""}
-              onValueChange={(value) => {
-                if (
-                  value === "small" ||
-                  value === "default" ||
-                  value === "large" ||
-                  value === "extra-large"
-                )
-                  void controls.act({ type: "setTextSize", value });
-              }}
+        {runsHostCommands ? (
+          <>
+            <RailDivider />
+            <RailButton
+              tooltipSide={popupSide}
+              label={`Switch device to ${nextAppearance} mode`}
+              disabled={controls.disabled || !settings?.appearance}
+              onClick={() => void controls.act({ type: "setAppearance", value: nextAppearance })}
             >
-              {(
-                [
-                  ["small", "Small"],
-                  ["default", "Default"],
-                  ["large", "Large"],
-                  ["extra-large", "Extra large"],
-                ] as const
-              ).map(([value, label]) => (
-                <MenuRadioItem key={value} value={value}>
-                  <span className="flex items-center gap-2">
-                    <span className="flex-1">{label}</span>
-                    <MenuRadioItemIndicator />
-                  </span>
-                </MenuRadioItem>
-              ))}
-            </MenuRadioGroup>
-          </MenuPopup>
-        </Menu>
-        <RailButton
-          tooltipSide={popupSide}
-          label="Device tools"
-          pressed={props.toolsOpen}
-          onClick={props.onTools}
-        >
-          <SlidersHorizontal />
-        </RailButton>
+              <Icon />
+            </RailButton>
+            <Menu>
+              <MenuTrigger
+                render={
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label="Device text size"
+                    title="Device text size"
+                    disabled={controls.disabled || !settings?.textSize}
+                  />
+                }
+              >
+                <TypeIcon />
+              </MenuTrigger>
+              <MenuPopup side={popupSide} className="min-w-40">
+                <MenuRadioGroup
+                  value={settings?.textSize ?? ""}
+                  onValueChange={(value) => {
+                    if (
+                      value === "small" ||
+                      value === "default" ||
+                      value === "large" ||
+                      value === "extra-large"
+                    )
+                      void controls.act({ type: "setTextSize", value });
+                  }}
+                >
+                  {(
+                    [
+                      ["small", "Small"],
+                      ["default", "Default"],
+                      ["large", "Large"],
+                      ["extra-large", "Extra large"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <MenuRadioItem key={value} value={value}>
+                      <span className="flex items-center gap-2">
+                        <span className="flex-1">{label}</span>
+                        <MenuRadioItemIndicator />
+                      </span>
+                    </MenuRadioItem>
+                  ))}
+                </MenuRadioGroup>
+              </MenuPopup>
+            </Menu>
+            <RailButton
+              tooltipSide={popupSide}
+              label="Device tools"
+              pressed={props.toolsOpen}
+              onClick={props.onTools}
+            >
+              <SlidersHorizontalIcon />
+            </RailButton>
+          </>
+        ) : null}
         <RailButton
           tooltipSide={popupSide}
           label={props.screenshotPending ? "Capturing screenshot" : "Save screenshot"}
           disabled={!view.streaming || props.screenshotPending}
           onClick={props.onScreenshot}
         >
-          <Camera />
+          <CameraIcon />
         </RailButton>
         <Menu>
           <MenuTrigger
@@ -207,20 +217,20 @@ export function DeviceControlsRail(props: {
               />
             }
           >
-            <MoreHorizontal />
+            <EllipsisIcon />
           </MenuTrigger>
           <MenuPopup side={popupSide} align="end">
             <MenuItem onClick={props.onFloat}>
-              <PictureInPicture2 />
+              <PictureInPictureIcon />
               Float device over chat
             </MenuItem>
             <MenuItem onClick={props.onClose}>
-              <X />
+              <XIcon />
               Close device panel
             </MenuItem>
             <MenuSeparator />
             <MenuItem variant="destructive" {...confirm.bind("power-off", props.onPowerOff)}>
-              <Power />
+              <PowerIcon />
               {confirm.armed === "power-off" ? "Confirm power off" : "Power off device"}
             </MenuItem>
           </MenuPopup>
@@ -234,7 +244,7 @@ export function DeviceControlsRail(props: {
           description={view.phoneUnavailableReason ?? undefined}
           onClick={view.showPhone}
         >
-          <Box />
+          <BoxIcon />
         </RailButton>
         <RailButton
           tooltipSide={popupSide}
@@ -243,7 +253,7 @@ export function DeviceControlsRail(props: {
           disabled={!view.streaming}
           onClick={view.showFlat}
         >
-          <Smartphone />
+          <SmartphoneIcon />
         </RailButton>
         {view.keyboard ? (
           <RailButton
@@ -252,12 +262,12 @@ export function DeviceControlsRail(props: {
             pressed={view.keyboard.attached}
             onClick={view.keyboard.toggle}
           >
-            <Keyboard />
+            <KeyboardIcon />
           </RailButton>
         ) : null}
         {view.phone ? (
           <RailButton tooltipSide={popupSide} label="Restore 3D view" onClick={view.resetView}>
-            <Maximize />
+            <MaximizeIcon />
           </RailButton>
         ) : null}
       </div>

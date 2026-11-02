@@ -6,14 +6,14 @@ import type {
 } from "@supaterm/contracts";
 import {
   CameraIcon,
-  Columns2Icon,
+  ColumnsIcon,
   HistoryIcon,
   MessageCircleQuestionIcon,
   MessageSquareReplyIcon,
-  PencilLineIcon,
-  Trash2Icon,
+  PenLineIcon,
+  TrashIcon,
   TriangleAlertIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { useMemo, useState } from "react";
 
 import { useAssetUrlState, useAssetUrls } from "../../assets/assetUrls";
@@ -375,13 +375,13 @@ export function ProgressViewer({
                     });
                   }}
                 >
-                  <Trash2Icon />
+                  <TrashIcon />
                   Remove image
                 </Button>
               ) : null}
               {newestFirst.length > 1 ? (
                 <Button variant="outline" size="sm" onClick={startCompare}>
-                  <Columns2Icon />
+                  <ColumnsIcon />
                   Compare
                 </Button>
               ) : null}
@@ -407,7 +407,7 @@ export function ProgressViewer({
                     disabled={imageState._tag !== "Success"}
                     onClick={() => setMode({ kind: "markup", attached: 0 })}
                   >
-                    <PencilLineIcon />
+                    <PenLineIcon />
                     Mark up
                   </Button>
                   <Button

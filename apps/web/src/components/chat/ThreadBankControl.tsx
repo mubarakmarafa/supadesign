@@ -13,7 +13,7 @@ import {
   PencilIcon,
   SendIcon,
   XIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { useId, useMemo, useRef, useState } from "react";
 
 import { useAssetUrls } from "../../assets/assetUrls";

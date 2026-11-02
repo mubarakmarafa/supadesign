@@ -52,6 +52,7 @@ export function BoardShortcuts() {
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const openProjectBoard = useOpenProjectBoard();
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- window keydown listener for the board shortcuts
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.isComposing) return;

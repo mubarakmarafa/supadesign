@@ -34,12 +34,8 @@ import * as PreviewAutomationBroker from "../../PreviewAutomationBroker.ts";
 import { PreviewSnapshotToolkit, PreviewStandardToolkit, PreviewToolkit } from "./tools.ts";
 
 /**
- * Defaults tab reuse.
- *
- * Deliberately leaves an unstated `open` unstated. Whether a preview the agent
- * said nothing about surfaces is the user's `browserAutoShowFloatingPreview`
- * preference, which is desktop-local and unreadable from here — filling in
- * `true` would silently override it for every `preview_open`.
+ * Defaults tab reuse but leaves an unstated `open` unstated: that is the user's desktop-local
+ * `browserAutoShowFloatingPreview` preference, which filling in `true` here would override.
  */
 function normalizePreviewOpenInput(input: PreviewAutomationOpenInput): PreviewAutomationOpenInput {
   return {
@@ -190,8 +186,21 @@ const handlers = {
   preview_status: McpToolAccess.readsAsCaller((input) =>
     invokeTargeted<PreviewAutomationStatus>("status", input ?? {}),
   ),
-  preview_open: McpToolAccess.actsAsCaller((input) =>
-    invokeTargeted<PreviewAutomationStatus>("open", normalizePreviewOpenInput(input)),
+  // Models often pass a dev server as both `url` and `target`; the target knows the environment.
+  preview_open: McpToolAccess.actsAsCaller(({ target, url, ...input }) =>
+    Effect.gen(function* () {
+      const opened = yield* invokeTargeted<PreviewAutomationStatus>(
+        "open",
+        normalizePreviewOpenInput(
+          target === undefined && url !== undefined ? { ...input, url } : input,
+        ),
+      );
+      if (target === undefined || opened.tabId === null) return opened;
+      return yield* invokeTargeted<PreviewAutomationStatus>("navigate", {
+        target,
+        tabId: opened.tabId,
+      });
+    }),
   ),
   preview_navigate: McpToolAccess.actsAsCaller((input) =>
     invokeTargeted<PreviewAutomationStatus>("navigate", input, input.timeoutMs),

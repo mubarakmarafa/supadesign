@@ -4,10 +4,6 @@ import type * as Path from "effect/Path";
 import * as EffectAcpErrors from "effect-acp/errors";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
-/**
- * The agent gates each write behind `session/request_permission`, so only
- * path containment is checked here.
- */
 const CLIENT_FILE_MAX_BYTES = 8 * 1024 * 1024;
 
 function isInsideRoot(path: Path.Path, root: string, candidate: string): boolean {
@@ -15,10 +11,7 @@ function isInsideRoot(path: Path.Path, root: string, candidate: string): boolean
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
-/**
- * Symlinks resolve before the check, including the final component, so a link
- * inside the workspace cannot read or write through to a file outside it.
- */
+/** Resolve all symlinks, including the final component, before checking workspace containment. */
 const resolveClientFilePath = Effect.fn("AntigravityClientFiles.resolveClientFilePath")(
   function* (input: {
     readonly fileSystem: FileSystem.FileSystem;
@@ -34,8 +27,7 @@ const resolveClientFilePath = Effect.fn("AntigravityClientFiles.resolveClientFil
     const real = yield* input.fileSystem.realPath(resolved).pipe(
       Effect.catch(() =>
         Effect.gen(function* () {
-          // Only a missing file (a new write) falls back to its parent; a
-          // dangling or unreadable link must not be followed on write.
+          // Fall back to the parent only for missing files, never dangling or unreadable links.
           const entryExists = yield* input.fileSystem.readLink(resolved).pipe(
             Effect.as(true),
             Effect.catch(() => input.fileSystem.exists(resolved)),
@@ -92,13 +84,25 @@ export const readAntigravityClientTextFile = Effect.fn("AntigravityClientFiles.r
         `File '${input.request.path}' is not a readable text file under ${CLIENT_FILE_MAX_BYTES} bytes.`,
       );
     }
-    const text = yield* input.fileSystem
-      .readFileString(filePath)
+    const bytes = yield* input.fileSystem
+      .readFile(filePath)
       .pipe(
         Effect.mapError(() =>
           EffectAcpErrors.AcpRequestError.internalError(`Could not read '${input.request.path}'.`),
         ),
       );
+    const text = yield* Effect.try({
+      try: () => new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+      catch: () =>
+        EffectAcpErrors.AcpRequestError.invalidParams(
+          `File '${input.request.path}' is not a UTF-8 text file.`,
+        ),
+    });
+    if (text.includes("\0")) {
+      return yield* EffectAcpErrors.AcpRequestError.invalidParams(
+        `File '${input.request.path}' contains binary data.`,
+      );
+    }
     const line = input.request.line ?? undefined;
     const limit = input.request.limit ?? undefined;
     if (line === undefined && limit === undefined) {
@@ -109,23 +113,5 @@ export const readAntigravityClientTextFile = Effect.fn("AntigravityClientFiles.r
     const start = Math.max(0, (line ?? 1) - 1);
     const end = limit === undefined ? lines.length : Math.min(lines.length, start + limit);
     return { content: lines.slice(start, end).join("\n") };
-  },
-);
-
-export const writeAntigravityClientTextFile = Effect.fn("AntigravityClientFiles.writeTextFile")(
-  function* (input: {
-    readonly fileSystem: FileSystem.FileSystem;
-    readonly path: Path.Path;
-    readonly allowedRoots: ReadonlyArray<string>;
-    readonly request: EffectAcpSchema.WriteTextFileRequest;
-  }): Effect.fn.Return<EffectAcpSchema.WriteTextFileResponse, EffectAcpErrors.AcpError> {
-    const filePath = yield* resolveClientFilePath({ ...input, requestPath: input.request.path });
-    yield* input.fileSystem.makeDirectory(input.path.dirname(filePath), { recursive: true }).pipe(
-      Effect.andThen(input.fileSystem.writeFileString(filePath, input.request.content)),
-      Effect.mapError(() =>
-        EffectAcpErrors.AcpRequestError.internalError(`Could not write '${input.request.path}'.`),
-      ),
-    );
-    return {};
   },
 );

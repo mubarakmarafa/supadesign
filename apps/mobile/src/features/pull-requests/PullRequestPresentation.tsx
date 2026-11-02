@@ -1,6 +1,7 @@
 import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
+import type { ChangeRequestTerminology } from "@supaterm/client-runtime/source-control-clients";
 import type { PullRequestActor } from "@supaterm/contracts";
-import IconAlertTriangle from "@tabler/icons-react-native/IconAlertTriangle";
+import { TriangleAlertFilled } from "@supaterm/icons/nodes";
 import { Image } from "expo-image";
 import { View } from "react-native";
 import { useResolveClassNames } from "uniwind";
@@ -8,27 +9,34 @@ import { useResolveClassNames } from "uniwind";
 import { AppText as Text } from "../../components/ui/AppText";
 import { cn } from "../../lib/cn";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { NodeIcon } from "../../components/ui/NodeIcon";
 
 export function PullRequestReadStatus(props: {
   readonly pending: boolean;
   readonly error: string | null;
+  readonly terminology: ChangeRequestTerminology;
 }) {
   return props.pending ? (
     <AppActivityIndicator className="my-12" colorClassName="accent-icon" />
   ) : props.error ? (
-    <EmptyState title="Couldn't load this pull request" detail={props.error} variant="plain" />
+    <EmptyState
+      title={`Couldn't load this ${props.terminology.singular}`}
+      detail={props.error}
+      variant="plain"
+    />
   ) : null;
 }
 
 export function PullRequestConflictBadge(props: { readonly surfaceClassName: string }) {
   const { color } = useResolveClassNames("text-danger-foreground");
-  const { color: surface } = useResolveClassNames(props.surfaceClassName);
+  const { color: backgroundColor } = useResolveClassNames(props.surfaceClassName);
   return (
-    <View pointerEvents="none" className="absolute -right-1 -bottom-1">
-      <IconAlertTriangle size={15} strokeWidth={2.5} color={surface} fill={surface} />
-      <View className="absolute inset-0">
-        <IconAlertTriangle size={15} strokeWidth={2.5} color={color} />
-      </View>
+    <View
+      pointerEvents="none"
+      className="absolute -right-1 -bottom-1 rounded-sm"
+      style={{ backgroundColor }}
+    >
+      <NodeIcon node={TriangleAlertFilled} size={15} color={color} />
     </View>
   );
 }

@@ -8,21 +8,21 @@ import { SupatermIcon } from "../SupatermIcon";
 import {
   BotIcon,
   BrainIcon,
-  Code2Icon,
-  SmartphoneIcon,
   CheckIcon,
   CircleAlertIcon,
+  CodeXmlIcon,
   EyeIcon,
   GlobeIcon,
   HammerIcon,
-  SearchIcon,
   MessageCircleIcon,
+  SearchIcon,
+  SmartphoneIcon,
   SquarePenIcon,
   TerminalIcon,
   WrenchIcon,
   XIcon,
   ZapIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { useAssetUrlState } from "../../assets/assetUrls";
 import { cn } from "~/lib/utils";
 
@@ -197,7 +197,7 @@ function ToolActivityImageIcon(props: {
           className={cn(
             props.className,
             "inline-block overflow-hidden rounded-xs bg-background",
-            props.muted && "opacity-70",
+            props.muted && "dark:opacity-70",
           )}
         >
           <img
@@ -206,7 +206,7 @@ function ToolActivityImageIcon(props: {
             aria-hidden
             decoding="async"
             referrerPolicy="no-referrer"
-            className={cn("block size-full object-contain", props.muted && "light:brightness-60")}
+            className={cn("block size-full object-contain", props.muted && "light:brightness-70")}
             onError={() => handleLoadError(displayedSrc)}
           />
         </span>
@@ -242,7 +242,7 @@ function WorkEntryIcon({ name, className }: { name: WorkEntryIconName; className
     case "computer":
       return <BrowserAppIcon className={className} />;
     case "code":
-      return <Code2Icon className={className} aria-hidden />;
+      return <CodeXmlIcon className={className} aria-hidden />;
     case "device":
       return <SmartphoneIcon className={className} aria-hidden />;
     case "supaterm":

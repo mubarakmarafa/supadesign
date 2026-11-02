@@ -47,14 +47,14 @@ step "Finding your release..."
 # Exit 44 on a 404 so callers can tell "no such asset" from a network failure.
 fetch() {
   if command -v curl >/dev/null 2>&1; then
-    status="$(curl -sSL -w '%{http_code}' "$1" -o "$2")" || return 1
+    status="$(curl -sSL -H "Accept: ${3:-*/*}" -w '%{http_code}' "$1" -o "$2")" || return 1
     case "$status" in
       2??) return 0 ;;
       404) return 44 ;;
       *) printf 'GET %s returned HTTP %s\n' "$1" "$status" >&2; return 1 ;;
     esac
   elif command -v wget >/dev/null 2>&1; then
-    wget -q --server-response "$1" -O "$2" 2>"$2.headers" && rm -f "$2.headers" && return 0
+    wget -q --server-response --header="Accept: ${3:-*/*}" "$1" -O "$2" 2>"$2.headers" && rm -f "$2.headers" && return 0
     if grep -q ' 404 ' "$2.headers" 2>/dev/null; then rm -f "$2.headers"; return 44; fi
     cat "$2.headers" >&2; rm -f "$2.headers"; return 1
   else
@@ -127,11 +127,14 @@ case "$(uname -m)" in
   x86_64 | amd64) arch="x64" ;;
   *) fail "unsupported architecture $(uname -m)" ;;
 esac
+if [ "${platform}-${arch}" = darwin-x64 ]; then
+  fail "there is no supaterm CLI for Intel Macs. Install the desktop app from https://supaterm.com/download, or run a server from source: https://github.com/${repo}/blob/main/docs/user/install.md#intel-macs"
+fi
 command -v tar >/dev/null 2>&1 || fail "tar is required"
 if command -v sha256sum >/dev/null 2>&1; then
-  checksum() { sha256sum "$1" | cut -d' ' -f1; }
+  checksum() { sha256sum < "$1" | cut -d' ' -f1; }
 elif command -v shasum >/dev/null 2>&1; then
-  checksum() { shasum -a 256 "$1" | cut -d' ' -f1; }
+  checksum() { shasum -a 256 < "$1" | cut -d' ' -f1; }
 else
   fail "sha256sum or shasum is required"
 fi
@@ -139,17 +142,26 @@ fi
 channel="${SUPATERM_CHANNEL:-stable}"
 version="${SUPATERM_VERSION:-}"
 if [ -z "$version" ]; then
-  # Tags are v<semver>; the channel is the prerelease identifier, or none for
-  # stable. Only tags of the requested train are considered, so a stable
-  # install can never pick up a nightly or preview build by accident.
   case "$channel" in
     stable) tag_pattern='v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)' ;;
     nightly | preview) tag_pattern="v\([0-9][^\"]*-${channel}\.[0-9]*\.[0-9]*\)" ;;
     *) fail "SUPATERM_CHANNEL must be stable, nightly, or preview" ;;
   esac
   tmp_index="$(mktemp)"
-  fetch "https://api.github.com/repos/${repo}/releases?per_page=100" "$tmp_index"
-  version="$(sed -n "s/.*\"tag_name\": *\"${tag_pattern}\".*/\1/p" "$tmp_index" | head -n 1)"
+  if [ "$channel" = stable ]; then
+    # release.yml marks only plain stable releases latest. This is a github.com
+    # page, so it is not cut off by a page of newer nightlies or the API quota.
+    fetch "https://github.com/${repo}/releases/latest" "$tmp_index" application/json
+    version="$(sed -n "s/.*\"tag_name\": *\"${tag_pattern}\".*/\1/p" "$tmp_index" | head -n 1)"
+  else
+    page=1
+    while [ -z "$version" ] && [ "$page" -le 10 ]; do
+      fetch "https://api.github.com/repos/${repo}/releases?per_page=100&page=${page}" "$tmp_index"
+      version="$(sed -n "s/.*\"tag_name\": *\"${tag_pattern}\".*/\1/p" "$tmp_index" | head -n 1)"
+      grep -q '"tag_name"' "$tmp_index" || break
+      page=$((page + 1))
+    done
+  fi
   rm -f "$tmp_index"
   [ -n "$version" ] || fail "could not find a ${channel} release; set SUPATERM_VERSION"
 fi
@@ -191,11 +203,11 @@ else
   elif [ "$fetch_status" -ne 0 ]; then
     fail "could not download the release checksums"
   fi
+  expected="$(grep " \*\{0,1\}${archive}\$" "${staging}/SHA256SUMS" | cut -d' ' -f1)"
+  [ -n "$expected" ] || fail "supaterm ${version} has no release archive for ${platform}-${arch}"
   download "${base_url}/v${version}/${archive}" "${staging}/${archive}"
 
   step "Verifying the download..."
-  expected="$(grep " \*\{0,1\}${archive}\$" "${staging}/SHA256SUMS" | cut -d' ' -f1)"
-  [ -n "$expected" ] || fail "${archive} is not listed in SHA256SUMS"
   actual="$(checksum "${staging}/${archive}")"
   [ "$actual" = "$expected" ] || fail "checksum mismatch for ${archive}"
 

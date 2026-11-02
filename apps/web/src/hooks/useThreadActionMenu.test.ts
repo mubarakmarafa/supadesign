@@ -47,11 +47,6 @@ vi.mock("../state/session", () => ({
     scope === AuthOrchestrationOperateScope && state.granted.has(environmentId),
 }));
 vi.mock("../state/entities", () => ({
-  readEnvironmentSupportsAutoMarkDoneOptOut: () => true,
-  readEnvironmentSupportsPinning: () => true,
-  readEnvironmentSupportsMarkDone: () => true,
-  readEnvironmentSupportsSnooze: () => true,
-  readEnvironmentSupportsTitleRegeneration: () => true,
   readThreadShell: () => ({
     id: "thread",
     environmentId: "secondary",
@@ -62,7 +57,10 @@ vi.mock("../state/entities", () => ({
     runtime: null,
     latestRun: null,
   }),
-  useProjects: () => [{ id: "project", environmentId: "secondary" }],
+  useProjects: () => [
+    { id: "project", environmentId: "primary", workspaceRoot: "/primary" },
+    { id: "project", environmentId: "secondary", workspaceRoot: "/secondary" },
+  ],
 }));
 vi.mock("../state/environments", () => ({ usePrimaryEnvironmentId: () => "primary" }));
 vi.mock("../state/threads", () => ({ threadEnvironment: { updateMetadata: "metadata" } }));
@@ -83,7 +81,7 @@ vi.mock("../localApi", () => ({
     },
   }),
 }));
-vi.mock("../logicalProject", () => ({
+vi.mock("@supaterm/client-runtime/state/project-grouping", () => ({
   deriveLogicalProjectKeyFromSettings: () => "project",
   derivePhysicalProjectKey: () => "project",
   selectProjectGroupingSettings: () => ({}),
@@ -108,7 +106,9 @@ vi.mock("../components/Sidebar.snooze", () => ({
   snoozeWakeDescription: () => "later",
 }));
 vi.mock("./useCopyToClipboard", () => ({
-  useCopyToClipboard: () => ({ copyToClipboard: () => recordEffect("copy") }),
+  useCopyToClipboard: () => ({
+    copyToClipboard: (value: string) => recordEffect(`copy:${value}`),
+  }),
 }));
 vi.mock("./useHandleNewThread", () => ({
   useNewThreadHandler: () => async () => recordEffect("draft"),
@@ -122,6 +122,7 @@ vi.mock("./useSettings", () => ({
     }),
 }));
 vi.mock("./useThreadActions", () => ({
+  canTurnThreadIntoProject: () => false,
   useThreadActions: () =>
     Object.fromEntries(
       [
@@ -151,11 +152,11 @@ const target = {
   threadId: ThreadId.make("thread"),
 };
 const position = { x: 10, y: 20 };
-const createMenu = () =>
+const createMenu = (options: { readonly onFind?: (threadRef: typeof target) => void } = {}) =>
   useThreadActionMenu({
     threadRef: target,
-    projectCwd: "/project",
     onStartRename: () => recordEffect("rename"),
+    onFind: options.onFind,
   });
 
 beforeEach(() => {
@@ -179,4 +180,27 @@ describe("thread menu permissions", () => {
       expect(state.effects).toEqual([]);
     },
   );
+
+  it("offers find only to a header that can open it, without task permission", async () => {
+    createMenu().openMenu(position);
+    expect(state.show.mock.calls[0]![0].some((item) => item.id === "find")).toBe(false);
+    state.show.mockResolvedValue("find");
+    const onFind = vi.fn(() => recordEffect("find"));
+    createMenu({ onFind }).openMenu(position);
+    await state.completed.promise;
+    const items = state.show.mock.calls[1]![0];
+    expect(items[0]).toMatchObject({ id: "find", label: "Find in thread" });
+    expect(items[0]?.disabled).not.toBe(true);
+    expect(state.effects).toEqual(["find"]);
+    expect(onFind).toHaveBeenCalledExactlyOnceWith(target);
+  });
+});
+
+describe("thread menu copy", () => {
+  it("copies the workspace root of the thread's own environment", async () => {
+    state.show.mockResolvedValue("copy-path");
+    createMenu().openMenu(position);
+    await state.completed.promise;
+    expect(state.effects).toEqual(["copy:/secondary"]);
+  });
 });

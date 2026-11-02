@@ -21,6 +21,7 @@ import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { HttpServerRequest } from "effect/http";
@@ -38,12 +39,8 @@ import {
   timingSafeEqualBase64Url,
 } from "./utils.ts";
 
-/**
- * Every URL is derived from the request's own origin, so the same server
- * answers correctly over loopback, Tailscale Serve and a Supaterm Connect tunnel.
- * Client registration is stateless: a client id is its signed metadata, so an
- * unauthenticated caller cannot grow server state.
- */
+// Request-derived origins support loopback, Tailscale and tunnels.
+// Signed client metadata keeps unauthenticated registration stateless.
 
 const SIGNING_SECRET_NAME = "mcp-oauth-signing-key";
 const AUTHORIZATION_CODE_TTL_MS = 60_000;
@@ -96,7 +93,7 @@ export const authorizationServerMetadata = (
 });
 
 const parseRedirect = (value: string): URL | undefined => {
-  // No fragment, not even an empty one, which `URL.hash` reports as "" (RFC 6749 §3.1.2).
+  // URL.hash misses empty fragments, which RFC 6749 §3.1.2 also forbids.
   if (value.length > MAX_REDIRECT_URI_LENGTH || value.includes("#")) return undefined;
   try {
     const url = new URL(value);
@@ -109,10 +106,7 @@ const parseRedirect = (value: string): URL | undefined => {
   }
 };
 
-/**
- * Loopback redirects match on everything but the port (RFC 8252 §7.3), since
- * CLI agents listen on whatever port is free; https redirects match exactly.
- */
+/** Loopback redirects ignore port (RFC 8252 §7.3); HTTPS redirects match exactly. */
 export const redirectMatches = (registered: string, presented: string): boolean => {
   const left = parseRedirect(registered);
   const right = parseRedirect(presented);
@@ -163,7 +157,7 @@ export class McpOAuthRedirectError extends Schema.TaggedError<McpOAuthRedirectEr
     error: Schema.Literals(["invalid_request", "unsupported_response_type", "invalid_target"]),
     description: Schema.String,
     redirectUri: Schema.String,
-    state: Schema.optional(Schema.String),
+    state: Schema.optional(Schema.RedactedFromValue(Schema.String)),
   },
 ) {}
 
@@ -171,7 +165,7 @@ export interface AuthorizationRequest {
   readonly client: McpOAuthClient;
   readonly redirectUri: string;
   readonly codeChallenge: string;
-  readonly state: string | undefined;
+  readonly state: Redacted.Redacted<string> | undefined;
   readonly resource: string;
   readonly issuer: string;
 }
@@ -220,10 +214,15 @@ export class McpOAuth extends Context.Service<
   }
 >()("supaterm/auth/McpOAuth") {}
 
-const redirectWith = (redirectUri: string, params: Record<string, string | undefined>) => {
+const redirectWith = (
+  redirectUri: string,
+  params: Record<string, string | Redacted.Redacted<string> | undefined>,
+) => {
   const url = new URL(redirectUri);
   for (const [name, value] of Object.entries(params)) {
-    if (value !== undefined) url.searchParams.set(name, value);
+    if (value !== undefined) {
+      url.searchParams.set(name, Redacted.isRedacted(value) ? Redacted.value(value) : value);
+    }
   }
   return url.toString();
 };
@@ -309,10 +308,7 @@ const make = Effect.gen(function* () {
             "Redirect URIs must be https, or http on localhost, 127.0.0.1 or [::1].",
         });
       }
-      // Requested grant types, scopes and token endpoint auth methods are ignored rather
-      // than rejected: RFC 7591 lets the server answer with what it supports. Claude Code
-      // asks for refresh_token, and hosted agents may ask for a client secret; every client
-      // is registered as public and proves itself with PKCE instead.
+      // RFC 7591 allows ignoring unsupported registration options; all clients use public PKCE.
       return { clientId: signClientId(name, redirectUris), name, redirectUris };
     },
   );
@@ -463,8 +459,9 @@ const make = Effect.gen(function* () {
       if (token.grant_type !== "authorization_code") {
         return yield* fail("unsupported_grant_type", "Only authorization_code is supported.");
       }
-      const { code, redirect_uri: redirectUri, client_id: clientId } = token;
-      const verifier = token.code_verifier;
+      const { redirect_uri: redirectUri, client_id: clientId } = token;
+      const code = token.code && Redacted.value(token.code);
+      const verifier = token.code_verifier && Redacted.value(token.code_verifier);
       if (!code || !redirectUri || !clientId || !verifier) {
         return yield* fail(
           "invalid_request",
@@ -537,35 +534,39 @@ export const layerMcpClientAuthenticator = Layer.effect(
     const environment = yield* ServerEnvironment.ServerEnvironment;
     const environmentId = yield* environment.getEnvironmentId;
     return McpHttpServer.McpClientAuthenticator.of({
-      authenticate: (request) =>
-        environmentAuth.authenticateMcpClient(request).pipe(
-          Effect.flatMap((client) =>
-            Clock.currentTimeMillis.pipe(
-              Effect.map((issuedAt): McpInvocationContext.McpInvocationScope => ({
-                environmentId,
-                requestNamespace: `client:${client.sessionId}`,
-                thread: undefined,
-                client: {
-                  sessionId: client.sessionId,
-                  label: client.label,
-                  access: client.access,
-                },
-                capabilities: new Set<McpInvocationContext.McpCapability>([
-                  "orchestration",
-                  "worktree",
-                  "pull-requests",
-                ]),
-                issuedAt,
-              })),
+      authenticate: Effect.fn("McpHttpServer.McpClientAuthenticator.authenticate")(
+        function (request) {
+          return environmentAuth.authenticateMcpClient(request).pipe(
+            Effect.flatMap((client) =>
+              Clock.currentTimeMillis.pipe(
+                Effect.map((issuedAt): McpInvocationContext.McpInvocationScope => ({
+                  environmentId,
+                  requestNamespace: `client:${client.sessionId}`,
+                  thread: undefined,
+                  client: {
+                    sessionId: client.sessionId,
+                    label: client.label,
+                    access: client.access,
+                    webOrigin: requestUrls(request).issuer,
+                  },
+                  capabilities: new Set<McpInvocationContext.McpCapability>([
+                    "orchestration",
+                    "worktree",
+                    "pull-requests",
+                  ]),
+                  issuedAt,
+                })),
+              ),
             ),
-          ),
-          Effect.catch((error) =>
-            (EnvironmentAuth.isServerAuthCredentialError(error)
-              ? Effect.void
-              : Effect.logWarning("MCP client authentication failed.", { cause: error })
-            ).pipe(Effect.as(undefined)),
-          ),
-        ),
+            Effect.catch((error) =>
+              (EnvironmentAuth.isServerAuthCredentialError(error)
+                ? Effect.void
+                : Effect.logWarning("MCP client authentication failed.", { cause: error })
+              ).pipe(Effect.as(undefined)),
+            ),
+          );
+        },
+      ),
     });
   }),
 );

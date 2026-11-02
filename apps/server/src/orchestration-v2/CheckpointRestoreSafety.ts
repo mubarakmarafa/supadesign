@@ -6,11 +6,19 @@ import type * as Path from "effect/Path";
 import type { ProjectionStoreV2 } from "./ProjectionStore.ts";
 import type * as ProjectStore from "./ProjectStore.ts";
 
-export const SHARED_WORKSPACE_RESTORE_MESSAGE =
+const SHARED_WORKSPACE_RESTORE_MESSAGE =
   "File restore requires an isolated worktree. This workspace may contain changes from another thread. Rewind the conversation without restoring files instead.";
 
-// A checkpoint snapshots the whole checkout. Check at command admission and
-// again before provider rollback so a newly shared worktree is rejected too.
+/** Names the side chats that worked in this worktree, which the user can finish or delete. */
+export function sharedWorkspaceRestoreMessage(blockingSideChats: ReadonlyArray<string>): string {
+  if (blockingSideChats.length === 0) return SHARED_WORKSPACE_RESTORE_MESSAGE;
+  const names = blockingSideChats.map((title) => `"${title}"`).join(", ");
+  const subject =
+    blockingSideChats.length === 1 ? `The side chat ${names}` : `The side chats ${names}`;
+  return `File restore requires an isolated worktree. ${subject} ran commands or changed files here, or is still running. Rewind the conversation without restoring files instead, or delete side chats you no longer need.`;
+}
+
+// Check isolation at admission and rollback; checkpoints restore whole checkouts, which may become shared.
 export const isCheckpointRestoreIsolated = Effect.fn("orchestrationV2.isCheckpointRestoreIsolated")(
   function* (
     thread: Pick<OrchestrationV2AppThread, "id" | "worktreePath">,
@@ -32,35 +40,49 @@ export const isCheckpointRestoreIsolated = Effect.fn("orchestrationV2.isCheckpoi
     };
     const worktreePath = thread.worktreePath;
     let shared = worktreePath == null;
+    const blockingSideChats: Array<string> = [];
     if (!shared && worktreePath !== null) {
       // Storage cleanup may have removed the worktree; rollback recreates it.
       const resolve = (target: string) =>
-        fileSystem
-          .realPath(target)
-          .pipe(
-            Effect.catch((error) =>
-              error.reason._tag === "NotFound"
-                ? Effect.succeed(path.resolve(target))
-                : Effect.fail(error),
-            ),
-          );
+        fileSystem.realPath(target).pipe(
+          Effect.catchIf(
+            (error) => error.reason._tag === "NotFound",
+            (_error) => Effect.succeed(path.resolve(target)),
+          ),
+        );
       const cwd = yield* resolve(scope.cwd);
       const worktreeCwd = yield* resolve(worktreePath);
       shared = cwd !== worktreeCwd;
       if (!shared) {
         const shell = yield* projections.getShellSnapshot();
+        const others = [...shell.threads, ...shell.archivedThreads].filter(
+          (otherThread) => otherThread.id !== thread.id && otherThread.deletedAt === null,
+        );
+        const inThisWorktree = (otherThread: (typeof others)[number]) =>
+          otherThread.lineage.sideChat === true && otherThread.worktreePath === worktreePath;
+        // Every one is named, so the user can clear them all at once.
+        for (const sideChat of others.filter(inThisWorktree)) {
+          // An idle side chat that only answered questions never touched the shared worktree.
+          if (sideChat.activeRunId === null) {
+            const { turnItems } = yield* projections.getThreadRecords(sideChat.id, ["turnItems"], {
+              turnItemTypes: ["command_execution", "file_change", "dynamic_tool"],
+            });
+            if (turnItems.length === 0) continue;
+          }
+          blockingSideChats.push(sideChat.title);
+        }
+        shared = blockingSideChats.length > 0;
         const checkedPaths = new Set<string>();
-        for (const otherThread of [...shell.threads, ...shell.archivedThreads]) {
-          if (otherThread.id === thread.id || otherThread.deletedAt !== null) continue;
+        for (const otherThread of others) {
+          if (shared) break;
+          if (inThisWorktree(otherThread)) continue;
           const other = yield* projections.getCheckpointContext(otherThread.id);
           const providerContext = yield* projections.getThreadProviderContext(otherThread.id);
           const paths = [
             otherThread.worktreePath,
             ...other.checkpointScopes.map((candidate) => candidate.cwd),
-            // A failed turn can leave an errored session with a live event stream.
-            // A session shared across threads keeps the cwd it was opened with,
-            // often another thread's; each turn runs in the thread's own
-            // worktree or project root, which this list already covers.
+            // Errored sessions can still stream. Shared sessions retain another thread's opening cwd;
+            // turn worktrees and project roots are already covered here.
             ...providerContext.providerSessions
               .filter(
                 (session) =>
@@ -71,28 +93,26 @@ export const isCheckpointRestoreIsolated = Effect.fn("orchestrationV2.isCheckpoi
           ].filter((value): value is string => value !== null);
           if (otherThread.worktreePath === null) {
             const project = yield* projects.get(otherThread.projectId, { includeDeleted: true });
-            if (Option.isNone(project)) return false;
+            if (Option.isNone(project)) return { isolated: false, blockingSideChats };
             paths.push(project.value.workspaceRoot);
           }
           for (const candidate of paths) {
             if (checkedPaths.has(candidate)) continue;
             checkedPaths.add(candidate);
-            const otherCwd = yield* fileSystem
-              .realPath(candidate)
-              .pipe(
-                Effect.catch((error) =>
-                  error.reason._tag === "NotFound" ? Effect.succeed(null) : Effect.fail(error),
-                ),
-              );
+            const otherCwd = yield* fileSystem.realPath(candidate).pipe(
+              Effect.catchIf(
+                (error) => error.reason._tag === "NotFound",
+                (_error) => Effect.succeed(null),
+              ),
+            );
             if (otherCwd !== null && (contains(cwd, otherCwd) || contains(otherCwd, cwd))) {
               shared = true;
               break;
             }
           }
-          if (shared) break;
         }
       }
     }
-    return !shared;
+    return { isolated: !shared, blockingSideChats };
   },
 );

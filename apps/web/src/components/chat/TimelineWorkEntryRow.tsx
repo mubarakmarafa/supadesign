@@ -14,7 +14,8 @@ import {
   workToneIcon,
   workEntryIconName,
   workEntryRawCommand,
-  remarkThoughtPreview,
+  THINKING_PREVIEW_PLUGINS,
+  THOUGHT_PREVIEW_PLUGINS,
   buildToolCallExpandedBody,
 } from "./TimelineWorkEntryRow.logic";
 import {
@@ -22,7 +23,6 @@ import {
   threadReadTargetTitle,
   threadReadLabelPrefix,
   workEntryDisplayLabel,
-  toolGroupAction,
   workEntryReadOutput,
 } from "./MessagesTimeline.logic";
 import { WorkLogDetails, WorkLogRow } from "./WorkLog";
@@ -43,6 +43,7 @@ import { notificationChildThreadId } from "@supaterm/client-runtime/state/thread
 import {
   workEntryViewedImagePath,
   resolveViewedImageAsset,
+  toolGroupAction,
   type ViewedImageAsset,
 } from "@supaterm/client-runtime/work-log/presentation";
 import {
@@ -58,7 +59,7 @@ import {
 } from "../../session-logic";
 import ChatMarkdown from "../ChatMarkdown";
 import { ChatMarkdownAssetImage } from "./ChatMarkdownMedia";
-import { CircleAlertIcon, RotateCcwIcon, XIcon } from "lucide-react";
+import { CircleAlertIcon, RotateCcwIcon, XIcon } from "@supaterm/icons";
 import { Button, InlineButton } from "../ui/button";
 import { useAssetUrls } from "../../assets/assetUrls";
 import { useThreadShell } from "../../state/entities";
@@ -163,6 +164,7 @@ export const SimpleWorkEntryRow = memo(function SimpleWorkEntryRow(props: WorkEn
     <SubagentNotificationLink
       parentRef={scopeThreadRef(ctx.activeThreadEnvironmentId, item.threadId)}
       childThreadId={childThreadId}
+      taskIds={item.source.kind === "delegated_task" ? item.source.taskIds : undefined}
       outcome={item.outcome}
       createdAt={props.workEntry.createdAt}
       timestampFormat={ctx.timestampFormat}
@@ -407,12 +409,11 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
                   text={workEntry.detail ?? previewText}
                   cwd={ctx.markdownCwd}
                   parseRawHtml={false}
-                  extraRemarkPlugins={[
-                    [
-                      remarkThoughtPreview,
-                      workEntry.toolLifecycleStatus === "inProgress" ? "Thinking" : "Thought",
-                    ],
-                  ]}
+                  extraRemarkPlugins={
+                    workEntry.toolLifecycleStatus === "inProgress"
+                      ? THINKING_PREVIEW_PLUGINS
+                      : THOUGHT_PREVIEW_PLUGINS
+                  }
                 />
               ) : threadLabel ? (
                 <ThreadReadLabel
@@ -566,8 +567,7 @@ function WorkEntryLogDetails({
               environmentId={ctx.activeThreadEnvironmentId}
               cwd={ctx.markdownCwd}
               workspaceRoot={workspaceRoot}
-              onOpenThread={ctx.onOpenThread}
-              onOpenTurnDiff={ctx.onOpenTurnDiff}
+              onOpenToolDiff={ctx.onOpenToolDiff}
               onImageExpand={ctx.onImageExpand}
             />
           ) : (

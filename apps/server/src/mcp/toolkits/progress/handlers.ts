@@ -4,14 +4,13 @@ import { McpInvocationContext, requireThreadScope } from "../../McpInvocationCon
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import { ProgressToolkit } from "./tools.ts";
 
-const caller = (operation: string) =>
-  Effect.gen(function* () {
-    const scope = yield* requireThreadScope(yield* McpInvocationContext, operation);
-    return {
-      threadId: scope.thread.threadId,
-      service: yield* ThreadProgress.ThreadProgressService,
-    };
-  });
+const caller = Effect.fn("caller")(function* (operation: string) {
+  const scope = yield* requireThreadScope(yield* McpInvocationContext, operation);
+  return {
+    threadId: scope.thread.threadId,
+    service: yield* ThreadProgress.ThreadProgressService,
+  };
+});
 
 export const layer = McpToolAccess.toLayer(ProgressToolkit, {
   supaterm_progress_publish: McpToolAccess.actsAsCaller((input) =>

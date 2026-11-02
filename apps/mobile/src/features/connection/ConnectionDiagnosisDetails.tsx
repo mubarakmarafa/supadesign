@@ -3,14 +3,13 @@ import {
   AVAILABLE_CONNECTION_STATE,
   type ConnectionDiagnosis,
   connectionDiagnosisText,
-  connectionRoutes,
   connectionRouteKind,
   presentConnectionDiagnosis,
   type EnvironmentPresentation,
+  usableRoutes,
 } from "@supaterm/client-runtime/connection";
 import type { EnvironmentId } from "@supaterm/contracts";
 import Constants from "expo-constants";
-import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";
 import { View } from "react-native";
 
@@ -28,16 +27,16 @@ export function useConnectionDiagnosis(
   environmentId: EnvironmentId,
   presentation: EnvironmentPresentation | null,
 ) {
-  const state = Option.getOrElse(
-    AsyncResult.value(useAtomValue(environmentCatalog.stateAtom(environmentId))),
+  const state = AsyncResult.getOrElse(
+    useAtomValue(environmentCatalog.stateAtom(environmentId)),
     () => AVAILABLE_CONNECTION_STATE,
   );
   if (presentation === null || !presentation.entry.enabled) return { diagnosis: null, state };
   const phase = presentation.connection.phase;
   if (phase === "connected" || phase === "unsupported") return { diagnosis: null, state };
+  const routes = usableRoutes(presentation.entry);
   const relayOnly =
-    connectionRoutes(presentation.entry).length === 1 &&
-    connectionRoutes(presentation.entry).some((route) => connectionRouteKind(route) === "relay");
+    routes.length === 1 && routes.some((route) => connectionRouteKind(route) === "relay");
   const diagnosis = presentConnectionDiagnosis({
     hostLabel: presentation.entry.target.label,
     state,

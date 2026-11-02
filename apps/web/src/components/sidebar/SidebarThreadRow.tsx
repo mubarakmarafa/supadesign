@@ -1,7 +1,7 @@
 import { SIDEBAR_SORTABLE_DRAG_DISABLED } from "./SidebarListMarkers";
 import { ThreadHoverCard, ThreadHoverCardPopup } from "../ThreadHoverCard";
 import { discardComposerDraft } from "../../lib/discardComposerDraft";
-import { resolveThreadCurrentPullRequestLink } from "@supaterm/shared/threadPullRequests";
+import { resolveThreadCurrentPullRequestLink } from "@supaterm/client-runtime/thread-pull-requests";
 import { getProviderOptionDescriptors } from "@supaterm/shared/model";
 import { formatModelSelectionEffort } from "@supaterm/client-runtime/state/thread-execution";
 import {
@@ -27,7 +27,6 @@ import {
 } from "@supaterm/contracts";
 import {
   AlarmClockIcon,
-  AlarmClockOffIcon,
   ArrowRightLeftIcon,
   BrainIcon,
   CheckIcon,
@@ -35,21 +34,21 @@ import {
   CircleCheckIcon,
   CircleDashedIcon,
   ClockIcon,
+  ClockSnoozeIcon,
   GitBranchIcon,
   MessageCircleQuestionIcon,
   PinIcon,
   PinOffIcon,
-  ShieldQuestionIcon,
+  ShieldAlertIcon,
   SquarePenIcon,
   TerminalIcon,
   TimerIcon,
-  Undo2Icon,
+  UndoIcon,
   XIcon,
   ZapIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import {
   memo,
-  useEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -63,6 +62,7 @@ import { useThreadSelectionStore } from "../../threadSelectionStore";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { useSidebarThreadShell, useThreadShell } from "../../state/entities";
 import { useNowSecond } from "../../hooks/useNowSecond";
+import { useDeadlinePassed } from "../../hooks/useDeadline";
 import { environmentPresentations } from "../../state/presentation";
 import { vcsEnvironment } from "../../state/vcs";
 import { useEnvironmentQuery } from "../../state/query";
@@ -88,6 +88,7 @@ import {
   shouldShowSidebarV2Duration,
   useRetainedValue,
   useSidebarRowSubscriptionLease,
+  setFileDragActive,
 } from "../Sidebar.logic";
 import { resolveLocalCheckoutBranchMismatch } from "../BranchToolbar.logic";
 import {
@@ -104,7 +105,7 @@ import { type SnoozePreset } from "../Sidebar.snooze";
 import { ProjectFavicon, type ProjectFaviconProject } from "../ProjectFavicon";
 import { makeWorkspaceFileDropHandlers } from "../chat/workspaceFileDrop";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
-import { getTriggerDisplayModelLabel } from "../chat/providerIconUtils";
+import { getTriggerDisplayModelName } from "../chat/providerIconUtils";
 import { shouldShowInstanceBadge, type ProviderInstanceEntry } from "../../providerInstances";
 import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { InlineButton } from "../ui/button";
@@ -150,12 +151,8 @@ function CompactRelativeTimeLabel(props: { timestamp: string | null }) {
       );
 }
 
-// Floats at the row's right edge, vertically centered, while the jump
-// modifier is held. An overlay pill instead of an inline slot: the hint
-// must neither displace the status/time label (holding ⌘ used to blank
-// out "Working") nor shift any layout when it appears. pointer-events-none
-// so it never swallows clicks meant for the mark-done/reopen buttons it
-// can overlap.
+// An overlay rather than an inline slot so the hint never displaces the status label or shifts
+// layout; pointer-events-none so it never swallows clicks on the buttons it overlaps.
 function JumpHintBadge(props: { label: string }) {
   return (
     <span
@@ -206,7 +203,7 @@ function SidebarThreadWorkTime(props: { thread: SidebarThreadSummary }) {
   if (totalMs === null || totalMs < 1000) return null;
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <TimerIcon aria-hidden className="size-3 shrink-0 stroke-muted-foreground" />
+      <TimerIcon aria-hidden className="size-3 shrink-0 text-muted-foreground" />
       <div className="min-w-0 truncate text-foreground/75">
         Total working time:{" "}
         <span className="tabular-nums">{formatWorkingDurationLabel(totalMs)}</span>
@@ -335,20 +332,20 @@ function SidebarThreadTooltip({
           <div className="flex min-w-0 items-center gap-2">
             <EnvironmentMachineIcon
               kind={environmentMachine}
-              className="size-3 shrink-0 stroke-muted-foreground"
+              className="size-3 shrink-0 text-muted-foreground"
             />
             <div className="min-w-0 truncate text-foreground/75">{environmentLabel}</div>
           </div>
         ) : null}
         {thread.branch ? (
           <div className="flex min-w-0 items-center gap-2">
-            <GitBranchIcon className="size-3 shrink-0 stroke-muted-foreground" />
+            <GitBranchIcon className="size-3 shrink-0 text-muted-foreground" />
             <MiddleTruncate value={thread.branch} className="flex" />
           </div>
         ) : null}
         {branchMismatch ? (
           <div className="flex min-w-0 items-start gap-2 text-warning">
-            <CircleAlertIcon aria-hidden className="mt-0.5 size-3 shrink-0 stroke-current" />
+            <CircleAlertIcon aria-hidden className="mt-0.5 size-3 shrink-0" />
             <div className="min-w-0 flex-1 wrap-break-word">
               You're currently checked out on another branch.
             </div>
@@ -378,13 +375,13 @@ function SidebarThreadTooltip({
         ) : null}
         {effortLabel ? (
           <div className="flex min-w-0 items-center gap-2">
-            <BrainIcon aria-hidden className="size-3 shrink-0 stroke-muted-foreground" />
+            <BrainIcon aria-hidden className="size-3 shrink-0 text-muted-foreground" />
             <div className="min-w-0 truncate text-foreground/75">Thinking: {effortLabel}</div>
           </div>
         ) : null}
         {speedToggle ? (
           <div className="flex min-w-0 items-center gap-2">
-            <ZapIcon aria-hidden className="size-3 shrink-0 stroke-muted-foreground" />
+            <ZapIcon aria-hidden className="size-3 shrink-0 text-muted-foreground" />
             <div className="min-w-0 truncate text-foreground/75">
               {SPEED_TOGGLE_LABELS[speedToggle.level]}
             </div>
@@ -393,7 +390,7 @@ function SidebarThreadTooltip({
         <SidebarThreadWorkTime thread={thread} />
         {previousProviderNames.length > 0 ? (
           <div className="flex min-w-0 items-center gap-2">
-            <ArrowRightLeftIcon className="size-3 shrink-0 stroke-muted-foreground" />
+            <ArrowRightLeftIcon className="size-3 shrink-0 text-muted-foreground" />
             <div className="min-w-0 truncate text-foreground/75">
               Handed off from {previousProviderNames.join(", ")}
             </div>
@@ -417,7 +414,7 @@ function SidebarThreadTooltip({
               thread.runtime.lastErrorClass === "usage_limit" ? "text-warning" : "text-error",
             )}
           >
-            <CircleAlertIcon className="size-3 shrink-0 stroke-current" />
+            <CircleAlertIcon className="size-3 shrink-0" />
             <div className="min-w-0 truncate">
               {thread.runtime.lastErrorClass === "usage_limit"
                 ? "Usage limit reached"
@@ -532,13 +529,13 @@ const dropVerbBadge: Record<SidebarDropVerb, ReactNode> = {
   ),
   reopen: (
     <>
-      <Undo2Icon aria-hidden className="size-3" />
+      <UndoIcon aria-hidden className="size-3" />
       Reopen
     </>
   ),
   wake: (
     <>
-      <AlarmClockOffIcon aria-hidden className="size-3" />
+      <AlarmClockIcon aria-hidden className="size-3" />
       Wake
     </>
   ),
@@ -546,6 +543,7 @@ const dropVerbBadge: Record<SidebarDropVerb, ReactNode> = {
 
 type SidebarThreadRowProps = {
   thread: SidebarThreadSummary;
+  navigationParent?: string | undefined;
   // Done rows reopen, snoozed rows wake, and active rows become done.
   variantAction: SidebarSweepAction;
   // False on environments whose server predates thread.mark-done/reopen:
@@ -562,6 +560,8 @@ type SidebarThreadRowProps = {
   snoozeWakeLabelText: string | null;
   wokeAt: string | null;
   isActive: boolean;
+  // Set on the active row only; scrolls it into view when a reveal is owed.
+  revealRef?: ((row: HTMLElement, threadKey: string) => void) | undefined;
   /** Open in a chat pane that is not focused. */
   inOtherPane: boolean;
   // The pin and mark-done shortcuts act on the active thread, so only its row receives them.
@@ -603,6 +603,47 @@ type SidebarThreadRowProps = {
   onFileDropThreads?: ((threadRef: ScopedThreadRef, files: File[]) => void) | undefined;
 };
 
+// Mounted only while renaming, so each rename starts uncommitted.
+function ThreadRenameInput(props: {
+  title: string;
+  onTitleChange: (title: string) => void;
+  onCommit: () => void;
+  onCancel: () => void;
+}) {
+  // Enter and Escape blur the input as it unmounts; that blur must not commit again.
+  const settledRef = useRef(false);
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    event.stopPropagation();
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (event.key === "Enter") {
+      event.preventDefault();
+      settledRef.current = true;
+      props.onCommit();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      settledRef.current = true;
+      props.onCancel();
+    }
+  };
+  return (
+    <input
+      autoFocus
+      value={props.title}
+      dir="auto"
+      aria-label="Thread title"
+      onChange={(event) => props.onTitleChange(event.target.value)}
+      onFocus={(event) => event.currentTarget.select()}
+      onKeyDown={handleKeyDown}
+      onBlur={() => {
+        if (!settledRef.current) props.onCommit();
+      }}
+      onClick={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+      className="min-w-0 flex-1 rounded-sm border border-input bg-card px-1 text-sm font-medium text-card-foreground outline-none focus:border-foreground"
+    />
+  );
+}
+
 const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowProps) {
   const {
     isRenaming,
@@ -638,10 +679,12 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
   const markDoneSupported = props.markDoneSupported && !isPendingCreation;
   const snoozeSupported = props.snoozeSupported && !isPendingCreation;
   const canOperateThread = useEnvironmentScope(thread.environmentId, AuthOrchestrationOperateScope);
-  useEffect(() => {
-    if (!canOperateThread && isRenaming) onCancelRename();
-  }, [canOperateThread, isRenaming, onCancelRename]);
-  const { leaseLiveStatus, rowRef } = useSidebarRowSubscriptionLease(props.isActive);
+  const { leaseLiveStatus, rowRef: leaseRowRef } = useSidebarRowSubscriptionLease(props.isActive);
+  const { revealRef } = props;
+  const rowRef = (row: HTMLElement | null) => {
+    if (row !== null) revealRef?.(row, threadKey);
+    return leaseRowRef(row);
+  };
   const isRegeneratingTitle = thread.titleRegeneration != null;
   const lastVisitedAt = thread.lastVisitedAt ?? undefined;
   const isSelected = useThreadSelectionStore((state) => state.selectedThreadKeys.has(threadKey));
@@ -686,12 +729,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
   const isUnread = hasUnseenCompletion({ ...thread, lastVisitedAt });
   const status = resolveSidebarThreadStatus(thread);
   const showDuration = environmentConnected && shouldShowSidebarV2Duration(status);
-  // A woken thread reappears at its original position (the sort is
-  // deliberately static), so the pill has to carry the weight. Snoozing is
-  // an explicit act, so the pill clears only when the user re-engages:
-  // reading a completion-triggered wake, clicking the pill, sending a
-  // message, marking done, archiving, or a change request state that completes the
-  // thread. Timer wakes survive a mere visit. An unparseable visit timestamp
+  // A woken thread keeps its static sort position, so the pill carries the signal and clears only
+  // when the user re-engages; timer wakes survive a mere visit. An unparseable visit timestamp
   // counts as never-visited, so corrupt local data cannot eat the wake signal.
   const lastVisitedDate = lastVisitedAt === undefined ? null : parseTimestampDate(lastVisitedAt);
   const wokeAtDate = props.wokeAt === null ? null : parseTimestampDate(props.wokeAt);
@@ -724,12 +763,12 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
     topStatusKind === "connecting"
       ? { label: "Connecting", icon: null, className: "text-secondary-label" }
       : isPendingCreation
-        ? { label: "Preparing", icon: null, className: "text-info" }
+        ? { label: "Preparing", icon: null, className: "text-info-foreground" }
         : topStatusKind === "working"
           ? {
               label: thread.goal?.status === "active" ? "Goal" : "Working",
               icon: "working" as const,
-              className: "text-info",
+              className: "text-info-foreground",
             }
           : topStatusKind === "waiting"
             ? {
@@ -753,25 +792,25 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                   ? {
                       label: "Limited",
                       icon: "failed" as const,
-                      className: "text-warning",
+                      className: "text-warning-foreground",
                     }
                   : topStatusKind === "failed"
                     ? {
                         label: "Failed",
                         icon: "failed" as const,
-                        className: "text-error",
+                        className: "text-error-foreground",
                       }
                     : topStatusKind === "woke"
                       ? {
                           label: "Woke",
                           icon: "woke" as const,
-                          className: "text-warning",
+                          className: "text-warning-foreground",
                         }
                       : topStatusKind === "ready"
                         ? {
                             label: "Ready",
                             icon: "done" as const,
-                            className: "text-success",
+                            className: "text-success-foreground",
                           }
                         : null;
   const isWokeStatus = topStatus?.icon === "woke";
@@ -793,7 +832,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
     (model) => model.slug === thread.modelSelection.model,
   );
   const modelLabel = selectedModel
-    ? getTriggerDisplayModelLabel(selectedModel)
+    ? getTriggerDisplayModelName(selectedModel, providerEntry?.driverKind)
     : thread.modelSelection.model;
 
   const isRemote = thread.environmentId !== props.currentEnvironmentId;
@@ -856,6 +895,15 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
   };
   const handleKeyDown = (event: ReactKeyboardEvent) => {
     if (event.target !== event.currentTarget) return;
+    if (
+      event.key === "F2" &&
+      !isRenaming &&
+      readEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope)
+    ) {
+      event.preventDefault();
+      onStartRename(threadRef, thread.title);
+      return;
+    }
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     onThreadActivate(threadRef);
@@ -879,41 +927,13 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
   const [isFileDragOver, setIsFileDragOver] = useState(false);
   const fileDropHandlers = onFileDropThreads
     ? makeWorkspaceFileDropHandlers({
-        setDragActive: setIsFileDragOver,
+        setDragActive: (active) => setFileDragActive(setIsFileDragOver, active),
         addFiles: (files) => {
           onFileDropThreads(threadRef, files);
         },
         addFolders: () => {},
       })
     : null;
-  useEffect(() => {
-    if (!isFileDragOver) return;
-    const clearFileDrag = () => setIsFileDragOver(false);
-    window.addEventListener("dragend", clearFileDrag);
-    return () => window.removeEventListener("dragend", clearFileDrag);
-  }, [isFileDragOver]);
-  const renameCommittedRef = useRef(false);
-  useEffect(() => {
-    if (isRenaming) renameCommittedRef.current = false;
-  }, [isRenaming]);
-  const handleRenameKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    event.stopPropagation();
-    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
-    if (event.key === "Enter") {
-      event.preventDefault();
-      renameCommittedRef.current = true;
-      onCommitRename(threadRef, renamingTitle, thread.title);
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      renameCommittedRef.current = true;
-      onCancelRename();
-    }
-  };
-  const handleRenameBlur = () => {
-    if (!renameCommittedRef.current) {
-      onCommitRename(threadRef, renamingTitle, thread.title);
-    }
-  };
   const handleMarkDoneClick = (event: ReactMouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -955,18 +975,16 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
   const snoozeGateExpiryMs = hasQueuedTurnStart(thread, { now: snoozeGateNow })
     ? Date.parse(thread.latestUserMessageAt ?? "") + QUEUED_TURN_START_GRACE_MS
     : Number.NaN;
-  useEffect(() => {
-    // A gate still closed past its expiry is held by runtime status, not time,
-    // so no clock tick can open it.
-    if (!Number.isFinite(snoozeGateExpiryMs) || snoozeGateExpiryMs <= Date.parse(snoozeGateNow)) {
-      return;
-    }
-    const id = window.setTimeout(
-      () => setSnoozeGateClock({ thread, now: new Date().toISOString() }),
-      Math.min(Math.max(0, snoozeGateExpiryMs - Date.now()) + 50, 2_147_483_647),
-    );
-    return () => window.clearTimeout(id);
-  }, [snoozeGateExpiryMs, snoozeGateNow, thread]);
+  // A gate still closed past its expiry is held by runtime status, not time,
+  // so no clock tick can open it.
+  const snoozeGateOpensAt =
+    Number.isFinite(snoozeGateExpiryMs) && snoozeGateExpiryMs > Date.parse(snoozeGateNow)
+      ? snoozeGateExpiryMs + 50
+      : null;
+  const snoozeGateOpened = useDeadlinePassed(snoozeGateOpensAt);
+  if (snoozeGateOpened && snoozeGateOpensAt !== null) {
+    setSnoozeGateClock({ thread, now: new Date(snoozeGateOpensAt).toISOString() });
+  }
   const showSnoozeButton =
     canOperateThread && !isParked && snoozeSupported && canSnooze(thread, { now: snoozeGateNow });
   const [snoozeMenuOpenRaw, setSnoozeMenuOpen] = useState(false);
@@ -989,7 +1007,10 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
   // content; surface is reserved for interaction (hover, multi-select, route).
   const rowSurfaceClassName = cn(
     "group/sidebar-row relative w-full cursor-pointer overflow-hidden rounded-md text-left outline-none select-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-    variantAction === "reopen" && "[&:not(:hover):not(:focus-within)_*]:text-secondary-label/70",
+    variantAction === "reopen" &&
+      !props.isActive &&
+      !props.inOtherPane &&
+      "[&:not(:hover):not(:focus-within)_*]:text-secondary-label/70",
     props.isActive
       ? "bg-sidebar-row-active text-sidebar-foreground"
       : props.inOtherPane
@@ -1046,55 +1067,47 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
     isActive: props.isActive,
   });
 
-  const title =
-    isRenaming && canOperateThread ? (
-      <input
-        autoFocus
-        value={renamingTitle}
-        dir="auto"
-        aria-label="Thread title"
-        onChange={(event) => onRenameTitleChange(event.target.value)}
-        onFocus={(event) => event.currentTarget.select()}
-        onKeyDown={handleRenameKeyDown}
-        onBlur={handleRenameBlur}
-        onClick={(event) => event.stopPropagation()}
-        onDoubleClick={(event) => event.stopPropagation()}
-        className="min-w-0 flex-1 rounded-sm border border-input bg-card px-1 text-sm font-medium text-card-foreground outline-none focus:border-foreground"
-      />
-    ) : (
-      <span
-        aria-hidden
-        className={cn(
-          "min-w-0 flex-1 text-start text-sm transition-opacity motion-reduce:transition-none",
-          shouldRecede ? "font-normal" : "font-medium",
-          !isParked
-            ? cn(
-                "truncate",
-                shouldRecede
-                  ? "text-secondary-label"
-                  : isUnread || isWoke || status === "input"
-                    ? "text-foreground"
-                    : status === "failed"
-                      ? "text-foreground/95"
-                      : "text-foreground/90",
-              )
-            : cn(
-                "truncate group-focus-within/sidebar-row:text-foreground group-hover/sidebar-row:text-foreground",
-                shouldRecede
-                  ? "text-secondary-label/70"
-                  : props.isActive || isWoke || status === "input"
-                    ? "text-foreground"
-                    : isUnread
-                      ? "text-muted-foreground"
-                      : "text-secondary-label/70",
-              ),
-          isRegeneratingTitle && "opacity-55",
-        )}
-        dir={textDirection(thread.title)}
-      >
-        {thread.title}
-      </span>
-    );
+  const title = isRenaming ? (
+    <ThreadRenameInput
+      title={renamingTitle}
+      onTitleChange={onRenameTitleChange}
+      onCommit={() => onCommitRename(threadRef, renamingTitle, thread.title)}
+      onCancel={onCancelRename}
+    />
+  ) : (
+    <span
+      aria-hidden
+      className={cn(
+        "min-w-0 flex-1 text-start text-sm transition-opacity motion-reduce:transition-none",
+        shouldRecede ? "font-normal" : "font-medium",
+        !isParked
+          ? cn(
+              "truncate",
+              shouldRecede
+                ? "text-secondary-label"
+                : isUnread || isWoke || status === "input"
+                  ? "text-foreground"
+                  : status === "failed"
+                    ? "text-foreground/95"
+                    : "text-foreground/90",
+            )
+          : cn(
+              "truncate group-focus-within/sidebar-row:text-foreground group-hover/sidebar-row:text-foreground",
+              shouldRecede
+                ? "text-secondary-label/70"
+                : props.isActive || isWoke || status === "input"
+                  ? "text-foreground"
+                  : isUnread
+                    ? "text-muted-foreground"
+                    : "text-secondary-label/70",
+            ),
+        isRegeneratingTitle && "opacity-55",
+      )}
+      dir={textDirection(thread.title)}
+    >
+      {thread.title}
+    </span>
+  );
   const accessibleTitle = isRenaming ? null : <span className="sr-only">{thread.title}</span>;
 
   const prBadgeShape = resolveThreadPullRequestBadge(thread.pullRequests);
@@ -1179,8 +1192,10 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
             render={
               <div
                 ref={rowRef}
-                role="button"
-                tabIndex={0}
+                role="treeitem"
+                tabIndex={-1}
+                data-sidebar-row={threadKey}
+                data-sidebar-parent={props.navigationParent}
                 aria-label={accessibility.label}
                 aria-current={accessibility.current}
                 data-testid="sidebar-row-slim"
@@ -1244,7 +1259,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                       Connecting
                     </span>
                   ) : variantAction === "unsnooze" && props.snoozeWakeLabelText !== null ? (
-                    <span className="text-xs tabular-nums">{props.snoozeWakeLabelText}</span>
+                    <span className="text-xs text-info-foreground tabular-nums">
+                      {props.snoozeWakeLabelText}
+                    </span>
                   ) : isWoke ? (
                     // A wake can land straight in the done tail (e.g. PR
                     // merged while snoozed); the signal must survive the trip.
@@ -1257,7 +1274,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                             onClick={handleAcknowledgeWokeClick}
                             className="inline-flex cursor-pointer items-center gap-1 rounded-sm text-xs font-medium text-warning-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                           >
-                            <AlarmClockIcon aria-hidden className="size-3" />
+                            <ClockSnoozeIcon aria-hidden className="size-3" />
                             <span role="status">Woke</span>
                           </button>
                         }
@@ -1298,7 +1315,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                           onClick={handleUnsnoozeClick}
                           onSweepStart={handleSweepPointerDown}
                         >
-                          <AlarmClockOffIcon className="mb-px size-3" />
+                          <AlarmClockIcon className="mb-px size-3" />
                         </SidebarParkedActionButton>
                       </>
                     ) : (
@@ -1309,7 +1326,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                         onClick={handleReopenClick}
                         onSweepStart={handleSweepPointerDown}
                       >
-                        <Undo2Icon className="mb-px size-3.5" />
+                        <UndoIcon className="mb-px size-3.5" />
                       </SidebarParkedActionButton>
                     )}
                   </span>
@@ -1329,10 +1346,10 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
     ? {
         working: CircleDashedIcon,
         input: MessageCircleQuestionIcon,
-        approval: ShieldQuestionIcon,
+        approval: ShieldAlertIcon,
         failed: CircleAlertIcon,
         done: CircleCheckIcon,
-        woke: AlarmClockIcon,
+        woke: ClockSnoozeIcon,
       }[topStatus.icon]
     : isPendingCreation
       ? CircleDashedIcon
@@ -1359,8 +1376,10 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
           render={
             <div
               ref={rowRef}
-              role="button"
-              tabIndex={0}
+              role="treeitem"
+              tabIndex={-1}
+              data-sidebar-row={threadKey}
+              data-sidebar-parent={props.navigationParent}
               aria-label={accessibility.label}
               aria-current={accessibility.current}
               data-testid="sidebar-row"
@@ -1407,14 +1426,17 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                   )}
                 >
                   {topStatus && !showDuration && topStatusKind !== "connecting" ? (
-                    <span role="status" className={cn("inline-flex shrink-0", topStatus.className)}>
+                    <span className={cn("inline-flex shrink-0", topStatus.className)}>
                       <StatusIcon aria-hidden className="size-3.5" />
                       <span className="sr-only">{topStatus.label}</span>
                     </span>
                   ) : null}
                   {topStatus && (showDuration || topStatusKind === "connecting") ? (
                     <span className={cn("whitespace-nowrap", topStatus.className)}>
-                      <span role="status">{topStatus.label}</span>
+                      {/* Not a live region: a collapsed sidebar is inert, so
+                        BackgroundThreadAnnouncer and each pane's timeline speak
+                        status changes instead. */}
+                      {topStatus.label}
                       {showDuration ? (
                         <span aria-hidden>
                           {" "}
@@ -1447,7 +1469,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                           />
                         }
                       >
-                        <AlarmClockIcon aria-hidden className="size-3.5" />
+                        <ClockSnoozeIcon aria-hidden className="size-3.5" />
                       </TooltipTrigger>
                       <TooltipPopup side="top">Dismiss Woke notification</TooltipPopup>
                     </Tooltip>
@@ -1465,6 +1487,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
                       open={snoozeMenuOpen}
                       onOpenChange={setSnoozeMenuOpen}
                       onSnooze={handleSnoozePreset}
+                      environmentId={thread.environmentId}
                     />
                   ) : null}
                   {markDoneSupported ? (
@@ -1499,11 +1522,11 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
             ) : null}
             <div className="mt-0.5 flex h-4 min-w-0 items-center gap-1.5 text-xs text-secondary-label">
               {thread.branch ? (
-                <span className="flex min-w-0 flex-1 text-muted-foreground/60">
+                <span className="flex min-w-0 flex-1">
                   <MiddleTruncate value={thread.branch} showTitle={false} />
                 </span>
               ) : (
-                <span className="min-w-0 flex-1 truncate text-muted-foreground/60">
+                <span className="min-w-0 flex-1 truncate">
                   {showsScratchMachine ? props.scratchMachineLabel : props.projectDisplayName}
                 </span>
               )}

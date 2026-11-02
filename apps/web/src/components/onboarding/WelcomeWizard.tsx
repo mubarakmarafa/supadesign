@@ -16,6 +16,7 @@ import {
   squashAtomCommandFailure,
 } from "@supaterm/client-runtime/state/runtime";
 import {
+  AgentSessionSource,
   AuthTerminalOperateScope,
   CommandId,
   defaultInstanceIdForDriver,
@@ -31,7 +32,7 @@ import {
   LinkIcon,
   MonitorIcon,
   TerminalIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { useEffect, useRef, useState } from "react";
 
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
@@ -55,7 +56,7 @@ import {
 } from "../../onboarding/providerReadiness.logic";
 import { newProjectId, randomUUID } from "../../lib/utils";
 import { agentSessionImport } from "../../state/agentSessions";
-import { readProjects, useProjects } from "../../state/entities";
+import { readProjects, waitForProject } from "../../state/entities";
 import { useEnvironments, usePrimaryEnvironment } from "../../state/environments";
 import { resolveOnboardingSetup } from "../../onboarding/targetEnvironment.logic";
 import { useProjectScans } from "../../onboarding/useProjectScans";
@@ -94,12 +95,8 @@ import { cn } from "../../lib/utils";
 import { formatRelativeTime } from "../../timestampFormat";
 
 /**
- * First-run welcome wizard. Rendered over the workspace at `/welcome` on a
- * fresh install (no completed-onboarding flag, empty workspace). Flow per the
- * onboarding overhaul spec: connection choice → pair →
- * managed Codex setup or an inline CLI terminal → project import → main screen.
- * Every step past the connection gate is skippable; the whole wizard is
- * re-runnable by clearing the flag.
+ * Shown at `/welcome` on a fresh install (no completed-onboarding flag, empty workspace). Every
+ * step past the connection gate is skippable; clearing the flag re-runs the wizard.
  */
 
 type WizardStep = "connection" | "agents" | "import";
@@ -131,6 +128,7 @@ export function WelcomeWizard({
   const finishingPromiseRef = useRef<Promise<boolean> | null>(null);
   const completionErrorToastIdRef = useRef<ReturnType<typeof toastManager.add> | null>(null);
   const primaryEnvironment = usePrimaryEnvironment();
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- marks newly listed computers in the shared auto-select registry once and selects the enabled ones
   useEffect(() => {
     const newComputers = environments.filter(
       (environment) => !autoSelectedComputers.has(environment.environmentId),
@@ -293,6 +291,7 @@ function ConnectionStep({
     .filter((environment) => skippedIds.includes(environment.environmentId))
     .map((environment) => environment.label);
   const continueRef = useRef<HTMLButtonElement>(null);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- moves DOM focus to the Continue button once setup is ready and nothing else holds focus
   useEffect(() => {
     if (
       ready &&
@@ -435,6 +434,7 @@ function PairingForm({
   const [errorMessage, setErrorMessage] = useState("");
   const mountedRef = useRef(true);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- tracks mount so a pairing request that settles after unmount does not set state
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -517,12 +517,13 @@ function PairingForm({
           </div>
           <CollapsiblePanel>
             <p className="pt-3 text-sm text-muted-foreground">
-              Run this on the computer with your code.
+              On the computer with your code, start {APP_BASE_NAME} or run{" "}
+              <code className="font-mono">supaterm serve</code>, then run:
             </p>
             <CommandBlock command="supaterm pair" className="mt-2" />
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Start Supaterm first, or run <code className="font-mono">supaterm serve</code>. Add{" "}
-              <code className="font-mono">--tailscale</code> to use your tailnet.
+              On a tailnet, run <code className="font-mono">supaterm pair --tailscale</code>{" "}
+              instead.
             </p>
           </CollapsiblePanel>
         </Collapsible>
@@ -601,6 +602,7 @@ function ConnectedAgentsStep({
   } | null>(null);
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- asks the environment to refresh its provider list when the environment changes
   useEffect(() => {
     void refreshProviders({ environmentId, input: {} });
   }, [environmentId, refreshProviders]);
@@ -927,6 +929,7 @@ function AgentInstallTerminal({
   // In Strict Mode, a canceled open can finish after the replacement setup
   // starts; it must not close or pre-type into the replacement session that
   // shares this terminal id.
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- opens the setup PTY, types the command into it, and closes it on cleanup
   useEffect(() => {
     const generation = setupGenerationRef.current + 1;
     setupGenerationRef.current = generation;
@@ -1046,11 +1049,8 @@ function AgentInstallTerminal({
             providerInstanceId={providerInstanceId}
             advancedTypography={advancedTypography}
             onSessionExited={onClose}
-            focusRequestId={1}
             autoFocus
             visible
-            resizeEpoch={0}
-            drawerHeight={256}
             keybindings={keybindings}
           />
         ) : null}
@@ -1080,14 +1080,9 @@ function ImportStep({
   const writableEnvironments = useEnvironmentsWithScope(scans, AuthOrchestrationOperateScope);
   const createProject = useAtomCommand(projectEnvironment.create, { reportFailure: false });
   const importThreads = useAtomCommand(agentSessionImport, { reportFailure: false });
-  const projects = useProjects();
   const [selectedPaths, setSelectedPaths] = useState<ReadonlySet<string> | null>(null);
   const importWarningRef = useRef("");
   const importedThreadCountRef = useRef(0);
-  const [landingRequest, setLandingRequest] = useState<{
-    readonly projectRef: ScopedProjectRef;
-  } | null>(null);
-  const handledLandingRequestRef = useRef<typeof landingRequest>(null);
   const importedProjectsRef = useRef(new Map<string, ScopedProjectRef>());
   const projectsWithImportedHistoryRef = useRef(new Map<string, ScopedProjectRef>());
   const lastImportSelectionRef = useRef<ReadonlyArray<string>>([]);
@@ -1096,31 +1091,13 @@ function ImportStep({
   );
   const importGenerationRef = useRef(0);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- bumps the import generation on mount and unmount so in-flight imports drop stale results
   useEffect(() => {
     importGenerationRef.current += 1;
     return () => {
       importGenerationRef.current += 1;
     };
   }, []);
-
-  useEffect(() => {
-    if (landingRequest === null || handledLandingRequestRef.current === landingRequest) return;
-    const landingProject = landingRequest.projectRef;
-    if (
-      projects.some(
-        (project) =>
-          project.id === landingProject.projectId &&
-          project.environmentId === landingProject.environmentId,
-      )
-    ) {
-      handledLandingRequestRef.current = landingRequest;
-      void onDone(landingProject, importWarningRef.current, importedThreadCountRef.current).then(
-        (completed) => {
-          if (!completed) setIsImporting(false);
-        },
-      );
-    }
-  }, [landingRequest, onDone, projects, setIsImporting]);
 
   const { available: candidates, recent } = partitionOnboardingProjects(
     scans.flatMap((scan) =>
@@ -1155,7 +1132,23 @@ function ImportStep({
       return;
     }
     setIsImporting(true);
-    setLandingRequest({ projectRef });
+    const importGeneration = importGenerationRef.current;
+    // waitForProject gives up after its timeout, so a project that never reaches the client
+    // still finishes setup, just without landing in it.
+    void waitForProject(projectRef)
+      .then(
+        () => projectRef,
+        () => undefined,
+      )
+      .then(async (landing) => {
+        if (importGeneration !== importGenerationRef.current) return;
+        const completed = await onDone(
+          landing,
+          importWarningRef.current,
+          importedThreadCountRef.current,
+        );
+        if (!completed) setIsImporting(false);
+      });
   };
 
   const runImport = async (selection: typeof candidates) => {
@@ -1611,41 +1604,38 @@ function ImportCandidateRow({
   );
 }
 
+const IMPORT_SOURCE_NAMES: Record<AgentSessionSource, string> = {
+  claudeAgent: "Claude Code",
+  codex: "Codex",
+  pi: "Pi",
+};
+
 function ImportRowMeta({
   sources,
   threadCount,
   lastActiveAt,
 }: {
-  readonly sources: ReadonlyArray<"claudeAgent" | "codex"> | null;
+  readonly sources: ReadonlyArray<AgentSessionSource> | null;
   readonly threadCount: number;
   readonly lastActiveAt: string | null;
 }) {
   const relative = lastActiveAt === null ? null : formatRelativeTime(lastActiveAt);
   const age = relative === null ? "" : relative.suffix === null ? "now" : relative.value;
   return (
-    <span className="ml-auto grid shrink-0 grid-cols-[1rem_1rem_2.5rem_2.25rem] items-center gap-x-1 text-xs text-muted-foreground tabular-nums">
-      <span className="flex size-4 items-center justify-center">
-        {sources?.includes("claudeAgent") ? (
-          <span role="img" aria-label="Claude Code">
-            <ProviderInstanceIcon
-              driverKind={ProviderDriverKind.make("claudeAgent")}
-              displayName="Claude Code"
-              iconClassName="size-3"
-            />
-          </span>
-        ) : null}
-      </span>
-      <span className="flex size-4 items-center justify-center">
-        {sources?.includes("codex") ? (
-          <span role="img" aria-label="Codex">
-            <ProviderInstanceIcon
-              driverKind={ProviderDriverKind.make("codex")}
-              displayName="Codex"
-              iconClassName="size-3"
-            />
-          </span>
-        ) : null}
-      </span>
+    <span className="ml-auto grid shrink-0 grid-cols-[1rem_1rem_1rem_2.5rem_2.25rem] items-center gap-x-1 text-xs text-muted-foreground tabular-nums">
+      {AgentSessionSource.literals.map((source) => (
+        <span key={source} className="flex size-4 items-center justify-center">
+          {sources?.includes(source) ? (
+            <span role="img" aria-label={IMPORT_SOURCE_NAMES[source]}>
+              <ProviderInstanceIcon
+                driverKind={ProviderDriverKind.make(source)}
+                displayName={IMPORT_SOURCE_NAMES[source]}
+                iconClassName="size-3"
+              />
+            </span>
+          ) : null}
+        </span>
+      ))}
       <span className="text-right">{threadCount}</span>
       <span className="text-right whitespace-nowrap">{age}</span>
     </span>

@@ -18,34 +18,17 @@ export const ServerAuthPolicy = Schema.Literals([
 export type ServerAuthPolicy = typeof ServerAuthPolicy.Type;
 
 /**
- * A credential type that can be exchanged for a real authenticated session.
- *
- * Bootstrap methods are for establishing trust at the start of a connection or
- * pairing flow. They are not the long-lived credential used for ordinary
- * authenticated HTTP / WebSocket traffic after pairing succeeds.
- *
- * Current methods:
- * - `desktop-bootstrap`: a trusted local desktop handoff, used so the desktop
- *   shell can pair the renderer without a login screen
- * - `one-time-token`: a short-lived pairing token, suitable for manual pairing
- *   flows such as `/pair#token=...`
+ * A credential exchanged once for a session at pairing, never sent on ordinary
+ * traffic afterwards. `desktop-bootstrap` lets the desktop shell pair its
+ * renderer without a login screen; `one-time-token` backs `/pair#token=...`.
  */
 export const ServerAuthBootstrapMethod = Schema.Literals(["desktop-bootstrap", "one-time-token"]);
 export type ServerAuthBootstrapMethod = typeof ServerAuthBootstrapMethod.Type;
 
 /**
- * A credential type accepted for steady-state authenticated requests after a
- * client has already paired.
- *
- * These methods are used by the server-wide auth layer for privileged HTTP and
- * WebSocket access. They are distinct from bootstrap methods so clients can
- * reason clearly about "pair first, then use session auth".
- *
- * Current methods:
- * - `browser-session-cookie`: cookie-backed browser session, used by the web
- *   app after bootstrap/pairing
- * - `bearer-access-token`: scoped token suitable for non-cookie or
- *   non-browser clients
+ * A credential for steady-state HTTP and WebSocket requests after pairing,
+ * kept apart from bootstrap methods: pair first, then use session auth.
+ * `bearer-access-token` serves clients that cannot hold a browser cookie.
  */
 export const ServerAuthSessionMethod = Schema.Literals([
   "browser-session-cookie",
@@ -207,10 +190,20 @@ export const AuthAccessTokenResult = Schema.Struct({
 export type AuthAccessTokenResult = typeof AuthAccessTokenResult.Type;
 
 export const AuthWebSocketTicketResult = Schema.Struct({
-  ticket: TrimmedNonEmptyString,
+  ticket: Schema.RedactedFromValue(TrimmedNonEmptyString),
   expiresAt: Schema.DateTimeUtc,
 });
 export type AuthWebSocketTicketResult = typeof AuthWebSocketTicketResult.Type;
+
+/**
+ * The route a WebSocket ticket opens. It is a path segment so the DPoP mint
+ * proof's `htu` covers it; a query parameter could be stripped in transit.
+ * Clients that predate this mint at the bare path and get tickets that open either.
+ */
+export const AuthWebSocketTicketUse = Schema.Literals(["rpc", "media"]);
+export type AuthWebSocketTicketUse = typeof AuthWebSocketTicketUse.Type;
+
+export const AuthWebSocketTicketParams = Schema.Struct({ use: AuthWebSocketTicketUse });
 
 export const AuthPairingCredentialResult = Schema.Struct({
   id: TrimmedNonEmptyString,
@@ -428,7 +421,7 @@ export const AuthMcpAuthorizationRequest = Schema.Struct({
   redirect_uri: Schema.optionalKey(Schema.String),
   code_challenge: Schema.optionalKey(Schema.String),
   code_challenge_method: Schema.optionalKey(Schema.String),
-  state: Schema.optionalKey(Schema.String),
+  state: Schema.optionalKey(Schema.RedactedFromValue(Schema.String)),
   resource: Schema.optionalKey(Schema.String),
 });
 export type AuthMcpAuthorizationRequest = typeof AuthMcpAuthorizationRequest.Type;
@@ -483,10 +476,10 @@ export class AuthMcpApprovalError extends Schema.TaggedError<AuthMcpApprovalErro
 
 export const AuthMcpTokenRequest = Schema.Struct({
   grant_type: Schema.optionalKey(Schema.String),
-  code: Schema.optionalKey(Schema.String),
+  code: Schema.optionalKey(Schema.RedactedFromValue(Schema.String)),
   redirect_uri: Schema.optionalKey(Schema.String),
   client_id: Schema.optionalKey(Schema.String),
-  code_verifier: Schema.optionalKey(Schema.String),
+  code_verifier: Schema.optionalKey(Schema.RedactedFromValue(Schema.String)),
   resource: Schema.optionalKey(Schema.String),
 }).pipe(HttpApiSchema.asFormUrlEncoded());
 export type AuthMcpTokenRequest = typeof AuthMcpTokenRequest.Type;

@@ -49,7 +49,7 @@ import { SNAP_SHOT_EVENT_CHANNEL } from "../ipc/channels.ts";
 import * as DesktopServerExposure from "../backend/DesktopServerExposure.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
 import * as PreviewManager from "../preview/Manager.ts";
-import { APP_DEV_URL_SCHEME } from "@supaterm/shared/appIdentity";
+import { APP_DEV_URL_SCHEME, APP_URL_SCHEME } from "@supaterm/shared/appIdentity";
 
 const environmentInput = {
   dirname: "/repo/apps/desktop/dist-electron",
@@ -78,6 +78,12 @@ function makeFakeBrowserWindow() {
       zoomLevel = level;
     }),
     isLoadingMainFrame: vi.fn(() => false),
+    navigationHistory: {
+      canGoBack: vi.fn(() => true),
+      canGoForward: vi.fn(() => true),
+      goBack: vi.fn(),
+      goForward: vi.fn(),
+    },
     on: vi.fn((eventName: string, listener: (...args: readonly unknown[]) => void) => {
       webContentsListeners.set(eventName, listener);
     }),
@@ -136,6 +142,7 @@ function makeFakeBrowserWindow() {
     reload: webContents.reload,
     reloadIgnoringCache: webContents.reloadIgnoringCache,
     toggleDevTools: webContents.toggleDevTools,
+    navigationHistory: webContents.navigationHistory,
     send: webContents.send,
     setZoomLevel: webContents.setZoomLevel,
     setWindowButtonPosition: window.setWindowButtonPosition,
@@ -460,6 +467,45 @@ describe("DesktopWindow", () => {
     assert.deepEqual(
       DesktopWindow.resolveInitialMainWindowBounds(persistedBounds, [displays[0]!]),
       DesktopAppSettings.DEFAULT_MAIN_WINDOW_SIZE,
+    );
+  });
+
+  it("rejects renderer navigations whose origin only serializes as null", () => {
+    for (const applicationUrl of ["supaterm://app/", "supaterm-dev://app/"]) {
+      assert.isTrue(
+        DesktopWindow.isSameOriginRendererNavigation({
+          applicationUrl,
+          navigationUrl: `${applicationUrl}threads?id=1#latest`,
+        }),
+        applicationUrl,
+      );
+    }
+    for (const navigationUrl of [
+      "supaterm://other/",
+      "supaterm://app.example/",
+      "supaterm://app:8080/",
+      "supaterm://user@other/",
+      "supaterm:app",
+      "supaterm-dev://app/",
+      "file:///etc/passwd",
+      "data:text/html,<p>hi</p>",
+      "javascript:alert(1)",
+      "about:blank",
+      "blob:supaterm://app/0b5e2c4a",
+    ]) {
+      assert.isFalse(
+        DesktopWindow.isSameOriginRendererNavigation({
+          applicationUrl: "supaterm://app/",
+          navigationUrl,
+        }),
+        navigationUrl,
+      );
+    }
+    assert.isFalse(
+      DesktopWindow.isSameOriginRendererNavigation({
+        applicationUrl: "data:text/html,app",
+        navigationUrl: "data:text/html,other",
+      }),
     );
   });
 
@@ -886,6 +932,39 @@ describe("DesktopWindow", () => {
     }),
   );
 
+  it.effect("maps macOS horizontal swipes to available history navigation", () =>
+    Effect.gen(function* () {
+      const fakeWindow = makeFakeBrowserWindow();
+      const createCount = yield* Ref.make(0);
+      const mainWindow = yield* Ref.make<Option.Option<Electron.BrowserWindow>>(Option.none());
+      const layer = layerTest({ window: fakeWindow.window, createCount, mainWindow });
+
+      yield* Effect.gen(function* () {
+        const desktopWindow = yield* DesktopWindow.DesktopWindow;
+        yield* desktopWindow.handleBackendReady(new URL("http://127.0.0.1:3773"));
+        const swipe = fakeWindow.windowListeners.get("swipe");
+        assert.isDefined(swipe);
+        if (!swipe) return;
+        const history = fakeWindow.navigationHistory;
+
+        swipe({}, "left");
+        assert.equal(history.goBack.mock.calls.length, 1);
+        assert.equal(history.goForward.mock.calls.length, 0);
+        swipe({}, "right");
+        assert.equal(history.goForward.mock.calls.length, 1);
+
+        swipe({}, "up");
+        swipe({}, "down");
+        history.canGoBack.mockReturnValue(false);
+        history.canGoForward.mockReturnValue(false);
+        swipe({}, "left");
+        swipe({}, "right");
+        assert.equal(history.goBack.mock.calls.length, 1);
+        assert.equal(history.goForward.mock.calls.length, 1);
+      }).pipe(Effect.provide(layer));
+    }),
+  );
+
   it.effect("persists the current main window bounds before the window closes", () =>
     Effect.gen(function* () {
       const fakeWindow = makeFakeBrowserWindow();
@@ -964,6 +1043,17 @@ describe("DesktopWindow", () => {
         if (!willNavigate) {
           return yield* Effect.die("will-navigate listener was not registered");
         }
+        for (const [url, expectedPrevented] of [
+          [`${APP_DEV_URL_SCHEME}://app/threads?id=1#latest`, false],
+          [`${APP_DEV_URL_SCHEME}://other/`, true],
+          [`${APP_URL_SCHEME}://app/`, true],
+        ] as const) {
+          const preventDefault = vi.fn();
+          willNavigate({ preventDefault }, url);
+          assert.equal(preventDefault.mock.calls.length, expectedPrevented ? 1 : 0, url);
+        }
+        assert.deepEqual(openedExternalUrls, []);
+
         let prevented = false;
         willNavigate(
           {

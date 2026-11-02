@@ -1,6 +1,6 @@
 import { scopedThreadKey } from "@supaterm/client-runtime/environment";
 import type { ProjectId, ScopedThreadRef } from "@supaterm/contracts";
-import { Maximize2Icon, XIcon } from "lucide-react";
+import { ExpandIcon, XIcon } from "@supaterm/icons";
 
 import { composerDraftHasUserContent, useComposerDraftStore } from "../../composerDraftStore";
 import ChatView from "../ChatView";
@@ -9,11 +9,9 @@ import { Dialog, DialogClose, DialogPopup } from "../ui/dialog";
 import { useOpenThreadFromBoard } from "./boardNavigation";
 
 /**
- * A card's thread in a window over its board: send a quick message, then click
- * outside or press Escape to return to the board. The expand button opens the
- * full thread. Escape keeps the window open while the composer holds a draft.
- * A Done card is archived and has no full thread to open until a message
- * reopens it.
+ * A card's thread in a window over its board. Escape keeps the window open while
+ * the composer holds a draft. A Done card is archived and has no full thread to
+ * open until a message reopens it.
  */
 export function BoardPeek({
   threadRef,
@@ -61,7 +59,7 @@ export function BoardPeek({
           </DialogClose>
           {archived ? null : (
             <Button size="sm" variant="ghost" onClick={() => openThread(threadRef, projectId)}>
-              <Maximize2Icon />
+              <ExpandIcon />
               Open full thread
             </Button>
           )}

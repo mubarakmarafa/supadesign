@@ -14,7 +14,7 @@ import {
   type ThreadDecision,
   type ThreadDecisionId,
 } from "@supaterm/contracts";
-import { CheckIcon, HistoryIcon, PencilIcon, PlusIcon, SparklesIcon, XIcon } from "lucide-react";
+import { CheckIcon, HistoryIcon, PencilIcon, PlusIcon, SparklesIcon, XIcon } from "@supaterm/icons";
 import * as Schema from "effect/Schema";
 import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 

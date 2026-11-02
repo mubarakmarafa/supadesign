@@ -1,28 +1,28 @@
 import type { ThreadId, EnvironmentId } from "@supaterm/contracts";
+import { scopeThreadRef, scopedThreadKey } from "@supaterm/client-runtime/environment";
 import { backgroundWorkHoldsCompletion } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
 import { threadPullRequestSearchTerms } from "@supaterm/shared/threadPullRequests";
 import * as React from "react";
-import {
-  isAtomCommandInterrupted,
-  type AtomCommandResult,
-} from "@supaterm/client-runtime/state/runtime";
 import { defaultAnimateLayoutChanges, type AnimateLayoutChanges } from "@dnd-kit/sortable";
-import type { ContextMenuItem } from "@supaterm/contracts";
+import { isListedThreadLineage, type ContextMenuItem } from "@supaterm/contracts";
+import type { EnvironmentConnectionPhase } from "@supaterm/client-runtime/connection";
 import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@supaterm/contracts/settings";
-import type { AsyncResult } from "effect/reactivity";
-import { planPinnedReorder } from "@supaterm/client-runtime/state/thread-sort";
 import {
   effectiveSnoozed,
   type ThreadSnoozeShell,
 } from "@supaterm/client-runtime/state/thread-snooze";
 import {
   getThreadSortTimestamp,
+  planPinnedReorder,
   sortThreads,
   toSortableTimestamp,
   type ThreadSortInput,
-} from "../lib/threadSort";
+} from "@supaterm/client-runtime/state/thread-sort";
 import type { SidebarThreadSummary, Thread } from "../types";
 import { normalizeSearchText } from "../lib/utils";
+import { observeIntersection } from "../lib/observeIntersection";
+import { deadlineAfter, deadlineStore } from "@supaterm/client-runtime/clock";
+import { useDeadlinePassed } from "../hooks/useDeadline";
 
 export {
   formatWorkingDurationLabel,
@@ -64,36 +64,79 @@ const SIDEBAR_ROW_SUBSCRIPTION_OVERSCAN_PX = 160;
 
 export function useSidebarRowSubscriptionLease(isActive: boolean): {
   readonly leaseLiveStatus: boolean;
-  readonly rowRef: React.Dispatch<React.SetStateAction<HTMLElement | null>>;
+  readonly rowRef: (row: HTMLElement | null) => (() => void) | undefined;
 } {
-  const [row, setRow] = React.useState<HTMLElement | null>(null);
   const [isNearViewport, setIsNearViewport] = React.useState(isActive);
-  if (
-    !isNearViewport &&
-    (isActive || (row !== null && typeof IntersectionObserver === "undefined"))
-  ) {
-    setIsNearViewport(true);
-  }
-
-  React.useEffect(() => {
-    if (isActive || row === null || typeof IntersectionObserver === "undefined") return;
-
-    const scrollRoot = row.closest<HTMLElement>('[data-slot="scroll-area-viewport"]');
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsNearViewport(entry?.isIntersecting === true),
-      {
-        root: scrollRoot,
-        rootMargin: `${SIDEBAR_ROW_SUBSCRIPTION_OVERSCAN_PX}px 0px`,
-      },
-    );
-    observer.observe(row);
-    return () => observer.disconnect();
-  }, [isActive, row]);
+  if (isActive && !isNearViewport) setIsNearViewport(true);
+  const canObserve = typeof IntersectionObserver !== "undefined";
 
   return {
-    leaseLiveStatus: isActive || isNearViewport,
-    rowRef: setRow,
+    leaseLiveStatus: isActive || isNearViewport || !canObserve,
+    rowRef: (row) => {
+      if (row === null || isActive || !canObserve) return undefined;
+      // The overscan has to apply to the sidebar's own scroller; a viewport-rooted
+      // margin is still clipped by it.
+      return observeIntersection(row, (entry) => setIsNearViewport(entry.isIntersecting), {
+        root: row.closest('[data-slot="scroll-area-viewport"]'),
+        rootMargin: `${SIDEBAR_ROW_SUBSCRIPTION_OVERSCAN_PX}px 0px`,
+      });
+    },
   };
+}
+
+const fileDragClears = new Set<(active: false) => void>();
+function clearFileDrags() {
+  const clears = [...fileDragClears];
+  fileDragClears.clear();
+  for (const clear of clears) clear(false);
+}
+
+/**
+ * A file drag that ends outside every drop target (Escape, or a drop elsewhere)
+ * sends no dragleave to the row it last entered, so the window's dragend clears it.
+ */
+export function setFileDragActive(setActive: (active: boolean) => void, active: boolean) {
+  setActive(active);
+  if (typeof window === "undefined") return;
+  if (!active) {
+    if (fileDragClears.delete(setActive) && fileDragClears.size === 0) {
+      window.removeEventListener("dragend", clearFileDrags);
+    }
+    return;
+  }
+  if (fileDragClears.size === 0) window.addEventListener("dragend", clearFileDrags, { once: true });
+  fileDragClears.add(setActive);
+}
+
+/**
+ * A clock that advances exactly when a snooze wake time passes, so a woken
+ * thread leaves the shelf on time without a per-second clock.
+ */
+export function useSnoozeWakeClock(
+  threads: ReadonlyArray<{ readonly snoozedUntil?: string | null | undefined }>,
+): number {
+  const [clockMs, setClockMs] = React.useState(() => Date.now());
+  const wakeTimes: number[] = [];
+  let nextWakeAt: number | null = null;
+  for (const thread of threads) {
+    const wakeAt = thread.snoozedUntil == null ? Number.NaN : Date.parse(thread.snoozedUntil);
+    if (!(wakeAt > clockMs)) continue;
+    wakeTimes.push(wakeAt);
+    if (nextWakeAt === null || wakeAt < nextWakeAt) nextWakeAt = wakeAt;
+  }
+  const woke = useDeadlinePassed(nextWakeAt);
+  // Advancing to the latest wake that has passed skips every wake that elapsed
+  // meanwhile, e.g. across a laptop sleep. Stepping one wake at a time would
+  // re-render once per elapsed wake and hit React's limit.
+  if (woke && nextWakeAt !== null) {
+    let nextClockMs = nextWakeAt;
+    for (const wakeAt of wakeTimes) {
+      if (wakeAt > nextClockMs && deadlineStore(wakeAt).getSnapshot()) nextClockMs = wakeAt;
+    }
+    setClockMs(nextClockMs);
+    return nextClockMs;
+  }
+  return clockMs;
 }
 
 export function useRetainedValue<T>(key: string | null, value: T | null): T | null {
@@ -113,13 +156,9 @@ export function useRetainedValue<T>(key: string | null, value: T | null): T | nu
 export const animateSidebarLayoutChanges: AnimateLayoutChanges = (args) =>
   args.isSorting ? defaultAnimateLayoutChanges(args) : false;
 
-// Rows and section markers share one sortable list. The separators resolve
-// the lifecycle action; Sidebar.drag previews the resulting layout. Pinned
-// threads keep the dragged position; active and done threads use time
-// order. Snoozed rows can leave the shelf, but dropping into it is not
-// supported because snoozing requires a wake time. The Working shelf follows
-// live status, so its rows only drag out as chat context, never between
-// sidebar sections.
+// Rows and section markers share one sortable list; the separators resolve the lifecycle action.
+// Dropping into the snoozed shelf is unsupported because snoozing needs a wake time, and Working
+// follows live status, so its rows only drag out as chat context.
 
 export type SidebarSection = "pinned" | "active" | "working" | "snoozed" | "done";
 
@@ -134,6 +173,24 @@ export function resolveSidebarThreadSection(input: {
   if (input.done) return "done";
   if (input.pinned) return "pinned";
   return "active";
+}
+
+// Keep cached placement on the first connection attempt, matching mobile's threadRouteIsHydrating.
+export function isSidebarEnvironmentDisconnected(
+  phase: EnvironmentConnectionPhase,
+  shellIsLive: boolean,
+): boolean {
+  return phase !== "connecting" && (phase !== "connected" || !shellIsLive);
+}
+
+export function belongsInSidebarWorkingShelf<T extends { readonly environmentId: EnvironmentId }>(
+  thread: T,
+  input: {
+    readonly disconnectedEnvironmentIds: ReadonlySet<EnvironmentId>;
+    readonly isWorking: (thread: T) => boolean;
+  },
+): boolean {
+  return !input.disconnectedEnvironmentIds.has(thread.environmentId) && input.isWorking(thread);
 }
 
 const SIDEBAR_MARKER_PREFIX = "sidebar-marker-";
@@ -195,7 +252,7 @@ function sectionAtSidebarSlot(items: readonly SidebarListItem[], index: number):
 /** Resolve the destination section and pointer order from an arrayMove across
  * the separators. Only the pinned order is kept on drop. The working and
  * snoozed shelves are never destinations. */
-export type SidebarDropTarget = {
+type SidebarDropTarget = {
   readonly section: "pinned" | "active" | "done";
   readonly pinnedOrder: readonly string[];
   readonly activeOrder: readonly string[];
@@ -233,7 +290,7 @@ export function resolveSidebarDropTarget(
   return { section, pinnedOrder, activeOrder };
 }
 
-export type SidebarThreadDropPlan =
+type SidebarThreadDropPlan =
   | { readonly kind: "none" }
   | {
       readonly kind: "reorder-pinned";
@@ -294,6 +351,29 @@ export function sidebarThreadKeyAtY(list: HTMLElement, y: number): string | null
   return key;
 }
 
+export function resolveSidebarReorderableThreadKeys(input: {
+  readonly threads: ReadonlyArray<Pick<SidebarThreadSummary, "environmentId" | "id">>;
+  /** Threads the server holds; optimistic rows have nothing to write to yet. */
+  readonly serverThreadKeys: ReadonlySet<string>;
+  readonly serverConfigs: ReadonlyMap<EnvironmentId, unknown>;
+  readonly connectedEnvironmentIds: readonly EnvironmentId[];
+}) {
+  const connectedEnvironmentIds = new Set(input.connectedEnvironmentIds);
+  const draggableThreadKeys = new Set<string>();
+  for (const thread of input.threads) {
+    // Config is cached for offline rendering, so its presence does not make a row writable.
+    if (
+      !connectedEnvironmentIds.has(thread.environmentId) ||
+      !input.serverConfigs.has(thread.environmentId)
+    ) {
+      continue;
+    }
+    const threadKey = scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
+    if (input.serverThreadKeys.has(threadKey)) draggableThreadKeys.add(threadKey);
+  }
+  return { draggableThreadKeys };
+}
+
 export function planSidebarThreadDrop(input: {
   readonly activeKey: string;
   readonly activeSection: SidebarSection;
@@ -332,7 +412,16 @@ export function planSidebarThreadDrop(input: {
       keysById,
       movedId: activeKey,
     });
-    return assignments.every(({ id }) => writable.has(id)) ? assignments : null;
+    if (assignments.some(({ id }) => !writable.has(id))) return null;
+    // Keyless pinned rows sort after keyed rows, so a row materialized after a frozen keyless row
+    // cannot persist that position.
+    const assignedIds = new Set(assignments.map(({ id }) => id));
+    let hasFrozenKeylessBefore = false;
+    for (const id of order) {
+      if (hasFrozenKeylessBefore && assignedIds.has(id)) return null;
+      hasFrozenKeylessBefore ||= !writable.has(id) && keysById.get(id) == null;
+    }
+    return assignments;
   };
   switch (target.section) {
     case "active":
@@ -437,37 +526,7 @@ type LogicalSidebarProject = SidebarProject & {
   }[];
 };
 
-export type ThreadTraversalDirection = "previous" | "next";
-
-/**
- * Shared-worktree checks must exclude only successful deletions, never the
- * whole batch.
- */
-export async function deleteSelectedThreadEntries<
-  TEntry extends { readonly threadKey: string },
->(input: {
-  entries: readonly TEntry[];
-  delete: (
-    entry: TEntry,
-    deletedThreadKeys: ReadonlySet<string>,
-  ) => Promise<AtomCommandResult<unknown, unknown> | null>;
-}) {
-  const deletedThreadKeys = new Set<string>();
-  let firstFailure: AsyncResult.Failure<unknown, unknown> | null = null;
-
-  for (const entry of input.entries) {
-    const result = await input.delete(entry, deletedThreadKeys);
-    if (result === null) continue;
-    if (result._tag === "Failure") {
-      if (isAtomCommandInterrupted(result)) break;
-      firstFailure ??= result;
-      continue;
-    }
-    deletedThreadKeys.add(entry.threadKey);
-  }
-
-  return { deletedThreadKeys, firstFailure };
-}
+type ThreadTraversalDirection = "previous" | "next";
 
 export async function archiveSelectedThreadEntries<
   TEntry extends { readonly threadKey: string },
@@ -501,8 +560,8 @@ export async function archiveSelectedThreadEntries<
   return { archivedThreadKeys, mutationFailure: null, followupFailures };
 }
 
-export function isSidebarSubagentThread(thread: Pick<SidebarThreadSummary, "lineage">): boolean {
-  return thread.lineage.relationshipToParent === "subagent";
+export function isSidebarHiddenThread(thread: Pick<SidebarThreadSummary, "lineage">): boolean {
+  return !isListedThreadLineage(thread.lineage);
 }
 
 export function resolveSidebarRowThreadId(
@@ -514,7 +573,7 @@ export function resolveSidebarRowThreadId(
     threads.find((thread) => thread.id === id && thread.environmentId === environmentId);
   const visited = new Set<ThreadId>();
   let thread = findThread(threadId);
-  while (thread !== undefined && isSidebarSubagentThread(thread)) {
+  while (thread !== undefined && isSidebarHiddenThread(thread)) {
     if (thread.lineage.parentThreadId === null || visited.has(thread.id)) return threadId;
     visited.add(thread.id);
     thread = findThread(thread.lineage.parentThreadId);
@@ -531,7 +590,7 @@ export function filterSidebarV2VisibleThreads<
   return threads.filter(
     (thread) =>
       thread.archivedAt === null &&
-      !isSidebarSubagentThread(thread) &&
+      !isSidebarHiddenThread(thread) &&
       (scopedProjectKeys === null ||
         scopedProjectKeys.has(`${thread.environmentId}:${thread.projectId}`)),
   );
@@ -585,89 +644,19 @@ type ThreadStatusInput = Pick<
   blockedOnThreadWait?: boolean | undefined;
 };
 
-export interface ThreadJumpHintVisibilityController {
-  sync: (shouldShow: boolean) => void;
-  dispose: () => void;
-}
-
-function createThreadJumpHintVisibilityController(input: {
-  delayMs: number;
-  onVisibilityChange: (visible: boolean) => void;
-  setTimeoutFn?: typeof globalThis.setTimeout;
-  clearTimeoutFn?: typeof globalThis.clearTimeout;
-}): ThreadJumpHintVisibilityController {
-  const setTimeoutFn = input.setTimeoutFn ?? globalThis.setTimeout;
-  const clearTimeoutFn = input.clearTimeoutFn ?? globalThis.clearTimeout;
-  let isVisible = false;
-  let timeoutId: NodeJS.Timeout | null = null;
-
-  const clearPendingShow = () => {
-    if (timeoutId === null) {
-      return;
-    }
-    clearTimeoutFn(timeoutId);
-    timeoutId = null;
-  };
-
-  return {
-    sync: (shouldShow) => {
-      if (!shouldShow) {
-        clearPendingShow();
-        if (isVisible) {
-          isVisible = false;
-          input.onVisibilityChange(false);
-        }
-        return;
-      }
-
-      if (isVisible || timeoutId !== null) {
-        return;
-      }
-
-      timeoutId = setTimeoutFn(() => {
-        timeoutId = null;
-        isVisible = true;
-        input.onVisibilityChange(true);
-      }, input.delayMs);
-    },
-    dispose: () => {
-      clearPendingShow();
-    },
-  };
-}
-
-export function useThreadJumpHintVisibility(): {
-  showThreadJumpHints: boolean;
-  updateThreadJumpHintsVisibility: (shouldShow: boolean) => void;
-} {
-  const [showThreadJumpHints, setShowThreadJumpHints] = React.useState(false);
-  const controllerRef = React.useRef<ThreadJumpHintVisibilityController | null>(null);
-
-  React.useEffect(() => {
-    const controller = createThreadJumpHintVisibilityController({
-      delayMs: THREAD_JUMP_HINT_SHOW_DELAY_MS,
-      onVisibilityChange: (visible) => {
-        setShowThreadJumpHints(visible);
-      },
-      setTimeoutFn: window.setTimeout.bind(window),
-      clearTimeoutFn: window.clearTimeout.bind(window),
-    });
-    controllerRef.current = controller;
-
-    return () => {
-      controller.dispose();
-      controllerRef.current = null;
-    };
-  }, []);
-
-  const updateThreadJumpHintsVisibility = (shouldShow: boolean) => {
-    controllerRef.current?.sync(shouldShow);
-  };
-
-  return {
-    showThreadJumpHints,
-    updateThreadJumpHintsVisibility,
-  };
+/**
+ * Thread jump hints appear once the jump modifier has been held for a moment,
+ * so a quick shortcut never flashes them, and hide as soon as it is released.
+ */
+export function useThreadJumpHintsVisible(shouldShow: boolean): boolean {
+  const [showAt, setShowAt] = React.useState<number | null>(null);
+  // The clock is read inside the updater: the compiler caches a bare clock read
+  // in render once per instance, so a second hold would reuse the first deadline.
+  // React discards this render and re-runs with the update.
+  if (shouldShow !== (showAt !== null)) {
+    setShowAt(shouldShow ? () => deadlineAfter(THREAD_JUMP_HINT_SHOW_DELAY_MS) : null);
+  }
+  return useDeadlinePassed(showAt);
 }
 
 export function hasUnseenCompletion(thread: ThreadStatusInput): boolean {
@@ -690,11 +679,8 @@ function hasUnseenFailure(thread: ThreadStatusInput): boolean {
   return completedAt > lastVisitedAt;
 }
 
-// A double-click dispatches two `click` events before `dblclick`: the first has
-// `detail === 1`, the second `detail === 2`. The second click must not run the
-// row's single-click navigation, otherwise double-click-to-rename would also
-// navigate. `MouseEvent.detail` is 0 for synthetic/keyboard activations, which
-// still count as a normal single activation.
+// A double-click dispatches a second `click` with `detail === 2` before `dblclick`; it must not
+// navigate, or double-click-to-rename would too. Keyboard activations have `detail === 0`.
 export function isTrailingDoubleClick(detail: number): boolean {
   return detail > 1;
 }
@@ -891,7 +877,6 @@ export function firstValidTimestampMs(
 
 // The Working section folds and orders the inbox the same way on mobile.
 export {
-  isThreadWorking as isSidebarThreadWorking,
   sortInboxThreadsByReturn,
   sortWorkingThreadsBySend,
 } from "@supaterm/client-runtime/state/thread-inbox";

@@ -29,17 +29,8 @@ import {
   supportsSharedSettingsSync,
 } from "@supaterm/client-runtime/state/shared-settings";
 import { ensureLocalApi } from "~/localApi";
-import {
-  getThemeDefinition,
-  getThemePreviewAppearance,
-  resolveThemeHalf,
-  subscribeToThemePreview,
-  themeAllowsSidebarArtwork,
-  type ThemeAppearance,
-} from "~/themePalette";
 import * as Equal from "effect/Equal";
 import * as Struct from "effect/Struct";
-import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { toastManager } from "~/components/ui/toast";
 import { isHostedStaticApp } from "~/hostedPairing";
@@ -47,7 +38,6 @@ import { isHostedStaticApp } from "~/hostedPairing";
 import { primaryServerSettingsAtom, serverEnvironment } from "~/state/server";
 import { useEnvironments, usePrimaryEnvironment } from "~/state/environments";
 import { useAtomCommand } from "~/state/use-atom-command";
-import { useTheme } from "./useTheme";
 import {
   environmentSession,
   environmentSessionStatesAtom,
@@ -56,7 +46,6 @@ import {
 } from "~/state/session";
 import { environmentIdsKey } from "~/state/environmentAtomList";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
-import type { EnvironmentIdentificationMode } from "../components/SidebarStageBackdrop";
 
 const CLIENT_SETTINGS_PERSISTENCE_ERROR_SCOPE = "[CLIENT_SETTINGS]";
 
@@ -101,7 +90,7 @@ function setClientSettingsHydrationStatus(nextStatus: ClientSettingsHydrationSta
   emitClientSettingsHydrationChange();
 }
 
-function subscribeClientSettings(listener: () => void): () => void {
+export function subscribeClientSettings(listener: () => void): () => void {
   clientSettingsListeners.add(listener);
   void hydrateClientSettings().catch(() => undefined);
   return () => {
@@ -109,7 +98,7 @@ function subscribeClientSettings(listener: () => void): () => void {
   };
 }
 
-function getClientSettingsHydratedSnapshot(): boolean {
+export function getClientSettingsHydratedSnapshot(): boolean {
   return clientSettingsHydrationStatus === "ready";
 }
 
@@ -117,7 +106,7 @@ function getClientSettingsHydrationStatusSnapshot(): ClientSettingsHydrationStat
   return clientSettingsHydrationStatus;
 }
 
-function subscribeClientSettingsHydration(listener: () => void): () => void {
+export function subscribeClientSettingsHydration(listener: () => void): () => void {
   clientSettingsHydrationListeners.add(listener);
   void hydrateClientSettings().catch(() => undefined);
   return () => {
@@ -273,6 +262,10 @@ export function getClientSettings(): ClientSettings {
   return getClientSettingsSnapshot();
 }
 
+export function isClientSettingsHydrated(): boolean {
+  return getClientSettingsHydratedSnapshot();
+}
+
 /**
  * Failed reads reject and remain retryable. They must not allow defaults to overwrite saved
  * preferences.
@@ -337,40 +330,6 @@ export function useMergedSettings<T = UnifiedSettings>(
   return useClientSettings((clientSettings) => {
     const merged = mergeEnvironmentSettings(serverSettings, clientSettings);
     return selector ? selector(merged) : (merged as T);
-  });
-}
-
-export function resolveEnvironmentIdentificationMode(input: {
-  settingsHydrated: boolean;
-  appearance: ThemeAppearance;
-  paletteThemeActive?: boolean;
-  paletteThemeAllowsArtwork?: boolean;
-}): EnvironmentIdentificationMode {
-  // Avoid briefly rendering artwork before client settings hydrate.
-  if (!input.settingsHydrated) return "none";
-  // Custom light palettes use the pill; every other palette supports artwork.
-  return input.appearance === "light" &&
-    input.paletteThemeActive &&
-    !input.paletteThemeAllowsArtwork
-    ? "pill"
-    : "artwork";
-}
-
-export function useEnvironmentIdentificationMode(): EnvironmentIdentificationMode {
-  const settingsHydrated = useClientSettingsHydrated();
-  const { resolvedTheme, theme, themeHalves } = useTheme();
-  const previewAppearance = useSyncExternalStore(
-    subscribeToThemePreview,
-    getThemePreviewAppearance,
-    () => null,
-  );
-  const activeTheme = resolveThemeHalf(theme, themeHalves, resolvedTheme);
-  const activeThemeDefinition = getThemeDefinition(activeTheme);
-  return resolveEnvironmentIdentificationMode({
-    settingsHydrated,
-    appearance: previewAppearance ?? resolvedTheme,
-    paletteThemeActive: previewAppearance !== null || activeThemeDefinition !== null,
-    paletteThemeAllowsArtwork: previewAppearance === null && themeAllowsSidebarArtwork(activeTheme),
   });
 }
 
@@ -498,7 +457,7 @@ function useSharedSettingsSyncTargetIds(includePending = false): ReadonlyArray<E
     if (includePending && result._tag === "Initial") {
       return [environmentId];
     }
-    const session = result._tag === "Failure" ? null : Option.getOrNull(AsyncResult.value(result));
+    const session = result._tag === "Failure" ? null : AsyncResult.getOrElse(result, () => null);
     return session !== null && sessionGrantsScope(session, AuthSettingsWriteScope)
       ? [environmentId]
       : [];

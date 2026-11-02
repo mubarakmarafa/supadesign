@@ -10,6 +10,7 @@ import {
   makeThreadErrorSetter,
 } from "../ChatView.logic";
 import { useStableCallback } from "../../hooks/useStableCallback";
+import { useNowAfter } from "../../hooks/useDeadline";
 import type { usePendingThreadRequests } from "./usePendingThreadRequests";
 import {
   AuthOrchestrationOperateScope,
@@ -19,13 +20,17 @@ import {
   type ThreadId,
   RuntimeMode,
 } from "@supaterm/contracts";
-import { effectiveSnoozed, threadWokeAt } from "@supaterm/client-runtime/state/thread-snooze";
+import {
+  effectiveSnoozed,
+  snoozeWakeLabel,
+  threadWokeAt,
+} from "@supaterm/client-runtime/state/thread-snooze";
 import { useAcknowledgeThreadWoke, useThreadActions } from "../../hooks/useThreadActions";
 import { markDoneAndAdvance } from "../../markDoneAndAdvance";
 import type { ChatShortcutCommands } from "./useChatShortcuts";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { scopedThreadKey, scopeThreadRef } from "@supaterm/client-runtime/environment";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import {
   isAtomCommandInterrupted,
@@ -33,8 +38,9 @@ import {
   squashAtomCommandFailure,
   type AtomCommandResult,
 } from "@supaterm/client-runtime/state/runtime";
-import { AlarmClockIcon, CheckCircle2Icon } from "lucide-react";
+import { CircleCheckIcon, ClockSnoozeIcon } from "@supaterm/icons";
 import { stackedThreadToast, toastManager } from "../ui/toast";
+import { isInOpenProjectList } from "../ProjectPinButton";
 import { newMessageId } from "~/lib/utils";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { composerDraftHasUserContent, useComposerDraftStore } from "../../composerDraftStore";
@@ -45,7 +51,7 @@ import { vcsEnvironment } from "../../state/vcs";
 import { useChildThreadInputs, readThreadShell, waitForThreadShell } from "../../state/entities";
 import { environmentShell } from "../../state/shell";
 import { ThreadStatusLine } from "./ThreadStatusLine";
-import { formatRelativeTimeLabel, formatRelativeTimeUntilLabel } from "../../timestampFormat";
+import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { readEnvironmentScope } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -56,9 +62,19 @@ import {
   backgroundWorkBannerItem,
   childInputBannerItem,
   goalBannerItem,
+  runStopBannerItem,
 } from "./ThreadActivityBanners";
+import { useForceStopThread } from "./useForceStopThread";
+import { useAtomValue } from "@effect/atom-react";
+import type { RunStopPresentation } from "@supaterm/client-runtime/state/thread-execution";
+import { Atom } from "effect/reactivity";
+import { environmentThreadDetails } from "../../state/threads";
+import { openThreadBeside } from "../../chatPanes/actions";
 
 const RELATED_THREAD_SHELL_WAIT_MS = 1_000;
+const NO_RUN_STOP_ATOM = Atom.make<RunStopPresentation | null>(null).pipe(
+  Atom.withLabel("web-thread-run-stop:empty"),
+);
 
 type PendingThreadRequests = ReturnType<typeof usePendingThreadRequests>;
 
@@ -71,6 +87,8 @@ interface ThreadLifecycleInput {
   readonly activeThread: EnvironmentThreadShell | undefined;
   readonly activeThreadId: ThreadId | null;
   readonly activeThreadRef: ScopedThreadRef | null;
+  /** Null until the thread's detail may load; see resolveThreadDetailRef. */
+  readonly threadDetailRef: ScopedThreadRef | null;
   readonly activeThreadKey: string | null;
   readonly activeThreadShell: EnvironmentThreadShell | null;
   readonly isServerThread: boolean;
@@ -94,7 +112,7 @@ interface ThreadLifecycleInput {
   readonly sendInFlightRef: { current: boolean };
   readonly setThreadError: ReturnType<typeof makeThreadErrorSetter>;
   readonly clearUsageLimitsFor: (threadKey: string) => void;
-  readonly scheduleComposerFocus: () => void;
+  readonly focusComposer: () => void;
   readonly scrollToEnd: (animated?: boolean) => void;
 }
 
@@ -113,6 +131,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     activeThread,
     activeThreadId,
     activeThreadRef,
+    threadDetailRef,
     activeThreadKey,
     activeThreadShell,
     isServerThread,
@@ -133,7 +152,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     sendInFlightRef,
     setThreadError,
     clearUsageLimitsFor,
-    scheduleComposerFocus,
+    focusComposer,
     scrollToEnd,
   } = input;
   const navigate = useNavigate();
@@ -146,48 +165,19 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
   const interruptThreadTurn = useOrchestrationCommand(threadEnvironment.interruptTurn, {
     reportFailure: false,
   });
-  const supportsMarkDone = serverConfig != null;
-  const supportsSnooze = serverConfig != null;
-  const supportsPinning = serverConfig != null;
-  const activeThreadPinned = supportsPinning && activeThreadShell?.pinnedAt != null;
-  // The compiler caches render results on their inputs, so a clock read in render
-  // stays frozen until the shell changes. The clock is state: reset with the shell,
-  // and moved by the wake timer.
-  const [snoozeClockState, setSnoozeClockState] = useState(() => ({
-    shell: activeThreadShell,
-    now: new Date().toISOString(),
-  }));
-  if (snoozeClockState.shell !== activeThreadShell) {
-    // oxlint-disable-next-line react/purity -- A new shell restarts the clock; the wake timer moves it after that.
-    setSnoozeClockState({ shell: activeThreadShell, now: new Date().toISOString() });
-  }
-  const snoozeClock = snoozeClockState.now;
+  const serverConfigLoaded = serverConfig !== null;
+  const activeThreadPinned = serverConfigLoaded && activeThreadShell?.pinnedAt != null;
+  // A clock read in render would stay frozen in the compiler's cache, so the
+  // snooze checks read a snapshot that moves when the wake time changes or passes.
+  const snoozeClock = new Date(
+    useNowAfter(Date.parse(activeThreadShell?.snoozedUntil ?? "") || null),
+  ).toISOString();
   const activeThreadSnoozed =
     activeThreadShell !== null &&
-    supportsSnooze &&
+    serverConfigLoaded &&
     effectiveSnoozed(activeThreadShell, { now: snoozeClock });
-  useEffect(() => {
-    if (!activeThreadSnoozed) return;
-    const wakeAtMs = Date.parse(activeThreadShell?.snoozedUntil ?? "");
-    if (!Number.isFinite(wakeAtMs)) return;
-    let id = 0;
-    const scheduleWake = () => {
-      id = window.setTimeout(
-        () => {
-          if (Date.now() < wakeAtMs) {
-            scheduleWake();
-            return;
-          }
-          setSnoozeClockState((clock) => ({ ...clock, now: new Date().toISOString() }));
-        },
-        Math.min(Math.max(0, wakeAtMs - Date.now()) + 50, 2_147_483_647),
-      );
-    };
-    scheduleWake();
-    return () => window.clearTimeout(id);
-  }, [activeThreadShell?.snoozedUntil, activeThreadSnoozed]);
   const activeThreadWokeAt =
-    activeThreadShell !== null && supportsSnooze
+    activeThreadShell !== null && serverConfigLoaded
       ? threadWokeAt(activeThreadShell, { now: snoozeClock })
       : null;
   const acknowledgeThreadWoke = useAcknowledgeThreadWoke();
@@ -204,7 +194,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     latestRunCompletedAt: activeLatestRun?.completedAt ?? null,
   });
   const activeThreadDone =
-    supportsMarkDone && !activeThreadSnoozed && activeThreadShell?.doneOverride === "done";
+    serverConfigLoaded && !activeThreadSnoozed && activeThreadShell?.doneOverride === "done";
   const reopenThreadMutation = useOrchestrationCommand(threadEnvironment.reopen, {
     reportFailure: false,
   });
@@ -281,7 +271,11 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     setUnsnoozingThreadKey((current) => (current === threadKey ? null : current));
   };
   const handleUnsnoozeActiveThreadStable = useStableCallback(handleUnsnoozeActiveThread);
-  const [isRestoringThreadBranch, setIsRestoringThreadBranch] = useState(false);
+  const [restoringBranchThreadKeys, setRestoringBranchThreadKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const isRestoringThreadBranch =
+    activeThreadKey !== null && restoringBranchThreadKeys.has(activeThreadKey);
   const [revealedBranchMismatchKey, setRevealedBranchMismatchKey] = useState<string | null>(null);
   const [, setBranchMismatchDismissTick] = useState(0);
   const composerHasDraftContent = useComposerDraftStore((store) =>
@@ -317,7 +311,14 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     ) {
       return;
     }
-    setIsRestoringThreadBranch(true);
+    const threadKey = scopedThreadKey(scopeThreadRef(environmentId, activeThread.id));
+    const finishRestore = () =>
+      setRestoringBranchThreadKeys((current) => {
+        const next = new Set(current);
+        next.delete(threadKey);
+        return next;
+      });
+    setRestoringBranchThreadKeys((current) => new Set(current).add(threadKey));
     const checkoutResult = await switchGitRef({
       environmentId,
       input: {
@@ -326,7 +327,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
       },
     });
     if (checkoutResult._tag === "Failure") {
-      setIsRestoringThreadBranch(false);
+      finishRestore();
       if (!isAtomCommandInterrupted(checkoutResult)) {
         toastManager.add(
           stackedThreadToast({
@@ -340,7 +341,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     }
 
     if (!readEnvironmentScope(environmentId, AuthSourceControlWriteScope)) {
-      setIsRestoringThreadBranch(false);
+      finishRestore();
       return;
     }
     const nextBranch = checkoutResult.value.refName ?? localCheckoutBranchMismatch.threadBranch;
@@ -350,7 +351,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
         input: { threadId: activeThread.id, branch: nextBranch, worktreePath: null },
       });
       if (updateResult._tag === "Failure") {
-        setIsRestoringThreadBranch(false);
+        finishRestore();
         if (!isAtomCommandInterrupted(updateResult)) {
           toastManager.add(
             stackedThreadToast({
@@ -365,17 +366,17 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
       }
     }
     gitStatusQuery.refresh();
-    setIsRestoringThreadBranch(false);
-    scheduleComposerFocus();
+    finishRestore();
+    if (currentRouteThreadKeyRef.current === routeThreadKey) {
+      window.requestAnimationFrame(() => {
+        if (currentRouteThreadKeyRef.current === routeThreadKey) focusComposer();
+      });
+    }
   };
   const handleSwitchCheckoutToThreadStable = useStableCallback(handleSwitchCheckoutToThread);
-  // The stack renders items[0] front-most and tucks the rest behind hover, so
-  // ordering is priority: system banners, then the branch-mismatch notice,
-  // and the informational parked-thread banner last — it must never cover another.
-  // Background work (subagent fleets, workflow runs, watch loops, dev servers) can outlive
-  // the turn; once it settles, the composer stop button is gone, so this
-  // banner is the only visible stop affordance. The interrupt path also
-  // accepts a completed run while its provider still has background work.
+  // The stack renders items[0] front-most, so order is priority and the parked-thread banner goes
+  // last. Background work can outlive the turn and its stop button, so its banner is the only
+  // visible stop; the interrupt path accepts a completed run while background work remains.
   const activeBackgroundTasks = !isWorking && activeThread ? pendingBackgroundTasks : [];
   const [stoppingBackgroundWorkKey, setStoppingBackgroundWorkKey] = useState<string | null>(null);
   const isStoppingBackgroundWork =
@@ -409,8 +410,11 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     const threadRef = scopeThreadRef(environmentId, threadId);
     const isEnvironmentLive = () =>
       appAtomRegistry.get(environmentShell.stateValueAtom(environmentId)).status === "live";
+    // The shell can leave idle subagent children out, so absence is not deletion there: the
+    // route decides from the thread's own detail.
+    const shellOmitsChildren = serverConfig?.shellThreadFamilies === true;
     // A just-launched child can reach this timeline before its shell syncs.
-    if (isEnvironmentLive() && readThreadShell(threadRef) === null) {
+    if (!shellOmitsChildren && isEnvironmentLive() && readThreadShell(threadRef) === null) {
       const location = router.latestLocation;
       await waitForThreadShell(threadRef, RELATED_THREAD_SHELL_WAIT_MS);
       if (
@@ -422,10 +426,15 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
       }
     }
     const shell = readThreadShell(threadRef);
-    if (shell === null ? isEnvironmentLive() : shell.deletedAt != null) {
+    if (shell === null ? !shellOmitsChildren && isEnvironmentLive() : shell.deletedAt != null) {
       toastManager.add({ type: "info", title: "This thread is no longer available" });
       return;
     }
+    // A side chat and its parent sit side by side; where there is no room, one replaces the other.
+    const sideChatPair =
+      (shell?.lineage.sideChat === true && shell.lineage.parentThreadId === activeThread?.id) ||
+      (activeThread?.lineage.sideChat === true && activeThread.lineage.parentThreadId === threadId);
+    if (sideChatPair && openThreadBeside({ kind: "server", threadRef }, "right")) return;
     void navigate({
       to: "/$environmentId/$threadId",
       params: buildThreadRouteParams(threadRef),
@@ -489,6 +498,22 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
           onSendCommand: sendStandaloneCommandStable,
         })
       : null;
+  const forceStop = useForceStopThread(environmentId);
+  const anyRunStop = useAtomValue(
+    threadDetailRef ? environmentThreadDetails.runStopAtom(threadDetailRef) : NO_RUN_STOP_ATOM,
+  );
+  // A background Stop matters only while that work is still pending.
+  const runStop = anyRunStop?.background && activeBackgroundTasks.length === 0 ? null : anyRunStop;
+  const runStopBanner =
+    activeThread && runStop !== null
+      ? runStopBannerItem({
+          threadId: activeThread.id,
+          stop: runStop,
+          canForceStop: forceStop.canForceStop,
+          forceStopping: forceStop.stoppingThreadId === activeThread.id,
+          onForceStop: () => void forceStop.forceStopThread(activeThread.id, runStop.runId),
+        })
+      : null;
   // One watched run colors the dot; with more, no one run speaks for the banner.
   const backgroundWorkWatches = serverProjection?.thread.workflowRunWatches ?? [];
   const backgroundWorkBanner = activeThread
@@ -508,32 +533,28 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
         onOpenThread: onOpenRelatedThreadStable,
       })
     : null;
-  // Done, snoozed, and woke are thread state, not composer actions: each
-  // gets one quiet line after the last message instead of a banner. A woken
-  // thread announces itself here, not just in the sidebar pill. Dismissing
-  // marks the wake as seen (same acknowledgment as the pill); sending a
-  // message clears it as a side effect of the send path.
-  // Memoized: it is the timeline's list footer, and a new element re-renders that footer.
-  // nowMinute keeps the relative time fresh.
+  // Done, snoozed, and woke are thread state, so each gets a quiet line after the last message
+  // instead of a banner. Dismissing a wake acknowledges it like the sidebar pill does. Memoized
+  // because it is the timeline's list footer; nowMinute keeps the relative time fresh.
   const activeDoneAt = activeThreadShell?.doneAt;
   const activeSnoozedUntil = activeThreadShell?.snoozedUntil;
   const threadStatusLine = (() => {
     const nowMs = Date.parse(`${nowMinute}:00.000Z`);
+    // Same rounding as the sidebar's snoozed shelf, so both read the same hour.
+    const snoozeWake = activeSnoozedUntil
+      ? snoozeWakeLabel(activeSnoozedUntil, { now: `${nowMinute}:00.000Z` })
+      : null;
     return activeThreadSnoozed ? (
       <ThreadStatusLine
-        icon={<AlarmClockIcon />}
-        label={
-          activeSnoozedUntil
-            ? `Snoozed, ${formatRelativeTimeUntilLabel(activeSnoozedUntil, nowMs)}`
-            : "Snoozed"
-        }
+        icon={<ClockSnoozeIcon />}
+        label={snoozeWake && snoozeWake !== "now" ? `Snoozed, ${snoozeWake} left` : "Snoozed"}
         actionLabel={isUnsnoozing ? "Waking..." : "Wake now"}
         actionDisabled={!canOperateThread || isUnsnoozing}
         onAction={() => void handleUnsnoozeActiveThreadStable()}
       />
     ) : activeThreadDone ? (
       <ThreadStatusLine
-        icon={<CheckCircle2Icon />}
+        icon={<CircleCheckIcon />}
         label={activeDoneAt ? `Done ${formatRelativeTimeLabel(activeDoneAt, nowMs)}` : "Done"}
         actionLabel={isReopening ? "Reopening..." : "Reopen"}
         actionDisabled={!canOperateThread || isReopening}
@@ -541,7 +562,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
       />
     ) : activeThreadWokeVisible ? (
       <ThreadStatusLine
-        icon={<AlarmClockIcon />}
+        icon={<ClockSnoozeIcon />}
         label="Woke from snooze"
         actionLabel="Dismiss"
         onAction={acknowledgeActiveThreadWokeStable}
@@ -564,7 +585,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
   const shortcuts = {
     "thread.mark-done": () => {
       if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) return false;
-      if (!isServerThread || !activeThreadRef || !supportsMarkDone) return;
+      if (!isServerThread || !activeThreadRef || !serverConfigLoaded) return;
       if (activeThreadDone) {
         void handleReopenActiveThread();
         return;
@@ -574,9 +595,11 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
         toastThreadActionFailure("Failed to mark thread as Done"),
       );
     },
-    "thread.pin": () => {
+    "thread.pin": ({ event }) => {
+      // An open project list pins its highlighted project with this key instead.
+      if (isInOpenProjectList(event?.target ?? null)) return false;
       if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) return false;
-      if (!isServerThread || !activeThreadRef || !supportsPinning) return;
+      if (!isServerThread || !activeThreadRef || !serverConfigLoaded) return;
       void (
         activeThreadPinned ? confirmAndUnpinThread(activeThreadRef) : pinThread(activeThreadRef)
       ).then(
@@ -590,8 +613,9 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
   return {
     shortcuts,
     activeBranchMismatchKey,
-    backgroundWorkBanner,
-    childInputBanner,
+    // A Stop that went unanswered needs the user; one in progress is the thread's work.
+    backgroundWorkBanner: runStop?.state === "stopping" ? runStopBanner : backgroundWorkBanner,
+    childInputBanner: runStop?.state === "unresponsive" ? runStopBanner : childInputBanner,
     goalBanner,
     handleSwitchCheckoutToThreadStable,
     isRestoringThreadBranch,

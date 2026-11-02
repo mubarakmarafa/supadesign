@@ -2,7 +2,7 @@ import { ThreadDetailsComboboxControl } from "./chat/ThreadDetailsControl";
 import { ComposerContextLabel } from "./ComposerContextLabel";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "./ui/tooltip";
 import type { EnvironmentId } from "@supaterm/contracts";
-import { PlusIcon, ScaleIcon } from "lucide-react";
+import { PlusIcon, ScaleIcon } from "@supaterm/icons";
 import { useAtomValue } from "@effect/atom-react";
 import { memo, useState } from "react";
 
@@ -62,6 +62,8 @@ export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvir
   const hostFilter = useComboboxFilter();
   const activeEnvironment =
     availableEnvironments.find((env) => env.environmentId === environmentId) ?? null;
+  const interactive =
+    !envLocked && (onEnvironmentChange !== undefined || onAddToMachine !== undefined);
 
   const environmentItems = [
     ...(onAutoEnvironment
@@ -92,7 +94,7 @@ export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvir
   };
   const hostJumpLabels = usePickerShortcuts({
     picker: "host",
-    open: open && !envLocked && onEnvironmentChange !== undefined,
+    open: open && interactive,
     items: filteredEnvironmentItems,
     keybindings,
     onSelect: (item) => {
@@ -101,16 +103,13 @@ export const BranchToolbarEnvironmentSelector = memo(function BranchToolbarEnvir
     },
   });
 
-  // The static label carries the xs control's height (h-7 sm:h-6) as well as
-  // its padding: the composer context strip has no min-height of its own, and
-  // the glass seam joining it to the composer assumes a fixed strip height, so
-  // a shorter label would drag the seam out of line whenever this label is the
-  // only thing in the strip.
-  if (envLocked || (onEnvironmentChange === undefined && onAddToMachine === undefined)) {
+  // The static label carries the xs control's height: the context strip has no min-height and the
+  // glass seam joining it to the composer assumes a fixed strip height.
+  if (!interactive) {
     const lockedRow = (
       <span
         className={cn(
-          "inline-flex h-7 min-w-0 max-w-full items-center gap-1 border border-transparent px-1.75 font-normal text-muted-foreground/70 text-xs sm:h-6",
+          "inline-flex h-7 min-w-0 max-w-full items-center gap-1 border border-transparent px-1.75 font-normal text-muted-foreground/70 text-sm sm:h-6 sm:text-xs",
           displayMode === "panel" && THREAD_DETAILS_PANEL_LOCKED_ROW_CLASS,
         )}
         data-composer-context-control

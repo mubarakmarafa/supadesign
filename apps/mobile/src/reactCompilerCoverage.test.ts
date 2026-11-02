@@ -1,98 +1,18 @@
 // @effect-diagnostics nodeBuiltinImport:off - compiles real source files on disk.
 import * as NodeFS from "node:fs";
-import * as NodeModule from "node:module";
 import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 
-const mobileRoot = NodePath.resolve(__dirname, "..");
-const requireFromMobile = NodeModule.createRequire(NodePath.join(mobileRoot, "package.json"));
-const babel: {
-  transformFileSync: (file: string, options: Record<string, unknown>) => unknown;
-} = requireFromMobile("@babel/core");
+import {
+  KNOWN_BAILOUTS,
+  compileLikeMetro,
+  mobileRoot,
+  requireFromMobile,
+  sourceFiles,
+} from "../test/reactCompilerCoverage";
+
 const metroConfig: Promise<{ transformer: { babelTransformerPath: string } }> =
   requireFromMobile("./metro.config.js");
-
-// Files the compiler skips today. A skipped file still ships, just unmemoized.
-// This list only shrinks: the test fails when a file here starts compiling, so
-// delete its entry (and its manual useMemo/useCallback/memo) in the same change.
-const KNOWN_BAILOUTS: Record<string, string> = {
-  "src/features/threads/ThreadArrangementSheet.tsx": "unsupported syntax",
-  "src/native/SupatermComposerEditor.ios.tsx": "ref read during render",
-  "src/native/SupatermComposerEditor.native.tsx": "ref read during render",
-};
-
-// Caller flags Metro passes for an iOS release bundle. supportsReactCompiler is
-// what `experiments.reactCompiler` in app.config.ts turns on.
-const metroCaller = {
-  name: "metro",
-  bundler: "metro",
-  platform: "ios",
-  isDev: false,
-  isServer: false,
-  isNodeModule: false,
-  supportsStaticESM: true,
-  supportsReactCompiler: true,
-};
-
-const sourceFiles = NodeFS.readdirSync(NodePath.join(mobileRoot, "src"), { recursive: true })
-  .map(String)
-  .filter((file) => /\.tsx?$/.test(file) && !/\.(test\.tsx?|d\.ts)$/.test(file))
-  .map((file) => `src/${file.split(NodePath.sep).join("/")}`)
-  .sort();
-
-type CompilerLoc = { readonly start?: { readonly line?: number } } | null;
-
-interface CompilerEvent {
-  readonly kind: string;
-  readonly detail?: {
-    readonly options?: {
-      readonly category?: string;
-      readonly reason?: string;
-      readonly loc?: CompilerLoc;
-      readonly details?: readonly { readonly loc?: CompilerLoc }[];
-    };
-  };
-}
-
-// babel.config.js is the file Metro loads; the logger rides on the preset's
-// own react-compiler option so the plugin runs with Metro's exact settings.
-function compileLikeMetro(file: string, events: CompilerEvent[], output: Record<string, unknown>) {
-  const babelConfig = requireFromMobile("./babel.config.js")({ cache: () => {} });
-  const presets = babelConfig.presets.map(([name, options]: [string, object]) =>
-    name === "babel-preset-expo"
-      ? [
-          requireFromMobile.resolve(name),
-          {
-            ...options,
-            "react-compiler": {
-              logger: { logEvent: (_: string, event: CompilerEvent) => events.push(event) },
-            },
-          },
-        ]
-      : [name, options],
-  );
-  return babel.transformFileSync(NodePath.join(mobileRoot, file), {
-    babelrc: false,
-    configFile: false,
-    cwd: mobileRoot,
-    presets,
-    caller: metroCaller,
-    code: false,
-    ...output,
-  });
-}
-
-function compilerBailouts(file: string): string[] {
-  const events: CompilerEvent[] = [];
-  compileLikeMetro(file, events, {});
-  return events.flatMap((event) =>
-    event.kind === "CompileError" || event.kind === "CompileSkip"
-      ? [
-          `line ${(event.detail?.options?.loc ?? event.detail?.options?.details?.[0]?.loc)?.start?.line ?? "?"}: ${event.detail?.options?.category ?? event.kind} ${event.detail?.options?.reason ?? ""}`,
-        ]
-      : [],
-  );
-}
 
 interface AstNode {
   readonly type: string;
@@ -165,20 +85,39 @@ describe("React Compiler coverage", () => {
     expect(transformed("false")).not.toContain("react/compiler-runtime");
   });
 
-  it.each(sourceFiles)("compiles %s", (file) => {
-    const bailouts = compilerBailouts(file);
-    if (file in KNOWN_BAILOUTS) {
-      expect(bailouts, `${file} compiles now; remove it from KNOWN_BAILOUTS`).not.toEqual([]);
-    } else {
-      expect(bailouts).toEqual([]);
-    }
-  });
-
   // The compiler once silently dropped this cache, so every
   // ThreadFeed render rebuilt the feed and handed LegendList a new data array.
   it("caches the thread feed derivation", () => {
     expect(
       compilerCachedCalls("src/features/threads/ThreadFeed.tsx", "deriveThreadFeedPresentation"),
+    ).toEqual([true]);
+  });
+
+  // The compiler once silently dropped these caches, so the new-task context
+  // value changed on every provider render and re-rendered every consumer.
+  it("caches the new-task model options and host environments", () => {
+    const file = "src/features/threads/new-task-flow-provider.tsx";
+    expect(compilerCachedCalls(file, "buildModelOptions")).toEqual([true]);
+    expect(compilerCachedCalls(file, "repositoryGroupingKeyOf")).toEqual([true, true]);
+  });
+
+  // Uncached facets get a new identity every render, and the render-phase facet merge then loops.
+  it("caches the pull request list facets", () => {
+    expect(
+      compilerCachedCalls(
+        "src/features/pull-requests/PullRequestsScreen.tsx",
+        "pullRequestListFacets",
+      ),
+    ).toEqual([true]);
+  });
+
+  // An uncached registration would re-register the workspace inspector on every render.
+  it("registers the workspace inspector only when its renderer changes", () => {
+    expect(
+      compilerCachedCalls(
+        "src/features/layout/AdaptiveWorkspaceLayout.tsx",
+        "registerWorkspaceInspector",
+      ),
     ).toEqual([true]);
   });
 

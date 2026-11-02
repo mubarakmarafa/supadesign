@@ -8,14 +8,15 @@ import { use, useState, memo } from "react";
 import type { ChatMessage, TurnDiffSummary } from "../../types";
 import ChatMarkdown from "../ChatMarkdown";
 import { APP_BASE_NAME } from "../../branding";
-import { GitForkIcon } from "lucide-react";
+import { GitForkIcon } from "@supaterm/icons";
 import { Button } from "../ui/button";
 import { ProposedPlanCard } from "./ProposedPlanCard";
 import { HtmlRenderFrame } from "./HtmlRenderFrame";
 import { McpAppFrame } from "./McpAppFrame";
+import { checkpointFileTotals } from "@supaterm/client-runtime/state/thread-checkpoints";
 import { ChangedFilesCard } from "./ChangedFilesTree";
 import { useFileContextMenuHandler } from "../../fileContextMenu";
-import { useThreadShell, useProject } from "../../state/entities";
+import { useAssistantMessageText, useThreadShell, useProject } from "../../state/entities";
 import { MessageCopyButton } from "./MessageCopyButton";
 import { AssistantCitationSource } from "./AssistantCitationSource";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
@@ -23,10 +24,17 @@ import { cn } from "~/lib/utils";
 import { useUiStateStore } from "~/uiStateStore";
 import { formatDayAwareTimestamp, formatChatTimestampTooltip } from "../../timestampFormat";
 import { useV2ItemSupport } from "../../state/v2ItemSupport";
+import { isPinnableProjectedItem, MessagePinButton, useMessagePinned } from "./PinnedMessages";
 
 export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" }> }) {
   const ctx = use(TimelineRowCtx);
-  const messageText = row.message.text || (row.message.streaming ? "" : "(empty response)");
+  // The timeline holds a streaming message's row while only its text grows.
+  const liveText = useAssistantMessageText(
+    row.message.streaming ? ctx.threadRef : null,
+    row.projectedItem?.item.id,
+  );
+  const text = liveText ?? row.message.text;
+  const messageText = text || (row.message.streaming ? "" : "(empty response)");
 
   return (
     <>
@@ -91,7 +99,8 @@ function AssistantForkButton({
     capabilities: support.providerSession?.capabilities,
   });
 
-  if (!canFork || projectedItem.item.runId === null) return null;
+  const { onForkFromRun } = ctx;
+  if (!canFork || onForkFromRun === null || projectedItem.item.runId === null) return null;
   const runId = projectedItem.item.runId;
 
   return (
@@ -105,9 +114,9 @@ function AssistantForkButton({
             disabled={busy}
             onClick={() => {
               setBusy(true);
-              void ctx
-                .onForkFromRun({ sourceThreadId: projectedItem.sourceThreadId, runId })
-                .finally(() => setBusy(false));
+              void onForkFromRun({ sourceThreadId: projectedItem.sourceThreadId, runId }).finally(
+                () => setBusy(false),
+              );
             }}
             aria-label="Fork from this response"
           />
@@ -155,12 +164,13 @@ function AssistantMessageMeta({
   alwaysVisible?: boolean;
 }) {
   const ctx = use(TimelineRowCtx);
+  const pinned = useMessagePinned(projectedItem);
 
   return (
     <div
       className={cn(
         "flex items-center gap-2 text-xs tabular-nums transition-opacity duration-150",
-        alwaysVisible
+        alwaysVisible || pinned
           ? "opacity-100"
           : "opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/assistant:opacity-100",
         className,
@@ -178,6 +188,9 @@ function AssistantMessageMeta({
       />
       {projectedItem?.item.type === "assistant_message" ? (
         <AssistantForkButton projectedItem={projectedItem} />
+      ) : null}
+      {isPinnableProjectedItem(projectedItem) && !message.streaming ? (
+        <MessagePinButton projectedItem={projectedItem} />
       ) : null}
       {!message.streaming && (
         <Tooltip>
@@ -343,6 +356,7 @@ function AssistantChangedFilesSectionInner({
     <ChangedFilesCard
       runId={turnSummary.runId}
       files={checkpointFiles}
+      totals={checkpointFileTotals(turnSummary)}
       allDirectoriesExpanded={allDirectoriesExpanded}
       resolvedTheme={resolvedTheme}
       onToggleAllDirectories={() =>

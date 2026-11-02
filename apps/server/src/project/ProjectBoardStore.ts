@@ -1,12 +1,7 @@
 /**
- * Reads each project's kanban board and workspace from the project event log.
- *
- * Supadesign is a fork, and `board_json`/`workspace_json` columns on
- * `projection_projects` would need migration ids that upstream will eventually
- * take for its own migrations. Instead both ride on `project.meta-updated`
- * events (which compaction never prunes), and this store reads the latest one
- * that set each field. If upstream ever ships these columns, fold this into
- * ProjectStore.
+ * Reads each project's board and workspace from the latest `project.meta-updated` event that set
+ * them. Columns on `projection_projects` would need migration ids upstream will take, and
+ * compaction never prunes these events.
  */
 import {
   ProjectBoard,

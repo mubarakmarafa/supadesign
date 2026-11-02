@@ -5,7 +5,7 @@ import type {
   EnvironmentThreadShell,
 } from "@supaterm/client-runtime/state/shell";
 import { Link } from "@tanstack/react-router";
-import { FolderPlusIcon, LayoutGridIcon } from "lucide-react";
+import { FolderPlusIcon, LayoutGridIcon } from "@supaterm/icons";
 import { memo, useMemo } from "react";
 
 import { openCommandPalette } from "../../commandPaletteBus";
@@ -23,7 +23,7 @@ import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { BOARD_ROUTE } from "../board/boardNavigation";
 import { useNow } from "../board/liveEnvironmentState";
 import { ProjectFavicon } from "../ProjectFavicon";
-import { isSidebarSubagentThread } from "../Sidebar.logic";
+import { isSidebarHiddenThread } from "../Sidebar.logic";
 import { Button } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
 import { SidebarInset } from "../ui/sidebar";
@@ -58,7 +58,7 @@ export function ProjectsGridPage() {
     () =>
       buildProjectsGrid(
         boardProjects,
-        threads.filter((thread) => !isSidebarSubagentThread(thread)),
+        threads.filter((thread) => !isSidebarHiddenThread(thread)),
       ),
     [boardProjects, threads],
   );

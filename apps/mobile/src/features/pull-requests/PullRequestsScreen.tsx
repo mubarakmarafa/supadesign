@@ -3,41 +3,41 @@ import {
   applyPullRequestDraftFilterChange,
   parsePullRequestQuery,
 } from "@supaterm/client-runtime/pull-request-query";
-import { WorkspaceDock } from "../workspace/WorkspaceDock";
 import { WorkspaceHeaderActions } from "../workspace/WorkspaceHeaderActions";
-import { useAdaptiveWorkspaceLayout } from "../layout/adaptiveWorkspaceContext";
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
 import { useNavigation } from "@react-navigation/native";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useMemo, useRef, useState, type ReactNode } from "react";
 import { sortProjectsByGroupOrder } from "@supaterm/client-runtime/state/project-grouping";
 import { useAtomValue } from "@effect/atom-react";
 import {
   Keyboard,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   View,
   type ScrollViewProps,
 } from "react-native";
 import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
-import { ScrollViewMarker } from "react-native-screens";
+import { NativeScrollViewMarker as ScrollViewMarker } from "../../native/NativeScrollViewMarker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText as Text } from "../../components/ui/AppText";
+import { SymbolView } from "../../components/ui/AppSymbol";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { useRestingTopOffset } from "../../native/useRestingTopOffset";
 import { NativePrimaryColumnContext } from "../../native/v5-workspace-context";
+import { useNativeColumnLayoutMetrics } from "../../native/native-layout-metrics";
 import { useWorkspaceState } from "../../state/workspace";
 import { useProjects } from "../../state/entities";
 import { useMobileProjectGroupingSettings } from "../../state/project-grouping";
 import { homeProjectOrderAtom } from "../home/homeProjectOrder";
 import { environmentServerConfigsAtom } from "../../state/server";
 import { PullRequestListRow } from "./PullRequestListRow";
-import { PullRequestCardRow } from "./PullRequestControls";
 import { createPullRequestListFilterMenu } from "./pullRequestListFilterMenu";
 import { usePullRequestList } from "./usePullRequestList";
 import { usePullRequestListControls } from "./usePullRequestListControls";
 import { usePullRequestListActions } from "./usePullRequestListActions";
+import type { WorkspaceFilterMenu } from "../workspace/workspace-filter-menu";
 import {
   filterPullRequestList,
   pullRequestListFacets,
@@ -46,46 +46,53 @@ import {
   scopedPullRequestListKey as pullRequestKey,
   type EnvironmentPullRequestListEntry,
   withoutScratchProjectScope,
+  pullRequestProjectChoices,
 } from "./pullRequestList";
 import { useDebouncedValue } from "../../state/queries";
 import { useWorkspaceTabs } from "../workspace/WorkspaceTabsContext";
-import { useAndroidWorkspaceSelection } from "../workspace/useAndroidWorkspaceSelection";
+import { useSearchScrollRestoration } from "../workspace/useSearchScrollRestoration";
+import { useSelectWorkspaceDetail } from "../workspace/useSelectWorkspaceDetail";
 
 function PullRequestScrollView(props: ScrollViewProps) {
-  const insets = useSafeAreaInsets();
-  const restingOffset = useRestingTopOffset(insets.top, props);
   return (
     <ScrollViewMarker style={{ flex: 1 }}>
-      <ScrollView
-        {...props}
-        {...restingOffset}
-        automaticallyAdjustContentInsets={false}
-        contentInsetAdjustmentBehavior="never"
-      />
+      <ScrollView {...props} />
     </ScrollViewMarker>
   );
 }
 
-function PullRequestListErrors(props: { readonly messages: readonly string[] }) {
+function PullRequestListError(props: { readonly message: string }) {
   const [expanded, setExpanded] = useState(false);
-  const title = `${props.messages.length} ${props.messages.length === 1 ? "error" : "errors"} loading pull requests`;
   return (
-    <View>
-      <PullRequestCardRow
-        title={title}
-        icon="exclamationmark.triangle"
-        compact
-        last
-        expanded={expanded}
-        accessibilityLabel={`${title}. ${expanded ? "Hide" : "Show"} details`}
-        onPress={() => setExpanded((value) => !value)}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={props.message}
+      accessibilityState={{ expanded }}
+      onPress={() => setExpanded((value) => !value)}
+      // A long press selects the text; collapsing under that selection crashes Android's
+      // smart-select animation, so it must not also count as a press.
+      onLongPress={() => undefined}
+      className="min-h-11 flex-row items-center gap-3 px-4 py-2.5 active:opacity-70"
+    >
+      <SymbolView
+        name="exclamationmark.triangle"
+        size={18}
+        tintColorClassName="accent-icon-muted"
       />
-      {expanded ? (
-        <Text selectable className="px-4 pb-3 text-sm text-foreground-muted">
-          {props.messages.join("\n")}
-        </Text>
-      ) : null}
-    </View>
+      <Text
+        selectable={expanded}
+        numberOfLines={expanded ? undefined : 1}
+        ellipsizeMode="tail"
+        className="min-w-0 flex-1 text-sm text-foreground-muted"
+      >
+        {props.message}
+      </Text>
+      <SymbolView
+        name={expanded ? "chevron.up" : "chevron.down"}
+        size={11}
+        tintColorClassName="accent-icon-muted"
+      />
+    </Pressable>
   );
 }
 
@@ -93,26 +100,28 @@ export function PullRequestsScreen(
   props: {
     readonly sidebar?: boolean;
     readonly selectedPullRequestKey?: string | null;
+    /** Places the list in a frame whose header shows its filters (the Android toolbar). */
+    readonly renderFrame?: PullRequestsFrameRender;
   } = {},
 ) {
-  const { startNewTask } = useAdaptiveWorkspaceLayout();
   const navigation = useNavigation();
   const primaryColumn = use(NativePrimaryColumnContext);
   const workspace = useWorkspaceTabs()!;
   const { environments } = useWorkspaceState();
   const configs = useAtomValue(environmentServerConfigsAtom);
   const insets = useSafeAreaInsets();
+  // UIKit insets the list by its column's safe area, which this context can report as 0.
+  const columnSafeBottom = useNativeColumnLayoutMetrics()?.safeArea.bottom;
+  const bottomSafeArea =
+    Platform.OS === "ios" ? (columnSafeBottom ?? insets.bottom) : insets.bottom;
   const [initialOffset] = useState(() => workspace.getScrollOffset("pullRequests"));
   const [initialAnchor] = useState(() => workspace.getScrollAnchor("pullRequests"));
   const listRef = useRef<LegendListRef>(null);
   const tab = workspace.state.tabs.pullRequests;
-  const maintainVisiblePosition = useMemo(
-    () => ({
-      data: tab.searchMode === "resting",
-      shouldRestorePosition: () => workspace.getScrollOffset("pullRequests") > 0,
-    }),
-    [tab.searchMode, workspace],
-  );
+  const maintainVisiblePosition = {
+    data: tab.searchMode === "resting",
+    shouldRestorePosition: () => workspace.getScrollOffset("pullRequests") > 0,
+  };
   const debouncedQuery = useDebouncedValue(tab.query.trim(), 180);
   const query = tab.searchMode === "resting" ? "" : debouncedQuery;
   const typedQuery = tab.searchMode === "resting" ? "" : tab.query;
@@ -122,23 +131,19 @@ export function PullRequestsScreen(
   const environmentId = environments.some((item) => item.environmentId === selectedEnvironmentId)
     ? selectedEnvironmentId
     : null;
-  const selectAndroidWorkspace = useAndroidWorkspaceSelection();
-  const selectPullRequest = useCallback(
-    (item: EnvironmentPullRequestListEntry) => {
-      Keyboard.dismiss();
-      const params = {
-        environmentId: String(item.environmentId),
-        projectId: String(item.projectId),
-        repository: item.repository,
-        number: item.number,
-        host: item.host,
-        initialSummary: item,
-      };
-      if (Platform.OS === "android") selectAndroidWorkspace({ name: "PullRequest", params });
-      else navigation.navigate("PullRequest", params);
-    },
-    [navigation, selectAndroidWorkspace],
-  );
+  const selectDetail = useSelectWorkspaceDetail();
+  const selectPullRequest = (item: EnvironmentPullRequestListEntry) => {
+    Keyboard.dismiss();
+    const params = {
+      environmentId: String(item.environmentId),
+      projectId: String(item.projectId),
+      repository: item.repository,
+      number: item.number,
+      host: item.host,
+      initialSummary: item,
+    };
+    selectDetail({ name: "PullRequest", params });
+  };
   const allProjects = useProjects();
   const savedControls = listControls.controlsFor(environmentId);
   const controls = useMemo(
@@ -207,47 +212,47 @@ export function PullRequestsScreen(
           ...facets.labels,
         ]),
       ].sort(),
+      labelColors: {
+        ...facets.labelColors,
+        ...(previous.environmentId === environmentId ? previous.labelColors : {}),
+      },
     }));
   }
+  const labelColors =
+    knownFacets.environmentId === environmentId ? knownFacets.labelColors : facets.labelColors;
   const { sidebarProjectGroupingMode } = useMobileProjectGroupingSettings();
   const projectOrder = useAtomValue(homeProjectOrderAtom(sidebarProjectGroupingMode));
   const projects = useMemo(
     () =>
       sortProjectsByGroupOrder(
-        allProjects.filter(
-          (project) =>
-            !project.isScratch &&
-            (environmentId === null || project.environmentId === environmentId),
-        ),
+        pullRequestProjectChoices(allProjects, {
+          environmentId,
+          controls,
+          environmentLabels: new Map(
+            environments.map((item) => [item.environmentId, item.environmentLabel]),
+          ),
+        }),
         projectOrder,
       ),
-    [allProjects, environmentId, projectOrder],
+    [allProjects, environmentId, controls, environments, projectOrder],
   );
-  const renderPullRequest = useCallback(
-    ({ item }: { readonly item: EnvironmentPullRequestListEntry }) => (
-      <PullRequestListRow
-        item={item}
-        onSelect={selectPullRequest}
-        getActions={actions}
-        onAction={select}
-        busy={busyKey === pullRequestKey(item)}
-        selected={selectedKey === pullRequestKey(item)}
-        sidebar={sidebar}
-      />
-    ),
-    [selectPullRequest, selectedKey, actions, select, busyKey, sidebar],
+  const renderPullRequest = ({ item }: { readonly item: EnvironmentPullRequestListEntry }) => (
+    <PullRequestListRow
+      item={item}
+      onSelect={selectPullRequest}
+      getActions={actions}
+      onAction={select}
+      busy={busyKey === pullRequestKey(item)}
+      selected={selectedKey === pullRequestKey(item)}
+      sidebar={sidebar}
+    />
   );
-  const previousSearchMode = useRef(tab.searchMode);
-  useEffect(() => {
-    const restoringSearch =
-      previousSearchMode.current !== "resting" && tab.searchMode === "resting";
-    previousSearchMode.current = tab.searchMode;
-    if (restoringSearch)
-      void listRef.current?.scrollToOffset({
-        offset: tab.scrollOffset - (Platform.OS === "ios" ? insets.top : 0),
-        animated: false,
-      });
-  }, [tab.searchMode, tab.scrollOffset, insets.top]);
+  useSearchScrollRestoration(tab.searchMode, () => {
+    void listRef.current?.scrollToOffset({
+      offset: tab.scrollOffset - (Platform.OS === "ios" ? insets.top : 0),
+      animated: false,
+    });
+  });
   const initialIndex = initialAnchor
     ? entries.findIndex((entry) => pullRequestKey(entry) === initialAnchor.key)
     : -1;
@@ -271,7 +276,16 @@ export function PullRequestsScreen(
     },
     authors: knownFacets.environmentId === environmentId ? knownFacets.authors : facets.authors,
     labels: knownFacets.environmentId === environmentId ? knownFacets.labels : facets.labels,
+    labelColors,
     projects,
+    onSearch: (kind) =>
+      navigation.navigate("PullRequestFilterSearch", {
+        kind,
+        environmentId,
+        environmentIds: targets.map((target) => String(target.environmentId)),
+        suggestions: knownFacets.environmentId === environmentId ? knownFacets[kind] : facets[kind],
+        labelColors,
+      }),
   });
   const headerFilterMenu = {
     ...filterMenu,
@@ -283,7 +297,7 @@ export function PullRequestsScreen(
       });
     },
   };
-  return (
+  const list = (
     <View className={sidebar ? "flex-1 bg-drawer" : "flex-1 bg-screen"}>
       <LegendList
         ref={listRef}
@@ -308,8 +322,9 @@ export function PullRequestsScreen(
         alwaysBounceVertical
         recycleItems
         renderScrollComponent={Platform.OS === "ios" ? PullRequestScrollView : undefined}
-        contentInsetAdjustmentBehavior="never"
-        contentInset={Platform.OS === "ios" ? { top: insets.top } : undefined}
+        // UIKit owns the bar's inset, so a minimizing bar and a resized column move
+        // the list in the same frame as the bar.
+        contentInsetAdjustmentBehavior="automatic"
         initialScrollOffset={
           !initialAnchor && initialOffset > 0
             ? initialOffset - (Platform.OS === "ios" ? insets.top : 0)
@@ -322,7 +337,9 @@ export function PullRequestsScreen(
         }
         contentInsetStartAdjustment={Platform.OS === "ios" ? insets.top : 0}
         contentContainerStyle={{
-          paddingBottom: Math.max(insets.bottom, workspace.bottomClearance),
+          paddingBottom:
+            Math.max(bottomSafeArea, workspace.bottomClearance) -
+            (Platform.OS === "ios" ? bottomSafeArea : 0),
         }}
         onScroll={(event) => {
           workspace.recordScrollOffset(
@@ -346,13 +363,14 @@ export function PullRequestsScreen(
         ListHeaderComponent={
           <>
             {result.data?.errors.length ? (
-              <PullRequestListErrors
-                key={JSON.stringify(targets)}
-                messages={result.data.errors.map(
-                  (error) =>
-                    `${error.projectTitle || environments.find((environment) => environment.environmentId === error.environmentId)?.environmentLabel || "Environment"}: ${error.message}`,
-                )}
-              />
+              <View key={JSON.stringify(targets)}>
+                {result.data.errors.map((error) => (
+                  <PullRequestListError
+                    key={`${error.environmentId} ${error.projectTitle} ${error.message}`}
+                    message={`${error.projectTitle || environments.find((environment) => environment.environmentId === error.environmentId)?.environmentLabel || "Environment"}: ${error.message}`}
+                  />
+                ))}
+              </View>
             ) : null}
           </>
         }
@@ -371,6 +389,15 @@ export function PullRequestsScreen(
                 label="Try again"
                 accessibilityLabel="Retry loading more pull requests"
                 onPress={() => void result.loadMore(true)}
+              />
+            </View>
+          ) : result.hasMore ? (
+            // A filtered page can be too short to scroll, which leaves nothing to reach the end of.
+            <View className="items-center py-4">
+              <Button
+                label="Load more"
+                accessibilityLabel="Load more pull requests"
+                onPress={() => void result.loadMore()}
               />
             </View>
           ) : undefined
@@ -412,16 +439,27 @@ export function PullRequestsScreen(
           )
         }
       />
-      {Platform.OS === "ios" ? (
-        <WorkspaceHeaderActions filterMenu={headerFilterMenu} />
-      ) : (
-        <WorkspaceDock
-          floating
-          showTabs={!props.sidebar}
-          onNewTask={startNewTask}
-          filterMenu={headerFilterMenu}
-        />
-      )}
+      {Platform.OS === "ios" ? <WorkspaceHeaderActions filterMenu={headerFilterMenu} /> : null}
     </View>
   );
+  return props.renderFrame ? (
+    <PullRequestsFrame
+      render={props.renderFrame}
+      filters={Platform.OS === "android" ? headerFilterMenu : null}
+      list={list}
+    />
+  ) : (
+    list
+  );
+}
+
+type PullRequestsFrameRender = (filters: WorkspaceFilterMenu | null, list: ReactNode) => ReactNode;
+
+// Rendered as an element so the menu's press handler, which scrolls the list, is not called in render.
+function PullRequestsFrame(props: {
+  readonly render: PullRequestsFrameRender;
+  readonly filters: WorkspaceFilterMenu | null;
+  readonly list: ReactNode;
+}) {
+  return props.render(props.filters, props.list);
 }

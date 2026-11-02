@@ -24,6 +24,7 @@ import {
   MENU_ACTION_CHANNEL,
   QUIT_SHORTCUT_CHANNEL,
   SNAP_SHOT_EVENT_CHANNEL,
+  TRACKPAD_SCROLL_BEGIN_CHANNEL,
   TRACKPAD_SCROLL_END_CHANNEL,
   WINDOW_FULLSCREEN_STATE_CHANNEL,
 } from "../ipc/channels.ts";
@@ -183,12 +184,19 @@ function buildConnectingSplashDataUrl(shouldUseDarkColors: boolean): string {
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 }
 
-function isSameOriginRendererNavigation(input: {
+export function isSameOriginRendererNavigation(input: {
   readonly applicationUrl: string;
   readonly navigationUrl: string;
 }): boolean {
   try {
-    return new URL(input.applicationUrl).origin === new URL(input.navigationUrl).origin;
+    const applicationUrl = new URL(input.applicationUrl);
+    const navigationUrl = new URL(input.navigationUrl);
+    // Node serializes custom-scheme origins as "null", even for different hosts and schemes.
+    return (
+      applicationUrl.host !== "" &&
+      navigationUrl.protocol === applicationUrl.protocol &&
+      navigationUrl.host === applicationUrl.host
+    );
   } catch {
     return false;
   }
@@ -284,7 +292,7 @@ function bindFirstRevealTrigger(
   }
 }
 
-/** @public Service construction is part of the canonical Effect module API. */
+/** @public */
 export const make = Effect.gen(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const desktopState = yield* DesktopState.DesktopState;
@@ -312,11 +320,9 @@ export const make = Effect.gen(function* () {
     }
   });
 
-  // currentMainOrFirst / focusedMainOrFirst fall back to "any first window",
-  // which during WSL-only boot is the connecting splash. The splash is never
-  // registered via setMain, so it must be treated as "no real main window" --
-  // otherwise ensureMain/activate/dispatchMenuAction latch onto it and never
-  // open (or retry) the real main.
+  // The *MainOrFirst lookups fall back to any window, which during WSL-only boot is the
+  // connecting splash; treat it as no main, or ensureMain/activate latch onto it and never open
+  // the real main.
   const withoutSplash = (window: Option.Option<Electron.BrowserWindow>) =>
     Ref.get(splashWindowRef).pipe(
       Effect.map((splash) =>
@@ -623,9 +629,6 @@ export const make = Effect.gen(function* () {
       }
     });
 
-    // Electron's windowMenu close role owns CmdOrCtrl+W. Holding the
-    // close-terminal shortcut can outlive the terminal that handled its first
-    // press, so reject repeats before they reach the native window accelerator.
     const quitShortcutHandler = makeQuitShortcutHandler({
       platform: environment.platform,
       getMode: () =>
@@ -652,6 +655,7 @@ export const make = Effect.gen(function* () {
     });
     window.webContents.on("before-input-event", (event, input) => {
       quitShortcutHandler(event, input);
+      // A held Cmd/Ctrl+W closes one tab or terminal, not each one behind it.
       if (input.type !== "keyDown" || !input.isAutoRepeat) return;
       const modifier = environment.platform === "darwin" ? input.meta : input.control;
       if (modifier && !input.alt && !input.shift && input.key.toLowerCase() === "w") {
@@ -659,7 +663,11 @@ export const make = Effect.gen(function* () {
       }
     });
     window.webContents.on("input-event", (_event, input) => {
-      if (input.type === "gestureScrollEnd") window.webContents.send(TRACKPAD_SCROLL_END_CHANNEL);
+      if (input.type === "gestureScrollBegin") {
+        window.webContents.send(TRACKPAD_SCROLL_BEGIN_CHANNEL);
+      } else if (input.type === "gestureScrollEnd") {
+        window.webContents.send(TRACKPAD_SCROLL_END_CHANNEL);
+      }
     });
 
     window.webContents.on("zoom-changed", (_event, direction) => {
@@ -680,6 +688,12 @@ export const make = Effect.gen(function* () {
     });
 
     if (environment.platform === "darwin") {
+      // Mouse drivers can deliver Back/Forward as macOS swipe gestures instead of buttons.
+      window.on("swipe", (_event, direction) => {
+        const history = window.webContents.navigationHistory;
+        if (direction === "left" && history.canGoBack()) history.goBack();
+        else if (direction === "right" && history.canGoForward()) history.goForward();
+      });
       window.on("enter-full-screen", () => {
         window.webContents.send(WINDOW_FULLSCREEN_STATE_CHANNEL, true);
       });

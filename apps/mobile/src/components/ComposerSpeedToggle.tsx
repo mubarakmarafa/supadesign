@@ -7,7 +7,8 @@ import type { ProviderOptionDescriptor, ProviderOptionSelection } from "@supater
 import { getProviderOptionCurrentValue } from "@supaterm/shared/model";
 import * as Haptics from "expo-haptics";
 import { Platform, Pressable } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { Zap, ZapFilled } from "@supaterm/icons/nodes";
+import Svg, { G, Path } from "react-native-svg";
 import { withUniwind } from "uniwind";
 
 import { applyProviderOptionSelection } from "../lib/providerOptions";
@@ -15,9 +16,6 @@ import { Menu } from "./ui/Menu";
 import { useAndroidControlSizing } from "./ui/useAndroidControlSizing";
 
 const ThemedSvg = withUniwind(Svg);
-
-const BOLT_PATH =
-  "M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z";
 
 export function ComposerSpeedToggle(props: {
   readonly provider: string | null | undefined;
@@ -60,22 +58,21 @@ export function ComposerSpeedToggle(props: {
         width={size}
         height={size}
         viewBox="0 0 24 24"
+        fill="currentColor"
+        stroke="none"
         colorClassName={on ? "accent-yellow-500" : "accent-icon-muted"}
       >
         {speedToggle.level === "ultrafast" ? (
           <>
-            <Path d="m17 2-10 12h7l-1 8 10-12h-7l1-8Z" fill="currentColor" opacity={0.4} />
-            <Path d="m11 2-10 12h7l-1 8 10-12h-7l1-8Z" fill="currentColor" />
+            <G transform="translate(4.6 1.8) scale(0.85)" opacity={0.4}>
+              <Path d={ZapFilled} />
+            </G>
+            <G transform="translate(-2.4 1.8) scale(0.85)">
+              <Path d={ZapFilled} />
+            </G>
           </>
         ) : (
-          <Path
-            d={BOLT_PATH}
-            fill={on ? "currentColor" : "none"}
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <Path d={on ? ZapFilled : Zap} />
         )}
       </ThemedSvg>
     </Pressable>

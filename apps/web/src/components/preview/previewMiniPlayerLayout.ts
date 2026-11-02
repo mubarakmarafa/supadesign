@@ -48,14 +48,8 @@ export function resolveDeviceMiniPlayerSourceSize(
   return landscape ? { width: long, height: short } : { width: short, height: long };
 }
 
-/**
- * The Android emulator composites the skin's rounded corners into its
- * framebuffer as black wedges (measured at ~13% of the short side on a
- * Pixel 9), so its player clips at a matching phone-like radius; the sliver
- * lost under the curve is status-bar padding. iOS simulators stream an
- * edge-to-edge rectangle and keep the frame radius, which matters for iPads
- * whose real corners are far tighter than a phone's.
- */
+/** Android frames include black corner wedges; clip at a matching radius. iOS streams rectangles and
+ * retains the frame radius. */
 export function resolveDeviceMiniPlayerCornerRadius(
   platform: DevicePlatform,
   player: PreviewMiniPlayerSize,
@@ -77,7 +71,7 @@ export interface PreviewMiniPlayerObstacles {
   readonly detailsCard: (HorizontalSpan & { readonly bottom: number }) | null;
 }
 
-export const NO_PREVIEW_MINI_PLAYER_OBSTACLES: PreviewMiniPlayerObstacles = {
+const NO_PREVIEW_MINI_PLAYER_OBSTACLES: PreviewMiniPlayerObstacles = {
   composer: null,
   detailsCard: null,
 };
@@ -257,10 +251,7 @@ export function clampPreviewMiniPlayerPosition(
   return best;
 }
 
-/**
- * Clamping happens here on every layout pass instead of being written back to the store, so a
- * temporarily narrow container never destroys the user's chosen width.
- */
+/** Clamp per layout without persisting so narrow containers preserve the chosen width. */
 export function resolvePreviewMiniPlayerFrame(input: {
   readonly width: number | null;
   /** Only a free player keeps its own height. */
@@ -306,12 +297,9 @@ export function resolvePreviewMiniPlayerFrame(input: {
 }
 
 /**
- * Resizes from any edge or corner, holding the aspect ratio unless the player
- * is free, in which case each axis follows the pointer on its own. The edge
- * opposite the dragged one stays anchored, so growth stops at the container
- * on that axis and the pointer keeps tracking the grabbed edge. On a plain edge
- * drag the perpendicular axis may use the whole container, and the player
- * shifts as needed to stay inside.
+ * Holds the aspect ratio unless the player is free. The edge opposite the dragged
+ * one stays anchored so the pointer keeps tracking the grabbed edge; on a plain
+ * edge drag the perpendicular axis may use the whole container and shifts to fit.
  */
 export function resizePreviewMiniPlayer(input: {
   readonly start: PreviewMiniPlayerFrame;
@@ -357,8 +345,8 @@ export function resizePreviewMiniPlayer(input: {
   const horizontal = east || west;
   const vertical = north || south;
   const aspectRatio = source.width / source.height;
-  // Project corner motion onto the aspect-ratio diagonal. Switching between
-  // dominant axes jumps when one axis grows while the other shrinks.
+  // Project onto the aspect-ratio diagonal; dominant-axis switching jumps when axes move in opposite
+  // directions.
   const desired =
     horizontal && vertical
       ? (desiredWidth + desiredHeight / aspectRatio) / (1 + 1 / aspectRatio ** 2)

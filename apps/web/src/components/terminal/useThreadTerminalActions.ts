@@ -92,7 +92,8 @@ export function useThreadTerminalActions(threadRef: ScopedThreadRef | null) {
   /**
    * Starts a session for `terminalId` on the server. `place` records the id in
    * the surface that will show it, before the open resolves, so the viewport
-   * mounts while the session starts.
+   * mounts while the session starts. `write` stays bound to this thread after
+   * the caller awaits, even if the user switches threads meanwhile.
    */
   const launchTerminal = (input: {
     readonly place: (terminalId: string) => void;
@@ -105,11 +106,12 @@ export function useThreadTerminalActions(threadRef: ScopedThreadRef | null) {
     const location = input.location ?? defaultLaunchLocation();
     if (!location) return null;
     const terminalId = input.terminalId ?? allocateTerminalId();
+    const { environmentId, threadId } = threadRef;
     input.place(terminalId);
     const result = openTerminalCommand({
-      environmentId: threadRef.environmentId,
+      environmentId,
       input: {
-        threadId: threadRef.threadId,
+        threadId,
         terminalId,
         cwd: location.cwd,
         ...(location.worktreePath !== null ? { worktreePath: location.worktreePath } : {}),
@@ -121,14 +123,18 @@ export function useThreadTerminalActions(threadRef: ScopedThreadRef | null) {
         ...input.size,
       },
     });
-    return { terminalId, result };
+    const write = (data: string) =>
+      readEnvironmentScope(environmentId, AuthTerminalOperateScope)
+        ? writeTerminal({ environmentId, input: { threadId, terminalId, data } })
+        : null;
+    return { terminalId, result, write };
   };
 
   /** Ends a session and deletes its history. A failed close falls back to typing `exit`. */
-  const closeTerminalSession = (terminalId: string) => {
-    if (!threadRef || !canWrite()) return;
-    const environmentId = threadRef.environmentId;
-    const threadId = threadRef.threadId;
+  const closeTerminalSession = (terminalId: string, target = threadRef) => {
+    if (!target || !readEnvironmentScope(target.environmentId, AuthTerminalOperateScope)) return;
+    const environmentId = target.environmentId;
+    const threadId = target.threadId;
     void (async () => {
       const closeResult = await closeTerminalCommand({
         environmentId,
@@ -144,19 +150,10 @@ export function useThreadTerminalActions(threadRef: ScopedThreadRef | null) {
     })();
   };
 
-  const writeToTerminal = (terminalId: string, data: string) => {
-    if (!threadRef || !canWrite()) return null;
-    return writeTerminal({
-      environmentId: threadRef.environmentId,
-      input: { threadId: threadRef.threadId, terminalId, data },
-    });
-  };
-
   return {
     canWrite: useStableCallback(canWrite),
     allocateTerminalId: useStableCallback(allocateTerminalId),
     launchTerminal: useStableCallback(launchTerminal),
     closeTerminalSession: useStableCallback(closeTerminalSession),
-    writeToTerminal: useStableCallback(writeToTerminal),
   };
 }

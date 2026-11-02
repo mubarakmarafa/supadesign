@@ -9,14 +9,13 @@ import { rpcRequestDuration, rpcRequestsTotal, withMetrics } from "./Metrics.ts"
 
 type WsRpcMethod = RpcGroup.Rpcs<typeof WsRpcGroup>["_tag"];
 
-/**
- * Trace queries and dashboards group by these labels, so they keep their historical values
- * even where they differ from the method prefix.
- */
+// Trace queries and dashboards depend on these labels, including deviations from method prefixes.
 const RPC_AGGREGATES = {
   [ORCHESTRATION_V2_WS_METHODS.dispatchCommand]: "orchestrationV2",
   [ORCHESTRATION_V2_WS_METHODS.getWorkflowScript]: "orchestration",
   [ORCHESTRATION_V2_WS_METHODS.stopWorkflow]: "orchestration",
+  [ORCHESTRATION_V2_WS_METHODS.forceStopThread]: "orchestration",
+  [ORCHESTRATION_V2_WS_METHODS.suggestNextPrompt]: "orchestration",
   [ORCHESTRATION_V2_WS_METHODS.getTurnItem]: "orchestration",
   [ORCHESTRATION_V2_WS_METHODS.getTurnDiff]: "orchestration",
   [ORCHESTRATION_V2_WS_METHODS.getFullThreadDiff]: "orchestration",
@@ -24,15 +23,18 @@ const RPC_AGGREGATES = {
   [ORCHESTRATION_V2_WS_METHODS.searchThread]: "orchestration",
   [ORCHESTRATION_V2_WS_METHODS.searchThreadStream]: "orchestration",
   [ORCHESTRATION_V2_WS_METHODS.getArchivedShellSnapshot]: "orchestration",
+  [ORCHESTRATION_V2_WS_METHODS.getThreadFamily]: "orchestration",
+  [ORCHESTRATION_V2_WS_METHODS.getWorktreeThreadIds]: "orchestration",
+  [ORCHESTRATION_V2_WS_METHODS.getOlderDoneThreads]: "orchestration",
   [ORCHESTRATION_V2_WS_METHODS.getThreadProjection]: "orchestrationV2",
   [ORCHESTRATION_V2_WS_METHODS.launchThread]: "orchestration",
-  [ORCHESTRATION_V2_WS_METHODS.subscribeArchivedShell]: "orchestration",
   [ORCHESTRATION_V2_WS_METHODS.subscribeShell]: "orchestrationV2",
   [ORCHESTRATION_V2_WS_METHODS.subscribeThread]: "orchestrationV2",
   [ORCHESTRATION_V2_WS_METHODS.subscribeCommandOutput]: "orchestrationV2",
   [WS_METHODS.projectsMutate]: "orchestration",
   [WS_METHODS.serverProbe]: "server",
   [WS_METHODS.serverGetConfig]: "server",
+  [WS_METHODS.serverGetNpmRelease]: "server",
   [WS_METHODS.serverRefreshProviders]: "server",
   [WS_METHODS.serverUpdateProvider]: "server",
   [WS_METHODS.orchestrationSkillsStatus]: "orchestration-skills",
@@ -44,7 +46,6 @@ const RPC_AGGREGATES = {
   [WS_METHODS.chatGptReconnectProfile]: "provider",
   [WS_METHODS.chatGptImportProfile]: "provider",
   [WS_METHODS.chatGptHandoffSubscribe]: "provider",
-  [WS_METHODS.codexAuthCallbackSubscribe]: "provider",
   [WS_METHODS.providerAuthRespond]: "provider",
   [WS_METHODS.providerAuthCancel]: "provider",
   [WS_METHODS.providerAuthLogout]: "provider",
@@ -61,7 +62,6 @@ const RPC_AGGREGATES = {
   [WS_METHODS.serverRunStorageCleanup]: "server",
   [WS_METHODS.serverGetStorageCleanupReport]: "server",
   [WS_METHODS.serverGetDatabaseStorage]: "server",
-  [WS_METHODS.serverGetSettings]: "server",
   [WS_METHODS.serverUpdateSettings]: "server",
   [WS_METHODS.serverSearchAcpRegistry]: "server",
   [WS_METHODS.serverPrepareAcpRegistryAgent]: "server",
@@ -82,13 +82,11 @@ const RPC_AGGREGATES = {
   [WS_METHODS.serverGetResourceTelemetryHistory]: "server",
   [WS_METHODS.serverRetryResourceTelemetry]: "server",
   [WS_METHODS.serverCheckOtlpEndpoint]: "server",
+  [WS_METHODS.serverPrepareTriage]: "server",
   [WS_METHODS.serverGetUsageSummary]: "server",
   [WS_METHODS.serverRefreshUsageRates]: "server",
   [WS_METHODS.serverSignalProcess]: "server",
   [WS_METHODS.serverReportClientActivity]: "server",
-  [WS_METHODS.serverReportHostPowerState]: "server",
-  [WS_METHODS.serverGetBackgroundPolicy]: "server",
-  [WS_METHODS.scheduledTasksList]: "scheduledTasks",
   [WS_METHODS.scheduledTasksSubscribe]: "scheduledTasks",
   [WS_METHODS.scheduledTasksUpsert]: "scheduledTasks",
   [WS_METHODS.scheduledTasksSetEnabled]: "scheduledTasks",
@@ -96,6 +94,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.scheduledTasksRunNow]: "scheduledTasks",
   [WS_METHODS.pullRequestsList]: "pull-requests",
   [WS_METHODS.pullRequestsListStats]: "pull-requests",
+  [WS_METHODS.pullRequestsFilterOptions]: "pull-requests",
   [WS_METHODS.pullRequestsSummary]: "pull-requests",
   [WS_METHODS.pullRequestsRouting]: "pull-requests",
   [WS_METHODS.pullRequestsRoutingIdentity]: "pull-requests",
@@ -143,6 +142,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.projectsWriteFile]: "workspace",
   [WS_METHODS.projectsEnsureScratch]: "orchestration",
   [WS_METHODS.projectsCreateNew]: "orchestration",
+  [WS_METHODS.projectsCreateFromThread]: "orchestration",
   [WS_METHODS.shellOpenInEditor]: "workspace",
   [WS_METHODS.filesystemBrowse]: "workspace",
   [WS_METHODS.filesystemGetMetadata]: "workspace",
@@ -152,6 +152,10 @@ const RPC_AGGREGATES = {
   [WS_METHODS.assetsPersistChatAttachments]: "orchestration",
   [WS_METHODS.attachmentsCreateUploadUrl]: "workspace",
   [WS_METHODS.attachmentsDelete]: "workspace",
+  [WS_METHODS.transcriptionTranscribe]: "transcription",
+  [WS_METHODS.transcriptionCancel]: "transcription",
+  [WS_METHODS.transcriptionPrepareUpload]: "transcription",
+  [WS_METHODS.transcriptionCancelUpload]: "transcription",
   [WS_METHODS.providerUploadFeedback]: "provider",
   [WS_METHODS.mcpAppsCallTool]: "provider",
   [WS_METHODS.mcpAppsToolInfo]: "provider",
@@ -172,6 +176,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.vcsCreateRef]: "vcs",
   [WS_METHODS.vcsSwitchRef]: "vcs",
   [WS_METHODS.vcsInit]: "vcs",
+  [WS_METHODS.reviewGetBranchCommits]: "review",
   [WS_METHODS.reviewGetDiffPreview]: "review",
   [WS_METHODS.reviewGetDiffFileContents]: "review",
   [WS_METHODS.terminalOpen]: "terminal",
@@ -180,15 +185,11 @@ const RPC_AGGREGATES = {
   [WS_METHODS.terminalWrite]: "terminal",
   [WS_METHODS.terminalResize]: "terminal",
   [WS_METHODS.terminalClear]: "terminal",
-  [WS_METHODS.terminalRestart]: "terminal",
   [WS_METHODS.terminalClose]: "terminal",
-  [WS_METHODS.subscribeTerminalEvents]: "terminal",
   [WS_METHODS.subscribeTerminalMetadata]: "terminal",
   [WS_METHODS.previewOpen]: "preview",
-  [WS_METHODS.previewNavigate]: "preview",
   [WS_METHODS.previewResize]: "preview",
   [WS_METHODS.previewAdjust]: "preview",
-  [WS_METHODS.previewRefresh]: "preview",
   [WS_METHODS.previewClose]: "preview",
   [WS_METHODS.previewList]: "preview",
   [WS_METHODS.previewClearProfile]: "preview",
@@ -224,6 +225,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.subscribeThreadBriefs]: "orchestration",
   [WS_METHODS.projectsSummary]: "workspace",
   [WS_METHODS.subscribeDiscoveredLocalServers]: "preview",
+  [WS_METHODS.previewStopLocalServer]: "preview",
   [WS_METHODS.deviceConfigure]: "device",
   [WS_METHODS.deviceTestHost]: "device",
   [WS_METHODS.deviceEasAccount]: "device",
@@ -237,7 +239,6 @@ const RPC_AGGREGATES = {
   [WS_METHODS.subscribeServerConfig]: "server",
   [WS_METHODS.subscribeServerLifecycle]: "server",
   [WS_METHODS.subscribeAuthAccess]: "auth",
-  [WS_METHODS.subscribeBackgroundPolicy]: "server",
   [WS_METHODS.subscribeRelayStatus]: "server",
   [WS_METHODS.prepareRelay]: "server",
 } as const satisfies Readonly<Record<WsRpcMethod, string>>;
@@ -254,10 +255,7 @@ const RPC_METHODS_WITH_TRACING_DISABLED: ReadonlySet<string> = new Set([
   WS_METHODS.serverSignalProcess,
 ]);
 
-/**
- * `ws.ts` adds it to the server's group after `RpcScopeAuthorization`, so it wraps
- * authorization and also records rejected calls.
- */
+/** Add after RpcScopeAuthorization to wrap authorization and record rejected calls. */
 export class RpcInstrumentation extends RpcMiddleware.Service<RpcInstrumentation>()(
   "supaterm/server/RpcInstrumentation",
 ) {}

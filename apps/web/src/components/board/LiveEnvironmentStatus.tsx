@@ -15,8 +15,8 @@ import {
   RotateCcwIcon,
   SquareIcon,
   TerminalIcon,
-  Trash2Icon,
-} from "lucide-react";
+  TrashIcon,
+} from "@supaterm/icons";
 import { useId, useMemo, useState, type ReactNode } from "react";
 
 import {
@@ -390,7 +390,7 @@ export function LiveEnvironmentCardStatus({
               if (confirmed) void discard(threadInput);
             }}
           >
-            <Trash2Icon />
+            <TrashIcon />
             Discard changes
           </Button>
         ) : null}

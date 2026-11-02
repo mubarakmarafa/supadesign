@@ -7,7 +7,11 @@ import {
   type VoiceInputState,
 } from "@supaterm/client-runtime/voice-input";
 
+import type { EnvironmentId } from "@supaterm/contracts";
+
 import type { ComposerEditorSelection } from "../../components/ComposerEditor";
+import * as Dialog from "../../components/ui/Dialog";
+import { resolveComposerVoiceEngine, type VoiceTranscriptionContext } from "./composerVoiceEngine";
 import { useGlobalVoiceInput } from "./VoiceInputProvider";
 import { createVoiceInputTarget } from "./voiceInputSession";
 
@@ -23,15 +27,28 @@ export function useVoiceInputController(input: {
   readonly onChangeDraftMessage: (value: string) => void;
   readonly onChangeSelection: (selection: ComposerEditorSelection) => void;
   readonly onSubmit?: () => void;
+  /** Whose environment transcribes. */
+  readonly environmentId: EnvironmentId | null;
+  readonly context?: VoiceTranscriptionContext;
+  /**
+   * Where sending a recording from an empty draft makes it the message itself, which the
+   * environment transcribes and sends even when this device is offline.
+   */
+  readonly voiceMessage?: {
+    readonly accepts: () => boolean;
+    readonly send: (recordingUri: string, language: string) => Promise<void>;
+  };
 }) {
   const global = useGlobalVoiceInput();
-  const { setOwnerFocused, session } = global;
+  const { session } = global;
   const latestInput = useRef(input);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- publishes the committed composer input to a ref read by async voice session callbacks
   useLayoutEffect(() => {
     latestInput.current = input;
   });
   const mounted = useRef(true);
   const submission = useRef<{ ownerKey: string; text: string } | null>(null);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- tracks mount so async transcription results skip a composer that has unmounted
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -44,17 +61,25 @@ export function useVoiceInputController(input: {
     useCallback(() => {
       const ownerKey = input.ownerKey;
       if (!ownerKey) return;
-      setOwnerFocused(ownerKey, true);
+      session.setOwnerFocused(ownerKey, true);
       return () => {
         submission.current = null;
-        setOwnerFocused(ownerKey, false);
+        session.setOwnerFocused(ownerKey, false);
       };
-    }, [input.ownerKey, setOwnerFocused]),
+    }, [input.ownerKey, session]),
   );
 
   const start = useCallback(() => {
     const captured = latestInput.current;
     if (!captured.ownerKey || captured.disabled) return;
+    const resolution = resolveComposerVoiceEngine({
+      environmentId: captured.environmentId,
+      ...(captured.context ? { context: captured.context } : {}),
+    });
+    if (resolution.status === "unavailable") {
+      Dialog.alert("Voice input unavailable", resolution.message);
+      return;
+    }
     submission.current = null;
     Keyboard.dismiss();
     // Played before the microphone opens; iOS mutes haptics while recording.
@@ -73,10 +98,12 @@ export function useVoiceInputController(input: {
         captured.subscribeToDraftChanges,
       ),
       label: captured.label,
+      engine: resolution.engine,
     });
   }, [session]);
   const state = global.ownerKey === input.ownerKey ? global.state : IDLE_STATE;
   const isBusy = voiceInputBlocksSubmission(state);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- submits a stop-and-send transcript once the voice session leaves its busy phase and the draft still holds it
   useEffect(() => {
     if (isBusy) return;
     const pending = submission.current;
@@ -97,12 +124,19 @@ export function useVoiceInputController(input: {
     const current = latestInput.current;
     if (
       !current.ownerKey ||
-      !current.onSubmit ||
       current.disabled ||
       session.ownerKey !== current.ownerKey ||
       session.controller.currentState.phase !== "recording"
     )
       return;
+    const { engine } = session;
+    const { voiceMessage } = current;
+    if (engine && voiceMessage?.accepts()) {
+      submission.current = null;
+      void session.send((uri) => voiceMessage.send(uri, engine.language));
+      return;
+    }
+    if (!current.onSubmit) return;
     const pending = { ownerKey: current.ownerKey, text: "" };
     submission.current = pending;
     void session.stop((text) => {
