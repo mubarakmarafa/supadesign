@@ -17,7 +17,7 @@ import {
   PlusIcon,
   SendIcon,
   ZapIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { memo, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";

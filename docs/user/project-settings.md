@@ -37,18 +37,35 @@ machine's setting. Every other provider setting stays per machine.
 
 On mobile, open **Settings** and use the filter in its header to choose connected environments
 and a project. The filter stays available in server-setting pages. With **All projects** selected,
-the **Server settings** categories and automatic completion controls in **Thread behavior** edit the
-selected environments' defaults. Choosing a project edits its overrides on the selected
+the server-setting pages, such as Threads, Source control and Worktrees, edit the selected
+environments' defaults. Choosing a project edits its overrides on the selected
 environments. Use **Use defaults** in a page to remove that page's project overrides.
-Open **Settings → Projects & threads → Overview** to rename the project across its selected
+Open **Settings → Projects** to rename the project across its selected
 connected checkouts and see where those checkouts live.
 Settings that are environment-wide stay read-only while a project is selected. When selected
 targets disagree, a control shows **Mixed** until you choose one value. Appearance, keyboard,
 and other phone-only settings ignore the filter.
 
+## Pin and archive projects
+
+Pinned projects come first in the project pickers: the project picker on a new thread, the
+new-thread list, the command palette, the sidebar's **Thread list options → Project** filter,
+and mobile. Pin or unpin a project from its row in any of those lists, or press the thread pin
+shortcut (`mod+shift+p` by default) on the highlighted row. **Pin project** in the command
+palette and **Settings → Projects** work too. A list keeps its order while it is open, so a new
+pin moves up the next time you open it.
+
+Archive a project you are done with in **Settings → Projects**. It leaves the project pickers.
+Its threads, settings, and files stay as they are, and archived projects still show in the
+Settings project list, marked **Archived**. Choose one there and select **Unarchive** to bring it
+back. Adding its folder again also unarchives it. On mobile, both are in
+**Settings → Projects → Organize**.
+
+A project on several machines must have every machine connected to pin or archive it.
+
 ## Worktree branch names
 
-In **Settings → Source Control → Worktree branch naming**, choose a static prefix,
+In **Settings → Worktrees → Worktree branch naming**, choose a static prefix,
 the repository name as a prefix, a model-selected semantic prefix such as `feat/` or `fix/`,
 or custom instructions for the complete name. The static prefix defaults to `supaterm/`; a
 trailing slash is optional, and an empty prefix adds nothing. Invalid characters in a static
@@ -64,11 +81,13 @@ branch name remains.
 
 ## Scheduled tasks on mobile
 
-Open **Settings → Scheduled tasks** to create recurring tasks or manage existing
+Open **Settings → Scheduled tasks** to create scheduled tasks or manage existing
 ones across your connected environments. Use the settings filter to narrow the
 list by environment or project. Each task runs on the environment you choose,
 using its project, model, and workspace settings. Fixed-time schedules use that
-environment's time zone, which may differ from your phone's.
+environment's time zone, which may differ from your phone's. Choose **Once**
+to run a task a single time at a date and time in your own time zone. If the
+environment is offline then, the task runs when it is back.
 
 Deleting a thread also deletes tasks that post into that thread. Tasks that start
 a new thread on each run survive deletion of their previous threads.
@@ -80,7 +99,7 @@ Leaving an edited form asks before discarding unsaved changes.
 
 General contains the model and workspace for new threads. The workspace defaults to a new
 worktree, so each thread and board card works in its own copy of the project. Integrations controls agent browser
-access. Source Control contains automatic pull, the default pull request merge method and text
+access. Source control contains automatic pull, the default pull request merge method and text
 generation. The same rows edit environment defaults or project overrides depending on the
 project crumb.
 
@@ -95,7 +114,7 @@ built-in default. Leave a setting on **Inherit** to let the next tier decide.
 Browser access changes apply when an agent session next starts.
 
 New worktrees initialize git submodules recursively. If that step is slow because the repository
-declares many nested submodules, set **Submodules** in **Settings → General** (with the project
+declares many nested submodules, set **Submodules** in **Settings → Worktrees** (with the project
 selected to override it there) to **Top level only** to stop at the ones the repository declares
 itself, or **Skip** to leave them for a setup script. It resolves in the same order as the
 workspace default: a `"worktreeSubmodules"` value in the `supaterm.json` of the branch being checked out
@@ -104,14 +123,14 @@ applies when the project and environment are both on **Inherit**.
 ## Worktree location
 
 New worktrees go in the `worktrees` folder of the Supaterm home directory. To put them somewhere else,
-such as another drive, set **Settings → Storage → Worktree location** to an absolute path like
+such as another drive, set **Settings → Worktrees → Worktree location** to an absolute path like
 `D:\worktrees` or `~/worktrees`. The setting is per machine. Existing worktrees stay where they
 are, and cleanup covers both the default folder and the custom one.
 
 ## Storage cleanup
 
-Open **Settings → Storage** to configure automatic cleanup on one machine or all connected
-environments. Cleanup rules for merged, unchanged, and deleted-thread worktrees are on by default;
+Open **Settings → Worktrees** to configure automatic worktree cleanup, and **Settings →
+Maintenance** for browser artifacts and logs, on one machine or all connected environments. Cleanup rules for merged, unchanged, and deleted-thread worktrees are on by default;
 inactive-worktree and done-worktree cleanup remain disabled until you choose an age. Policies run on
 the server at startup, when changed, hourly, and when a thread is archived, such as a card moved to
 Done. Offline machines keep their existing policies.
@@ -142,7 +161,8 @@ deleted, including archived threads and worktrees left by earlier deletions. The
 sessions and terminals to stop and retries skipped worktrees after restart. Turn this policy off to
 keep those worktrees and retain the existing prompts for deleting one manually.
 
-Choose **Delete now**, then click again to confirm, to run the enabled rules immediately. The
+Choose **Delete now** in **Settings → Maintenance**, then click again to confirm, to run the
+enabled rules immediately. The
 latest results show which worktrees were removed or kept and why, plus any failures.
 Results also list folders in the worktree folder that no thread uses, with their sizes; cleanup never removes them, so remove them manually if you want.
 
@@ -165,7 +185,7 @@ projects. To pick a different color, choose **Monogram** in the icon picker.
 ## Keep the default branch current
 
 **Automatically pull** is enabled by default to keep the default-branch checkout up to date
-with its configured upstream. In Source Control, choose an environment to change the default or a
+with its configured upstream. In Source control, choose an environment to change the default or a
 project to override it.
 On mobile, use **Settings → Source control** to change selected environment defaults or project overrides.
 

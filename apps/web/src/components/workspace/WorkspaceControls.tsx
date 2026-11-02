@@ -15,7 +15,7 @@ import {
   MonitorIcon,
   PaletteIcon,
   PenToolIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { cn, randomUUID } from "~/lib/utils";
@@ -308,6 +308,7 @@ function CustomColorSwatch({
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- clears the pending colour-commit timer on unmount
   useEffect(
     () => () => {
       if (timer.current !== null) clearTimeout(timer.current);

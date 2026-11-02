@@ -31,13 +31,19 @@ const capabilities = (input?: {
     context: { supportsFullThreadHandoff: input?.portableFork ?? false },
   }) as never;
 
+const topLevelLineage = (threadId: ThreadId) => ({
+  parentThreadId: null,
+  relationshipToParent: null,
+  rootThreadId: threadId,
+});
+
 describe("thread workflows", () => {
   it("forks the newest finished run while newer work is running", () => {
     const threadId = ThreadId.make("thread:fork-source");
     const finishedRunId = RunId.make("run:fork-finished");
     expect(
       resolveThreadForkSource({
-        thread: { id: threadId, forkedFrom: null },
+        thread: { id: threadId, forkedFrom: null, lineage: topLevelLineage(threadId) },
         runs: [
           { id: RunId.make("run:fork-running"), ordinal: 3, status: "running" },
           { id: finishedRunId, ordinal: 2, status: "waiting" },
@@ -55,6 +61,11 @@ describe("thread workflows", () => {
     const thread = {
       id: forkThreadId,
       forkedFrom: { type: "run" as const, threadId: sourceThreadId, runId: sourceRunId },
+      lineage: {
+        parentThreadId: sourceThreadId,
+        relationshipToParent: "fork" as const,
+        rootThreadId: sourceThreadId,
+      },
     };
     expect(resolveThreadForkSource({ thread, runs: [] })).toEqual({
       sourceThreadId,
@@ -74,13 +85,23 @@ describe("thread workflows", () => {
     ).toEqual({ sourceThreadId: forkThreadId, runId: localRunId });
   });
 
-  it("has no fork source before the first provider-finished run", () => {
-    const thread = { id: ThreadId.make("thread:new"), forkedFrom: null };
+  it("has no fork source before the first provider-finished run, or in a side chat", () => {
+    const threadId = ThreadId.make("thread:new");
+    const thread = { id: threadId, forkedFrom: null, lineage: topLevelLineage(threadId) };
     expect(resolveThreadForkSource({ thread, runs: [] })).toBeNull();
     expect(
       resolveThreadForkSource({
         thread,
         runs: [{ id: RunId.make("run:first"), ordinal: 1, status: "running" }],
+      }),
+    ).toBeNull();
+    expect(
+      resolveThreadForkSource({
+        thread: {
+          ...thread,
+          lineage: { ...thread.lineage, relationshipToParent: "fork", sideChat: true },
+        },
+        runs: [{ id: RunId.make("run:first"), ordinal: 1, status: "completed" }],
       }),
     ).toBeNull();
   });
@@ -120,7 +141,7 @@ describe("thread workflows", () => {
     ).toBe(false);
   });
 
-  it("sorts queued messages and gates reorder and promotion from capabilities", () => {
+  it("sorts queued messages and gates promotion from capabilities", () => {
     const state = deriveThreadQueueWorkflowState({
       thread: { id: "thread", activeProviderThreadId: "provider-thread" },
       runs: [
@@ -188,7 +209,6 @@ describe("thread workflows", () => {
       [],
     ]);
     expect(state.activeRun?.id).toBe("active");
-    expect(state.canReorder).toBe(true);
     expect(state.canPromoteToSteer).toBe(true);
     expect(state.canSendNow).toBe(false);
   });
@@ -229,6 +249,26 @@ describe("thread workflows", () => {
       expect(state.canSendNow).toBe(false);
     },
   );
+
+  it("offers to skip a running compaction even when the provider cannot steer", () => {
+    const state = deriveThreadQueueWorkflowState({
+      thread: { id: "thread", activeProviderThreadId: null },
+      runs: [
+        { id: "compact", status: "running", userMessageId: "message-compact", ordinal: 1 },
+        { id: "queued", status: "queued", userMessageId: "message-queued", ordinal: 2 },
+      ],
+      messages: [
+        { id: "message-compact", role: "user", text: "/compact", attachments: [] },
+        { id: "message-queued", role: "user", text: "Next", attachments: [] },
+      ],
+      providerThreads: [],
+      providerTurns: [],
+      providerSessions: [],
+    } as never);
+
+    expect(state.canPromoteToSteer).toBe(true);
+    expect(state.promoteSkipsCompaction).toBe(true);
+  });
 
   it("keeps held messages visible and clears the hold when they leave the queue", () => {
     for (const status of ["queued", "cancelled", "starting"] as const) {
@@ -442,7 +482,6 @@ describe("thread workflows", () => {
       item: { type: "assistant_message", runId: "run", status: "completed" },
     } as never;
 
-    expect(queue.canReorder).toBe(false);
     expect(queue.canPromoteToSteer).toBe(false);
     expect(canForkProjectedAssistantItem({ projectedItem, capabilities: capabilities() })).toBe(
       false,

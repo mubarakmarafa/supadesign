@@ -1,5 +1,6 @@
 import { assert, it } from "@effect/vitest";
 import {
+  CommandId,
   type ModelSelection,
   NodeId,
   RunId,
@@ -16,6 +17,7 @@ import {
 } from "@supaterm/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 
 import {
   makeSubagentChildThread,
@@ -26,7 +28,9 @@ import {
   endRunlessRootTurns,
 } from "@supaterm/provider-core/server/subagentProjection";
 
-import { emptyProjection } from "./ProjectionStore.ts";
+import * as SqlitePersistence from "../persistence/Sqlite.ts";
+import * as ProjectionStore from "./ProjectionStore.ts";
+import { resolveAutoMarkDoneAt } from "./ThreadDoneService.ts";
 
 const parentThreadId = ThreadId.make("thread:subagent-snoozed-parent");
 const childThreadId = ThreadId.make("thread:subagent-awake-child");
@@ -79,7 +83,10 @@ function makeParentThread(): OrchestrationV2AppThread {
 }
 
 it("keeps a subagent child awake when its parent thread is snoozed", () => {
-  const parentThread = makeParentThread();
+  const parentThread: OrchestrationV2AppThread = {
+    ...makeParentThread(),
+    titleRegeneration: { requestId: CommandId.make("command:parent-title"), startedAt: snoozedAt },
+  };
   const childProviderThreadId = ProviderThreadId.make("provider-thread:subagent-awake-child");
   const parentNodeId = NodeId.make("node:subagent-parent");
   const childThread = makeSubagentChildThread({
@@ -97,6 +104,7 @@ it("keeps a subagent child awake when its parent thread is snoozed", () => {
 
   assert.isNull(childThread.snoozedUntil);
   assert.isNull(childThread.snoozedAt);
+  assert.isNull(childThread.titleRegeneration);
   assert.equal(childThread.projectId, parentThread.projectId);
   assert.equal(childThread.runtimeMode, parentThread.runtimeMode);
   assert.equal(childThread.interactionMode, parentThread.interactionMode);
@@ -117,8 +125,80 @@ it("keeps a subagent child awake when its parent thread is snoozed", () => {
   });
 });
 
+it.effect.each(["provider", "mcp"] as const)(
+  "a %s child does not inherit parent mark-done protections and is marked done once idle",
+  (creationSource) =>
+    Effect.gen(function* () {
+      const store = yield* ProjectionStore.ProjectionStoreV2;
+      const parentThread = {
+        ...makeParentThread(),
+        pinnedAt: parentCreatedAt,
+        pinOrderKey: "a0",
+        pinnedMessages: [
+          {
+            itemId: TurnItemId.make("item:parent-pin"),
+            messageId: MessageId.make("message:parent-pin"),
+            sourceThreadId: parentThreadId,
+            role: "user" as const,
+            preview: "Pinned in the parent",
+            sentAt: DateTime.formatIso(parentCreatedAt),
+          },
+        ],
+        autoMarkDoneDisabledAt: parentCreatedAt,
+      };
+      const childThread = makeSubagentChildThread({
+        parentThread,
+        childThreadId,
+        parentNodeId: NodeId.make("node:subagent-parent"),
+        activeProviderThreadId: null,
+        providerInstanceId: childProviderInstanceId,
+        modelSelection: childModelSelection,
+        title: "Child",
+        now: childCreatedAt,
+        createdBy: "agent",
+        creationSource,
+      });
+
+      assert.equal(parentThread.pinnedAt, parentCreatedAt);
+      assert.equal(parentThread.pinOrderKey, "a0");
+      assert.isNull(childThread.pinnedAt);
+      assert.isNull(childThread.pinOrderKey);
+      assert.deepEqual(childThread.pinnedMessages, []);
+      assert.isNull(childThread.autoMarkDoneDisabledAt);
+
+      for (const thread of [parentThread, childThread]) {
+        yield* store.apply({
+          id: EventId.make(`event:${thread.id}`),
+          type: "thread.created",
+          threadId: thread.id,
+          occurredAt: thread.createdAt,
+          payload: thread,
+        });
+      }
+      const savedParent = yield* store.getThread(parentThreadId);
+      assert.deepEqual(savedParent.pinnedAt, parentCreatedAt);
+      assert.equal(savedParent.pinOrderKey, "a0");
+      assert.deepEqual(savedParent.autoMarkDoneDisabledAt, parentCreatedAt);
+      const candidates = yield* store.getAutoMarkDoneCandidates();
+      assert.deepEqual(
+        candidates.map((candidate) => candidate.id),
+        [childThreadId],
+      );
+      const doneAt = resolveAutoMarkDoneAt({
+        thread: candidates[0]!,
+        pullRequest: null,
+        nowMs: DateTime.toEpochMillis(DateTime.add(childCreatedAt, { days: 4 })),
+        autoMarkDoneAfterDays: 3,
+        autoMarkDoneOnMerge: false,
+      });
+      assert.equal(doneAt && DateTime.formatIso(doneAt), DateTime.formatIso(childCreatedAt));
+    }).pipe(
+      Effect.provide(ProjectionStore.layer.pipe(Layer.provideMerge(SqlitePersistence.layerMemory))),
+    ),
+);
+
 function taskFixture() {
-  const projection = emptyProjection({
+  const projection = ProjectionStore.emptyProjection({
     type: "thread.created",
     id: EventId.make("task-fixture"),
     threadId: parentThreadId,
@@ -376,6 +456,7 @@ it.effect("ends a runless root turn's items when its node already ended", () =>
       providerInstanceId: parentProviderInstanceId,
       projection: {
         nodes: [root],
+        providerTurns: [],
         turnItems: [item("turn-item:command"), item("turn-item:reasoning")],
       } as never,
       status: "cancelled",

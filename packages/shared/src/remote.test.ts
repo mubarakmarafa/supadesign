@@ -2,6 +2,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { EnvironmentId } from "@supaterm/contracts";
 
 import {
+  buildPairingAppLink,
+  readPairingAppLink,
   RemoteBackendUrlMissingError,
   RemotePairingTokenMissingError,
   RemotePairingUrlInvalidError,
@@ -10,6 +12,7 @@ import {
   stripPairingTokenFromUrl,
   setPairingTokenOnUrl,
 } from "./remote.ts";
+import { APP_URL_SCHEME } from "./appIdentity.ts";
 
 describe("remote", () => {
   const environmentId = EnvironmentId.make("paired-environment");
@@ -246,5 +249,25 @@ describe("remote", () => {
         host: "remote.example.com",
       }),
     );
+  });
+
+  it("round-trips pairing urls through app links on every channel scheme", () => {
+    const pairingUrl = "https://vps.example.com/pair#token=ABC123";
+    const appLink = buildPairingAppLink(pairingUrl);
+    expect(appLink.startsWith(`${APP_URL_SCHEME}://pair?`)).toBe(true);
+    expect(readPairingAppLink(appLink)).toBe(pairingUrl);
+    expect(
+      readPairingAppLink(appLink.replace(`${APP_URL_SCHEME}:`, `${APP_URL_SCHEME}-dev:`)),
+    ).toBe(pairingUrl);
+    // Supaterm's own links, which its mobile app scans, still read.
+    expect(readPairingAppLink(appLink.replace(`${APP_URL_SCHEME}:`, "supaterm:"))).toBe(pairingUrl);
+    expect(readPairingAppLink("supaterm://pair")).toBeNull();
+    expect(readPairingAppLink(appLink.replace("//pair?", "//pair/other?"))).toBeNull();
+    expect(
+      readPairingAppLink(`supaterm://threads?pairingUrl=${encodeURIComponent(pairingUrl)}`),
+    ).toBeNull();
+    expect(
+      readPairingAppLink(`https://pair?pairingUrl=${encodeURIComponent(pairingUrl)}`),
+    ).toBeNull();
   });
 });

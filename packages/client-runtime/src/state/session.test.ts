@@ -5,7 +5,9 @@ import {
   ORCHESTRATION_PROTOCOL_VERSION,
 } from "@supaterm/contracts";
 import { describe, expect, it } from "@effect/vitest";
+import { relayHttpBaseUrl, relayPublicKey } from "@supaterm/shared/relay/protocol";
 import * as Clock from "effect/Clock";
+import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -26,6 +28,7 @@ import {
 } from "../connection/model.ts";
 import * as EnvironmentRegistry from "../connection/registry.ts";
 import * as EnvironmentSupervisor from "../connection/supervisor.ts";
+import { layer as layerRelayGateway, RelayGateway, type RelayTransport } from "../relay/gateway.ts";
 import type { WsRpcProtocolClient } from "../rpc/protocol.ts";
 import type { RpcSession } from "../rpc/session.ts";
 import { createEnvironmentSessionAtoms } from "./session.ts";
@@ -40,7 +43,7 @@ const descriptor = {
   capabilities: {},
 };
 
-function directRoute(id: string): ConnectionRoute {
+function routeTo(id: string, httpBaseUrl: string): ConnectionRoute {
   return {
     target: new BearerConnectionTarget({ environmentId, connectionId: id, label: "Test" }),
     profile: Option.some(
@@ -48,11 +51,15 @@ function directRoute(id: string): ConnectionRoute {
         environmentId,
         connectionId: id,
         label: "Test",
-        httpBaseUrl: `https://${id}.example.test/`,
-        wsBaseUrl: `wss://${id}.example.test/`,
+        httpBaseUrl,
+        wsBaseUrl: httpBaseUrl.replace(/^http/, "ws"),
       }),
     ),
   };
+}
+
+function directRoute(id: string): ConnectionRoute {
+  return routeTo(id, `https://${id}.example.test/`);
 }
 
 const makeHarness = Effect.fn("RouteLatencyTest.makeHarness")(function* (options?: {
@@ -68,6 +75,7 @@ const makeHarness = Effect.fn("RouteLatencyTest.makeHarness")(function* (options
     probe: Effect.sync(() => {
       probes += 1;
     }),
+    inboundFrames: Effect.succeed(0),
     closed: Effect.never,
   };
   let probes = 0;
@@ -114,7 +122,16 @@ const makeHarness = Effect.fn("RouteLatencyTest.makeHarness")(function* (options
   const registry = yield* Effect.acquireRelease(Effect.sync(AtomRegistry.make), (registry) =>
     Effect.sync(() => registry.dispose()),
   );
-  return { atoms, registry, supervisor, probes: () => probes };
+  return { atoms, registry, supervisor, session, probes: () => probes };
+});
+
+/** Prepares a route and brings up a transport session, as the supervisor does on connect. */
+const connect = Effect.fn("SessionStateTest.connect")(function* (
+  supervisor: EnvironmentSupervisor.EnvironmentSupervisor["Service"],
+  session: RpcSession,
+) {
+  yield* SubscriptionRef.set(supervisor.prepared, Option.some(prepared(directRoute("lan"))));
+  yield* SubscriptionRef.set(supervisor.session, Option.some(session));
 });
 
 function prepared(route: ConnectionRoute): PreparedConnection {
@@ -243,7 +260,7 @@ describe("session state", () => {
     Effect.gen(function* () {
       const failed = yield* Deferred.make<void>();
       let requests = 0;
-      const { atoms, registry, supervisor } = yield* makeHarness({
+      const { atoms, registry, supervisor, session } = yield* makeHarness({
         reply: () =>
           Effect.suspend(() => {
             requests += 1;
@@ -256,7 +273,7 @@ describe("session state", () => {
       });
       const atom = atoms.sessionStateAtom(environmentId);
       registry.mount(atom);
-      yield* SubscriptionRef.set(supervisor.prepared, Option.some(prepared(directRoute("lan"))));
+      yield* connect(supervisor, session);
       yield* Deferred.await(failed);
       yield* TestClock.adjust("1 second");
       expect(
@@ -269,7 +286,7 @@ describe("session state", () => {
   it.effect("settles on the failure once the retries run out", () =>
     Effect.gen(function* () {
       const failures = yield* Queue.unbounded<void>();
-      const { atoms, registry, supervisor } = yield* makeHarness({
+      const { atoms, registry, supervisor, session } = yield* makeHarness({
         reply: () =>
           Queue.offer(failures, undefined).pipe(
             Effect.andThen(Effect.fail("connection reset" as const)),
@@ -277,7 +294,7 @@ describe("session state", () => {
       });
       const atom = atoms.sessionStateAtom(environmentId);
       registry.mount(atom);
-      yield* SubscriptionRef.set(supervisor.prepared, Option.some(prepared(directRoute("lan"))));
+      yield* connect(supervisor, session);
       for (const backoff of ["1 second", "2 seconds", "4 seconds"] as const) {
         yield* Queue.take(failures);
         yield* TestClock.adjust(backoff);
@@ -287,6 +304,184 @@ describe("session state", () => {
       );
       expect(result).toMatchObject({ _tag: "RemoteEnvironmentAuthFetchError" });
       expect(yield* Queue.size(failures)).toBe(1);
+    }),
+  );
+
+  it.effect("fetches permissions again when the connection is re-established", () =>
+    Effect.gen(function* () {
+      const failures = yield* Queue.unbounded<void>();
+      let requests = 0;
+      const { atoms, registry, supervisor, session } = yield* makeHarness({
+        reply: () =>
+          Effect.suspend(() => {
+            requests += 1;
+            return requests <= 4
+              ? Queue.offer(failures, undefined).pipe(
+                  Effect.andThen(Effect.fail("connection reset" as const)),
+                )
+              : Effect.succeed(Response.json(grantedSession));
+          }),
+      });
+      const atom = atoms.sessionStateAtom(environmentId);
+      registry.mount(atom);
+      yield* connect(supervisor, session);
+      for (const backoff of ["1 second", "2 seconds", "4 seconds"] as const) {
+        yield* Queue.take(failures);
+        yield* TestClock.adjust(backoff);
+      }
+      yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }).pipe(Effect.flip);
+
+      yield* SubscriptionRef.set(supervisor.session, Option.some({ ...session }));
+
+      expect(
+        yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }),
+      ).toMatchObject({ scopes: grantedSession.scopes });
+      expect(requests).toBe(5);
+    }),
+  );
+
+  it.effect("keeps retrying a settled failure while the connection stays up", () =>
+    Effect.gen(function* () {
+      const failures = yield* Queue.unbounded<void>();
+      let requests = 0;
+      const { atoms, registry, supervisor, session } = yield* makeHarness({
+        reply: () =>
+          Effect.suspend(() => {
+            requests += 1;
+            return requests <= 4
+              ? Queue.offer(failures, undefined).pipe(
+                  Effect.andThen(Effect.fail("connection reset" as const)),
+                )
+              : Effect.succeed(Response.json(grantedSession));
+          }),
+      });
+      const atom = atoms.sessionStateAtom(environmentId);
+      registry.mount(atom);
+      yield* connect(supervisor, session);
+      for (const backoff of ["1 second", "2 seconds", "4 seconds"] as const) {
+        yield* Queue.take(failures);
+        yield* TestClock.adjust(backoff);
+      }
+      yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }).pipe(Effect.flip);
+
+      yield* TestClock.adjust("2 seconds");
+
+      expect(
+        yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }),
+      ).toMatchObject({ scopes: grantedSession.scopes });
+      expect(requests).toBe(5);
+    }),
+  );
+  it.effect("restarts the settled-failure backoff on a new connection", () =>
+    Effect.gen(function* () {
+      const failures = yield* Queue.unbounded<void>();
+      let requests = 0;
+      const { atoms, registry, supervisor, session } = yield* makeHarness({
+        reply: () =>
+          Effect.suspend(() => {
+            requests += 1;
+            return requests <= 12
+              ? Queue.offer(failures, undefined).pipe(
+                  Effect.andThen(Effect.fail("connection reset" as const)),
+                )
+              : Effect.succeed(Response.json(grantedSession));
+          }),
+      });
+      const atom = atoms.sessionStateAtom(environmentId);
+      registry.mount(atom);
+      const settleFailure = Effect.gen(function* () {
+        for (const backoff of ["1 second", "2 seconds", "4 seconds"] as const) {
+          yield* Queue.take(failures);
+          yield* TestClock.adjust(backoff);
+        }
+        yield* Queue.take(failures);
+        yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }).pipe(Effect.flip);
+      });
+
+      yield* connect(supervisor, session);
+      yield* settleFailure;
+      yield* TestClock.adjust("2 seconds");
+      yield* settleFailure;
+
+      yield* SubscriptionRef.set(supervisor.session, Option.some({ ...session }));
+      yield* settleFailure;
+      yield* TestClock.adjust("2 seconds");
+
+      expect(
+        yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }),
+      ).toMatchObject({ scopes: grantedSession.scopes });
+      expect(requests).toBe(13);
+    }),
+  );
+});
+
+describe("relay transport", () => {
+  it.effect("follows the gateway's reports for a relay route until unmounted", () =>
+    Effect.gen(function* () {
+      const reports: Array<(via: RelayTransport | undefined) => void> = [];
+      const gateway = Context.get(
+        yield* Layer.build(
+          layerRelayGateway({
+            fetch,
+            open: async (_address, _relayUrl, _directUrls, report) => {
+              reports.push(report);
+              return { prepare: async () => "http://127.0.0.1:3000", close: async () => {} };
+            },
+          }),
+        ),
+        RelayGateway,
+      );
+      let subscriptions = 0;
+      const runtime = Atom.runtime(
+        Layer.mergeAll(
+          Layer.succeed(
+            EnvironmentRegistry.EnvironmentRegistry,
+            {} as EnvironmentRegistry.EnvironmentRegistry["Service"],
+          ),
+          Layer.succeed(RelayGateway, {
+            ...gateway,
+            subscribe: (listener) => {
+              subscriptions++;
+              const unsubscribe = gateway.subscribe(listener);
+              return () => {
+                subscriptions--;
+                unsubscribe();
+              };
+            },
+          }),
+        ),
+      );
+      const atoms = createEnvironmentSessionAtoms(runtime);
+      const tasks: Array<() => void> = [];
+      const registry = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          AtomRegistry.make({
+            scheduleTask: (task) => {
+              tasks.push(task);
+              return () => {};
+            },
+          }),
+        ),
+        (registry) => Effect.sync(() => registry.dispose()),
+      );
+      const relayAddress = relayHttpBaseUrl(relayPublicKey(new Uint8Array(32).fill(7)));
+      const transport = atoms.relayRouteTransportAtom(routeTo("relay", relayAddress));
+      const seen: Array<RelayTransport | undefined> = [];
+      const unmount = registry.subscribe(transport, (value) => seen.push(value), {
+        immediate: true,
+      });
+      registry.mount(atoms.relayRouteTransportAtom(directRoute("lan")));
+      expect(subscriptions).toBe(1);
+
+      yield* Effect.promise(() => gateway.resolve(relayAddress));
+      reports[0]!("direct");
+      reports[0]!("relay");
+      yield* Effect.promise(() => gateway.release(relayAddress));
+      expect(seen).toEqual([undefined, "direct", "relay", undefined]);
+
+      unmount();
+      for (let task = tasks.shift(); task !== undefined; task = tasks.shift()) task();
+      expect(subscriptions).toBe(0);
     }),
   );
 });

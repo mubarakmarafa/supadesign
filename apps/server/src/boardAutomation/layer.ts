@@ -21,6 +21,7 @@ import * as Option from "effect/Option";
 import * as Stream from "effect/Stream";
 
 import * as ServerConfig from "../config.ts";
+import * as DocumentText from "../provider/DocumentText.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
 import * as ThreadMessageIntake from "../orchestration-v2/ThreadMessageIntake.ts";
@@ -59,7 +60,10 @@ export const make = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto;
   // Dispatch reads these per call, as client sends do.
   const services = yield* Effect.context<
-    ServerConfig.ServerConfig | FileSystem.FileSystem | ThreadManagement.ThreadManagementService
+    | ServerConfig.ServerConfig
+    | FileSystem.FileSystem
+    | ThreadManagement.ThreadManagementService
+    | DocumentText.DocumentText
   >();
   const uuid = crypto.randomUUIDv4().pipe(Effect.orDie);
   const cards = yield* CardWorkspace.make;

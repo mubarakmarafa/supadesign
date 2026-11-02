@@ -2,6 +2,7 @@ import { ClaudeSettings, ProviderDriverKind } from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
+import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { HttpClient } from "effect/http";
@@ -11,6 +12,7 @@ import { makeClaudeTextGeneration } from "../../textGeneration/ClaudeTextGenerat
 import * as ProviderLatestVersions from "@supaterm/provider-core/server/ProviderLatestVersions";
 import * as ProviderHost from "@supaterm/provider-core/server/ProviderHost";
 import * as ServerConfig from "../../config.ts";
+import * as ServerSettings from "../../serverSettings.ts";
 import { expandHomePath } from "@supaterm/provider-core/server/pathExpansion";
 import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import {
@@ -21,6 +23,7 @@ import { ProviderDriverError } from "../Errors.ts";
 import { claudeUsageReader } from "./claudeUsage.ts";
 import { makeClaudeScopedLimitNames } from "../claudeUsageLimits.ts";
 import * as ClaudeResetCredits from "../claudeResetCredits.ts";
+import { makeClaudeTranscription } from "../ClaudeTranscription.ts";
 import * as ResetCreditCoordinator from "../resetCreditCoordinator.ts";
 import {
   checkClaudeProviderStatus,
@@ -162,10 +165,11 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
     });
 
     const scopedLimitNames = yield* makeClaudeScopedLimitNames;
+    const cliEnvironment = yield* makeClaudeEnvironment(effectiveConfig, processEnv);
     const fastMode = yield* makeClaudeFastModeAvailability({
       accountConfigPath,
       settingsPath: path.join(configDir, "settings.json"),
-      environment: yield* makeClaudeEnvironment(effectiveConfig, processEnv),
+      environment: cliEnvironment,
     });
     const filterFastMode = (provider: ServerProviderDraft) =>
       fastMode.refresh.pipe(
@@ -174,6 +178,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
           models: filterClaudeFastModeModels(provider.models, blocked),
         })),
       );
+    const serverSettings = yield* Effect.serviceOption(ServerSettings.ServerSettingsService);
     const orchestrationAdapter = yield* createClaudeAdapterV2(
       {
         instanceId,
@@ -187,6 +192,14 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
         scopedLimitNames,
         onUsageLimits: (update) => snapshot.applyUsageLimits(update),
         fastModeBlocked: fastMode.isBlocked,
+        promptSuggestionsEnabled: Option.match(serverSettings, {
+          onNone: () => Effect.succeed(false),
+          onSome: (settings) =>
+            settings.getSettings.pipe(
+              Effect.map((current) => current.nextPromptSuggestionsEnabled),
+              Effect.orElseSucceed(() => false),
+            ),
+        }),
       },
     ).pipe(
       Effect.mapError(
@@ -281,6 +294,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
           Effect.map(stampIdentity),
         ),
       checkProvider,
+      invalidateUsageCache: capabilitiesProbeCache.invalidate,
       enrichSnapshot: ({ settings, snapshot, publishSnapshot }) =>
         resolveMaintenance().pipe(
           Effect.flatMap((maintenanceCapabilities) =>
@@ -302,6 +316,16 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
             cause,
           }),
       ),
+    );
+
+    const transcription = yield* makeClaudeTranscription({
+      environment: cliEnvironment,
+      configDir,
+      cliVersion: snapshot.getSnapshot.pipe(Effect.map((current) => current.version)),
+    }).pipe(
+      Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+      Effect.provideService(FileSystem.FileSystem, fileSystem),
+      Effect.provideService(Path.Path, path),
     );
 
     // Same rules as Codex: serialised on the config directory that holds the
@@ -390,6 +414,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
       orchestrationAdapter,
       textGeneration,
       consumeResetCredit,
+      transcription,
     } satisfies ProviderInstance;
   }),
 };

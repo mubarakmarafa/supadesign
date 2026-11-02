@@ -16,10 +16,10 @@ import {
   HistoryIcon,
   LayersIcon,
   ListChecksIcon,
-  Maximize2Icon,
+  ExpandIcon,
   MessageCircleQuestionIcon,
   TriangleAlertIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { memo, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 
 import { useAssetUrlState } from "../../assets/assetUrls";
@@ -115,7 +115,7 @@ function CardCover({
             onDoubleClick={stopDrag}
             onClick={onView}
           >
-            <Maximize2Icon />
+            <ExpandIcon />
           </Button>
         </span>
       ) : null}

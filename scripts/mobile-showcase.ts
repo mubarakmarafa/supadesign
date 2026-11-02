@@ -10,6 +10,7 @@ import * as NodeSqlite from "node:sqlite";
 import * as NodeProcess from "node:process";
 import * as NodeURL from "node:url";
 
+import type { Browser } from "playwright-core";
 import { PNG } from "pngjs";
 import { BUILT_IN_THEMES, getThemeColorsForAppearance } from "@supaterm/shared/themePalettes";
 
@@ -32,6 +33,7 @@ import {
   seedShowcaseEnvironment,
   waitForSeedableSchema,
 } from "./mobile-showcase-environment.ts";
+import { launchShowcaseBrowser, renderShowcaseSlide } from "./mobile-showcase-frame.ts";
 
 const REPO_ROOT = NodePath.resolve(NodePath.dirname(NodeURL.fileURLToPath(import.meta.url)), "..");
 const MOBILE_ROOT = NodePath.join(REPO_ROOT, "apps/mobile");
@@ -89,7 +91,7 @@ interface CliOptions {
   readonly skipBuild: boolean;
   readonly skipMetro: boolean;
   readonly keepRunning: boolean;
-  readonly validateOnly: boolean;
+  readonly mode: "capture" | "compose-only" | "validate-only";
   readonly list: boolean;
 }
 
@@ -212,6 +214,11 @@ export function validateStoreAsset(
       throw new Error(`${label} must use Google Play's recommended portrait 9:16 aspect ratio.`);
     }
   }
+  try {
+    PNG.sync.read(Buffer.from(bytes));
+  } catch (cause) {
+    throw new Error(`${label} is not a valid PNG.`, { cause });
+  }
   return metadata;
 }
 
@@ -253,14 +260,50 @@ async function finalizeCapture(destination: string, device: ShowcaseDevice): Pro
     NodePath.basename(destination),
   );
   NodeProcess.stdout.write(
-    `Captured ${NodePath.relative(REPO_ROOT, destination)} (${metadata.width}×${metadata.height}, 24-bit RGB, validated for ${device.storeAsset.store})\n`,
+    `Captured ${NodePath.relative(REPO_ROOT, destination)} (${metadata.width}×${metadata.height})\n`,
   );
+}
+
+async function composeCaptureSet(
+  capture: ShowcaseCapture,
+  config: ShowcaseConfig,
+  browser: Browser,
+): Promise<void> {
+  const source = showcaseCaptureDirectory(
+    NodePath.resolve(REPO_ROOT, config.captureDirectory),
+    capture,
+  );
+  const outputDirectory = NodePath.resolve(REPO_ROOT, config.outputDirectory);
+  const destination = showcaseCaptureDirectory(outputDirectory, capture);
+  const slides = [];
+  for (const scene of capture.scenes) {
+    const png = await NodeFSP.readFile(NodePath.join(source, `${scene}.png`));
+    const slide = await renderShowcaseSlide(browser, {
+      width: capture.device.storeAsset.width,
+      height: capture.device.storeAsset.height,
+      frame: capture.device.frame,
+      appearance: capture.appearance,
+      slide: config.slides[scene],
+      index: capture.device.scenes.indexOf(scene),
+      capture: { png, ...readPngDimensions(png) },
+    });
+    const normalized = normalizeStorePng(slide);
+    validateStoreAsset(capture.device.storeAsset, normalized, `${capture.device.id}/${scene}.png`);
+    slides.push({ scene, png: normalized });
+  }
+  if (capture.scenes.length === capture.device.scenes.length) {
+    await NodeFSP.rm(destination, { recursive: true, force: true });
+  }
+  await NodeFSP.mkdir(destination, { recursive: true });
+  for (const { scene, png } of slides) {
+    await NodeFSP.writeFile(NodePath.join(destination, `${scene}.png`), png);
+  }
+  await validateCaptureSet(capture, outputDirectory);
 }
 
 async function validateCaptureSet(
   capture: ShowcaseCapture,
   outputDirectory: string,
-  requireMinimum: boolean,
 ): Promise<void> {
   const directory = showcaseCaptureDirectory(outputDirectory, capture);
   const files = (await NodeFSP.readdir(directory)).filter((file) => file.endsWith(".png")).sort();
@@ -269,7 +312,11 @@ async function validateCaptureSet(
   if (missingFiles.length > 0) {
     throw new Error(`${capture.device.id} is missing ${missingFiles.join(", ")} in ${directory}.`);
   }
-  validateStoreAssetCount(capture.device.storeAsset, files.length, requireMinimum);
+  validateStoreAssetCount(
+    capture.device.storeAsset,
+    files.length,
+    capture.scenes.length === capture.device.scenes.length,
+  );
   for (const file of files) {
     const bytes = await NodeFSP.readFile(NodePath.join(directory, file));
     validateStoreAsset(capture.device.storeAsset, bytes, `${capture.device.id}/${file}`);
@@ -296,7 +343,7 @@ export function parseShowcaseCliArgs(args: ReadonlyArray<string>): CliOptions {
   let skipBuild = false;
   let skipMetro = false;
   let keepRunning = false;
-  let validateOnly = false;
+  let mode: CliOptions["mode"] = "capture";
   let list = false;
 
   for (let index = 0; index < args.length; index += 1) {
@@ -353,8 +400,11 @@ export function parseShowcaseCliArgs(args: ReadonlyArray<string>): CliOptions {
       skipMetro = true;
     } else if (argument === "--keep-running") {
       keepRunning = true;
-    } else if (argument === "--validate-only") {
-      validateOnly = true;
+    } else if (argument === "--validate-only" || argument === "--compose-only") {
+      if (mode !== "capture") {
+        throw new Error("Use only one of --compose-only and --validate-only.");
+      }
+      mode = argument === "--compose-only" ? "compose-only" : "validate-only";
     } else if (argument === "--list") {
       list = true;
     } else if (argument === "--help" || argument === "-h") {
@@ -373,7 +423,7 @@ export function parseShowcaseCliArgs(args: ReadonlyArray<string>): CliOptions {
     skipBuild,
     skipMetro,
     keepRunning,
-    validateOnly,
+    mode,
     list,
   };
 }
@@ -437,6 +487,7 @@ Options:
   --skip-build               Reuse the existing simulator app / debug APK
   --skip-metro               Reuse an already running showcase Metro server
   --keep-running             Leave devices and Metro running after capture
+  --compose-only             Recompose store slides from existing raw captures
   --validate-only            Validate existing upload assets without capturing
   --list                     Print this help and the configured matrix
 
@@ -667,6 +718,7 @@ function startShowcaseServer(
       workspaceRoot,
     ],
     {
+      stdio: ["ignore", "ignore", "inherit"],
       env: {
         ...NodeProcess.env,
         PATH: `${labelProbeDirectory}:${NodeProcess.env.PATH ?? ""}`,
@@ -674,6 +726,64 @@ function startShowcaseServer(
       },
     },
   );
+}
+
+interface ShowcaseEnvironment {
+  readonly baseDir: string;
+  readonly environmentId: string;
+  readonly label: string;
+  readonly port: number;
+}
+
+async function startShowcaseEnvironments(
+  rootDir: string,
+  track: (server: NodeChildProcess.ChildProcess) => void,
+): Promise<ShowcaseEnvironment[]> {
+  const started: ShowcaseEnvironment[] = [];
+  for (const environment of SHOWCASE_ENVIRONMENTS) {
+    const projectId = environment.projectIds[0];
+    const project = SHOWCASE_PROJECTS.find((candidate) => candidate.id === projectId);
+    if (!project) throw new Error(`Showcase environment '${environment.id}' has no project.`);
+
+    const baseDir = NodePath.join(rootDir, "environments", environment.id);
+    const workspaceRoot = NodePath.join(baseDir, "workspace", project.directory);
+    const port = await reserveAvailablePort();
+    await NodeFSP.mkdir(workspaceRoot, { recursive: true });
+    const shellPath = await createShowcaseShell(baseDir);
+    const labelProbeDirectory = await createShowcaseLabelProbe(baseDir, environment.label);
+    const server = startShowcaseServer(
+      baseDir,
+      workspaceRoot,
+      port,
+      shellPath,
+      labelProbeDirectory,
+    );
+    track(server);
+    await waitForPort(port, `${environment.label} server`);
+    const dbPath = NodePath.join(baseDir, "userdata", "statev2.sqlite");
+    await waitForSeedableSchema(dbPath);
+    await stopProcess(server);
+    await seedShowcaseEnvironment({ baseDir, projectIds: environment.projectIds });
+    const captureServer = startShowcaseServer(
+      baseDir,
+      workspaceRoot,
+      port,
+      shellPath,
+      labelProbeDirectory,
+    );
+    track(captureServer);
+    await waitForPort(port, `${environment.label} capture server`);
+    await waitForShowcaseThreads(dbPath, environment.projectIds);
+    // The server begins listening before the ServerEnvironment layer
+    // persists the environment id, so poll rather than read once.
+    const environmentId = await waitForFileContent(
+      NodePath.join(baseDir, "userdata", "environment-id"),
+      `${environment.label} environment id`,
+    );
+    started.push({ baseDir, environmentId, label: environment.label, port });
+  }
+
+  return started;
 }
 
 export function parsePairingCredentialOutput(output: string): string {
@@ -727,9 +837,9 @@ function startMetro(config: ShowcaseConfig): NodeChildProcess.ChildProcess {
 async function warmMetroBundle(
   platform: ShowcaseDevice["platform"],
   host: string,
-  config: ShowcaseConfig,
+  metroPort: number,
 ): Promise<void> {
-  const url = `http://${host}:${config.metroPort}/`;
+  const url = `http://${host}:${metroPort}/`;
   const curlOptions = ["--fail", "--silent", "--show-error", "--max-time", "300"];
   const manifest = JSON.parse(
     await commandOutput("curl", [
@@ -862,11 +972,9 @@ async function iosSimulatorDataPath(udid: string): Promise<string> {
   return dataPath;
 }
 
-// generativeexperiencesd posts a "Ready for Apple Intelligence" follow-up
-// banner on an eligible device's first boot, and CoreFollowUp re-surfaces it on
-// every boot until the user dismisses it. Stamping the readiness marker before
-// boot makes the daemon skip the post, and dropping the CoreFollowUp store
-// clears a banner that a previous boot already queued.
+// generativeexperiencesd posts a "Ready for Apple Intelligence" banner on first boot and
+// CoreFollowUp re-surfaces it every boot until dismissed. The readiness marker makes the daemon
+// skip the post; dropping the CoreFollowUp store clears one a previous boot queued.
 async function suppressIosSystemFollowUps(udid: string): Promise<void> {
   const dataPath = await iosSimulatorDataPath(udid);
   const preferences = NodePath.join(dataPath, "Library/Preferences");
@@ -1008,6 +1116,23 @@ async function captureIos(
   if (capture.device.orientation === "landscape") {
     await ensureIosFullScreenAppsMode(simulator.udid);
   }
+  if (capture.device.fold) {
+    const command = NodeProcess.env.AGENT_DEVICE_PATH ?? "agent-device";
+    const target = [
+      "--platform",
+      "ios",
+      "--udid",
+      simulator.udid,
+      "--session",
+      `showcase-${simulator.udid}`,
+    ];
+    await runCommand(command, ["open", ...target]);
+    try {
+      await runCommand(command, ["fold", capture.device.fold, ...target]);
+    } finally {
+      await runCommand(command, ["close", ...target]);
+    }
+  }
   await normalizeIosSimulator(capture.appearance, simulator.udid);
   if (appPath) {
     await runCommand("xcrun", ["simctl", "uninstall", simulator.udid, ANDROID_PACKAGE]).catch(
@@ -1079,14 +1204,21 @@ async function captureIos(
       showcaseCaptureDirectory(outputDirectory, capture),
       `${scene}.png`,
     );
-    await runCommand("xcrun", ["simctl", "io", simulator.udid, "screenshot", destination]);
+    await runCommand("xcrun", [
+      "simctl",
+      "io",
+      simulator.udid,
+      "screenshot",
+      ...(capture.device.fold ? ["--display", capture.device.fold === "closed" ? "1" : "3"] : []),
+      destination,
+    ]);
     if (capture.device.orientation === "landscape") {
       // A headless simulator keeps its display portrait while the rotated app
       // renders sideways inside it; with Simulator.app attached the display
       // itself rotates. Only post-rotate the former.
       const { width, height } = readPngDimensions(await NodeFSP.readFile(destination));
       if (height > width) {
-        await runCommand("sips", ["--rotate", "270", destination]);
+        await runCommand("sips", ["--rotate", capture.device.fold ? "90" : "270", destination]);
       }
     }
     await finalizeCapture(destination, capture.device);
@@ -1360,91 +1492,69 @@ async function main(): Promise<void> {
     return;
   }
   const captures = planShowcaseCaptures(showcaseConfig, options);
-  const outputDirectory = NodePath.resolve(REPO_ROOT, showcaseConfig.outputDirectory);
-  if (options.validateOnly) {
+  if (options.mode === "validate-only") {
     for (const capture of captures) {
       await validateCaptureSet(
         capture,
-        outputDirectory,
-        capture.scenes.length === capture.device.scenes.length,
+        NodePath.resolve(REPO_ROOT, showcaseConfig.outputDirectory),
       );
     }
     return;
   }
+  const browser = await launchShowcaseBrowser();
+  try {
+    if (options.mode === "compose-only") {
+      for (const capture of captures) await composeCaptureSet(capture, showcaseConfig, browser);
+    } else {
+      await captureShowcase(captures, options, browser);
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+async function captureShowcase(
+  captures: ReadonlyArray<ShowcaseCapture>,
+  options: CliOptions,
+  browser: Browser,
+): Promise<void> {
+  const captureDirectory = NodePath.resolve(REPO_ROOT, showcaseConfig.captureDirectory);
+  const outputDirectory = NodePath.resolve(REPO_ROOT, showcaseConfig.outputDirectory);
   const hasIos = captures.some((capture) => capture.device.platform === "ios");
   const hasAndroid = captures.some((capture) => capture.device.platform === "android");
   const metroHost = hasIos ? lanIpv4Address() : "127.0.0.1";
-  await NodeFSP.mkdir(outputDirectory, { recursive: true });
   for (const capture of captures) {
-    const directory = showcaseCaptureDirectory(outputDirectory, capture);
-    await NodeFSP.rm(directory, { recursive: true, force: true });
-    await NodeFSP.mkdir(directory, { recursive: true });
+    for (const root of [captureDirectory, outputDirectory]) {
+      const directory = showcaseCaptureDirectory(root, capture);
+      await NodeFSP.rm(directory, { recursive: true, force: true });
+      await NodeFSP.mkdir(directory, { recursive: true });
+    }
   }
 
   const showcaseRootDir = await NodeFSP.mkdtemp(
     NodePath.join(NodeOS.tmpdir(), "supaterm-mobile-showcase-"),
   );
   const showcaseServers: NodeChildProcess.ChildProcess[] = [];
-  const showcaseEnvironments: Array<{
-    readonly baseDir: string;
-    readonly environmentId: string;
-    readonly label: string;
-    readonly port: number;
-  }> = [];
+  const showcaseEnvironments: ShowcaseEnvironment[] = [];
   let metro: NodeChildProcess.ChildProcess | null = null;
   const iosCleanups: IosCaptureCleanup[] = [];
   const androidCleanups: AndroidCaptureCleanup[] = [];
 
   try {
-    for (const environment of SHOWCASE_ENVIRONMENTS) {
-      const projectId = environment.projectIds[0];
-      const project = SHOWCASE_PROJECTS.find((candidate) => candidate.id === projectId);
-      if (!project) throw new Error(`Showcase environment '${environment.id}' has no project.`);
-
-      const baseDir = NodePath.join(showcaseRootDir, "environments", environment.id);
-      const workspaceRoot = NodePath.join(baseDir, "workspace", project.directory);
-      const port = await reserveAvailablePort();
-      await NodeFSP.mkdir(workspaceRoot, { recursive: true });
-      const shellPath = await createShowcaseShell(baseDir);
-      const labelProbeDirectory = await createShowcaseLabelProbe(baseDir, environment.label);
-      const server = startShowcaseServer(
-        baseDir,
-        workspaceRoot,
-        port,
-        shellPath,
-        labelProbeDirectory,
-      );
-      showcaseServers.push(server);
-      await waitForPort(port, `${environment.label} server`);
-      const dbPath = NodePath.join(baseDir, "userdata", "statev2.sqlite");
-      await waitForSeedableSchema(dbPath);
-      await stopProcess(server);
-      await seedShowcaseEnvironment({ baseDir, projectIds: environment.projectIds });
-      const captureServer = startShowcaseServer(
-        baseDir,
-        workspaceRoot,
-        port,
-        shellPath,
-        labelProbeDirectory,
-      );
-      showcaseServers.push(captureServer);
-      await waitForPort(port, `${environment.label} capture server`);
-      await waitForShowcaseThreads(dbPath, environment.projectIds);
-      // The server begins listening before the ServerEnvironment layer
-      // persists the environment id, so poll rather than read once.
-      const environmentId = await waitForFileContent(
-        NodePath.join(baseDir, "userdata", "environment-id"),
-        `${environment.label} environment id`,
-      );
-      showcaseEnvironments.push({ baseDir, environmentId, label: environment.label, port });
-    }
+    showcaseEnvironments.push(
+      ...(await startShowcaseEnvironments(showcaseRootDir, (server) =>
+        showcaseServers.push(server),
+      )),
+    );
 
     if (!options.skipMetro) {
       metro = startMetro(showcaseConfig);
       await waitForPort(showcaseConfig.metroPort, "Metro");
       await Promise.all([
-        hasIos ? warmMetroBundle("ios", metroHost, showcaseConfig) : Promise.resolve(),
-        hasAndroid ? warmMetroBundle("android", "127.0.0.1", showcaseConfig) : Promise.resolve(),
+        hasIos ? warmMetroBundle("ios", metroHost, showcaseConfig.metroPort) : Promise.resolve(),
+        hasAndroid
+          ? warmMetroBundle("android", "127.0.0.1", showcaseConfig.metroPort)
+          : Promise.resolve(),
       ]);
     }
 
@@ -1475,7 +1585,7 @@ async function main(): Promise<void> {
         await captureIos(
           capture as ShowcaseCapture & { readonly device: ShowcaseIosDevice },
           iosAppPath,
-          outputDirectory,
+          captureDirectory,
           showcaseConfig,
           metroHost,
           createPairingUrls,
@@ -1485,17 +1595,13 @@ async function main(): Promise<void> {
         await captureAndroid(
           capture as ShowcaseCapture & { readonly device: ShowcaseAndroidDevice },
           androidApkPath,
-          outputDirectory,
+          captureDirectory,
           showcaseConfig,
           await createPairingUrls(),
           (cleanup) => androidCleanups.push(cleanup),
         );
       }
-      await validateCaptureSet(
-        capture,
-        outputDirectory,
-        capture.scenes.length === capture.device.scenes.length,
-      );
+      await composeCaptureSet(capture, showcaseConfig, browser);
     }
 
     NodeProcess.stdout.write(

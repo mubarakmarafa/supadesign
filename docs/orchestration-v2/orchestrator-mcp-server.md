@@ -252,13 +252,14 @@ omits it for a provider that offers all of them. When the target lists
 `runtimeModes`, an explicit `runtimeMode` outside that list is refused, and an
 inherited mode steps down to the broadest mode the target offers.
 
-Each delegated review round uses a new `delegate_task` call with the original brief,
-prior findings, responses, and unresolved objections. Track each round by its own `taskId` and use
-a distinct `clientRequestId` per round, stable across retries of that round.
-`childThreadId` is backing storage, not a target for another review round through
-`supaterm_thread_send`. Ordinary thread messaging remains available for user-requested
-conversations; it does not reopen a completed task. There is no task-level follow-up
-API for preserving the same reviewer session.
+Each independent delegated review round uses a new `delegate_task` call with the
+original brief, prior findings, responses, and unresolved objections. Track each
+round by its own `taskId` and use a distinct `clientRequestId` per round, stable
+across retries of that round.
+A follow-up that needs the same child's conversation goes through `supaterm_thread_send`
+on its `childThreadId`. After the original task completes, that follow-up runs as a
+fresh task in the child thread; it does not reopen the completed task or change its
+published result.
 
 Delegation requires an active parent run owned by the MCP credential's
 provider session. The request becomes the V2 command
@@ -364,7 +365,9 @@ Pass the task in `message`. Project, model, and modes inherit when omitted;
 workspace does not. `scratch: true` launches without a project, in a folder of
 its own under the environment's Scratch project. For stacked PRs, use the parent branch as `baseRef` with
 `startFromOrigin: false`. The new thread may not run with broader runtime or
-interaction modes than the caller. Launch has no retry key, so inspect existing threads after a failed or lost response before
+interaction modes than the caller. As for `delegate_task`, a runtime mode the
+provider does not offer is refused, and an inherited or default one steps down
+to the broadest mode it offers. Launch has no retry key, so inspect existing threads after a failed or lost response before
 launching again. `create_threads` remains the batch option for a shared checkout.
 
 ### `supaterm_thread_list`
@@ -390,11 +393,16 @@ and `creationSource: "mcp"`; provider output uses `creationSource: "provider"`.
 Actor and ingress are separate so agent-authored user-role messages remain
 distinguishable from human-authored messages.
 
-Agents mention another thread as `[title](supaterm-thread://v1/<threadId>)`. The
-link carries only the id. Clients first resolve it in the message's environment,
-then use a unique match in another enabled environment. Ambiguous matches stay
-unresolved. Web and desktop show the resolved thread’s current title. Mobile
-relabels local matches; cross-environment links can retain the written label.
+Agents mention another thread by the `link` its result carries,
+`<supaterm-thread://v2/<environmentId>/<threadId>>`, so they never format an id or
+write a title, which goes stale when the user renames the thread. The
+environment that owns the thread builds the link. Clients open only that
+environment's thread and show its current title; a link to a thread they do not
+know renders as a label that opens nothing. Older `supaterm-thread://v1/<threadId>`
+links name no environment: clients resolve them in the message's environment,
+then by a unique match in another enabled environment. An outside OAuth client
+cannot render `supaterm-thread://` links, so it gets a web URL on the origin it
+reached, `<origin>/<environmentId>/<threadId>`, for threads in this environment.
 
 List and read results report `snoozed` and `snoozedUntil`, and
 `supaterm_thread_list` filters on `snoozed`. The server's `isSnoozed` follows the

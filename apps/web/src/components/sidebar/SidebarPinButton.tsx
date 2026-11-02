@@ -1,4 +1,4 @@
-import { PinIcon } from "lucide-react";
+import { PinIcon } from "@supaterm/icons";
 
 import { useInlineConfirm } from "~/hooks/useInlineConfirm";
 import { useClientSettings } from "~/hooks/useSettings";
@@ -47,7 +47,7 @@ export function SidebarPinButton({
       }
     >
       <InlineConfirmIcon armed={armed}>
-        <PinIcon aria-hidden fill={pinned ? "currentColor" : "none"} />
+        <PinIcon aria-hidden weight={pinned ? "fill" : "regular"} />
       </InlineConfirmIcon>
     </InlineConfirmTooltip>
   );

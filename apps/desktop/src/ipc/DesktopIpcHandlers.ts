@@ -1,15 +1,11 @@
-import { startRelay, stopRelay } from "./methods/relay.ts";
+import { installRelayViaForwarding, startRelay, stopRelay } from "./methods/relay.ts";
 import * as Effect from "effect/Effect";
 
 import { receiveProviderAuthCallback, cancelProviderAuthCallback } from "./methods/providerAuth.ts";
 import * as DesktopIpc from "./DesktopIpc.ts";
 import { installNotificationBadge } from "./methods/notificationBadge.ts";
 import { getClientSettings, setClientSettings } from "./methods/clientSettings.ts";
-import {
-  clearConnectionCatalog,
-  getConnectionCatalog,
-  setConnectionCatalog,
-} from "./methods/connectionCatalog.ts";
+import { getConnectionCatalog, setConnectionCatalog } from "./methods/connectionCatalog.ts";
 import {
   getLocalEnvironmentEnabled,
   setLocalEnvironmentEnabled,
@@ -27,7 +23,6 @@ import {
   ensureSshEnvironment,
   fetchSshEnvironmentDescriptor,
   fetchSshSessionState,
-  issueSshWebSocketTicket,
   resolveSshHost,
   resolveSshPasswordPrompt,
 } from "./methods/sshEnvironment.ts";
@@ -85,6 +80,7 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   const ipc = yield* DesktopIpc.DesktopIpc;
   yield* installNotificationBadge();
   yield* PreviewIpc.installPreviewEventForwarding();
+  yield* installRelayViaForwarding();
 
   yield* ipc.handle(WebLinksIpc.setReady);
   yield* ipc.handle(AppActivationIpc.setReady);
@@ -115,7 +111,6 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(dismissSnapShotAnimation);
   yield* ipc.handle(acknowledgeSnapShot);
   yield* ipc.handle(setConnectionCatalog);
-  yield* ipc.handle(clearConnectionCatalog);
 
   yield* ipc.handle(startRelay);
   yield* ipc.handle(stopRelay);
@@ -126,7 +121,6 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(fetchSshEnvironmentDescriptor);
   yield* ipc.handle(bootstrapSshBearerSession);
   yield* ipc.handle(fetchSshSessionState);
-  yield* ipc.handle(issueSshWebSocketTicket);
   yield* ipc.handle(resolveSshPasswordPrompt);
 
   yield* ipc.handle(getServerExposureState);

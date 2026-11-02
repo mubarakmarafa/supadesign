@@ -1,7 +1,12 @@
-import { PanelBottomIcon, PanelRightIcon, SquareMenuIcon } from "lucide-react";
-import { Maximize2, Minimize2 } from "lucide";
-import { MorphIcon } from "~/components/MorphIcon";
-import { memo, type ReactElement, type ReactNode } from "react";
+import {
+  PanelBottomIcon,
+  PanelRightIcon,
+  SquareMenuIcon,
+  ExpandIcon,
+  ShrinkIcon,
+} from "@supaterm/icons";
+
+import { memo, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -55,6 +60,7 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
     <Toggle
       className="relative shrink-0 [-webkit-app-region:no-drag]"
       pressed={threadPanelOpen}
+      onPressedChange={threadPanelPresentation === "popover" ? undefined : onToggleThreadPanel}
       aria-label="Toggle thread details panel"
       variant="ghost"
       size="sm"
@@ -68,12 +74,15 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
       ) : null}
     </Toggle>
   );
-  const threadPanelTooltip = (trigger: ReactElement) => (
+  const threadPanelControl = (
     <Tooltip>
-      <TooltipTrigger
-        render={trigger}
-        {...(threadPanelPresentation === "popover" ? {} : { onClick: onToggleThreadPanel })}
-      />
+      <TooltipTrigger render={<span className="flex shrink-0" />}>
+        {threadPanelPresentation === "popover" ? (
+          <PopoverTrigger handle={threadPanelPopoverHandle} render={threadPanelToggle} />
+        ) : (
+          threadPanelToggle
+        )}
+      </TooltipTrigger>
       <TooltipPopup side="bottom" shortcut={threadPanelShortcutLabel}>
         Toggle thread details
       </TooltipPopup>
@@ -85,13 +94,7 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
       className="flex h-full shrink-0 items-center gap-1 [-webkit-app-region:no-drag]"
       data-panel-layout-controls
     >
-      {showThreadPanelControl
-        ? threadPanelPresentation === "popover"
-          ? threadPanelTooltip(
-              <PopoverTrigger handle={threadPanelPopoverHandle} render={threadPanelToggle} />,
-            )
-          : threadPanelTooltip(threadPanelToggle)
-        : null}
+      {showThreadPanelControl ? threadPanelControl : null}
       {showTerminalControl ? (
         <Tooltip>
           <TooltipTrigger render={<span className="flex shrink-0" />}>
@@ -148,6 +151,7 @@ export const RightPanelMaximizeControl = memo(function RightPanelMaximizeControl
   onToggle: () => void;
 }) {
   const label = maximized ? "Restore panel size" : "Maximize panel";
+  const Icon = maximized ? ShrinkIcon : ExpandIcon;
   return (
     <Tooltip>
       <TooltipTrigger
@@ -160,7 +164,7 @@ export const RightPanelMaximizeControl = memo(function RightPanelMaximizeControl
             variant="ghost"
             size="sm"
           >
-            <MorphIcon className="size-4" icon={maximized ? Minimize2 : Maximize2} />
+            <Icon className="size-4" />
           </Toggle>
         }
       />
@@ -199,9 +203,11 @@ export function WorkspaceTitlebarControls(props: {
         {props.showMaximizeControl ? (
           <span
             aria-hidden={!props.rightPanelOpen}
+            // Fading out on close would show it beside the thread details toggle that replaces it.
             className={cn(
               "flex shrink-0",
-              props.animationsActive &&
+              props.rightPanelOpen &&
+                props.animationsActive &&
                 "motion-safe:transition-opacity motion-safe:duration-(--panel-animation-duration) motion-safe:ease-drawer",
               props.rightPanelOpen
                 ? "pointer-events-auto opacity-100"

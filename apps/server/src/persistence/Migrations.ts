@@ -4,13 +4,25 @@ import * as SqlClient from "effect/sql/SqlClient";
 
 import Migration0001 from "./Migrations/001_Baseline.ts";
 import { adoptPreLaunchHistory } from "./PreLaunchHistory.ts";
+import Migration0002 from "./Migrations/002_ThreadMessageSearch.ts";
+import Migration0003 from "./Migrations/003_ActiveTurnItemIndexes.ts";
+import Migration0004 from "./Migrations/004_ExcludeAttachmentPlaceholdersFromSearch.ts";
+import Migration0005 from "./Migrations/005_SubagentDeliveryState.ts";
+import Migration0006 from "./Migrations/006_ProjectionProjectsPinArchive.ts";
 
 /**
  * Add a schema change as a new entry with the next id. Never edit, renumber, or
  * remove a shipped entry: the migrator skips every id up to the highest one a
  * database recorded.
  */
-const migrationEntries = [[1, "Baseline", Migration0001]] as const;
+const migrationEntries = [
+  [1, "Baseline", Migration0001],
+  [2, "ThreadMessageSearch", Migration0002],
+  [3, "ActiveTurnItemIndexes", Migration0003],
+  [4, "ExcludeAttachmentPlaceholdersFromSearch", Migration0004],
+  [5, "SubagentDeliveryState", Migration0005],
+  [6, "ProjectionProjectsPinArchive", Migration0006],
+] as const;
 
 export const migrationManifest = migrationEntries.map(([id, name]) => [id, name] as const);
 
@@ -21,11 +33,9 @@ const loader = Migrator.fromRecord(
 );
 
 /**
- * The migrator compares ids only, so it would silently skip any of this
- * build's migrations at or below the highest recorded id that the ledger holds
- * under another name. Refuse that. Recorded ids this build does not know, such
- * as those a newer Supaterm added, are left in place so older builds keep
- * opening the database.
+ * The migrator compares ids only, so it would silently skip this build's migrations at or below
+ * the highest recorded id that the ledger holds under another name. Refuse that. Unknown recorded
+ * ids, such as a newer Supaterm's, stay so older builds keep opening the database.
  */
 const assertKnownMigrationHistory = Effect.fn("assertKnownMigrationHistory")(function* () {
   const sql = yield* SqlClient.SqlClient;

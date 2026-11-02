@@ -5,7 +5,7 @@ import {
   type ProjectId,
   type ScopedThreadRef,
 } from "@supaterm/contracts";
-import { CameraIcon, MessageCircleQuestionIcon } from "lucide-react";
+import { CameraIcon, MessageCircleQuestionIcon } from "@supaterm/icons";
 import { useMemo, useState } from "react";
 
 import { useAssetUrlState } from "../../assets/assetUrls";

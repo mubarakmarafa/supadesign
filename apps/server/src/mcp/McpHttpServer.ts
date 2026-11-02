@@ -14,6 +14,7 @@ import type * as Types from "effect/Types";
 import { AiError, McpProtocol, McpSchema, McpServer, Tool, Toolkit } from "effect/ai";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import {
+  DeviceToolError,
   OrchestratorMcpFailure,
   PreviewAutomationError,
   type RunId,
@@ -35,7 +36,9 @@ import {
   MAX_REPORTED_DEPTH,
   toolOutcome,
 } from "../telemetry/ProviderDimensions.ts";
+import { advertisedJsonSchema } from "./advertisedJsonSchema.ts";
 import * as McpInvocationContext from "./McpInvocationContext.ts";
+import * as McpPendingUploads from "./McpPendingUploads.ts";
 import * as McpToolAccess from "./McpToolAccess.ts";
 import * as OrchestratorMcpService from "./OrchestratorMcpService.ts";
 import { PreviewControlsToolkit } from "./toolkits/previewControls/tools.ts";
@@ -58,6 +61,8 @@ import { AttachmentToolkit } from "./toolkits/attachment/tools.ts";
 import * as AttachmentHandlers from "./toolkits/attachment/handlers.ts";
 import { ThreadToolkit } from "./toolkits/thread/tools.ts";
 import * as ThreadHandlers from "./toolkits/thread/handlers.ts";
+import { TranscriptionToolkit } from "./toolkits/transcription/tools.ts";
+import * as TranscriptionHandlers from "./toolkits/transcription/handlers.ts";
 import * as ThreadMetadataMcpService from "./ThreadMetadataMcpService.ts";
 import * as McpSessionRegistry from "./McpSessionRegistry.ts";
 import * as PreviewAutomationBroker from "./PreviewAutomationBroker.ts";
@@ -200,11 +205,9 @@ const layerMcpAuthMiddleware = HttpRouter.middleware<{
 }>()(makeMcpAuthMiddleware).layer;
 
 /**
- * Claude Code moves an MCP result above its output limit to a file and hands
- * the agent a notice instead, so a snapshot that carries the full accessibility
- * tree and page text loses its locators too. Claude Code also shows the model
- * `structuredContent` in place of the text blocks when a result has both, so
- * both carry the same bounded snapshot.
+ * Claude Code swaps an MCP result over its output limit for a file notice, losing the snapshot's
+ * locators, and shows `structuredContent` instead of text blocks when a result has both, so both
+ * carry the same bounded snapshot.
  */
 export const MAX_SNAPSHOT_TEXT_BYTES = 20_000;
 const MAX_SNAPSHOT_VISIBLE_TEXT_CHARS = 8_000;
@@ -421,7 +424,9 @@ const decodeAsAdvertised = <Tools extends Record<string, Tool.Any>>(
 
 const isPreviewAutomationError = Schema.is(PreviewAutomationError);
 
-const previewSnapshotFailure = <E>(cause: Cause.Cause<E>) => {
+const previewSnapshotFailure = Effect.fn("previewSnapshotFailure")(function <E>(
+  cause: Cause.Cause<E>,
+) {
   if (Cause.hasInterrupts(cause) || cause.reasons.some(Cause.isDieReason)) {
     return Effect.failCause(cause).pipe(Effect.orDie);
   }
@@ -455,7 +460,7 @@ const previewSnapshotFailure = <E>(cause: Cause.Cause<E>) => {
     errorTag,
     failureCount: failures.length,
   }).pipe(Effect.as(result));
-};
+});
 
 const registerPreviewSnapshot = Effect.fn("McpHttpServer.registerPreviewSnapshot")(function* () {
   const server = yield* McpServer.McpServer;
@@ -470,7 +475,7 @@ const registerPreviewSnapshot = Effect.fn("McpHttpServer.registerPreviewSnapshot
     tool: new McpSchema.Tool({
       name: tool.name,
       description: Tool.getDescription(tool),
-      inputSchema: Tool.getJsonSchema(tool),
+      inputSchema: advertisedJsonSchema(tool),
       annotations: {
         ...Context.getOption(tool.annotations, Tool.Title).pipe(
           Option.map((title) => ({ title })),
@@ -658,7 +663,7 @@ const registerImageTool = Effect.fn("McpHttpServer.registerImageTool")(function*
     tool: new McpSchema.Tool({
       name: tool.name,
       description: Tool.getDescription(tool),
-      inputSchema: Tool.getJsonSchema(tool),
+      inputSchema: advertisedJsonSchema(tool),
       annotations: {
         ...Context.getOption(tool.annotations, Tool.Title).pipe(
           Option.map((title) => ({ title })),
@@ -735,11 +740,19 @@ const registerDeviceScreenshot = Effect.fn("McpHttpServer.registerDeviceScreensh
         Effect.provideService(ThreadManagementService.ThreadManagementService, threads),
       ),
     "screenshot",
-    "Device screenshot failed.",
+    (error) => {
+      if (!isDeviceToolError(error)) {
+        return isOrchestratorMcpFailure(error) ? error.message : "Device screenshot failed.";
+      }
+      return error._tag === "DeviceOperationError" && error.reason === "hub_rejected"
+        ? `${error.message} Call device_list to check the device state, and device_open if it needs to be reopened.`
+        : error.message;
+    },
   );
 });
 
 const isOrchestratorMcpFailure = Schema.is(OrchestratorMcpFailure);
+const isDeviceToolError = Schema.is(DeviceToolError);
 
 const registerHtmlPreview = Effect.fn("McpHttpServer.registerHtmlPreview")(function* () {
   const htmlRender = yield* HtmlRender.HtmlRender;
@@ -864,12 +877,16 @@ const withToolAnalytics =
         result: McpSchema.CallToolResult | undefined,
         durationMs: number,
       ) {
+        const handoff = HANDOFF_TOOLS.has(tool);
+        const outcome = toolOutcome(result);
+        // Agents call status, read, and preview tools in tight loops, so an
+        // event per successful call floods analytics. Only failures count there.
+        if (!handoff && outcome.outcome === "ok") return;
         const invocation = Option.getOrUndefined(
           yield* Effect.serviceOption(McpInvocationContext.McpInvocationContext),
         )?.thread;
         const providers = Option.isSome(registry) ? yield* registry.value.getProviders : [];
 
-        const handoff = HANDOFF_TOOLS.has(tool);
         const caller =
           handoff && invocation !== undefined
             ? ((yield* shellOf(invocation.threadId)) ?? undefined)
@@ -894,7 +911,7 @@ const withToolAnalytics =
                 callerScheduledRun: yield* scheduledRunOf(invocation.threadId, caller.activeRunId),
               }),
           targets: targets.filter((thread) => thread !== null),
-          outcome: toolOutcome(result),
+          outcome,
           ...(handoff ? { settings: handoffSettings(tool, args, result?.structuredContent) } : {}),
           durationMs,
         })) {
@@ -905,8 +922,8 @@ const withToolAnalytics =
     );
     const recordingServer = McpServer.McpServer.of({
       ...server,
-      addTool: (options) =>
-        server.addTool({
+      addTool: Effect.fn("McpServer.addTool")(function (options) {
+        return server.addTool({
           ...options,
           handle:
             /* Request instrumentation already owns the span; keep this helper in that context. */
@@ -928,10 +945,40 @@ const withToolAnalytics =
                 }),
               );
             }),
-        }),
+        });
+      }),
     });
     return yield* registration.pipe(Effect.provideService(McpServer.McpServer, recordingServer));
   });
+
+/** `McpServer.registerToolkit` advertises the full codec schema; agents get the compact one. */
+const withAdvertisedSchemas = Effect.fn("McpHttpServer.withAdvertisedSchemas")(function* <
+  Tools extends Record<string, Tool.Any>,
+  A,
+  E,
+  R,
+>(toolkit: Toolkit.Toolkit<Tools>, registration: Effect.Effect<A, E, R>) {
+  const server = yield* McpServer.McpServer;
+  const tools: Record<string, Tool.Any> = toolkit.tools;
+  const advertisingServer = McpServer.McpServer.of({
+    ...server,
+    addTool: Effect.fn("McpServer.addTool")(function (options) {
+      const tool = tools[options.tool.name];
+      return server.addTool(
+        tool === undefined
+          ? options
+          : {
+              ...options,
+              tool: new McpSchema.Tool({
+                ...options.tool,
+                inputSchema: advertisedJsonSchema(tool),
+              }),
+            },
+      );
+    }),
+  });
+  return yield* registration.pipe(Effect.provideService(McpServer.McpServer, advertisingServer));
+});
 
 /**
  * `McpServer.toolkit` asks for every service its tools declare when it
@@ -944,7 +991,9 @@ export const toolkitRegistration = <Tools extends Record<string, Tool.Any>, EX, 
   handlers: McpToolAccess.HandlersLayer<Tools, EX, RX>,
 ) => {
   const registration = Layer.effectDiscard(
-    withToolAnalytics(McpServer.registerToolkit(decodeAsAdvertised(toolkit))),
+    withToolAnalytics(
+      withAdvertisedSchemas(toolkit, McpServer.registerToolkit(decodeAsAdvertised(toolkit))),
+    ),
   ).pipe(Layer.provide(McpServer.McpServer.layer));
   // @effect-diagnostics-next-line unsafeEffectTypeAssertion:off - the auth middleware provides it per request.
   const registered = registration as Layer.Layer<
@@ -1025,6 +1074,11 @@ export const layerAttachmentToolkit = toolkitRegistration(
   AttachmentHandlers.layer,
 );
 
+export const layerTranscriptionToolkit = toolkitRegistration(
+  TranscriptionToolkit,
+  TranscriptionHandlers.layer,
+);
+
 export const layerPullRequestsToolkit = toolkitRegistration(
   PullRequestsToolkit,
   PullRequestsHandlers.layer,
@@ -1053,11 +1107,13 @@ export const layerMcpTransport = McpServer.layerHttp({
   allowSessionTermination: true,
 }).pipe(Layer.provide(layerMcpAuthMiddleware));
 
-export const layer = Layer.mergeAll(
+/** Every tool the Supaterm MCP server advertises. AgentContextBudget.test.ts measures this set. */
+export const layerTools = Layer.mergeAll(
   layerPreviewToolkit,
   layerOrchestratorToolkit,
   layerThreadToolkit,
   layerAttachmentToolkit,
+  layerTranscriptionToolkit,
   layerProjectRegistration,
   layerEnvironmentToolkit,
   layerPreviewControlsRegistration,
@@ -1070,4 +1126,10 @@ export const layer = Layer.mergeAll(
   layerPullRequestsToolkit,
   layerDeviceToolkit,
   layerHtmlToolkit,
-).pipe(Layer.provideMerge(layerMcpTransport));
+).pipe(
+  // One instance, so an upload prepared through the attachment tools is the
+  // same caller's upload the transcription tools check.
+  Layer.provide(McpPendingUploads.layer),
+);
+
+export const layer = layerTools.pipe(Layer.provideMerge(layerMcpTransport));

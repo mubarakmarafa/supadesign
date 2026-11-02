@@ -1,5 +1,6 @@
 import type { ThreadMoveDestination } from "../threads/threadOrder";
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
+import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import * as ThreadUndo from "@supaterm/client-runtime/state/thread-undo";
 import { showThreadUndoNotice } from "./thread-undo-notice";
 import { canSnooze, effectiveSnoozed } from "@supaterm/client-runtime/state/thread-snooze";
@@ -15,6 +16,7 @@ import { refreshArchivedThreadsForEnvironment } from "../archive/useArchivedThre
 import { pinOrderKeyBetween } from "@supaterm/client-runtime/state/thread-sort";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { environmentServerConfigsAtom } from "../../state/server";
+import { connectedEnvironmentIdsAtom } from "../../state/presentation";
 import { readEnvironmentScope } from "../../state/session";
 import { environmentThreadShells, threadEnvironment } from "../../state/threads";
 import { queuedThreadKeysAtom } from "../../state/use-thread-outbox";
@@ -33,29 +35,11 @@ import { getThreadListV2OrderedSection } from "../threads/threadListV2";
 import { threadCanArchive } from "./threadArchive";
 import { resolveThreadTitleRename } from "../threads/thread-title-rename";
 
-function environmentSupportsMarkDone(environmentId: EnvironmentThreadShell["environmentId"]) {
-  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
-}
-
-function environmentSupportsSnooze(environmentId: EnvironmentThreadShell["environmentId"]) {
-  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
-}
-
-function environmentSupportsPinning(environmentId: EnvironmentThreadShell["environmentId"]) {
-  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
-}
-
-function environmentSupportsPinReorder(environmentId: EnvironmentThreadShell["environmentId"]) {
+function environmentConfigLoaded(environmentId: EnvironmentThreadShell["environmentId"]) {
   return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
 }
 
 function environmentSupportsAutoMarkDoneOptOut(
-  environmentId: EnvironmentThreadShell["environmentId"],
-) {
-  return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
-}
-
-function environmentSupportsTitleRegeneration(
   environmentId: EnvironmentThreadShell["environmentId"],
 ) {
   return appAtomRegistry.get(environmentServerConfigsAtom).has(environmentId);
@@ -123,7 +107,7 @@ function useThreadActionExecutor(
     const run = async () => {
       if (
         (action === "mark-done" || action === "reopen") &&
-        !environmentSupportsMarkDone(thread.environmentId)
+        !environmentConfigLoaded(thread.environmentId)
       ) {
         Dialog.alert(
           actionFailureTitle(action),
@@ -193,7 +177,13 @@ function createDeleteThreadConfirmation(
   return (thread: EnvironmentThreadShell) => {
     if (!checkThreadOperationPermission(thread, actionFailureTitle("delete"))) return;
     const title = "Delete thread?";
-    const message = `“${thread.title}” will be permanently deleted, including its terminal history.`;
+    // Deleting a thread deletes its side chats with it.
+    const sideChats = appAtomRegistry.get(
+      environmentThreadShells.sideChatsAtom(scopeThreadRef(thread.environmentId, thread.id)),
+    ).length;
+    const alsoSideChats =
+      sideChats === 0 ? "" : ` and ${sideChats} side chat${sideChats === 1 ? "" : "s"}`;
+    const message = `“${thread.title}”${alsoSideChats} will be permanently deleted, including terminal history.`;
     Dialog.confirm({
       title,
       message,
@@ -325,7 +315,7 @@ export function useThreadListActions(): {
     }
     snoozeInFlightThreadKeys.current.add(key);
     const run = async () => {
-      if (!environmentSupportsSnooze(thread.environmentId)) {
+      if (!environmentConfigLoaded(thread.environmentId)) {
         Dialog.alert(
           "Could not snooze thread",
           "This environment's server does not support snoozing yet. Update the server to use Snooze.",
@@ -384,7 +374,7 @@ export function useThreadListActions(): {
     }
     snoozeInFlightThreadKeys.current.add(key);
     const run = async () => {
-      if (!environmentSupportsSnooze(thread.environmentId)) {
+      if (!environmentConfigLoaded(thread.environmentId)) {
         Dialog.alert(
           "Could not wake thread",
           "This environment's server does not support snoozing yet. Update the server to wake this thread.",
@@ -423,7 +413,7 @@ export function useThreadListActions(): {
     (await executeAction("reopen", thread)) === true;
   const pinThread = async (thread: EnvironmentThreadShell, restoreOrderKey?: string) => {
     if (!checkThreadOperationPermission(thread, "Could not pin thread")) return false;
-    if (!environmentSupportsPinning(thread.environmentId)) {
+    if (!environmentConfigLoaded(thread.environmentId)) {
       Dialog.alert(
         "Could not pin thread",
         "This environment's server does not support pinning yet. Update the server to use Pin.",
@@ -431,21 +421,14 @@ export function useThreadListActions(): {
       return false;
     }
     selectionHaptic();
-    // Same placement as web: a fresh pin takes the top of the arranged
-    // run. Servers that predate reordering get the bare pin (keyless).
-    let orderKey: string | undefined;
-    if (environmentSupportsPinReorder(thread.environmentId)) {
-      const shells = appAtomRegistry.get(environmentThreadShells.threadShellsAtom);
-      let firstKey: string | null = null;
-      for (const shell of shells) {
-        if (shell.pinnedAt == null || shell.pinOrderKey == null) continue;
-        if (firstKey === null || shell.pinOrderKey < firstKey) firstKey = shell.pinOrderKey;
-      }
-      orderKey = pinOrderKeyBetween(null, firstKey) ?? undefined;
+    // Same placement as web: a fresh pin takes the top of the arranged run.
+    const shells = appAtomRegistry.get(environmentThreadShells.threadShellsAtom);
+    let firstKey: string | null = null;
+    for (const shell of shells) {
+      if (shell.pinnedAt == null || shell.pinOrderKey == null) continue;
+      if (firstKey === null || shell.pinOrderKey < firstKey) firstKey = shell.pinOrderKey;
     }
-    orderKey = environmentSupportsPinReorder(thread.environmentId)
-      ? (restoreOrderKey ?? orderKey)
-      : undefined;
+    const orderKey = restoreOrderKey ?? pinOrderKeyBetween(null, firstKey) ?? undefined;
     ThreadUndo.invalidate("pin", scopedThreadKey(thread.environmentId, thread.id));
     // Pinning clears snooze, so older Done or Snoozed undos would fight this pin.
     ThreadUndo.invalidate("mark-done", scopedThreadKey(thread.environmentId, thread.id));
@@ -473,7 +456,7 @@ export function useThreadListActions(): {
   };
   const unpinThread = async (thread: EnvironmentThreadShell) => {
     if (!checkThreadOperationPermission(thread, "Could not unpin thread")) return false;
-    if (!environmentSupportsPinning(thread.environmentId)) {
+    if (!environmentConfigLoaded(thread.environmentId)) {
       Dialog.alert(
         "Could not unpin thread",
         "This environment's server does not support pinning yet. Update the server to use Pin.",
@@ -537,7 +520,7 @@ export function useThreadListActions(): {
     if (thread.titleRegeneration != null || titleRegenerationInFlightThreadKeys.current.has(key)) {
       return false;
     }
-    if (!environmentSupportsTitleRegeneration(thread.environmentId)) {
+    if (!environmentConfigLoaded(thread.environmentId)) {
       Dialog.alert(
         "Could not regenerate title",
         "This environment's server does not support title regeneration yet. Update the server to regenerate thread titles.",
@@ -620,7 +603,7 @@ export function useThreadListActions(): {
           ? "pinned"
           : "active";
     if (section === "done") {
-      if (!environmentSupportsMarkDone(thread.environmentId)) return false;
+      if (!environmentConfigLoaded(thread.environmentId)) return false;
       appAtomRegistry.set(threadDropBusyAtom, true);
       return markThreadDone(thread).finally(() => {
         appAtomRegistry.set(threadDropBusyAtom, false);
@@ -630,12 +613,7 @@ export function useThreadListActions(): {
     if (section === "active") {
       const lifecycle = threadDropLifecycle(thread, section, new Date().toISOString());
       if (!lifecycle.unpin && !lifecycle.reopen && !lifecycle.unsnooze) return false;
-      if (
-        (lifecycle.unpin && !environmentSupportsPinning(thread.environmentId)) ||
-        (lifecycle.reopen && !environmentSupportsMarkDone(thread.environmentId)) ||
-        (lifecycle.unsnooze && !environmentSupportsSnooze(thread.environmentId))
-      )
-        return false;
+      if (!environmentConfigLoaded(thread.environmentId)) return false;
       selectionHaptic();
       appAtomRegistry.set(threadDropBusyAtom, true);
       const enterActive = async () => {
@@ -649,9 +627,9 @@ export function useThreadListActions(): {
       });
     }
     const configs = appAtomRegistry.get(environmentServerConfigsAtom);
-    const supportsReorder = (environmentId: EnvironmentThreadShell["environmentId"]) =>
-      configs.has(environmentId);
-    if (!supportsReorder(thread.environmentId)) {
+    // A config is cached for offline rendering, so its presence does not make a thread writable.
+    const connectedEnvironmentIds = new Set(appAtomRegistry.get(connectedEnvironmentIdsAtom));
+    if (!configs.has(thread.environmentId) || !connectedEnvironmentIds.has(thread.environmentId)) {
       Dialog.alert("Could not move thread", "Connect to this environment to arrange its threads.");
       return false;
     }
@@ -665,20 +643,14 @@ export function useThreadListActions(): {
       allThreads: shells,
       ordered,
       section,
-      reorderableEnvironmentIds: new Set(configs.keys()),
+      reorderableEnvironmentIds: new Set(
+        [...configs.keys()].filter((environmentId) => connectedEnvironmentIds.has(environmentId)),
+      ),
     })(scopedThreadKey(thread.environmentId, thread.id), direction);
     if (assignments === null) return false;
     const crossSection = !ordered.some(
       (row) => row.id === thread.id && row.environmentId === thread.environmentId,
     );
-    if (
-      crossSection &&
-      (!environmentSupportsPinning(thread.environmentId) ||
-        (thread.doneOverride === "done" && !environmentSupportsMarkDone(thread.environmentId)) ||
-        (effectiveSnoozed(thread, { now: new Date().toISOString() }) &&
-          !environmentSupportsSnooze(thread.environmentId)))
-    )
-      return false;
     const shellByKey = new Map(
       shells.map((shell) => [scopedThreadKey(shell.environmentId, shell.id), shell]),
     );

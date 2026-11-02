@@ -15,6 +15,7 @@ import {
 import * as ConnectionDriver from "./driver.ts";
 import * as ConnectionResolver from "./resolver.ts";
 import { BearerConnectionTarget, type PreparedConnection } from "./model.ts";
+import { connectionRouteId } from "./routes.ts";
 import * as RpcSession from "../rpc/session.ts";
 
 const target = new BearerConnectionTarget({
@@ -34,11 +35,14 @@ const entry: ConnectionCatalogEntry = { ...route, enabled: true };
 
 const makeHarness = Effect.fnUntraced(function* () {
   const prepares = yield* Ref.make(0);
+  const prepared = yield* Ref.make<ReadonlyArray<string>>([]);
   const checks = yield* Ref.make(0);
+  const requested = yield* Ref.make<ReadonlyArray<string>>([]);
   const connections = yield* Ref.make<ReadonlyArray<PreparedConnection>>([]);
   const resolver = ConnectionResolver.ConnectionResolver.of({
     prepare: (entry) =>
-      Ref.updateAndGet(prepares, (count) => count + 1).pipe(
+      Ref.update(prepared, (ids) => [...ids, connectionRouteId(entry.target)]).pipe(
+        Effect.andThen(Ref.updateAndGet(prepares, (count) => count + 1)),
         Effect.map(
           (count) =>
             ({
@@ -63,12 +67,14 @@ const makeHarness = Effect.fnUntraced(function* () {
           subscribeServerConfig: () => Stream.empty,
           ready: Effect.void,
           probe: Effect.void,
+          inboundFrames: Effect.succeed(0),
           closed: Effect.never,
         } satisfies RpcSession.RpcSession),
       ),
   });
   const client = HttpClient.make((request) =>
     Ref.update(checks, (count) => count + 1).pipe(
+      Effect.andThen(Ref.update(requested, (urls) => [...urls, request.url])),
       Effect.as(
         HttpClientResponse.fromWeb(
           request,
@@ -89,8 +95,13 @@ const makeHarness = Effect.fnUntraced(function* () {
     Effect.provideService(RpcSession.RpcSessionFactory, factory),
     Effect.provideService(HttpClient.HttpClient, client),
   );
-  return { driver, prepares, checks, connections };
+  return { driver, prepares, prepared, checks, requested, connections };
 });
+
+function preparedRoute(result: ConnectionDriver.RoutePreflight): ConnectionDriver.PreparedRoute {
+  if (typeof result === "string") throw new Error(`Expected a prepared route, got ${result}.`);
+  return result;
+}
 
 describe("route preflight preparation", () => {
   it.effect(
@@ -98,7 +109,7 @@ describe("route preflight preparation", () => {
     () =>
       Effect.gen(function* () {
         const harness = yield* makeHarness();
-        const preflight = Option.getOrThrow(yield* harness.driver.preflight(entry, route));
+        const preflight = preparedRoute(yield* harness.driver.preflight(entry, route));
         expect(yield* Ref.get(harness.connections)).toEqual([]);
         const lease = yield* harness.driver.connect(entry, () => Effect.void, preflight);
         expect(lease.prepared).toBe(preflight.prepared);
@@ -111,7 +122,7 @@ describe("route preflight preparation", () => {
   it.effect("renews expired preparation before opening a socket", () =>
     Effect.gen(function* () {
       const harness = yield* makeHarness();
-      const preflight = Option.getOrThrow(yield* harness.driver.preflight(entry, route));
+      const preflight = preparedRoute(yield* harness.driver.preflight(entry, route));
       yield* TestClock.adjust("10 seconds");
       const lease = yield* harness.driver.connect(entry, () => Effect.void, preflight);
       expect(lease.prepared.socketUrl).toContain("ticket-2");
@@ -123,7 +134,7 @@ describe("route preflight preparation", () => {
   it.effect("prepares again when a route with the same ID changes address", () =>
     Effect.gen(function* () {
       const harness = yield* makeHarness();
-      const preflight = Option.getOrThrow(yield* harness.driver.preflight(entry, route));
+      const preflight = preparedRoute(yield* harness.driver.preflight(entry, route));
       const changed: ConnectionCatalogEntry = {
         ...entry,
         profile: Option.some(
@@ -138,6 +149,40 @@ describe("route preflight preparation", () => {
       expect(lease.prepared.socketUrl).toContain("ticket-2");
       expect(yield* Ref.get(harness.prepares)).toBe(2);
       expect(yield* Ref.get(harness.connections)).toHaveLength(1);
+    }),
+  );
+
+  it.effect("sends a relay-paired token to no plain HTTP route it learned", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness();
+      const relayAddress = `https://${"11".repeat(16)}.${"22".repeat(16)}.relay.supaterm.alt/`;
+      const relayTarget = new BearerConnectionTarget({ ...target, connectionId: "relay" });
+      const relay: ConnectionRoute = {
+        target: relayTarget,
+        profile: Option.some(
+          new BearerConnectionProfile({
+            ...profile,
+            connectionId: "relay",
+            httpBaseUrl: relayAddress,
+            wsBaseUrl: relayAddress.replace("https:", "wss:"),
+          }),
+        ),
+      };
+      const learnedId = `learned:${target.environmentId}:http://192.168.1.2:4389@relay`;
+      const learned: ConnectionRoute = {
+        target: new BearerConnectionTarget({ ...target, connectionId: learnedId }),
+        profile: Option.some(
+          new BearerConnectionProfile({ ...profile, connectionId: learnedId, learned: true }),
+        ),
+      };
+      const both: ConnectionCatalogEntry = { ...learned, enabled: true, alternateRoutes: [relay] };
+      expect(yield* harness.driver.preflight(both, learned)).toBe("silent");
+      const lease = yield* harness.driver.connect(both, () => Effect.void);
+      expect(lease.prepared.target).toEqual(relayTarget);
+      expect(yield* Ref.get(harness.prepared)).toEqual(["relay"]);
+      expect((yield* Ref.get(harness.requested)).filter((url) => url.startsWith("http:"))).toEqual(
+        [],
+      );
     }),
   );
 });

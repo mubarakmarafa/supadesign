@@ -1,11 +1,7 @@
 import { type ProviderDriverKind, type ProviderInstanceId } from "@supaterm/contracts";
 import { memo } from "react";
-import { CheckIcon, StarIcon } from "lucide-react";
-import {
-  getDisplayModelName,
-  getProviderRowLabel,
-  getTriggerDisplayModelLabel,
-} from "./providerIconUtils";
+import { CheckIcon, StarIcon } from "@supaterm/icons";
+import { getDisplayModelName, getProviderRowLabel } from "./providerIconUtils";
 import { ComboboxItem } from "../ui/combobox";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -15,14 +11,10 @@ import { cn } from "~/lib/utils";
 import { modelPickerModelKey } from "./modelPickerKeys";
 import { ProviderInstanceIcon } from "./ProviderInstanceIcon";
 
-// Rows take the model's fields rather than the picker's item object, and one shared toggle
-// handler, because the picker rebuilds its items on every search keystroke; that keeps memo
-// effective for rows whose content did not change.
 export const ModelListRow = memo(function ModelListRow(props: {
   index: number;
   slug: string;
   name: string;
-  shortName?: string | undefined;
   subProvider?: string | undefined;
   instanceId: ProviderInstanceId;
   driverKind: ProviderDriverKind;
@@ -34,8 +26,6 @@ export const ModelListRow = memo(function ModelListRow(props: {
   isSelected: boolean;
   showSelection?: boolean;
   showProvider: boolean;
-  preferShortName?: boolean;
-  useTriggerLabel?: boolean;
   showNewBadge?: boolean;
   unavailable?: boolean;
   jumpLabel?: string | null;
@@ -45,7 +35,6 @@ export const ModelListRow = memo(function ModelListRow(props: {
   const model = {
     slug: props.slug,
     name: props.name,
-    shortName: props.shortName,
     subProvider: props.subProvider,
   };
   const providerLabel = getProviderRowLabel(props.providerDisplayName, props.subProvider);
@@ -64,13 +53,15 @@ export const ModelListRow = memo(function ModelListRow(props: {
     >
       <div className="min-w-0 flex-1 text-left">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="min-w-0 truncate text-xs font-medium leading-snug">
-            {props.useTriggerLabel
-              ? getTriggerDisplayModelLabel(model)
-              : getDisplayModelName(
-                  model,
-                  props.preferShortName ? { preferShortName: true } : undefined,
-                )}
+          <div
+            className="min-w-0 truncate text-xs font-medium leading-snug"
+            // Names the row in full on hover only when it is cut off.
+            onPointerEnter={(event) => {
+              const name = event.currentTarget;
+              name.title = name.scrollWidth > name.clientWidth ? getDisplayModelName(model) : "";
+            }}
+          >
+            {getDisplayModelName(model)}
           </div>
           {props.showNewBadge ? (
             <span
@@ -104,9 +95,6 @@ export const ModelListRow = memo(function ModelListRow(props: {
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">
-        {props.showSelection && props.isSelected ? (
-          <CheckIcon className="size-3.5" aria-hidden="true" />
-        ) : null}
         {props.jumpLabel ? <Kbd>{props.jumpLabel}</Kbd> : null}
         <Tooltip>
           <TooltipTrigger
@@ -126,10 +114,8 @@ export const ModelListRow = memo(function ModelListRow(props: {
                 aria-label={props.isFavorite ? "Remove from favorites" : "Add to favorites"}
               >
                 <StarIcon
-                  className={cn(
-                    "size-3.5 sm:size-3",
-                    props.isFavorite && "fill-current text-warning",
-                  )}
+                  weight={props.isFavorite ? "fill" : "regular"}
+                  className={cn("size-3.5 sm:size-3", props.isFavorite && "text-warning")}
                 />
               </Button>
             }
@@ -138,6 +124,12 @@ export const ModelListRow = memo(function ModelListRow(props: {
             {props.isFavorite ? "Remove from favorites" : "Add to favorites"}
           </TooltipPopup>
         </Tooltip>
+        {props.showSelection ? (
+          <CheckIcon
+            className={cn("size-3.5", !props.isSelected && "invisible")}
+            aria-hidden="true"
+          />
+        ) : null}
       </div>
     </ComboboxItem>
   );

@@ -1,5 +1,6 @@
-import { InfoIcon } from "lucide-react";
+import { InfoIcon } from "@supaterm/icons";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 
 import { animationsSettled } from "~/lib/motion";
 import { cn } from "~/lib/utils";
@@ -22,6 +23,8 @@ export interface ComposerBannerStackItem {
   readonly actions?: ReactNode;
   readonly dismissLabel?: string;
   readonly onDismiss?: () => void;
+  /** Announced assertively although not a warning, because it needs the user. */
+  readonly announce?: boolean;
 }
 
 export type ComposerBannerStackContent = Pick<
@@ -125,7 +128,6 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
   const noticesRef = useRef<HTMLDivElement>(null);
   const peekRef = useRef<HTMLButtonElement>(null);
   const expandedItemsRef = useRef<HTMLDivElement>(null);
-  const pendingFocusRef = useRef<"peek" | "notice" | null>(null);
   const slotElementsRef = useRef(new Map<string, HTMLElement>());
   const expandedItemsId = useId();
   // A dismissed notice leaves at once, even if its owner removes it asynchronously.
@@ -159,6 +161,7 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
   const stackedNotices = stacked.filter((slot) => !staysVisible(slot.item));
   const hasStack = stackedNotices.length > 0;
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- waits for each exiting slot's DOM animations to settle before releasing it from the stack
   useEffect(() => {
     if (exitingKey === "") return;
     let cancelled = false;
@@ -178,18 +181,14 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
     setStackExpanded(false);
   }
 
-  useLayoutEffect(() => {
-    if (stackExpanded && pendingFocusRef.current === "notice") {
-      pendingFocusRef.current = null;
-      const firstControl = expandedItemsRef.current?.querySelector<HTMLElement>(
-        'button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]',
-      );
-      (firstControl ?? expandedItemsRef.current)?.focus({ preventScroll: true });
-    } else if (!stackExpanded && pendingFocusRef.current === "peek") {
-      pendingFocusRef.current = null;
-      peekRef.current?.focus({ preventScroll: true });
-    }
-  }, [stackExpanded]);
+  const expandAndFocusNotice = () => {
+    flushSync(() => setStackExpanded(true));
+    const container = expandedItemsRef.current;
+    const firstControl = container?.querySelector<HTMLElement>(
+      'button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]',
+    );
+    (firstControl ?? container)?.focus({ preventScroll: true });
+  };
 
   if (!front) {
     return null;
@@ -227,7 +226,8 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
           onPointerEnter={(event) => {
             if (event.pointerType === "touch") return;
             if (document.activeElement === peekRef.current) {
-              pendingFocusRef.current = "notice";
+              expandAndFocusNotice();
+              return;
             }
             setStackExpanded(true);
           }}
@@ -246,8 +246,8 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
             if (event.key !== "Escape" || !stackExpanded) return;
             event.preventDefault();
             event.stopPropagation();
-            pendingFocusRef.current = "peek";
-            setStackExpanded(false);
+            flushSync(() => setStackExpanded(false));
+            peekRef.current?.focus({ preventScroll: true });
           }}
         >
           {showCollapsedStackCap ? (
@@ -261,8 +261,7 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
               tabIndex={stackExpanded ? -1 : 0}
               onClick={(event) => {
                 event.currentTarget.focus({ preventScroll: true });
-                pendingFocusRef.current = "notice";
-                setStackExpanded(true);
+                expandAndFocusNotice();
               }}
               className={cn(
                 (stackExpanded || stackLeaving) && "pointer-events-none invisible opacity-0",
@@ -348,7 +347,9 @@ export function ComposerBannerStack({ className, items }: ComposerBannerStackPro
   );
 }
 
-function NoticeText({
+const SUBPIXEL_ROUNDING = 0.001;
+
+export function NoticeText({
   children,
   className,
   detailsLabel,
@@ -359,26 +360,55 @@ function NoticeText({
 }) {
   const textRef = useRef<HTMLSpanElement>(null);
   const detailsRef = useRef<HTMLButtonElement>(null);
-  const [showDetails, setShowDetails] = useState(false);
+  const [detailsAtWidth, setDetailsAtWidth] = useState<number | null>(null);
+  const showDetails = detailsAtWidth !== null;
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- measures text overflow in the DOM via ResizeObserver and MutationObserver to show the details button
   useLayoutEffect(() => {
     const text = textRef.current;
     if (!text) return;
+    const banner = text.closest("[data-slot=composer-banner]");
+    const range = document.createRange();
     const measure = () => {
       // Ignore the space taken by the details button itself so it cannot
       // sustain its own overflow after the text would otherwise fit.
       const recoveredWidth = detailsRef.current ? detailsRef.current.offsetWidth + 4 : 0;
       const hidden = getComputedStyle(text).position === "absolute";
-      setShowDetails(
+      const overflowing =
         hidden ||
-          [text, ...text.querySelectorAll("*")].some(
-            (element) => element.scrollWidth > element.clientWidth + recoveredWidth,
-          ),
+        [text, ...text.querySelectorAll("*")].some((element) => {
+          // A range spans laid-out content only; scrollWidth also counts positioned layers
+          // such as a link's touch hit area, which overflow without cutting any text.
+          // The two rects can disagree by float rounding (~0.00001px on phones); real
+          // overflow is at least one layout unit, 1/64 of a device pixel.
+          range.selectNodeContents(element);
+          return (
+            range.getBoundingClientRect().width >
+            element.getBoundingClientRect().width + recoveredWidth + SUBPIXEL_ROUNDING
+          );
+        });
+      // The button's width can wrap the banner's actions onto a second row, which gives
+      // the text room and removes the button, which unwraps the row again. Once shown,
+      // the button stays until the banner itself gets wider than where it appeared.
+      const width = banner?.clientWidth ?? text.clientWidth;
+      setDetailsAtWidth((shownAt) =>
+        overflowing
+          ? (shownAt ?? width)
+          : banner && shownAt !== null && width <= shownAt
+            ? shownAt
+            : null,
       );
     };
     measure();
-    const stopObserving = observeResize(text, measure);
-    const mutations = new MutationObserver(measure);
+    const stopObserving = observeResize([text, banner ?? text], measure);
+    let content = text.textContent;
+    const mutations = new MutationObserver(() => {
+      if (text.textContent !== content) {
+        content = text.textContent;
+        setDetailsAtWidth(null);
+      }
+      measure();
+    });
     mutations.observe(text, { childList: true, subtree: true, characterData: true });
     return () => {
       stopObserving();
@@ -413,14 +443,30 @@ function NoticeText({
             side="top"
             className="max-w-[min(30rem,calc(100vw-2rem))] whitespace-normal wrap-anywhere [--inline-button-text-align:start] [--inline-button-white-space:normal] [&_[data-slot=inline-button]]:max-w-full"
           >
-            <ComposerBanner.Scroll className="max-h-[min(var(--available-height),24rem,40dvh)]">
-              {children}
-            </ComposerBanner.Scroll>
+            <ComposerBanner.Scroll>{children}</ComposerBanner.Scroll>
           </PopoverPopup>
         </Popover>
       ) : null}
     </span>
   );
+}
+
+/** Notices as standalone cards, for layouts where the composer must not move when one appears. */
+export function DetachedComposerBanners({
+  items,
+}: {
+  readonly items: ReadonlyArray<ComposerBannerStackItem>;
+}) {
+  return items
+    .toSorted((a, b) => bannerPriority(a) - bannerPriority(b))
+    .map((item) => (
+      <ComposerBannerStackAlert
+        key={item.id}
+        slot={{ item, exiting: false, wasFront: false, entering: true }}
+        attached={false}
+        onDismissRequest={() => item.onDismiss?.()}
+      />
+    ));
 }
 
 function ComposerBannerStackAlert({
@@ -435,7 +481,9 @@ function ComposerBannerStackAlert({
   const presence = {
     "data-enter": entering ? "" : undefined,
     "data-ending-style": exiting ? "" : undefined,
+    inert: exiting || undefined,
   };
+  // Items change content under a stable id; an exit keeps what was last shown, not the item the stack first stored.
   if ("content" in item) {
     return (
       <ComposerBanner.Root
@@ -444,55 +492,70 @@ function ComposerBannerStackAlert({
         variant={item.variant}
         {...presence}
       >
-        {item.content}
+        <ComposerBanner.LastOpenContent open={!exiting}>
+          {item.content}
+        </ComposerBanner.LastOpenContent>
       </ComposerBanner.Root>
     );
   }
   return (
     <ComposerBanner.Root
-      role="alert"
+      role={
+        item.announce || item.variant === "error" || item.variant === "warning"
+          ? "alert"
+          : undefined
+      }
       placement={attached ? "attached" : "floating"}
       variant={item.variant}
       density="comfortable"
       {...presence}
     >
-      <ComposerBanner.Row layout={item.priority === "activity" ? "inline" : "wrap-actions"}>
-        <ComposerBanner.Icon
-          className="h-(--composer-banner-icon-column) self-start"
-          aria-hidden={item.iconInteractive ? undefined : true}
-        >
-          {item.icon}
-        </ComposerBanner.Icon>
-        <ComposerBanner.Content className="whitespace-nowrap">
-          <NoticeText
-            detailsLabel="Show title details"
-            className="min-w-0 truncate font-medium leading-7 sm:leading-6"
+      <ComposerBanner.LastOpenContent open={!exiting}>
+        <ComposerBanner.Row layout={item.priority === "activity" ? "inline" : "wrap-actions"}>
+          <ComposerBanner.Icon
+            className="h-(--composer-banner-icon-column) self-start"
+            aria-hidden={item.iconInteractive ? undefined : true}
           >
-            {item.title}
-          </NoticeText>
-          {item.description ? (
+            {item.icon}
+          </ComposerBanner.Icon>
+          <ComposerBanner.Content className="whitespace-nowrap">
             <NoticeText
-              detailsLabel="Show notice details"
-              className="w-0 min-w-0 grow truncate text-muted-foreground @max-[400px]:sr-only"
+              detailsLabel={
+                typeof item.title === "string"
+                  ? `Show full title: ${item.title}`
+                  : "Show title details"
+              }
+              className="min-w-0 truncate font-medium leading-7 sm:leading-6"
             >
-              {item.description}
+              {item.title}
             </NoticeText>
-          ) : null}
-        </ComposerBanner.Content>
-        {item.actions || item.onDismiss ? (
-          <ComposerBanner.Actions>
-            {item.actions}
-            {item.onDismiss ? (
-              <ComposerBanner.Dismiss
-                aria-label={item.dismissLabel ?? "Dismiss warning"}
-                disabled={exiting}
-                onClick={onDismissRequest}
-              />
+            {item.description ? (
+              <NoticeText
+                detailsLabel={
+                  typeof item.title === "string"
+                    ? `Show details: ${item.title}`
+                    : "Show notice details"
+                }
+                className="w-0 min-w-0 grow truncate text-muted-foreground @max-[400px]:sr-only"
+              >
+                {item.description}
+              </NoticeText>
             ) : null}
-          </ComposerBanner.Actions>
-        ) : null}
-      </ComposerBanner.Row>
-      {item.children ? <ComposerBanner.Children>{item.children}</ComposerBanner.Children> : null}
+          </ComposerBanner.Content>
+          {item.actions || item.onDismiss ? (
+            <ComposerBanner.Actions className="min-w-14 sm:min-w-12">
+              {item.actions}
+              {item.onDismiss ? (
+                <ComposerBanner.Dismiss
+                  aria-label={item.dismissLabel ?? "Dismiss warning"}
+                  onClick={onDismissRequest}
+                />
+              ) : null}
+            </ComposerBanner.Actions>
+          ) : null}
+        </ComposerBanner.Row>
+        {item.children ? <ComposerBanner.Children>{item.children}</ComposerBanner.Children> : null}
+      </ComposerBanner.LastOpenContent>
     </ComposerBanner.Root>
   );
 }

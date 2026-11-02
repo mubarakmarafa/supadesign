@@ -1,16 +1,15 @@
 import { presentThreadShell } from "@supaterm/client-runtime/state/models";
+import { isThreadWorking as isSidebarThreadWorking } from "@supaterm/client-runtime/state/thread-inbox";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it, vi } from "vite-plus/test";
-import * as Cause from "effect/Cause";
-import { AsyncResult } from "effect/reactivity";
 import {
   archiveSelectedThreadEntries,
-  deleteSelectedThreadEntries,
   formatWorkingDurationLabel,
   getFallbackThreadIdAfterDelete,
   hasUnseenCompletion,
   resolveSidebarRowThreadId,
-  isSidebarThreadWorking,
+  belongsInSidebarWorkingShelf,
+  isSidebarEnvironmentDisconnected,
   pinOrderKeyBetween,
   resolveSidebarSweepKeys,
   resolveSidebarThreadStatus,
@@ -23,6 +22,7 @@ import {
   sortInboxThreadsByReturn,
   resolveSidebarDropTarget,
   planSidebarThreadDrop,
+  resolveSidebarReorderableThreadKeys,
   sortPinnedThreadsForSidebar,
   sortProjectsForSidebar,
   sortScopedProjectsForSidebar,
@@ -33,90 +33,20 @@ import {
   type SidebarSection,
   resolveSidebarDropVerb,
 } from "./Sidebar.logic";
+import { scopeThreadRef, scopedThreadKey } from "@supaterm/client-runtime/environment";
+import { sortPinnedThreadsByOrderKey } from "@supaterm/client-runtime/state/thread-sort";
 
 import { EnvironmentId, ProjectId, ProviderInstanceId, RunId, ThreadId } from "@supaterm/contracts";
 
 import { DEFAULT_RUNTIME_MODE, type Project, type Thread } from "../types";
 import { makeThreadFixture, type ThreadFixtureOverrides } from "../test-fixtures";
-import { completeSidebarRouteReveal, pendingSidebarRouteReveal } from "./sidebar/routeReveal";
+import {
+  completeSidebarRouteReveal,
+  pendingSidebarRouteReveal,
+  resolveSidebarRouteReveal,
+} from "./sidebar/routeReveal";
 
 const localEnvironmentId = EnvironmentId.make("environment-local");
-
-describe("deleteSelectedThreadEntries", () => {
-  const entries = [{ threadKey: "one" }, { threadKey: "two" }, { threadKey: "three" }] as const;
-  const success = AsyncResult.success(undefined);
-  const failure = AsyncResult.failure(Cause.fail(new Error("Delete failed")));
-  const interrupted = AsyncResult.failure(Cause.interrupt());
-
-  it("waits for each delete and excludes only earlier successes from worktree checks", async () => {
-    let resolveDelete!: (result: typeof success) => void;
-    const pendingDelete = new Promise<typeof success>((resolve) => {
-      resolveDelete = resolve;
-    });
-    const worktreeChecks: { threadKey: string; deletedThreadKeys: string[] }[] = [];
-    const deletion = deleteSelectedThreadEntries({
-      entries,
-      delete: async ({ threadKey }, deletedThreadKeys) => {
-        worktreeChecks.push({ threadKey, deletedThreadKeys: [...deletedThreadKeys] });
-        return threadKey === "one" ? pendingDelete : success;
-      },
-    });
-
-    expect(worktreeChecks).toEqual([{ threadKey: "one", deletedThreadKeys: [] }]);
-    resolveDelete(success);
-    const outcome = await deletion;
-
-    expect(worktreeChecks).toEqual([
-      { threadKey: "one", deletedThreadKeys: [] },
-      { threadKey: "two", deletedThreadKeys: ["one"] },
-      { threadKey: "three", deletedThreadKeys: ["one", "two"] },
-    ]);
-    expect(outcome).toEqual({
-      deletedThreadKeys: new Set(["one", "two", "three"]),
-      firstFailure: null,
-    });
-  });
-
-  it("continues after ordinary failures and keeps the first failure", async () => {
-    const laterFailure = AsyncResult.failure(Cause.fail(new Error("Later failure")));
-    const deletedKeysAtLastEntry: string[][] = [];
-    const outcome = await deleteSelectedThreadEntries({
-      entries: [...entries, { threadKey: "four" }],
-      delete: async ({ threadKey }, deletedThreadKeys) => {
-        if (threadKey === "one") return failure;
-        if (threadKey === "three") return laterFailure;
-        if (threadKey === "four") deletedKeysAtLastEntry.push([...deletedThreadKeys]);
-        return success;
-      },
-    });
-
-    expect(deletedKeysAtLastEntry).toEqual([["two"]]);
-    expect(outcome).toEqual({
-      deletedThreadKeys: new Set(["two", "four"]),
-      firstFailure: failure,
-    });
-  });
-
-  it.each([
-    { firstResult: success, deletedThreadKeys: new Set(["one"]), firstFailure: null },
-    { firstResult: failure, deletedThreadKeys: new Set<string>(), firstFailure: failure },
-  ])("stops on interruption and preserves earlier results %#", async (testCase) => {
-    const attemptedThreadKeys: string[] = [];
-    const outcome = await deleteSelectedThreadEntries({
-      entries,
-      delete: async ({ threadKey }) => {
-        attemptedThreadKeys.push(threadKey);
-        return threadKey === "one" ? testCase.firstResult : interrupted;
-      },
-    });
-
-    expect(attemptedThreadKeys).toEqual(["one", "two"]);
-    expect(outcome).toEqual({
-      deletedThreadKeys: testCase.deletedThreadKeys,
-      firstFailure: testCase.firstFailure,
-    });
-  });
-});
 
 describe("archiveSelectedThreadEntries", () => {
   const entries = [{ threadKey: "one" }, { threadKey: "two" }, { threadKey: "three" }] as const;
@@ -520,7 +450,9 @@ describe("resolveThreadStatusPill", () => {
       resolveThreadStatusPill({
         thread: {
           ...baseThread,
-          pendingBackgroundTasks: [{ taskId: "bg-1", description: "Watch build", kind: "monitor" }],
+          pendingBackgroundTasks: [
+            { taskId: "bg-1", description: "Watch build", kind: "monitor", awaited: true },
+          ],
           runtime: {
             ...baseThread.runtime,
             status: "idle",
@@ -978,16 +910,38 @@ describe("navigation after parking a thread", () => {
 
 describe("unseen completion with background work", () => {
   it.each([
-    { kind: "command", status: "ready", topStatus: "ready", receded: false, pill: "Completed" },
-    { kind: "monitor", status: "waiting", topStatus: "waiting", receded: true, pill: "Waiting" },
-  ] as const)("presents a completed thread with a $kind roster", (expected) => {
+    {
+      roster: "dev server",
+      task: { kind: "command" },
+      status: "ready",
+      topStatus: "ready",
+      receded: false,
+      pill: "Completed",
+    },
+    {
+      roster: "dev server watchdog",
+      task: { kind: "monitor" },
+      status: "ready",
+      topStatus: "ready",
+      receded: false,
+      pill: "Completed",
+    },
+    {
+      roster: "awaited command",
+      task: { kind: "command", awaited: true },
+      status: "waiting",
+      topStatus: "waiting",
+      receded: true,
+      pill: "Waiting",
+    },
+  ] as const)("presents a completed thread with a $roster roster", (expected) => {
     const thread = presentThreadShell(localEnvironmentId, {
       ...makeThreadFixture().source,
       latestRunId: RunId.make("run-background-completion"),
       status: "completed",
       latestRunCompletedAt: DateTime.makeUnsafe("2026-06-20T01:00:00.000Z"),
       lastVisitedAt: DateTime.makeUnsafe("2026-06-20T00:59:00.000Z"),
-      pendingBackgroundTasks: [{ taskId: "background-work", kind: expected.kind }],
+      pendingBackgroundTasks: [{ taskId: "background-work", ...expected.task }],
     });
     const status = resolveSidebarThreadStatus(thread);
     const isUnread = hasUnseenCompletion(thread);
@@ -1020,7 +974,12 @@ describe("Working shelf", () => {
     lastError: null,
     updatedAt: "2026-03-09T10:00:00.000Z",
   };
-  const backgroundTask = { taskId: "bg-1", description: "Watch build", kind: "monitor" as const };
+  const backgroundTask = {
+    taskId: "bg-1",
+    description: "Watch build",
+    kind: "monitor" as const,
+    awaited: true as const,
+  };
   const idle = {
     interactionMode: "default" as const,
     hasActionableProposedPlan: false,
@@ -1047,6 +1006,35 @@ describe("Working shelf", () => {
         runtime: { ...runtime, status: "failed" as const, lastError: "boom" },
       }),
     ).toBe(false);
+  });
+
+  it.each([
+    ["connected", true, false],
+    ["connected", false, true],
+    ["connecting", false, false],
+    ["reconnecting", false, true],
+    ["offline", false, true],
+    ["error", false, true],
+    ["unsupported", false, true],
+    ["available", false, true],
+  ] as const)(
+    "lists threads outside the shelf on a %s environment: %s",
+    (phase, shellIsLive, disconnected) => {
+      expect(isSidebarEnvironmentDisconnected(phase, shellIsLive)).toBe(disconnected);
+    },
+  );
+
+  it("lists a running thread outside the shelf while its environment is disconnected", () => {
+    const thread = { ...idle, runtime, environmentId: localEnvironmentId };
+    const shelve = (disconnected: ReadonlyArray<EnvironmentId>) =>
+      belongsInSidebarWorkingShelf(thread, {
+        disconnectedEnvironmentIds: new Set(disconnected),
+        isWorking: isSidebarThreadWorking,
+      });
+
+    expect(shelve([])).toBe(true);
+    expect(shelve([localEnvironmentId])).toBe(false);
+    expect(shelve([EnvironmentId.make("environment-other")])).toBe(true);
   });
 
   describe("sortInboxThreadsByReturn", () => {
@@ -1157,10 +1145,10 @@ describe("Working shelf", () => {
         activeSection: "pinned",
         target: {
           section: "pinned",
-          pinnedOrder: ["offline", "a2", "a1"],
+          pinnedOrder: ["a2", "a1", "offline"],
           activeOrder: [],
         },
-        pinnedOrder: ["offline", "a1", "a2"],
+        pinnedOrder: ["a1", "a2", "offline"],
         pinnedKeysById: new Map([
           ["offline", null],
           ["a1", null],
@@ -1186,6 +1174,173 @@ describe("Working shelf", () => {
         reorderableKeys: new Set(["a2"]),
       });
       expect(above.kind === "reorder-pinned" && above.assignments[0]!.orderKey < "m").toBe(true);
+    });
+
+    describe("reordering with cached offline configuration", () => {
+      const onlineEnvironmentId = EnvironmentId.make("online");
+      const offlineEnvironmentId = EnvironmentId.make("offline");
+      const serverConfigs = new Map([
+        [onlineEnvironmentId, {}],
+        [offlineEnvironmentId, {}],
+      ]);
+      const thread = (
+        id: string,
+        environmentId = onlineEnvironmentId,
+        key: string | null = null,
+      ) => ({
+        id: ThreadId.make(id),
+        environmentId,
+        createdAt: `2026-03-09T${id === "offline" ? "12" : id === "online" ? "11" : "10"}:00:00.000Z`,
+        pinOrderKey: key,
+      });
+      const keyOf = (entry: ReturnType<typeof thread>) =>
+        scopedThreadKey(scopeThreadRef(entry.environmentId, entry.id));
+      const online = thread("online");
+      const offline = thread("offline", offlineEnvironmentId);
+      const writableKeys = (
+        threads: ReturnType<typeof thread>[],
+        connectedEnvironmentIds = [onlineEnvironmentId],
+        configs: ReadonlyMap<EnvironmentId, unknown> = serverConfigs,
+      ) =>
+        resolveSidebarReorderableThreadKeys({
+          threads,
+          serverThreadKeys: new Set(threads.map(keyOf)),
+          serverConfigs: configs,
+          connectedEnvironmentIds,
+        }).draggableThreadKeys;
+      const planDrop = (input: {
+        rows: ReturnType<typeof thread>[];
+        moved: ReturnType<typeof thread>;
+        order: ReturnType<typeof thread>[];
+        from?: "active" | "pinned";
+        connectedEnvironmentIds?: EnvironmentId[];
+      }) => {
+        const targetOrder = input.order.map(keyOf);
+        const plan = planSidebarThreadDrop({
+          activeKey: keyOf(input.moved),
+          activeSection: input.from ?? "pinned",
+          target: { section: "pinned", pinnedOrder: targetOrder, activeOrder: [] },
+          pinnedOrder: sortPinnedThreadsByOrderKey(input.rows).map(keyOf),
+          pinnedKeysById: new Map(input.rows.map((entry) => [keyOf(entry), entry.pinOrderKey])),
+          reorderableKeys: writableKeys(input.rows, input.connectedEnvironmentIds),
+        });
+        const assignments =
+          plan.kind === "reorder-pinned"
+            ? plan.assignments
+            : plan.kind === "pin"
+              ? [
+                  ...plan.extraAssignments,
+                  ...(plan.orderKey === undefined
+                    ? []
+                    : [{ id: keyOf(input.moved), orderKey: plan.orderKey }]),
+                ]
+              : [];
+        const assignedKeys = new Map(assignments.map(({ id, orderKey }) => [id, orderKey]));
+        const actualOrder = sortPinnedThreadsByOrderKey(
+          input.rows.map((entry) => ({
+            ...entry,
+            pinOrderKey: assignedKeys.get(keyOf(entry)) ?? entry.pinOrderKey,
+          })),
+        ).map(keyOf);
+        return { plan, assignments, actualOrder, targetOrder };
+      };
+
+      it("excludes cached offline rows from the writable set", () => {
+        expect([...writableKeys([online, offline])]).toEqual([keyOf(online)]);
+        expect(serverConfigs.has(offlineEnvironmentId)).toBe(true);
+      });
+
+      it("updates membership through disconnect, reconnect, and missing configuration", () => {
+        expect(writableKeys([online, offline], []).size).toBe(0);
+        expect(
+          writableKeys([online, offline], [onlineEnvironmentId, offlineEnvironmentId]).size,
+        ).toBe(2);
+        expect([
+          ...writableKeys(
+            [online, offline],
+            [onlineEnvironmentId, offlineEnvironmentId],
+            new Map([[onlineEnvironmentId, {}]]),
+          ),
+        ]).toEqual([keyOf(online)]);
+      });
+
+      it("replans a disconnected drag source", () => {
+        const bound = thread("offline", offlineEnvironmentId, "m");
+        const moved = thread("online", onlineEnvironmentId, "t");
+        const input = { rows: [bound, moved], moved, order: [moved, bound] };
+        expect(planDrop(input).plan.kind).toBe("reorder-pinned");
+
+        const disconnected = planDrop({ ...input, connectedEnvironmentIds: [] });
+        expect(disconnected.plan).toEqual({ kind: "none" });
+        expect(disconnected.assignments).toEqual([]);
+      });
+
+      it("preserves a keyed offline bound", () => {
+        const bound = thread("offline", offlineEnvironmentId, "m");
+        const moved = thread("online", onlineEnvironmentId, "t");
+        const result = planDrop({ rows: [bound, moved], moved, order: [moved, bound] });
+
+        expect(result.plan.kind).toBe("reorder-pinned");
+        expect(result.assignments.map(({ id }) => id)).toEqual([keyOf(moved)]);
+        expect(result.actualOrder).toEqual(result.targetOrder);
+      });
+
+      it("rejects rebalancing a keyed offline bound", () => {
+        const bound = thread("offline", offlineEnvironmentId, "m");
+        const neighbor = thread("neighbor");
+        const result = planDrop({
+          rows: [bound, online, neighbor],
+          moved: online,
+          order: [bound, neighbor, online],
+        });
+
+        expect(result.plan).toEqual({ kind: "none" });
+        expect(result.assignments).toEqual([]);
+      });
+
+      it("rejects crossing the frozen keyless boundary", () => {
+        const bound = { ...offline, createdAt: "2026-03-09T10:00:00.000Z" };
+        const result = planDrop({ rows: [bound, online], moved: online, order: [bound, online] });
+
+        expect(result.plan).toEqual({ kind: "none" });
+        expect(result.assignments).toEqual([]);
+      });
+
+      it("allows realizable moves beside a frozen keyless row", () => {
+        const neighbor = thread("neighbor");
+        const result = planDrop({
+          rows: [offline, online, neighbor],
+          moved: online,
+          order: [online, neighbor, offline],
+        });
+
+        expect(result.plan.kind).toBe("reorder-pinned");
+        expect(result.assignments.length).toBeGreaterThan(0);
+        expect(result.assignments.every(({ id }) => id !== keyOf(offline))).toBe(true);
+        expect(result.actualOrder).toEqual(result.targetOrder);
+      });
+
+      it("checks fallback assignments to other rows at the boundary", () => {
+        const neighbor = thread("neighbor");
+        const result = planDrop({
+          rows: [offline, online, neighbor],
+          moved: online,
+          order: [online, offline, neighbor],
+        });
+
+        expect(result.plan).toEqual({ kind: "none" });
+      });
+
+      it("rejects an impossible pin placement across the boundary", () => {
+        const result = planDrop({
+          rows: [offline, online],
+          moved: online,
+          order: [offline, online],
+          from: "active",
+        });
+
+        expect(result.plan).toEqual({ kind: "none" });
+      });
     });
 
     it("only changes lifecycle when dropping into the time-ordered inbox", () => {
@@ -1255,5 +1410,45 @@ describe("pendingSidebarRouteReveal", () => {
     pendingSidebarRouteReveal(reveal, "env:a1");
     expect(pendingSidebarRouteReveal(reveal, null)).toBeNull();
     expect(pendingSidebarRouteReveal(reveal, "env:a1")).toBe("env:a1");
+  });
+});
+
+describe("resolveSidebarRouteReveal", () => {
+  const scopedProjectKeys = new Set(["environment-test:project-scoped"]);
+  const hidden = makeThreadFixture({ projectId: ProjectId.make("project-other") });
+  const hiddenKey = "environment-test:thread-test";
+  const findThread = (key: string) => (key === hiddenKey ? hidden : undefined);
+
+  it("widens the scope for a newly opened thread the scope hides", () => {
+    expect(
+      resolveSidebarRouteReveal({
+        reveal: { observedKey: "environment-test:other", pendingKey: null },
+        routeKey: hiddenKey,
+        scopedProjectKeys,
+        findThread,
+      }),
+    ).toEqual({ pendingKey: hiddenKey, widensScope: true });
+  });
+
+  it("never widens for a thread whose reveal already completed", () => {
+    // A remount's once-per-mount scroll must keep the scope the user chose.
+    expect(
+      resolveSidebarRouteReveal({
+        reveal: { observedKey: hiddenKey, pendingKey: null },
+        routeKey: hiddenKey,
+        scopedProjectKeys,
+        findThread,
+      }),
+    ).toEqual({ pendingKey: null, widensScope: false });
+  });
+
+  it("widens again for a thread reopened before the thread between them listed its row", () => {
+    // The user scoped away from the open thread, then went to a thread whose row
+    // never mounted, then came back.
+    const reveal = { observedKey: hiddenKey, pendingKey: null };
+    const resolve = (routeKey: string) =>
+      resolveSidebarRouteReveal({ reveal, routeKey, scopedProjectKeys, findThread });
+    resolve("environment-test:unlisted");
+    expect(resolve(hiddenKey)).toEqual({ pendingKey: hiddenKey, widensScope: true });
   });
 });

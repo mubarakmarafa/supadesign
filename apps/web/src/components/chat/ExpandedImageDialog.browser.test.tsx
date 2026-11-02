@@ -1,56 +1,82 @@
+import type { SnapShotSource } from "@supaterm/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 
-import { EnvironmentId, ThreadId, TurnItemId } from "@supaterm/contracts";
+import "~/index.css";
+import { render } from "../../../test/render";
+import { ExpandedImageDialog } from "./ExpandedImageDialog";
 
-import { AppAtomRegistryProvider } from "~/rpc/atomRegistry";
-import { act, render as renderUi } from "../../../test/render";
-import { ExpandedImageDialogHost, openExpandedImagePreview } from "./ExpandedImageDialog";
+const PIXEL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
-const RESOLVED_ASSET_SRC =
-  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+const snapShotSource: SnapShotSource = {
+  kind: "snap-shot",
+  capturedAt: "2026-01-01T00:00:00.000Z",
+  appName: "Finder",
+  windowTitle: "Downloads",
+};
 
-vi.mock(import("../../assets/assetUrls"), async (original) => ({
-  ...(await original()),
-  useAssetUrlState: (_environmentId, resource) =>
-    resource === null
-      ? { _tag: "Loading" }
-      : { _tag: "Success", url: RESOLVED_ASSET_SRC, expiresAt: Number.POSITIVE_INFINITY },
-}));
+const D2_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1174 920"><rect width="1174" height="920"/></svg>';
 
-const host = (threadKey: string) => (
-  <AppAtomRegistryProvider>
-    <ExpandedImageDialogHost threadKey={threadKey} />
-  </AppAtomRegistryProvider>
-);
+describe("ExpandedImageDialog", () => {
+  it.each(["/work/pipeline.svg", "/work/diagram#v2.svg", "/work/diagram?v2.svg"])(
+    "fits a markdown SVG without intrinsic size to the viewer: %s",
+    async (path) => {
+      const src = URL.createObjectURL(new Blob([D2_SVG], { type: "image/svg+xml" }));
+      using _src = { [Symbol.dispose]: () => URL.revokeObjectURL(src) };
+      await using screen = await render(
+        <ExpandedImageDialog
+          preview={{
+            images: [
+              {
+                src,
+                name: "Pipeline",
+                actionsSource: {
+                  kind: "image",
+                  name: "Pipeline",
+                  src,
+                  reference: { kind: "file", path },
+                },
+              },
+            ],
+            index: 0,
+          }}
+          onClose={vi.fn()}
+        />,
+        // The dialog renders no links and reads no route.
+        { router: false },
+      );
 
-const dialog = () => document.querySelector('[role="dialog"]');
+      const viewer = screen.getByRole("region", { name: "Pipeline, zoomable image" });
+      const availableWidth = window.innerWidth * 0.92 - (window.innerWidth >= 640 ? 96 : 0);
+      await vi.waitFor(() =>
+        expect(viewer.element().getBoundingClientRect().width).toBeCloseTo(availableWidth, 0),
+      );
+    },
+  );
 
-describe("ExpandedImageDialogHost", () => {
-  it("loads a gallery image that was never rendered on the page from its asset", async () => {
-    await using _screen = await renderUi(host("env:a"));
-    const resource = {
-      _tag: "tool-output-image" as const,
-      threadId: ThreadId.make("thread"),
-      itemId: TurnItemId.make("screenshot"),
-      index: 0,
-    };
-    await act(() =>
-      openExpandedImagePreview("env:a", {
-        images: [
-          {
-            src: null,
-            name: "screenshot",
-            actionsSource: {
-              kind: "image",
-              name: "screenshot",
-              src: null,
-              asset: { environmentId: EnvironmentId.make("env"), resource },
-            },
-          },
-        ],
-        index: 0,
-      }),
+  it("Escape closes a popup opened inside the dialog before the dialog", async () => {
+    const onClose = vi.fn();
+    await using screen = await render(
+      <ExpandedImageDialog
+        preview={{ images: [{ src: PIXEL, name: "shot.png", source: snapShotSource }], index: 0 }}
+        onClose={onClose}
+      />,
+      // The dialog renders no links and reads no route.
+      { router: false },
     );
-    expect(dialog()?.querySelector("img")?.getAttribute("src")).toBe(RESOLVED_ASSET_SRC);
+
+    await userEvent.click(screen.getByRole("button", { name: "No accessibility data" }));
+    await expect.element(screen.getByText("Accessibility data")).toBeVisible();
+
+    await userEvent.keyboard("{Escape}");
+    await expect.element(screen.getByText("Accessibility data")).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Focus returns to the popup's trigger and opens its tooltip; leave it for a plain control.
+    (screen.getByRole("button", { name: "Close image preview" }).element() as HTMLElement).focus();
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 });

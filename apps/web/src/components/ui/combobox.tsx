@@ -1,5 +1,5 @@
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { ChevronsUpDownIcon, SearchIcon, XIcon } from "lucide-react";
+import { ChevronsUpDownIcon, SearchIcon, XIcon } from "@supaterm/icons";
 import * as React from "react";
 
 import { cn } from "~/lib/utils";
@@ -233,10 +233,7 @@ function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
   );
 }
 
-/**
- * A variant of `ComboboxList` without `ScrollArea`, for use when
- * an external virtualizer (e.g. LegendList) owns the scroll container.
- */
+/** Omits ScrollArea when an external virtualizer owns scrolling. */
 function ComboboxListVirtualized({ className, ...props }: ComboboxPrimitive.List.Props) {
   return (
     <ComboboxPrimitive.List

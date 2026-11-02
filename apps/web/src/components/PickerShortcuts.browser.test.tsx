@@ -100,7 +100,6 @@ function RefPicker() {
         filteredItems={items.filter((item) => item.includes(query))}
         value={selected}
         query={query}
-        resultsQuery={query}
         onQueryChange={setQuery}
         open={open}
         onOpenChange={setOpen}
@@ -193,6 +192,22 @@ describe.each(["toolbar", "panel"] as const)("host picker in %s", (displayMode) 
     expect((await pressNumber("4")).defaultPrevented).toBe(false);
     expect(screen.container.querySelector("output")!.textContent).toBe("laptop");
   });
+});
+
+it("numbers the add action when the project is on one host", async () => {
+  await using _test = await setupTest();
+  const onAddToMachine = vi.fn();
+  await screen.rerender(
+    <BranchToolbarEnvironmentSelector
+      envLocked={false}
+      environmentId={environments[0]!.environmentId}
+      availableEnvironments={[environments[0]!]}
+      onAddToMachine={onAddToMachine}
+    />,
+  );
+  await openPicker("Run on");
+  expect((await pressNumber("2")).defaultPrevented).toBe(true);
+  expect(onAddToMachine).toHaveBeenCalledOnce();
 });
 
 it("numbers enabled refs, skips actions, and follows the filtered branch list", async () => {

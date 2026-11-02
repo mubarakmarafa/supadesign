@@ -212,7 +212,12 @@ it.effect(
           getLimitRecoveryCandidates: () => Effect.die("unused getLimitRecoveryCandidates"),
           getQuestionAutoDismissCandidates: () =>
             Effect.die("unused getQuestionAutoDismissCandidates"),
+          getLimitRecoveryWakeAt: () => Effect.die("unused getLimitRecoveryWakeAt"),
           getShellSnapshot: () => Effect.die("unused getShellSnapshot"),
+          listActiveSubagentThreadIds: () => Effect.die("unused listActiveSubagentThreadIds"),
+          countThreads: () => Effect.die("unused countThreads"),
+          listActiveShellIndex: () => Effect.die("unused listActiveShellIndex"),
+          listOlderDoneThreads: () => Effect.die("unused listOlderDoneThreads"),
           readShellSnapshot: () => Effect.die("unused readShellSnapshot"),
           getThreadShell: () => Effect.die("unused getThreadShell"),
           getThread: () => Ref.get(projection).pipe(Effect.map((state) => state.thread)),
@@ -233,6 +238,7 @@ it.effect(
           getThreadHistoryPage: () => Effect.die("unused"),
           getTimelinePage: () => Effect.die("Unused timeline read"),
           getMessageCount: () => Effect.die("unused message count"),
+          getSubagentCount: () => Effect.die("unused subagent count"),
           getNextTurnItemOrdinal: () => Effect.die("unused ordinal read"),
           getTurnItem: () => Effect.die("unused turn item read"),
           getThreadRecords: () => Effect.die("unused record read"),
@@ -261,6 +267,7 @@ it.effect(
           getRunMessage: () => Effect.die("not used"),
           isNodeStored: () => Effect.die("not used"),
           canStartQueuedRun: () => Effect.die("not used"),
+          getHeldQueuedRuns: () => Effect.die("not used"),
           getRecoveryThreadIds: () => Effect.die("unused getRecoveryThreadIds"),
           getUnreadableThreadIds: () => Effect.die("unused getUnreadableThreadIds"),
           getThreadSnapshot: () => Effect.die("unused getThreadSnapshot"),
@@ -281,6 +288,8 @@ it.effect(
           closeInstance: () => Effect.void,
           release: () => Effect.void,
           detach: () => Effect.void,
+          otherWorkingThreads: () => Effect.succeed([]),
+          releaseUnlessBusy: () => Effect.succeed(true),
         }),
       );
       const layerControl = ProviderTurnControlService.layer.pipe(

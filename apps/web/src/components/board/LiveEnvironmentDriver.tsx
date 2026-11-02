@@ -24,7 +24,7 @@ import { liveEnvironment } from "../../state/liveEnvironment";
 import { useEnvironmentScope } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { resolveThreadRouteRef } from "../../threadRoutes";
-import { isSidebarSubagentThread } from "../Sidebar.logic";
+import { isSidebarHiddenThread } from "../Sidebar.logic";
 import { useLiveEnvironmentSupported, useProjectLiveEnvironments } from "./liveEnvironmentState";
 
 /** The last card each project was told to make live, so a view only reports changes. */
@@ -104,11 +104,12 @@ function ProjectLiveEnvironmentDriver({
   const board = project?.board ?? null;
   const desired = useMemo(() => {
     const cards = threads.filter(
-      (thread) => thread.deletedAt === null && !isSidebarSubagentThread(thread),
+      (thread) => thread.deletedAt === null && !isSidebarHiddenThread(thread),
     );
     return desiredLiveCardId(board, resolveBoardColumns(board, cards), openedThreadId);
   }, [board, openedThreadId, threads]);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- asks the server over RPC to move the project's one live environment to the desired card whenever that card changes
   useEffect(() => {
     if (!supported || !canOperate || !bootstrapped || project === null) return;
     if (desired === undefined) return;

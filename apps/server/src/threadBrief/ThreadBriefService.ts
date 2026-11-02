@@ -182,292 +182,289 @@ export const briefTurnContext = (record: StoredBrief): TurnContextEntry | null =
   };
 };
 
-export const make = (ops: ThreadBriefOps) =>
-  Effect.gen(function* () {
-    const records = new Map<ThreadId, StoredBrief>();
-    for (const record of yield* ops.load) {
-      if (record.versions.length > 0 || record.decisions.length > 0) {
-        records.set(record.threadId, record);
-      }
+export const make = Effect.fn("make")(function* (ops: ThreadBriefOps) {
+  const records = new Map<ThreadId, StoredBrief>();
+  for (const record of yield* ops.load) {
+    if (record.versions.length > 0 || record.decisions.length > 0) {
+      records.set(record.threadId, record);
     }
-    const listeners = new Set<{
-      readonly projectId: ProjectId;
-      readonly listener: (list: ThreadBriefList) => Effect.Effect<void>;
-    }>();
-    const lock = yield* Semaphore.make(1);
-    const locked = <A, E>(effect: Effect.Effect<A, E>) => lock.withPermits(1)(effect);
+  }
+  const listeners = new Set<{
+    readonly projectId: ProjectId;
+    readonly listener: (list: ThreadBriefList) => Effect.Effect<void>;
+  }>();
+  const lock = yield* Semaphore.make(1);
+  const locked = <A, E>(effect: Effect.Effect<A, E>) => lock.withPermits(1)(effect);
 
-    const listFor = (projectId: ProjectId): ThreadBriefList =>
-      records
-        .values()
-        .filter((record) => record.projectId === projectId)
-        .map(toThreadBrief)
-        .filter(isVisible)
-        .toArray();
+  const listFor = (projectId: ProjectId): ThreadBriefList =>
+    records
+      .values()
+      .filter((record) => record.projectId === projectId)
+      .map(toThreadBrief)
+      .filter(isVisible)
+      .toArray();
 
-    const commit = (projectId: ProjectId) =>
+  const commit = Effect.fn("commit")(function* (projectId: ProjectId) {
+    yield* ops.save(records.values().toArray());
+    yield* Effect.forEach(
+      listeners,
+      (subscription) =>
+        subscription.projectId === projectId
+          ? subscription.listener(listFor(projectId))
+          : Effect.void,
+      { discard: true },
+    );
+  });
+
+  /**
+   * Applies `change` to the thread's record under the lock and publishes it.
+   * Returning the record unchanged publishes nothing.
+   */
+  const modify = Effect.fn("modify")(function* <A>(
+    threadId: ThreadId,
+    change: (current: StoredBrief) => Effect.Effect<readonly [StoredBrief, A], ThreadBriefError>,
+  ) {
+    const projectId = yield* ops.projectOf(threadId);
+    return yield* locked(
       Effect.gen(function* () {
-        yield* ops.save(records.values().toArray());
-        yield* Effect.forEach(
-          listeners,
-          (subscription) =>
-            subscription.projectId === projectId
-              ? subscription.listener(listFor(projectId))
-              : Effect.void,
-          { discard: true },
-        );
-      });
+        const current = records.get(threadId) ?? {
+          threadId,
+          projectId,
+          versions: [],
+          decisions: [],
+        };
+        const [next, result] = yield* change(current);
+        if (next === current) return result;
+        records.set(threadId, next);
+        yield* commit(projectId);
+        return result;
+      }),
+    );
+  });
 
-    /**
-     * Applies `change` to the thread's record under the lock and publishes it.
-     * Returning the record unchanged publishes nothing.
-     */
-    const modify = <A>(
-      threadId: ThreadId,
-      change: (current: StoredBrief) => Effect.Effect<readonly [StoredBrief, A], ThreadBriefError>,
-    ) =>
+  const findDecision = (record: StoredBrief, decisionId: string) => {
+    const decision = record.decisions.find((candidate) => candidate.id === decisionId);
+    return decision === undefined
+      ? Effect.fail(fail("That decision no longer exists."))
+      : Effect.succeed(decision);
+  };
+
+  const replaceDecision = (record: StoredBrief, decision: StoredDecision): StoredBrief => ({
+    ...record,
+    decisions: record.decisions.map((candidate) =>
+      candidate.id === decision.id ? decision : candidate,
+    ),
+  });
+
+  const writeBrief = (threadId: ThreadId, text: string) =>
+    modify(threadId, (current) =>
       Effect.gen(function* () {
-        const projectId = yield* ops.projectOf(threadId);
-        return yield* locked(
-          Effect.gen(function* () {
-            const current = records.get(threadId) ?? {
-              threadId,
-              projectId,
-              versions: [],
-              decisions: [],
-            };
-            const [next, result] = yield* change(current);
-            if (next === current) return result;
-            records.set(threadId, next);
-            yield* commit(projectId);
-            return result;
-          }),
-        );
-      });
+        const latest = current.versions.at(-1)?.text ?? "";
+        if (text === latest) return [current, false] as const;
+        const editedAt = yield* ops.now;
+        return [{ ...current, versions: [...current.versions, { text, editedAt }] }, true] as const;
+      }),
+    );
 
-    const findDecision = (record: StoredBrief, decisionId: string) => {
-      const decision = record.decisions.find((candidate) => candidate.id === decisionId);
-      return decision === undefined
-        ? Effect.fail(fail("That decision no longer exists."))
-        : Effect.succeed(decision);
-    };
+  const setBrief: ThreadBriefService["Service"]["setBrief"] = Effect.fn("setBrief")(
+    function* (input) {
+      yield* designerOnly(input.by, "Only the designer can change the brief.");
+      const text = briefText(input.text);
+      if (text.length > THREAD_BRIEF_MAX_LENGTH) {
+        return yield* fail(`A brief is at most ${THREAD_BRIEF_MAX_LENGTH} characters.`);
+      }
+      return yield* writeBrief(input.threadId, text);
+    },
+  );
 
-    const replaceDecision = (record: StoredBrief, decision: StoredDecision): StoredBrief => ({
-      ...record,
-      decisions: record.decisions.map((candidate) =>
-        candidate.id === decision.id ? decision : candidate,
-      ),
-    });
-
-    const writeBrief = (threadId: ThreadId, text: string) =>
-      modify(threadId, (current) =>
+  const seedBrief: ThreadBriefService["Service"]["seedBrief"] = Effect.fn("seedBrief")(
+    function* (threadId) {
+      const seed = yield* ops.seedText(threadId);
+      const text = seed === null ? "" : briefText(seed).slice(0, THREAD_BRIEF_MAX_LENGTH).trim();
+      if (text.length === 0) {
+        return yield* fail("This card has no note or first message to start the brief from.");
+      }
+      yield* modify(threadId, (current) =>
         Effect.gen(function* () {
-          const latest = current.versions.at(-1)?.text ?? "";
-          if (text === latest) return [current, false] as const;
+          // Never overwrite a brief written meanwhile, on this client or another.
+          if ((current.versions.at(-1)?.text ?? "").length > 0) {
+            return yield* fail("This card already has a brief.");
+          }
           const editedAt = yield* ops.now;
           return [
             { ...current, versions: [...current.versions, { text, editedAt }] },
-            true,
+            undefined,
           ] as const;
         }),
       );
+    },
+  );
 
-    const setBrief: ThreadBriefService["Service"]["setBrief"] = (input) =>
-      Effect.gen(function* () {
-        yield* designerOnly(input.by, "Only the designer can change the brief.");
-        const text = briefText(input.text);
-        if (text.length > THREAD_BRIEF_MAX_LENGTH) {
-          return yield* fail(`A brief is at most ${THREAD_BRIEF_MAX_LENGTH} characters.`);
-        }
-        return yield* writeBrief(input.threadId, text);
-      });
-
-    const seedBrief: ThreadBriefService["Service"]["seedBrief"] = (threadId) =>
-      Effect.gen(function* () {
-        const seed = yield* ops.seedText(threadId);
-        const text = seed === null ? "" : briefText(seed).slice(0, THREAD_BRIEF_MAX_LENGTH).trim();
-        if (text.length === 0) {
-          return yield* fail("This card has no note or first message to start the brief from.");
-        }
-        yield* modify(threadId, (current) =>
-          Effect.gen(function* () {
-            // Never overwrite a brief written meanwhile, on this client or another.
-            if ((current.versions.at(-1)?.text ?? "").length > 0) {
-              return yield* fail("This card already has a brief.");
+  const addDecision: ThreadBriefService["Service"]["addDecision"] = Effect.fn("addDecision")(
+    function* (input) {
+      const text = decisionText(input.text);
+      if (text.length === 0) return yield* fail("A decision needs some words.");
+      if (text.length > THREAD_DECISION_MAX_LENGTH) {
+        return yield* fail(`A decision is at most ${THREAD_DECISION_MAX_LENGTH} characters.`);
+      }
+      return yield* modify(input.threadId, (current) =>
+        Effect.gen(function* () {
+          const open = current.decisions.filter(isOpen);
+          const existing = open.find((decision) => sameText(decision.text, text));
+          if (existing !== undefined) {
+            const { rejectedAt: _rejectedAt, ...decision } = existing;
+            if (input.by === "agent" || existing.status !== "suggested") {
+              return [current, decision] as const;
             }
-            const editedAt = yield* ops.now;
-            return [
-              { ...current, versions: [...current.versions, { text, editedAt }] },
-              undefined,
-            ] as const;
-          }),
-        );
-      });
-
-    const addDecision: ThreadBriefService["Service"]["addDecision"] = (input) =>
-      Effect.gen(function* () {
-        const text = decisionText(input.text);
-        if (text.length === 0) return yield* fail("A decision needs some words.");
-        if (text.length > THREAD_DECISION_MAX_LENGTH) {
-          return yield* fail(`A decision is at most ${THREAD_DECISION_MAX_LENGTH} characters.`);
-        }
-        return yield* modify(input.threadId, (current) =>
-          Effect.gen(function* () {
-            const open = current.decisions.filter(isOpen);
-            const existing = open.find((decision) => sameText(decision.text, text));
-            if (existing !== undefined) {
-              const { rejectedAt: _rejectedAt, ...decision } = existing;
-              if (input.by === "agent" || existing.status !== "suggested") {
-                return [current, decision] as const;
-              }
-              // The designer writing down a waiting suggestion accepts it.
-              const accepted: ThreadDecision = {
-                ...decision,
-                status: "accepted",
-                updatedAt: yield* ops.now,
-              };
-              return [
-                replaceDecision(current, { ...accepted, rejectedAt: null }),
-                accepted,
-              ] as const;
-            }
-            if (input.by === "agent") {
-              if (
-                current.decisions.some(
-                  (decision) => !isOpen(decision) && sameText(decision.text, text),
-                )
-              ) {
-                return yield* fail(
-                  "The designer already turned this decision down. Don't suggest it again.",
-                );
-              }
-              const waiting = open.filter((decision) => decision.status === "suggested").length;
-              if (waiting >= THREAD_DECISION_SUGGESTIONS_MAX) {
-                return yield* fail(
-                  `${waiting} suggestions are already waiting on the designer. Suggest more once they've been settled.`,
-                );
-              }
-            }
-            if (open.length >= THREAD_DECISIONS_MAX) {
-              return yield* fail(
-                `This card already has ${THREAD_DECISIONS_MAX} decisions. Remove one before adding another.`,
-              );
-            }
-            const now = yield* ops.now;
-            const decision: ThreadDecision = {
-              id: ThreadDecisionId.make(yield* ops.newId),
-              text,
-              status: input.by === "designer" ? "accepted" : "suggested",
-              source: input.by,
-              createdAt: now,
-              updatedAt: now,
-            };
-            return [
-              { ...current, decisions: [...current.decisions, { ...decision, rejectedAt: null }] },
-              decision,
-            ] as const;
-          }),
-        );
-      });
-
-    const acceptDecision: ThreadBriefService["Service"]["acceptDecision"] = (input) =>
-      Effect.gen(function* () {
-        yield* designerOnly(
-          input.by,
-          "Only the designer can accept a decision. Suggest it and let them decide.",
-        );
-        const reworded = input.text === undefined ? undefined : decisionText(input.text);
-        if (reworded !== undefined && reworded.length === 0) {
-          return yield* fail("A decision needs some words.");
-        }
-        if (reworded !== undefined && reworded.length > THREAD_DECISION_MAX_LENGTH) {
-          return yield* fail(`A decision is at most ${THREAD_DECISION_MAX_LENGTH} characters.`);
-        }
-        return yield* modify(input.threadId, (current) =>
-          Effect.gen(function* () {
-            const found = yield* findDecision(current, input.decisionId);
-            if (!isOpen(found)) return yield* fail("That decision was turned down.");
-            const changesText = reworded !== undefined && reworded !== found.text;
-            const { rejectedAt: _rejectedAt, ...unchanged } = found;
-            if (found.status !== "suggested" && !changesText) return [current, unchanged] as const;
-            const decision: StoredDecision = {
-              ...found,
-              text: changesText ? reworded : found.text,
-              // An agent's suggestion in the designer's words is marked as theirs.
-              status:
-                found.source === "agent" && (changesText || found.status === "edited")
-                  ? "edited"
-                  : "accepted",
+            // The designer writing down a waiting suggestion accepts it.
+            const accepted: ThreadDecision = {
+              ...decision,
+              status: "accepted",
               updatedAt: yield* ops.now,
             };
-            const { rejectedAt: _, ...result } = decision;
-            return [replaceDecision(current, decision), result] as const;
-          }),
-        );
-      });
-
-    const rejectDecision: ThreadBriefService["Service"]["rejectDecision"] = (input) =>
-      Effect.gen(function* () {
-        yield* designerOnly(input.by, "Only the designer can turn a decision down.");
-        yield* modify(input.threadId, (current) =>
-          Effect.gen(function* () {
-            const found = yield* findDecision(current, input.decisionId);
-            if (!isOpen(found)) return [current, undefined] as const;
-            const rejectedAt = yield* ops.now;
-            return [replaceDecision(current, { ...found, rejectedAt }), undefined] as const;
-          }),
-        );
-      });
-
-    const restoreDecision: ThreadBriefService["Service"]["restoreDecision"] = (input) =>
-      Effect.gen(function* () {
-        yield* designerOnly(input.by, "Only the designer can bring a decision back.");
-        yield* modify(input.threadId, (current) =>
-          Effect.gen(function* () {
-            const found = yield* findDecision(current, input.decisionId);
-            if (isOpen(found)) return [current, undefined] as const;
-            return [replaceDecision(current, { ...found, rejectedAt: null }), undefined] as const;
-          }),
-        );
-      });
-
-    const get: ThreadBriefService["Service"]["get"] = (threadId) =>
-      Effect.sync(() => {
-        const record = records.get(threadId);
-        return record === undefined ? null : toThreadBrief(record);
-      });
-
-    const turnContext: ThreadBriefService["Service"]["turnContext"] = (threadId) =>
-      Effect.sync(() => {
-        const record = records.get(threadId);
-        return record === undefined ? null : briefTurnContext(record);
-      });
-
-    const versions: ThreadBriefService["Service"]["versions"] = (threadId) =>
-      Effect.sync(() => records.get(threadId)?.versions ?? []);
-
-    const subscribe: ThreadBriefService["Service"]["subscribe"] = (projectId, listener) =>
-      locked(
-        Effect.gen(function* () {
-          const subscription = { projectId, listener };
-          listeners.add(subscription);
-          yield* listener(listFor(projectId));
-          return () => {
-            listeners.delete(subscription);
+            return [replaceDecision(current, { ...accepted, rejectedAt: null }), accepted] as const;
+          }
+          if (input.by === "agent") {
+            if (
+              current.decisions.some(
+                (decision) => !isOpen(decision) && sameText(decision.text, text),
+              )
+            ) {
+              return yield* fail(
+                "The designer already turned this decision down. Don't suggest it again.",
+              );
+            }
+            const waiting = open.filter((decision) => decision.status === "suggested").length;
+            if (waiting >= THREAD_DECISION_SUGGESTIONS_MAX) {
+              return yield* fail(
+                `${waiting} suggestions are already waiting on the designer. Suggest more once they've been settled.`,
+              );
+            }
+          }
+          if (open.length >= THREAD_DECISIONS_MAX) {
+            return yield* fail(
+              `This card already has ${THREAD_DECISIONS_MAX} decisions. Remove one before adding another.`,
+            );
+          }
+          const now = yield* ops.now;
+          const decision: ThreadDecision = {
+            id: ThreadDecisionId.make(yield* ops.newId),
+            text,
+            status: input.by === "designer" ? "accepted" : "suggested",
+            source: input.by,
+            createdAt: now,
+            updatedAt: now,
           };
+          return [
+            { ...current, decisions: [...current.decisions, { ...decision, rejectedAt: null }] },
+            decision,
+          ] as const;
         }),
       );
+    },
+  );
 
-    return ThreadBriefService.of({
-      setBrief,
-      seedBrief,
-      addDecision,
-      acceptDecision,
-      rejectDecision,
-      restoreDecision,
-      get,
-      turnContext,
-      versions,
-      subscribe,
-    });
+  const acceptDecision: ThreadBriefService["Service"]["acceptDecision"] = Effect.fn(
+    "acceptDecision",
+  )(function* (input) {
+    yield* designerOnly(
+      input.by,
+      "Only the designer can accept a decision. Suggest it and let them decide.",
+    );
+    const reworded = input.text === undefined ? undefined : decisionText(input.text);
+    if (reworded !== undefined && reworded.length === 0) {
+      return yield* fail("A decision needs some words.");
+    }
+    if (reworded !== undefined && reworded.length > THREAD_DECISION_MAX_LENGTH) {
+      return yield* fail(`A decision is at most ${THREAD_DECISION_MAX_LENGTH} characters.`);
+    }
+    return yield* modify(input.threadId, (current) =>
+      Effect.gen(function* () {
+        const found = yield* findDecision(current, input.decisionId);
+        if (!isOpen(found)) return yield* fail("That decision was turned down.");
+        const changesText = reworded !== undefined && reworded !== found.text;
+        const { rejectedAt: _rejectedAt, ...unchanged } = found;
+        if (found.status !== "suggested" && !changesText) return [current, unchanged] as const;
+        const decision: StoredDecision = {
+          ...found,
+          text: changesText ? reworded : found.text,
+          // An agent's suggestion in the designer's words is marked as theirs.
+          status:
+            found.source === "agent" && (changesText || found.status === "edited")
+              ? "edited"
+              : "accepted",
+          updatedAt: yield* ops.now,
+        };
+        const { rejectedAt: _, ...result } = decision;
+        return [replaceDecision(current, decision), result] as const;
+      }),
+    );
   });
+
+  const rejectDecision: ThreadBriefService["Service"]["rejectDecision"] = Effect.fn(
+    "rejectDecision",
+  )(function* (input) {
+    yield* designerOnly(input.by, "Only the designer can turn a decision down.");
+    yield* modify(input.threadId, (current) =>
+      Effect.gen(function* () {
+        const found = yield* findDecision(current, input.decisionId);
+        if (!isOpen(found)) return [current, undefined] as const;
+        const rejectedAt = yield* ops.now;
+        return [replaceDecision(current, { ...found, rejectedAt }), undefined] as const;
+      }),
+    );
+  });
+
+  const restoreDecision: ThreadBriefService["Service"]["restoreDecision"] = Effect.fn(
+    "restoreDecision",
+  )(function* (input) {
+    yield* designerOnly(input.by, "Only the designer can bring a decision back.");
+    yield* modify(input.threadId, (current) =>
+      Effect.gen(function* () {
+        const found = yield* findDecision(current, input.decisionId);
+        if (isOpen(found)) return [current, undefined] as const;
+        return [replaceDecision(current, { ...found, rejectedAt: null }), undefined] as const;
+      }),
+    );
+  });
+
+  const get: ThreadBriefService["Service"]["get"] = (threadId) =>
+    Effect.sync(() => {
+      const record = records.get(threadId);
+      return record === undefined ? null : toThreadBrief(record);
+    });
+
+  const turnContext: ThreadBriefService["Service"]["turnContext"] = (threadId) =>
+    Effect.sync(() => {
+      const record = records.get(threadId);
+      return record === undefined ? null : briefTurnContext(record);
+    });
+
+  const versions: ThreadBriefService["Service"]["versions"] = (threadId) =>
+    Effect.sync(() => records.get(threadId)?.versions ?? []);
+
+  const subscribe: ThreadBriefService["Service"]["subscribe"] = (projectId, listener) =>
+    locked(
+      Effect.gen(function* () {
+        const subscription = { projectId, listener };
+        listeners.add(subscription);
+        yield* listener(listFor(projectId));
+        return () => {
+          listeners.delete(subscription);
+        };
+      }),
+    );
+
+  return ThreadBriefService.of({
+    setBrief,
+    seedBrief,
+    addDecision,
+    acceptDecision,
+    rejectDecision,
+    restoreDecision,
+    get,
+    turnContext,
+    versions,
+    subscribe,
+  });
+});

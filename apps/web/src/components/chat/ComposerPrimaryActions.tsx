@@ -1,20 +1,18 @@
-import { memo, type MouseEventHandler, type PointerEventHandler } from "react";
+import { memo, type ComponentProps, type MouseEventHandler, type PointerEventHandler } from "react";
 import {
   CheckIcon,
   ChevronLeftIcon,
   CornerUpRightIcon,
   ListPlusIcon,
   PlayIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import type { ResolvedKeybindingsConfig } from "@supaterm/contracts";
 import type { ClientSettings } from "@supaterm/contracts/settings";
 import { useSoftwareKeyboardOpen } from "~/hooks/useSoftwareKeyboardOpen";
-import { useEnvironmentIdentificationMode } from "~/hooks/useSettings";
 import { cn } from "~/lib/utils";
 import { composerSendShortcutLabels, type ComposerSendAction } from "../../composer-logic";
 import { shortcutLabelForCommand } from "../../keybindings";
 import { useShortcutModifierState } from "../../shortcutModifierState";
-import { StageBackdropButtonArt, useSidebarStageBackdrop } from "../SidebarStageBackdrop";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { Tooltip, TooltipPopup, TooltipShortcutLabel, TooltipTrigger } from "../ui/tooltip";
@@ -44,7 +42,6 @@ interface ComposerPrimaryActionsProps {
   canSteer?: boolean;
   isSendBusy: boolean;
   sendDisabledReason: string | null;
-  isConnecting: boolean;
   isEnvironmentUnavailable: boolean;
   isPreparingWorktree: boolean;
   hasSendableContent: boolean;
@@ -82,6 +79,29 @@ const formatPendingPrimaryActionLabel = (input: {
 // message-action pill, so they are composer-owned buttons rather than restyled Buttons.
 const messageActionPillClassName =
   "inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-message-action font-medium text-base text-message-action-foreground shadow-xs shadow-message-action/24 outline-none hover:bg-message-action-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-64 disabled:shadow-none sm:text-sm";
+
+export function ComposerSendButton(props: ComponentProps<"button">) {
+  return (
+    <button
+      {...props}
+      className="flex h-9 w-9 items-center justify-center rounded-full bg-message-action text-message-action-foreground shadow-xs transition-[scale,background-color] duration-150 ease-out motion-reduce:transition-none enabled:cursor-pointer enabled:shadow-message-action/24 enabled:inset-shadow-control-highlight hover:scale-105 hover:bg-message-action-hover active:inset-shadow-control-pressed active:shadow-none disabled:pointer-events-none disabled:opacity-64 disabled:shadow-none disabled:hover:scale-100 sm:h-8 sm:w-8 [&_svg]:pointer-events-none"
+    />
+  );
+}
+
+export function ComposerSendArrowIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path
+        d="M7 11.5V2.5M7 2.5L3 6.5M7 2.5L11 6.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 const preventPointerFocus: PointerEventHandler<HTMLElement> = (event) => {
   event.preventDefault();
@@ -159,7 +179,6 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   canSteer = true,
   isSendBusy,
   sendDisabledReason,
-  isConnecting,
   isEnvironmentUnavailable,
   isPreparingWorktree,
   hasSendableContent,
@@ -177,7 +196,6 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   const pointerFocusProps = preserveComposerFocusOnPointerDown
     ? { onPointerDown: preventPointerFocus }
     : undefined;
-  const environmentIdentificationMode = useEnvironmentIdentificationMode();
   const shortcutModifiers = useShortcutModifierState();
   const isQueuing =
     !isEditingQueuedMessage &&
@@ -187,7 +205,6 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
       canSteer,
       alternateModifier: shortcutModifiers.metaKey || shortcutModifiers.ctrlKey,
     }) === "queue";
-  const showStageBackdrop = useSidebarStageBackdrop(environmentIdentificationMode === "artwork");
 
   const renderStopGenerationButton = (insidePendingAction: boolean) => (
     <Tooltip key="interrupt">
@@ -286,46 +303,32 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   const submitStatus = isEnvironmentUnavailable
     ? "Environment disconnected"
     : (sendDisabledReason ??
-      (isConnecting
-        ? "Connecting"
-        : isPreparingWorktree
-          ? "Preparing worktree"
-          : isSendBusy
-            ? isEditingQueuedMessage
-              ? "Updating queued message"
-              : "Submitting message"
-            : null));
+      (isPreparingWorktree
+        ? "Preparing worktree"
+        : isSendBusy
+          ? isEditingQueuedMessage
+            ? "Updating queued message"
+            : "Submitting message"
+          : null));
 
   const sendButton = (
-    <button
+    <ComposerSendButton
       type={showResume ? "button" : "submit"}
-      className={cn(
-        "relative isolate flex h-9 w-9 items-center justify-center overflow-hidden rounded-full shadow-xs transition-[scale,background-color,filter] duration-150 ease-out motion-reduce:transition-none enabled:cursor-pointer enabled:inset-shadow-control-highlight hover:scale-105 active:inset-shadow-control-pressed active:shadow-none disabled:pointer-events-none disabled:opacity-64 disabled:shadow-none disabled:hover:scale-100 sm:h-8 sm:w-8 [&_svg]:pointer-events-none",
-        showStageBackdrop
-          ? "bg-transparent text-white enabled:shadow-black/24 enabled:hover:brightness-110"
-          : "bg-message-action text-message-action-foreground enabled:shadow-message-action/24 hover:bg-message-action-hover",
-      )}
       {...pointerFocusProps}
       onClick={showResume ? onResume : onSubmitMessage}
       disabled={
         isSendBusy ||
         !(showResume ? canOperateThread : canQueueMessage) ||
         sendDisabledReason !== null ||
-        isConnecting ||
         isEnvironmentUnavailable ||
         (!hasSendableContent && !showResume)
       }
       aria-label={submitStatus ?? submitLabel}
     >
-      {showStageBackdrop ? (
-        <span className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          <StageBackdropButtonArt />
-        </span>
-      ) : null}
-      {isConnecting || isSendBusy ? (
+      {isSendBusy ? (
         <Spinner size="sm" aria-hidden="true" />
       ) : showResume ? (
-        <PlayIcon className="size-4 fill-current" aria-hidden="true" />
+        <PlayIcon weight="fill" className="size-4" aria-hidden="true" />
       ) : isEditingQueuedMessage ? (
         <CheckIcon className="size-4" aria-hidden="true" />
       ) : isRunning ? (
@@ -335,17 +338,9 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
           <CornerUpRightIcon className="size-4" aria-hidden="true" />
         )
       ) : (
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <path
-            d="M7 11.5V2.5M7 2.5L3 6.5M7 2.5L11 6.5"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <ComposerSendArrowIcon />
       )}
-    </button>
+    </ComposerSendButton>
   );
 
   return (

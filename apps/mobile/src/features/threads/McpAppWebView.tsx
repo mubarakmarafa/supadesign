@@ -90,10 +90,24 @@ export function ThreadMcpApp(props: {
   readonly height?: number;
 }) {
   const [height, setHeight] = useState(MCP_APP_INLINE_MAX_HEIGHT);
+  const [documentKey, setDocumentKeyState] = useState(0);
+  const [uri, setUri] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [navigatedAway, setNavigatedAway] = useState(false);
+  const [generation, setGeneration] = useState(0);
+  const [crashed, setCrashed] = useState(false);
+  // A different app needs a new document even when its asset URL is unchanged,
+  // so the WebView key moves on with the document key, not only the URL.
   const [app, setApp] = useState(props.app);
   if (!mcpAppReferencesEqual(app, props.app)) {
     setApp(props.app);
     setHeight(MCP_APP_INLINE_MAX_HEIGHT);
+    setUri(null);
+    setLoaded(false);
+    setNavigatedAway(false);
+    setGeneration(0);
+    setCrashed(false);
+    setDocumentKeyState((value) => value + 1);
   }
   const fullscreen = props.displayMode === "fullscreen";
   const navigation = useNavigation();
@@ -103,41 +117,27 @@ export function ThreadMcpApp(props: {
 
   const [presentedFullscreen, setPresentedFullscreen] = useState(false);
 
-  const [documentKey, setDocumentKeyState] = useState(0);
-
   const { themeId, themeAppearance, themeVariables, systemColorsActive } =
     useAppearancePreferences();
-  const theme = useMemo(
-    () =>
-      mobileHtmlRenderTheme({
-        themeId,
-        appearance: themeAppearance,
-        variables: themeVariables,
-        systemColors: systemColorsActive,
-        platform: Platform.OS,
-      }),
-    [themeId, themeAppearance, themeVariables, systemColorsActive],
-  );
-  const resource = useMemo(
-    () => ({
-      _tag: "attachment" as const,
-      attachmentId: app.attachmentId,
-      fileName: mcpAppFileName(app),
-      mimeType: "text/html",
-      disposition: "inline" as const,
-      renderIntent: "mcp-app" as const,
-    }),
-    [app],
-  );
+  const theme = mobileHtmlRenderTheme({
+    themeId,
+    appearance: themeAppearance,
+    variables: themeVariables,
+    systemColors: systemColorsActive,
+    platform: Platform.OS,
+  });
+  const resource = {
+    _tag: "attachment" as const,
+    attachmentId: app.attachmentId,
+    fileName: mcpAppFileName(app),
+    mimeType: "text/html",
+    disposition: "inline" as const,
+    renderIntent: "mcp-app" as const,
+  };
   const asset = useAssetUrlState(props.environmentId, resource);
 
-  const [uri, setUri] = useState<string | null>(null);
   if (uri === null && asset._tag === "Success") setUri(asset.url);
-  const [loaded, setLoaded] = useState(false);
-  const [navigatedAway, setNavigatedAway] = useState(false);
 
-  const [generation, setGeneration] = useState(0);
-  const [crashed, setCrashed] = useState(false);
   const restart = () => {
     if (generation > 0) {
       setCrashed(true);
@@ -161,9 +161,11 @@ export function ThreadMcpApp(props: {
   };
 
   const openNewDocument = useRef(setDocumentKey);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- publishes the committed document reset to a ref read by the focus listener and MCP host callbacks
   useEffect(() => {
     openNewDocument.current = setDocumentKey;
   });
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- listens for navigation focus while the app is presented full screen to reopen the inline document
   useEffect(() => {
     if (!presentedFullscreen) return;
     return navigation.addListener("focus", () => {
@@ -215,9 +217,11 @@ export function ThreadMcpApp(props: {
     navigation,
   };
   const latest = useRef(live);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- publishes the committed props, theme and commands to a ref read by the MCP app host callbacks
   useEffect(() => {
     latest.current = live;
   });
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- requests the tool definition from the server for the MCP host context and drops stale replies
   useEffect(() => {
     let cancelled = false;
     void latest.current
@@ -238,6 +242,7 @@ export function ThreadMcpApp(props: {
   const hostRef = useRef<McpAppHost | null>(null);
   const userActive = useRef(false);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- creates the MCP app host bridged to the WebView for each document and tears it down on cleanup
   useEffect(() => {
     if (uri === null) return;
 
@@ -383,23 +388,22 @@ export function ThreadMcpApp(props: {
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- A restarted view needs a new host.
   }, [uri, app, generation, documentKey]);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- resends host context to the MCP app host after commits that change theme, insets, tool or size
   useEffect(() => {
     hostRef.current?.updateHostContext();
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Context changes trigger a resend.
   }, [theme, props.width, props.height, insets, toolDefinition]);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- pushes the stored tool call to the MCP app host for each new call or document
   useEffect(() => {
     if (toolCall !== undefined) hostRef.current?.setToolCall(toolCall);
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Each new document needs the call.
   }, [toolCall, uri, generation, documentKey]);
 
-  const source = useMemo(
-    () =>
-      uri === null
-        ? null
-        : { html: outerDocument(uri, mcpAppAllowAttribute(app.permissions), secret) },
-    [uri, app.permissions, secret],
-  );
+  const source =
+    uri === null
+      ? null
+      : { html: outerDocument(uri, mcpAppAllowAttribute(app.permissions), secret) };
 
   if (presentedFullscreen) {
     return (
@@ -445,7 +449,7 @@ export function ThreadMcpApp(props: {
         </View>
       ) : uri !== null && !crashed ? (
         <WebView<object>
-          key={`${documentKey}:${generation}`}
+          key={`${documentKey}:${generation}:${uri}`}
           ref={webView}
           onContentProcessDidTerminate={restart}
           onRenderProcessGone={restart}

@@ -4,7 +4,7 @@ import { CollapsibleSectionHeader } from "../ui/collapsible-section-header";
 import { discardComposerDraft } from "../../lib/discardComposerDraft";
 import { replaceComposerContextReferences } from "@supaterm/shared/composerContextReferences";
 import * as Schema from "effect/Schema";
-import { SquarePenIcon } from "lucide-react";
+import { SquarePenIcon } from "@supaterm/icons";
 import {
   memo,
   useState,
@@ -30,13 +30,8 @@ import { SidebarDraftDiscardButton, draftPenClassName } from "./SidebarThreadRow
 
 const DRAFTS_SHELF_EXPANDED_KEY = "supaterm:sidebar:drafts-expanded";
 
-// One unsent draft session the user has invested content in. Two lines,
-// with the typed prompt above the branch or project name. All the draft's
-// settings (model, env mode, branch, worktree) still travel with it —
-// clicking is a plain navigation to /draft/$draftId, which touches nothing.
-// While the draft is open the row renders a frozen snapshot (see
-// SidebarDraftBlock); memoized so per-keystroke block re-renders skip it
-// entirely.
+// Clicking is a plain navigation to /draft/$draftId that touches none of the draft's settings.
+// Memoized so per-keystroke block re-renders skip it while the open draft shows a frozen snapshot.
 const SidebarDraftRow = memo(function SidebarDraftRow(props: {
   draftId: DraftId;
   composer: ComposerThreadDraftState;
@@ -102,8 +97,9 @@ const SidebarDraftRow = memo(function SidebarDraftRow(props: {
       <Tooltip>
         <TooltipTrigger
           render={<div />}
-          role="button"
-          tabIndex={0}
+          role="treeitem"
+          tabIndex={-1}
+          data-sidebar-row={`draft:${draftId}`}
           aria-label={accessibility.label}
           aria-current={accessibility.current}
           data-testid="sidebar-draft-row"
@@ -196,7 +192,15 @@ export const SidebarDraftBlock = memo(function SidebarDraftBlock(props: {
   );
   const paneDraftIds = new Set(paneDraftIdList);
   const draftThreadsByThreadKey = useComposerDraftStore((store) => store.draftThreadsByThreadKey);
-  const draftsByThreadKey = useComposerDraftStore((store) => store.draftsByThreadKey);
+  const draftsByThreadKey = useComposerDraftStore(
+    useShallow((store) =>
+      Object.fromEntries(
+        Object.keys(store.draftThreadsByThreadKey).map(
+          (key) => [key, store.draftsByThreadKey[key]] as const,
+        ),
+      ),
+    ),
+  );
   const [frozenActive, setFrozenActive] = useState<{
     routeDraftId: string | null;
     row: SidebarDraftRowData | null;
@@ -208,7 +212,11 @@ export const SidebarDraftBlock = memo(function SidebarDraftBlock(props: {
       const session = draftThreadsByThreadKey[draftId];
       const composer = draftsByThreadKey[draftId];
       row =
-        session && session.promotedTo == null && composer && composerDraftHasUserContent(composer)
+        session &&
+        session.promotedTo == null &&
+        session.sideChatOf === undefined &&
+        composer &&
+        composerDraftHasUserContent(composer)
           ? { draftId, session, composer }
           : null;
     }
@@ -217,7 +225,8 @@ export const SidebarDraftBlock = memo(function SidebarDraftBlock(props: {
   const drafts = (() => {
     const rows: SidebarDraftRowData[] = [];
     for (const [draftKey, session] of Object.entries(draftThreadsByThreadKey)) {
-      if (session.promotedTo != null) {
+      // Side chat drafts live in their parent's panes, like the side chats they become.
+      if (session.promotedTo != null || session.sideChatOf !== undefined) {
         continue;
       }
       if (

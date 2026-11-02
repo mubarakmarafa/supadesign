@@ -8,6 +8,7 @@ import {
   AuthSettingsWriteScope,
   AuthSourceControlWriteScope,
   AuthProvidersManageScope,
+  AuthTerminalOperateScope,
   type AuthEnvironmentScope,
 } from "./auth.ts";
 import { ORCHESTRATION_V2_WS_METHODS } from "./orchestrationV2.ts";
@@ -17,6 +18,8 @@ import { WS_METHODS } from "./rpc.ts";
 export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.prepareRelay]: AuthAccessWriteScope,
   [WS_METHODS.previewClose]: AuthPreviewOperateScope,
+  // Stopping a server signals its processes, as closing a terminal does.
+  [WS_METHODS.previewStopLocalServer]: AuthTerminalOperateScope,
   [WS_METHODS.serverRunStorageCleanup]: AuthSettingsWriteScope,
   [WS_METHODS.serverCheckOtlpEndpoint]: AuthSettingsWriteScope,
   [WS_METHODS.pullRequestsRunAction]: AuthSourceControlWriteScope,
@@ -32,6 +35,7 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.pullRequestsSetLabels]: AuthSourceControlWriteScope,
   // Writing a guide runs a model on this environment's providers, which reading one does not.
   [WS_METHODS.pullRequestsGenerateReviewGuide]: AuthOrchestrationOperateScope,
+  [WS_METHODS.projectsCreateFromThread]: AuthOrchestrationOperateScope,
   [WS_METHODS.sourceControlCloneRepository]: AuthSourceControlWriteScope,
   [WS_METHODS.sourceControlPublishRepository]: AuthSourceControlWriteScope,
   [WS_METHODS.projectCloneStart]: AuthSourceControlWriteScope,
@@ -70,16 +74,28 @@ export const CLIENT_GUARDED_RPC_SCOPES = {
   [WS_METHODS.vcsSwitchRef]: AuthSourceControlWriteScope,
   [WS_METHODS.vcsInit]: AuthSourceControlWriteScope,
 
+  // Starts an agent session on this environment that can read its logs and database.
+  [WS_METHODS.serverPrepareTriage]: AuthOrchestrationOperateScope,
   [WS_METHODS.scheduledTasksUpsert]: AuthOrchestrationOperateScope,
   [WS_METHODS.scheduledTasksSetEnabled]: AuthOrchestrationOperateScope,
   [WS_METHODS.scheduledTasksDelete]: AuthOrchestrationOperateScope,
   [WS_METHODS.scheduledTasksRunNow]: AuthOrchestrationOperateScope,
   [WS_METHODS.orchestrationSkillsInstall]: AuthProvidersManageScope,
   [WS_METHODS.orchestrationSkillsUninstall]: AuthProvidersManageScope,
+  // Transcribing spends the named provider account, like running a model does.
+  [WS_METHODS.transcriptionTranscribe]: AuthOrchestrationOperateScope,
+  [WS_METHODS.transcriptionCancel]: AuthOrchestrationOperateScope,
+  // A prepared upload can also send its transcript to a thread as the user's prompt.
+  [WS_METHODS.transcriptionPrepareUpload]: AuthOrchestrationOperateScope,
+  [WS_METHODS.transcriptionCancelUpload]: AuthOrchestrationOperateScope,
   [WS_METHODS.mcpAppsCallTool]: AuthOrchestrationOperateScope,
   [WS_METHODS.mcpAppsUpdateModelContext]: AuthOrchestrationOperateScope,
   [WS_METHODS.previewReportProfiles]: AuthPreviewOperateScope,
   [ORCHESTRATION_V2_WS_METHODS.stopWorkflow]: AuthOrchestrationOperateScope,
+  // Force stop kills agent processes, as Stop on a terminal does.
+  [ORCHESTRATION_V2_WS_METHODS.forceStopThread]: AuthOrchestrationOperateScope,
+  // Suggesting runs a model on this environment's providers, which reading the thread does not.
+  [ORCHESTRATION_V2_WS_METHODS.suggestNextPrompt]: AuthOrchestrationOperateScope,
 } as const;
 export type ClientGuardedRpcTag = keyof typeof CLIENT_GUARDED_RPC_SCOPES;
 

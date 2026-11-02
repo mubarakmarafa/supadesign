@@ -8,13 +8,9 @@ export const BOARD_AUTOMATION_REPORT_NOTE_MAX_LENGTH = 280;
 export const BOARD_AUTOMATION_MAX_CHAINED_MOVES = 3;
 
 /**
- * Where a card's column automation is:
- * - `scheduled`: waiting out the delay; it can be cancelled or run now.
- * - `sent`: its prompts went to the card's agent, which is working on them.
- * - `done`: the agent reported success (a column that moves cards on moves it).
- * - `needs-you`: the agent reported it is blocked, or chaining stopped.
- * - `finished`: the agent went idle without reporting.
- * - `failed`: a prompt couldn't be sent.
+ * `scheduled` can still be cancelled or run now; `sent` is with the card's agent; `done` and
+ * `needs-you` are what the agent reported (or chaining stopped); `finished` went idle without a
+ * report; `failed` could not send a prompt.
  */
 export const BoardAutomationStatus = Schema.Literals([
   "scheduled",

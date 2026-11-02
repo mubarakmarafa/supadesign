@@ -35,11 +35,13 @@ import { orchestrationProtocolCompatibilityError } from "./compatibility.ts";
 import {
   connectionRouteId,
   connectionRoutes,
+  credentialAllowsAddress,
   credentialConnectionId,
   isLearned,
   pairingFallbackRoutes,
   routeEntry,
   routesAt,
+  sendsTokenInClear,
   sshTargetKey,
 } from "./routes.ts";
 import { reachPairingServer } from "./pairing.ts";
@@ -146,16 +148,6 @@ export const preparePairingRegistration = Effect.fn(
       routes: target.routes ?? [],
     });
     const { descriptor } = reached;
-    const compatibilityError = orchestrationProtocolCompatibilityError(descriptor);
-    // An outdated server is still saved so it can be updated from this client.
-    if (compatibilityError !== null && compatibilityError.serverUpdateRequired !== true) {
-      return yield* compatibilityError;
-    }
-    const access = yield* bootstrapRemoteBearerSession({
-      httpBaseUrl: reached.httpBaseUrl,
-      credential: target.credential,
-      clientMetadata: presentation.metadata,
-    }).pipe(Effect.mapError(mapRemoteEnvironmentError));
     const registrationHttpBaseUrl =
       reached.source === "hint" ? reached.httpBaseUrl : target.httpBaseUrl;
     const connectionId = pairingConnectionId(
@@ -163,8 +155,7 @@ export const preparePairingRegistration = Effect.fn(
       descriptor.environmentId,
       registrationHttpBaseUrl,
     );
-
-    const registration = new BearerConnectionRegistration({
+    const route = {
       target: new BearerConnectionTarget({
         environmentId: descriptor.environmentId,
         label: descriptor.label,
@@ -180,11 +171,34 @@ export const preparePairingRegistration = Effect.fn(
           ? { relayUrl: target.relayUrl }
           : {}),
       }),
+    };
+    // A link may claim any saved environment's id. Only a saved route proves the identity, so
+    // any other address must already be known; adding one goes through Add route instead.
+    const knownAddressOnly =
+      input.expectedEnvironmentId === undefined && reached.source !== "saved";
+    // The registry checks again under its lease; this early check keeps a refused code unspent.
+    const registry = yield* Effect.serviceOption(EnvironmentRegistry.EnvironmentRegistry);
+    if (knownAddressOnly && Option.isSome(registry)) {
+      yield* registry.value.assertKnownAddress({ ...route, profile: Option.some(route.profile) });
+    }
+    const compatibilityError = orchestrationProtocolCompatibilityError(descriptor);
+    // An outdated server is still saved so it can be updated from this client.
+    if (compatibilityError !== null && compatibilityError.serverUpdateRequired !== true) {
+      return yield* compatibilityError;
+    }
+    const access = yield* bootstrapRemoteBearerSession({
+      httpBaseUrl: reached.httpBaseUrl,
+      credential: target.credential,
+      clientMetadata: presentation.metadata,
+    }).pipe(Effect.mapError(mapRemoteEnvironmentError));
+
+    const registration = new BearerConnectionRegistration({
+      ...route,
       credential: new BearerConnectionCredential({
         token: access.access_token,
       }),
     });
-    return { registration, reachedHttpBaseUrl: reached.httpBaseUrl };
+    return { registration, reachedHttpBaseUrl: reached.httpBaseUrl, knownAddressOnly };
   },
   Effect.provideService(FetchHttpClient.RequestInit, { redirect: "error" }),
 );
@@ -192,12 +206,10 @@ export const preparePairingRegistration = Effect.fn(
 const isBearerCredential = Schema.is(BearerConnectionCredential);
 
 /**
- * Each saved route keeps the credential it was paired with, so re-pairing after
- * a revoked session would otherwise fix only the link's address. When pairing
- * reached a saved route, that route takes the new credential if the server now
- * rejects its own. The check only goes to an address that already carries that
- * credential. Runs before `register`, whose restarted supervisor reads
- * credentials as it connects.
+ * Routes keep the credential they were paired with, so re-pairing after a revoke
+ * would fix only the link's address. A reached route the server now rejects takes
+ * the new credential; the check only goes to an address already holding the old
+ * one. Runs before `register`, whose restarted supervisor reads credentials.
  */
 const refreshReachedRouteCredential = Effect.fn(
   "clientRuntime.connection.onboarding.refreshReachedRouteCredential",
@@ -212,7 +224,10 @@ const refreshReachedRouteCredential = Effect.fn(
     const reachedRoute = routesAt(entry, reachedHttpBaseUrl).find(
       (route) => route.target._tag === "BearerConnectionTarget",
     );
-    if (reachedRoute === undefined) return;
+    // The route borrows another route's credential; checking it here must not
+    // carry that credential somewhere a connect would refuse to send it.
+    if (reachedRoute === undefined || sendsTokenInClear(connectionRoutes(entry), reachedRoute))
+      return;
     const connectionId = credentialConnectionId(connectionRouteId(reachedRoute.target));
     if (connectionId === registration.target.connectionId) return;
     const current = Option.getOrUndefined(yield* credentials.get(connectionId));
@@ -235,12 +250,14 @@ const registerPairingConnection = Effect.fn(
   "clientRuntime.connection.onboarding.registerPairingConnection",
 )(function* (input: PairingConnectionInput) {
   const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
-  const { registration, reachedHttpBaseUrl } = yield* preparePairingRegistration(
+  const { registration, reachedHttpBaseUrl, knownAddressOnly } = yield* preparePairingRegistration(
     input,
     yield* SubscriptionRef.get(registry.entries),
   );
   yield* refreshReachedRouteCredential(registration, reachedHttpBaseUrl);
-  if (!(yield* registry.register(registration))) return registration.target.environmentId;
+  if (!(yield* registry.register(registration, { knownAddressOnly }))) {
+    return registration.target.environmentId;
+  }
   yield* registry.setCompatibility(registration.target.environmentId, null);
   yield* registry
     .setEnabled(registration.target.environmentId, true)
@@ -320,8 +337,16 @@ export const prepareBearerConnectionUpdate = Effect.fn(
         detail: cause instanceof Error ? cause.message : "The environment URL is invalid.",
       }),
   });
+  if (!credentialAllowsAddress({ target: entry.target, profile: entry.profile }, httpBaseUrl)) {
+    return yield* new ConnectionBlockedError({
+      reason: "configuration",
+      detail:
+        "This route's token was paired over an encrypted connection and can't move to this address. Pair again at the new address.",
+    });
+  }
   const connectionId = entry.target.connectionId;
-  const { relayUrl } = entry.profile.value;
+  const { relayUrl, directTunnelUrls } = entry.profile.value;
+  const sameAddress = httpBaseUrl === entry.profile.value.httpBaseUrl;
   return new BearerConnectionRegistration({
     target: new BearerConnectionTarget({
       environmentId: options.input.environmentId,
@@ -334,9 +359,8 @@ export const prepareBearerConnectionUpdate = Effect.fn(
       label,
       httpBaseUrl,
       wsBaseUrl: deriveWsBaseUrl(httpBaseUrl),
-      ...(relayUrl !== undefined && httpBaseUrl === entry.profile.value.httpBaseUrl
-        ? { relayUrl }
-        : {}),
+      ...(relayUrl !== undefined && sameAddress ? { relayUrl } : {}),
+      ...(directTunnelUrls !== undefined && sameAddress ? { directTunnelUrls } : {}),
     }),
     credential: credential.value,
   });
@@ -384,7 +408,7 @@ const registerSshConnection = Effect.fn(
   return registration.target.environmentId;
 });
 
-/** @public Service construction is part of the canonical Effect module API. */
+/** @public */
 export const make = Effect.gen(function* () {
   const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
   const presentation = yield* ClientCapabilities.ClientPresentation;
@@ -392,24 +416,31 @@ export const make = Effect.gen(function* () {
   const ssh = yield* ClientCapabilities.SshEnvironmentGateway;
   const credentials = yield* ConnectionCredentialStore.ConnectionCredentialStore;
 
+  // Provisioning retains the delegated onboarding operation spans.
   return ConnectionOnboarding.of({
-    registerPairing: (input) =>
-      registerPairingConnection(input).pipe(
-        Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, registry),
-        Effect.provideService(ClientCapabilities.ClientPresentation, presentation),
-        Effect.provideService(HttpClient.HttpClient, httpClient),
-        Effect.provideService(ConnectionCredentialStore.ConnectionCredentialStore, credentials),
-      ),
-    registerSsh: (input) =>
-      registerSshConnection(input).pipe(
-        Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, registry),
-        Effect.provideService(ClientCapabilities.SshEnvironmentGateway, ssh),
-      ),
-    updateBearer: (input) =>
-      updateBearerConnection(input).pipe(
-        Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, registry),
-        Effect.provideService(ConnectionCredentialStore.ConnectionCredentialStore, credentials),
-      ),
+    registerPairing: Effect.fnUntraced(
+      function* (input) {
+        return yield* registerPairingConnection(input);
+      },
+      Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, registry),
+      Effect.provideService(ClientCapabilities.ClientPresentation, presentation),
+      Effect.provideService(HttpClient.HttpClient, httpClient),
+      Effect.provideService(ConnectionCredentialStore.ConnectionCredentialStore, credentials),
+    ),
+    registerSsh: Effect.fnUntraced(
+      function* (input) {
+        return yield* registerSshConnection(input);
+      },
+      Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, registry),
+      Effect.provideService(ClientCapabilities.SshEnvironmentGateway, ssh),
+    ),
+    updateBearer: Effect.fnUntraced(
+      function* (input) {
+        return yield* updateBearerConnection(input);
+      },
+      Effect.provideService(EnvironmentRegistry.EnvironmentRegistry, registry),
+      Effect.provideService(ConnectionCredentialStore.ConnectionCredentialStore, credentials),
+    ),
   });
 });
 

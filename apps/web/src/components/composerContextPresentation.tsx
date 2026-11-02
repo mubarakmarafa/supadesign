@@ -1,9 +1,10 @@
 import ChatMarkdown from "./ChatMarkdown";
+import { isSvgAttachment } from "@supaterm/shared/image";
 import { ReadOnlySourcePreview } from "./files/AttachmentFilePreview";
 import type { PreviewAnnotationPayload, ThreadContextRecord } from "@supaterm/contracts";
 import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
 import { videoMimeType } from "@supaterm/shared/video";
-import { MessageCircleIcon, MousePointerClickIcon } from "lucide-react";
+import { MessageCircleIcon, MousePointerClickIcon } from "@supaterm/icons";
 import { createContext, type MouseEvent, type ReactElement, type ReactNode, use } from "react";
 import type { EnvironmentId } from "@supaterm/contracts";
 
@@ -223,6 +224,15 @@ function FileContextChip(props: {
   return (
     <FileChip
       name={props.record.name}
+      svgPreview={
+        isSvgAttachment(props.record)
+          ? {
+              file: props.record.file,
+              environmentId: props.record.uploadEnvironmentId,
+              attachmentId: props.record.uploadedAttachmentId,
+            }
+          : undefined
+      }
       size={size}
       isVideo={isVideo}
       theme={resolvedTheme}

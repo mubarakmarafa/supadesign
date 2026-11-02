@@ -12,7 +12,7 @@ import {
   squashAtomCommandFailure,
 } from "@supaterm/client-runtime/state/runtime";
 import { projectScriptMenuLabel } from "@supaterm/shared/projectScripts";
-import { ChevronDownIcon, DownloadIcon, PlusIcon, SettingsIcon, WrenchIcon } from "lucide-react";
+import { ChevronDownIcon, DownloadIcon, PlusIcon, SettingsIcon, WrenchIcon } from "@supaterm/icons";
 import React, { useState } from "react";
 
 import { commandForProjectScript, primaryProjectScript } from "~/projectScripts";
@@ -285,8 +285,7 @@ export default function ProjectScriptsControl({
                   panel={isPanel}
                   className={isPanel ? undefined : "w-7 sm:w-6 @3xl/header-actions:w-auto!"}
                   aria-label={`Run ${primaryScript.name}`}
-                  // The tooltip wrapper replaces data-slot="button", so themed
-                  // toolbar styling needs its own hook.
+                  // Tooltip replaces the button data-slot, so toolbar theming needs a separate hook.
                   data-toolbar-control=""
                   aria-disabled={!onRunScript || undefined}
                   onClick={() => onRunScript?.(primaryScript)}

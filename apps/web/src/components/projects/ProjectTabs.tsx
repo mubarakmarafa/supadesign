@@ -1,7 +1,7 @@
 import { scopeProjectRef, scopedProjectKey } from "@supaterm/client-runtime/environment";
 import type { EnvironmentId, ProjectId } from "@supaterm/contracts";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LayoutGridIcon, PlusIcon, SettingsIcon, XIcon } from "lucide-react";
+import { LayoutGridIcon, PlusIcon, SettingsIcon, XIcon } from "@supaterm/icons";
 import { useEffect } from "react";
 
 import { useClientSettings } from "../../hooks/useSettings";
@@ -28,6 +28,7 @@ export function useShowProjectTab(tab: ProjectTab | null) {
   const show = useProjectTabsStore((state) => state.show);
   const environmentId = tab?.environmentId;
   const projectId = tab?.projectId;
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- records the route's board in the persisted tabs store
   useEffect(() => {
     if (environmentId && projectId) show({ environmentId, projectId });
   }, [environmentId, projectId, show]);
@@ -47,6 +48,7 @@ export function ProjectTabsBar({ active }: { active: ProjectTab | null }) {
   const navigate = useNavigate();
   const activate = useAtomCommand(liveEnvironment.activate);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- drops persisted tabs whose projects the servers no longer have
   useEffect(() => {
     if (!bootstrapped) return;
     const known = new Set(projects.map((project) => `${project.environmentId}\n${project.id}`));

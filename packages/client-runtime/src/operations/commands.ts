@@ -26,6 +26,7 @@ import {
   type RuntimeRequestId,
   type ThreadId,
   type ThreadEnvMode,
+  type TurnItemId,
   type UploadChatAttachment,
 } from "@supaterm/contracts";
 import { derivePendingBackgroundWork } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
@@ -65,6 +66,8 @@ export interface UpdateProjectInput extends CommandMetadata {
   readonly board?: ProjectBoard | null;
   /** Replaces the whole workspace; null resets it to the board alone. */
   readonly workspace?: ProjectWorkspace | null;
+  readonly pinned?: boolean;
+  readonly archived?: boolean;
 }
 
 export interface DeleteProjectInput extends CommandMetadata {
@@ -101,6 +104,10 @@ export interface PinThreadInput extends ThreadCommandInput {
 }
 export type UnpinThreadInput = ThreadCommandInput;
 
+export interface ThreadMessagePinInput extends ThreadCommandInput {
+  readonly itemId: TurnItemId;
+}
+
 export interface ReorderPinnedThreadInput extends ThreadCommandInput {
   readonly orderKey: string;
 }
@@ -127,6 +134,9 @@ export interface UnsnoozeThreadInput extends ThreadCommandInput {
 
 export interface VisitThreadInput extends ThreadCommandInput {
   readonly visitedAt: string;
+  /** Counts toward search frecency; `searchQuery` is the palette query that picked it. */
+  readonly opened?: boolean;
+  readonly searchQuery?: string;
 }
 
 export type MarkThreadUnreadInput = ThreadCommandInput;
@@ -196,6 +206,7 @@ export interface InterruptThreadTurnInput extends ThreadCommandInput {
 export interface RespondToThreadApprovalInput extends ThreadCommandInput {
   readonly requestId: RuntimeRequestId;
   readonly decision: ProviderApprovalDecision;
+  readonly feedback?: string;
 }
 
 export interface RespondToThreadUserInputInput extends ThreadCommandInput {
@@ -222,6 +233,12 @@ export interface ForkThreadFromRunInput extends CommandMetadata {
   readonly title?: string;
 }
 
+export interface ForkSideChatInput extends CommandMetadata {
+  readonly sourceThreadId: ThreadId;
+  readonly targetThreadId: ThreadId;
+  readonly title?: string;
+}
+
 export interface MergeThreadBackInput extends CommandMetadata {
   readonly sourceThreadId: ThreadId;
   readonly targetThreadId: ThreadId;
@@ -230,11 +247,6 @@ export interface MergeThreadBackInput extends CommandMetadata {
 
 export interface ResumeThreadQueueInput extends ThreadCommandInput {
   readonly runId?: RunId;
-}
-
-export interface ReorderQueuedRunInput extends ThreadCommandInput {
-  readonly runId: RunId;
-  readonly beforeRunId: RunId | null;
 }
 
 export interface PromoteQueuedRunInput extends ThreadCommandInput {
@@ -377,6 +389,8 @@ export const updateProject = Effect.fn("EnvironmentCommands.updateProject")(func
     ...(input.scripts === undefined ? {} : { scripts: input.scripts }),
     ...(input.board === undefined ? {} : { board: input.board }),
     ...(input.workspace === undefined ? {} : { workspace: input.workspace }),
+    ...(input.pinned === undefined ? {} : { pinned: input.pinned }),
+    ...(input.archived === undefined ? {} : { archived: input.archived }),
   });
 });
 
@@ -417,13 +431,21 @@ function simpleThreadCommand(
     | "thread.unarchive"
     | "thread.mark-done"
     | "thread.pin"
-    | "thread.unpin",
+    | "thread.unpin"
+    | "thread.side-chat.promote",
   input: ThreadCommandInput,
 ) {
   return allocateCommandId(input).pipe(
     Effect.flatMap((commandId) => dispatch({ type, commandId, threadId: input.threadId })),
   );
 }
+
+/** Makes a side chat a full thread, listed and no longer held to approval. */
+export const promoteSideChat = Effect.fn("EnvironmentCommands.promoteSideChat")(function* (
+  input: ThreadCommandInput,
+) {
+  return yield* simpleThreadCommand("thread.side-chat.promote", input);
+});
 
 export const deleteThread = Effect.fn("EnvironmentCommands.deleteThread")(function* (
   input: DeleteThreadInput,
@@ -517,6 +539,29 @@ export const unpinThread = Effect.fn("EnvironmentCommands.unpinThread")(function
   return yield* simpleThreadCommand("thread.unpin", input);
 });
 
+function threadMessagePinCommand(
+  type: "thread.message.pin" | "thread.message.unpin",
+  input: ThreadMessagePinInput,
+) {
+  return allocateCommandId(input).pipe(
+    Effect.flatMap((commandId) =>
+      dispatch({ type, commandId, threadId: input.threadId, itemId: input.itemId }),
+    ),
+  );
+}
+
+export const pinThreadMessage = Effect.fn("EnvironmentCommands.pinThreadMessage")(function* (
+  input: ThreadMessagePinInput,
+) {
+  return yield* threadMessagePinCommand("thread.message.pin", input);
+});
+
+export const unpinThreadMessage = Effect.fn("EnvironmentCommands.unpinThreadMessage")(function* (
+  input: ThreadMessagePinInput,
+) {
+  return yield* threadMessagePinCommand("thread.message.unpin", input);
+});
+
 export const reopenThread = Effect.fn("EnvironmentCommands.reopenThread")(function* (
   input: ReopenThreadInput,
 ) {
@@ -558,6 +603,8 @@ export const visitThread = Effect.fn("EnvironmentCommands.visitThread")(function
     commandId: yield* allocateCommandId(input),
     threadId: input.threadId,
     visitedAt: input.visitedAt,
+    ...(input.opened ? { opened: true } : {}),
+    ...(input.searchQuery ? { searchQuery: input.searchQuery } : {}),
   });
 });
 
@@ -749,7 +796,7 @@ export const interruptThreadTurn = Effect.fn("EnvironmentCommands.interruptThrea
     const projection = yield* getProjection(input.threadId);
     const subagent = projection.subagents.find((agent) => agent.id === input.subagentId);
     if (subagent?.origin === "app_owned" && subagent.childThreadId !== null) {
-      // The parent ends the task even when its child lost track of it (#19002). Older
+      // The parent ends the task even when its child lost track of it. Older
       // servers reject this for app-owned tasks, so the child stop below still runs.
       if (subagent.runId !== null) {
         yield* dispatch({
@@ -853,6 +900,7 @@ export const respondToThreadApproval = Effect.fn("EnvironmentCommands.respondToT
       threadId: input.threadId,
       requestId: input.requestId,
       decision: input.decision,
+      ...(input.feedback === undefined ? {} : { feedback: input.feedback }),
     });
   },
 );
@@ -941,6 +989,23 @@ export const forkThreadFromRun = Effect.fn("EnvironmentCommands.forkThreadFromRu
   });
 });
 
+/** Forks the thread's latest stable point into a hidden side chat; works while it runs. */
+export const forkSideChat = Effect.fn("EnvironmentCommands.forkSideChat")(function* (
+  input: ForkSideChatInput,
+) {
+  return yield* dispatch({
+    type: "thread.fork",
+    commandId: yield* allocateCommandId(input),
+    createdBy: "user",
+    creationSource: input.creationSource ?? "web",
+    sourceThreadId: input.sourceThreadId,
+    targetThreadId: input.targetThreadId,
+    sourcePoint: { type: "latest_stable" },
+    sideChat: true,
+    ...(input.title === undefined ? {} : { title: input.title }),
+  });
+});
+
 export const mergeThreadBack = Effect.fn("EnvironmentCommands.mergeThreadBack")(function* (
   input: MergeThreadBackInput,
 ) {
@@ -987,18 +1052,6 @@ export const resumeThreadQueue = Effect.fn("EnvironmentCommands.resumeThreadQueu
     type: "queue.resume",
     commandId: yield* allocateCommandId(input),
     threadId: input.threadId,
-  });
-});
-
-export const reorderQueuedRun = Effect.fn("EnvironmentCommands.reorderQueuedRun")(function* (
-  input: ReorderQueuedRunInput,
-) {
-  return yield* dispatch({
-    type: "queued-run.reorder",
-    commandId: yield* allocateCommandId(input),
-    threadId: input.threadId,
-    runId: input.runId,
-    beforeRunId: input.beforeRunId,
   });
 });
 

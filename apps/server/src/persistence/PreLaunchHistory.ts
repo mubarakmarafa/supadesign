@@ -16,15 +16,10 @@ const RENAMED_EVENT_TYPES = [
 ] as const;
 
 /**
- * Supadesign shipped on Supaterm's pre-launch migration history. Supaterm then
- * squashed that history into `1_Baseline` and renamed Settle to Done without
- * converting stored data, so a pre-launch database would refuse to open.
- *
- * A database whose ledger ends at the last pre-launch migration already has the
- * baseline's tables, so this records it as the baseline and renames the stored
- * lifecycle events and thread fields to the Done names. It runs once, before the
- * migrator, inside one transaction. Databases at an earlier pre-launch migration
- * are left for the migrator's own history check to refuse.
+ * Supaterm squashed the pre-launch migrations Supadesign shipped on into `1_Baseline` and
+ * renamed Settle to Done without converting data. A ledger ending at the last pre-launch
+ * migration already has the baseline's tables, so record it as the baseline and rename the
+ * stored events and fields. Earlier pre-launch ledgers are left for the migrator to refuse.
  */
 export const adoptPreLaunchHistory = Effect.fn("adoptPreLaunchHistory")(function* () {
   const sql = yield* SqlClient.SqlClient;

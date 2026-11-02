@@ -10,10 +10,15 @@ import {
   connectionRouteLabel,
   connectionRoutes,
   isLearned,
+  pendingRouteOrder,
+  usableRoutes,
 } from "@supaterm/client-runtime/connection";
 import { type EnvironmentId, sessionGrantsScope } from "@supaterm/contracts";
-import { AUTH_SCOPE_OPTIONS } from "@supaterm/shared/authScopeOptions";
-import { AsyncResult } from "effect/reactivity";
+import {
+  AUTH_SCOPE_OPTIONS,
+  sessionPermissionsUnavailableMessage,
+} from "@supaterm/shared/authScopeOptions";
+import { AsyncResult, Atom } from "effect/reactivity";
 import * as Option from "effect/Option";
 import * as Haptics from "expo-haptics";
 import { useContext, useState } from "react";
@@ -28,9 +33,11 @@ import { cn } from "../../lib/cn";
 import { environmentSession } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { connectionTone } from "../connection/connectionTone";
-import { SettingsActionRow } from "./components/SettingsActionRow";
+import { ListActionRow as SettingsActionRow } from "../../components/ui/ListActionRow";
 import { SettingsDragHandle } from "./components/SettingsDragHandle";
 import { SettingsSection } from "./components/SettingsSection";
+
+const NO_LATENCY = Atom.make("");
 
 const ICON_SIZE = Platform.OS === "android" ? 24 : 22;
 const REMOVE_SIZE = 20;
@@ -62,7 +69,7 @@ export function EnvironmentRoutesSection({
   const entry = useAtomValue(environmentCatalog.catalogValueAtom).entries.get(environmentId);
   const prepared = useAtomValue(environmentSession.preparedConnectionValueAtom(environmentId));
   const sessionResult = useAtomValue(environmentSession.sessionStateAtom(environmentId));
-  const session = Option.getOrNull(AsyncResult.value(sessionResult));
+  const session = AsyncResult.getOrElse(sessionResult, () => null);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const reorder = useAtomCommand(environmentCatalog.reorderRoutes, "route reorder");
   const removeRoute = useAtomCommand(environmentCatalog.removeRoute, "route removal");
@@ -70,24 +77,21 @@ export function EnvironmentRoutesSection({
   const saved = entry === undefined ? [] : connectionRoutes(entry);
   const savedIds = saved.map((route) => connectionRouteId(route.target));
   const [pending, setPending] = useState<ReadonlyArray<string> | null>(null);
-  const order =
-    pending !== null &&
-    pending.length === savedIds.length &&
-    pending.some((id, index) => id !== savedIds[index])
-      ? pending
-      : savedIds;
+  const shownPending = pendingRouteOrder(pending, savedIds);
+  // Dropped during render so a stale order never outlives the save it was for.
+  if (pending !== null && shownPending === null) setPending(null);
+  const order = shownPending ?? savedIds;
   const [drag, setDrag] = useState<{ readonly id: string; readonly translation: number } | null>(
     null,
   );
   const [heights, setHeights] = useState<ReadonlyMap<string, number>>(() => new Map());
-  // Each drop remounts the rows so the new order and the cleared drag offsets
-  // land in one frame. Kept rows would show their old offsets in their new
-  // slots until the animated style catches up, and the card flashes empty.
+  // Remount dropped rows so data order and cleared drag offsets change together without flashing.
   const [drops, setDrops] = useState(0);
   if (entry === undefined) return null;
 
   const byId = new Map(saved.map((route) => [connectionRouteId(route.target), route]));
   const routes = order.flatMap((id) => byId.get(id) ?? []);
+  const usable = new Set(usableRoutes(entry).map((route) => connectionRouteId(route.target)));
   const activeRouteId =
     connected && Option.isSome(prepared) ? connectionRouteId(prepared.value.target) : null;
 
@@ -184,14 +188,21 @@ export function EnvironmentRoutesSection({
             </>
           ) : (
             <Text className="text-sm text-foreground-muted">
-              Permissions not checked. Connect to this environment to view this session’s
-              permissions.
+              {sessionPermissionsUnavailableMessage({
+                connected: activeRouteId !== null,
+                failed: sessionResult._tag === "Failure",
+                rejected:
+                  sessionResult._tag !== "Failure" &&
+                  !sessionResult.waiting &&
+                  session?.authenticated === false,
+              })}
             </Text>
           )}
         </View>
       ) : null}
       {routes.map((route, index) => {
         const id = connectionRouteId(route.target);
+        const unused = !usable.has(connectionRouteId(route.target));
         const lifted = drag === null ? 0 : (heights.get(drag.id) ?? 0);
         const shift =
           dragFrom === -1 || index === dragFrom
@@ -208,6 +219,7 @@ export function EnvironmentRoutesSection({
             position={index + 1}
             count={routes.length}
             inUse={id === activeRouteId}
+            unused={unused}
             editing={editing}
             offset={index === dragFrom ? (drag?.translation ?? 0) : shift}
             lifted={index === dragFrom}
@@ -227,9 +239,12 @@ export function EnvironmentRoutesSection({
               if (!cancelled) move(index, dropIndex(index, translation));
             }}
             onStep={(direction) => move(index, direction === "up" ? index - 1 : index + 1)}
-            // Learned routes are refreshed from the server; paired routes can be removed.
+            // Learned routes are refreshed from the server unless a connect
+            // skips them; paired routes can be removed.
             onRemove={
-              routes.length > 1 && !isLearned(route) ? () => confirmRemove(route) : undefined
+              routes.length > 1 && (!isLearned(route) || unused)
+                ? () => confirmRemove(route)
+                : undefined
             }
           />
         );
@@ -244,6 +259,7 @@ function RouteRow(props: {
   readonly position: number;
   readonly count: number;
   readonly inUse: boolean;
+  readonly unused: boolean;
   readonly editing: boolean;
   readonly offset: number;
   readonly lifted: boolean;
@@ -257,7 +273,11 @@ function RouteRow(props: {
   const { route, lifted, offset } = props;
   const label = connectionRouteLabel(route);
   const address = connectionRouteAddress(route);
-  const latency = useAtomValue(environmentSession.routeLatencyAtoms(route).labelAtom);
+  // A route a connect skips has no speed worth measuring.
+  const latency = useAtomValue(
+    props.unused ? NO_LATENCY : environmentSession.routeLatencyAtoms(route).labelAtom,
+  );
+  const direct = useAtomValue(environmentSession.relayRouteTransportAtom(route)) === "direct";
   const style = useAnimatedStyle(() => ({
     transform: [
       {
@@ -299,7 +319,8 @@ function RouteRow(props: {
           address,
           isLearned(route) ? "Found automatically" : null,
           props.inUse ? "In use" : null,
-          `Latency: ${latency}`,
+          direct ? "Direct, encrypted" : null,
+          props.unused ? "Not used" : `Latency: ${latency}`,
           `Route ${props.position} of ${props.count}`,
         ]
           .filter((part) => part !== null)
@@ -319,11 +340,21 @@ function RouteRow(props: {
         />
         <View className="min-w-0 flex-1 gap-0.5 android:gap-1">
           <View className="flex-row items-center gap-2">
-            <Text numberOfLines={1} className="shrink text-lg text-foreground android:text-base">
+            <Text
+              numberOfLines={1}
+              className={cn(
+                "shrink text-lg android:text-base",
+                props.unused ? "text-foreground-muted" : "text-foreground",
+              )}
+            >
               {label}
             </Text>
             {props.inUse ? (
               <StatusPill {...connectionTone("connected")} label="In use" size="compact" />
+            ) : null}
+            {direct ? <Text className="shrink-0 text-sm text-foreground-muted">Direct</Text> : null}
+            {props.unused ? (
+              <StatusPill {...connectionTone("unsupported")} label="Not used" size="compact" />
             ) : null}
           </View>
           {address !== null ? (
@@ -332,7 +363,9 @@ function RouteRow(props: {
             </Text>
           ) : null}
         </View>
-        <Text className="shrink-0 text-sm tabular-nums text-foreground-muted">{latency}</Text>
+        {props.unused ? null : (
+          <Text className="shrink-0 text-sm tabular-nums text-foreground-muted">{latency}</Text>
+        )}
       </View>
       {props.editing ? (
         <SettingsDragHandle

@@ -1,5 +1,6 @@
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as CodexInstallation from "./CodexInstallation.ts";
+import * as CodexManagedTokenBroker from "./CodexManagedTokenBroker.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ClaudeSdk from "@anthropic-ai/claude-agent-sdk";
 import { assert, describe, expect, it } from "@effect/vitest";
@@ -17,7 +18,11 @@ import * as ProviderLatestVersions from "@supaterm/provider-core/server/Provider
 import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 import * as DateTime from "effect/DateTime";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import * as Scope from "effect/Scope";
+import * as Fiber from "effect/Fiber";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
@@ -34,7 +39,9 @@ import * as ModelManifest from "./ModelManifest.ts";
 import * as ResetCreditCoordinator from "./resetCreditCoordinator.ts";
 import * as ProviderEventLoggers from "@supaterm/provider-core/server/ProviderEventLoggers";
 import { makeProviderInstanceRegistry } from "./ProviderInstanceRegistry.ts";
+import { ProviderDriverError } from "./Errors.ts";
 import * as ProviderOrchestrationAdapterInfrastructure from "./ProviderOrchestrationAdapterInfrastructure.ts";
+import * as PortScanner from "../preview/PortScanner.ts";
 import * as ProviderHostLive from "./ProviderHostLive.ts";
 
 vi.mock("@anthropic-ai/claude-agent-sdk", { spy: true });
@@ -54,7 +61,6 @@ const TEST_EPOCH = DateTime.makeUnsafe("1970-01-01T00:00:00.000Z");
 const layerBackgroundPolicyAlwaysRun = Layer.mock(BackgroundPolicy.BackgroundPolicy)({
   reportClientActivity: () => Effect.void,
   removeRpcClient: () => Effect.void,
-  reportHostPowerState: () => Effect.void,
   snapshot: Effect.succeed({
     hostPower: {
       source: "unknown",
@@ -74,8 +80,6 @@ const layerBackgroundPolicyAlwaysRun = Layer.mock(BackgroundPolicy.BackgroundPol
     shouldRunOpportunisticWork: true,
     updatedAt: TEST_EPOCH,
   }),
-  streamChanges: Stream.empty,
-  hasDemand: () => Effect.succeed(true),
   shouldRunScopeWork: () => Effect.succeed(true),
   shouldRunOpportunisticWork: Effect.succeed(true),
 });
@@ -153,6 +157,11 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
   const layerBaseDeps = ServerConfig.layerTest(process.cwd(), {
     prefix: "provider-instance-registry-test",
   }).pipe(
+    Layer.provideMerge(
+      Layer.mock(CodexManagedTokenBroker.CodexManagedTokenBroker)({
+        endpoint: Effect.succeed("unused-private-pipe"),
+      }),
+    ),
     Layer.provideMerge(NodeServices.layer),
     Layer.provideMerge(
       Layer.mock(CodexInstallation.CodexInstallation)({
@@ -184,7 +193,138 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
   );
   const layerBase = ProviderHostLive.layer.pipe(Layer.provideMerge(layerBaseDeps));
   const layerTest = ProviderOrchestrationAdapterInfrastructure.layer.pipe(
+    Layer.provide(PortScanner.layerTest),
     Layer.provideMerge(layerBase),
+  );
+
+  it.effect.each(["replacement", "removal", "creation failure"] as const)(
+    "detaches retired provider scopes after repeated %s",
+    (scenario) =>
+      Effect.gen(function* () {
+        const parent = yield* Scope.make();
+        const fileSystem = yield* FileSystem.FileSystem;
+        const homePath = yield* fileSystem.makeTempDirectoryScoped();
+        let creates = 0;
+        let closes = 0;
+        const driver: typeof CodexDriver = {
+          ...CodexDriver,
+          create: Effect.fn("ProviderInstanceRegistry.test.create")(function* (
+            input: Parameters<typeof CodexDriver.create>[0],
+          ) {
+            creates++;
+            yield* Effect.addFinalizer(() =>
+              Effect.sync(() => {
+                closes++;
+              }),
+            );
+            if (input.config.binaryPath === "creation-failure") {
+              return yield* new ProviderDriverError({
+                driver: CodexDriver.driverKind,
+                instanceId: input.instanceId,
+                detail: "fixture creation failed",
+              });
+            }
+            return yield* CodexDriver.create(input);
+          }),
+        };
+        const siblingId = ProviderInstanceId.make("sibling");
+        const retiredId = ProviderInstanceId.make("retired");
+        const entry = {
+          driver: CodexDriver.driverKind,
+          enabled: false,
+          config: makeCodexConfig({ homePath }),
+        };
+        yield* Effect.gen(function* () {
+          const { registry, mutator } = yield* makeProviderInstanceRegistry({
+            drivers: [driver],
+            configMap: { [siblingId]: entry },
+          });
+          const sibling = yield* registry.getInstance(siblingId);
+          const finalizerCount = () => {
+            const state = parent.state;
+            return state._tag === "Open" ? (state.finalizers?.size ?? 1) : 0;
+          };
+          const baseline = finalizerCount();
+          for (let index = 0; index < 20; index++) {
+            yield* mutator.reconcile({
+              [siblingId]: entry,
+              [retiredId]: {
+                ...entry,
+                config: makeCodexConfig({
+                  homePath,
+                  binaryPath: scenario === "creation failure" ? "creation-failure" : "unused-codex",
+                  customModels: [`revision-${index}`],
+                }),
+              },
+            });
+            if (scenario === "removal") yield* mutator.reconcile({ [siblingId]: entry });
+          }
+          yield* mutator.reconcile({ [siblingId]: entry });
+          expect(yield* registry.getInstance(siblingId)).toBe(sibling);
+          expect(closes).toBe(creates - 1);
+          expect(parent.state._tag).toBe("Open");
+          expect(finalizerCount()).toBe(baseline);
+        }).pipe(
+          Effect.provideService(Scope.Scope, parent),
+          Effect.ensuring(Scope.close(parent, Exit.void)),
+        );
+        expect(closes).toBe(creates);
+      }).pipe(Effect.provide(layerTest)),
+  );
+
+  it.effect.each(["replacement", "removal"] as const)(
+    "hides retired instances during reconcile (%s)",
+    (scenario) =>
+      Effect.gen(function* () {
+        let closed = 0;
+        const replacementStarted = yield* Deferred.make<void>();
+        const releaseReplacement = yield* Deferred.make<void>();
+        const driver: typeof CodexDriver = {
+          ...CodexDriver,
+          create: (input) =>
+            Effect.gen(function* () {
+              if (input.displayName === "Second") {
+                yield* Deferred.succeed(replacementStarted, undefined);
+                yield* Deferred.await(releaseReplacement);
+              }
+              const instance = yield* CodexDriver.create(input);
+              yield* Effect.addFinalizer(() => Effect.sync(() => closed++));
+              return instance;
+            }),
+        };
+        const retiredId = ProviderInstanceId.make("retired");
+        const siblingId = ProviderInstanceId.make("sibling");
+        const nextId = scenario === "replacement" ? retiredId : ProviderInstanceId.make("new");
+        const entry = {
+          driver: CodexDriver.driverKind,
+          enabled: false,
+          config: makeCodexConfig({}),
+        };
+        const { registry, mutator } = yield* makeProviderInstanceRegistry({
+          drivers: [driver],
+          configMap: { [retiredId]: entry, [siblingId]: entry },
+        });
+        const sibling = yield* registry.getInstance(siblingId);
+        const reconcile = yield* mutator
+          .reconcile({
+            [siblingId]: entry,
+            [nextId]: {
+              ...entry,
+              displayName: "Second",
+              config: makeCodexConfig({ customModels: ["replacement-model"] }),
+            },
+          })
+          .pipe(Effect.forkChild({ startImmediately: true }));
+        yield* Deferred.await(replacementStarted);
+        expect(closed).toBe(1);
+        expect(yield* registry.getInstance(retiredId)).toBeUndefined();
+        expect(yield* registry.listInstances).toEqual([sibling]);
+        yield* Deferred.succeed(releaseReplacement, undefined);
+        yield* Fiber.join(reconcile);
+        expect((yield* registry.getInstance(nextId))?.displayName).toBe("Second");
+        expect(yield* registry.getInstance(siblingId)).toBe(sibling);
+        expect(closed).toBe(1);
+      }).pipe(Effect.provide(layerTest)),
   );
 
   it.live("treats an explicit in-config enabled:false as disabling despite the envelope", () =>

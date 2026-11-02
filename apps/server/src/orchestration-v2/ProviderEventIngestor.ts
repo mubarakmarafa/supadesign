@@ -9,8 +9,11 @@ import {
   type OrchestrationV2Subagent,
   type OrchestrationV2ThreadProjection,
   type ModelSelection,
+  type OrchestrationV2Actor,
+  type OrchestrationV2CreationSource,
   type RuntimeMode,
   type ProviderInteractionMode,
+  type ServerProvider,
   ProviderInstanceId,
   ProviderSessionId,
   ProviderThreadId,
@@ -25,12 +28,16 @@ import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
+import * as SqlError from "effect/sql/SqlError";
 
 import { AgentScope } from "@supaterm/shared/AgentScope";
 import { isTemporaryWorktreeBranch } from "@supaterm/shared/git";
 import { getModelSelectionStringOptionValue, modelSelectionsEqual } from "@supaterm/shared/model";
 import * as AnalyticsService from "../telemetry/AnalyticsService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
+import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
+import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
+import { providerDimensions } from "../telemetry/ProviderDimensions.ts";
 import * as EventSink from "./EventSink.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as IdAllocator from "@supaterm/provider-core/server/IdAllocator";
@@ -67,6 +74,14 @@ export class ProviderEventPublishError extends Schema.TaggedError<ProviderEventP
   }
 }
 
+// A write that outlasts busy_timeout at BEGIN IMMEDIATE fails before anything
+// commits, and the sink publishes only after a commit, so repeating the whole
+// write is safe. Failing it would fail the run over a brief lock.
+const isLockTimeout = (error: EventSink.EventSinkV2Error) =>
+  SqlError.isSqlError(error.cause) && error.cause.reason._tag === "LockTimeoutError";
+const retryLockTimeout = <A, R>(write: Effect.Effect<A, EventSink.EventSinkV2Error, R>) =>
+  Effect.retry(write, { while: isLockTimeout, times: 2 });
+
 export const ProviderEventIngestorV2Error = Schema.Union([
   ProviderEventNormalizeError,
   ProviderEventPublishError,
@@ -77,10 +92,29 @@ export interface ProviderTurnAnalyticsContext {
   readonly modelSelection: ModelSelection;
   readonly runtimeMode?: RuntimeMode;
   readonly interactionMode?: ProviderInteractionMode;
+  readonly origin?: ProviderTurnOrigin;
 }
 
-export class ProviderTurnAnalytics extends Context.Reference<{
-  readonly record: (properties: Readonly<Record<string, unknown>>) => Effect.Effect<void>;
+/**
+ * Where the run's starting message came from. Most turns start without a
+ * person (provider continuations, agent sends, delegated subagents), so
+ * reports need this to tell user turns apart.
+ */
+export interface ProviderTurnOrigin {
+  readonly createdBy: OrchestrationV2Actor;
+  readonly creationSource: OrchestrationV2CreationSource;
+  readonly scheduled: boolean;
+  readonly subagent: boolean;
+}
+
+interface ProviderTurnAnalyticsInput {
+  readonly driver: ProviderAdapter.ProviderAdapterV2Event["driver"];
+  readonly providerTurn: OrchestrationV2ProviderTurn;
+  readonly context?: ProviderTurnAnalyticsContext;
+}
+
+class ProviderTurnAnalytics extends Context.Reference<{
+  readonly record: (input: ProviderTurnAnalyticsInput) => Effect.Effect<void>;
 }>("supaterm/orchestration-v2/ProviderTurnAnalytics", {
   defaultValue: () => ({ record: () => Effect.void }),
 }) {}
@@ -89,20 +123,27 @@ export const layerAnalytics = Layer.effect(
   ProviderTurnAnalytics,
   Effect.gen(function* () {
     const analytics = yield* AnalyticsService.AnalyticsService;
+    const registry = yield* ProviderRegistry.ProviderRegistry;
     return {
-      record: (properties: Readonly<Record<string, unknown>>) =>
-        analytics.record("provider.turn.completed", properties),
+      record: Effect.fn("ProviderTurnAnalytics.record")(function* (
+        input: ProviderTurnAnalyticsInput,
+      ) {
+        yield* analytics.record(
+          "provider.turn.completed",
+          providerTurnAnalyticsProperties(input, yield* registry.getProviders),
+        );
+      }),
     };
   }),
 );
 
-function providerTurnAnalyticsProperties(input: {
-  readonly driver: ProviderAdapter.ProviderAdapterV2Event["driver"];
-  readonly providerTurn: OrchestrationV2ProviderTurn;
-  readonly context?: ProviderTurnAnalyticsContext;
-}): Readonly<Record<string, unknown>> {
+function providerTurnAnalyticsProperties(
+  input: ProviderTurnAnalyticsInput,
+  providers: ReadonlyArray<ServerProvider>,
+): Readonly<Record<string, unknown>> {
   const usage = input.providerTurn.turnTokenUsage;
   const modelSelection = input.context?.modelSelection;
+  const model = modelSelection && providerDimensions(providers, modelSelection).model;
   const effort = modelSelection
     ? (getModelSelectionStringOptionValue(modelSelection, "reasoningEffort") ??
       getModelSelectionStringOptionValue(modelSelection, "effort"))
@@ -122,10 +163,12 @@ function providerTurnAnalyticsProperties(input: {
       : { cacheCreationTokens: usage.cacheCreationTokens }),
     ...(usage?.outputTokens === undefined ? {} : { outputTokens: usage.outputTokens }),
     ...(usage?.reasoningTokens === undefined ? {} : { reasoningTokens: usage.reasoningTokens }),
-    ...(modelSelection ? { model: modelSelection.model, mixedModels: false } : {}),
+    ...(model === undefined ? {} : { model }),
+    ...(modelSelection ? { mixedModels: false } : {}),
     ...(effort ? { effort } : {}),
     ...(input.context?.runtimeMode ? { runtimeMode: input.context.runtimeMode } : {}),
     ...(input.context?.interactionMode ? { interactionMode: input.context.interactionMode } : {}),
+    ...input.context?.origin,
     ...(input.providerTurn.startedAt && input.providerTurn.completedAt
       ? {
           durationMs: Math.max(
@@ -298,6 +341,7 @@ export const layer: Layer.Layer<
   | IdAllocator.IdAllocatorV2
   | ProjectionStore.ProjectionStoreV2
   | ThreadCommandExecutor.ThreadCommandExecutor
+  | ProviderInstanceRegistry.ProviderInstanceRegistry
 > = Layer.effect(
   ProviderEventIngestorV2,
   Effect.gen(function* () {
@@ -308,6 +352,8 @@ export const layer: Layer.Layer<
     const threadCommands = yield* ThreadCommandExecutor.ThreadCommandExecutor;
     const analytics = yield* ProviderTurnAnalytics;
     const agentScope = yield* AgentScope;
+    const instances = yield* ProviderInstanceRegistry.ProviderInstanceRegistry;
+    const scope = yield* Effect.scope;
     const completedTurnAnalytics = new Set<string>();
 
     const makeDomainEvent =
@@ -434,7 +480,7 @@ export const layer: Layer.Layer<
               },
               occurredAt: now,
             });
-            return yield* eventSink.write({ events: [event] });
+            return yield* eventSink.write({ events: [event] }).pipe(retryLockTimeout);
           }),
         );
       },
@@ -675,6 +721,10 @@ export const layer: Layer.Layer<
             case "command_output.delta":
               // Live output is routed to the command output hub before ingestion.
               return [];
+            case "prompt_suggestion.expected":
+            case "prompt_suggestion.ready":
+              // Routed to the prompt suggestion hub before ingestion; a suggestion is never stored.
+              return [];
             case "turn.terminal":
               const dismissed = yield* dismissNativeUserInputs(input, input.event.providerTurnId);
               if (input.event.status !== "failed") {
@@ -745,7 +795,7 @@ export const layer: Layer.Layer<
                   ...input.writeIfProviderThreadOwner,
                   events,
                 })
-                .pipe(Effect.mapError(mapWriteError));
+                .pipe(retryLockTimeout, Effect.mapError(mapWriteError));
               return ownerResult.storedEvents;
             }
             if (input.writeIfRunCurrent === undefined) {
@@ -755,7 +805,7 @@ export const layer: Layer.Layer<
                   ...(input.commandId === undefined ? {} : { commandId: input.commandId }),
                   events,
                 })
-                .pipe(Effect.mapError(mapWriteError));
+                .pipe(retryLockTimeout, Effect.mapError(mapWriteError));
             }
             const result = yield* eventSink
               .writeIfRunCurrent({
@@ -765,11 +815,28 @@ export const layer: Layer.Layer<
                 ...input.writeIfRunCurrent,
                 events,
               })
-              .pipe(Effect.mapError(mapWriteError));
+              .pipe(retryLockTimeout, Effect.mapError(mapWriteError));
             return result.storedEvents;
           },
           (effect, input) =>
             effect.pipe(
+              Effect.tap((storedEvents) =>
+                Effect.gen(function* () {
+                  if (
+                    storedEvents.length === 0 ||
+                    input.event.type !== "turn.terminal" ||
+                    input.event.status !== "failed" ||
+                    input.event.failure.class !== "usage_limit"
+                  )
+                    return;
+                  const instance = yield* instances.getInstance(input.providerInstanceId);
+                  if (!instance?.snapshot.refreshUsage) return;
+                  yield* instance.snapshot.refreshUsage.pipe(
+                    Effect.ignoreCause({ log: true }),
+                    Effect.forkIn(scope, { startImmediately: true }),
+                  );
+                }),
+              ),
               Effect.flatMap((storedEvents) =>
                 Effect.gen(function* () {
                   if (input.event.type !== "app_thread.created") return storedEvents;
@@ -809,6 +876,7 @@ export const layer: Layer.Layer<
                   ),
                 ),
               ),
+              // @effect-diagnostics-next-line flatMapConditionalToFilterOrFail:off - The predicate narrows the captured event for the subagent update.
               Effect.flatMap((storedEvents) =>
                 storedEvents.length === 0 || input.event.type !== "subagent.updated"
                   ? Effect.succeed(storedEvents)
@@ -843,15 +911,13 @@ export const layer: Layer.Layer<
                     const oldest = completedTurnAnalytics.values().next().value;
                     if (oldest !== undefined) completedTurnAnalytics.delete(oldest);
                   }
-                  yield* analytics.record(
-                    providerTurnAnalyticsProperties({
-                      driver: input.event.driver,
-                      providerTurn,
-                      ...(input.analyticsContext === undefined
-                        ? {}
-                        : { context: input.analyticsContext }),
-                    }),
-                  );
+                  yield* analytics.record({
+                    driver: input.event.driver,
+                    providerTurn,
+                    ...(input.analyticsContext === undefined
+                      ? {}
+                      : { context: input.analyticsContext }),
+                  });
                 }),
               ),
               (effect) =>

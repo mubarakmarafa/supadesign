@@ -41,6 +41,8 @@ import * as SqlitePersistence from "./persistence/Sqlite.ts";
 import * as PullRequestFilesViewed from "./persistence/PullRequestFilesViewed.ts";
 import * as PullRequestReviewGuides from "./persistence/PullRequestReviewGuides.ts";
 import * as PullRequestReviewGuideService from "./pullRequest/PullRequestReviewGuideService.ts";
+import * as Transcription from "./transcription/Transcription.ts";
+import * as TranscriptionUploads from "./transcription/TranscriptionUploads.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as AnalyticsService from "./telemetry/AnalyticsService.ts";
 import * as DelegatedTaskAnalytics from "./telemetry/DelegatedTaskAnalytics.ts";
@@ -53,10 +55,12 @@ import * as McpProviderSessions from "@supaterm/provider-core/server/McpProvider
 import * as OpenCodeRuntime from "@supaterm/provider-opencode/server/OpenCodeRuntime";
 import * as OpenCodeServerLedger from "@supaterm/provider-opencode/server/OpenCodeServerLedger";
 import * as ProviderHostLive from "./provider/ProviderHostLive.ts";
+import * as DocumentText from "./provider/DocumentText.ts";
 import * as AcpRegistrySupport from "@supaterm/provider-acp-registry/server/AcpRegistrySupport";
 import * as CheckpointDiffQuery from "./checkpointing/CheckpointDiffQuery.ts";
 import * as CheckpointStore from "./checkpointing/CheckpointStore.ts";
 import * as SourceControlBuiltInDrivers from "./sourceControl/builtInDrivers.ts";
+import { BUILT_IN_SOURCE_CONTROL_DRIVER_LIST } from "./sourceControl/sourceControlDefinitions.ts";
 import * as TextGeneration from "./textGeneration/TextGeneration.ts";
 import * as ProviderInstanceRegistryHydration from "./provider/ProviderInstanceRegistryHydration.ts";
 import * as ProjectSettingsOverrideSweep from "./provider/ProjectSettingsOverrideSweep.ts";
@@ -78,6 +82,7 @@ import * as ProjectSummary from "./project/ProjectSummary.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
 import * as PortScannerWorkspaceRoots from "./preview/workspaceRoots.ts";
 import * as ServerBrowser from "./preview/ServerBrowser.ts";
+import * as PreviewAgentActivity from "./preview/PreviewAgentActivity.ts";
 import * as DesktopBrowserChannel from "./preview/DesktopBrowserChannel.ts";
 import * as ServerBrowserStream from "./preview/ServerBrowserStream.ts";
 import * as PreviewBrowser from "./preview/PreviewBrowser.ts";
@@ -123,13 +128,15 @@ import * as EventLoopMonitor from "./observability/EventLoopMonitor.ts";
 import * as ServerEnvironment from "./environment/ServerEnvironment.ts";
 import * as DirectEndpoints from "./environment/DirectEndpoints.ts";
 import * as RelayAccess from "./relay/RelayAccess.ts";
+import * as DirectTunnel from "./relay/DirectTunnel.ts";
+import * as DirectTunnelHttp from "./relay/DirectTunnelHttp.ts";
 import * as RelayHttp from "./relay/RelayHttp.ts";
 import * as RelayIdentity from "./relay/RelayIdentity.ts";
 import * as RelayIngress from "./relay/RelayIngress.ts";
-import { TunnelSocket } from "@supaterm/shared/relay/tunnelNode";
 import * as RemoteOpenTargets from "./environment/RemoteOpenTargets.ts";
 import * as AuthHttp from "./auth/http.ts";
 import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
+import * as CodexManagedTokenBroker from "./provider/CodexManagedTokenBroker.ts";
 import * as McpOAuth from "./auth/McpOAuth.ts";
 import * as McpOAuthHttp from "./auth/mcpOAuthHttp.ts";
 import * as EnvironmentAuth from "./auth/EnvironmentAuth.ts";
@@ -140,6 +147,7 @@ import * as ProcessDiagnostics from "./diagnostics/ProcessDiagnostics.ts";
 import * as HostResources from "./resourceTelemetry/HostResources.ts";
 import * as ProcessResourceMonitor from "./diagnostics/ProcessResourceMonitor.ts";
 import * as TraceDiagnostics from "./diagnostics/TraceDiagnostics.ts";
+import * as TriageService from "./triage/TriageService.ts";
 import * as DesktopTelemetryReceiver from "./resourceTelemetry/DesktopTelemetryReceiver.ts";
 import * as NativeTelemetryClient from "./resourceTelemetry/NativeTelemetryClient.ts";
 import * as ResourceAttribution from "./resourceTelemetry/ResourceAttribution.ts";
@@ -147,6 +155,7 @@ import * as ResourceMonitorBinary from "./resourceTelemetry/ResourceMonitorBinar
 import * as ProcessGroupMetrics from "./resourceTelemetry/ProcessGroupMetrics.ts";
 import * as ResourceTelemetry from "./resourceTelemetry/ResourceTelemetry.ts";
 import * as AntigravityUsage from "./provider/Drivers/AntigravityUsage.ts";
+import { MuseUsageHome } from "@supaterm/provider-muse/server";
 import * as CursorAccountReader from "@supaterm/provider-cursor/server/CursorAccountReader";
 import * as CursorKeychain from "@supaterm/provider-cursor/server/CursorKeychain";
 import * as CursorUsageAccounts from "@supaterm/provider-cursor/server/CursorUsageAccounts";
@@ -245,6 +254,7 @@ const layerUsage = UsageService.layer.pipe(
   Layer.provide(
     Layer.mergeAll(
       AntigravityUsage.layer,
+      MuseUsageHome.layer,
       CodexUsageHistory.layer,
       CursorUsageAccounts.layer.pipe(
         Layer.provide(CursorAccountReader.layer.pipe(Layer.provide(CursorKeychain.layer))),
@@ -275,19 +285,11 @@ const layerHttpServer = Layer.unwrap(
       // to compress, so no size threshold is set (ws only honors
       // `threshold` when context takeover is disabled).
       websocket: { perMessageDeflate: true },
-    }).pipe(
-      Layer.provideMerge(
-        Layer.succeed(RelayIngress.RelayIngress, {
-          accept: (stream) => {
-            server.emit("connection", new TunnelSocket(stream));
-          },
-        }),
-      ),
-    );
+    }).pipe(Layer.provideMerge(RelayIngress.layerFromServer(server)));
   }),
 );
 
-const layerPlatformServices = NodeServices.layer;
+const layerPlatformServices = DocumentText.layer.pipe(Layer.provideMerge(NodeServices.layer));
 
 const layerPersistence = Layer.empty.pipe(Layer.provideMerge(SqlitePersistence.layerConfig));
 
@@ -305,9 +307,7 @@ const layerRepositoryIdentityResolver = Layer.effect(
     const registry = yield* SourceControlProviderRegistry.SourceControlProviderRegistry;
     return yield* RepositoryIdentityResolver.make({
       refine: Effect.fn(function* (identity: RepositoryIdentity) {
-        for (const kind of SourceControlBuiltInDrivers.BUILT_IN_SOURCE_CONTROL_DRIVERS.map(
-          (driver) => driver.kind,
-        )) {
+        for (const { kind } of BUILT_IN_SOURCE_CONTROL_DRIVER_LIST) {
           const provider = yield* registry.get(kind);
           if (provider.refineRepositoryIdentity === undefined) continue;
           const refined = yield* provider.refineRepositoryIdentity({
@@ -443,8 +443,10 @@ const layerProjectFaviconResolver = ProjectFaviconResolver.layer.pipe(
   Layer.provide(SupatermProjectFileLoader.layer),
 );
 
-const layerRelayAccess = RelayAccess.layer.pipe(
-  Layer.provide(RelayIdentity.layer.pipe(Layer.provide(ServerSecretStore.layer))),
+// One identity instance, so a direct tunnel advertisement sees the identity that
+// Encrypted Relay creates when it is first turned on.
+const layerRelayAccess = Layer.merge(RelayAccess.layer, DirectTunnel.layer).pipe(
+  Layer.provideMerge(RelayIdentity.layer.pipe(Layer.provide(ServerSecretStore.layer))),
   Layer.provide(layerServerSettings),
 );
 const layerServerEnvironment = Layer.effect(
@@ -578,11 +580,9 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
     }),
   ).pipe(Layer.provide(DelegatedTaskQuestionReactor.layer), Layer.provide(ProjectionStoreV2.layer)),
   ProviderUsageLimitsIngestion.layer,
-  // A board move sends banks and stops live environments, as a drag does. Card
-  // progress captures the live card after each turn, so it builds on live environments.
-  // Column automations watch every card move, fold a card's bank into a prompt, and
-  // move a card on through the board once its agent reports the steps are done.
-  // A card's brief can start from its banked note, so briefs build on banks.
+  // Layer order follows use: board moves send banks and stop live environments, progress
+  // captures the live card, automations fold banks into prompts and move cards on, and briefs
+  // start from banked notes.
   BoardAutomationLayer.layer.pipe(
     Layer.provideMerge(
       ProjectBoardLayer.layer.pipe(
@@ -620,6 +620,9 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   Layer.provideMerge(ProviderRegistry.layer),
 
   Layer.provideMerge(ProviderInstanceRegistryHydration.layer),
+  // Provider hydration builds the Claude runner, which reports agents to the same scanner the
+  // terminal and preview layers share.
+  Layer.provideMerge(layerPortScanner),
   Layer.provideMerge(
     Layer.mergeAll(
       AntigravityInstallation.AntigravityInstallation.layer,
@@ -657,6 +660,7 @@ const layerRuntimeCoreDependencies = layerRuntimeCoreDependenciesBase.pipe(
   Layer.provideMerge(ProjectEnrichmentService.layer),
   Layer.provideMerge(Layer.mergeAll(NativeAppIconResolver.layer, layerProjectFaviconResolver)),
   Layer.provideMerge(layerRepositoryIdentityResolver),
+  Layer.provideMerge(CodexManagedTokenBroker.layer),
   Layer.provideMerge(layerServerEnvironment),
   Layer.provideMerge(layerAuth),
   Layer.provideMerge(ServerSecretStore.layer),
@@ -667,7 +671,8 @@ const layerRuntimeDependencies = layerRuntimeCoreDependencies.pipe(
   Layer.provideMerge(layerBackground),
   Layer.provideMerge(layerResourceDiagnostics),
   Layer.provideMerge(TraceDiagnostics.layer),
-  Layer.provideMerge(AnalyticsService.layer),
+  Layer.provideMerge(TriageService.layer.pipe(Layer.provide(GitVcsDriver.layer))),
+  Layer.provideMerge(AnalyticsService.layer.pipe(Layer.provide(layerServerSettings))),
   Layer.provideMerge(ExternalLauncher.layer),
   Layer.provideMerge(RemoteOpenTargets.layer),
   Layer.provideMerge(DirectEndpoints.layer),
@@ -698,7 +703,9 @@ const layerMakeRoutes = Layer.mergeAll(
     ServerHttp.layerOtlpTracesProxyRoute,
     ServerHttp.layerAssetRoute,
     ServerHttp.layerAttachmentUploadRoute,
+    ServerHttp.layerTranscriptionUploadRoute,
     DeviceHubProxy.layer,
+    DirectTunnelHttp.layer,
     ServerBrowserStream.routeLayer,
     ServerHttp.layerStaticAndDevRoute,
     Ws.layer,
@@ -711,10 +718,20 @@ const layerMakeRoutes = Layer.mergeAll(
   Layer.provide(
     PullRequestReviewGuideService.layer.pipe(Layer.provide(PullRequestReviewGuides.layer)),
   ),
+  Layer.provide(
+    TranscriptionUploads.layer.pipe(
+      Layer.provideMerge(Transcription.layer.pipe(Layer.provide(ProjectionStoreV2.layer))),
+    ),
+  ),
   // Both transports consume the same service instance, so caches single-flight across clients
   // and mutations observed on WebSocket invalidate patches subsequently read over HTTP.
   Layer.provide(layerPullRequestService),
-  Layer.provide(ServerBrowser.layer.pipe(Layer.provide(DesktopBrowserChannel.layer))),
+  // The same activity instance RunExecutionService reports to, by layer memoization.
+  Layer.provide(
+    ServerBrowser.layer.pipe(
+      Layer.provide(Layer.merge(DesktopBrowserChannel.layer, PreviewAgentActivity.layer)),
+    ),
+  ),
   Layer.provide(PreviewAutomationBroker.layer),
   Layer.provide(ServerSelfUpdate.layer.pipe(Layer.provide(layerDesktopAppUpdate))),
   Layer.provide(layerCommandReadiness),

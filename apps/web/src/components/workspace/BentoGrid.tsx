@@ -74,8 +74,10 @@ export function BentoGrid({
   const maximizedId = maximized !== null && rectById.has(maximized) ? maximized : null;
   const interacting = draft !== null || tileDrag !== null;
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- removes an in-progress gutter or tile drag's pointer and key listeners on unmount
   useEffect(() => () => endInteraction.current?.(), []);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- window Escape listener that restores a maximized tile, attached only while one is maximized
   useEffect(() => {
     if (maximizedId === null) return;
     const onKeyDown = (event: globalThis.KeyboardEvent) => {

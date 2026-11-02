@@ -5,14 +5,13 @@ import { McpInvocationContext, requireThreadScope } from "../../McpInvocationCon
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import { BriefToolkit } from "./tools.ts";
 
-const caller = (operation: string) =>
-  Effect.gen(function* () {
-    const scope = yield* requireThreadScope(yield* McpInvocationContext, operation);
-    return {
-      threadId: scope.thread.threadId,
-      service: yield* ThreadBrief.ThreadBriefService,
-    };
-  });
+const caller = Effect.fn("caller")(function* (operation: string) {
+  const scope = yield* requireThreadScope(yield* McpInvocationContext, operation);
+  return {
+    threadId: scope.thread.threadId,
+    service: yield* ThreadBrief.ThreadBriefService,
+  };
+});
 
 const summary = ({ id, text }: ThreadDecision) => ({ id, text });
 

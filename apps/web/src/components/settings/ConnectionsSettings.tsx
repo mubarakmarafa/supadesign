@@ -1,5 +1,5 @@
 import { SessionPermissions } from "./SessionPermissions";
-import { ChevronRightIcon, EllipsisIcon, PencilIcon } from "lucide-react";
+import { ChevronRightIcon, EllipsisIcon, PencilIcon } from "@supaterm/icons";
 import { useAtomValue } from "@effect/atom-react";
 import { useRef, useState } from "react";
 import {
@@ -43,6 +43,7 @@ import {
   selectPairingEndpoint,
   isTailscaleHttpsEndpoint,
   endpointDefaultPreferenceKey,
+  resolveTailscaleServeBaseUrl,
 } from "./ConnectionsSettings.logic";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
 import { LocalEnvironmentSetting } from "./LocalEnvironmentSetting";
@@ -51,7 +52,7 @@ import { EnvironmentIconMenu } from "./EnvironmentIconPicker";
 import { RenameEnvironmentDialog } from "./RenameEnvironmentDialog";
 import { FoldedSettingsSection } from "./FoldedSettingsSection";
 import { LoadBalancingSettings } from "./LoadBalancingSettings";
-import { GitHubRoutingSettings } from "./GitHubRoutingSettings";
+import { PullRequestRoutingSettings } from "./PullRequestRoutingSettings";
 import { Input } from "../ui/input";
 import {
   Dialog,
@@ -122,14 +123,13 @@ import {
   type ServerUpdateTarget,
 } from "../ServerUpdateAction";
 import {
-  type AccessSectionPresentation,
   AdvertisedEndpointListRow,
   AuthorizedClientsHeaderAction,
   type CreatedPairingCredential,
   NetworkAccessDescription,
   PairingClientsList,
-  accessRowClassName,
 } from "./AuthorizedClientsSettings";
+import { ITEM_ROW_CLASSNAME } from "./itemRows";
 import { EmptyRemoteEnvironments, SavedBackendListRow } from "./SavedEnvironmentRows";
 import { AddEnvironmentDialog } from "./AddEnvironmentDialog";
 
@@ -152,7 +152,8 @@ function LocalVersionStatusLabel() {
   );
 }
 
-export function ConnectionsSettings() {
+/** Environments lists the machines this app connects to; access covers who may reach this one. */
+export function ConnectionsSettings({ view }: { readonly view: "environments" | "access" }) {
   const desktopBridge = window.desktopBridge;
   const { environments } = useEnvironments();
   const primaryEnvironment = usePrimaryEnvironment();
@@ -294,8 +295,9 @@ export function ConnectionsSettings() {
   const canManageLocalBackend = !isLocalEnvironmentDisabled() && canMaintain;
   const updatePrimarySettings = useUpdatePrimarySettings();
   const canWriteSettings = useEnvironmentScope(primaryEnvironmentId, AuthSettingsWriteScope);
+  const showsAccess = view === "access";
   const authAccessChanges = useEnvironmentQuery(
-    canReadAccess && primaryEnvironmentId !== null
+    showsAccess && canReadAccess && primaryEnvironmentId !== null
       ? authEnvironment.accessChanges({
           environmentId: primaryEnvironmentId,
           input: null,
@@ -303,10 +305,10 @@ export function ConnectionsSettings() {
       : null,
   );
   const desktopNetworkAccess = useEnvironmentQuery(
-    canManageLocalBackend && desktopBridge ? desktopNetworkAccessStateAtom : null,
+    showsAccess && canManageLocalBackend && desktopBridge ? desktopNetworkAccessStateAtom : null,
   );
   const desktopWsl = useEnvironmentQuery(
-    canManageLocalBackend && desktopBridge ? desktopWslStateAtom : null,
+    showsAccess && canManageLocalBackend && desktopBridge ? desktopWslStateAtom : null,
   );
   const desktopWslState = desktopWsl.data;
   const desktopWslError = desktopWslMutationError ?? desktopWsl.error;
@@ -350,20 +352,11 @@ export function ConnectionsSettings() {
     parsedTailscaleServePort >= 1 &&
     parsedTailscaleServePort <= 65_535;
 
-  const pendingTailscaleServeBaseUrl = (() => {
-    if (!tailscaleHttpsEndpoint) return null;
-    if (!isTailscaleServePortValid) return tailscaleHttpsEndpoint.httpBaseUrl;
-    if (parsedTailscaleServePort === DEFAULT_TAILSCALE_SERVE_PORT) {
-      return tailscaleHttpsEndpoint.httpBaseUrl;
-    }
-    try {
-      const url = new URL(tailscaleHttpsEndpoint.httpBaseUrl);
-      url.port = String(parsedTailscaleServePort);
-      return url.toString().replace(/\/$/u, "");
-    } catch {
-      return tailscaleHttpsEndpoint.httpBaseUrl;
-    }
-  })();
+  const pendingTailscaleServeBaseUrl = resolveTailscaleServeBaseUrl(
+    tailscaleHttpsEndpoint,
+    parsedTailscaleServePort,
+    isTailscaleServePortValid,
+  );
 
   const handleDesktopServerExposureChange = async (checked: boolean) => {
     if (
@@ -694,7 +687,7 @@ export function ConnectionsSettings() {
       aria-label="Enable network access"
     />
   );
-  const renderEndpointRows = (presentation: AccessSectionPresentation) =>
+  const renderEndpointRows = () =>
     isAdvertisedEndpointListExpanded
       ? visibleDesktopNetworkAdvertisedEndpoints.map((endpoint) => {
           const endpointKey = endpointDefaultPreferenceKey(endpoint);
@@ -703,7 +696,6 @@ export function ConnectionsSettings() {
               key={endpoint.id}
               endpoint={endpoint}
               isDefault={endpointKey === defaultDesktopAdvertisedEndpointKey}
-              presentation={presentation}
               onSetDefault={handleSetDefaultAdvertisedEndpoint}
               onSetupTailscaleServe={handleStartTailscaleServeSetup}
               onDisableTailscaleServe={handleStartTailscaleServeDisable}
@@ -988,10 +980,10 @@ export function ConnectionsSettings() {
       />
     );
   };
-  const renderAuthorizedClients = (presentation: AccessSectionPresentation) => (
+  const renderAuthorizedClients = () => (
     <>
       {desktopAccessManagementError ? (
-        <div className={accessRowClassName(presentation)}>
+        <div className={ITEM_ROW_CLASSNAME}>
           <p className="text-xs text-destructive">{desktopAccessManagementError}</p>
         </div>
       ) : null}
@@ -1001,7 +993,6 @@ export function ConnectionsSettings() {
         endpointUrl={desktopServerExposureState?.endpointUrl}
         endpoints={visibleDesktopAdvertisedEndpoints}
         defaultEndpointKey={defaultDesktopAdvertisedEndpointKey}
-        presentation={presentation}
         isLoading={isLoadingDesktopAccessManagement}
         pairingLinks={visibleDesktopPairingLinks}
         createdPairingCredentials={createdPairingCredentials}
@@ -1138,7 +1129,6 @@ export function ConnectionsSettings() {
                 onClose={() => setRenamePrimaryOpen(false)}
               />
             )}
-            <LocalEnvironmentSetting />
             {canManageLocalBackend ? (
               <PublicRelaySettings
                 status={relayStatus}
@@ -1150,7 +1140,7 @@ export function ConnectionsSettings() {
             {canManageLocalBackend && desktopBridge ? (
               <>
                 {renderNetworkAccessRow()}
-                {renderEndpointRows("endpoint-rail")}
+                {renderEndpointRows()}
                 {renderTailscaleRow()}
                 {renderWslRow()}
               </>
@@ -1252,7 +1242,7 @@ export function ConnectionsSettings() {
                 data-testid="authorized-clients-scroll-area"
               >
                 {canReadAccess ? (
-                  renderAuthorizedClients("current")
+                  renderAuthorizedClients()
                 ) : (
                   <p className="px-4 py-3 text-xs text-muted-foreground">
                     This connection can create access links but cannot view authorized clients.
@@ -1551,15 +1541,20 @@ export function ConnectionsSettings() {
             title="No environment selected"
             description="Connect an environment to view its settings and access."
           />
-          <LocalEnvironmentSetting />
         </SettingsSection>
       )}
     </>
   );
 
+  if (showsAccess) return <SettingsPageContainer>{primarySettings}</SettingsPageContainer>;
+
   return (
     <SettingsPageContainer>
-      {primarySettings}
+      {desktopBridge ? (
+        <SettingsSection id="this-app" title="This app">
+          <LocalEnvironmentSetting />
+        </SettingsSection>
+      ) : null}
       <SettingsSection
         {...searchableSetting("remote-environments")}
         title="Environments"
@@ -1596,7 +1591,7 @@ export function ConnectionsSettings() {
         {savedEnvironments.length === 0 ? <EmptyRemoteEnvironments /> : null}
       </SettingsSection>
       <LoadBalancingSettings environments={loadBalancingEnvironments} />
-      <GitHubRoutingSettings environments={loadBalancingEnvironments} />
+      <PullRequestRoutingSettings environments={loadBalancingEnvironments} />
     </SettingsPageContainer>
   );
 }

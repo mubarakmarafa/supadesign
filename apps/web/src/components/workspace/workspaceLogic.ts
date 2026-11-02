@@ -378,11 +378,9 @@ export function pathWithin(root: string, path: string): boolean {
 }
 
 /**
- * Who a running server belongs to: the thread whose terminal started it, else
- * the thread whose worktree it runs in, else just the project when it runs in
- * the project folder or a worktree of its repository (`checkoutProjectId`, as
- * the server found it). Agents often start servers outside a terminal, so the
- * working directory is what ties those back.
+ * The thread whose terminal started the server, else the thread whose worktree it runs in,
+ * else the project when it runs in the project folder or a repo worktree (`checkoutProjectId`).
+ * Agents often start servers outside a terminal, so the working directory ties those back.
  */
 export function previewServerOwner<
   T extends { readonly id: string; readonly worktreePath: string | null },

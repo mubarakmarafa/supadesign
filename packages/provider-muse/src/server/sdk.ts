@@ -1,5 +1,5 @@
 // @effect-diagnostics globalTimers:off
-// @effect-diagnostics-next-line nodeBuiltinImport:off -- FileSystem.realPath is Node's JS realpath; museWorkspaceRoot needs the native one.
+// @effect-diagnostics-next-line nodeBuiltinImport:off -- FileSystem.realPath is Node's JS realpath; museCanonicalPath needs the native one.
 import * as NodeFSP from "node:fs/promises";
 
 import {
@@ -24,7 +24,8 @@ export interface MuseSdkHost {
     | "onProtocolError"
     | "closed"
   >;
-  readonly initializeResult: Pick<SpawnedMspConnection["initializeResult"], "grantedCapabilities">;
+  readonly initializeResult: Pick<SpawnedMspConnection["initializeResult"], "grantedCapabilities"> &
+    Partial<Pick<SpawnedMspConnection["initializeResult"], "museHome">>;
   readonly exited: Promise<ProcessExit>;
 
   readonly stderrTail?: () => ReadonlyArray<string>;
@@ -69,15 +70,20 @@ export function museVerbatimPath(path: string): string {
   return path.startsWith("\\\\") ? `\\\\?\\UNC\\${path.slice(2)}` : `\\\\?\\${path}`;
 }
 
+// Native realpath corrects filesystem case as well as resolving symlinks.
+export const museCanonicalPath = Effect.fn("museCanonicalPath")(function* (path: string) {
+  return yield* Effect.tryPromise(() => NodeFSP.realpath(path)).pipe(
+    Effect.orElseSucceed(() => path),
+  );
+});
+
 /**
- * On Windows Muse rejects anything but the verbatim canonical path, true case
- * and long names included, so resolve with the native realpath, which unlike
- * FileSystem.realPath fixes case and expands 8.3 names. Muse itself still
- * starts in the plain path: the `muse.cmd` launcher runs under cmd.exe, which
- * cannot use a verbatim directory.
+ * On Windows Muse accepts only the verbatim canonical path, so resolve with the
+ * native realpath, which unlike FileSystem.realPath fixes case and expands 8.3
+ * names. Muse still starts in the plain path: cmd.exe cannot use a verbatim one.
  */
 export const museWorkspaceRoot = Effect.fn("museWorkspaceRoot")(function* (path: string) {
-  if ((yield* HostProcess.Platform) !== "win32") return path;
+  if ((yield* HostProcess.Platform) !== "win32") return yield* museCanonicalPath(path);
   const canonical = yield* Effect.tryPromise(() => NodeFSP.realpath(path)).pipe(
     // A verbatim path takes `/` literally, so an unresolved root needs Windows separators.
     Effect.orElseSucceed(() => path.replaceAll("/", "\\")),
@@ -93,11 +99,9 @@ function windowsEnvironmentValue(environment: NodeJS.ProcessEnv, name: string) {
 }
 
 /**
- * The SDK spawns without a shell, which finds the `muse` launcher on PATH
- * everywhere but Windows. There Node neither looks a bare `muse` up with
- * PATHEXT (ENOENT) nor runs a `.cmd` file such as Muse's own launcher (EINVAL)
- * without a shell, so resolve the binary like any other command and run a
- * `.cmd` or `.bat` under cmd.exe.
+ * The SDK spawns without a shell, and on Windows Node then neither resolves a
+ * bare `muse` with PATHEXT (ENOENT) nor runs a `.cmd` launcher (EINVAL). Resolve
+ * the binary like any other command and run a `.cmd` or `.bat` under cmd.exe.
  */
 export const museLaunch = Effect.fn("museLaunch")(function* (
   binaryPath: string,

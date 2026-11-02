@@ -41,14 +41,9 @@ import {
   compileResolvedKeybindingRule,
   compileResolvedKeybindingsConfig,
   parseKeybindingShortcut,
+  parseKeybindingWhenExpression,
+  shortcutConflictKey,
 } from "@supaterm/shared/keybindings";
-
-export {
-  DEFAULT_KEYBINDINGS,
-  compileResolvedKeybindingRule,
-  compileResolvedKeybindingsConfig,
-  parseKeybindingShortcut,
-};
 
 export const ResolvedKeybindingFromConfig = KeybindingRule.pipe(
   Schema.decodeTo(
@@ -87,12 +82,18 @@ export const ResolvedKeybindingFromConfig = KeybindingRule.pipe(
   ),
 );
 
+// Settings sends replace/remove targets in its own normalized spelling, which can differ from a
+// hand-edited file ("cmd+k" vs "meta+k", "a&&b" vs "a && b"), so compare parsed forms.
+function keybindingRuleIdentity(rule: KeybindingRule): string {
+  const shortcut = parseKeybindingShortcut(rule.key);
+  const key = (shortcut && encodeShortcut(shortcut)) ?? rule.key;
+  if (rule.when === undefined) return JSON.stringify([rule.command, key, null]);
+  const whenAst = parseKeybindingWhenExpression(rule.when);
+  return JSON.stringify([rule.command, key, whenAst ? encodeWhenAst(whenAst) : rule.when]);
+}
+
 function isSameKeybindingRule(left: KeybindingRule, right: KeybindingRule): boolean {
-  return (
-    left.command === right.command &&
-    left.key === right.key &&
-    (left.when ?? undefined) === (right.when ?? undefined)
-  );
+  return keybindingRuleIdentity(left) === keybindingRuleIdentity(right);
 }
 
 function keybindingShortcutContext(rule: KeybindingRule): string | null {
@@ -119,33 +120,51 @@ function renamePreLaunchCommands(rawConfig: string) {
   return rawConfig.replaceAll('"thread.settle"', '"thread.mark-done"');
 }
 
-function migrateMarkDoneKeybinding(rules: readonly KeybindingRule[]) {
-  const commandRules = rules.filter((rule) => rule.command === "thread.mark-done");
+/**
+ * Saved configs hold every default, so a changed default reaches existing users only by
+ * moving their saved rule. Each move runs once, so a user who picks the old key again keeps it.
+ * Supadesign leaves out Supaterm's Mark done move to mod+shift+d, which is design mode here.
+ */
+const SAVED_DEFAULT_MOVES = [
+  { marker: "voice-shortcut-v1", command: "composer.voice", from: "mod+shift+space", to: "ctrl+m" },
+] as const satisfies ReadonlyArray<{
+  readonly marker: string;
+  readonly command: KeybindingRule["command"];
+  readonly from: string;
+  readonly to: string;
+}>;
+type SavedDefaultMove = (typeof SAVED_DEFAULT_MOVES)[number];
+
+function moveSavedDefault(rules: readonly KeybindingRule[], move: SavedDefaultMove) {
+  const commandRules = rules.filter((rule) => rule.command === move.command);
   const [previous] = commandRules;
   if (
     commandRules.length !== 1 ||
-    previous?.key !== "mod+shift+s" ||
+    previous?.key !== move.from ||
     previous.when !== "!terminalFocus"
   ) {
     return rules;
   }
 
+  const target = parseKeybindingShortcut(move.to);
   const shortcutTaken = rules.some((rule) => {
-    if (rule.command === "thread.mark-done" || rule.when === "terminalFocus") return false;
+    if (rule.command === move.command || rule.when === "terminalFocus") return false;
     const shortcut = parseKeybindingShortcut(rule.key);
     return (
-      shortcut?.key === "d" &&
-      shortcut.shiftKey &&
-      !shortcut.altKey &&
-      (shortcut.modKey || shortcut.metaKey || shortcut.ctrlKey)
+      shortcut !== null &&
+      target !== null &&
+      ["MacIntel", "Linux"].some(
+        (platform) =>
+          shortcutConflictKey(shortcut, platform) === shortcutConflictKey(target, platform),
+      )
     );
   });
   if (shortcutTaken) return rules;
 
-  return rules.map((rule) => (rule === previous ? { ...rule, key: "mod+shift+d" } : rule));
+  return rules.map((rule) => (rule === previous ? { ...rule, key: move.to } : rule));
 }
 
-function keybindingRuleFromUpsertInput(input: ServerUpsertKeybindingInput): KeybindingRule {
+function keybindingRuleFromInput(input: ServerRemoveKeybindingInput): KeybindingRule {
   return input.when === undefined
     ? { key: input.key, command: input.command }
     : { key: input.key, command: input.command, when: input.when };
@@ -156,12 +175,6 @@ function replaceTargetFromUpsertInput(input: ServerUpsertKeybindingInput): Keybi
   return input.replace.when === undefined
     ? { key: input.replace.key, command: input.replace.command }
     : { key: input.replace.key, command: input.replace.command, when: input.replace.when };
-}
-
-function keybindingRuleFromRemoveInput(input: ServerRemoveKeybindingInput): KeybindingRule {
-  return input.when === undefined
-    ? { key: input.key, command: input.command }
-    : { key: input.key, command: input.command, when: input.when };
 }
 
 function encodeShortcut(shortcut: KeybindingShortcut): string | null {
@@ -267,8 +280,10 @@ const make = Effect.gen(function* () {
   const { keybindingsConfigPath } = yield* ServerConfig.ServerConfig;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const markDoneMigrationPath = `${keybindingsConfigPath}.mark-done-shortcut-v1`;
-  const markDoneMigrationCompleted = fs.exists(markDoneMigrationPath).pipe(
+  const movedMarkerPath = (move: SavedDefaultMove) => `${keybindingsConfigPath}.${move.marker}`;
+  const pendingSavedDefaultMoves = Effect.filter(SAVED_DEFAULT_MOVES, (move) =>
+    fs.exists(movedMarkerPath(move)).pipe(Effect.map((moved) => !moved)),
+  ).pipe(
     Effect.mapError(
       (cause) =>
         new KeybindingsConfigError({
@@ -278,16 +293,19 @@ const make = Effect.gen(function* () {
         }),
     ),
   );
-  const completeMarkDoneMigration = fs.writeFileString(markDoneMigrationPath, "").pipe(
-    Effect.mapError(
-      (cause) =>
-        new KeybindingsConfigError({
-          configPath: keybindingsConfigPath,
-          detail: "failed to save keybindings migration state",
-          cause,
-        }),
-    ),
-  );
+  const completeSavedDefaultMoves = (moves: ReadonlyArray<SavedDefaultMove>) =>
+    Effect.forEach(moves, (move) => fs.writeFileString(movedMarkerPath(move), ""), {
+      discard: true,
+    }).pipe(
+      Effect.mapError(
+        (cause) =>
+          new KeybindingsConfigError({
+            configPath: keybindingsConfigPath,
+            detail: "failed to save keybindings migration state",
+            cause,
+          }),
+      ),
+    );
   const upsertSemaphore = yield* Semaphore.make(1);
   const resolvedConfigCacheKey = "resolved" as const;
   const changesPubSub = yield* PubSub.unbounded<KeybindingsChangeEvent>();
@@ -475,7 +493,7 @@ const make = Effect.gen(function* () {
       const configExists = yield* readConfigExists;
       if (!configExists) {
         yield* writeConfigAtomically(DEFAULT_KEYBINDINGS);
-        yield* completeMarkDoneMigration;
+        yield* completeSavedDefaultMoves(SAVED_DEFAULT_MOVES);
         yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
         return;
       }
@@ -492,10 +510,8 @@ const make = Effect.gen(function* () {
         yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
         return;
       }
-      const migrationCompleted = yield* markDoneMigrationCompleted;
-      const customConfig = migrationCompleted
-        ? runtimeConfig.keybindings
-        : migrateMarkDoneKeybinding(runtimeConfig.keybindings);
+      const pendingMoves = yield* pendingSavedDefaultMoves;
+      const customConfig = pendingMoves.reduce(moveSavedDefault, runtimeConfig.keybindings);
       const existingCommands = new Set(customConfig.map((entry) => entry.command));
       const missingDefaults: KeybindingRule[] = [];
       const shortcutConflictWarnings: Array<{
@@ -559,7 +575,7 @@ const make = Effect.gen(function* () {
       if (defaultsToAppend.length > 0 || customConfig !== runtimeConfig.keybindings) {
         yield* writeConfigAtomically([...defaultsToAppend, ...customConfig]);
       }
-      if (!migrationCompleted) yield* completeMarkDoneMigration;
+      if (pendingMoves.length > 0) yield* completeSavedDefaultMoves(pendingMoves);
       yield* Cache.invalidate(resolvedConfigCache, resolvedConfigCacheKey);
     }),
   );
@@ -641,7 +657,7 @@ const make = Effect.gen(function* () {
       upsertSemaphore.withPermits(1)(
         Effect.gen(function* () {
           const customConfig = yield* loadWritableCustomKeybindingsConfig();
-          const rule = keybindingRuleFromUpsertInput(input);
+          const rule = keybindingRuleFromInput(input);
           const replaceTarget = replaceTargetFromUpsertInput(input);
           const nextConfig = [
             ...customConfig.filter((entry) => {
@@ -683,7 +699,7 @@ const make = Effect.gen(function* () {
       upsertSemaphore.withPermits(1)(
         Effect.gen(function* () {
           const customConfig = yield* loadWritableCustomKeybindingsConfig();
-          const target = keybindingRuleFromRemoveInput(input);
+          const target = keybindingRuleFromInput(input);
           const nextConfig = customConfig.filter((entry) => !isSameKeybindingRule(entry, target));
           yield* writeConfigAtomically(nextConfig);
           const nextResolved = mergeWithDefaultKeybindings(

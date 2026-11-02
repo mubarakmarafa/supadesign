@@ -11,24 +11,31 @@ import type {
   PullRequestDetail,
   PullRequestMergeMethod,
   PullRequestRef,
+  ScopedThreadRef,
 } from "@supaterm/contracts";
 import { useRef, useState } from "react";
+import {
+  capitalizeTerm,
+  sourceControlClients,
+  type ChangeRequestTerminology,
+} from "@supaterm/client-runtime/source-control-clients";
 import { resolveProjectSettings } from "@supaterm/shared/projectSettings";
 import { useEnvironmentSettings } from "~/hooks/useSettings";
 
-import { type DraftId, useComposerDraftStore } from "~/composerDraftStore";
+import { composerTargetKey, type DraftId, useComposerDraftStore } from "~/composerDraftStore";
 import { useNewThreadHandler } from "~/hooks/useHandleNewThread";
-import { usePreparePullRequestThreadAction } from "~/lib/sourceControlActions";
+import { usePreparePullRequestThreadAction } from "~/state/sourceControlActions";
 import type { ReviewCommentContext } from "~/reviewCommentContext";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 
 import { toastManager } from "../ui/toast";
-import { OFF_HEAD_PULL_REQUEST_CHECKOUT_TOAST } from "./pullRequestCheckoutToast";
+import { offHeadPullRequestCheckoutToast } from "./pullRequestCheckoutToast";
 import {
   checkoutFailureDescription,
   handoffPrompt,
   handoffReviewComments,
   readableFailure,
+  stripPullRequestHandoffReferences,
 } from "./pullRequestDetail.logic";
 import { pullRequestEntryKey, type EnvironmentPullRequestEntry } from "./pullRequestList.logic";
 
@@ -44,35 +51,35 @@ export function usePullRequestDefaultMergeMethod(
   );
 }
 
-const ACTION_SUCCESS_LABELS: Record<PullRequestAction, string> = {
+const actionSuccessLabels = (term: string): Record<PullRequestAction, string> => ({
   merge: "Merge requested",
   ready: "Marked ready for review",
   draft: "Converted to draft",
-  close: "Pull request closed",
-  reopen: "Pull request reopened",
+  close: `${capitalizeTerm(term)} closed`,
+  reopen: `${capitalizeTerm(term)} reopened`,
   "update-branch": "Branch updated with the base branch",
   "enable-auto-merge": "Auto-merge enabled",
   "disable-auto-merge": "Auto-merge disabled",
-  revert: "Revert pull request opened",
+  revert: `Revert ${term} opened`,
   "delete-branch": "Branch deleted",
   "approve-workflows": "Workflows approved",
-};
+});
 
-const ACTION_FAILURE_LABELS: Record<PullRequestAction, string> = {
-  merge: "Could not merge this pull request",
+const actionFailureLabels = (term: string): Record<PullRequestAction, string> => ({
+  merge: `Could not merge this ${term}`,
   ready: "Could not mark this ready for review",
   draft: "Could not convert this to a draft",
-  close: "Could not close this pull request",
-  reopen: "Could not reopen this pull request",
+  close: `Could not close this ${term}`,
+  reopen: `Could not reopen this ${term}`,
   "update-branch": "Could not update this branch",
   "enable-auto-merge": "Could not enable auto-merge",
   "disable-auto-merge": "Could not disable auto-merge",
-  revert: "Could not open a revert pull request",
+  revert: `Could not open a revert ${term}`,
   "delete-branch": "Could not delete this branch",
   "approve-workflows": "Could not approve workflows",
-};
+});
 
-const ACTION_FAILURE_HINTS: Record<PullRequestAction, string> = {
+const actionFailureHints = (term: string): Record<PullRequestAction, string> => ({
   merge:
     "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting.",
   ready: "The host refused it. Check that you have write access to this repository.",
@@ -85,22 +92,23 @@ const ACTION_FAILURE_HINTS: Record<PullRequestAction, string> = {
   "enable-auto-merge":
     "The host refused it. Check that auto-merge is enabled for this repository and that you have write access.",
   "disable-auto-merge": "The host refused it. Check that you have write access to this repository.",
-  revert:
-    "The host refused it. Check that you have write access and that this pull request was merged on the host.",
+  revert: `The host refused it. Check that you have write access and that this ${term} was merged on the host.`,
   "delete-branch":
     "The host refused it. Check that you have write access to the source repository and that the branch has not moved since this page loaded.",
   "approve-workflows":
     "The host refused it. Check that you have Actions write access and that these workflow runs are still awaiting approval.",
-};
+});
 
 export function usePullRequestActionRunner({
   environmentId,
   reference,
+  terminology,
   onSuccess,
   resolveMergeMethod,
 }: {
   environmentId: EnvironmentId;
   reference: PullRequestRef | null;
+  terminology: ChangeRequestTerminology;
   onSuccess?: (action: PullRequestAction) => void;
   /** Small surfaces resolve repository settings on the click, not for every visible row. */
   resolveMergeMethod?: (detail: PullRequestDetail) => PullRequestMergeMethod;
@@ -108,13 +116,13 @@ export function usePullRequestActionRunner({
   const runAction = useAtomCommand(pullRequestEnvironment.runAction, {
     reportFailure: false,
   });
-  const [actionPending, setActionPending] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PullRequestAction | null>(null);
   const pendingRef = useRef(false);
 
   const perform = async (action: PullRequestAction, method?: PullRequestMergeMethod) => {
-    if (pendingRef.current || reference === null) return;
+    if (pendingRef.current || reference === null) return false;
     pendingRef.current = true;
-    setActionPending(true);
+    setPendingAction(action);
     const result = await runAction({
       environmentId,
       input: {
@@ -124,23 +132,24 @@ export function usePullRequestActionRunner({
       },
     });
     pendingRef.current = false;
-    setActionPending(false);
+    setPendingAction(null);
     if (result._tag === "Failure") {
       toastManager.add({
         type: "error",
-        title: ACTION_FAILURE_LABELS[action],
+        title: actionFailureLabels(terminology.singular)[action],
         description: readableFailure(
           squashAtomCommandFailure(result),
-          ACTION_FAILURE_HINTS[action],
+          actionFailureHints(terminology.singular)[action],
         ),
       });
-      return;
+      return false;
     }
-    toastManager.add({ type: "success", title: ACTION_SUCCESS_LABELS[action] });
+    toastManager.add({ type: "success", title: actionSuccessLabels(terminology.singular)[action] });
     onSuccess?.(action);
+    return true;
   };
 
-  return { actionPending, perform };
+  return { actionPending: pendingAction !== null, pendingAction, perform };
 }
 
 export function usePullRequestCloseBatch(onClosed: (entry: EnvironmentPullRequestEntry) => void) {
@@ -173,7 +182,7 @@ export function usePullRequestCloseBatch(onClosed: (entry: EnvironmentPullReques
         setClosingKeys(new Set(pending.current));
         if (result._tag === "Failure") {
           failures.push(
-            `#${entry.number}: ${readableFailure(squashAtomCommandFailure(result), ACTION_FAILURE_HINTS.close)}`,
+            `#${entry.number}: ${readableFailure(squashAtomCommandFailure(result), actionFailureHints(sourceControlClients.get(entry.provider).changeRequest.singular).close)}`,
           );
           return;
         }
@@ -204,7 +213,53 @@ export type PullRequestHandoffDetail = Pick<
   "projectId" | "workspaceRoot" | "url"
 >;
 
-const lastHandoffPromptByDraft = new Map<DraftId, string>();
+/**
+ * What the last hand-off wrote into each draft, kept outside React because the surface that wrote
+ * it may be gone by the time the next one arrives. It is how a prompt the reader has since edited
+ * is told apart from the one they were handed: only the sentence still exactly as written may be
+ * replaced.
+ */
+const lastHandoffPromptByDraft = new Map<string, string>();
+
+export function writePullRequestTaskToComposer(
+  target: ScopedThreadRef | DraftId,
+  task: PullRequestThreadTask,
+) {
+  const store = useComposerDraftStore.getState();
+  const draft = store.getComposerDraft(target);
+  const key = composerTargetKey(target);
+  const previousCommentIds = new Set((draft?.reviewComments ?? []).map((comment) => comment.id));
+  const repeatedCommentIds = new Set(
+    (task.reviewComments ?? [])
+      .filter((comment) => previousCommentIds.has(comment.id))
+      .map((comment) => comment.id),
+  );
+  const promptWithoutPreviousHandoff = stripPullRequestHandoffReferences(
+    draft?.prompt ?? "",
+    draft?.reviewComments ?? [],
+    repeatedCommentIds,
+  );
+  const prompt = handoffPrompt(
+    {
+      prompt: promptWithoutPreviousHandoff,
+      lastHandoffPrompt: lastHandoffPromptByDraft.get(key),
+    },
+    task.prompt,
+  );
+  lastHandoffPromptByDraft.set(key, task.prompt);
+  store.setPrompt(target, prompt);
+  store.setReviewComments(
+    target,
+    handoffReviewComments(draft?.reviewComments ?? [], task.reviewComments ?? []),
+  );
+  for (const comment of task.reviewComments ?? []) {
+    if (!repeatedCommentIds.has(comment.id)) continue;
+    store.addReviewComment(target, comment, {
+      allowDuplicateReference: true,
+      insertAtCaret: false,
+    });
+  }
+}
 
 export function usePullRequestHandoffs({
   environmentId,
@@ -220,6 +275,11 @@ export function usePullRequestHandoffs({
   });
   // One at a time whatever the key: they all check the same pull request out.
   const [handoff, setHandoff] = useState<string | null>(null);
+  // Prompt links hand over a URL alone, so the URL is what names the host.
+  const terminology = (
+    (detail && sourceControlClients.findByChangeRequestUrl(detail.url)) ||
+    sourceControlClients.get(undefined)
+  ).changeRequest;
 
   /**
    * Nothing is checked out: asking a question is not a reason to move somebody's working tree
@@ -237,25 +297,7 @@ export function usePullRequestHandoffs({
         () => null,
       ));
     if (session === null) return null;
-    const store = useComposerDraftStore.getState();
-    if (task === null) return session;
-    const draft = store.getComposerDraft(session.draftId);
-    const existingComments = draft?.reviewComments ?? [];
-    const prompt = handoffPrompt(
-      {
-        prompt: draft?.prompt ?? "",
-        lastHandoffPrompt: lastHandoffPromptByDraft.get(session.draftId),
-      },
-      task.prompt,
-    );
-    // Remember the hand-off's own contribution, not the merged prompt: only that sentence is
-    // this session's to take back next time, and the reader's text around it is not.
-    lastHandoffPromptByDraft.set(session.draftId, task.prompt);
-    store.setPrompt(session.draftId, prompt);
-    store.setReviewComments(
-      session.draftId,
-      handoffReviewComments(existingComments, task.reviewComments ?? []),
-    );
+    if (task !== null) writePullRequestTaskToComposer(session.draftId, task);
     return session;
   };
 
@@ -278,8 +320,8 @@ export function usePullRequestHandoffs({
       title: "Asked in a thread",
       description:
         task.prompt.length > 0
-          ? "The question is in the composer — read it over, then send."
-          : "The pull request is in the composer — type your question, then send.",
+          ? "The question is in the composer. Read it over, then send."
+          : `The ${terminology.singular} is in the composer. Type your question, then send.`,
     });
   };
 
@@ -294,7 +336,7 @@ export function usePullRequestHandoffs({
     // would survive the update and pin the result on screen.
     const toastId = toastManager.add({
       type: "loading",
-      title: "Preparing the pull request checkout...",
+      title: `Preparing the ${terminology.singular} checkout...`,
     });
     const projectRef = scopeProjectRef(environmentId, detail.projectId);
     // The thread is opened before the checkout rather than after it, because the project's setup
@@ -322,7 +364,7 @@ export function usePullRequestHandoffs({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: "Could not prepare the pull request checkout",
+        title: `Could not prepare the ${terminology.singular} checkout`,
         description: checkoutFailureDescription(
           isAtomCommandInterrupted(prepared) ? undefined : squashAtomCommandFailure(prepared),
         ),
@@ -356,10 +398,10 @@ export function usePullRequestHandoffs({
               title: mode === "local" ? "Checked out here" : "Checked out",
               description:
                 mode === "local"
-                  ? "This repository is on the pull request's branch, with a thread open on it."
-                  : "The pull request is in its own worktree, with a thread open on it.",
+                  ? `This repository is on the ${terminology.singular}'s branch, with a thread open on it.`
+                  : `The ${terminology.singular} is in its own worktree, with a thread open on it.`,
             }
-          : OFF_HEAD_PULL_REQUEST_CHECKOUT_TOAST,
+          : offHeadPullRequestCheckoutToast(terminology),
       );
       return;
     }
@@ -370,9 +412,9 @@ export function usePullRequestHandoffs({
         ? {
             type: "success",
             title: "Checkout ready",
-            description: "The task is in the composer — read it over, then send.",
+            description: "The task is in the composer. Read it over, then send.",
           }
-        : OFF_HEAD_PULL_REQUEST_CHECKOUT_TOAST,
+        : offHeadPullRequestCheckoutToast(terminology),
     );
   };
 

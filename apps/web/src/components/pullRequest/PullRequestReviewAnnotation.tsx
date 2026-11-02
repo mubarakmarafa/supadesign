@@ -7,8 +7,14 @@ import type {
   PullRequestThreadCommentsResult,
   PullRequestThreadComment,
 } from "@supaterm/contracts";
-import { HammerIcon, MessageSquareIcon, Trash2Icon } from "lucide-react";
-import { Circle, CircleCheck } from "lucide";
+import {
+  HammerIcon,
+  MessageSquareIcon,
+  TrashIcon,
+  CircleIcon,
+  CircleCheckIcon,
+} from "@supaterm/icons";
+
 import { useRef, useState } from "react";
 import { settlePromise, squashAtomCommandFailure } from "@supaterm/client-runtime/state/runtime";
 
@@ -16,7 +22,6 @@ import { RelativeTime } from "~/components/RelativeTime";
 import { cn } from "~/lib/utils";
 
 import { Button } from "../ui/button";
-import { MorphIcon } from "~/components/MorphIcon";
 import { PullRequestEditButton } from "./PullRequestEditButton";
 import { Textarea } from "../ui/textarea";
 import { isCommentSubmitShortcut } from "../diffs/commentSubmitShortcut";
@@ -88,7 +93,7 @@ export function PendingReviewCommentCard({
     >
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <MessageSquareIcon className="size-3.5" />
-        <span>Pending — sent when you submit the review</span>
+        <span>Pending. Sent when you submit the review</span>
         <Button
           size="icon-xs"
           variant="ghost"
@@ -96,7 +101,7 @@ export function PendingReviewCommentCard({
           aria-label="Discard this comment"
           onClick={onRemove}
         >
-          <Trash2Icon className="size-3.5" />
+          <TrashIcon className="size-3.5" />
         </Button>
       </div>
       <p className="mt-2 whitespace-pre-wrap leading-relaxed">{comment.body}</p>
@@ -183,8 +188,7 @@ export function ReviewThreadCard({
     sendingRef.current = false;
     if (result._tag === "Failure") throw squashAtomCommandFailure(result);
     if (!result.value) return;
-    // The mutation returns no comment. Keep what the reader loaded and reopen its cursor so
-    // the new reply remains reachable without spending requests until they ask to load it.
+    // Replies return no comment; retain loaded data and reopen pagination for a later read.
     setLoadedPage((previous) =>
       previous?.threadId === thread.id
         ? {
@@ -214,6 +218,7 @@ export function ReviewThreadCard({
     }));
   };
 
+  const Icon = thread.isResolved ? CircleCheckIcon : CircleIcon;
   return (
     <div
       className={CARD_CLASS}
@@ -221,10 +226,7 @@ export function ReviewThreadCard({
       onPointerDown={(event) => event.stopPropagation()}
     >
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <MorphIcon
-          className={cn("size-3.5", thread.isResolved && "text-success-foreground")}
-          icon={thread.isResolved ? CircleCheck : Circle}
-        />
+        <Icon className={cn("size-3.5", thread.isResolved && "text-success-foreground")} />
         <button
           type="button"
           className="hover:text-foreground"

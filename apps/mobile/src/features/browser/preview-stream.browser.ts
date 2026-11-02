@@ -1,4 +1,10 @@
 import {
+  ICON_SVG_ROOT_ATTRIBUTES,
+  iconSvgElements,
+  MousePointer,
+  MousePointerFilled,
+} from "@supaterm/icons/nodes";
+import {
   createPreviewFramePainter,
   createPreviewStreamClient,
   previewStreamModifiers,
@@ -33,16 +39,13 @@ const MULTI_CLICK_MS = 500;
 const MULTI_CLICK_SLOP_PX = 4;
 const WHEEL_LINE_PX = 16;
 const MAX_PIXEL_RATIO = 2;
-// A tap this close to an answered probe, this soon, reuses its answer. On a slow
-// link the answer lands after touch end, too late for iOS to raise the keyboard.
+// Reuse nearby probe answers: slow replies arrive too late after touch-end to raise the iOS keyboard.
 const PROBE_REUSE_PX = 24;
 const PROBE_REUSE_MS = 10_000;
-// Kept in the hidden textarea so a soft keyboard's backspace has something to
-// delete and fires `input`; Gboard's keydown carries keyCode 229 and no key.
+// A sentinel makes backspace fire input; Gboard keydown supplies only keyCode 229.
 const SENTINEL = "\u200b";
 const AGENT_CURSOR_ACTIVE_MS = 700;
-const AGENT_CURSOR_SVG =
-  '<svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/></svg>';
+const AGENT_CURSOR_SVG = `<svg width="20" height="20" viewBox="0 0 24 24" ${ICON_SVG_ROOT_ATTRIBUTES} color="#3b82f6"><g color="#fff">${iconSvgElements(MousePointerFilled)}</g>${iconSvgElements(MousePointer)}</svg>`;
 
 interface Viewer {
   readonly stop: () => void;
@@ -199,8 +202,7 @@ export function start(configuration: PreviewStreamConfiguration) {
           probe = null;
           if (current.end === "panned") return;
           if (current.end === "acted" && current.editable === result.editable) return;
-          // Late or corrected answer: Android still raises the keyboard; iOS waits
-          // for the next tap, which can reuse this answer.
+          // Late answers can raise Android's keyboard; iOS needs another tap.
           if (result.editable) input.focus({ preventScroll: true });
           else input.blur();
         },
@@ -254,8 +256,7 @@ export function start(configuration: PreviewStreamConfiguration) {
   });
   observer.observe(container);
 
-  // iOS keeps the layout viewport under the soft keyboard; follow the visible area
-  // so the page resizes above it.
+  // iOS keeps its layout viewport under the keyboard; resize to the visual viewport.
   const visualViewport = window.visualViewport;
   const followVisualViewport = () => {
     if (!visualViewport) return;
@@ -602,10 +603,7 @@ export function start(configuration: PreviewStreamConfiguration) {
     ((document.pictureInPictureEnabled === true &&
       typeof videoPrototype.requestPictureInPicture === "function") ||
       typeof videoPrototype.webkitSetPresentationMode === "function");
-  // Since the iOS 17 SDK, WebKit revokes the activation it grants an injected script when
-  // the script returns, so the native button's request must start before any await. The
-  // video is ready ahead of the tap: paused, and fed a frame only when it has none or
-  // floats, so the inline view captures nothing.
+  // WebKit revokes activation after return; start picture in picture before awaiting. Prepare paused video before the tap.
   let video: PresentationVideo | null = null;
   let track: CanvasCaptureMediaStreamTrack | null = null;
   const pictureInPictureActive = () =>

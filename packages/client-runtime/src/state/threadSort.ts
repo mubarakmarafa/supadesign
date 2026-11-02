@@ -1,6 +1,5 @@
 import type { ProjectId } from "@supaterm/contracts";
 import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@supaterm/contracts/settings";
-import { planPinnedReorder } from "@supaterm/shared/orderKeys";
 import type { EnvironmentThreadShell } from "./models.ts";
 
 export interface ThreadSortInput {
@@ -62,7 +61,9 @@ export function sortDoneThreads<T extends DoneThreadTimestampInput & { readonly 
     })
     .sort(
       (left, right) =>
-        right.timestampMs - left.timestampMs || left.thread.id.localeCompare(right.thread.id),
+        right.timestampMs - left.timestampMs ||
+        // Plain order, as the server pages ties (ids mix upper and lower case).
+        (left.thread.id < right.thread.id ? -1 : left.thread.id > right.thread.id ? 1 : 0),
     )
     .map(({ thread }) => thread);
 }
@@ -118,12 +119,9 @@ export function getThreadSortTimestamp(
 }
 
 /**
- * Sort anchor for the active thread list: creation time, re-anchored to
- * reopenedAt when the thread last re-entered the active list (an explicit
- * reopen, or a done thread waking on activity). The list stays static
- * between lifecycle transitions, but an un-done thread surfaces at the
- * top instead of sinking back to its creation-order slot. Shared by web and
- * mobile so both render the same order. Malformed timestamps sink to 0.
+ * Creation time, re-anchored to reopenedAt when the thread re-entered the active
+ * list, so the list stays static between lifecycle transitions while an un-done
+ * thread surfaces at the top. Malformed timestamps sink to 0.
  */
 function activeThreadAnchorTimestampMs(thread: {
   readonly createdAt: string;
@@ -174,14 +172,9 @@ export function getLatestThreadForProject<
   return latest;
 }
 
-// ── Pinned reorder: fractional index keys ──────────────────────────────
-// Pinned threads carry an optional pinOrderKey (a base-26 string). The
-// pinned block sorts keyed threads by plain string comparison, so a drag
-// (web) or Move up/down (mobile) writes ONE key to ONE thread on that
-// thread's own server — neighbors, possibly living on other servers, are
-// never touched, and every client connected to the same servers converges
-// on the same order. The key helpers live in shared so the server can plan
-// board moves for agents with the same rules.
+// A pinned reorder writes one fractional key to one thread on its own server, so neighbors on
+// other servers are never touched and every client converges on the same order. The key helpers
+// live in shared so the server plans board moves for agents with the same rules.
 export {
   generateSpreadPinOrderKeys,
   pinOrderKeyBetween,
@@ -256,21 +249,4 @@ export function sortActiveThreadsByOrderKey<
       (left.environmentId ?? "").localeCompare(right.environmentId ?? "")
     );
   });
-}
-
-export function planPinnedMove(input: {
-  readonly orderedIds: readonly string[];
-  readonly keysById: ReadonlyMap<string, string | null | undefined>;
-  readonly movedId: string;
-  readonly direction: "up" | "down";
-}): ReadonlyArray<{ readonly id: string; readonly orderKey: string }> | null {
-  const { orderedIds, keysById, movedId, direction } = input;
-  const from = orderedIds.indexOf(movedId);
-  if (from === -1) return null;
-  const to = direction === "up" ? from - 1 : from + 1;
-  if (to < 0 || to >= orderedIds.length) return null;
-  const newOrder = [...orderedIds];
-  newOrder.splice(from, 1);
-  newOrder.splice(to, 0, movedId);
-  return planPinnedReorder({ orderedIds: newOrder, keysById, movedId });
 }

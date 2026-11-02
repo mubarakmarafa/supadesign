@@ -1,5 +1,5 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon } from "@supaterm/icons";
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { isMonospaceFamily, queryInstalledFontFamilies } from "../../appearanceFonts";
 import {
@@ -34,6 +34,7 @@ let enumerationState: FontEnumerationState = supportsFontEnumeration()
 const enumerationListeners = new Set<() => void>();
 
 function subscribeToEnumeration(listener: () => void): () => void {
+  probeAlreadyGrantedPermission();
   enumerationListeners.add(listener);
   return () => enumerationListeners.delete(listener);
 }
@@ -78,7 +79,6 @@ function probeAlreadyGrantedPermission(): void {
 }
 
 export function useFontEnumeration(): FontEnumerationState {
-  useEffect(probeAlreadyGrantedPermission, []);
   return useSyncExternalStore(subscribeToEnumeration, readEnumerationState);
 }
 
@@ -106,6 +106,7 @@ export function FontFamilyPicker({
   const openIfRequestedAtMount = useEffectEvent(() => {
     if (initialOpen) setOpen(true);
   });
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- opens the Base UI popup after its first closed commit so the entrance transition is recorded
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- opens the picker on mount when the caller asked for it
     openIfRequestedAtMount();

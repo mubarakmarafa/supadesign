@@ -1,5 +1,5 @@
 import { Autocomplete as AutocompletePrimitive } from "@base-ui/react/autocomplete";
-import { ChevronsUpDownIcon, XIcon } from "lucide-react";
+import { ChevronsUpDownIcon, XIcon } from "@supaterm/icons";
 
 import { cn } from "~/lib/utils";
 import { Input } from "~/components/ui/input";
@@ -156,7 +156,6 @@ function AutocompleteGroupLabel({ className, ...props }: AutocompletePrimitive.G
   );
 }
 
-// A group label for virtualized lists, where rows cannot be wrapped in a group.
 function AutocompleteListHeading({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div

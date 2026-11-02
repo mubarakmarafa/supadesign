@@ -4,6 +4,8 @@ import { expect, it } from "@effect/vitest";
 import { NodeHttpServer } from "@effect/platform-node";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import {
+  DeviceId,
+  DeviceOperationError,
   EnvironmentId,
   OrchestratorMcpFailure,
   PreviewTabId,
@@ -21,9 +23,11 @@ import { HttpBody, HttpClient, HttpClientRequest, HttpRouter } from "effect/http
 
 import * as ProjectService from "../project/ProjectService.ts";
 import * as RepositoryIdentityResolver from "../project/RepositoryIdentityResolver.ts";
+import * as DeviceService from "../device/DeviceService.ts";
 import * as PullRequestReviewGuideService from "../pullRequest/PullRequestReviewGuideService.ts";
 import * as PullRequestService from "../pullRequest/PullRequestService.ts";
 import * as ServerConfig from "../config.ts";
+import { advertisedJsonSchema } from "./advertisedJsonSchema.ts";
 import * as McpHttpServer from "./McpHttpServer.ts";
 import * as McpToolAccess from "./McpToolAccess.ts";
 import * as McpToolAccessTestkit from "./McpToolAccess.testkit.ts";
@@ -32,6 +36,7 @@ import * as McpSessionRegistry from "./McpSessionRegistry.ts";
 import * as OrchestratorMcpService from "./OrchestratorMcpService.ts";
 import * as PreviewAutomationBroker from "./PreviewAutomationBroker.ts";
 import { OrchestratorToolkit } from "./toolkits/orchestrator/tools.ts";
+import { PreviewToolkit } from "./toolkits/preview/tools.ts";
 import { ProjectToolkit } from "./toolkits/project/tools.ts";
 
 const supportedOperations = PREVIEW_AUTOMATION_SERVER_OPERATIONS;
@@ -140,6 +145,88 @@ const callTool = (name: string, args: Record<string, unknown>) =>
   });
 
 const callSnapshot = (args: Record<string, unknown>) => callTool("preview_snapshot", args);
+
+it.effect.each([
+  { input: {}, open: false, message: "No device is open in this thread. Call device_open first." },
+  {
+    input: { deviceId: "missing" },
+    open: false,
+    message: "Device missing is not open in this thread. Call device_open first.",
+  },
+  {
+    input: {},
+    open: true,
+    message:
+      "Device screenshot failed: Could not communicate with device support. Try refreshing devices.",
+  },
+  {
+    input: {},
+    open: true,
+    rejected: true,
+    message:
+      "Device screenshot failed: The device hub could not complete the request. Call device_list to check the device state, and device_open if it needs to be reopened.",
+  },
+])(
+  "preserves actionable screenshot failure text: $message",
+  ({ input, open, message, ...options }) =>
+    Effect.gen(function* () {
+      const server = yield* McpServer.McpServer;
+      const result = yield* server.callTool({ name: "device_screenshot", arguments: input }).pipe(
+        Effect.provideService(McpInvocationContext.McpInvocationContext, {
+          ...invocation,
+          capabilities: new Set(["device"] as const),
+        }),
+        Effect.provideService(McpSchema.McpServerClient, client),
+      );
+      expect(result.isError).toBe(true);
+      expect(result.content).toEqual([{ type: "text", text: message }]);
+      expect(result.structuredContent).toMatchObject({
+        error: { message, operation: "screenshot" },
+      });
+      expect(JSON.stringify(result)).not.toContain("private hub output");
+    }).pipe(
+      Effect.provide(
+        McpHttpServer.layerDeviceToolkit.pipe(
+          Layer.provideMerge(McpServer.McpServer.layer),
+          Layer.provide(McpToolAccessTestkit.liveThreadsLayer),
+          Layer.provide(
+            Layer.mock(DeviceService.DeviceService)({
+              locateSession: () => Effect.succeedNone,
+              sessionsForThread: () =>
+                Effect.succeed(
+                  open
+                    ? [
+                        {
+                          threadId,
+                          hostId: "local",
+                          deviceId: DeviceId.make("phone"),
+                          platform: "ios",
+                          openedAt: "2026-10-23T00:00:00Z",
+                        },
+                      ]
+                    : [],
+                ),
+              screenshot: () =>
+                Effect.fail(
+                  new DeviceOperationError({
+                    operation: "screenshot",
+                    reason:
+                      "rejected" in options && options.rejected ? "hub_rejected" : "request_failed",
+                    cause: new Error("private hub output"),
+                  }),
+                ),
+            }),
+          ),
+          Layer.provide(Layer.mock(ProjectService.ProjectService)({})),
+          Layer.provide(
+            ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-device-mcp-test-" }),
+          ),
+          Layer.provide(NodeServices.layer),
+        ),
+      ),
+      Effect.scoped,
+    ),
+);
 
 const layerRecordingTools = (calls: Array<unknown>) => {
   const RecordingToolkit = Toolkit.make(
@@ -370,6 +457,18 @@ it.effect("refuses preview tools to a client outside a thread before they run", 
   }).pipe(Effect.provide(layerTest)),
 );
 
+it.effect("advertises the compact input schema for every registered tool", () =>
+  Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    const tools: Record<string, Tool.Any> = PreviewToolkit.tools;
+
+    expect(server.tools.length).toBe(Object.keys(tools).length);
+    for (const { tool } of server.tools) {
+      expect(tool.inputSchema, tool.name).toEqual(advertisedJsonSchema(tools[tool.name]!));
+    }
+  }).pipe(Effect.provide(layerTest)),
+);
+
 it.effect("decodes null optional arguments the way it decodes omitted ones", () => {
   const calls: Array<unknown> = [];
   return Effect.gen(function* () {
@@ -440,6 +539,15 @@ it.effect.each(["limit", "runLimit", "maxCharsPerItem"])(
   },
 );
 
+it("keeps cross-tool routing out of the delegate_task description", () => {
+  const description = OrchestratorToolkit.tools.delegate_task.description ?? "";
+  expect(description).toContain("Start one child agent with only `task`");
+  // Review rounds, follow-ups, and polling are routed in the system text.
+  expect(description).not.toContain("supaterm_thread_send");
+  expect(description).not.toContain("Do not poll");
+  expect(description).not.toContain("Prefer native");
+});
+
 it.effect(
   "registers the pull request toolkit and surfaces a missing capability as a tool error",
   () =>
@@ -456,7 +564,8 @@ it.effect(
       const linkTool = server.tools.find(({ tool }) => tool.name === "link_pull_request");
       expect(linkTool?.tool.annotations?.idempotentHint).toBe(true);
       expect(linkTool?.tool.annotations?.openWorldHint).toBe(false);
-      expect(linkTool?.tool.description).toContain("Register every pull request you open");
+      expect(linkTool?.tool.description).toContain("Link a PR to this thread");
+      expect(linkTool?.tool.description).toContain("marks the thread done on merge");
 
       const denied = yield* server
         .callTool({ name: "list_thread_pull_requests", arguments: {} })
@@ -822,6 +931,98 @@ it.effect("admits provider and OAuth client credentials and points only clients 
       const deadProvider = yield* call("deadProviderToken");
       expect(deadProvider.status).toBe(401);
       expect(deadProvider.headers["www-authenticate"]).toBe('Bearer error="invalid_token"');
+    }),
+  ).pipe(Effect.provide(NodeHttpServer.layerTest)),
+);
+
+it.effect("lists watch tools only to threads that are not delegated children", () =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const scopeFor = (
+        token: string,
+        subagent: boolean,
+      ): McpInvocationContext.McpThreadInvocationScope => ({
+        environmentId,
+        requestNamespace: token,
+        thread: {
+          threadId: ThreadId.make(`thread-${token}`),
+          providerSessionId: token,
+          providerInstanceId: ProviderInstanceId.make("codex"),
+          subagent,
+        },
+        client: undefined,
+        capabilities: new Set(["pull-requests"]),
+        issuedAt: 1,
+      });
+      const scopes = new Map([
+        ["parentToken", scopeFor("parentToken", false)],
+        ["childToken", scopeFor("childToken", true)],
+      ]);
+      const serverLayer = McpHttpServer.layerPullRequestsToolkit.pipe(
+        Layer.provideMerge(McpHttpServer.layerMcpTransport),
+        Layer.provide(
+          Layer.mock(McpSessionRegistry.McpSessionRegistry)({
+            resolve: (token) => Effect.succeed(scopes.get(token)),
+          }),
+        ),
+        Layer.provide(
+          Layer.mergeAll(
+            McpToolAccessTestkit.liveThreadsLayer,
+            Layer.mock(ProjectService.ProjectService)({}),
+            Layer.mock(RepositoryIdentityResolver.RepositoryIdentityResolver)({}),
+            Layer.mock(PullRequestReviewGuideService.PullRequestReviewGuideService)({}),
+            Layer.mock(PullRequestService.PullRequestService)({}),
+            Layer.mock(Orchestrator.OrchestratorV2)({}),
+            Layer.mock(ProjectionStore.ProjectionStoreV2)({}),
+            NodeServices.layer,
+          ),
+        ),
+      );
+      yield* HttpRouter.serve(serverLayer, { disableListenLog: true, disableLogger: true }).pipe(
+        Layer.build,
+      );
+      const httpClient = yield* HttpClient.HttpClient;
+      const listedTools = (token: string) =>
+        Effect.gen(function* () {
+          const headers = {
+            accept: "application/json, text/event-stream",
+            authorization: `Bearer ${token}`,
+          };
+          const initialize = yield* httpClient.post("/mcp", {
+            headers,
+            body: HttpBody.text(
+              `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"1.0.0"}}}`,
+              "application/json",
+            ),
+          });
+          const listed = yield* httpClient.post("/mcp", {
+            headers: {
+              ...headers,
+              "mcp-session-id": initialize.headers["mcp-session-id"]!,
+              "mcp-protocol-version": "2025-06-18",
+            },
+            body: HttpBody.text(
+              `{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}`,
+              "application/json",
+            ),
+          });
+          const body = (yield* listed.json) as {
+            readonly result: { readonly tools: ReadonlyArray<{ readonly name: string }> };
+          };
+          return body.result.tools.map((tool) => tool.name);
+        });
+
+      const parentTools = yield* listedTools("parentToken");
+      const childTools = yield* listedTools("childToken");
+      const watchTools = [
+        "watch_pull_request",
+        "unwatch_pull_request",
+        "watch_workflow_run",
+        "unwatch_workflow_run",
+      ];
+      expect(parentTools).toEqual(expect.arrayContaining(["link_pull_request", ...watchTools]));
+      expect(childTools).toContain("link_pull_request");
+      expect(childTools.filter((tool) => watchTools.includes(tool))).toEqual([]);
     }),
   ).pipe(Effect.provide(NodeHttpServer.layerTest)),
 );

@@ -1,17 +1,17 @@
 import { DeviceHostUpdates } from "./DeviceHostUpdates";
 import type { DevicePlatform, DeviceServiceState, EnvironmentId } from "@supaterm/contracts";
-import { Check } from "lucide-react";
-import { Check as CheckGlyph, CircleAlert } from "lucide";
+import { CheckIcon, CircleAlertIcon } from "@supaterm/icons";
+
 import { AuthSettingsWriteScope } from "@supaterm/contracts";
-import { useEffect, useState } from "react";
+import { useAtomMount } from "@effect/atom-react";
+import { useState } from "react";
 
 import { Button } from "~/components/ui/button";
 import { DialogClose } from "~/components/ui/dialog";
-import { MorphIcon } from "~/components/MorphIcon";
 import { WizardHeader, WizardPanel, WizardSteps, WizardFooter } from "~/components/ui/wizard";
 import { Spinner } from "~/components/ui/spinner";
 import { Switch } from "~/components/ui/switch";
-import { deviceEnvironment } from "~/state/device";
+import { deviceEnvironment, deviceHostProbeAtom, NO_DEVICE_PROBE_ATOM } from "~/state/device";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { readEnvironmentScope, useEnvironmentScope } from "~/state/session";
 import { cn } from "~/lib/utils";
@@ -118,7 +118,7 @@ export function platformSetupStatus(state: DeviceServiceState, platform: DeviceP
     ready: true,
     message:
       remoteHost?.kind === "eas"
-        ? `${remoteHost.label} starts iOS Simulators in the cloud with EAS Simulator.`
+        ? `${remoteHost.label} starts ${platform === "ios" ? "iOS Simulators" : "Android emulators"} in the cloud with EAS Simulator.`
         : platform === "ios"
           ? `Xcode and iOS Simulator are available${location}.`
           : `The Android SDK and Emulator are available${location}.`,
@@ -141,10 +141,7 @@ export function DeviceSetup(props: {
     (host) => host.kind === "local" && !host.platforms.some((platform) => platform.available),
   );
 
-  // Remote hosts report platforms only after a probe, like the Device panel's refresh on open.
-  useEffect(() => {
-    if (enabled) void list({ environmentId: props.environmentId, input: {} });
-  }, [enabled, list, props.environmentId]);
+  useAtomMount(enabled ? deviceHostProbeAtom(props.environmentId) : NO_DEVICE_PROBE_ATOM);
 
   const update = async (
     kind: NonNullable<typeof pending>,
@@ -282,7 +279,7 @@ export function DeviceHubSetupStatus({
   if (!pending && !deviceHubReadiness(state).ready) return null;
   return (
     <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
-      {pending ? <Spinner size="xs" /> : <Check className="size-3 text-success" />}
+      {pending ? <Spinner size="xs" /> : <CheckIcon className="size-3 text-success" />}
       {pending
         ? state.hostStatus === "installing"
           ? compact
@@ -354,7 +351,7 @@ export function AgentDeviceSetupStatus(props: {
   ) {
     return (
       <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Check className="size-3 text-success" />
+        <CheckIcon className="size-3 text-success" />
         Agent tools are ready.
       </p>
     );
@@ -368,17 +365,17 @@ export function PlatformStatus(props: {
   readonly compact?: boolean;
 }) {
   const showMessage = !props.compact || !props.status.ready;
+  const Icon = props.status.ready ? CheckIcon : CircleAlertIcon;
   return (
     <div
       className={cn("flex gap-2", !props.compact && "rounded-md border border-border/60 px-3 py-2")}
     >
-      <MorphIcon
+      <Icon
         className={cn(
           "shrink-0",
           props.compact ? "mt-px size-3.5" : "mt-0.5 size-4",
           props.status.ready ? "text-success" : "text-muted-foreground",
         )}
-        icon={props.status.ready ? CheckGlyph : CircleAlert}
       />
       <div>
         <p className="font-medium">

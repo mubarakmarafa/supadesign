@@ -6,7 +6,7 @@ import * as Schema from "effect/Schema";
 
 import type { ServerInstallation } from "@supaterm/contracts";
 import * as HostProcess from "@supaterm/shared/HostProcess";
-import { isCommandAvailable } from "@supaterm/shared/shell";
+import { resolveCommandPath } from "@supaterm/shared/shell";
 import { resolveSelfInvocation } from "@supaterm/shared/nodeRuntime";
 
 import packageJson from "../../package.json" with { type: "json" };
@@ -40,16 +40,11 @@ const InstallManifest = Schema.Struct({
 const decodeInstallManifest = Schema.decodeUnknownEffect(Schema.fromJsonString(InstallManifest));
 
 /**
- * The script this CLI was started through: the `supaterm` npm launcher that
- * downloaded and ran this executable (it names itself in
- * `SUPATERM_NPM_LAUNCHER_PATH`), or the Node entry script of a build run from
- * source. A standalone executable has none and reports its own path.
- *
- * The variable is inherited by everything the server spawns, so a launcher
- * counts only when its package is this exact version: a different `supaterm` run
- * from an agent's shell must not claim to be the npm install.
+ * The npm launcher or source entry script this CLI started through, else its own path. Spawned
+ * processes inherit `SUPATERM_NPM_LAUNCHER_PATH`, so a launcher counts only at this exact
+ * version: a different `supaterm` run from an agent's shell must not claim to be the npm install.
  */
-const resolveEntryPath = Effect.gen(function* () {
+export const resolveEntryPath = Effect.gen(function* () {
   const npmLauncher = (yield* HostProcess.Environment).SUPATERM_NPM_LAUNCHER_PATH?.trim();
   if (npmLauncher) {
     const fs = yield* FileSystem.FileSystem;
@@ -183,11 +178,9 @@ const resolveInstallLauncher = Effect.gen(function* () {
 });
 
 /**
- * `supaterm <subcommand> <args>` for a person to run on this host: `supaterm` when it is
- * on PATH, the package runner this process came from, or else the absolute
- * path of the launcher for this install, such as the one the desktop app
- * installs. `args` are quoted for the host's shell: POSIX, or PowerShell on
- * Windows.
+ * `supaterm <subcommand> <args>` for a person to run on this host, via this install's
+ * `supaterm` on PATH, the package runner this process came from, or this install's launcher
+ * path. `args` are quoted for the host's shell: POSIX, or PowerShell on Windows.
  */
 export const resolveHostCliCommand = Effect.fn("invocation.resolveHostCliCommand")(function* (
   subcommand: string,
@@ -198,7 +191,16 @@ export const resolveHostCliCommand = Effect.fn("invocation.resolveHostCliCommand
     [prefix, ...args.map((arg) => hostShellWord(platform, arg))].join(" ");
   const command = yield* resolveCliCommand(subcommand);
   if (command !== `supaterm ${subcommand}`) return { command: withArgs(command), launcher: false };
-  if (yield* isCommandAvailable("supaterm")) return { command: withArgs(command), launcher: false };
+  const onPath = yield* resolveCommandPath("supaterm");
+  if (onPath !== null) {
+    const shim = (yield* HostProcess.Environment).SUPATERM_CLI_SHIM_PATH?.trim();
+    const fs = yield* FileSystem.FileSystem;
+    const real = (file: string) => fs.realPath(file).pipe(Effect.orElseSucceed(() => null));
+    const shimReal = shim ? yield* real(shim) : null;
+    if (shimReal === null || shimReal === (yield* real(onPath))) {
+      return { command: withArgs(command), launcher: false };
+    }
+  }
   const launcher = yield* resolveInstallLauncher;
   if (Option.isNone(launcher)) return { command: withArgs(command), launcher: false };
   const quoted = launcher.value.words.map((word) => hostShellWord(platform, word)).join(" ");
@@ -210,8 +212,9 @@ export const resolveHostCliCommand = Effect.fn("invocation.resolveHostCliCommand
 
 export const resolveRootCliCommand = Effect.fn("invocation.resolveRootCliCommand")(function* (
   subcommand: string,
+  args: ReadonlyArray<string> = [],
 ) {
-  const { command, launcher } = yield* resolveHostCliCommand(subcommand);
+  const { command, launcher } = yield* resolveHostCliCommand(subcommand, args);
   if (launcher) return `sudo ${command}`;
   const executablePath = yield* HostProcess.ExecutablePath;
   const systemNode = ROOT_PATH_DIRECTORIES.some((directory) =>

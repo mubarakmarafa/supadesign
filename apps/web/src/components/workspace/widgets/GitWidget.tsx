@@ -1,7 +1,7 @@
 import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
 import type { ProjectWorkspaceWidget, ScopedProjectRef } from "@supaterm/contracts";
 import { Link } from "@tanstack/react-router";
-import { GitBranchIcon } from "lucide-react";
+import { GitBranchIcon } from "@supaterm/icons";
 import { useMemo } from "react";
 
 import { usePullRequestList } from "../../../state/pullRequests";

@@ -14,9 +14,9 @@ import {
   type PullRequestMergeMethod,
   type SidebarProjectGroupingMode,
 } from "@supaterm/contracts";
+import type { AndroidNavigationStyle } from "../lib/androidNavigationStyle";
 import type { ComposerEnterBehavior } from "../lib/composerEnterBehavior";
 import type { FollowUpBehavior } from "../lib/followUpBehavior";
-import { isMicrophoneKind, type MicrophoneEntry } from "../lib/microphonePriority";
 import { MOBILE_THEME_IDS, type MobileThemeId, type MobileThemeMode } from "../lib/mobileTheme";
 import * as MobileDatabase from "./mobile-database";
 import * as MobileSecureStorage from "./mobile-secure-storage";
@@ -47,40 +47,72 @@ const PullRequestListPreferences = Schema.Struct({
 });
 export type PullRequestListPreferences = typeof PullRequestListPreferences.Type;
 
+/**
+ * The page each workspace tab last showed, reopened when the tab returns with columns. `key` is
+ * that page's route key: reopening under the same key reuses the screen a tab kept mounted.
+ */
+const WorkspaceSelections = Schema.Struct({
+  threads: Schema.optional(
+    Schema.Struct({
+      environmentId: Schema.String,
+      threadId: Schema.String,
+      key: Schema.optional(Schema.String),
+    }),
+  ),
+  pullRequests: Schema.optional(
+    Schema.Struct({
+      environmentId: Schema.String,
+      projectId: Schema.String,
+      repository: Schema.String,
+      number: Schema.Number,
+      host: Schema.optional(Schema.String),
+      key: Schema.optional(Schema.String),
+    }),
+  ),
+  settings: Schema.optional(Schema.String),
+  settingsKey: Schema.optional(Schema.String),
+  /** A draft the threads tab showed after its last chat; only meaningful in its session. */
+  threadsDraft: Schema.optional(Schema.Struct({ key: Schema.String, params: Schema.Unknown })),
+});
+export type WorkspaceSelections = typeof WorkspaceSelections.Type;
+
 const isThreadGrouping = Schema.is(SidebarThreadGrouping);
 const isThreadListFilters = Schema.is(ThreadListFilters);
+const isWorkspaceSelections = Schema.is(WorkspaceSelections);
 const isPullRequestListPreferences = Schema.is(PullRequestListPreferences);
 
 export interface Preferences {
+  readonly navigationTabOrder?: readonly string[];
+  readonly hiddenNavigationTabs?: readonly string[];
   readonly pullRequestHideTestFiles?: boolean;
   readonly pullRequestMergeMethod?: PullRequestMergeMethod;
   readonly lightThemeId?: MobileThemeId;
   readonly darkThemeId?: MobileThemeId;
   readonly themeMode?: MobileThemeMode;
+  readonly androidNavigationStyle?: AndroidNavigationStyle;
   readonly baseFontSize?: number;
   readonly terminalFontSize?: number | null;
   readonly codeFontSize?: number | null;
   readonly codeWordBreak?: boolean;
   readonly mathRenderingEnabled?: boolean;
   readonly collapsedProjectGroups?: readonly string[];
-  /** Environments whose "reclaim database space" notice was dismissed. */
   readonly dismissedDatabaseStorageNotices?: readonly string[];
-  /** What the Return key does in the composer on a hardware keyboard. iOS only. */
+  /** Hardware Return behavior is iOS-only. */
   readonly composerEnterBehavior?: ComposerEnterBehavior;
   readonly showSkillsInSlashMenu?: boolean;
-  readonly showToolImages?: boolean;
   readonly followUpBehavior?: FollowUpBehavior;
-  readonly microphones?: ReadonlyArray<MicrophoneEntry>;
   readonly projectGroupingMode?: SidebarProjectGroupingMode;
   readonly threadGrouping?: SidebarThreadGrouping;
   readonly threadListPinnedShelfExpanded?: boolean;
   readonly threadListActiveShelfExpanded?: boolean;
   readonly threadListDoneShelfExpanded?: boolean;
+  readonly useLastProjectForNewThreads?: boolean;
   readonly threadListSnoozedShelfExpanded?: boolean;
   readonly threadListWorkingShelfExpanded?: boolean;
   readonly threadListCollapsedGroups?: readonly string[];
   readonly threadListFilters?: ThreadListFilters;
   readonly pullRequestListFilters?: PullRequestListPreferences;
+  readonly workspaceSelections?: WorkspaceSelections;
 }
 
 export class MobilePreferencesLoadError extends Schema.TaggedError<MobilePreferencesLoadError>()(
@@ -122,11 +154,14 @@ export class MobilePreferencesStore extends Context.Service<
 
 function sanitizePreferences(parsed: Preferences): Preferences {
   const preferences: {
+    navigationTabOrder?: readonly string[];
+    hiddenNavigationTabs?: readonly string[];
     pullRequestHideTestFiles?: boolean;
     pullRequestMergeMethod?: PullRequestMergeMethod;
     lightThemeId?: MobileThemeId;
     darkThemeId?: MobileThemeId;
     themeMode?: MobileThemeMode;
+    androidNavigationStyle?: AndroidNavigationStyle;
     baseFontSize?: number;
     terminalFontSize?: number | null;
     codeFontSize?: number | null;
@@ -136,20 +171,32 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     dismissedDatabaseStorageNotices?: readonly string[];
     composerEnterBehavior?: ComposerEnterBehavior;
     showSkillsInSlashMenu?: boolean;
-    showToolImages?: boolean;
     followUpBehavior?: FollowUpBehavior;
-    microphones?: ReadonlyArray<MicrophoneEntry>;
     projectGroupingMode?: SidebarProjectGroupingMode;
     threadGrouping?: SidebarThreadGrouping;
     threadListPinnedShelfExpanded?: boolean;
     threadListActiveShelfExpanded?: boolean;
     threadListDoneShelfExpanded?: boolean;
+    useLastProjectForNewThreads?: boolean;
     threadListSnoozedShelfExpanded?: boolean;
     threadListWorkingShelfExpanded?: boolean;
     threadListCollapsedGroups?: readonly string[];
     threadListFilters?: ThreadListFilters;
     pullRequestListFilters?: PullRequestListPreferences;
+    workspaceSelections?: WorkspaceSelections;
   } = {};
+
+  if (Array.isArray(parsed.hiddenNavigationTabs)) {
+    preferences.hiddenNavigationTabs = parsed.hiddenNavigationTabs.filter(
+      (tab): tab is string => typeof tab === "string",
+    );
+  }
+
+  if (Array.isArray(parsed.navigationTabOrder)) {
+    preferences.navigationTabOrder = parsed.navigationTabOrder.filter(
+      (tab): tab is string => typeof tab === "string",
+    );
+  }
 
   if (typeof parsed.pullRequestHideTestFiles === "boolean") {
     preferences.pullRequestHideTestFiles = parsed.pullRequestHideTestFiles;
@@ -182,6 +229,9 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   ) {
     preferences.themeMode = parsed.themeMode;
   }
+  if (parsed.androidNavigationStyle === "one-ui" || parsed.androidNavigationStyle === "material") {
+    preferences.androidNavigationStyle = parsed.androidNavigationStyle;
+  }
   if (typeof parsed.baseFontSize === "number") preferences.baseFontSize = parsed.baseFontSize;
   if (typeof parsed.terminalFontSize === "number" || parsed.terminalFontSize === null) {
     preferences.terminalFontSize = parsed.terminalFontSize;
@@ -208,20 +258,8 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   if (typeof parsed.showSkillsInSlashMenu === "boolean") {
     preferences.showSkillsInSlashMenu = parsed.showSkillsInSlashMenu;
   }
-  if (typeof parsed.showToolImages === "boolean") {
-    preferences.showToolImages = parsed.showToolImages;
-  }
   if (parsed.followUpBehavior === "queue" || parsed.followUpBehavior === "steer") {
     preferences.followUpBehavior = parsed.followUpBehavior;
-  }
-  if (Array.isArray(parsed.microphones)) {
-    preferences.microphones = parsed.microphones.flatMap((entry): MicrophoneEntry[] => {
-      if (typeof entry !== "object" || entry === null || !isMicrophoneKind(entry.kind)) return [];
-      if (!("uid" in entry)) return [{ kind: entry.kind }];
-      return typeof entry.uid === "string" && typeof entry.name === "string"
-        ? [{ kind: entry.kind, uid: entry.uid, name: entry.name }]
-        : [];
-    });
   }
   if (
     parsed.projectGroupingMode === "repository" ||
@@ -235,6 +273,9 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (typeof parsed.threadListPinnedShelfExpanded === "boolean") {
     preferences.threadListPinnedShelfExpanded = parsed.threadListPinnedShelfExpanded;
+  }
+  if (typeof parsed.useLastProjectForNewThreads === "boolean") {
+    preferences.useLastProjectForNewThreads = parsed.useLastProjectForNewThreads;
   }
   if (typeof parsed.threadListActiveShelfExpanded === "boolean") {
     preferences.threadListActiveShelfExpanded = parsed.threadListActiveShelfExpanded;
@@ -259,10 +300,13 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   if (isPullRequestListPreferences(parsed.pullRequestListFilters)) {
     preferences.pullRequestListFilters = parsed.pullRequestListFilters;
   }
+  if (isWorkspaceSelections(parsed.workspaceSelections)) {
+    preferences.workspaceSelections = parsed.workspaceSelections;
+  }
   return preferences;
 }
 
-export const make = Effect.fn("MobilePreferencesStore.make")(function* () {
+const make = Effect.fn("MobilePreferencesStore.make")(function* () {
   const database = yield* MobileDatabase.MobileDatabase;
   const secureStorage = yield* MobileSecureStorage.MobileSecureStorage;
   const lock = yield* Semaphore.make(1);

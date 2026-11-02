@@ -1,11 +1,8 @@
-import { parseChangeRequestUrl } from "@supaterm/shared/changeRequestUrl";
+import { projectChangeRequestUrl } from "@supaterm/client-runtime/change-request-links";
+import { normalizeThreadPullRequestKey } from "@supaterm/client-runtime/thread-pull-requests";
 import { useAtomValue } from "@effect/atom-react";
-import { usePullRequestStack } from "~/state/usePullRequestStack";
-import {
-  scopedThreadKey,
-  scopeProjectRef,
-  scopeThreadRef,
-} from "@supaterm/client-runtime/environment";
+import { usePullRequestStackGate } from "~/state/usePullRequestStack";
+import { scopeProjectRef, scopeThreadRef } from "@supaterm/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -29,11 +26,11 @@ import {
   ArrowDownUpIcon,
   ArrowLeftIcon,
   CircleDotIcon,
-  FileDiffIcon,
-  GitCommitHorizontalIcon,
+  DiffIcon,
+  GitCommitIcon,
   MessageSquareIcon,
   PanelRightIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import {
   lazy,
   Suspense,
@@ -52,12 +49,14 @@ import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { isCommandPaletteOpen } from "~/commandPaletteBus";
 import { resolveShortcutCommand, type ShortcutMatchContext } from "~/keybindings";
 import { primaryServerKeybindingsAtom } from "~/state/server";
-import { usePullRequestDefaultMergeMethod } from "./usePullRequestActions";
-import { OFF_HEAD_PULL_REQUEST_CHECKOUT_TOAST } from "./pullRequestCheckoutToast";
-import { changeRequestRepositoryUrl, gitHubPullRequestBrowserUrl } from "~/lib/openPullRequestLink";
-import { usePreparePullRequestThreadAction } from "~/lib/sourceControlActions";
+import {
+  type PullRequestThreadTask,
+  usePullRequestDefaultMergeMethod,
+  writePullRequestTaskToComposer,
+} from "./usePullRequestActions";
+import { offHeadPullRequestCheckoutToast } from "./pullRequestCheckoutToast";
+import { usePreparePullRequestThreadAction } from "~/state/sourceControlActions";
 import { cn } from "~/lib/utils";
-import type { ReviewCommentContext } from "~/reviewCommentContext";
 import { useProjects, useServerConfigs } from "~/state/entities";
 import { useEnvironments } from "~/state/environments";
 import { useEnvironmentQuery } from "~/state/query";
@@ -67,7 +66,10 @@ import { pullRequestEnvironment, usePullRequestTurnRefresh } from "~/state/pullR
 import { useAtomCommand } from "~/state/use-atom-command";
 import { PullRequestStackMenu } from "./PullRequestStackMenu";
 import { PullRequestChangeBreakdownStat } from "./PullRequestChangeBreakdownStat";
-import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
+import {
+  capitalizeTerm,
+  sourceControlClients,
+} from "@supaterm/client-runtime/source-control-clients";
 import { PullRequestThreadLinks } from "./PullRequestThreadLinks";
 import { vcsEnvironment } from "~/state/vcs";
 import { RelativeTime } from "~/components/RelativeTime";
@@ -101,6 +103,7 @@ import { PullRequestsUnavailableState } from "./PullRequestsUnavailableState";
 import type { PullRequestAgentSelectionInput } from "./PullRequestCodeTab";
 import { openOnHostLabel } from "./pullRequestLinkContextMenu";
 import { PullRequestMarkdownContext } from "./PullRequestMarkdown";
+import { pullRequestAutolinkPlugins } from "./pullRequestMarkdown.logic";
 import { PullRequestComposer } from "./PullRequestComposer";
 import { PullRequestSummaryTab } from "./PullRequestSummaryTab";
 import { PullRequestTimelineTab } from "./PullRequestTimelineTab";
@@ -112,8 +115,6 @@ import {
   buildFixFindingHandoff,
   buildFixFindingsHandoff,
   buildResolveConflictsPrompt,
-  handoffPrompt,
-  handoffReviewComments,
   latestPullRequestReviewOutcomes,
   loadingPullRequestCheckoutCommand,
   isPullRequestNotFound,
@@ -123,17 +124,17 @@ import {
   pullRequestFindingKey,
   pullRequestHandoffLabels,
   PULL_REQUEST_MERGE_METHOD_LABELS,
+  allowedPullRequestMergeMethods,
   checkoutFailureDescription,
   readableFailure,
   resolvePullRequestReferenceHost,
+  resolvePullRequestMenuActions,
   resolvePullRequestPrimaryControl,
-  allowsSinglePullRequestMerge,
   canDeletePullRequestBranch,
   resolveBaseFreshness,
   resolvePullRequestMergeMethod,
   type PullRequestFinding,
   shouldRefreshPullRequestActivity,
-  stripPullRequestHandoffReferences,
 } from "./pullRequestDetail.logic";
 import { resolvePickableEnvironments } from "./pullRequestProjectAssignment.logic";
 import { PullRequestChecksPopover } from "./PullRequestChecksPopover";
@@ -152,38 +153,38 @@ import { guideRunKey, useGuideRunStore } from "./guide/guideRunStore";
 import { useReviewGuideWriter } from "./guide/useReviewGuideWriter";
 import { usePaneInputOwner } from "../../chatPanes/paneScope";
 
-const ACTION_SUCCESS_LABELS: Record<PullRequestAction, string> = {
-  merge: "Pull request merged",
+const actionSuccessLabels = (term: string): Record<PullRequestAction, string> => ({
+  merge: `${capitalizeTerm(term)} merged`,
   ready: "Marked ready for review",
   draft: "Converted to draft",
-  close: "Pull request closed",
-  reopen: "Pull request reopened",
+  close: `${capitalizeTerm(term)} closed`,
+  reopen: `${capitalizeTerm(term)} reopened`,
   "update-branch": "Branch updated with the base branch",
-  // True whichever it did: a pull request that was already mergeable merges the moment this is
+  // True whichever it did: a change request that was already mergeable merges the moment this is
   // armed, and the client has no way to tell that apart from one still waiting on something.
   "enable-auto-merge":
-    "Auto-merge turned on — merges as soon as this is ready, sooner if it already is",
+    "Auto-merge turned on. Merges as soon as this is ready, sooner if it already is",
   "disable-auto-merge": "Auto-merge turned off",
-  revert: "Revert pull request opened",
+  revert: `Revert ${term} opened`,
   "delete-branch": "Branch deleted",
   "approve-workflows": "Workflows approved",
-};
+});
 
-const ACTION_FAILURE_LABELS: Record<PullRequestAction, string> = {
-  merge: "Could not merge this pull request",
+const actionFailureLabels = (term: string): Record<PullRequestAction, string> => ({
+  merge: `Could not merge this ${term}`,
   ready: "Could not mark this ready for review",
   draft: "Could not convert this to a draft",
-  close: "Could not close this pull request",
-  reopen: "Could not reopen this pull request",
+  close: `Could not close this ${term}`,
+  reopen: `Could not reopen this ${term}`,
   "update-branch": "Could not update this branch",
   "enable-auto-merge": "Could not turn on auto-merge",
   "disable-auto-merge": "Could not turn off auto-merge",
-  revert: "Could not open a revert pull request",
+  revert: `Could not open a revert ${term}`,
   "delete-branch": "Could not delete this branch",
   "approve-workflows": "Could not approve workflows",
-};
+});
 
-const ACTION_FAILURE_HINTS: Record<PullRequestAction, string> = {
+const actionFailureHints = (term: string): Record<PullRequestAction, string> => ({
   merge:
     "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting.",
   ready: "The host refused it. Check that you have write access to this repository.",
@@ -192,18 +193,17 @@ const ACTION_FAILURE_HINTS: Record<PullRequestAction, string> = {
   reopen:
     "The host refused it. Check that you have write access, and that the branch still exists.",
   "update-branch":
-    "The host refused it. Check that you have write access to the branch — one from a fork also needs its author to allow edits from maintainers — and that it does not conflict with the base.",
+    "The host refused it. Check that you have write access to the branch (a fork branch also needs its author to allow edits from maintainers), and that it does not conflict with the base.",
   "enable-auto-merge":
     "The host refused it. Check that this repository allows auto-merge, that you have write access, and that there is something left for it to wait on.",
   "disable-auto-merge":
     "The host refused it. Check that you have write access, and that the merge has not already happened.",
-  revert:
-    "The host refused it. Check that you have write access and that this pull request was merged on the host.",
+  revert: `The host refused it. Check that you have write access and that this ${term} was merged on the host.`,
   "delete-branch":
     "The host refused it. Check that you have write access to the source repository and that the branch has not moved since this page loaded.",
   "approve-workflows":
     "The host refused it. Check that you have Actions write access and that these workflow runs are still awaiting approval.",
-};
+});
 
 const UPDATE_BRANCH_REBASE_FAILURE_HINT =
   "The host refused it. A rebase stops at the first commit that does not apply cleanly; updating with a merge commit may still work.";
@@ -219,16 +219,6 @@ const TABS: ReadonlyArray<{ value: PullRequestDetailTab; label: string }> = [
 const loadCodeTab = () => import("./PullRequestCodeTab");
 const PullRequestCodeTab = lazy(loadCodeTab);
 
-/**
- * What the last hand-off wrote into each draft, kept outside React because the panel that wrote it
- * is closed by the time the next one opens. It is how a prompt the reader has since edited is told
- * apart from the one they were handed: only the sentence still exactly as written may be replaced.
- */
-const lastHandoffPromptByDraft = new Map<string, string>();
-
-const composerTargetKey = (target: ScopedThreadRef | DraftId): string =>
-  typeof target === "string" ? target : scopedThreadKey(target);
-
 function reportCheckoutCommandError(error: Error) {
   toastManager.add({
     type: "error",
@@ -238,24 +228,14 @@ function reportCheckoutCommandError(error: Error) {
 }
 
 function pullRequestMarkdownContext(
-  hostClient: ReturnType<typeof sourceControlClients.get>,
-  repositoryUrl: string | null,
+  detail: Pick<PullRequestDetail, "provider" | "url"> | null,
   threadRef: ScopedThreadRef | null,
 ) {
   return {
-    repositoryUrl:
-      repositoryUrl === null ? null : hostClient.referenceAutolinkRepositoryUrl(repositoryUrl),
+    remarkPlugins: pullRequestAutolinkPlugins(detail),
+    lineBreaks: sourceControlClients.find(detail?.provider ?? "")?.hardLineBreaks ?? false,
     threadRef,
   };
-}
-
-function pullRequestStackReference(
-  detail: Pick<PullRequestDetail, "url" | "capabilities"> | null,
-  reference: PullRequestRef,
-) {
-  return detail === null || detail.capabilities.stacks !== true
-    ? null
-    : { ...reference, host: reference.host ?? parseChangeRequestUrl(detail.url)?.host };
 }
 
 export function PullRequestDetailPanel({
@@ -266,6 +246,7 @@ export function PullRequestDetailPanel({
   reference: requestedReference,
   listEntry = null,
   refreshToken: forcedRefreshToken = 0,
+  tabOnPage = false,
   onActed,
   onClose,
   context = "page",
@@ -284,6 +265,11 @@ export function PullRequestDetailPanel({
   reference: PullRequestRef;
   listEntry?: PullRequestListEntry | null;
   refreshToken?: number;
+  /**
+   * The pull requests page's panel: its tab lives in the guide run store, where a review guide
+   * notification can switch it.
+   */
+  tabOnPage?: boolean;
   onActed?: (action?: PullRequestAction, phase?: "sent" | "done" | "failed") => void;
   onClose?: () => void;
   context?: "page" | "thread";
@@ -302,7 +288,7 @@ export function PullRequestDetailPanel({
   const repositoryIdentity = project?.repositoryIdentity;
   const reference = resolvePullRequestReferenceHost(requestedReference, repositoryIdentity);
   const loadingCheckoutCommand = loadingPullRequestCheckoutCommand(reference, repositoryIdentity);
-  const unavailableGitHubUrl = gitHubPullRequestBrowserUrl(
+  const unavailableHostUrl = projectChangeRequestUrl(
     repositoryIdentity,
     reference.repository,
     reference.number,
@@ -316,11 +302,50 @@ export function PullRequestDetailPanel({
     listEntry.number === reference.number
       ? listEntry
       : null;
+  const linkedReference = sourceControlClients.parseChangeRequestUrl(
+    matchingListEntry?.url ?? unavailableHostUrl ?? "",
+  )?.link;
+  useEnvironmentQuery(
+    context === "page" &&
+      linkedReference &&
+      (reference.host === undefined ||
+        reference.host.toLowerCase() === linkedReference.host.toLowerCase())
+      ? pullRequestEnvironment.linkedThreads({
+          environmentId,
+          input: { ...reference, ...normalizeThreadPullRequestKey(linkedReference) },
+        })
+      : null,
+  );
+  useEnvironmentQuery(pullRequestEnvironment.changeBreakdown({ environmentId, input: reference }));
   const [threadPickerOpen, setThreadPickerOpen] = useState(false);
   const [openReviewRequest, setOpenReviewRequest] = useState(0);
-  const [tab, setTab] = useState<PullRequestDetailTab>(initialTab);
+  const {
+    canWriteSourceControl,
+    detailQuery,
+    activityQuery,
+    activity,
+    sharedSummary,
+    coreDetail,
+    detail,
+  } = usePullRequestDetail(environmentId, reference, matchingListEntry);
+  const [selectedTab, setTab] = useState<PullRequestDetailTab>(initialTab);
+  const reviewGuidesEnabled = useEnvironmentSettings(
+    environmentId,
+    (settings) => settings.reviewGuidesEnabled,
+  );
+  const guideKey = guideRunKey(environmentId, reference);
+  const pageTab = useGuideRunStore((state) =>
+    tabOnPage && state.pageDetailTab?.key === guideKey ? state.pageDetailTab.tab : null,
+  );
+  const requestedTab = tabOnPage ? (pageTab ?? initialTab) : selectedTab;
+  const isTabAvailable = (value: PullRequestDetailTab) =>
+    (value !== "code" || detail === null || detail.capabilities.diff) &&
+    (value !== "guide" || reviewGuidesEnabled);
+  // An unavailable tab falls back without overwriting the saved selection.
+  const tab = isTabAvailable(requestedTab) ? requestedTab : "summary";
   const selectTab = (next: PullRequestDetailTab) => {
-    setTab(next);
+    if (tabOnPage) useGuideRunStore.getState().showPageDetailTab(guideKey, next);
+    else setTab(next);
     onTabChange?.(next);
   };
   const [timelineOrder, setTimelineOrder] = useState<"newest" | "oldest">("newest");
@@ -347,15 +372,6 @@ export function PullRequestDetailPanel({
     void loadCodeTab();
     selectTab("code");
   };
-  const guideOpenRequested = useGuideRunStore(
-    (state) => state.openRequestKey === guideRunKey(environmentId, reference),
-  );
-  if (guideOpenRequested && tab !== "guide") setTab("guide");
-  useEffect(() => {
-    if (!guideOpenRequested) return;
-    useGuideRunStore.getState().requestOpen(null);
-    onTabChange?.("guide");
-  }, [guideOpenRequested, onTabChange]);
   const tabScopeKey = `${environmentId}:${pullRequestKey}`;
   const [tabMountState, setTabMountState] = useState(() => ({
     key: tabScopeKey,
@@ -374,16 +390,16 @@ export function PullRequestDetailPanel({
     Partial<Record<PullRequestDetailTab, boolean>>
   >({});
   const condensed = condensedByTab[tab] ?? false;
-  const scrollerByTab = useRef<Partial<Record<PullRequestDetailTab, HTMLDivElement | null>>>({});
+  const scrollerByTab = useRef<Partial<Record<PullRequestDetailTab, HTMLElement | null>>>({});
   // Fresh ref callbacks would detach and reattach every scroller on each render.
   const [scrollerRefs] = useState(() => ({
-    summary: (node: HTMLDivElement | null) => {
+    summary: (node: HTMLElement | null) => {
       scrollerByTab.current.summary = node;
     },
-    timeline: (node: HTMLDivElement | null) => {
+    timeline: (node: HTMLElement | null) => {
       scrollerByTab.current.timeline = node;
     },
-    code: (node: HTMLDivElement | null) => {
+    code: (node: HTMLElement | null) => {
       scrollerByTab.current.code = node;
     },
   }));
@@ -393,10 +409,11 @@ export function PullRequestDetailPanel({
   // so applying a delta afterward would compensate twice.
   const compensationRef = useRef<{
     tab: PullRequestDetailTab;
-    scroller: HTMLDivElement;
+    scroller: HTMLElement;
     target: number;
   } | null>(null);
   const compensatedCondensedRef = useRef(condensed);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- restores the scroller's scrollTop before paint after the header condenses
   useLayoutEffect(() => {
     if (compensatedCondensedRef.current === condensed) return;
     compensatedCondensedRef.current = condensed;
@@ -426,19 +443,13 @@ export function PullRequestDetailPanel({
   };
   const [handoff, setHandoff] = useState<string | null>(null);
   const turnRefresh = usePullRequestTurnRefresh(environmentId);
-  const {
-    canWriteSourceControl,
-    detailQuery,
-    activityQuery,
-    activity,
-    sharedSummary,
-    coreDetail,
-    detail,
-  } = usePullRequestDetail(environmentId, reference, matchingListEntry);
   const handoffSummary = detail ?? sharedSummary;
+  const terminology = sourceControlClients.get(
+    handoffSummary?.provider ?? listEntry?.provider ?? repositoryIdentity?.provider,
+  ).changeRequest;
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const { copyToClipboard: copyReference } = useCopyToClipboard<string>({
-    target: "pull request reference",
+    target: `${terminology.singular} reference`,
     onCopy: (label) => toastManager.add({ type: "success", title: `${label} copied` }),
     onError: (error, label) =>
       toastManager.add({
@@ -457,8 +468,9 @@ export function PullRequestDetailPanel({
     if (command !== "pullRequest.copyNumber") return;
     event.preventDefault();
     event.stopPropagation();
-    if (!event.repeat) copyReference(`#${reference.number}`, "PR number");
+    if (!event.repeat) copyReference(`#${reference.number}`, `${terminology.shortLabel} number`);
   });
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- window keydown capture listener for the copy-number shortcut
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => copyFromShortcut(event);
     window.addEventListener("keydown", onKeyDown, true);
@@ -470,10 +482,13 @@ export function PullRequestDetailPanel({
     setSeenAutoMergeKey(autoMergeKey);
     if (detail?.autoMergeMethod !== undefined) setMergeMethod(detail.autoMergeMethod);
   }
-  const repositoryUrl = detail === null ? null : changeRequestRepositoryUrl(detail.url);
+  const repositoryUrl =
+    detail === null
+      ? null
+      : (sourceControlClients.parseChangeRequestUrl(detail.url)?.link.repositoryUrl ?? null);
   const hostClient = sourceControlClients.get(detail?.provider);
   const openOnHostText = openOnHostLabel(hostClient);
-  const markdownContext = pullRequestMarkdownContext(hostClient, repositoryUrl, threadRef);
+  const markdownContext = pullRequestMarkdownContext(detail, threadRef);
   const authorProfileUrl =
     detail?.author && repositoryUrl !== null
       ? hostClient.authorProfileUrl(detail.author.login, repositoryUrl)
@@ -484,7 +499,7 @@ export function PullRequestDetailPanel({
         handoffSummary.number,
         handoffSummary.headBranch,
         detail?.headRepositoryNameWithOwner,
-        changeRequestRepositoryUrl(handoffSummary.url),
+        sourceControlClients.parseChangeRequestUrl(handoffSummary.url)?.link.repositoryUrl ?? null,
       )
     : loadingCheckoutCommand;
   const branchRefsQuery = useEnvironmentQuery(
@@ -502,19 +517,17 @@ export function PullRequestDetailPanel({
   const isStackedPullRequest =
     detail !== null &&
     isStackedPullRequestBase(detail.baseBranch, branchRefsQuery.data?.refs ?? []);
-  const stackReference = pullRequestStackReference(detail, reference);
-  const nativeStackQuery = usePullRequestStack(environmentId, stackReference);
-  const nativeStack = nativeStackQuery.data;
-  const supportsStackActions =
-    detail?.capabilities.stacks === true &&
-    detail.capabilities.stackActions === true &&
-    environmentConfigs.has(environmentId);
-  const canMergeSinglePullRequest = allowsSinglePullRequestMerge({
+  const {
+    stackQuery: nativeStackQuery,
     supportsStackActions,
-    hasStack: nativeStack !== null,
-    stackPending: !nativeStackQuery.isFresh,
-    stackError: nativeStackQuery.error,
+    canMergeSinglePullRequest,
+  } = usePullRequestStackGate({
+    environmentId,
+    reference,
+    detail,
+    environmentSupported: environmentConfigs.has(environmentId),
   });
+  const nativeStack = nativeStackQuery.data;
   const activityPending = activityQuery.isPending && activity === null;
   const activityError = activity === null ? activityQuery.error : null;
   const refreshDetail = () => {
@@ -545,6 +558,7 @@ export function PullRequestDetailPanel({
     }
   }
   const revalidateActivity = useEffectEvent(() => activityQuery.refresh());
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- refreshes the activity query after commit when render counts a new detail revision
   useEffect(() => {
     if (activityRevalidations > 0) revalidateActivity();
   }, [activityRevalidations]);
@@ -567,6 +581,7 @@ export function PullRequestDetailPanel({
   };
   const refreshFromHostOnRequest = useEffectEvent(() => void refreshFromHost());
   const appliedForcedToken = useRef(forcedRefreshToken);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- a new forced refresh token invalidates the host cache and refetches
   useEffect(() => {
     if (appliedForcedToken.current === forcedRefreshToken) return;
     appliedForcedToken.current = forcedRefreshToken;
@@ -635,16 +650,16 @@ export function PullRequestDetailPanel({
       const hint =
         updateMethod === "rebase"
           ? UPDATE_BRANCH_REBASE_FAILURE_HINT
-          : ACTION_FAILURE_HINTS[action];
+          : actionFailureHints(terminology.singular)[action];
       toastManager.add({
         type: "error",
-        title: ACTION_FAILURE_LABELS[action],
+        title: actionFailureLabels(terminology.singular)[action],
         description: readableFailure(failure, hint),
       });
       onActed?.(action, "failed");
       return false;
     }
-    toastManager.add({ type: "success", title: ACTION_SUCCESS_LABELS[action] });
+    toastManager.add({ type: "success", title: actionSuccessLabels(terminology.singular)[action] });
     if (pullRequestActionNeedsHostRefresh(action)) {
       void refreshFromHost();
     } else {
@@ -683,11 +698,6 @@ export function PullRequestDetailPanel({
     return { commentPosted: true };
   };
 
-  type ThreadTask = {
-    prompt: string;
-    reviewComments?: ReadonlyArray<ReviewCommentContext>;
-  };
-
   const attachTarget = composerDraftTarget ?? null;
   const canPrepareWorktree = prepareThread.isAllowed && canOperateThread;
   const canFixFindings = attachTarget !== null || canPrepareWorktree;
@@ -702,46 +712,9 @@ export function PullRequestDetailPanel({
     if (guideWriter.data?.guide == null) selectTab("guide");
   };
 
-  const writeTaskToComposer = (target: ScopedThreadRef | DraftId, task: ThreadTask) => {
-    const store = useComposerDraftStore.getState();
-    const draft = store.getComposerDraft(target);
-    const key = composerTargetKey(target);
-    const previousCommentIds = new Set((draft?.reviewComments ?? []).map((comment) => comment.id));
-    const repeatedCommentIds = new Set(
-      (task.reviewComments ?? [])
-        .filter((comment) => previousCommentIds.has(comment.id))
-        .map((comment) => comment.id),
-    );
-    const promptWithoutPreviousHandoff = stripPullRequestHandoffReferences(
-      draft?.prompt ?? "",
-      draft?.reviewComments ?? [],
-      repeatedCommentIds,
-    );
-    const prompt = handoffPrompt(
-      {
-        prompt: promptWithoutPreviousHandoff,
-        lastHandoffPrompt: lastHandoffPromptByDraft.get(key),
-      },
-      task.prompt,
-    );
-    lastHandoffPromptByDraft.set(key, task.prompt);
-    store.setPrompt(target, prompt);
-    store.setReviewComments(
-      target,
-      handoffReviewComments(draft?.reviewComments ?? [], task.reviewComments ?? []),
-    );
-    for (const comment of task.reviewComments ?? []) {
-      if (!repeatedCommentIds.has(comment.id)) continue;
-      store.addReviewComment(target, comment, {
-        allowDuplicateReference: true,
-        insertAtCaret: false,
-      });
-    }
-  };
-
   const openThreadWithTask = async (
     projectRef: ReturnType<typeof scopeProjectRef>,
-    task: ThreadTask | null,
+    task: PullRequestThreadTask | null,
     opened?: { draftId: DraftId },
   ): Promise<{ draftId: DraftId } | null> => {
     const session =
@@ -752,25 +725,25 @@ export function PullRequestDetailPanel({
       ));
     if (session === null) return null;
     if (task === null) return session;
-    writeTaskToComposer(session.draftId, task);
+    writePullRequestTaskToComposer(session.draftId, task);
     return session;
   };
 
   const startAsk = async (
     kind: string,
-    task: ThreadTask,
+    task: PullRequestThreadTask,
     options?: { readonly keepGuide?: boolean },
   ) => {
     if (!detail || handoff !== null) return;
     if (attachTarget !== null) {
-      writeTaskToComposer(attachTarget, task);
+      writePullRequestTaskToComposer(attachTarget, task);
       toastManager.add({
         type: "success",
         title: "Added to the composer",
         description:
           task.prompt.length > 0
-            ? "The question is in the composer — read it over, then send."
-            : "The pull request is in the composer — type your question, then send.",
+            ? "The question is in the composer. Read it over, then send."
+            : `The ${terminology.singular} is in the composer. Type your question, then send.`,
       });
       return;
     }
@@ -790,8 +763,8 @@ export function PullRequestDetailPanel({
             repository: reference.repository,
             number: reference.number,
             url: detail.url,
+            detailTab: "guide",
           });
-        useGuideRunStore.getState().requestOpen(guideRunKey(environmentId, reference));
       }
     }
     if (opened === null) {
@@ -807,23 +780,23 @@ export function PullRequestDetailPanel({
       title: "Asked in a thread",
       description:
         task.prompt.length > 0
-          ? "The question is in the composer — read it over, then send."
-          : "The pull request is in the composer — type your question, then send.",
+          ? "The question is in the composer. Read it over, then send."
+          : `The ${terminology.singular} is in the composer. Type your question, then send.`,
     });
   };
 
   const startHandoff = async (
     kind: string,
-    task: { prompt: string; reviewComments?: ReadonlyArray<ReviewCommentContext> } | null,
+    task: PullRequestThreadTask | null,
     mode: "worktree" | "local" = "worktree",
   ) => {
     if (!handoffSummary || handoff !== null) return;
     if (attachTarget !== null && task !== null) {
-      writeTaskToComposer(attachTarget, task);
+      writePullRequestTaskToComposer(attachTarget, task);
       toastManager.add({
         type: "success",
         title: "Added to the composer",
-        description: "The task is in the composer — read it over, then send.",
+        description: "The task is in the composer. Read it over, then send.",
       });
       return;
     }
@@ -843,7 +816,7 @@ export function PullRequestDetailPanel({
     setHandoff(kind);
     const toastId = toastManager.add({
       type: "loading",
-      title: "Preparing the pull request checkout...",
+      title: `Preparing the ${terminology.singular} checkout...`,
     });
     const projectRef = scopeProjectRef(
       actingEnvironmentId,
@@ -874,7 +847,7 @@ export function PullRequestDetailPanel({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: "Could not prepare the pull request checkout",
+        title: `Could not prepare the ${terminology.singular} checkout`,
         description: checkoutFailureDescription(
           isAtomCommandInterrupted(prepared) ? undefined : squashAtomCommandFailure(prepared),
         ),
@@ -911,10 +884,10 @@ export function PullRequestDetailPanel({
               title: mode === "local" ? "Checked out here" : "Checked out",
               description:
                 mode === "local"
-                  ? "This repository is on the pull request's branch, with a thread open on it."
-                  : "The pull request is in its own worktree, with a thread open on it.",
+                  ? `This repository is on the ${terminology.singular}'s branch, with a thread open on it.`
+                  : `The ${terminology.singular} is in its own worktree, with a thread open on it.`,
             }
-          : OFF_HEAD_PULL_REQUEST_CHECKOUT_TOAST,
+          : offHeadPullRequestCheckoutToast(terminology),
       );
       return;
     }
@@ -925,9 +898,9 @@ export function PullRequestDetailPanel({
         ? {
             type: "success",
             title: "Checkout ready",
-            description: "The task is in the composer — read it over, then send.",
+            description: "The task is in the composer. Read it over, then send.",
           }
-        : OFF_HEAD_PULL_REQUEST_CHECKOUT_TOAST,
+        : offHeadPullRequestCheckoutToast(terminology),
     );
   };
 
@@ -1064,9 +1037,7 @@ export function PullRequestDetailPanel({
   };
   const selectActingEnvironment = (next: EnvironmentId) =>
     setActingScope({ pullRequestKey, environmentId: next });
-  const allowedMergeMethods = detail
-    ? detail.capabilities.mergeMethods.filter((method) => detail.mergeCapabilities[method])
-    : [];
+  const allowedMergeMethods = allowedPullRequestMergeMethods(detail);
   const currentMergeMethod =
     mergeMethodSelection?.pullRequestKey === pullRequestKey ? mergeMethodSelection.method : null;
   const selectedMergeMethod = resolvePullRequestMergeMethod(
@@ -1077,7 +1048,6 @@ export function PullRequestDetailPanel({
   );
   const selectedMergeMethodLabel = PULL_REQUEST_MERGE_METHOD_LABELS[selectedMergeMethod];
   const pendingAutoMergeLabel = `Auto-merge (${selectedMergeMethodLabel.toLowerCase()})`;
-  const conflicting = detail?.state === "open" && detail.mergeability === "conflicting";
   const autoMergeArmed = detail?.state === "open" && detail.autoMergeEnabled === true;
   const armedMergeMethod = detail?.autoMergeMethod;
   const armedAutoMergeLabel = armedMergeMethod
@@ -1086,17 +1056,7 @@ export function PullRequestDetailPanel({
   const workflowApprovalsRequired =
     detail?.state === "open" ? (detail.workflowApprovalsRequired ?? 0) : 0;
   const freshness = detail === null ? null : resolveBaseFreshness(detail);
-  const reviewGuidesEnabled = useEnvironmentSettings(
-    environmentId,
-    (settings) => settings.reviewGuidesEnabled,
-  );
-  const visibleTabs = TABS.filter(
-    (item) =>
-      (item.value !== "code" || detail === null || detail.capabilities.diff) &&
-      (item.value !== "guide" || reviewGuidesEnabled),
-  );
-  // Keep unavailable-tab fallbacks out of the saved selection.
-  if (tab !== "summary" && !visibleTabs.some((item) => item.value === tab)) setTab("summary");
+  const visibleTabs = TABS.filter((item) => isTabAvailable(item.value));
   const can = (action: PullRequestAction) =>
     detail !== null &&
     pullRequestActionAllowed(detail.capabilities, action) &&
@@ -1126,33 +1086,11 @@ export function PullRequestDetailPanel({
         canEnableAutoMerge: canMergeSinglePullRequest && can("enable-auto-merge"),
       })
     : null;
-  const showsDraftToggle =
-    detail?.state === "open" &&
-    can(detail.isDraft ? "ready" : "draft") &&
-    !(detail.isDraft && primaryAction === "ready");
-  const showsAutoMerge =
-    canMergeSinglePullRequest &&
-    detail?.state === "open" &&
-    !autoMergeArmed &&
-    primaryAction !== "enable-auto-merge" &&
-    !detail.isDraft &&
-    !conflicting &&
-    can("enable-auto-merge") &&
-    allowedMergeMethods.length > 0;
-  const showsMergeNow =
-    canMergeSinglePullRequest &&
-    detail?.state === "open" &&
-    (primaryAction === "enable-auto-merge" || autoMergeArmed) &&
-    can("merge") &&
-    !detail.isDraft &&
-    !conflicting &&
-    allowedMergeMethods.length > 0;
-  const showsMergeMethods =
-    detail?.state === "open" &&
-    can("merge") &&
-    !detail.isDraft &&
-    !conflicting &&
-    allowedMergeMethods.length > 1;
+  const mergeMenuActions = {
+    ...resolvePullRequestMenuActions({ detail, primaryAction, canMergeSinglePullRequest }),
+    // The armed control beside the primary action is the off switch here.
+    showsDisableAutoMerge: false,
+  };
   const statePresentation = detail
     ? resolvePullRequestState({ state: detail.state, isDraft: detail.isDraft })
     : null;
@@ -1180,6 +1118,7 @@ export function PullRequestDetailPanel({
   const checkoutControl =
     context === "page" ? (
       <PullRequestCheckoutMenu
+        term={terminology.singular}
         handoff={handoff}
         checkoutRoot={checkoutRoot}
         canPrepareWorktree={canPrepareWorktree}
@@ -1194,7 +1133,7 @@ export function PullRequestDetailPanel({
   const resolveConflictsControl = (
     <PullRequestResolveConflictsButton
       handoff={handoff}
-      unavailable={attachTarget === null && checkoutRoot === null}
+      unavailable={attachTarget === null && (checkoutRoot === null || !canPrepareWorktree)}
       onResolve={startResolveConflicts}
     />
   );
@@ -1253,7 +1192,7 @@ export function PullRequestDetailPanel({
           openOnHostText={openOnHostText}
           onBack={onBack}
         />
-        <div className="mr-4 flex h-7 shrink-0 items-center justify-end gap-1">
+        <div className="mr-4 flex h-7 shrink-0 select-none items-center justify-end gap-1">
           {detail ? (
             <TooltipProvider delay={150} closeDelay={150} timeout={400}>
               {!nativeStack && supportsStackActions && nativeStackQuery.error ? (
@@ -1264,6 +1203,7 @@ export function PullRequestDetailPanel({
               {nativeStack ? (
                 <PullRequestStackMenu
                   hostLabel={hostClient.label}
+                  terminology={terminology}
                   stack={nativeStack}
                   notice={nativeStackQuery.notice}
                   onRetry={nativeStackQuery.error ? nativeStackQuery.refresh : undefined}
@@ -1317,6 +1257,7 @@ export function PullRequestDetailPanel({
                 environmentId={environmentId}
                 reference={reference}
                 detail={detail}
+                terminology={terminology}
                 linkThreadRef={
                   threadRef ??
                   (typeof composerDraftTarget === "object" ? composerDraftTarget : null)
@@ -1339,15 +1280,14 @@ export function PullRequestDetailPanel({
                 actingEnvironmentId={actingEnvironmentId}
                 onActingEnvironmentChange={selectActingEnvironment}
                 can={can}
-                showsDraftToggle={showsDraftToggle}
-                showsMergeNow={showsMergeNow}
-                showsAutoMerge={showsAutoMerge}
-                showsMergeMethods={showsMergeMethods}
+                mergeMenuActions={mergeMenuActions}
                 allowedMergeMethods={allowedMergeMethods}
                 selectedMergeMethod={selectedMergeMethod}
                 onSelectMergeMethod={selectMergeMethod}
                 showsDeleteBranch={showsDeleteBranch}
                 environmentConnected={environmentConnected}
+                canWriteSourceControl={canWriteSourceControl}
+                onMaintainerEditsSaved={refreshDetail}
                 pendingAction={pendingAction}
                 perform={perform}
                 openOnHostText={openOnHostText}
@@ -1359,7 +1299,7 @@ export function PullRequestDetailPanel({
             <Button
               size="icon-xs"
               variant="ghost"
-              aria-label="Collapse pull request panel"
+              aria-label={`Collapse ${terminology.singular} panel`}
               onClick={onClose}
             >
               <PanelRightIcon className="size-3.5" />
@@ -1424,14 +1364,14 @@ export function PullRequestDetailPanel({
                       <TooltipPopup side="top">{detail.headBranch}</TooltipPopup>
                     </Tooltip>
                   </span>
-                  <span className="ml-auto inline-flex shrink-0 items-center justify-end gap-2 text-2xs">
+                  <span className="ml-auto inline-flex shrink-0 items-baseline justify-end gap-2 text-2xs">
                     <span
-                      className="inline-flex items-center gap-1 tabular-nums"
+                      className="inline-flex items-baseline gap-1 tabular-nums"
                       aria-label={`${detail.changedFiles.toLocaleString()} changed ${
                         detail.changedFiles === 1 ? "file" : "files"
                       }`}
                     >
-                      <FileDiffIcon aria-hidden className="size-3" />
+                      <DiffIcon aria-hidden className="size-3 self-center" />
                       {detail.changedFiles.toLocaleString()}
                     </span>
                     <PullRequestChangeBreakdownStat
@@ -1492,7 +1432,7 @@ export function PullRequestDetailPanel({
                     <PullRequestCopyableCode
                       key={checkoutCommand}
                       value={checkoutCommand}
-                      target="pull request checkout command"
+                      target={`${terminology.singular} checkout command`}
                       copyLabel="Copy checkout command"
                       copiedLabel="Checkout command copied"
                       className="ml-auto font-mono"
@@ -1515,7 +1455,7 @@ export function PullRequestDetailPanel({
                     key={detail.headBranch}
                     value={detail.headBranch}
                     target="branch name"
-                    copyLabel="Copy pull request branch"
+                    copyLabel={`Copy ${terminology.singular} branch`}
                     copiedLabel="Branch name copied"
                   />
                 }
@@ -1591,7 +1531,7 @@ export function PullRequestDetailPanel({
                   >
                     <MessageSquareIcon aria-hidden className="size-3" />
                     {activityError
-                      ? "—"
+                      ? "-"
                       : activityPending
                         ? "…"
                         : detail.commentCount.toLocaleString()}
@@ -1606,9 +1546,9 @@ export function PullRequestDetailPanel({
                           }`
                     }
                   >
-                    <GitCommitHorizontalIcon aria-hidden className="size-3" />
+                    <GitCommitIcon aria-hidden className="size-3" />
                     {activityError
-                      ? "—"
+                      ? "-"
                       : activityPending
                         ? "…"
                         : detail.commits.length.toLocaleString()}
@@ -1673,14 +1613,22 @@ export function PullRequestDetailPanel({
           <PullRequestsUnavailableState
             {...(isPullRequestNotFound(detailQuery.failure)
               ? {
-                  title: `Pull request #${reference.number} not found`,
-                  error:
-                    "It may be an issue rather than a pull request, or this account can't see it.",
+                  title: `${capitalizeTerm(terminology.singular)} #${reference.number} not found`,
+                  error: `It may be an issue rather than a ${terminology.singular}, or this account can't see it.`,
                 }
               : { error: detailQuery.error })}
             refreshing={detailQuery.isPending}
             onRetry={refreshDetail}
-            {...(unavailableGitHubUrl ? { gitHubUrl: unavailableGitHubUrl } : {})}
+            {...(unavailableHostUrl
+              ? {
+                  host: {
+                    url: unavailableHostUrl,
+                    openLabel: openOnHostLabel(
+                      sourceControlClients.get(repositoryIdentity?.provider),
+                    ),
+                  },
+                }
+              : {})}
           />
         ) : detail ? (
           <PullRequestMarkdownContext value={markdownContext}>
@@ -1705,7 +1653,11 @@ export function PullRequestDetailPanel({
               </div>
             ) : null}
             {mountedTabs.has("guide") ? (
-              <div className={cn("absolute inset-0", tab !== "guide" && "invisible")}>
+              <div
+                className={cn("absolute inset-0", tab !== "guide" && "invisible")}
+                // Read by the guide run notifier, which stays quiet for a guide on screen.
+                data-guide-shown={tab === "guide" ? guideKey : undefined}
+              >
                 <PullRequestGuideTab
                   environmentId={environmentId}
                   reference={reference}
@@ -1715,6 +1667,7 @@ export function PullRequestDetailPanel({
                   canComment={
                     detail.capabilities.review.inlineComment && detail.viewerPermissions.comment
                   }
+                  rangeComments={detail.capabilities.review.rangeComment === true}
                   onAskAboutLines={(comment, request) =>
                     addSelectionToAgent({ comment, request }, { keepGuide: true })
                   }
@@ -1738,6 +1691,7 @@ export function PullRequestDetailPanel({
                 ) : activityError ? (
                   <PullRequestActivityUnavailableState
                     error={activityError}
+                    term={terminology.singular}
                     onRetry={activityQuery.refresh}
                   />
                 ) : (
@@ -1756,7 +1710,11 @@ export function PullRequestDetailPanel({
             ) : null}
             {mountedTabs.has("code") ? (
               <div className={cn("absolute inset-0", tab !== "code" && "invisible")}>
-                <Suspense fallback={<DiffPanelLoadingState label="Loading pull request diff..." />}>
+                <Suspense
+                  fallback={
+                    <DiffPanelLoadingState label={`Loading ${terminology.singular} diff...`} />
+                  }
+                >
                   <PullRequestCodeTab
                     scrollerRef={scrollerRefs.code}
                     onAddToAgentSelection={addSelectionToAgent}

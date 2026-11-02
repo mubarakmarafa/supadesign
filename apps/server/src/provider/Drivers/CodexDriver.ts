@@ -1,4 +1,4 @@
-import { CodexSettings, ProviderDriverKind } from "@supaterm/contracts";
+import { CodexSettings, ProviderDriverKind, TranscriptionError } from "@supaterm/contracts";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -28,6 +28,7 @@ import {
 } from "../CodexProvider.ts";
 import { resolveCodexLaunchArgs } from "../codexLaunchArgs.ts";
 import { makeManagedServerProvider } from "@supaterm/provider-core/server/managedProvider";
+import type { ServerProviderDraft } from "@supaterm/provider-core/server/snapshotProbe";
 import * as ModelCatalog from "@supaterm/provider-core/server/ModelCatalog";
 import { applyCodexModelCatalog } from "../codexModelCatalog.ts";
 import type { ProviderDriver, ProviderInstance } from "@supaterm/provider-core/server/driver";
@@ -37,7 +38,6 @@ import {
   enrichProviderSnapshotWithVersionAdvisory,
   makeCachedProviderMaintenanceResolution,
   makePackageManagedProviderMaintenanceResolver,
-  normalizeCommandPath,
   resolveProviderMaintenanceCapabilitiesEffect,
 } from "@supaterm/provider-core/server/maintenanceResolver";
 import {
@@ -48,36 +48,50 @@ import {
 import {
   codexContinuationIdentity,
   materializeCodexShadowHome,
+  resolveCodexAuthHomePath,
   resolveCodexHomeLayout,
 } from "./CodexHomeLayout.ts";
 import { makeManagedCodexProvider } from "./CodexManagedProvider.ts";
 import { codexUsageReader } from "./codexUsage.ts";
+import { codexTranscriptionStatus, makeCodexTranscription } from "../CodexTranscription.ts";
 import * as CodexInstallation from "../CodexInstallation.ts";
+import * as CodexManagedTokenBroker from "../CodexManagedTokenBroker.ts";
 import * as ServerSecretStore from "../../auth/ServerSecretStore.ts";
 import * as ServerEnvironment from "../../environment/ServerEnvironment.ts";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 const decodeCodexSettings = Schema.decodeSync(CodexSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("codex");
-function isCodexStandaloneCommandPath(commandPath: string): boolean {
-  return normalizeCommandPath(commandPath).includes("/packages/standalone/");
+const CODEX_STANDALONE_HOME_PATTERN = /^(.*)\/packages\/standalone\//is;
+
+function codexStandaloneHome(commandPath: string): string | null {
+  // Slash replacement preserves indices; Unicode lowercasing can change the path length.
+  const match = CODEX_STANDALONE_HOME_PATTERN.exec(commandPath.replaceAll("\\", "/"));
+  if (!match) {
+    return null;
+  }
+  const home = match[1]!;
+  // Keep root separators: `C:` is drive-relative, and an empty home is not `/`.
+  const isRoot = home === "" || /^[a-z]:$/i.test(home);
+  return commandPath.slice(0, home.length + (isRoot ? 1 : 0));
 }
 
-/**
- * `codex update` replaces the standalone tree under `CODEX_HOME`. That tree
- * lives in the shared home even when an auth-overlay shadow home is in use
- * (the overlay only carries auth and a few local entries), so the updater
- * runs against `sharedHomePath` rather than the instance's effective home.
- */
+// Standalone updates locate their install through CODEX_HOME. Account and auth-overlay
+// homes can share an executable, so only the updater uses the executable's owning home.
 function makeCodexMaintenanceResolver(sharedHomePath: string) {
   return makePackageManagedProviderMaintenanceResolver({
     provider: DRIVER_KIND,
     npmPackageName: "@openai/codex",
     nativeUpdate: {
       args: ["update"],
-      isCommandPath: isCodexStandaloneCommandPath,
+      isCommandPath: (commandPath) => codexStandaloneHome(commandPath) !== null,
       requiresCommandPath: true,
-      env: { CODEX_HOME: sharedHomePath },
+      env: (context) => ({
+        CODEX_HOME:
+          codexStandaloneHome(context.realCommandPath) ??
+          codexStandaloneHome(context.resolvedCommandPath) ??
+          sharedHomePath,
+      }),
     },
   });
 }
@@ -97,7 +111,8 @@ export type CodexDriverEnv =
   | ServerConfig.ServerConfig
   | ServerSecretStore.ServerSecretStore
   | ServerEnvironment.ServerEnvironmentIdentity
-  | CodexInstallation.CodexInstallation;
+  | CodexInstallation.CodexInstallation
+  | CodexManagedTokenBroker.CodexManagedTokenBroker;
 
 export const CodexDriver: ProviderDriver<
   CodexSettings,
@@ -135,6 +150,7 @@ export const CodexDriver: ProviderDriver<
     const pathService = yield* Path.Path;
     const httpClient = yield* HttpClient.HttpClient;
     const latestVersions = yield* ProviderLatestVersions.ProviderLatestVersions;
+    const installation = yield* CodexInstallation.CodexInstallation;
     const modelCatalog = yield* ModelCatalog.ModelCatalog;
     const currentCatalog = modelCatalog.current(DRIVER_KIND);
     const processEnv = yield* mergeProviderInstanceEnvironment(environment);
@@ -187,7 +203,10 @@ export const CodexDriver: ProviderDriver<
         enabled,
         config,
       },
-      { onUsageLimits: (update) => snapshot.applyUsageLimits(update) },
+      {
+        onUsageLimits: (update) => snapshot.applyUsageLimits(update),
+        compatibility: installation.compatibility,
+      },
     ).pipe(
       Effect.mapError(
         (cause) =>
@@ -202,10 +221,21 @@ export const CodexDriver: ProviderDriver<
 
     // Kick the TTL-gated manifest refresh in the background and classify with the in-memory
     // manifest, so a slow or hung fetch never delays the provider check.
+    const authHomePath = yield* resolveCodexAuthHomePath(homeLayout, processEnv);
+    const withTranscriptionStatus = (draft: ServerProviderDraft) =>
+      fileSystem.exists(pathService.join(authHomePath, "auth.json")).pipe(
+        Effect.orElseSucceed(() => false),
+        Effect.map((authFileExists) => {
+          const transcription = codexTranscriptionStatus(draft.auth, authFileExists);
+          return transcription ? { ...draft, transcription } : draft;
+        }),
+      );
     const checkProvider = modelCatalog.refreshInBackground.pipe(
       Effect.andThen(
         Effect.zipWith(
-          checkCodexProviderStatus(effectiveConfig, undefined, processEnv),
+          checkCodexProviderStatus(effectiveConfig, undefined, processEnv).pipe(
+            Effect.flatMap(withTranscriptionStatus),
+          ),
           currentCatalog,
           (draft, catalog) => stampIdentity(applyCodexModelCatalog(draft, catalog)),
           { concurrent: true },
@@ -284,13 +314,9 @@ export const CodexDriver: ProviderDriver<
             ),
           );
 
-    // Redemption spends something on the user's account. It serialises on
-    // the account (instances sharing a Codex home share the credit), keeps
-    // one idempotency key until Codex reports an outcome, and is bounded so
-    // a hung app-server cannot hold the account lock.
-    // Keyed on the directory holding auth.json: an auth-overlay instance has
-    // its own account under `effectiveHomePath`, while plain instances share
-    // the common home. The continuation key would conflate the two.
+    // Redemption spends account credit; serialize by the auth.json directory, keep one idempotency key
+    // until the outcome, and bound the wait so a hung app-server cannot hold the account lock.
+    // Auth overlays use effectiveHomePath; the continuation key would conflate them with shared homes.
     const accountKey = homeLayout.effectiveHomePath ?? homeLayout.sharedHomePath;
     const consumeResetCredit: NonNullable<ProviderInstance["consumeResetCredit"]> = () =>
       resetCreditCoordinator
@@ -346,6 +372,30 @@ export const CodexDriver: ProviderDriver<
           ),
         );
 
+    const transcription = yield* makeCodexTranscription({
+      authHomePath,
+      withLoginLock: (effect) => resetCreditCoordinator.withAccountLock(authHomePath, effect),
+      refreshLogin: Effect.gen(function* () {
+        const { client } = yield* withCodexAppServerClient({
+          binaryPath: effectiveConfig.binaryPath,
+          homePath: effectiveConfig.homePath,
+          launchArgs: resolveCodexLaunchArgs(effectiveConfig.launchArgs, processEnv),
+          cwd: process.cwd(),
+          environment: processEnv,
+        });
+        yield* client.request("account/read", { refreshToken: true });
+      }).pipe(
+        Effect.scoped,
+        Effect.timeout("20 seconds"),
+        Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+        Effect.mapError((cause) => new TranscriptionError({ reason: "signedOut", cause })),
+      ),
+    }).pipe(
+      Effect.provideService(HttpClient.HttpClient, httpClient),
+      Effect.provideService(FileSystem.FileSystem, fileSystem),
+      Effect.provideService(Path.Path, pathService),
+    );
+
     return {
       skillInstallDirectory: pathService.join(
         homeLayout.effectiveHomePath === undefined
@@ -365,6 +415,7 @@ export const CodexDriver: ProviderDriver<
       snapshot,
       snapshotForCwd,
       consumeResetCredit,
+      transcription,
       orchestrationAdapter,
       textGeneration,
     } satisfies ProviderInstance;

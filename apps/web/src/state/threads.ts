@@ -4,19 +4,27 @@ import {
   createEnvironmentThreadShellAtoms,
   createEnvironmentThreadStateAtoms,
   createRunningThreadKeepAliveAtom,
+  createOlderDoneThreadAtoms,
 } from "@supaterm/client-runtime/state/threads";
 import { Atom } from "effect/reactivity";
 
 import { environmentCatalog } from "../connection/catalog";
 import { connectionAtomRuntime } from "../connection/runtime";
-import { directThreadEnvironment } from "./threadCommands";
+import { directThreadEnvironment, threadFamilies } from "./threadCommands";
 import { createThreadDetailReadiness } from "./threadDetailReadiness";
+import { environmentShell } from "./shell";
 
+export { threadFamilies };
+export const olderDoneThreads = createOlderDoneThreadAtoms(
+  connectionAtomRuntime,
+  environmentShell.stateAtom,
+);
 export const threadEnvironment = directThreadEnvironment;
 export const environmentThreadShells = createEnvironmentThreadShellAtoms({
   catalogValueAtom: environmentCatalog.catalogValueAtom,
   snapshotAtom: threadEnvironment.snapshotAtom,
 });
+
 const threadDetailReadyAtom = createThreadDetailReadiness(environmentThreadShells.threadShellAtom);
 const environmentThreads = createEnvironmentThreadStateAtoms(
   connectionAtomRuntime,

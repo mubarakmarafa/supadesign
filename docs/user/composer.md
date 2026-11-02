@@ -22,7 +22,8 @@ block. What you typed is what the agent receives, markers and numbering
 included, and `#1234` without a space still looks up a pull request.
 
 Enter sends. In a list or quote, **Shift+Enter** continues it, and Shift+Enter
-on an empty line leaves it; **Tab** nests a list item. In a code block, Enter
+on an empty line moves out one level, then leaves it; **Tab** nests a list item
+under the one above and **Shift+Tab** moves it back out. In a code block, Enter
 starts a new line at the current indentation, **Tab** and **Shift+Tab** indent
 the selected lines, and a closing ` ``` ` followed by Enter, or two blank lines
 at the end, leave the block. **Backspace** at the start of a code block turns it
@@ -47,15 +48,17 @@ You can drag or paste images into the web or desktop composer. HEIC and HEIF
 photos are converted to JPEG there and when selected from the mobile photo
 library; photos over the image limit are also resized to fit. On mobile, you can
 also send files to Supaterm through another app's system share sheet.
+On Android, you can also drag images from another app into the message input
+in split screen.
 
 See [images and videos](#images-and-videos-in-messages) for previewing and saving media.
 
 ## Send while the agent is working
 
-On web and desktop, choose **Settings → General → Follow-up behavior** to queue
+On web and desktop, choose **Settings → Chat → Follow-up behavior** to queue
 new messages for a later turn or steer the running turn immediately. The setting
 applies to this client; already queued messages keep their place. Queued messages
-are saved on the server and can be edited, reordered, or removed above the composer.
+are saved on the server and can be edited or removed above the composer.
 When Enter sends, `Cmd+Enter` on macOS or `Ctrl+Enter` on Windows and Linux uses
 the opposite action: it steers when your default is Queue and queues when your
 default is Steer.
@@ -75,7 +78,7 @@ including one still waiting to send. When the composer has text, press `Option+U
 on macOS or `Alt+Up` on Windows and Linux with the cursor at the start instead. Change
 `thread.editQueuedMessage` to use another shortcut for the latter.
 
-Mobile has the same choice under **Settings → Follow-ups**. While a turn is
+Mobile has the same choice under **Settings → Chat**. While a turn is
 running the send button shows which action it will take. Long-press it to use the
 other action for a single message, or hold `Cmd` while sending from a hardware
 keyboard. The button only offers Steer when the running agent supports it.
@@ -165,6 +168,21 @@ the text is an unedited recalled prompt, with the caret on the first visual line
 the last visual line for `ArrowDown`, counting wrapped lines. Editing a recalled prompt turns it
 into a normal draft.
 
+## Suggested next prompt
+
+After Claude replies, the empty composer can show the message you are likely to send next, such
+as an answer to the question Claude just asked. Press `Tab` or `ArrowRight` to put it in the
+composer, or `Escape` to hide it. On iPhone and Android, tap the suggestion button beside the
+composer. A suggestion is never sent for you: it only fills the draft, and typing replaces it.
+
+Only Claude threads get suggestions. They are Claude's own prediction, which reuses the turn's prompt
+cache, so each costs almost nothing. Claude suggests nothing at the start of a thread, in plan mode,
+after an error, or when the next step is not obvious, and only replies from the last few hours get
+one. Threads on other providers never show a suggestion.
+
+They are on by default. Turn them off with **Claude prompt suggestions** in **Settings > Threads**,
+or **Next prompt suggestions** in **Settings > Threads** on mobile.
+
 ## Edit an earlier prompt
 
 On web and desktop, choose **Edit from here** beneath a sent message to rewind
@@ -200,29 +218,68 @@ Stashes containing uploaded files must be restored in their original environment
 Those files are retained for 24 hours. After an upload expires, restore the prompt
 and use **Attach again** or remove the missing file before sending.
 
-## Voice input on iPhone
+## Voice input
 
-On supported iPhones with iOS 26 or later, use the composer's microphone to record.
-Stop to transcribe and review the text, or tap the up arrow to transcribe and send.
-Text is inserted where your selection was when recording started. In scheduled-task
-prompts, confirming only updates the draft; save the schedule separately.
+Press the microphone in the composer, or `ctrl+m` on web and desktop, to record a
+prompt of up to five minutes. Hold `ctrl+m` instead to talk only while it is down; letting
+go stops and reviews. With **Settings → Threads → Hold Space to talk** on, holding Space in
+the composer with no text selected does the same, and a tap still types a space. On web and desktop, the
+recording stays in the composer while you speak:
 
-The first use may download Apple's speech model and needs a network connection.
-Later transcription works offline for that language. Recordings can be up to five
-minutes long. Canceling or an audio interruption discards the recording and preserves
-your existing draft. Leaving the screen keeps dictation available in the floating
-control, but cancels a pending send. While recording, the screen stays
-awake; it can sleep normally once recording stops.
+- **Stop and review**, or `ctrl+m` again, transcribes the recording into the
+  draft where your cursor was, so you can edit it before sending.
+- **Send**, or your send shortcut, sends the recording as your next message. With an empty draft in a
+  thread that has started, it waits in the [queue](#queued-messages) like a typed message,
+  even while you are offline, and the environment transcribes and sends it once it is
+  reachable. With text or attachments in the draft, Send transcribes the recording, adds
+  it, and sends everything together.
+- **Discard**, or `Escape`, throws the recording away and keeps your draft.
 
-Voice input records from the first connected microphone in **Settings → Microphone**.
-The list mixes kinds (built-in, other wired, other Bluetooth, CarPlay) with wired and
-Bluetooth devices you have dictated with, listed by name. Drag to rank them together:
-for example, put **Other Bluetooth** above your AirPods so a new headset is preferred
-while the AirPods microphone stays low. By default, CarPlay comes after the built-in
-microphone.
+The environment transcribes with the provider chosen under **Settings → Threads → Voice
+transcription** (**Settings → Voice transcription** on mobile), and that login is charged
+for it. Claude needs a Claude subscription login and Codex a ChatGPT login. **Automatic**,
+the default, picks the first login ready to transcribe for each new recording, trying the
+default Claude instance, then other Claude instances, then the rest, so a later recording can
+be charged to a different account. A
+recording that fails isn't retried with another account. Choose a provider to pin one
+account: if it can't transcribe, the microphone says why and Supaterm never switches. A Claude instance that runs on an API key, a gateway's `ANTHROPIC_BASE_URL` and
+token, or Amazon Bedrock can't transcribe; choose Codex, or add a Claude instance with its own
+[config directory](./providers-claude.md#separate-accounts-or-configurations) signed in to
+your subscription. Choose the language you speak under **Settings → Threads → Voice
+language**; it follows your system language by default and lists only the languages the chosen
+provider transcribes, which for Codex is many more than for Claude. On iPhone and Android,
+voice input always uses your phone's language.
 
-Transcription runs on your device. Supaterm deletes the temporary audio after
-transcription or cancellation; only the message text is sent when you submit.
+Recording in a browser needs HTTPS or `localhost`. A remote browser on a plain `http://`
+address can't use the microphone. The first time you record, allow microphone access; on
+macOS you can change it later in System Settings → Privacy & Security → Microphone.
+
+If no speech is heard, the message isn't sent. If the thread refuses a transcribed message,
+the transcript stays in the queue as text so you can edit or retry it. Recordings stay on
+your device until they are sent or discarded.
+
+### On iPhone and Android
+
+Use the composer's microphone to record. Stop to transcribe and review the text, or tap
+the up arrow to send. Text is inserted where your selection was when recording started.
+In scheduled-task prompts, voice input only updates the draft; save the schedule
+separately.
+
+With an empty draft in a thread that has already started, the up arrow sends the
+recording itself as your message. It waits in the thread like a queued message, even
+offline, and the environment transcribes and sends it once connected. If no speech is
+found or the environment refuses it, the message stays in the thread with the reason so
+you can retry or discard it. A transcript the thread couldn't accept stays as text to
+edit or retry. With text in the draft, the up arrow transcribes, adds the text, and
+sends.
+
+Canceling or an audio interruption discards the recording and preserves your existing
+draft. Leaving the screen keeps voice input available in the floating control, but
+cancels a pending send. While recording, the screen stays awake; it can sleep normally
+once recording stops.
+
+On iPhone, voice input records from a connected wired microphone first, then Bluetooth,
+then the built-in microphone, then CarPlay.
 
 ## Queued messages
 
@@ -233,16 +290,21 @@ Steer. Click it or press your send shortcut to use that action. Hold `Cmd` on ma
 Windows and Linux to switch the button to the opposite action, then click, or use the opposite-action
 shortcut described above.
 
+A stopped turn shows **Stopping** until the agent finishes. An agent that does not answer, for
+example because the machine is out of memory, shows **Agent not responding to Stop** instead, with
+**Force stop** on web, desktop, and mobile. Force stop ends the turn and kills the agent's
+processes; a process that other working threads share keeps running for them.
+
 Queued messages appear above the composer. Rows show a thumbnail of any attached image alongside
-the text. Drag a row by its handle to reorder it, use the handle's arrow keys, promote the message
-to a steer, or remove it. On web and desktop, removing takes two presses of the row's **X**
-because the message is discarded, not returned to the composer.
+the text. **Send now** sends a message right away, into the running turn if there is one. You can
+also edit or remove it. On web and desktop, removing takes two presses of the row's **X** because
+the message is discarded, not returned to the composer.
 
 If you stop the agent or the server restarts, queued messages keep their order and are held.
-Press **Resume** in an empty composer on web and desktop, or **Resume queue** on mobile, to
-continue. Sending a new message also resumes the queue, unless it steers a turn that is already
-running. You can edit, reorder, or remove held messages without starting them. **Send now** on a
-held row starts a turn with that message ahead of the others.
+Press **Resume** in an empty composer to continue. **Resume** also continues a stopped run or one
+that hit a usage limit, even with nothing queued. Sending a new message also resumes the queue,
+unless it steers a turn that is already running. You can edit or remove held messages without
+starting them. **Send now** on a held row starts a turn with that message ahead of the others.
 
 The pencil on a queued row opens that message in the composer for editing. The original message
 stays in the queue until you save, and its row is highlighted while you edit. The message's
@@ -265,12 +327,11 @@ highlighted. On mobile,
 
 The slash menu also includes skills unless you turn off **Show skills in slash
 menu**, which also stops `/` from suggesting skills later in a message. It is in
-**Settings → General** on web and desktop, and **Settings → Thread behavior** on
-mobile. Only skills enabled for the provider are listed.
+**Settings → Chat** on web and desktop, and on mobile. Only skills enabled for the provider are listed.
 
 To install Supaterm's optional `supaterm-advisor` and `supaterm-commitee` skills,
-choose **Install** in **Settings → Integrations → Orchestration skills**
-on web and desktop, or **Settings → Agent behavior** on mobile. Nothing installs
+choose **Install** in **Settings → Threads → Orchestration skills**
+on web and desktop, or **Settings → Threads** on mobile. Nothing installs
 automatically. Installation applies to all projects on the selected connected
 environments and links the providers' native skill folders to Supaterm's bundled skills.
 With **All environments** selected, offline environments are skipped; reconnect
@@ -296,9 +357,13 @@ row above the composer shows the goal and its progress.
 
 - `/goal` alone shows the current goal. `/goal clear` removes it.
 - Codex also supports `/goal pause` and `/goal resume`. Stopping a Codex goal
-  pauses it.
+  pauses it, and so does Codex ending its work without meeting the goal.
 - Stopping Claude ends the current turn, but the goal stays set. Claude checks it
   again at the end of your next message.
+- Sending a new goal, or `/goal resume`, while the agent works stops the current
+  turn and starts the goal, unless you queue it. `/goal clear` and `/goal pause`
+  stop the turn only when it is working on the goal. Other goal commands wait for
+  the turn to end.
 
 ## Context in your message
 
@@ -321,7 +386,8 @@ from the thread's linked pull requests panel onto the composer.
 
 Another thread can be context too. Type `@` followed by part of its title to pick one from
 the same server, or on web and desktop drag a thread out of the sidebar and drop it on the
-composer; a multi-selection drops together. The chip shows the thread's current title and
+composer; a multi-selection drops together. On any client, **Copy thread** puts a thread on the
+clipboard that pastes into a composer as its chip. The chip shows the thread's current title and
 opens it when selected. Your prompt only carries a reference: the agent reads the thread's
 history on demand, so attaching a long thread costs nothing until the agent looks. Attaching a
 thread does not change it, and the agent cannot send messages to it unless you ask.
@@ -362,7 +428,9 @@ file: a header row with the view toggle, **Copy contents** and **Save file**. On
 open in the same file screen as workspace files; its menu holds **Copy contents**, **Save or
 share** and **Open in file viewer**. Pictures, videos and PDFs keep their native viewers, and
 other document formats such as Word or Pages open in the device's own viewer when it has one.
-If nothing on the device can show a format, save or share it to open it elsewhere.
+If nothing on the device can show a format, save or share it to open it elsewhere. A ZIP up to
+50 MB opens as a folder list on every surface; on mobile, select a file inside it to preview,
+save, or add it to chat.
 
 ## Images and videos in messages
 

@@ -158,10 +158,9 @@ export const make = Effect.gen(function* () {
   const readThread = (threadId: ThreadId) =>
     projections.getThreadShell(threadId).pipe(
       Effect.mapError(() => failure("The card's thread could not be read.")),
-      Effect.flatMap((shell) =>
-        shell === null || shell.deletedAt !== null
-          ? Effect.fail(failure("The card's thread no longer exists."))
-          : Effect.succeed(shell),
+      Effect.filterOrFail(
+        (shell): shell is NonNullable<typeof shell> => shell !== null && shell.deletedAt === null,
+        () => failure("The card's thread no longer exists."),
       ),
     );
 

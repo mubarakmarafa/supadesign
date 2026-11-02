@@ -12,6 +12,10 @@ No screenshot-specific screen recreates application UI. `EXPO_PUBLIC_SHOWCASE=1`
 non-rendering pairing/readiness coordinator and disables terminal autofocus so captures do not
 contain the software keyboard. Environments screen cards always come from real paired servers.
 
+Each raw capture then becomes a store slide: a short headline above the real capture in a device
+frame, on the marketing site's background, type, and accent. Headless Chromium renders the slide at
+the store's exact size, so the slide never resamples the store canvas.
+
 ## Capture the default matrix
 
 From the repository root:
@@ -29,9 +33,11 @@ The command:
 4. Starts an isolated Metro server, builds the selected native apps, and boots each device.
 5. Pairs each clean app installation with Studio Laptop, Basement Tower, and Helsinki VPS.
 6. Navigates to the real application route for every requested scene.
-7. Sets the requested system appearance and palette, normalizes status bars, converts captures to 24-bit RGB PNGs without alpha, and
+7. Sets the requested system appearance and palette, normalizes status bars, and writes raw
+   captures beneath `artifacts/app-store/captures/`.
+8. Composes each capture into a framed slide, converts it to a 24-bit RGB PNG without alpha, and
    validates dimensions, aspect ratio, file size, and screenshot count before succeeding.
-8. Writes store-ready folders beneath `artifacts/app-store/screenshots/` that can be uploaded
+9. Writes store-ready folders beneath `artifacts/app-store/screenshots/` that can be uploaded
    directly to App Store Connect or Google Play Console.
 
 The servers, Metro, temporary root directory, and devices started by the runner are cleaned up after
@@ -75,6 +81,13 @@ The default matrix is:
 Each target captures thread, terminal, review, thread list, and environments. Each palette folder's
 five screenshots satisfy the configured Apple limit of 1–10, Google phone requirement of 2–8, and
 Google tablet recommendation/slot minimum of 4 with a maximum of 8.
+The iPhone Duo is not in the matrix: on CI runners its simulator slows the host until scenes time
+out, and App Store Connect accepts submissions with an empty Duo slot for now. Apple requires Duo
+screenshots from April 2027 for apps built with the iOS 27.1 SDK or later, so the two Duo targets
+(1398×2034 folded, 2853×2007 unfolded) must return to the config before then. The harness keeps its
+fold support (`fold` on an iOS device, which needs `agent-device` on PATH or `AGENT_DEVICE_PATH`)
+for that.
+
 Every palette gets its own leaf folder so one upload slot never mixes themes and each folder keeps a
 store-legal screenshot count.
 
@@ -108,7 +121,8 @@ timeout from 120 to 350 minutes). The default dispatch captures both appearances
 palette and runs iOS and Android concurrently: iPhone and iPad capture on macOS, while Android
 phone, 7-inch tablet, and 10-inch tablet capture on Ubuntu with a KVM-accelerated x86_64 emulator.
 
-Every job uploads its PNGs even when capture fails, which makes partial runs useful for diagnosis.
+Every job uploads its slides and its raw captures (`app-store-connect-captures`,
+`google-play-captures`) even when capture fails, which makes partial runs useful for diagnosis.
 The separate validation step is success-gated: it runs before upload only when capture succeeds. If
 capture fails, the `always()` upload still publishes partial PNGs without re-validating them.
 Download `app-store-connect-screenshots` and `google-play-screenshots` from the workflow run's
@@ -123,6 +137,13 @@ appearance and the Supaterm palette. [Mobile store review](release.md#mobile-sto
 the upload and submission procedure. Standalone screenshot captures only create downloadable artifacts.
 
 ## Fast iteration
+
+Recompose slides from existing raw captures without starting Metro, servers, simulators, or
+emulators. This is the loop for headline copy and frame changes; download a run's `*-captures`
+artifacts into `artifacts/app-store/captures/<apple|google-play>/` to start from CI captures:
+
+    pnpm screenshots:mobile --compose-only
+    pnpm screenshots:mobile --device iphone-6.9 --compose-only
 
 Capture one scene or device:
 
@@ -171,8 +192,10 @@ Validate existing files without starting Metro, servers, simulators, or emulator
 
 - Project repository, thread projections, conversation, terminal transcript, and Git changes:
   [mobile-showcase-environment.ts](../../scripts/mobile-showcase-environment.ts)
-- Device and capture matrix:
+- Device and capture matrix, each device's frame, and the per-scene headline copy (`slides`):
   [mobile-showcase.config.ts](../../scripts/mobile-showcase.config.ts)
+- Slide layout, device frames, and canvas colors:
+  [mobile-showcase-frame.ts](../../scripts/mobile-showcase-frame.ts)
 - Simulator/emulator orchestration:
   [mobile-showcase.ts](../../scripts/mobile-showcase.ts)
 
@@ -192,6 +215,7 @@ remote-first while the harness retains reliable loopback connections to its ephe
 
 ## Local prerequisites
 
+- Slides: the first run downloads Playwright's Chromium into its user cache.
 - iOS: Xcode command-line tools, the configured simulator runtimes, and installed CocoaPods.
 - Android: SDK resolution checks `ANDROID_HOME`, then `ANDROID_SDK_ROOT`, then defaults to
   `$HOME/Library/Android/sdk` on macOS or `$HOME/Android/Sdk` on other platforms. The resolved SDK

@@ -1,5 +1,5 @@
 import type { SourceControlProviderKind } from "@supaterm/contracts";
-import { ExternalLinkIcon, TriangleAlertIcon } from "lucide-react";
+import { ExternalLinkIcon, TriangleAlertIcon } from "@supaterm/icons";
 
 import { getSourceControlPresentationForKind } from "~/sourceControlPresentation";
 
@@ -19,8 +19,12 @@ export function PullRequestDiffUnavailableState({
   url: string;
   onRetry: () => void;
 }) {
-  const { providerName } = getSourceControlPresentationForKind(provider);
-  const { title, description } = describePullRequestDiffError(error, providerName);
+  const { providerName, terminology } = getSourceControlPresentationForKind(provider);
+  const { title, description } = describePullRequestDiffError(
+    error,
+    providerName,
+    terminology.singular,
+  );
 
   return (
     <Empty size="compact" className="min-h-full" role="status">

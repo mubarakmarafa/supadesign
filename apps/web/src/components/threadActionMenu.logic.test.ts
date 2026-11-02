@@ -75,10 +75,29 @@ describe("buildThreadActionMenuItems", () => {
     );
   });
 
-  it("disables archive while the thread is running", () => {
-    const archiveItem = buildThreadActionMenuItems({ ...baseState, isRunning: true }).find(
-      (item) => item.id === "archive",
-    );
-    expect(archiveItem?.disabled).toBe(true);
+  it("offers pinning the thread's project beside Project settings where it can", () => {
+    const ids = (state: ThreadActionMenuState) =>
+      buildThreadActionMenuItems(state).map((item) => item.id);
+    const after = (state: ThreadActionMenuState) =>
+      ids(state)[ids(state).indexOf("project-settings") + 1];
+    expect(after({ ...baseState, projectPinned: false })).toBe("pin-project");
+    expect(after({ ...baseState, projectPinned: true })).toBe("unpin-project");
+    expect(ids({ ...baseState, projectPinned: null })).not.toContain("pin-project");
+    expect(ids(baseState)).not.toContain("unpin-project");
+    expect(
+      buildThreadActionMenuItems({ ...baseState, canOperate: false, projectPinned: false }).find(
+        (item) => item.id === "pin-project",
+      )?.disabled,
+    ).toBe(true);
+  });
+
+  it("disables archive and turning into a project while the thread is running", () => {
+    const items = buildThreadActionMenuItems({
+      ...baseState,
+      isRunning: true,
+      canTurnIntoProject: true,
+    });
+    expect(items.find((item) => item.id === "archive")?.disabled).toBe(true);
+    expect(items.find((item) => item.id === "turn-into-project")?.disabled).toBe(true);
   });
 });

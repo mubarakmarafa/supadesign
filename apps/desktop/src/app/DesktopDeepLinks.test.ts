@@ -334,7 +334,7 @@ describe("DesktopDeepLinks", () => {
   );
 });
 
-it.effect("queues web, file, prompt and thread links and leaves other schemes alone", () =>
+it.effect("queues web, file, prompt, thread and pairing links and leaves other links alone", () =>
   Effect.gen(function* () {
     const listeners = new Map<string, (...args: unknown[]) => void>();
     const received: string[] = [];
@@ -353,11 +353,14 @@ it.effect("queues web, file, prompt and thread links and leaves other schemes al
         "http://localhost:3000",
         `${APP_URL_SCHEME}://new?prompt=hi`,
         `${APP_URL_SCHEME}://threads/env/thread`,
+        `${APP_URL_SCHEME}://pair?pairingUrl=https%3A%2F%2Fvps.example.com%2F%23token%3Dabc`,
+        `${APP_URL_SCHEME}://pair`,
         "mailto:hi@example.com",
       ]) {
         const event = { preventDefault: vi.fn() };
         listeners.get("open-url")!(event, url);
-        assert.equal(event.preventDefault.mock.calls.length, url.startsWith("mailto:") ? 0 : 1);
+        const handled = !url.startsWith("mailto:") && url !== `${APP_URL_SCHEME}://pair`;
+        assert.equal(event.preventDefault.mock.calls.length, handled ? 1 : 0);
       }
       const event = { preventDefault: vi.fn() };
       listeners.get("open-file")!(event, "/tmp/a page.html");
@@ -368,6 +371,7 @@ it.effect("queues web, file, prompt and thread links and leaves other schemes al
         "http://localhost:3000",
         `${APP_URL_SCHEME}://new?prompt=hi`,
         `${APP_URL_SCHEME}://threads/env/thread`,
+        `${APP_URL_SCHEME}://pair?pairingUrl=https%3A%2F%2Fvps.example.com%2F%23token%3Dabc`,
         "file:///tmp/a%20page.html",
       ]);
       assert.equal(event.preventDefault.mock.calls.length, 1);

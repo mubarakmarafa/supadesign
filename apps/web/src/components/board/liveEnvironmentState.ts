@@ -42,6 +42,7 @@ export function useProjectLiveEnvironments(projectRef: ScopedProjectRef | null):
 /** Wall-clock time that advances every `intervalMs` while enabled, for countdowns. */
 export function useNow(intervalMs: number, enabled: boolean): number {
   const [now, setNow] = useState(() => Date.now());
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- interval timer that ticks the countdown clock while enabled, cleared on change or unmount
   useEffect(() => {
     if (!enabled) return;
     const interval = setInterval(() => setNow(Date.now()), intervalMs);

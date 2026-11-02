@@ -9,6 +9,8 @@ interface GridProject {
   readonly title: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly pinnedAt?: string | null | undefined;
+  readonly archivedAt?: string | null | undefined;
 }
 
 interface GridThread extends ThreadSortInput {
@@ -28,7 +30,7 @@ export interface ProjectGridEntry<P, T> {
 
 const projectKey = (environmentId: string, projectId: string) => `${environmentId}\n${projectId}`;
 
-/** One grid card per project, most recently worked on first. */
+/** One grid card per project left unarchived: pinned ones first, then most recently worked on. */
 export function buildProjectsGrid<P extends GridProject, T extends GridThread>(
   projects: ReadonlyArray<P>,
   threads: ReadonlyArray<T>,
@@ -49,19 +51,23 @@ export function buildProjectsGrid<P extends GridProject, T extends GridThread>(
       }
     }
   }
-  const entries = projects.map((project) => {
+  const entries = projects.flatMap((project) => {
+    if (project.archivedAt != null) return [];
     const latest = byProject.get(projectKey(project.environmentId, project.id));
     const fallback = Date.parse(project.updatedAt || project.createdAt);
     const at = latest !== undefined && Number.isFinite(latest.at) ? latest.at : fallback;
-    return {
-      project,
-      lastThread: latest?.thread ?? null,
-      lastActivityMs: Number.isFinite(at) ? at : null,
-      threadCount: latest?.count ?? 0,
-    };
+    return [
+      {
+        project,
+        lastThread: latest?.thread ?? null,
+        lastActivityMs: Number.isFinite(at) ? at : null,
+        threadCount: latest?.count ?? 0,
+      },
+    ];
   });
   return entries.toSorted(
     (a, b) =>
+      Number(b.project.pinnedAt != null) - Number(a.project.pinnedAt != null) ||
       (b.lastActivityMs ?? Number.NEGATIVE_INFINITY) -
         (a.lastActivityMs ?? Number.NEGATIVE_INFINITY) ||
       a.project.title.localeCompare(b.project.title),

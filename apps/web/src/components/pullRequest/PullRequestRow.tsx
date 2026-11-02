@@ -1,6 +1,6 @@
 import type { PullRequestAction } from "@supaterm/contracts";
 import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon } from "@supaterm/icons";
 import { PullRequestChangeBreakdownStat } from "./PullRequestChangeBreakdownStat";
 import { PullRequestStackPopover } from "./PullRequestStackPopover";
 import {
@@ -15,7 +15,7 @@ import { getSourceControlPresentationForKind } from "~/sourceControlPresentation
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { PullRequestChecksPopover } from "./PullRequestChecksPopover";
 import type { EnvironmentPullRequestEntry } from "./pullRequestList.logic";
-import { openOnHostLabel, showPullRequestLinkContextMenu } from "./pullRequestLinkContextMenu";
+import { showPullRequestLinkContextMenu } from "./pullRequestLinkContextMenu";
 import {
   PULL_REQUEST_ROW_CLASS,
   PULL_REQUEST_ROW_NUMBER_CLASS,
@@ -90,7 +90,7 @@ function PullRequestRowImpl({
   showProvider: boolean;
   environmentLabel?: string;
   matchedElsewhere?: boolean;
-  /** Used by the list's shared visibility observer to defer optional line-count reads. */
+  /** Visibility key for deferred line-count reads. */
   statsKey?: string;
   statsRef?: RefCallback<HTMLDivElement>;
   onSelect: (entry: PullRequestRowTarget) => void;
@@ -100,7 +100,7 @@ function PullRequestRowImpl({
   sweeping?: boolean;
   onCloseSweepStart?: (entry: EnvironmentPullRequestEntry, event: PointerEvent) => void;
 }) {
-  const { Icon, providerName } = getSourceControlPresentationForKind(entry.provider);
+  const { Icon, providerName, terminology } = getSourceControlPresentationForKind(entry.provider);
   return (
     <div
       ref={statsRef}
@@ -137,7 +137,7 @@ function PullRequestRowImpl({
                 event.stopPropagation();
                 void showPullRequestLinkContextMenu({
                   url: entry.url,
-                  openLabel: openOnHostLabel(sourceControlClients.get(entry.provider)),
+                  host: sourceControlClients.get(entry.provider),
                   position: { x: event.clientX, y: event.clientY },
                 });
               }}
@@ -241,6 +241,7 @@ function PullRequestRowImpl({
         <PullRequestSpeedActions
           entry={entry}
           hostActions={hostActions}
+          terminology={terminology}
           onActed={onActed}
           closing={closing}
           sweeping={sweeping}

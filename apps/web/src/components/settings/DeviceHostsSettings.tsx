@@ -1,7 +1,6 @@
 import { DeviceToolVersions } from "../device/DeviceToolVersions";
 import { DeviceHostAvailability } from "../device/DeviceHostAvailability";
 import { useAtomValue } from "@effect/atom-react";
-import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";
 import { AuthSettingsWriteScope } from "@supaterm/contracts";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
@@ -21,10 +20,10 @@ import {
   CheckIcon,
   ChevronDownIcon,
   CircleIcon,
-  MoreVertical,
+  EllipsisVerticalIcon,
   PlusIcon,
   TriangleAlertIcon,
-} from "lucide-react";
+} from "@supaterm/icons";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import { Menu, MenuTrigger, MenuPopup, MenuItem } from "../ui/menu";
 import { SettingsRow } from "./settingsLayout";
@@ -250,7 +249,7 @@ function DeviceHostList({
   const states = new Map(
     environmentIds.map(
       (environmentId, index) =>
-        [environmentId, Option.getOrUndefined(AsyncResult.value(results[index]!))] as const,
+        [environmentId, AsyncResult.getOrElse(results[index]!, () => undefined)] as const,
     ),
   );
   const retry = useAtomCommand(deviceEnvironment.list);
@@ -553,7 +552,7 @@ function DeviceHostList({
                   />
                 }
               >
-                <MoreVertical />
+                <EllipsisVerticalIcon />
               </MenuTrigger>
               <MenuPopup align="end">
                 <MenuItem onClick={() => onEdit(host)}>Edit</MenuItem>

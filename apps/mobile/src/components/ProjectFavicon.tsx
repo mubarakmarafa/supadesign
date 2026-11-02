@@ -1,8 +1,10 @@
 import { SymbolView } from "./ui/AppSymbol";
 import { AppText } from "./ui/AppText";
+import { NodeIcon } from "./ui/NodeIcon";
 import { Image } from "expo-image";
-import { memo, useLayoutEffect, useMemo, useState } from "react";
+import { memo, useLayoutEffect, useState } from "react";
 import { View } from "react-native";
+import { useResolveClassNames } from "uniwind";
 import type { EnvironmentId, ProjectIconOverride } from "@supaterm/contracts";
 import {
   getProjectFaviconCacheKey,
@@ -11,9 +13,12 @@ import {
 } from "@supaterm/shared/projectFavicon";
 import { useAtomValue } from "@effect/atom-react";
 import { Atom } from "effect/reactivity";
+import { projectColorKey } from "@supaterm/shared/projectIdentity";
 import { projectFaviconUrlAtom } from "../state/assets";
+import { projectMonogramColorAtom } from "../state/projectIdentity";
 import {
   countGlyphs,
+  projectAutoMonogram,
   projectIconColorClassNames,
   resolveProjectIconGlyph,
   type ProjectIconGlyph,
@@ -39,7 +44,7 @@ export const ProjectFavicon = memo(function ProjectFavicon(props: {
   readonly projectIcon?: ProjectIconOverride | null;
 }) {
   const size = props.size ?? 42;
-  const glyph = resolveProjectIconGlyph(props.projectIcon, props.projectTitle);
+  const glyph = resolveProjectIconGlyph(props.projectIcon);
   const faviconUrl = useAtomValue(
     props.workspaceRoot == null || glyph !== null
       ? EMPTY_FAVICON_URL
@@ -49,29 +54,14 @@ export const ProjectFavicon = memo(function ProjectFavicon(props: {
           faviconPath: props.faviconPath,
         }),
   );
-  const renderableFaviconUrl = useMemo(
-    () => (isProjectFaviconFallbackUrl(faviconUrl) ? null : faviconUrl),
-    [faviconUrl],
-  );
-  // Inline images are self-contained; remote URLs key on their revision so signed-token
-  // rotation reuses the disk cache while a changed icon starts from the loading state.
-  const cacheKey = useMemo(
-    () =>
-      renderableFaviconUrl && props.workspaceRoot
-        ? renderableFaviconUrl.startsWith("data:")
-          ? getProjectFaviconResourceKey(
-              props.environmentId,
-              props.workspaceRoot,
-              props.faviconPath,
-            )
-          : getProjectFaviconCacheKey(
-              props.environmentId,
-              props.workspaceRoot,
-              renderableFaviconUrl,
-            )
-        : null,
-    [renderableFaviconUrl, props.environmentId, props.workspaceRoot, props.faviconPath],
-  );
+  const renderableFaviconUrl = isProjectFaviconFallbackUrl(faviconUrl) ? null : faviconUrl;
+  // Key remote images by revision so token rotation reuses the cache while changed icons reload.
+  const cacheKey =
+    renderableFaviconUrl && props.workspaceRoot
+      ? renderableFaviconUrl.startsWith("data:")
+        ? getProjectFaviconResourceKey(props.environmentId, props.workspaceRoot, props.faviconPath)
+        : getProjectFaviconCacheKey(props.environmentId, props.workspaceRoot, renderableFaviconUrl)
+      : null;
 
   if (glyph !== null) {
     return <ProjectIconGlyphView glyph={glyph} size={size} />;
@@ -107,6 +97,10 @@ function ProjectIconGlyphView(props: { readonly glyph: ProjectIconGlyph; readonl
         </AppText>
       </View>
     );
+  }
+
+  if (glyph.kind === "icon") {
+    return <ProjectIconNodeView glyph={glyph} size={size} />;
   }
 
   const colors = projectIconColorClassNames(glyph.color);
@@ -146,13 +140,12 @@ function ProjectFaviconImage(props: {
   readonly projectTitle: string;
   readonly size: number;
 }) {
-  const faviconRequest = useMemo(
-    () => createProjectFaviconRequest(props.cacheKey, props.faviconUrl),
-    [props.cacheKey, props.faviconUrl],
-  );
+  const faviconRequest = createProjectFaviconRequest(props.cacheKey, props.faviconUrl);
+  // Registers with the module-level loader before the Image's native onLoad/onError can fire,
+  // so stale loads for a superseded URL under the same cacheKey are ignored.
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- marks this favicon URL as the current request in the module registry before the native Image reports load or error
   useLayoutEffect(() => {
     if (faviconRequest === null) return;
-
     return beginProjectFaviconRequest(faviconRequest);
   }, [faviconRequest]);
 
@@ -164,6 +157,8 @@ function ProjectFaviconImage(props: {
 
   const requestIsActive = faviconRequest !== null;
   const showImage = requestIsActive && status === "loaded";
+  const monogramColor = useAtomValue(projectMonogramColorAtom(projectColorKey(props.projectTitle)));
+  const fallbackGlyph = showImage ? null : projectAutoMonogram(props.projectTitle, monogramColor);
 
   return (
     <View
@@ -174,16 +169,18 @@ function ProjectFaviconImage(props: {
         justifyContent: "center",
       }}
     >
-      {!showImage ? (
+      {showImage ? null : fallbackGlyph ? (
+        <ProjectIconGlyphView glyph={fallbackGlyph} size={props.size} />
+      ) : (
         <SymbolView
           name={{ ios: "folder.fill", android: props.open ? "folder_open" : "folder" }}
           size={props.size}
           tintColorClassName={"accent-icon-subtle"}
           type="monochrome"
         />
-      ) : null}
+      )}
 
-      {requestIsActive ? (
+      {faviconRequest !== null ? (
         <Image
           key={faviconRequest.faviconUrl}
           source={
@@ -211,6 +208,25 @@ function ProjectFaviconImage(props: {
           }}
         />
       ) : null}
+    </View>
+  );
+}
+
+function ProjectIconNodeView(props: {
+  readonly glyph: Extract<ProjectIconGlyph, { kind: "icon" }>;
+  readonly size: number;
+}) {
+  const { color } = useResolveClassNames(projectIconColorClassNames(props.glyph.color).text);
+  return (
+    <View
+      style={{
+        width: props.size,
+        height: props.size,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <NodeIcon node={props.glyph.node} size={props.size * 0.8} color={color} />
     </View>
   );
 }

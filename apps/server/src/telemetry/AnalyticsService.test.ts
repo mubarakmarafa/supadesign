@@ -1,10 +1,13 @@
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
+import * as Clock from "effect/Clock";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as PubSub from "effect/PubSub";
 import * as Schema from "effect/Schema";
+import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientError from "effect/http/HttpClientError";
@@ -15,7 +18,9 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as HostProcess from "@supaterm/shared/HostProcess";
 
+import type { ServerSettings as ServerSettingsValue } from "@supaterm/contracts";
 import * as ServerConfig from "../config.ts";
+import * as ServerSettings from "../serverSettings.ts";
 import { getTelemetryIdentity } from "./Identify.ts";
 import * as AnalyticsService from "./AnalyticsService.ts";
 
@@ -81,6 +86,44 @@ const respondWithStatus =
   (request) =>
     Effect.succeed(HttpClientResponse.fromWeb(request, new Response(null, { status })));
 
+/**
+ * Answers 503 for `minutes` after the first send, then 204. `answers` holds each
+ * answer with its time in ms after the first send (the test clock runs on across tests).
+ */
+const failingFor = (minutes: number) => {
+  const answers: Array<{ readonly at: number; readonly status: number }> = [];
+  let firstSend: number | undefined;
+  const respond: Respond = (request) =>
+    Effect.flatMap(Clock.currentTimeMillis, (now) => {
+      firstSend ??= now;
+      const at = now - firstSend;
+      const status = at < minutes * 60_000 ? 503 : 204;
+      answers.push({ at, status });
+      return respondWithStatus(status)(request);
+    });
+  return { respond, answers };
+};
+
+/** `layerTest` settings whose `subscribeChanges` sees updates, as the real service's does. */
+const layerSettingsWithChanges = (setting: boolean | undefined) =>
+  Layer.effect(
+    ServerSettings.ServerSettingsService,
+    Effect.gen(function* () {
+      const settings = yield* ServerSettings.ServerSettingsService;
+      const changes = yield* PubSub.unbounded<ServerSettingsValue>();
+      return ServerSettings.ServerSettingsService.of({
+        ...settings,
+        updateSettings: (patch) =>
+          settings.updateSettings(patch).pipe(Effect.tap((next) => PubSub.publish(changes, next))),
+        subscribeChanges: Effect.map(PubSub.subscribe(changes), Stream.fromSubscription),
+      });
+    }),
+  ).pipe(
+    Layer.provide(
+      ServerSettings.layerTest(setting === undefined ? {} : { telemetryEnabled: setting }),
+    ),
+  );
+
 const recordTwentyEvents = Effect.gen(function* () {
   const analytics = yield* AnalyticsService.AnalyticsService;
   for (let index = 0; index < 20; index += 1) {
@@ -88,13 +131,23 @@ const recordTwentyEvents = Effect.gen(function* () {
   }
 });
 
-const sendForTenMinutes = (
+/**
+ * Runs `record` (20 events by default), then lets `minutes` of background
+ * flushes run against a client that answers every send with `respond`.
+ * `SUPATERM_TELEMETRY_ENABLED` is `true` unless `variable` says otherwise; `null` leaves it unset.
+ * Returns the sent batches.
+ */
+const sendFor = (
+  minutes: number,
   respond: Respond,
   record: Effect.Effect<
     void,
     never,
-    AnalyticsService.AnalyticsService | Effect.Services<typeof getTelemetryIdentity>
+    | AnalyticsService.AnalyticsService
+    | ServerSettings.ServerSettingsService
+    | Effect.Services<typeof getTelemetryIdentity>
   > = recordTwentyEvents,
+  options: { readonly variable?: boolean | null; readonly setting?: boolean } = {},
 ) =>
   Effect.gen(function* () {
     const batches: Array<ReadonlyArray<SentEvent>> = [];
@@ -109,14 +162,16 @@ const sendForTenMinutes = (
         return yield* respond(request);
       }),
     );
+    const variable = options.variable === undefined ? true : options.variable;
     const runtimeLayer = AnalyticsService.layer.pipe(
       Layer.provideMerge(
         ServerConfig.ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-telemetry-retry-" }),
       ),
+      Layer.provideMerge(layerSettingsWithChanges(options.setting)),
       Layer.provide(
         ConfigProvider.layer(
           ConfigProvider.fromUnknown({
-            SUPATERM_TELEMETRY_ENABLED: true,
+            ...(variable === null ? {} : { SUPATERM_TELEMETRY_ENABLED: variable }),
             SUPATERM_POSTHOG_KEY: "phc_test_key",
             SUPATERM_POSTHOG_HOST: "http://localhost",
           }),
@@ -133,7 +188,7 @@ const sendForTenMinutes = (
 
     yield* Effect.gen(function* () {
       yield* record;
-      for (let second = 0; second < 600; second += 1) {
+      for (let second = 0; second < minutes * 60; second += 1) {
         yield* TestClock.adjust("1 second");
       }
     }).pipe(Effect.provide(runtimeLayer));
@@ -143,7 +198,8 @@ const sendForTenMinutes = (
 it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
   it.effect("client owner reports cannot use up the server's owner cap", () =>
     Effect.gen(function* () {
-      const batches = yield* sendForTenMinutes(
+      const batches = yield* sendFor(
+        10,
         respondWithStatus(204),
         Effect.gen(function* () {
           const analytics = yield* AnalyticsService.AnalyticsService;
@@ -166,6 +222,131 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
     }),
   );
 
+  it.effect("keeps a failed batch through a 20-minute outage and sends it once after", () =>
+    Effect.gen(function* () {
+      const ingest = failingFor(20);
+      const batches = yield* sendFor(40, ingest.respond);
+      const statuses = ingest.answers.map(({ status }) => status);
+      assert.equal(statuses.at(-1), 204);
+      assert.equal(statuses.filter((status) => status === 204).length, 1);
+      const sentUuids = new Set(batches.map((batch) => batch.map(({ uuid }) => uuid).join()));
+      assert.equal(sentUuids.size, 1);
+      assert.equal(batches[0]?.length, 20);
+    }),
+  );
+
+  it.effect("drops a batch that keeps failing for 30 minutes", () =>
+    Effect.gen(function* () {
+      const ingest = failingFor(Infinity);
+      yield* sendFor(60, ingest.respond);
+      const lastSend = ingest.answers.at(-1)?.at ?? 0;
+      assert.isAtLeast(lastSend, 30 * 60_000);
+      assert.isBelow(lastSend, 36 * 60_000);
+    }),
+  );
+
+  it.effect("the setting turns usage events off while the variable is unset", () =>
+    Effect.gen(function* () {
+      const batches = yield* sendFor(1, respondWithStatus(204), recordTwentyEvents, {
+        variable: null,
+        setting: false,
+      });
+      assert.equal(batches.length, 0);
+    }),
+  );
+
+  it.effect("the variable overrides the setting", () =>
+    Effect.gen(function* () {
+      const batches = yield* sendFor(1, respondWithStatus(204), recordTwentyEvents, {
+        variable: true,
+        setting: false,
+      });
+      assert.equal(batches.flat().length, 20);
+    }),
+  );
+
+  it.effect("turning the setting off discards events still waiting to be sent", () =>
+    Effect.gen(function* () {
+      const batches = yield* sendFor(
+        1,
+        respondWithStatus(204),
+        Effect.gen(function* () {
+          yield* recordTwentyEvents;
+          const settings = yield* ServerSettings.ServerSettingsService;
+          yield* settings.updateSettings({ telemetryEnabled: false }).pipe(Effect.orDie);
+          const analytics = yield* AnalyticsService.AnalyticsService;
+          yield* analytics.record("test.after-opt-out");
+        }),
+        { variable: null },
+      );
+      assert.equal(batches.length, 0);
+    }),
+  );
+
+  it.effect("turning the setting off and on before a flush still discards earlier events", () =>
+    Effect.gen(function* () {
+      const batches = yield* sendFor(
+        1,
+        respondWithStatus(204),
+        Effect.gen(function* () {
+          yield* recordTwentyEvents;
+          const settings = yield* ServerSettings.ServerSettingsService;
+          yield* settings.updateSettings({ telemetryEnabled: false }).pipe(Effect.orDie);
+          yield* settings.updateSettings({ telemetryEnabled: true }).pipe(Effect.orDie);
+        }),
+        { variable: null },
+      );
+      assert.isFalse(batches.flat().some((event) => event.event === "test.retry"));
+    }),
+  );
+
+  it.effect("sends an owner seen while the setting was off once it is back on", () =>
+    Effect.gen(function* () {
+      const owner = { source: "openai" as const, ownerId: "a".repeat(64) };
+      const batches = yield* sendFor(
+        1,
+        respondWithStatus(204),
+        Effect.gen(function* () {
+          const settings = yield* ServerSettings.ServerSettingsService;
+          const analytics = yield* AnalyticsService.AnalyticsService;
+          yield* analytics.recordOwners([owner], "client");
+          yield* settings.updateSettings({ telemetryEnabled: true }).pipe(Effect.orDie);
+          yield* analytics.recordOwners([owner], "client");
+        }),
+        { variable: null, setting: false },
+      );
+      assert.equal(batches.flat().filter((event) => event.properties.observedBy).length, 1);
+    }),
+  );
+
+  it.effect("sends an owner again after an opt-out discarded its event", () =>
+    Effect.gen(function* () {
+      const owner = { source: "openai" as const, ownerId: "b".repeat(64) };
+      const batches = yield* sendFor(
+        1,
+        respondWithStatus(204),
+        Effect.gen(function* () {
+          const settings = yield* ServerSettings.ServerSettingsService;
+          const analytics = yield* AnalyticsService.AnalyticsService;
+          yield* analytics.recordOwners([owner], "client");
+          yield* settings.updateSettings({ telemetryEnabled: false }).pipe(Effect.orDie);
+          yield* TestClock.adjust("1 second");
+          yield* settings.updateSettings({ telemetryEnabled: true }).pipe(Effect.orDie);
+          yield* analytics.recordOwners([owner], "client");
+        }),
+        { variable: null },
+      );
+      assert.equal(batches.flat().filter((event) => event.properties.observedBy).length, 1);
+    }),
+  );
+
+  it.effect("drops a batch the endpoint rejects without sending it again", () =>
+    Effect.gen(function* () {
+      const batches = yield* sendFor(10, respondWithStatus(400));
+      assert.equal(batches.length, 1);
+    }),
+  );
+
   it.effect("flush sends all buffered events to the default analytics project", () =>
     Effect.gen(function* () {
       const capturedRequests: Array<RecordedBatchRequest> = [];
@@ -173,7 +354,10 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
         prefix: "supaterm-telemetry-base-",
       });
 
-      const layerTelemetry = AnalyticsService.layer.pipe(Layer.provideMerge(layerServerConfig));
+      const layerTelemetry = AnalyticsService.layer.pipe(
+        Layer.provideMerge(layerServerConfig),
+        Layer.provide(ServerSettings.layerTest()),
+      );
       const layerConfig = ConfigProvider.layer(
         ConfigProvider.fromUnknown({
           SUPATERM_TELEMETRY_ENABLED: true,
@@ -279,7 +463,10 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
       const layerServerConfig = ServerConfig.ServerConfig.layerTest(process.cwd(), {
         prefix: "supaterm-telemetry-disabled-",
       });
-      const layerTelemetry = AnalyticsService.layer.pipe(Layer.provideMerge(layerServerConfig));
+      const layerTelemetry = AnalyticsService.layer.pipe(
+        Layer.provideMerge(layerServerConfig),
+        Layer.provide(ServerSettings.layerTest()),
+      );
       const layerConfig = ConfigProvider.layer(
         ConfigProvider.fromUnknown({
           SUPATERM_TELEMETRY_ENABLED: false,

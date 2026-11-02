@@ -7,6 +7,7 @@ import type { EnvironmentId } from "@supaterm/contracts";
 import * as Option from "effect/Option";
 
 import { environmentCatalog } from "../connection/catalog";
+import { appAtomRegistry } from "../rpc/atomRegistry";
 import {
   environmentPresentations,
   environmentSummaries,
@@ -50,6 +51,10 @@ export function useEnvironments() {
   };
 }
 
+export function useConnectedEnvironmentIds() {
+  return useAtomValue(environmentSummaries.connectedEnvironmentIdsAtom);
+}
+
 /** Provider statuses change on every push, so they live apart from the presentations. */
 export function useEnvironmentProviders() {
   return useAtomValue(environmentPresentations.providersByEnvironmentAtom);
@@ -57,6 +62,18 @@ export function useEnvironmentProviders() {
 
 export function usePrimaryEnvironmentId(): EnvironmentId | null {
   return useAtomValue(primaryEnvironmentIdAtom);
+}
+
+export function readPrimaryEnvironmentId(): EnvironmentId | null {
+  return appAtomRegistry.get(primaryEnvironmentIdAtom);
+}
+
+/** The environment's state now, for handlers that should not re-render on every change. */
+export function readEnvironment(environmentId: EnvironmentId): EnvironmentPresentation | null {
+  const presentation = appAtomRegistry
+    .get(environmentPresentations.presentationsAtom)
+    .get(environmentId);
+  return presentation ? projectEnvironmentPresentation(environmentId, presentation) : null;
 }
 
 export function useEnvironment(
@@ -76,10 +93,6 @@ export function useEnvironmentHttpBaseUrl(environmentId: EnvironmentId | null): 
   const prepared = usePreparedConnection(environmentId);
   return Option.isSome(prepared) ? prepared.value.httpBaseUrl : null;
 }
-export function useEnvironmentIds() {
-  return useAtomValue(environmentSummaries.environmentIdsAtom);
-}
-
 export function useEnvironmentIdentities() {
   return useAtomValue(environmentSummaries.identitiesAtom);
 }
@@ -90,4 +103,8 @@ export function usePullRequestsSupported() {
 
 export function useEnvironmentMachines() {
   return useAtomValue(environmentSummaries.machineByIdAtom);
+}
+
+export function useEnvironmentConnectionSummaries() {
+  return useAtomValue(environmentSummaries.environmentsAtom);
 }

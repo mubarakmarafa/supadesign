@@ -34,6 +34,8 @@ import { environmentSession, readEnvironmentScope } from "../state/session";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { environmentServerConfigsAtom } from "../state/server";
 import { isScratchProject } from "@supaterm/client-runtime/state/projects";
+import { orchestrationEnvironment } from "../state/orchestration";
+import { projectEnvironment } from "../state/projects";
 import { threadEnvironment } from "../state/threads";
 import { vcsEnvironment } from "../state/vcs";
 import { useNewThreadHandler } from "./useHandleNewThread";
@@ -52,8 +54,9 @@ import { buildThreadRouteParams, resolveThreadRouteRef } from "../threadRoutes";
 import { formatWorktreePathForDisplay, getOrphanedWorktreePathForThread } from "../worktreeCleanup";
 import { stackedThreadToast, toastManager } from "../components/ui/toast";
 import { useClientSettings } from "./useSettings";
-import * as ThreadUndo from "./threadUndo";
+import * as ThreadUndo from "@supaterm/client-runtime/state/thread-undo";
 import { showThreadUndoNotice } from "./showThreadUndoNotice";
+import { threadDeleteConfirmation } from "../lib/threadDeleteConfirmation";
 import { useAtomCommand } from "../state/use-atom-command";
 import { useOrchestrationCommand } from "../state/use-orchestration-command";
 import { useAtomQueryRunner } from "../state/use-atom-query-runner";
@@ -168,6 +171,26 @@ export function useAcknowledgeThreadWoke() {
   };
 }
 
+// These Undos restore a thread's place in the list, which archiving or deleting it ends.
+const LIST_PLACEMENT_UNDO_KINDS = ["mark-done", "snooze", "pin"];
+
+function expireThreadUndos(target: ScopedThreadRef, kinds: readonly string[]) {
+  for (const kind of kinds) ThreadUndo.invalidate(kind, scopedThreadKey(target));
+}
+
+/** A No project thread that already has its own folder, on a server that can promote it. */
+export function canTurnThreadIntoProject(threadRef: ScopedThreadRef): boolean {
+  const thread = readThreadShell(threadRef);
+  if (!thread?.worktreePath) return false;
+  const config = appAtomRegistry.get(environmentServerConfigsAtom).get(threadRef.environmentId);
+  if (config?.environment.capabilities.threadProjectFromScratch !== true) return false;
+  const project = readProject({
+    environmentId: threadRef.environmentId,
+    projectId: thread.projectId,
+  });
+  return project !== null && isScratchProject(project, config.scratchWorkspaceRoot);
+}
+
 function threadOperationFailure(target: ScopedThreadRef) {
   return readEnvironmentScope(target.environmentId, AuthOrchestrationOperateScope)
     ? null
@@ -216,12 +239,19 @@ export function useThreadActions() {
     reportFailure: false,
   });
   const markThreadUnread = useMarkThreadUnread();
+  const createProjectFromThread = useAtomCommand(projectEnvironment.createFromThread, {
+    reportFailure: false,
+  });
   const stopThreadSession = useOrchestrationCommand(threadEnvironment.stopSession);
   const removeWorktree = useAtomCommand(vcsEnvironment.removeWorktree, {
     reportFailure: false,
   });
   const loadSessionState = useAtomQueryRunner(environmentSession.sessionStateAtom, {
     reportFailure: false,
+  });
+  const loadWorktreeThreadIds = useAtomQueryRunner(orchestrationEnvironment.worktreeThreadIds, {
+    reportFailure: false,
+    refresh: true,
   });
   const refreshVcsStatus = useAtomCommand(vcsEnvironment.refreshStatus, {
     reportFailure: false,
@@ -253,12 +283,26 @@ export function useThreadActions() {
     return resolveThreadRouteRef(currentRouteParams);
   };
 
-  const unarchiveThread = async (target: ScopedThreadRef, opts: { navigate?: boolean } = {}) => {
+  const requestUnarchive = (target: ScopedThreadRef) => {
     ThreadUndo.invalidate("archive", scopedThreadKey(target));
-    const result = await unarchiveThreadMutation({
+    return unarchiveThreadMutation({
       environmentId: target.environmentId,
       input: { threadId: target.threadId },
     });
+  };
+
+  const unarchiveThreads = async (targets: readonly ScopedThreadRef[]) => {
+    const outcomes = await Promise.all(
+      targets.map(async (target) => ({ target, result: await requestUnarchive(target) })),
+    );
+    for (const environmentId of new Set(targets.map((target) => target.environmentId))) {
+      refreshArchivedThreadsForEnvironment(environmentId);
+    }
+    return outcomes;
+  };
+
+  const unarchiveThread = async (target: ScopedThreadRef, opts: { navigate?: boolean } = {}) => {
+    const result = await requestUnarchive(target);
     if (result._tag === "Failure") {
       return result;
     }
@@ -289,6 +333,7 @@ export function useThreadActions() {
       );
     }
 
+    const requestingRouteHref = router.state.location.href;
     const currentRouteThreadRef = getCurrentRouteThreadRef();
     const shouldNavigateToDraft =
       currentRouteThreadRef?.threadId === threadRef.threadId &&
@@ -302,6 +347,7 @@ export function useThreadActions() {
       action.finish();
       return archiveResult;
     }
+    expireThreadUndos(threadRef, LIST_PLACEMENT_UNDO_KINDS);
     const wokeAt = threadWokeAt(thread, { now: new Date().toISOString() });
     if (wokeAt !== null) {
       acknowledgeThreadWoke(threadRef, wokeAt);
@@ -317,7 +363,7 @@ export function useThreadActions() {
 
     // The focused pane takes a new draft as before; a pane in the background just closes.
     closePaneShowingThread(threadRef, { remember: true, onlyInBackground: true });
-    if (shouldNavigateToDraft) {
+    if (shouldNavigateToDraft && router.state.location.href === requestingRouteHref) {
       const navigationResult = await settlePromise(() =>
         handleNewThread(scopeProjectRef(thread.environmentId, thread.projectId)),
       );
@@ -343,6 +389,7 @@ export function useThreadActions() {
         input: { threadId: target.threadId },
       });
       if (result._tag === "Success") {
+        expireThreadUndos(target, [...LIST_PLACEMENT_UNDO_KINDS, "archive"]);
         refreshArchivedThreadsForEnvironment(target.environmentId);
         clearThreadPreviewState(target);
       }
@@ -370,16 +417,32 @@ export function useThreadActions() {
       deletedIds && deletedIds.size > 0
         ? threads.filter((entry) => entry.id === threadRef.threadId || !deletedIds.has(entry.id))
         : threads;
-    const orphanedWorktreePath = getOrphanedWorktreePathForThread(
-      survivingThreads,
-      threadRef.threadId,
-    );
-    const displayWorktreePath = orphanedWorktreePath
-      ? formatWorktreePathForDisplay(orphanedWorktreePath)
-      : null;
     const environmentConfig = appAtomRegistry
       .get(environmentServerConfigsAtom)
       .get(threadRef.environmentId);
+    let orphanedWorktreePath = getOrphanedWorktreePathForThread(
+      survivingThreads,
+      threadRef.threadId,
+    );
+    // A shell that leaves idle subagent children out cannot prove nobody else uses the worktree,
+    // so the server's list decides. A failed read keeps the worktree.
+    if (orphanedWorktreePath !== null && environmentConfig?.shellThreadFamilies === true) {
+      const occupants = await loadWorktreeThreadIds({
+        environmentId: threadRef.environmentId,
+        input: { worktreePath: orphanedWorktreePath },
+      });
+      if (
+        occupants._tag !== "Success" ||
+        occupants.value.threadIds.some(
+          (threadId) => threadId !== threadRef.threadId && deletedIds?.has(threadId) !== true,
+        )
+      ) {
+        orphanedWorktreePath = null;
+      }
+    }
+    const displayWorktreePath = orphanedWorktreePath
+      ? formatWorktreePathForDisplay(orphanedWorktreePath)
+      : null;
     const localApi = readLocalApi();
     let canDeleteWorktree = false;
     if (
@@ -446,6 +509,7 @@ export function useThreadActions() {
     if (deleteResult._tag === "Failure") {
       return deleteResult;
     }
+    expireThreadUndos(threadRef, [...LIST_PLACEMENT_UNDO_KINDS, "archive"]);
     refreshArchivedThreadsForEnvironment(threadRef.environmentId);
     releaseComposerDraftUploads(threadRef);
     clearComposerDraftForThread(threadRef);
@@ -719,13 +783,12 @@ export function useThreadActions() {
     const resolved = resolveThreadTarget(target);
 
     if (confirmThreadDelete && localApi) {
-      const title = resolved?.thread.title ?? "this thread";
       const confirmationResult = await settlePromise(() =>
         localApi.dialogs.confirm(
-          [
-            `Delete thread "${title}"?`,
-            "This permanently clears conversation history for this thread.",
-          ].join("\n"),
+          threadDeleteConfirmation({
+            title: resolved?.thread.title ?? null,
+            threadRefs: [target],
+          }),
           { variant: "destructive" },
         ),
       );
@@ -743,6 +806,7 @@ export function useThreadActions() {
   return {
     archiveThread,
     unarchiveThread,
+    unarchiveThreads,
     deleteThread,
     confirmAndDeleteThread,
     markThreadDone,
@@ -755,5 +819,10 @@ export function useThreadActions() {
     reorderPinnedThread,
     markThreadUnread,
     setThreadAutoMarkDone,
+    turnThreadIntoProject: (target: ScopedThreadRef) =>
+      createProjectFromThread({
+        environmentId: target.environmentId,
+        input: { threadId: target.threadId },
+      }),
   };
 }

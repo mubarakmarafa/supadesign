@@ -1,10 +1,7 @@
 /**
- * Names this fork registers with the OS, so it can be installed next to the
- * official Supaterm/Supacode app without sharing a bundle ID, URL scheme, data
- * directory, port, launcher, or background service.
- *
- * Internal package names (`@supaterm/*`) and `SUPATERM_*` environment variables
- * are deliberately unchanged to keep upstream merges small.
+ * Names this fork registers with the OS, so it installs next to the official Supaterm/Supacode
+ * app without sharing a bundle ID, URL scheme, data directory, port, launcher, or service.
+ * `@supaterm/*` packages and `SUPATERM_*` variables stay unchanged to keep upstream merges small.
  */
 export const APP_PRODUCT_NAME = "Supadesign";
 export const APP_ID = "com.mubarakmarafa.supadesign";

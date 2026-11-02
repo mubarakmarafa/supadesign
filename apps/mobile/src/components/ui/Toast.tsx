@@ -1,61 +1,91 @@
 import { MOBILE_SHAPE } from "../../lib/designTokens";
 import { useEffect } from "react";
-import { AccessibilityInfo, Platform, View } from "react-native";
+import { AccessibilityInfo, Platform, View, useWindowDimensions } from "react-native";
 
+import { cn } from "../../lib/cn";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
 import { GlassSurface } from "./GlassSurface";
 import { IconButton } from "./IconButton";
 import { AppActivityIndicator } from "./AppActivityIndicator";
-import { SymbolView } from "./AppSymbol";
+import { SymbolView, type AppSymbolName } from "./AppSymbol";
 
 export interface ToastProps {
   readonly message: string;
   readonly description?: string;
+  readonly singleLine?: boolean;
   readonly tone?: "default" | "success" | "danger";
+  readonly variant?: "card" | "capsule";
+  readonly icon?: AppSymbolName;
   readonly busy?: boolean;
   readonly action?: { readonly label: string; readonly onPress: () => void };
   readonly onDismiss?: () => void;
 }
 
-/** The owning screen places and dismisses feedback; actions are never implicit. */
 export function Toast(props: ToastProps) {
+  const { fontScale } = useWindowDimensions();
+  // A one-line message keeps its action on the same row. Descriptions and
+  // accessibility text sizes need the full width, so the action moves below.
+  // Explicit single-line notices reserve the action's width and truncate the text.
+  const inlineAction = props.singleLine || (!props.description && fontScale < 1.5);
+  const message =
+    props.singleLine && props.description
+      ? `${props.message}: ${props.description}`
+      : props.message;
+  const action = props.action ? (
+    <Button label={props.action.label} onPress={props.action.onPress} />
+  ) : null;
+  // A capsule hugs its content and keeps the action's pill concentric with its
+  // edge. When the action moves below, it falls back to the card.
+  const capsule = props.variant === "capsule" && inlineAction;
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- announces the toast message to VoiceOver through AccessibilityInfo
   useEffect(() => {
     if (Platform.OS === "ios") AccessibilityInfo.announceForAccessibility(props.message);
   }, [props.message]);
   return (
-    <GlassSurface className="p-3" style={{ borderRadius: MOBILE_SHAPE.toast }}>
+    <GlassSurface
+      className={capsule ? "self-center py-1.5 pl-4 pr-1.5" : "p-3"}
+      style={{ borderRadius: MOBILE_SHAPE.toast }}
+    >
       <View className="flex-row items-center gap-3">
         {props.busy ? (
           <AppActivityIndicator />
         ) : (
           <SymbolView
-            name={props.tone === "danger" ? "exclamationmark.triangle" : "checkmark.circle"}
+            name={
+              props.icon ??
+              (props.tone === "danger" ? "exclamationmark.triangle" : "checkmark.circle")
+            }
             size={20}
             tintColorClassName={
               props.tone === "danger" ? "accent-danger-foreground" : "accent-icon"
             }
           />
         )}
-        <View className="min-w-0 flex-1" accessibilityLiveRegion="polite">
-          <AppText textRole="footnote" className="font-supaterm-semibold">
-            {props.message}
+        <View
+          className={cn("min-w-0", capsule ? "shrink" : "flex-1")}
+          accessibilityLiveRegion="polite"
+        >
+          <AppText
+            textRole="footnote"
+            className="font-supaterm-semibold"
+            numberOfLines={props.singleLine ? 1 : undefined}
+            accessibilityLabel={props.singleLine ? message : undefined}
+          >
+            {message}
           </AppText>
-          {props.description ? (
+          {props.description && !props.singleLine ? (
             <AppText textRole="label" className="text-foreground-muted">
               {props.description}
             </AppText>
           ) : null}
         </View>
+        {inlineAction && action ? <View className="self-center">{action}</View> : null}
         {props.onDismiss ? (
           <IconButton accessibilityLabel="Dismiss message" icon="xmark" onPress={props.onDismiss} />
         ) : null}
       </View>
-      {props.action ? (
-        <View className="mt-2 self-end">
-          <Button label={props.action.label} onPress={props.action.onPress} />
-        </View>
-      ) : null}
+      {action && !inlineAction ? <View className="mt-2 self-end">{action}</View> : null}
     </GlassSurface>
   );
 }

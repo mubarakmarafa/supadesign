@@ -1,5 +1,5 @@
 import { PREVIEW_ZOOM, stepPreviewZoom } from "@supaterm/client-runtime/preview-zoom";
-import { MinusIcon, PlusIcon, XIcon } from "lucide-react";
+import { MinusIcon, PlusIcon, XIcon } from "@supaterm/icons";
 import { createContext, type ReactNode, use, useEffect, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
@@ -25,6 +25,7 @@ export function ExpandedPreviewDialog(props: {
   const [zoom, setZoom] = useState(1);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const reportOpen = use(ExpandedPreviewHostContext);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- tells the host timeline row the dialog is open so the virtualized list keeps it mounted; clears it on unmount
   useEffect(() => {
     reportOpen?.(true);
     return () => reportOpen?.(false);

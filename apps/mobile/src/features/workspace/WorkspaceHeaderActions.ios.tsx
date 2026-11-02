@@ -1,33 +1,24 @@
 import { Toolbar } from "../../components/ui/Toolbar";
-import { useNavigation, type ParamListBase } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { NATIVE_LIQUID_GLASS_SUPPORTED } from "../../native/native-glass";
+import { useDeviceType } from "../../native/native-layout-metrics";
 import { dispatchHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
-import type { WorkspaceDockFilterMenu } from "./WorkspaceDock.types";
+import type { WorkspaceFilterMenu } from "./workspace-filter-menu";
 
-function invokeFilterAction(menu: WorkspaceDockFilterMenu, id: string | undefined) {
+function invokeFilterAction(menu: WorkspaceFilterMenu, id: string | undefined) {
   menu.onPressAction({ nativeEvent: { event: id ?? "" } });
 }
 
-export function WorkspaceHeaderActions(props: { readonly filterMenu?: WorkspaceDockFilterMenu }) {
-  const navigation = useNavigation<NativeStackNavigationProp<ParamListBase>>();
+export function WorkspaceHeaderActions(props: { readonly filterMenu?: WorkspaceFilterMenu }) {
+  const deviceType = useDeviceType();
   const filterMenu = props.filterMenu;
+  // iPad and the Duo take these from WorkspaceToolbar's trailing items and the lists' filters.
+  if (deviceType !== "phone") return null;
   const filterIcon = filterMenu?.customized
     ? "line.3.horizontal.decrease.circle.fill"
     : "line.3.horizontal.decrease.circle";
 
   return (
     <Toolbar placement="right">
-      <Toolbar.Button
-        accessibilityLabel="Settings"
-        icon="gearshape"
-        onPress={() =>
-          navigation.navigate("SettingsSheet", {
-            screen: "SettingsContent",
-            params: { screen: "Settings" },
-          })
-        }
-      />
       {filterMenu ? (
         <Toolbar.Menu accessibilityLabel={filterMenu.accessibilityLabel} icon={filterIcon}>
           {filterMenu.actions.map((action) =>

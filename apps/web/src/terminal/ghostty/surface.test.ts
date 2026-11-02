@@ -1,5 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import {
+  applyTerminalAttachStreamEvent,
+  INITIAL_TERMINAL_OUTPUT_CURSOR,
+  nextTerminalAttachSeedState,
+} from "@supaterm/client-runtime/state/terminal";
+import { synchronizeTerminalSession } from "../../components/ThreadTerminalDrawer";
 
+import { EnvironmentId, ThreadId } from "@supaterm/contracts";
+
+import {
+  encodeTerminalScriptPaste,
+  registerTerminalScriptPasteSurface,
+  SCRIPT_PASTE_CLOSED_MESSAGE,
+  SCRIPT_PASTE_READY_TIMEOUT_MS,
+  SCRIPT_PASTE_UNSUPPORTED_MESSAGE,
+} from "../scriptPaste";
 import { GhosttyTerminalCore, type GhosttyCell, type GhosttyRow } from "./core";
 import {
   advanceTerminalSelectionClickSequence,
@@ -11,6 +26,7 @@ import {
   resolveTerminalMouseData,
   terminalLinkAtPositionWithRange,
   terminalContentOriginY,
+  terminalSelectionAutoscrollRows,
   terminalWheelDeltaRows,
   GhosttyTerminalSurface,
   type GhosttyTerminalSurfaceOptions,
@@ -25,6 +41,12 @@ vi.mock("./vendor/ghostty-write-pty.wasm?url&no-inline", async () => ({
 
 describe("GhosttyTerminalSurface visibility", () => {
   const surfaces = new Set<GhosttyTerminalSurface>();
+  const pasteCleanups = new Set<() => void>();
+  const pasteTarget = {
+    environmentId: EnvironmentId.make("script-env"),
+    threadId: ThreadId.make("script-thread"),
+    terminalId: "script-terminal",
+  };
 
   function key(
     surface: GhosttyTerminalSurface,
@@ -252,11 +274,56 @@ describe("GhosttyTerminalSurface visibility", () => {
   }
 
   afterEach(() => {
+    for (const cleanup of pasteCleanups) cleanup();
+    pasteCleanups.clear();
     for (const surface of surfaces) surface.dispose();
     surfaces.clear();
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it.each([11, 20])("sizes a mount to show exactly the requested rows at %ipx", async (size) => {
+    const harness = createHarness();
+    const surface = await harness.create();
+    await surface.setFont({ size });
+    harness.mount.clientHeight = surface.heightForRows(12);
+    surface.fit();
+    expect(surface.rows).toBe(12);
+    harness.mount.clientHeight -= 1;
+    surface.fit();
+    expect(surface.rows).toBe(11);
+  });
+
+  it("pastes a script once a fresh terminal's shell enables bracketed paste", async () => {
+    const surface = await createHarness().create();
+    const script = "vp i\nvp run dev";
+    const data = encodeTerminalScriptPaste(pasteTarget, script);
+    pasteCleanups.add(registerTerminalScriptPasteSurface(pasteTarget, surface));
+    surface.write("\x1b[?2004h");
+    await expect(data).resolves.toBe(`\x1b[200~${script}\x1b[201~\r`);
+  });
+
+  it("does not paste into a terminal reopened after the waiting one closed", async () => {
+    const harness = createHarness();
+    const closing = await harness.create();
+    const unregister = registerTerminalScriptPasteSurface(pasteTarget, closing);
+    const data = encodeTerminalScriptPaste(pasteTarget, "vp i\nvp run dev");
+    const rejected = expect(data).rejects.toThrow(SCRIPT_PASTE_CLOSED_MESSAGE);
+    unregister();
+    const reopened = await harness.create();
+    pasteCleanups.add(registerTerminalScriptPasteSurface(pasteTarget, reopened));
+    reopened.write("\x1b[?2004h");
+    await rejected;
+  });
+
+  it("refuses a script when the shell never enables bracketed paste", async () => {
+    const surface = await createHarness().create();
+    pasteCleanups.add(registerTerminalScriptPasteSurface(pasteTarget, surface));
+    const data = encodeTerminalScriptPaste(pasteTarget, "vp i\nvp run dev");
+    const rejected = expect(data).rejects.toThrow(SCRIPT_PASTE_UNSUPPORTED_MESSAGE);
+    await vi.advanceTimersByTimeAsync(SCRIPT_PASTE_READY_TIMEOUT_MS);
+    await rejected;
   });
 
   it("preserves shell Ctrl+A and ordinary application navigation", async () => {
@@ -434,6 +501,86 @@ describe("GhosttyTerminalSurface visibility", () => {
     },
   );
 
+  it("keeps a selection through redraws until the selected text changes", async () => {
+    const harness = createHarness();
+    const surface = await harness.create();
+    const seed = nextTerminalAttachSeedState();
+    let state = applyTerminalAttachStreamEvent(seed, {
+      type: "snapshot",
+      snapshot: {
+        threadId: "thread",
+        terminalId: "term-1",
+        cwd: "/repo",
+        worktreePath: null,
+        status: "running",
+        pid: 123,
+        history: "* Working |",
+        exitCode: null,
+        exitSignal: null,
+        label: "Terminal",
+        updatedAt: "2026-10-20T00:00:00.000Z",
+      },
+    });
+    let cursor = synchronizeTerminalSession(surface, seed, state, INITIAL_TERMINAL_OUTPUT_CURSOR);
+    harness.flushFrame();
+    harness.pointer("pointerdown", 5, 1);
+    harness.pointer("pointermove", 85, 1);
+    harness.pointer("pointerup", 85, 0);
+    expect(surface.getSelection()).toBe("* Working |");
+
+    // A TUI repaints its spinner line in place, the way Claude Code redraws.
+    const redraw = (data: string) => {
+      const previous = state;
+      state = applyTerminalAttachStreamEvent(state, {
+        type: "output",
+        threadId: "thread",
+        terminalId: "term-1",
+        data,
+      });
+      cursor = synchronizeTerminalSession(surface, previous, state, cursor);
+    };
+    redraw("\r\x1b[2K* Working |");
+    expect(surface.getSelection()).toBe("* Working |");
+
+    redraw("\r\x1b[2K* Working /");
+    expect(surface.getSelection()).toBe("");
+    expect(surface.getSelectionPosition()).toBeNull();
+  });
+
+  it("reports where a selection sits after output scrolls it", async () => {
+    const harness = createHarness();
+    const surface = await harness.create();
+    const rows = Array.from({ length: 10 }, (_, index) => `row ${index}`);
+    surface.write(`\x1b[?1049h\x1b[H${rows.join("\r\n")}`);
+    harness.flushFrame();
+    harness.pointer("pointerdown", 5, 1, {}, 0, 50);
+    harness.pointer("pointermove", 45, 1, {}, 0, 50);
+    harness.pointer("pointerup", 45, 0, {}, 0, 50);
+    const text = surface.getSelection();
+    const before = surface.getSelectionPosition();
+    expect(text).toMatch(/^row \d$/);
+
+    surface.write("\r\nrow 10\r\nrow 11");
+    expect(surface.getSelection()).toBe(text);
+    expect(surface.getSelectionPosition()?.start.y).toBe(before!.start.y - 2);
+  });
+
+  it("keeps a drag anchored to its text when output scrolls it mid-drag", async () => {
+    const harness = createHarness();
+    const surface = await harness.create();
+    const rows = Array.from({ length: 10 }, (_, index) => `row ${index}`);
+    surface.write(`\x1b[?1049h\x1b[H${rows.join("\r\n")}`);
+    harness.flushFrame();
+    harness.pointer("pointerdown", 5, 1, {}, 0, 50);
+    harness.pointer("pointermove", 45, 1, {}, 0, 50);
+    expect(surface.getSelection()).toBe("row 6");
+
+    // The pointer stays over the row that output scrolls "row 8" into.
+    surface.write("\r\nrow 10\r\nrow 11");
+    harness.pointer("pointermove", 53, 1, {}, 0, 50);
+    expect(surface.getSelection()).toBe("row 6\nrow 7\nrow 8");
+  });
+
   it("does not activate a link replaced before pointer release", async () => {
     const harness = createHarness();
     const onLinkActivate = vi.fn();
@@ -510,6 +657,42 @@ const cell = (text: string): GhosttyCell => ({
 });
 
 describe("terminalLinkAtPositionWithRange", () => {
+  it.each([
+    { text: "https://example.com/日本", cols: 80, end: { x: 23, y: 0 } },
+    { text: "src/日本/main.ts:3:1", cols: 80, end: { x: 19, y: 0 } },
+    { text: "https://example.com/🙂", cols: 80, end: { x: 21, y: 0 } },
+    { text: "https://example.com/日本", cols: 23, end: { x: 1, y: 1 } },
+  ])("keeps every cell of $text clickable at $cols columns", async ({ text, cols, end }) => {
+    const core = await GhosttyTerminalCore.create(
+      cols,
+      3,
+      8,
+      16,
+      {
+        foreground: { r: 255, g: 255, b: 255 },
+        background: { r: 0, g: 0, b: 0 },
+        cursor: { r: 255, g: 255, b: 255 },
+      },
+      () => {},
+    );
+    try {
+      core.write(text + " next");
+      const rows = core.snapshot().rowData;
+      for (let y = 0; y <= end.y; y += 1) {
+        const lastColumn = y === end.y ? end.x : cols - 2;
+        for (let x = 0; x <= lastColumn; x += 1) {
+          expect(terminalLinkAtPositionWithRange(rows, y, x)).toEqual({
+            text,
+            range: { start: { x: 0, y: 0 }, end },
+          });
+        }
+      }
+      expect(terminalLinkAtPositionWithRange(rows, end.y, end.x + 1)).toBeNull();
+    } finally {
+      core.dispose();
+    }
+  });
+
   it("activates a wrapped quoted Windows path from its spaces and position suffix", () => {
     const row = (text: string, isWrapContinuation: boolean): GhosttyRow => ({
       cells: Array.from(text, (character) => cell(character)),
@@ -568,12 +751,20 @@ describe("terminalLinkAtPositionWithRange", () => {
       row("com/reference", true),
       row("~/project/file", false),
       row("C:\\repo\\file.ts", false),
+      row("PS C:\\repo\\dir 1", false, true),
+      row("\\test> ", true),
     ];
 
     expect(terminalLinkAtPositionWithRange(rows, 0, 8)?.text).toBe("https://example.com/reference");
     expect(terminalLinkAtPositionWithRange(rows, 1, 4)?.text).toBe("https://example.com/reference");
     expect(terminalLinkAtPositionWithRange(rows, 2, 2)?.text).toBe("~/project/file");
     expect(terminalLinkAtPositionWithRange(rows, 3, 4)?.text).toBe("C:\\repo\\file.ts");
+    expect(terminalLinkAtPositionWithRange(rows, 4, 13)).toEqual({
+      text: "C:\\repo\\dir 1\\test",
+      range: { start: { x: 3, y: 4 }, end: { x: 4, y: 5 } },
+    });
+    expect(terminalLinkAtPositionWithRange(rows, 5, 2)?.text).toBe("C:\\repo\\dir 1\\test");
+    expect(terminalLinkAtPositionWithRange(rows, 5, 5)).toBeNull();
     expect(terminalLinkAtPositionWithRange(rows, 1, 4)).toEqual({
       text: "https://example.com/reference",
       range: {
@@ -645,8 +836,7 @@ describe("isTerminalCopyShortcut", () => {
 
 describe("applyTerminalCopyEvent", () => {
   it("leaves the writeText fallback alive when clipboardData is missing", () => {
-    // Electron's edit-menu Copy often delivers a copy event with no
-    // clipboardData.
+    // Electron menu Copy often omits clipboardData.
     expect(applyTerminalCopyEvent("ls -la", null)).toEqual({
       preventDefault: false,
       claimWriteFallback: false,
@@ -745,6 +935,21 @@ describe("terminalWheelDeltaRows", () => {
     }
     expect(scrolled).toBe(1);
     expect(remainder).toBeCloseTo(4 / 16);
+  });
+});
+
+// regression: #19492 drag selection scrolled one row per tick however far past the edge
+describe("terminalSelectionAutoscrollRows", () => {
+  it("scrolls more rows per tick the farther the pointer is past an edge", () => {
+    const top = 100;
+    const bottom = 500;
+    expect(terminalSelectionAutoscrollRows(300, top, bottom)).toBe(0);
+    expect(terminalSelectionAutoscrollRows(99, top, bottom)).toBe(-1);
+    expect(terminalSelectionAutoscrollRows(75, top, bottom)).toBe(-8);
+    expect(terminalSelectionAutoscrollRows(501, top, bottom)).toBe(1);
+    expect(terminalSelectionAutoscrollRows(525, top, bottom)).toBe(8);
+    expect(terminalSelectionAutoscrollRows(550, top, bottom)).toBe(15);
+    expect(terminalSelectionAutoscrollRows(2_000, top, bottom)).toBe(15);
   });
 });
 

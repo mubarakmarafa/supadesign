@@ -43,6 +43,8 @@ export interface ProjectMetaUpdateCommand {
   readonly scripts?: ReadonlyArray<ProjectScript>;
   readonly board?: ProjectBoard | null;
   readonly workspace?: ProjectWorkspace | null;
+  readonly pinned?: boolean;
+  readonly archived?: boolean;
 }
 
 export interface ProjectDeleteCommand {
@@ -110,10 +112,7 @@ export interface ProjectCommandState {
 const monogramSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 const isScriptRunCommand = Schema.is(SCRIPT_RUN_COMMAND_PATTERN);
 
-/**
- * The caller reads `state` under the project's lock and commits the planned
- * event.
- */
+/** Read state and commit the planned event under the project lock. */
 export function planProjectCommand(input: {
   readonly command: ProjectCommand;
   readonly state: ProjectCommandState;
@@ -186,8 +185,7 @@ export function planProjectCommand(input: {
         return invariant("Project monograms must contain at most two characters.");
       }
       if (command.scripts !== undefined) {
-        // Persisted IDs predate shortcut validation. Let users edit or remove them
-        // without allowing another invalid ID to enter the project.
+        // Allow editing or removing persisted invalid script ids, while rejecting new invalid ids.
         const existingIds = new Set(project.scripts.map((script) => script.id));
         for (const script of command.scripts) {
           if (!existingIds.has(script.id) && !isScriptRunCommand(`script.${script.id}.run`)) {
@@ -236,6 +234,13 @@ export function planProjectCommand(input: {
           ...(command.scripts === undefined ? {} : { scripts: command.scripts }),
           ...(command.board === undefined ? {} : { board: command.board }),
           ...(command.workspace === undefined ? {} : { workspace: command.workspace }),
+          // Repeating a pin or archive keeps the original time.
+          ...(command.pinned === undefined
+            ? {}
+            : { pinnedAt: command.pinned ? (project.pinnedAt ?? occurredAt) : null }),
+          ...(command.archived === undefined
+            ? {}
+            : { archivedAt: command.archived ? (project.archivedAt ?? occurredAt) : null }),
           updatedAt: occurredAt,
         },
       });

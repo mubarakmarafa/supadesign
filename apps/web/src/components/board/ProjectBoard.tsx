@@ -49,7 +49,7 @@ import {
 } from "@dnd-kit/core";
 import { useAtomValue } from "@effect/atom-react";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { KanbanIcon, PlusIcon, SquarePenIcon } from "lucide-react";
+import { KanbanIcon, PlusIcon, SquarePenIcon } from "@supaterm/icons";
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -83,7 +83,7 @@ import { threadEnvironment } from "../../state/threads";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { liveEnvironment } from "../../state/liveEnvironment";
-import { isSidebarSubagentThread } from "../Sidebar.logic";
+import { isSidebarHiddenThread } from "../Sidebar.logic";
 import { SidebarPointerSensor } from "../Sidebar.pointer";
 import { Button } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
@@ -441,12 +441,12 @@ function ProjectBoardView({
       for (const thread of snapshot.threads) {
         if (thread.projectId !== projectRef.projectId) continue;
         const shell = presentThreadShell(environmentId, thread);
-        if (shell.deletedAt === null && !isSidebarSubagentThread(shell)) byId.set(shell.id, shell);
+        if (shell.deletedAt === null && !isSidebarHiddenThread(shell)) byId.set(shell.id, shell);
       }
     }
     // Live shells win: they carry the newest state of a thread just unarchived.
     for (const thread of liveThreads) {
-      if (thread.deletedAt === null && !isSidebarSubagentThread(thread)) {
+      if (thread.deletedAt === null && !isSidebarHiddenThread(thread)) {
         byId.set(thread.id, thread);
       }
     }
@@ -495,6 +495,7 @@ function ProjectBoardView({
     return expected.every((id, index) => actual[index] === id);
   }, [board.doneColumnId, canonicalLayout, pendingMove]);
   const activePending = pendingLanded ? null : pendingMove;
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- timer that drops a settled move once it lands, or after PENDING_MOVE_TIMEOUT_MS if the server never agrees; cleared on change or unmount
   useEffect(() => {
     if (pendingMove === null || !pendingMove.settled) return;
     const timeout = setTimeout(
@@ -517,6 +518,7 @@ function ProjectBoardView({
     requestedPeekId === null ? null : (canonicalThreadById.get(requestedPeekId) ?? null);
   const shownArchivedThread =
     peekedArchivedThread?.archivedAt == null ? null : peekedArchivedThread;
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- holds the peeked archived thread's shell in the app atom registry until the peek closes or unmounts
   useEffect(
     () => (shownArchivedThread === null ? undefined : showArchivedThreadShell(shownArchivedThread)),
     [shownArchivedThread],
@@ -785,6 +787,7 @@ function ProjectBoardView({
       },
     }),
   );
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- cancels dnd-kit's in-progress pointer sensor on unmount
   useEffect(() => () => dragSensorRef.current?.cancel(), []);
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -1154,6 +1157,7 @@ function ProjectBoardView({
 
   // ── Column automations: a toast to cancel each one as it starts waiting ──
   const automationToastsRef = useRef<Map<string, { at: string; toastId: string }> | null>(null);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- opens and closes imperative toasts to match the server's scheduled column automations, which can start from other clients
   useEffect(() => {
     const first = automationToastsRef.current === null;
     const shown = (automationToastsRef.current ??= new Map());
@@ -1199,6 +1203,7 @@ function ProjectBoardView({
   );
   const restoredRef = useRef(false);
   const hasCards = threads.length > 0;
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- restores the saved DOM scroll positions and card focus once, after the first cards mount
   useLayoutEffect(() => {
     if (restoredRef.current || !hasCards) return;
     restoredRef.current = true;

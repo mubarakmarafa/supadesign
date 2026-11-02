@@ -97,16 +97,10 @@ export function boardCardColumnId(board: ProjectBoard | null, thread: BoardThrea
 }
 
 /**
- * Lay threads out on a board (the default board when `board` is null).
- *
- * - Archived threads always sit in the done column.
- * - A thread placed in done but not archived (unarchived elsewhere, or its
- *   archive failed) returns to `returnColumnId`, else the inbox.
- * - A thread placed in a deleted column follows `retiredColumns`, after the
- *   cards placed natively in that column.
- * - Unplaced threads and unknown columns land in the inbox.
- * - Within a column: unplaced cards first, newest first; then placed cards by
- *   `orderKey`.
+ * Archived threads always sit in done; one placed in done but not archived returns to
+ * `returnColumnId`, else the inbox. A deleted column's cards follow `retiredColumns`;
+ * unplaced threads and unknown columns land in the inbox. Within a column, unplaced
+ * cards come first (newest first), then placed cards by `orderKey`.
  */
 export function resolveBoardColumns<T extends BoardThread>(
   board: ProjectBoard | null,
@@ -272,18 +266,6 @@ export type BoardMoveStep =
   | { readonly type: "archive"; readonly threadId: ThreadId }
   | { readonly type: "unarchive"; readonly threadId: ThreadId };
 
-/**
- * Commands that realize one card drag, in dispatch order. Placement comes
- * first and the archive/unarchive last, so a failed archive leaves the card
- * resolving back to its return column instead of stranding it.
- *
- * - Into done: the moved card remembers `fromColumnId` as its return column.
- * - Within done: the moved card keeps its return column.
- * - Out of done: the thread is unarchived after it is placed.
- *
- * Usually one placement. When a neighbor has no slot of its own (an unplaced
- * thread) the whole target column gets fresh keys, once.
- */
 /** A drop that leaves a keyed card between keyed neighbors it already sorts between. */
 function keepsSlot(cards: ReadonlyArray<BoardMoveCard>, threadId: ThreadId, sameColumn: boolean) {
   if (!sameColumn) return false;
@@ -297,6 +279,12 @@ function keepsSlot(cards: ReadonlyArray<BoardMoveCard>, threadId: ThreadId, same
   );
 }
 
+/**
+ * Commands for one card drag, in dispatch order. Placement precedes archive/unarchive
+ * so a failed archive leaves the card resolving back to its return column. Moving into
+ * done records `fromColumnId` as the return column. A neighbor without a slot (an
+ * unplaced thread) makes the whole target column get fresh keys, once.
+ */
 export function planBoardMove(input: {
   readonly board: ProjectBoard | null;
   readonly threadId: ThreadId;

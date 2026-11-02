@@ -15,7 +15,8 @@ import {
   remainingPercent,
 } from "@supaterm/shared/usageLimits";
 import type { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import { AlertTriangleIcon, ExternalLinkIcon, TicketIcon } from "lucide-react";
+import { normalizeProviderAccentColor } from "@supaterm/client-runtime/state/provider-instance-display";
+import { ExternalLinkIcon, TicketIcon, TriangleAlertIcon } from "@supaterm/icons";
 import {
   createContext,
   Fragment,
@@ -236,6 +237,7 @@ function ActiveSegmentPopover({
   // The trigger is gone, so the popup has nothing to anchor to: an exit transition would
   // slide it to the viewport origin. Unmount it outright, which also clears Base UI's
   // active-trigger bookkeeping so the segment can open again when it comes back.
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- closes the popover handle and unmounts the Base UI popup before paint when its trigger is gone
   useLayoutEffect(() => {
     if (available) return;
     handle.close();
@@ -482,7 +484,7 @@ function PoolBar({
               window={member.window}
               reset={restores.get(member.account.key)}
               refillPercent={member.refillPercent}
-              color={color}
+              color={normalizeProviderAccentColor(member.account.accentColor) ?? color}
               now={now}
               index={position + 1}
               showAccountName={pool.columns.length > 1}
@@ -627,6 +629,9 @@ export function UsageLimitsPooled({
             ) : null}
             <div className="min-w-0 space-y-1">
               <h2 className="text-sm font-medium">{link.label}</h2>
+              <p className="text-xs break-words text-muted-foreground">
+                {link.accounts.join(", ")}
+              </p>
               {link.url === CHATGPT_USAGE_URL ? (
                 <p className="text-xs text-muted-foreground">
                   View usage in ChatGPT with your connected account.
@@ -655,7 +660,7 @@ function LimitNotices({ notices }: { readonly notices: readonly string[] }) {
   if (notices.length === 0) return null;
   return (
     <Alert variant="warning" controlAlignment="first-line">
-      <AlertTriangleIcon />
+      <TriangleAlertIcon />
       {notices.map((notice) => (
         <AlertTitle key={notice} className="break-words">
           {notice}

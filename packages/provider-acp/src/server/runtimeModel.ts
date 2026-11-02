@@ -62,6 +62,7 @@ type AcpAgentTerminalUpdate = Extract<
 >;
 
 const MAX_ACP_TERMINAL_OUTPUT_BYTES = 16 * 1024 * 1024;
+const ACP_TERMINAL_OUTPUT_TRIM_BYTES = 1024 * 1024;
 const MAX_ACP_TERMINAL_FRAME_BYTES = MAX_ACP_TERMINAL_OUTPUT_BYTES;
 
 function isBase64DataCode(code: number): boolean {
@@ -128,12 +129,7 @@ function decodeTerminalOutputChunk(
     : { text, pendingOutputBytes: Uint8Array.from(bytes.subarray(completeEnd)) };
 }
 
-/**
- * Appends decoded text to terminal output and keeps the newest
- * `MAX_ACP_TERMINAL_OUTPUT_BYTES`, dropping whole leading characters. Only the
- * appended text and the dropped prefix are measured, so per-chunk cost does not
- * grow with the retained output.
- */
+// Drop an extra batch at UTF-8 boundaries so flattening the retained string is amortized.
 function appendTerminalOutput(
   output: string,
   outputBytes: number,
@@ -145,7 +141,7 @@ function appendTerminalOutput(
   if (excess <= 0) return { output: combined, outputBytes: combinedBytes };
   let start = 0;
   let dropped = 0;
-  while (dropped < excess) {
+  while (dropped < excess + ACP_TERMINAL_OUTPUT_TRIM_BYTES) {
     const codePoint = combined.codePointAt(start)!;
     dropped += codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
     start += codePoint < 0x10000 ? 1 : 2;
@@ -224,7 +220,7 @@ export type AcpPlanUpdate =
       readonly explanation?: string | null;
       readonly plan: ReadonlyArray<{
         readonly step: string;
-        readonly status: "pending" | "inProgress" | "completed";
+        readonly status: "pending" | "inProgress" | "completed" | "cancelled";
       }>;
     }
   | { readonly nativePlanId: string; readonly kind: "markdown"; readonly markdown: string }
@@ -291,6 +287,13 @@ export type AcpParsedSessionEvent =
   | {
       readonly _tag: "SessionInfoUpdated";
       readonly metadata: OrchestrationV2ProviderThreadNativeMetadata;
+      readonly rawPayload: unknown;
+    }
+  | {
+      readonly _tag: "NoticeReceived";
+      readonly severity: string;
+      readonly title: string;
+      readonly description?: string;
       readonly rawPayload: unknown;
     }
   | {
@@ -490,10 +493,14 @@ export function parseSessionModeState(
   };
 }
 
-function normalizePlanStepStatus(raw: unknown): "pending" | "inProgress" | "completed" {
+function normalizePlanStepStatus(
+  raw: unknown,
+): "pending" | "inProgress" | "completed" | "cancelled" {
   switch (raw) {
     case "completed":
       return "completed";
+    case "cancelled":
+      return "cancelled";
     case "in_progress":
     case "inProgress":
       return "inProgress";
@@ -515,6 +522,7 @@ function normalizeToolCallStatus(
     case "completed":
       return "completed";
     case "failed":
+    case "cancelled":
       return "failed";
     default:
       return fallback;
@@ -637,11 +645,9 @@ function locationsFromToolCallInput(input: {
   return locations.length > 0 ? locations : undefined;
 }
 
-// Some ACP agents (observed with Grok's CLI) resend the ENTIRE accumulated tool-call
-// output on every `tool_call_update` notification instead of a delta, so a redrawing
-// terminal progress bar can balloon a single tool call to hundreds of KB per update at
-// several updates per second. Cap what we retain/emit to a bounded tail so one busy tool
-// call cannot flood runtime event ingestion.
+// Some ACP agents (Grok's CLI) resend the entire accumulated output on every
+// `tool_call_update`, so a redrawing progress bar reaches hundreds of KB per update. Keep a
+// bounded tail so one busy tool call cannot flood runtime event ingestion.
 const TOOL_CALL_CONTENT_MAX_CHARS = 8_000;
 const TOOL_CALL_CONTENT_TRUNCATION_MARKER = "[Earlier output truncated]\n\n";
 
@@ -793,7 +799,7 @@ function normalizeToolKind(kind: unknown): string | undefined {
   return typeof kind === "string" && kind.trim().length > 0 ? kind.trim() : undefined;
 }
 
-export function canonicalItemTypeFromAcpToolKind(kind: string | undefined): ToolLifecycleItemType {
+function canonicalItemTypeFromAcpToolKind(kind: string | undefined): ToolLifecycleItemType {
   switch (kind) {
     case "read":
       return "dynamic_tool_call";
@@ -1076,13 +1082,10 @@ function acpMcpFallbackInput(value: string | undefined): Record<string, unknown>
 }
 
 /**
- * Agents flatten injected MCP tools into model-facing function names with no
- * shared convention (survey of the 2026-08 registry builds): Kilo and
- * opencode use `supaterm_<tool>`, claude-acp, qwen, and Amp
- * `mcp__supaterm__<tool>`, droid `supaterm___<tool>`, Copilot `supaterm-<tool>`,
- * cline appends `: <args json>`. Supaterm always injects its server as
- * "supaterm", and matches are additionally gated on the known Supaterm tool
- * inventory, so the separator match can stay loose.
+ * Agents name injected MCP tools with no shared convention (`supaterm_<tool>`,
+ * `mcp__supaterm__<tool>`, `supaterm___<tool>`, `supaterm-<tool>`, cline appends
+ * `: <args json>`). Matches are also gated on the known Supaterm tool inventory,
+ * so the separator match can stay loose.
  */
 const SUPATERM_MCP_TITLE_CALL =
   /^(?:mcp[-_]{1,2})?supaterm[-_.:/ ]{1,3}(?<tool>[A-Za-z0-9][A-Za-z0-9_.-]*)(?::.*)?$/i;
@@ -1210,6 +1213,29 @@ export function embeddedTerminalIdsFromSessionUpdate(
   return terminalIds.length === 0 ? undefined : { toolCallId: update.toolCallId, terminalIds };
 }
 
+/** ACP lets a permission request name its tool call by ID only; omitted (not null) fields come from the tracked call. */
+export function withTrackedPermissionToolCall(
+  params: EffectAcpSchema.RequestPermissionRequest,
+  tracked: AcpToolCallState | undefined,
+): EffectAcpSchema.RequestPermissionRequest {
+  if (tracked === undefined) return params;
+  const { title, kind, rawInput } = params.toolCall;
+  return {
+    ...params,
+    toolCall: {
+      ...params.toolCall,
+      ...(title === undefined && typeof tracked.data.title === "string"
+        ? { title: tracked.data.title }
+        : {}),
+      // Unrecognised kinds map to command approvals, so only a tracked execute kind may grant execution.
+      ...(kind === undefined && tracked.kind === "execute" ? { kind: "execute" as const } : {}),
+      ...(rawInput === undefined && tracked.data.rawInput !== undefined
+        ? { rawInput: tracked.data.rawInput }
+        : {}),
+    },
+  };
+}
+
 export function parsePermissionRequest(
   params: EffectAcpSchema.RequestPermissionRequest,
 ): AcpPermissionRequest {
@@ -1332,11 +1358,9 @@ export function syntheticLoadSessionResponseFromInitialize(
   };
 }
 
-// The parsed AcpToolCallState already carries bounded content (see makeToolCallState /
-// extractTextContentFromToolCallContent above), but the raw JSON-RPC notification is also
-// threaded through as `rawPayload` for logging/debugging and ends up persisted on the
-// runtime event. Substitute the same bounded `content`/`rawOutput` there so an oversized
-// cumulative update cannot smuggle the unbounded buffer back in through the raw payload.
+// The raw notification is persisted on the runtime event as `rawPayload`, so it gets the same
+// bounded `content`/`rawOutput` as the parsed state; otherwise an oversized cumulative update
+// would smuggle the unbounded buffer back in.
 function boundToolCallRawPayload(
   params: EffectAcpSchema.SessionNotification,
   update: AcpToolCallUpdate,
@@ -1404,17 +1428,15 @@ export function parseSessionUpdateEvent(params: EffectAcpSchema.SessionNotificat
         step: entry.content.trim().length > 0 ? entry.content.trim() : `Step ${index + 1}`,
         status: normalizePlanStepStatus(entry.status),
       }));
-      if (plan.length > 0) {
-        events.push({
-          _tag: "PlanUpdated",
-          payload: {
-            nativePlanId: "legacy",
-            kind: "items",
-            plan,
-          },
-          rawPayload: params,
-        });
-      }
+      events.push({
+        _tag: "PlanUpdated",
+        payload: {
+          nativePlanId: "legacy",
+          kind: "items",
+          plan,
+        },
+        rawPayload: params,
+      });
       break;
     }
     case "plan_update": {
@@ -1566,16 +1588,6 @@ export function parseSessionUpdateEvent(params: EffectAcpSchema.SessionNotificat
       }
       break;
     }
-    case "state_update": {
-      if (upd.state === "idle" && upd.usage !== undefined && upd.usage !== null) {
-        events.push({
-          _tag: "UsageUpdated",
-          usage: { usedTokens: upd.usage.totalTokens },
-          rawPayload: params,
-        });
-      }
-      break;
-    }
     case "usage_update": {
       const currency = upd.cost?.currency.trim().slice(0, 32);
       events.push({
@@ -1598,6 +1610,19 @@ export function parseSessionUpdateEvent(params: EffectAcpSchema.SessionNotificat
           ...(upd.title === null ? { title: null } : title ? { title } : {}),
           ...(upd.updatedAt === null ? { updatedAt: null } : updatedAt ? { updatedAt } : {}),
         },
+        rawPayload: params,
+      });
+      break;
+    }
+    case "notice": {
+      const title = upd.title.trim().slice(0, 1_024);
+      const description = upd.description?.trim().slice(0, 4_096);
+      if (title.length === 0) break;
+      events.push({
+        _tag: "NoticeReceived",
+        severity: boundedContentMetadata(upd.severity, 64) || "info",
+        title,
+        ...(description ? { description } : {}),
         rawPayload: params,
       });
       break;

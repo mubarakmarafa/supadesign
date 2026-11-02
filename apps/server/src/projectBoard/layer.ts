@@ -12,6 +12,7 @@ import * as Option from "effect/Option";
 
 import * as LiveEnvironment from "../liveEnvironment/LiveEnvironmentService.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
+import * as DocumentText from "../provider/DocumentText.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
 import * as Project from "../project/ProjectService.ts";
 import * as ThreadBank from "../threadBank/ThreadBankService.ts";
@@ -35,6 +36,8 @@ export const make = Effect.gen(function* () {
   const commandId = crypto.randomUUIDv4().pipe(Effect.orDie, Effect.map(CommandId.make));
   const messageId = crypto.randomUUIDv4().pipe(Effect.orDie, Effect.map(MessageId.make));
   const cards = yield* CardWorkspace.make;
+  // Starting a card in its own worktree claims its attachments, which reads documents.
+  const documents = yield* Effect.context<DocumentText.DocumentText>();
 
   const dispatch = (command: Parameters<typeof threads.dispatch>[0]) =>
     threads.dispatch(command).pipe(
@@ -159,6 +162,7 @@ export const make = Effect.gen(function* () {
             : "The card didn't get the brief. Try again.",
         ),
       ),
+      Effect.provide(documents),
     ),
   };
 

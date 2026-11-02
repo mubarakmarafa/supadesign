@@ -10,7 +10,7 @@ import {
   type StaticScreenProps,
 } from "@react-navigation/native";
 import type { EnvironmentId } from "@supaterm/contracts";
-import { AsyncResult } from "effect/reactivity";
+import { useAtomValue } from "@effect/atom-react";
 import { useEffect, useRef, useState } from "react";
 import { Linking, Pressable, StyleSheet, View } from "react-native";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
@@ -22,10 +22,10 @@ import { SettingsScreen } from "../settings/components/SettingsScreen";
 import { AppText as Text, AppTextInput, type AppTextInputProps } from "../../components/ui/AppText";
 import { FrostedCutout } from "../../components/ui/FrostedCutout";
 import { pairingUrlForFields, extractPairingUrlFromQrPayload, parsePairingUrl } from "./pairing";
-import {
-  setPendingConnectionError,
-  useRemoteConnections,
-} from "../../state/use-remote-environment-registry";
+import { useRemoteConnections } from "../../state/use-remote-environment-registry";
+import { autoConnectReport, devAutoConnectAttemptAtom, linkedPairingUrl } from "./devAutoConnect";
+import { leaveSettingsPage } from "../settings/settings-navigation";
+import { workspaceHasColumns } from "../workspace/workspace-selection-store";
 import { SymbolView } from "../../components/ui/AppSymbol";
 
 type ConnectionsNewRouteParams = {
@@ -38,69 +38,69 @@ type ConnectionsNewRouteParams = {
 export function ConnectionsNewRouteScreen({
   route,
 }: StaticScreenProps<ConnectionsNewRouteParams | undefined>) {
-  const {
-    connectionPairingUrl,
-    onChangeConnectionPairingUrl,
-    onConnectPress,
-    pairingConnectionError,
-  } = useRemoteConnections();
+  const params = route.params ?? {};
+  const routePairingUrl = linkedPairingUrl(params.pairingUrl);
+  // A fresh pairing link replaces the form, including the previous attempt's error and progress.
+  return (
+    <PairingForm
+      key={routePairingUrl}
+      routePairingUrl={routePairingUrl}
+      routeFor={params.routeFor}
+    />
+  );
+}
+
+function PairingForm({
+  routePairingUrl,
+  routeFor,
+}: {
+  readonly routePairingUrl: string;
+  readonly routeFor: EnvironmentId | undefined;
+}) {
+  const { connectionPairingUrl, onChangeConnectionPairingUrl, onConnectPress } =
+    useRemoteConnections();
   const navigation = useNavigation();
   const routeName = useRoute().name;
-  const params = route.params ?? {};
-  // Deep-link prefill exists for development automation only. A production
-  // link must not arrive with attacker-chosen host and token already filled.
-  const routePairingUrl = __DEV__ ? (params.pairingUrl?.trim() ?? "") : "";
-  const shouldAutoConnect =
-    __DEV__ &&
-    routePairingUrl.length > 0 &&
-    (params.autoConnect === "1" || params.autoConnect === "true");
   const insets = useSafeAreaInsets();
-  const [hostInput, setHostInput] = useState("");
-  const [codeInput, setCodeInput] = useState("");
-  const [originalPairingUrl, setOriginalPairingUrl] = useState("");
+  const [originalPairingUrl, setOriginalPairingUrl] = useState(
+    () => routePairingUrl || connectionPairingUrl,
+  );
+  const [hostInput, setHostInput] = useState(() => parsePairingUrl(originalPairingUrl).host);
+  const [codeInput, setCodeInput] = useState(() => parsePairingUrl(originalPairingUrl).code);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  // The user's own edit or submit dismisses the dev auto-connect report.
+  const [ownAttempt, setOwnAttempt] = useState(false);
+  const autoConnect = autoConnectReport(
+    useAtomValue(devAutoConnectAttemptAtom),
+    routePairingUrl,
+    ownAttempt,
+  );
+  const connecting = isSubmitting || autoConnect.connecting;
+  const pairingConnectionError = submitError ?? autoConnect.error;
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const screenFocused = useIsFocused();
   const scannerLockedRef = useRef(false);
 
   const [scanComplete, setScanComplete] = useState(false);
-  const attemptedAutoConnectRef = useRef<string | null>(null);
 
   const headerIconColor = useUniwindTheme()["--color-icon"];
 
-  const connectDisabled = isSubmitting || hostInput.trim().length === 0;
+  const connectDisabled = connecting || hostInput.trim().length === 0;
 
-  const [syncedPairingUrls, setSyncedPairingUrls] = useState<{
-    readonly connection: string;
-    readonly route: string;
-  } | null>(null);
-  if (
-    syncedPairingUrls?.connection !== connectionPairingUrl ||
-    syncedPairingUrls.route !== routePairingUrl
-  ) {
-    setSyncedPairingUrls({ connection: connectionPairingUrl, route: routePairingUrl });
-    const prefillUrl =
-      syncedPairingUrls?.route !== routePairingUrl && routePairingUrl.length > 0
-        ? routePairingUrl
-        : syncedPairingUrls?.connection !== connectionPairingUrl
-          ? connectionPairingUrl
-          : null;
-    if (prefillUrl !== null) {
-      setOriginalPairingUrl(prefillUrl);
-      const { host, code } = parsePairingUrl(prefillUrl);
-      setHostInput(host);
-      setCodeInput(code);
-    }
-  }
+  const currentAttemptRef = useRef<object | null>(null);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- disowns the pairing still in flight when the form goes away
+  useEffect(
+    () => () => {
+      currentAttemptRef.current = null;
+    },
+    [],
+  );
 
-  const [seenPairingConnectionError, setSeenPairingConnectionError] =
-    useState(pairingConnectionError);
-  if (seenPairingConnectionError !== pairingConnectionError) {
-    setSeenPairingConnectionError(pairingConnectionError);
-    if (pairingConnectionError) {
-      setIsSubmitting(false);
-    }
-  }
+  const clearError = () => {
+    setSubmitError(null);
+    setOwnAttempt(true);
+  };
 
   const handleHostChange = (value: string) => {
     const parsed = parsePairingUrl(value);
@@ -111,18 +111,16 @@ export function ConnectionsNewRouteScreen({
       return;
     }
     setHostInput(value);
-    setPendingConnectionError(null);
+    clearError();
   };
 
   const handleCodeChange = (value: string) => {
     setCodeInput(value);
-    setPendingConnectionError(null);
+    clearError();
   };
 
-  useEffect(() => () => setPendingConnectionError(null), []);
-
   const handleScanPress = async () => {
-    if (isSubmitting) return;
+    if (connecting) return;
     const permission = await requestCameraPermission();
     if (permission.granted) {
       scannerLockedRef.current = false;
@@ -141,22 +139,29 @@ export function ConnectionsNewRouteScreen({
   };
 
   const connectAndClose = async (pairingUrl: string) => {
+    const attempt = {};
+    currentAttemptRef.current = attempt;
+    setOwnAttempt(true);
+    setSubmitError(null);
     setIsSubmitting(true);
     onChangeConnectionPairingUrl(pairingUrl);
     const connect = async () => {
-      const result = await onConnectPress(pairingUrl, params.routeFor);
+      const outcome = await onConnectPress(pairingUrl, routeFor);
+      if (currentAttemptRef.current !== attempt) return;
+      setSubmitError(outcome.error);
       void Haptics.notificationAsync(
-        AsyncResult.isSuccess(result)
+        outcome.ok
           ? Haptics.NotificationFeedbackType.Success
           : Haptics.NotificationFeedbackType.Error,
       );
-      if (AsyncResult.isSuccess(result)) {
+      if (outcome.ok) {
         // Return to whatever opened the sheet. Replacing it with Home would
         // nest Home inside any sheet still below it.
         if (!navigation.canGoBack()) {
           navigation.dispatch(StackActions.replace("Home"));
         } else {
-          navigation.goBack();
+          // Added from the Settings list, the new environment shows on Environments.
+          leaveSettingsPage(navigation, workspaceHasColumns(), "SettingsEnvironments");
         }
       }
     };
@@ -164,7 +169,7 @@ export function ConnectionsNewRouteScreen({
   };
 
   const handleQrScan = ({ data }: { readonly data: string }) => {
-    if (scannerLockedRef.current || isSubmitting) {
+    if (scannerLockedRef.current || connecting) {
       return;
     }
 
@@ -195,23 +200,14 @@ export function ConnectionsNewRouteScreen({
     await connectAndClose(pairingUrlForFields(hostInput, codeInput, originalPairingUrl));
   };
 
-  useEffect(() => {
-    if (!shouldAutoConnect || attemptedAutoConnectRef.current === routePairingUrl) {
-      return;
-    }
-
-    attemptedAutoConnectRef.current = routePairingUrl;
-    void connectAndClose(routePairingUrl);
-  }, [connectAndClose, routePairingUrl, shouldAutoConnect]);
-
   return (
     <SettingsScreen
       formSheet={routeName === "ConnectionsNew"}
-      title={params.routeFor ? "Add route" : "Add environment"}
+      title={routeFor ? "Add route" : "Add environment"}
       actions={[
         {
-          accessibilityLabel: isSubmitting ? "Connecting" : "Add environment",
-          loading: isSubmitting,
+          accessibilityLabel: connecting ? "Connecting" : "Add environment",
+          loading: connecting,
           icon: "checkmark",
           tintColor: headerIconColor,
           disabled: connectDisabled,
@@ -236,7 +232,7 @@ export function ConnectionsNewRouteScreen({
         <View collapsable={false} className="gap-6.5">
           <PairingScanCard
             cameraActive={
-              cameraPermission?.granted === true && screenFocused && !scanComplete && !isSubmitting
+              cameraPermission?.granted === true && screenFocused && !scanComplete && !connecting
             }
             onScan={handleQrScan}
             onScanPress={() => {
@@ -258,7 +254,7 @@ export function ConnectionsNewRouteScreen({
               <PairingInputRow
                 label="Address"
                 keyboardType="url"
-                placeholder="192.168.1.100:3773"
+                placeholder="192.168.1.100:7007"
                 value={hostInput}
                 onChangeText={handleHostChange}
               />
@@ -379,7 +375,7 @@ function PairingScanCard(props: {
           )}
         </View>
         <Text className={cn("text-center text-sm", light ? "text-black/70" : "text-white/80")}>
-          Scan the code from supaterm pair or desktop Connections settings
+          Scan the code from supaterm pair or desktop Sharing & access settings
         </Text>
       </View>
     </Pressable>

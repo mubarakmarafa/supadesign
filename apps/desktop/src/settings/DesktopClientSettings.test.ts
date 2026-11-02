@@ -34,7 +34,6 @@ const clientSettings: ClientSettings = {
   confirmThreadDelete: false,
   confirmThreadUnpin: false,
   composerCollapseOnScroll: true,
-  dismissedProviderUpdateNotificationKeys: [],
   diffFilesCollapsed: true,
   diffIgnoreWhitespace: true,
   diffLayout: "stacked",
@@ -58,7 +57,7 @@ const clientSettings: ClientSettings = {
   },
   sidebarProjectSortOrder: "manual",
   sidebarThreadSortOrder: "created_at",
-  sidebarThreadPreviewCount: 6,
+  threadDetailsItems: {},
   loadBalancingEnabled: false,
   loadBalancingWeights: { "environment-1": 75, "environment-2": 0 },
   timestampFormat: "24-hour",
@@ -192,6 +191,7 @@ describe("DesktopClientSettings", () => {
           `{
             // Matches server settings parsing.
             "timestampFormat": "24-hour",
+            "sidebarThreadPreviewCount": 9,
           }\n`,
         );
 

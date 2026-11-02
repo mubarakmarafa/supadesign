@@ -1,19 +1,21 @@
-import { type RunId } from "@supaterm/contracts";
+import { useSyncLayout } from "@legendapp/list/react";
+import { type OrchestrationV2CheckpointFileTotals, type RunId } from "@supaterm/contracts";
 import { type MouseEvent, type ReactNode, memo, useLayoutEffect, useRef, useState } from "react";
 import { type TurnDiffFileChange } from "../../types";
 import {
-  buildTurnDiffTree,
-  summarizeTurnDiffStats,
-  type TurnDiffTreeNode,
-} from "../../lib/turnDiffTree";
-import { FileDiffIcon } from "lucide-react";
-import { ChevronsDownUp, ChevronsUpDown, Folder, FolderClosed } from "lucide";
+  DiffIcon,
+  ChevronsDownUpIcon,
+  ChevronsUpDownIcon,
+  FolderIcon,
+  FolderOpenIcon,
+} from "@supaterm/icons";
+
+import { buildTurnDiffTree, type TurnDiffTreeNode } from "../../lib/turnDiffTree";
 import { DiffStatLabel, hasNonZeroStat } from "./DiffStatLabel";
 import { PierreEntryIcon } from "./PierreEntryIcon";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { MiddleTruncate } from "../ui/middle-truncate";
-import { MorphIcon } from "~/components/MorphIcon";
 import { DisclosureChevron } from "../ui/disclosure-chevron";
 import { useTimelineDisclosureToggle } from "./timelineDisclosure";
 import { observeResize } from "~/lib/observeResize";
@@ -27,11 +29,13 @@ interface ChangedFileRow {
   depth: number;
 }
 
-export type ChangedFileContextMenuHandler = (filePath: string, event: MouseEvent) => void;
+type ChangedFileContextMenuHandler = (filePath: string, event: MouseEvent) => void;
 
 export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
   runId: RunId;
+  /** May be a prefix of the changed files; `totals` covers all of them. */
   files: ReadonlyArray<TurnDiffFileChange>;
+  totals: OrchestrationV2CheckpointFileTotals;
   allDirectoriesExpanded: boolean;
   resolvedTheme: "light" | "dark";
   onToggleAllDirectories: () => void;
@@ -41,6 +45,7 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
   const {
     runId,
     files,
+    totals,
     allDirectoriesExpanded,
     resolvedTheme,
     onToggleAllDirectories,
@@ -48,9 +53,11 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
     onFileContextMenu,
   } = props;
   const onDisclosureToggle = useTimelineDisclosureToggle();
-  const summaryStat = summarizeTurnDiffStats(files);
+  const syncTimelineLayout = useSyncLayout();
+  const hiddenFileCount = totals.count - files.length;
   const hasDirectories = files.some((file) => /[/\\]/.test(file.path));
 
+  const Icon = allDirectoriesExpanded ? ChevronsDownUpIcon : ChevronsUpDownIcon;
   return (
     <div
       className="@container/changed-files mt-4 rounded-lg bg-secondary dark:bg-input/20"
@@ -62,12 +69,12 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
       >
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-foreground">
           <span>
-            {files.length} changed file{files.length === 1 ? "" : "s"}
+            {totals.count.toLocaleString()} changed file{totals.count === 1 ? "" : "s"}
           </span>
-          {hasNonZeroStat(summaryStat) && (
+          {hasNonZeroStat(totals) && (
             <DiffStatLabel
-              additions={summaryStat.additions}
-              deletions={summaryStat.deletions}
+              additions={totals.additions}
+              deletions={totals.deletions}
               layout="inline"
               className="text-xs leading-4"
             />
@@ -88,14 +95,12 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
                     onClick={(event) => {
                       onDisclosureToggle(event.currentTarget, allDirectoriesExpanded);
                       onToggleAllDirectories();
+                      syncTimelineLayout();
                     }}
                   />
                 }
               >
-                <MorphIcon
-                  className="size-3"
-                  icon={allDirectoriesExpanded ? ChevronsDownUp : ChevronsUpDown}
-                />
+                <Icon className="size-3" />
               </TooltipTrigger>
               <TooltipPopup side="top">
                 {allDirectoriesExpanded ? "Collapse all folders" : "Expand all folders"}
@@ -114,7 +119,7 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
                 />
               }
             >
-              <FileDiffIcon className="size-3" />
+              <DiffIcon className="size-3" />
               <span className="hidden @[24rem]/changed-files:inline">Open diff</span>
             </TooltipTrigger>
             <TooltipPopup side="top">Open the full diff</TooltipPopup>
@@ -130,6 +135,19 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
         onOpenTurnDiff={onOpenTurnDiff}
         onFileContextMenu={onFileContextMenu}
       />
+      {hiddenFileCount > 0 && (
+        <div className="px-3 pb-2">
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost-muted"
+            onClick={() => onOpenTurnDiff(runId, files[0]?.path)}
+          >
+            {hiddenFileCount.toLocaleString()} more file{hiddenFileCount === 1 ? "" : "s"} in the
+            full diff
+          </Button>
+        </div>
+      )}
     </div>
   );
 });
@@ -152,6 +170,7 @@ const ChangedFilesTree = memo(function ChangedFilesTree(props: {
     key: string | null;
     overrides: Record<string, boolean>;
   }>({ key: null, overrides: {} });
+  const syncTimelineLayout = useSyncLayout();
   const treeNodes = buildTurnDiffTree(files);
   const directoryPathsKey = collectDirectoryPaths(treeNodes).join("\u0000");
   const hasDirectoryNodes = directoryPathsKey.length > 0;
@@ -172,6 +191,8 @@ const ChangedFilesTree = memo(function ChangedFilesTree(props: {
         },
       };
     });
+    // Measure before paint instead of waiting for LegendList's deferred shrink measurement.
+    syncTimelineLayout();
   };
 
   const rows = collectExpandedRows(treeNodes, expandedDirectories, allDirectoriesExpanded);
@@ -181,6 +202,7 @@ const ChangedFilesTree = memo(function ChangedFilesTree(props: {
     const leftPadding = 8 + depth * 14;
     if (node.kind === "directory") {
       const isExpanded = expandedDirectories[node.path] ?? allDirectoriesExpanded;
+      const Icon = isExpanded ? FolderOpenIcon : FolderIcon;
       return (
         <button
           key={`dir:${node.path}`}
@@ -195,10 +217,7 @@ const ChangedFilesTree = memo(function ChangedFilesTree(props: {
           }}
         >
           <DisclosureChevron open={isExpanded} size="sm" />
-          <MorphIcon
-            className="size-3.5 shrink-0 text-muted-foreground/75"
-            icon={isExpanded ? Folder : FolderClosed}
-          />
+          <Icon className="size-3.5 shrink-0 text-muted-foreground/75" />
           <span className="truncate font-mono text-2xs text-muted-foreground/90 group-hover:text-foreground/90">
             {node.name}
           </span>
@@ -265,6 +284,7 @@ function ChangedFilesRows({
   const [range, setRange] = useState({ start: 0, end: 40, rowHeight: 28 });
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- observes scroll, window resize and ancestor resizes to compute the virtualized row range
   useLayoutEffect(() => {
     const container = containerRef.current;
     const rowSize = rowSizeRef.current;

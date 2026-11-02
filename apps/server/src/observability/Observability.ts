@@ -6,6 +6,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as References from "effect/References";
 import * as Tracer from "effect/Tracer";
+import * as UrlParams from "effect/http/UrlParams";
 import * as OtlpExporter from "effect/observability/OtlpExporter";
 import * as OtlpMetrics from "effect/observability/OtlpMetrics";
 import * as OtlpTracer from "effect/observability/OtlpTracer";
@@ -15,6 +16,7 @@ import * as ServerConfig from "../config.ts";
 import * as ResourceAttribution from "../resourceTelemetry/ResourceAttribution.ts";
 import * as ServerLogger from "../serverLogger.ts";
 import * as BrowserTraceCollector from "./BrowserTraceCollector.ts";
+import * as HeapAttribution from "./HeapAttribution.ts";
 
 export const layer = Layer.unwrap(
   Effect.gen(function* () {
@@ -22,8 +24,7 @@ export const layer = Layer.unwrap(
 
     const traces = config.otlpTracesExport;
     const metrics = config.otlpMetricsExport;
-    // The trace serializer stays in the returned context because the browser
-    // trace forwarder exports on the same signal.
+    // Keep serialization in context for the browser trace forwarder's exporter.
     const layerSerialization = SharedObservability.layerOtlpSerialization(traces.protocol);
     const resource = ServerConfig.otlpResource(config, yield* HostProcess.Hostname);
     const attribution = yield* ResourceAttribution.ResourceAttribution;
@@ -31,9 +32,21 @@ export const layer = Layer.unwrap(
     const layerTraceReferences = Layer.mergeAll(
       Layer.succeed(Tracer.MinimumTraceLevel, config.traceMinLevel),
       Layer.succeed(References.TracerTimingEnabled, config.traceTimingEnabled),
-      // Keeps each SQL statement's span current while it waits for a connection,
-      // so the client can record the lock wait on it.
+      // Preserve SQL spans while awaiting connections so lock waits can be recorded on them.
       Layer.succeed(Statement.SpanPropagationEnabled, true),
+      // Socket tickets, pairing tokens, and OAuth codes travel in query strings.
+      Layer.effect(
+        UrlParams.CurrentRedactedNames,
+        Effect.map(UrlParams.CurrentRedactedNames, (names) => [
+          ...names,
+          "wsTicket",
+          "token",
+          "pairingUrl",
+          "code",
+          "state",
+          "challenge",
+        ]),
+      ),
     );
 
     const layerTracer = Layer.unwrap(
@@ -71,8 +84,11 @@ export const layer = Layer.unwrap(
           ...(delegate ? { delegate } : {}),
         });
 
+        const heapAttribution = yield* HeapAttribution.make(tracer);
+        yield* heapAttribution.run;
+
         return Layer.mergeAll(
-          Layer.succeed(Tracer.Tracer, tracer),
+          Layer.succeed(Tracer.Tracer, heapAttribution.tracer),
           BrowserTraceCollector.layer(sink),
         );
       }),

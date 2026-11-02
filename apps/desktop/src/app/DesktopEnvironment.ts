@@ -17,7 +17,7 @@ import { resolveLinuxDesktopEntryName } from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopBaseDir, resolveDesktopStateDir } from "./DesktopStatePaths.ts";
 import { isNightlyDesktopVersion } from "../updates/updateChannels.ts";
 import type { OtlpProtocol } from "@supaterm/shared/observability";
-import { APP_ID, APP_PRODUCT_NAME, APP_SLUG } from "@supaterm/shared/appIdentity";
+import { APP_ID, APP_PRODUCT_NAME } from "@supaterm/shared/appIdentity";
 
 export interface MakeDesktopEnvironmentInput {
   readonly dirname: string;
@@ -75,8 +75,8 @@ export class DesktopEnvironment extends Context.Service<
     readonly displayName: string;
     readonly appUserModelId: string;
     readonly linuxDesktopEntryName: string;
-    readonly linuxWmClass: string;
     readonly linuxApplicationsDir: string;
+    readonly desktopLauncherPath: Option.Option<string>;
     readonly appImagePath: Option.Option<string>;
     readonly defaultDesktopSettings: DesktopAppSettings.DesktopSettings;
     readonly runtimeInfo: DesktopRuntimeInfo;
@@ -230,8 +230,8 @@ const make = Effect.fn("desktop.environment.make")(function* (
       isDevelopment ? `${APP_ID}.dev` : APP_ID,
     ),
     linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment),
-    linuxWmClass: isDevelopment ? `${APP_SLUG}-dev` : APP_SLUG,
     linuxApplicationsDir,
+    desktopLauncherPath: config.desktopLauncherPath,
     appImagePath: config.appImagePath,
     defaultDesktopSettings: DesktopAppSettings.resolveDefaultDesktopSettings(input.appVersion),
     runtimeInfo: resolveDesktopRuntimeInfo({

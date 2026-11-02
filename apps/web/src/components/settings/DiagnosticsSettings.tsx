@@ -5,8 +5,15 @@ import { AuthOrchestrationOperateScope } from "@supaterm/contracts";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { AuthEnvironmentMaintainScope } from "@supaterm/contracts";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
-import { AlertTriangleIcon, CopyIcon, FolderOpenIcon, InfoIcon } from "lucide-react";
-import { ChevronDown, ChevronRight } from "lucide";
+import {
+  CopyIcon,
+  FolderOpenIcon,
+  InfoIcon,
+  TriangleAlertIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+} from "@supaterm/icons";
+
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -27,7 +34,6 @@ import { useEnvironmentQuery } from "../../state/query";
 import { serverEnvironment } from "../../state/server";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { Button } from "../ui/button";
-import { MorphIcon } from "~/components/MorphIcon";
 import { ScrollArea } from "../ui/scroll-area";
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -48,7 +54,7 @@ function formatCount(value: number): string {
 
 function formatDuration(value: number): string {
   if (value < 1_000) return `${Math.round(value)} ms`;
-  return `${(value / 1_000).toFixed(value >= 10_000 ? 1 : 2)} s`;
+  return `${(value / 1_000).toFixed(value >= 10_000 ? 1 : 2).replace(/\.0+$/, "")} s`;
 }
 
 function RelativeTimeNoWrap(props: { value: DateTime.Utc }) {
@@ -254,6 +260,7 @@ function ProcessNameCell({
   const name = formatProcessName(process.command);
   const hasChildren = process.childPids.length > 0;
 
+  const Icon = isExpanded ? ChevronDownIcon : ChevronRightIcon;
   return (
     <div
       className="grid min-w-0 grid-cols-[1.25rem_0.375rem_minmax(0,1fr)] items-center gap-2"
@@ -266,7 +273,7 @@ function ProcessNameCell({
           aria-label={isExpanded ? `Collapse ${name}` : `Expand ${name}`}
           onClick={() => onToggle(process.pid)}
         >
-          <MorphIcon className="size-3.5" icon={isExpanded ? ChevronDown : ChevronRight} />
+          <Icon className="size-3.5" />
         </Button>
       ) : (
         <span className="size-5 shrink-0" aria-hidden="true" />
@@ -427,10 +434,10 @@ const RESOURCE_HISTORY_WINDOWS = [
 ] as const;
 
 function formatCpuTime(seconds: number): string {
-  if (seconds < 60) return `${seconds.toFixed(seconds >= 10 ? 1 : 2)}s`;
+  if (seconds < 60) return `${seconds.toFixed(seconds >= 10 ? 1 : 2).replace(/\.0+$/, "")}s`;
   const minutes = seconds / 60;
-  if (minutes < 60) return `${minutes.toFixed(minutes >= 10 ? 1 : 2)}m`;
-  return `${(minutes / 60).toFixed(2)}h`;
+  if (minutes < 60) return `${minutes.toFixed(minutes >= 10 ? 1 : 2).replace(/\.0+$/, "")}m`;
+  return `${(minutes / 60).toFixed(2).replace(/\.0+$/, "")}h`;
 }
 
 function formatShortProcessName(command: string): string {
@@ -704,6 +711,12 @@ function DiagnosticsRefreshButton({
 
 export function DiagnosticsSettingsPanel() {
   const { environment } = useSettingsScope();
+  // Signals and pending UI state belong to one environment, so a scope switch starts fresh.
+  return <DiagnosticsSettingsBody key={environment?.environmentId ?? ""} />;
+}
+
+function DiagnosticsSettingsBody() {
+  const { environment } = useSettingsScope();
   const environmentId = environment?.environmentId ?? null;
   const canMaintainEnvironment = useEnvironmentScope(environmentId, AuthEnvironmentMaintainScope);
   const observability = environment?.serverConfig?.observability;
@@ -790,8 +803,7 @@ export function DiagnosticsSettingsPanel() {
   const isInitialLoading = isPending && data === null;
   const isProcessInitialLoading = isProcessPending && processData === null;
   const isResourceInitialLoading = isResourcePending && resourceData === null;
-  // The export form waits for each environment's first tables so a search target below them
-  // stays in view. Later loads, such as a new resource window, must not remount it and drop drafts.
+  // Wait for initial tables to stabilize search targets; later loads must preserve export drafts.
   const [exportFormEnvironmentId, setExportFormEnvironmentId] =
     useState<typeof environmentId>(null);
   if (
@@ -918,13 +930,13 @@ export function DiagnosticsSettingsPanel() {
           <div className="space-y-2 border-t border-border/60 px-4 py-3 text-xs text-muted-foreground sm:px-5">
             {processDiagnosticsError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
+                <TriangleAlertIcon className="size-3.5 h-lh shrink-0" />
                 <span>{processDiagnosticsError.message}</span>
               </div>
             ) : null}
             {processError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
+                <TriangleAlertIcon className="size-3.5 h-lh shrink-0" />
                 <span>{processError}</span>
               </div>
             ) : null}
@@ -990,13 +1002,13 @@ export function DiagnosticsSettingsPanel() {
           <div className="space-y-2 border-t border-border/60 px-4 py-3 text-xs text-muted-foreground sm:px-5">
             {processResourceError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
+                <TriangleAlertIcon className="size-3.5 h-lh shrink-0" />
                 <span>{processResourceError.message}</span>
               </div>
             ) : null}
             {resourceError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
+                <TriangleAlertIcon className="size-3.5 h-lh shrink-0" />
                 <span>{resourceError}</span>
               </div>
             ) : null}
@@ -1073,7 +1085,7 @@ export function DiagnosticsSettingsPanel() {
           <div className="space-y-2 border-t border-border/60 px-4 py-3 text-xs text-muted-foreground sm:px-5">
             {openLogsDirectoryError ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
+                <TriangleAlertIcon className="size-3.5 h-lh shrink-0" />
                 <span>{openLogsDirectoryError}</span>
               </div>
             ) : null}
@@ -1084,7 +1096,7 @@ export function DiagnosticsSettingsPanel() {
                   traceDiagnosticsPartialFailure ? "text-warning-foreground" : "text-destructive",
                 )}
               >
-                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
+                <TriangleAlertIcon className="size-3.5 h-lh shrink-0" />
                 <span>
                   {traceDiagnosticsPartialFailure
                     ? `Some trace files could not be read, so diagnostics may be incomplete. ${traceDiagnosticsError.message}`
@@ -1094,7 +1106,7 @@ export function DiagnosticsSettingsPanel() {
             ) : null}
             {error ? (
               <div className="flex items-start gap-2 text-destructive">
-                <AlertTriangleIcon className="size-3.5 h-lh shrink-0" />
+                <TriangleAlertIcon className="size-3.5 h-lh shrink-0" />
                 <span>{error}</span>
               </div>
             ) : null}

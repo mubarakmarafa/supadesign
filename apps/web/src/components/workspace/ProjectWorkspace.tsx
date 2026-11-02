@@ -4,7 +4,7 @@ import {
   type ProjectWorkspaceWidget,
   type ScopedProjectRef,
 } from "@supaterm/contracts";
-import { KanbanIcon, LayoutGridIcon, PuzzleIcon } from "lucide-react";
+import { KanbanIcon, LayoutGridIcon, PuzzleIcon } from "@supaterm/icons";
 import { type ReactNode, useMemo } from "react";
 
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";

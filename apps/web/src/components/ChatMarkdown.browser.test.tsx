@@ -2,6 +2,7 @@ import { EnvironmentId, ThreadId } from "@supaterm/contracts";
 import { AsyncResult } from "effect/reactivity";
 import { type ReactElement } from "react";
 import { describe, expect, it, vi } from "vite-plus/test";
+import { page, userEvent } from "vite-plus/test/browser";
 
 import { act, render } from "../../test/render";
 import "../index.css";
@@ -17,6 +18,18 @@ const { workspaceSearch, filesystemMetadata } = vi.hoisted(() => ({
   workspaceSearch: vi.fn(),
   filesystemMetadata: vi.fn(),
 }));
+const parsedSources = vi.hoisted(() => [] as string[]);
+vi.mock(import("mdast-util-from-markdown"), async (original) => {
+  const actual = await original();
+  return {
+    ...actual,
+    fromMarkdown: ((source: string, ...rest: never[]) => {
+      parsedSources.push(String(source));
+      return (actual.fromMarkdown as (...args: unknown[]) => unknown)(source, ...rest);
+    }) as typeof actual.fromMarkdown,
+  };
+});
+
 vi.mock(import("../state/use-atom-query-runner"), async (original) => ({
   ...(await original()),
   useAtomQueryRunner: ((family: unknown) =>
@@ -33,7 +46,6 @@ vi.mock(import("../state/server"), async (original) => {
     serverEnvironment: { ...actual.serverEnvironment, configValueAtom: (() => noConfig) as never },
   };
 });
-// A standard client session, so environment-owned file links can open.
 vi.mock(import("../state/session"), async (original) => {
   const { AuthStandardClientScopes } = await import("@supaterm/contracts");
   const granted = new Set<string>(AuthStandardClientScopes);
@@ -70,6 +82,29 @@ vi.mock(import("../hooks/useSettings"), async (original) => {
 });
 
 import ChatMarkdown from "./ChatMarkdown";
+import { AudioPreview } from "./files/AudioPreview";
+
+it("keeps compact audio playback loaded across signed URL renewals", async () => {
+  const original =
+    "data:audio/wav;base64,UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA";
+  const renewed = `${original}#renewed`;
+  const preview = (src: string, revision = "clip-v1") => (
+    <AudioPreview compact name="clip.wav" src={src} revision={revision} />
+  );
+  await using screen = await render(preview(original));
+  const audio = screen.container.querySelector("audio")!;
+  await act(() => {
+    audio.dispatchEvent(new Event("loadedmetadata"));
+    audio.dispatchEvent(new Event("play"));
+  });
+  await screen.rerender(preview(renewed));
+  expect(screen.container.querySelector("audio")).toBe(audio);
+  expect(audio.getAttribute("src")).toBe(original);
+  await expect.element(screen.getByRole("button", { name: "Pause clip.wav" })).toBeEnabled();
+  await screen.rerender(preview(renewed, "clip-v2"));
+  expect(screen.container.querySelector("audio")).not.toBe(audio);
+  expect(screen.container.querySelector("audio")?.getAttribute("src")).toBe(renewed);
+});
 
 const renderDiagram = vi.mocked(renderMermaidDiagram);
 const diagramResult = (label: string) => ({
@@ -80,6 +115,7 @@ const diagramResult = (label: string) => ({
 });
 
 function setup() {
+  parsedSources.length = 0;
   settingsOverrides.mathRenderingEnabled = false;
   renderDiagram.mockReset().mockResolvedValue(diagramResult("Diagram"));
   vi.mocked(peekMermaidDiagram).mockReset();
@@ -91,11 +127,48 @@ function renderText(text: string, props: Partial<Parameters<typeof ChatMarkdown>
   return render(<ChatMarkdown cwd="/tmp/project" text={text} {...props} />);
 }
 
-function buttonsLabelled(container: HTMLElement, label: string) {
-  return [...container.querySelectorAll<HTMLButtonElement>("button")].filter(
-    (button) => button.getAttribute("aria-label") === label,
-  );
+function buttonsLabelled(container: HTMLElement, label: string | RegExp) {
+  return [...container.querySelectorAll<HTMLButtonElement>("button")].filter((button) => {
+    const ariaLabel = button.getAttribute("aria-label") ?? "";
+    return typeof label === "string" ? ariaLabel === label : label.test(ariaLabel);
+  });
 }
+
+it("shows unavailable audio when a workspace embed has no thread", async () => {
+  setup();
+  await using screen = await renderText("![recording](clip.wav)");
+  expect(screen.container.textContent).toContain("Audio unavailable");
+  expect(screen.container.textContent).not.toContain("Loading audio");
+  expect(screen.container.querySelector("audio")).toBeNull();
+});
+
+it("reuses the parse of a streaming reply's finished blocks when it remounts", async () => {
+  setup();
+  const message = (
+    <ChatMarkdown cwd="/tmp/project" text={"Finished block\n\nStill growing"} isStreaming />
+  );
+  {
+    await using _first = await render(message);
+  }
+  await using screen = await render(message);
+  await expect.element(screen.getByText("Still growing")).toBeVisible();
+  expect(parsedSources.filter((source) => source.includes("Finished block"))).toHaveLength(1);
+});
+
+it("reuses the parse of a remounted message that has stable extra plugins", async () => {
+  setup();
+  const parsed = vi.fn();
+  const countingPlugins = [() => () => void parsed()];
+  const message = (
+    <ChatMarkdown cwd="/tmp/project" text="Cached text" extraRemarkPlugins={countingPlugins} />
+  );
+  {
+    await using _first = await render(message);
+  }
+  await using screen = await render(message);
+  await expect.element(screen.getByText("Cached text")).toBeVisible();
+  expect(parsed).toHaveBeenCalledTimes(1);
+});
 
 describe("ChatMarkdown favicon privacy", () => {
   it("suppresses private link images while preserving public links across updates", async () => {
@@ -145,16 +218,15 @@ describe("ChatMarkdown streaming", () => {
       "````bash\necho four\n````",
       "- Command\n\n  ```bash\n  echo list\n  ```",
       "```bash\r\necho crlf\r\n```\r",
+      "```bash\necho trailing blank\n\n```",
     ]) {
       await rerender(message(text));
       expect(runButtons()).toHaveLength(1);
     }
 
     for (const text of [
-      "```bash\necho one\necho two\n```",
       "```typescript\necho hello\n```",
       "```bash\n\n```",
-      "```bash\necho hello\n\n```",
       "```bash\necho hello\\\n```",
       "```bash\necho safe \u202e#\n```",
       "```bash\necho incomplete",
@@ -163,8 +235,72 @@ describe("ChatMarkdown streaming", () => {
       '<pre><code class="language-bash">echo html</code></pre>',
     ]) {
       await rerender(message(text));
-      expect(runButtons()).toHaveLength(0);
+      expect(buttonsLabelled(container, /^Run /)).toHaveLength(0);
     }
+  });
+
+  describe("multi-line shell scripts", () => {
+    const onRunShellCommand = vi.fn();
+    const script = (code: string) => (
+      <ChatMarkdown
+        cwd="/tmp/project"
+        text={`\`\`\`bash\n${code}\n\`\`\``}
+        onRunShellCommand={onRunShellCommand}
+      />
+    );
+    const dialog = () => document.querySelector('[role="alertdialog"]');
+    const dialogButton = (label: string) =>
+      [...(dialog()?.querySelectorAll("button") ?? [])].find(
+        (button) => button.textContent === label,
+      );
+
+    async function openDialog(code: string) {
+      setup();
+      onRunShellCommand.mockReset();
+      const screen = await render(script(code));
+      const [runButton] = buttonsLabelled(screen.container, /^Run \d+ lines in terminal$/);
+      await act(async () => runButton!.click());
+      return screen;
+    }
+
+    it("runs the script only after the dialog confirms it", async () => {
+      const code = "vp i\ncat > .env <<'EOF'\nA=1\nEOF";
+      await using _screen = await openDialog(code);
+      await vi.waitFor(() => expect(dialog()?.textContent).toContain("Run 4 lines in terminal?"));
+      expect(onRunShellCommand).not.toHaveBeenCalled();
+
+      await act(async () => dialogButton("Run")!.click());
+      expect(onRunShellCommand).toHaveBeenCalledExactlyOnceWith(code);
+    });
+
+    it("does not run the script when the dialog is cancelled", async () => {
+      await using _screen = await openDialog("echo one\necho two");
+      await vi.waitFor(() => expect(dialogButton("Cancel")).toBeDefined());
+      await act(async () => dialogButton("Cancel")!.click());
+      await vi.waitFor(() => expect(dialog()).toBeNull());
+      expect(onRunShellCommand).not.toHaveBeenCalled();
+    });
+
+    it("drops the confirmation when the script changes while it is open", async () => {
+      await using screen = await openDialog("echo one\necho two");
+      await vi.waitFor(() => expect(dialog()).not.toBeNull());
+      await screen.rerender(script("echo one\necho three"));
+      await vi.waitFor(() => expect(dialog()).toBeNull());
+      await screen.rerender(script("echo one\necho two"));
+      expect(dialog()).toBeNull();
+      expect(onRunShellCommand).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "echo one\necho two\\",
+      "$ echo one\noutput",
+      "echo one\necho \u202etwo",
+      "echo\tone",
+    ])("does not offer to run %j", async (code) => {
+      setup();
+      await using screen = await render(script(code));
+      expect(buttonsLabelled(screen.container, /^Run /)).toHaveLength(0);
+    });
   });
 
   function spyOnStreamChunks(highlighter: Awaited<ReturnType<typeof getSyntaxHighlighterPromise>>) {
@@ -495,6 +631,37 @@ describe("ChatMarkdown workspace file opens", () => {
   });
 });
 
+describe("ChatMarkdown skill chips", () => {
+  it("shows the skill's details and opens its instructions", async () => {
+    setup();
+    const threadRef = {
+      environmentId: EnvironmentId.make("workspace"),
+      threadId: ThreadId.make("thread"),
+    };
+    await using screen = await renderText("Run $review now", {
+      threadRef,
+      skills: [
+        {
+          name: "review",
+          displayName: "Review",
+          description: "Reviews the current branch.",
+          path: "/skills/review/SKILL.md",
+          enabled: true,
+        },
+      ],
+    });
+    using openFile = vi
+      .spyOn(useRightPanelStore.getState(), "openFile")
+      .mockImplementation(() => {});
+
+    await userEvent.click(screen.getByRole("button", { name: "Skill Review. Show details" }));
+    await expect.element(page.getByText("Reviews the current branch.")).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "View instructions" }));
+
+    expect(openFile).toHaveBeenCalledExactlyOnceWith(threadRef, "/skills/review/SKILL.md");
+  });
+});
+
 describe("ChatMarkdown headings", () => {
   it("never gives two headings the same id, even when a suffix matches another heading", async () => {
     setup();
@@ -511,6 +678,22 @@ describe("ChatMarkdown headings", () => {
       "user-content-install",
       "user-content-install-2",
     ]);
+  });
+});
+
+describe("ChatMarkdown inline code selection", () => {
+  it("selects the whole inline code span on double-click, but only a word in fenced code", async () => {
+    setup();
+    await using screen = await renderText(
+      "Run `migration-gate --dry-run` first.\n\n```txt\nfenced-block word\n```",
+    );
+    await userEvent.dblClick(screen.getByText("migration-gate --dry-run"));
+    expect(window.getSelection()?.toString()).toBe("migration-gate --dry-run");
+
+    window.getSelection()?.removeAllRanges();
+    const fenced = screen.container.querySelector("pre code")!;
+    await userEvent.dblClick(fenced, { position: { x: 4, y: 4 } });
+    expect(window.getSelection()?.toString()).toBe("fenced");
   });
 });
 

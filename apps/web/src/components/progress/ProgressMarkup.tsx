@@ -6,7 +6,7 @@ import type {
 } from "@supaterm/contracts";
 import { normalizeRect } from "@supaterm/shared/annotationShapes";
 import * as Schema from "effect/Schema";
-import { CircleIcon, EraserIcon, MoveUpRightIcon, PencilIcon, SquareIcon } from "lucide-react";
+import { CircleIcon, EraserIcon, ArrowUpRightIcon, PencilIcon, SquareIcon } from "@supaterm/icons";
 import { type PointerEvent, useRef, useState } from "react";
 
 import { useComposerDraftStore } from "../../composerDraftStore";
@@ -46,7 +46,7 @@ const TOOLS: ReadonlyArray<{
 }> = [
   { tool: "box", label: "Box an area (B)", Icon: SquareIcon },
   { tool: "circle", label: "Circle an area (O)", Icon: CircleIcon },
-  { tool: "arrow", label: "Point with an arrow (A)", Icon: MoveUpRightIcon },
+  { tool: "arrow", label: "Point with an arrow (A)", Icon: ArrowUpRightIcon },
   { tool: "pen", label: "Draw freehand (P)", Icon: PencilIcon },
   { tool: "erase", label: "Erase a mark (E)", Icon: EraserIcon },
 ];

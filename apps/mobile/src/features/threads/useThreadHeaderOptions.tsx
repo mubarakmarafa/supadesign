@@ -1,5 +1,6 @@
 import { useWorkspaceSidebarHeaderItem } from "../layout/useWorkspaceSidebarHeaderItem";
 import { StackActions, useNavigation } from "@react-navigation/native";
+import type { ThreadPinnedMessage } from "@supaterm/contracts";
 import { useMemo } from "react";
 import { threadHeaderAppearance } from "./thread-header-appearance";
 import { isDuoDevice } from "../../lib/device-type";
@@ -8,7 +9,12 @@ import { useDeviceType } from "../../native/native-layout-metrics";
 import { useNativeWorkspaceColumnsSupported } from "../../native/NativeWorkspaceColumns";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
 import { withNativeGlassHeaderItem } from "../layout/native-glass-header-items";
-import { ThreadGitControls, useThreadGitRightHeaderItems } from "./ThreadGitControls";
+import {
+  ThreadGitControls,
+  useThreadGitCenterHeaderItems,
+  useThreadGitRightHeaderItems,
+} from "./ThreadGitControls";
+import { pinnedMessageCaption, pinnedMessageTitle } from "./pinnedMessageLabels";
 
 type NativeHeaderItems = ReadonlyArray<Record<string, unknown>>;
 
@@ -20,6 +26,8 @@ export function useThreadHeaderOptions(props: {
   readonly gitControls: Parameters<typeof ThreadGitControls>[0];
   readonly onReturnToThread?: () => void;
   readonly draft?: boolean;
+  readonly pinnedMessages?: ReadonlyArray<ThreadPinnedMessage>;
+  readonly onJumpToPinnedMessage?: (pin: ThreadPinnedMessage) => void;
 }) {
   const usesNativeWorkspaceColumns = useNativeWorkspaceColumnsSupported();
   const deviceType = useDeviceType();
@@ -27,57 +35,79 @@ export function useThreadHeaderOptions(props: {
   const navigation = useNavigation();
   const { layout, startNewTask } = useAdaptiveWorkspaceLayout();
   const sidebarHeaderItem = useWorkspaceSidebarHeaderItem();
-  const rightHeaderItems = useThreadGitRightHeaderItems(props.gitControls);
-  const splitLeftHeaderItems = useMemo<NativeHeaderItems>(
-    () => [
-      ...(!usesDuoHeader
-        ? [
+  const threadCenterHeaderItems = useThreadGitCenterHeaderItems(props.gitControls);
+  const compactRightHeaderItems = useThreadGitRightHeaderItems(props.gitControls);
+  const { pinnedMessages, onJumpToPinnedMessage } = props;
+  const pinsHeaderItems = useMemo<NativeHeaderItems>(
+    () =>
+      !pinnedMessages?.length || !onJumpToPinnedMessage
+        ? []
+        : [
             {
-              spacing: 18,
-              type: "spacing" as const,
+              accessibilityLabel: "Pinned messages",
+              icon: { name: "pin", type: "sfSymbol" },
+              identifier: "thread-right-pins",
+              label: "Pins",
+              menu: {
+                items: pinnedMessages.map((pin) => ({
+                  description: pinnedMessageCaption(pin),
+                  label: pinnedMessageTitle(pin),
+                  onPress: () => onJumpToPinnedMessage(pin),
+                  type: "action",
+                })),
+                title: "Pinned messages",
+              },
+              sharesBackground: true,
+              type: "menu",
+              variant: "plain",
             },
-          ]
-        : []),
-      ...(props.onReturnToThread
-        ? [
-            withNativeGlassHeaderItem({
-              accessibilityLabel: "Return to chat",
-              icon: { name: "chevron.left", type: "sfSymbol" as const },
-              identifier: "thread-left-return",
-              onPress: props.onReturnToThread,
-              type: "button" as const,
-            }),
-          ]
-        : []),
-      sidebarHeaderItem,
-      ...(!usesDuoHeader && !props.draft
-        ? [
-            withNativeGlassHeaderItem({
-              accessibilityLabel: "New task",
-              icon: { name: "square.and.pencil", type: "sfSymbol" as const },
-              identifier: "thread-left-new-task",
-              label: "New task",
-              onPress: startNewTask,
-              type: "button" as const,
-            }),
-          ]
-        : []),
-    ],
-    [sidebarHeaderItem, props.onReturnToThread, props.draft, startNewTask, usesDuoHeader],
+          ],
+    [pinnedMessages, onJumpToPinnedMessage],
   );
+  const splitLeftHeaderItems: NativeHeaderItems = [
+    ...(!usesDuoHeader
+      ? [
+          {
+            spacing: 18,
+            type: "spacing" as const,
+          },
+        ]
+      : []),
+    ...(props.onReturnToThread
+      ? [
+          withNativeGlassHeaderItem({
+            accessibilityLabel: "Return to chat",
+            icon: { name: "chevron.left", type: "sfSymbol" as const },
+            identifier: "thread-left-return",
+            onPress: props.onReturnToThread,
+            type: "button" as const,
+          }),
+        ]
+      : []),
+    sidebarHeaderItem,
+    ...(!usesDuoHeader && !props.draft
+      ? [
+          withNativeGlassHeaderItem({
+            accessibilityLabel: "New task",
+            icon: { name: "square.and.pencil", type: "sfSymbol" as const },
+            identifier: "thread-left-new-task",
+            label: "New task",
+            onPress: startNewTask,
+            type: "button" as const,
+          }),
+        ]
+      : []),
+  ];
   const canGoBack = navigation.canGoBack();
-  const compactHomeHeaderItems = useMemo<NativeHeaderItems>(
-    () => [
-      withNativeGlassHeaderItem({
-        accessibilityLabel: "Go to threads list",
-        icon: { name: "list.bullet", type: "sfSymbol" as const },
-        identifier: "thread-left-home",
-        onPress: () => navigation.dispatch(StackActions.replace("Home")),
-        type: "button" as const,
-      }),
-    ],
-    [navigation],
-  );
+  const compactHomeHeaderItems: NativeHeaderItems = [
+    withNativeGlassHeaderItem({
+      accessibilityLabel: "Go to threads list",
+      icon: { name: "list.bullet", type: "sfSymbol" as const },
+      identifier: "thread-left-home",
+      onPress: () => navigation.dispatch(StackActions.replace("Home")),
+      type: "button" as const,
+    }),
+  ];
 
   const options: AppNativeStackNavigationOptions = {
     ...threadHeaderAppearance(props.usesNativeHeaderGlass),
@@ -90,7 +120,12 @@ export function useThreadHeaderOptions(props: {
         ? undefined
         : () => compactHomeHeaderItems,
     // The workspace navigator adds compose to the Duo detail column's bar.
-    unstable_headerRightItems: () => rightHeaderItems,
+    unstable_headerRightItems: () => [
+      ...pinsHeaderItems,
+      ...(usesDuoHeader || layout.usesSplitView
+        ? threadCenterHeaderItems
+        : compactRightHeaderItems),
+    ],
     unstable_headerToolbarItems: () => [],
     unstable_headerSubtitle: props.usesNativeHeaderGlass ? props.subtitle : undefined,
     contentStyle: undefined,
@@ -101,7 +136,9 @@ export function useThreadHeaderOptions(props: {
 
     optionsVersion: [
       splitLeftHeaderItems,
-      rightHeaderItems,
+      threadCenterHeaderItems,
+      compactRightHeaderItems,
+      pinsHeaderItems,
       usesDuoHeader,
       environmentId,
       threadId,

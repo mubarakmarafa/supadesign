@@ -12,17 +12,13 @@ import {
 } from "@supaterm/contracts";
 import { createModelSelection } from "@supaterm/shared/model";
 import { useAtomValue } from "@effect/atom-react";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, TrashIcon } from "@supaterm/icons";
 import { useId, useState } from "react";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { randomUUID } from "../../lib/utils";
 import { getCustomModelOptionsByInstance } from "../../modelSelection";
-import {
-  applyProviderInstanceSettings,
-  deriveProviderInstanceEntries,
-  sortProviderInstanceEntries,
-} from "../../providerInstances";
+import { providerInstanceEntriesFor } from "../../providerInstances";
 import { EMPTY_SERVER_PROVIDERS, serverEnvironment } from "../../state/server";
 import { scheduledTaskDefaultModel } from "../automations/automations.logic";
 import { ProviderModelPicker } from "../chat/ProviderModelPicker";
@@ -96,9 +92,7 @@ function StepModelPicker({
   const settings = useEnvironmentSettings(environmentId);
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(environmentId)) ?? EMPTY_SERVER_PROVIDERS;
-  const instanceEntries = sortProviderInstanceEntries(
-    applyProviderInstanceSettings(deriveProviderInstanceEntries(providers), settings, project.id),
-  );
+  const instanceEntries = providerInstanceEntriesFor(providers, settings, project.id);
   const fallback = scheduledTaskDefaultModel(settings, project, instanceEntries);
   const selection = value ?? fallback;
   const modelOptionsByInstance = getCustomModelOptionsByInstance(
@@ -187,7 +181,7 @@ function StepEditor({
           aria-label={`Remove ${step.name || "this step"}`}
           onClick={onRemove}
         >
-          <Trash2Icon />
+          <TrashIcon />
         </Button>
       </div>
       <Textarea

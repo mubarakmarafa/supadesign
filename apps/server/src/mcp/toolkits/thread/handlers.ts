@@ -10,6 +10,7 @@ import {
 import * as Effect from "effect/Effect";
 import { modelSelectionCommandType } from "@supaterm/shared/model";
 
+import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import {
   dispatchFailure,
@@ -91,10 +92,21 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
         });
       const { task, threadId } = yield* scheduler
         .runNow({ id: input.taskId })
-        .pipe(Effect.mapError(unavailable));
+        .pipe(
+          Effect.mapError(
+            (error) =>
+              new OrchestratorMcpFailure({ code: "orchestration_error", message: error.message }),
+          ),
+        );
+      const scope = yield* McpInvocationContext.McpInvocationContext;
       return {
         taskId: task.id,
         threadId,
+        ...(threadId === null
+          ? {}
+          : {
+              link: McpInvocationContext.threadLinkFor(scope, threadId),
+            }),
         lastRunStatus: task.lastRunStatus,
         runCount: task.runCount,
         nextRunAt: task.nextRunAt,
@@ -104,37 +116,40 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
   supaterm_thread_search: McpToolAccess.reads((input) =>
     Effect.gen(function* () {
       const { caller } = yield* readCaller();
-      const { projectId: requested, ...query } = input;
-      const projectId = requested ?? caller?.projectId;
+      const scope = yield* McpInvocationContext.McpInvocationContext;
       const threadSearch = yield* ThreadSearch.ThreadSearch;
-      const result = yield* threadSearch.search(query).pipe(Effect.mapError(unavailable));
+      const { matches } = yield* threadSearch
+        .searchThreads({ ...input, projectId: input.projectId ?? caller?.projectId })
+        .pipe(Effect.mapError(unavailable));
       return {
-        matches:
-          projectId === undefined
-            ? result.matches
-            : result.matches.filter((match) => match.projectId === projectId),
+        matches: matches.map((match) => ({
+          ...match,
+          link: McpInvocationContext.threadLinkFor(scope, match.threadId),
+        })),
       };
     }),
   ),
-  supaterm_thread_fork: writesThread((input) =>
-    Effect.gen(function* () {
-      const { threads, projection } = yield* readThread(input.threadId);
-      const commandId = yield* newCommandId();
-      const targetThreadId = ThreadId.make(`${commandId}:fork`);
-      const result = yield* threads
-        .dispatch({
-          type: "thread.fork",
-          commandId,
-          sourceThreadId: projection.thread.id,
-          targetThreadId,
-          sourcePoint: input.sourcePoint,
-          ...(input.title === undefined ? {} : { title: input.title }),
-          createdBy: "agent",
-          creationSource: "mcp",
-        })
-        .pipe(Effect.mapError(dispatchFailure));
-      return { sequence: result.sequence, targetThreadId };
-    }),
+  supaterm_thread_fork: McpToolAccess.forksThreads(
+    (input) => [input.threadId],
+    (input) =>
+      Effect.gen(function* () {
+        const { threads, projection } = yield* readThread(input.threadId);
+        const commandId = yield* newCommandId();
+        const targetThreadId = ThreadId.make(`${commandId}:fork`);
+        const result = yield* threads
+          .dispatch({
+            type: "thread.fork",
+            commandId,
+            sourceThreadId: projection.thread.id,
+            targetThreadId,
+            sourcePoint: input.sourcePoint,
+            ...(input.title === undefined ? {} : { title: input.title }),
+            createdBy: "agent",
+            creationSource: "mcp",
+          })
+          .pipe(Effect.mapError(dispatchFailure));
+        return { sequence: result.sequence, targetThreadId };
+      }),
   ),
   supaterm_thread_merge_back: McpToolAccess.writesThreads(
     (input) => [input.targetThreadId, input.sourceThreadId],
@@ -318,6 +333,20 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
           break;
         case "mark_unread":
           command = { ...common, type: "thread.mark-unread" };
+          break;
+        case "pin_message":
+        case "unpin_message":
+          if (input.itemId === undefined) {
+            return yield* new OrchestratorMcpFailure({
+              code: "invalid_request",
+              message: `${input.action} requires itemId.`,
+            });
+          }
+          command = {
+            ...common,
+            type: input.action === "pin_message" ? "thread.message.pin" : "thread.message.unpin",
+            itemId: input.itemId,
+          };
           break;
         default:
           command = { ...common, type: `thread.${input.action}` };

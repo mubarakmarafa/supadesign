@@ -1,12 +1,17 @@
-import type {
-  ChatAttachment,
-  OrchestrationV2ProjectedTurnItem,
-  OrchestrationV2ProviderCapabilities,
+import {
+  type ChatAttachment,
+  isCompactionCommandMessage,
+  type OrchestrationV2ProjectedTurnItem,
+  type OrchestrationV2ProviderCapabilities,
 } from "@supaterm/contracts";
 import { latestForkableRun } from "@supaterm/contracts";
 import { copySorted } from "@supaterm/shared/Array";
 
-import type { ThreadStructure } from "./models.ts";
+import {
+  type ThreadStructure,
+  type ThreadStructureRuntime,
+  threadRuntimeIsActive,
+} from "./models.ts";
 
 type Projection = ThreadStructure;
 type Run = Projection["runs"][number];
@@ -27,14 +32,17 @@ export interface QueuedThreadRun {
   readonly attachments: ReadonlyArray<ChatAttachment>;
   readonly messageId: Message["id"];
   readonly context?: Message["context"];
+  /** Carries the attribution a sent message shows: automation or agent sender. */
+  readonly message?: Message;
 }
 
 export interface ThreadQueueWorkflowState {
   readonly activeRun: Run | null;
   readonly queuedRuns: ReadonlyArray<QueuedThreadRun>;
   readonly isHeld: boolean;
-  readonly canReorder: boolean;
   readonly canPromoteToSteer: boolean;
+  /** The active run is a compaction, so promoting a queued message stops it instead of steering. */
+  readonly promoteSkipsCompaction: boolean;
   readonly canSendNow: boolean;
 }
 
@@ -44,9 +52,11 @@ export function resolveActiveThreadRun(projection: Pick<Projection, "runs">): Ru
 
 /** Newer work does not prevent forking the last provider-finished conversation. */
 export function resolveThreadForkSource(projection: {
-  readonly thread: Pick<Projection["thread"], "id" | "forkedFrom">;
+  readonly thread: Pick<Projection["thread"], "id" | "forkedFrom" | "lineage">;
   readonly runs: ReadonlyArray<Pick<Run, "id" | "ordinal" | "status">>;
 }) {
+  // A fork of a side chat would keep its parent's history only on providers that fork natively.
+  if (projection.thread.lineage.sideChat === true) return null;
   const run = latestForkableRun(projection.runs);
   if (run !== null) return { sourceThreadId: projection.thread.id, runId: run.id };
 
@@ -78,6 +88,17 @@ export function resolveLatestMergeBackRun(projection: Projection): Run | null {
       MERGE_BACK_BLOCKING_RUN_STATUSES.has(run.status),
   );
   return hasNewerActiveRun ? null : latestProviderFinishedRun;
+}
+
+export function sideChatBringBackBlockedReason(input: {
+  readonly canOperate: boolean;
+  readonly parentRuntime: ThreadStructureRuntime | null | undefined;
+  readonly mergeRun: Run | null;
+}) {
+  if (!input.canOperate) return "This connection cannot change threads.";
+  // A pending merge-back would fail the main thread's queued message, so the server refuses it.
+  if (threadRuntimeIsActive(input.parentRuntime)) return "Available when the main thread is idle.";
+  return input.mergeRun === null ? "Available after a finished reply." : null;
 }
 
 function resolveThreadProviderSession(projection: Projection): ProviderSession | null {
@@ -144,6 +165,11 @@ export function deriveThreadQueueWorkflowState(projection: Projection): ThreadQu
   const activeRun = resolveActiveThreadRun(projection);
   const session = resolveThreadProviderSession(projection);
   const capabilities = session?.capabilities.turns;
+  const activeMessage = projection.messages.find(
+    (message) => message.id === activeRun?.userMessageId,
+  );
+  const promoteSkipsCompaction =
+    activeMessage !== undefined && isCompactionCommandMessage(activeMessage);
   const hasSteerableProviderTurn =
     activeRun?.status === "running" &&
     activeRun.activeAttemptId !== null &&
@@ -163,6 +189,7 @@ export function deriveThreadQueueWorkflowState(projection: Projection): ThreadQu
       attachments: message?.attachments ?? [],
       messageId: run.userMessageId,
       ...(message?.context ? { context: message.context } : {}),
+      ...(message ? { message } : {}),
     };
   });
 
@@ -170,15 +197,16 @@ export function deriveThreadQueueWorkflowState(projection: Projection): ThreadQu
     activeRun,
     queuedRuns,
     isHeld: projection.runs.some((run) => run.status === "queued" && run.queueHeld === true),
-    canReorder: capabilities?.supportsQueuedMessages === true,
     canSendNow:
       activeRun === null &&
       projection.thread.archivedAt == null &&
       projection.thread.deletedAt == null,
     canPromoteToSteer:
-      hasSteerableProviderTurn &&
-      (capabilities?.supportsActiveSteering === true ||
-        capabilities?.supportsSteeringByInterruptRestart === true),
+      promoteSkipsCompaction ||
+      (hasSteerableProviderTurn &&
+        (capabilities?.supportsActiveSteering === true ||
+          capabilities?.supportsSteeringByInterruptRestart === true)),
+    promoteSkipsCompaction,
   };
 }
 

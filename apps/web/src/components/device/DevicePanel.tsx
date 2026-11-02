@@ -5,18 +5,35 @@ import type {
   DeviceSummary,
   ScopedThreadRef,
 } from "@supaterm/contracts";
-import { ArrowUpRight, CircleAlert, Play, Smartphone, X } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import {
+  ArrowUpRightIcon,
+  CircleAlertIcon,
+  PlayIcon,
+  SmartphoneIcon,
+  XIcon,
+} from "@supaterm/icons";
+import { useAtomMount } from "@effect/atom-react";
+import { type ReactNode, useState } from "react";
 
 import { usePreviewMiniPlayerStore } from "~/previewMiniPlayerStore";
-import { useRightPanelStore, type RightPanelSurface } from "~/rightPanelStore";
+import {
+  selectThreadRightPanelState,
+  useRightPanelStore,
+  type RightPanelSurface,
+} from "~/rightPanelStore";
 import { Button } from "~/components/ui/button";
 import { DiscoveryList } from "~/components/ui/discovery-list";
 import { Dialog } from "~/components/ui/dialog";
 import { WizardPopup } from "~/components/ui/wizard";
 import { Spinner } from "~/components/ui/spinner";
 import { cn } from "~/lib/utils";
-import { deviceEnvironment, useDeviceState } from "~/state/device";
+import { focusPanelTerminalAfterClose } from "~/lib/terminalFocus";
+import {
+  deviceEnvironment,
+  deviceHostProbeAtom,
+  NO_DEVICE_PROBE_ATOM,
+  useDeviceState,
+} from "~/state/device";
 import { formatEnvironmentQueryError } from "~/state/query";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { DeviceLoadingView } from "./DeviceLoadingView";
@@ -38,7 +55,7 @@ export function DevicePanel(props: {
   readonly onDismissSetup: () => void;
 }) {
   const { environmentId, threadId } = props.threadRef;
-  const { state, loaded } = useDeviceState(environmentId);
+  const { state, loaded, error: stateError, refresh: refreshState } = useDeviceState(environmentId);
   const list = useAtomCommand(deviceEnvironment.list, { reportFailure: false });
   const open = useAtomCommand(deviceEnvironment.open);
   const close = useAtomCommand(deviceEnvironment.close);
@@ -55,11 +72,11 @@ export function DevicePanel(props: {
 
   const hostDisabled = state.hostStatus === "disabled";
 
-  // Opening setup never grants permission to install or start helpers.
-  useEffect(() => {
-    if (!props.visible || !loaded || hostDisabled) return;
-    void list({ environmentId, input: {} });
-  }, [environmentId, list, loaded, props.visible, hostDisabled]);
+  useAtomMount(
+    props.visible && loaded && !hostDisabled
+      ? deviceHostProbeAtom(environmentId)
+      : NO_DEVICE_PROBE_ATOM,
+  );
 
   const sessions = state.sessions.filter((session) => session.threadId === threadId);
   const activeSession = props.surface.target
@@ -124,9 +141,16 @@ export function DevicePanel(props: {
     useRightPanelStore.getState().close(props.threadRef);
   };
 
+  const closeSurface = () => {
+    const store = useRightPanelStore.getState();
+    const { activeSurfaceId } = selectThreadRightPanelState(store.byThreadKey, props.threadRef);
+    store.closeSurface(props.threadRef, props.surface.id);
+    focusPanelTerminalAfterClose(props.threadRef, activeSurfaceId);
+  };
+
   const closeActive = (powerOff: boolean) => {
     if (!powerOff) {
-      useRightPanelStore.getState().closeSurface(props.threadRef, props.surface.id);
+      closeSurface();
       return;
     }
     if (!activeSession) return;
@@ -141,7 +165,7 @@ export function DevicePanel(props: {
       },
     }).then((result) => {
       if (result._tag === "Failure") settleOperation(formatEnvironmentQueryError(result.cause));
-      else useRightPanelStore.getState().closeSurface(props.threadRef, props.surface.id);
+      else closeSurface();
     });
   };
 
@@ -149,6 +173,8 @@ export function DevicePanel(props: {
     state.bootingDevices?.filter((device) => device.threadId === threadId) ?? [];
   const { ready: hostReady, busy: hostBusy } = deviceHubReadiness(state);
   const loading = !activeDevice && (pendingDevice !== null || hostBusy || !loaded);
+  // Without a first snapshot a failed subscription never settles on its own.
+  const loadError = loaded ? null : stateError;
   const diagnostics = state.hosts.flatMap((host) => {
     const status = state.hostStatuses[host.id];
     const detail = status?.detail ?? (host.kind === "local" ? state.hostStatusDetail : undefined);
@@ -217,6 +243,7 @@ export function DevicePanel(props: {
               hostLabel={
                 state.hosts.find((host) => host.id === activeDevice.hostId)?.label ?? "Device host"
               }
+              hostKind={state.hosts.find((host) => host.id === activeDevice.hostId)?.kind}
               hostDiagnostics={
                 diagnostics.find(({ hostId }) => hostId === activeDevice.hostId)?.detail
               }
@@ -235,15 +262,23 @@ export function DevicePanel(props: {
               }
               stage="opening"
               message={
-                pendingDevice
+                loadError ??
+                (pendingDevice
                   ? pendingDevice.booted
                     ? "Opening device…"
                     : "Starting device…"
                   : state.hostStatus === "installing"
                     ? (state.hostStatusDetail ?? "Installing device support…")
-                    : "Finding devices…"
+                    : "Finding devices…")
               }
-            />
+              error={loadError !== null}
+            >
+              {loadError !== null ? (
+                <Button size="sm" variant="outline" onClick={refreshState}>
+                  Retry
+                </Button>
+              ) : null}
+            </DeviceLoadingView>
           ) : (
             <div className="scrollbar-gutter-both flex size-full flex-col overflow-y-auto px-5 py-8 text-sm text-muted-foreground">
               <div
@@ -254,7 +289,7 @@ export function DevicePanel(props: {
               >
                 {grouped.length === 0 ? (
                   <>
-                    <Smartphone className="size-6 opacity-60" />
+                    <SmartphoneIcon className="size-6 opacity-60" />
                     <p
                       className="max-h-32 w-full max-w-sm overflow-y-auto whitespace-pre-line break-words"
                       tabIndex={state.hostStatus === "failed" ? 0 : undefined}
@@ -270,7 +305,7 @@ export function DevicePanel(props: {
                     {grouped.map((group) => (
                       <section key={group.platform} className="space-y-3">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Smartphone className="size-4 shrink-0" />
+                          <SmartphoneIcon className="size-4 shrink-0" />
                           <h3 className="font-medium">{platformLabel(group.platform)}</h3>
                         </div>
                         <DiscoveryList>
@@ -280,7 +315,7 @@ export function DevicePanel(props: {
                               className="flex items-center gap-3 px-3 py-3"
                             >
                               <span className="grid size-8 shrink-0 place-items-center rounded-md border border-border/60">
-                                <Smartphone className="size-4" />
+                                <SmartphoneIcon className="size-4" />
                               </span>
                               <div className="flex min-w-0 flex-1 flex-col">
                                 <span className="truncate text-sm font-medium text-foreground">
@@ -300,9 +335,9 @@ export function DevicePanel(props: {
                                 {pendingDeviceKey === deviceKey(device) ? (
                                   <Spinner size="xs" />
                                 ) : device.booted ? (
-                                  <ArrowUpRight />
+                                  <ArrowUpRightIcon />
                                 ) : (
-                                  <Play />
+                                  <PlayIcon />
                                 )}
                                 {device.booted ? "Open" : "Start"}
                               </Button>
@@ -356,7 +391,7 @@ function DeviceNotice(props: {
           : "bg-destructive/5 text-destructive",
       )}
     >
-      <CircleAlert className="mt-1 size-3.5 shrink-0" />
+      <CircleAlertIcon className="mt-1 size-3.5 shrink-0" />
       <div
         className="max-h-32 min-w-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words"
         tabIndex={0}
@@ -369,7 +404,7 @@ function DeviceNotice(props: {
         aria-label={props.tone === "warning" ? "Dismiss device warning" : "Dismiss device error"}
         onClick={props.onDismiss}
       >
-        <X />
+        <XIcon />
       </Button>
     </div>
   );

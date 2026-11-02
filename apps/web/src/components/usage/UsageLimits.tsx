@@ -9,6 +9,7 @@ import {
   UsageProviderKind,
 } from "@supaterm/contracts";
 import { useAtomValue } from "@effect/atom-react";
+import { normalizeProviderAccentColor } from "@supaterm/client-runtime/state/provider-instance-display";
 import {
   formatDuration,
   formatResetsIn,
@@ -17,7 +18,7 @@ import {
   paceRemainingPercent,
   remainingPercent,
 } from "@supaterm/shared/usageLimits";
-import { GaugeIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
+import { GaugeIcon, TrendingDownIcon, TrendingUpIcon } from "@supaterm/icons";
 import { Fragment, type ReactNode, useLayoutEffect, useState } from "react";
 
 import { useInlineConfirm } from "../../hooks/useInlineConfirm";
@@ -95,6 +96,7 @@ function paceMarkStyles(timeLeft: number | null) {
 export function usePaceMark(timeLeft: number | null) {
   const [bar, setBar] = useState<HTMLElement | null>(null);
   const [roomy, setRoomy] = useState(false);
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- measures the bar DOM width before paint and remeasures through a ResizeObserver
   useLayoutEffect(() => {
     if (!bar) return;
     const measure = () => setRoomy(bar.getBoundingClientRect().width >= 6);
@@ -178,16 +180,18 @@ function WindowBar({
 
 export function LimitWindows({
   driver,
+  accentColor,
   windows,
   now,
   compact = false,
 }: {
   readonly driver: ServerProvider["driver"];
+  readonly accentColor?: string | undefined;
   readonly windows: ReadonlyArray<ServerProviderUsageWindow>;
   readonly now: number;
   readonly compact?: boolean;
 }) {
-  const color = barColor(driver);
+  const color = normalizeProviderAccentColor(accentColor) ?? barColor(driver);
   return (
     <div
       className={

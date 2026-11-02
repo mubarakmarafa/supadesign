@@ -13,7 +13,8 @@ import {
   ToolActivityIconView,
 } from "./TimelineToolActivityIcon";
 import {
-  remarkThoughtPreview,
+  THINKING_PREVIEW_PLUGINS,
+  THOUGHT_PREVIEW_PLUGINS,
   workEntryIconName,
   toolGroupSummaryIconName,
 } from "./TimelineWorkEntryRow.logic";
@@ -33,20 +34,17 @@ import {
 } from "./MessagesTimeline.logic";
 import { WorkLogList, WorkLogRow, WorkLogButton } from "./WorkLog";
 import type { WorktreeSetupSnapshot, ToolActivityIcon } from "@supaterm/contracts";
-import {
-  getQuestionTextPreview,
-  hasQuestionAnswer,
-  getQuestionAnswerPreview,
-} from "@supaterm/client-runtime/work-log/user-input";
 import { liveThoughtLine } from "@supaterm/client-runtime/work-log/presentation";
 import { resolveWorkGroupScrollAnchor } from "@supaterm/client-runtime/work-log/scroll-anchor";
 import { observeResize } from "~/lib/observeResize";
+import { tickTextContent } from "~/lib/tickTextContent";
+import { formatElapsedSeconds } from "./AgentElapsed";
 import { observeVisibleAnimation } from "../../lib/visibleAnimation";
 import { memo, use, useRef, useEffect, useState, useLayoutEffect, type ReactNode } from "react";
 import { type LegendListRef, LegendList } from "@legendapp/list/react";
 import { workEntryDisplayIndicatesToolFailure } from "../../session-logic";
 import ChatMarkdown from "../ChatMarkdown";
-import { Minimize2Icon, XIcon } from "lucide-react";
+import { ShrinkIcon, XIcon } from "@supaterm/icons";
 import { Button } from "../ui/button";
 import { getVirtualizedScrollFadeClassName } from "../ui/scroll-area";
 import { Popover, PopoverTrigger, PopoverPopup } from "../ui/popover";
@@ -145,6 +143,7 @@ function ExpandedWorkGroupEntries({
   // A closed row keeps its room while its panel animates shut, and no longer:
   // a recycled row's last size stays cached after it scrolls out mid-close.
   const closingEntryTimersRef = useRef(new Map<string, number>());
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- clears the closing rows' pending timers on unmount
   useEffect(() => {
     const timers = closingEntryTimersRef.current;
     return () => timers.forEach((timer) => window.clearTimeout(timer));
@@ -227,6 +226,7 @@ function ExpandedWorkGroupEntries({
     setRestoringPosition(false);
   };
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- observes the list scroller and its content with ResizeObserver to update scroll fades
   useLayoutEffect(() => {
     const element = listRef.current?.getScrollableNode();
     if (!element) return;
@@ -239,6 +239,7 @@ function ExpandedWorkGroupEntries({
     <SimpleWorkEntryRow key={item.id} workEntry={item} workspaceRoot={workspaceRoot} />
   );
 
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- reads expanded row sizes from LegendList's measured state after layout
   useLayoutEffect(updateExpandedContentHeight, [entries, updateExpandedContentHeight]);
 
   return (
@@ -286,12 +287,12 @@ function ExpandedWorkGroupEntries({
 const workEntryKey = (entry: TimelineWorkEntry) => entry.id;
 
 export function WorkingTimelineRow() {
-  const { isCompacting, isPreparingWorktree, backgroundWorktreeSetup } =
+  const { isCompacting, compactionStartedAt, isPreparingWorktree, backgroundWorktreeSetup } =
     use(TimelineRowActivityCtx);
   const label = isPreparingWorktree ? (
     "Setting up worktree…"
   ) : isCompacting ? (
-    <CompactingLabel />
+    <CompactingLabel startedAt={compactionStartedAt} />
   ) : null;
   if (!label && !backgroundWorktreeSetup) return null;
   return (
@@ -350,11 +351,25 @@ function BackgroundWorktreeSetupChip({ snapshot }: { snapshot: WorktreeSetupSnap
   );
 }
 
-function CompactingLabel() {
+function CompactingLabel({ startedAt }: { startedAt: string | null }) {
+  const startedAtMs = startedAt === null ? Number.NaN : Date.parse(startedAt);
   return (
     <span className="inline-flex items-center gap-1.5">
-      <Minimize2Icon aria-hidden="true" className="size-3" />
-      Compacting…
+      <ShrinkIcon aria-hidden="true" className="size-3" />
+      {Number.isFinite(startedAtMs) ? (
+        <span>
+          Compacting for{" "}
+          <span
+            ref={tickTextContent(
+              (nowMs) => formatElapsedSeconds((nowMs - startedAtMs) / 1000),
+              true,
+            )}
+            className="tabular-nums"
+          />
+        </span>
+      ) : (
+        "Compacting…"
+      )}
     </span>
   );
 }
@@ -363,7 +378,9 @@ export function ThinkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
   const ctx = use(TimelineRowCtx);
   const { isCompacting, isPreparingWorktree } = use(TimelineRowActivityCtx);
   if (isPreparingWorktree || isCompacting) return <WorkLogRow label="" />;
-  const activity = <LiveActivityRow label="Thinking" iconName="brain" active shimmer />;
+  const activity = (
+    <LiveActivityRow label="Thinking" iconName="brain" active={row.active} shimmer={row.active} />
+  );
   const { groupId } = row;
   if (groupId === undefined) return activity;
   return (
@@ -489,10 +506,7 @@ export function LiveWorkEntryTimelineRow({
 }) {
   const ctx = use(TimelineRowCtx);
   const threadTarget = useThreadReadTarget(row.entry, ctx.activeThreadEnvironmentId);
-  const questionHeading = row.entry.questionAnswer
-    ? getQuestionTextPreview(row.entry.questionAnswer)
-    : "";
-  const label = questionHeading || liveWorkEntryLabel(row.entry, ctx.workspaceRoot, row.active);
+  const label = liveWorkEntryLabel(row.entry, ctx.workspaceRoot, row.active);
   const threadLabel = threadReadLabel(label, threadTarget);
 
   const failed = workEntryDisplayIndicatesToolFailure(row.entry);
@@ -535,7 +549,7 @@ export function LiveWorkEntryTimelineRow({
                 text={thoughtLine}
                 cwd={ctx.markdownCwd}
                 parseRawHtml={false}
-                extraRemarkPlugins={[[remarkThoughtPreview, "Thought"]]}
+                extraRemarkPlugins={THOUGHT_PREVIEW_PLUGINS}
               />
             </span>
           }
@@ -550,20 +564,13 @@ export function LiveWorkEntryTimelineRow({
             ) : (
               "Thought"
             )
-          ) : row.entry.questionAnswer && hasQuestionAnswer(row.entry.questionAnswer) ? (
-            <span className="flex min-w-0 gap-1.5">
-              <span className="min-w-0 truncate">{label}</span>
-              <span className="min-w-0 truncate text-foreground">
-                {getQuestionAnswerPreview(row.entry.questionAnswer)}
-              </span>
-            </span>
           ) : row.entry.itemType === "reasoning" ? (
             <ChatMarkdown
               inline
               text={row.entry.detail ?? label}
               cwd={ctx.markdownCwd}
               parseRawHtml={false}
-              extraRemarkPlugins={[[remarkThoughtPreview, row.active ? "Thinking" : "Thought"]]}
+              extraRemarkPlugins={row.active ? THINKING_PREVIEW_PLUGINS : THOUGHT_PREVIEW_PLUGINS}
             />
           ) : threadLabel ? (
             <ThreadReadLabel
@@ -593,7 +600,7 @@ export function WorkGroupToggleTimelineRow({
   return (
     <WorkGroupHeader
       label={row.summary}
-      iconName={row.summaryToolIcon ?? row.toolSurface ?? toolGroupSummaryIconName(row.summaryKind)}
+      iconName={row.toolSurface ?? toolGroupSummaryIconName(row.summaryKind)}
       toolIcon={row.toolIcon}
       failed={row.hasFailure}
       expanded={row.expanded}
@@ -609,7 +616,6 @@ function WorkGroupHeader(props: {
   iconName: WorkEntryIconName;
   toolIcon?: ToolActivityIcon | undefined;
   failed?: boolean | undefined;
-  active?: boolean | undefined;
   expanded: boolean;
   createdAt: string;
   timestampFormat: TimestampFormat;
@@ -617,7 +623,6 @@ function WorkGroupHeader(props: {
 }) {
   return (
     <WorkLogButton
-      ref={props.active && !props.failed ? observeVisibleAnimation : undefined}
       aria-label={props.failed ? `${props.label}, tool call failed` : props.label}
       aria-expanded={props.expanded}
       onClick={props.onToggle}
@@ -629,11 +634,7 @@ function WorkGroupHeader(props: {
           muted
         />
       }
-      label={
-        <span className={cn("block truncate", props.active && !props.failed && "live-tool-shine")}>
-          {props.label}
-        </span>
-      }
+      label={<span className="block truncate">{props.label}</span>}
       trailing={
         <TimelineRowTimestamp createdAt={props.createdAt} timestampFormat={props.timestampFormat} />
       }

@@ -11,8 +11,14 @@ import * as OtlpLogger from "effect/observability/OtlpLogger";
 
 import * as ServerConfig from "./config.ts";
 
+// HTTP errors logged with --log-ws-events carry the request URL and its connection ticket.
+const redactingCredentials = <Output>(logger: Logger.Logger<unknown, Output>) =>
+  Logger.make<unknown, Output>((options) =>
+    logger.log({ ...options, cause: SharedObservability.redactCauseCredentials(options.cause) }),
+  );
+
 const consolePretty = (): Logger.Logger<unknown, void> => {
-  const pretty = Logger.consolePretty();
+  const pretty = redactingCredentials(Logger.consolePretty());
   return Logger.make((options) =>
     pretty.log({
       ...options,
@@ -34,7 +40,7 @@ function prettyCauseFields(value: unknown): unknown {
   let changed = false;
   for (const descriptor of Object.values(descriptors)) {
     if ("value" in descriptor && Cause.isCause(descriptor.value)) {
-      descriptor.value = Cause.pretty(descriptor.value);
+      descriptor.value = SharedObservability.redactUrlCredentials(Cause.pretty(descriptor.value));
       changed = true;
     }
   }
@@ -55,15 +61,11 @@ export const layer = Effect.gen(function* () {
           exportInterval: `${logs.exportIntervalMs} millis`,
           headers: logs.headers,
           resource: ServerConfig.otlpResource(config, hostName),
-        });
+        }).pipe(Effect.map(redactingCredentials));
 
-  // `Logger.layer` writes the whole logger set rather than adding to it, so
-  // every logger the server wants has to be named in this one call.
-  // `Logger.tracerLogger` reaches a collector by attaching each message to the
-  // active span as a span event, which covers only messages logged inside a
-  // recorded span and files them under traces. The OTLP logger carries the same
-  // messages as log records stamped with their trace and span ids, so it is a
-  // superset: keeping both would export every in-span message twice.
+  // `Logger.layer` replaces the whole logger set, so every logger is named in this one call. The
+  // OTLP logger is a superset of `Logger.tracerLogger` (it stamps trace and span ids on every
+  // record), so keeping both would export every in-span message twice.
   const layerLogger = Logger.layer(
     otlpLogger === undefined
       ? [consolePretty(), Logger.tracerLogger]

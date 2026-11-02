@@ -10,6 +10,7 @@ import type {
   ServerProviderModel,
   ServerProviderUpdateRequiredModel,
   ServerProviderState,
+  ServerProviderTranscription,
   ServerProviderUsageLimits,
 } from "@supaterm/contracts";
 import * as Effect from "effect/Effect";
@@ -79,6 +80,7 @@ export interface ProviderProbeResult {
   readonly auth: ServerProviderAuth;
   readonly message?: string;
   readonly usageLimits?: ServerProviderUsageLimits;
+  readonly transcription?: ServerProviderTranscription;
 }
 
 export interface ServerProviderPresentation {
@@ -87,7 +89,6 @@ export interface ServerProviderPresentation {
   readonly showInteractionModeToggle?: boolean;
   readonly reportsContextWindow?: boolean;
   readonly supportedRuntimeModes?: ReadonlyArray<RuntimeMode>;
-  readonly requiresNewThreadForModelChange?: boolean;
   readonly supportsConversationRollback?: boolean;
 }
 
@@ -132,8 +133,7 @@ export const spawnAndCollect = Effect.fn("snapshotProbe.spawnAndCollect")(functi
 }, Effect.scoped);
 
 export function parseGenericCliVersion(output: string): string | null {
-  // "opencode v2.0.3"-style output: the optional "v" has to be consumed first,
-  // since "v2" itself contains no word boundary.
+  // Consume v before the digits; v2 has no internal word boundary.
   const match = output.match(/\bv?(\d+\.\d+\.\d+)\b/);
   return match?.[1] ?? null;
 }
@@ -256,9 +256,6 @@ export function buildServerProvider(input: {
     ...(input.presentation.supportedRuntimeModes === undefined
       ? {}
       : { supportedRuntimeModes: [...input.presentation.supportedRuntimeModes] }),
-    ...(typeof input.presentation.requiresNewThreadForModelChange === "boolean"
-      ? { requiresNewThreadForModelChange: input.presentation.requiresNewThreadForModelChange }
-      : {}),
     enabled: input.enabled,
     installed: input.probe.installed,
     version: input.probe.version,
@@ -275,6 +272,7 @@ export function buildServerProvider(input: {
     slashCommands: [...(input.slashCommands ?? [])],
     skills: [...(input.skills ?? [])],
     ...(input.probe.usageLimits ? { usageLimits: input.probe.usageLimits } : {}),
+    ...(input.probe.transcription ? { transcription: input.probe.transcription } : {}),
     ...(versionAdvisory ? { versionAdvisory } : {}),
   };
 }

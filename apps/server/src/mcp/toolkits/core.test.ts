@@ -1,3 +1,4 @@
+import * as DocumentText from "../../provider/DocumentText.ts";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
@@ -11,6 +12,8 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   RunId,
+  ScheduledTaskError,
+  ScheduledTask,
   RuntimeRequestId,
   ThreadId,
   TurnItemId,
@@ -18,6 +21,7 @@ import {
   type OrchestrationV2ThreadShell,
 } from "@supaterm/contracts";
 import * as McpProviderSessions from "@supaterm/provider-core/server/McpProviderSessions";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as TestClock from "effect/testing/TestClock";
 import * as Layer from "effect/Layer";
@@ -46,7 +50,9 @@ import * as ScheduledTaskService from "../../scheduledTasks/ScheduledTaskService
 import * as ServerSettings from "../../serverSettings.ts";
 import * as McpHttpServer from "../McpHttpServer.ts";
 import * as McpInvocationContext from "../McpInvocationContext.ts";
+import * as McpPendingUploads from "../McpPendingUploads.ts";
 import * as McpToolAccessTestkit from "../McpToolAccess.testkit.ts";
+import * as AnalyticsService from "../../telemetry/AnalyticsService.ts";
 import { dispatchFailure } from "../threadAccess.ts";
 import * as EnvironmentHandlers from "./environment/handlers.ts";
 import * as AttachmentHandlers from "./attachment/handlers.ts";
@@ -56,8 +62,6 @@ const layerOrchestratorToolkit = McpHttpServer.layerOrchestratorToolkit.pipe(
   Layer.provide(Layer.mock(GitVcsDriver.GitVcsDriver)({})),
 );
 
-// Effect returns a declared tool failure as `isError` with its encoded payload
-// as JSON text, never as `structuredContent`.
 const declaredFailure = (result: McpSchema.CallToolResult) => {
   const text = result.content[0];
   return result.isError === true && text?.type === "text" ? JSON.parse(text.text) : undefined;
@@ -272,7 +276,7 @@ it.effect("returns an HTML render reference that Codex and Claude tool rows both
         Layer.provide(
           ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-mcp-html-render-" }),
         ),
-        Layer.provide(NodeServices.layer),
+        Layer.provide(DocumentText.layer.pipe(Layer.provideMerge(NodeServices.layer))),
         Layer.provide(FetchHttpClient.layer),
         Layer.provide(
           Layer.mock(ThreadManagement.ThreadManagementService)({
@@ -290,6 +294,103 @@ it.effect("returns an HTML render reference that Codex and Claude tool rows both
     ),
   ),
 );
+
+it.effect("records only failed calls of tools that hand off no work", () => {
+  // Recording runs detached from the tool response, so the first event is awaited.
+  const recorded = Deferred.makeUnsafe<{ event: string; properties: object }>();
+  return Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    const organize = (capabilities: McpInvocationContext.McpInvocationScope["capabilities"]) =>
+      server.callTool({ name: "supaterm_thread_organize", arguments: { action: "pin" } }).pipe(
+        Effect.provideService(McpInvocationContext.McpInvocationContext, {
+          ...scope,
+          capabilities,
+        }),
+        Effect.provideService(McpSchema.McpServerClient, client),
+      );
+    expect((yield* organize(scope.capabilities)).isError).not.toBe(true);
+    expect(declaredFailure(yield* organize(new Set<never>()))).toMatchObject({
+      code: "capability_denied",
+    });
+    // The successful call ran first, so it would be the first event if it were recorded.
+    expect(yield* Deferred.await(recorded)).toMatchObject({
+      event: "mcp.tool.invoked",
+      properties: { tool: "supaterm_thread_organize", outcome: "error" },
+    });
+  }).pipe(
+    Effect.provide(
+      layerThreadToolkit.pipe(
+        Layer.provideMerge(McpServer.McpServer.layer),
+        Layer.provide(NodeCrypto.layer),
+        Layer.provide(
+          Layer.mock(ThreadManagement.ThreadManagementService)({
+            getThreadShell: (id) => Effect.succeed(McpToolAccessTestkit.liveThreadShell(id)),
+            getProjectThreadRecords: ({ threadId: id }) =>
+              Effect.succeed(
+                McpToolAccessTestkit.idleThreadProjection(McpToolAccessTestkit.liveThreadShell(id)),
+              ),
+            dispatch: () => Effect.succeed({ sequence: 1 } as never),
+          }),
+        ),
+        Layer.provide(
+          Layer.succeed(
+            AnalyticsService.AnalyticsService,
+            AnalyticsService.AnalyticsService.of({
+              record: (event, properties) =>
+                Deferred.succeed(recorded, { event, properties: properties ?? {} }).pipe(
+                  Effect.asVoid,
+                ),
+              flush: Effect.void,
+              recordOwners: () => Effect.void,
+            }),
+          ),
+        ),
+      ),
+    ),
+  );
+});
+
+it.effect("rejects an unknown organize target instead of archiving the calling thread", () => {
+  const dispatched: Array<unknown> = [];
+  return Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    const outcome = yield* server
+      .callTool({
+        name: "supaterm_thread_organize",
+        arguments: { action: "archive", threadIds: ["other-thread"] },
+      })
+      .pipe(
+        Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
+        Effect.provideService(McpSchema.McpServerClient, client),
+        Effect.result,
+      );
+    expect(dispatched).toEqual([]);
+    expect(outcome).toMatchObject({
+      _tag: "Failure",
+      failure: { message: expect.stringContaining("Expected no excess property") },
+    });
+  }).pipe(
+    Effect.provide(
+      layerThreadToolkit.pipe(
+        Layer.provideMerge(McpServer.McpServer.layer),
+        Layer.provide(NodeCrypto.layer),
+        Layer.provide(
+          Layer.mock(ThreadManagement.ThreadManagementService)({
+            getThreadShell: (id) => Effect.succeed(McpToolAccessTestkit.liveThreadShell(id)),
+            getProjectThreadRecords: ({ threadId: id }) =>
+              Effect.succeed(
+                McpToolAccessTestkit.idleThreadProjection(McpToolAccessTestkit.liveThreadShell(id)),
+              ),
+            dispatch: (command) => {
+              dispatched.push(command);
+              return Effect.succeed({ sequence: 1 } as never);
+            },
+          }),
+        ),
+      ),
+    ),
+  );
+});
 
 it.effect("keeps unexpected handler defects private through the production registration", () =>
   Effect.gen(function* () {
@@ -556,6 +657,46 @@ it.effect("refuses act-as-caller tools to a client caller", () =>
   ),
 );
 
+it.effect.each([
+  ["delegate_task", { task: "Review", mode: "async" }],
+  ["create_threads", { threads: [{ prompt: "Review" }] }],
+  ["supaterm_thread_fork", { sourcePoint: { type: "latest_stable" } }],
+] as const)("refuses %s to a side chat before it starts a thread", ([name, args]) =>
+  Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    const result = yield* server
+      .callTool({ name, arguments: args })
+      .pipe(
+        Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
+        Effect.provideService(McpSchema.McpServerClient, client),
+      );
+    expect(declaredFailure(result)).toMatchObject({ code: "capability_denied" });
+  }).pipe(
+    Effect.provide(
+      Layer.mergeAll(layerOrchestratorToolkit, layerThreadToolkit).pipe(
+        Layer.provideMerge(McpServer.McpServer.layer),
+        Layer.provide(NodeCrypto.layer),
+        Layer.provide(
+          Layer.mock(ThreadManagement.ThreadManagementService)({
+            getThreadShell: () =>
+              Effect.succeed(
+                McpToolAccessTestkit.liveThreadShell(threadId, {
+                  runtimeMode: "approval-required",
+                  sideChatOf: ThreadId.make("mcp-core-parent"),
+                }),
+              ),
+          }),
+        ),
+        Layer.provide(ServerSettings.layerTest()),
+        Layer.provide(Layer.mock(ProviderRegistry.ProviderRegistry)({})),
+        Layer.provide(Layer.mock(ProviderAdapterRegistry.ProviderAdapterRegistryV2)({})),
+        Layer.provide(Layer.mock(ScheduledTaskService.ScheduledTaskService)({})),
+        Layer.provide(Layer.mock(ProjectService.ProjectService)({})),
+      ),
+    ),
+  ),
+);
+
 it.effect("a caller cannot rewrite a scheduled task that runs above its own modes", () =>
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
@@ -603,6 +744,58 @@ it.effect("a caller cannot rewrite a scheduled task that runs above its own mode
           }),
         ),
         Layer.provide(Layer.mock(ProjectService.ProjectService)({})),
+      ),
+    ),
+  ),
+);
+
+it.effect.each([
+  {
+    scenario: "explains why a running task cannot run again",
+    tasks: [Schema.decodeSync(ScheduledTask)(scheduledTask("task-running", "full-access"))],
+    error: new ScheduledTaskError({
+      message: "Schedule task is already running.",
+      cause: new Error("private-running-cause"),
+    }),
+    code: "orchestration_error",
+    message: "Schedule task is already running.",
+  },
+  {
+    scenario: "reports a missing task before trying to run it",
+    tasks: [],
+    error: new ScheduledTaskError({ message: "must not run a missing task" }),
+    code: "invalid_request",
+    message: "The scheduled task was not found.",
+  },
+])("run_scheduled_task_now $scenario", ({ tasks, error, code, message }) =>
+  Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    const result = yield* server
+      .callTool({ name: "run_scheduled_task_now", arguments: { taskId: "task-running" } })
+      .pipe(
+        Effect.provideService(
+          McpInvocationContext.McpInvocationContext,
+          clientScope("full-access"),
+        ),
+        Effect.provideService(McpSchema.McpServerClient, client),
+      );
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toBeUndefined();
+    expect(declaredFailure(result)).toEqual({ _tag: "OrchestratorMcpFailure", code, message });
+    expect(JSON.stringify(result)).not.toContain("private-");
+  }).pipe(
+    Effect.provide(
+      McpHttpServer.layerThreadToolkit.pipe(
+        Layer.provideMerge(McpServer.McpServer.layer),
+        Layer.provide(NodeCrypto.layer),
+        Layer.provide(Layer.mock(ThreadManagement.ThreadManagementService)({})),
+        Layer.provide(Layer.mock(ThreadSearch.ThreadSearch)({})),
+        Layer.provide(
+          Layer.mock(ScheduledTaskService.ScheduledTaskService)({
+            list: () => Effect.succeed({ tasks }),
+            runNow: () => Effect.fail(error),
+          }),
+        ),
       ),
     ),
   ),
@@ -830,13 +1023,62 @@ it.effect("only the caller that prepared a pending upload can discard it", () =>
     Effect.provide(
       McpHttpServer.layerAttachmentToolkit.pipe(
         Layer.provideMerge(McpServer.McpServer.layer),
+        Layer.provide(McpPendingUploads.layer),
         Layer.provide(McpToolAccessTestkit.liveThreadsLayer),
         Layer.provide(ServerSecretStore.layer),
         Layer.provide(
           ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-mcp-attachment-" }),
         ),
-        Layer.provide(NodeServices.layer),
+        Layer.provide(DocumentText.layer.pipe(Layer.provideMerge(NodeServices.layer))),
       ),
     ),
   ),
+);
+
+it.effect(
+  "supaterm_thread_list done:false with an empty statuses list lists the threads not done",
+  () => {
+    const open = McpToolAccessTestkit.liveThreadShell(ThreadId.make("open-thread"));
+    const done = {
+      ...McpToolAccessTestkit.liveThreadShell(ThreadId.make("done-thread")),
+      doneOverride: "done",
+    } as const;
+    return Effect.gen(function* () {
+      const server = yield* McpServer.McpServer;
+      const result = yield* server
+        .callTool({
+          name: "supaterm_thread_list",
+          arguments: { projectId: open.projectId, done: false, statuses: [] },
+        })
+        .pipe(
+          Effect.provideService(
+            McpInvocationContext.McpInvocationContext,
+            clientScope("full-access"),
+          ),
+          Effect.provideService(McpSchema.McpServerClient, client),
+        );
+      expect(result.isError).toBe(false);
+      expect(result.structuredContent).toMatchObject({
+        threads: [{ threadId: open.id, done: false }],
+        total: 1,
+      });
+    }).pipe(
+      Effect.provide(
+        layerOrchestratorToolkit.pipe(
+          Layer.provideMerge(McpServer.McpServer.layer),
+          Layer.provide(NodeCrypto.layer),
+          Layer.provide(
+            Layer.mock(ThreadManagement.ThreadManagementService)({
+              listProjectThreads: () => Effect.succeed([open, done]),
+            }),
+          ),
+          Layer.provide(ServerSettings.layerTest()),
+          Layer.provide(Layer.mock(ProviderRegistry.ProviderRegistry)({})),
+          Layer.provide(Layer.mock(ProviderAdapterRegistry.ProviderAdapterRegistryV2)({})),
+          Layer.provide(Layer.mock(ScheduledTaskService.ScheduledTaskService)({})),
+          Layer.provide(Layer.mock(ProjectService.ProjectService)({})),
+        ),
+      ),
+    );
+  },
 );

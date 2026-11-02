@@ -5,7 +5,6 @@ const STARTUP_LAZY_ENTRIES = [
   "src/routes/_chat.tsx",
   "src/routes/_chat.index.tsx",
   "src/routes/_chat.$environmentId.$threadId.tsx",
-  "src/lib/lucideIconByName.ts",
 ];
 
 const WARMUP_CLIENT_ID = "supaterm-startup-warmup";
@@ -88,11 +87,8 @@ async function warmLazyEntries(
   return [...warmed];
 }
 
-// Bundled dev builds only the small bootstrap entry at startup. The app and its
-// routes are lazy chunks, compiled on first request, one import level at a
-// time. Cold, that chain costs ~25s of serial compile before first paint
-// (`server.warmup` does nothing in bundled dev). Warming it as soon as the
-// server listens leaves the browser mostly codegen.
+// Bundled dev compiles lazy chunks on first request and ignores `server.warmup`.
+// Warm them on listening to avoid serial compilation before first paint.
 export function warmBundledDevPlugin(): Plugin {
   return {
     name: "supaterm:warm-bundled-dev",

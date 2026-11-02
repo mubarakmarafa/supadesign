@@ -1,7 +1,9 @@
 import {
   AuthOrchestrationOperateScope,
   type EnvironmentId,
+  type ScopedThreadRef,
   type ThreadId,
+  type ThreadPinnedMessage,
 } from "@supaterm/contracts";
 import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import type { EnvironmentProject } from "@supaterm/client-runtime/state/shell";
@@ -9,7 +11,7 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@supaterm/client-runtime/state/runtime";
-import { ArrowLeftIcon, ChevronDownIcon } from "lucide-react";
+import { ArrowLeftIcon, ChevronDownIcon } from "@supaterm/icons";
 import {
   memo,
   useEffect,
@@ -17,11 +19,14 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type ReactNode,
 } from "react";
 import { isTrailingDoubleClick } from "../Sidebar.logic";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { toastManager } from "../ui/toast";
+import { usePaneInputOwner } from "~/chatPanes/paneScope";
 import { useShortcutLabel } from "~/hooks/useShortcutLabel";
+import { useStableCallback } from "~/hooks/useStableCallback";
 import { useThreadActionMenu } from "~/hooks/useThreadActionMenu";
 import { readLocalApi } from "~/localApi";
 import { threadEnvironment } from "../../state/threads";
@@ -39,6 +44,8 @@ import { ThreadLiveEnvironmentChip } from "../board/LiveEnvironmentStatus";
 import { ThreadProgressChip } from "../progress/ThreadProgressChip";
 import { cn } from "~/lib/utils";
 import { textDirection } from "~/textDirection";
+import { subscribeThreadRename } from "./threadRenameActionBus";
+import { PinnedMessagesMenu } from "./PinnedMessages";
 import { useClientSettings } from "../../hooks/useSettings";
 
 interface ChatHeaderProps {
@@ -50,10 +57,15 @@ interface ChatHeaderProps {
   parentThreadLink: { threadId: ThreadId; title: string } | null;
   onOpenThread: (threadId: ThreadId) => void;
   rightPanelOpen: boolean;
+  pinnedMessages: ReadonlyArray<ThreadPinnedMessage>;
+  onJumpToPinnedMessage: (pin: ThreadPinnedMessage) => void;
+  onUnpinMessage?: ((pin: ThreadPinnedMessage) => void) | undefined;
   onNewThreadInProject: () => void;
   /** Set when the project has a board: its name then leads back there. */
   onOpenProjectBoard?: (() => void) | undefined;
   onOpenProjectSettings?: (() => void) | undefined;
+  onFindInThread?: ((threadRef: ScopedThreadRef) => void) | undefined;
+  trailing?: ReactNode;
 }
 
 function resolveRenameCommit(input: {
@@ -66,10 +78,7 @@ function resolveRenameCommit(input: {
   return { action: "commit", title: trimmed };
 }
 
-// How long a click on the thread title waits before opening the action menu, so
-// a double-click-to-rename can cancel it first. Only the native desktop menu
-// needs this: it swallows input while open, so the wait must cover the OS
-// double-click interval.
+// Delay the input-swallowing native menu through the double-click rename interval.
 const TITLE_MENU_OPEN_DELAY_MS = 500;
 export const ChatHeader = memo(function ChatHeader({
   activeThreadEnvironmentId,
@@ -80,12 +89,17 @@ export const ChatHeader = memo(function ChatHeader({
   parentThreadLink,
   onOpenThread,
   rightPanelOpen,
+  pinnedMessages,
+  onJumpToPinnedMessage,
+  onUnpinMessage,
   onNewThreadInProject,
   onOpenProjectBoard,
   onOpenProjectSettings,
+  onFindInThread,
+  trailing,
 }: ChatHeaderProps) {
+  const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
   const activeProjectName = activeProject?.isScratch ? "No project" : activeProject?.title;
-  const activeProjectCwd = activeProject?.workspaceRoot ?? null;
   const newThreadShortcut = useShortcutLabel("chat.newLocal");
   const boardShortcut = useShortcutLabel("board.open");
   const interfaceFont = useClientSettings((settings) => settings.fontFamilySans);
@@ -119,6 +133,7 @@ export const ChatHeader = memo(function ChatHeader({
       ? renaming.title
       : null;
   const isRenamingTitle = renamingTitle !== null;
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- measures the breadcrumb list DOM via ResizeObserver, a frame and font loads to collapse the parent title
   useEffect(() => {
     const list = breadcrumbContainerRef.current?.querySelector("ol");
     if (!list || !parentThreadLink) return;
@@ -159,7 +174,7 @@ export const ChatHeader = memo(function ChatHeader({
     isRenamingTitle,
   ]);
   const renameCommittedRef = useRef(false);
-  const startRename = () => {
+  const startRename = useStableCallback(() => {
     if (
       !isServerThread ||
       !readEnvironmentScope(activeThreadEnvironmentId, AuthOrchestrationOperateScope)
@@ -171,11 +186,29 @@ export const ChatHeader = memo(function ChatHeader({
       threadId: activeThreadId,
       title: activeThreadTitle,
     });
-  };
+  });
+  const isPaneInputOwner = usePaneInputOwner();
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- subscribes to the window rename event the command palette dispatches for this thread
+  useEffect(
+    () =>
+      subscribeThreadRename((threadRef) => {
+        if (
+          threadRef.environmentId === activeThreadEnvironmentId &&
+          threadRef.threadId === activeThreadId &&
+          isPaneInputOwner()
+        ) {
+          startRename();
+        }
+      }),
+    [activeThreadEnvironmentId, activeThreadId, isPaneInputOwner, startRename],
+  );
   const commitRename = (title: string) => {
     setRenaming(null);
     if (!readEnvironmentScope(activeThreadEnvironmentId, AuthOrchestrationOperateScope)) return;
-    const resolution = resolveRenameCommit({ title, originalTitle: activeThreadTitle });
+    const resolution = resolveRenameCommit({
+      title,
+      originalTitle: renamingTitle ?? activeThreadTitle,
+    });
     if (resolution.action === "reject-empty") {
       toastManager.add({ type: "warning", title: "Thread title cannot be empty" });
       return;
@@ -197,8 +230,8 @@ export const ChatHeader = memo(function ChatHeader({
   };
   const { openMenu, closeMenu } = useThreadActionMenu({
     threadRef: isServerThread ? activeThreadRef : null,
-    projectCwd: activeProjectCwd,
     onStartRename: startRename,
+    onFind: onFindInThread,
   });
   const titleButtonRef = useRef<HTMLButtonElement | null>(null);
   const titleMenuTimerRef = useRef<{
@@ -210,6 +243,7 @@ export const ChatHeader = memo(function ChatHeader({
     clearTimeout(titleMenuTimerRef.current.timeoutId);
     titleMenuTimerRef.current = null;
   };
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- clears the pending title-menu timer when the thread switches or the header unmounts
   useEffect(
     () => () => {
       const pending = titleMenuTimerRef.current;
@@ -441,6 +475,13 @@ export const ChatHeader = memo(function ChatHeader({
           <ThreadLiveEnvironmentChip threadRef={activeThreadRef} projectId={activeProject.id} />
         </>
       ) : null}
+      <PinnedMessagesMenu
+        pins={pinnedMessages}
+        timestampFormat={timestampFormat}
+        onJump={onJumpToPinnedMessage}
+        onUnpin={onUnpinMessage}
+      />
+      {trailing}
     </div>
   );
 });

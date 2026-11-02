@@ -8,14 +8,7 @@ import type { AppBarMenuItem } from "../../components/ui/AppBar.types";
 import type { ReviewSectionItem } from "./reviewModel";
 import { useReviewHeaderPresentation } from "./useReviewHeaderPresentation";
 import { Screen, ScreenStack, ScreenStackHeaderConfig } from "react-native-screens";
-import {
-  type Ref,
-  type ReactElement,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import { type Ref, type ReactElement, useImperativeHandle, useRef, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -27,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useReducedMotionPreference } from "../../lib/useReducedMotionPreference";
 import { useNativeColumnLayoutMetrics } from "../../native/native-layout-metrics";
 import { NativeInspectorContent } from "../../native/NativeInspectorContent";
 
@@ -66,6 +60,7 @@ import { resolveReviewAvailability } from "./reviewAvailability";
 import { resolveSelectedReviewFileId } from "./reviewPaneSelection";
 import { buildReviewSectionMenu } from "./review-section-menu";
 import { reportShowcaseSceneRendered } from "../showcase/showcaseRenderSignal";
+import { useSelectWorkspaceDetail } from "../workspace/useSelectWorkspaceDetail";
 
 function ReviewHeader(
   props: Parameters<typeof useReviewHeaderPresentation>[0] & {
@@ -423,24 +418,18 @@ function ReviewFileNavigator({
   );
 }
 
-function RevealInspectorPane() {
-  const { showAuxiliaryPane } = useAdaptiveWorkspaceLayout();
-  useEffect(() => {
-    showAuxiliaryPane("inspector");
-  }, [showAuxiliaryPane]);
-  return null;
-}
-
 type ReviewSheetProps = StaticScreenProps<{
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
 }>;
 
 export function ReviewSheet(props: ReviewSheetProps) {
+  const reduceMotion = useReducedMotionPreference();
   const { nativeReviewDiffStyle } = useAppearanceCodeSurface();
   useAdaptiveWorkspacePaneRole("inspector");
   const { panes } = useAdaptiveWorkspaceLayout();
   const navigation = useNavigation();
+  const selectDetail = useSelectWorkspaceDetail();
   const insets = useSafeAreaInsets();
   const { themeAppearance: selectedTheme } = useAppearancePreferences();
   const headerIcon = String(useUniwindTheme()["--color-icon"]);
@@ -448,7 +437,7 @@ export function ReviewSheet(props: ReviewSheetProps) {
   const environment = useEnvironmentPresentation(environmentId);
   const retryEnvironment = useAtomCommand(environmentCatalog.retryNow, "environment retry");
   const isEnvironmentReady = environment.presentation?.connection.phase === "connected";
-  const { draftMessage } = useThreadDraftForThread({ environmentId, threadId });
+  const { draftMessage, draftContext } = useThreadDraftForThread({ environmentId, threadId });
   const reviewCache = useReviewCacheForThread({ environmentId, threadId });
   const { selectedThreadCwd } = useSelectedThreadWorktree();
   const columnMetrics = useNativeColumnLayoutMetrics();
@@ -464,7 +453,6 @@ export function ReviewSheet(props: ReviewSheetProps) {
     refreshSelectedSection,
     selectSection,
     isSelectedSectionPending,
-    diffPreviewRevision,
   } = useReviewSections({
     enabled: isEnvironmentReady,
     environmentId,
@@ -488,8 +476,8 @@ export function ReviewSheet(props: ReviewSheetProps) {
     environmentId,
     cwd: selectedThreadCwd,
     selectedSection,
-    revision: diffPreviewRevision,
     draftMessage,
+    draftContext,
   });
   // Resolution returns null while Expo registers the native view (or forever
   // when the binary lacks it). Rendering a null component type crashes the
@@ -503,6 +491,16 @@ export function ReviewSheet(props: ReviewSheetProps) {
     setIsPullRefreshing(true);
     await refreshSelectedSection().finally(() => setIsPullRefreshing(false));
   };
+  const isRefreshing = isPullRefreshing || isSelectedSectionPending || areFilePatchesPending;
+  // A refresh that starts programmatically adds its height to the native top inset and
+  // subtracts it when it ends. If topContentInset changes in between, the inset ends up
+  // short and the content sits under the header, so the fallback ScrollView starts over.
+  const [fallbackInset, setFallbackInset] = useState(topContentInset);
+  const [fallbackScrollViewKey, setFallbackScrollViewKey] = useState(0);
+  if (fallbackInset !== topContentInset) {
+    setFallbackInset(topContentInset);
+    if (isRefreshing) setFallbackScrollViewKey((key) => key + 1);
+  }
   const reviewFileNavigatorRef = useRef<ReviewFileNavigatorHandle>(null);
   const reviewFiles = parsedDiff.kind === "files" ? parsedDiff.files : [];
   const fileVisibility = useReviewFileVisibility({
@@ -559,8 +557,8 @@ export function ReviewSheet(props: ReviewSheetProps) {
     }
     const navigation =
       fileId === null
-        ? nativeReviewDiffViewRef.current?.scrollToTop(true)
-        : nativeReviewDiffViewRef.current?.scrollToFile(fileId, true);
+        ? nativeReviewDiffViewRef.current?.scrollToTop(!reduceMotion)
+        : nativeReviewDiffViewRef.current?.scrollToFile(fileId, !reduceMotion);
     void navigation?.catch((error: unknown) => {
       console.error("[review] Failed to navigate to diff file", error);
     });
@@ -617,9 +615,9 @@ export function ReviewSheet(props: ReviewSheetProps) {
       navigation.goBack();
       return;
     }
-    navigation.navigate("Thread", {
-      environmentId: String(environmentId),
-      threadId: String(threadId),
+    selectDetail({
+      name: "Thread",
+      params: { environmentId: String(environmentId), threadId: String(threadId) },
     });
   };
   const androidHeaderSubtitle = [
@@ -679,7 +677,6 @@ export function ReviewSheet(props: ReviewSheetProps) {
 
   return (
     <>
-      <RevealInspectorPane key={`${environmentId}:${threadId}`} />
       <ReviewHeader
         environmentId={environmentId}
         threadId={threadId}
@@ -763,6 +760,7 @@ export function ReviewSheet(props: ReviewSheetProps) {
             </View>
           ) : (
             <ScrollView
+              key={fallbackScrollViewKey}
               contentContainerStyle={
                 Platform.OS === "android" && (parsedDiff.kind === "empty" || !selectedSection)
                   ? { flexGrow: 1, justifyContent: "center" }
@@ -781,7 +779,7 @@ export function ReviewSheet(props: ReviewSheetProps) {
                 // iOS has no other refresh affordance here (the explicit
                 // "Refresh current diff" menu is Android-only).
                 <RefreshControl
-                  refreshing={isPullRefreshing || isSelectedSectionPending || areFilePatchesPending}
+                  refreshing={isRefreshing}
                   onRefresh={() => void handlePullToRefresh()}
                 />
               }

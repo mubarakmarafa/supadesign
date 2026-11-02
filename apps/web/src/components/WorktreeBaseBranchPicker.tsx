@@ -1,5 +1,5 @@
 import type { EnvironmentId } from "@supaterm/contracts";
-import { ChevronDownIcon, GitBranchIcon } from "lucide-react";
+import { ChevronDownIcon, GitBranchIcon } from "@supaterm/icons";
 import { useDeferredValue, useState } from "react";
 
 import { usePaginatedBranches } from "../state/queries";
@@ -78,7 +78,6 @@ export function WorktreeBaseBranchPicker({
       filteredItems={items}
       value={value || null}
       query={query}
-      resultsQuery={deferredQuery}
       onQueryChange={setQuery}
       open={open && !disabled}
       onOpenChange={handleOpenChange}

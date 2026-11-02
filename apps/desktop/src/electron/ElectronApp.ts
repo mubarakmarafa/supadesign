@@ -110,7 +110,22 @@ const readEnvironmentMachineSymbol = Effect.fn("desktop.readEnvironmentMachineSy
     }).pipe(Effect.orElseSucceed(() => null)),
 );
 
-/** @public Service construction is part of the canonical Effect module API. */
+export function toSystemLocaleTag(identifier: string, hourCycle?: "h12" | "h23"): string {
+  const [base = "", keywords = ""] = identifier.split("@");
+  const languageTag = base.replace(/_/g, "-");
+  // Intl ignores rg extensions, so the macOS region override must replace the region subtag.
+  const region = /(?:^|;)rg=([a-z]{2}|\d{3})zzzz(?:;|$)/i.exec(keywords)?.[1]?.toUpperCase();
+  try {
+    return new Intl.Locale(languageTag, {
+      ...(region ? { region } : {}),
+      ...(hourCycle ? { hourCycle } : {}),
+    }).toString();
+  } catch {
+    return languageTag;
+  }
+}
+
+/** @public */
 export const make = ElectronApp.of({
   metadata: Effect.gen(function* () {
     const appVersion = yield* Effect.try({
@@ -139,10 +154,23 @@ export const make = ElectronApp.of({
     };
   }),
   name: Effect.sync(() => Electron.app.name),
-  // macOS derives this from NSLocale, which uses POSIX-style identifiers
-  // (`en_GB`). `Intl` rejects those outright rather than normalizing them, so
-  // the tag is normalized here rather than in the renderer that consumes it.
-  systemLocale: Effect.sync(() => Electron.app.getSystemLocale().replace(/_/g, "-")),
+  systemLocale: Effect.gen(function* () {
+    const platform = yield* HostProcess.Platform;
+    let identifier = Electron.app.getSystemLocale();
+    let hourCycle: "h12" | "h23" | undefined;
+    if (platform === "linux") {
+      const env = yield* HostProcess.Environment;
+      const timeLocale = (env.LC_ALL || env.LC_TIME || env.LANG)?.split(".")[0];
+      if (timeLocale && timeLocale !== "C" && timeLocale !== "POSIX") identifier = timeLocale;
+    } else if (platform === "darwin") {
+      if (Electron.systemPreferences.getUserDefault("AppleICUForce24HourTime", "boolean")) {
+        hourCycle = "h23";
+      } else if (Electron.systemPreferences.getUserDefault("AppleICUForce12HourTime", "boolean")) {
+        hourCycle = "h12";
+      }
+    }
+    return toSystemLocaleTag(identifier, hourCycle);
+  }),
   environmentMachineIcons: Effect.gen(function* () {
     if ((yield* HostProcess.Platform) !== "darwin") return {};
     const mini = yield* readEnvironmentMachineSymbol("macmini");
@@ -163,60 +191,74 @@ export const make = ElectronApp.of({
     Electron.app.quit();
   }),
   requestSingleInstanceLock: Effect.sync(() => Electron.app.requestSingleInstanceLock()),
-  exit: (code) =>
-    Effect.sync(() => {
+  exit: Effect.fn("ElectronApp.exit")(function (code) {
+    return Effect.sync(() => {
       Electron.app.exit(code);
-    }),
-  relaunch: (options) =>
-    Effect.sync(() => {
+    });
+  }),
+  relaunch: Effect.fn("ElectronApp.relaunch")(function (options) {
+    return Effect.sync(() => {
       Electron.app.relaunch(options);
-    }),
-  setPath: (name, path) =>
-    Effect.sync(() => {
+    });
+  }),
+  setPath: Effect.fn("ElectronApp.setPath")(function (name, path) {
+    return Effect.sync(() => {
       Electron.app.setPath(name, path);
-    }),
-  setName: (name) =>
-    Effect.sync(() => {
+    });
+  }),
+  setName: Effect.fn("ElectronApp.setName")(function (name) {
+    return Effect.sync(() => {
       Electron.app.setName(name);
-    }),
-  setAboutPanelOptions: (options) =>
-    Effect.sync(() => {
+    });
+  }),
+  setAboutPanelOptions: Effect.fn("ElectronApp.setAboutPanelOptions")(function (options) {
+    return Effect.sync(() => {
       Electron.app.setAboutPanelOptions(options);
-    }),
-  setAppUserModelId: (id) =>
-    Effect.sync(() => {
+    });
+  }),
+  setAppUserModelId: Effect.fn("ElectronApp.setAppUserModelId")(function (id) {
+    return Effect.sync(() => {
       Electron.app.setAppUserModelId(id);
-    }),
+    });
+  }),
   getAppMetrics: Effect.sync(() => Electron.app.getAppMetrics()),
-  setAsDefaultProtocolClient: (protocol, path, args) =>
-    Effect.sync(() => {
-      if (path === undefined) {
-        return Electron.app.setAsDefaultProtocolClient(protocol);
-      }
-      return Electron.app.setAsDefaultProtocolClient(protocol, path, [...(args ?? [])]);
-    }),
-  setDesktopName: (desktopName) =>
-    Effect.sync(() => {
+  setAsDefaultProtocolClient: Effect.fn("ElectronApp.setAsDefaultProtocolClient")(
+    function (protocol, path, args) {
+      return Effect.sync(() => {
+        if (path === undefined) {
+          return Electron.app.setAsDefaultProtocolClient(protocol);
+        }
+        return Electron.app.setAsDefaultProtocolClient(protocol, path, [...(args ?? [])]);
+      });
+    },
+  ),
+  setDesktopName: Effect.fn("ElectronApp.setDesktopName")(function (desktopName) {
+    return Effect.sync(() => {
       const linuxApp = Electron.app as Electron.App & {
         setDesktopName?: (desktopName: string) => void;
       };
       linuxApp.setDesktopName?.(desktopName);
-    }),
-  setDockIcon: (image) =>
-    Effect.sync(() => {
+    });
+  }),
+  setDockIcon: Effect.fn("ElectronApp.setDockIcon")(function (image) {
+    return Effect.sync(() => {
       // Electron's types omit null, but it passes nil to setApplicationIconImage:, which restores the bundle icon.
       Electron.app.dock?.setIcon(image as Electron.NativeImage);
-    }),
-  appendCommandLineSwitch: (switchName, value) =>
-    Effect.sync(() => {
-      if (value === undefined) {
-        Electron.app.commandLine.appendSwitch(switchName);
-        return;
-      }
-      Electron.app.commandLine.appendSwitch(switchName, value);
-    }),
-  onBeforeQuitForUpdate: (listener) =>
-    Effect.acquireRelease(
+    });
+  }),
+  appendCommandLineSwitch: Effect.fn("ElectronApp.appendCommandLineSwitch")(
+    function (switchName, value) {
+      return Effect.sync(() => {
+        if (value === undefined) {
+          Electron.app.commandLine.appendSwitch(switchName);
+          return;
+        }
+        Electron.app.commandLine.appendSwitch(switchName, value);
+      });
+    },
+  ),
+  onBeforeQuitForUpdate: Effect.fn("ElectronApp.onBeforeQuitForUpdate")(function (listener) {
+    return Effect.acquireRelease(
       Effect.sync(() => {
         Electron.autoUpdater.on("before-quit-for-update", listener);
       }),
@@ -224,11 +266,13 @@ export const make = ElectronApp.of({
         Effect.sync(() => {
           Electron.autoUpdater.removeListener("before-quit-for-update", listener);
         }),
-    ).pipe(Effect.asVoid),
-  removeCommandLineSwitch: (switchName) =>
-    Effect.sync(() => {
+    ).pipe(Effect.asVoid);
+  }),
+  removeCommandLineSwitch: Effect.fn("ElectronApp.removeCommandLineSwitch")(function (switchName) {
+    return Effect.sync(() => {
       Electron.app.commandLine.removeSwitch(switchName);
-    }),
+    });
+  }),
   on: addScopedAppListener,
 });
 
