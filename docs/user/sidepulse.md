@@ -24,15 +24,21 @@ the other.
 The LEDs show the most urgent state across your open threads in every connected environment.
 Archived and snoozed threads don't count.
 
-| Light          | Meaning                                                    |
-| -------------- | ---------------------------------------------------------- |
-| Amber pulse    | An agent is waiting for your approval or answer, or failed |
-| Cyan roll      | An agent is running                                        |
-| Solid green    | An agent finished with a reply you have not seen           |
-| Dim teal pulse | Nothing needs you                                          |
+| Light     | Default effect | Meaning                                                    |
+| --------- | -------------- | ---------------------------------------------------------- |
+| Needs you | Amber pulse    | An agent is waiting for your approval or answer, or failed |
+| Working   | Cyan roll      | An agent is running                                        |
+| Done      | Solid green    | An agent finished with a reply you have not seen           |
+| Idle      | Dim teal glow  | Nothing needs you                                          |
 
 A reply or failure counts as seen once you open the thread. The LEDs turn off while no Supaterm
 window is open. **Brightness** scales every animation.
+
+To change a light, pick an effect from its menu under **Lights** and a color from the swatch
+beside it. The preview next to it plays the result, and a connected SidePulse plays it for a few
+seconds before going back to what your agents are doing. **Rainbow** and **Spectrum** bring their
+own colors, so give those to one light if you want to tell the others apart at a glance. The reset
+button next to a light's name restores its default effect and color.
 
 **Can't write** means this computer doesn't allow writing to removable storage, which some managed
 Macs block.

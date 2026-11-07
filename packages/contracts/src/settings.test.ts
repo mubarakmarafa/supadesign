@@ -514,6 +514,27 @@ describe("server model preferences", () => {
   });
 });
 
+describe("SidePulse effects", () => {
+  it("loads an unknown effect or malformed color as the light's own and keeps the rest", () => {
+    const decoded = decodeClientSettings({
+      sidePulse: {
+        enabled: true,
+        effects: { working: "aurora", idle: "rainbow" },
+        colors: { working: "#ff00aa", idle: "magenta" },
+      },
+    });
+    expect(decoded.sidePulse).toEqual({
+      enabled: true,
+      brightness: 100,
+      effects: { idle: "rainbow", done: "solid", working: "roll", attention: "pulse" },
+      colors: { idle: null, done: null, working: "#ff00aa", attention: null },
+    });
+    expect(decodeClientSettings(encodeClientSettings(decoded)).sidePulse).toEqual(
+      decoded.sidePulse,
+    );
+  });
+});
+
 describe("thread grouping preference", () => {
   it("defaults existing client settings to status", () => {
     expect(decodeClientSettings({}).sidebarThreadGrouping).toBe("status");
