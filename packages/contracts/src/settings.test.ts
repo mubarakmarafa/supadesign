@@ -556,3 +556,22 @@ describe("thread grouping preference", () => {
     expect(decoded.confirmThreadDelete).toBe(false);
   });
 });
+
+describe("ServerSettings default permissions", () => {
+  it("starts supervised until a default is configured", () => {
+    expect(decodeServerSettings({}).defaultRuntimeMode).toBe("approval-required");
+    expect(DEFAULT_SERVER_SETTINGS.defaultRuntimeMode).toBe("approval-required");
+  });
+
+  it.each(["approval-required", "auto-accept-edits", "auto", "full-access"])(
+    "round-trips %s as an environment default and project override",
+    (defaultRuntimeMode) => {
+      const input = {
+        defaultRuntimeMode,
+        projectSettingsOverrides: { project: { defaultRuntimeMode } },
+      };
+      expect(encodeServerSettings(decodeServerSettings(input))).toMatchObject(input);
+      expect(decodeServerSettingsPatch(input)).toEqual(input);
+    },
+  );
+});

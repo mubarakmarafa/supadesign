@@ -24,6 +24,7 @@ import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import type { ProviderInstanceEntry } from "../../providerInstances";
 import { BoardCard, type BoardCardHandlers } from "./BoardCard";
 
 export const boardColumnDropId = (columnId: BoardColumnId) => `column:${columnId}`;
@@ -124,6 +125,7 @@ export const BoardColumn = memo(function BoardColumn({
   bankedCounts,
   progressByThread,
   briefsByThread,
+  providerEntries,
   tabbableCardId,
   peekedCardId,
   canEdit,
@@ -151,6 +153,8 @@ export const BoardColumn = memo(function BoardColumn({
   bankedCounts: ReadonlyMap<string, number>;
   progressByThread: ReadonlyMap<string, ThreadProgress>;
   briefsByThread: ReadonlyMap<string, ThreadBrief>;
+  /** Provider instances by id, for each card's model and logo. */
+  providerEntries: ReadonlyMap<string, ProviderInstanceEntry>;
   tabbableCardId: string | null;
   /** The card peeked over the board, shown as selected. */
   peekedCardId: string | null;
@@ -282,6 +286,7 @@ export const BoardColumn = memo(function BoardColumn({
               progress={progressByThread.get(thread.id)}
               bankedCount={bankedCounts.get(thread.id) ?? 0}
               brief={briefsByThread.get(thread.id)}
+              providerEntries={providerEntries}
               tabbable={thread.id === tabbableCardId}
               peeked={thread.id === peekedCardId}
               canDrag={canDrag}
