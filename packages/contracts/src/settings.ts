@@ -265,6 +265,7 @@ export const TranscriptionDictionary = Schema.Array(TranscriptionDictionaryEntry
 
 // Joined and hyphenated forms ("superterm", "super-term") match these without listing them.
 export const DEFAULT_TRANSCRIPTION_DICTIONARY: TranscriptionDictionary = [
+  { term: "Supadesign", aliases: ["super design", "supa design", "soup a design"] },
   { term: "Supaterm", aliases: ["super term", "supa term", "soup a term"] },
 ];
 

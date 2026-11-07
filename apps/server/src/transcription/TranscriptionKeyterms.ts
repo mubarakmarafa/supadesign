@@ -18,9 +18,18 @@ const FIXED_TERMS = [
   "worktree",
 ];
 
-// What people name while directing agents here, which a speech model hears as "super term",
-// "cloud", or "code X".
-const SUPATERM_TERMS = ["Supaterm", "Claude", "Codex", "Opus", "Sonnet", "Haiku", "GPT"];
+// What people name while directing agents here, which a speech model hears as "super design",
+// "super term", "cloud", or "code X".
+const SUPATERM_TERMS = [
+  "Supadesign",
+  "Supaterm",
+  "Claude",
+  "Codex",
+  "Opus",
+  "Sonnet",
+  "Haiku",
+  "GPT",
+];
 
 const isWordLength = (word: string) => word.length > 2 && word.length <= 20;
 

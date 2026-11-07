@@ -11,6 +11,7 @@ import {
 import { sidePulseEffectUsesColor, sidePulseLightColor } from "@supaterm/shared/sidePulsePrograms";
 import { useState } from "react";
 
+import { APP_BASE_NAME } from "../../../branding";
 import { useDesktopDeviceState } from "../../../hooks/useDesktopDeviceState";
 import { updateClientSettings, useClientSettings } from "../../../hooks/useSettings";
 import { cn, isMacPlatform } from "../../../lib/utils";
@@ -218,8 +219,8 @@ function connectionSummary(
     return {
       label: "No access",
       description: isMacHost
-        ? "Allow Supaterm to use removable volumes in System Settings > Privacy & Security > Files & Folders."
-        : "Supaterm can't open the SidePulse volume. Make sure your user can read and write it.",
+        ? `Allow ${APP_BASE_NAME} to use removable volumes in System Settings > Privacy & Security > Files & Folders.`
+        : `${APP_BASE_NAME} can't open the SidePulse volume. Make sure your user can read and write it.`,
       tone: "error",
     };
   }
@@ -233,7 +234,7 @@ function connectionSummary(
   if (errors.has("write-failed")) {
     return {
       label: "Write failed",
-      description: "Supaterm couldn't update the LEDs. It keeps trying.",
+      description: `${APP_BASE_NAME} couldn't update the LEDs. It keeps trying.`,
       tone: "error",
     };
   }
