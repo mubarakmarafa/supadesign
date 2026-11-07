@@ -36,7 +36,6 @@ import type {
   PullRequestUpdateMethod,
   PullRequestViewerPermissions,
   SourceControlProviderKind,
-  PullRequestWorkflowRun,
 } from "@supaterm/contracts";
 import { SourceControlProviderKind as SourceControlProviderKindSchema } from "@supaterm/contracts";
 
@@ -263,9 +262,6 @@ export interface ProviderFileRevisions {
   readonly complete?: boolean;
 }
 
-/** A run as its host reads it; `repository` is resolved from `cwd` when the caller named none. */
-export type ProviderWorkflowRun = Omit<PullRequestWorkflowRun, "host">;
-
 export interface ProviderFilterOptionPage<A> {
   readonly items: ReadonlyArray<A>;
   readonly truncated: boolean;
@@ -326,6 +322,11 @@ export interface PullRequestProviderApi {
     input: ProviderRepositoryRef & {
       readonly state: PullRequestListState;
       readonly involvement: PullRequestInvolvement;
+      /**
+       * With `all`, a repository the viewer can only read lists just what involves the viewer.
+       * A host that cannot tell lists everything.
+       */
+      readonly involvedWhereReadOnly?: boolean | undefined;
       readonly viewer: string;
       readonly limit: number;
       /** Hosts may ignore unsupported search; the caller filters returned rows. */
@@ -343,6 +344,7 @@ export interface PullRequestProviderApi {
     readonly repositories: ReadonlyArray<string>;
     readonly state: PullRequestListState;
     readonly involvement: PullRequestInvolvement;
+    readonly involvedWhereReadOnly?: boolean | undefined;
     readonly viewer: string;
     readonly limit: number;
     readonly query?: string | undefined;
@@ -362,17 +364,6 @@ export interface PullRequestProviderApi {
   readonly getChangeRequestChecks?: (
     input: ProviderRepositoryRef & { readonly number: number },
   ) => Effect.Effect<Pick<PullRequestChecks, "state" | "checks">, PullRequestProviderError>;
-
-  /**
-   * A CI run and its jobs, as checks. Only hosts whose runs have ids implement it. Without a
-   * `repository`, the run is read from the repository the host's CLI would pick in `cwd`.
-   */
-  readonly getWorkflowRun?: (
-    input: Omit<ProviderRepositoryRef, "repository"> & {
-      readonly repository?: string;
-      readonly runId: number;
-    },
-  ) => Effect.Effect<ProviderWorkflowRun, PullRequestProviderError>;
 
   readonly getChangeRequest: (
     input: ProviderRepositoryRef & { readonly number: number },

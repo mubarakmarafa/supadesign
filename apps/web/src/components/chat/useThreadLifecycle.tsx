@@ -1,4 +1,4 @@
-import type { EnvironmentThreadShell, ThreadStructure } from "@supaterm/client-runtime/state/shell";
+import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import type { ComposerThreadTarget } from "../../composerDraftStore";
 import type { ComposerHandleRef } from "../../composerHandleContext";
 import {
@@ -56,7 +56,8 @@ import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { readEnvironmentScope } from "../../state/session";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
-import type { PopoverCreateHandle } from "../ui/popover";
+import { PopoverCreateHandle } from "../ui/popover";
+import type { BackgroundTaskOutputTarget } from "./BackgroundWork";
 import type { EnvironmentPresentation } from "../../state/environments";
 import {
   backgroundWorkBannerItem,
@@ -69,7 +70,7 @@ import { useAtomValue } from "@effect/atom-react";
 import type { RunStopPresentation } from "@supaterm/client-runtime/state/thread-execution";
 import { Atom } from "effect/reactivity";
 import { environmentThreadDetails } from "../../state/threads";
-import { openThreadBeside } from "../../chatPanes/actions";
+import { openSideChatBeside } from "../../chatPanes/actions";
 
 const RELATED_THREAD_SHELL_WAIT_MS = 1_000;
 const NO_RUN_STOP_ATOM = Atom.make<RunStopPresentation | null>(null).pipe(
@@ -95,7 +96,6 @@ interface ThreadLifecycleInput {
   readonly activeLatestRun: EnvironmentThreadShell["latestRun"];
   readonly activeProjectCwd: string | null;
   readonly serverConfig: EnvironmentPresentation["serverConfig"] | null;
-  readonly serverProjection: ThreadStructure | null;
   readonly runtimeMode: RuntimeMode;
   readonly isWorking: boolean;
   readonly pendingBackgroundTasks: Parameters<typeof backgroundWorkBannerItem>[0]["tasks"];
@@ -106,7 +106,6 @@ interface ThreadLifecycleInput {
     readonly currentBranch: string;
   } | null;
   readonly gitStatusQuery: { readonly refresh: () => void };
-  readonly backgroundWorkChecksHandle: ReturnType<typeof PopoverCreateHandle>;
   readonly composerRef: ComposerHandleRef;
   readonly composerDraftTarget: ComposerThreadTarget;
   readonly sendInFlightRef: { current: boolean };
@@ -138,7 +137,6 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     activeLatestRun,
     activeProjectCwd,
     serverConfig,
-    serverProjection,
     runtimeMode,
     isWorking,
     pendingBackgroundTasks,
@@ -146,7 +144,6 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
     activePendingUserInput,
     localCheckoutBranchMismatch,
     gitStatusQuery,
-    backgroundWorkChecksHandle,
     composerRef,
     composerDraftTarget,
     sendInFlightRef,
@@ -379,6 +376,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
   // visible stop; the interrupt path accepts a completed run while background work remains.
   const activeBackgroundTasks = !isWorking && activeThread ? pendingBackgroundTasks : [];
   const [stoppingBackgroundWorkKey, setStoppingBackgroundWorkKey] = useState<string | null>(null);
+  const [backgroundTaskOutputHandle] = useState(PopoverCreateHandle<BackgroundTaskOutputTarget>);
   const isStoppingBackgroundWork =
     stoppingBackgroundWorkKey === `${environmentId}:${activeThreadId}`;
   const handleStopBackgroundWork = async () => {
@@ -431,10 +429,18 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
       return;
     }
     // A side chat and its parent sit side by side; where there is no room, one replaces the other.
-    const sideChatPair =
-      (shell?.lineage.sideChat === true && shell.lineage.parentThreadId === activeThread?.id) ||
-      (activeThread?.lineage.sideChat === true && activeThread.lineage.parentThreadId === threadId);
-    if (sideChatPair && openThreadBeside({ kind: "server", threadRef }, "right")) return;
+    const opensSideChat =
+      shell?.lineage.sideChat === true && shell.lineage.parentThreadId === activeThread?.id;
+    const opensParent =
+      activeThread?.lineage.sideChat === true && activeThread.lineage.parentThreadId === threadId;
+    if (activeThread && (opensSideChat || opensParent)) {
+      const activeRef = scopeThreadRef(environmentId, activeThread.id);
+      const [parentRef, sideChatRef] = opensSideChat
+        ? [activeRef, threadRef]
+        : [threadRef, activeRef];
+      const sideChat = { kind: "server", threadRef: sideChatRef } as const;
+      if (openSideChatBeside({ kind: "server", threadRef }, { parentRef, sideChat })) return;
+    }
     void navigate({
       to: "/$environmentId/$threadId",
       params: buildThreadRouteParams(threadRef),
@@ -514,19 +520,14 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
           onForceStop: () => void forceStop.forceStopThread(activeThread.id, runStop.runId),
         })
       : null;
-  // One watched run colors the dot; with more, no one run speaks for the banner.
-  const backgroundWorkWatches = serverProjection?.thread.workflowRunWatches ?? [];
   const backgroundWorkBanner = activeThread
     ? backgroundWorkBannerItem({
+        environmentId: activeThread.environmentId,
         threadId: activeThread.id,
-        threadRef: activeThreadRef,
+        projectId: activeThread.projectId,
+        pullRequests: activeThread.pullRequests,
         tasks: activeBackgroundTasks,
-        watchedRun: {
-          run: backgroundWorkWatches.length === 1 ? backgroundWorkWatches[0]! : null,
-          environmentId: activeThread.environmentId,
-          projectId: activeThread.projectId,
-          handle: backgroundWorkChecksHandle,
-        },
+        outputHandle: backgroundTaskOutputHandle,
         stopDisabled: !canOperateThread || isStoppingBackgroundWork,
         stopping: isStoppingBackgroundWork,
         onStop: handleStopBackgroundWorkStable,

@@ -176,6 +176,11 @@ A GitHub checkout with an `upstream` remote lists the upstream repository's pull
 your own repository's instead, run `gh repo set-default` in the checkout and choose it. The list
 follows within about 15 minutes.
 
+On GitHub, **All** lists every pull request in repositories you can push to. In a repository you
+can only read, such as an open-source project you cloned, it lists only pull requests that
+involve you: ones you opened, are assigned to, were mentioned in, or commented on. Pick the
+project in the project filter to list all of its pull requests.
+
 On mobile, **Pull requests** lists reviews across your connected environments. Open a review
 to read its description, activity, commits, and changed files. Line comments stay as drafts
 until you submit the review. **Work on PR** opens a chat with the review attached; sending
@@ -306,13 +311,13 @@ Long-press a linked review there to copy it, open it in the browser, watch it, o
 The **Linked pull requests** panel lists every review and groups stacks. Unlink a review from its
 row menu. An unlinked stack layer stays out of later syncs. Open linked reviews refresh on the server;
 closed reviews refresh periodically so reopening one on the host is detected. Merged reviews refresh
-when requested. A Done thread's reviews stop refreshing until you reopen it. With **Automatically mark merged threads as Done** enabled, a thread can be marked Done after every linked
+when requested. A Done thread's reviews stop refreshing until you reopen it. While **Automatically mark merged threads as Done** is on, which is the default, a thread can be marked Done after every linked
 review is terminal. An open or unsynced link keeps it active.
 
 Ask the agent to watch, monitor, or babysit a pull request and it calls `watch_pull_request`. While
 the thread is active, the server checks the pull request every two minutes and wakes the agent when a
-check fails, the required checks pass, someone else comments or reviews, or the branch starts to
-conflict. Threads in a project that watch the same pull request share one check. On GitHub, a check
+check fails, the required checks pass, the checks still running at either of those finish, someone
+else comments or reviews, or the branch starts to conflict. Threads in a project that watch the same pull request share one check. On GitHub, a check
 first asks whether anything changed and reads the pull request only when it did, which keeps
 watching inside GitHub's rate limit. Comments from your own account do not wake it. Watching ends
 when the pull request merges or closes, after 10 wakes in a row that bring only comments, after 8
@@ -322,14 +327,6 @@ watch. Watching a pull request again does not repeat check or conflict news its 
 watch already reported; unlinking the pull request clears that. Subagents cannot watch pull requests; the thread that delegated to them does. To start or stop
 it yourself, use the row menu in the **Linked pull requests** panel. In the thread details card, a
 watched pull request shows an eye; click it to stop watching.
-
-Ask the agent to wait on a GitHub Actions run, such as CI, a release, or a deploy, and it calls
-`watch_workflow_run` instead of running a watcher in its shell. The server checks the run every
-minute and wakes the agent once when it completes, naming each job that failed, was cancelled, or
-was skipped. Watching ends when the run completes, after six hours, after 8 failed reads in a row,
-or when you press Stop on the thread.
-Marking Done or archiving the thread also ends it. Subagents cannot watch runs. On web and desktop,
-click the run's dot in the thread's background-work banner to see each job.
 
 A watched thread counts as working between wakes, so it stays in the **Working** section and does
 not get marked Done automatically. Agents stop watching when they hand the work back to you, and the thread then

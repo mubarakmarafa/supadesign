@@ -43,17 +43,16 @@ import {
   type PullRequestThreadCommentsResult,
   type PullRequestUpdateMethod,
   type PullRequestPreview,
-  type PullRequestWorkflowRun,
 } from "@supaterm/contracts";
 
 import * as GitHubRest from "./GitHubRest.ts";
 import * as GitHubRequestPolicy from "./GitHubRequestPolicy.ts";
 import * as GitHubGraphQlClient from "./gitHubGraphQlClient.ts";
 import { PullRequestBatchesGraphQLGroup } from "./pullRequestBatches.graphql.ts";
+import type { RepositoryPermission } from "../../schema/github.graphql.ts";
 import { PullRequestMutationsGraphQLGroup } from "./pullRequestMutations.graphql.ts";
 import { PullRequestReadsGraphQLGroup } from "./pullRequestReads.graphql.ts";
 import { PullRequestReviewsGraphQLGroup } from "./pullRequestReviews.graphql.ts";
-import { readCheckoutGitHubRepository } from "./gitHubRepositoryResolution.ts";
 import * as SourceControlHost from "@supaterm/source-control-core/server/SourceControlHost";
 import * as SourceControlRateLimit from "@supaterm/source-control-core/server/SourceControlRateLimit";
 import {
@@ -62,8 +61,6 @@ import {
   decodeCommitFilesJson,
   pullRequestChecksFromContexts,
   decodeWorkflowRunsJson,
-  decodeWorkflowRunJobsJson,
-  decodeWorkflowRunJson,
   type GitHubPullRequestCore,
   type GitHubPullRequestFileStat,
   type GitHubPullRequestWatchFingerprint,
@@ -72,6 +69,7 @@ import {
   LenientPullRequestSearch,
   pageRows,
   pullRequestLookup,
+  repositoryLookup,
   toLabelCandidates,
   toRepositoryAuthors,
   toRepositoryLabels,
@@ -390,6 +388,8 @@ const STAT_ALIASES_PER_REQUEST = 25;
  */
 const SUMMARY_BATCH_WINDOW = "10 millis";
 
+export type GitHubListInvolvement = PullRequestInvolvement | "involved";
+
 export interface GitHubPullRequestSearchBatch {
   readonly items: ReadonlyArray<GitHubPullRequestSearchItem>;
   readonly truncated: boolean;
@@ -407,9 +407,6 @@ export interface GitHubPullRequestFilesViewed {
   readonly files: ReadonlyArray<PullRequestFileViewed>;
   readonly truncated: boolean;
 }
-
-/** A run and its jobs; `repository` is resolved from the checkout when the caller named none. */
-export type GitHubWorkflowRun = Omit<PullRequestWorkflowRun, "host">;
 
 export interface GitHubPullRequestFileStats {
   readonly files: ReadonlyArray<GitHubPullRequestFileStat>;
@@ -444,7 +441,7 @@ export class GitHubPullRequestApi extends Context.Service<
       readonly repository: string;
       readonly host: string;
       readonly state: PullRequestListState;
-      readonly involvement: PullRequestInvolvement;
+      readonly involvement: GitHubListInvolvement;
       readonly viewer: string;
       readonly limit: number;
       readonly query?: string | undefined;
@@ -457,13 +454,20 @@ export class GitHubPullRequestApi extends Context.Service<
       readonly host: string;
       readonly repositories: ReadonlyArray<string>;
       readonly state: PullRequestListState;
-      readonly involvement: PullRequestInvolvement;
+      readonly involvement: GitHubListInvolvement;
       readonly viewer: string;
       readonly limit: number;
       readonly query?: string | undefined;
       readonly cursor?: ProviderListCursor | undefined;
       readonly filters?: PullRequestListFilters | undefined;
     }) => Effect.Effect<GitHubPullRequestSearchBatch, GitHubPullRequestApiError>;
+
+    /** Null when GitHub cannot find the repository or names no permission, as for a GitHub App. */
+    readonly getViewerPermission: (input: {
+      readonly cwd: string;
+      readonly host: string;
+      readonly repository: string;
+    }) => Effect.Effect<RepositoryPermission | null, GitHubPullRequestApiError>;
 
     readonly listPullRequestStats: (input: {
       readonly cwd: string;
@@ -520,17 +524,6 @@ export class GitHubPullRequestApi extends Context.Service<
       readonly headRepositoryOwner: string;
       readonly isCrossRepository: true;
     }) => Effect.Effect<ReadonlyArray<GitHubWorkflowRunApproval>, GitHubPullRequestApiError>;
-
-    /**
-     * A workflow run and its latest attempt's jobs, as checks. Without a `repository`, the run is
-     * read from the repository `gh` would pick in `cwd`.
-     */
-    readonly getWorkflowRun: (input: {
-      readonly cwd: string;
-      readonly repository?: string;
-      readonly host: string;
-      readonly runId: number;
-    }) => Effect.Effect<GitHubWorkflowRun, GitHubPullRequestApiError>;
 
     readonly getPullRequestStack: (input: {
       readonly cwd: string;
@@ -845,20 +838,29 @@ function matchesUnsortedListing(
   item: GitHubPullRequestListItem,
   input: {
     readonly state: PullRequestListState;
-    readonly involvement: PullRequestInvolvement;
+    readonly involvement: GitHubListInvolvement;
     readonly viewer: string;
     readonly filters?: PullRequestListFilters | undefined;
   },
 ): boolean {
   const matchesState = input.state === "all" || item.state === input.state;
   const viewer = input.viewer.toLowerCase();
-  const matchesInvolvement =
-    input.involvement === "all" ||
-    (input.involvement === "authored"
-      ? item.author?.login.toLowerCase() === viewer
-      : item.hasTeamReviewRequest ||
-        item.reviewRequestLogins.some((login) => login.toLowerCase() === viewer));
-  return matchesState && matchesInvolvement && matchesFilters(item, input.filters, input.viewer);
+  const authored = item.author?.login.toLowerCase() === viewer;
+  // A row names no assignees, mentions or commenters, so of what `involves:` matches, only
+  // authorship can be checked here.
+  const matchesInvolvement: Record<GitHubListInvolvement, boolean> = {
+    all: true,
+    authored,
+    involved: authored,
+    reviewing:
+      item.hasTeamReviewRequest ||
+      item.reviewRequestLogins.some((login) => login.toLowerCase() === viewer),
+  };
+  return (
+    matchesState &&
+    matchesInvolvement[input.involvement] &&
+    matchesFilters(item, input.filters, input.viewer)
+  );
 }
 
 const SEARCH_REPOSITORY = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
@@ -871,7 +873,7 @@ const SEARCH_REPOSITORY = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
 function searchQuery(input: {
   readonly repositories: ReadonlyArray<string>;
   readonly state: PullRequestListState;
-  readonly involvement: PullRequestInvolvement;
+  readonly involvement: GitHubListInvolvement;
   readonly viewer: string;
   readonly query?: string | undefined;
   readonly cursor?: ProviderListCursor | undefined;
@@ -888,6 +890,7 @@ function searchQuery(input: {
     ...(input.state === "merged" ? ["is:merged"] : []),
     ...(input.involvement === "authored" ? [`author:${input.viewer}`] : []),
     ...(input.involvement === "reviewing" ? [`review-requested:${input.viewer}`] : []),
+    ...(input.involvement === "involved" ? [`involves:${input.viewer}`] : []),
     ...(query.length === 0 ? [] : [searchPhrase(query)]),
     ...(input.cursor === undefined ? [] : [`updated:<=${input.cursor.updatedBefore}`]),
     ...filterQualifiers(input.filters, input.viewer),
@@ -1667,65 +1670,6 @@ export const make = Effect.gen(function* () {
         { concurrency: 2 },
       ).pipe(Effect.map(([, runs]) => runs));
 
-  const checkoutRepository = (cwd: string, host: string) =>
-    readCheckoutGitHubRepository({
-      process: sourceControlHost.process,
-      operation: "getWorkflowRun",
-      cwd,
-      hostHint: host,
-      defaultHost: host,
-    }).pipe(
-      Effect.flatMap(({ locator }) =>
-        locator === null
-          ? Effect.fail(
-              readError(cwd, "getWorkflowRun", `No GitHub repository on ${host} was found.`),
-            )
-          : Effect.succeed(locator),
-      ),
-    );
-
-  // A run past 500 jobs shows its first 500.
-  const workflowRunJobPages = 5;
-  const getWorkflowRun: GitHubPullRequestApi["Service"]["getWorkflowRun"] = Effect.fn(
-    "GitHubPullRequestApi.getWorkflowRun",
-  )((input) =>
-    Effect.gen(function* () {
-      const { owner, name } =
-        input.repository === undefined
-          ? yield* checkoutRepository(input.cwd, input.host)
-          : parseRepositorySelector(input.repository);
-      const runPath = `repos/${owner}/${name}/actions/runs/${input.runId}`;
-      const jobsPage = (page: number) =>
-        restRead({
-          cwd: input.cwd,
-          host: input.host,
-          operation: "getWorkflowRun",
-          path: `${runPath}/jobs?per_page=100&page=${page}`,
-          decode: decodeWorkflowRunJobsJson,
-        });
-      const [run, firstPage] = yield* Effect.all(
-        [
-          restRead({
-            cwd: input.cwd,
-            host: input.host,
-            operation: "getWorkflowRun",
-            path: runPath,
-            decode: decodeWorkflowRunJson,
-          }),
-          jobsPage(1),
-        ],
-        { concurrency: 2 },
-      );
-      const checks = [...firstPage.checks];
-      let last = firstPage;
-      for (let page = 2; page <= workflowRunJobPages && last.rawCount === 100; page++) {
-        last = yield* jobsPage(page);
-        checks.push(...last.checks);
-      }
-      return { ...run, repository: `${owner}/${name}`, checks };
-    }),
-  );
-
   /** The mutations that only need the pull request's node id. */
   const simpleActionMutations = {
     "disable-auto-merge": (pullRequestId: string) =>
@@ -1845,6 +1789,12 @@ export const make = Effect.gen(function* () {
   const stackMembershipResolver = GraphQLResolver.aliased(client.PullRequestStackMembership, {
     batchKey: GitHubGraphQlClient.batchKey,
   }).pipe(RequestResolver.batchN(STAT_ALIASES_PER_REQUEST));
+  const viewerPermissionResolver = GraphQLResolver.aliased(client.RepositoryViewerPermission, {
+    batchKey: GitHubGraphQlClient.batchKey,
+  }).pipe(
+    RequestResolver.setDelay(SUMMARY_BATCH_WINDOW),
+    RequestResolver.batchN(STAT_ALIASES_PER_REQUEST),
+  );
   // A burst of ticks is one request, each file under its own alias. GitHub has no bulk form of
   // `markFileAsViewed`/`unmarkFileAsViewed`, which each take a single path.
   const setFileViewedResolver = GraphQLResolver.aliased(client.SetFileViewed, {
@@ -2078,6 +2028,26 @@ export const make = Effect.gen(function* () {
         );
     }),
 
+    getViewerPermission: Effect.fn("GitHubPullRequestApi.getViewerPermission")(
+      function* (input) {
+        const lookup = repositoryLookup(input.repository);
+        if (lookup === null) {
+          return yield* new GitHubRepositorySelectorError({
+            cwd: input.cwd,
+            operation: "getViewerPermission",
+          });
+        }
+        const result = yield* GraphQLResolver.request(lookup, viewerPermissionResolver).pipe(
+          Effect.catchIf(isNotFoundOnly, () => Effect.succeed({ repository: null })),
+        );
+        return result.repository?.viewerPermission ?? null;
+      },
+      (effect, input) =>
+        effect.pipe((effect) =>
+          batchedRead({ ...input, operation: "getViewerPermission" }, effect),
+        ),
+    ),
+
     listPullRequestStats: Effect.fn("GitHubPullRequestApi.listPullRequestStats")(
       function* (input) {
         const lookups = input.changeRequests.map((changeRequest) => ({
@@ -2132,7 +2102,6 @@ export const make = Effect.gen(function* () {
       },
     ),
     listWorkflowRunsRequiringApproval,
-    getWorkflowRun,
 
     getPullRequestStack: Effect.fn("GitHubPullRequestApi.getPullRequestStack")(function (input) {
       const { owner, name } = parseRepositorySelector(input.repository);

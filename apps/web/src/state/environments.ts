@@ -55,6 +55,10 @@ export function useConnectedEnvironmentIds() {
   return useAtomValue(environmentSummaries.connectedEnvironmentIdsAtom);
 }
 
+export function useOfflineEnvironmentIds() {
+  return useAtomValue(environmentSummaries.offlineEnvironmentIdsAtom);
+}
+
 /** Provider statuses change on every push, so they live apart from the presentations. */
 export function useEnvironmentProviders() {
   return useAtomValue(environmentPresentations.providersByEnvironmentAtom);
@@ -103,8 +107,4 @@ export function usePullRequestsSupported() {
 
 export function useEnvironmentMachines() {
   return useAtomValue(environmentSummaries.machineByIdAtom);
-}
-
-export function useEnvironmentConnectionSummaries() {
-  return useAtomValue(environmentSummaries.environmentsAtom);
 }

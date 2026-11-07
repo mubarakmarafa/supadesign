@@ -1,11 +1,12 @@
+import type { ComposerModelItem } from "@supaterm/client-runtime/composerModelMentions";
 import {
   resolveProviderSkillSourceKind,
   type ProviderSkillSourceKind,
 } from "@supaterm/client-runtime/providerSkills";
 import type {
   PullRequestContextMetadata,
-  ScopedThreadRef,
   ServerProviderSkill,
+  ThreadContextRecord,
   ServerProviderSlashCommand,
 } from "@supaterm/contracts";
 import type { ComposerTriggerKind } from "@supaterm/shared/composerTrigger";
@@ -36,7 +37,7 @@ export type ComposerCommandItem =
   | {
       readonly id: string;
       readonly type: "thread";
-      readonly thread: ScopedThreadRef;
+      readonly record: ThreadContextRecord;
       readonly label: string;
       readonly description: string;
     }
@@ -60,7 +61,8 @@ export type ComposerCommandItem =
       readonly skill: ServerProviderSkill;
       readonly label: string;
       readonly description: string;
-    };
+    }
+  | ComposerModelItem;
 
 interface ComposerCommandPopoverProps {
   readonly items: ReadonlyArray<ComposerCommandItem>;
@@ -110,6 +112,8 @@ function itemIcon(item: ComposerCommandItem): AppSymbolName | null {
       return null;
     case "thread":
       return "text.bubble";
+    case "model":
+      return "cpu";
   }
 }
 
@@ -177,7 +181,10 @@ const CommandRow = memo(function CommandRow(props: {
           type="monochrome"
         />
       ) : null}
-      <Text className="shrink-0 text-base font-supaterm-medium text-foreground" numberOfLines={1}>
+      <Text
+        className="min-w-0 max-w-[70%] shrink text-base font-supaterm-medium text-foreground"
+        numberOfLines={1}
+      >
         {props.isCommandMenuSkill && props.item.type === "skill" ? (
           <>
             <Text className="text-foreground-muted">skill:</Text>
@@ -188,7 +195,11 @@ const CommandRow = memo(function CommandRow(props: {
         )}
       </Text>
       {props.item.description ? (
-        <Text className="min-w-0 flex-1 text-xs text-foreground-muted" numberOfLines={1}>
+        <Text
+          className="min-w-0 flex-1 text-xs text-foreground-muted"
+          numberOfLines={1}
+          ellipsizeMode={props.item.type === "path" ? "head" : "tail"}
+        >
           {props.item.description}
         </Text>
       ) : null}

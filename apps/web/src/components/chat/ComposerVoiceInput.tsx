@@ -21,12 +21,16 @@ export function ComposerVoiceButton(props: {
   readonly voice: ComposerVoiceInput;
   readonly disabled: boolean;
   readonly shortcutLabel: string | null;
+  readonly holdKeyLabel: string | null;
 }) {
   const { voice } = props;
   const { availability } = voice;
   const navigate = useNavigate();
   const unavailable = availability.unavailableReason !== null;
   const label = unavailable ? "Voice input unavailable" : "Voice input";
+  const shortcut = [props.shortcutLabel, props.holdKeyLabel && `hold ${props.holdKeyLabel}`]
+    .filter(Boolean)
+    .join(" or ");
   const detail = unavailable
     ? availability.unavailableReason
     : availability.canReview
@@ -45,7 +49,7 @@ export function ComposerVoiceButton(props: {
             onPointerDown={keepComposerFocus}
             onClick={() => {
               if (unavailable) {
-                void navigate({ to: "/settings/general" });
+                void navigate({ to: "/settings/voice" });
                 return;
               }
               voice.start();
@@ -56,19 +60,26 @@ export function ComposerVoiceButton(props: {
         <MicIcon />
       </TooltipTrigger>
       <TooltipPopup>
-        {props.shortcutLabel ? `${label} (${props.shortcutLabel})` : label}
+        {shortcut ? `${label} (${shortcut})` : label}
         {detail ? <span className="block text-muted-foreground">{detail}</span> : null}
       </TooltipPopup>
     </Tooltip>
   );
 }
 
-function VoiceElapsed(props: { readonly recorder: WebVoiceRecorder }) {
+export function VoiceElapsed(props: { readonly recorder: Pick<WebVoiceRecorder, "elapsedMs"> }) {
   const [elapsedMs, setElapsedMs] = useState(() => props.recorder.elapsedMs);
-  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- ticks the elapsed label from the live recorder once a second while it records
+  // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- ticks the elapsed label from the live recorder on each of its whole seconds
   useEffect(() => {
-    const timer = window.setInterval(() => setElapsedMs(props.recorder.elapsedMs), 1_000);
-    return () => window.clearInterval(timer);
+    const recorder = props.recorder;
+    let timer = 0;
+    const tick = () => {
+      const elapsed = recorder.elapsedMs;
+      setElapsedMs(elapsed);
+      timer = window.setTimeout(tick, 1_000 - (elapsed % 1_000));
+    };
+    timer = window.setTimeout(tick, 1_000 - (recorder.elapsedMs % 1_000));
+    return () => window.clearTimeout(timer);
   }, [props.recorder]);
   return <span className="tabular-nums">{formatVoiceDuration(elapsedMs)}</span>;
 }
@@ -145,20 +156,19 @@ export function ComposerVoiceSession(props: {
         aria-label="Voice input"
         className={cn(
           "flex h-8 shrink-0 items-center gap-2 rounded-full bg-foreground/6 text-foreground text-sm",
-          reviews ? "ps-1" : "ps-3",
-          phase === "sending" ? "pe-3" : "pe-1",
+          phase === "sending" ? "ps-3" : "ps-1",
+          reviews ? "pe-1" : "pe-3",
         )}
       >
-        {reviews ? (
+        {phase === "sending" ? null : (
           <VoicePillButton
-            label="Stop and review"
-            shortcut={props.shortcutLabel}
-            disabled={phase !== "recording"}
-            onClick={voice.stop}
+            label={phase === "recording" ? "Discard" : "Cancel"}
+            shortcut={capturing ? "Esc" : null}
+            onClick={voice.cancel}
           >
-            <SquareIcon weight="fill" aria-hidden className="size-3" />
+            <XIcon aria-hidden className="size-3.5 text-muted-foreground" />
           </VoicePillButton>
-        ) : null}
+        )}
         {capturing ? (
           <>
             <VoiceElapsed recorder={voice.recorder} />
@@ -170,15 +180,16 @@ export function ComposerVoiceSession(props: {
             {phase === "transcribing" ? "Transcribing…" : "Saving…"}
           </span>
         )}
-        {phase === "sending" ? null : (
+        {reviews ? (
           <VoicePillButton
-            label={phase === "recording" ? "Discard" : "Cancel"}
-            shortcut={capturing ? "Esc" : null}
-            onClick={voice.cancel}
+            label="Stop and review"
+            shortcut={props.shortcutLabel}
+            disabled={phase !== "recording"}
+            onClick={voice.stop}
           >
-            <XIcon aria-hidden className="size-3.5 text-muted-foreground" />
+            <SquareIcon weight="fill" aria-hidden className="size-3" />
           </VoicePillButton>
-        )}
+        ) : null}
       </div>
       <Tooltip>
         <TooltipTrigger render={<span className="inline-flex" />}>

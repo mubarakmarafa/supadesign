@@ -2,7 +2,12 @@ import {
   ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
   threadContextsOutsideEnvironment,
 } from "@supaterm/shared/composerContextReferences";
-import { AuthOrchestrationOperateScope, type PreviewAnnotationPayload } from "@supaterm/contracts";
+import {
+  AuthOrchestrationOperateScope,
+  CommandId,
+  type PreviewAnnotationPayload,
+} from "@supaterm/contracts";
+import type { VoiceRecordingHandOff } from "@supaterm/client-runtime/voice-input";
 import { type ComposerDispatchMode } from "@supaterm/client-runtime/state/composer-dispatch";
 import {
   type ComposerImageAttachment,
@@ -345,7 +350,7 @@ export function useComposerSend(input: ComposerSendInput) {
         filterTerminalContextsWithText(sendCtx.terminalContexts).length > 0 ||
         sendCtx.previewAnnotations.length > 0 ||
         sendCtx.reviewComments.length > 0 ||
-        sendCtx.threadContexts.length > 0
+        sendCtx.referenceContexts.length > 0
       ) {
         toastManager.add(
           stackedThreadToast({
@@ -426,7 +431,7 @@ export function useComposerSend(input: ComposerSendInput) {
       terminalContexts: composerTerminalContexts,
       previewAnnotations: sendContextPreviewAnnotations,
       reviewComments: composerReviewComments,
-      threadContexts: composerThreadContexts,
+      referenceContexts: composerReferenceContexts,
       selectedProvider: ctxSelectedProvider,
       selectedModel: ctxSelectedModel,
       selectedProviderModels: ctxSelectedProviderModels,
@@ -450,7 +455,7 @@ export function useComposerSend(input: ComposerSendInput) {
       : promptRef.current;
     const strandedThread = threadContextsOutsideEnvironment({
       text: promptForSend,
-      records: composerThreadContexts,
+      records: composerReferenceContexts,
       environmentId,
     })[0];
     if (strandedThread) {
@@ -477,7 +482,7 @@ export function useComposerSend(input: ComposerSendInput) {
           terminalContexts: composerTerminalContexts,
           reviewComments: composerReviewComments,
           previewAnnotations: composerPreviewAnnotations,
-          threadContexts: composerThreadContexts,
+          referenceContexts: composerReferenceContexts,
         },
         setThreadError,
       );
@@ -495,7 +500,7 @@ export function useComposerSend(input: ComposerSendInput) {
       elementContextCount:
         composerPreviewAnnotations.length +
         composerReviewComments.length +
-        composerThreadContexts.length,
+        composerReferenceContexts.length,
     });
     const feedbackCommand =
       ctxSelectedProvider === "codex" &&
@@ -504,7 +509,7 @@ export function useComposerSend(input: ComposerSendInput) {
       sendableComposerTerminalContexts.length === 0 &&
       composerPreviewAnnotations.length === 0 &&
       composerReviewComments.length === 0 &&
-      composerThreadContexts.length === 0
+      composerReferenceContexts.length === 0
         ? parseCodexFeedbackCommand(trimmed)
         : null;
     if (feedbackCommand && multipleModelSelections === null) {
@@ -611,7 +616,7 @@ export function useComposerSend(input: ComposerSendInput) {
       sendableTerminalContexts: sendableComposerTerminalContexts,
       previewAnnotations: composerPreviewAnnotations,
       reviewComments: composerReviewComments,
-      threadContexts: composerThreadContexts,
+      referenceContexts: composerReferenceContexts,
     });
     const composerAttachmentsSnapshot = sendSnapshot.attachments;
     const messageTextForSend = sendSnapshot.messageText;
@@ -621,7 +626,7 @@ export function useComposerSend(input: ComposerSendInput) {
       terminalContexts: sendSnapshot.terminalContexts,
       reviewComments: sendSnapshot.reviewComments,
       previewAnnotations: sendSnapshot.previewAnnotations,
-      threadContexts: sendSnapshot.threadContexts,
+      referenceContexts: sendSnapshot.referenceContexts,
       attachments: composerAttachmentsSnapshot.map((attachment) => ({
         attachment,
         attachmentId: attachment.id,
@@ -932,6 +937,7 @@ export function useComposerSend(input: ComposerSendInput) {
         ? { kind: "queued" as const, value: await settlePromise(saveTurn) }
         : await sendSideChatDraftMessage({
             parentRef: forkSideChatFirst,
+            draftId,
             targetThreadId: threadIdForSend,
             enqueue: () => settlePromise(saveTurn),
           });
@@ -970,11 +976,17 @@ export function useComposerSend(input: ComposerSendInput) {
       createdAt: new Date().toISOString(),
     };
     const branch = localCheckoutBranchMismatch?.currentBranch;
-    return async (recording: VoiceRecording) => {
+    return async (recording: VoiceRecording, handOff: VoiceRecordingHandOff | undefined) => {
       await enqueueThreadOutboxTurn({
         environmentId,
-        input,
-        voice: { audio: recording.audio, durationMs: recording.durationMs, language },
+        // A streamed recording is sent under its dictation's id, so the environment joins it.
+        input: handOff ? { ...input, commandId: CommandId.make(handOff.uploadId) } : input,
+        voice: {
+          audio: recording.audio,
+          durationMs: recording.durationMs,
+          language,
+          ...(handOff?.streamed ? { streamed: true } : {}),
+        },
         ...(branch === undefined ? {} : { branch }),
       });
     };

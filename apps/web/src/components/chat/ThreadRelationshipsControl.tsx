@@ -48,7 +48,7 @@ import {
 } from "@supaterm/icons";
 import { useId, useRef, useState, type ReactNode } from "react";
 
-import { openThreadBeside } from "../../chatPanes/actions";
+import { openSideChatBeside } from "../../chatPanes/actions";
 import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import {
@@ -108,7 +108,7 @@ function ThreadLineageRowList(props: {
       </ul>
       {props.hiddenCount > 0 ? (
         <ThreadDetailsControl onClick={props.onShowMore} tone="muted">
-          <PlusIcon aria-hidden className="size-4 shrink-0" />
+          <PlusIcon aria-hidden className="size-3.5 shrink-0" />
           Show {Math.min(props.hiddenCount, THREAD_LINEAGE_PAGE_COUNT)} more
         </ThreadDetailsControl>
       ) : null}
@@ -381,8 +381,18 @@ export function ThreadRelationshipsPanel(props: {
   // Idle children can be omitted from the shell; opening one loads its own detail.
   const openThread = (threadId: ThreadId) => {
     const threadRef = scopeThreadRef(props.environmentId, threadId);
-    const sideChat = graph.nodes.get(threadId)?.thread?.lineage.sideChat === true;
-    if (sideChat && openThreadBeside({ kind: "server", threadRef }, "right")) return;
+    const lineage = graph.nodes.get(threadId)?.thread?.lineage;
+    const target = { kind: "server", threadRef } as const;
+    if (
+      lineage?.sideChat === true &&
+      lineage.parentThreadId !== null &&
+      openSideChatBeside(target, {
+        parentRef: scopeThreadRef(props.environmentId, lineage.parentThreadId),
+        sideChat: target,
+      })
+    ) {
+      return;
+    }
     void navigate({
       to: "/$environmentId/$threadId",
       params: buildThreadRouteParams(threadRef),

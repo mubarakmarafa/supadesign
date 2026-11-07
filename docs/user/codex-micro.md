@@ -2,7 +2,8 @@
 
 Codex Micro is a small macro keyboard from Work Louder. In the Supaterm desktop app its six agent
 keys follow your threads and light up with their state, and its other keys, analog stick, and knob
-run Supaterm commands. Connect it with USB to get started.
+run Supaterm commands. Connect it with USB to get started. Work Louder's Creator Micro 2 works too,
+once its keymap has agent keys; see [Creator Micro 2](#creator-micro-2).
 
 ## Turning it on
 
@@ -16,8 +17,8 @@ connected and its battery level.
   `/etc/udev/rules.d/70-codex-micro.rules`, then reconnect the keyboard:
 
   ```
-  SUBSYSTEM=="hidraw", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="8360", TAG+="uaccess"
-  KERNEL=="hidraw*", KERNELS=="*303A:8360*", TAG+="uaccess"
+  SUBSYSTEM=="hidraw", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="8360|8298|8297", TAG+="uaccess"
+  KERNEL=="hidraw*", KERNELS=="*303A:8360*|*303A:8298*|*303A:8297*", TAG+="uaccess"
   ```
 
 **Connected with limited functionality** means key presses work but the keyboard is not accepting
@@ -26,8 +27,9 @@ lighting or battery requests. Supaterm keeps retrying.
 ## Agent keys
 
 The six keys in the top two rows each follow a thread. Choose which threads under **Agent keys**:
-the most recently active threads, your pinned threads, threads that need you first, or a thread or
-shortcut you pick for each key.
+the sidebar order, your pinned threads, threads that need you first, or a thread or shortcut you
+pick for each key. With the sidebar order, key 1 opens the same thread as the first jump shortcut
+(⌘1 on macOS), key 2 the same as the second, and so on.
 
 Press a key to open its thread. Press it twice quickly to also bring Supaterm to the front, or turn
 on **Focus Supaterm with a single tap** to do that with one press. The light under each key shows
@@ -60,5 +62,19 @@ already on another key swaps the two. **Reset layout** restores the keys, stick,
 changing your agent keys.
 
 The microphone key works like `ctrl+m`: press it to start recording, and press it again
-to stop and review the transcript in the draft. With **Use separate microphone keys** on, the **MIC1**
-keycap does the same.
+to stop and review the transcript in the draft. With **Use separate microphone keys** on, the
+**MIC1** keycap does the same.
+
+Whenever you record in the composer, the underglow pulses sea-green while recording and stays
+sea-green while transcribing, then returns to its normal lighting. Voice feedback stays lit
+until it finishes, even with Auto-dim enabled.
+
+## Creator Micro 2
+
+Creator Micro 2 runs the same firmware, but its default keymap types ordinary keys. A key follows a
+thread only when the keyboard's keymap maps it to an agent keycode: `KV_OAI_AG00` makes it agent
+key 1, through `KV_OAI_AG05` for agent key 6. The keyboard lights those keys only on a layer that
+has them. The other keys, the stick, and the knob run Supaterm commands only where the keymap uses
+the Codex Micro keycodes; everything else keeps typing what it is mapped to.
+
+**Settings** > **Codex Micro** warns when the keymap maps fewer than six agent keys.

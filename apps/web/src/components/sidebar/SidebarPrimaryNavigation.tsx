@@ -1,9 +1,8 @@
 /**
- * The sidebar's top rows: start a thread, search through the command palette,
- * open the projects grid, and open Automations.
+ * The sidebar's top rows: start a thread, open the projects grid, and open Automations.
  */
 import { Link, useLocation, useParams } from "@tanstack/react-router";
-import { CalendarClockIcon, LayoutGridIcon, SearchIcon, SquarePenIcon } from "@supaterm/icons";
+import { CalendarClockIcon, LayoutGridIcon, SquarePenIcon } from "@supaterm/icons";
 
 import { openCommandPalette } from "../../commandPaletteBus";
 import { useStartNewThreadInCurrentProject } from "../../hooks/useHandleNewThread";
@@ -15,7 +14,6 @@ export function SidebarPrimaryNavigation({ projectGroupCount }: { projectGroupCo
   const { isMobile, setOpenMobile } = useSidebar();
   const size = isMobile ? "default" : "compact";
   const newThreadShortcut = useShortcutLabel("chat.newLocal");
-  const searchShortcut = useShortcutLabel("commandPalette.toggle");
   const automationsShortcut = useShortcutLabel("automations.open");
   const boardSupported = useAnyProjectBoardSupported();
   // A board sits under Projects, so the item stays selected inside one.
@@ -53,21 +51,6 @@ export function SidebarPrimaryNavigation({ projectGroupCount }: { projectGroupCo
         >
           <SquarePenIcon />
           <span>New thread</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          size={size}
-          // The palette is a dialog over the whole app; on narrow screens the
-          // sidebar sheet closes first so the two never stack.
-          onClick={() => {
-            closeMobileSidebar();
-            openCommandPalette();
-          }}
-          shortcut={searchShortcut}
-        >
-          <SearchIcon />
-          <span>Search</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
       {boardSupported ? (

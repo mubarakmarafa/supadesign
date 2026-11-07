@@ -157,7 +157,12 @@ function ProviderHeader(props: {
   const content = (
     <>
       <ProviderIcon iconUrl={props.iconUrl} provider={props.driver} size={15} />
-      <Text className="text-sm font-supaterm-medium text-foreground-muted">{props.label}</Text>
+      <Text
+        className="min-w-0 shrink text-sm font-supaterm-medium text-foreground-muted"
+        numberOfLines={1}
+      >
+        {props.label}
+      </Text>
       {props.collapsible ? (
         <>
           <View className="flex-1" />
@@ -212,10 +217,18 @@ function DisclosureRow(props: {
         !props.isLast && "border-b border-border-subtle",
       )}
     >
-      <Text className="text-sm font-supaterm-medium text-foreground">{props.label}</Text>
+      <Text
+        className="min-w-0 shrink text-sm font-supaterm-medium text-foreground"
+        numberOfLines={2}
+      >
+        {props.label}
+      </Text>
       <View className="flex-1" />
       {props.value ? (
-        <Text className="text-sm text-foreground-muted" numberOfLines={1}>
+        <Text
+          className="min-w-0 max-w-[55%] shrink text-sm text-foreground-muted"
+          numberOfLines={1}
+        >
           {props.value}
         </Text>
       ) : null}
@@ -238,11 +251,13 @@ function SwitchRow(props: {
   return (
     <View
       className={cn(
-        "min-h-11 flex-row items-center justify-between bg-grouped-card px-4 py-1",
+        "min-h-11 flex-row items-center justify-between gap-3 bg-grouped-card px-4 py-1",
         !props.isLast && "border-b border-border-subtle",
       )}
     >
-      <Text className="text-sm font-supaterm-medium text-foreground">{props.label}</Text>
+      <Text className="min-w-0 flex-1 text-sm font-supaterm-medium text-foreground">
+        {props.label}
+      </Text>
       <ThemedSwitch
         accessibilityLabel={props.label}
         onValueChange={props.onValueChange}
@@ -272,8 +287,6 @@ type ThreadSettingsSessionProps = {
   readonly onUpdateOptionSelections: (selections: ReadonlyArray<ProviderOptionSelection>) => void;
   readonly runtimeMode: RuntimeMode;
   readonly onUpdateRuntimeMode: (mode: RuntimeMode) => void;
-  /** A side chat asks before it acts until it is promoted. */
-  readonly runtimeModeLocked?: boolean;
 };
 
 /** The composer draft the sheet edits: the thread's own, or a queued message being edited. */
@@ -471,7 +484,7 @@ function ThreadSettingsSessionProvider(
     null;
   const runtimeModeChoices = runtimeModeChoicesForSupportedModes(
     displayedModel?.supportedRuntimeModes,
-  ).filter((choice) => !props.runtimeModeLocked || choice.mode === "approval-required");
+  );
   const compatibleRuntimeMode = compatibleRuntimeModeForChoices(
     props.runtimeMode,
     runtimeModeChoices,
@@ -1580,7 +1593,6 @@ export function ExistingThreadSettingsRouteScreen({
       }}
       runtimeMode={draftSettings.runtimeMode ?? selectedThread.runtimeMode}
       onUpdateRuntimeMode={(runtimeMode) => updateComposerDraftSettings(threadKey, { runtimeMode })}
-      runtimeModeLocked={selectedThread.lineage.sideChat === true}
       onClose={() => navigation.goBack()}
     />
   );

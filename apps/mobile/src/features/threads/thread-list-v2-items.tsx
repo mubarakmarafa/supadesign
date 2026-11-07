@@ -3,7 +3,9 @@ import type { ThreadRowProviderInstance } from "./thread-provider-instance";
 import {
   THREAD_LIST_V2_MONO_FONT as MONO_FONT,
   THREAD_LIST_V2_ROW_CONTENT_CLASS_NAME,
+  THREAD_LIST_V2_ROW_DIVIDER_CLASS_NAME,
   THREAD_LIST_V2_ROW_DIVIDERS,
+  THREAD_LIST_V2_SCREEN_INSET_CLASS_NAME,
   selectedThreadRowColors,
   getThreadListV2NewBranchMenuTitle,
   getThreadListV2RowAppearance,
@@ -176,6 +178,7 @@ const SIDEBAR_V2_ROW_RADIUS = 12;
 
 function ThreadListV2Section(props: {
   readonly label: string;
+  readonly count?: number;
   readonly icon?: ReactNode;
   readonly pane?: "screen" | "sidebar";
   readonly disclosure?: {
@@ -187,23 +190,27 @@ function ThreadListV2Section(props: {
   };
 }) {
   const sidebarPane = props.pane === "sidebar";
+  const textColorClassName = sidebarPane
+    ? "text-drawer-foreground-muted"
+    : "text-foreground-tertiary";
   const className = cn(
     "flex-row items-center gap-2.5",
     !props.disclosure && "mb-1.5 mt-4",
-    props.pane === "sidebar" ? "px-3" : "px-5",
+    props.pane === "sidebar" ? "px-3" : THREAD_LIST_V2_SCREEN_INSET_CLASS_NAME,
   );
   const content = (
     <>
       {props.icon}
-      <Text
-        className={cn(
-          "shrink text-xs",
-          sidebarPane ? "text-drawer-foreground-muted" : "text-foreground-tertiary",
+      <View className="shrink flex-row items-center gap-1">
+        <Text className={cn("shrink text-xs", textColorClassName)} numberOfLines={1}>
+          {props.label}
+        </Text>
+        {props.count === undefined ? null : (
+          <Text className={cn("shrink-0 text-xs tabular-nums", textColorClassName)}>
+            ({props.count.toLocaleString()})
+          </Text>
         )}
-        numberOfLines={1}
-      >
-        {props.label}
-      </Text>
+      </View>
       <View className={cn("h-px min-w-2 flex-1", sidebarPane ? "bg-drawer-border" : "bg-border")} />
       {props.disclosure ? (
         <DisclosureChevron
@@ -269,7 +276,8 @@ function ThreadListV2ShelfHeader(
   const label = SHELF_LABEL[props.kind];
   return (
     <ThreadListV2Section
-      label={props.expanded ? label : `${label} (${props.count})`}
+      label={label}
+      count={props.expanded ? undefined : props.count}
       pane={props.pane}
       disclosure={{
         expanded: props.expanded,
@@ -295,7 +303,8 @@ export const ThreadListV2GroupHeader = memo(function ThreadListV2GroupHeader(pro
   const { groupKey, onToggle, project } = props;
   return (
     <ThreadListV2Section
-      label={props.expanded ? props.label : `${props.label} (${props.count})`}
+      label={props.label}
+      count={props.expanded ? undefined : props.count}
       icon={
         project ? (
           <ProjectFavicon
@@ -362,7 +371,7 @@ export const ThreadListV2ShowMoreRow = memo(function ThreadListV2ShowMoreRow(pro
       ? "Loading"
       : props.state === "failed"
         ? "Could not load older threads. Retry"
-        : `Show more (${props.hiddenCount} Done hidden)`;
+        : `Show more (${props.hiddenCount.toLocaleString()} Done hidden)`;
   return (
     <Pressable
       accessibilityRole="button"
@@ -588,9 +597,11 @@ export const ThreadListV2PendingRow = memo(function ThreadListV2PendingRow(props
           rowContent
         ) : (
           <View>
-            <View className="px-5 py-2.5">{rowContent}</View>
+            <View className={cn(THREAD_LIST_V2_SCREEN_INSET_CLASS_NAME, "py-2.5")}>
+              {rowContent}
+            </View>
             {props.showTrailingDivider !== false ? (
-              <View className="ml-5 h-px bg-border-subtle" />
+              <View className={THREAD_LIST_V2_ROW_DIVIDER_CLASS_NAME} />
             ) : null}
           </View>
         )}
@@ -787,18 +798,15 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
     ? (STATUS_LABEL_BY_STATUS[status] ?? (isUnread ? READY_STATUS_LABEL : undefined))
     : undefined;
   const statusLabel =
-    rowStatusLabel === undefined
+    rowStatusLabel === undefined || statusAppearance === undefined
       ? undefined
       : {
           ...rowStatusLabel,
-          icon: statusAppearance?.icon ?? ("wifi.slash" as const),
+          icon: statusAppearance.icon,
           iconTintClassName:
             status === "waiting"
               ? rowAppearance.mutedIconTintClassName
-              : (statusAppearance?.iconTintClassName ??
-                (selected
-                  ? selectedThreadRowColors.iconTintClassName
-                  : rowAppearance.mutedIconTintClassName)),
+              : statusAppearance.iconTintClassName,
         };
   const recede = environmentConnected && shouldRecedeThreadRow({ status, selected });
   // The timestamp is precomputed on the list item (same stamps the done
@@ -1270,7 +1278,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
                   : rowAppearance.tertiaryForegroundClassName,
               )}
             >
-              {timeLabel}
+              {environmentConnected ? timeLabel : rowStatusLabel?.label}
             </Text>
           )}
         </View>
@@ -1370,10 +1378,10 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
           </Pressable>
         ) : null}
         {providerInstance ? (
-          <View className="flex-row items-center">
+          <View className="flex-row items-center gap-1">
             {withOccurrenceKeys(providerDrivers.slice(0, -1), (driver) => driver).map(
               ({ item: driver, key }) => (
-                <View key={key} className="-mr-1 opacity-30">
+                <View key={key} className="opacity-30">
                   <ProviderIcon provider={driver} size={12} />
                 </View>
               ),
@@ -1434,7 +1442,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
               {fadedCardContent}
             </View>
             {THREAD_LIST_V2_ROW_DIVIDERS && props.showTrailingDivider !== false ? (
-              <View className="ml-5 h-px bg-border-subtle" />
+              <View className={THREAD_LIST_V2_ROW_DIVIDER_CLASS_NAME} />
             ) : null}
           </View>
         )}
@@ -1510,7 +1518,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
             style={{ fontFamily: MONO_FONT }}
           >
             {!environmentConnected
-              ? statusLabel?.label
+              ? rowStatusLabel?.label
               : snoozedRow && props.snoozeWakeLabelText !== undefined
                 ? props.snoozeWakeLabelText
                 : timeLabel}

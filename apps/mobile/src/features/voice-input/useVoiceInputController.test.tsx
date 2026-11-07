@@ -1,7 +1,11 @@
 import { act, useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { VoiceInputState, VoiceTranscriber } from "@supaterm/client-runtime/voice-input";
+import type {
+  VoiceInputState,
+  VoiceRecordingHandOff,
+  VoiceTranscriber,
+} from "@supaterm/client-runtime/voice-input";
 import { EnvironmentId } from "@supaterm/contracts";
 import { resetVoiceInputGlobalsForTests } from "../../../../../packages/client-runtime/src/voice-input/controller";
 
@@ -58,13 +62,17 @@ import { useVoiceInputController } from "./useVoiceInputController";
 let state: VoiceInputState;
 let session: VoiceInputSession;
 let transcriber: VoiceTranscriber;
-const voiceSends = vi.fn<(uri: string, language: string) => Promise<void>>();
+const voiceSends =
+  vi.fn<
+    (uri: string, language: string, handOff: VoiceRecordingHandOff | undefined) => Promise<void>
+  >();
 let control: ReturnType<typeof useVoiceInputController>;
 let root: Root;
 let ownerKey: string;
 let allowed: boolean;
 const drafts = new Map<string, string>();
 const sends = vi.fn<(text: string) => void>();
+const reviews = vi.fn<() => void>();
 let recording: ReturnType<typeof Promise.withResolvers<void>>;
 let transcribing: ReturnType<typeof Promise.withResolvers<void>>;
 let settled: ReturnType<typeof Promise.withResolvers<void>>;
@@ -88,6 +96,7 @@ function Probe() {
     onSubmit: () => {
       if (allowed && !control.blocksSubmission) sends(text);
     },
+    onReviewTranscript: reviews,
     environmentId: EnvironmentId.make("environment-1"),
     voiceMessage: {
       accepts: () => (drafts.get(key) ?? "") === "",
@@ -125,6 +134,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   resetVoiceInputGlobalsForTests();
   sends.mockClear();
+  reviews.mockClear();
   drafts.clear();
   drafts.set("first", "Draft");
   drafts.set("second", "Other");
@@ -145,6 +155,7 @@ beforeEach(() => {
         transcribing.resolve();
         return transcript.promise;
       },
+      handOff: () => ({ uploadId: "dictation-1", streamed: true }),
     }),
   };
   session = new VoiceInputSession({
@@ -187,6 +198,7 @@ describe("dictation submission", () => {
     expect(sends).not.toHaveBeenCalled();
     await finish();
     expect(sends.mock.calls).toEqual([["Draft spoken words"]]);
+    expect(reviews).not.toHaveBeenCalled();
   });
 
   it("sends an empty draft's recording as the message for the environment to transcribe", async () => {
@@ -196,21 +208,31 @@ describe("dictation submission", () => {
       control.stopAndSubmit();
       await settled.promise;
     });
-    expect(voiceSends.mock.calls).toEqual([["file:///recording.wav", "en-US"]]);
+    expect(voiceSends.mock.calls).toEqual([
+      ["file:///recording.wav", "en-US", { uploadId: "dictation-1", streamed: true }],
+    ]);
     expect(sends).not.toHaveBeenCalled();
     expect(state.phase).toBe("idle");
   });
 
-  it("stops for review without sending", async () => {
-    await start();
-    await act(async () => {
-      void control.stop();
-      await transcribing.promise;
-    });
-    await finish();
-    expect(drafts.get("first")).toBe("Draft spoken words");
-    expect(sends).not.toHaveBeenCalled();
-  });
+  it.each(["same", "remounted"] as const)(
+    "stops for review without sending in the %s composer",
+    async (composer) => {
+      await start();
+      if (composer === "remounted") {
+        act(() => root.render(null));
+        act(() => root.render(<Probe />));
+      }
+      await act(async () => {
+        void control.stop();
+        await transcribing.promise;
+      });
+      await finish();
+      expect(drafts.get("first")).toBe("Draft spoken words");
+      expect(sends).not.toHaveBeenCalled();
+      expect(reviews).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("can send after returning to a recording in a remounted composer", async () => {
     await start();
@@ -236,6 +258,7 @@ describe("dictation submission", () => {
       expect(drafts.get("first")).toBe("Draft spoken words");
       expect(drafts.get("second")).toBe("Other");
       expect(sends).not.toHaveBeenCalled();
+      expect(reviews).not.toHaveBeenCalled();
     },
   );
 

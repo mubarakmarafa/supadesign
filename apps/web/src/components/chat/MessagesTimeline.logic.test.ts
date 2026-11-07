@@ -28,10 +28,14 @@ import {
   deriveMessagesTimelineRows,
   timelineTurnFoldRunIdsByEntryId,
   deriveMessagesTimelineRowsWithState,
+  nextWorktreeSetupRowPlacement,
+  resolveWorktreeSetupLabel,
   shouldCollapseUserMessage,
   resolveAssistantMessageCopyState,
   type MessagesTimelineRow,
+  resolveTimelineIsAtEnd,
   resolveTimelineToolPresentation,
+  withExitingWorktreeSetupRow,
   workEntryDisplayLabel,
 } from "./MessagesTimeline.logic";
 
@@ -93,6 +97,16 @@ describe("resolveAssistantMessageCopyState", () => {
       text: "Created [report.xlsx](<outputs/report.xlsx>).\n\nHello World (Document template)",
       visible: true,
     });
+  });
+});
+
+describe("resolveTimelineIsAtEnd", () => {
+  it("judges the end band where a pending scroll lands", () => {
+    const atEnd = { contentLength: 1000, scroll: 400, scrollLength: 600 };
+    expect(resolveTimelineIsAtEnd(atEnd)).toBe(true);
+    expect(resolveTimelineIsAtEnd(atEnd, -30)).toBe(true);
+    expect(resolveTimelineIsAtEnd(atEnd, -100)).toBe(false);
+    expect(resolveTimelineIsAtEnd({ ...atEnd, scroll: 300 }, 80)).toBe(true);
   });
 });
 
@@ -1636,7 +1650,7 @@ describe("deriveMessagesTimelineRows", () => {
     ]);
   });
 
-  it("stacks back-to-back steers as one burst with a single steer label", () => {
+  it("stacks back-to-back steers as one burst", () => {
     const runId = RunId.make("double-steer-run");
     const time = (second: number) => new Date(Date.UTC(2026, 0, 1, 0, 0, second)).toISOString();
     const message = (
@@ -1697,12 +1711,10 @@ describe("deriveMessagesTimelineRows", () => {
     expect(byId.get("first-steer")).toMatchObject({
       groupedWithNext: true,
       groupedWithPrevious: false,
-      continuesSteer: false,
     });
     expect(byId.get("second-steer")).toMatchObject({
       groupedWithNext: false,
       groupedWithPrevious: true,
-      continuesSteer: true,
     });
   });
 
@@ -5090,6 +5102,42 @@ it("keeps the working header in place across worktree setup handoff", () => {
     },
   });
   expect(finishedRows.map((row) => row.kind)).toEqual(["message", "working", "thinking"]);
+
+  const settledPlacement = nextWorktreeSetupRowPlacement(null, settledRows);
+  const exitingPlacement = nextWorktreeSetupRowPlacement(settledPlacement, finishedRows);
+  expect(
+    withExitingWorktreeSetupRow(finishedRows, exitingPlacement).map((row) =>
+      row.kind === "worktree-setup" ? `${row.kind}:${row.exiting}` : row.kind,
+    ),
+  ).toEqual(["message", "working", "worktree-setup:true", "thinking"]);
+  const returnedPlacement = nextWorktreeSetupRowPlacement(exitingPlacement, settledRows);
+  expect(withExitingWorktreeSetupRow(settledRows, returnedPlacement)).toBe(settledRows);
+
+  const failedScript: WorktreeSetupSnapshot = {
+    ...snapshot,
+    phase: "done",
+    stages: [{ ...stage("setup-script", "done"), status: "failed" }, stage("agent", "done")],
+  };
+  const failedInput = {
+    timelineEntries: [userEntry],
+    isWorking: true,
+    activeTurnStartedAt: "2026-01-01T00:00:00Z",
+    turnDiffSummaries: [],
+    supportsConversationRollback: false,
+    worktreeSetup: failedScript,
+  };
+  const beforeTurn = computeStableMessagesTimelineRows(deriveMessagesTimelineRows(failedInput), {
+    byId: new Map(),
+    result: [],
+  });
+  const afterTurn = computeStableMessagesTimelineRows(
+    deriveMessagesTimelineRows({ ...failedInput, latestRun: liveTurn }),
+    beforeTurn,
+  );
+  expect(afterTurn.result.find((row) => row.kind === "worktree-setup")).toMatchObject({
+    embedded: true,
+  });
+  expect(resolveWorktreeSetupLabel(afterTurn.result, false, false)).toBeNull();
 });
 
 describe("failed turn transcript", () => {
@@ -5525,7 +5573,7 @@ describe("subagent continued by a later turn", () => {
 });
 
 describe("shouldCollapseUserMessage", () => {
-  it("measures a quote chip by its label, not its encoded link", () => {
+  it("measures a quote by its rendered lines, not its encoded link", () => {
     const quote = "A long assistant paragraph that the user quoted. ".repeat(40);
     const citation = serializeAssistantCitation({
       version: 1,
@@ -5542,5 +5590,7 @@ describe("shouldCollapseUserMessage", () => {
 
     expect(shouldCollapseUserMessage(`${citation} Can you expand on this?`)).toBe(false);
     expect(shouldCollapseUserMessage(`${citation} ${"More text. ".repeat(60)}`)).toBe(true);
+    expect(shouldCollapseUserMessage(Array(3).fill(citation).join(" "))).toBe(false);
+    expect(shouldCollapseUserMessage(Array(5).fill(citation).join(" "))).toBe(true);
   });
 });

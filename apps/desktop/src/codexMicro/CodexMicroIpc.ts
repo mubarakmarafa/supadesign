@@ -9,6 +9,7 @@ import * as Schema from "effect/Schema";
 
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import * as DesktopIpc from "../ipc/DesktopIpc.ts";
+import * as MainWindowOwner from "../ipc/MainWindowOwner.ts";
 import * as DesktopWindow from "../window/DesktopWindow.ts";
 import * as CodexMicro from "./CodexMicro.ts";
 import * as IpcChannels from "./CodexMicroChannels.ts";
@@ -58,22 +59,18 @@ export const getState = DesktopIpc.makeIpcMethod({
   }),
 });
 
-export const setLighting = DesktopIpc.makeIpcMethod({
-  channel: IpcChannels.CODEX_MICRO_SET_LIGHTING_CHANNEL,
-  payload: CodexMicroLightingModel,
-  result: Schema.Void,
-  handler: Effect.fn("desktop.ipc.codexMicro.setLighting")(function* (model, event) {
-    // Only the main window owns the keyboard; other windows would fight over its lights.
-    const main = yield* (yield* ElectronWindow.ElectronWindow).main;
-    if (
-      event === undefined ||
-      Option.isNone(main) ||
-      main.value.webContents.id !== event.sender.id
-    ) {
-      return;
-    }
-    yield* (yield* CodexMicro.CodexMicro).setLighting(model);
-  }),
+export const makeSetLighting = Effect.gen(function* () {
+  const codexMicro = yield* CodexMicro.CodexMicro;
+  const admit = yield* MainWindowOwner.make(codexMicro.clearVoiceActivity);
+
+  return DesktopIpc.makeIpcMethod({
+    channel: IpcChannels.CODEX_MICRO_SET_LIGHTING_CHANNEL,
+    payload: CodexMicroLightingModel,
+    result: Schema.Void,
+    handler: Effect.fn("desktop.ipc.codexMicro.setLighting")(function* (model, event) {
+      if (yield* admit(event)) yield* codexMicro.setLighting(model);
+    }),
+  });
 });
 
 export const getAvailability = DesktopIpc.makeSyncIpcMethod({

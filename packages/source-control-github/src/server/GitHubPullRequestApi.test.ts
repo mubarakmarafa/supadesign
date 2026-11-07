@@ -1112,139 +1112,6 @@ layer("GitHubPullRequestApi.layer", (it) => {
     }),
   );
 
-  it.effect("reads a workflow run with its jobs as checks, paging past a full page", () =>
-    Effect.gen(function* () {
-      const job = (name: string | null, status: string, conclusion: string | null) => ({
-        name,
-        status,
-        conclusion,
-        html_url: `https://github.com/acme/web/actions/runs/42/job/${name}`,
-      });
-      mockedExecute
-        .mockReturnValueOnce(
-          Effect.succeed(
-            output(
-              encodeJson({
-                id: 42,
-                name: "Release",
-                status: "in_progress",
-                conclusion: null,
-                html_url: "https://github.com/acme/web/actions/runs/42",
-              }),
-            ),
-          ),
-        )
-        .mockReturnValueOnce(
-          Effect.succeed(
-            output(
-              encodeJson({
-                jobs: [
-                  job("Lint", "completed", "success"),
-                  job("Mobile preview ios", "completed", "failure"),
-                  job(null, "queued", null),
-                  ...Array.from({ length: 97 }, (_, index) =>
-                    job(`Build ${index}`, "completed", "skipped"),
-                  ),
-                ],
-              }),
-            ),
-          ),
-        )
-        .mockReturnValueOnce(
-          Effect.succeed(output(encodeJson({ jobs: [job("Deploy", "waiting", null)] }))),
-        );
-      const cli = yield* GitHubPullRequestApi.GitHubPullRequestApi;
-
-      const run = yield* cli.getWorkflowRun({
-        cwd: "/w",
-        repository: "acme/web",
-        host: "github.com",
-        runId: 42,
-      });
-
-      expect(run).toMatchObject({
-        repository: "acme/web",
-        name: "Release",
-        url: "https://github.com/acme/web/actions/runs/42",
-        status: "pending",
-      });
-      const { checks } = run;
-      assert.strictEqual(checks.length, 100);
-      assert.deepStrictEqual(
-        [checks[0], checks[1], checks.at(-1)].map((check) => [check?.name, check?.status]),
-        [
-          ["Lint", "success"],
-          ["Mobile preview ios", "failure"],
-          ["Deploy", "pending"],
-        ],
-      );
-      assert.strictEqual(
-        checks[1]?.url,
-        "https://github.com/acme/web/actions/runs/42/job/Mobile preview ios",
-      );
-      assert.deepStrictEqual(
-        restCallsTo("actions/runs/42/jobs").map((call) => call.path),
-        [
-          "repos/acme/web/actions/runs/42/jobs?per_page=100&page=1",
-          "repos/acme/web/actions/runs/42/jobs?per_page=100&page=2",
-        ],
-      );
-    }),
-  );
-
-  it.effect("reads a bare run id from the repository gh would pick in a fork checkout", () =>
-    Effect.gen(function* () {
-      mockedExecute
-        .mockReturnValueOnce(
-          Effect.succeed(
-            output(encodeJson({ id: 42, status: "completed", conclusion: "failure" })),
-          ),
-        )
-        .mockReturnValueOnce(Effect.succeed(output(encodeJson({ jobs: [] }))));
-      const cli = yield* GitHubPullRequestApi.make.pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            mockApi,
-            mockHttp,
-            TestSourceControlHost.layer({
-              process: {
-                run: (input) =>
-                  Effect.succeed(
-                    TestSourceControlHost.processOutput(
-                      input.args[0] === "remote"
-                        ? [
-                            "origin\tgit@github.com:acme-fork/web.git (fetch)",
-                            "upstream\thttps://github.com/acme/web.git (fetch)",
-                          ].join("\n")
-                        : "remote.origin.gh-resolved base",
-                    ),
-                  ),
-              },
-            }),
-          ).pipe(
-            Layer.provideMerge(GitHubRequestPolicy.layer),
-            Layer.provideMerge(GitHubQuota.layer),
-            Layer.provideMerge(SourceControlRateLimit.layer),
-            Layer.provideMerge(mockCredentials),
-            Layer.provide(NodeCrypto.layer),
-            Layer.provideMerge(NodeServices.layer),
-          ),
-        ),
-      );
-
-      const run = yield* cli.getWorkflowRun({ cwd: "/fork", host: "github.com", runId: 42 });
-
-      expect(run).toMatchObject({ repository: "acme-fork/web", name: "Run 42", status: "failure" });
-      assert.deepStrictEqual(
-        restCallsTo("actions/runs/42").map((call) => call.path),
-        [
-          "repos/acme-fork/web/actions/runs/42",
-          "repos/acme-fork/web/actions/runs/42/jobs?per_page=100&page=1",
-        ],
-      );
-    }),
-  );
-
   it.effect("revalidates a polled stack, per credential, so an unchanged one costs no quota", () =>
     Effect.gen(function* () {
       const listing = encodeJson([
@@ -1511,6 +1378,20 @@ layer("GitHubPullRequestApi.layer", (it) => {
         searchQueryOfCall(0),
         'is:pr is:closed is:unmerged review-requested:bilal "pull requests page" ' +
           "updated:<=2026-07-02T00:00:00Z sort:updated-desc repo:acme/web repo:supabitapp/supaterm",
+      );
+
+      yield* cli.searchPullRequests({
+        cwd: "/w",
+        host: "github.com",
+        repositories: ["neovim/neovim"],
+        state: "open",
+        involvement: "involved",
+        viewer: "bilal",
+        limit: 10,
+      });
+      assert.strictEqual(
+        searchQueryOfCall(1),
+        "is:pr is:open involves:bilal sort:updated-desc repo:neovim/neovim",
       );
     }),
   );
@@ -2035,6 +1916,36 @@ layer("GitHubPullRequestApi.layer", (it) => {
       expect(batch.items.map((item) => item.number)).toEqual([1, 2]);
       expect(searchOfCall(1)).toBeUndefined();
       assert.isFalse(batch.continues);
+
+      mockedExecute.mockReturnValueOnce(Effect.succeed(emptySearch()));
+      mockedExecute.mockReturnValueOnce(
+        Effect.succeed(
+          output(
+            listedPullRequests(2, 1, (number) =>
+              number === 1
+                ? {
+                    author: {
+                      __typename: "User",
+                      login: "bilal",
+                      avatarUrl: "https://avatars/bilal",
+                      name: null,
+                    },
+                  }
+                : { reviewRequests: [{ login: "bilal" }] },
+            ),
+          ),
+        ),
+      );
+      const involved = yield* cli.listPullRequests({
+        cwd: "/w",
+        repository: "acme/web",
+        host: "github.com",
+        state: "open",
+        involvement: "involved",
+        viewer: "bilal",
+        limit: 10,
+      });
+      expect(involved.items.map((item) => item.number)).toEqual([1]);
     }),
   );
 

@@ -40,6 +40,7 @@ import * as NextPromptSuggestionService from "./NextPromptSuggestionService.ts";
 import * as ProviderEventIngestor from "./ProviderEventIngestor.ts";
 import * as ThreadCommandExecutor from "./ThreadCommandExecutor.ts";
 import * as ProviderSessionManager from "./ProviderSessionManager.ts";
+import * as BackgroundTaskOutput from "./BackgroundTaskOutput.ts";
 import * as CommandOutputHub from "./CommandOutputHub.ts";
 import * as PromptSuggestionHub from "./PromptSuggestionHub.ts";
 import * as ProviderRuntimeRecoveryService from "./ProviderRuntimeRecoveryService.ts";
@@ -56,6 +57,7 @@ import * as ThreadLaunchService from "./ThreadLaunchService.ts";
 import * as ThreadForkService from "./ThreadForkService.ts";
 import * as TurnItemPositionStore from "./TurnItemPositionStore.ts";
 import * as ScheduledTaskService from "../scheduledTasks/ScheduledTaskService.ts";
+import * as SecretRequests from "../secrets/SecretRequests.ts";
 
 export const layerEventInfrastructure = Layer.mergeAll(
   OrchestrationEventStore.layer,
@@ -239,6 +241,16 @@ const layerAgentSessionImporterProvided = AgentSessionImporter.layer.pipe(
   ),
 );
 
+const layerBackgroundTaskOutputProvided = BackgroundTaskOutput.layer.pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      layerOrchestratorProvided,
+      layerProviderSessionManagerProvided,
+      layerCommandOutputHubProvided,
+    ),
+  ),
+);
+
 const layerThreadManagementProvided = ThreadManagementService.layer.pipe(
   Layer.provide(
     Layer.mergeAll(
@@ -265,6 +277,9 @@ const layerThreadLaunchProvided = ThreadLaunchService.layer.pipe(
       IdAllocator.layer,
     ),
   ),
+);
+const layerSecretRequestsProvided = SecretRequests.layer.pipe(
+  Layer.provide(layerThreadManagementProvided),
 );
 const layerScheduledTaskProvided = ScheduledTaskService.layer.pipe(
   Layer.provide(
@@ -351,6 +366,7 @@ const layerMcpAppRequestsProvided = McpAppRequests.layer.pipe(
 
 export const layer = Layer.mergeAll(
   layerCommandOutputHubProvided,
+  layerBackgroundTaskOutputProvided,
   layerOrchestratorProvided,
   layerMcpAppRequestsProvided,
   layerThreadManagementProvided,
@@ -368,6 +384,7 @@ export const layerProduction = Layer.mergeAll(
   layerThreadLaunchProvided,
   layerNextPromptSuggestionProvided,
   layerScheduledTaskProvided,
+  layerSecretRequestsProvided,
   layerScratchThreadPromotionProvided,
   UsageLimitRecoveryWorker.layer.pipe(
     Layer.provide(

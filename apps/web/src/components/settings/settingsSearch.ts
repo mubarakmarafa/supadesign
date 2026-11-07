@@ -12,6 +12,8 @@ import { DEFAULT_KEYBINDINGS } from "@supaterm/shared/keybindings";
 import { BUILT_IN_THEMES } from "@supaterm/shared/themePalettes";
 import { getCodexMicroBridge } from "../codexMicro/codexMicroBridge";
 import { CODEX_MICRO_SETTINGS_SEARCH_ITEMS } from "../codexMicro/codexMicroSettingsSearch";
+import { getSidePulseBridge } from "../sidePulse/sidePulseBridge";
+import { SIDE_PULSE_SETTINGS_SEARCH_ITEMS } from "../sidePulse/sidePulseSettingsSearch";
 import * as Schema from "effect/Schema";
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
 import { writeLocalStorageValue } from "../../hooks/useLocalStorage";
@@ -28,8 +30,10 @@ export type SettingsPath =
   | "/settings/keybindings"
   | "/settings/snap-shot"
   | "/settings/codex-micro"
+  | "/settings/sidepulse"
   | "/settings/providers"
   | "/settings/threads"
+  | "/settings/voice"
   | "/settings/browser"
   | "/settings/devices"
   | "/settings/source-control"
@@ -87,8 +91,10 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/keybindings": "Keybindings",
   "/settings/snap-shot": "SnapShots",
   "/settings/codex-micro": "Codex Micro",
+  "/settings/sidepulse": "SidePulse",
   "/settings/providers": "Providers",
   "/settings/threads": "Threads",
+  "/settings/voice": "Voice transcription",
   "/settings/browser": "Browser",
   "/settings/devices": "Devices",
   "/settings/source-control": "Source control",
@@ -115,11 +121,18 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
       "/settings/keybindings",
       "/settings/snap-shot",
       "/settings/codex-micro",
+      "/settings/sidepulse",
     ],
   },
   {
     heading: "Agents",
-    paths: ["/settings/providers", "/settings/threads", "/settings/browser", "/settings/devices"],
+    paths: [
+      "/settings/providers",
+      "/settings/threads",
+      "/settings/voice",
+      "/settings/browser",
+      "/settings/devices",
+    ],
   },
   {
     heading: "Code",
@@ -134,6 +147,7 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
 
 const SETTINGS_SECTION_AVAILABILITY: Partial<Record<SettingsPath, () => boolean>> = {
   "/settings/codex-micro": () => getCodexMicroBridge() !== null,
+  "/settings/sidepulse": () => getSidePulseBridge() !== null,
 };
 
 /** An unavailable section is hidden from navigation and search, and its route redirects. */
@@ -519,21 +533,36 @@ export const SETTINGS_SEARCH_ITEMS = [
   {
     id: "voice-transcription",
     title: "Voice transcription",
-    to: "/settings/threads",
+    to: "/settings/voice",
     scope: "environment-defaults",
     searchTerms: ["voice dictation microphone speech transcribe provider account login"],
   },
   {
     id: "voice-language",
     title: "Voice language",
-    to: "/settings/threads",
+    to: "/settings/voice",
     searchTerms: ["voice dictation microphone speech transcribe language locale spoken"],
   },
   {
-    id: "voice-hold-space",
-    title: "Hold Space to talk",
-    to: "/settings/threads",
-    searchTerms: ["voice dictation microphone speech push to talk spacebar hold keyboard shortcut"],
+    id: "voice-microphone",
+    title: "Microphone",
+    to: "/settings/voice",
+    searchTerms: ["voice dictation microphone input device mic headset usb select choose"],
+  },
+  {
+    id: "voice-avoid-bluetooth",
+    title: "Use the Mac's microphone instead of Bluetooth",
+    to: "/settings/voice",
+    macOnly: true,
+    searchTerms: ["voice dictation microphone bluetooth airpods headset built-in call quality"],
+  },
+  {
+    id: "voice-hold-to-talk",
+    title: "Hold to talk",
+    to: "/settings/voice",
+    searchTerms: [
+      "voice dictation microphone speech push to talk option alt spacebar hold keyboard shortcut",
+    ],
   },
   {
     id: "next-prompt-suggestions",
@@ -578,12 +607,6 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Privacy policy",
     to: "/settings/about",
     searchTerms: ["telemetry analytics usage data tracking legal opt out"],
-  },
-  {
-    id: "product-usage-data",
-    title: "Product usage data",
-    to: "/settings/about",
-    searchTerms: ["telemetry analytics usage data tracking opt out disable posthog privacy"],
   },
   {
     id: "diagnostics",
@@ -751,6 +774,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     targetId: "snap-shot-enabled",
   },
   ...CODEX_MICRO_SETTINGS_SEARCH_ITEMS,
+  ...SIDE_PULSE_SETTINGS_SEARCH_ITEMS,
   {
     id: "providers",
     title: "Providers",
@@ -1106,9 +1130,11 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/diffs": null,
   "/settings/snap-shot": null,
   "/settings/codex-micro": null,
+  "/settings/sidepulse": null,
   "/settings/keybindings": null,
   "/settings/providers": null,
   "/settings/threads": null,
+  "/settings/voice": null,
   "/settings/browser": null,
   "/settings/devices": null,
   "/settings/source-control": "environment-defaults",
@@ -1128,6 +1154,7 @@ const SPLIT_SETTINGS_PATHS: ReadonlySet<string> = new Set([
   "/settings/general",
   "/settings/appearance",
   "/settings/chat",
+  "/settings/threads",
   "/settings/source-control",
   "/settings/connections",
   ...Object.keys(RENAMED_SETTINGS_PATHS),
@@ -1136,6 +1163,7 @@ const SPLIT_SETTINGS_PATHS: ReadonlySet<string> = new Set([
 const MOVED_SECTION_ANCHORS: Readonly<Record<string, SettingsPath>> = {
   "authorized-clients": "/settings/access",
   threads: "/settings/threads",
+  "voice-input": "/settings/voice",
   devices: "/settings/devices",
   composer: "/settings/chat",
   review: "/settings/diffs",

@@ -49,7 +49,6 @@ import {
   type IconComponent,
   MessagesSquareIcon,
   PencilIcon,
-  RedoIcon,
   LinkIcon,
 } from "@supaterm/icons";
 
@@ -208,7 +207,7 @@ function UserVideoAttachment({
             : "rounded-lg border border-border/80",
         )}
       >
-        {file.name}
+        <span className="line-clamp-3 min-w-0 wrap-anywhere">{file.name}</span>
       </div>
     );
   }
@@ -280,10 +279,6 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
 
   return (
     <div className="group flex flex-col items-end gap-1" data-user-message-attribution="automation">
-      {row.message.inputIntent === "steer" ||
-      row.message.inputIntent === "promoted_queued_to_steer" ? (
-        <UserMessageIntentMarker intent={row.message.inputIntent} />
-      ) : null}
       <div
         className={cn(
           "min-w-0 max-w-[80%] rounded-2xl bg-message text-message-foreground",
@@ -727,7 +722,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                   collage && "h-full",
                 )}
               >
-                {image.name}
+                <span className="line-clamp-3 min-w-0 wrap-anywhere">{image.name}</span>
               </div>
             )}
             {image.previewUrl && image.source?.kind === "snap-shot" ? (
@@ -820,11 +815,6 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
         >
           Sent by Supaterm
         </p>
-      ) : null}
-      {(row.message.inputIntent === "steer" ||
-        row.message.inputIntent === "promoted_queued_to_steer") &&
-      !row.continuesSteer ? (
-        <UserMessageIntentMarker intent={row.message.inputIntent} />
       ) : null}
       {mediaAboveText ? (
         <div className="flex max-w-[80%] justify-end">
@@ -1011,33 +1001,6 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
         </div>
       ) : null}
     </div>
-  );
-}
-
-function UserMessageIntentMarker({
-  intent,
-}: {
-  readonly intent: "steer" | "promoted_queued_to_steer";
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <div
-            className="me-1 flex items-center justify-end gap-1 text-xs leading-none text-muted-foreground"
-            data-user-message-intent={intent}
-          />
-        }
-      >
-        <RedoIcon aria-hidden="true" className="size-3" />
-        Steer
-      </TooltipTrigger>
-      <TooltipPopup side="top">
-        {intent === "promoted_queued_to_steer"
-          ? "Originally queued, then promoted to steer the active turn"
-          : "Steered the active turn"}
-      </TooltipPopup>
-    </Tooltip>
   );
 }
 

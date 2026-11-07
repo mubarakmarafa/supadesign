@@ -15,6 +15,7 @@ import { ProviderInstanceId } from "./providerInstance.ts";
 /** 5 minutes of 16 kHz mono 16-bit PCM is 9.6 MB, plus the WAV header. */
 export const TRANSCRIPTION_MAX_AUDIO_BYTES = 10 * 1024 * 1024;
 export const TRANSCRIPTION_MAX_SECONDS = 5 * 60;
+export const TRANSCRIPTION_MIN_DURATION_MS = 300;
 
 export const ServerProviderTranscription = Schema.Struct({
   status: Schema.Literals(["ready", "unavailable"]),
@@ -71,6 +72,8 @@ export type TranscriptionTranscribeResult = typeof TranscriptionTranscribeResult
 export const TranscriptionCancelInput = Schema.Struct({ audioAttachmentId: AudioAttachmentId });
 export type TranscriptionCancelInput = typeof TranscriptionCancelInput.Type;
 
+const TranscriptionUploadId = TrimmedNonEmptyString.check(Schema.isMaxLength(256));
+
 export const TranscriptionUploadSubmit = Schema.Struct({
   threadId: ThreadId,
   /** Also identifies the upload, so preparing again with it joins the same work. */
@@ -89,6 +92,8 @@ export type TranscriptionUploadSubmit = typeof TranscriptionUploadSubmit.Type;
  * thread as the user's message, even when the uploader disconnects first.
  */
 export const TranscriptionPrepareUploadInput = Schema.Struct({
+  /** Joins the dictation streamed under this id. `submit.commandId` takes precedence. */
+  uploadId: Schema.optionalKey(TranscriptionUploadId),
   /** Defaults to the environment's transcription provider setting. */
   providerInstanceId: Schema.optionalKey(ProviderInstanceId),
   sizeBytes: NonNegativeInt.check(
@@ -101,8 +106,6 @@ export const TranscriptionPrepareUploadInput = Schema.Struct({
   submit: Schema.optionalKey(TranscriptionUploadSubmit),
 });
 export type TranscriptionPrepareUploadInput = typeof TranscriptionPrepareUploadInput.Type;
-
-const TranscriptionUploadId = TrimmedNonEmptyString.check(Schema.isMaxLength(256));
 
 /** POST the WAV to `relativeUrl`. Posting it again, even with an empty body, recovers the result. */
 export const TranscriptionPrepareUploadResult = Schema.Struct({
@@ -123,6 +126,35 @@ export const TranscriptionUploadResult = Schema.Struct({
   ),
 });
 export type TranscriptionUploadResult = typeof TranscriptionUploadResult.Type;
+
+/**
+ * Opens a dictation that streams its audio while the user speaks. The client mints the id,
+ * so a voice message can later be sent under it, and finishes it through an upload that
+ * names the same id: an empty body collects the transcript, the WAV fills in what the stream
+ * missed.
+ */
+export const TranscriptionPrepareStreamInput = Schema.Struct({
+  uploadId: TranscriptionUploadId,
+  /** Defaults to the environment's transcription provider setting. */
+  providerInstanceId: Schema.optionalKey(ProviderInstanceId),
+  language: Schema.optionalKey(TranscriptionLanguage),
+  context: Schema.optionalKey(TranscriptionContext),
+});
+export type TranscriptionPrepareStreamInput = typeof TranscriptionPrepareStreamInput.Type;
+
+/**
+ * Open a WebSocket to `relativeUrl` and wait for `ready`, then send 16 kHz mono 16-bit PCM
+ * as binary frames, starting at `receivedBytes`. Send `finish` once recording stops; after
+ * `finished` the server holds all the audio and an upload with an empty body collects the text.
+ */
+export const TranscriptionStreamServerMessage = Schema.Union([
+  Schema.Struct({ type: Schema.Literal("ready"), receivedBytes: NonNegativeInt }),
+  Schema.Struct({ type: Schema.Literal("finished") }),
+]);
+export type TranscriptionStreamServerMessage = typeof TranscriptionStreamServerMessage.Type;
+export const TranscriptionStreamFinish = Schema.Struct({ type: Schema.Literal("finish") });
+/** The dictation can't take audio over this stream; finish it with the full upload. */
+export const TRANSCRIPTION_STREAM_CLOSED_CODE = 4001;
 
 export const TranscriptionCancelUploadInput = Schema.Struct({ uploadId: TranscriptionUploadId });
 export type TranscriptionCancelUploadInput = typeof TranscriptionCancelUploadInput.Type;

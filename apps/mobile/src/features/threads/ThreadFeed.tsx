@@ -22,10 +22,13 @@ import {
 } from "../../lib/enrichedLinkPresentation";
 import { ThreadContextDivider } from "./thread-context-divider";
 import { ThreadHandoffDivider, ThreadHandoffRow } from "./thread-handoff-row";
+import { SecretRequestCard } from "./SecretRequestCard";
 import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 import { WorktreeSetupCard, type WorktreeSetupCardProps } from "./worktree-setup-card";
+import { useExitingWorktreeSetup } from "./use-exiting-worktree-setup";
 import * as Haptics from "expo-haptics";
 import { KeyboardAwareLegendList } from "@legendapp/list/keyboard";
+import { KeyboardController } from "react-native-keyboard-controller";
 import { useViewabilityAmount, type LegendListRef } from "@legendapp/list/react-native";
 import { scopeThreadRef } from "@supaterm/client-runtime/environment";
 import type { HandoffEndpoints } from "@supaterm/client-runtime/handoff";
@@ -47,6 +50,7 @@ import {
   type EnvironmentId,
   type MessageId,
   type OrchestrationV2ProjectedTurnItem,
+  type RepositoryIdentity,
   type RunId,
   type ScheduledTaskId,
   type TurnItemId,
@@ -220,6 +224,7 @@ import {
   threadFeedRunIsUnsettled,
   isContextCompactionActivityGroup,
   isContextHandoffActivityGroup,
+  isSecretRequestActivityGroup,
   type ThreadFeedEntry,
   type ThreadFeedLatestRun,
   messageFoldRunId,
@@ -293,7 +298,6 @@ import {
   resolveWorkspaceRelativeFilePath,
 } from "../files/filePath";
 import { waitForThreadShellReady } from "./threadForkNavigation";
-import { resolveUserMessageIntentBadge } from "./userMessageIntentBadge";
 import { fileChipClipboardPath, fileChipMenu, resolveFileChipTarget } from "./fileChipMenu";
 import { useFileChipShare } from "./useFileChipShare";
 import { useOpenLinkedThread } from "./useOpenLinkedThread";
@@ -375,6 +379,7 @@ export interface ThreadFeedProps {
   readonly threadId: ThreadId;
   readonly threadTitle: string;
   readonly workspaceRoot?: string | null;
+  readonly repositoryIdentity?: RepositoryIdentity | null;
   readonly feed: ReadonlyArray<ThreadFeedEntry>;
   readonly pendingHandoff?: HandoffEndpoints | null;
   readonly contentPresentation: ThreadContentPresentation;
@@ -1174,6 +1179,7 @@ interface MarkdownLinkHandlers {
   readonly resolveImageSource?: MarkdownImageSourceResolver;
   readonly fileEmbedLabel?: (href: string, standalone: boolean) => string | null;
   readonly linkCustomization?: (href: string) => MarkdownLinkCustomization | undefined;
+  readonly repositoryIdentity?: RepositoryIdentity | null;
 }
 
 interface MarkdownStyleSets {
@@ -1859,6 +1865,16 @@ function renderFeedEntry(
     );
   }
 
+  if (entry.type === "activity-group" && isSecretRequestActivityGroup(entry)) {
+    return (
+      <SecretRequestCard
+        environmentId={props.environmentId}
+        projectedItem={entry.activities[0]!.projectedItem}
+        iconColor={iconSubtleColor}
+      />
+    );
+  }
+
   if (entry.type === "activity-group" && isContextCompactionActivityGroup(entry)) {
     const label = entry.activities[0]!.summary;
     const item = entry.activities[0]!.projectedItem.item;
@@ -1959,9 +1975,6 @@ function renderFeedEntry(
       const foldRowId = presentation.attribution === "agent" ? `agent:${message.id}` : null;
       const foldExpanded = foldRowId !== null && (props.expandedWorkRows[foldRowId] ?? false);
       const bubbleBodyVisible = foldRowId === null || foldExpanded;
-      const intentBadge = props.userMessageGrouping.continuesSteer
-        ? null
-        : resolveUserMessageIntentBadge(message.inputIntent);
       const referenceIds = new Set(
         collectComposerContextReferences(message.text).map((reference) => reference.contextId),
       );
@@ -2188,28 +2201,6 @@ function renderFeedEntry(
                   environmentId={props.environmentId}
                   senderThreadId={message.senderThreadId}
                 />
-              ) : null}
-              {intentBadge ? (
-                <View
-                  accessible
-                  accessibilityLabel={intentBadge.accessibilityLabel}
-                  className="flex-row items-center gap-1"
-                >
-                  <SymbolView name="arrow.uturn.forward" size={12} tintColor={iconSubtleColor} />
-                  <Text className="font-supaterm-medium text-xs text-foreground-secondary">
-                    {intentBadge.label}
-                  </Text>
-                </View>
-              ) : null}
-              {intentBadge ? (
-                <Text
-                  accessible={false}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no"
-                  className="font-supaterm-medium text-xs text-foreground-secondary"
-                >
-                  ·
-                </Text>
               ) : null}
               <Text
                 className={cn(
@@ -3038,6 +3029,7 @@ export const ThreadFeed = memo(function ThreadFeed({
       ),
     onLinkPress: onMarkdownLinkPress,
     linkCustomization: enrichedThreadLinkCustomization,
+    repositoryIdentity: props.repositoryIdentity ?? null,
     onImagePress: (href) => onMarkdownLinkPress(href, true),
     resolveImageSource,
     fileContextMenu: (href) => {
@@ -3226,11 +3218,19 @@ export const ThreadFeed = memo(function ThreadFeed({
   );
   const reviewCommentColors = useReviewCommentColors();
   const unsettledTurnId = threadFeedRunIsUnsettled(props.latestRun) ? props.latestRun.runId : null;
+  const worktreeSetup = useExitingWorktreeSetup(props.worktreeSetup ?? null);
+  const worktreeSetupCard = worktreeSetup ? (
+    <WorktreeSetupCard
+      key={`${props.threadId}:${worktreeSetup.generation}`}
+      {...worktreeSetup.card}
+      exiting={worktreeSetup.exiting}
+    />
+  ) : null;
   // LegendList does not invalidate visible rows when only the renderItem closure changes.
   // Include turn completion so unchanged message rows reveal their footer and spacing
   // even when the final message update arrives before the turn settles.
   const listAppearanceData = {
-    worktreeSetup: props.worktreeSetup,
+    worktreeSetup,
     dispatchingMessageId: props.dispatchingMessageId,
     unsettledTurnId,
     copiedRowId,
@@ -3262,6 +3262,10 @@ export const ThreadFeed = memo(function ThreadFeed({
     }
   };
   const handleScrollBeginDrag = () => {
+    // Android's on-drag only blurs RN TextInputs, not the native composer editor.
+    if (Platform.OS === "android" && KeyboardController.isVisible()) {
+      void KeyboardController.dismiss();
+    }
     clearUserScrollSettle();
     userScrollSessionRef.current = true;
     cancelReflow();
@@ -3322,7 +3326,7 @@ export const ThreadFeed = memo(function ThreadFeed({
   const [groupFeed] = useState(createThreadFeedGrouping);
   const groupedFeed = groupFeed(presentedFeed, {
     workflowOpeningMessageId: workflowOpening?.messageId,
-    setupAnchorIndex: props.worktreeSetup ? setupAnchorIndex : undefined,
+    setupAnchorIndex: worktreeSetup ? setupAnchorIndex : undefined,
   });
   // The empty↔filled key below remounts the list and resets its imperative
   // content-inset override. Seed each fresh instance as it attaches with the
@@ -3339,7 +3343,7 @@ export const ThreadFeed = memo(function ThreadFeed({
   const [prefetchHistory] = useState(createThreadHistoryPrefetcher);
   const handleHistoryPrefetch = () => {
     const state = listRef.current?.getState();
-    if (props.freeze.value || feedLoading || state?.data !== presentedFeed) return;
+    if (props.freeze.value || feedLoading || state?.data !== groupedFeed) return;
     prefetchHistory(feedThreadKey, props.historyControls, state);
   };
   // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- reads the native list's imperative state on the next frame after each commit to prefetch older history
@@ -3798,9 +3802,7 @@ export const ThreadFeed = memo(function ThreadFeed({
             workflowOpening,
             pins: props.pins,
           })}
-          {props.worktreeSetup && info.index === setupAnchorIndex ? (
-            <WorktreeSetupCard key={props.threadId} {...props.worktreeSetup} />
-          ) : null}
+          {info.index === setupAnchorIndex ? worktreeSetupCard : null}
         </ThreadMediaVisibility>
       </MessageImageGalleryScope>
     </Animated.View>
@@ -3922,7 +3924,7 @@ export const ThreadFeed = memo(function ThreadFeed({
             onItemSizeChanged={handleItemSizeChanged}
             drawDistance={500}
             keyboardShouldPersistTaps="always"
-            keyboardDismissMode="none"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
             keyboardLiftBehavior="whenAtEnd"
             // Seeding the real viewport before onLayout lets the empty→filled remount see short
             // content underflow and skip programmatic positioning, since any offset write during
@@ -3952,9 +3954,7 @@ export const ThreadFeed = memo(function ThreadFeed({
             ListHeaderComponent={
               <>
                 {usesNativeAutomaticInsets ? null : <View style={{ height: topContentInset }} />}
-                {setupAnchorIndex < 0 && props.worktreeSetup ? (
-                  <WorktreeSetupCard key={props.threadId} {...props.worktreeSetup} />
-                ) : null}
+                {setupAnchorIndex < 0 ? worktreeSetupCard : null}
                 {props.historyControls ? (
                   <ThreadFeedLoadEarlierControl {...props.historyControls} />
                 ) : null}
@@ -3999,7 +3999,7 @@ export const ThreadFeed = memo(function ThreadFeed({
           </Animated.View>
         ) : null}
         {presentedFeed.length === 0 &&
-        !props.worktreeSetup &&
+        !worktreeSetup &&
         props.activeWorkStartedAt === null &&
         props.contentPresentation.kind === "ready" ? (
           <View

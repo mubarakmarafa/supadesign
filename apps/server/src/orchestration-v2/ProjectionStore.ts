@@ -40,7 +40,6 @@ import type {
   ProviderThreadId,
   ProviderTurnId,
   RunAttemptId,
-  ThreadWorkflowRunWatch,
 } from "@supaterm/contracts";
 import {
   OrchestrationV2AppThreadJson as OrchestrationV2AppThreadJsonSchema,
@@ -186,14 +185,6 @@ export type ProjectionThreadPullRequests = Pick<
   OrchestrationV2AppThread,
   "id" | "projectId" | "lineage" | "doneOverride" | "doneAt" | "pullRequests"
 >;
-
-/** The thread fields a workflow run watch reads, for a thread watching at least one run. */
-export type ProjectionThreadWorkflowRunWatches = Pick<
-  OrchestrationV2AppThread,
-  "id" | "projectId"
-> & {
-  readonly workflowRunWatches: ReadonlyArray<ThreadWorkflowRunWatch>;
-};
 
 /**
  * Thread activity needed to mark threads done, without transcript or fork history.
@@ -487,8 +478,6 @@ export interface ProjectionStoreV2Shape {
     ReadonlyArray<ThreadId>,
     ProjectionStoreV2Error
   >;
-  /** Threads that are not deleted, archived ones included. */
-  readonly countThreads: () => Effect.Effect<number, ProjectionStoreV2Error>;
   /** Every active thread, in shell order. */
   readonly listActiveShellIndex: () => Effect.Effect<
     ReadonlyArray<ActiveShellIndexEntry>,
@@ -528,11 +517,6 @@ export interface ProjectionStoreV2Shape {
   readonly getThreadsWithPullRequests: (
     threadId?: ThreadId,
   ) => Effect.Effect<ReadonlyArray<ProjectionThreadPullRequests>, ProjectionStoreV2Error>;
-  /** Active (not deleted, not archived) threads watching at least one workflow run. */
-  readonly getThreadsWithWorkflowRunWatches: () => Effect.Effect<
-    ReadonlyArray<ProjectionThreadWorkflowRunWatches>,
-    ProjectionStoreV2Error
-  >;
   readonly getThreadWorktreePaths: (options?: {
     readonly includeArchived?: boolean;
   }) => Effect.Effect<
@@ -985,6 +969,7 @@ type ShellThreadRow = {
   readonly blocking_run_stop_requested: number;
   readonly blocking_failure_payload_json: string | null;
   readonly pending_request_payload_json: string | null;
+  readonly pending_secret_request_payload_json: string | null;
   readonly latest_user_message_at: string | null;
   readonly latest_user_authored_message_at: string | null;
   readonly has_actionable_proposed_plan: number;
@@ -1417,6 +1402,22 @@ function pendingRuntimeRequestSummary(
   };
 }
 
+function secretRequestAsPendingInput(
+  item: OrchestrationV2TurnItem | null,
+): OrchestrationV2PendingRuntimeRequestSummary | null {
+  if (item?.type !== "secret_request" || item.nodeId === null) return null;
+  return {
+    id: RuntimeRequestId.make(item.id),
+    kind: "user_input",
+    createdAt: item.startedAt ?? item.updatedAt,
+    blocking: true,
+  };
+}
+
+/** A secret card is answered while its agent waits in the run. */
+const waitsOnUser = (item: OrchestrationV2TurnItem, liveRunIds: ReadonlySet<RunId>) =>
+  item.type === "secret_request" && item.runId !== null && liveRunIds.has(item.runId);
+
 export function threadShellFromProjection(
   projection: OrchestrationV2ThreadProjection,
 ): OrchestrationV2ThreadShell {
@@ -1443,6 +1444,7 @@ export function threadShellFromProjection(
       .toSorted((left, right) => right.ordinal - left.ordinal)[0] ?? null;
   const activityRunStartedAt =
     activityRun === null ? null : orchestrationV2RunWorkStartedAt(activityRun);
+  const liveRunIds = new Set(projection.runs.filter(isActivityRunForShell).map((run) => run.id));
   let pendingRuntimeRequest = pendingRuntimeRequestSummary(
     projection.runtimeRequests
       .filter((request) => request.status === "pending")
@@ -1451,6 +1453,17 @@ export function threadShellFromProjection(
           DateTime.toEpochMillis(right.createdAt) - DateTime.toEpochMillis(left.createdAt),
       )[0] ?? null,
   );
+  if (pendingRuntimeRequest === null || pendingRuntimeRequest.blocking === false) {
+    pendingRuntimeRequest =
+      secretRequestAsPendingInput(
+        projection.turnItems
+          .filter((item) => item.status === "waiting" && waitsOnUser(item, liveRunIds))
+          .toSorted(
+            (left, right) =>
+              DateTime.toEpochMillis(right.updatedAt) - DateTime.toEpochMillis(left.updatedAt),
+          )[0] ?? null,
+      ) ?? pendingRuntimeRequest;
+  }
   const userMessages = projection.messages
     .filter((message) => message.role === "user")
     .toSorted(
@@ -1465,7 +1478,6 @@ export function threadShellFromProjection(
     activeProviderThreadId: projection.thread.activeProviderThreadId,
     runs: projection.runs,
     pullRequests: projection.thread.pullRequests,
-    workflowRunWatches: projection.thread.workflowRunWatches,
   });
   return {
     createdBy: projection.thread.createdBy,
@@ -5992,6 +6004,19 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                 LIMIT 1
               ) AS pending_request_payload_json,
               (
+                SELECT secret.payload_json
+                -- Keep runs outermost so completed history is never scanned for a pending secret.
+                FROM orchestration_v2_projection_runs r
+                CROSS JOIN orchestration_v2_projection_turn_items secret
+                  INDEXED BY orchestration_v2_projection_turn_items_thread_run_idx
+                WHERE r.thread_id = t.thread_id
+                  AND r.status IN ('preparing', 'starting', 'running', 'waiting')
+                  AND secret.thread_id = t.thread_id AND secret.run_id = r.run_id
+                  AND secret.type = 'secret_request' AND secret.status = 'waiting'
+                ORDER BY secret.updated_at DESC, secret.turn_item_id DESC
+                LIMIT 1
+              ) AS pending_secret_request_payload_json,
+              (
                 SELECT message.updated_at
                 FROM orchestration_v2_projection_messages message
                 WHERE message.thread_id = t.thread_id
@@ -6383,7 +6408,6 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                     activeProviderThreadId: thread.activeProviderThreadId,
                     hasActiveRun: false,
                     pullRequests: thread.pullRequests,
-                    workflowRunWatches: thread.workflowRunWatches,
                   }),
                 } satisfies ProjectionDoneCandidate;
               }),
@@ -6417,29 +6441,6 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           );
         },
         Effect.mapError((cause) => new ProjectionStoreSetupError({ cause })),
-      );
-
-    const getThreadsWithWorkflowRunWatches: ProjectionStoreV2Shape["getThreadsWithWorkflowRunWatches"] =
-      Effect.fn("ProjectionStore.getThreadsWithWorkflowRunWatches")(() =>
-        Effect.gen(function* () {
-          const rows = yield* sql<PayloadRow>`
-            SELECT payload_json
-            FROM orchestration_v2_projection_threads
-            WHERE deleted_at IS NULL
-              AND json_extract(payload_json, '$.archivedAt') IS NULL
-              AND json_array_length(payload_json, '$.workflowRunWatches') > 0
-            ORDER BY updated_at ASC, thread_id ASC
-          `;
-          return yield* Effect.forEach(rows, (row) =>
-            decodeThreadPayload(row.payload_json).pipe(
-              Effect.map((thread): ProjectionThreadWorkflowRunWatches => ({
-                id: thread.id,
-                projectId: thread.projectId,
-                workflowRunWatches: thread.workflowRunWatches ?? [],
-              })),
-            ),
-          );
-        }).pipe(Effect.mapError((cause) => new ProjectionStoreSetupError({ cause }))),
       );
 
     const getThreadWorktreePaths: ProjectionStoreV2Shape["getThreadWorktreePaths"] = (options) =>
@@ -6489,12 +6490,20 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           pendingTurnItemsByThreadId,
         } = input;
         const thread = yield* decodeThreadPayload(row.payload_json);
-        const pendingRuntimeRequest =
+        const waitingSecret =
+          row.pending_secret_request_payload_json === null
+            ? null
+            : yield* decodeTurnItemPayload(row.pending_secret_request_payload_json);
+        let pendingRuntimeRequest =
           row.pending_request_payload_json !== null
             ? pendingRuntimeRequestSummary(
                 yield* decodeRuntimeRequestPayload(row.pending_request_payload_json),
               )
             : null;
+        if (pendingRuntimeRequest === null || pendingRuntimeRequest.blocking === false) {
+          pendingRuntimeRequest =
+            secretRequestAsPendingInput(waitingSecret) ?? pendingRuntimeRequest;
+        }
         let terminalFailureItem =
           row.terminal_failure_payload_json === null
             ? null
@@ -6557,7 +6566,6 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             activeProviderThreadId: thread.activeProviderThreadId,
             hasActiveRun: row.active_run_id !== null,
             pullRequests: thread.pullRequests,
-            workflowRunWatches: thread.workflowRunWatches,
           }),
         ];
         return {
@@ -6776,13 +6784,6 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       },
       Effect.mapError(shellSnapshotReadError),
     );
-
-    const countThreads = Effect.fn("ProjectionStore.countThreads")(function* () {
-      const rows = yield* sql<{ readonly count: number }>`
-        SELECT COUNT(*) AS count FROM orchestration_v2_projection_threads WHERE deleted_at IS NULL
-      `;
-      return rows[0]?.count ?? 0;
-    }, Effect.mapError(shellSnapshotReadError));
 
     const listActiveShellIndex = Effect.fn("ProjectionStore.listActiveShellIndex")(function* () {
       const rows = yield* sql<{
@@ -7012,7 +7013,6 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       apply,
       getShellSnapshot: readOnReader(getShellSnapshot),
       listActiveSubagentThreadIds: readOnReader(listActiveSubagentThreadIds),
-      countThreads: readOnReader(countThreads),
       listActiveShellIndex: readOnReader(listActiveShellIndex),
       readShellSnapshot: readOnReader(readShellSnapshot),
       listOlderDoneThreads: readOnReader(listOlderDoneThreads),
@@ -7020,7 +7020,6 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       getThread: readOnReader(getThread),
       getAutoMarkDoneCandidates: readOnReader(getAutoMarkDoneCandidates),
       getThreadsWithPullRequests: readOnReader(getThreadsWithPullRequests),
-      getThreadsWithWorkflowRunWatches,
       getThreadWorktreePaths: readOnReader(getThreadWorktreePaths),
       getThreadProjection,
       getTurnStartContext: readOnReader(getTurnStartContext),

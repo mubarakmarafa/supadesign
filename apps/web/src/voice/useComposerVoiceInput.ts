@@ -3,20 +3,31 @@ import { createServerVoiceTranscriber } from "@supaterm/client-runtime/state/tra
 import {
   VoiceInputController,
   voiceInputBlocksSubmission,
+  voiceInputCue,
   type VoiceDraftSnapshot,
   type VoiceInputState,
+  type VoiceRecordingHandOff,
 } from "@supaterm/client-runtime/voice-input";
-import type { EnvironmentId, ProjectId, ThreadId } from "@supaterm/contracts";
+import type { EnvironmentId, ProjectId, ThreadId, VoiceHoldToTalkKey } from "@supaterm/contracts";
+import { unlock } from "cuelume";
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { ComposerSubmissionIntent } from "../composer-logic";
 import type { ComposerDispatchMode } from "@supaterm/client-runtime/state/composer-dispatch";
+import { getClientSettings } from "../hooks/useSettings";
 import { useStableCallback } from "../hooks/useStableCallback";
 import { threadOutboxDeliverableAtom } from "../state/threadOutbox";
-import { uploadVoiceAudio, useVoiceTranscriptionSource } from "../state/transcription";
-import { followKeyHold, type KeyHold } from "./keyHold";
+import {
+  environmentStreamsDictation,
+  startLiveVoiceDictation,
+  uploadVoiceAudio,
+  useVoiceTranscriptionSource,
+} from "../state/transcription";
+import { followKeyHold, type KeyHold, type KeyHoldHandlers } from "./keyHold";
 import { useDiscardOnEscape } from "./useDiscardOnEscape";
-import { useHoldSpaceToTalk } from "./useHoldSpaceToTalk";
+import { useHoldToTalk } from "./useHoldToTalk";
+import { playVoiceInputCue } from "./voiceInputCues";
+import { publishVoiceInputActivity } from "./voiceInputActivity";
 import {
   canRecordVoice,
   readVoiceRecording,
@@ -52,12 +63,13 @@ export interface ComposerVoiceInputOptions {
   /** Called when Send is pressed; the returned function sends the finished recording. */
   readonly prepareVoiceSend: (
     submission: ComposerVoiceSubmission,
-  ) => (recording: VoiceRecording) => Promise<void>;
+  ) => (recording: VoiceRecording, handOff: VoiceRecordingHandOff | undefined) => Promise<void>;
   readonly submit: (submission: ComposerVoiceSubmission) => void;
   /** A recording is open or on its way, so its controls must stay on screen. */
   readonly onBusyChange: (busy: boolean) => void;
-  /** Holding Space in this element's editor records; null leaves Space to type. */
-  readonly holdSpaceTarget: RefObject<HTMLElement | null> | null;
+  /** Holding this key while focus is in `holdToTalkTarget` records. */
+  readonly holdToTalkKey: VoiceHoldToTalkKey;
+  readonly holdToTalkTarget: RefObject<HTMLElement | null>;
 }
 
 export interface ComposerVoiceAvailability {
@@ -123,23 +135,40 @@ function createVoiceRuntime(onStateChange: (state: VoiceInputState) => void) {
     }
     return { ownerKey: current.ownerKey, text, selection: current.readSelection(), revision };
   };
+  let phase = IDLE_STATE.phase;
   const recorder: WebVoiceRecorder = new WebVoiceRecorder({
     onStatus: (status) => void controller.handleRecorderStatus(status),
+    readMicrophone: () => {
+      const settings = getClientSettings();
+      return {
+        chosen: settings.voiceMicrophone,
+        avoidBluetooth: settings.voiceAvoidBluetoothMicrophone,
+      };
+    },
   });
   const controller: VoiceInputController = new VoiceInputController({
     recorder,
     getTranscriber: () => {
       const { environmentId, threadId, projectId, language } = read();
       const context = threadId ? { threadId } : projectId ? { projectId } : null;
+      const request = { language, ...(context ? { context } : {}) };
       return createServerVoiceTranscriber({
         locale: language,
-        transcribe: (uri, signal) => {
+        startLive: environmentStreamsDictation(environmentId)
+          ? () =>
+              startLiveVoiceDictation({
+                environmentId,
+                request,
+                subscribe: (push) => recorder.onPcm(push),
+              })
+          : undefined,
+        transcribe: (uri, signal, dictation) => {
           const recording = readVoiceRecording(uri);
-          if (!recording) throw new Error("The recording is no longer available.");
           return uploadVoiceAudio({
             environmentId,
             audio: recording.audio,
-            request: { language, ...(context ? { context } : {}) },
+            request: { ...request, ...(dictation ? { uploadId: dictation.uploadId } : {}) },
+            ...(dictation ? { streamed: dictation.streamed } : {}),
             signal,
           });
         },
@@ -152,8 +181,12 @@ function createVoiceRuntime(onStateChange: (state: VoiceInputState) => void) {
     readDraft,
     commitDraft: (text, selection) => read().commitPrompt(text, selection),
     onStateChange: (state) => {
+      publishVoiceInputActivity(recorder, state.phase);
       // The microphone opens while permission is asked, before the controller owns it.
       if (state.phase === "idle" || state.phase === "error") recorder.release();
+      const cue = voiceInputCue(phase, state.phase);
+      phase = state.phase;
+      if (cue) playVoiceInputCue(cue);
       onStateChange(state);
       options?.onBusyChange(voiceInputBlocksSubmission(state));
     },
@@ -175,9 +208,9 @@ function createVoiceRuntime(onStateChange: (state: VoiceInputState) => void) {
       releaseHeldKey();
       controller.ownerChanged();
     },
-    followKeyPress: (handlers: Parameters<typeof followKeyHold>[0]) => {
+    followKeyPress: (code: string, handlers: KeyHoldHandlers) => {
       releaseHeldKey();
-      heldKey = followKeyHold(handlers);
+      heldKey = followKeyHold(code, handlers);
       return heldKey;
     },
     releaseHeldKey,
@@ -207,6 +240,7 @@ export function useComposerVoiceInput(options: ComposerVoiceInputOptions) {
   // Send with a draft submits once React has committed the transcript into it.
   const submitAfterReview = useRef<{
     readonly ownerKey: string;
+    readonly prompt: string;
     readonly submission: ComposerVoiceSubmission;
   } | null>(null);
   // oxlint-disable-next-line supaterm/no-unreasoned-state-sync -- submits a Send-with-draft only after React has committed the reviewed transcript into the editor
@@ -215,7 +249,11 @@ export function useComposerVoiceInput(options: ComposerVoiceInputOptions) {
     if (pending === null || voiceInputBlocksSubmission(state)) return;
     submitAfterReview.current = null;
     const current = runtime.read();
-    if (state.phase === "idle" && current.ownerKey === pending.ownerKey) {
+    if (
+      state.phase === "idle" &&
+      current.ownerKey === pending.ownerKey &&
+      current.readPrompt() !== pending.prompt
+    ) {
       current.submit(pending.submission);
     }
   }, [runtime, state]);
@@ -223,6 +261,8 @@ export function useComposerVoiceInput(options: ComposerVoiceInputOptions) {
   const canRecord = availability.canReview || availability.canSend;
   const start = useStableCallback(() => {
     if (!canRecord) return;
+    // The start cue plays after the microphone opens, outside this gesture.
+    void unlock();
     void controller.start();
   });
   const stop = useStableCallback(() => {
@@ -237,15 +277,12 @@ export function useComposerVoiceInput(options: ComposerVoiceInputOptions) {
     if (controller.currentState.phase !== "recording") return;
     if (availability.canSend) {
       const sendVoice = runtime.read().prepareVoiceSend(submission);
-      await controller.send(async (uri) => {
-        const recording = readVoiceRecording(uri);
-        if (!recording) throw new Error("The recording is no longer available.");
-        await sendVoice(recording);
-      });
+      await controller.send((uri, handOff) => sendVoice(readVoiceRecording(uri), handOff));
       return;
     }
     if (!availability.canReview) return;
-    submitAfterReview.current = { ownerKey: runtime.read().ownerKey, submission };
+    const { ownerKey, readPrompt } = runtime.read();
+    submitAfterReview.current = { ownerKey, prompt: readPrompt(), submission };
     await controller.stop();
   });
   const finish = useStableCallback(() => {
@@ -256,15 +293,13 @@ export function useComposerVoiceInput(options: ComposerVoiceInputOptions) {
   const finishHeld = useStableCallback(() => {
     if (controller.currentState.phase === "recording") finish();
   });
-  const followPress = useStableCallback((onHold?: () => void) =>
-    runtime.followKeyPress({ onHold, onHeldRelease: finishHeld }),
-  );
-  const toggle = useStableCallback((press: { readonly fromKey: boolean } = { fromKey: false }) => {
+  /** `press` is the key that toggled, so holding it records until it comes up. */
+  const toggle = useStableCallback((press?: { readonly code: string }) => {
     switch (controller.currentState.phase) {
       case "idle":
       case "error":
         start();
-        if (press.fromKey) followPress();
+        if (press) runtime.followKeyPress(press.code, { onHeldRelease: finishHeld });
         return;
       case "preparing":
         cancel();
@@ -277,7 +312,7 @@ export function useComposerVoiceInput(options: ComposerVoiceInputOptions) {
         return;
     }
   });
-  useHoldSpaceToTalk(options.holdSpaceTarget, {
+  useHoldToTalk(options.holdToTalkTarget, options.holdToTalkKey, {
     canStart: () => {
       const { phase } = controller.currentState;
       return canRecord && (phase === "idle" || phase === "error");
@@ -287,8 +322,11 @@ export function useComposerVoiceInput(options: ComposerVoiceInputOptions) {
       return { text: readPrompt(), selection: readSelection() };
     },
     restoreDraft: (draft) => runtime.read().commitPrompt(draft.text, draft.selection),
+    opening: () => controller.currentState.phase === "preparing",
     start,
-    followPress,
+    finish: finishHeld,
+    cancel,
+    followPress: runtime.followKeyPress,
   });
 
   return {

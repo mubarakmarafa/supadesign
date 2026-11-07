@@ -32,12 +32,10 @@ export const ComposerFooterModeControls = memo(function ComposerFooterModeContro
   keybindings: ResolvedKeybindingsConfig;
   runtimeMode: RuntimeMode;
   runtimeModeOptions: ReadonlyArray<RuntimeModeOption>;
-  lockedReason?: string | null;
   size?: "sm" | "xs";
   hidden?: boolean;
   onRuntimeModeChange: (mode: RuntimeMode) => void;
 }) {
-  const locked = props.lockedReason != null;
   const size = props.size ?? "sm";
   const composerFloatingLayerProps = useComposerMenuProps();
   const [open, setOpen] = useComposerMenuState(props.hidden);
@@ -52,9 +50,8 @@ export const ComposerFooterModeControls = memo(function ComposerFooterModeContro
 
       <Tooltip>
         <Select
-          open={open && !locked}
+          open={open}
           onOpenChange={setOpen}
-          disabled={locked}
           value={props.runtimeMode}
           onValueChange={(value) => props.onRuntimeModeChange(value!)}
         >
@@ -96,8 +93,8 @@ export const ComposerFooterModeControls = memo(function ComposerFooterModeContro
             })}
           </SelectPopup>
         </Select>
-        <TooltipPopup side="top" shortcut={locked ? undefined : runtimeModeShortcut}>
-          {props.lockedReason ?? runtimeModeOption.description}
+        <TooltipPopup side="top" shortcut={runtimeModeShortcut}>
+          {runtimeModeOption.description}
         </TooltipPopup>
       </Tooltip>
     </>
@@ -133,7 +130,6 @@ export const ComposerFooterPrimaryActions = memo(function ComposerFooterPrimaryA
   isEditingQueuedMessage: boolean;
   onSubmitMessage: React.MouseEventHandler<HTMLButtonElement>;
   onResume: () => void;
-  onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
   onCompactContext?: (() => void) | undefined;
   compactDisabled: boolean;
@@ -164,7 +160,6 @@ export const ComposerFooterPrimaryActions = memo(function ComposerFooterPrimaryA
         isEditingQueuedMessage={props.isEditingQueuedMessage}
         onSubmitMessage={props.onSubmitMessage}
         onResume={props.onResume}
-        onPreviousPendingQuestion={props.onPreviousPendingQuestion}
         onInterrupt={props.onInterrupt}
       />
     </>

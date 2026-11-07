@@ -28,6 +28,7 @@ import {
   deriveThreadActivityRun,
   deriveThreadRuntime,
   presentPendingBackgroundWork,
+  soleWatchedPullRequest,
   presentProviderGoal,
   presentRunStop,
   threadRuntimeHasInterruptibleRun,
@@ -618,4 +619,50 @@ describe("presentPendingBackgroundWork", () => {
     ]);
     expect(presentation?.items[0]?.label).toBe("mv a.ts b.ts\ncat > b.ts <<'EOF'\nexport {};\nEOF");
   });
+
+  it("offers output only for commands and monitors the agent started", () => {
+    const presentation = presentPendingBackgroundWork([
+      { taskId: "b1", kind: "command", description: "Build" },
+      { taskId: "b2", kind: "monitor", description: "Tail logs" },
+      { taskId: "agent", kind: "subagent", description: "Review" },
+      {
+        taskId: "workflow-run-watch:github.com/acme/app#7",
+        kind: "monitor",
+        description: "Watching CI run",
+      },
+      {
+        taskId: "pull-request-watch:github.com/acme/app#12",
+        kind: "monitor",
+        description: "Watching pull request #12",
+      },
+    ]);
+    expect(presentation?.items.filter((item) => item.hasOutput).map((item) => item.taskId)).toEqual(
+      ["b1", "b2"],
+    );
+  });
+});
+
+describe("soleWatchedPullRequest", () => {
+  const link = (number: number) => ({ host: "GitHub.com", repository: "Acme/App", number });
+  const watches = (...numbers: ReadonlyArray<number>) =>
+    presentPendingBackgroundWork([
+      { taskId: "b1", kind: "command", description: "Build" },
+      ...numbers.map((number) => ({
+        taskId: `pull-request-watch:github.com/acme/app#${number}`,
+        kind: "monitor" as const,
+        description: `Watching pull request #${number}`,
+      })),
+    ])?.items ?? [];
+
+  it.each([
+    { watched: [12], links: [link(7), link(12)], expected: 12 },
+    { watched: [12], links: [link(7)], expected: null },
+    { watched: [7, 12], links: [link(7), link(12)], expected: null },
+    { watched: [], links: [link(7)], expected: null },
+  ])(
+    "watching $watched among $links.length links finds $expected",
+    ({ watched, links, expected }) => {
+      expect(soleWatchedPullRequest(watches(...watched), links)?.number ?? null).toBe(expected);
+    },
+  );
 });

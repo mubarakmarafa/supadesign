@@ -4,7 +4,7 @@ import { isLiveSubagentTurnItem } from "@supaterm/client-runtime/state/subagentR
 import * as DateTime from "effect/DateTime";
 import * as Equal from "effect/Equal";
 import {
-  assistantCitationLabel,
+  assistantCitationExcerpt,
   collectAssistantCitations,
 } from "@supaterm/shared/assistantCitations";
 import { shallow } from "zustand/vanilla/shallow";
@@ -128,50 +128,65 @@ function workEntryReadPaths(entry: WorkLogEntry, workspaceRoot: string | undefin
 }
 
 export function workEntryDisplayLabel(entry: WorkLogEntry, workspaceRoot: string | undefined) {
-  if (entry.itemType === "system_notice") return entry.label;
+  return workEntryDisplay(entry, workspaceRoot).text;
+}
+
+const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/** A path label's `tail` counts the graphemes after its last "/", so a middle cut keeps the file name. */
+function pathLabel(text: string): { text: string; tail: number } {
+  const fileName = text.slice(text.lastIndexOf("/") + 1);
+  return { text, tail: Array.from(graphemeSegmenter.segment(fileName)).length };
+}
+
+export function workEntryDisplay(
+  entry: WorkLogEntry,
+  workspaceRoot: string | undefined,
+): { text: string; tail?: number } {
+  if (entry.itemType === "system_notice") return { text: entry.label };
   if (entry.itemType === "reasoning" || entry.tone === "thinking") {
     const thought = entry.detail?.trim().replace(/\s+/g, " ");
-    return thought || entry.label;
+    return { text: thought || entry.label };
   }
   const toolPresentation = resolveWorkEntryToolPresentation(entry);
-  if (toolPresentation) return toolPresentation.displayName;
-  if (entry.command?.trim()) return commandDisplayText(entry.command);
+  if (toolPresentation) return { text: toolPresentation.displayName };
+  if (entry.command?.trim()) return { text: commandDisplayText(entry.command) };
   const action = toolGroupAction(entry);
   if (action === "code-search" || action === "search") {
     const searchLabel =
       entry.itemType === "file_search"
         ? entry.label
         : formatSearchToolLabel(workEntryToolDataRecord(entry));
-    if (searchLabel) return searchLabel;
+    if (searchLabel) return { text: searchLabel };
   }
   const readPaths = action === "read" ? workEntryReadPaths(entry, workspaceRoot) : [];
   if (action === "read" && readPaths[0]) {
-    return formatReadToolLabel(readPaths[0], readPaths.length - 1);
+    return pathLabel(formatReadToolLabel(readPaths[0], readPaths.length - 1));
   }
   const providerRetry =
     entry.projectedItem?.item.type === "error" && entry.projectedItem.item.retry !== undefined;
   const item = entry.structuredPayload;
   const title =
     item?.type === "dynamic_tool" ? dynamicToolTitle(item.toolName, item.input, item.title) : null;
-  if (title) return title;
+  if (title) return { text: title };
   const compactDetail = entry.detail?.trim();
   const detailIsSearchOutput =
     (action === "code-search" || action === "search") && /[\r\n]/.test(compactDetail ?? "");
   if (compactDetail && !providerRetry && action !== "read" && !detailIsSearchOutput) {
-    return compactDetail;
+    return { text: compactDetail };
   }
   const [firstPath] = entry.changedFiles ?? [];
   if (firstPath) {
     const path = formatWorkspaceRelativePath(firstPath, workspaceRoot);
-    return entry.changedFiles!.length === 1
-      ? path
-      : `${path} +${entry.changedFiles!.length - 1} more`;
+    return pathLabel(
+      entry.changedFiles!.length === 1 ? path : `${path} +${entry.changedFiles!.length - 1} more`,
+    );
   }
   if (action === "read" && !entry.viewedImagePath) {
-    return "Read file";
+    return { text: "Read file" };
   }
   const heading = normalizeCompactToolLabel(entry.toolTitle || entry.label);
-  return `${heading.charAt(0).toUpperCase()}${heading.slice(1)}`;
+  return { text: `${heading.charAt(0).toUpperCase()}${heading.slice(1)}` };
 }
 
 export function threadReadTargetId(entry: Pick<WorkLogEntry, "structuredPayload">) {
@@ -321,7 +336,10 @@ interface TimelineEndState {
  */
 const TIMELINE_FOLLOW_REARM_THRESHOLD_PX = 40;
 
-export function resolveTimelineIsAtEnd(state: TimelineEndState | undefined): boolean | undefined {
+export function resolveTimelineIsAtEnd(
+  state: TimelineEndState | undefined,
+  pendingScrollPx = 0,
+): boolean | undefined {
   if (!state) {
     return undefined;
   }
@@ -332,7 +350,9 @@ export function resolveTimelineIsAtEnd(state: TimelineEndState | undefined): boo
   // The composer inset spacer and the viewport the composer hides cancel out, so this is the gap
   // above the composer. LegendList's isAtEnd is true anywhere in the composer-height band, so it
   // is only a fallback, never a short-circuit.
-  return contentLength - scroll - scrollLength <= TIMELINE_FOLLOW_REARM_THRESHOLD_PX;
+  return (
+    contentLength - scroll - pendingScrollPx - scrollLength <= TIMELINE_FOLLOW_REARM_THRESHOLD_PX
+  );
 }
 
 export function resolveTimelineMinimapHeightStyle(itemCount: number): string {
@@ -506,6 +526,7 @@ type MessagesTimelineRowContent =
       createdAt: string | null;
       snapshot: WorktreeSetupSnapshot;
       embedded: boolean;
+      exiting?: boolean;
     }
   | {
       kind: "work";
@@ -601,8 +622,6 @@ type MessagesTimelineRowContent =
       groupedWithNext?: boolean;
       /** Another of your messages sits directly above, so the joined corners tighten. */
       groupedWithPrevious?: boolean;
-      /** Set when the message above is a steer too, so the label shows once. */
-      continuesSteer?: boolean;
     }
   | {
       kind: "assistant-meta";
@@ -2124,10 +2143,8 @@ export function deriveMessagesTimelineRows(input: {
     const previous = result[index - 1];
     const groupedWithNext = timelineRowIsOwnUserMessage(result[index + 1]);
     const groupedWithPrevious = timelineRowIsOwnUserMessage(previous);
-    const continuesSteer =
-      groupedWithPrevious && messageIsSteer(row.message) && messageIsSteer(previous.message);
     if (!groupedWithNext && !groupedWithPrevious) return row;
-    return { ...row, groupedWithNext, groupedWithPrevious, continuesSteer };
+    return { ...row, groupedWithNext, groupedWithPrevious };
   });
 }
 
@@ -2139,10 +2156,6 @@ function timelineRowIsOwnUserMessage(
     row.message.role === "user" &&
     resolveUserMessagePresentation(row.message).attribution === null
   );
-}
-
-function messageIsSteer(message: ChatMessage): boolean {
-  return message.inputIntent === "steer" || message.inputIntent === "promoted_queued_to_steer";
 }
 
 function timelineRowIsWorkLog(row: MessagesTimelineRow | undefined): boolean {
@@ -2206,6 +2219,50 @@ function attachCreatedThreadSummaries(
 }
 
 const WORKTREE_SETUP_ROW_ID = "worktree-setup-row";
+
+export interface WorktreeSetupRowPlacement {
+  readonly row: Extract<MessagesTimelineRow, { kind: "worktree-setup" }>;
+  readonly anchorId: string | null;
+}
+
+export function nextWorktreeSetupRowPlacement(
+  previous: WorktreeSetupRowPlacement | null,
+  rows: ReadonlyArray<MessagesTimelineRow>,
+): WorktreeSetupRowPlacement | null {
+  const index = rows.findIndex((row) => row.kind === "worktree-setup");
+  const row = rows[index];
+  if (row?.kind === "worktree-setup") return { row, anchorId: rows[index - 1]?.id ?? null };
+  if (previous === null || previous.row.exiting) return previous;
+  return { ...previous, row: { ...previous.row, exiting: true } };
+}
+
+/**
+ * A running or done card leaves its "Setting up worktree…" label to the working
+ * row, which exits with the card unless the background setup chip keeps it.
+ */
+export function resolveWorktreeSetupLabel(
+  rows: ReadonlyArray<MessagesTimelineRow>,
+  preparing: boolean,
+  backgroundSetup: boolean,
+): "shown" | "exiting" | null {
+  if (preparing) return "shown";
+  const row = rows.find((candidate) => candidate.kind === "worktree-setup");
+  if (row?.kind !== "worktree-setup" || row.embedded) return null;
+  if (row.snapshot.phase !== "running" && row.snapshot.phase !== "done") return null;
+  if (!row.exiting) return "shown";
+  return backgroundSetup ? null : "exiting";
+}
+
+export function withExitingWorktreeSetupRow(
+  rows: MessagesTimelineRow[],
+  placement: WorktreeSetupRowPlacement | null,
+): MessagesTimelineRow[] {
+  if (!placement?.row.exiting) return rows;
+  const index =
+    placement.anchorId === null ? 0 : rows.findIndex((row) => row.id === placement.anchorId) + 1;
+  if (index === 0 && placement.anchorId !== null) return rows;
+  return rows.toSpliced(index, 0, placement.row);
+}
 
 export type MessagesTimelineRowsInput = Parameters<typeof deriveMessagesTimelineRows>[0];
 
@@ -2372,8 +2429,10 @@ function isRowUnchanged(a: MessagesTimelineRow, b: MessagesTimelineRow): boolean
         a.expanded === bt.expanded
       );
     }
-    case "worktree-setup":
-      return a.snapshot === (b as typeof a).snapshot;
+    case "worktree-setup": {
+      const bw = b as typeof a;
+      return a.snapshot === bw.snapshot && a.embedded === bw.embedded;
+    }
 
     case "assistant-meta": {
       const bm = b as typeof a;
@@ -2485,8 +2544,7 @@ function isRowUnchanged(a: MessagesTimelineRow, b: MessagesTimelineRow): boolean
         a.assistantTurnDiffSummary === bm.assistantTurnDiffSummary &&
         a.revertTurnCount === bm.revertTurnCount &&
         a.groupedWithNext === bm.groupedWithNext &&
-        a.groupedWithPrevious === bm.groupedWithPrevious &&
-        a.continuesSteer === bm.continuesSteer
+        a.groupedWithPrevious === bm.groupedWithPrevious
       );
     }
   }
@@ -2496,15 +2554,23 @@ const MAX_COLLAPSED_USER_MESSAGE_LINES = 8;
 const MAX_COLLAPSED_USER_MESSAGE_LENGTH = 600;
 const MARKDOWN_LINK = /!?\[([^\]\n]*)\]\((?:<[^>\n]*>|[^\s)]*)\)/g;
 
+// Commented citations render as blocks; whitespace around a block adds no line of its own.
+const ANNOTATION_BREAK = "\uE000";
+const ANNOTATION_BOUNDARY = /\s*\uE000[\s\uE000]*/g;
+
 function visibleUserMessageText(text: string): string {
   const linkLabels = (segment: string) => segment.replace(MARKDOWN_LINK, "$1");
   let visible = "";
   let cursor = 0;
   for (const match of collectAssistantCitations(text)) {
-    visible += linkLabels(text.slice(cursor, match.start)) + assistantCitationLabel(match.citation);
+    const comment = match.citation.comment?.trim();
+    const excerpt = assistantCitationExcerpt(match.citation);
+    visible +=
+      linkLabels(text.slice(cursor, match.start)) +
+      (comment ? `${ANNOTATION_BREAK}${excerpt}\n${comment}${ANNOTATION_BREAK}` : excerpt);
     cursor = match.end;
   }
-  return visible + linkLabels(text.slice(cursor));
+  return (visible + linkLabels(text.slice(cursor))).replace(ANNOTATION_BOUNDARY, "\n").trim();
 }
 
 export function shouldCollapseUserMessage(text: string): boolean {

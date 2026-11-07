@@ -201,9 +201,9 @@ mark every thread in that section between it and the one you release on as Done.
 The **Reopen** and **Wake** buttons work the same way in their sections.
 Press `Escape` while dragging to cancel.
 
-By default, environments mark inactive threads as Done after three days. Merged pull requests
-mark their linked threads as Done when **Automatically mark merged threads as Done** is enabled. A closed pull request
-can also mark an idle thread as Done. An empty thread's inactivity counts from when it was created.
+By default, environments mark inactive threads as Done after three days and mark threads whose
+pull request merged as Done. Turn off **Automatically mark merged threads as Done** to keep merged
+threads in the active list. A closed pull request can also mark an idle thread as Done. An empty thread's inactivity counts from when it was created.
 Pins, work in progress, pending questions or approvals, and background work the agent is
 waiting on prevent automatic completion. An open pull request does not prevent inactivity
 completion unless you turn on **Keep threads with an open PR**, but an old closed or merged pull request does not mark work as Done if you
@@ -236,8 +236,8 @@ The linked pull request participates in automatic completion.
 
 ## Find and reference work
 
-On web and desktop, open the command palette with `Cmd/Ctrl+K`, or select
-**Search** at the top of the sidebar, to search threads across connected
+On web and desktop, open the command palette with `Cmd/Ctrl+K`, or select the
+search button at the top of the sidebar, to search threads across connected
 environments by title, branch, pull request, or project. Threads you open often
 or recently rank higher, and for three weeks the thread you last picked for a
 query ranks higher when you type that query again. Threads whose messages
@@ -336,11 +336,12 @@ focuses its pane.
 
 Drag a pane by the grip in its header onto another pane's edge to move it there,
 or onto the middle to swap the two. Drag the lines between panes to resize them.
-Close a pane with **×** in its header, and reopen it with `mod+shift+t`. When the
-window is too small for every pane, it shows the focused one with arrows to switch
-between them, and restores the split when there is room again. Each browser tab
-remembers its own arrangement; a new tab or a restarted desktop app starts from the
-most recent one.
+Each pane's **⋯** menu at its top right splits it right or down, closes it, and shows
+or hides its thread details, terminal, and right panel. Reopen a closed pane with
+`mod+shift+t`. When the window is too small for every pane, it shows the focused one
+with arrows to switch between them, and restores the split when there is room again.
+Each browser tab remembers its own arrangement; a new tab or a restarted desktop app
+starts from the most recent one.
 
 ## Side chats
 
@@ -349,7 +350,11 @@ with what the thread knows, and the thread keeps working while you ask.
 
 On web and desktop, start a message with `/side` or `/btw`, then your question, or
 choose **Start side chat** in the command palette. The side chat opens in a pane
-beside the thread, or in place of it when the window has no room for another pane.
+beside the thread. When the window has no room for another pane, it takes the place
+of the thread's last side chat, or of the thread itself if none is open.
+The pane stays with its thread: switching to another thread from either pane puts
+the side chat away, and it comes back beside the thread when you return. Closing
+the thread's pane puts it away too, unless the side chat would be the only pane left.
 A bare `/side` opens an empty side chat; nothing is created until you send its first
 message. Side chats do not show in the sidebar or in search. Find one again under
 **Side chats** in thread details.
@@ -358,9 +363,9 @@ On mobile, type `/side` or `/btw` in the composer, or choose **Start side chat**
 the command palette. A thread lists its side chats above the composer; tap one to
 open it.
 
-A side chat works in the same folder as the thread, so it always asks before it
-edits files or runs commands, and its agent cannot start or message other threads.
-It cannot be forked.
+A side chat starts with the thread's model and permission mode, and works in the
+same folder as the thread. Its agent cannot start or message other threads, and it
+cannot be forked.
 
 The side chat's actions sit at its top on web and desktop, and above its composer on
 mobile:
@@ -368,8 +373,7 @@ mobile:
 - **Bring back** gives the thread the side chat with your next message there. It is
   available while the thread is idle.
 - **Promote** makes the side chat a full thread. It shows in the sidebar, can be
-  forked, can use any permission mode, and stays when you delete the thread it came
-  from.
+  forked, and stays when you delete the thread it came from.
 - **Delete** removes the side chat.
 
 Side chats stay until you delete or promote them. Deleting a thread also deletes its

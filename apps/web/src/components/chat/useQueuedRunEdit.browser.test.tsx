@@ -120,7 +120,6 @@ function Harness(props: {
       hasSendableContent={sendState.hasSendableContent}
       isEditingQueuedMessage
       onSubmitMessage={() => void result.saveEdit(savedContent(draft.prompt), () => {})}
-      onPreviousPendingQuestion={() => {}}
       onInterrupt={() => {}}
     />
   ) : null;
@@ -168,7 +167,7 @@ const savedContent = (prompt: string) => ({
   terminalContexts: [],
   reviewComments: [],
   previewAnnotations: [],
-  threadContexts: [],
+  referenceContexts: [],
 });
 
 const promptOf = (ref: ScopedThreadRef) =>

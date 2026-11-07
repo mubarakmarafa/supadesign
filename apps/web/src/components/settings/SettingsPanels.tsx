@@ -1,6 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
 import { THREAD_GROUPING_OPTIONS } from "@supaterm/client-runtime/state/thread-grouping";
-import { resolveProductUsageDataControl } from "@supaterm/client-runtime/product-usage-data";
 import { NotificationSettings } from "./NotificationSettings";
 import { PRIVACY_POLICY_URL } from "../../legalLinks";
 import { CheckIcon } from "@supaterm/icons";
@@ -97,11 +96,6 @@ import {
   SettingsSection,
 } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
-import {
-  VoiceHoldSpaceSettingRow,
-  VoiceLanguageSettingRow,
-  VoiceTranscriptionSettingRow,
-} from "./VoiceSettings";
 import { BackgroundActivitySettingsRow } from "./BackgroundActivitySettings";
 import { PullRequestLinksOpenInAppSetting } from "./IntegrationsSettings";
 import { OrchestrationSkillsSettings } from "./OrchestrationSkillsSettings";
@@ -490,6 +484,16 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.voiceLanguage !== DEFAULT_UNIFIED_SETTINGS.voiceLanguage
       ? ["Voice language"]
       : []),
+    ...(settings.voiceHoldToTalkKey !== DEFAULT_UNIFIED_SETTINGS.voiceHoldToTalkKey
+      ? ["Hold to talk"]
+      : []),
+    ...(settings.voiceMicrophone !== DEFAULT_UNIFIED_SETTINGS.voiceMicrophone
+      ? ["Microphone"]
+      : []),
+    ...(settings.voiceAvoidBluetoothMicrophone !==
+    DEFAULT_UNIFIED_SETTINGS.voiceAvoidBluetoothMicrophone
+      ? ["Use the Mac's microphone instead of Bluetooth"]
+      : []),
     ...(settings.followUpBehavior !== DEFAULT_UNIFIED_SETTINGS.followUpBehavior
       ? ["Follow-up behavior"]
       : []),
@@ -603,6 +607,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       composerRichTextEnabled: DEFAULT_UNIFIED_SETTINGS.composerRichTextEnabled,
       sendShortcut: DEFAULT_UNIFIED_SETTINGS.sendShortcut,
       voiceLanguage: DEFAULT_UNIFIED_SETTINGS.voiceLanguage,
+      voiceHoldToTalkKey: DEFAULT_UNIFIED_SETTINGS.voiceHoldToTalkKey,
+      voiceMicrophone: DEFAULT_UNIFIED_SETTINGS.voiceMicrophone,
+      voiceAvoidBluetoothMicrophone: DEFAULT_UNIFIED_SETTINGS.voiceAvoidBluetoothMicrophone,
       followUpBehavior: DEFAULT_UNIFIED_SETTINGS.followUpBehavior,
       glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity,
       sidebarThreadGrouping: DEFAULT_UNIFIED_SETTINGS.sidebarThreadGrouping,
@@ -1370,7 +1377,7 @@ export function ThreadsSettingsPanel() {
         </SettingsSection>
       ) : null}
 
-      <SettingsSection id="usage-limits" title="Usage limits">
+      <SettingsSection id="limited-threads" title="Usage limits">
         <SettingsRow
           serverScoped
           {...searchableSetting("auto-resume-limited-threads")}
@@ -1691,12 +1698,6 @@ export function ThreadsSettingsPanel() {
         />
       </SettingsSection>
 
-      <SettingsSection id="voice-input" title="Voice input">
-        <VoiceTranscriptionSettingRow providers={serverProviders} />
-        <VoiceLanguageSettingRow providers={serverProviders} />
-        <VoiceHoldSpaceSettingRow />
-      </SettingsSection>
-
       <OrchestrationSkillsSettings />
     </SettingsPageContainer>
   );
@@ -1806,41 +1807,6 @@ export function MaintenanceSettingsPanel() {
   );
 }
 
-function ProductUsageDataRow() {
-  const settings = useScopedSettings();
-  const updateSettings = useUpdateScopedSettings();
-  const { connectedEnvironments } = useSettingsScope();
-  const control = resolveProductUsageDataControl(connectedEnvironments);
-  if (control === null) return null;
-  const { forced } = control;
-  return (
-    <SettingsRow
-      serverScoped
-      {...searchableSetting("product-usage-data")}
-      settingKeys={forced ? [] : ["telemetryEnabled"]}
-      description="Send product usage events from this environment. They never include prompts, responses, or file contents."
-      status={control.status}
-      control={
-        forced ? (
-          <Switch
-            checked={forced.value === true}
-            mixed={forced.value === null}
-            disabled
-            aria-label="Product usage data"
-          />
-        ) : (
-          <ScopedSwitch
-            settingKeys={["telemetryEnabled"]}
-            checked={settings.telemetryEnabled}
-            onCheckedChange={(checked) => updateSettings({ telemetryEnabled: Boolean(checked) })}
-            aria-label="Product usage data"
-          />
-        )
-      }
-    />
-  );
-}
-
 export function AboutSettingsPanel() {
   return (
     <SettingsPageContainer>
@@ -1866,7 +1832,6 @@ export function AboutSettingsPanel() {
             </Button>
           }
         />
-        <ProductUsageDataRow />
         <SettingsRow
           {...searchableSetting("open-source-licenses")}
           control={

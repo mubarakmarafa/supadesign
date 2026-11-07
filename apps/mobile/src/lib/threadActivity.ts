@@ -247,12 +247,21 @@ function compactWorkEntryText(value: string): string {
 }
 
 export function workEntryRowLabel(entry: WorkLogPresentationEntry, expanded = false): string {
-  if (entry.itemType === "fork") return entry.label;
+  return workEntryRowDisplay(entry, expanded).text;
+}
+
+/** `path` marks file labels, which the row cuts in the middle so the file name stays visible. */
+export function workEntryRowDisplay(
+  entry: WorkLogPresentationEntry,
+  expanded = false,
+): { readonly text: string; readonly path?: true } {
+  if (entry.itemType === "fork") return { text: entry.label };
   if (expanded && entry.itemType === "reasoning")
-    return entry.toolLifecycleStatus === "inProgress" ? "Thinking" : "Thought";
+    return { text: entry.toolLifecycleStatus === "inProgress" ? "Thinking" : "Thought" };
   const presentation = resolveWorkEntryToolPresentation(entry);
-  if (presentation) return presentation.displayName;
-  if (entry.command?.trim()) return compactWorkEntryText(commandDisplayText(entry.command));
+  if (presentation) return { text: presentation.displayName };
+  if (entry.command?.trim())
+    return { text: compactWorkEntryText(commandDisplayText(entry.command)) };
   const action = toolGroupAction(entry);
   const isToolRead = action === "read" && entry.itemType === "dynamic_tool";
   if (action === "code-search" || action === "search") {
@@ -264,27 +273,37 @@ export function workEntryRowLabel(entry: WorkLogPresentationEntry, expanded = fa
         : undefined;
     const searchLabel =
       entry.itemType === "file_search" ? entry.label : formatSearchToolLabel(toolData);
-    if (searchLabel) return searchLabel;
+    if (searchLabel) return { text: searchLabel };
   }
   if (isToolRead) {
     const [firstPath] = entry.changedFiles ?? collectToolFilePaths(entry.toolData);
     if (firstPath) {
-      return formatReadToolLabel(firstPath, Math.max(0, (entry.changedFiles?.length ?? 1) - 1));
+      return {
+        text: formatReadToolLabel(firstPath, Math.max(0, (entry.changedFiles?.length ?? 1) - 1)),
+        path: true,
+      };
     }
-    if (!expanded) return "Read file";
+    if (!expanded) return { text: "Read file" };
   }
-  const preview =
+  const textPreview =
     entry.command ??
     (isToolRead || (!expanded && (action === "code-search" || action === "search"))
       ? null
-      : entry.detail) ??
-    (entry.changedFiles?.length
-      ? entry.changedFiles.length === 1
-        ? entry.changedFiles[0]!
-        : `${entry.changedFiles[0]!} +${entry.changedFiles.length - 1} more`
-      : null);
-  if (expanded) return preview?.trim() ? truncate(preview, WORK_LOG_LABEL_MAX_LENGTH) : entry.label;
-  return preview ? compactWorkEntryText(preview) || entry.label : entry.label;
+      : entry.detail);
+  const changedFilesPreview = entry.changedFiles?.length
+    ? entry.changedFiles.length === 1
+      ? entry.changedFiles[0]!
+      : `${entry.changedFiles[0]!} +${entry.changedFiles.length - 1} more`
+    : null;
+  if (textPreview == null && changedFilesPreview !== null) {
+    return { text: changedFilesPreview, path: true };
+  }
+  if (expanded) {
+    return {
+      text: textPreview?.trim() ? truncate(textPreview, WORK_LOG_LABEL_MAX_LENGTH) : entry.label,
+    };
+  }
+  return { text: textPreview ? compactWorkEntryText(textPreview) || entry.label : entry.label };
 }
 
 type ThreadFeedActivityGroup = Extract<ThreadFeedEntry, { readonly type: "activity-group" }>;
@@ -361,6 +380,13 @@ export function isContextHandoffActivityGroup(entry: ThreadFeedActivityGroup): b
   );
 }
 
+export function isSecretRequestActivityGroup(entry: ThreadFeedActivityGroup): boolean {
+  return (
+    entry.activities.length === 1 &&
+    entry.activities[0]?.projectedItem.item.type === "secret_request"
+  );
+}
+
 function isUserInputActivityGroup(entry: ThreadFeedActivityGroup): boolean {
   return entry.activities.some((activity) => activity.workEntry.questionAnswer !== undefined);
 }
@@ -401,7 +427,8 @@ function itemIsProminent(item: OrchestrationV2TurnItem): boolean {
     item.type === "fork" ||
     item.type === "thread_created" ||
     item.type === "system_notice" ||
-    item.type === "proposed_plan"
+    item.type === "proposed_plan" ||
+    item.type === "secret_request"
   );
 }
 
@@ -521,6 +548,8 @@ function itemIcon(item: OrchestrationV2TurnItem): ThreadFeedActivity["icon"] {
     case "fork":
     case "thread_created":
       return "zap";
+    case "secret_request":
+      return "lock";
   }
 }
 
@@ -529,8 +558,8 @@ function itemToolPresentation(item: OrchestrationV2TurnItem): SupatermMcpToolPre
     return null;
   }
   return (
-    resolveSupatermMcpToolPresentation(item.toolName) ??
-    resolveSupatermMcpToolPresentation(item.title)
+    resolveSupatermMcpToolPresentation(item.toolName, item.input) ??
+    resolveSupatermMcpToolPresentation(item.title, item.input)
   );
 }
 
@@ -578,6 +607,8 @@ function itemSummary(
       return "Thread forked";
     case "thread_created":
       return "Thread created";
+    case "secret_request":
+      return item.label;
     case "dynamic_tool": {
       const classified = classifyToolActivity({
         itemType: "dynamic_tool_call",
@@ -635,6 +666,8 @@ function itemPreview(item: OrchestrationV2TurnItem): string | null {
     case "fork":
     case "thread_created":
       return item.targetThreadId;
+    case "secret_request":
+      return item.reason || null;
     case "subagent":
       return item.result ?? item.progress ?? item.prompt;
     case "dynamic_tool":

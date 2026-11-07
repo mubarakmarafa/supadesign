@@ -23,6 +23,8 @@ import {
 import {
   backgroundWorkHoldsCompletion,
   derivePendingBackgroundWork,
+  isWatchTaskId,
+  pullRequestWatchTaskId,
 } from "@supaterm/shared/orchestrationV2PendingBackgroundWork";
 import {
   getProviderOptionCurrentLabel,
@@ -261,7 +263,6 @@ export function deriveThreadStructureRuntime(
       activeProviderThreadId: projection.thread.activeProviderThreadId,
       runs: projection.runs,
       pullRequests: projection.thread.pullRequests,
-      workflowRunWatches: projection.thread.workflowRunWatches,
     }),
   );
   // A pull request watch can hold a thread that never ran.
@@ -370,6 +371,8 @@ export interface PendingBackgroundWorkItem {
   readonly kind: BackgroundWorkKind;
   readonly label: string;
   readonly childThreadId: ThreadId | undefined;
+  /** A command or monitor whose live output the server can stream. */
+  readonly hasOutput: boolean;
 }
 
 export interface PendingBackgroundWorkPresentation {
@@ -381,6 +384,16 @@ export interface PendingBackgroundWorkPresentation {
 function joinWithAnd(parts: ReadonlyArray<string>): string {
   if (parts.length <= 1) return parts.join("");
   return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+}
+
+/** The PR link behind the background work's one PR watch, if it holds exactly one. */
+export function soleWatchedPullRequest<
+  Link extends { readonly host: string; readonly repository: string; readonly number: number },
+>(items: ReadonlyArray<PendingBackgroundWorkItem>, links: ReadonlyArray<Link>): Link | null {
+  const [watched, ...others] = links.filter((link) =>
+    items.some((item) => item.taskId === pullRequestWatchTaskId(link)),
+  );
+  return watched !== undefined && others.length === 0 ? watched : null;
 }
 
 export function presentPendingBackgroundWork(
@@ -407,6 +420,8 @@ export function presentPendingBackgroundWork(
             ? BACKGROUND_WORK_KINDS[task.kind].singular
             : label,
         childThreadId: task.kind === "subagent" ? task.childThreadId : undefined,
+        hasOutput:
+          (task.kind === "command" || task.kind === "monitor") && !isWatchTaskId(task.taskId),
       };
     })
     // `map` returned a new array; Hermes has no `toSorted`.
@@ -418,12 +433,10 @@ export function presentPendingBackgroundWork(
   if (items.length === 1 && only !== undefined) {
     const noun = BACKGROUND_WORK_KINDS[only.kind].singular;
     const named = only.label !== noun;
-    const title = waiting
-      ? named
-        ? `${only.kind === "monitor" ? "" : `Waiting on ${noun} `}${only.label}`
-        : `Waiting on a ${noun}`
-      : named
-        ? `Running: ${only.label}`
+    const title = named
+      ? `${waiting ? "Waiting" : "Running"} · ${only.label}`
+      : waiting
+        ? `Waiting on a ${noun}`
         : `Running a ${noun}`;
     return { title, items, waiting };
   }

@@ -79,7 +79,10 @@ import {
 import { waitForDraftHeroTransition } from "./components/chat/draftHeroTransition";
 import { insertInlineContextReference } from "./lib/composerContextReferences";
 import { terminalContextReference } from "./lib/composerContextRecords";
-import { threadContextRecord } from "@supaterm/shared/composerContextReferences";
+import {
+  modelContextRecord,
+  threadContextRecord,
+} from "@supaterm/shared/composerContextReferences";
 import {
   copiedComposerAttachmentFile,
   rememberCopiedComposerAttachments,
@@ -693,40 +696,90 @@ describe("composerDraftStore context persistence", () => {
   });
 });
 
-describe("composerDraftStore thread contexts", () => {
+describe("composerDraftStore reference contexts", () => {
   const threadId = ThreadId.make("thread-with-context");
   const threadRef = scopeThreadRef(TEST_ENVIRONMENT_ID, threadId);
   const attached = threadContextRecord(
     scopeThreadRef(TEST_ENVIRONMENT_ID, ThreadId.make("attached-thread")),
     "Fix [login] flow",
   );
+  const model = modelContextRecord({
+    instanceId: ProviderInstanceId.make("claudeAgent"),
+    driver: ProviderDriverKind.make("claudeAgent"),
+    model: "claude-opus-4-5",
+    name: "Claude Opus 4.5",
+    providerName: "Claude",
+  });
 
   beforeEach(resetComposerDraftStore);
 
-  it("attaches once per thread, appends one chip, and survives persistence", () => {
+  it("attaches once per record, appends one chip, and survives persistence", () => {
     const store = useComposerDraftStore.getState();
     store.setPrompt(threadRef, "Compare with");
-    store.addThreadContexts(threadRef, [attached]);
-    store.addThreadContexts(threadRef, [attached, { ...attached, title: "renamed" }]);
+    store.addReferenceContexts(threadRef, [attached]);
+    store.addReferenceContexts(threadRef, [attached, { ...attached, title: "renamed" }, model]);
 
     const draft = draftFor(threadId, TEST_ENVIRONMENT_ID);
-    expect(draft?.threadContexts).toEqual([attached]);
+    expect(draft?.referenceContexts).toEqual([attached, model]);
     expect(attached.label).toBe("Fix login flow");
     expect(draft?.prompt).toBe(
-      `Compare with [${attached.label}](supaterm-context://v1/thread/${attached.contextId}) `,
+      `Compare with [${attached.label}](supaterm-context://v1/thread/${attached.contextId}) [${model.label}](supaterm-context://v1/model/${model.contextId}) `,
     );
 
     const merge = useComposerDraftStore.persist.getOptions().merge!;
-    const hydrated = merge(
-      JSON.parse(
-        JSON.stringify(partializeComposerDraftStoreState(useComposerDraftStore.getState())),
-      ),
-      useComposerDraftStore.getInitialState(),
+    const persisted = JSON.parse(
+      JSON.stringify(partializeComposerDraftStoreState(useComposerDraftStore.getState())),
     );
-    expect(hydrated.draftsByThreadKey[scopedThreadKey(threadRef)]?.threadContexts).toEqual([
-      attached,
+    const hydrate = () =>
+      merge(persisted, useComposerDraftStore.getInitialState()).draftsByThreadKey[
+        scopedThreadKey(threadRef)
+      ];
+    expect(hydrate()?.referenceContexts).toEqual([attached, model]);
+    expect(hydrate()?.prompt).toBe(draft?.prompt);
+
+    const savedDraft = persisted.draftsByThreadKey[scopedThreadKey(threadRef)];
+    savedDraft.threadContexts = [attached];
+    delete savedDraft.referenceContexts;
+    expect(hydrate()?.referenceContexts).toEqual([attached]);
+  });
+});
+
+describe("composerDraftStore side chat drafts", () => {
+  beforeEach(() => {
+    resetComposerDraftStore();
+  });
+
+  it("starts a side chat draft on its parent's model and modes", () => {
+    const draftId = DraftId.make("side-chat-draft");
+    const modelSelection = createModelSelection(CLAUDE_AGENT_INSTANCE, "claude-opus-5-5", [
+      { id: "effort", value: "max" },
     ]);
-    expect(hydrated.draftsByThreadKey[scopedThreadKey(threadRef)]?.prompt).toBe(draft?.prompt);
+    const store = useComposerDraftStore.getState();
+    store.createSideChatDraft({
+      draftId,
+      threadId: ThreadId.make("side-chat-thread"),
+      parent: {
+        id: ThreadId.make("side-chat-parent"),
+        environmentId: TEST_ENVIRONMENT_ID,
+        projectId: ProjectId.make("project-a"),
+        branch: "main",
+        worktreePath: null,
+        modelSelection,
+        runtimeMode: "full-access",
+        interactionMode: "plan",
+      },
+    });
+
+    const state = useComposerDraftStore.getState();
+    expect(state.getDraftSession(draftId)).toMatchObject({
+      runtimeMode: "full-access",
+      interactionMode: "plan",
+    });
+    expect(state.getComposerDraft(draftId)).toMatchObject({
+      modelSelectionByProvider: { [CLAUDE_AGENT_INSTANCE]: modelSelection },
+      activeProvider: CLAUDE_AGENT_INSTANCE,
+      runtimeMode: "full-access",
+    });
   });
 });
 

@@ -117,7 +117,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supaterm
   --workspace-titlebar-control-gap: 0.75rem;
   --workspace-titlebar-scroll-fade-height: 1.5rem;
   --chat-content-max-width: 46rem;
-  --thread-details-panel-width: 17.5rem;
+  --thread-details-panel-width: 16.5rem;
   /* The prompt on phones: iOS zooms into any input under 16px on focus. */
   --font-size-prompt-touch: max(var(--font-size-prompt, 1rem), 16px);
   /* Horizontal gutter shared by the page header and the chat column, clear of
@@ -221,6 +221,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-new(supaterm
   --color-warning-foreground: var(--warning-foreground);
   --color-warning: var(--warning);
   --color-fast-mode: var(--color-yellow-500);
+  /* A hardware LED face stays dark in every theme, so its colors read as the device shows them. */
+  --color-led-panel: var(--color-neutral-950);
   --color-warning-surface: var(--warning-surface);
   --color-error-foreground: var(--error-foreground);
   --color-tool-error-icon: var(--tool-error-icon);
@@ -1715,8 +1717,9 @@ code,
   text-decoration: none;
 }
 
-/* File links and context chips own their color and focus ring. */
-.chat-markdown a:not(.chat-markdown-file-link, :has([data-slot="context-chip-label"])) {
+/* File links, context chips, and citation sources own their color and focus ring. */
+.chat-markdown
+  a:not(.chat-markdown-file-link, [data-citation-excerpt], :has([data-slot="context-chip-label"])) {
   color: var(--info-foreground);
 }
 
@@ -2242,4 +2245,8 @@ code,
 [data-workspace-area]:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: -2px;
+}
+
+[data-preview-mini-player-gesture] webview {
+  pointer-events: none;
 }

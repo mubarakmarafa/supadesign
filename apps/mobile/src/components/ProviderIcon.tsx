@@ -180,19 +180,21 @@ export function ProviderInstanceIcon(props: {
               paddingHorizontal: 2,
               borderRadius: 999,
               borderWidth: 1,
+              // An undefined style value still overrides the className's color.
               ...(props.surfaceColor ? { borderColor: props.surfaceColor } : {}),
-              backgroundColor: accentColor,
+              ...(accentColor ? { backgroundColor: accentColor } : {}),
               alignItems: "center",
               justifyContent: "center",
             }}
           >
             <Text
+              allowFontScaling={false}
               className={accentColor ? undefined : "text-foreground-muted"}
               style={{
                 fontSize: 7,
                 fontWeight: "600",
                 lineHeight: 9,
-                color: accentColor ? providerAccentForegroundColor(accentColor) : undefined,
+                ...(accentColor ? { color: providerAccentForegroundColor(accentColor) } : {}),
               }}
             >
               {providerInstanceInitials(props.displayName)}

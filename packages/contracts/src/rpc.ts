@@ -226,8 +226,6 @@ import {
   PullRequestOperationError,
   PullRequestReactionInput,
   PullRequestRef,
-  PullRequestWorkflowRun,
-  PullRequestWorkflowRunRef,
   PullRequestRoutingResult,
   PullRequestRoutingIdentityInput,
   PullRequestRoutingIdentityResult,
@@ -381,6 +379,7 @@ import {
   TranscriptionCancelUploadInput,
   TranscriptionCancelUploadResult,
   TranscriptionError,
+  TranscriptionPrepareStreamInput,
   TranscriptionPrepareUploadInput,
   TranscriptionPrepareUploadResult,
   TranscriptionTranscribeInput,
@@ -407,6 +406,7 @@ import {
   ScheduledTaskUpsertInput,
   ScheduledTaskMutationResult,
 } from "./scheduledTask.ts";
+import { SecretRequestAnswerInput, SecretRequestError } from "./secretRequest.ts";
 import {
   ProjectCloneActionInput,
   ProjectCloneActionResult,
@@ -454,6 +454,7 @@ export const WS_METHODS = {
   transcriptionCancel: "transcription.cancel",
   transcriptionPrepareUpload: "transcription.prepareUpload",
   transcriptionCancelUpload: "transcription.cancelUpload",
+  transcriptionPrepareStream: "transcription.prepareStream",
 
   mcpAppsCallTool: "mcpApps.callTool",
   mcpAppsToolInfo: "mcpApps.toolInfo",
@@ -606,6 +607,7 @@ export const WS_METHODS = {
   scheduledTasksSetEnabled: "scheduledTasks.setEnabled",
   scheduledTasksDelete: "scheduledTasks.delete",
   scheduledTasksRunNow: "scheduledTasks.runNow",
+  secretsAnswerRequest: "secrets.answerRequest",
 
   pullRequestsList: "pullRequests.list",
   pullRequestsListStats: "pullRequests.listStats",
@@ -618,7 +620,6 @@ export const WS_METHODS = {
   pullRequestsDetail: "pullRequests.detail",
   pullRequestsPreview: "pullRequests.preview",
   pullRequestsChecks: "pullRequests.checks",
-  pullRequestsWorkflowRun: "pullRequests.workflowRun",
   pullRequestsActivity: "pullRequests.activity",
   pullRequestsReviewGuide: "pullRequests.reviewGuide",
   pullRequestsGenerateReviewGuide: "pullRequests.generateReviewGuide",
@@ -1102,13 +1103,6 @@ const WsPullRequestsChecksRpc = Rpc.make(WS_METHODS.pullRequestsChecks, {
   error: PullRequestRpcError,
 });
 
-/** Null where the host has no workflow runs to read. */
-const WsPullRequestsWorkflowRunRpc = Rpc.make(WS_METHODS.pullRequestsWorkflowRun, {
-  payload: PullRequestWorkflowRunRef,
-  success: Schema.NullOr(PullRequestWorkflowRun),
-  error: PullRequestRpcError,
-});
-
 const WsPullRequestsActivityRpc = Rpc.make(WS_METHODS.pullRequestsActivity, {
   payload: PullRequestRef,
   success: PullRequestActivity,
@@ -1432,6 +1426,16 @@ const WsTranscriptionCancelRpc = Rpc.make(WS_METHODS.transcriptionCancel, {
 
 const WsTranscriptionPrepareUploadRpc = Rpc.make(WS_METHODS.transcriptionPrepareUpload, {
   payload: TranscriptionPrepareUploadInput,
+  success: TranscriptionPrepareUploadResult,
+  error: Schema.Union([
+    TranscriptionError,
+    AttachmentUploadSigningKeyError,
+    EnvironmentAuthorizationError,
+  ]),
+});
+
+const WsTranscriptionPrepareStreamRpc = Rpc.make(WS_METHODS.transcriptionPrepareStream, {
+  payload: TranscriptionPrepareStreamInput,
   success: TranscriptionPrepareUploadResult,
   error: Schema.Union([
     TranscriptionError,
@@ -2052,6 +2056,16 @@ const WsOrchestrationV2SubscribeCommandOutputRpc = Rpc.make(
   },
 );
 
+const WsOrchestrationV2SubscribeBackgroundTaskOutputRpc = Rpc.make(
+  ORCHESTRATION_V2_WS_METHODS.subscribeBackgroundTaskOutput,
+  {
+    payload: OrchestrationV2RpcSchemas.subscribeBackgroundTaskOutput.input,
+    success: OrchestrationV2RpcSchemas.subscribeBackgroundTaskOutput.output,
+    error: Schema.Union([OrchestrationV2CommandOutputError, EnvironmentAuthorizationError]),
+    stream: true,
+  },
+);
+
 const WsSubscribeTerminalMetadataRpc = Rpc.make(WS_METHODS.subscribeTerminalMetadata, {
   payload: Schema.Struct({}),
   success: TerminalMetadataStreamEvent,
@@ -2107,6 +2121,11 @@ const WsScheduledTasksRunNowRpc = Rpc.make(WS_METHODS.scheduledTasksRunNow, {
   payload: ScheduledTaskRunNowInput,
   success: ScheduledTaskRunNowResult,
   error: Schema.Union([ScheduledTaskError, EnvironmentAuthorizationError]),
+});
+
+const WsSecretsAnswerRequestRpc = Rpc.make(WS_METHODS.secretsAnswerRequest, {
+  payload: SecretRequestAnswerInput,
+  error: Schema.Union([SecretRequestError, EnvironmentAuthorizationError]),
 });
 
 const WsSubscribeAuthAccessRpc = Rpc.make(WS_METHODS.subscribeAuthAccess, {
@@ -2205,6 +2224,7 @@ export const WsCoreRpcGroup = RpcGroup.make(
   WsScheduledTasksSetEnabledRpc,
   WsScheduledTasksDeleteRpc,
   WsScheduledTasksRunNowRpc,
+  WsSecretsAnswerRequestRpc,
   WsServerReportClientActivityRpc,
   WsPullRequestsListRpc,
   WsPullRequestsListStatsRpc,
@@ -2217,7 +2237,6 @@ export const WsCoreRpcGroup = RpcGroup.make(
   WsPullRequestsDetailRpc,
   WsPullRequestsPreviewRpc,
   WsPullRequestsChecksRpc,
-  WsPullRequestsWorkflowRunRpc,
   WsPullRequestsActivityRpc,
   WsPullRequestsReviewGuideRpc,
   WsPullRequestsGenerateReviewGuideRpc,
@@ -2270,6 +2289,7 @@ export const WsCoreRpcGroup = RpcGroup.make(
   WsTranscriptionTranscribeRpc,
   WsTranscriptionCancelRpc,
   WsTranscriptionPrepareUploadRpc,
+  WsTranscriptionPrepareStreamRpc,
   WsTranscriptionCancelUploadRpc,
   WsMcpAppsCallToolRpc,
   WsMcpAppsToolInfoRpc,
@@ -2348,6 +2368,7 @@ export const WsCoreRpcGroup = RpcGroup.make(
   WsOrchestrationV2SubscribeShellRpc,
   WsOrchestrationV2SubscribeThreadRpc,
   WsOrchestrationV2SubscribeCommandOutputRpc,
+  WsOrchestrationV2SubscribeBackgroundTaskOutputRpc,
 );
 
 /**

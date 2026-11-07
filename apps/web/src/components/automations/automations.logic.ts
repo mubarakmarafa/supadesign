@@ -87,12 +87,19 @@ const ONCE_FORMATTER = new Intl.DateTimeFormat(undefined, {
 
 /** Fixed times run on the environment's clock, which may not be this device's. */
 export function scheduleLabel(schedule: ScheduledTaskSchedule): string {
+  const summary = scheduleSummary(schedule);
+  return schedule.type === "fixed_time" ? `${summary} (environment time)` : summary;
+}
+
+export function scheduleSummary(schedule: ScheduledTaskSchedule): string {
   if (schedule.type === "once") return `Once, ${ONCE_FORMATTER.format(new Date(schedule.runAt))}`;
   if (schedule.type === "interval") {
     const minutes = schedule.everyMs / 60_000;
-    return Number.isInteger(minutes)
-      ? `Every ${minutes} min`
-      : `Every ${Math.round(schedule.everyMs / 1000)} sec`;
+    if (!Number.isInteger(minutes)) return `Every ${Math.round(schedule.everyMs / 1000)} sec`;
+    if (minutes % 1440 === 0)
+      return minutes === 1440 ? "Every day" : `Every ${minutes / 1440} days`;
+    if (minutes % 60 === 0) return minutes === 60 ? "Every hour" : `Every ${minutes / 60} hours`;
+    return `Every ${minutes} min`;
   }
   const weekdays = schedule.weekdays ?? [];
   const days =
@@ -101,7 +108,7 @@ export function scheduleLabel(schedule: ScheduledTaskSchedule): string {
       : weekdays.length === 5 && weekdays.every((day) => day >= 1 && day <= 5)
         ? "Weekdays"
         : weekdays.map((day) => WEEKDAY_LABELS[day]).join(", ");
-  return `${days} at ${schedule.timeOfDay} (environment time)`;
+  return `${days} at ${schedule.timeOfDay}`;
 }
 
 /** "in 5m" for upcoming instants, "5m ago" for past ones. */

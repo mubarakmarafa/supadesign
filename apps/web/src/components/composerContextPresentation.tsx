@@ -1,7 +1,11 @@
 import ChatMarkdown from "./ChatMarkdown";
 import { isSvgAttachment } from "@supaterm/shared/image";
 import { ReadOnlySourcePreview } from "./files/AttachmentFilePreview";
-import type { PreviewAnnotationPayload, ThreadContextRecord } from "@supaterm/contracts";
+import type {
+  ModelContextRecord,
+  PreviewAnnotationPayload,
+  ThreadContextRecord,
+} from "@supaterm/contracts";
 import { formatAttachmentSize } from "@supaterm/client-runtime/state/attachments";
 import { videoMimeType } from "@supaterm/shared/video";
 import { MessageCircleIcon, MousePointerClickIcon } from "@supaterm/icons";
@@ -28,16 +32,19 @@ import {
   reviewCommentContextLabel,
   terminalContextReference,
   uploadedAttachmentContextRecord,
+  type ReferenceContextRecord,
 } from "~/lib/composerContextRecords";
 import type { TerminalContextDraft } from "~/lib/terminalContext";
 import type { ReviewCommentContext } from "~/reviewCommentContext";
 import { ComposerPendingTerminalContextChip } from "./chat/ComposerPendingTerminalContexts";
+import { ModelContextChip } from "./ModelContextChip";
 import { ThreadContextChip } from "./ThreadContextChip";
 import {
   createContextPresentationRegistry,
   type ContextPresentationCapability,
 } from "./contextPresentationRegistry";
 import type { ContextChipKind } from "./ContextChip";
+import { MiddleTruncate } from "./ui/middle-truncate";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 import {
   ContextChipPopover,
@@ -60,7 +67,8 @@ export type ComposerDraftContextRecord =
     }
   | { kind: "image"; record: ComposerImageAttachment; upload?: AttachmentUploadState | undefined }
   | { kind: "file"; record: ComposerFileAttachment; upload?: AttachmentUploadState | undefined }
-  | { kind: "thread"; record: ThreadContextRecord };
+  | { kind: "thread"; record: ThreadContextRecord }
+  | { kind: "model"; record: ModelContextRecord };
 
 export interface ComposerContextActions {
   environmentId: EnvironmentId | null;
@@ -98,7 +106,7 @@ export function composerContextRecordsFromDraft(input: {
   terminalContexts: ReadonlyArray<TerminalContextDraft>;
   reviewComments?: ReadonlyArray<ReviewCommentContext>;
   previewAnnotations?: ReadonlyArray<PreviewAnnotationPayload>;
-  threadContexts?: ReadonlyArray<ThreadContextRecord>;
+  referenceContexts?: ReadonlyArray<ReferenceContextRecord>;
   images?: ReadonlyArray<ComposerImageAttachment>;
   files?: ReadonlyArray<ComposerFileAttachment>;
   uploadsByImageId?: Readonly<Record<string, AttachmentUploadState>>;
@@ -132,8 +140,11 @@ export function composerContextRecordsFromDraft(input: {
       screenshot: imagesById.get(record.id),
     });
   }
-  for (const record of input.threadContexts ?? []) {
-    records.set(record.contextId, { kind: "thread", record });
+  for (const record of input.referenceContexts ?? []) {
+    records.set(
+      record.contextId,
+      record.kind === "thread" ? { kind: "thread", record } : { kind: "model", record },
+    );
   }
   return records;
 }
@@ -290,7 +301,9 @@ function ComposerReviewCommentDetails({ comment }: { comment: ReviewCommentConte
   return (
     <div className="space-y-2 overflow-hidden rounded-lg border border-border/70 bg-background/70 p-3">
       <div className="space-y-1">
-        <div className="truncate text-xs font-medium text-foreground">{comment.filePath}</div>
+        <div className="flex text-xs font-medium text-foreground">
+          <MiddleTruncate value={comment.filePath} />
+        </div>
         <div className="text-secondary-label text-2xs">
           {comment.sectionTitle} · {comment.rangeLabel}
         </div>
@@ -363,7 +376,15 @@ const composerContextPresentationRegistry = createContextPresentationRegistry<
   ComposerContextRenderContext,
   ReactElement
 >({
-  requiredKinds: ["image", "file", "terminal", "review-comment", "preview-annotation", "thread"],
+  requiredKinds: [
+    "image",
+    "file",
+    "terminal",
+    "review-comment",
+    "preview-annotation",
+    "thread",
+    "model",
+  ],
   handlers: [
     {
       kind: "terminal",
@@ -455,6 +476,16 @@ const composerContextPresentationRegistry = createContextPresentationRegistry<
       render: (entry, context) =>
         entry.kind === "thread" ? (
           <ComposerThreadContextChip record={entry.record} />
+        ) : (
+          <UnresolvedContextChip label={context.label} />
+        ),
+    },
+    {
+      kind: "model",
+      canRender: (entry) => entry.kind === "model",
+      render: (entry, context) =>
+        entry.kind === "model" ? (
+          <ModelContextChip record={entry.record} />
         ) : (
           <UnresolvedContextChip label={context.label} />
         ),
