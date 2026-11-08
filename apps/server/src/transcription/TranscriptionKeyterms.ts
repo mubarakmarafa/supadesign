@@ -18,9 +18,18 @@ const FIXED_TERMS = [
   "worktree",
 ];
 
-// What people name while directing agents here, which a speech model hears as "super term",
-// "cloud", or "code X".
-const SUPATERM_TERMS = ["Supaterm", "Claude", "Codex", "Opus", "Sonnet", "Haiku", "GPT"];
+// What people name while directing agents here, which a speech model hears as "super design",
+// "super term", "cloud", or "code X".
+const SUPATERM_TERMS = [
+  "Supadesign",
+  "Supaterm",
+  "Claude",
+  "Codex",
+  "Opus",
+  "Sonnet",
+  "Haiku",
+  "GPT",
+];
 
 const isWordLength = (word: string) => word.length > 2 && word.length <= 20;
 
@@ -42,6 +51,8 @@ const isProjectName = (name: string | undefined): name is string =>
   name !== undefined && name.length > 2 && name.length <= 50;
 
 export function keytermCandidates(input: {
+  /** The user's own words, first because the header keeps only the first fifty terms. */
+  readonly dictionaryTerms: ReadonlyArray<string>;
   readonly projectTitle: string | undefined;
   /** The project root's folder name, which Claude Code sends; a renamed title loses it. */
   readonly projectFolder: string | undefined;
@@ -51,10 +62,13 @@ export function keytermCandidates(input: {
   const projectNames = [input.projectTitle?.trim(), input.projectFolder?.trim()].filter(
     isProjectName,
   );
+  // The speech model copies a keyterm's casing and the header keeps a term's first casing,
+  // so these go ahead of lowercase project and branch names.
   return [
+    ...input.dictionaryTerms,
+    ...SUPATERM_TERMS,
     ...projectNames,
     ...(input.branch ? splitWords(input.branch) : []),
-    ...SUPATERM_TERMS,
     ...FIXED_TERMS,
     ...input.skills.filter(isSingleWordSkill).map((skill) => skill.name),
   ];

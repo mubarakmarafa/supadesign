@@ -3,13 +3,17 @@ import {
   type ProviderInstanceId,
   TRANSCRIPTION_MAX_AUDIO_BYTES,
   TRANSCRIPTION_MAX_SECONDS,
+  TRANSCRIPTION_MIN_DURATION_MS,
   type TranscriptionCancelInput,
   TranscriptionError,
   type TranscriptionErrorReason,
   type TranscriptionTranscribeInput,
   type TranscriptionTranscribeResult,
 } from "@supaterm/contracts";
-import { parseWav } from "@supaterm/provider-core/server/transcription";
+import {
+  LiveTranscriptionUnavailable,
+  parseWav,
+} from "@supaterm/provider-core/server/transcription";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -22,6 +26,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Semaphore from "effect/Semaphore";
+import type * as Stream from "effect/Stream";
 
 import { deletePendingAttachment } from "../assets/AttachmentUpload.ts";
 import {
@@ -36,14 +41,16 @@ import * as ProjectService from "../project/ProjectService.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as ProviderInstanceRegistry from "../provider/ProviderInstanceRegistry.ts";
 import * as ProviderRegistry from "../provider/ProviderRegistry.ts";
+import { applyDictionary } from "./TranscriptionDictionary.ts";
 import { keytermCandidates } from "./TranscriptionKeyterms.ts";
 
 // At least as long as an upload URL lives, so a replayed upload finds the
 // recorded outcome instead of starting another vendor run.
 const OUTCOME_TTL_MS = 10 * 60_000;
 const MAX_ENTRIES = 64;
-const MIN_DURATION_MS = 300;
 const RUN_TIMEOUT_MS = (TRANSCRIPTION_MAX_SECONDS + 120) * 1000;
+// A live run starts with the recording, which can pause (a call on iOS) without counting audio.
+const LIVE_RUN_TIMEOUT_MS = (2 * TRANSCRIPTION_MAX_SECONDS + 120) * 1000;
 const RUNS_PER_INSTANCE = 2;
 const PRUNE_INTERVAL = "1 minute";
 const UNUSABLE_AUDIO: ReadonlySet<TranscriptionErrorReason | undefined> = new Set([
@@ -126,6 +133,19 @@ export class Transcription extends Context.Service<
     readonly transcribeFile: (
       input: TranscribeFileInput,
     ) => Effect.Effect<TranscriptionTranscribeResult, TranscriptionError>;
+    /**
+     * Transcribes audio while it is still being recorded. It never waits for capacity: a busy
+     * instance is `LiveTranscriptionUnavailable`, like any refusal before audio was taken.
+     */
+    readonly transcribeLive: (input: {
+      readonly providerInstanceId: ProviderInstanceId;
+      readonly language?: string | undefined;
+      readonly context?: TranscriptionTranscribeInput["context"];
+      readonly audio: Stream.Stream<Uint8Array>;
+    }) => Effect.Effect<
+      TranscriptionTranscribeResult,
+      TranscriptionError | LiveTranscriptionUnavailable
+    >;
   }
 >()("supaterm/transcription/Transcription") {}
 
@@ -169,7 +189,7 @@ const make = Effect.gen(function* () {
     }
     const audio = parseWav(yield* fileSystem.readFile(path).pipe(Effect.mapError(missing)));
     if (!audio) return yield* new TranscriptionError({ reason: "invalidAudio" });
-    if (audio.durationMs < MIN_DURATION_MS) {
+    if (audio.durationMs < TRANSCRIPTION_MIN_DURATION_MS) {
       return yield* new TranscriptionError({ reason: "audioTooShort" });
     }
     if (audio.durationMs > TRANSCRIPTION_MAX_SECONDS * 1000) {
@@ -177,6 +197,19 @@ const make = Effect.gen(function* () {
     }
     return audio;
   });
+
+  // Unreadable settings fall back to the raw transcript rather than failing work already paid for.
+  const readDictionary = settings.getSettings.pipe(
+    Effect.map((current) => current.transcriptionDictionary),
+    Effect.orElseSucceed(() => []),
+  );
+
+  const spelled = Effect.flatMap((result: TranscriptionTranscribeResult) =>
+    Effect.map(readDictionary, (dictionary) => ({
+      ...result,
+      text: applyDictionary(result.text, dictionary),
+    })),
+  );
 
   // Every lookup is optional: a missing thread or project only drops its hints.
   const readKeyterms = Effect.fn("Transcription.readKeyterms")(function* (
@@ -199,7 +232,9 @@ const make = Effect.gen(function* () {
     const workspaceSkills = cwd
       ? provider?.workspaceSnapshots?.find((snapshot) => snapshot.cwd === cwd)?.skills
       : undefined;
+    const dictionary = yield* readDictionary;
     return keytermCandidates({
+      dictionaryTerms: dictionary.map((entry) => entry.term),
       projectTitle: project?.title,
       projectFolder: project?.workspaceRoot.split(/[\\/]/).findLast((part) => part !== ""),
       branch: shell?.branch ?? undefined,
@@ -256,9 +291,9 @@ const make = Effect.gen(function* () {
         keytermCount: keyterms.length,
       });
       const limiter = yield* limiterFor(inputs.providerInstanceId);
-      return yield* limiter.withPermits(1)(
-        backend.transcribe({ audio, language: inputs.language, keyterms }),
-      );
+      return yield* limiter
+        .withPermits(1)(backend.transcribe({ audio, language: inputs.language, keyterms }))
+        .pipe(spelled);
     },
     Effect.timeoutOrElse({
       duration: RUN_TIMEOUT_MS,
@@ -430,7 +465,47 @@ const make = Effect.gen(function* () {
     return inputs.providerInstanceId;
   });
 
-  return Transcription.of({ transcribe, cancel, checkSource, transcribeFile });
+  const unavailable = (reason: TranscriptionErrorReason) =>
+    new LiveTranscriptionUnavailable({ cause: new TranscriptionError({ reason }) });
+
+  const transcribeLive: Transcription["Service"]["transcribeLive"] = Effect.fn(
+    "Transcription.live",
+  )(
+    function* (input) {
+      const inputs: RunInputs = {
+        providerInstanceId: input.providerInstanceId,
+        language: normalizeLanguage(input.language),
+      };
+      const { instance, backend } = yield* resolveSource(inputs).pipe(
+        Effect.mapError((cause) => new LiveTranscriptionUnavailable({ cause })),
+      );
+      if (backend.stream === undefined) return yield* unavailable("sourceUnavailable");
+      const keyterms = backend.acceptsKeyterms
+        ? yield* readKeyterms(inputs.providerInstanceId, input.context)
+        : [];
+      yield* Effect.annotateCurrentSpan({
+        instanceId: inputs.providerInstanceId,
+        driver: instance.driverKind,
+        keytermCount: keyterms.length,
+      });
+      const limiter = yield* limiterFor(inputs.providerInstanceId);
+      const stream = backend.stream;
+      return yield* Effect.acquireUseRelease(
+        limiter.takeIfAvailable(1),
+        (taken) =>
+          taken
+            ? stream({ audio: input.audio, language: inputs.language, keyterms }).pipe(spelled)
+            : Effect.fail(unavailable("rateLimited")),
+        (taken) => (taken ? limiter.release(1) : Effect.void),
+      );
+    },
+    Effect.timeoutOrElse({
+      duration: LIVE_RUN_TIMEOUT_MS,
+      orElse: () => Effect.fail(new TranscriptionError({ reason: "failed" })),
+    }),
+  );
+
+  return Transcription.of({ transcribe, cancel, checkSource, transcribeFile, transcribeLive });
 });
 
 export const layer = Layer.effect(Transcription, make);

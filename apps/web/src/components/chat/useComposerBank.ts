@@ -83,7 +83,7 @@ export function useComposerBank(input: {
         elementContextCount:
           sendCtx.previewAnnotations.length +
           sendCtx.reviewComments.length +
-          sendCtx.threadContexts.length,
+          sendCtx.referenceContexts.length,
       },
     );
     if (!hasSendableContent) return;
@@ -109,7 +109,7 @@ export function useComposerBank(input: {
         terminalContexts: sendableTerminalContexts,
         reviewComments: sendCtx.reviewComments,
         previewAnnotations: sendCtx.previewAnnotations,
-        threadContexts: sendCtx.threadContexts,
+        referenceContexts: sendCtx.referenceContexts,
         attachments: attachments.map((attachment, index) => ({
           attachment,
           attachmentId: uploaded[index]?.id ?? attachment.id,

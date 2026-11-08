@@ -416,8 +416,6 @@ import { SquareHalfBottomIcon as PanelBottomSource } from "@phosphor-icons/react
 export const PanelBottomIcon = /* @__PURE__ */ withIconDefaults(PanelBottomSource);
 import { SidebarSimpleIcon as PanelLeftSource } from "@phosphor-icons/react/dist/csr/SidebarSimple";
 export const PanelLeftIcon = /* @__PURE__ */ withIconDefaults(PanelLeftSource);
-import { ArrowLineLeftIcon as PanelLeftCloseSource } from "@phosphor-icons/react/dist/csr/ArrowLineLeft";
-export const PanelLeftCloseIcon = /* @__PURE__ */ withIconDefaults(PanelLeftCloseSource);
 import { SidebarSimpleIcon as PanelRightSource } from "@phosphor-icons/react/dist/csr/SidebarSimple";
 export const PanelRightIcon = /* @__PURE__ */ withIconDefaults(PanelRightSource, {
   mirrored: true,
@@ -502,6 +500,8 @@ import { ShieldIcon as ShieldSource } from "@phosphor-icons/react/dist/csr/Shiel
 export const ShieldIcon = /* @__PURE__ */ withIconDefaults(ShieldSource);
 import { ShieldWarningIcon as ShieldAlertSource } from "@phosphor-icons/react/dist/csr/ShieldWarning";
 export const ShieldAlertIcon = /* @__PURE__ */ withIconDefaults(ShieldAlertSource);
+import { ShieldCheckIcon as ShieldCheckSource } from "@phosphor-icons/react/dist/csr/ShieldCheck";
+export const ShieldCheckIcon = /* @__PURE__ */ withIconDefaults(ShieldCheckSource);
 import { ShoppingBagIcon as ShoppingBagSource } from "@phosphor-icons/react/dist/csr/ShoppingBag";
 export const ShoppingBagIcon = /* @__PURE__ */ withIconDefaults(ShoppingBagSource);
 import { ArrowsInSimpleIcon as ShrinkSource } from "@phosphor-icons/react/dist/csr/ArrowsInSimple";

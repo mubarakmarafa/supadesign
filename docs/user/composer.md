@@ -222,8 +222,10 @@ and use **Attach again** or remove the missing file before sending.
 
 Press the microphone in the composer, or `ctrl+m` on web and desktop, to record a
 prompt of up to five minutes. Hold `ctrl+m` instead to talk only while it is down; letting
-go stops and reviews. With **Settings → Threads → Hold Space to talk** on, holding Space in
-the composer with no text selected does the same, and a tap still types a space. On web and desktop, the
+go stops and reviews. Holding Option (Alt off macOS) in the composer or a comment field does the same. Pressing
+another key or clicking while you hold it treats it as a shortcut and drops the recording.
+**Settings → Voice transcription → Hold to talk** can switch the key to Space, which records when held with no
+text selected while a tap still types a space, or turn it off. On web and desktop, the
 recording stays in the composer while you speak:
 
 - **Stop and review**, or `ctrl+m` again, transcribes the recording into the
@@ -235,8 +237,13 @@ recording stays in the composer while you speak:
   it, and sends everything together.
 - **Discard**, or `Escape`, throws the recording away and keeps your draft.
 
-The environment transcribes with the provider chosen under **Settings → Threads → Voice
-transcription** (**Settings → Voice transcription** on mobile), and that login is charged
+Comment fields have a microphone too: pull request descriptions, comments and review
+summaries, diff comments, and comments on cited text. While one of them has focus, `ctrl+m`
+dictates into it instead of the composer. The field stays locked until the transcript is in,
+so it can't be sent half-dictated.
+
+The environment transcribes with the provider chosen under **Settings → Voice
+transcription**, and that login is charged
 for it. Claude needs a Claude subscription login and Codex a ChatGPT login. **Automatic**,
 the default, picks the first login ready to transcribe for each new recording, trying the
 default Claude instance, then other Claude instances, then the rest, so a later recording can
@@ -245,18 +252,37 @@ recording that fails isn't retried with another account. Choose a provider to pi
 account: if it can't transcribe, the microphone says why and Supaterm never switches. A Claude instance that runs on an API key, a gateway's `ANTHROPIC_BASE_URL` and
 token, or Amazon Bedrock can't transcribe; choose Codex, or add a Claude instance with its own
 [config directory](./providers-claude.md#separate-accounts-or-configurations) signed in to
-your subscription. Choose the language you speak under **Settings → Threads → Voice
-language**; it follows your system language by default and lists only the languages the chosen
+your subscription. Choose the language you speak under **Settings → Voice transcription →
+Voice language**; it follows your system language by default and lists only the languages the chosen
 provider transcribes, which for Codex is many more than for Claude. On iPhone and Android,
 voice input always uses your phone's language.
+
+Under **Dictionary**, add names and jargon to spell your way, and what the transcript gets
+instead. It starts with Supaterm, heard as "super term", which you can remove. It is saved on the environment that
+transcribes and applies to everything it transcribes, including voice messages and
+`supaterm transcribe`. With Claude, dictionary words also tell the speech model what to
+listen for.
 
 Recording in a browser needs HTTPS or `localhost`. A remote browser on a plain `http://`
 address can't use the microphone. The first time you record, allow microphone access; on
 macOS you can change it later in System Settings → Privacy & Security → Microphone.
 
+Choose the input you record from under **Settings → Voice transcription → Microphone**. The
+choice is saved on that device, and while the chosen microphone isn't connected, voice input
+uses the system default. On a Mac, **Use the Mac's microphone instead of Bluetooth**, on by
+default, records from the Mac's own microphone when AirPods or another Bluetooth headset is
+the system default, so the headset doesn't drop into call-quality audio. It works in the
+desktop app and Chromium browsers such as Chrome, and a Bluetooth microphone you choose is
+always used.
+
 If no speech is heard, the message isn't sent. If the thread refuses a transcribed message,
-the transcript stays in the queue as text so you can edit or retry it. Recordings stay on
-your device until they are sent or discarded.
+the transcript stays in the queue as text so you can edit or retry it.
+
+While you record, the audio goes to the environment and on to the provider as you speak, so
+the text is ready almost as soon as you stop. A copy stays on your device until the
+recording is sent or discarded, so a dropped connection, or an environment that doesn't
+stream, still gets the whole recording after you stop. Discarding a recording stops the
+provider, but it has already heard what you said up to then.
 
 ### On iPhone and Android
 
@@ -294,6 +320,10 @@ A stopped turn shows **Stopping** until the agent finishes. An agent that does n
 example because the machine is out of memory, shows **Agent not responding to Stop** instead, with
 **Force stop** on web, desktop, and mobile. Force stop ends the turn and kills the agent's
 processes; a process that other working threads share keeps running for them.
+
+When a turn ends with commands, monitors, or subagents still running, the composer shows what is
+running and **Stop** ends it. Click a command's name to watch its live output, or a subagent's name
+to open it. On mobile, tap the background work pill, then the command or subagent.
 
 Queued messages appear above the composer. Rows show a thumbnail of any attached image alongside
 the text. **Send now** sends a message right away, into the running turn if there is one. You can
@@ -397,6 +427,13 @@ environment must be connected and up to date. The transcript includes the visibl
 saved text context at the time of the drop; later messages and the contents of attached files
 are not copied. The agent can read the saved transcript after the source disconnects. Normal
 file attachment limits apply.
+
+To name a model for the agent, type `@` followed by part of the model or provider name, such as
+`@opus` or `@gpt`, and pick it from the list. A mention ends at a space, so join words with `:`,
+`/`, or `-`, as in `@claude:opus`. The list offers models from this server's providers that are
+turned on, signed in, and available. The chip tells the agent the exact provider and model, so a
+prompt like "delegate this to @opus" hands the work to that model. Naming a model never changes
+the model your thread runs on; use the model picker for that.
 
 Images keep their thumbnail shelf above the text and also get a chip at your cursor, so you can
 say exactly which image you mean. Deleting an image chip leaves the image on the shelf; removing

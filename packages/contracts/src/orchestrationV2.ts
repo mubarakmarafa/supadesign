@@ -386,26 +386,6 @@ export const OrchestrationV2LimitRecoveryUpdate = Schema.Struct({
 );
 export type OrchestrationV2LimitRecoveryUpdate = typeof OrchestrationV2LimitRecoveryUpdate.Type;
 
-/** A GitHub Actions run, by the repository it belongs to. */
-export const ThreadWorkflowRunKey = Schema.Struct({
-  host: TrimmedNonEmptyString,
-  repository: TrimmedNonEmptyString,
-  runId: PositiveInt,
-});
-export type ThreadWorkflowRunKey = typeof ThreadWorkflowRunKey.Type;
-
-/**
- * A GitHub Actions run the server watches for the thread's agent, which it wakes once when the
- * run completes. Ends then, on unwatch, Stop, marking done or archiving, and after reads keep failing.
- */
-export const ThreadWorkflowRunWatch = Schema.Struct({
-  ...ThreadWorkflowRunKey.fields,
-  name: TrimmedNonEmptyString,
-  url: Schema.NullOr(TrimmedNonEmptyString),
-  startedAt: IsoDateTime,
-});
-export type ThreadWorkflowRunWatch = typeof ThreadWorkflowRunWatch.Type;
-
 export const MAX_THREAD_PINNED_MESSAGES = 50;
 
 /**
@@ -456,7 +436,6 @@ export const OrchestrationV2AppThread = Schema.Struct({
   worktreePath: Schema.NullOr(TrimmedNonEmptyString),
   linkedPullRequest: Schema.optional(Schema.NullOr(ThreadLinkedPullRequest)),
   pullRequests: Schema.optional(Schema.Array(ThreadPullRequestLink)),
-  workflowRunWatches: Schema.optional(Schema.Array(ThreadWorkflowRunWatch)),
   branchPullRequest: Schema.optional(Schema.NullOr(ThreadLinkedPullRequest)),
   activeProviderThreadId: Schema.NullOr(ProviderThreadId),
   historyOrigin: Schema.optional(OrchestrationV2ThreadHistoryOrigin),
@@ -1540,6 +1519,22 @@ export const OrchestrationV2WebSearchResult = Schema.Struct({
 });
 export type OrchestrationV2WebSearchResult = typeof OrchestrationV2WebSearchResult.Type;
 
+export const OrchestrationV2SecretRequestStatus = Schema.Literals([
+  "pending",
+  "saved",
+  "declined",
+  "cancelled",
+]);
+export type OrchestrationV2SecretRequestStatus = typeof OrchestrationV2SecretRequestStatus.Type;
+
+const OrchestrationV2SecretRequestFields = {
+  type: Schema.Literal("secret_request"),
+  label: TrimmedNonEmptyString,
+  reason: Schema.String,
+  placeholder: Schema.optional(Schema.String),
+  secretStatus: OrchestrationV2SecretRequestStatus,
+} as const;
+
 export const OrchestrationV2TurnItem = Schema.Union([
   Schema.Struct({
     ...OrchestrationV2TurnItemBaseFields,
@@ -1728,6 +1723,10 @@ export const OrchestrationV2TurnItem = Schema.Union([
   }),
   Schema.Struct({
     ...OrchestrationV2TurnItemBaseFields,
+    ...OrchestrationV2SecretRequestFields,
+  }),
+  Schema.Struct({
+    ...OrchestrationV2TurnItemBaseFields,
     type: Schema.Literal("subagent"),
     subagentId: NodeId,
     origin: Schema.Literals(["provider_native", "app_owned"]),
@@ -1827,6 +1826,7 @@ export const OrchestrationV2DomainEvent = Schema.Union([
       "thread.marked-unread",
       "thread.metadata-updated",
       "thread.pull-request-synced",
+      // Retired with run watches; stored events and older servers still carry it.
       "thread.workflow-run-watch-synced",
       "thread.runtime-mode-updated",
       "thread.interaction-mode-updated",
@@ -2588,6 +2588,10 @@ export const OrchestrationV2TurnItemJson = Schema.Union([
   }),
   Schema.Struct({
     ...OrchestrationV2TurnItemJsonBaseFields,
+    ...OrchestrationV2SecretRequestFields,
+  }),
+  Schema.Struct({
+    ...OrchestrationV2TurnItemJsonBaseFields,
     type: Schema.Literal("subagent"),
     subagentId: NodeId,
     origin: Schema.Literals(["provider_native", "app_owned"]),
@@ -3074,13 +3078,6 @@ export const OrchestrationV2Command = Schema.Union([
       }),
     ),
   }),
-  /** Stop the server watching a GitHub Actions run for this thread's agent. */
-  Schema.Struct({
-    type: Schema.Literal("thread.workflow-run.unwatch"),
-    commandId: CommandId,
-    threadId: ThreadId,
-    ...ThreadWorkflowRunKey.fields,
-  }),
   Schema.Struct({
     type: Schema.Literal("thread.pull-request.sync"),
     commandId: CommandId,
@@ -3104,7 +3101,7 @@ export const OrchestrationV2Command = Schema.Union([
     requestId: CommandId,
     title: Schema.optional(TrimmedNonEmptyString),
   }),
-  /** Makes a side chat a full thread: listed, forkable, and no longer held to approval. */
+  /** Makes a side chat a full thread: listed and forkable. */
   Schema.Struct({
     type: Schema.Literal("thread.side-chat.promote"),
     commandId: CommandId,
@@ -3409,34 +3406,6 @@ const OrchestrationV2InternalCommand = Schema.Union([
       }),
     ),
   }),
-  /** Watch a GitHub Actions run for the thread's agent, which only agents start. */
-  Schema.Struct({
-    type: Schema.Literal("thread.workflow-run-watch.start"),
-    commandId: CommandId,
-    threadId: ThreadId,
-    ...ThreadWorkflowRunKey.fields,
-    name: TrimmedNonEmptyString,
-    url: Schema.NullOr(TrimmedNonEmptyString),
-  }),
-  /**
-   * Ends the workflow run watch started at `startedAt`, waking the agent in the same transaction
-   * when `wake` is set. Rejected once that watch has ended, and a wake is rejected on a done
-   * or archived thread, so a read that raced either changes nothing.
-   */
-  Schema.Struct({
-    type: Schema.Literal("thread.workflow-run-watch.end"),
-    commandId: CommandId,
-    threadId: ThreadId,
-    ...ThreadWorkflowRunKey.fields,
-    startedAt: IsoDateTime,
-    wake: Schema.optional(
-      Schema.Struct({
-        messageId: MessageId,
-        text: Schema.String,
-        notification: OrchestrationV2Notification,
-      }),
-    ),
-  }),
   Schema.Struct({
     type: Schema.Literal("checkpoint.rollback.fail"),
     commandId: CommandId,
@@ -3481,8 +3450,8 @@ const OrchestrationV2InternalCommand = Schema.Union([
   }),
   /**
    * Stop for one thread, whatever it is doing: interrupts its running turn, holds its queue,
-   * ends its pull request and workflow run watches, and drops pending delegated-task wakes. Nothing to stop is
-   * an accepted no-op. Delegated tasks under the thread get their own `thread.stop`.
+   * ends its pull request watches, and drops pending delegated-task wakes. Nothing to stop is an
+   * accepted no-op. Delegated tasks under the thread get their own `thread.stop`.
    */
   Schema.Struct({
     type: Schema.Literal("thread.stop"),
@@ -3490,6 +3459,22 @@ const OrchestrationV2InternalCommand = Schema.Union([
     threadId: ThreadId,
     reason: Schema.optional(Schema.String),
     stopDelegatedTasks: Schema.optional(Schema.Boolean),
+  }),
+  /**
+   * Internal so no client can mark a request saved without the value being
+   * stored.
+   */
+  Schema.Struct({
+    type: Schema.Literal("secret_request.record"),
+    commandId: CommandId,
+    threadId: ThreadId,
+    runId: RunId,
+    nodeId: NodeId,
+    turnItemId: TurnItemId,
+    label: TrimmedNonEmptyString,
+    reason: Schema.String,
+    placeholder: Schema.optional(Schema.String),
+    secretStatus: OrchestrationV2SecretRequestStatus,
   }),
 ]);
 export type OrchestrationV2InternalCommand = typeof OrchestrationV2InternalCommand.Type;
@@ -3517,6 +3502,7 @@ export const ORCHESTRATION_V2_WS_METHODS = {
   subscribeShell: "orchestration.subscribeShell",
   subscribeThread: "orchestration.subscribeThread",
   subscribeCommandOutput: "orchestration.subscribeCommandOutput",
+  subscribeBackgroundTaskOutput: "orchestration.subscribeBackgroundTaskOutput",
 } as const;
 
 export const OrchestrationV2SubscribeCommandOutputInput = Schema.Struct({
@@ -3525,6 +3511,14 @@ export const OrchestrationV2SubscribeCommandOutputInput = Schema.Struct({
 });
 export type OrchestrationV2SubscribeCommandOutputInput =
   typeof OrchestrationV2SubscribeCommandOutputInput.Type;
+
+/** One pending background command or monitor, by the `taskId` the thread lists it under. */
+export const OrchestrationV2SubscribeBackgroundTaskOutputInput = Schema.Struct({
+  threadId: ThreadId,
+  taskId: TrimmedNonEmptyString,
+});
+export type OrchestrationV2SubscribeBackgroundTaskOutputInput =
+  typeof OrchestrationV2SubscribeBackgroundTaskOutputInput.Type;
 
 /**
  * Kept off the thread stream so it is never persisted and only reaches clients
@@ -4186,6 +4180,10 @@ export const OrchestrationV2RpcSchemas = {
   },
   subscribeCommandOutput: {
     input: OrchestrationV2SubscribeCommandOutputInput,
+    output: OrchestrationV2CommandOutputFrame,
+  },
+  subscribeBackgroundTaskOutput: {
+    input: OrchestrationV2SubscribeBackgroundTaskOutputInput,
     output: OrchestrationV2CommandOutputFrame,
   },
 } as const;

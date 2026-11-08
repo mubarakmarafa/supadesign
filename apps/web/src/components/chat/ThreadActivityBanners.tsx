@@ -1,14 +1,18 @@
 import type {
+  EnvironmentId,
   OrchestrationV2PendingBackgroundTask,
   OrchestrationV2ProviderGoal,
-  ScopedThreadRef,
+  ProjectId,
   ThreadId,
+  ThreadPullRequestLink,
 } from "@supaterm/contracts";
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import {
+  type PendingBackgroundWorkItem,
   presentPendingBackgroundWork,
   presentProviderGoal,
   type RunStopPresentation,
+  soleWatchedPullRequest,
 } from "@supaterm/client-runtime/state/thread-execution";
 import { childThreadInputsTitle } from "@supaterm/client-runtime/state/threads";
 import { formatDuration } from "@supaterm/shared/orchestrationTiming";
@@ -24,8 +28,17 @@ import { Fragment } from "react";
 import { tickTextContent } from "~/lib/tickTextContent";
 import { InlineConfirmButton } from "../InlineConfirm";
 import { Button, InlineButton } from "../ui/button";
+import { PopoverTrigger } from "../ui/popover";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { BackgroundWorkIcon, BackgroundWorkTitle, type WatchedRunProps } from "./BackgroundWork";
+import {
+  type BackgroundTaskOutputHandle,
+  BackgroundTaskOutputPopover,
+  type BackgroundTaskOutputTarget,
+  BackgroundWorkIcon,
+  BackgroundWorkTitle,
+  type BackgroundWorkTitleAction,
+  type WatchedPullRequest,
+} from "./BackgroundWork";
 import type { ComposerBannerStackItem } from "./ComposerBannerStack";
 
 /** Subagents waiting on the user, unless the parent is itself waiting on them. */
@@ -149,63 +162,97 @@ export function runStopBannerItem(input: {
 }
 
 export function backgroundWorkBannerItem(input: {
+  readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
-  readonly threadRef: ScopedThreadRef | null;
+  readonly projectId: ProjectId;
+  readonly pullRequests: ReadonlyArray<ThreadPullRequestLink>;
   readonly tasks: ReadonlyArray<OrchestrationV2PendingBackgroundTask>;
-  /** The workflow run the work watches; it colors the dot and opens its checks. */
-  readonly watchedRun: WatchedRunProps;
+  readonly outputHandle: BackgroundTaskOutputHandle;
   readonly stopDisabled: boolean;
   readonly stopping: boolean;
   readonly onStop: () => Promise<void>;
   readonly onOpenThread: (threadId: ThreadId) => void;
 }): ComposerBannerStackItem | null {
-  const { onOpenThread, watchedRun } = input;
+  const { onOpenThread } = input;
   const presentation = presentPendingBackgroundWork(input.tasks);
   if (presentation === null) return null;
+  const outputTarget = (item: PendingBackgroundWorkItem): BackgroundTaskOutputTarget => ({
+    environmentId: input.environmentId,
+    threadId: input.threadId,
+    taskId: item.taskId,
+    label: item.label,
+  });
+  const [only] = presentation.items;
+  const onlyChildThreadId = presentation.items.length === 1 ? only?.childThreadId : undefined;
+  const titleAction: BackgroundWorkTitleAction | null =
+    onlyChildThreadId !== undefined
+      ? { kind: "thread", open: () => onOpenThread(onlyChildThreadId) }
+      : presentation.items.length === 1 && only?.hasOutput
+        ? { kind: "output", handle: input.outputHandle, target: outputTarget(only) }
+        : null;
+  const title = <BackgroundWorkTitle title={presentation.title} action={titleAction} />;
+  const watchedLink = soleWatchedPullRequest(presentation.items, input.pullRequests);
+  const watchedPullRequest: WatchedPullRequest | null =
+    watchedLink !== null
+      ? {
+          threadRef: { environmentId: input.environmentId, threadId: input.threadId },
+          reference: {
+            projectId: input.projectId,
+            host: watchedLink.host,
+            repository: watchedLink.repository,
+            number: watchedLink.number,
+          },
+        }
+      : null;
   return {
     id: `background-work:${input.threadId}`,
     variant: "default",
     priority: "activity",
     icon: (
-      <BackgroundWorkIcon
-        {...watchedRun}
-        waiting={presentation.waiting}
-        threadRef={input.threadRef}
-      />
+      <BackgroundWorkIcon waiting={presentation.waiting} watchedPullRequest={watchedPullRequest} />
     ),
-    iconInteractive: watchedRun.run !== null,
+    iconInteractive: watchedPullRequest !== null,
     title:
-      presentation.items.length === 1 &&
-      (presentation.items[0]?.kind === "command" || presentation.items[0]?.kind === "monitor") ? (
-        <span className="in-data-[slot=popover-popup]:whitespace-pre-wrap">
-          <BackgroundWorkTitle {...watchedRun} title={presentation.title} />
-        </span>
+      presentation.items.length === 1 && (only?.kind === "command" || only?.kind === "monitor") ? (
+        <span className="in-data-[slot=popover-popup]:whitespace-pre-wrap">{title}</span>
       ) : (
-        <BackgroundWorkTitle {...watchedRun} title={presentation.title} />
+        title
       ),
     description:
-      presentation.items.length === 1 && presentation.items[0]?.childThreadId === undefined
+      presentation.items.length === 1
         ? undefined
         : presentation.items.map((item, index) => {
             const childThreadId = item.childThreadId;
             const separator = index < presentation.items.length - 1 ? "," : null;
+            const link =
+              childThreadId !== undefined ? (
+                <InlineButton
+                  tone="muted"
+                  aria-label={`Open subagent ${item.label}`}
+                  onClick={() => onOpenThread(childThreadId)}
+                >
+                  {item.label}
+                </InlineButton>
+              ) : item.hasOutput ? (
+                <PopoverTrigger
+                  handle={input.outputHandle}
+                  payload={outputTarget(item)}
+                  render={<InlineButton tone="muted" />}
+                >
+                  {item.label}
+                </PopoverTrigger>
+              ) : null;
             return (
               <Fragment key={item.taskId}>
                 {index > 0 ? " " : null}
-                {childThreadId === undefined ? (
+                {link === null ? (
                   <>
                     {item.label}
                     {separator}
                   </>
                 ) : (
                   <span className="whitespace-nowrap">
-                    <InlineButton
-                      tone="muted"
-                      aria-label={`${presentation.items.length === 1 ? "Show" : "Open"} subagent ${item.label}`}
-                      onClick={() => onOpenThread(childThreadId)}
-                    >
-                      {presentation.items.length === 1 ? "Show" : item.label}
-                    </InlineButton>
+                    {link}
                     {separator}
                   </span>
                 )}
@@ -213,14 +260,17 @@ export function backgroundWorkBannerItem(input: {
             );
           }),
     actions: (
-      <Button
-        size="xs"
-        variant="ghost"
-        disabled={input.stopDisabled}
-        onClick={() => void input.onStop()}
-      >
-        {input.stopping ? "Stopping..." : "Stop"}
-      </Button>
+      <>
+        <BackgroundTaskOutputPopover handle={input.outputHandle} />
+        <Button
+          size="xs"
+          variant="ghost"
+          disabled={input.stopDisabled}
+          onClick={() => void input.onStop()}
+        >
+          {input.stopping ? "Stopping..." : "Stop"}
+        </Button>
+      </>
     ),
   };
 }

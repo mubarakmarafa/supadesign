@@ -1,3 +1,4 @@
+import { PullRequestProviderError } from "@supaterm/source-control-core/server/PullRequestProvider";
 import { SourceControlProviderKind } from "@supaterm/contracts";
 import { ATTACHMENT_ONLY_BOOTSTRAP_PROMPT } from "@supaterm/shared/composerContextReferences";
 import { limitRecoveryCommand } from "./UsageLimitRecoveryWorker.ts";
@@ -22,7 +23,6 @@ import {
   type OrchestrationV2Run,
   type OrchestrationV2RuntimeRequest,
   ProjectId,
-  type PullRequestCheckStatus,
   type PullRequestDetail,
   type PullRequestComment,
   PullRequestOperationError,
@@ -71,7 +71,6 @@ import * as ProviderRuntimeRecoveryService from "./ProviderRuntimeRecoveryServic
 import * as ProjectionMaintenance from "./ProjectionMaintenance.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
 import * as PullRequestWatchReactor from "./PullRequestWatchReactor.ts";
-import * as WorkflowRunWatchReactor from "./WorkflowRunWatchReactor.ts";
 import { PULL_REQUEST_WATCH_WAKE_LIMIT } from "./pullRequestWatch.ts";
 import * as PullRequestService from "../pullRequest/PullRequestService.ts";
 import * as ProjectStore from "./ProjectStore.ts";
@@ -2912,334 +2911,155 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
     }),
   );
 
-  it.effect("watches a workflow run until it completes, then wakes the agent once", () =>
-    Effect.gen(function* () {
-      const orchestrator = yield* Orchestrator.OrchestratorV2;
-      const threadId = ThreadId.make("runtime-workflow-run-watch");
-      const projectId = ProjectId.make("run-watch-project");
-      yield* seedProject({
-        projectId,
-        title: "Watch a run",
-        workspaceRoot: "/workspace/run-watch",
-        defaultModelSelection: null,
-        createdAt: "2026-10-01T00:00:00.000Z",
-      });
-      yield* orchestrator.dispatch({
-        type: "thread.create",
-        createdBy: "user",
-        creationSource: "web",
-        commandId: CommandId.make("run-watch-create"),
-        threadId,
-        projectId,
-        title: "Watch a run",
-        modelSelection,
-        runtimeMode: "full-access",
-        interactionMode: "default",
-        branch: null,
-        worktreePath: null,
-      });
-      const run = { host: "github.com", repository: "supabitapp/supaterm", runId: 42 };
-      const url = "https://github.com/supabitapp/supaterm/actions/runs/42";
-      yield* orchestrator.dispatch({
-        type: "thread.workflow-run-watch.start",
-        commandId: CommandId.make("run-watch-start"),
-        threadId,
-        ...run,
-        name: "Release",
-        url,
-      });
-      assert.deepEqual((yield* orchestrator.getThreadShell(threadId))?.pendingBackgroundTasks, [
-        {
-          taskId: "workflow-run-watch:github.com/supabitapp/supaterm#42",
-          description: "Watching Release run",
-          kind: "monitor",
-          awaited: true,
-        },
-      ]);
-
-      let status: "pending" | "failure" = "pending";
-      const reads: Array<unknown> = [];
-      const job = (name: string, jobStatus: PullRequestCheckStatus) => ({
-        name,
-        status: jobStatus,
-        description: null,
-        url: null,
-      });
-      const reactor = yield* WorkflowRunWatchReactor.make.pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            NodeServices.layer,
-            Layer.mock(PullRequestService.PullRequestService)({
-              workflowRun: (input) =>
-                Effect.sync(() => {
-                  reads.push(input);
-                  return {
-                    ...run,
-                    name: "Release",
-                    url,
-                    status,
-                    checks: [
-                      job("Lint", "success"),
-                      job("Mobile preview ios", status === "pending" ? "pending" : "failure"),
-                      job("Deploy", "skipped"),
-                    ],
-                  };
-                }),
-            }),
-          ),
-        ),
-      );
-      const watches = Effect.map(
-        orchestrator.getThreadProjection(threadId),
-        (projection) => projection.thread.workflowRunWatches ?? [],
-      );
-
-      yield* reactor.sweep;
-      assert.lengthOf(yield* watches, 1);
-      status = "failure";
-      yield* reactor.sweep;
-      yield* reactor.sweep;
-
-      assert.deepEqual(yield* watches, []);
-      assert.deepEqual(reads, [
-        { projectId, ...run },
-        { projectId, ...run },
-      ]);
-      const { messages } = yield* orchestrator.getThreadRecords(threadId, ["messages"]);
-      assert.deepEqual(
-        messages.map((message) => message.notification?.summary),
-        ["Release failed"],
-      );
-      assert.include(messages[0]?.text, "- Failed: Mobile preview ios");
-      assert.include(messages[0]?.text, "- Skipped: Deploy");
-      assert.include(messages[0]?.text, "- Passed: 1 job");
-    }),
-  );
-
-  it.effect("stops watching a run it cannot read, or that outlives six hours, and says so", () =>
-    Effect.gen(function* () {
-      const orchestrator = yield* Orchestrator.OrchestratorV2;
-      const threadId = ThreadId.make("runtime-workflow-run-watch-stops");
-      const projectId = ProjectId.make("run-watch-stops-project");
-      yield* seedProject({
-        projectId,
-        title: "Watch stops",
-        workspaceRoot: "/workspace/run-watch-stops",
-        defaultModelSelection: null,
-        createdAt: "2026-10-01T00:00:00.000Z",
-      });
-      yield* orchestrator.dispatch({
-        type: "thread.create",
-        createdBy: "user",
-        creationSource: "web",
-        commandId: CommandId.make("run-watch-stops-create"),
-        threadId,
-        projectId,
-        title: "Watch stops",
-        modelSelection,
-        runtimeMode: "full-access",
-        interactionMode: "default",
-        branch: null,
-        worktreePath: null,
-      });
-      const names = { 1: "Unreadable", 2: "Unsupported", 3: "Stuck" } as const;
-      for (const runId of [1, 2, 3] as const) {
+  it.effect.each([
+    { reason: "failed", activityFails: false },
+    { reason: "not-found", activityFails: false },
+    { reason: "failed", activityFails: true },
+    { reason: "not-found", activityFails: true },
+    { reason: "forbidden", activityFails: true },
+  ] as const)(
+    "handles repeated host read failures: $reason (activity fails: $activityFails)",
+    ({ reason, activityFails }) =>
+      Effect.gen(function* () {
+        const orchestrator = yield* Orchestrator.OrchestratorV2;
+        const threadId = ThreadId.make(
+          `runtime-pull-request-watch-unreadable-${reason}-${activityFails}`,
+        );
+        const projectId = ProjectId.make(`pr-watch-unreadable-project-${reason}-${activityFails}`);
+        yield* seedProject({
+          projectId,
+          title: "Watch unreadable",
+          workspaceRoot: "/workspace/watch-unreadable",
+          defaultModelSelection: null,
+          createdAt: "2026-10-01T00:00:00.000Z",
+        });
         yield* orchestrator.dispatch({
-          type: "thread.workflow-run-watch.start",
-          commandId: CommandId.make(`run-watch-stops-start-${runId}`),
+          type: "thread.create",
+          createdBy: "user",
+          creationSource: "web",
+          commandId: CommandId.make(`pr-watch-unreadable-create-${reason}-${activityFails}`),
+          threadId,
+          projectId,
+          title: "Watch unreadable",
+          modelSelection,
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: null,
+          worktreePath: null,
+        });
+        yield* orchestrator.dispatch({
+          type: "thread.pull-request.watch",
+          commandId: CommandId.make(`pr-watch-unreadable-start-${reason}-${activityFails}`),
           threadId,
           host: "github.com",
           repository: "supabitapp/supaterm",
-          runId,
-          name: names[runId],
-          url: null,
+          number: 8,
+          watching: true,
+          link: { url: "https://github.com/supabitapp/supaterm/pull/8", source: "agent" },
         });
-      }
-      const reactor = yield* WorkflowRunWatchReactor.make.pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            NodeServices.layer,
-            Layer.mock(PullRequestService.PullRequestService)({
-              workflowRun: (input) =>
-                input.runId === 1
-                  ? Effect.die("host unreachable")
-                  : Effect.succeed(
-                      input.runId === 2
-                        ? null
-                        : {
-                            host: "github.com",
-                            repository: "supabitapp/supaterm",
-                            name: "Stuck",
-                            url: null,
-                            status: "pending" as const,
-                            checks: [],
-                          },
-                    ),
+        let disconnected = false;
+        let passed = false;
+        let genericFailure = false;
+        const activityFailures = yield* Queue.unbounded<void>();
+        const readFailure = (operation: string, failure: "failed" | "not-found" | "forbidden") =>
+          new PullRequestOperationError({
+            operation,
+            detail: "host read failed",
+            cause: new PullRequestProviderError({
+              provider: SourceControlProviderKind.make("github"),
+              operation,
+              reason: failure,
+              detail: "host read failed",
             }),
+          });
+        const reactor = yield* PullRequestWatchReactor.make.pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              NodeServices.layer,
+              Layer.mock(PullRequestService.PullRequestService)({
+                watchFingerprint: () => Effect.succeed(null),
+                detail: () =>
+                  genericFailure
+                    ? Effect.die("host read failed")
+                    : disconnected
+                      ? (activityFails ? Queue.take(activityFailures) : Effect.void).pipe(
+                          Effect.andThen(Effect.fail(readFailure("detail", reason))),
+                        )
+                      : Effect.succeed({
+                          ...watchedPullRequestDetail({
+                            projectId,
+                            number: 8,
+                            at: "2026-10-02T12:00:00.000Z",
+                          }),
+                          headSha: "abc1234def",
+                          checks: [
+                            {
+                              name: "test",
+                              status: passed ? ("success" as const) : ("pending" as const),
+                              description: null,
+                              url: null,
+                              required: true,
+                            },
+                          ],
+                        }),
+                activity: () =>
+                  disconnected && activityFails
+                    ? Queue.offer(activityFailures, undefined).pipe(
+                        Effect.andThen(Effect.fail(readFailure("activity", "failed"))),
+                      )
+                    : Effect.succeed({
+                        comments: [],
+                        commentCount: 0,
+                        commentsTruncated: false,
+                        reviewThreads: [],
+                        commits: [],
+                      }),
+              }),
+            ),
           ),
-        ),
-      );
-      const watched = Effect.map(orchestrator.getThreadProjection(threadId), (projection) =>
-        (projection.thread.workflowRunWatches ?? []).map((watch) => watch.runId),
-      );
-      const summaries = Effect.map(
-        orchestrator.getThreadRecords(threadId, ["messages"]),
-        ({ messages }) => messages.flatMap((message) => message.notification?.summary ?? []),
-      );
-
-      yield* reactor.sweep;
-      assert.deepEqual(yield* watched, [1, 3]);
-      yield* TestClock.adjust("1 millis");
-      for (let pass = 1; pass < 8; pass += 1) yield* reactor.sweep;
-      assert.deepEqual(yield* watched, [3]);
-      yield* TestClock.adjust("6 hours");
-      yield* reactor.sweep;
-      assert.deepEqual(yield* watched, []);
-      assert.deepEqual(yield* summaries, [
-        "Unsupported: stopped watching",
-        "Unreadable: stopped watching",
-        "Stuck: stopped watching",
-      ]);
-    }),
-  );
-
-  it.effect("ends a workflow run watch on unwatch and marking done, and ignores a late end", () =>
-    Effect.gen(function* () {
-      const orchestrator = yield* Orchestrator.OrchestratorV2;
-      const threadId = ThreadId.make("runtime-workflow-run-watch-ends");
-      yield* orchestrator.dispatch({
-        type: "thread.create",
-        createdBy: "user",
-        creationSource: "web",
-        commandId: CommandId.make("run-watch-ends-create"),
-        threadId,
-        projectId: ProjectId.make("run-watch-ends-project"),
-        title: "Watch ends",
-        modelSelection,
-        runtimeMode: "full-access",
-        interactionMode: "default",
-        branch: null,
-        worktreePath: null,
-      });
-      const run = { host: "github.com", repository: "supabitapp/supaterm", runId: 7 };
-      const watching = (commandId: string, on: boolean) =>
-        orchestrator.dispatch(
-          on
-            ? {
-                type: "thread.workflow-run-watch.start",
-                commandId: CommandId.make(commandId),
-                threadId,
-                ...run,
-                name: "CI",
-                url: null,
-              }
-            : {
-                type: "thread.workflow-run.unwatch",
-                commandId: CommandId.make(commandId),
-                threadId,
-                ...run,
-              },
         );
-      const watches = Effect.map(
-        orchestrator.getThreadProjection(threadId),
-        (projection) => projection.thread.workflowRunWatches ?? [],
-      );
+        const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
+        const sweep = reactor.sweep.pipe(Effect.andThen(worker.drain()));
+        const summaries = Effect.map(
+          orchestrator.getThreadRecords(threadId, ["messages"]),
+          ({ messages }) => messages.flatMap((message) => message.notification?.summary ?? []),
+        );
+        yield* sweep;
+        assert.deepEqual(yield* summaries, []);
+        disconnected = true;
+        for (let pass = 0; pass < 15; pass += 1) {
+          genericFailure = reason === "failed" && (pass === 0 || (pass >= 2 && pass <= 8));
+          yield* TestClock.adjust("2 minutes");
+          yield* sweep;
+        }
 
-      yield* watching("run-watch-ends-start", true);
-      const [started] = yield* watches;
-      assert.isDefined(started);
-      if (started === undefined) return;
-      yield* watching("run-watch-ends-stop", false);
-      assert.deepEqual(yield* watches, []);
-      // A completion read before the stop must neither wake the agent nor end a newer watch.
-      const late = yield* orchestrator
-        .dispatch({
-          type: "thread.workflow-run-watch.end",
-          commandId: CommandId.make("run-watch-ends-late"),
+        const thread = yield* orchestrator.getThreadShell(threadId);
+        if (reason !== "failed") {
+          assert.isUndefined(thread?.pullRequests?.[0]?.watch);
+          assert.deepEqual(yield* summaries, ["#8: stopped watching, could not read it"]);
+          return;
+        }
+        assert.isDefined(thread?.pullRequests?.[0]?.watch);
+        assert.deepEqual(yield* summaries, []);
+        disconnected = false;
+        genericFailure = false;
+        passed = true;
+        yield* sweep;
+        assert.deepEqual(yield* summaries, ["#8: checks passed"]);
+        yield* TestClock.adjust("10 minutes");
+        yield* sweep;
+        assert.deepEqual(yield* summaries, ["#8: checks passed"]);
+        yield* orchestrator.dispatch({
+          type: "thread.pull-request.watch",
+          commandId: CommandId.make(`pr-watch-unreadable-stop-${reason}-${activityFails}`),
           threadId,
-          ...run,
-          startedAt: started.startedAt,
-          wake: {
-            messageId: MessageId.make("run-watch-ends-late-wake"),
-            text: "Done",
-            notification: { source: { kind: "monitor" }, outcome: "completed", summary: "CI" },
-          },
-        })
-        .pipe(Effect.flip);
-      assert.equal(late._tag, "OrchestratorDispatchError");
-      const { messages } = yield* orchestrator.getThreadRecords(threadId, ["messages"]);
-      assert.deepEqual(messages, []);
-
-      yield* watching("run-watch-ends-restart", true);
-      assert.lengthOf(yield* watches, 1);
-      yield* orchestrator.dispatch({
-        type: "thread.mark-done",
-        commandId: CommandId.make("run-watch-ends-mark-done"),
-        threadId,
-      });
-      assert.deepEqual(yield* watches, []);
-      const refused = yield* watching("run-watch-ends-mark-doned", true).pipe(Effect.flip);
-      assert.equal(refused._tag, "OrchestratorDispatchError");
-    }),
-  );
-
-  it.effect("ends a watch it cannot read, and tells the agent", () =>
-    Effect.gen(function* () {
-      const orchestrator = yield* Orchestrator.OrchestratorV2;
-      const threadId = ThreadId.make("runtime-pull-request-watch-unreadable");
-      const projectId = ProjectId.make("pr-watch-unreadable-project");
-      yield* seedProject({
-        projectId,
-        title: "Watch unreadable",
-        workspaceRoot: "/workspace/watch-unreadable",
-        defaultModelSelection: null,
-        createdAt: "2026-10-01T00:00:00.000Z",
-      });
-      yield* orchestrator.dispatch({
-        type: "thread.create",
-        createdBy: "user",
-        creationSource: "web",
-        commandId: CommandId.make("pr-watch-unreadable-create"),
-        threadId,
-        projectId,
-        title: "Watch unreadable",
-        modelSelection,
-        runtimeMode: "full-access",
-        interactionMode: "default",
-        branch: null,
-        worktreePath: null,
-      });
-      yield* orchestrator.dispatch({
-        type: "thread.pull-request.watch",
-        commandId: CommandId.make("pr-watch-unreadable-start"),
-        threadId,
-        host: "github.com",
-        repository: "supabitapp/supaterm",
-        number: 8,
-        watching: true,
-        link: { url: "https://github.com/supabitapp/supaterm/pull/8", source: "agent" },
-      });
-      const reactor = yield* PullRequestWatchReactor.make.pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            NodeServices.layer,
-            Layer.mock(PullRequestService.PullRequestService)({
-              detail: () => Effect.die("host unreachable"),
-              activity: () => Effect.die("host unreachable"),
-            }),
-          ),
-        ),
-      );
-      for (let pass = 0; pass < 15; pass += 1) yield* reactor.sweep;
-
-      const thread = yield* orchestrator.getThreadShell(threadId);
-      assert.isUndefined(thread?.pullRequests?.[0]?.watch);
-      const { messages } = yield* orchestrator.getThreadRecords(threadId, ["messages"]);
-      assert.deepEqual(
-        messages.flatMap((message) => message.notification?.summary ?? []),
-        ["#8: stopped watching, could not read it"],
-      );
-    }),
+          host: "github.com",
+          repository: "supabitapp/supaterm",
+          number: 8,
+          watching: false,
+        });
+        yield* worker.drain();
+      }),
   );
 
   it.effect("wakes once for a state it reported, across a restart and a new watch", () =>
@@ -4248,7 +4068,7 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
         const { messages } = yield* orchestrator.getThreadRecords(threadId, ["messages"]);
         assert.deepEqual(
           messages.map((message) => message.notification?.summary),
-          ["#7: checks failed"],
+          ["#7: checks finished"],
         );
         yield* TestClock.adjust("1 millis");
         recovering = true;
@@ -4264,8 +4084,8 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
           message.notification === undefined ? [] : [message.notification.summary],
         ),
         incomplete
-          ? ["#7: checks failed", "#7: new comments"]
-          : ["#7: checks failed, new comments"],
+          ? ["#7: checks finished", "#7: new comments"]
+          : ["#7: checks finished, new comments"],
       );
       if (mode !== "single page") {
         const wake = messages.at(-1);
@@ -4280,6 +4100,82 @@ it.layer(layerTest)("OrchestrationV2LayerLive lifecycle", (it) => {
         { headSha: watch?.headSha, failedChecks: watch?.failedChecks, wakes: watch?.wakes },
         { headSha: "abc1234def", failedChecks: ["lint"], wakes: incomplete ? 1 : 0 },
       );
+    }),
+  );
+
+  it.effect("reads each watched PR as soon as its own fingerprint lands", () =>
+    Effect.gen(function* () {
+      const orchestrator = yield* Orchestrator.OrchestratorV2;
+      const projectId = ProjectId.make("pr-watch-pipeline-project");
+      yield* seedProject({
+        projectId,
+        title: "Watch pipeline",
+        workspaceRoot: "/workspace/watch-pipeline",
+        defaultModelSelection: null,
+        createdAt: "2026-10-01T00:00:00.000Z",
+      });
+      for (const number of [21, 22]) {
+        const threadId = ThreadId.make(`runtime-pull-request-watch-pipeline-${number}`);
+        yield* orchestrator.dispatch({
+          type: "thread.create",
+          createdBy: "user",
+          creationSource: "web",
+          commandId: CommandId.make(`pr-watch-pipeline-create-${number}`),
+          threadId,
+          projectId,
+          title: "Watch pipeline",
+          modelSelection,
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: null,
+          worktreePath: null,
+        });
+        yield* orchestrator.dispatch({
+          type: "thread.pull-request.watch",
+          commandId: CommandId.make(`pr-watch-pipeline-start-${number}`),
+          threadId,
+          host: "github.com",
+          repository: "supabitapp/supaterm",
+          number,
+          watching: true,
+          link: { url: `https://github.com/supabitapp/supaterm/pull/${number}`, source: "agent" },
+        });
+      }
+      const at = "2026-10-02T12:00:00.000Z";
+      const texts = (number: number) =>
+        orchestrator
+          .getThreadRecords(ThreadId.make(`runtime-pull-request-watch-pipeline-${number}`), [
+            "messages",
+          ])
+          .pipe(Effect.map(({ messages }) => messages.map((message) => message.text).join("\n")));
+      // #21's host answers only after #22 has been read, so waiting on every fingerprint first
+      // never finishes.
+      const read22 = yield* Deferred.make<void>();
+      const host = Layer.mergeAll(
+        NodeServices.layer,
+        Layer.mock(PullRequestService.PullRequestService)({
+          watchFingerprint: (input) =>
+            input.number === 21
+              ? Deferred.await(read22).pipe(Effect.as(null))
+              : Effect.succeed(null),
+          detail: (input) =>
+            (input.number === 22 ? Deferred.succeed(read22, undefined) : Effect.void).pipe(
+              Effect.as(watchedPullRequestDetail({ projectId, number: input.number, at })),
+            ),
+          activity: () =>
+            Effect.succeed({
+              comments: [],
+              commentCount: 0,
+              commentsTruncated: false,
+              reviewThreads: [],
+              commits: [],
+            }),
+        }),
+      );
+      const reactor = yield* PullRequestWatchReactor.make.pipe(Effect.provide(host));
+      yield* reactor.sweep;
+      assert.include(yield* texts(21), "#21");
+      assert.include(yield* texts(22), "#22");
     }),
   );
 

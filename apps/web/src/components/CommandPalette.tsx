@@ -434,12 +434,6 @@ function OpenCommandPaletteDialog(props: {
   const isActionsOnly = deferredQuery.startsWith(">");
   const [highlightedItemValue, setHighlightedItemValue] = useState<string | null>(null);
   const resultListRef = useRef<LegendListRef | null>(null);
-  // A pushed view drops the typed highlight until the user moves it again.
-  const highlightClearedRef = useRef(viewStack.length > 0);
-  function clearTypedHighlight(): void {
-    highlightClearedRef.current = true;
-    setHighlightedItemValue(null);
-  }
   const clientSettings = useClientSettings(selectCommandPaletteClientSettings);
   const projectTabsEnabled = useClientSettings((settings) => settings.projectTabsEnabled);
   const createProject = useAtomCommand(projectEnvironment.create, {
@@ -927,17 +921,11 @@ function OpenCommandPaletteDialog(props: {
     )
     .slice(0, RECENT_THREAD_LIMIT);
 
-  const pushPaletteViewState = (view: CommandPaletteView): void => {
+  function pushPaletteView(view: CommandPaletteView): void {
+    browseNavigation.invalidate();
     dispatchSearch({ type: "push", view });
     setHighlightedItemValue(null);
-  };
-  // Stable so the item builders that capture it during render never see the
-  // highlight ref it writes.
-  const pushPaletteView = useStableCallback((view: CommandPaletteView): void => {
-    browseNavigation.invalidate();
-    highlightClearedRef.current = true;
-    pushPaletteViewState(view);
-  });
+  }
 
   function popView(): void {
     browseNavigation.invalidate();
@@ -954,7 +942,6 @@ function OpenCommandPaletteDialog(props: {
 
   function handleQueryChange(nextQuery: string): void {
     browseNavigation.invalidate();
-    clearTypedHighlight();
     setQuery(nextQuery);
     if (nextQuery === "" && currentView?.initialQuery) {
       popView();
@@ -2637,8 +2624,7 @@ function OpenCommandPaletteDialog(props: {
     if (command === "thread.pin") {
       const highlightedItem = findHighlightedCommandPaletteItem(
         displayedGroups,
-        highlightedItemValue ??
-          (autoHighlightsFirstRow ? (resultRows.itemValues[0] ?? null) : null),
+        highlightedItemValue,
       );
       if (highlightedItem?.kind === "action" && highlightedItem.pin) {
         event.preventDefault();
@@ -2749,7 +2735,6 @@ function OpenCommandPaletteDialog(props: {
       return;
     }
 
-    const firstItemValue = autoHighlightsFirstRow ? resultRows.itemValues[0] : undefined;
     // Alt+Enter opens the highlighted thread beside the focused chat pane.
     if (
       event.key === "Enter" &&
@@ -2761,7 +2746,7 @@ function OpenCommandPaletteDialog(props: {
     ) {
       const highlightedItem = findHighlightedCommandPaletteItem(
         displayedGroups,
-        highlightedItemValue ?? firstItemValue ?? null,
+        highlightedItemValue,
       );
       if (highlightedItem?.value.startsWith("thread:")) {
         (event as typeof event & { preventBaseUIHandler?: () => void }).preventBaseUIHandler?.();
@@ -2797,29 +2782,12 @@ function OpenCommandPaletteDialog(props: {
       return;
     }
 
-    if (
-      event.key === "ArrowDown" &&
-      highlightClearedRef.current &&
-      firstItemValue &&
-      !event.nativeEvent.isComposing
-    ) {
-      (event as typeof event & { preventBaseUIHandler?: () => void }).preventBaseUIHandler?.();
-      event.preventDefault();
-      highlightClearedRef.current = false;
-      setHighlightedItemValue(firstItemValue);
-      scrollCommandPaletteRowIntoView(
-        resultListRef.current,
-        resultRows.rowIndexByItemIndex[0] ?? 0,
-      );
-      return;
-    }
-
     // Base UI clicks the highlighted row on Enter, which does nothing once the
     // virtualized list has unmounted it, so run the tracked highlight directly.
     if (event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) {
       const highlightedItem = findHighlightedCommandPaletteItem(
         displayedGroups,
-        highlightedItemValue ?? firstItemValue ?? null,
+        highlightedItemValue,
       );
       if (highlightedItem) {
         (event as typeof event & { preventBaseUIHandler?: () => void }).preventBaseUIHandler?.();
@@ -3086,8 +3054,6 @@ function OpenCommandPaletteDialog(props: {
       items={resultRows.itemValues}
       virtualized
       onItemHighlighted={(value, eventDetails) => {
-        if (eventDetails.reason === "none" && highlightClearedRef.current) return;
-        highlightClearedRef.current = false;
         setHighlightedItemValue(typeof value === "string" ? value : null);
         const rowIndex = resultRows.rowIndexByItemIndex[eventDetails.index];
         if (eventDetails.reason === "keyboard" && rowIndex !== undefined) {

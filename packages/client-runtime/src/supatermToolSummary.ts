@@ -311,6 +311,9 @@ export function summarizeSupatermToolCalls(
         quantity(countEntities(entityIds("requestId")), "pending question request"),
       );
       break;
+    case "secret-request":
+      label = phrase("Asked for", "ask for", quantity(selected.length, "secret"));
+      break;
     case "worktree-handoff":
       label = phrase(
         "Handed off to",
@@ -419,16 +422,6 @@ export function summarizeSupatermToolCalls(
         "Stopped watching",
         "stop watching",
         quantity(selected.length, "pull request"),
-      );
-      break;
-    case "watch-run":
-      label = phrase("Watching", "watch", quantity(selected.length, "workflow run"));
-      break;
-    case "unwatch-run":
-      label = phrase(
-        "Stopped watching",
-        "stop watching",
-        quantity(selected.length, "workflow run"),
       );
       break;
     case "list-prs":

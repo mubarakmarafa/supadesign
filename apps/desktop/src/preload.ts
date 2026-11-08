@@ -11,6 +11,7 @@ import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 
 import { makeCodexMicroBridge } from "./codexMicro/CodexMicroPreload.ts";
 import * as IpcChannels from "./ipc/channels.ts";
+import { makeSidePulseBridge } from "./sidePulse/SidePulsePreload.ts";
 
 const SNAP_SHOT_EVENT_TYPES = new Set([
   "requested",
@@ -67,9 +68,11 @@ function unwrapEnsureSshEnvironmentResult(result: unknown) {
 }
 
 const codexMicro = makeCodexMicroBridge();
+const sidePulse = makeSidePulseBridge(clientPlatform);
 
 contextBridge.exposeInMainWorld("desktopBridge", {
   ...(codexMicro ? { codexMicro } : {}),
+  ...(sidePulse ? { sidePulse } : {}),
   getAppBranding: () => {
     const result = ipcRenderer.sendSync(IpcChannels.GET_APP_BRANDING_CHANNEL);
     if (typeof result !== "object" || result === null) {
@@ -99,6 +102,9 @@ contextBridge.exposeInMainWorld("desktopBridge", {
     return () => ipcRenderer.removeListener(IpcChannels.TRACKPAD_SCROLL_END_CHANNEL, handler);
   },
   revealWindow: () => ipcRenderer.invoke(IpcChannels.REVEAL_WINDOW_CHANNEL),
+  performAlignmentHaptic: () => {
+    ipcRenderer.invoke(IpcChannels.PERFORM_ALIGNMENT_HAPTIC_CHANNEL).catch(() => undefined);
+  },
   getSystemLocale: () => {
     const result = ipcRenderer.sendSync(IpcChannels.GET_SYSTEM_LOCALE_CHANNEL);
     return typeof result === "string" ? result : null;
@@ -278,6 +284,16 @@ contextBridge.exposeInMainWorld("desktopBridge", {
     ipcRenderer.on(IpcChannels.WINDOW_FULLSCREEN_STATE_CHANNEL, wrappedListener);
     return () => {
       ipcRenderer.removeListener(IpcChannels.WINDOW_FULLSCREEN_STATE_CHANNEL, wrappedListener);
+    };
+  },
+  onSystemWake: (listener) => {
+    const wrappedListener = () => {
+      listener();
+    };
+
+    ipcRenderer.on(IpcChannels.SYSTEM_WAKE_CHANNEL, wrappedListener);
+    return () => {
+      ipcRenderer.removeListener(IpcChannels.SYSTEM_WAKE_CHANNEL, wrappedListener);
     };
   },
   getUpdateState: () => ipcRenderer.invoke(IpcChannels.UPDATE_GET_STATE_CHANNEL),

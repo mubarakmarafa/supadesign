@@ -69,6 +69,7 @@ import * as ProviderReplayHarness from "../testkit/ProviderReplayHarness.ts";
 import * as ProviderAdapter from "@supaterm/provider-core/server/ProviderAdapter";
 import type * as ProviderContinuationRequests from "@supaterm/provider-core/server/ProviderContinuationRequests";
 import * as ModelManifest from "../../provider/ModelManifest.ts";
+import * as PortScanner from "../../preview/PortScanner.ts";
 import { resolveProviderCompatibility } from "../../provider/providerCompatibility.ts";
 import * as CodexAdapterV2 from "./CodexAdapterV2.ts";
 import { withCodexReplayChildMetadata } from "./CodexAdapterV2.testkit.ts";
@@ -347,7 +348,7 @@ describe("CodexAdapterV2 native protocol logging", () => {
 });
 
 describe("CodexAdapterV2 rollback mapping", () => {
-  it.effect("derives native rollback count from durable provider turns", () =>
+  it.effect("derives native rollback IDs from durable provider turns", () =>
     Effect.gen(function* () {
       const now = yield* DateTime.now;
       const providerThreadId = ProviderThreadId.make("provider-thread-codex-rollback");
@@ -400,18 +401,41 @@ describe("CodexAdapterV2 rollback mapping", () => {
         nativeTurnRef: null,
       };
 
-      const numTurns = yield* CodexAdapterV2.resolveCodexRollbackTurnCount({
-        providerThread,
-        target: {
-          type: "provider_turn",
-          checkpointId: CheckpointId.make("checkpoint-first"),
-          appRunOrdinal: 1,
-          providerTurn: firstTurn,
+      const missingNativeId = {
+        ...providerTurn("provider-turn-no-native-id", 6, "completed"),
+        nativeTurnRef: {
+          driver: CodexAdapterV2.CODEX_DRIVER_KIND,
+          nativeId: null,
+          strength: "none" as const,
         },
-        providerThreadTurns: [goalCommandTurn, interruptedTurn, runningTurn, secondTurn, firstTurn],
-      });
-
-      assert.equal(numTurns, 2);
+      };
+      const providerTurns = [
+        missingNativeId,
+        goalCommandTurn,
+        interruptedTurn,
+        runningTurn,
+        secondTurn,
+      ];
+      for (const target of [firstTurn, { ...firstTurn, nativeTurnRef: null }]) {
+        const boundary = yield* CodexAdapterV2.resolveCodexRollbackTarget({
+          providerThread,
+          target: {
+            type: "provider_turn",
+            checkpointId: CheckpointId.make("checkpoint-first"),
+            appRunOrdinal: 1,
+            providerTurn: target,
+          },
+          providerThreadTurns: [...providerTurns, target],
+        });
+        assert.deepEqual(
+          boundary.removed,
+          new Set(["native-provider-turn-second", "native-provider-turn-interrupted"]),
+        );
+        assert.deepEqual(
+          boundary.retained,
+          new Set(target.nativeTurnRef === null ? [] : ["native-provider-turn-first"]),
+        );
+      }
     }),
   );
 });
@@ -507,6 +531,12 @@ const CODEX_TEST_RUNTIME_POLICY = ProviderAdapter.ProviderAdapterV2RuntimePolicy
   interactionMode: "default",
   cwd: "/workspace",
 });
+const SUPATERM_THREAD_ENV_KEY = "shell_environment_policy.set.SUPATERM_THREAD_ID";
+const threadEnvOf = (params: unknown) =>
+  Predicate.hasProperty(params, "config") &&
+  Predicate.hasProperty(params.config, SUPATERM_THREAD_ENV_KEY)
+    ? params.config[SUPATERM_THREAD_ENV_KEY]
+    : undefined;
 
 function makeCodexTestAppThread(input: {
   readonly threadId: ThreadId;
@@ -895,6 +925,66 @@ describe("CodexAdapterV2 process exit", () => {
       ),
     ),
   );
+
+  it.effect("counts the app-server as a running agent until its session closes", () => {
+    let runningAgents = 0;
+    const factoryLayer = CodexAdapterV2.layerAppServerClientFactory.pipe(
+      Layer.provide(
+        Layer.mock(PortScanner.PortDiscovery)({
+          trackAgent: () => {
+            runningAgents += 1;
+            return () => {
+              runningAgents -= 1;
+            };
+          },
+        }),
+      ),
+      Layer.provide(
+        Layer.succeed(ProviderEventLoggers.ProviderEventLoggers, {
+          native: undefined,
+          canonical: undefined,
+        }),
+      ),
+      Layer.provide(
+        Layer.succeed(
+          ChildProcessSpawner.ChildProcessSpawner,
+          ChildProcessSpawner.make(() =>
+            Effect.succeed(
+              ChildProcessSpawner.makeHandle({
+                pid: ChildProcessSpawner.ProcessId(999_999_999),
+                exitCode: Effect.never,
+                isRunning: Effect.succeed(true),
+                kill: () => Effect.void,
+                unref: Effect.succeed(Effect.void),
+                stdin: Sink.drain,
+                stdout: Stream.never,
+                stderr: Stream.empty,
+                all: Stream.empty,
+                getInputFd: () => Sink.drain,
+                getOutputFd: () => Stream.empty,
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+    return Effect.gen(function* () {
+      const factory = yield* CodexAdapterV2.CodexAppServerClientFactory;
+      yield* Effect.scoped(
+        factory
+          .open({
+            instanceId: CodexAdapterV2.CODEX_DEFAULT_INSTANCE_ID,
+            threadId: ThreadId.make("thread-codex-agent"),
+            providerSessionId: ProviderSessionId.make("session-codex-agent"),
+            runtimePolicy: CODEX_TEST_RUNTIME_POLICY,
+            settings: DEFAULT_CODEX_SETTINGS,
+            environment: {},
+          })
+          .pipe(Effect.tap(() => Effect.sync(() => assert.equal(runningAgents, 1)))),
+      );
+      assert.equal(runningAgents, 0);
+    }).pipe(Effect.provide(factoryLayer));
+  });
 });
 
 describe("CodexAdapterV2 session initialize", () => {
@@ -1195,6 +1285,13 @@ describe("CodexAdapterV2 post-settle continuation", () => {
                         onRequest(method, params).pipe(
                           Effect.andThen(client.request(method, params)),
                         ),
+                      raw: {
+                        ...client.raw,
+                        request: (method, params) =>
+                          onRequest(method, params).pipe(
+                            Effect.andThen(client.raw.request(method, params)),
+                          ),
+                      },
                     }) satisfies CodexClient.CodexAppServerClient["Service"],
                 ),
                 Effect.provide(context),
@@ -1747,6 +1844,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
           config: {
             "tools.update_plan.enabled": true,
             mcp_optional_startup_grace_ms: 10_000,
+            "shell_environment_policy.set.SUPATERM_THREAD_ID": `thread-${scenario}`,
             "mcp_servers.supaterm": {
               url: "http://127.0.0.1:43123/mcp",
               tool_timeout_sec: 3_900,
@@ -2631,10 +2729,66 @@ describe("CodexAdapterV2 post-settle continuation", () => {
               label: "thread/resume",
               frame: { id: 3, result: { thread: { id: nativeThreadId, updatedAt: 1782622450 } } },
             },
+            {
+              type: "expect_outbound",
+              label: "thread/resume without an app thread",
+              frame: {
+                id: 4,
+                method: "thread/resume",
+                params: {
+                  threadId: nativeThreadId,
+                  excludeTurns: true,
+                  config: CodexAdapterV2.CODEX_THREAD_CONFIG,
+                },
+              },
+            },
+            {
+              type: "emit_inbound",
+              label: "thread/resume without an app thread",
+              frame: { id: 4, result: { thread: { id: nativeThreadId, updatedAt: 1782622450 } } },
+            },
+            {
+              type: "expect_outbound",
+              label: "thread/resume with an explicit app thread",
+              frame: {
+                id: 5,
+                method: "thread/resume",
+                params: {
+                  threadId: nativeThreadId,
+                  excludeTurns: true,
+                  config: CodexAdapterV2.CODEX_THREAD_CONFIG,
+                },
+              },
+            },
+            {
+              type: "emit_inbound",
+              label: "thread/resume with an explicit app thread",
+              frame: { id: 5, result: { thread: { id: nativeThreadId, updatedAt: 1782622450 } } },
+            },
           ],
         });
-        const harness = yield* makeCodexReplayHarness(transcript);
+        const resumeThreadEnvs: Array<unknown> = [];
+        const harness = yield* makeCodexReplayHarness(
+          transcript,
+          () => Effect.void,
+          (method, params) =>
+            Effect.sync(() => {
+              if (method === "thread/resume") resumeThreadEnvs.push(threadEnvOf(params));
+            }),
+        );
         const resumed = yield* harness.runtime.resumeThread({
+          providerThread: harness.providerThread,
+          modelSelection: CODEX_TEST_MODEL_SELECTION,
+          runtimePolicy: CODEX_TEST_RUNTIME_POLICY,
+        });
+        yield* harness.runtime.resumeThread({
+          providerThread: { ...harness.providerThread, appThreadId: null },
+          modelSelection: CODEX_TEST_MODEL_SELECTION,
+          runtimePolicy: CODEX_TEST_RUNTIME_POLICY,
+        });
+        const explicitThreadId = ThreadId.make(`thread-${scenario}-explicit`);
+        yield* harness.runtime.resumeThread({
+          threadId: explicitThreadId,
           providerThread: harness.providerThread,
           modelSelection: CODEX_TEST_MODEL_SELECTION,
           runtimePolicy: CODEX_TEST_RUNTIME_POLICY,
@@ -2643,6 +2797,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
         assert.equal(resumed.nativeThreadRef?.nativeId, nativeThreadId);
         assert.equal(resumed.status, "idle");
         assert.equal(DateTime.toEpochMillis(resumed.updatedAt), 1782622450000);
+        assert.deepEqual(resumeThreadEnvs, [harness.threadId, undefined, explicitThreadId]);
       }).pipe(
         Effect.provide(
           Layer.mergeAll(IdAllocator.layer, McpProviderSessions.layer, NodeServices.layer),
@@ -7328,6 +7483,147 @@ describe("CodexAdapterV2 post-settle continuation", () => {
     ),
   );
 
+  it.effect.each(["provider_turn", "thread_start", "lost_response", "no_native_target"] as const)(
+    "keeps retained native history when retrying rollback (%s)",
+    (scenario) =>
+      Effect.gen(function* () {
+        const nativeThreadId = "retry-rollback-thread";
+        const thread = codexReplayThreadResult({ nativeThreadId, forkedFromId: null });
+        const exchanges = [
+          {
+            method: "thread/read",
+            params: { threadId: nativeThreadId, includeTurns: false },
+            result: { thread: { id: nativeThreadId, historyMode: "paginated" } },
+          },
+          {
+            method: "thread/turns/list",
+            params: {
+              threadId: nativeThreadId,
+              cursor: null,
+              limit: 1,
+              sortDirection: "desc",
+              itemsView: "summary",
+            },
+            result: {
+              data: [{ id: "native-turn-second", items: [], status: "completed", error: null }],
+              nextCursor: null,
+            },
+          },
+          {
+            method: "thread/revert",
+            params: { threadId: nativeThreadId, beforeTurnId: "native-turn-second" },
+            ...(scenario === "lost_response"
+              ? { error: { code: -32603, message: "response lost after native mutation" } }
+              : { result: thread }),
+          },
+          {
+            method: "thread/read",
+            params: { threadId: nativeThreadId, includeTurns: false },
+            result: { thread: { id: nativeThreadId, historyMode: "paginated" } },
+          },
+          {
+            method: "thread/turns/list",
+            params: {
+              threadId: nativeThreadId,
+              cursor: null,
+              limit: 1,
+              sortDirection: "desc",
+              itemsView: "summary",
+            },
+            result: {
+              data: [{ id: "native-turn-first", items: [], status: "completed", error: null }],
+              nextCursor: null,
+            },
+          },
+          {
+            method: "thread/read",
+            params: { threadId: nativeThreadId, includeTurns: false },
+            result: thread,
+          },
+        ];
+        const transcript = makeCodexReplayTranscript({
+          scenario: `codex-retry-rollback-${scenario}`,
+          entries: [
+            ...codexReplayPreamble({
+              nativeThreadId,
+              nativeTurnId: "unused",
+              prompt: "unused",
+            }).slice(0, 5),
+            ...exchanges.flatMap((exchange, index) => [
+              {
+                type: "expect_outbound" as const,
+                frame: { id: index + 3, method: exchange.method, params: exchange.params },
+              },
+              {
+                type: "emit_inbound" as const,
+                frame: {
+                  id: index + 3,
+                  ...(!("error" in exchange)
+                    ? { result: exchange.result }
+                    : { error: exchange.error }),
+                },
+              },
+            ]),
+          ],
+        });
+        const outbound: string[] = [];
+        const harness = yield* makeCodexReplayHarness(
+          transcript,
+          () => Effect.void,
+          (method) =>
+            Effect.sync(() => {
+              outbound.push(method);
+            }),
+        );
+        const now = yield* DateTime.now;
+        const firstTurn = codexReplaySourceTurn({
+          id: "provider-turn-first",
+          ordinal: 1,
+          nativeId: scenario === "no_native_target" ? null : "native-turn-first",
+          providerThreadId: harness.providerThread.id,
+          now,
+        });
+        const secondTurn = codexReplaySourceTurn({
+          id: "provider-turn-second",
+          ordinal: 2,
+          nativeId: "native-turn-second",
+          providerThreadId: harness.providerThread.id,
+          now,
+        });
+        const input: ProviderAdapter.ProviderAdapterV2RollbackThreadInput = {
+          providerThread: harness.providerThread,
+          target:
+            scenario === "thread_start"
+              ? {
+                  type: "thread_start",
+                  checkpointId: CheckpointId.make("checkpoint-start"),
+                  appRunOrdinal: 0,
+                }
+              : {
+                  type: "provider_turn",
+                  checkpointId: CheckpointId.make("checkpoint-retry-rollback"),
+                  appRunOrdinal: 1,
+                  providerTurn: firstTurn,
+                },
+          providerThreadTurns: scenario === "thread_start" ? [secondTurn] : [firstTurn, secondTurn],
+        };
+        const first = yield* harness.runtime.rollbackThread(input).pipe(Effect.exit);
+        assert.equal(Exit.isFailure(first), scenario === "lost_response");
+        const retried = yield* harness.runtime.rollbackThread(input);
+        assert.equal(retried.providerThread.nativeThreadRef?.nativeId, nativeThreadId);
+        assert.deepEqual(
+          outbound.filter((method) => method === "thread/revert"),
+          ["thread/revert"],
+        );
+        assert.equal(outbound.at(-1), "thread/read");
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          Layer.mergeAll(IdAllocator.layer, McpProviderSessions.layer, NodeServices.layer),
+        ),
+      ),
+  );
+
   it.effect(
     "falls back to fork-local thread/revert on paginated history when the source turn lacks a native reference",
     () =>
@@ -7429,12 +7725,14 @@ describe("CodexAdapterV2 post-settle continuation", () => {
           ],
         });
         const outbound: Array<string> = [];
+        const forkThreadEnvs: Array<unknown> = [];
         const harness = yield* makeCodexReplayHarness(
           transcript,
           () => Effect.void,
-          (method) =>
+          (method, params) =>
             Effect.sync(() => {
               outbound.push(method);
+              if (method === "thread/fork") forkThreadEnvs.push(threadEnvOf(params));
             }),
         );
         const now = yield* DateTime.now;
@@ -7464,6 +7762,7 @@ describe("CodexAdapterV2 post-settle continuation", () => {
         assert.notEqual(forkedProviderThread.id, harness.providerThread.id);
         assert.equal(forkedProviderThread.forkedFrom?.providerTurnId, firstTurn.id);
         assert.deepEqual(outbound.slice(-2), ["thread/turns/list", "thread/revert"]);
+        assert.deepEqual(forkThreadEnvs, ["thread-fork-paginated-fallback-target"]);
       }).pipe(
         Effect.scoped,
         Effect.provide(

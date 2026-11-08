@@ -288,10 +288,10 @@ describe("ClientSettings follow-up behavior", () => {
 });
 
 describe("ServerSettings thread completion", () => {
-  it("defaults merge completion off and inactivity completion to three days", () => {
+  it("defaults merge completion on and inactivity completion to three days", () => {
     const settings = decodeServerSettings({});
     expect(settings.sidebarAutoMarkDoneAfterDays).toBe(3);
-    expect(settings.sidebarAutoMarkDoneOnMerge).toBe(false);
+    expect(settings.sidebarAutoMarkDoneOnMerge).toBe(true);
   });
 
   it.each([-1, 0, 91])("rejects an auto-mark done threshold outside 1..90: %s", (value) => {
@@ -511,6 +511,27 @@ describe("server model preferences", () => {
       favorites: [],
       providerModelPreferences: {},
     });
+  });
+});
+
+describe("SidePulse effects", () => {
+  it("loads an unknown effect or malformed color as the light's own and keeps the rest", () => {
+    const decoded = decodeClientSettings({
+      sidePulse: {
+        enabled: true,
+        effects: { working: "aurora", idle: "rainbow" },
+        colors: { working: "#ff00aa", idle: "magenta" },
+      },
+    });
+    expect(decoded.sidePulse).toEqual({
+      enabled: true,
+      brightness: 100,
+      effects: { idle: "rainbow", done: "solid", working: "roll", attention: "pulse" },
+      colors: { idle: null, done: null, working: "#ff00aa", attention: null },
+    });
+    expect(decodeClientSettings(encodeClientSettings(decoded)).sidePulse).toEqual(
+      decoded.sidePulse,
+    );
   });
 });
 

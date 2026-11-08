@@ -8,9 +8,10 @@ import {
   type VoiceInputState,
   type VoiceRecordingDelivery,
   type VoiceTranscriber,
+  voiceLevelFromDecibels,
 } from "@supaterm/client-runtime/voice-input";
 
-import { normalizeVoiceInputDecibels, VOICE_WAVEFORM_SAMPLE_COUNT } from "./voiceInputMetering";
+import { VOICE_WAVEFORM_SAMPLE_COUNT } from "./voiceInputMetering";
 
 const VOICE_METERING_INTERVAL_MS = 80;
 const IDLE_STATE: VoiceInputState = { phase: "idle", error: null, errorAction: null };
@@ -95,7 +96,7 @@ export class VoiceInputSession {
   private readonly dependencies: VoiceInputSessionDependencies;
   private target: VoiceInputTarget | null = null;
   private unsubscribe: (() => void) | null = null;
-  private onCommit: ((text: string) => void) | undefined;
+  private onCommit: VoiceInputTarget["commitDraft"] | undefined;
   private snapshot: VoiceInputSnapshot = {
     state: IDLE_STATE,
     ownerKey: null,
@@ -117,7 +118,7 @@ export class VoiceInputSession {
       readDraft: () => this.target?.readDraft() ?? null,
       commitDraft: (text, selection) => {
         this.target?.commitDraft(text, selection);
-        this.onCommit?.(text);
+        this.onCommit?.(text, selection);
       },
     });
   }
@@ -157,7 +158,7 @@ export class VoiceInputSession {
     return this.target ? this.start(this.target) : Promise.resolve();
   }
 
-  stop(onCommit?: (text: string) => void): Promise<void> {
+  stop(onCommit?: VoiceInputTarget["commitDraft"]): Promise<void> {
     if (this.controller.currentState.phase !== "recording") return Promise.resolve();
     this.onCommit = onCommit;
     return this.controller.stop();
@@ -228,7 +229,7 @@ export class VoiceInputSession {
     const sample = this.dependencies.sampleRecording();
     if (!sample) return;
 
-    const level = normalizeVoiceInputDecibels(sample.metering);
+    const level = voiceLevelFromDecibels(sample.metering);
     if (level !== 0 || this.audioLevels.some((sample) => sample !== 0)) {
       this.setAudioLevels([...this.audioLevels.slice(1), level]);
     }

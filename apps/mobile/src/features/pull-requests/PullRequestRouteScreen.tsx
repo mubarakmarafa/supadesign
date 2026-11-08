@@ -165,7 +165,7 @@ function PullRequestIdentity(props: {
         <PullRequestDiffStats additions={pr.additions} deletions={pr.deletions} compact />
         {"changedFiles" in pr ? (
           <Text className="text-2xs text-foreground-muted">
-            {pr.changedFiles} {pr.changedFiles === 1 ? "file" : "files"}
+            {pr.changedFiles.toLocaleString()} {pr.changedFiles === 1 ? "file" : "files"}
           </Text>
         ) : (
           <View className="h-3 w-12 rounded bg-subtle-strong" />
@@ -188,7 +188,7 @@ function PullRequestIdentity(props: {
           accessibilityRole="button"
           accessibilityLabel={`Copy base branch ${pr.baseBranch}`}
           onPress={() => void Clipboard.setStringAsync(pr.baseBranch)}
-          className="min-w-0 shrink active:opacity-70"
+          className="max-w-[50%] active:opacity-70"
           hitSlop={8}
         >
           <Text className="font-mono text-2xs text-foreground-muted">{pr.baseBranch}</Text>

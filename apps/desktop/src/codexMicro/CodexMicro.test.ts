@@ -1,3 +1,5 @@
+import * as NodeEvents from "node:events";
+
 import {
   DEFAULT_CLIENT_SETTINGS,
   EnvironmentId,
@@ -24,7 +26,9 @@ import * as TestClock from "effect/testing/TestClock";
 
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronPowerMonitor from "../electron/ElectronPowerMonitor.ts";
+import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import * as CodexMicro from "./CodexMicro.ts";
+import * as CodexMicroIpc from "./CodexMicroIpc.ts";
 import * as MacInputMonitoring from "../permissions/MacInputMonitoring.ts";
 
 interface FakeRequest {
@@ -200,10 +204,10 @@ const makeHarness = Effect.gen(function* () {
 
   const connect = Effect.gen(function* () {
     yield* codexMicro.configure(settings());
-    const startup = yield* takeRequests(3);
+    const startup = yield* takeRequests(4);
     assert.deepStrictEqual(
       startup.map((request) => request.method),
-      ["v.oai.rgbcfg", "v.oai.thstatus", "device.status"],
+      ["v.oai.rgbcfg", "v.oai.thstatus", "device.status", "fs.list"],
     );
     yield* awaitState((state) => state.status === "connected" && state.battery !== null);
   });
@@ -250,7 +254,31 @@ describe("CodexMicro", () => {
         battery: { percentage: 80, isCharging: false },
         firmwareVersion: "1.0.0",
         inputMonitoring: "granted",
+        mappedAgentKeys: null,
       });
+    }),
+  );
+
+  it.effect("reports mapped agent keys and picks up a rewritten keymap", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness;
+      harness.transport.setDevices([USB]);
+      const keymapWith = (keycodes: ReadonlyArray<string>) =>
+        JSON.stringify({ profiles: [{ layers: [{ layout: { keymap: [keycodes] } }] }] });
+      let keymap = keymapWith(["KC_A", "KC_B"]);
+      harness.transport.respond((request) => {
+        if (request.method === "fs.list") {
+          return Effect.succeed([{ name: "keymap.json", size: keymap.length, checksum: keymap }]);
+        }
+        if (request.method !== "fs.readbin") return undefined;
+        return Effect.succeed({ data: Buffer.from(keymap).toString("base64") });
+      });
+      yield* harness.codexMicro.configure(settings());
+      yield* harness.awaitState((state) => state.mappedAgentKeys === 0);
+
+      keymap = keymapWith(["KV_OAI_AG00", "KV_OAI_AG01", "KV_OAI_AG02"]);
+      yield* TestClock.adjust(Duration.seconds(60));
+      yield* harness.awaitState((state) => state.mappedAgentKeys === 3);
     }),
   );
 
@@ -361,6 +389,29 @@ describe("CodexMicro", () => {
       assert.deepStrictEqual(thstatus?.params, LIGHTS_OFF_PAYLOAD.thstatus);
       assert.strictEqual(harness.transport.closed(), 1);
       assert.strictEqual((yield* harness.codexMicro.state).status, "disabled");
+    }),
+  );
+
+  it.effect("stays closed from pause until resume, even if re-enabled", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness;
+      harness.transport.setDevices([USB]);
+      yield* harness.connect;
+
+      yield* harness.codexMicro.pause;
+      const [rgbcfg] = yield* harness.takeRequests(2);
+      assert.deepStrictEqual(rgbcfg?.params, LIGHTS_OFF_PAYLOAD.rgbcfg);
+      assert.strictEqual(harness.transport.closed(), 1);
+
+      yield* harness.codexMicro.configure(settings({ enabled: false }));
+      yield* harness.codexMicro.configure(settings());
+      yield* TestClock.adjust(Duration.seconds(30));
+      assert.deepStrictEqual(harness.transport.opened, ["usb"]);
+
+      yield* harness.codexMicro.resume;
+      yield* harness.takeRequests(4);
+      yield* harness.awaitState((state) => state.status === "connected");
+      assert.deepStrictEqual(harness.transport.opened, ["usb", "usb"]);
     }),
   );
 
@@ -515,6 +566,90 @@ describe("CodexMicro", () => {
         phase: "press",
       });
     }),
+  );
+
+  it.effect("keeps voice feedback lit until it finishes, then resumes auto-dim", () =>
+    Effect.gen(function* () {
+      const harness = yield* makeHarness;
+      harness.transport.setDevices([USB]);
+      yield* harness.connect;
+      yield* harness.codexMicro.configure(settings({ autoDim: "30-seconds" }));
+      const applied: Array<unknown> = [];
+      const lightingRequests = yield* Queue.unbounded<FakeRequest>();
+      harness.transport.respond((request) => {
+        if (request.method === "v.oai.rgbcfg") applied.push(request.params);
+        if (request.method === "v.oai.rgbcfg" || request.method === "v.oai.thstatus") {
+          Queue.offerUnsafe(lightingRequests, request);
+        }
+        return undefined;
+      });
+      const normal = modelWith({ status: "unread" });
+      const recording = { ...normal, voiceActivity: "recording" as const };
+      yield* harness.codexMicro.setLighting(recording);
+      assert.deepStrictEqual(
+        (yield* Queue.take(lightingRequests)).params,
+        lighting(recording).rgbcfg,
+      );
+      assert.deepStrictEqual(
+        (yield* Queue.take(lightingRequests)).params,
+        lighting(recording).thstatus,
+      );
+      yield* TestClock.adjust(Duration.seconds(31));
+      assert.deepStrictEqual(applied, [lighting(recording).rgbcfg]);
+
+      const transcribing = { ...recording, voiceActivity: "transcribing" as const };
+      yield* harness.codexMicro.setLighting(transcribing);
+      assert.deepStrictEqual(
+        (yield* Queue.take(lightingRequests)).params,
+        lighting(transcribing).rgbcfg,
+      );
+      yield* TestClock.adjust(Duration.seconds(31));
+      assert.deepStrictEqual(applied, [lighting(recording).rgbcfg, lighting(transcribing).rgbcfg]);
+      yield* harness.codexMicro.setLighting(normal);
+      assert.deepStrictEqual((yield* Queue.take(lightingRequests)).params, lighting(normal).rgbcfg);
+      yield* TestClock.adjust(Duration.seconds(31));
+      assert.deepStrictEqual(
+        (yield* Queue.take(lightingRequests)).params,
+        LIGHTS_OFF_PAYLOAD.thstatus,
+      );
+      assert.deepStrictEqual(applied, [
+        lighting(recording).rgbcfg,
+        lighting(transcribing).rgbcfg,
+        lighting(normal).rgbcfg,
+      ]);
+    }),
+  );
+
+  it.effect.each(["render-process-gone", "destroyed"])(
+    "clears voice feedback on %s and resumes auto-dim",
+    (event) =>
+      Effect.gen(function* () {
+        const harness = yield* makeHarness;
+        harness.transport.setDevices([USB]);
+        yield* harness.connect;
+        yield* harness.codexMicro.configure(settings({ autoDim: "30-seconds" }));
+        const contents = Object.assign(new NodeEvents.EventEmitter(), { id: 42 });
+        const window = { webContents: contents } as unknown as Electron.BrowserWindow;
+        const ipc = yield* CodexMicroIpc.makeSetLighting.pipe(
+          Effect.provideService(CodexMicro.CodexMicro, harness.codexMicro),
+          Effect.provideService(ElectronWindow.ElectronWindow, {
+            main: Effect.succeedSome(window),
+          } as ElectronWindow.ElectronWindow["Service"]),
+        );
+        const normal = modelWith({ status: "unread" });
+        yield* ipc.handler({ ...normal, voiceActivity: "recording" }, { sender: { id: 42 } });
+        yield* harness.takeRequests(2);
+        contents.emit(event);
+        assert.deepStrictEqual(
+          (yield* Queue.take(harness.transport.requests)).params,
+          lighting(normal).rgbcfg,
+        );
+        yield* TestClock.adjust(Duration.seconds(30));
+        assert.deepStrictEqual(
+          (yield* Queue.take(harness.transport.requests)).params,
+          LIGHTS_OFF_PAYLOAD.thstatus,
+        );
+      }),
   );
 
   it.effect("dims after inactivity and restores lighting on input", () =>

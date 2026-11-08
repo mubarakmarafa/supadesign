@@ -3,6 +3,7 @@ import { replaceTextRange } from "@supaterm/shared/composerTrigger";
 import {
   VoiceTranscriptionError,
   type PreparedVoiceTranscription,
+  type VoiceRecordingHandOff,
   type VoiceTranscriber,
 } from "./transcription.ts";
 
@@ -33,6 +34,19 @@ export function voiceInputBlocksSubmission(state: VoiceInputState): boolean {
 
 export function voiceInputFreezesEditor(state: VoiceInputState): boolean {
   return voiceInputBlocksSubmission(state);
+}
+
+export type VoiceInputCue = "start" | "stop" | "discard" | "error";
+
+export function voiceInputCue(
+  previous: VoiceInputPhase,
+  next: VoiceInputPhase,
+): VoiceInputCue | null {
+  if (previous === next) return null;
+  if (next === "recording") return "start";
+  if (next === "error") return "error";
+  if (previous !== "recording") return null;
+  return next === "idle" ? "discard" : "stop";
 }
 
 export type VoiceDraftSnapshot = {
@@ -79,9 +93,13 @@ export type VoiceInputControllerDependencies = {
 /**
  * Takes over a finished recording instead of transcribing it here, as a voice message the
  * server transcribes and sends. It must keep its own copy: the recording is deleted once
- * this settles. Bound when Send is pressed, so the message keeps that destination.
+ * this settles. Bound when Send is pressed, so the message keeps that destination. A
+ * recording that streamed while made must be sent under `handOff.uploadId`.
  */
-export type VoiceRecordingDelivery = (uri: string) => Promise<void>;
+export type VoiceRecordingDelivery = (
+  uri: string,
+  handOff: VoiceRecordingHandOff | undefined,
+) => Promise<void>;
 
 type TranscriptCommitResult =
   | {
@@ -91,6 +109,8 @@ type TranscriptCommitResult =
     }
   | { readonly kind: "stale" }
   | { readonly kind: "empty" };
+
+const WORD_SPACELESS_LANGUAGES = new Set(["ja", "zh", "yue", "th", "lo", "km", "my"]);
 
 export function resolveTranscriptCommit(
   captured: VoiceDraftSnapshot,
@@ -113,20 +133,17 @@ export function resolveTranscriptCommit(
   }
 
   const isEmptySelection = captured.selection.start === captured.selection.end;
-  const normalizedLocale = locale.replaceAll("_", "-").toLowerCase();
-  const usesEnglishSpacing = normalizedLocale === "en" || normalizedLocale.startsWith("en-");
+  const language = locale.split(/[-_]/)[0]?.toLowerCase() ?? "";
   let insertion = replacement;
-  if (isEmptySelection && usesEnglishSpacing) {
-    const left = captured.text[captured.selection.start - 1];
-    const right = captured.text[captured.selection.start];
+  if (isEmptySelection && !WORD_SPACELESS_LANGUAGES.has(language)) {
+    const caret = captured.selection.start;
+    // Two code units, so a supplementary-plane letter at the caret still matches.
+    const left = captured.text.slice(Math.max(0, caret - 2), caret);
+    const right = captured.text.slice(caret, caret + 2);
     const leftNeedsBoundary =
-      left !== undefined &&
-      /[A-Za-z0-9.!?,:;)\]}'"]/.test(left) &&
-      (right === undefined || /\s/.test(right));
+      /(?:\p{L}|\p{M}|\p{N}|[.!?,:;)\]}'"])$/u.test(left) && (!right || /^\s/.test(right));
     const rightNeedsBoundary =
-      right !== undefined &&
-      /[A-Za-z0-9([{'"]/.test(right) &&
-      (left === undefined || /\s/.test(left));
+      /^[\p{L}\p{M}\p{N}([{'"]/u.test(right) && (!left || /\s$/.test(left));
     insertion = `${leftNeedsBoundary ? " " : ""}${replacement}${rightNeedsBoundary ? " " : ""}`;
   }
 
@@ -195,6 +212,10 @@ function preparationErrorMessage(error: unknown): string {
     return "Voice transcription is still finishing. Try again shortly.";
   }
   return "Could not prepare voice transcription.";
+}
+
+function isTooShort(error: unknown): boolean {
+  return error instanceof VoiceTranscriptionError && error.code === "tooShort";
 }
 
 function transcriptionErrorMessage(error: unknown): string {
@@ -428,11 +449,12 @@ export class VoiceInputController {
       if (!this.isCurrent(operationToken)) return;
       if (deliver && this.recordingUri) {
         try {
-          await deliver(this.recordingUri);
-        } catch {
-          if (this.isCurrent(operationToken))
+          await deliver(this.recordingUri, this.transcription?.handOff?.());
+        } catch (error) {
+          if (this.isCurrent(operationToken) && !isTooShort(error)) {
             this.setError("Could not save this recording.", "retry");
-          return;
+            return;
+          }
         }
         if (this.isCurrent(operationToken)) this.setState(IDLE_STATE);
         return;
@@ -457,9 +479,9 @@ export class VoiceInputController {
           transcription.transcribe(recordingUri, { signal }),
         );
       } catch (error) {
-        if (this.isCurrent(operationToken)) {
-          this.setError(transcriptionErrorMessage(error), "retry");
-        }
+        if (!this.isCurrent(operationToken)) return;
+        if (isTooShort(error)) this.setState(IDLE_STATE);
+        else this.setError(transcriptionErrorMessage(error), "retry");
         return;
       }
       if (!this.isCurrent(operationToken)) return;
@@ -477,12 +499,7 @@ export class VoiceInputController {
         );
         return;
       }
-      if (result.kind === "empty") {
-        this.setError("No speech was detected.", "retry");
-        return;
-      }
-
-      this.dependencies.commitDraft(result.text, result.selection);
+      if (result.kind === "commit") this.dependencies.commitDraft(result.text, result.selection);
       this.setState(IDLE_STATE);
     } catch {
       if (this.isCurrent(operationToken)) {
@@ -525,6 +542,7 @@ export class VoiceInputController {
     releaseSession(this.sessionToken);
     this.sessionToken = null;
     this.capturedDraft = null;
+    this.transcription?.dispose?.();
     this.transcription = null;
     this.transcriptionAbortController = null;
   }
@@ -559,6 +577,14 @@ export class VoiceInputController {
     this.state = state;
     this.dependencies.onStateChange(state);
   }
+}
+
+/**
+ * A recording is open somewhere in this client. One being cancelled doesn't count: a new
+ * start already waits for it to release the microphone.
+ */
+export function voiceInputSessionActive(): boolean {
+  return activeSession !== null && !activeSession.abandoned;
 }
 
 export function resetVoiceInputGlobalsForTests(): void {

@@ -69,6 +69,44 @@ it.effect("maps credential verification failures without relabeling operation fa
   }),
 );
 
+it.effect.each([
+  { status: 403, githubErrorTypes: [], reason: "forbidden" },
+  { status: 503, githubErrorTypes: [], reason: "failed" },
+  { status: 200, githubErrorTypes: ["FORBIDDEN"], reason: "forbidden" },
+  { status: 200, githubErrorTypes: ["INTERNAL"], reason: "failed" },
+  { status: 200, githubErrorTypes: ["FORBIDDEN", "NOT_FOUND"], reason: "forbidden" },
+  { status: 200, githubErrorTypes: ["FORBIDDEN", "INTERNAL"], reason: "failed" },
+  { status: 200, githubErrorTypes: ["FORBIDDEN", null], reason: "failed" },
+])("classifies GitHub response $status as $reason", ({ status, githubErrorTypes, reason }) =>
+  Effect.gen(function* () {
+    const provider = yield* make.pipe(
+      Effect.provide(
+        Layer.mock(GitHubPullRequestApi.GitHubPullRequestApi)({
+          revalidateChecks: (_input, read) => read,
+          getPullRequestDetail: () =>
+            Effect.fail(
+              new GitHubRequestPolicy.GitHubApiResponseError({
+                host: "github.com",
+                operation: "detail",
+                status,
+                githubErrorTypes,
+              }),
+            ),
+        }),
+      ),
+    );
+    const error = yield* provider
+      .getChangeRequest({
+        cwd: "/w",
+        repository: "acme/web",
+        host: "github.com",
+        number: 7,
+      })
+      .pipe(Effect.flip);
+    expect(error.reason).toBe(reason);
+  }),
+);
+
 it.effect("advertises standalone branch deletion for source repository writers", () =>
   Effect.gen(function* () {
     let action: string | undefined;
@@ -949,6 +987,75 @@ describe("listChangeRequestsAcross", () => {
         (yield* read({ ...later, repositories: ["acme/web", "acme/renamed"] })).unresolved,
       ).toEqual(["acme/renamed"]);
     }),
+  );
+
+  it.effect(
+    "searches repositories the viewer only reads for what involves or asks the viewer",
+    () =>
+      Effect.gen(function* () {
+        const searches: Array<Search> = [];
+        const permissionReads: Array<string> = [];
+        const read = yield* make.pipe(
+          Effect.provide(
+            Layer.mock(GitHubPullRequestApi.GitHubPullRequestApi)({
+              getViewerPermission: ({ repository }) => {
+                permissionReads.push(repository);
+                if (repository === "acme/docs") {
+                  return Effect.fail(
+                    new GitHubPullRequestApi.GitHubViewerLoginUnavailableError({ cwd: "/w" }),
+                  );
+                }
+                return Effect.succeed(repository.startsWith("acme/") ? "WRITE" : "READ");
+              },
+              searchPullRequests: (search: Search) => {
+                if (search.state === "all") {
+                  return Effect.succeed({
+                    items: [searched(search.repositories[0]!)],
+                    truncated: false,
+                  });
+                }
+                searches.push(search);
+                const asked = { ...searched("neovim/neovim"), updatedAt: "2026-07-03T00:00:00Z" };
+                const older = { ...asked, number: 2, updatedAt: "2026-07-01T00:00:00Z" };
+                if (search.involvement === "involved") {
+                  return Effect.succeed({ items: [asked, older], truncated: false });
+                }
+                // Cut short, it vouches for no silent repository, yet `vim/vim` stays resolved.
+                if (search.involvement === "reviewing") {
+                  return Effect.succeed({ items: [asked], truncated: true });
+                }
+                return Effect.succeed({ items: [searched("acme/web")], truncated: true });
+              },
+            }),
+          ),
+          Effect.map((provider) => provider.listChangeRequestsAcross!),
+        );
+        const inbox = {
+          ...across,
+          repositories: ["acme/web", "neovim/neovim", "vim/vim", "acme/docs"],
+          involvedWhereReadOnly: true,
+          limit: 10,
+        };
+
+        const page = yield* read(inbox);
+
+        expect(
+          Object.fromEntries(searches.map((search) => [search.involvement, search.repositories])),
+        ).toEqual({
+          all: ["acme/web", "acme/docs"],
+          involved: ["neovim/neovim", "vim/vim"],
+          reviewing: ["neovim/neovim", "vim/vim"],
+        });
+        // Once, and nothing older than where the latest cut-short search stopped.
+        expect(page.items.map((item) => [item.repository, item.number])).toEqual([
+          ["neovim/neovim", 1],
+        ]);
+        expect(page.truncated).toBe(true);
+        expect(page.unresolved).toEqual(["acme/docs"]);
+
+        yield* read(inbox);
+        expect(permissionReads).toEqual([...inbox.repositories, "acme/docs"]);
+      }),
   );
 
   it.effect("asks again after a failed check, and after coverage has had time to change", () =>

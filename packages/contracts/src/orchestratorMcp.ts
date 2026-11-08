@@ -207,7 +207,7 @@ export const OrchestratorMcpDelegateTaskResult = Schema.Struct({
   resultContextTransferId: Schema.NullOr(ContextTransferId),
   hasPendingQuestion: Schema.Boolean.annotate({
     description:
-      "A question blocks the child and ends a wait. Answer via `supaterm_pending_request_*` on `childThreadId`, or the user does.",
+      "A question blocks the child and ends a wait. Answer via `supaterm_pending_request` on `childThreadId`, or the user does.",
   }),
   pendingApproval: Schema.NullOr(
     Schema.Struct({ requestId: RuntimeRequestId, kind: ProviderRequestKind, runId: RunId }),
@@ -506,6 +506,12 @@ export const OrchestratorMcpThreadInterruptInput = Schema.Struct({
   threadId: ThreadId,
   runId: Schema.optional(RunId),
   reason: Schema.optional(Schema.String.check(Schema.isMaxLength(2_000))),
+  /**
+   * Stop the thread as its Stop button does instead: interrupt its running
+   * turn whichever run that is, hold its queued messages, end its pull request
+   * watches and stop every task it delegated. `runId` is then not used.
+   */
+  stop: Schema.optional(Schema.Boolean),
   clientRequestId: Schema.optional(OrchestratorMcpClientRequestId),
 });
 export type OrchestratorMcpThreadInterruptInput = typeof OrchestratorMcpThreadInterruptInput.Type;
@@ -594,6 +600,16 @@ export const OrchestratorMcpScheduleTaskInput = Schema.Struct({
 });
 export type OrchestratorMcpScheduleTaskInput = typeof OrchestratorMcpScheduleTaskInput.Type;
 
+/** `schedule_task` creates a task, or updates one when `scheduledTaskId` is given. */
+export const OrchestratorMcpSaveScheduledTaskInput = Schema.Struct({
+  ...OrchestratorMcpScheduleTaskInput.fields,
+  scheduledTaskId: Schema.optional(ScheduledTaskId),
+  prompt: Schema.optional(OrchestratorMcpPrompt),
+  schedule: Schema.optional(OrchestratorMcpSchedule),
+});
+export type OrchestratorMcpSaveScheduledTaskInput =
+  typeof OrchestratorMcpSaveScheduledTaskInput.Type;
+
 export const OrchestratorMcpScheduledTask = Schema.Struct({
   scheduledTaskId: ScheduledTaskId,
   title: Schema.String,
@@ -636,6 +652,40 @@ export const OrchestratorMcpUpdateScheduledTaskInput = Schema.Struct({
 });
 export type OrchestratorMcpUpdateScheduledTaskInput =
   typeof OrchestratorMcpUpdateScheduledTaskInput.Type;
+
+export const OrchestratorMcpRequestSecretInput = Schema.Struct({
+  label: TrimmedNonEmptyString.annotate({
+    description: "Card title, such as 'GitHub token'.",
+  }),
+  reason: TrimmedNonEmptyString.annotate({
+    description: "What it is for and where to get it.",
+  }),
+  placeholder: Schema.optional(TrimmedNonEmptyString),
+  timeoutMs: Schema.optional(
+    Schema.Int.check(Schema.isBetween({ minimum: 1_000, maximum: 60 * 60 * 1_000 })),
+  ).annotate({ description: "Default 10 min." }),
+  clientRequestId: Schema.optional(OrchestratorMcpClientRequestId).annotate({
+    description: "Retry key for this ask. New key after a timeout or cancel.",
+  }),
+});
+export type OrchestratorMcpRequestSecretInput = typeof OrchestratorMcpRequestSecretInput.Type;
+
+export const OrchestratorMcpRequestSecretResult = Schema.Union([
+  Schema.Struct({
+    status: Schema.Literal("saved"),
+    file: Schema.String.annotate({
+      description:
+        "Owner-only file with the value. Read it inside commands and never print it. Deleted after 24 hours.",
+    }),
+  }),
+  Schema.Struct({
+    status: Schema.Literals(["declined", "cancelled", "timed_out"]).annotate({
+      description:
+        "declined: user chose not to. cancelled: ended with the run. timed_out: no answer in time. Ask again with a new `clientRequestId` if still needed.",
+    }),
+  }),
+]);
+export type OrchestratorMcpRequestSecretResult = typeof OrchestratorMcpRequestSecretResult.Type;
 
 export const OrchestratorMcpDeleteScheduledTaskInput = Schema.Struct({
   scheduledTaskId: ScheduledTaskId,

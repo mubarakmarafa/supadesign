@@ -18,9 +18,11 @@ export function CollapsibleSectionHeader({
   variant = "default",
   icon,
   accessory,
+  count,
   ...buttonProps
 }: Omit<ComponentProps<"button">, "className" | "style" | "aria-expanded"> & {
   expanded: boolean;
+  count?: number | undefined;
   tone?: keyof typeof tones;
   size?: "default" | "sm";
   weight?: "normal" | "medium";
@@ -35,14 +37,19 @@ export function CollapsibleSectionHeader({
       aria-expanded={expanded}
       className={cn(
         "flex h-8 w-full cursor-pointer items-center gap-2 rounded-md text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70",
-        variant === "panel" ? "ps-2 pe-2.5" : "px-2",
+        variant === "panel" ? "ps-2 pe-1.5" : "px-2",
         weight === "normal" ? "font-normal" : "font-medium",
         size === "sm" && "h-6 pointer-coarse:h-11 focus-visible:ring-muted-foreground/50",
         tones[tone].label,
       )}
     >
       {icon}
-      <span className="min-w-0 truncate">{children}</span>
+      <span dir="auto" className="min-w-0 truncate">
+        {children}
+      </span>
+      {count === undefined ? null : (
+        <span className="-ms-1 shrink-0 tabular-nums">({count.toLocaleString()})</span>
+      )}
       <span
         aria-hidden
         className={cn("h-px min-w-2 flex-1", variant === "default" && tones[tone].line)}

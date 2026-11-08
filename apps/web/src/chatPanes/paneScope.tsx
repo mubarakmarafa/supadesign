@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { createContext, use, type ReactNode } from "react";
 
 import type { ComposerHandleRef } from "../composerHandleContext";
+import { useStableCallback } from "../hooks/useStableCallback";
 import type { ChatComposerHandle } from "../components/chat/ChatComposer";
 import { useChatPaneStore } from "./store";
 import { buildThreadRouteParams, type ThreadRouteTarget } from "../threadRoutes";
@@ -14,8 +15,11 @@ export interface PaneScope {
   readonly narrow: boolean;
   /** The workspace is too small for the split, so only this, the focused pane, shows. */
   readonly collapsed: boolean;
-  /** The pane's element while split, so overlays like the right panel sheet stay inside it. */
-  readonly element: HTMLElement | null;
+  /**
+   * The pane's element while split, so overlays like the right panel sheet stay inside it.
+   * Portals wait on `null` until it mounts; `undefined` outside a split portals into the page.
+   */
+  readonly element: HTMLElement | null | undefined;
 }
 
 const PaneScopeContext = createContext<PaneScope | null>(null);
@@ -49,7 +53,7 @@ export function isPaneInputOwner(paneId: string | null): boolean {
 /** A stable check for listeners, read when the event arrives rather than when it was registered. */
 export function usePaneInputOwner(): () => boolean {
   const paneId = use(PaneScopeContext)?.paneId ?? null;
-  return () => isPaneInputOwner(paneId);
+  return useStableCallback(() => isPaneInputOwner(paneId));
 }
 
 export function useIsPaneInputOwner(): boolean {

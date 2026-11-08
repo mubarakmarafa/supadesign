@@ -32,6 +32,7 @@ import {
   trackJoystick,
   type CodexMicroLightingPayload,
 } from "@supaterm/codex-micro/protocol";
+import * as CodexMicroKeymap from "@supaterm/codex-micro/keymap";
 import * as CodexMicroTransport from "@supaterm/codex-micro/transport";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -94,6 +95,7 @@ const deviceState = (
   battery: null,
   firmwareVersion: null,
   inputMonitoring,
+  mappedAgentKeys: null,
 });
 
 const sameThread = (left: CodexMicroThreadRef | null, right: CodexMicroThreadRef | null) =>
@@ -113,8 +115,11 @@ export class CodexMicro extends Context.Service<
     readonly available: boolean;
     /** Cheap and idempotent: runs on every client-settings write. */
     readonly configure: (settings: CodexMicroSettings) => Effect.Effect<void>;
+    readonly pause: Effect.Effect<void>;
+    readonly resume: Effect.Effect<void>;
     readonly state: Effect.Effect<CodexMicroDeviceState>;
     readonly setLighting: (model: CodexMicroLightingModel) => Effect.Effect<void>;
+    readonly clearVoiceActivity: Effect.Effect<void>;
     readonly subscribeState: (listener: StateListener) => Effect.Effect<void, never, Scope.Scope>;
     readonly subscribeInput: (listener: InputListener) => Effect.Effect<void, never, Scope.Scope>;
   }
@@ -141,6 +146,7 @@ const make = Effect.gen(function* () {
   let lastInputAt = Number.NEGATIVE_INFINITY;
   let screenLocked = false;
   let enabledFiber: Fiber.Fiber<void> | undefined;
+  let paused = false;
   const lifecycle = yield* Semaphore.make(1);
   const lightingWake = yield* Queue.sliding<void>(1);
   const rescan = yield* Queue.sliding<void>(1);
@@ -174,7 +180,8 @@ const make = Effect.gen(function* () {
 
   const scheduleDim = Effect.suspend(() => {
     const delay = settings.autoDimMs;
-    if (delay === null || !settings.enabled) return FiberHandle.clear(dimTimer);
+    if (delay === null || !settings.enabled || latestModel.voiceActivity !== "idle")
+      return FiberHandle.clear(dimTimer);
     const scheduledActivity = activityId;
     return FiberHandle.run(
       dimTimer,
@@ -306,6 +313,20 @@ const make = Effect.gen(function* () {
       });
     });
 
+    let keymap: CodexMicroKeymap.CodexMicroKeymap | undefined;
+    const quietRequest = (method: string, params?: unknown) =>
+      waitForInputQuiet.pipe(
+        Effect.andThen(
+          Effect.suspend(() => (stopping ? Effect.interrupt : request(method, params))),
+        ),
+      );
+    const refreshKeymap = Effect.gen(function* () {
+      const next = yield* CodexMicroKeymap.refreshKeymap(quietRequest, keymap);
+      if (next === undefined) return;
+      keymap = next;
+      yield* patchState({ mappedAgentKeys: next.mappedAgentKeys });
+    });
+
     const lightingLoop = Effect.gen(function* () {
       let failures = 0;
       while (true) {
@@ -319,6 +340,7 @@ const make = Effect.gen(function* () {
             initialized = true;
             yield* Effect.forkIn(
               refreshDeviceStatus.pipe(
+                Effect.andThen(refreshKeymap),
                 Effect.andThen(Effect.sleep(DEVICE_STATUS_INTERVAL)),
                 Effect.forever,
               ),
@@ -542,7 +564,7 @@ const make = Effect.gen(function* () {
   }).pipe(Effect.scoped, Effect.withSpan("desktop.codexMicro.run"));
 
   const start = Effect.gen(function* () {
-    if (enabledFiber !== undefined) return;
+    if (enabledFiber !== undefined || paused) return;
     yield* inputMonitoring.requestIfUndetermined;
     enabledFiber = yield* Effect.forkIn(runEnabled, serviceScope);
   });
@@ -619,11 +641,30 @@ const make = Effect.gen(function* () {
   return CodexMicro.of({
     available: true,
     configure,
+    pause: lifecycle
+      .withPermit(
+        Effect.suspend(() => {
+          paused = true;
+          return stop;
+        }),
+      )
+      .pipe(Effect.withSpan("desktop.codexMicro.pause")),
+    resume: lifecycle
+      .withPermit(
+        Effect.suspend(() => {
+          paused = false;
+          return settings.enabled ? start : Effect.void;
+        }),
+      )
+      .pipe(Effect.withSpan("desktop.codexMicro.resume")),
     state: refreshInputMonitoring.pipe(
       Effect.andThen(Effect.sync(() => state)),
       Effect.withSpan("desktop.codexMicro.state"),
     ),
     setLighting,
+    clearVoiceActivity: Effect.suspend(() =>
+      setLighting({ ...latestModel, voiceActivity: "idle" }),
+    ),
     subscribeState: Effect.fn("CodexMicro.subscribeState")(function (listener) {
       return subscribe(stateListeners, listener);
     }),
@@ -642,10 +683,13 @@ export const layerUnavailable = Layer.succeed(
     configure: Effect.fn("CodexMicro.configure")(function () {
       return Effect.void;
     }),
+    pause: Effect.void,
+    resume: Effect.void,
     state: Effect.succeed(deviceState("disabled", "unavailable")),
     setLighting: Effect.fn("CodexMicro.setLighting")(function () {
       return Effect.void;
     }),
+    clearVoiceActivity: Effect.void,
     subscribeState: Effect.fn("CodexMicro.subscribeState")(function () {
       return Effect.void;
     }),

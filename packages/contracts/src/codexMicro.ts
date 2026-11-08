@@ -173,8 +173,18 @@ export type CodexMicroLayout = typeof CodexMicroLayout.Type;
 
 export const DEFAULT_CODEX_MICRO_LAYOUT = Schema.decodeSync(CodexMicroLayout)({});
 
-export const CodexMicroAgentSource = Schema.Literals(["recent", "pinned", "attention", "custom"]);
+export const CodexMicroAgentSource = Schema.Literals(["sidebar", "pinned", "attention", "custom"]);
 export type CodexMicroAgentSource = typeof CodexMicroAgentSource.Type;
+
+const SavedAgentSource = Schema.Union([
+  CodexMicroAgentSource,
+  Schema.Literal("recent").pipe(
+    Schema.decodeTo(Schema.Literal("sidebar"), {
+      decode: SchemaGetter.transform(() => "sidebar" as const),
+      encode: SchemaGetter.forbidden(() => "The recent agent source was replaced by sidebar."),
+    }),
+  ),
+]);
 
 export const CodexMicroAgentAssignment = Schema.Union([
   Schema.Struct({
@@ -229,8 +239,8 @@ export type CodexMicroAutoDim = typeof CodexMicroAutoDim.Type;
 
 export const CodexMicroSettings = Schema.Struct({
   enabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
-  agentSource: CodexMicroAgentSource.pipe(
-    Schema.withDecodingDefault(Effect.succeed("recent" as const)),
+  agentSource: SavedAgentSource.pipe(
+    Schema.withDecodingDefault(Effect.succeed("sidebar" as const)),
   ),
   singleTapFocus: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   brightness: CodexMicroBrightness.pipe(Schema.withDecodingDefault(Effect.succeed(100))),
@@ -276,6 +286,7 @@ const CodexMicroLightingSlot = Schema.Struct({
 export const CODEX_MICRO_SLOT_COUNT = CODEX_MICRO_AGENT_KEYS.length;
 
 export const CodexMicroLightingModel = Schema.Struct({
+  voiceActivity: Schema.Literals(["idle", "recording", "transcribing"]),
   slots: Schema.Array(CodexMicroLightingSlot).check(
     Schema.isMinLength(CODEX_MICRO_SLOT_COUNT),
     Schema.isMaxLength(CODEX_MICRO_SLOT_COUNT),
@@ -311,6 +322,10 @@ export const CodexMicroDeviceState = Schema.Struct({
   ),
   firmwareVersion: Schema.NullOr(Schema.String),
   inputMonitoring: CodexMicroPermissionStatus,
+  /** How many agent keys the keyboard's keymap maps; null until it has been read. */
+  mappedAgentKeys: Schema.NullOr(
+    Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: CODEX_MICRO_SLOT_COUNT })),
+  ),
 });
 export type CodexMicroDeviceState = typeof CodexMicroDeviceState.Type;
 

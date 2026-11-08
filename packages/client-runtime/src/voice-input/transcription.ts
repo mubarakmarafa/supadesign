@@ -6,6 +6,19 @@ export type VoiceTranscriptionOptions = {
 export type PreparedVoiceTranscription = {
   readonly locale: string;
   readonly transcribe: (uri: string, options: VoiceTranscriptionOptions) => Promise<string>;
+  /**
+   * Ends a recording that becomes a voice message instead of a transcript. Returns the id the
+   * message must be sent under, so the environment joins audio it already has.
+   */
+  readonly handOff?: () => VoiceRecordingHandOff;
+  /** Stops work the recording never got to use; safe to call more than once. */
+  readonly dispose?: () => void;
+};
+
+export type VoiceRecordingHandOff = {
+  readonly uploadId: string;
+  /** The audio already went to the environment while it was recorded. */
+  readonly streamed: boolean;
 };
 
 export type VoiceTranscriber = {
@@ -14,7 +27,10 @@ export type VoiceTranscriber = {
 
 export type VoiceTranscriptionErrorCode =
   /** The environment declined with a reason the user can act on, carried in the message. */
-  "refused" | "cancelled";
+  | "refused"
+  /** Too little audio to transcribe, as from a tap; the recording is dropped without a word. */
+  | "tooShort"
+  | "cancelled";
 
 export class VoiceTranscriptionError extends Error {
   readonly code: VoiceTranscriptionErrorCode;

@@ -1,15 +1,26 @@
+import { TranscriptionError } from "@supaterm/contracts";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
+import { createServerVoiceTranscriber, VoiceUploadError } from "../state/transcription.ts";
 import {
   resetVoiceInputGlobalsForTests,
   resolveTranscriptCommit,
+  voiceInputSessionActive,
   VoiceInputController,
+  voiceInputCue,
   VOICE_RECORDING_LIMIT_SECONDS,
   type VoiceDraftSnapshot,
   type VoiceInputControllerDependencies,
+  type VoiceInputCue,
+  type VoiceInputPhase,
   type VoiceRecorder,
 } from "./controller.ts";
-import type { PreparedVoiceTranscription, VoiceTranscriber } from "./transcription.ts";
+import { LiveDictation } from "./liveDictation.ts";
+import {
+  VoiceTranscriptionError,
+  type PreparedVoiceTranscription,
+  type VoiceTranscriber,
+} from "./transcription.ts";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -75,6 +86,20 @@ function createHarness(
   };
 }
 
+function createCueHarness(overrides: Partial<VoiceInputControllerDependencies> = {}) {
+  const cues: VoiceInputCue[] = [];
+  let phase: VoiceInputPhase = "idle";
+  const harness = createHarness({
+    ...overrides,
+    onStateChange: (state) => {
+      const cue = voiceInputCue(phase, state.phase);
+      phase = state.phase;
+      if (cue) cues.push(cue);
+    },
+  });
+  return { harness, cues };
+}
+
 describe("resolveTranscriptCommit", () => {
   it("replaces the recorded UTF-16 selection around emoji and composer tokens", () => {
     const text = "Fix 🧪 then $review please";
@@ -105,6 +130,25 @@ describe("resolveTranscriptCommit", () => {
       kind: "stale",
     });
   });
+
+  it.each([
+    ["English", "Hello", 5, "world", "en-US", "Hello world"],
+    ["Korean", "코드를", 3, "검토해 주세요", "ko_KR", "코드를 검토해 주세요"],
+    ["a supplementary letter", "𞤀", 2, "𞤦", "ff-Adlm", "𞤀 𞤦"],
+    ["a trailing combining mark", "नमस्ते", 6, "दुनिया", "hi-IN", "नमस्ते दुनिया"],
+    ["a non-ASCII word after the caret", "Änderungen", 0, "Weitere", "de_DE", "Weitere Änderungen"],
+    ["spaceless Japanese", "修正キャッシュ", 7, "テストも", "ja-JP", "修正キャッシュテストも"],
+    ["spaceless Thai", "โลก", 0, "สวัสดี", "th-TH", "สวัสดีโลก"],
+  ])(
+    "inserts at a caret with the recorded language's word spacing: %s",
+    (_case, text, caret, spoken, locale, expected) => {
+      const captured = draft({ text, selection: { start: caret, end: caret } });
+      expect(resolveTranscriptCommit(captured, captured, spoken, locale)).toMatchObject({
+        kind: "commit",
+        text: expected,
+      });
+    },
+  );
 
   it("reports an empty or whitespace-only transcript without committing anything", () => {
     const captured = draft();
@@ -174,6 +218,15 @@ describe("VoiceInputController", () => {
     });
 
     resetVoiceInputGlobalsForTests();
+    const tap = createHarness();
+    await tap.controller.start();
+    await tap.controller.send(async () => {
+      throw new VoiceTranscriptionError("tooShort", "too short");
+    });
+    expect(tap.controller.currentState).toEqual({ phase: "idle", error: null, errorAction: null });
+    expect(tap.deleted).toEqual(["file:///voice.m4a"]);
+
+    resetVoiceInputGlobalsForTests();
     const limited = createHarness();
     await limited.controller.start();
     await limited.controller.handleRecorderStatus({
@@ -183,6 +236,37 @@ describe("VoiceInputController", () => {
       url: "file:///voice.m4a",
     });
     expect(limited.commits).toHaveLength(1);
+  });
+
+  it.each([
+    [{ text: " " }, { phase: "idle", error: null, errorAction: null }],
+    ["audioTooShort", { phase: "idle", error: null, errorAction: null }],
+    [
+      "rateLimited",
+      {
+        phase: "error",
+        error: "Transcription is rate limited. Try again soon.",
+        errorAction: "retry",
+      },
+    ],
+  ] as const)("ends a review the environment answered with %j in %j", async (answer, state) => {
+    const harness = createHarness({
+      getTranscriber: () =>
+        createServerVoiceTranscriber({
+          locale: "en-US",
+          transcribe: async () => {
+            if (typeof answer !== "string") return answer;
+            const message = new TranscriptionError({ reason: answer }).message;
+            throw new VoiceUploadError(answer, message, false);
+          },
+        }),
+    });
+    await harness.controller.start();
+    await harness.controller.stop();
+
+    expect(harness.controller.currentState).toEqual(state);
+    expect(harness.commits).toEqual([]);
+    expect(harness.deleted).toEqual(["file:///voice.m4a"]);
   });
 
   it("checks support and permission before recording", async () => {
@@ -210,6 +294,51 @@ describe("VoiceInputController", () => {
       error: "No microphone was found.",
       errorAction: "retry",
     });
+  });
+
+  it("drops a dictation stream the recording never used, and leaves a finished one alone", async () => {
+    const streaming = (prepare: () => Promise<string>) => {
+      const calls = { subscribed: 0, unsubscribed: 0, cancelled: 0 };
+      const transcriber = createServerVoiceTranscriber({
+        locale: "en-US",
+        startLive: () => ({
+          uploadId: "dictation-1",
+          live: new LiveDictation({
+            prepare,
+            openSocket: () => {
+              throw new Error("not opened in this test");
+            },
+            subscribe: () => {
+              calls.subscribed += 1;
+              return () => {
+                calls.unsubscribed += 1;
+              };
+            },
+          }),
+          cancel: async () => {
+            calls.cancelled += 1;
+          },
+        }),
+        transcribe: async () => ({ text: "kept" }),
+      });
+      return { calls, transcriber };
+    };
+
+    const abandoned = streaming(() => new Promise(() => undefined));
+    const failing = createHarness({ getTranscriber: () => abandoned.transcriber });
+    failing.recorder.prepareToRecordAsync.mockRejectedValueOnce(new Error("no input"));
+    await failing.controller.start();
+    expect(failing.controller.currentState.phase).toBe("error");
+    expect(abandoned.calls).toEqual({ subscribed: 1, unsubscribed: 1, cancelled: 1 });
+    failing.controller.dispose();
+    expect(abandoned.calls.cancelled).toBe(1);
+
+    const used = streaming(() => Promise.reject(new Error("old server")));
+    const finished = createHarness({ getTranscriber: () => used.transcriber });
+    await finished.controller.start();
+    await finished.controller.stop();
+    expect(finished.commits).toHaveLength(1);
+    expect(used.calls.cancelled).toBe(0);
   });
 
   it.each(["permission", "transcription"] as const)(
@@ -464,13 +593,18 @@ describe("VoiceInputController", () => {
   });
 
   it("still rejects a second start while the first recording is active", async () => {
+    expect(voiceInputSessionActive()).toBe(false);
     const first = createHarness();
     await first.controller.start();
+    expect(voiceInputSessionActive()).toBe(true);
     const next = createHarness();
     await next.controller.start();
     expect(next.controller.currentState.error).toContain("already active");
     expect(next.recorder.record).not.toHaveBeenCalled();
-    await first.controller.interruptRecording();
+    // A cancelled recording still releases its microphone, but no longer holds the shortcut.
+    const discarding = first.controller.interruptRecording();
+    expect(voiceInputSessionActive()).toBe(false);
+    await discarding;
   });
 
   it("does not start a canceled waiter or let it release another recording", async () => {
@@ -630,5 +764,91 @@ describe("VoiceInputController", () => {
 
     expect(harness.recorder.record).toHaveBeenCalled();
     expect(harness.controller.currentState.phase).toBe("recording");
+  });
+
+  it.each([
+    [
+      "a reviewed recording",
+      {},
+      async ({ controller, commits }: ReturnType<typeof createHarness>) => {
+        await controller.start();
+        await controller.stop();
+        expect(commits).toHaveLength(1);
+      },
+      ["start", "stop"],
+    ],
+    [
+      "a sent recording",
+      {},
+      async ({ controller }: ReturnType<typeof createHarness>) => {
+        await controller.start();
+        await controller.send(async () => undefined);
+      },
+      ["start", "stop"],
+    ],
+    [
+      "a discarded recording",
+      {},
+      async ({ controller }: ReturnType<typeof createHarness>) => {
+        await controller.start();
+        controller.cancel();
+      },
+      ["start", "discard"],
+    ],
+    [
+      "a failed transcription",
+      {
+        getTranscriber: () => ({
+          prepare: async () =>
+            preparedTranscription(async () => {
+              throw new Error("upload failed");
+            }),
+        }),
+      },
+      async ({ controller }: ReturnType<typeof createHarness>) => {
+        await controller.start();
+        await controller.stop();
+      },
+      ["start", "stop", "error"],
+    ],
+    [
+      "an interrupted recording",
+      {},
+      async ({ controller }: ReturnType<typeof createHarness>) => {
+        await controller.start();
+        await controller.interruptRecording();
+      },
+      ["start", "error"],
+    ],
+    [
+      "denied microphone access",
+      {
+        requestPermission: async () => ({ granted: false, canAskAgain: true }),
+      },
+      async ({ controller }: ReturnType<typeof createHarness>) => {
+        await controller.start();
+      },
+      ["error"],
+    ],
+  ] as const)(
+    "cues the microphone opening and closing for %s",
+    async (_name, overrides, run, expected) => {
+      const { harness, cues } = createCueHarness(overrides);
+      await run(harness);
+
+      expect(cues).toEqual(expected);
+    },
+  );
+
+  it("stays silent when preparation is canceled before the microphone opens", async () => {
+    const permission = deferred<{ granted: boolean; canAskAgain: boolean }>();
+    const { harness, cues } = createCueHarness({ requestPermission: () => permission.promise });
+    const starting = harness.controller.start();
+    harness.controller.cancel();
+    permission.resolve({ granted: true, canAskAgain: true });
+    await starting;
+
+    expect(harness.recorder.record).not.toHaveBeenCalled();
+    expect(cues).toEqual([]);
   });
 });

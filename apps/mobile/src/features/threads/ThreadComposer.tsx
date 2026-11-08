@@ -2,6 +2,7 @@ import { useSidebarWorkspaceTabs } from "../workspace/useSystemWorkspaceTabBar";
 import { Button } from "../../components/ui/Button";
 import * as Dialog from "../../components/ui/Dialog";
 import { resolveSideChatCommand } from "@supaterm/client-runtime/state/side-chats";
+import type { VoiceRecordingHandOff } from "@supaterm/client-runtime/voice-input";
 import { useSideChat } from "./useSideChat";
 import type { ComposerTextPaste } from "../../native/SupatermComposerEditor.types";
 import { useAdaptiveWorkspaceLayout } from "../layout/AdaptiveWorkspaceLayout";
@@ -182,7 +183,11 @@ export interface ThreadComposerProps {
   readonly onResumeQueue: (() => Promise<void>) | null;
   /** `stillSendable` reports whether the draft is unchanged after any wait before sending. */
   /** Queues a recording from an empty draft as the message, for the environment to transcribe. */
-  readonly onSendVoiceMessage?: (recordingUri: string, language: string) => Promise<void>;
+  readonly onSendVoiceMessage?: (
+    recordingUri: string,
+    language: string,
+    handOff: VoiceRecordingHandOff | undefined,
+  ) => Promise<void>;
   readonly onSendMessage: (
     followUp?: ActiveTurnComposerAction,
     stillSendable?: () => boolean,
@@ -300,10 +305,12 @@ function ComposerSurface(props: {
   // clip leaves the glass and content at their final height on the first frame.
   return (
     <Animated.View
+      // A shadow on this clipping view moves its children into a separate native container,
+      // so toggling one would detach the editor and drop its focus.
       className={
-        Platform.OS === "android" || props.transparent
+        Platform.OS === "android"
           ? undefined
-          : "shadow-[0_6px_28px] shadow-adaptive-black-a15-a35"
+          : `shadow-[0_6px_28px] ${props.transparent ? "shadow-transparent" : "shadow-adaptive-black-a15-a35"}`
       }
       layout={layoutTransition}
       style={[
@@ -495,6 +502,8 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
     pullRequestProjectId: props.serverConfig != null ? (project?.id ?? null) : null,
     pullRequestRepository: project?.repositoryIdentity?.displayName ?? null,
     threadPullRequests: props.selectedThread.pullRequests,
+    serverConfig: props.serverConfig,
+    projectId: props.selectedThread.projectId,
     selectedProviderStatus,
     hasThread: !props.isDraft,
     hasCompactableConversation: props.hasCompactableConversation,
@@ -515,6 +524,7 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
     onSubmit: () => {
       if (canSend) void handleSend();
     },
+    onReviewTranscript: () => focusComposerEditor(inputRef),
     environmentId: props.environmentId,
     context: props.isDraft
       ? { projectId: props.selectedThread.projectId }

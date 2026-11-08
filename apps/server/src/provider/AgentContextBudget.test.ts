@@ -47,6 +47,7 @@ import { ProjectBoardService } from "../projectBoard/ProjectBoardService.ts";
 import { ThreadBankService } from "../threadBank/ThreadBankService.ts";
 import { ThreadBriefService } from "../threadBrief/ThreadBriefService.ts";
 import { ThreadProgressService } from "../threadProgress/ThreadProgressService.ts";
+import { SecretRequests } from "../secrets/SecretRequests.ts";
 
 // Registration only stores tool definitions, so the handlers' services are never called.
 const toolHandlerServices = Layer.mergeAll(
@@ -75,6 +76,7 @@ const toolHandlerServices = Layer.mergeAll(
   Layer.mock(PullRequestService)({}),
   Layer.mock(RepositoryIdentityResolver)({}),
   Layer.mock(ScheduledTaskService)({}),
+  Layer.mock(SecretRequests)({}),
   ServerConfig.layerTest(process.cwd(), { prefix: "supaterm-agent-context-budget-" }),
   Layer.mock(ServerEnvironment)({}),
   Layer.mock(ServerSecretStore)({}),

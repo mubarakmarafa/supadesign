@@ -21,6 +21,7 @@ import {
 import { EnvironmentMachineKind, ThreadEnvMode, WorktreeSubmodules } from "./environment.ts";
 import { KeybindingShortcut } from "./keybindings.ts";
 import { CodexMicroSettings } from "./codexMicro.ts";
+import { SidePulseSettings } from "./sidePulse.ts";
 import {
   CustomModelSetting,
   DEFAULT_TEXT_GENERATION_MODEL,
@@ -234,6 +235,40 @@ const DEFAULT_SNAP_SHOT_SHORTCUT: SnapShotShortcut = {
   kind: "both-shift-keys",
 };
 
+export const VoiceHoldToTalkKey = Schema.Literals(["alt", "space", "off"]);
+export type VoiceHoldToTalkKey = typeof VoiceHoldToTalkKey.Type;
+
+/** A browser input, kept by label too because a browser can reissue its device ids. */
+export const VoiceMicrophone = Schema.Struct({
+  deviceId: Schema.String,
+  label: Schema.String,
+});
+export type VoiceMicrophone = typeof VoiceMicrophone.Type;
+
+export const TRANSCRIPTION_DICTIONARY_MAX_ENTRIES = 100;
+export const TRANSCRIPTION_DICTIONARY_MAX_ALIASES = 8;
+const TranscriptionDictionaryWord = TrimmedNonEmptyString.check(Schema.isMaxLength(50));
+
+/** `term` is how a word is spelled; `aliases` are what the speech model hears instead. */
+export const TranscriptionDictionaryEntry = Schema.Struct({
+  term: TranscriptionDictionaryWord,
+  aliases: Schema.Array(TranscriptionDictionaryWord)
+    .check(Schema.isMaxLength(TRANSCRIPTION_DICTIONARY_MAX_ALIASES))
+    .pipe(Schema.withDecodingDefault(Effect.succeed([]))),
+});
+export type TranscriptionDictionaryEntry = typeof TranscriptionDictionaryEntry.Type;
+
+export type TranscriptionDictionary = typeof TranscriptionDictionary.Type;
+export const TranscriptionDictionary = Schema.Array(TranscriptionDictionaryEntry).check(
+  Schema.isMaxLength(TRANSCRIPTION_DICTIONARY_MAX_ENTRIES),
+);
+
+// Joined and hyphenated forms ("superterm", "super-term") match these without listing them.
+export const DEFAULT_TRANSCRIPTION_DICTIONARY: TranscriptionDictionary = [
+  { term: "Supadesign", aliases: ["super design", "supa design", "soup a design"] },
+  { term: "Supaterm", aliases: ["super term", "supa term", "soup a term"] },
+];
+
 export const NotificationMode = Schema.Literals([
   "off",
   "notifications",
@@ -425,7 +460,14 @@ export const ClientSettingsSchema = Schema.Struct({
   voiceLanguage: Schema.NullOr(TrimmedNonEmptyString.check(Schema.isMaxLength(35))).pipe(
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
-  voiceHoldSpaceToTalk: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+  voiceHoldToTalkKey: VoiceHoldToTalkKey.pipe(Schema.withDecodingDefault(Effect.succeed("alt"))),
+  /** The input voice input records from on this device. Null follows the system default. */
+  voiceMicrophone: Schema.NullOr(VoiceMicrophone).pipe(
+    Schema.withDecodingDefault(Effect.succeed(null)),
+  ),
+  voiceAvoidBluetoothMicrophone: Schema.Boolean.pipe(
+    Schema.withDecodingDefault(Effect.succeed(true)),
+  ),
   proactivePanelsEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   showSkillsInSlashMenu: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   // Sparse show/hide overrides for thread details card items. Missing ids use the client's
@@ -451,6 +493,9 @@ export const ClientSettingsSchema = Schema.Struct({
     Schema.catchDecoding(() => Effect.succeedSome("status" as const)),
     Schema.withDecodingDefault(Effect.succeed("status" as const)),
   ),
+  sidebarHideOfflineEnvironments: Schema.Boolean.pipe(
+    Schema.withDecodingDefault(Effect.succeed(false)),
+  ),
   timestampFormat: TimestampFormat.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_TIMESTAMP_FORMAT)),
   ),
@@ -468,6 +513,7 @@ export const ClientSettingsSchema = Schema.Struct({
   snapShotFlash: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   snapShotAnimations: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   codexMicro: CodexMicroSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
+  sidePulse: SidePulseSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
   wordWrap: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   // Opt-in TeX typesetting in rendered Markdown. Off keeps math parsing and
   // KaTeX out of the render path entirely.
@@ -1155,12 +1201,6 @@ export const ServerSettings = Schema.Struct({
   continueThreadsAfterServerUpdate: Schema.Boolean.pipe(
     Schema.withDecodingDefault(Effect.succeed(true)),
   ),
-  /**
-   * Product usage events. `SUPATERM_TELEMETRY_ENABLED` overrides it when set. Off by default in
-   * Supadesign, whose events would otherwise reach Supaterm's analytics.
-   */
-  telemetryEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
-
   enableAgentBrowserAccess: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   defaultAutoPull: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   defaultProjectScripts: Schema.Array(ProjectScript).pipe(
@@ -1209,9 +1249,7 @@ export const ServerSettings = Schema.Struct({
   sidebarAutoMarkDoneKeepPullRequests: Schema.Boolean.pipe(
     Schema.withDecodingDefault(Effect.succeed(false)),
   ),
-  sidebarAutoMarkDoneOnMerge: Schema.Boolean.pipe(
-    Schema.withDecodingDefault(Effect.succeed(false)),
-  ),
+  sidebarAutoMarkDoneOnMerge: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   backgroundActivity: BackgroundActivitySettings,
   defaultTheme: DefaultThemePreference.pipe(Schema.withDecodingDefault(Effect.succeed(""))),
   /**
@@ -1265,6 +1303,9 @@ export const ServerSettings = Schema.Struct({
    * picks automatically and stays off the wire, so older clients decode their own default.
    */
   transcriptionProviderInstanceId: OmittedWhenNull(ProviderInstanceId),
+  transcriptionDictionary: TranscriptionDictionary.pipe(
+    Schema.withDecodingDefault(Effect.succeed(DEFAULT_TRANSCRIPTION_DICTIONARY)),
+  ),
   branchNamingMode: BranchNamingMode.pipe(
     Schema.withDecodingDefault(Effect.succeed("static" as const)),
   ),
@@ -1465,7 +1506,6 @@ export const ServerSettingsPatch = Schema.Struct({
   responseStreamingMode: Schema.optionalKey(ResponseStreamingMode),
   enableProviderUpdateChecks: Schema.optionalKey(Schema.Boolean),
   continueThreadsAfterServerUpdate: Schema.optionalKey(Schema.Boolean),
-  telemetryEnabled: Schema.optionalKey(Schema.Boolean),
   enableAgentBrowserAccess: Schema.optionalKey(Schema.Boolean),
   defaultAutoPull: Schema.optionalKey(Schema.Boolean),
   defaultProjectScripts: Schema.optionalKey(Schema.Array(ProjectScript)),
@@ -1525,6 +1565,7 @@ export const ServerSettingsPatch = Schema.Struct({
   nextPromptSuggestionsEnabled: Schema.optionalKey(Schema.Boolean),
   threadTitleInstructions: Schema.optionalKey(TrimmedString),
   transcriptionProviderInstanceId: Schema.optionalKey(Schema.NullOr(ProviderInstanceId)),
+  transcriptionDictionary: Schema.optionalKey(TranscriptionDictionary),
   branchNamingMode: Schema.optionalKey(BranchNamingMode),
   branchNamePrefix: Schema.optionalKey(TrimmedString),
   branchNamePrefixFromRepository: Schema.optionalKey(Schema.Boolean),
@@ -1658,7 +1699,9 @@ export const ClientSettingsPatch = Schema.Struct({
   voiceLanguage: Schema.optionalKey(
     Schema.NullOr(TrimmedNonEmptyString.check(Schema.isMaxLength(35))),
   ),
-  voiceHoldSpaceToTalk: Schema.optionalKey(Schema.Boolean),
+  voiceHoldToTalkKey: Schema.optionalKey(VoiceHoldToTalkKey),
+  voiceMicrophone: Schema.optionalKey(Schema.NullOr(VoiceMicrophone)),
+  voiceAvoidBluetoothMicrophone: Schema.optionalKey(Schema.Boolean),
   proactivePanelsEnabled: Schema.optionalKey(Schema.Boolean),
   showSkillsInSlashMenu: Schema.optionalKey(Schema.Boolean),
   threadDetailsItems: Schema.optionalKey(Schema.Record(Schema.String, Schema.Boolean)),
@@ -1669,6 +1712,7 @@ export const ClientSettingsPatch = Schema.Struct({
   sidebarProjectSortOrder: Schema.optionalKey(SidebarProjectSortOrder),
   sidebarThreadSortOrder: Schema.optionalKey(SidebarThreadSortOrder),
   sidebarThreadGrouping: Schema.optionalKey(SidebarThreadGrouping),
+  sidebarHideOfflineEnvironments: Schema.optionalKey(Schema.Boolean),
   timestampFormat: Schema.optionalKey(TimestampFormat),
   snapShotEnabled: Schema.optionalKey(Schema.Boolean),
   snapShotIncludeAccessibility: Schema.optionalKey(Schema.Boolean),
@@ -1678,6 +1722,7 @@ export const ClientSettingsPatch = Schema.Struct({
   snapShotFlash: Schema.optionalKey(Schema.Boolean),
   snapShotAnimations: Schema.optionalKey(Schema.Boolean),
   codexMicro: Schema.optionalKey(CodexMicroSettings),
+  sidePulse: Schema.optionalKey(SidePulseSettings),
   wordWrap: Schema.optionalKey(Schema.Boolean),
   mathRenderingEnabled: Schema.optionalKey(Schema.Boolean),
 });

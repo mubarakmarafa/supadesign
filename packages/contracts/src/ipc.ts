@@ -16,6 +16,7 @@ import { type ClientSettings, type QuitConfirmationMode, SnapShotShortcut } from
 import type { EditorId } from "./editor.ts";
 import type { PreviewForwardedShortcut } from "./keybindings.ts";
 import type { DesktopCodexMicroBridge } from "./codexMicro.ts";
+import type { DesktopSidePulseBridge } from "./sidePulse.ts";
 
 import type {
   DesktopAppActivationRequest,
@@ -1048,6 +1049,8 @@ export interface DesktopBridge {
    * only the main process can spend a notification click's activation token.
    */
   revealWindow: () => Promise<void>;
+  /** A no-op off macOS and on trackpads without Force Touch. */
+  performAlignmentHaptic: () => void;
   /**
    * The OS locale as a BCP-47 tag, which the renderer cannot read for itself:
    * the packaged app ships only the `en-US` Chromium locale pak, so
@@ -1134,6 +1137,8 @@ export interface DesktopBridge {
   onQuitShortcut: (listener: (event: QuitShortcutHintEvent) => void) => () => void;
   getWindowFullscreenState: () => boolean;
   onWindowFullscreenStateChange: (listener: (fullscreen: boolean) => void) => () => void;
+  /** The machine woke from sleep or was unlocked. */
+  onSystemWake: (listener: () => void) => () => void;
   getWindowZoomFactor: () => number;
   getUpdateState: () => Promise<DesktopUpdateState>;
   /** `minimumVersion` is a track switch's checked release; nothing older is offered after. */
@@ -1159,6 +1164,7 @@ export interface DesktopBridge {
   };
   preview: DesktopPreviewBridge;
   codexMicro?: DesktopCodexMicroBridge;
+  sidePulse?: DesktopSidePulseBridge;
 }
 
 /** Renderer callback invoked by Electron with a fresh user gesture before display-media capture. */

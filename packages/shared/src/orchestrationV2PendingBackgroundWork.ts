@@ -1,5 +1,4 @@
 import type {
-  ThreadWorkflowRunWatch,
   OrchestrationV2PendingBackgroundTask,
   OrchestrationV2ProviderThread,
   OrchestrationV2Run,
@@ -199,7 +198,10 @@ function pendingTaskFromTurnItem(
   }
 }
 
-function nativeTaskIdFromTurnItem(item: PendingBackgroundWorkTurnItem): string {
+/** The task id a pending turn item is listed under. */
+export function nativeTaskIdFromTurnItem(
+  item: Pick<PendingBackgroundWorkTurnItem, "id" | "nativeItemRef">,
+): string {
   const nativeId = item.nativeItemRef?.nativeId;
   if (typeof nativeId === "string" && nativeId.length > 0) {
     return nativeId;
@@ -226,6 +228,28 @@ export function pendingBackgroundTurnItems<Item extends PendingBackgroundWorkTur
   );
 }
 
+const PULL_REQUEST_WATCH_TASK_PREFIX = "pull-request-watch:";
+// Older servers still report their GitHub Actions run watches under this prefix.
+const RETIRED_WORKFLOW_RUN_WATCH_TASK_PREFIX = "workflow-run-watch:";
+
+// Links store their normalized identity, and this id only has to be unique within the thread,
+// so it reads those fields instead of parsing the URL.
+export function pullRequestWatchTaskId(link: {
+  readonly host: string;
+  readonly repository: string;
+  readonly number: number;
+}): string {
+  return `${PULL_REQUEST_WATCH_TASK_PREFIX}${link.host.toLowerCase()}/${link.repository.toLowerCase()}#${link.number}`;
+}
+
+/** Supaterm's own watches, which print no output. */
+export function isWatchTaskId(taskId: string): boolean {
+  return (
+    taskId.startsWith(PULL_REQUEST_WATCH_TASK_PREFIX) ||
+    taskId.startsWith(RETIRED_WORKFLOW_RUN_WATCH_TASK_PREFIX)
+  );
+}
+
 /**
  * Watches count as monitors so a thread stays working between wakes; callers picking a run
  * to interrupt leave them out, since Stop ends watches itself. Items with no run id stay
@@ -241,7 +265,6 @@ export function derivePendingBackgroundWork(input: {
   /** Excludes rolled-back runs; optional only when the caller already filtered them, as SQL shell reads do. */
   readonly runs?: ReadonlyArray<PendingBackgroundWorkRun>;
   readonly pullRequests?: ReadonlyArray<PendingBackgroundWorkPullRequest> | undefined;
-  readonly workflowRunWatches?: ReadonlyArray<ThreadWorkflowRunWatch> | undefined;
 }): ReadonlyArray<PendingBackgroundWorkTask> {
   const hasActiveRun =
     input.hasActiveRun ??
@@ -253,7 +276,7 @@ export function derivePendingBackgroundWork(input: {
     return [];
   }
   if (input.latestRun == null) {
-    return watchTasks(input);
+    return pullRequestWatchTasks(input.pullRequests);
   }
   if (!isLatestRunSettledForBackgroundWait(input.latestRun)) {
     return [];
@@ -292,22 +315,9 @@ export function derivePendingBackgroundWork(input: {
     byTaskId.set(taskId, pendingTaskFromTurnItem(taskId, item));
   }
 
-  for (const task of watchTasks(input)) byTaskId.set(task.taskId, task);
+  for (const task of pullRequestWatchTasks(input.pullRequests)) byTaskId.set(task.taskId, task);
 
   return Array.from(byTaskId.values());
-}
-
-function watchTasks(input: {
-  readonly pullRequests?: ReadonlyArray<PendingBackgroundWorkPullRequest> | undefined;
-  readonly workflowRunWatches?: ReadonlyArray<ThreadWorkflowRunWatch> | undefined;
-}): Array<PendingBackgroundWorkTask> {
-  const runWatches = (input.workflowRunWatches ?? []).map((watch) => ({
-    taskId: `workflow-run-watch:${watch.host}/${watch.repository}#${watch.runId}`,
-    description: `Watching ${watch.name} run`,
-    kind: "monitor" as const,
-    awaited: true as const,
-  }));
-  return [...pullRequestWatchTasks(input.pullRequests), ...runWatches];
 }
 
 function pullRequestWatchTasks(
@@ -321,9 +331,7 @@ function pullRequestWatchTasks(
       ? []
       : [
           {
-            // Links store their normalized identity, and this id only has to be unique within the
-            // thread, so it reads those fields instead of parsing the URL.
-            taskId: `pull-request-watch:${link.host.toLowerCase()}/${link.repository.toLowerCase()}#${link.number}`,
+            taskId: pullRequestWatchTaskId(link),
             description: `Watching pull request #${link.number}`,
             kind: "monitor" as const,
             awaited: true as const,

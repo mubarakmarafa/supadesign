@@ -108,7 +108,7 @@ const connectWithRealResolver = Effect.fnUntraced(function* (
     Layer.succeed(
       ClientCapabilities.ClientPresentation,
       ClientCapabilities.ClientPresentation.of({
-        metadata: { label: "Test", deviceType: "mobile", surface: "mobile" },
+        metadata: { label: "Test", deviceType: "mobile" },
       }),
     ),
     Layer.succeed(
@@ -141,6 +141,7 @@ const connectWithRealResolver = Effect.fnUntraced(function* (
             initialConfig: Effect.die("unused"),
             configChanges: Stream.never,
             subscribeServerConfig: () => Stream.empty,
+            opened: Effect.void,
             ready: Effect.void,
             probe: Effect.void,
             inboundFrames: Effect.succeed(0),

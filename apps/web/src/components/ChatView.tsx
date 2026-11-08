@@ -15,7 +15,6 @@ import {
 import { useThreadOutboxAttachments } from "../state/threadOutboxEditing";
 import { ThreadFind, ThreadFindCanvas } from "./chat/ThreadFindProvider";
 import { closeThreadFind, openThreadFind, useThreadFindOpen } from "./chat/threadFindStore";
-import { THREAD_FIND_BAR_RESERVED_HEIGHT } from "./chat/ThreadFindBar";
 import { usageLimitRecoveryBannerItem } from "./chat/UsageLimitRecoveryBanner";
 import { sourceControlClients } from "@supaterm/client-runtime/source-control-clients";
 import { resolveNewThreadModelSelection } from "@supaterm/shared/usageLimits";
@@ -247,7 +246,7 @@ import {
   DraftId,
 } from "../composerDraftStore";
 import { type TerminalContextDraft } from "../lib/terminalContext";
-import { collectInlineContextIds } from "../lib/composerContextReferences";
+import { referencedThreadContexts as threadContextsLinkedByPrompt } from "./chat/composerSend.logic";
 import { selectThreadTerminalUiState, useTerminalUiStateStore } from "../terminalUiStateStore";
 import { useKnownTerminalSessions, useThreadRunningTerminalIds } from "../state/terminalSessions";
 import { useEnvironmentQuery } from "../state/query";
@@ -386,6 +385,7 @@ import {
   focusPaneIndexFromKeyboard,
   openThreadPickerBeside,
 } from "../chatPanes/actions";
+import { ChatPaneActionsMenu } from "./chatPanes/ChatPaneActionsMenu";
 import { ChatPaneHeaderControls } from "./chatPanes/ChatPaneHeaderControls";
 
 const EMPTY_PROVIDERS: ServerProvider[] = [];
@@ -683,10 +683,7 @@ export default function ChatView(props: ChatViewProps) {
   const referencedThreadContexts = useComposerDraftStore(
     useShallow((store) => {
       const draft = store.getComposerDraft(composerDraftTarget);
-      if (!draft?.threadContexts.length) return [];
-      // Linked prompts can replace text without pruning stored context records.
-      const referenced = new Set(collectInlineContextIds(draft.prompt));
-      return draft.threadContexts.filter((record) => referenced.has(record.contextId));
+      return draft ? threadContextsLinkedByPrompt(draft) : [];
     }),
   );
   const composerHasNonPromptContent = useComposerDraftStore((store) => {
@@ -964,11 +961,10 @@ export default function ChatView(props: ChatViewProps) {
     localServerError === null && visibleThreadError === serverRuntime?.lastError;
   const defaultRuntimeMode = resolveProjectSettings(settings, activeThread?.projectId ?? null)
     .settings.defaultRuntimeMode;
-  const runtimeMode = isSideChat
-    ? "approval-required"
-    : (composerRuntimeMode ??
-      (isServerThread || pendingThreadCreation ? activeThread?.runtimeMode : undefined) ??
-      defaultRuntimeMode);
+  const runtimeMode =
+    composerRuntimeMode ??
+    (isServerThread || pendingThreadCreation ? activeThread?.runtimeMode : undefined) ??
+    defaultRuntimeMode;
   const isLocalDraftThread =
     !isServerThread && !pendingThreadCreation && localDraftThread !== undefined;
   const canCheckoutPullRequestIntoThread =
@@ -1126,7 +1122,6 @@ export default function ChatView(props: ChatViewProps) {
   const rightPanelMaximized = canMaximizeRightPanel && rightPanelState.maximized === true;
   const inlineRightPanelOwnsTitleBar = rightPanelOpen && !shouldUsePlanSidebarSheet;
   const [threadPanelPopoverHandle] = useState(PopoverCreateHandle);
-  const [backgroundWorkChecksHandle] = useState(PopoverCreateHandle);
   const [chatCanvasStore] = useState(createChatCanvasStore);
 
   const latestRunSettled = isLatestRunSettled(activeLatestRun, activeRuntime);
@@ -2599,7 +2594,6 @@ export default function ChatView(props: ChatViewProps) {
     activeLatestRun,
     activeProjectCwd,
     serverConfig,
-    serverProjection,
     runtimeMode,
     isWorking,
     pendingBackgroundTasks,
@@ -2607,7 +2601,6 @@ export default function ChatView(props: ChatViewProps) {
     activePendingUserInput,
     localCheckoutBranchMismatch,
     gitStatusQuery,
-    backgroundWorkChecksHandle,
     composerRef,
     composerDraftTarget,
     sendInFlightRef,
@@ -2978,7 +2971,7 @@ export default function ChatView(props: ChatViewProps) {
       },
       "composer.voice": ({ repeat, event }) => {
         if (!composerRef.current) return false;
-        if (!repeat) composerRef.current.toggleVoiceInput({ fromKey: event !== null });
+        if (!repeat) composerRef.current.toggleVoiceInput(event ? { code: event.code } : undefined);
       },
       "composer.toggleFastMode": ({ repeat }) => {
         if (repeat) return;
@@ -3302,12 +3295,20 @@ export default function ChatView(props: ChatViewProps) {
     onToggleThreadPanel: toggleThreadPanelStable,
     onToggleRightPanel: toggleRightPanelStable,
   } satisfies PanelLayoutControlsProps;
-  const panelToggleControls = (
-    <PanelLayoutControls
-      {...panelToggleControlProps}
-      showThreadPanelControl={routeKind === "server" && !inlineRightPanelOwnsTitleBar}
-    />
-  );
+  const splitPaneId = paneSplit ? (paneScope?.paneId ?? null) : null;
+  const panelToggleControls =
+    splitPaneId !== null ? (
+      <ChatPaneActionsMenu
+        {...panelToggleControlProps}
+        paneId={splitPaneId}
+        paneClosable={!activeRightPanelSurface}
+      />
+    ) : (
+      <PanelLayoutControls
+        {...panelToggleControlProps}
+        showThreadPanelControl={routeKind === "server" && !inlineRightPanelOwnsTitleBar}
+      />
+    );
   const threadPanelHeaderControl = <ThreadPanelHeaderControl {...panelToggleControlProps} />;
   const panelLayoutControls = (
     <WorkspaceTitlebarControls
@@ -3473,7 +3474,9 @@ export default function ChatView(props: ChatViewProps) {
                 />
               ) : null}
               {!rightPanelControlsAtRoot && !rightPanelControlsInPanel ? panelLayoutControls : null}
-              {inlineRightPanelOwnsTitleBar ? threadPanelHeaderControl : null}
+              {inlineRightPanelOwnsTitleBar && splitPaneId === null
+                ? threadPanelHeaderControl
+                : null}
               <TooltipProvider>
                 <ChatPaneHeaderControls title={activeThread.title} />
                 <ChatHeader
@@ -3484,7 +3487,7 @@ export default function ChatView(props: ChatViewProps) {
                   activeProject={activeProject ?? null}
                   parentThreadLink={parentThreadLink}
                   onOpenThread={onOpenRelatedThreadStable}
-                  rightPanelOpen={inlineRightPanelOwnsTitleBar}
+                  singleTrailingControl={inlineRightPanelOwnsTitleBar || splitPaneId !== null}
                   pinnedMessages={pinnedMessages}
                   onJumpToPinnedMessage={jumpToPinnedMessageStable}
                   {...(canOperateThread ? { onUnpinMessage: unpinMessageStable } : {})}
@@ -3531,7 +3534,7 @@ export default function ChatView(props: ChatViewProps) {
                 store={chatCanvasStore}
                 threadRef={activeThreadRef}
                 preview={canvasPreview}
-                detailsCardTopInset={isThreadFindActive ? THREAD_FIND_BAR_RESERVED_HEIGHT : 0}
+                findBarOpen={isThreadFindActive}
                 composerOverlayElement={isDraftHeroState ? null : composerOverlayElement}
                 data-chat-workspace-drop-target="true"
                 onDragEnter={(event) =>
@@ -3547,7 +3550,6 @@ export default function ChatView(props: ChatViewProps) {
                   makeWorkspaceFileDropHandlers(workspaceFileDropHost).onDrop(event)
                 }
               >
-                <ThreadFind onClose={focusComposerStable} />
                 <WorkspaceDropOverlay active={isWorkspaceFileDragActive} />
                 <ChatBannerLane
                   routeThreadKey={routeThreadKey}
@@ -3566,7 +3568,9 @@ export default function ChatView(props: ChatViewProps) {
                   threadErrorBannerKey={threadErrorBannerKey}
                   setThreadError={setThreadError}
                   setThreadErrorBannerDismissTick={setThreadErrorBannerDismissTick}
-                />
+                >
+                  <ThreadFind onClose={focusComposerStable} />
+                </ChatBannerLane>
                 <div
                   {...conversationArea}
                   className="relative flex min-h-0 flex-1 flex-col bg-background"
@@ -3925,11 +3929,6 @@ export default function ChatView(props: ChatViewProps) {
                                   onOpenProviderSetup={openProviderSetupStable}
                                   getModelDisabledReason={getModelDisabledReason}
                                   handleRuntimeModeChange={handleRuntimeModeChangeStable}
-                                  runtimeModeLockedReason={
-                                    isSideChat
-                                      ? "A side chat asks before it acts. Promote it to choose another mode."
-                                      : null
-                                  }
                                   focusComposer={focusComposerStable}
                                   scheduleComposerFocus={scheduleComposerFocusStable}
                                   setThreadError={setThreadError}

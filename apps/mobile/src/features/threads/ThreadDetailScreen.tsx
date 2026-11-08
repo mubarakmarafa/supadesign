@@ -30,6 +30,7 @@ import { type EnvironmentConnectionPhase } from "@supaterm/client-runtime/connec
 import type { EnvironmentThreadShell } from "@supaterm/client-runtime/state/shell";
 import type { HandoffEndpoints } from "@supaterm/client-runtime/handoff";
 import { queuedRunEditBlockedReason } from "@supaterm/client-runtime/queued-run-edit";
+import type { VoiceRecordingHandOff } from "@supaterm/client-runtime/voice-input";
 import {
   childThreadInputsTitle,
   type CodexFeedbackSubmission,
@@ -45,6 +46,7 @@ import type {
   EnvironmentId,
   MessageId,
   ModelSelection,
+  RepositoryIdentity,
   RuntimeRequestId,
   ScopedThreadRef,
   ServerConfig as SupatermServerConfig,
@@ -265,6 +267,7 @@ export interface ThreadDetailScreenProps {
   readonly environmentId: EnvironmentId;
   readonly projectWorkspaceRoot: string | null;
   readonly threadCwd: string | null;
+  readonly repositoryIdentity?: RepositoryIdentity | null;
   readonly selectedThreadQueueCount: number;
   readonly queuedMessages: ReadonlyArray<QueuedThreadMessage>;
   readonly dispatchingMessageId: MessageId | null;
@@ -291,6 +294,7 @@ export interface ThreadDetailScreenProps {
   readonly onSendVoiceMessage?: (
     recordingUri: string,
     language: string,
+    handOff: VoiceRecordingHandOff | undefined,
   ) => Promise<MessageId | null>;
   readonly onReconnectEnvironment: () => void;
   readonly canSwitchThreadProvider: boolean;
@@ -752,7 +756,7 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
   const pendingBackgroundWork = presentPendingBackgroundWork(
     props.selectedThread.pendingBackgroundTasks,
   );
-  const floatingStatus = ((): FloatingWorkingStatus | null => {
+  const deriveFloatingStatus = (ready: boolean): FloatingWorkingStatus | null => {
     const connectionStatus = connectionFloatingStatus({
       connectionError: connectionRetrying ? retryConnectionError : props.connectionError,
       connectionState: props.connectionStateLabel,
@@ -763,7 +767,7 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
       return connectionStatus;
     }
     // Before the request check: an agent stuck on an approval may also ignore Stop.
-    if (runStop !== null && contentPresentationKind === "ready") {
+    if (runStop !== null && ready) {
       const unresponsive = runStop.state === "unresponsive";
       return {
         kind: "stop",
@@ -807,8 +811,9 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
     if (threadSyncLabel !== null) {
       return { kind: "syncing", label: threadSyncLabel };
     }
+    if (!ready) return null;
     const childInput = childThreadInputs[0];
-    if (childInput && contentPresentationKind === "ready") {
+    if (childInput) {
       return {
         kind: "child-input",
         label: childThreadInputsTitle(childThreadInputs),
@@ -819,13 +824,13 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
         },
       };
     }
-    if (props.isCompacting && contentPresentationKind === "ready") {
+    if (props.isCompacting) {
       return { kind: "compacting" };
     }
-    if (props.activeWorkStartedAt !== null && contentPresentationKind === "ready") {
+    if (props.activeWorkStartedAt !== null) {
       return { kind: "working", startedAt: props.activeWorkStartedAt };
     }
-    if (pendingBackgroundWork !== null && contentPresentationKind === "ready") {
+    if (pendingBackgroundWork !== null) {
       return {
         kind: "background",
         label: pendingBackgroundWork.title,
@@ -848,7 +853,7 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
         },
       };
     }
-    if (contentPresentationKind === "ready" && (snoozed || done || woke)) {
+    if (snoozed || done || woke) {
       const state = snoozed ? "snoozed" : done ? "done" : "woke";
       const label =
         snoozed && snoozedUntil !== null
@@ -875,7 +880,7 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
         },
       };
     }
-    if (props.selectedThread.goal !== null && contentPresentationKind === "ready") {
+    if (props.selectedThread.goal !== null) {
       const goal = presentProviderGoal(props.selectedThread.goal, false);
       return {
         kind: "goal",
@@ -884,10 +889,20 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
       };
     }
     return null;
-  })();
+  };
+  const floatingStatus = deriveFloatingStatus(contentPresentationKind === "ready");
   const showWorkingControl = floatingStatus !== null;
+  // The pill appears once messages load. Reserving its room while they load lets the feed lay
+  // out once; room that appears mid-load moves the end the feed is settling toward. A pending
+  // request hides the pill once loaded, so a shell that reports one reserves nothing.
+  const reservesStatusRoom =
+    contentPresentationKind === "loading" &&
+    !props.selectedThread.hasPendingApprovals &&
+    !props.selectedThread.hasPendingUserInput &&
+    deriveFloatingStatus(true) !== null;
   const showFloatingStatus =
     showWorkingControl ||
+    reservesStatusRoom ||
     queuedCount > 0 ||
     agentsSegment !== null ||
     devicePreviews.length > 0 ||
@@ -1092,22 +1107,33 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
   // LegendList does not re-anchor short followed conversations when floating
   // coverage changes after load. Re-pin each time it settles at a new value;
   // the repin checks follow state so a user who scrolled up stays put.
-  const settledFloatingCoverageRef = useRef(0);
+  const floatingCoverageTarget = showFloatingStatus ? FLOATING_WORKING_CONTROL_COVERAGE : 0;
+  const settledFloatingCoverageRef = useRef(floatingCoverageTarget);
+  const markCoverageSettled = (coverage: number) => {
+    settledFloatingCoverageRef.current = coverage;
+  };
   const repinAfterCoverageSettles = (coverage: number) => {
     if (coverage === settledFloatingCoverageRef.current) return;
     settledFloatingCoverageRef.current = coverage;
     scheduleOverlayRepin(50);
   };
-  const floatingCoverageTarget = showFloatingStatus ? FLOATING_WORKING_CONTROL_COVERAGE : 0;
-  const floatingControlCoverage = useDerivedValue(
-    () =>
-      withTiming(
-        floatingCoverageTarget,
-        { duration: 180, reduceMotion: ReduceMotion.System },
-        (finished) => {
-          if (finished) runOnJS(repinAfterCoverageSettles)(floatingCoverageTarget);
-        },
-      ),
+  const floatingControlCoverage = useSharedValue(floatingCoverageTarget);
+  useAnimatedReaction(
+    () => floatingCoverageTarget,
+    (target, previous) => {
+      // The first run applies its target without animating; animating would move the feed's end.
+      // The target can change after the first render but before this first run.
+      if (previous === null) {
+        floatingControlCoverage.set(target);
+        runOnJS(markCoverageSettled)(target);
+        return;
+      }
+      floatingControlCoverage.set(
+        withTiming(target, { duration: 180, reduceMotion: ReduceMotion.System }, (finished) => {
+          if (finished) runOnJS(repinAfterCoverageSettles)(target);
+        }),
+      );
+    },
     [floatingCoverageTarget],
   );
   // Android renders the expanded card in-flow (it cannot hit-test the iOS
@@ -1331,13 +1357,17 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
   // Declining approvals to redirect the agent is the text send path's job.
   const handleSendVoiceMessage =
     onSendVoiceMessage && clientCreation === null && props.activePendingApprovals.length === 0
-      ? async (recordingUri: string, language: string) => {
+      ? async (
+          recordingUri: string,
+          language: string,
+          handOff: VoiceRecordingHandOff | undefined,
+        ) => {
           const scope = threadScope.current.signal;
           const targetThreadKey = selectedThreadKey;
           const hasUserMessage = selectedThreadFeed.some(
             (entry) => entry.type === "message" && entry.message.role === "user",
           );
-          const messageId = await onSendVoiceMessage(recordingUri, language);
+          const messageId = await onSendVoiceMessage(recordingUri, language, handOff);
           if (messageId !== null && !scope.aborted) {
             revealSubmittedMessage(scope, targetThreadKey, messageId, hasUserMessage);
           }
@@ -1479,6 +1509,7 @@ function ThreadDetailBody(props: ThreadDetailScreenProps) {
               environmentId={props.environmentId}
               threadId={props.selectedThread.id}
               workspaceRoot={props.threadCwd}
+              repositoryIdentity={props.repositoryIdentity}
               feed={props.selectedThreadFeed}
               pendingHandoff={props.pendingHandoff}
               worktreeSetup={props.worktreeSetup}

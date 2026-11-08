@@ -18,7 +18,7 @@ import {
   parseThreadKey,
   threadKey,
 } from "@supaterm/client-runtime/state/entities";
-import type { ScopedProjectRef, ScopedThreadRef } from "@supaterm/contracts";
+import type { RepositoryIdentity, ScopedProjectRef, ScopedThreadRef } from "@supaterm/contracts";
 import type {
   EnvironmentId,
   OrchestrationV2ProjectedTurnItem,
@@ -27,11 +27,12 @@ import type {
   ThreadId,
 } from "@supaterm/contracts";
 import type { ThreadCheckpointSummary } from "@supaterm/client-runtime/state/thread-checkpoints";
+import { subagentChildTitles } from "@supaterm/client-runtime/state/thread-relationships";
 import { Atom } from "effect/reactivity";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { environmentProjects } from "./projects";
 import { environmentPresentations } from "./presentation";
-import { environmentServerConfigsAtom } from "./server";
+import { environmentServerConfigsAtom, serverEnvironment } from "./server";
 import {
   allEnvironmentProjectSnapshotsReadyAtom,
   allEnvironmentShellsBootstrappedAtom,
@@ -78,6 +79,22 @@ const EMPTY_UPDATED_AT_ATOM = Atom.make<DateTime.Utc | null>(null).pipe(
 );
 const EMPTY_THREAD_HISTORY_ATOM = Atom.make<ThreadHistoryMeta>(EMPTY_THREAD_HISTORY_META).pipe(
   Atom.withLabel("web-thread-history:empty"),
+);
+const EMPTY_REPOSITORY_IDENTITY_ATOM = Atom.make<RepositoryIdentity | null>(null).pipe(
+  Atom.withLabel("web-thread-repository-identity:empty"),
+);
+
+// Every visible reply reads this, so it changes only with the project's repository, not each turn.
+const threadRepositoryIdentityAtom = Atom.family((key: string) =>
+  Atom.make((get) => {
+    const ref = parseThreadKey(key);
+    const projectId = get(environmentThreadShells.quietThreadShellAtom(ref))?.projectId;
+    if (projectId === undefined) return null;
+    const project = get(
+      environmentProjects.projectAtom({ environmentId: ref.environmentId, projectId }),
+    );
+    return project?.repositoryIdentity ?? null;
+  }).pipe(Atom.withLabel(`web-thread-repository-identity:${key}`)),
 );
 
 export function useThreadRefs(enabled = true): ReadonlyArray<ScopedThreadRef> {
@@ -188,6 +205,45 @@ export function useThreadShell(ref: ScopedThreadRef | null): EnvironmentThreadSh
   );
 }
 
+const EMPTY_CHILD_TITLES: ReadonlyMap<ThreadId, string> = new Map();
+const EMPTY_CHILD_TITLES_ATOM = Atom.make(EMPTY_CHILD_TITLES).pipe(
+  Atom.withLabel("web-subagent-child-titles:empty"),
+);
+
+// Held while unchanged, so links in a streaming thread re-render only when its children change.
+const subagentChildTitlesAtomFamily = Atom.family((key: string) => {
+  const ref = parseThreadKey(key);
+  let previous = EMPTY_CHILD_TITLES;
+  return Atom.make((get) => {
+    const next = subagentChildTitles(
+      get(environmentThreadDetails.threadAtom(ref))?.projection.subagents ?? [],
+    );
+    const unchanged =
+      next.size === previous.size &&
+      [...next].every(([threadId, title]) => previous.get(threadId) === title);
+    if (!unchanged) previous = next;
+    return previous;
+  }).pipe(Atom.withLabel(`web-subagent-child-titles:${key}`));
+});
+
+/** The child threads a loaded thread's subagents name, which the shell can leave out once idle. */
+export function useSubagentChildTitles(ref: ScopedThreadRef | null): ReadonlyMap<ThreadId, string> {
+  return useAtomValue(
+    ref === null ? EMPTY_CHILD_TITLES_ATOM : subagentChildTitlesAtomFamily(threadKey(ref)),
+  );
+}
+
+const shellOmitsThreadsAtom = Atom.family((environmentId: EnvironmentId) =>
+  Atom.make(
+    (get) => get(serverEnvironment.configValueAtom(environmentId))?.shellThreadFamilies === true,
+  ).pipe(Atom.withLabel(`web-shell-omits-threads:${environmentId}`)),
+);
+
+/** Whether this environment's shell leaves out idle subagents and older done threads. */
+export function useShellOmitsThreads(environmentId: EnvironmentId): boolean {
+  return useAtomValue(shellOmitsThreadsAtom(environmentId));
+}
+
 /** Includes threads still being created from a pending send. */
 export function useSidebarThreadShell(ref: ScopedThreadRef): EnvironmentThreadShell | null {
   return useAtomValue(sidebarThreadShells.threadShellAtom(ref));
@@ -214,6 +270,14 @@ export function useSideChats(ref: ScopedThreadRef | null) {
 
 export function readSideChats(ref: ScopedThreadRef): ReadonlyArray<EnvironmentThreadShell> {
   return appAtomRegistry.get(environmentThreadShells.sideChatsAtom(ref));
+}
+
+export function useThreadRepositoryIdentity(
+  ref: ScopedThreadRef | null,
+): RepositoryIdentity | null {
+  return useAtomValue(
+    ref === null ? EMPTY_REPOSITORY_IDENTITY_ATOM : threadRepositoryIdentityAtom(threadKey(ref)),
+  );
 }
 
 export function useThreadProjection(ref: ScopedThreadRef | null): EnvironmentThread | null {

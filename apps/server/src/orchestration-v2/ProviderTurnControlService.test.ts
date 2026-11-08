@@ -215,7 +215,6 @@ it.effect(
           getLimitRecoveryWakeAt: () => Effect.die("unused getLimitRecoveryWakeAt"),
           getShellSnapshot: () => Effect.die("unused getShellSnapshot"),
           listActiveSubagentThreadIds: () => Effect.die("unused listActiveSubagentThreadIds"),
-          countThreads: () => Effect.die("unused countThreads"),
           listActiveShellIndex: () => Effect.die("unused listActiveShellIndex"),
           listOlderDoneThreads: () => Effect.die("unused listOlderDoneThreads"),
           readShellSnapshot: () => Effect.die("unused readShellSnapshot"),
@@ -223,8 +222,6 @@ it.effect(
           getThread: () => Ref.get(projection).pipe(Effect.map((state) => state.thread)),
           getAutoMarkDoneCandidates: () => Effect.die("unused getAutoMarkDoneCandidates"),
           getThreadsWithPullRequests: () => Effect.die("unused getThreadsWithPullRequests"),
-          getThreadsWithWorkflowRunWatches: () =>
-            Effect.die("unused getThreadsWithWorkflowRunWatches"),
           getThreadWorktreePaths: () => Effect.die("unused getThreadWorktreePaths"),
           getThreadProjection: () => Effect.die("control effects must not load transcript"),
           getTurnStartContext: () => Effect.die("unused"),

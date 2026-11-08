@@ -238,8 +238,6 @@ export const make = Effect.gen(function* () {
       threadProjectFromScratch: true,
       oneTimeSchedules: true,
       npmReleaseLookup: true,
-      // Supadesign leaves out the product usage switch: its events would reach Supaterm's
-      // analytics. SUPATERM_TELEMETRY_ENABLED still opts in.
       ...(serverSelfUpdate === null ? {} : { serverSelfUpdate }),
       ...(serverInstallation === null ? {} : { serverInstallation }),
       ...(serverSelfUpdate === "boot-service" || desktopAppUpdate
