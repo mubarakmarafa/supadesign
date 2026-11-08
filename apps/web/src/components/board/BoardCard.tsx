@@ -28,10 +28,14 @@ import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { decisionCounts, decisionPillLabel } from "../brief/brief.logic";
 import { cardSummaryText, coverState, type CoverState } from "../progress/cardProgress.logic";
 import { progressImageResource } from "../progress/progressImage";
+import type { ProviderInstanceEntry } from "../../providerInstances";
+import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
+import { runtimeModeConfig } from "../chat/runtimeModeConfig";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { BoardAutomationCardStatus } from "./BoardAutomationStatus";
 import { LiveEnvironmentCardStatus } from "./LiveEnvironmentStatus";
+import { cardModelLabel } from "./cardAgentSettings";
 
 export interface BoardCardHandlers {
   readonly onOpen: (threadId: string) => void;
@@ -132,12 +136,14 @@ function BoardCardFace({
   progress,
   bankedCount,
   brief,
+  providerEntries,
   onViewProgress,
 }: {
   thread: EnvironmentThreadShell;
   progress: ThreadProgress | undefined;
   bankedCount: number;
   brief: ThreadBrief | undefined;
+  providerEntries: ReadonlyMap<string, ProviderInstanceEntry>;
   onViewProgress: (() => void) | null;
 }) {
   const status = resolveThreadStatusPill({ thread });
@@ -148,6 +154,10 @@ function BoardCardFace({
   const questions = cover?.questions.length ?? 0;
   const decisions = decisionCounts(brief);
   const decisionLabel = decisionPillLabel(decisions);
+  const providerEntry = providerEntries.get(thread.modelSelection.instanceId);
+  const modelLabel = cardModelLabel(thread.modelSelection, providerEntry);
+  const access = runtimeModeConfig[thread.runtimeMode];
+  const AccessIcon = access.icon;
   return (
     <>
       {progress && cover ? (
@@ -226,6 +236,41 @@ function BoardCardFace({
             ) : null}
           </div>
         ) : null}
+        {/* What the agent runs on and may do, visible before a move starts it. */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div className="flex min-w-0 items-center gap-x-3 pt-0.5 text-xs text-muted-foreground" />
+            }
+          >
+            <span className="flex min-w-0 items-center gap-1">
+              {providerEntry ? (
+                <ProviderInstanceIcon
+                  driverKind={providerEntry.driverKind}
+                  displayName={providerEntry.displayName}
+                  accentColor={providerEntry.accentColor}
+                  acpRegistryAgentId={providerEntry.acpRegistryAgentId}
+                  acpRegistryIconUrl={providerEntry.acpRegistryIconUrl}
+                  iconClassName="size-3"
+                />
+              ) : null}
+              <span className="truncate">{modelLabel}</span>
+            </span>
+            <span
+              className={cn(
+                "flex shrink-0 items-center gap-1",
+                thread.runtimeMode === "full-access" && "text-warning-foreground",
+              )}
+            >
+              <AccessIcon aria-hidden className="size-3 shrink-0" />
+              {access.label}
+            </span>
+          </TooltipTrigger>
+          <TooltipPopup side="top">
+            {providerEntry ? `${providerEntry.displayName} ` : ""}
+            {modelLabel} · {access.label}: {access.description}
+          </TooltipPopup>
+        </Tooltip>
       </div>
     </>
   );
@@ -241,6 +286,7 @@ export const BoardCard = memo(function BoardCard({
   progress,
   bankedCount,
   brief,
+  providerEntries,
   tabbable,
   peeked,
   canDrag,
@@ -257,6 +303,8 @@ export const BoardCard = memo(function BoardCard({
   bankedCount: number;
   /** The card's brief and decisions. */
   brief: ThreadBrief | undefined;
+  /** Provider instances by id, for the card's model and logo. */
+  providerEntries: ReadonlyMap<string, ProviderInstanceEntry>;
   /** Roving tabindex: exactly one card on the board is in the tab order. */
   tabbable: boolean;
   peeked: boolean;
@@ -320,6 +368,7 @@ export const BoardCard = memo(function BoardCard({
           progress={progress}
           bankedCount={bankedCount}
           brief={brief}
+          providerEntries={providerEntries}
           onViewProgress={() => handlers.onViewProgress(thread.id)}
         />
         {automation ? (
@@ -376,11 +425,13 @@ export function BoardCardOverlay({
   progress,
   bankedCount,
   brief,
+  providerEntries,
 }: {
   thread: EnvironmentThreadShell;
   progress: ThreadProgress | undefined;
   bankedCount: number;
   brief: ThreadBrief | undefined;
+  providerEntries: ReadonlyMap<string, ProviderInstanceEntry>;
 }) {
   return (
     <div className={cn(CARD_CLASS, "-rotate-1 shadow-lg")}>
@@ -389,6 +440,7 @@ export function BoardCardOverlay({
         progress={progress}
         bankedCount={bankedCount}
         brief={brief}
+        providerEntries={providerEntries}
         onViewProgress={null}
       />
     </div>

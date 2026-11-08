@@ -77,7 +77,16 @@ import {
   useThreadShellsForProjectRefs,
 } from "../../state/entities";
 import { projectEnvironment } from "../../state/projects";
-import { primaryServerKeybindingsAtom } from "../../state/server";
+import { useEnvironmentSettings } from "../../hooks/useSettings";
+import {
+  applyProviderInstanceSettings,
+  deriveProviderInstanceEntries,
+} from "../../providerInstances";
+import {
+  EMPTY_SERVER_PROVIDERS,
+  primaryServerKeybindingsAtom,
+  serverEnvironment,
+} from "../../state/server";
 import { useEnvironmentScope } from "../../state/session";
 import { threadEnvironment } from "../../state/threads";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
@@ -454,6 +463,19 @@ function ProjectBoardView({
     if (boardAgentThreadId !== undefined) byId.delete(boardAgentThreadId);
     return [...byId.values()];
   }, [archive.snapshots, boardAgentThreadId, liveThreads, projectRef]);
+
+  const providers =
+    useAtomValue(serverEnvironment.providersValueAtom(projectRef.environmentId)) ??
+    EMPTY_SERVER_PROVIDERS;
+  const settings = useEnvironmentSettings(projectRef.environmentId);
+  // The compiler keeps this Map while providers and settings are unchanged, so cards stay memoized.
+  const providerEntries = new Map(
+    applyProviderInstanceSettings(
+      deriveProviderInstanceEntries(providers),
+      settings,
+      projectRef.projectId,
+    ).map((entry) => [entry.instanceId as string, entry] as const),
+  );
 
   const resolved = useMemo(() => resolveBoardColumns(storedBoard, threads), [storedBoard, threads]);
   const { canonicalThreadById, orderKeyById, canonicalLayout } = useMemo(() => {
@@ -1311,6 +1333,7 @@ function ProjectBoardView({
               bankedCounts={bankedCounts}
               progressByThread={progressByThread}
               briefsByThread={briefsByThread}
+              providerEntries={providerEntries}
               tabbableCardId={tabbableCardId}
               peekedCardId={peekedCardId}
               canEdit={canOperate}
@@ -1383,6 +1406,7 @@ function ProjectBoardView({
             progress={progressByThread.get(activeThread.id)}
             bankedCount={bankedCounts.get(activeThread.id) ?? 0}
             brief={briefsByThread.get(activeThread.id)}
+            providerEntries={providerEntries}
           />
         ) : null}
       </DragOverlay>
